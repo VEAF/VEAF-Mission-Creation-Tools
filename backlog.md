@@ -90,10 +90,12 @@
 | Lot FEAT-YAML-MODULE-UX — Module shorthand, uppercase community IDs, category sort | ~1h | ✅ |
 | Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings | ~45 min | ✅ |
 | Lot FIX-I18N-HARDCODED — AST test + fix hardcoded strings in aircrafts_injector + lua_config_generator | ~1h | ✅ |
-| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | 🔄 |
+| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | ✅ |
+| Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation with diagrams + screenshots | ~12h | ✅ |
+| Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ~2h | ⬜ |
 | Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers) | ~3h | 🔄 |
 | Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml | ~45 min | ⬜ |
-| **Total** | **~198h** | |
+| **Total** | **~212h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -509,5 +511,77 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | DEBT-006 | Fix `weather_injector/utils/lua_converter.py` (5 violations) | util + locales | fix | 10 min | ⬜ |
 | DEBT-007 | Fix remaining small files (≤3 violations each): mission_extractor, mission_tools, presets_injector, veaf-tools-updater, veaf_libs/*, veaf_tools/commands (7 files), waypoints_manager, weather_injector/* | various + locales | fix | 45 min | ⬜ |
 | DEBT-008 | Remove all 25 files from `_TODO_EXEMPTIONS` in test_i18n.py | test | 5 min | ⬜ |
+
+---
+
+## Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation
+
+**Goal**: Make the documentation complete, detailed, accessible, fully bilingual (FR/EN parity), with ELI5 explanations for non-dev audiences (pilots, mission makers), mermaid diagrams, and screenshot placeholders. Blocks the next develop-v6 release.
+
+**Branch**: `feature/doc-overhaul` → PR → `develop-v6`
+
+**Audit findings** (verified):
+- FR systematically lags EN: LUA_API_REFERENCE −1077 lines, TOOLS_REFERENCE −346, pilot/GUIDE −103, veafAirWaves −131, veafCombatZone −103, others −20…−50
+- Missing files: `veafInterpreter.md` (no FR → nav L105 404), `dcs-radio-specs.en.md` (no EN)
+- Zero images/screenshots in 40 docs; mermaid only in developer docs
+- Pilot guide not truly ELI5 (unexplained jargon: Lua framework, AWACS, IADS)
+- Content errors: deprecated `enable:` examples, removed `convert` command listed, CSAR "not available" (false), dead URL in updater
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| DOC-001 | Create `veafInterpreter.md` (FR) — fixes broken FR nav. (`dcs-radio-specs` EN parity deferred to DOC-005: file is hand-maintained, not purely generated) | fix | 30 min | ✅ |
+| DOC-002 | Isolated content errors done: remove `convert`, CSAR note (FR+EN), dead updater URL, debug-logging section, CHANGELOG consolidation. (`enable:`→`enabled:` + `lua_modules:`→`modules:` across ~20 files folded into per-file DOC-005 passes) | fix | 45 min | ✅ |
+| DOC-003 | Pilot guide rewritten (FR+EN): deduplicated, accessible, `_auth` standardized, mermaid F10 menu, screenshot placeholders; READMEs reviewed (already clean) | feat | 2h | ✅ |
+| DOC-004 | Mission-maker GUIDE + MIGRATION_GUIDE (FR+EN): build-pipeline + v5→v6 mermaid diagrams, `modules:` block example, broken `GUIDE.fr.md` links fixed | feat | 2h | ✅ |
+| DOC-005a | Mechanical syntax sweeps (`enable:`→`enabled:` ×62, `lua_modules:`→`modules:` ×56) + MISSION_YAML_REFERENCE unified `modules:` rewrite (FR+EN) | feat | 1h30 | ✅ |
+| DOC-005b | Script docs FR→EN parity: veafAirWaves, veafCombatZone, veafQraManager, veafShortcuts, veafWeather, veafRadio (all now delta ≤10) + broken `.fr.md` links fixed | feat | 2h30 | ✅ |
+| DOC-005c | Big references in-section depth parity: LUA_API_REFERENCE (~1050 l. across 5 API sections) + TOOLS_REFERENCE (~346 l.) + dcs-radio-specs FR prose | feat | 5h | ✅ |
+| DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ✅ |
+
+**Estimated total: ~12h**
+
+### DOC-005c handoff brief (cold-start ready)
+
+The remaining work is **in-section depth parity** — same headings in FR and EN, but the
+FR has shorter descriptions / fewer code examples. Approach: for each section, read the
+EN version, then expand the FR to match (translate the missing prose, tables, and code
+blocks). Code blocks/identifiers stay identical; only prose is translated.
+
+**Files and gaps (FR lines behind EN):**
+
+| File | Gap | Where the gap is |
+|------|-----|------------------|
+| `doc/LUA_API_REFERENCE.md` | ~1050 | Core Infrastructure (−190), Unit & Group Management (−388), Mission Systems (−284), Infrastructure & Services (−102), Communication & Control (−90). Other sections already at parity. |
+| `doc/TOOLS_REFERENCE.md` | ~346 | All sections present (translated headings); depth is thinner throughout the updater/publish/architecture sections. |
+| `doc/mission-maker/dcs-radio-specs.md` | prose only | The frequency table is language-neutral and fine; only the header prose + the hand-written "Critical aircraft" section need a FR pass. NOTE: this file is **hand-maintained** beyond what `veaf_build/radio_specs_updater.py` generates — do not regenerate, edit by hand. |
+
+**Conventions already established this lot (keep consistent):**
+- Tone: sober, vouvoiement, jargon explained at first use (no childish analogies).
+- YAML syntax in examples: unified `modules:` block, `enabled:` (never `enable:`), community scripts as uppercase IDs inside `modules:`.
+- Auth command is `_auth [PASSWORD]` (canonical `veafSecurity.Keyphrase`); never `-login`.
+- Cross-doc links use `*.md` (NOT `*.fr.md` / `*.en.md`) — mkdocs-static-i18n resolves the language. Several `.fr.md` links were already fixed; watch for more.
+- Screenshot placeholders live under `doc/assets/img/<area>/`.
+- Per-doc commits, verify parity with `wc -l` after each file.
+
+**After DOC-005c:** update CHANGELOG, open PR `feature/doc-overhaul` → `develop-v6`,
+then the user captures the screenshots listed in DOC-006 to drop into `doc/assets/img/`.
+
+---
+
+## Lot PREREL-BUGS — Pre-release code review findings
+
+**Goal**: Fix bugs found during a verified pre-release code review (unrelated to the documentation lot). These block the next `develop-v6` release. B1 is a functional regression and should be fixed first.
+
+**Branch**: `fix/prerel-bugs` → PR → `develop-v6` (Python changes; separate from the doc PR)
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| PREREL-001 (B1) | **Regression** — `config_migrator.py` `_lua_extract_string()` over-collects quoted strings after `:setBriefing(`: a briefing absorbs following setter strings in the same call chain. Introduced by the multiline fix (PR #390), reproduced empirically. Fix: bound the search to the matching `)` of `:setBriefing(`. Add a regression test covering a chained `:setBriefing("..."):setX("...")` case. | fix | 1h | ⬜ |
+| PREREL-002 (B2) | `mission_builder_worker.py` (~L339): `exit()` returns code 0 after a fatal error, so a failed build is reported as success. Use a non-zero exit code / raise. | fix | 20 min | ⬜ |
+| PREREL-003 (B3/B4) | Hardcoded English in `mission_builder_worker.py`: ~L333-338 missing-files message and ~L1168 `"Injecting dcs-bridge.lua"` spinner must use `t()`; add FR translations to `fr.json`. | fix | 20 min | ⬜ |
+| PREREL-004 (I1) | `paths.py`: replace `exit(-1)` with a raised exception (utility code should not call `exit()`; makes it testable). | fix | 15 min | ⬜ |
+| PREREL-005 (cosmetic) | `v5_converter.py` (~L885): remove the dead `is None` branch (never reached). Low priority. | chore | 10 min | ⬜ |
+
+**Estimated total: ~2h05**
 
 ---

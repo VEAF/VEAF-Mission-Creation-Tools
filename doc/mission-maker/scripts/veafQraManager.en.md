@@ -49,12 +49,12 @@ local myQra = VeafQRA:new()
 
 ## Configuration (`mission.yaml`)
 
-QRA definitions live in the **top-level `qra:` section** (not under `lua_modules:`). The `QRA` module must be enabled in `lua_modules:`.
+QRA definitions live in the **top-level `qra:` section** (not under `modules:`). The `QRA` module must be enabled in `modules:`.
 
 ```yaml
-lua_modules:
+modules:
   QRA:
-    enable: true          # default: true
+    enabled: true          # default: true
     logLevel: info        # optional log level override
 
 qra:
@@ -109,9 +109,9 @@ qra:
 ### Minimal example
 
 ```yaml
-lua_modules:
+modules:
   QRA:
-    enable: true
+    enabled: true
 
 qra:
   definitions:

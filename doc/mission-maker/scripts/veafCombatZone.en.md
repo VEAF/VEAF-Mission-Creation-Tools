@@ -32,9 +32,9 @@ Individual zones are created and initialised separately (see below).
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   COMBATZONE:
-    enable: true          # default: true
+    enabled: true          # default: true
     logLevel: info        # optional log level override
     combat_zone_settings: # optional global overrides
       event_message_combatzonecomplete: "Zone objective complete!"  # null = suppress
@@ -98,9 +98,9 @@ lua_modules:
 ### Minimal example
 
 ```yaml
-lua_modules:
+modules:
   COMBATZONE:
-    enable: true
+    enabled: true
     combat_zones:
       - type: zone
         zone_name: "CZ-Alpha"

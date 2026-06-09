@@ -1,39 +1,40 @@
-# DCS Radio Frequency Specifications
+# Spécifications des fréquences radio DCS
 
-Reference table of valid radio frequency ranges for all DCS player-flyable aircraft.
-Used by `inject-presets` to validate that frequencies defined in `presets.yaml` are
-compatible with the target aircraft's radio hardware.
+Table de référence des plages de fréquences radio valides pour tous les appareils DCS pilotables
+par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquences définies dans
+`presets.yaml` sont compatibles avec le matériel radio de l'appareil cible.
 
-> **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Re-generate with `poetry run update-radio-specs` after a DCS patch.
+> **Source** : [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
+> Régénérez avec `poetry run update-radio-specs` après un patch DCS.
 
 ---
 
-## Critical aircraft (`dcs_rejects_on_load`)
+## Appareils critiques (`dcs_rejects_on_load`)
 
-Some aircraft raise a hard DCS error when the mission loads if any preset frequency is outside
-their valid radio range. These are flagged `dcs_rejects_on_load: true` in `dcs-radio-specs.yaml`
-and always emit a `WARNING` during `veaf-tools build`.
+Certains appareils provoquent une erreur DCS bloquante au chargement de la mission si une fréquence
+de preset se trouve hors de leur plage radio valide. Ils sont marqués `dcs_rejects_on_load: true`
+dans `dcs-radio-specs.yaml` et émettent toujours un `WARNING` pendant `veaf-tools build`.
 
-Currently known critical aircraft:
+Appareils critiques actuellement connus :
 
-| Aircraft | DCS ID | Valid range |
-|----------|--------|-------------|
+| Appareil | ID DCS | Plage valide |
+|----------|--------|--------------|
 | MiG-19P | `MiG-19P` | 100–150 MHz |
-| Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM only) |
+| Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM uniquement) |
 
-For other aircraft, DCS stores the frequencies silently without crashing. Issues are still
-reported in the automatic `presets-validation-report.md` generated after each build.
+Pour les autres appareils, DCS enregistre les fréquences silencieusement sans planter. Les
+problèmes restent signalés dans le `presets-validation-report.md` généré automatiquement après
+chaque build.
 
-If you discover another aircraft that causes DCS to reject the mission, add
-`dcs_rejects_on_load: true` to its entry in `src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml`
-and open a pull request.
+Si vous découvrez un autre appareil qui pousse DCS à rejeter la mission, ajoutez
+`dcs_rejects_on_load: true` à son entrée dans
+`src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` et ouvrez une pull request.
 
 ---
 
-## Fixed-wing aircraft
+## Avions
 
-| Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |
+| Appareil | ID DCS | Radio | Min (MHz) | Max (MHz) | Modulation |
 |----------|--------|-------|----------:|----------:|------------|
 | **TurboFan** | `A-10C` | VHF AM: ARC-186 | 116.000 | 151.975 | AM / FM |
 |  |  | UHF AM: ARC-164 | 225.000 | 399.975 | AM / FM |
@@ -214,9 +215,9 @@ and open a pull request.
 |  |  | BC-1206 | 100.000 | 200.000 | AM / FM |
 | **Radial** | `Yak-52` | ARK-15M | 0.100 | 1.795 | AM / FM |
 
-## Helicopters
+## Hélicoptères
 
-| Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |
+| Appareil | ID DCS | Radio | Min (MHz) | Max (MHz) | Modulation |
 |----------|--------|-------|----------:|----------:|------------|
 | **TurboShaft** | `AH-64D_BLK_II` | ARC-186 | 108.000 | 151.975 | AM / FM |
 |  |  | ARC-164 | 225.000 | 399.975 | AM / FM |

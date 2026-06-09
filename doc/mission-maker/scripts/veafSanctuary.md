@@ -38,9 +38,9 @@ VeafSanctuary:new()
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   SANCTUARY:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     sanctuary_zones:      # liste des zones protégées
       - name: "Zone Carrier"            # identifiant interne
@@ -70,9 +70,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   SANCTUARY:
-    enable: true
+    enabled: true
     sanctuary_zones:
       - name: "Protection Porte-Avions"
         polygon_units:

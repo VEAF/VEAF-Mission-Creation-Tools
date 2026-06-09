@@ -488,7 +488,7 @@ exit /b 0
         console.print(
             t(
                 "updater.lang_tip",
-                url="https://veaf.github.io/VEAF-Mission-Creation-Tools-v6/mission-maker/GUIDE/#global-user-configuration",
+                url="https://veaf.github.io/documentation/dev/mission-maker/GUIDE/#global-user-configuration",
             )
         )
 

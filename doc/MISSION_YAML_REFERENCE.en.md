@@ -27,7 +27,7 @@ These files are **not** loaded at DCS runtime — they are consumed by `veaf-too
 
 `mission.yaml` itself configures **how VEAF Lua modules behave at DCS runtime**. It is translated at build time into `veaf-config.lua`, which is injected into the mission and executed when DCS loads the mission.
 
-Sections such as `lua_modules:`, `qra:`, `assets:`, and `shortcuts:` all describe runtime module behaviour.
+Sections such as `modules:`, `qra:`, `assets:`, and `shortcuts:` all describe runtime module behaviour.
 
 ```
 mission folder/
@@ -58,11 +58,11 @@ mission:
 security:
   disabled: true
 
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
   ASSETS:
-    enable: true
+    enabled: true
     assets:
       - sort: 1
         name: "Texaco"
@@ -210,7 +210,14 @@ external_modules:
 | `enabled` | boolean | `false` | Enable CTLD integration |
 | *(any ctld property)* | any | — | Any `ctld.xxx` property (e.g. `hoverPickup: true`) |
 
-> CSAR configuration is not yet available via `mission.yaml` — configure it in `mission-script.lua` directly.
+#### `external_modules.csar` fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable CSAR integration |
+| *(any csar property)* | any | — | Any `csar.xxx` property (e.g. `enableAllslots: true`, `csarPrefix: "MEDEVAC"`) |
+
+VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
 
 ---
 
@@ -233,39 +240,67 @@ veaf_tools:
 
 ---
 
-### `lua_modules:`
+### `modules:`
 
-Enable, disable, or configure individual VEAF Lua modules. Modules not listed are enabled with their default settings.
+The unified `modules:` block enables, disables, or configures every VEAF Lua module **and** every community script in a single place. Modules not listed are enabled with their default settings.
 
-> **Infrastructure modules are always active.**
-> The modules `UNITS`, `TIME`, `CACHE`, `EVENTS`, `MARKERS`, and `COMMANDS` are mandatory and are always loaded regardless of configuration. The `enable` key must **not** be set for these modules — doing so is a build error. They can still appear under `lua_modules:` to configure other fields such as `logLevel`.
+> **Migration note.** `modules:` replaces the older `lua_modules:` + `community_scripts:` keys. The legacy keys still work but emit a deprecation warning at build time. `enabled:` replaces the old `enable:` key.
+
+Each entry can take **three forms**:
 
 ```yaml
-lua_modules:
-  # Infrastructure modules: always active — configure only, do not use 'enable'
-  UNITS:
-    logLevel: debug
-  # Optional modules: can be enabled or disabled
-  RADIO:
-    enable: true
-    logLevel: info            # optional per-module log level override
+modules:
+  # 1. Shorthand — just enable an optional module with default settings:
+  RADIO: true
+
+  # 2. Block — enable and configure:
+  SPAWN:
+    enabled: true
+    logLevel: debug           # optional per-module log level override
     init:
       help_menus: true
-  SPAWN:
-    enable: true
+
+  # 3. Bare null — mandatory infrastructure module, configure only:
+  UNITS:
     logLevel: debug
 ```
 
-The `logLevel` field is available for every module. The `enable` field applies **only to optional modules** — it is a build error on Infrastructure modules. Additional `init:` or data fields are module-specific — see each module's documentation page.
+> **Infrastructure modules are always active.**
+> `UNITS`, `TIME`, `CACHE`, `EVENTS`, `MARKERS`, and `COMMANDS` are mandatory and always loaded. Do **not** set `enabled:` on them — it is a build error. They may still appear in `modules:` to configure other fields such as `logLevel`.
 
 **Common fields (all modules):**
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `enable` | boolean | `true` | Enable or disable this module *(optional modules only — not allowed on Infrastructure modules)* |
+| `enabled` | boolean | `true` | Enable or disable this module *(optional modules only — not allowed on Infrastructure modules)* |
 | `logLevel` | string | *(global)* | Override log level for this module only |
 
-**Module IDs:**
+Additional `init:` or data fields are module-specific — see each module's documentation page.
+
+**Community scripts** are listed in the same block, using their uppercase IDs. When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it:
+
+```yaml
+modules:
+  CTLD: true
+  CSAR: true
+  SKYNET: false               # excluded from this mission
+```
+
+| Community ID | Script |
+|----|--------|
+| `MIST` | MIST (Mission Scripting Tools) |
+| `STTS` | DCS-SimpleTextToSpeech |
+| `WEATHERMARK` | WeatherMark |
+| `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
+| `AIEN` | AIEN (AI Enhancement) |
+| `CSAR` | CSAR (Combat Search and Rescue) |
+| `HERCULES` | Hercules Cargo |
+| `SKYNET` | Skynet IADS |
+| `TUM` | The Universal Mission (TUM) |
+
+> An unknown identifier triggers a build warning and is ignored.
+
+**VEAF module IDs:**
 
 | ID | Module | Doc page |
 |----|--------|----------|
@@ -291,7 +326,7 @@ The `logLevel` field is available for every module. The `enable` field applies *
 
 ### `qra:`, `cap_missions:`, `combat_missions:`
 
-Top-level sections for QRA, CAP mission, and combat mission definitions. These require the corresponding modules enabled under `lua_modules:`.
+Top-level sections for QRA, CAP mission, and combat mission definitions. These require the corresponding modules enabled under `modules:`.
 
 See the respective module pages for full schema:
 - [`qra:`](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) — Quick Reaction Alert definitions
@@ -299,36 +334,9 @@ See the respective module pages for full schema:
 
 ---
 
-### `community_scripts:`
+### `community_scripts:` *(legacy)*
 
-Allows enabling or disabling individual community Lua scripts (MIST, CTLD, CSAR, etc.) injected into the mission. When this section is absent, **all** community scripts are included.
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `<id>.enabled` | `bool` | `true` | Enables (`true`) or disables (`false`) the script identified by `<id>` |
-
-**Available identifiers**
-
-| ID | Script |
-|----|--------|
-| `mist` | MIST (Mission Scripting Tools) |
-| `stts` | DCS-SimpleTextToSpeech |
-| `weathermark` | WeatherMark |
-| `ctld` | CTLD (Combat Transport & Logistics Dispatcher) |
-| `aien` | AIEN (AI Enhancement) |
-| `csar` | CSAR (Combat Search and Rescue) |
-| `hercules` | Hercules Cargo |
-| `skynet` | Skynet IADS |
-| `tum` | The Universal Mission (TUM) |
-
-```yaml
-community_scripts:
-  ctld:   { enabled: true }
-  csar:   { enabled: true }
-  skynet: { enabled: false }   # disabled for this mission
-```
-
-> An unknown identifier in this section triggers a build warning and is ignored.
+> **Deprecated.** Community scripts are now configured in the unified [`modules:`](#modules) block using their uppercase IDs (e.g. `CTLD: true`). The separate `community_scripts:` section still works but emits a deprecation warning. See [`modules:`](#modules) for the current syntax and the list of community IDs.
 
 ---
 
@@ -456,7 +464,7 @@ veaf-tools.exe build --profile SERVER
 | Section / Field | Description |
 |-----------------|-------------|
 | [`security:`](#security) | Enable/disable security, password hashes |
-| `lua_modules.SECURITY` | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
+| `modules.SECURITY` | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
 
 ### Combat
 
@@ -465,28 +473,28 @@ veaf-tools.exe build --profile SERVER
 | [`qra:`](#qra-cap_missions-combat_missions) | QRA definitions |
 | [`cap_missions:`](#qra-cap_missions-combat_missions) | CAP mission definitions |
 | [`combat_missions:`](#qra-cap_missions-combat_missions) | Combat mission definitions |
-| `lua_modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
-| `lua_modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
-| `lua_modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
+| `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
+| `modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
 
 ### Air Defense
 
 | Section / Field | Description |
 |-----------------|-------------|
 | `external_modules.skynet` | Skynet IADS integration |
-| `lua_modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
-| `lua_modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
-| `lua_modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
+| `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
+| `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
+| `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
 
 ### Assets & Support
 
 | Section / Field | Description |
 |-----------------|-------------|
-| `lua_modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
-| `lua_modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
-| `lua_modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
-| `lua_modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
-| `lua_modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
+| `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
+| `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
+| `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
+| `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
+| `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
 
 ### Build Pipeline
 
@@ -509,15 +517,15 @@ veaf-tools.exe build --profile SERVER
 
 | Module | mission.yaml key | Doc page |
 |--------|-----------------|----------|
-| veafRadio | `lua_modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md#configuration-missionyaml) |
-| veafShortcuts | `lua_modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md#configuration-missionyaml) |
-| veafNamedPoints | `lua_modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md#configuration-missionyaml) |
-| veafCarrierOperations | `lua_modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md#configuration-missionyaml) |
-| veafAssets | `lua_modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md#configuration-missionyaml) |
-| veafSanctuary | `lua_modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md#configuration-missionyaml) |
-| veafCombatZone | `lua_modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md#configuration-missionyaml) |
-| veafAirWaves | `lua_modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml) |
-| veafQraManager | `lua_modules.QRA` + `qra:` | [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) |
+| veafRadio | `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md#configuration-missionyaml) |
+| veafShortcuts | `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md#configuration-missionyaml) |
+| veafNamedPoints | `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md#configuration-missionyaml) |
+| veafCarrierOperations | `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md#configuration-missionyaml) |
+| veafAssets | `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md#configuration-missionyaml) |
+| veafSanctuary | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md#configuration-missionyaml) |
+| veafCombatZone | `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md#configuration-missionyaml) |
+| veafAirWaves | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml) |
+| veafQraManager | `modules.QRA` + `qra:` | [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) |
 | veafCasMission | `cap_missions:` + `combat_missions:` | [veafCasMission](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) |
 
 ---

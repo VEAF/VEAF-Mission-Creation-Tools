@@ -184,6 +184,31 @@ Si vous avez un `src/scripts/mission-script.lua` personnalisé, il est aussi inj
 3. Injecte de nouveaux triggers `DO SCRIPT FILE` pour tous les scripts VEAF + vos scripts personnalisés
 4. Écrit le `.miz` final
 
+Le build complet exécute ensuite les étapes optionnelles du pipeline dont les fichiers de configuration sont présents (presets, waypoints, groupes d'aéronefs, météo) :
+
+```mermaid
+flowchart TD
+    subgraph Entrées
+        YAML[mission.yaml]
+        SRC[src/mission + src/scripts]
+        LUA[Scripts Lua VEAF]
+    end
+    YAML --> BUILD[veaf-tools build]
+    SRC --> BUILD
+    LUA --> BUILD
+    BUILD --> GEN[Génère veaf-config.lua depuis mission.yaml]
+    GEN --> TRIG[Injecte les triggers DO SCRIPT FILE]
+    TRIG --> PIPE{Étapes optionnelles du pipeline}
+    PIPE -->|presets.yaml| P1[inject-presets]
+    PIPE -->|waypoints.yaml| P2[inject-waypoints]
+    PIPE -->|aircraft-templates.yaml| P3[inject-aircraft-groups]
+    PIPE -->|versions.yaml| P4[inject-weather]
+    P1 --> OUT[.miz final prêt à voler]
+    P2 --> OUT
+    P3 --> OUT
+    P4 --> OUT
+```
+
 ---
 
 ## Configurer les modules
@@ -201,19 +226,20 @@ Pour la plupart des missions, `mission.yaml` suffit. N'utilisez `mission-script.
 mission:
   name: "My-Mission"
 
-lua_modules:
-  SECURITY:
-    enable: true
+modules:
+  SECURITY: true        # raccourci : activer simplement le module
   SPAWN:
-    logLevel: debug
+    logLevel: debug     # un module avec configuration utilise un bloc
   ASSETS:
-    enable: true
+    enabled: true
     assets:
       - sort: 1
         name: "T1-Arco-1"
         description: "Arco-1 (KC-135)"
         information: "Tacan 64Y\nU290.50 (20)"
 ```
+
+> Le bloc unifié `modules:` remplace les anciennes clés `lua_modules:` + `community_scripts:`, et `enabled:` remplace `enable:`. Les clés héritées fonctionnent toujours mais émettent un avertissement de dépréciation. Voir la [Référence mission.yaml](../MISSION_YAML_REFERENCE.md) pour la syntaxe complète.
 
 ### Exemple mission-script.lua
 
@@ -264,7 +290,6 @@ security:
 | `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
-| `convert` | Convertit une mission vanilla au format VEAF MCT |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
 | `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
 
@@ -345,7 +370,7 @@ veaf-tools.exe build
 
 Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
 
-Voir [`profiles:` dans la référence YAML](../MISSION_YAML_REFERENCE.fr.md#profiles) pour la description complète.
+Voir [`profiles:` dans la référence YAML](../MISSION_YAML_REFERENCE.md#profiles) pour la description complète.
 
 ---
 
@@ -544,22 +569,18 @@ Lorsque `dcs_bridge` est activé, le trigger est inséré en **position 1**, ava
 
 ## Journalisation de débogage
 
-Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Trois niveaux de journalisation sont disponibles, chacun avec son propre script de chargement :
-
-| Script | Niveau | Usage |
-|--------|--------|-------|
-| `veaf-scripts.lua` | Normal (info + avertissements) | Missions en production |
-| `veaf-scripts-trace.lua` | Trace (tous les messages) | Débogage approfondi |
-| `veaf-scripts-trace-with-events.lua` | Trace + événements DCS | Débogage des handlers d'événements |
+Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Le build produit désormais un **unique** chargeur `veaf-scripts.lua` ; la verbosité se contrôle via les niveaux de log dans `mission.yaml`, et non en chargeant un script différent.
 
 ### Changer le niveau de log
 
-Définissez `logLevel` par module dans `mission.yaml`, puis reconstruisez :
+Définissez un défaut global avec `global_log_level`, ou surchargez-le par module avec `logLevel`, puis reconstruisez :
 
 ```yaml
-lua_modules:
+global_log_level: info   # trace | debug | info | warning | error
+
+modules:
   SPAWN:
-    logLevel: debug   # trace | debug | info | warning | error
+    logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
 `veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.

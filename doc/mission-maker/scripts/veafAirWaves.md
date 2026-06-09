@@ -35,9 +35,9 @@ local defenseZone = AirWaveZone:new()
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   AIRWAVES:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     airwave_zones:
       - name: "Zone BVR"                  # REQUIS — identifiant interne
@@ -115,9 +115,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   AIRWAVES:
-    enable: true
+    enabled: true
     airwave_zones:
       - name: "Arène BVR"
         start: true
@@ -165,22 +165,88 @@ lua_modules:
 
 ---
 
-## Vagues
+## Définition d'une vague
 
-Chaque vague est une liste de noms de groupes DCS. Tous les groupes d'une vague apparaissent simultanément. La vague suivante se déclenche quand tous les groupes de la vague courante sont détruits.
+`addWave(...)` accepte plusieurs formes — de la plus simple à la plus puissante :
 
 ```lua
-:addWave({ "BanditsA", "BanditsB" })   -- vague 1 : deux groupes apparaissent en même temps
-:addWave({ "BanditsC" })               -- vague 2 : un groupe
-:addWave({ "BanditsD", "BanditsE", "BanditsF" })  -- vague 3
+-- Un seul nom de groupe
+:addWave("Bandits Alpha")
+
+-- Plusieurs noms de groupes d'un coup
+:addWave("Bandits Alpha", "Bandits Bravo")
+
+-- Une table de noms de groupes
+:addWave({ "Bandits Alpha", "Bandits Bravo", "Bandits Charlie" })
+
+-- Une table de paramètres avec contrôle complet
+:addWave({
+  groups  = { "Fighter 1", "Fighter 2", "Fighter 3", "Fighter 4", "Fighter 5" },
+  number  = "1-3",   -- choisir entre 1 et 3 de ces groupes au hasard
+  bias    = 2,        -- démarrer le tirage aléatoire au 3e groupe (index 2+1)
+  delay   = 30,       -- attendre 30 s avant la vague suivante une fois celle-ci nettoyée
+})
 ```
+
+### `number` — contrôler combien de groupes apparaissent
+
+`number` définit combien de groupes de la liste apparaissent réellement. Valeurs possibles :
+- un entier : `number = 2` fait toujours apparaître exactement 2 groupes ;
+- une plage sous forme de chaîne : `number = "2-4"` fait apparaître 2, 3 ou 4 groupes au hasard.
+
+Si `number` dépasse la longueur de la liste, un même groupe peut être tiré plusieurs fois — utile pour faire apparaître plusieurs exemplaires de la même menace.
+
+### `bias` — pencher vers les variantes plus difficiles
+
+`bias` décale l'index de départ du tirage aléatoire vers la fin de la liste. Un `bias` de 0 (défaut) tire uniformément dans toute la liste. Un `bias` de 3 sur une liste de 6 groupes rend les 3 premières entrées moins susceptibles d'être choisies.
+
+Le motif typique consiste à ordonner les groupes du plus facile au plus difficile — en début de campagne, `bias` reste à 0, puis vous l'augmentez au fil du temps pour rendre l'opposition progressivement plus dangereuse :
+
+```lua
+-- Un pool de vagues ordonné par difficulté. Ajustez bias= dynamiquement dans des callbacks.
+:addWave({
+  groups = {
+    "Su-25 Flight",       -- 1 : facile
+    "Su-25T Flight",      -- 2 : moyen
+    "Su-27 Flight",       -- 3 : difficile
+    "Su-30SM Flight",     -- 4 : très difficile
+  },
+  number = "1-2",
+  bias   = 0,   -- démarrer facile ; monter à 2 plus tard dans la mission
+})
+```
+
+### `delay` — vagues simultanées
+
+Lorsque `delay` est **négatif**, la vague suivante apparaît immédiatement après celle-ci — sans attendre sa destruction. Cela permet d'envoyer plusieurs paquets de menaces en même temps :
+
+```lua
+:addWave({ groups = { "Fighter Escort" }, delay = -1 })  -- décolle en même temps que...
+:addWave({ groups = { "Strike Package" } })              -- ...cette vague
+```
+
+### Commandes VEAF comme groupes
+
+Au lieu d'un nom de groupe DCS, vous pouvez utiliser n'importe quelle commande de spawn VEAF (la même syntaxe qu'un marqueur de la carte F10). La commande est exécutée à la position d'apparition, ajustable avec un préfixe `[latDelta,lonDelta]` (en mètres, relatif au centre de la zone) :
+
+```lua
+:addWave({
+  groups = {
+    "[0,5000]-spawn su-27, country russia",           -- 5 km au nord du centre de la zone
+    "[-3000,0]-spawn su-25, alt 100, country russia", -- 3 km au sud, basse altitude
+  }
+})
+```
+
+Cela permet de monter facilement des menaces étagées venant de directions différentes, sans pré-placer de groupes dans l'éditeur de mission DCS.
 
 ---
 
-## Exemple
+## Exemples
+
+### Zone d'interception basique à trois vagues
 
 ```lua
--- Zone nécessitant 2 joueurs humains avec 3 vagues
 AirWaveZone:new()
   :setName("Intercept-West")
   :setZoneName("ZONE-WEST-INTERCEPT")
@@ -193,6 +259,66 @@ AirWaveZone:new()
   :setOnCompleted(function()
     trigger.action.setUserFlag("WEST_CLEAR", true)
   end)
+  :initialize()
+```
+
+### Vagues aléatoires à difficulté croissante
+
+```lua
+AirWaveZone:new()
+  :setName("Intercept-East")
+  :setZoneName("ZONE-EAST-INTERCEPT")
+  :setDescription("Axe de menace est — difficulté progressive")
+  -- Vague 1 : tirer 1 ou 2 chasseurs légers dans un pool
+  :addWave({
+    groups = { "MiG-21 Flight", "MiG-23 Flight", "MiG-29 Flight", "Su-27 Flight" },
+    number = "1-2",
+    bias   = 0,
+    delay  = 120,   -- 2 minutes de répit avant la vague 2
+  })
+  -- Vague 2 : chasseurs moyens, pool un peu plus difficile
+  :addWave({
+    groups = { "MiG-29 Flight", "Su-27 Flight", "Su-30SM Flight" },
+    number = 2,
+    bias   = 1,
+    delay  = 60,
+  })
+  -- Vague 3 : escorte lourde + attaque au sol simultanée (delay négatif)
+  :addWave({ groups = { "Su-27 Escort" }, delay = -1 })
+  :addWave({ groups = { "Su-24M Strike" } })
+  :setMinimumPlayersForWave(2)
+  :setDrawZone(true)
+  :initialize()
+```
+
+### Réutiliser une zone modèle par copie profonde
+
+Quand plusieurs secteurs partagent la même structure de vagues, définissez une zone modèle et clonez-la. Utilisez `:resetWaves()` pour vider les vagues du modèle avant d'ajouter celles propres au secteur :
+
+```lua
+-- Définir un modèle partagé (PAS encore initialisé)
+local zoneTemplate = AirWaveZone:new()
+  :setMinimumPlayersForWave(1)
+  :setDrawZone(true)
+  :addWave({ "MiG-29 Wave 1" })
+  :addWave({ "Su-27 Wave 2" })
+
+-- Cloner et personnaliser pour chaque secteur
+local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+zoneNorth
+  :setName("AW-North")
+  :setZoneName("ZONE-AW-NORTH")
+  :setDescription("Secteur nord")
+  :initialize()
+
+local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+zoneSouth
+  :setName("AW-South")
+  :setZoneName("ZONE-AW-SOUTH")
+  :setDescription("Secteur sud")
+  :resetWaves()                          -- vider les vagues du modèle
+  :addWave({ "Su-25T Wave 1" })          -- ajouter les vagues propres au secteur
+  :addWave({ "Su-24M Wave 2", "Su-24M Wave 2b" })
   :initialize()
 ```
 

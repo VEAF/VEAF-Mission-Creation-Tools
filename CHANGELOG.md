@@ -9,55 +9,47 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-- CLI output is now decluttered: low-importance progress messages (`logger.info`) are shown on a single overwriting status line in interactive terminals instead of scrolling endlessly; permanent technical lines (`logger.tech`) and chapter headers (`logger.step`) stay on screen. Spinner/progress "done" lines no longer persist. `--verbose` (and non-interactive/piped output) restores the classic line-by-line display; the full log file is unaffected and still records every message. The `build` command adopts the new chapter/technical classification: each pipeline step shows an animated spinner during its slow operations (reading/writing the `.miz`, validating), the weather step shows a progress bar over the variants it creates, and the aircraft-groups injection is now visible during a build (was silent). Every pipeline step ends with a concise persistent result line (e.g. "injected presets into 127 aircraft", "injected waypoints into 0 aircraft groups", "injected N aircraft groups", "created 6 weather variants"), so a `0` count immediately flags a configuration problem.
-
-### Fixed
-- `convert-v5`: generated `mission.yaml` now includes the YAML syntax quick-reference header (was only present in `generate-config` output)
-- `convert-v5`: all comment strings in generated `mission.yaml` are now localized via `t()` — French users see French comments
-- `convert-v5`: multi-line Lua briefings using `..` concatenation (e.g. `"line1\n" .. "line2\n"`) are now fully extracted; `\n` escape sequences are decoded to real newlines and emitted as YAML block scalars
-
-### Changed
-- `weather` pipeline step now uses `versions.yaml` exclusively — `missions.yaml` is no longer recognised as an alias; rename any existing `src/missions.yaml` to `src/versions.yaml`
-- `mission.yaml` syntax simplified: `lua_modules:` + `community_scripts:` merged into a single `modules:` block; mandatory modules use bare null syntax (`MODULE:` with no value) instead of `MODULE: {}`; `enable:` replaced by `enabled:`; block-style lists replace inline `[...]`; generated files include a YAML syntax quick-reference header; legacy keys still accepted with a deprecation warning
-- `convert-v5`: modules in generated `mission.yaml` are now sorted by category (Infrastructure → Core → Features → Combat → External); optional modules without extra config use `MODULE: true` shorthand instead of two-line block; community script IDs are emitted in uppercase (`MIST`, `STTS`, …); parser accepts uppercase or lowercase community IDs
-
 ### Added
+- docs: documentation overhaul (bilingual FR/EN) — pilot guide rewritten (deduplicated, accessible, jargon explained, `_auth` standardized); mission.yaml example updated to the unified `modules:` block; mermaid diagrams added (F10 radio menu, build pipeline, v5→v6 migration flow); screenshot placeholders added under `doc/assets/img/`; created the missing French `veafInterpreter` page; fixed broken `GUIDE.fr.md` links
+- docs: French/English parity for the large reference docs — `LUA_API_REFERENCE.md` (all module sections brought to full depth: missing functions, parameters, and code examples translated), `TOOLS_REFERENCE.md` (troubleshooting, command reference, best practices, security, FAQ sections added), and `dcs-radio-specs.md` (header and critical-aircraft prose translated)
+- `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
+- `community_scripts:` section in `mission.yaml`: individually enable/disable community Lua scripts (MIST, CTLD, CSAR, etc.) — absent section keeps all scripts active
+- `convert-v5`: generated `mission.yaml` now includes a `community_scripts:` section pre-populated from scripts detected in `published/src/scripts/community/`
+- `inject-presets`: DCS aircraft radio frequency validation — preset frequencies are now checked against each aircraft's hardware specs at build time; invalid frequencies (e.g. 284 MHz on a MiG-19P or Gazelle M) emit a warning before DCS rejects them at mission load
+- `doc/mission-maker/dcs-radio-specs.md`: human-readable reference table of valid radio frequency ranges for all 85 DCS player-flyable aircraft, sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)
+- `scripts/extract_dcs_radio_specs.py`: standalone utility to regenerate `dcs-radio-specs.yaml` and the reference doc after a DCS patch
+- Klogg highlight profile for DCS logs added to `tools/klogg/veaf.conf`; GUIDE.md and GUIDE.en.md updated to reference it
 - i18n coverage: all log messages in `mission_builder_worker.py`, `aircrafts_injector_worker.py`, and `waypoints_manager.py` now use `t()` — no more hardcoded English strings; matching French translations added to `fr.json`; tests verify all `t()` keys exist in `en.json` and that `fr.json` covers every `en.json` key
 - i18n: AST-based test (`TestI18nNoHardcodedStrings`) scans all Python source files for hardcoded English prose in `logger.*()`, `console.print()`, and `return` statements; `aircrafts_injector_worker.py` and `lua_config_generator.py` now fully i18n-clean; remaining files listed in `_TODO_EXEMPTIONS` for progressive cleanup
 - i18n: 90 additional hardcoded English strings replaced by `t()` calls across 24 source files (`mission_builder_worker.py`, `mission_extractor_worker.py`, `mission_constants.py`, `radio_frequency_validator.py`, `veaf-tools-updater.py`, `build_profiles.py`, `paths.py`, `tui.py`, all `veaf_tools/commands/*.py`, `waypoints_injector_worker.py`, `waypoints_manager.py`, `weather_injector/**/*.py`); `_TODO_EXEMPTIONS` emptied; Rich markup filter added to scanner `_has_prose`; all new keys added to `en.json` and `fr.json`
-- Klogg highlight profile for DCS logs added to `tools/klogg/veaf.conf`; GUIDE.md and GUIDE.en.md updated to reference it
-- `community_scripts:` section in `mission.yaml`: individually enable/disable community Lua scripts (MIST, CTLD, CSAR, etc.) — absent section keeps all scripts active
-- `convert-v5`: generated `mission.yaml` now includes a `community_scripts:` section pre-populated from scripts detected in `published/src/scripts/community/`
+
+### Changed
+- CLI output is now decluttered: low-importance progress messages (`logger.info`) are shown on a single overwriting status line in interactive terminals instead of scrolling endlessly; permanent technical lines (`logger.tech`) and chapter headers (`logger.step`) stay on screen. Spinner/progress "done" lines no longer persist. `--verbose` (and non-interactive/piped output) restores the classic line-by-line display; the full log file is unaffected and still records every message. The `build` command adopts the new chapter/technical classification: each pipeline step shows an animated spinner during its slow operations (reading/writing the `.miz`, validating), the weather step shows a progress bar over the variants it creates, and the aircraft-groups injection is now visible during a build (was silent). Every pipeline step ends with a concise persistent result line (e.g. "injected presets into 127 aircraft", "injected waypoints into 0 aircraft groups", "injected N aircraft groups", "created 6 weather variants"), so a `0` count immediately flags a configuration problem.
+- `weather` pipeline step now uses `versions.yaml` exclusively — `missions.yaml` is no longer recognised as an alias; rename any existing `src/missions.yaml` to `src/versions.yaml`
+- `mission.yaml` syntax simplified: `lua_modules:` + `community_scripts:` merged into a single `modules:` block; mandatory modules use bare null syntax (`MODULE:` with no value) instead of `MODULE: {}`; `enable:` replaced by `enabled:`; block-style lists replace inline `[...]`; generated files include a YAML syntax quick-reference header; legacy keys still accepted with a deprecation warning
+- `convert-v5`: modules in generated `mission.yaml` are now sorted by category (Infrastructure → Core → Features → Combat → External); optional modules without extra config use `MODULE: true` shorthand instead of two-line block; community script IDs are emitted in uppercase (`MIST`, `STTS`, …); parser accepts uppercase or lowercase community IDs
+- `mission.yaml` (all generators): each section now includes a `# Doc:` link to the relevant chapter of the Mission Maker Guide; section headers and descriptions improved (security, external modules, mandatory modules explanation)
 
 ### Fixed
+- docs: removed the obsolete `convert` command from the Mission Maker Guide command tables (FR + EN); corrected the false "CSAR not available via mission.yaml" note in the mission.yaml reference (CSAR is supported via `external_modules.csar`); updated the Debug Logging section to reflect the single `veaf-scripts.lua` loader and `global_log_level`/`logLevel` control; created the missing French `veafInterpreter` page (fixes a broken FR nav link); consolidated duplicate `[Unreleased]` changelog sections and translated the stray French entry
+- `veaf-tools-updater`: fixed the dead documentation URL shown on first install (`VEAF-Mission-Creation-Tools-v6/…` → `documentation/dev/…`)
+- `convert-v5`: generated `mission.yaml` now includes the YAML syntax quick-reference header (was only present in `generate-config` output)
+- `convert-v5`: all comment strings in generated `mission.yaml` are now localized via `t()` — French users see French comments
+- `convert-v5`: multi-line Lua briefings using `..` concatenation (e.g. `"line1\n" .. "line2\n"`) are now fully extracted; `\n` escape sequences are decoded to real newlines and emitted as YAML block scalars
 - `convert-v5`: `global_log_level` now defaults to `info` instead of `debug` when no log level is found in `missionConfig.lua`
 - `convert-v5`: command now accepts being called without arguments (uses current directory by default); `no_args_is_help=True` removed
+- `convert-v5`: all warning and manual-review messages are now fully translated via i18n — no more hardcoded English strings visible when running in French locale
 - `veafRadio`: SRS config file absence no longer emits a warning — downgraded to `debug` when the file does not exist on disk
 - `veafGrass`, `veafSpawnGround`, `veafSpawnEffects`: nil-safe guards added around `ctld.builtFOBS`, `ctld.logisticUnits`, `ctld.beaconCount` — prevent crashes when CTLD is not loaded or not yet initialized
 - `presets inject`: `presets_assignments` keys now support regex patterns (e.g. `A[-]10C.*`, `FW[-]190.*`) — exact match takes priority, then pattern, then `all` fallback
 - `convert-v5` presets: per-aircraft radio assignments are now extracted from `radioSettings` — warbird aircraft (e.g. Bf-109K-4) are auto-assigned to `{coalition}_warbird`, VHF-primary aircraft (e.g. I-16, Spitfire) get a new `{coalition}_vhf_primary` preset; hardcoded and typePattern entries emit explicit warnings listing the recommended preset
-- i18n : tous les messages des injectors (presets, waypoints) et du validateur de fréquences radio sont maintenant traduits en français — plus de messages en anglais dans le log de `veaf-tools build`
+- i18n: all injector messages (presets, waypoints) and the radio frequency validator are now translated to French — no more English messages in the `veaf-tools build` log
 - `presets inject`: radio frequency warnings are now deduplicated by aircraft type — instead of one warning block per group, a single block is emitted per unit type listing all affected groups in parentheses
 - `build`: bundle `presets_injector/data/dcs-radio-specs.yaml` into the PyInstaller executable — fixes `ModuleNotFoundError: No module named 'presets_injector.data'` at runtime
 - `aircraft-groups inject` (mode `add`): skip groups whose name already exists in the mission instead of creating duplicates — prevents DCS crash on FA-18C/F-16C units missing `datalinks` after a v5→v6 conversion
 - `convert-v5`, `generate-config`, `migrate-config`: mandatory Lua modules (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS) are now emitted as `{}` in `mission.yaml` instead of `enable: true`, which would cause a build error
 - `convert-v5`: `_BASE_ALWAYS_ON` now includes COMMANDS (previously missing) and is derived from the canonical `MANDATORY_MODULES` set
 - `mission.yaml` (all generators and the default template): fixed broken doc URL (`doc/MISSION_MAKER_GUIDE.md` → `doc/mission-maker/GUIDE.en.md`)
-
-### Fixed
-- `convert-v5`: all warning and manual-review messages are now fully translated via i18n — no more hardcoded English strings visible when running in French locale
-
-### Changed
-- `mission.yaml` (all generators): each section now includes a `# Doc:` link to the relevant chapter of the Mission Maker Guide; section headers and descriptions improved (security, external modules, mandatory modules explanation)
-
-### Added
-- `inject-presets`: DCS aircraft radio frequency validation — preset frequencies are now checked against each aircraft's hardware specs at build time; invalid frequencies (e.g. 284 MHz on a MiG-19P or Gazelle M) emit a warning before DCS rejects them at mission load
-- `doc/mission-maker/dcs-radio-specs.md`: human-readable reference table of valid radio frequency ranges for all 85 DCS player-flyable aircraft, sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)
-- `scripts/extract_dcs_radio_specs.py`: standalone utility to regenerate `dcs-radio-specs.yaml` and the reference doc after a DCS patch
-
-### Added
-- `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
 
 ---
 

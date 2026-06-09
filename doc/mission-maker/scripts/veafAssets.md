@@ -30,9 +30,9 @@ Doit être appelé après avoir défini `veafAssets.Assets`.
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   ASSETS:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     assets:               # liste des ressources persistantes à gérer
       - sort: 1                         # ordre de tri dans le menu F10 (plus petit = premier)
@@ -64,9 +64,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   ASSETS:
-    enable: true
+    enabled: true
     assets:
       - sort: 1
         name: "Texaco"

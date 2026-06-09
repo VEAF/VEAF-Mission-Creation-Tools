@@ -120,6 +120,70 @@ modules:
 
 ---
 
+## Fonctionnement
+
+Placez toutes les unités qui doivent apparaître dans la zone directement dans l'éditeur de mission DCS, à l'intérieur de la trigger zone. Au démarrage de la mission, VEAF les retire toutes — la zone est vide. Quand un joueur active la zone via le menu F10, toutes les unités réapparaissent à des positions aléatoires dans le rayon de la zone. Quand toutes les unités ennemies sont détruites, la zone est marquée comme terminée (un callback optionnel se déclenche, les zones chaînées optionnelles s'activent).
+
+Cette approche vous donne une conception entièrement visuelle dans l'éditeur tout en gardant la zone inactive au démarrage de la mission.
+
+### Mise en place dans l'éditeur de mission DCS
+
+1. **Créez une trigger zone** — définissez la zone de combat. Nommez-la, par exemple `ZONE-ALPHA`.
+2. **Placez des groupes d'unités** à l'intérieur de la zone. Mettez-les dans n'importe quelle coalition — VEAF gère leur cycle de vie.
+3. **Utilisez les tags de nom d'unité** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
+4. **Enregistrez la zone** dans `mission-script.lua` :
+
+```lua
+VeafCombatZone:new()
+  :setName("Alpha")
+  :setZoneName("ZONE-ALPHA")
+  :setDescription("Strike Alpha — Colonne blindée")
+  :initialize()
+```
+
+`veafCombatZone.initialize()` doit d'abord être appelé au niveau du module.
+
+---
+
+## Tags de nom d'unité
+
+Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.
+
+| Tag | Exemple | Description |
+|-----|---------|-------------|
+| `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour du centre de la zone pour ce groupe |
+| `#spawnchance=N` | `#spawnchance=50` | Probabilité en pourcentage (0–100) que ce groupe apparaisse réellement |
+| `#spawncount=N` | `#spawncount=3` | Nombre d'exemplaires à faire apparaître (peut être >1 pour des unités répétées) |
+| `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
+| `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
+| `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
+
+### Exemple pratique — embuscade MANPADS
+
+Vous voulez quatre positions de MANPADS dans une zone, mais seules deux devraient réellement être occupées. Placez quatre unités d'infanterie factices nommées :
+
+```
+ALPHA-MANPAD-1 #spawnchance=50
+ALPHA-MANPAD-2 #spawnchance=50
+ALPHA-MANPAD-3 #spawnchance=50
+ALPHA-MANPAD-4 #spawnchance=50
+```
+
+Chaque position a 50 % de chances d'apparaître — statistiquement, environ deux seront actives à chaque déclenchement de la zone.
+
+### `#command` — apparition via la syntaxe de marqueur VEAF
+
+Le tag `#command` transforme une unité en déclencheur à usage unique. À l'activation de la zone, VEAF exécute la commande à la position de l'unité et détruit l'unité. C'est l'équivalent du dépôt d'un marqueur de carte à cet endroit.
+
+```
+SPAWN-SA11 #command="-spawn sa-11, side red"
+CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
+```
+
+Cela permet de monter des apparitions complexes (batterie SA-11, convois avec routes IA) sans aucun code Lua.
+
+---
+
 ## Définir une zone
 
 ```lua
@@ -209,6 +273,50 @@ VeafCombatOperation:new()
   :setBriefing("Détruire les deux colonnes blindées avant qu'elles atteignent Senaki.")
   :initialize()
 ```
+
+`VeafCombatOperation` étend `VeafCombatZone` — toutes les méthodes du builder ci-dessus s'appliquent, et l'opération elle-même apparaît dans le menu radio comme une seule entrée activable.
+
+---
+
+## Chaînage de zones
+
+Une zone peut activer automatiquement une ou plusieurs zones suivantes lorsqu'elle est terminée. Cela permet de construire des progressions de campagne dynamiques sans scripting manuel :
+
+```lua
+VeafCombatZone:new()
+  :setName("Strike Alpha")
+  :setZoneName("ZONE-ALPHA")
+  :addChainedCombatZone("Strike Bravo")     -- se déclenche quand Alpha est terminée
+  :addChainedCombatZone("Strike Charlie")   -- l'une est choisie au hasard
+  :setChainedCombatZonesDelay(60)           -- attendre 60 s avant le chaînage
+  :initialize()
+```
+
+Quand plusieurs zones chaînées sont définies, **une seule est tirée au hasard** — utile pour des scénarios à embranchements ou pour éviter la prévisibilité.
+
+| Méthode | Description |
+|---------|-------------|
+| `:addChainedCombatZone(name)` | Ajouter une zone à déclencher après la complétion |
+| `:setChainedCombatZonesDelay(s)` | Secondes à attendre avant le chaînage (défaut : 0) |
+
+---
+
+## Mode entraînement
+
+Mettre une zone en mode entraînement change deux choses :
+
+- **Pas de sécurité** : n'importe quel joueur peut activer ou désactiver la zone via le menu radio (normalement l'activation de la zone est journalisée et peut être restreinte par `/secu login`).
+- **État détaillé** : le message d'info de la zone liste les unités restantes et leurs positions approximatives (via fumée ou relèvements), donnant aux pilotes une vue claire de ce qu'il reste.
+
+```lua
+VeafCombatZone:new()
+  :setName("Training-A")
+  :setZoneName("ZONE-TRAINING-A")
+  :setTraining(true)
+  :initialize()
+```
+
+Le mode entraînement est idéal pour des scénarios d'entraînement BFM / CAS où les pilotes ont besoin de connaître les positions des unités.
 
 ---
 

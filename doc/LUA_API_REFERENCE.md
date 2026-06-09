@@ -3683,6 +3683,13 @@ Ajoute une commande à un sous-menu.
 
 **Retourne :** Rien
 
+**Signature du callback :**
+```lua
+function callback(parameters)
+  -- parameters: value passed to addCommandToSubmenu
+end
+```
+
 **Exemple :**
 ```lua
 local menu = veafRadio.addSubMenu("Test")
@@ -3700,6 +3707,48 @@ Ajoute une commande protégée par la sécurité.
 **Retourne :** Rien
 
 **Description :** La commande n'apparaît que si l'utilisateur a l'habilitation de sécurité.
+
+##### `veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)`
+
+Exécute une commande radio depuis un marqueur.
+
+**Paramètres :**
+
+- `eventPos` (vec3) — Position de la commande
+- `eventText` (string) — Texte de la commande
+- `eventCoalition` (coalition) — Coalition
+- `bypassSecurity` (boolean, optionnel) — Ignorer la vérification de sécurité
+
+**Retourne :** `boolean` — Indicateur de succès
+
+**Commandes supportées :**
+
+- `transmit` — Transmettre via SRS
+- `playmp3` — Jouer un MP3 via SRS
+
+##### `veafRadio.markTextAnalysis(text)`
+
+Analyse le texte d'un marqueur radio.
+
+**Paramètres :**
+
+- `text` (string) — Texte du marqueur
+
+**Retourne :** `table` — Options analysées
+
+**Options :**
+```lua
+{
+  transmit = boolean,      -- Transmit message
+  playmp3 = boolean,       -- Play MP3 file
+  message = string,        -- Message text
+  frequencies = table,     -- Array of frequencies (MHz)
+  modulations = table,     -- Array of "AM"/"FM"
+  name = string,           -- Transmission name
+  path = string,           -- MP3 file path
+  quiet = boolean          -- Suppress confirmation
+}
+```
 
 ##### `veafRadio.transmitMessage(message, frequencies, modulations, name, coalition, position, quiet)`
 
@@ -3741,6 +3790,19 @@ Joue un fichier MP3 via SRS.
 
 **Retourne :** Rien
 
+**Exemple :**
+```lua
+veafRadio.playToRadio(
+  "D:\\Sounds\\airraid.mp3",
+  {305.0},
+  {"AM"},
+  "Alert",
+  coalition.side.BLUE,
+  nil,
+  false
+)
+```
+
 ##### `veafRadio.refreshRadioMenu()`
 
 Reconstruit le menu radio (différé).
@@ -3748,6 +3810,34 @@ Reconstruit le menu radio (différé).
 **Retourne :** Rien
 
 **Description :** Planifie la reconstruction du menu après un délai pour éviter les conflits.
+
+##### `veafRadio.addPaginatedRadioElements(menu, buildFunction, elements, sortKey, sortField)`
+
+Ajoute des éléments paginés à un menu.
+
+**Paramètres :**
+
+- `menu` (menu) — Menu cible
+- `buildFunction` (function) — Fonction de construction de chaque élément
+- `elements` (table) — Tableau d'éléments
+- `sortKey` (string, optionnel) — Clé de tri
+- `sortField` (string, optionnel) — Champ de tri
+
+**Retourne :** Rien
+
+**Description :** Crée des pages de 10 éléments avec navigation suivant/précédent.
+
+##### `veafRadio.onBirthEvent(event)`
+
+Gère la naissance d'une unité (ajout au menu radio).
+
+**Paramètres :**
+
+- `event` (table) — Événement de naissance
+
+**Retourne :** Rien
+
+**Description :** Ajoute automatiquement les unités humaines au menu radio.
 
 ##### `veafRadio.initialize()`
 

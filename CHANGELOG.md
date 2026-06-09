@@ -7,16 +7,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
-
-### Fixed
-- `build`: a bare mission name (not a `.miz` file) now produces an **absolute** output path anchored in the mission folder. Previously the path stayed relative, so the weather step looked for the mission under `<folder>/src/` and aborted with `Base mission not found`. This surfaced through the TUI, whose mission.yaml-aware default now pre-fills the real mission name (regression from lot TUI-YAML-DEFAULTS)
-
----
-
 ## [6.4.0] — 2026-06-09
 
 ### Fixed
+- `build`: a bare mission name (not a `.miz` file) now produces an **absolute** output path anchored in the mission folder. Previously the path stayed relative, so the weather step looked for the mission under `<folder>/src/` and aborted with `Base mission not found`. This surfaced through the TUI, whose mission.yaml-aware default now pre-fills the real mission name
 - `mission_extractor`: `extract` no longer crashes with `KeyError: 1` — the script-file cleanup loop now accepts both the `(path, dest)` tuples returned by `get_veaf_script_files()`/`get_legacy_script_files()` and the dict descriptors returned by `get_community_script_files()` (regression from the COMM-001 refactor)
 - `config_migrator`: `_lua_extract_string()` no longer absorbs quoted strings from chained Lua setters after `:setBriefing(…)` — search is now bounded to the matching closing parenthesis (regression from PR #390)
 - `mission_builder_worker`: missing-files error now uses i18n keys (`builder.missing_files`, `builder.update_hint`) instead of hardcoded English; `spinner_context` for `dcs-bridge.lua` injection also uses `t("builder.inject_dcs_bridge")`; fatal error no longer calls `exit()` (raises via `logger.error` instead, giving a non-zero exit code)

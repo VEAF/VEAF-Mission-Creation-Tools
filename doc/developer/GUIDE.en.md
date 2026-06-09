@@ -271,7 +271,7 @@ global_log_level: debug
 For **per-module build-time** control, use the `lua_modules` section:
 
 ```yaml
-lua_modules:
+modules:
   SPAWN:
     logLevel: debug
   RADIO:

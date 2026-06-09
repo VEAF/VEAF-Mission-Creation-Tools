@@ -33,9 +33,9 @@ Cela enregistre automatiquement la liste d'aliases par défaut.
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     shortcuts:            # définitions d'aliases personnalisés
       - name: "smoke"                 # nom de l'alias (tapé en -smoke dans les marqueurs)
@@ -57,9 +57,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true
+    enabled: true
     shortcuts:
       - name: "cas"
         description: "Demander CAS"

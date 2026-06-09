@@ -31,9 +31,9 @@ Les zones individuelles sont créées et initialisées séparément (voir ci-des
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   COMBATZONE:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     combat_zone_settings: # surcharges globales optionnelles
       event_message_combatzonecomplete: "Objectif de zone atteint !"  # null = supprimer
@@ -97,9 +97,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   COMBATZONE:
-    enable: true
+    enabled: true
     combat_zones:
       - type: zone
         zone_name: "CZ-Alpha"

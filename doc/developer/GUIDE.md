@@ -270,7 +270,7 @@ global_log_level: debug
 Pour le contrôle **par module au moment du build**, utiliser la section `lua_modules` :
 
 ```yaml
-lua_modules:
+modules:
   SPAWN:
     logLevel: debug
   RADIO:

@@ -65,7 +65,7 @@ flowchart TD
 | **Module init pattern** | Bare `veafXxx.initialize()` calls | Auto-generated into `veaf-config.lua` by `veaf-tools build`; no manual `initialize()` calls needed |
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |
 | **Config migration** | Manual rewrite | `veaf-tools.exe convert-v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
-| **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `lua_modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
+| **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
 
 ### Step-by-step Migration
 
@@ -104,7 +104,7 @@ This single command handles everything in one pass:
 
 - **`missionConfig.lua` migration** — comments out `doFile()` calls that load VEAF scripts (the builder injects them automatically), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
 - **Pipeline config conversion** — converts v5 config files (radio presets, waypoints, weather, aircraft groups) from Lua to v6 YAML format.
-- **`mission.yaml` generation** — creates `mission.yaml` with the correct `lua_modules:` and `pipeline:` sections.
+- **`mission.yaml` generation** — creates `mission.yaml` with the correct `modules:` and `pipeline:` sections.
 - **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
 If your pipeline contains `realweather` weather versions, the tool will ask for the ICAO airport code to embed in the generated config. You can supply it upfront to avoid the interactive prompt:
@@ -207,17 +207,17 @@ Edit `mission.yaml` to enable the modules you want. By default, only the essenti
 ```yaml
 name: My Vanilla Mission
 
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
   SPAWN:
-    enable: true
+    enabled: true
   # Uncomment to enable CAS missions:
   # CASMISSION:
-  #   enable: true
+  #   enabled: true
   # Uncomment to enable carrier ops:
   # CARRIER:
-  #   enable: true
+  #   enabled: true
 ```
 
 For custom Lua (advanced module calls, custom aliases, etc.), edit `src/scripts/mission-script.lua`.
@@ -299,7 +299,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-Module enable/disable is configured in `mission.yaml` → `lua_modules:` — not in this file. See the [YAML reference](../../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
+Module enable/disable is configured in `mission.yaml` → `modules:` — not in this file. See the [YAML reference](../../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
 
 ---
 
@@ -316,9 +316,9 @@ Alternatively, use `--migrate-from-v5` on the build to have the old triggers rem
 Confirm `RADIO` is enabled in `mission.yaml`:
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
 ```
 
 Rebuild with `veaf-tools.exe build` after any `mission.yaml` change.
@@ -328,9 +328,9 @@ Rebuild with `veaf-tools.exe build` after any `mission.yaml` change.
 Confirm `SPAWN` is enabled in `mission.yaml`:
 
 ```yaml
-lua_modules:
+modules:
   SPAWN:
-    enable: true
+    enabled: true
 ```
 
 Then check the DCS log (`Saved Games\DCS\Logs\dcs.log`) for VEAF errors — filter on `VEAF` or `ERROR`.

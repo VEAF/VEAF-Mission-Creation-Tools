@@ -39,9 +39,9 @@ Cela reconstruit l'intégralité de l'arbre F10. L'appel est idempotent — il g
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     init:
       help_menus: true    # afficher les entrées "Aide" intégrées dans les menus radio (défaut : true)
@@ -56,9 +56,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
 ```
 
 ---

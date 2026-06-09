@@ -33,9 +33,9 @@ This automatically registers the default alias list.
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true          # default: true
+    enabled: true          # default: true
     logLevel: info        # optional log level override
     shortcuts:            # custom alias definitions
       - name: "smoke"                 # alias name (used as -smoke in markers)
@@ -57,9 +57,9 @@ lua_modules:
 ### Minimal example
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true
+    enabled: true
     shortcuts:
       - name: "cas"
         description: "Request CAS"

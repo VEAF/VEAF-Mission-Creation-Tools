@@ -60,9 +60,9 @@ security:
 
 lua_modules:
   RADIO:
-    enable: true
+    enabled: true
   ASSETS:
-    enable: true
+    enabled: true
     assets:
       - sort: 1
         name: "Texaco"
@@ -254,12 +254,12 @@ lua_modules:
     logLevel: debug
   # Optional modules: can be enabled or disabled
   RADIO:
-    enable: true
+    enabled: true
     logLevel: info            # optional per-module log level override
     init:
       help_menus: true
   SPAWN:
-    enable: true
+    enabled: true
     logLevel: debug
 ```
 

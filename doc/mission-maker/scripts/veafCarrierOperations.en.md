@@ -43,9 +43,9 @@ Or let `veafAssets` handle registration automatically when a carrier asset has `
 Carrier operations are enabled via the `CARRIER` module ID. Carrier definitions are typically declared through the `ASSETS` module (see [veafAssets — Configuration](veafAssets.md#configuration-missionyaml)).
 
 ```yaml
-lua_modules:
+modules:
   CARRIER:
-    enable: true          # default: true
+    enabled: true          # default: true
     logLevel: info        # optional log level override
     init:
       include_carrier_operations_radio: true  # add carrier menu to F10 (default: true)
@@ -60,9 +60,9 @@ lua_modules:
 ### Minimal example
 
 ```yaml
-lua_modules:
+modules:
   CARRIER:
-    enable: true
+    enabled: true
 ```
 
 ---

@@ -35,9 +35,9 @@ local defenseZone = AirWaveZone:new()
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   AIRWAVES:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     airwave_zones:
       - name: "Zone BVR"                  # REQUIS — identifiant interne
@@ -115,9 +115,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   AIRWAVES:
-    enable: true
+    enabled: true
     airwave_zones:
       - name: "Arène BVR"
         start: true

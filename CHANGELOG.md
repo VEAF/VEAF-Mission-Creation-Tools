@@ -12,6 +12,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 - `convert-v5`: generated `mission.yaml` now includes the YAML syntax quick-reference header (was only present in `generate-config` output)
 - `convert-v5`: all comment strings in generated `mission.yaml` are now localized via `t()` — French users see French comments
+- `convert-v5`: multi-line Lua briefings using `..` concatenation (e.g. `"line1\n" .. "line2\n"`) are now fully extracted; `\n` escape sequences are decoded to real newlines and emitted as YAML block scalars
 
 ### Changed
 - `weather` pipeline step now uses `versions.yaml` exclusively — `missions.yaml` is no longer recognised as an alias; rename any existing `src/missions.yaml` to `src/versions.yaml`

@@ -87,6 +87,53 @@ class MigrationResult:
 
 
 # ---------------------------------------------------------------------------
+# Lua string helpers
+# ---------------------------------------------------------------------------
+
+#: Matches one double-quoted Lua string fragment (with escaped chars).
+_LUA_QUOTED_STR_RE = re.compile(r'"((?:[^"\\]|\\.)*)"', re.DOTALL)
+
+#: Lua escape sequences to decode in string values.
+_LUA_ESCAPES: list[tuple[str, str]] = [
+    ("\\n", "\n"),
+    ("\\t", "\t"),
+    ('\\"', '"'),
+    ("\\\\", "\\"),
+]
+
+
+def _lua_extract_string(text: str, call_name: str) -> str | None:
+    """Extract and decode a Lua method argument that may be a ``[[...]]`` long string or ``"..."``-concat.
+
+    Handles Lua ``..`` string concatenation — e.g.:
+    ``:setBriefing("line1\\n" .. "line2\\n")`` → ``"line1\\nline2\\n"`` with ``\\n`` → real newlines.
+
+    Args:
+        text: The source text containing the method call.
+        call_name: The method name to search for, e.g. ``"setBriefing"``.
+
+    Returns:
+        The decoded string value, or ``None`` if the call is not found.
+    """
+    m = re.search(rf":{re.escape(call_name)}\s*\(", text)
+    if not m:
+        return None
+    arg_start = m.end()
+    # Long string [[...]] — no escape decoding needed
+    ls = re.match(r"\s*\[\[(.*?)\]\]", text[arg_start:], re.DOTALL)
+    if ls:
+        return ls.group(1).strip()
+    # Collect all "..." fragments (handles .. concatenation across lines)
+    fragments = _LUA_QUOTED_STR_RE.findall(text[arg_start:])
+    if not fragments:
+        return None
+    joined = "".join(fragments)
+    for esc, char in _LUA_ESCAPES:
+        joined = joined.replace(esc, char)
+    return joined
+
+
+# ---------------------------------------------------------------------------
 # Migrator
 # ---------------------------------------------------------------------------
 
@@ -654,10 +701,9 @@ class ConfigMigrator:
         if m:
             cm["radio_menu_enabled"] = m.group(1) == "true"
 
-        # Briefing: [[...]] or [==[...]==] or "..."
-        m = re.search(r":setBriefing\s*\(\s*(?:\[\[([^\]]*(?:\][^\]])*)\]\]|\[=\[([^=]*)\]=\]|\"([^\"]*)\")", text)
-        if m:
-            briefing = m.group(1) or m.group(2) or m.group(3) or ""
+        # Briefing: handles [[...]], "..." and "..." .. "..." concatenation
+        briefing = _lua_extract_string(text, "setBriefing")
+        if briefing is not None:
             cm["briefing"] = briefing.strip()
 
         # Elements
@@ -1016,10 +1062,10 @@ class ConfigMigrator:
         if m:
             zone["friendly_name"] = m.group(1)
 
-        # Briefing: [[...]] or "..."
-        m = re.search(r':setBriefing\s*\(\s*(?:\[\[([^\]]*(?:\][^\]])*)\]\]|"([^"]*)")', chain_text)
-        if m:
-            zone["briefing"] = (m.group(1) or m.group(2) or "").strip()
+        # Briefing: handles [[...]], "..." and "..." .. "..." concatenation
+        briefing = _lua_extract_string(chain_text, "setBriefing")
+        if briefing is not None:
+            zone["briefing"] = briefing.strip()
 
         if re.search(r":disableUserActivation\s*\(\s*\)", chain_text):
             zone["user_activation_disabled"] = True
@@ -1056,9 +1102,10 @@ class ConfigMigrator:
         if m:
             op["friendly_name"] = m.group(1)
 
-        m = re.search(r':setBriefing\s*\(\s*(?:\[\[([^\]]*(?:\][^\]])*)\]\]|"([^"]*)")', chain_text)
-        if m:
-            op["briefing"] = (m.group(1) or m.group(2) or "").strip()
+        # Briefing: handles [[...]], "..." and "..." .. "..." concatenation
+        briefing = _lua_extract_string(chain_text, "setBriefing")
+        if briefing is not None:
+            op["briefing"] = briefing.strip()
 
         # addTaskingOrder(zoneVar, {deps}) — local var refs → extract as string names
         tasking_orders = []

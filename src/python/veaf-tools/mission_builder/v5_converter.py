@@ -103,6 +103,10 @@ def _yaml_str(value: str) -> str:
         return f'"{value}"'
     if _YAML_NEEDS_QUOTE_RE.search(value):
         return f'"{value}"'
+    if "\n" in value:
+        # Double-quoted scalar with escaped newlines — safe for inline use.
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        return f'"{escaped}"'
     return value
 
 
@@ -1048,7 +1052,13 @@ class V5Converter:
             for cap in mr.cap_missions_extracted:
                 lines.append(f"  - group_name: {_yaml_str(cap.get('group_name', ''))}")
                 lines.append(f"    menu_name: {_yaml_str(cap.get('menu_name', ''))}")
-                lines.append(f"    briefing: {_yaml_str(cap.get('briefing', ''))}")
+                b = cap.get("briefing", "")
+                if b and "\n" in b:
+                    lines.append("    briefing: |")
+                    for bl in b.strip().splitlines():
+                        lines.append(f"      {bl}")
+                else:
+                    lines.append(f"    briefing: {_yaml_str(b)}")
                 lines.append(f"    default: {'true' if cap.get('default') else 'false'}")
                 lines.append(f"    activated: {'true' if cap.get('activated', True) else 'false'}")
             lines.append("")

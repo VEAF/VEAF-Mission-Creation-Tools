@@ -14,6 +14,7 @@
 1. [Pour les utilisateurs : Mise à jour](#pour-les-utilisateurs--mise-à-jour)
 2. [Pour les administrateurs : Publication](#pour-les-administrateurs--publication)
 3. [Architecture du système](#architecture-du-système)
+4. [Dépannage](#dépannage)
 
 ---
 
@@ -536,6 +537,350 @@ Tags Git :
 ├── published-latest ──► commit abc123def... (identique)
 └── published-v6.0.0 ──► commit xyz789uvw...
 ```
+
+---
+
+## Dépannage
+
+### Problème : « Tag not found on GitHub »
+
+**Cause :** le tag Git a été créé localement mais n'a pas été poussé sur GitHub.
+
+**Solution :**
+```bash
+# Check if tag exists locally
+git tag -l published-v6.0.1
+
+# If it exists, push it
+git push origin refs/tags/published-v6.0.1
+
+# If it doesn't exist, create it
+git tag -a published-v6.0.1 -m "Release 6.0.1"
+git push origin refs/tags/published-v6.0.1
+```
+
+### Problème : « Checksum mismatch » lors de la mise à jour
+
+**Cause :** corruption du fichier pendant le téléchargement (rare) ou problème réseau.
+
+**Solution :**
+```bash
+# Try again (usually fixes it)
+veaf-tools-updater.exe
+
+# If persists, check GitHub release:
+# https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
+```
+
+### Problème : « GitHub rate limit exceeded »
+
+**Cause :** trop d'appels à l'API en peu de temps.
+
+**Solution :**
+```bash
+# Option 1: Wait 1 hour (rate limit resets)
+
+# Option 2: Use Personal Access Token (better limits)
+veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
+
+# Get token from: https://github.com/settings/tokens
+# Scope: repo (full control)
+```
+
+### Problème : « Permission denied » lors de l'installation
+
+**Cause :** écriture impossible dans le dossier mission ou le répertoire courant.
+
+**Solution :**
+```bash
+# Run as Administrator (Windows)
+# Or specify a different directory as a positional argument:
+veaf-tools-updater.exe "C:\alternative\path"
+```
+
+### Problème : fichier introuvable lors de la publication
+
+**Cause :** `published.zip` n'existe pas ou le chemin est incorrect.
+
+**Solution :**
+```bash
+# Verify file exists
+dir published.zip
+
+# Use correct absolute path
+veaf-tools-updater.exe publish 6.0.1 "C:\full\path\to\published.zip" --token ghp_xxx
+
+# Create zip if missing
+# (select published/ folder, right-click → Send to → Compressed (zipped))
+```
+
+### Problème : « Failed to create GitHub release »
+
+**Cause :** généralement un problème de token ou de réseau.
+
+**Solution :**
+```bash
+# Check token:
+# 1. Verify veaf-tools-config.yaml exists and has correct token
+# 2. Go to https://github.com/settings/tokens
+# 3. Verify scope includes "repo"
+# 4. Create new token if old one expired
+# 5. Token must have write permissions
+
+# Update your config file and try again
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --verbose
+```
+
+### Problème : « Not a git repository »
+
+**Cause :** la commande est lancée depuis le mauvais répertoire ou le dossier `.git` est absent.
+
+**Solution :**
+```bash
+# Publish command runs from repo root (has .git/)
+cd D:\dev\_VEAF\VEAF-Mission-Creation-Tools
+
+# Then run publish
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
+
+# Or specify repo path
+veaf-tools-updater.exe publish 6.0.1 ./published.zip \
+  --token ghp_xxx \
+  --repo-path "D:\dev\_VEAF\VEAF-Mission-Creation-Tools"
+```
+
+### Problème : « No release found for tag »
+
+**Cause :** le tag de version existe mais aucune Release GitHub n'a été créée pour lui.
+
+**Solution :**
+```bash
+# The publish command should create the release automatically
+
+# If it didn't:
+# 1. Visit https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
+# 2. Find the tag in "Releases" list
+# 3. Click "Edit" and re-publish
+
+# Or use publish again (it will detect existing tag)
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
+```
+
+### Obtenir plus d'aide
+
+Pour des informations de débogage détaillées :
+
+```bash
+# Show verbose output
+veaf-tools-updater.exe --verbose
+
+# Or for publish
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --verbose
+```
+
+Consultez le fichier `veaf-tools.log` dans le répertoire courant pour les journaux détaillés.
+
+---
+
+## Référence des commandes
+
+### Commande de mise à jour
+
+```bash
+veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
+
+Arguments:
+  MISSION_FOLDER                 Mission folder path (default: current directory)
+
+Options:
+  --tag TEXT                     Version tag to fetch (default: published-latest)
+  --token TEXT                   GitHub token (optional, overrides config file)
+  --force                        Ignore version check, install anyway
+  --no-verify-checksum           Skip checksum verification (not recommended)
+  --lang TEXT                    Force interface language (en, fr); overrides OS locale and ~/veafmct.yaml
+  --verbose                      Show detailed debug output
+  --pause                        Wait for user input before exiting
+  --help                         Show help message
+```
+
+**Note :** les réglages de `veaf-tools-config.yaml` sont utilisés automatiquement. Les options en ligne de commande priment sur les valeurs du fichier de configuration.
+
+**Exemples :**
+```bash
+veaf-tools-updater.exe
+veaf-tools-updater.exe --tag published-v6.0.0
+veaf-tools-updater.exe --token ghp_xxx --verbose
+veaf-tools-updater.exe --force
+```
+
+### Commande de publication
+
+```bash
+veaf-tools-updater.exe publish VERSION ZIP_FILE [OPTIONS]
+
+Required:
+  VERSION                        Version number (6.0.1 or v6.0.1)
+  ZIP_FILE                       Path to published.zip
+
+Options:
+  --token TEXT                   GitHub token (optional, overrides config file)
+  --repo-path TEXT               Repository path (default: current directory)
+  --release-notes TEXT           Release notes/changelog
+  --draft                        Create as draft (not visible to users)
+  --prerelease                   Mark as pre-release
+  --skip-tag                     Skip Git tag creation
+  --verbose                      Show detailed debug output
+  --pause                        Wait for user input before exiting
+  --help                         Show help message
+```
+
+**Note :** le token et les autres réglages de `veaf-tools-config.yaml` sont utilisés automatiquement. Les options en ligne de commande priment sur les valeurs du fichier de configuration.
+
+**Exemples :**
+```bash
+# With config file (recommended)
+veaf-tools-updater.exe publish 6.0.1 ./published.zip
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --release-notes "Version 6.0.1 - Bug fixes"
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --draft
+
+# Without config file (token required)
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
+veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --release-notes "..."
+```
+
+---
+
+## Bonnes pratiques
+
+### Pour les utilisateurs
+
+✅ **À faire :**
+- Lancez `veaf-tools update` régulièrement pour rester à jour
+- Laissez les checksums vérifier l'intégrité (n'utilisez pas `--no-verify-checksum`)
+- Utilisez `--help` en cas de doute sur une option
+
+❌ **À éviter :**
+- Ignorer la vérification de checksum
+- Modifier manuellement `veaf-tools-updater.exe` ou les scripts de build
+- Utiliser d'anciennes versions sans raison valable
+- Partager vos Personal Access Tokens (un token = un mot de passe)
+
+### Pour les administrateurs
+
+✅ **À faire :**
+- Stockez votre token dans `veaf-tools-config.yaml` (jamais dans git !)
+- Utilisez toujours la commande `publish` pour rester cohérent
+- Tenez les notes de version à jour
+- Testez avant de publier en production
+- Utilisez des tokens différents pour des machines différentes
+- Régénérez les tokens régulièrement
+- Conservez `veaf-tools-config.yaml` dans `.gitignore`
+
+❌ **À éviter :**
+- Committer `veaf-tools-config.yaml` dans git
+- Committer des Personal Access Tokens où que ce soit
+- Partager vos tokens avec d'autres personnes
+- Publier des versions non testées
+- Réutiliser un même token sur plusieurs machines
+- Sauter le processus de vérification
+
+---
+
+## Sécurité
+
+### Sûreté du token
+
+Votre Personal Access Token GitHub est comme un mot de passe :
+- ❌ Ne le committez jamais dans git (même dans des fichiers de configuration)
+- ❌ Ne le partagez jamais par e-mail ou message
+- ❌ Ne le collez jamais sur des forums publics
+- ❌ Ne poussez jamais `veaf-tools-config.yaml` dans git
+- ✅ Stockez-le dans `veaf-tools-config.yaml` (local uniquement)
+- ✅ Assurez-vous que `veaf-tools-config.yaml` figure dans `.gitignore`
+- ✅ Régénérez-le régulièrement (chaque mois)
+- ✅ Utilisez-le pour une tâche, puis révoquez-le (lorsque c'est possible)
+
+### Vérification par checksum
+
+Les checksums protègent les téléchargements :
+- ✅ Détectent la corruption réseau
+- ✅ Vérifient que les fichiers n'ont pas été modifiés
+- ✅ Préviennent les attaques de l'homme du milieu (man-in-the-middle)
+- ✅ Activés par défaut (gardez-les ainsi !)
+
+### HTTPS
+
+Toutes les communications avec GitHub utilisent le chiffrement TLS/SSL :
+- ✅ Les données en transit sont protégées
+- ✅ L'API GitHub impose HTTPS
+- ✅ Votre token est chiffré sur le réseau
+
+---
+
+## FAQ
+
+**Q : Puis-je revenir à une ancienne version ?**
+R : Oui ! `veaf-tools update --tag published-v6.0.0`
+
+**Q : Que faire si la publication échoue ?**
+R : Consultez la section Dépannage ci-dessus. La plupart des problèmes sont liés au réseau ou au token.
+
+**Q : Ai-je besoin du token pour mettre à jour ?**
+R : Non, le token ne sert qu'à publier. La mise à jour fonctionne sans lui (avec des limites de débit).
+
+**Q : À quelle fréquence dois-je publier de nouvelles versions ?**
+R : Aussi souvent que vous avez des changements. Les utilisateurs ne les verront que si vous le leur annoncez.
+
+**Q : Puis-je supprimer ou annuler une version publiée ?**
+R : Sur GitHub, oui. Mais les utilisateurs l'ont peut-être déjà téléchargée.
+
+**Q : Quelle est la différence entre `--draft` et `--prerelease` ?**
+R : Draft = caché, Prerelease = visible mais marqué comme « non final ».
+
+**Q : Puis-je publier sans créer de tag git ?**
+R : Oui, avec `--skip-tag`, mais ce n'est pas recommandé.
+
+**Q : Combien de temps les tokens durent-ils ?**
+R : Tant que vous ne les révoquez pas. Ils n'expirent pas automatiquement.
+
+**Q : Le checksum est-il obligatoire ?**
+R : Non (on peut l'ignorer avec `--no-verify-checksum`), mais il est fortement recommandé.
+
+---
+
+## Obtenir de l'aide
+
+Si vous rencontrez des problèmes :
+
+1. **Consultez la section Dépannage** ci-dessus
+2. **Lancez avec `--verbose`** pour voir la sortie détaillée
+3. **Vérifiez `veaf-tools.log`** dans le répertoire courant
+4. **Visitez la page des releases GitHub** pour confirmer que la release existe
+5. **Vérifiez votre connexion Internet** (la plupart des problèmes sont réseau)
+6. **Vérifiez les permissions du token** sur https://github.com/settings/tokens
+
+---
+
+## Historique des versions
+
+### Actuelle (6.0.1+)
+- ✅ Outil unifié de mise à jour / publication
+- ✅ Versionnement basé sur les tags Git
+- ✅ Vérification par checksum SHA256
+- ✅ Comparaison sémantique des versions
+- ✅ Publication entièrement automatisée
+
+### Précédente
+- Script de mise à jour basique
+- Versionnement basé sur les releases
+- Publication manuelle
+- Documentation limitée
+
+---
+
+**Bonnes publications !** 🚀
+
+Pour plus de détails techniques, consultez le code source ou le dépôt GitHub.
 
 ---
 

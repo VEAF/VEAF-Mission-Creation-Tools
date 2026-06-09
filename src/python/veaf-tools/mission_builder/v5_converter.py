@@ -18,6 +18,7 @@ DCS trigger conversion (v5 → v6) is handled automatically by
 
 from __future__ import annotations
 
+import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -76,6 +77,34 @@ DOC_LINKS: dict[str, str] = {
     "Migration Guide": f"{DOC_BASE}/mission-maker/MIGRATION_GUIDE.md",
     "Tools Reference": f"{DOC_BASE}/TOOLS_REFERENCE.md",
 }
+
+#: YAML special characters that require quoting a string value.
+_YAML_NEEDS_QUOTE_RE = re.compile(r'[:#{}[\]\\"]')
+#: YAML scalar keywords that must be quoted to stay as plain strings.
+_YAML_KEYWORDS: frozenset[str] = frozenset({"true", "false", "null", "yes", "no", "on", "off", "~"})
+#: Characters that, when at position 0, force quoting.
+_YAML_SPECIAL_START = frozenset("-?|>&!%@`'*,")
+
+
+def _yaml_str(value: str) -> str:
+    """Return *value* as a YAML scalar, quoted only when necessary.
+
+    Args:
+        value: The string to serialize.
+
+    Returns:
+        Plain string or ``"quoted"`` string per YAML quoting rules.
+    """
+    if not value:
+        return '""'
+    if value.lower() in _YAML_KEYWORDS:
+        return f'"{value}"'
+    if value[0].isdigit() or value[0] in _YAML_SPECIAL_START:
+        return f'"{value}"'
+    if _YAML_NEEDS_QUOTE_RE.search(value):
+        return f'"{value}"'
+    return value
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -830,11 +859,11 @@ class V5Converter:
             lines.append(t("converter.yaml.header.identity"))
             lines.append("mission:")
             if mr.mission_name:
-                lines.append(f'  name: "{mr.mission_name}"')
+                lines.append(f"  name: {_yaml_str(mr.mission_name)}")
             if mr.mission_era:
                 lines.append(f"  era: {mr.mission_era}")
             if mr.mission_export_path is not None:
-                ep_yaml = "null" if mr.mission_export_path is None else f'"{mr.mission_export_path}"'
+                ep_yaml = "null" if mr.mission_export_path is None else _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
             lines.append("")
 
@@ -847,7 +876,7 @@ class V5Converter:
             if mr.password_mm_hashes:
                 lines.append("  password_mm_hashes:")
                 for h in mr.password_mm_hashes:
-                    lines.append(f'    - "{h}"')
+                    lines.append(f"    - {_yaml_str(h)}")
             lines.append("")
 
         # ── Module configuration ───────────────────────────────────────────
@@ -900,7 +929,7 @@ class V5Converter:
                             if isinstance(v, bool):
                                 lines.append(f"{prefix}{k}: {'true' if v else 'false'}")
                             elif isinstance(v, str):
-                                lines.append(f'{prefix}{k}: "{v}"')
+                                lines.append(f"{prefix}{k}: {_yaml_str(v)}")
                             else:
                                 lines.append(f"{prefix}{k}: {v}")
 
@@ -963,7 +992,7 @@ class V5Converter:
             lines.append("  definitions:")
             for qra in mr.qra_definitions:
                 name = qra.get("name", "QRA")
-                lines.append(f'    - name: "{name}"')
+                lines.append(f"    - name: {_yaml_str(name)}")
                 if coalition := qra.get("coalition"):
                     lines.append(f"      coalition: {coalition}")
                 if enemies := qra.get("enemy_coalitions"):
@@ -995,7 +1024,7 @@ class V5Converter:
                 if qra.get("react_on_helicopters"):
                     lines.append("      react_on_helicopters: true")
                 if al := qra.get("airport_link"):
-                    lines.append(f'      airport_link: "{al}"')
+                    lines.append(f"      airport_link: {_yaml_str(al)}")
                 if not qra.get("start", True):
                     lines.append(t("converter.yaml.qra.start_comment"))
             lines.append("")
@@ -1006,9 +1035,9 @@ class V5Converter:
             lines.append(f"# Doc: {_DOC_BASE}#configuration-examples")
             lines.append("cap_missions:")
             for cap in mr.cap_missions_extracted:
-                lines.append(f'  - group_name: "{cap.get("group_name", "")}"')
-                lines.append(f'    menu_name: "{cap.get("menu_name", "")}"')
-                lines.append(f'    briefing: "{cap.get("briefing", "")}"')
+                lines.append(f"  - group_name: {_yaml_str(cap.get('group_name', ''))}")
+                lines.append(f"    menu_name: {_yaml_str(cap.get('menu_name', ''))}")
+                lines.append(f"    briefing: {_yaml_str(cap.get('briefing', ''))}")
                 lines.append(f"    default: {'true' if cap.get('default') else 'false'}")
                 lines.append(f"    activated: {'true' if cap.get('activated', True) else 'false'}")
             lines.append("")
@@ -1019,9 +1048,9 @@ class V5Converter:
             lines.append(f"# Doc: {_DOC_BASE}#configuration-examples")
             lines.append("combat_missions:")
             for cm in mr.combat_missions_extracted:
-                lines.append(f'  - name: "{cm.get("name", "")}"')
+                lines.append(f"  - name: {_yaml_str(cm.get('name', ''))}")
                 if fn := cm.get("friendly_name"):
-                    lines.append(f'    friendly_name: "{fn}"')
+                    lines.append(f"    friendly_name: {_yaml_str(fn)}")
                 lines.append(f"    secured: {'true' if cm.get('secured') else 'false'}")
                 lines.append(f"    radio_menu_enabled: {'true' if cm.get('radio_menu_enabled', True) else 'false'}")
                 if b := cm.get("briefing"):
@@ -1033,7 +1062,7 @@ class V5Converter:
                 if elems := cm.get("elements"):
                     lines.append("    elements:")
                     for elem in elems:
-                        lines.append(f'      - name: "{elem.get("name", "")}"')
+                        lines.append(f"      - name: {_yaml_str(elem.get('name', ''))}")
                         if gs := elem.get("groups"):
                             lines.append("        groups:")
                             for g in gs:

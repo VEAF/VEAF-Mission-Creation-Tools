@@ -436,7 +436,7 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, 'veaf.config.MISSION_NAME = "OpenTraining"\n')
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn('name: "OpenTraining"', yaml_content)
+            self.assertIn("name: OpenTraining", yaml_content)
 
     def _make_community_folder(self, folder: Path, filenames: list[str]) -> None:
         comm_dir = folder / "published" / "src" / "scripts" / "community"

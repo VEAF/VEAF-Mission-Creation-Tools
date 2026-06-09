@@ -933,9 +933,11 @@ class V5Converter:
         # the generated mission.yaml is self-consistent and the build no longer
         # needs to auto-enable them at config-generation time with a warning.
         auto_deps = resolve_module_dependencies(enabled_set)
+        # Always assign (even when empty) so a report reused across calls never
+        # keeps stale auto-resolved dependencies.
+        report.auto_resolved_deps = auto_deps
         if auto_deps:
             enabled_set.update(auto_deps)
-            report.auto_resolved_deps = auto_deps
         all_mods = get_modules()
 
         # Modules explicitly enabled (from missionConfig.lua or always-on base set)

@@ -1255,6 +1255,29 @@ veafEventHandler.EVENTS = {
   [10] = "S_EVENT_BASE_CAPTURED",
   [11] = "S_EVENT_MISSION_START",
   [12] = "S_EVENT_MISSION_END",
+  [13] = "S_EVENT_TOOK_CONTROL",
+  [14] = "S_EVENT_REFUELING_STOP",
+  [15] = "S_EVENT_BIRTH",
+  [16] = "S_EVENT_HUMAN_FAILURE",
+  [17] = "S_EVENT_DETAILED_FAILURE",
+  [18] = "S_EVENT_ENGINE_STARTUP",
+  [19] = "S_EVENT_ENGINE_SHUTDOWN",
+  [20] = "S_EVENT_PLAYER_ENTER_UNIT",
+  [21] = "S_EVENT_PLAYER_LEAVE_UNIT",
+  [22] = "S_EVENT_PLAYER_COMMENT",
+  [23] = "S_EVENT_SHOOTING_START",
+  [24] = "S_EVENT_SHOOTING_END",
+  [25] = "S_EVENT_MARK_ADDED",
+  [26] = "S_EVENT_MARK_CHANGE",
+  [27] = "S_EVENT_MARK_REMOVED",
+  [28] = "S_EVENT_KILL",
+  [29] = "S_EVENT_SCORE",
+  [30] = "S_EVENT_UNIT_LOST",
+  [31] = "S_EVENT_LANDING_AFTER_EJECTION",
+  [32] = "S_EVENT_PARATROOPER_LENDING",
+  [33] = "S_EVENT_DISCARD_CHAIR_AFTER_EJECTION",
+  [34] = "S_EVENT_WEAPON_ADD",
+  [35] = "S_EVENT_TRIGGER_ZONE",
   -- ... jusqu'à l'événement 61
 }
 ```
@@ -1302,6 +1325,11 @@ veafEventHandler.addCallback("birthHandler",
     end
   end
 )
+
+-- Écouter par ID d'événement
+veafEventHandler.addCallback("shotHandler", {1, 23}, function(event)
+  -- Gère S_EVENT_SHOT et S_EVENT_SHOOTING_START
+end)
 ```
 
 ##### `veafEventHandler.completeUnit(unit)`
@@ -1340,6 +1368,26 @@ Obtient les informations d'unité à partir du nom.
 
 **Retourne :** `table` — Table d'info unité (même structure que completeUnit)
 
+**Exemple :**
+```lua
+local unitInfo = veafEventHandler.completeUnitFromName("Viper 1-1")
+if unitInfo then
+  veaf.logger:info("L'unité %s est à %.0f%% de vie",
+    unitInfo.unitName, unitInfo.unitLifePercent)
+end
+```
+
+##### `veafEventHandler.checkEventKnown(eventNameOrId, warnOnly)`
+
+Vérifie qu'un événement est reconnu par DCS.
+
+**Paramètres :**
+
+- `eventNameOrId` (string ou number) — Nom ou ID de l'événement
+- `warnOnly` (boolean, optionnel) — Émet seulement un avertissement, sans erreur
+
+**Retourne :** `boolean` — True si l'événement est connu
+
 ##### `veafEventHandler.setEventEnabled(eventNameOrId, enabled)`
 
 Active ou désactive le traitement d'un événement.
@@ -1367,6 +1415,18 @@ Vérifie si le traitement d'un événement est activé.
 - `eventNameOrId` (string ou number) — Événement à vérifier
 
 **Retourne :** `boolean` — True si activé
+
+##### `veafEventHandler.isEventDelayedCallback(eventNameOrId)`
+
+Vérifie si un événement utilise un callback différé.
+
+**Paramètres :**
+
+- `eventNameOrId` (string ou number) — Événement à vérifier
+
+**Retourne :** `boolean` — True si différé
+
+**Description :** Certains événements comme BIRTH nécessitent des callbacks différés pour laisser DCS initialiser complètement les objets.
 
 ##### `veafEventHandler.initialize()`
 
@@ -1414,7 +1474,18 @@ Les événements passés aux callbacks sont enrichis de champs supplémentaires 
     unitPilotName = string,       -- si humain
     unitPilotUcid = string,       -- si humain
     unitLifePercent = number
-  }
+  },
+
+  -- Info cible enrichie (si target existe)
+  target = {
+    -- même structure que initiator
+  },
+
+  -- Info arme (si une arme a tiré/touché)
+  weaponName = string,            -- Nom du type d'arme
+
+  -- Champs d'événement marqueur
+  comment = string                -- Texte du commentaire de marqueur
 }
 ```
 
@@ -1431,6 +1502,32 @@ Les événements passés aux callbacks sont enrichis de champs supplémentaires 
 - Les événements BIRTH se déclenchent avant que les unités soient complètement initialisées
 - Utiliser les callbacks différés pour BIRTH si vous accédez aux propriétés de l'unité
 - PLAYER_ENTER_UNIT se déclenche après le chargement complet du joueur
+
+**Exemple : handler d'événements complet :**
+```lua
+-- Suivre les kills des joueurs
+local playerKills = {}
+
+veafEventHandler.addCallback("killTracker", {"S_EVENT_KILL"}, function(event)
+  if event.initiator and event.initiator.unitPilotName then
+    -- Un joueur humain a réalisé un kill
+    local playerName = event.initiator.unitPilotName
+    playerKills[playerName] = (playerKills[playerName] or 0) + 1
+
+    local targetName = "unknown"
+    if event.target and event.target.unitName then
+      targetName = event.target.unitName
+    end
+
+    veaf.outTextForUnit(event.initiator.unitName,
+      string.format("Kill confirmed! Total: %d", playerKills[playerName]),
+      10, false)
+
+    veaf.logger:info("%s killed %s (total kills: %d)",
+      playerName, targetName, playerKills[playerName])
+  end
+end)
+```
 
 ---
 
@@ -1493,6 +1590,75 @@ Supprime un handler d'événement marqueur.
 - `id` (number) — ID du handler depuis registerEventHandler
 
 **Retourne :** `boolean` — True si désenregistré avec succès
+
+**Exemple :**
+```lua
+local handlerId = veafMarkers.registerEventHandler(veafMarkers.MarkerAdd, myHandler)
+-- Plus tard...
+veafMarkers.unregisterEventHandler(handlerId)
+```
+
+#### Structure d'événement marqueur
+
+Les événements marqueur reçus par les handlers contiennent :
+
+```lua
+{
+  id = number,              -- ID du marqueur
+  time = number,            -- Temps mission
+  initiator = DCS_Unit,     -- Unité ayant créé le marqueur (si applicable)
+  coalition = coalition,    -- Coalition (-1 pour toutes, 0=neutre, 1=bleu, 2=rouge)
+  groupID = number,         -- ID du groupe
+  text = string,            -- Texte du marqueur
+  pos = vec3                -- Position du marqueur
+}
+```
+
+#### Patrons d'utilisation
+
+**Patron commande :**
+
+Les modules enregistrent un handler auprès de `veafCommands`, qui route de façon centralisée toutes les commandes des marqueurs F10 :
+```lua
+-- Dans la fonction initialize() d'un module :
+veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+  local text = event.text or ""
+  if not text:lower():match("^_mycommand") then
+    return false  -- not our command
+  end
+  -- handle the command...
+  return true   -- consumed
+end, veafCommands.PRIORITY_SPAWN)
+```
+
+Tous les handlers sont appelés par ordre de priorité jusqu'à ce que l'un retourne `true`.
+Le dispatcher central (`veafCommands.dispatchMarker`) gère automatiquement la suppression du marqueur.
+
+**Patron sécurité :**
+
+Vérifiez la coalition avant d'exécuter :
+```lua
+veafMarkers.registerEventHandler(veafMarkers.MarkerAdd, function(pos, event)
+  -- Only allow blue coalition markers
+  if event.coalition == coalition.side.BLUE then
+    processCommand(pos, event.text)
+  else
+    veaf.logger:warn("Unauthorized marker from coalition %d", event.coalition)
+  end
+end)
+```
+
+**Patron nettoyage :**
+
+Supprimez les marqueurs après traitement :
+```lua
+veafMarkers.registerEventHandler(veafMarkers.MarkerChange, function(pos, event)
+  if processMarkerCommand(pos, event.text) then
+    -- Remove marker after successful processing
+    trigger.action.removeMark(event.id)
+  end
+end)
+```
 
 ---
 
@@ -1598,6 +1764,8 @@ Exécute une commande VEAF. Délègue à `veafCommands.execute()` — tous les h
 
 **Retourne :** `boolean` — True si la commande a été exécutée avec succès
 
+**Note :** le routage des commandes est géré par `veafCommands`. Les modules s'enregistrent via `veafCommands.registerCommandHandler()`.
+
 **Exemple :**
 ```lua
 local pos = {x=1000, y=50, z=2000}
@@ -1643,6 +1811,27 @@ Initialise le module interpréteur.
 - Appelé automatiquement lors de l'initialisation VEAF
 - Scanne les unités avec des commandes interpréteur dans les noms
 - Exécute les commandes après un délai
+
+#### Flux d'exécution des commandes
+
+```
+1. Command received (unit name or marker)
+   ↓
+2. veafInterpreter.interpret() extracts command
+   ↓
+3. Check veafShortcuts for shorthand
+   ↓
+4. Try module-specific handlers in order:
+   - veafSpawn (spawn commands)
+   - veafNamedPoints (named locations)
+   - veafCasMission (CAS missions)
+   - veafSecurity (security commands)
+   - veafMove (movement)
+   - veafRadio (radio/comms)
+   - veafRemote (remote API)
+   ↓
+5. Return success/failure
+```
 
 #### Patron d'utilisation des commandes dans les noms d'unités
 

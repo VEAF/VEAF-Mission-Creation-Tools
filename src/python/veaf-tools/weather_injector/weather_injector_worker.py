@@ -91,7 +91,7 @@ class WeatherInjectorWorker(BaseWorker):
                 created_files.append(output_path)
                 logger.info(t("weather.created", path=output_path))
             except Exception as e:
-                logger.error(t("weather.error.version_failed", name=version.name, error=e))
+                logger.error(t("weather.error.version_failed", name=version.name, error=str(e)))
                 continue
 
         logger.info(t("weather.done", count=len(created_files)))
@@ -112,7 +112,7 @@ class WeatherInjectorWorker(BaseWorker):
             logger.error(t("weather.error.invalid_yaml", path=self.config_file))
             return None
         except Exception as e:
-            logger.error(t("weather.error.load_config", error=e))
+            logger.error(t("weather.error.load_config", error=str(e)))
             return None
 
     def _calculate_solar_times(self) -> None:
@@ -130,7 +130,7 @@ class WeatherInjectorWorker(BaseWorker):
             self.solar_times = SolarCalculator.get_sun_times(self.config.position, target_date)
             logger.debug(f"Solar times calculated: {self.solar_times}")
         except Exception as e:
-            logger.error(t("weather.injector.solar_times_failed", error=e))
+            logger.error(t("weather.injector.solar_times_failed", error=str(e)))
             self.solar_times = {}
 
     def _create_mission_version(self, version: VersionConfig) -> Path:
@@ -197,7 +197,7 @@ class WeatherInjectorWorker(BaseWorker):
                 self._set_mission_date(mission_date)
 
         except Exception as e:
-            logger.error(t("weather.injector.time_update_failed", error=e))
+            logger.error(t("weather.injector.time_update_failed", error=str(e)))
             raise
 
     def _inject_weather(self, version: VersionConfig) -> None:
@@ -250,7 +250,7 @@ class WeatherInjectorWorker(BaseWorker):
             logger.debug("Weather injected")
 
         except Exception as e:
-            logger.error(t("weather.injector.weather_inject_failed", error=e))
+            logger.error(t("weather.injector.weather_inject_failed", error=str(e)))
             raise
 
     def _set_mission_time(self, seconds: int) -> None:

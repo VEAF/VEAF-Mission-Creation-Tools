@@ -45,8 +45,8 @@ class TimeExpressionParser:
                 logger.debug(f"Parsed time expression '{expr}' = {result}s")
                 return result
             except (ValueError, IndexError) as e:
-                logger.error(t("weather.time_parser.parse_failed", expr=expr, error=e), exception_type=None)
-                raise ValueError(f"Invalid time format '{expr}': {e}")
+                logger.error(t("weather.time_parser.parse_failed", expr=expr, error=str(e)), exception_type=None)
+                raise ValueError(f"Invalid time format '{expr}': {e}") from e
 
         # Replace solar references
         if "sunrise" in expr and sunrise_seconds is None:
@@ -75,5 +75,5 @@ class TimeExpressionParser:
             return result
 
         except Exception as e:
-            logger.error(t("weather.time_parser.eval_failed", expression=expression, error=e), exception_type=None)
+            logger.error(t("weather.time_parser.eval_failed", expression=expression, error=str(e)), exception_type=None)
             raise ValueError(f"Invalid time expression '{expression}': {e}")

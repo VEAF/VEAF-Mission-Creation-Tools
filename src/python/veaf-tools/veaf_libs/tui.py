@@ -266,5 +266,5 @@ def run_wizard() -> list[str]:
         # fall back gracefully to the Typer help screen.
         from veaf_libs.logger import logger  # noqa: PLC0415
 
-        logger.warning(t("tui.unexpected_error", error=e))
+        logger.warning(t("tui.unexpected_error", error=str(e)))
         return []

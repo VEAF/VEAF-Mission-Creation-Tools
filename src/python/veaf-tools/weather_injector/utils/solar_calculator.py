@@ -50,5 +50,5 @@ class SolarCalculator:
             return result
 
         except Exception as e:
-            logger.error(t("weather.solar_calculator.failed", error=e))
+            logger.error(t("weather.solar_calculator.failed", error=str(e)))
             raise

@@ -102,7 +102,7 @@ def load_config() -> dict[str, Any]:
             logger.debug(f"Loaded configuration from {config_path}")
             return config
     except Exception as e:
-        logger.warning(t("updater.config_load_failed", error=e))
+        logger.warning(t("updater.config_load_failed", error=str(e)))
         return {}
 
 
@@ -237,7 +237,7 @@ class UpdateWorker:
                 package_data = json.load(f)
                 return package_data.get("version")
         except (OSError, json.JSONDecodeError) as e:
-            logger.warning(t("updater.err.version_read", error=e))
+            logger.warning(t("updater.err.version_read", error=str(e)))
             return None
 
     def get_version_constraint(self, mission_folder: Path) -> str | None:
@@ -387,7 +387,7 @@ exit /b 0
             logger.info(t("updater.deferred_pending"))
 
         except Exception as e:
-            logger.warning(t("updater.err.deferred_failed", error=e))
+            logger.warning(t("updater.err.deferred_failed", error=str(e)))
             logger.warning(t("updater.err.deferred_next_run"))
 
     def extract_and_install(self, zip_content: bytes, release_version: str, mission_folder: Path) -> bool:
@@ -473,10 +473,10 @@ exit /b 0
 
             return True
         except zipfile.BadZipFile as e:
-            logger.error(t("updater.err.extract_zip", error=e))
+            logger.error(t("updater.err.extract_zip", error=str(e)))
             return False
         except OSError as e:
-            logger.error(t("updater.err.install", error=e))
+            logger.error(t("updater.err.install", error=str(e)))
             return False
 
     def _install_defaults(self, mission_folder: Path, is_first_install: bool) -> None:
@@ -512,7 +512,7 @@ exit /b 0
             try:
                 zip_content = zip_path.read_bytes()
             except OSError as e:
-                logger.error(t("updater.err.zip_read", error=e))
+                logger.error(t("updater.err.zip_read", error=str(e)))
                 return False
 
             # Extract version from zip file path or use a default

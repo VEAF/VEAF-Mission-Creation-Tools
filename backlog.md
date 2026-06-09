@@ -90,7 +90,7 @@
 | Lot FEAT-YAML-MODULE-UX — Module shorthand, uppercase community IDs, category sort | ~1h | ✅ |
 | Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings | ~45 min | ✅ |
 | Lot FIX-I18N-HARDCODED — AST test + fix hardcoded strings in aircrafts_injector + lua_config_generator | ~1h | ✅ |
-| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 26 files, clear _TODO_EXEMPTIONS | ~4h | 🔄 |
+| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | 🔄 |
 | **Total** | **~194h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*

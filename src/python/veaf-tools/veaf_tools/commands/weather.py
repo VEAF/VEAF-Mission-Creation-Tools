@@ -52,7 +52,7 @@ def inject_weather(
                     input(t("help.pause_msg"))
                 return
         else:
-            logger.error(t("cmd.weather.convert_failed", error="conversion failed"))
+            logger.error(t("cmd.weather.convert_failed"))
             if pause:
                 input(t("help.pause_msg"))
             return

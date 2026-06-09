@@ -105,5 +105,5 @@ def prepare(
         console.print(t("cmd.prepare.folder_ready", path=p_mission_folder.resolve()))
 
     except Exception as e:
-        logger.error(t("cmd.prepare.failed", error=e))
+        logger.error(t("cmd.prepare.failed", error=str(e)))
         exit(1)

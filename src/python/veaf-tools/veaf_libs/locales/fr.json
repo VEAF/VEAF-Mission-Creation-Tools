@@ -634,7 +634,7 @@
   "cmd.waypoints.folder_not_found": "Le dossier de mission {path} n'existe pas !",
   "cmd.waypoints.waypoints_not_found": "Fichier de waypoints {path} introuvable !",
   "cmd.weather.converting_lua": "Conversion de la configuration Lua : {path}",
-  "cmd.weather.convert_failed": "Échec de la conversion de la configuration Lua : {error}",
+  "cmd.weather.convert_failed": "Échec de la conversion de la configuration Lua.",
   "cmd.weather.config_not_found": "Fichier de configuration {path} introuvable !",
   "waypoints_injector.no_manager": "Aucun gestionnaire de waypoints chargé ; traitement des groupes ignoré",
   "waypoints_injector.no_lua_file": "Aucun fichier Lua spécifié",

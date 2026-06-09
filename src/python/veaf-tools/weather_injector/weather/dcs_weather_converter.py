@@ -117,7 +117,7 @@ class DCSWeatherConverter:
             return dcs_weather
 
         except Exception as e:
-            logger.error(t("weather.converter.convert_failed", error=e))
+            logger.error(t("weather.converter.convert_failed", error=str(e)))
             raise
 
 
@@ -185,7 +185,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
         logger.debug(f"Successfully fetched METAR for {airport_icao}: {result}")
     except Exception as e:
-        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=e))
+        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=str(e)))
 
     return result
 

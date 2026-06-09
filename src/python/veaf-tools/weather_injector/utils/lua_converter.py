@@ -54,7 +54,7 @@ class LuaToYamlConverter:
             return output_file
 
         except Exception as e:
-            logger.error(t("weather.lua_converter.convert_failed", error=e))
+            logger.error(t("weather.lua_converter.convert_failed", error=str(e)))
             return None
 
     @staticmethod
@@ -134,7 +134,7 @@ class LuaToYamlConverter:
             return config if config else None
 
         except Exception as e:
-            logger.error(t("weather.lua_converter.error_parsing", error=e))
+            logger.error(t("weather.lua_converter.error_parsing", error=str(e)))
             return None
 
     @staticmethod

@@ -65,8 +65,8 @@ def spinner_context(
             if show_done:
                 final_done_message = control.done_message or done_message
                 if not final_done_message:
-                    final_done_message = (
-                        t("progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:])
+                    final_done_message = t(
+                        "progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:]
                     )
                     if logger:
                         logger.info(message, no_console=True)
@@ -134,8 +134,8 @@ def progress_context(
         finally:
             if show_done:
                 if not done_message:
-                    done_message = (
-                        t("progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:])
+                    done_message = t(
+                        "progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:]
                     )
 
                 styled_done = Text(done_message, style=done_color)

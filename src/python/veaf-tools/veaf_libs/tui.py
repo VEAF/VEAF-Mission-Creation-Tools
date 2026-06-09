@@ -211,9 +211,7 @@ def _mission_yaml_defaults(folder: Path | None = None) -> dict[str, str]:
     return defaults
 
 
-def _resolve_prompt_default(
-    prompt: ArgPrompt, last_args: dict[str, Any], yaml_defaults: dict[str, str]
-) -> str:
+def _resolve_prompt_default(prompt: ArgPrompt, last_args: dict[str, Any], yaml_defaults: dict[str, str]) -> str:
     """Resolve the default value offered for *prompt*.
 
     Precedence: last saved preference > value derived from ``mission.yaml`` >

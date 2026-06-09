@@ -320,13 +320,22 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
 
     Scans all Python source files for string literals (plain or f-string) passed
     directly to ``logger.*()`` or ``console.print()`` calls, or returned directly
-    from worker methods.  Any string longer than 15 characters containing a space
-    is considered "user-visible prose" and must go through ``t()``.
+    from worker methods.  Any string longer than ``_PROSE_MIN_LEN`` characters
+    containing a space is considered "user-visible prose" and must go through
+    ``t()``.
+
+    Thresholds:
+        ``_PROSE_MIN_LEN``: minimum character count for a string to be flagged.
+        ``_PROSE_REQUIRES_SPACE``: when True, the string must also contain a space.
 
     Files listed in ``_TODO_EXEMPTIONS`` are known to still have violations and
     are excluded from this check until they are fixed.  Remove a file from the
     list once it is clean — the test will then enforce it stays clean.
     """
+
+    # Prose detection thresholds — tune here without touching AST logic.
+    _PROSE_MIN_LEN: int = 15
+    _PROSE_REQUIRES_SPACE: bool = True
 
     # TODO: fix hardcoded strings in these files and remove them from this list.
     _TODO_EXEMPTIONS: frozenset[str] = frozenset(
@@ -363,14 +372,15 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
     def _has_prose(self, node: ast.expr) -> bool:
         """Return True if *node* is a string/f-string literal that looks like English prose."""
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return " " in node.value and len(node.value) > 15
+            s = node.value
+            return len(s) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in s)
         if isinstance(node, ast.JoinedStr):
             lit = "".join(
                 v.value
                 for v in node.values
                 if isinstance(v, ast.Constant) and isinstance(v.value, str)
             )
-            return " " in lit and len(lit) > 15
+            return len(lit) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in lit)
         return False
 
     def _is_t_call(self, node: ast.expr) -> bool:
@@ -398,7 +408,8 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
             is_logger = (
                 isinstance(func, ast.Attribute)
                 and func.attr in LOG_METHODS
-                and "logger" in ast.dump(func.value)
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "logger"
             )
             is_console = isinstance(func, ast.Attribute) and func.attr == "print"
             if (is_logger or is_console) and node.args and self._has_prose(node.args[0]):

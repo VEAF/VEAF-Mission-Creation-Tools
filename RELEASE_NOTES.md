@@ -59,7 +59,7 @@ d'activer ou désactiver individuellement les scripts Lua communautaires
 
 ### Affichage console épuré
 
-La sortie des outils en ligne de commande est désormais « décluttée » : les
+La sortie des outils en ligne de commande est désormais « épurée » : les
 messages de progression de faible importance défilent sur une seule ligne
 réécrite, tandis que les lignes techniques permanentes et les en-têtes d'étape
 restent affichés. Chaque étape du build se termine par une ligne de résultat
@@ -72,7 +72,7 @@ fichier de log complet reste inchangé.
 
 Tous les messages des outils (build, injecteurs de presets et waypoints,
 validateur de fréquences, convertisseur v5…) sont désormais traduits en
-français — plus aucun texte anglais en dur dans les logs en locale française.
+français — plus aucun texte anglais en dur dans les logs en français.
 
 ### Profil de coloration Klogg
 

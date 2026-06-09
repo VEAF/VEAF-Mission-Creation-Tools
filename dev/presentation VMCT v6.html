@@ -176,7 +176,7 @@ const NOTES=[
 "La commande centrale au quotidien c'est 'build'. Le TUI est lancé auto au double-clic depuis l'Explorateur. Les préférences (dernière commande + valeurs) sont sauvegardées dans VEAF_HOME. ~/veafmct.yaml est une config machine globale, distincte de mission.yaml.",
 "Changement le plus impactant pour les créateurs de mission. Les mission makers avancés gardent mission-script.lua pour le Lua arbitraire.",
 "Insister sur la validation : en v5, erreur de config = crash DCS. En v6, le build valide tout avant. La séparation YAML/Lua est intentionnelle.",
-"Montrer la lisibilité vs missionConfig.lua. La clé veaf_tools.version est lue par l'updater. Syntaxe semver : '6' = toute 6.x.x, '^6.3' = compatible, '~6.3.1' = patch only.",
+"Montrer la lisibilité vs missionConfig.lua. La clé veaf_tools.version est lue par l'updater. Syntaxe semver : '6' = toute 6.x.x, '^6.4' = compatible, '~6.4.1' = patch only.",
 "Les profils de build : logs debug pour testeurs, logs warning pour serveur public — sans toucher au fichier de config.",
 "Fonctionnalités ajoutées après la première version de la présentation. La validation radio utilise les données de dcs-lua-datamine — 150+ appareils couverts. Le toggle community_scripts évite de supprimer manuellement des scripts du .miz.",
 "Le workflow est identique à la v5 côté utilisateur. Ce qui change : fiabilité, validation, warnings préventifs.",
@@ -344,7 +344,7 @@ function rCode(){
   <span class="ck">enabled</span>: <span class="cs">false</span>         <span class="cc"># pont réseau DCS optionnel</span>
 
 <span class="ck">veaf_tools</span>:
-  <span class="ck">version</span>: <span class="cv">"^6.3"</span></div>`;
+  <span class="ck">version</span>: <span class="cv">"^6.4"</span></div>`;
 }
 
 function rFeatures(s){

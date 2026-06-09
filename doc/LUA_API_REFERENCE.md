@@ -3395,6 +3395,11 @@ Initialise le module CAS.
 - `position` (vec3) — Position de l'aérodrome
 - `coalition` (coalition) — Propriétaire actuel
 - `runways` (table) — Tableau d'objets Runway
+- `fuelCapacity` (number) — Stockage de carburant
+- `ammoBlueMissile` (number) — Munitions missiles bleus
+- `ammoBlueGun` (number) — Munitions canons bleus
+- `ammoRedMissile` (number) — Munitions missiles rouges
+- `ammoRedGun` (number) — Munitions canons rouges
 
 **Méthodes :**
 ```lua
@@ -3439,6 +3444,25 @@ Obtient un aérodrome par nom.
 
 **Retourne :** `Airbase` — Objet Airbase ou nil
 
+**Exemple :**
+```lua
+local kutaisi = veafAirbases.getAirbaseByName("Kutaisi")
+if kutaisi then
+  veaf.logger:info("Kutaisi has %d runways", kutaisi:getRunwayCount())
+  veaf.logger:info("Position: %s", veaf.vecToString(kutaisi:getPosition()))
+end
+```
+
+##### `veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)`
+
+Convertit un aérodrome DCS en objet Airbase.
+
+**Paramètres :**
+
+- `dcsAirbase` (DCS Airbase) — Objet aérodrome DCS
+
+**Retourne :** `Airbase` — Objet aérodrome VEAF
+
 ##### `veafAirbases.getNearestAirbaseList(dcsUnit, iCount)`
 
 Obtient les aérodromes les plus proches d'une unité.
@@ -3450,6 +3474,15 @@ Obtient les aérodromes les plus proches d'une unité.
 
 **Retourne :** `table` — Tableau d'objets Airbase triés par distance
 
+**Exemple :**
+```lua
+local unit = Unit.getByName("Viper 1-1")
+local nearestBases = veafAirbases.getNearestAirbaseList(unit, 3)
+for i, airbase in ipairs(nearestBases) then
+  veaf.logger:info("%d. %s", i, airbase:getName())
+end
+```
+
 ##### `veafAirbases.getNearestAirbase(dcsUnit)`
 
 Obtient l'aérodrome le plus proche.
@@ -3459,6 +3492,14 @@ Obtient l'aérodrome le plus proche.
 - `dcsUnit` (DCS Unit) — Objet unité
 
 **Retourne :** `Airbase` — Aérodrome le plus proche
+
+**Exemple :**
+```lua
+local unit = Unit.getByName("Viper 1-1")
+local nearest = veafAirbases.getNearestAirbase(unit)
+veaf.outTextForUnit("Viper 1-1",
+  string.format("Nearest airbase: %s", nearest:getName()), 10)
+```
 
 ---
 
@@ -3485,6 +3526,25 @@ Démarre les opérations de recovery du porte-avions.
 - Tourne le porte-avions face au vent
 - Maintient la position pour la recovery
 - Rapporte la direction du vent et les infos ATC
+
+**Exemple :**
+```lua
+veafCarrierOperations.startCarrierOperations({
+  carrierGroupName = "CVN-73",
+  userUnitName = "Hornet 1-1"
+})
+```
+
+##### `veafCarrierOperations.continueCarrierOperations(groupName, userUnitName)`
+
+Poursuit les opérations du porte-avions.
+
+**Paramètres :**
+
+- `groupName` (string) — Nom du groupe porte-avions
+- `userUnitName` (string, optionnel) — Unité utilisateur
+
+**Retourne :** Rien
 
 ##### `veafCarrierOperations.stopCarrierOperations(parameters)`
 
@@ -3520,6 +3580,48 @@ Radio: 127.5 MHz AM
 TACAN: 73X (1205 MHz)
 ICLS: 13
 ```
+
+##### `veafCarrierOperations.atcForCarrierOperations(parameters)`
+
+Obtient l'ATC pour le porte-avions (avec sortie).
+
+**Paramètres :**
+
+- `parameters` (table) — `{carrierGroupName=string, userUnitName=string}`
+
+**Retourne :** Rien
+
+##### `veafCarrierOperations.listAvailableCarriers(forGroup)`
+
+Affiche les porte-avions disponibles.
+
+**Paramètres :**
+
+- `forGroup` (string, optionnel) — Nom du groupe recevant la liste
+
+**Retourne :** Rien
+
+##### `veafCarrierOperations.executeCommandFromRemote(parameters)`
+
+Exécute depuis l'API distante.
+
+**Paramètres :**
+
+- `parameters` (table) — Paramètres de commande distante
+
+**Retourne :** Rien
+
+##### `veafCarrierOperations.initializeCarrierGroups()`
+
+Initialise les groupes de porte-avions.
+
+**Retourne :** Rien
+
+##### `veafCarrierOperations.buildRadioMenu()`
+
+Construit le menu radio des porte-avions.
+
+**Retourne :** Rien
 
 ##### `veafCarrierOperations.initialize()`
 

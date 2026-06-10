@@ -137,6 +137,18 @@ presets_assignments:
       all: blue_default
 ```
 
+### Channel value
+
+A channel can be defined in three ways:
+
+- a **channel name** (alias resolved from `channels_collection`): `01: Guard`;
+- a direct **frequency** (MHz): `01: 243.0`;
+- an **object**: `01: { freq: 243.0, mod: 1 }`, where `mod` is the modulation (`0` = AM, `1` = FM). The `mod` field is optional; when absent, DCS uses its default.
+
+### Iso-functional v5 conversion (`convert-v5`)
+
+For **standard** radio layouts (channels that are a 1:1 image of a preset table), `convert-v5` produces a lightweight shared assignment. For **bespoke** layouts — channel rotation (Mi-24P channel 0 → preset #20), leading dummy channel / hardcoded frequencies / per-channel AM-FM modulations (AJS37), or extra radios — it emits a **dedicated `{coalition}_{aircraft}` preset** that reproduces the exact channel → frequency map (including `mod`), keeping the conversion iso-functional with the v5 mission (see ADR 0003).
+
 ### Frequency validation
 
 At injection time, every frequency assigned to an aircraft is checked against the hardware specs of that aircraft's radios.

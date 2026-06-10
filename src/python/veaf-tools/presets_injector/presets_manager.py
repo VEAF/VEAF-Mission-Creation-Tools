@@ -21,7 +21,7 @@ import io
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import yaml
 from PIL import Image, ImageDraw, ImageFont
@@ -35,17 +35,19 @@ class Channel:
     Can be either created from a RadioDefinition channel (when data is directly set on a radio channel) or read from a ChannelDefinition object in a ChannelCollection (when the RadioDefinition channel references an alias), or both (RadioDefinition channel sets an alias and overrides values for specific attributes)
     """
 
-    def __init__(self, name_or_number: int | str, freq: float, title: str | None = None):
+    def __init__(self, name_or_number: int | str, freq: float, title: str | None = None, mod: int | None = None):
         self.freq: float = freq
         self.title: str | None = title
+        self.mod: int | None = mod
 
+        self.number: int
         if isinstance(name_or_number, str):
             if name_or_number.lower().startswith("channel_"):
-                self.number: int = int(name_or_number.lower().split("channel_")[-1])
+                self.number = int(name_or_number.lower().split("channel_")[-1])
             else:
-                self.number: int = int(name_or_number)
+                self.number = int(name_or_number)
         else:
-            self.number: int = name_or_number
+            self.number = name_or_number
 
 
 class ChannelDefinition:
@@ -157,15 +159,19 @@ class RadioDefinition:
             dict: Dictionary representation of the radio
         """
 
-        return {
+        result: dict[str, Any] = {
             "channelsNames": {(channel.number): channel.title for channel in self.channels}
             if any(channel.title for channel in self.channels)
             else {},
-            # "modulations": {
-            #    int(channel.name) if channel.name.isdigit() else int(channel.name.split('_')[-1]): channel.mod for channel in self.channels
-            # },
             "channels": {int(channel.number): channel.freq for channel in self.channels},
         }
+        # Emit the per-channel modulation table only when at least one channel
+        # carries an explicit modulation (AM/FM selection), matching the DCS
+        # ``["Radio"][N]["modulations"]`` shape. Channels without an explicit
+        # value default to 0 (AM) so the table stays parallel to ``channels``.
+        if any(channel.mod is not None for channel in self.channels):
+            result["modulations"] = {int(channel.number): int(channel.mod or 0) for channel in self.channels}
+        return result
 
     def get_freq_of_first_channel(self) -> float | None:
         if self.channels:
@@ -181,6 +187,7 @@ class RadioDefinition:
         channel_freq = None
         channel_alias = None
         channel_title = None
+        channel_mod: int | None = None
         if isinstance(channel_data, str):
             # shortcut to only set the channel alias
             channel_alias = channel_data
@@ -190,6 +197,7 @@ class RadioDefinition:
             channel_title = channel_data.get("title")
             channel_alias = channel_data.get("channel")
             channel_freq = channel_data.get("freq")
+            channel_mod = channel_data.get("mod")
         channel_definition = None
         if channel_alias:
             for channel_collection in channel_collections.values():
@@ -209,9 +217,9 @@ class RadioDefinition:
                     message=f"'channel_alias' {channel_alias} in RadioDefinition {self.name} was not found in any ChannelCollection",
                     exception_type=ValueError,
                 )
-        if not channel_freq:
+        if channel_freq is None:
             logger.error(message=f"'freq' is mandatory for RadioDefinition {self.name}", exception_type=ValueError)
-        self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title))  # type: ignore[arg-type]
+        self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title, mod=channel_mod))  # type: ignore[arg-type]
 
     @classmethod
     def from_dict(
@@ -301,7 +309,7 @@ class PresetDefinition:
             logger.error(message="radio_alias is mandatory", exception_type=ValueError)
         self.radios[radio.name] = radio
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[int, dict[str, Any]]:
         return {radio_number + 1: radio.to_dict() for radio_number, radio in enumerate(self.radios.values())}
 
     def get_freq_of_first_channel_of_first_radio(self) -> float | None:
@@ -566,6 +574,12 @@ class RadioPresetsImageGenerator:
         self.height = height
         self.preset_collections = preset_collections
         self._cached_fonts: tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont] | None = None
+        # Layout state shared between draw_* methods (set in draw_preset_image /
+        # draw_radios_in_preset_image, read in draw_channels_in_preset_image).
+        self.table_x: float = 0
+        self.header_y: float = 0
+        self.column_width_channel: float = 0
+        self.column_width_name: float = 0
 
     def get_fonts(self) -> tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont]:
         if not self._cached_fonts:
@@ -575,11 +589,11 @@ class RadioPresetsImageGenerator:
                 title_font = ImageFont.truetype(ARIAL, 30)
                 collection_title_font = ImageFont.truetype(ARIAL, 40)
             except Exception:
-                preset_font = ImageFont.load_default()
-                title_font = ImageFont.load_default()
-                collection_title_font = ImageFont.load_default()
+                preset_font = cast(FreeTypeFont, ImageFont.load_default())
+                title_font = cast(FreeTypeFont, ImageFont.load_default())
+                collection_title_font = cast(FreeTypeFont, ImageFont.load_default())
 
-            self._cached_fonts = (preset_font, title_font, collection_title_font)  # type: ignore[assignment]
+            self._cached_fonts = (preset_font, title_font, collection_title_font)
 
         assert self._cached_fonts is not None
         return self._cached_fonts

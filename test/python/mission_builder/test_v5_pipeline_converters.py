@@ -483,8 +483,7 @@ class TestConvertPresetsPerAircraftAssignments(unittest.TestCase):
     def _lua(self, extra_settings: str = "") -> str:
         return (
             'radioPresetsBlue = { ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0 }\n'
-            'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4 }\n'
-            + extra_settings
+            'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4 }\n' + extra_settings
         )
 
     def test_warbird_aircraft_assigned_warbird_preset(self) -> None:
@@ -586,7 +585,8 @@ radioSettings = {
         self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("Mi-8MT"), "blue_vhf_primary")
         self.assertNotIn("Mi-8MT", data["presets_assignments"]["blue"]["plane"])
 
-    def test_hardcoded_entry_emits_warning(self) -> None:
+    def test_hardcoded_entry_gets_dedicated_preset(self) -> None:
+        # A hardcoded literal is bespoke → reproduced verbatim in a dedicated preset.
         lua = self._lua("""
 radioSettings = {
     ["blue AJS37"] = { type = "AJS37", coalition = "blue", country = nil,
@@ -596,8 +596,11 @@ radioSettings = {
 """)
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
-        warns = convert_presets(v5, v6)
-        self.assertTrue(any("AJS37" in w for w in warns))
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("AJS37"), "blue_ajs37")
+        radio = data["radios_collection"]["blue_radios"]["radio_blue_ajs37_1"]
+        self.assertEqual(radio["channels"][1], 284.0)
 
     def test_type_pattern_vhf_primary_assigned(self) -> None:
         lua = self._lua("""

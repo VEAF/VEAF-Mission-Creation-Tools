@@ -136,6 +136,9 @@ class _RadioSlot:
     """Ordered ``(dcs_channel_index, value)`` pairs (value is a token ref or literal)."""
     modulations: dict[int, int] = field(default_factory=dict)
     """Maps DCS channel index to its modulation flag (``0`` = AM, ``1`` = FM)."""
+    unparsed: int = 0
+    """Count of ``[idx] = …`` assignments whose value was neither a preset token
+    nor a numeric literal (e.g. an unsupported Lua expression) and was dropped."""
 
 
 @dataclass
@@ -191,20 +194,23 @@ def _extract_named_subblock(block_text: str, key: str) -> str | None:
     return _extract_block_at(block_text, m.end() - 1)
 
 
-def _parse_slot_channels(slot_block: str) -> list[tuple[int, _ChannelValue]]:
+def _parse_slot_channels(slot_block: str) -> tuple[list[tuple[int, _ChannelValue]], int]:
     """Parse the ``["channels"]`` sub-table of a radio slot.
 
     Args:
         slot_block: Raw Lua text of a single ``["Radio"][N] = { … }`` slot.
 
     Returns:
-        Ordered ``(channel_index, value)`` pairs where *value* is a
-        ``(table_var, token)`` reference tuple or a hardcoded ``float``.
+        A ``(channels, unparsed)`` tuple where *channels* are ordered
+        ``(channel_index, value)`` pairs (value is a ``(table_var, token)``
+        reference or a hardcoded ``float``), and *unparsed* counts assignments
+        whose value matched neither shape (an unsupported Lua expression).
     """
     channels_block = _extract_named_subblock(slot_block, "channels")
     if not channels_block:
-        return []
+        return [], 0
     result: list[tuple[int, _ChannelValue]] = []
+    unparsed = 0
     for m in re.finditer(r"\[(\d+)\]\s*=\s*([^\n,}]+)", channels_block):
         idx = int(m.group(1))
         raw = m.group(2).strip().rstrip(",").strip()
@@ -215,8 +221,8 @@ def _parse_slot_channels(slot_block: str) -> list[tuple[int, _ChannelValue]]:
         try:
             result.append((idx, float(raw)))
         except ValueError:
-            continue
-    return result
+            unparsed += 1
+    return result, unparsed
 
 
 def _parse_slot_modulations(slot_block: str) -> dict[int, int]:
@@ -334,11 +340,13 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
                     sub_block = _extract_block_at(radio_block, rm.end() - 1)
                     if sub_block:
                         source = _detect_radio_block_source(sub_block)
+                        channels, unparsed = _parse_slot_channels(sub_block)
                         radio_sources[idx] = source
                         radio_slots[idx] = _RadioSlot(
                             source=source,
-                            channels=_parse_slot_channels(sub_block),
+                            channels=channels,
                             modulations=_parse_slot_modulations(sub_block),
+                            unparsed=unparsed,
                         )
 
         entries.append(
@@ -868,36 +876,50 @@ def _emit_dedicated_preset(
 
     coalition_radios = radios_collection.setdefault(radios_key, {})
     preset_radios: dict[str, str] = {}
+    dropped = 0  # channels that could not be converted (unresolved token or unparsed)
 
     for slot_idx in sorted(entry.radio_slots.keys()):
         slot = entry.radio_slots[slot_idx]
         has_mods = bool(slot.modulations)
         radio_name = f"radio_{coalition}_{slug}_{slot_idx}"
         rtype = _DEDICATED_TYPE_BY_SOURCE[slot.source]
+        dropped += slot.unparsed
 
         v6_channels: dict[int, Any] = {}
         for ch_idx, value in slot.channels:
             freq = _resolve_channel_value(value, resolver)
             if freq is None:
-                warnings.append(
-                    t(
-                        "convert_v5.warn.radio_hardcoded_skip",
-                        aircraft=entry.aircraft,
-                        coalition=coalition,
-                    )
-                )
+                dropped += 1
                 continue
             if has_mods:
                 v6_channels[ch_idx] = {"freq": freq, "mod": int(slot.modulations.get(ch_idx, 0))}
             else:
                 v6_channels[ch_idx] = freq
 
+        # Skip empty radios so a slot that yielded no usable channel never produces
+        # a hollow radio definition.
+        if not v6_channels:
+            continue
         coalition_radios[radio_name] = {
             "title": f"{entry.aircraft} radio {slot_idx}",
             "type": rtype,
             "channels": v6_channels,
         }
         preset_radios[f"radio_{slot_idx}"] = radio_name
+
+    if dropped:
+        warnings.append(
+            t(
+                "convert_v5.warn.radio_channels_dropped",
+                aircraft=entry.aircraft,
+                coalition=coalition,
+                count=dropped,
+            )
+        )
+
+    # Nothing usable was parsed — do not emit an empty preset or assignment.
+    if not preset_radios:
+        return
 
     presets_collection.setdefault(presets_key, {})[preset_name] = {
         "title": f"{cap} coalition - {entry.aircraft} (iso-functional)",

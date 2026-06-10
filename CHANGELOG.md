@@ -9,7 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `convert-v5`: the annotated report (`convert-v5-report.md`) now opens with an at-a-glance **Summary** — how many modules were migrated and how many items still need manual action (with the source line numbers) — so you see whether work remains without reading the full annotated config (CONVERT-FIDELITY-004)
+- `mission.silence_atc_on_all_airbases` (default `true` in the template): emits `veaf.silenceAtcOnAllAirbases()`; `convert-v5` detects an active call in `missionConfig.lua` and preserves it (CONVERT-FIDELITY-003)
+
 ### Changed
+- `convert-v5`: a fully-migrated `if veafXxx then … end` init block is now commented out **in its entirety** (not just the `initialize()` line), so any non-migrated custom code left in `missionConfig.lua` visually stands out (CONVERT-FIDELITY-002)
 - **`mission.yaml` `modules:` is now the single source of truth** (hard break, pre-release — see ADR 0001). Skynet, CTLD, CSAR and QRA are configured under their `modules:` entry instead of the removed `external_modules:` / `qra:` sections: `modules.SKYNET` (flags), `modules.CTLD` / `modules.CSAR` (with a `settings:` sub-block for `ctld.xxx` / `csar.xxx` pairs), `modules.QRA` (`silence_all` + `definitions:`). The default template and the generated mission.yaml emit the unified shape; `convert-v5` produces it directly and now extracts CTLD/CSAR settings from `missionConfig.lua`. Docs (`MISSION_YAML_REFERENCE*`, migration guides) updated (MODULES-UNIFY-001..005)
 - **Semantic validation of the `modules:` block**: an unknown module key, a removed `external_modules:` / `qra:` section, a wrongly-typed value, or a bad `enabled` / `logLevel` now raise a localized error at build time; an unrecognized `init:` parameter emits a warning instead of being silently dropped (MODULES-UNIFY-006)
 

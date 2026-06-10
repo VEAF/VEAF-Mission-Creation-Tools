@@ -35,6 +35,23 @@
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | 🔄 |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
+| Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + Vectorize + Gemini) embedded in the MkDocs site | 🔄 |
+
+---
+
+## Lot DOC-CHATBOT — free RAG documentation chatbot embedded in the MkDocs site
+
+**Goal**: Add a free, bilingual (FR/EN) chatbot that guides users from within the VEAF v6 documentation site (MkDocs Material → GitHub Pages), modeled on the Solde chatbot but re-shaped for a static/public site. A Cloudflare Worker (free tier) holds the Gemini API key, enforces an Origin allow-list + per-IP rate-limit (KV), and answers via **RAG**: it embeds the question (`gemini-embedding-001`, 768d), retrieves the most relevant doc passages from a Cloudflare Vectorize index (filtered by language), and streams a grounded answer from `gemini-2.5-flash-lite`. RAG was adopted after a live test proved full-document injection (~100k tokens/request) hits the Gemini free-tier tokens-per-minute ceiling at ~2 questions/minute; context caching was ruled out (cached tokens still count against TPM and it requires billing). Implementation lives under `poc/doc-chatbot/` (Worker + index build script) and `doc/assets/chatbot/` (widget); deployed and validated live at `https://veaf-docs-chatbot.veaf.workers.dev`.
+
+**Branch**: `claude/cranky-heyrovsky-e6f193` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DOC-CHATBOT-001 | Cloudflare Worker RAG proxy: Origin allow-list (anti-CSRF), per-IP KV rate-limit, query embedding → Vectorize topK retrieval (lang filter) → Gemini SSE streaming. | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/wrangler.toml` | feat | ✅ |
+| DOC-CHATBOT-002 | Index build script: walk `doc/`, chunk markdown (greedy merge, oversized-paragraph + metadata-cap safe), embed in throttled batches, emit NDJSON for `wrangler vectorize insert`. Unit tests for the chunker + Worker helpers. | `poc/doc-chatbot/worker/scripts/build-index.mjs`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
+| DOC-CHATBOT-003 | MkDocs widget: vanilla-JS resizable sidebar (Solde-style), language auto-detection, SSE consume, marked + DOMPurify rendering; environment-aware endpoint config; wired via `mkdocs.yml`. | `doc/assets/chatbot/*.js`, `doc/assets/chatbot/*.css`, `mkdocs.yml` | feat | ✅ |
+| DOC-CHATBOT-004 | CI workflow to rebuild + upsert the Vectorize index whenever docs change (keeps answers fresh). | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
+| DOC-CHATBOT-005 | Productionization prerequisites (do NOT merge before): Vectorize requires the paid Workers plan ($5/mo); add repo secrets `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; ship the widget to the versioned (mike) docs; map a Gemini 429 to the localized "too many requests" message. | — | feat | ⬜ |
 
 ---
 

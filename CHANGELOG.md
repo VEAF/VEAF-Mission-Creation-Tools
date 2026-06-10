@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `convert-v5`: **commented-out v5 elements are no longer silently dropped** — a combat zone, asset, QRA, shortcut, etc. that was disabled with `--` in `missionConfig.lua` is now re-emitted at the end of `mission.yaml` as a fully-commented **"Commented-out v5 elements"** block, so you can re-enable it by uncommenting. Generic across every extractor (a de-commented re-extraction is diffed against the active config; pattern-based extraction ignores prose) (CONVERT-FIDELITY-001)
 - `convert-v5`: the annotated report (`convert-v5-report.md`) now opens with an at-a-glance **Summary** — how many modules were migrated and how many items still need manual action (with the source line numbers) — so you see whether work remains without reading the full annotated config (CONVERT-FIDELITY-004)
 - `mission.silence_atc_on_all_airbases` (default `true` in the template): emits `veaf.silenceAtcOnAllAirbases()`; `convert-v5` detects an active call in `missionConfig.lua` and preserves it (CONVERT-FIDELITY-003)
 

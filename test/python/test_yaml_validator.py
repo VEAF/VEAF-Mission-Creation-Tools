@@ -83,5 +83,65 @@ class TestValidateYamlFile(unittest.TestCase):
             self.assertRegex(args, r"\d+")
 
 
+class TestValidateModulesSemantics(unittest.TestCase):
+    """MODULES-UNIFY-006 — semantic validation of the modules: block."""
+
+    def _patched(self):  # type: ignore[no-untyped-def]
+        from veaf_libs.yaml_validator import validate_modules_semantics
+
+        patcher = patch("veaf_libs.yaml_validator.logger")
+        mock_log = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_log.error.side_effect = typer.Abort()
+        return mock_log, validate_modules_semantics
+
+    def test_valid_modules_pass(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"RADIO": True, "MIST": True}})
+        mock_log.error.assert_not_called()
+
+    def test_unknown_module_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"FOOBAR": True}})
+        self.assertIn("FOOBAR", mock_log.error.call_args[0][0])
+
+    def test_removed_external_modules_section_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"external_modules": {"skynet": {}}})
+
+    def test_removed_qra_section_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"qra": {"definitions": []}})
+
+    def test_wrong_module_value_type_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"RADIO": [1, 2, 3]}})
+
+    def test_bad_enabled_type_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"RADIO": {"enabled": "yes"}}})
+
+    def test_bad_settings_type_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "settings": True}}})
+
+    def test_unknown_init_param_is_warning_not_error(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"RADIO": {"init": {"bogus": True}}}})
+        mock_log.error.assert_not_called()
+        mock_log.warning.assert_called_once()
+
+    def test_known_init_param_no_warning(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"RADIO": {"init": {"help_menus": True}}}})
+        mock_log.warning.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

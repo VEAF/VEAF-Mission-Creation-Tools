@@ -54,6 +54,10 @@ class MigrationResult:
     global_log_level_extracted: str | None = None
     skynet_config: dict | None = None
 
+    # ── MODULES-UNIFY-004: CTLD / CSAR settings (ctld.xxx / csar.xxx) ──────────
+    ctld_config: dict = field(default_factory=dict)
+    csar_config: dict = field(default_factory=dict)
+
     # ── YAML-010: Assets table ─────────────────────────────────────────────────
     assets_extracted: list[dict] | None = None
 
@@ -358,6 +362,8 @@ class ConfigMigrator:
             security_disabled=partial.security_disabled,
             global_log_level_extracted=partial.global_log_level_extracted,
             skynet_config=partial.skynet_config,
+            ctld_config=partial.ctld_config,
+            csar_config=partial.csar_config,
             assets_extracted=partial.assets_extracted,
             qra_silence_all=partial.qra_silence_all,
             qra_definitions=partial.qra_definitions,
@@ -436,6 +442,7 @@ class ConfigMigrator:
         """
         content = self._extract_identity_and_security(content, result)
         content = self._extract_skynet(content, result)
+        content = self._extract_ctld_csar(content, result)
         content = self._extract_assets(content, result)
         content = self._extract_qra_chains(content, result)
         content = self._extract_cap_missions(content, result)
@@ -504,6 +511,64 @@ class ConfigMigrator:
         original_line = content[line_start:line_end]
         commented = f"-- [v6 extracted to mission.yaml] {original_line.strip()}"
         return content[:line_start] + commented + content[line_end:]
+
+    # ── CTLD / CSAR settings (MODULES-UNIFY-004) ──────────────────────────────
+
+    _CTLD_CSAR_ASSIGN_RE = re.compile(
+        r"^(\s*)(ctld|csar)\.(\w+)\s*=\s*"
+        r"(\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|-?[\d.]+|true|false)\s*(?:--.*)?$"
+    )
+
+    @staticmethod
+    def _coerce_lua_scalar(raw: str) -> bool | int | float | str:
+        """Coerce a Lua scalar literal to its Python value.
+
+        Args:
+            raw: The literal text (``true``/``false``, a number, or a quoted string).
+
+        Returns:
+            The corresponding ``bool`` / ``int`` / ``float`` / ``str`` value.
+        """
+        raw = raw.strip()
+        if raw == "true":
+            return True
+        if raw == "false":
+            return False
+        if len(raw) >= 2 and raw[0] in "\"'" and raw[-1] == raw[0]:
+            return raw[1:-1]
+        try:
+            return float(raw) if "." in raw else int(raw)
+        except ValueError:
+            return raw
+
+    def _extract_ctld_csar(self, content: str, result: MigrationResult) -> str:
+        """Extract ``ctld.xxx`` / ``csar.xxx`` setting assignments.
+
+        Each scalar assignment is recorded in ``result.ctld_config`` /
+        ``result.csar_config`` (for emission under ``modules.CTLD`` /
+        ``modules.CSAR``) and commented out in place so it is not applied twice.
+        ``initialize()`` and function/table assignments are left untouched.
+
+        Args:
+            content: The missionConfig.lua content.
+            result: The migration result to populate.
+
+        Returns:
+            The content with extracted assignment lines commented out.
+        """
+        out_lines: list[str] = []
+        for line in content.splitlines(keepends=True):
+            stripped_nl = line.rstrip("\r\n")
+            newline = line[len(stripped_nl) :]
+            match = self._CTLD_CSAR_ASSIGN_RE.match(stripped_nl)
+            if match:
+                indent, table, key, raw = match.group(1), match.group(2), match.group(3), match.group(4)
+                target = result.ctld_config if table == "ctld" else result.csar_config
+                target[key] = self._coerce_lua_scalar(raw)
+                out_lines.append(f"{indent}-- [v6 extracted to mission.yaml] {stripped_nl.strip()}{newline}")
+            else:
+                out_lines.append(line)
+        return "".join(out_lines)
 
     # ── Assets table ────────────────────────────────────────────────────────
 

@@ -1,11 +1,15 @@
 """YAML file validation with user-friendly, localised error reporting."""
 
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
 
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+
+#: Legacy top-level sections removed by MODULES-UNIFY (hard break).
+_REMOVED_SECTIONS: tuple[str, ...] = ("external_modules", "qra")
 
 
 def _hint_key(problem: str) -> str:
@@ -63,3 +67,74 @@ def validate_yaml_file(path: Path) -> None:
         msg += "\n" + t(_hint_key(problem))
 
         logger.error(msg)
+
+
+@lru_cache(maxsize=1)
+def _known_module_keys() -> frozenset[str]:
+    """Return the set of valid ``modules:`` keys (VEAF + community), upper-cased.
+
+    Cached: the VEAF module and community-script lists are static per process.
+    """
+    from mission_tools.mission_constants import get_community_script_files
+
+    from veaf_libs.lua_config_generator import get_modules
+
+    keys = {m["id"].upper() for m in get_modules()}
+    keys |= {s["id"].upper() for s in get_community_script_files()}
+    return frozenset(keys)
+
+
+def validate_modules_semantics(yaml_data: dict) -> None:
+    """Semantically validate the unified ``modules:`` block of a mission.yaml.
+
+    Distinct from :func:`validate_yaml_file` (which only checks YAML *syntax*),
+    this checks the *meaning* of the ``modules:`` block so that a typo no longer
+    silently produces wrong Lua (MODULES-UNIFY-006):
+
+    - a removed top-level section (``external_modules:`` / ``qra:``) → error;
+    - an unknown module key → error;
+    - a module value that is neither bool, null nor a mapping → error;
+    - a wrongly-typed ``enabled`` / ``logLevel`` → error;
+    - an unrecognised ``init:`` parameter → warning.
+
+    Errors are aggregated and reported via :func:`logger.error` (which aborts the
+    CLI); warnings are emitted individually and do not abort.
+
+    Args:
+        yaml_data: The parsed (un-normalized) mission.yaml content.
+    """
+    from veaf_libs.lua_config_generator import _MODULE_INIT_PARAMS
+
+    errors: list[str] = []
+
+    for section in _REMOVED_SECTIONS:
+        if section in yaml_data:
+            errors.append(t("yaml.semantic.removed_section", section=section))
+
+    modules = yaml_data.get("modules")
+    if isinstance(modules, dict):
+        known = _known_module_keys()
+        for key, cfg in modules.items():
+            if key.upper() not in known:
+                errors.append(t("yaml.semantic.unknown_module", module=key))
+                continue
+            if cfg is None or isinstance(cfg, bool):
+                continue
+            if not isinstance(cfg, dict):
+                errors.append(t("yaml.semantic.wrong_type", module=key, type=type(cfg).__name__))
+                continue
+            if "enabled" in cfg and not isinstance(cfg["enabled"], bool):
+                errors.append(t("yaml.semantic.bad_enabled", module=key, type=type(cfg["enabled"]).__name__))
+            if "logLevel" in cfg and not isinstance(cfg["logLevel"], str):
+                errors.append(t("yaml.semantic.bad_loglevel", module=key, type=type(cfg["logLevel"]).__name__))
+            if "settings" in cfg and not isinstance(cfg["settings"], dict):
+                errors.append(t("yaml.semantic.bad_settings", module=key, type=type(cfg["settings"]).__name__))
+            init = cfg.get("init")
+            if isinstance(init, dict):
+                allowed = {param for param, _ in _MODULE_INIT_PARAMS.get(key.upper(), [])}
+                for param in init:
+                    if param not in allowed:
+                        logger.warning(t("yaml.semantic.unknown_init_param", module=key, param=param))
+
+    if errors:
+        logger.error("\n".join(errors))

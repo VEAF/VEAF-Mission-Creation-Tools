@@ -31,7 +31,7 @@ from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
-from veaf_libs.yaml_validator import validate_yaml_file
+from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -56,11 +56,71 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+def _as_enabled_dict(cfg: object) -> dict:
+    """Coerce a module entry value into a config dict with an ``enabled`` flag.
+
+    Precondition: ``validate_modules_semantics`` has already rejected
+    unexpected scalar types (a module value must be bool, null, or a mapping),
+    so any non-dict value reaching here is a deliberate bool/None shorthand.
+
+    Args:
+        cfg: A module entry value: a dict, a bool shorthand, or ``None`` (bare).
+
+    Returns:
+        A dict carrying at least ``enabled`` (defaulting to ``True``).
+    """
+    if isinstance(cfg, dict):
+        result = dict(cfg)
+        result.setdefault("enabled", True)
+        return result
+    if cfg is False:
+        return {"enabled": False}
+    return {"enabled": True}
+
+
+def _extract_external_and_qra(modules_raw: dict, lua_mods: dict) -> tuple[dict, dict | None]:
+    """Translate the unified ``modules:`` block into the generator's internals.
+
+    ``SKYNET`` / ``CTLD`` / ``CSAR`` nested config maps to the internal
+    ``external_modules`` shape; ``QRA`` config maps to the internal ``qra``
+    section. The QRA-specific keys are stripped from the ``lua_modules`` entry so
+    they are not emitted as ``setConfig`` calls. (MODULES-UNIFY: single source of
+    truth — there is no top-level ``external_modules:`` / ``qra:`` any more.)
+
+    Args:
+        modules_raw: The raw ``modules:`` mapping from mission.yaml.
+        lua_mods: The VEAF-module split (mutated in place for QRA).
+
+    Returns:
+        A ``(external_modules, qra)`` tuple; ``qra`` is ``None`` when absent.
+    """
+    external_modules: dict = {}
+    qra: dict | None = None
+    for mod_id, cfg in modules_raw.items():
+        upper = mod_id.upper()
+        if upper == "SKYNET":
+            external_modules["skynet"] = _as_enabled_dict(cfg)
+        elif upper in ("CTLD", "CSAR"):
+            entry = _as_enabled_dict(cfg)
+            settings = entry.pop("settings", None)
+            if isinstance(settings, dict):
+                entry.update(settings)
+            external_modules[upper.lower()] = entry
+        elif upper == "QRA" and isinstance(cfg, dict):
+            qra = {key: cfg[key] for key in ("silence_all", "definitions") if key in cfg}
+            qra_mod = lua_mods.get("QRA")
+            if isinstance(qra_mod, dict):
+                lua_mods["QRA"] = {k: v for k, v in qra_mod.items() if k not in ("silence_all", "definitions")}
+    return external_modules, qra
+
+
 def _normalize_mission_yaml(yaml_data: dict) -> dict:
     """Normalize legacy mission.yaml keys to the current unified format.
 
     - ``modules:`` (new) is split into ``lua_modules`` + ``community_scripts``
-      for internal processing.  If both ``modules:`` and the legacy keys are
+      for internal processing, and the nested per-module config for SKYNET /
+      CTLD / CSAR / QRA is translated into the internal ``external_modules`` /
+      ``qra`` representation.  If both ``modules:`` and the legacy keys are
       present, ``modules:`` takes precedence and a warning is emitted.
     - Deprecated ``lua_modules:`` / ``community_scripts:`` keys are accepted
       with a deprecation warning.
@@ -89,6 +149,11 @@ def _normalize_mission_yaml(yaml_data: dict) -> dict:
         result = dict(yaml_data)
         result["lua_modules"] = lua_mods
         result["community_scripts"] = comm_scripts
+        external_modules, qra = _extract_external_and_qra(modules_raw, lua_mods)
+        if external_modules:
+            result["external_modules"] = external_modules
+        if qra is not None:
+            result["qra"] = qra
         return result
 
     if has_legacy:
@@ -138,6 +203,7 @@ class MissionBuilderWorker(BaseWorker):
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)
+            validate_modules_semantics(self.mission_yaml)
             self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
@@ -415,6 +481,7 @@ class MissionBuilderWorker(BaseWorker):
             return
 
         assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
 
         bridge_bytes = bridge_file.read_bytes()
         self.dcs_bridge_bytes = bridge_bytes
@@ -505,11 +572,11 @@ class MissionBuilderWorker(BaseWorker):
                                 )
                             continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
-                relative_path = self.mission_folder / relative_path / f.name
-                if not relative_path.exists():
-                    relative_path.parent.mkdir(parents=True, exist_ok=True)
-                    logger.warning(t("builder.copied_from_defaults", file=relative_path, folder=defaults_folder))
-                    shutil.copy(f, relative_path)
+                target_path = self.mission_folder / relative_path / f.name
+                if not target_path.exists():
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    logger.warning(t("builder.copied_from_defaults", file=target_path, folder=defaults_folder))
+                    shutil.copy(f, target_path)
 
         # OLDSCRIPTS-002: warn about unexpected .lua files in src/scripts/
         # The glob src/scripts/*.lua in get_mission_script_files() picks up ALL .lua files in
@@ -759,7 +826,7 @@ class MissionBuilderWorker(BaseWorker):
             """
             # Let's create a better structure: a list of triggers which all have the corresponding categories.
             category_names = triggers.keys()
-            result = {}
+            result: dict = {}
             action_keys = sorted(
                 triggers["actions"].keys()
             )  # this is the most complete category, it always contains all the triggers; this is important later
@@ -785,7 +852,7 @@ class MissionBuilderWorker(BaseWorker):
             Each of these categories is a LUA table with all the data for each trigger about this category.
             """
 
-            result = {}
+            result: dict = {}
             for trigger_key, trigger_data in triggers.items():
                 for category_name, category_data in trigger_data.items():
                     if category_name not in result:
@@ -853,7 +920,9 @@ class MissionBuilderWorker(BaseWorker):
             },
         }
 
-        mission_triggers = self.dcs_mission.mission_content["trig"]  # type: ignore[index]
+        assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
+        mission_triggers = self.dcs_mission.mission_content["trig"]
         # DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
         # Each of these categories is a LUA table with all the data for each trigger about this category.
         # To properly insert our VEAF triggers to the mission triggers, we need to make sure that we move (shift) all the keys in each category in a coherent fashion.
@@ -1073,7 +1142,9 @@ class MissionBuilderWorker(BaseWorker):
         ]
 
         # compress the dictionary keyset, leaving space for the VEAF trigrules
-        trigrules = self.dcs_mission.mission_content["trigrules"]  # type: ignore[index]
+        assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
+        trigrules = self.dcs_mission.mission_content["trigrules"]
         new_trigrules = dict(enumerate(new_trigrules_list, start=1))
         nb_new_trigrules = len(new_trigrules)
         result_trigrules = {

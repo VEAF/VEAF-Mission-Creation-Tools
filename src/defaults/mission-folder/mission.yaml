@@ -123,7 +123,24 @@
 #         zone_name: CZ-Alpha
 #         friendly_name: Alpha Zone
 #         training: false
-#   QRA: true
+#   QRA:
+#     enabled: true
+#     silence_all: false
+#     definitions:
+#       - name: Base QRA
+#         coalition: RED
+#         enemy_coalitions:
+#           - BLUE
+#         trigger_zone: QRA zone
+#         zone_radius: 30000
+#         groups_by_enemy_count:
+#           - enemy_count: 1
+#             groups:
+#               - Group1
+#               - Group2
+#             random_pick: 1
+#         delay_before_rearming: 30
+#         delay_before_activating: 30
 #   AIRWAVES:
 #     enabled: true
 #     airwave_zones:
@@ -142,47 +159,27 @@
 #   MIST: true
 #   STTS: true
 #   WEATHERMARK: true
-#   CTLD: true
+#   CTLD:
+#     enabled: true
+#     settings:                # ctld.xxx = value pairs (e.g. hoverPickup: true)
+#       hoverPickup: true
 #   AIEN: true
-#   CSAR: true
+#   CSAR:
+#     enabled: true
+#     settings:                # csar.xxx = value pairs (e.g. enableAllslots: true)
+#       enableAllslots: true
 #   HERCULES: true
-#   SKYNET: true
-#   TUM: true
-
-# ── External modules ─────────────────────────────────────────────────────────
-# external_modules:
-#   skynet:
-#     enabled: false
+#   SKYNET:
+#     enabled: true
 #     include_red_in_radio: false
 #     debug_red: false
 #     include_blue_in_radio: false
 #     debug_blue: false
-#   ctld:
-#     enabled: false
-#     # ctld.xxx = value pairs go here (e.g. hoverPickup: true)
-#   csar:
-#     enabled: false
-#     # csar.xxx = value pairs go here (e.g. enableAllslots: true)
+#   TUM: true
 
-# ── QRA (Quick Reaction Alert) ────────────────────────────────────────────────
-# Requires QRA module enabled in modules above.
-# qra:
-#   silence_all: false
-#   definitions:
-#     - name: Base QRA
-#       coalition: RED
-#       enemy_coalitions:
-#         - BLUE
-#       trigger_zone: QRA zone
-#       zone_radius: 30000
-#       groups_by_enemy_count:
-#         - enemy_count: 1
-#           groups:
-#             - Group1
-#             - Group2
-#           random_pick: 1
-#       delay_before_rearming: 30
-#       delay_before_activating: 30
+# Note: SKYNET, CTLD, CSAR and QRA are configured entirely inside the `modules:`
+# block above (single source of truth). There is no separate `external_modules:`
+# or `qra:` section any more.
 
 # ── CAP missions ──────────────────────────────────────────────────────────────
 # Requires COMBATMISSION module enabled in modules above.

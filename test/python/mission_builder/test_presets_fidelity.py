@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 from mission_builder.v5_pipeline_converters import convert_presets
 from presets_injector.presets_manager import Channel, PresetDefinition, RadioDefinition
+from veaf_libs.i18n import t
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "tripack_radioSettings.lua"
 
@@ -106,6 +107,16 @@ class TestTripackPresetsFidelity(unittest.TestCase):
     def test_standard_uhf_aircraft_not_duplicated(self) -> None:
         # F-86F Sabre is a clean UHF 1:1 layout → covered by the "all" fallback.
         self.assertIsNone(_assignment_for(self.data, "blue", "F-86F Sabre"))
+
+    # ── No data loss: every bespoke channel must resolve to a frequency ─────────
+
+    def test_no_hardcoded_skip_warnings(self) -> None:
+        # The known-good Tripack fixture must convert without any unresolved
+        # channel — i.e. no "hardcoded frequencies, skipped" warnings.
+        for aircraft in ("Mi-24P", "AJS37"):
+            for coalition in ("blue", "red"):
+                skip = t("convert_v5.warn.radio_hardcoded_skip", aircraft=aircraft, coalition=coalition)
+                self.assertNotIn(skip, self.warnings)
 
 
 class TestRadioModulationRoundTrip(unittest.TestCase):

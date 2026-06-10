@@ -130,7 +130,8 @@ _ChannelValue = tuple[str, str] | float
 class _RadioSlot:
     """One DCS radio slot (``["Radio"][N]``) parsed from a ``radioSettings`` entry."""
 
-    block_text: str
+    source: str | None
+    """Detected standard preset source (``"uhf"``/``"vhf"``/``"fm"``/``"warbird"``) or ``None``."""
     channels: list[tuple[int, _ChannelValue]] = field(default_factory=list)
     """Ordered ``(dcs_channel_index, value)`` pairs (value is a token ref or literal)."""
     modulations: dict[int, int] = field(default_factory=dict)
@@ -332,9 +333,10 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
                     idx = int(rm.group(1))
                     sub_block = _extract_block_at(radio_block, rm.end() - 1)
                     if sub_block:
-                        radio_sources[idx] = _detect_radio_block_source(sub_block)
+                        source = _detect_radio_block_source(sub_block)
+                        radio_sources[idx] = source
                         radio_slots[idx] = _RadioSlot(
-                            block_text=sub_block,
+                            source=source,
                             channels=_parse_slot_channels(sub_block),
                             modulations=_parse_slot_modulations(sub_block),
                         )
@@ -871,7 +873,7 @@ def _emit_dedicated_preset(
         slot = entry.radio_slots[slot_idx]
         has_mods = bool(slot.modulations)
         radio_name = f"radio_{coalition}_{slug}_{slot_idx}"
-        rtype = _DEDICATED_TYPE_BY_SOURCE[_detect_radio_block_source(slot.block_text)]
+        rtype = _DEDICATED_TYPE_BY_SOURCE[slot.source]
 
         v6_channels: dict[int, Any] = {}
         for ch_idx, value in slot.channels:

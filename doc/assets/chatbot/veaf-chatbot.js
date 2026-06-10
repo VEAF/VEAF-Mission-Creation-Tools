@@ -1,12 +1,17 @@
 /*
  * VEAF documentation chatbot widget (POC).
  *
- * Self-injects a floating button + compact chat panel into the MkDocs Material page,
+ * Self-injects a floating button + compact resizable sidebar into the MkDocs Material page,
  * detects the page language (FR/EN), and streams answers from the Cloudflare Worker proxy
- * over Server-Sent Events. Markdown is rendered with marked + DOMPurify (loaded from CDN).
+ * over Server-Sent Events.
  *
- * Configure the Worker endpoint by setting `window.VEAF_CHATBOT_ENDPOINT` before this script
- * loads, otherwise edit the ENDPOINT fallback below to your deployed *.workers.dev URL.
+ * XSS posture: no `innerHTML` is ever assigned. Markdown is rendered to a *sanitized DOM
+ * fragment* via DOMPurify (RETURN_DOM_FRAGMENT) and inserted with `replaceChildren`; the static
+ * UI is built with `createElement`. marked + DOMPurify are lazily imported the first time the
+ * panel is opened (zero cost for users who never open the assistant).
+ *
+ * Configure the Worker endpoint via `window.VEAF_CHATBOT_ENDPOINT` before this script loads,
+ * otherwise edit the ENDPOINT fallback below.
  */
 (function () {
   "use strict";
@@ -51,103 +56,110 @@
   const lang = detectLang();
   const t = I18N[lang];
 
+  // Lazily load marked + DOMPurify (only when the panel is first opened).
   let marked = null;
   let DOMPurify = null;
-  const renderers = import(
-    "https://cdn.jsdelivr.net/npm/marked@15/lib/marked.esm.js"
-  )
-    .then((m) => {
-      marked = m.marked || m.default;
-      return import("https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.es.mjs");
-    })
-    .then((d) => {
-      DOMPurify = d.default || d;
-    })
-    .catch(() => {
-      /* Fall back to plain text rendering if the CDN is unavailable. */
-    });
-
-  function renderMarkdown(text) {
-    if (marked && DOMPurify) {
-      return DOMPurify.sanitize(marked.parse(text));
+  let renderersPromise = null;
+  function ensureRenderers() {
+    if (!renderersPromise) {
+      renderersPromise = import("https://cdn.jsdelivr.net/npm/marked@15/lib/marked.esm.js")
+        .then((m) => {
+          marked = m.marked || m.default;
+          return import("https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.es.mjs");
+        })
+        .then((d) => {
+          DOMPurify = d.default || d;
+        })
+        .catch(() => {
+          /* Fall back to plain-text rendering if the CDN is unavailable. */
+        });
     }
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
+    return renderersPromise;
   }
 
-  // --- DOM construction ----------------------------------------------------
-  const fab = document.createElement("button");
-  fab.className = "veaf-chat-fab";
-  fab.type = "button";
-  fab.title = t.open;
-  fab.setAttribute("aria-label", t.open);
+  /** Render markdown to a SANITIZED DOM fragment (never a string → no innerHTML). */
+  function markdownToNode(text) {
+    if (marked && DOMPurify) {
+      return DOMPurify.sanitize(marked.parse(text), { RETURN_DOM_FRAGMENT: true });
+    }
+    return document.createTextNode(text); // safe fallback before the CDN loads
+  }
+
+  /** Tiny createElement helper. `attrs.class`/`attrs.text` are special-cased; rest become attributes. */
+  function el(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    for (const key in attrs || {}) {
+      if (key === "class") node.className = attrs[key];
+      else if (key === "text") node.textContent = attrs[key];
+      else node.setAttribute(key, attrs[key]);
+    }
+    for (const child of children) node.append(child);
+    return node;
+  }
+
+  // --- DOM construction (no innerHTML) -------------------------------------
+  const fab = el("button", { class: "veaf-chat-fab", type: "button", title: t.open, "aria-label": t.open });
   fab.textContent = "💬";
 
-  const panel = document.createElement("div");
-  panel.className = "veaf-chat-panel";
-  panel.innerHTML = `
-    <div class="veaf-chat-resize-handle" title="${t.resize}"></div>
-    <div class="veaf-chat-header">
-      <span>${t.title}</span>
-      <span>
-        <button type="button" data-action="clear" title="${t.clear}">⟳</button>
-        <button type="button" data-action="close" title="${t.close}">✕</button>
-      </span>
-    </div>
-    <div class="veaf-chat-messages"></div>
-    <div class="veaf-chat-input">
-      <textarea rows="2" placeholder="${t.placeholder}"></textarea>
-      <button type="button" data-action="send">${t.send}</button>
-    </div>`;
+  const messagesEl = el("div", { class: "veaf-chat-messages" });
+  const textarea = el("textarea", { rows: "2", placeholder: t.placeholder });
+  const sendBtn = el("button", { type: "button", text: t.send });
+  const clearBtn = el("button", { type: "button", title: t.clear, text: "⟳" });
+  const closeBtn = el("button", { type: "button", title: t.close, text: "✕" });
+  const resizeHandle = el("div", { class: "veaf-chat-resize-handle", title: t.resize });
+
+  const panel = el(
+    "div",
+    { class: "veaf-chat-panel" },
+    resizeHandle,
+    el("div", { class: "veaf-chat-header" }, el("span", { text: t.title }), el("span", {}, clearBtn, closeBtn)),
+    messagesEl,
+    el("div", { class: "veaf-chat-input" }, textarea, sendBtn),
+  );
 
   document.body.appendChild(fab);
   document.body.appendChild(panel);
 
-  const messagesEl = panel.querySelector(".veaf-chat-messages");
-  const textarea = panel.querySelector("textarea");
-  const sendBtn = panel.querySelector('[data-action="send"]');
-  const resizeHandle = panel.querySelector(".veaf-chat-resize-handle");
+  /** Resizable sidebar (ported from Solde): drag the left edge, width persisted in localStorage. */
+  function initResize(targetPanel, handle) {
+    const MIN_WIDTH = 280;
+    const MAX_WIDTH = 800;
+    const clampWidth = (w) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, w));
+    let panelWidth = clampWidth(parseInt(localStorage.getItem("veafChatWidth"), 10) || 380);
+    targetPanel.style.width = `${panelWidth}px`;
 
-  // Resizable sidebar (ported from Solde): drag the left edge, width persisted in localStorage.
-  const MIN_WIDTH = 280;
-  const MAX_WIDTH = 800;
-  const clampWidth = (w) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, w));
-  let panelWidth = clampWidth(parseInt(localStorage.getItem("veafChatWidth"), 10) || 380);
-  panel.style.width = `${panelWidth}px`;
-
-  resizeHandle.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = panelWidth;
-    const onMove = (ev) => {
-      panelWidth = clampWidth(startWidth + (startX - ev.clientX));
-      panel.style.width = `${panelWidth}px`;
-    };
-    const onUp = () => {
-      localStorage.setItem("veafChatWidth", String(panelWidth));
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  });
+    handle.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = panelWidth;
+      const onMove = (ev) => {
+        panelWidth = clampWidth(startWidth + (startX - ev.clientX));
+        targetPanel.style.width = `${panelWidth}px`;
+      };
+      const onUp = () => {
+        localStorage.setItem("veafChatWidth", String(panelWidth));
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    });
+  }
 
   /** Conversation history sent to the Worker. */
   const history = [];
   let streaming = false;
 
-  function addBubble(role, html) {
-    const el = document.createElement("div");
-    el.className = `veaf-chat-msg ${role}`;
-    el.innerHTML = html;
-    messagesEl.appendChild(el);
+  function addBubble(role, node) {
+    const bubble = el("div", { class: `veaf-chat-msg ${role}` });
+    bubble.replaceChildren(node);
+    messagesEl.appendChild(bubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    return el;
+    return bubble;
   }
 
   function welcomeOnce() {
-    if (!messagesEl.childElementCount) addBubble("assistant", renderMarkdown(t.welcome));
+    if (!messagesEl.childElementCount) addBubble("assistant", markdownToNode(t.welcome));
   }
 
   function togglePanel(open) {
@@ -155,75 +167,89 @@
     panel.classList.toggle("is-open", show);
     fab.style.display = show ? "none" : "";
     if (show) {
+      ensureRenderers();
       welcomeOnce();
       textarea.focus();
     }
   }
 
   fab.addEventListener("click", () => togglePanel());
-  panel.querySelector('[data-action="close"]').addEventListener("click", () => togglePanel(false));
-  panel.querySelector('[data-action="clear"]').addEventListener("click", () => {
+  closeBtn.addEventListener("click", () => togglePanel(false));
+  clearBtn.addEventListener("click", () => {
     history.length = 0;
-    messagesEl.innerHTML = "";
+    messagesEl.replaceChildren();
     welcomeOnce();
   });
+
+  /** POST the conversation and consume the SSE stream, invoking onChunk/onError per event. */
+  async function streamAnswer({ endpoint, messages, lang: language, onChunk, onError }) {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, lang: language }),
+    });
+    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const raw = trimmed.slice(5).trim();
+        if (!raw || raw === "[DONE]") continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          continue;
+        }
+        if (parsed.error) {
+          onError(parsed.error);
+          return;
+        }
+        if (parsed.text) onChunk(parsed.text);
+      }
+    }
+  }
 
   async function send() {
     const text = textarea.value.trim();
     if (!text || streaming) return;
     textarea.value = "";
-    addBubble("user", renderMarkdown(text));
+    addBubble("user", markdownToNode(text));
     history.push({ role: "user", content: text });
 
     streaming = true;
     sendBtn.disabled = true;
-    const bubble = addBubble("assistant", "…");
+    await ensureRenderers();
+    const bubble = addBubble("assistant", markdownToNode("…"));
     let answer = "";
 
     try {
-      await renderers;
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, lang }),
+      await streamAnswer({
+        endpoint: ENDPOINT,
+        messages: history,
+        lang,
+        onChunk: (chunk) => {
+          answer += chunk;
+          bubble.replaceChildren(markdownToNode(answer));
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        },
+        onError: (msg) => {
+          answer = msg;
+          bubble.replaceChildren(markdownToNode(answer));
+        },
       });
-      if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-          const raw = trimmed.slice(5).trim();
-          if (!raw || raw === "[DONE]") continue;
-          let parsed;
-          try {
-            parsed = JSON.parse(raw);
-          } catch {
-            continue;
-          }
-          if (parsed.error) {
-            answer = parsed.error;
-            bubble.innerHTML = renderMarkdown(answer);
-            throw new Error("stream error");
-          }
-          if (parsed.text) {
-            answer += parsed.text;
-            bubble.innerHTML = renderMarkdown(answer);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-          }
-        }
-      }
       if (answer) history.push({ role: "assistant", content: answer });
-    } catch (e) {
-      if (!answer) bubble.innerHTML = renderMarkdown(t.error);
+    } catch {
+      if (!answer) bubble.replaceChildren(markdownToNode(t.error));
     } finally {
       streaming = false;
       sendBtn.disabled = false;
@@ -237,4 +263,6 @@
       send();
     }
   });
+
+  initResize(panel, resizeHandle);
 })();

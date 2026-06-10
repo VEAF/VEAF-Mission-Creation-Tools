@@ -1,7 +1,67 @@
 """Time expression parser for moment definitions."""
 
+import ast
+import operator
+from collections.abc import Callable
+
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+
+# Whitelisted arithmetic operators. Exponentiation is intentionally excluded:
+# it allows building gigantic numbers (e.g. ``2**10**9``) and is a DoS vector.
+_BIN_OPS: dict[type[ast.operator], Callable[[float, float], float]] = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+}
+_UNARY_OPS: dict[type[ast.unaryop], Callable[[float], float]] = {
+    ast.UAdd: operator.pos,
+    ast.USub: operator.neg,
+}
+
+
+def _safe_arithmetic_eval(expression: str) -> float:
+    """Evaluate a pure arithmetic expression without executing arbitrary code.
+
+    Only numeric literals, parentheses, the binary operators ``+ - * / // %`` and
+    unary ``+``/``-`` are accepted. Names, attribute access, function calls and
+    exponentiation are rejected, which removes both the code-execution and the
+    DoS (huge-power) risks of ``eval``.
+
+    Args:
+        expression: The arithmetic expression to evaluate.
+
+    Returns:
+        The numeric result.
+
+    Raises:
+        ValueError: If the expression contains a disallowed construct.
+        SyntaxError: If the expression is not valid Python arithmetic syntax.
+    """
+
+    def _eval(node: ast.AST) -> float:
+        if isinstance(node, ast.Expression):
+            return _eval(node.body)
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
+                raise ValueError(f"unsupported constant: {node.value!r}")
+            return node.value
+        if isinstance(node, ast.BinOp):
+            op = _BIN_OPS.get(type(node.op))
+            if op is None:
+                raise ValueError(f"unsupported operator: {type(node.op).__name__}")
+            return op(_eval(node.left), _eval(node.right))
+        if isinstance(node, ast.UnaryOp):
+            unary = _UNARY_OPS.get(type(node.op))
+            if unary is None:
+                raise ValueError(f"unsupported unary operator: {type(node.op).__name__}")
+            return unary(_eval(node.operand))
+        raise ValueError(f"unsupported expression element: {type(node).__name__}")
+
+    return _eval(ast.parse(expression, mode="eval"))
 
 
 class TimeExpressionParser:
@@ -65,8 +125,8 @@ class TimeExpressionParser:
 
         # Evaluate mathematical expression
         try:
-            # Use eval with restricted namespace for safety
-            result = int(eval(expr, {"__builtins__": {}}, {}))
+            # AST-based arithmetic evaluator — no code execution, no DoS power op
+            result = int(_safe_arithmetic_eval(expr))
 
             # Clamp to valid DCS time range
             result = max(0, min(86400, result))

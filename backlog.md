@@ -32,6 +32,9 @@
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ⬜ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ⬜ |
+| Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
+| Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ⬜ |
+| Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
 
 ---
 
@@ -198,6 +201,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | MODULES-UNIFY-003 | `convert-v5`: emit converted modules (incl. QRA) into the new nested `modules:` structure instead of separate `external_modules:`/`qra:` sections. | `mission_builder/config_migrator.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
 | MODULES-UNIFY-004 | `convert-v5`: extract CTLD/CSAR config from `missionConfig.lua` (`ctld.xxx = …` / `csar.xxx = …` assignments) into `modules.CTLD` / `modules.CSAR`. (todo item 6) | `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
 | MODULES-UNIFY-005 | Update docs: `doc/MISSION_YAML_REFERENCE.md` (+ `.fr`), migration guide, and any example referencing `external_modules:`/`qra:`. | `doc/MISSION_YAML_REFERENCE*.md`, `doc/mission-maker/MIGRATION_GUIDE*.md` | chore | ⬜ |
+| MODULES-UNIFY-006 | Add **semantic** validation of the unified `modules:` block — distinct from the YAML *syntax* validation already provided by `yaml_validator.validate_yaml_file`. Today `lua_config_generator` reads `modules:` as raw nested dicts with silent `.get(key, default)` (`:349-458`), so an unknown module key, an unrecognized `init:` parameter, or a wrong scalar type is silently dropped and produces wrong Lua with no warning to the mission-maker. Validate: unknown module key → error, unrecognized `init:` param → warning, wrong type → error. Reuse the localized `ValidationError` style already rolled out in `aircrafts_injector_worker` (`:31`, `:114-297`) for consistency; consider promoting it (and the existing `weather_injector/models/` config models) toward a shared typed `mission.yaml` model. | `veaf_libs/yaml_validator.py`, `veaf_libs/lua_config_generator.py`, `test/python/` | feat | ⬜ |
 
 ---
 
@@ -214,6 +218,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | CONVERT-FIDELITY-001 | Re-parse commented-out v5 elements (any extractable module, e.g. a commented `combatZone_Abu_al_Duhur`) and re-emit them as **commented** YAML in `mission.yaml`, instead of silently dropping them. (todo item 4) | `mission_builder/config_migrator.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
 | CONVERT-FIDELITY-002 | In the annotated `missionConfig`, comment out the **entire** `if veafXxx then … end` init block of a migrated module (not only the `initialize()` line), so non-migrated code visually stands out. (todo item 9) | `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
 | CONVERT-FIDELITY-003 | Add `mission.silence_atc_on_all_airbases` to the default `mission.yaml` (value `true`) and emit the corresponding Lua. At conversion, scan `missionConfig.lua` for an active `veaf.silenceAtcOnAllAirbases()` call → `true`, else `false`. (todo item 10) | `src/defaults/mission-folder/mission.yaml`, `veaf_libs/lua_config_generator.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
+| CONVERT-FIDELITY-004 | Prepend a numeric summary header to `convert-v5-report.md` (e.g. "N modules migrated · M need manual action (lines …)") so the mission-maker sees at a glance whether work remains, without reading the full annotated config. Drives off the same data the annotation pass already computes. | `mission_builder/v5_converter.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
 
 ---
 
@@ -326,5 +331,49 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | DEFAULTS-AUDIT-001 | Audit each file under `src/defaults/mission-folder/` for whether it is actually consumed at first build (candidates to verify: `src/presets.md`, `src/README-versions.md`, `src/options`). Report role + used/unused per file; remove or document anything genuinely dead. Exclude the aircraft YAML (owned by TODO0609-AIRCRAFT-INJECT). | `src/defaults/mission-folder/`, `doc/` | chore | ⬜ |
+
+---
+
+## Lot UXPILOT-FEEDBACK — Surface command errors to pilots
+
+**Goal**: A pilot who mistypes an F10 marker command usually gets **no feedback**, and error surfacing is inconsistent across modules. `veafSpawnAircraft` (`:67`) and `veafShortcuts` (`:625`) call `trigger.action.outText(...)`, but `veafNamedPoints.executeCommand` returns `false` silently and `veafSpawnParser` silently ignores unrecognized parameters (47-rule if-chain). A handler that crashes only logs to the DCS log — invisible in-game. Establish one feedback path and a global safety net so pilot mistakes and runtime errors are always visible.
+
+**Branch**: `feature/uxpilot-feedback` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| UXPILOT-001 | **Global safety net**: wrap the marker-command dispatch in the `veafMarkers` event handlers in `pcall`; on error, show a short localized `outText` to the placing pilot and log the stack via `veaf.loggers`. luaunit test simulating a handler that raises. | `src/scripts/veaf/veafMarkers.lua`, `test/lua/` | feat | ⬜ |
+| UXPILOT-002 | **Unified feedback helper**: add `veaf.reportToPilot(message, duration)` (thin, test-safe wrapper over `trigger.action.outText`) and route currently-silent parse failures through it — starting with `veafNamedPoints.executeCommand` (returns `false` with no message). | `src/scripts/veaf/veaf.lua`, `src/scripts/veaf/veafNamedPoints.lua`, `test/lua/` | feat | ⬜ |
+| UXPILOT-003 | **Unknown-parameter hints**: in `veafSpawnParser`, when a marker parameter key is not recognized, warn the pilot via `veaf.reportToPilot` and suggest the nearest known key (simple edit-distance over the known-keys list). Depends on UXPILOT-002 and on **SPAWN-REFACTOR-001** (characterization tests must exist first). | `src/scripts/veaf/veafSpawnParser.lua`, `test/lua/` | feat | ⬜ |
+
+---
+
+## Lot QUALITY-GATE — Erode mypy exclusions and ratchet the coverage gate
+
+**Goal**: Two quality guards are advertised but neutralized where it matters. `pyproject.toml:102-120` sets `ignore_errors = true` for **every large worker** (`aircrafts_injector_worker`, `mission_builder_worker`, `mission_converter_worker`, `presets_*`, `waypoints_*`, `weather_*`), so mypy only type-checks already-clean small files — exactly where the SECREV defects did *not* hide. Line coverage is **16%** with `--cov-fail-under=15`, so the gate protects nothing. Turn both into a debt eroded lot-by-lot rather than a single big-bang. Supersedes the archived single-shot attempt (`backlog-archive.md` "Retirer `ignore_errors`…").
+
+**Branch**: `chore/quality-gate` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| QUALITY-001 | Remove `ignore_errors` for the simplest still-excluded workers (start with `presets_injector_worker`, `waypoints_injector_worker`), fix the surfaced type errors, leave the rest. | `pyproject.toml`, touched workers, `test/python/` | chore | ⬜ |
+| QUALITY-002 | Document the ratchet policy in `CLAUDE.md` §3: every lot that substantially touches an excluded worker drops its `ignore_errors` entry as part of its Definition of Done; every lot that adds tests bumps `--cov-fail-under` so the gate never sits more than ~2 pts below actual coverage. | `CLAUDE.md`, `pyproject.toml` | chore | ⬜ |
+
+> Cross-cutting reminder: the worker-reopening lots (MODULES-UNIFY, AIRCRAFT-INJECT, CONVERT-FIDELITY, SECREV) should each drop the touched worker's mypy exclusion as part of their own work, so this lot only mops up the remainder.
+
+---
+
+## Lot SPAWN-REFACTOR — Characterize then de-duplicate the spawn subsystem
+
+**Goal**: The spawn subsystem — `veafSpawnParser` (656 l., 47 parameter rules), `veafSpawnAircraft` (1486 l.), `veafSpawnGround` (1034 l.) — carries heavy copy-paste (repeated parameter validation, ~15-line debug-log blocks duplicated verbatim, 30+ repetitive default-option blocks) and has **zero luaunit tests** despite being the most complex, most pilot-facing code. Lock current behaviour with characterization tests **first**, then de-duplicate safely.
+
+> **Coordination**: TODO0609-SPAWN-EXTERNALIZE and TODO0609-AIRCRAFT-INJECT reopen these same files. De-duplicate **there**, within those lots' scope, rather than twice — this lot may be folded into SPAWN-EXTERNALIZE once -001 lands. Respect `CLAUDE.md` §2 RULE N°1 (no refactor outside a lot already touching the file).
+
+**Branch**: `refactor/spawn-subsystem` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SPAWN-REFACTOR-001 | Characterization tests for `veafSpawnParser.markTextAnalysis`: 30+ marker variants incl. typos, missing values, and multiple parameters; lock current behaviour before any change. Prerequisite for UXPILOT-003 and for any dedup. | `test/lua/test_veafSpawnParser.lua` (new) | feat | ⬜ |
+| SPAWN-REFACTOR-002 | Extract a spawn-type **descriptor table** (`{type → {defaults, validators}}`) consumed by the parser, and a shared `VeafSpawner` base for the duplicated validation/debug blocks. Only within the scope of a lot already touching these files. | `src/scripts/veaf/veafSpawnParser.lua`, `veafSpawnAircraft.lua`, `veafSpawnGround.lua`, `veafSpawnCore.lua`, `test/lua/` | refactor | ⬜ |
 
 ---

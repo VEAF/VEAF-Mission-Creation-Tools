@@ -125,7 +125,9 @@
 ## Phase 0b — GitHub cleanup
 
 Close issues identified during triage. **Verify each one before closing.**
-Direct commits on `develop-v6` (no feature branch needed — no code change).
+Originally planned as direct commits on `develop-v6` (no code change), but the
+backlog status update was delivered through PR #405 because the closing session
+was constrained to a working branch.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|

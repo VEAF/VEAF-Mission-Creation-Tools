@@ -559,7 +559,7 @@ class ConfigMigrator:
         out_lines: list[str] = []
         for line in content.splitlines(keepends=True):
             stripped_nl = line.rstrip("\r\n")
-            newline = line[len(stripped_nl):]
+            newline = line[len(stripped_nl) :]
             match = self._CTLD_CSAR_ASSIGN_RE.match(stripped_nl)
             if match:
                 indent, table, key, raw = match.group(1), match.group(2), match.group(3), match.group(4)

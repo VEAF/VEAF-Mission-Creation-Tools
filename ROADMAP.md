@@ -54,59 +54,50 @@ REL-003 ───────────────────▶ REL-005    
 
 ---
 
-## 3. Recommended sequence (waves)
+## 3. Linear sequence (two-person team: David + Claude)
 
-Two tracks can progress in parallel: **Python** (mission-maker tooling) and **Lua**
-(pilot runtime). Within a wave, lots are parallelizable unless a dependency above says
-otherwise.
+There is no parallel track — Claude implements one lot at a time, David decides and
+does the manual DCS testing. So the only real scheduling concern is the **human gate**:
+batch the steps that need David (a decision, or a manual mission test per `CLAUDE.md`
+§8.8) so the implementation queue never stalls waiting on him.
 
-### Wave 0 — Unblock & protect  *(start now)*
-| Lot | Track | Why now |
-|-----|-------|---------|
-| **CI-NODE24** | infra | GitHub forces Node 20→24 on **2026-06-16**, removes Node 20 on **2026-09-16**. Independent, cheap, time-boxed. |
-| **SECREV** (001 RCE, 002 helo, 007–010 Lua) | both | Release blockers + cheap Lua nil-deref fixes. Note the helo-bug coordination above. |
-| **QUALITY-GATE-002** (policy) | meta | Write the ratchet policy **first** so every later lot inherits it. |
-| **Phase 0b** (close issues) | infra | No code, no risk — clear it whenever convenient. |
+**Legend:** 🧑 = needs David (decision or manual test) · 🐍 Python · 🌙 Lua · ⚙️ infra
 
-### Wave 1 — Foundation schema
-| Lot | Track | Notes |
-|-----|-------|-------|
-| **MODULES-UNIFY** (001–006) | Python | The keystone. Unblocks CONVERT-FIDELITY and houses the semantic-validation work (006). Hard break — no compat shim. Drop touched-worker mypy exclusion. |
+| # | Lot | Tier | Gate / note |
+|---|-----|------|-------------|
+| 1 | **CI-NODE24** ⚙️ | P0 | Deadline: Node 20→24 forced **2026-06-16**, removed **2026-09-16**. Trivial, do first. |
+| 2 | **Phase 0b** — close issues ⚙️ | P3 | 🧑 David confirms each issue before closing. No code; a quick warm-up. |
+| 3 | **QUALITY-GATE-002** — ratchet policy 🐍 | P1 | Write the convention in `CLAUDE.md` before touching any worker. |
+| 4 | **SECREV** 🐍🌙 | P0 | Release blockers. Do the Python batch (001 RCE, 002 helo, 003 eval, 004/005 zip, 006 weather) then the Lua batch (007–010). **Fix the helo bug here** → AIRCRAFT-INJECT-003 later just drops its copy. 🧑 manual test after the RCE rerouting. |
+| 5 | **MODULES-UNIFY** (001–006) 🐍 | P1 | Keystone schema. Includes semantic validation (006). Hard break. Drop the touched worker's mypy exclusion. 🧑 schema sign-off + manual build test. |
+| 6 | **CONVERT-FIDELITY** (001–004) 🐍 | P2 | Needs #5's YAML shape. 🧑 eyeball a real `convert-v5-report.md`. |
+| 7 | **ERA-AUTODETECT** 🐍 | P2 | Conversion-adjacent; batch with #6 to stay in the converter. |
+| 8 | **PRESETS-FIDELITY** (13a fix, 13b spike) 🐍 | P2 | Closes the Python-conversion cluster. 🧑 verify radio channels in-game. |
+| 9 | **AIRCRAFT-INJECT decision** 🧑 | — | Settle handoff §7 (file/step names, hard-break, extraction shape) before any code. |
+| 10 | **SPAWN-REFACTOR-001** — characterization tests 🌙 | P2 | Must land before any spawn-file edit/dedup (#11, #12). Pure safety net. |
+| 11 | **AIRCRAFT-INJECT** (001–006) 🐍 | P2 | After #9. Helo bug already fixed in #4. 🧑 manual spawn test. |
+| 12 | **SPAWN-EXTERNALIZE-001 (spike) → 002** 🌙🐍 | P2 | Fold **SPAWN-REFACTOR-002** (spawn dedup) in here — same files. 🧑 spike review before impl. |
+| 13 | **UXPILOT-FEEDBACK** (001, 002, then 003) 🌙 | P2 | 003 needs #10's tests. 🧑 feel the feedback in a real mission. |
+| 14 | **DYNLOAD-CLARIFY** (spike) 🌙🐍 | P3 | 🧑 spike review. |
+| 15 | **TRIGGERS-VERIFY** 🐍 | P3 | 🧑 needs Flogas's missions — slot whenever they're available, else defer. |
+| 16 | **TUI-FOLDER-HINT** 🐍 | P3 | Small UX; good low-energy filler. |
+| 17 | **DEFAULTS-AUDIT** 🐍 | P3 | After #11 settles the aircraft YAML ownership. |
+| 18 | **Lot 5 — RELEASE v6.1.0** 🧑 | RELEASE | All SECREV blockers + feature set merged. REL-005 after REL-003 (merge to master). |
 
-### Wave 2 — Conversion fidelity & detection
-| Lot | Track | Gate |
-|-----|-------|------|
-| **CONVERT-FIDELITY** (001–004) | Python | Needs MODULES-UNIFY shape. |
-| **ERA-AUTODETECT** | Python | Independent of schema; can run alongside CONVERT-FIDELITY. |
-| **PRESETS-FIDELITY** (13a fix, 13b spike) | Python | Independent; 13a can start anytime, 13b is a spike. |
+**QUALITY-GATE-001** is not a scheduled row: it's continuous — each Python lot above
+drops its touched worker's mypy exclusion and nudges `--cov-fail-under` up. The leftover
+workers get mopped up whenever there's slack.
 
-### Wave 3 — Spawn / aircraft axis  *(decisions first)*
-| Lot | Track | Gate |
-|-----|-------|------|
-| **AIRCRAFT-INJECT** open-questions decision (with David) | — | Settle handoff §7 (file names, step names, hard-break, extraction shape) before coding. |
-| **SPAWN-REFACTOR-001** (characterization tests) | Lua | Must precede any spawn edit/dedup. |
-| **AIRCRAFT-INJECT** (001–006) | Python | After the decision; fixes helo bug if SECREV-002 didn't. |
-| **SPAWN-EXTERNALIZE-001** (spike) → 002 | Lua+Python | Spike emits concrete tickets; fold SPAWN-REFACTOR-002 dedup here. |
-| **UXPILOT-FEEDBACK** (001, 002 anytime; 003 after SPAWN-REFACTOR-001) | Lua | Pilot-facing UX; 001/002 have no upstream gate. |
-
-### Wave 4 — Spikes, verification, small UX  *(fillers, low coupling)*
-| Lot | Track |
-|-----|-------|
-| **DYNLOAD-CLARIFY** (spike) | Lua+Python |
-| **TRIGGERS-VERIFY** (external dep: Flogas) | Python |
-| **TUI-FOLDER-HINT** | Python |
-| **DEFAULTS-AUDIT** (after AIRCRAFT-INJECT settles the aircraft YAML) | Python |
-
-### Wave 5 — Release
-| Lot | Gate |
-|-----|------|
-| **Lot 5 — RELEASE v6.1.0** | All SECREV blockers merged + intended feature set done. REL-005 after REL-003 (merge to master). |
+### David's queue (the human-gated steps, in order)
+Close Phase 0b issues (#2) → MODULES-UNIFY schema sign-off (#5) → AIRCRAFT-INJECT
+decision (#9) → spike reviews (#12, #14) → manual DCS tests after #4, #5, #8, #11, #13 →
+release approval (#18). Everything else, Claude runs without blocking on you.
 
 ---
 
 ## 4. One-line answer
 
-> **CI-NODE24 + SECREV blockers → MODULES-UNIFY → everything that depends on the new
-> schema (CONVERT-FIDELITY, validation) → the spawn/aircraft axis (tests first, then
-> dedup, coordinating the shared helo bug) → spikes/cleanup → RELEASE.**
-> QUALITY-GATE rides along the whole way, never as a separate big-bang.
+> **CI-NODE24 → SECREV blockers (fix the helo bug here) → MODULES-UNIFY → conversion
+> cluster (CONVERT-FIDELITY, ERA, PRESETS) → AIRCRAFT-INJECT decision → spawn axis
+> (tests first, then aircraft-inject, externalize+dedup, pilot UX) → spikes/cleanup →
+> RELEASE.** QUALITY-GATE rides along; David is only needed at the 🧑 gates.

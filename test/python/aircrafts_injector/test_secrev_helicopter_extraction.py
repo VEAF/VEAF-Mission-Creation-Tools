@@ -51,9 +51,7 @@ def test_all_helicopter_groups_are_matched() -> None:
     worker = _extractor()
     worker.find_matching_groups(silent=True)
     helo_names = {
-        info["group_name"]
-        for info in worker.matched_groups.values()
-        if info["aircraft_category"] == "helicopters"
+        info["group_name"] for info in worker.matched_groups.values() if info["aircraft_category"] == "helicopters"
     }
     assert helo_names == {"Huey 1", "Apache 1", "Kiowa 1"}
 

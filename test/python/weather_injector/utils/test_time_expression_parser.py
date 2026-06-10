@@ -152,6 +152,16 @@ class TestSafeEvaluator(unittest.TestCase):
     def test_parentheses_and_precedence(self) -> None:
         self.assertEqual(TimeExpressionParser.parse("(1+2)*1000"), 3000)
 
+    def test_overlong_expression_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("1+" * 200 + "1")
+
+    def test_deeply_nested_expression_rejected(self) -> None:
+        # 50 nested unary minus → AST depth exceeds the bound (parens alone
+        # would collapse and not nest the AST).
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("-" * 50 + "1")
+
 
 if __name__ == "__main__":
     unittest.main()

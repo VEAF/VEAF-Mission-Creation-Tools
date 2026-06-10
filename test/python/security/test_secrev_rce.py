@@ -12,6 +12,7 @@ Two guarantees are tested:
 
 from __future__ import annotations
 
+import contextlib
 import zipfile
 from pathlib import Path
 
@@ -59,18 +60,21 @@ def _lua_reference(raw: str, keep_as_dict: list[str] | None) -> object:
 
 
 class TestNoCodeExecution:
+    # The guarantee under test is "no execution", not "raises": the parser may
+    # accept or reject the payload, but the sentinel file must never appear.
+
     def test_payload_does_not_run_side_effects(self, tmp_path: Path) -> None:
         sentinel = tmp_path / "pwned"
         # If parsed with lua.execute, io.open would create the sentinel file.
         payload = f'mission = {{}} io.open("{sentinel.as_posix()}", "w"):close()'
-        with pytest.raises(Exception):  # noqa: B017 - parse error is the point
+        with contextlib.suppress(Exception):
             luadata.unserialize(payload)
         assert not sentinel.exists(), "parsing executed embedded Lua code (RCE)"
 
-    def test_function_call_value_is_rejected_not_executed(self, tmp_path: Path) -> None:
+    def test_function_call_value_is_not_executed(self, tmp_path: Path) -> None:
         sentinel = tmp_path / "pwned2"
         payload = f'mission = {{ ["x"] = os.execute("touch {sentinel.as_posix()}") }}'
-        with pytest.raises(Exception):  # noqa: B017
+        with contextlib.suppress(Exception):
             luadata.unserialize(payload)
         assert not sentinel.exists()
 

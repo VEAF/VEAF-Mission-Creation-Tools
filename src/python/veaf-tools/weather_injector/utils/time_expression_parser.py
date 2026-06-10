@@ -22,6 +22,11 @@ _UNARY_OPS: dict[type[ast.unaryop], Callable[[float], float]] = {
     ast.USub: operator.neg,
 }
 
+# Conservative bounds to avoid resource exhaustion on adversarial mission data
+# (e.g. a very long or deeply nested expression). Time expressions are tiny.
+_MAX_EXPRESSION_LENGTH = 256
+_MAX_AST_DEPTH = 32
+
 
 def _safe_arithmetic_eval(expression: str) -> float:
     """Evaluate a pure arithmetic expression without executing arbitrary code.
@@ -29,7 +34,8 @@ def _safe_arithmetic_eval(expression: str) -> float:
     Only numeric literals, parentheses, the binary operators ``+ - * / // %`` and
     unary ``+``/``-`` are accepted. Names, attribute access, function calls and
     exponentiation are rejected, which removes both the code-execution and the
-    DoS (huge-power) risks of ``eval``.
+    DoS (huge-power) risks of ``eval``. The input length and AST depth are
+    additionally bounded to limit resource exhaustion on adversarial input.
 
     Args:
         expression: The arithmetic expression to evaluate.
@@ -38,13 +44,18 @@ def _safe_arithmetic_eval(expression: str) -> float:
         The numeric result.
 
     Raises:
-        ValueError: If the expression contains a disallowed construct.
+        ValueError: If the expression contains a disallowed construct, or
+            exceeds the length / nesting-depth bounds.
         SyntaxError: If the expression is not valid Python arithmetic syntax.
     """
+    if len(expression) > _MAX_EXPRESSION_LENGTH:
+        raise ValueError(f"expression too long (> {_MAX_EXPRESSION_LENGTH} characters)")
 
-    def _eval(node: ast.AST) -> float:
+    def _eval(node: ast.AST, depth: int) -> float:
+        if depth > _MAX_AST_DEPTH:
+            raise ValueError(f"expression too deeply nested (> {_MAX_AST_DEPTH})")
         if isinstance(node, ast.Expression):
-            return _eval(node.body)
+            return _eval(node.body, depth + 1)
         if isinstance(node, ast.Constant):
             if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
                 raise ValueError(f"unsupported constant: {node.value!r}")
@@ -53,15 +64,15 @@ def _safe_arithmetic_eval(expression: str) -> float:
             op = _BIN_OPS.get(type(node.op))
             if op is None:
                 raise ValueError(f"unsupported operator: {type(node.op).__name__}")
-            return op(_eval(node.left), _eval(node.right))
+            return op(_eval(node.left, depth + 1), _eval(node.right, depth + 1))
         if isinstance(node, ast.UnaryOp):
             unary = _UNARY_OPS.get(type(node.op))
             if unary is None:
                 raise ValueError(f"unsupported unary operator: {type(node.op).__name__}")
-            return unary(_eval(node.operand))
+            return unary(_eval(node.operand, depth + 1))
         raise ValueError(f"unsupported expression element: {type(node).__name__}")
 
-    return _eval(ast.parse(expression, mode="eval"))
+    return _eval(ast.parse(expression, mode="eval"), 0)
 
 
 class TimeExpressionParser:

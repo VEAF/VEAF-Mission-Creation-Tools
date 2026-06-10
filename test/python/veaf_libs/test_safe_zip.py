@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import io
 import zipfile
 from pathlib import Path
 
 import pytest
-
 from veaf_libs.safe_zip import safe_extract_all
 
 
@@ -49,6 +49,17 @@ class TestZipSlip:
         with zipfile.ZipFile(archive) as zf, pytest.raises(ValueError):
             safe_extract_all(zf, dest)
 
+    def test_symlink_entry_rejected(self, tmp_path: Path) -> None:
+        archive = tmp_path / "symlink.zip"
+        with zipfile.ZipFile(archive, "w") as zf:
+            link = zipfile.ZipInfo("link")
+            link.external_attr = 0o120777 << 16  # symlink mode bits
+            zf.writestr(link, "/etc")
+            zf.writestr("link/inner.txt", b"evil")
+        dest = tmp_path / "out"
+        with zipfile.ZipFile(archive) as zf, pytest.raises(ValueError, match="symlink"):
+            safe_extract_all(zf, dest)
+
 
 class TestZipBomb:
     def test_too_many_entries_rejected(self, tmp_path: Path) -> None:
@@ -70,3 +81,27 @@ class TestZipBomb:
         with zipfile.ZipFile(archive) as zf:
             safe_extract_all(zf, dest, max_entries=10, max_total_bytes=10_000)
         assert (dest / "small.bin").read_bytes() == b"A" * 100
+
+    def test_spoofed_size_header_caught_on_actual_bytes(self, tmp_path: Path) -> None:
+        """A lying file_size header must not bypass the byte cap.
+
+        The cap is re-enforced on the actual decompressed stream, so we feed
+        safe_extract_all a zip whose declared sizes pass the pre-check but whose
+        real content exceeds the cap.
+        """
+
+        class _SpoofedZip:
+            """Minimal ZipFile stand-in: header says 10 bytes, stream has 5000."""
+
+            def infolist(self) -> list[zipfile.ZipInfo]:
+                info = zipfile.ZipInfo("liar.bin")
+                info.file_size = 10
+                return [info]
+
+            def open(self, info: zipfile.ZipInfo) -> io.BytesIO:
+                return io.BytesIO(b"A" * 5000)
+
+        dest = tmp_path / "out"
+        with pytest.raises(ValueError, match="decompressed size"):
+            safe_extract_all(_SpoofedZip(), dest, max_total_bytes=1000)  # type: ignore[arg-type]
+        assert not (dest / "liar.bin").exists()

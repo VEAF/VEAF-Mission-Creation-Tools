@@ -66,6 +66,13 @@ function TestVeafMoveMarkTextAnalysis:test_move_group_returns_table()
   luaunit.assertIsTable(r)
 end
 
+-- SECREV-010: an empty group name (the default "") must be rejected, since ""
+-- is truthy in Lua and the old guard never fired.
+function TestVeafMoveMarkTextAnalysis:test_move_group_without_name_returns_nil()
+  local r = veafMove.markTextAnalysis("_move group")
+  luaunit.assertNil(r)
+end
+
 function TestVeafMoveMarkTextAnalysis:test_move_group_sets_flag()
   local r = veafMove.markTextAnalysis("_move group, name SomeGroup")
   luaunit.assertNotNil(r)

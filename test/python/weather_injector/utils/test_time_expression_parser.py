@@ -125,5 +125,43 @@ class TestInvalidExpressions(unittest.TestCase):
             TimeExpressionParser.parse("")
 
 
+class TestSafeEvaluator(unittest.TestCase):
+    """SECREV-003 — the arithmetic evaluator must not execute arbitrary code."""
+
+    def test_power_operator_rejected_dos_guard(self) -> None:
+        # Exponentiation can produce gigantic numbers (DoS); it is not allowed.
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("2**100000000")
+
+    def test_function_call_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("pow(2, 3)")
+
+    def test_attribute_access_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("(1).__class__")
+
+    def test_bare_name_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("foo+1")
+
+    def test_division_by_zero_raises_value_error(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("3600//0")
+
+    def test_parentheses_and_precedence(self) -> None:
+        self.assertEqual(TimeExpressionParser.parse("(1+2)*1000"), 3000)
+
+    def test_overlong_expression_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("1+" * 200 + "1")
+
+    def test_deeply_nested_expression_rejected(self) -> None:
+        # 50 nested unary minus → AST depth exceeds the bound (parens alone
+        # would collapse and not nest the AST).
+        with self.assertRaises(ValueError):
+            TimeExpressionParser.parse("-" * 50 + "1")
+
+
 if __name__ == "__main__":
     unittest.main()

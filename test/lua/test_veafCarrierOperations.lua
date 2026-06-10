@@ -362,4 +362,10 @@ function TestVeafCarrierWithMockCarrier:test_executeCommandFromRemote_atc_with_c
   luaunit.assertTrue(result)
 end
 
+-- SECREV-007: getAtcForCarrierOperations must nil-check the carrier before
+-- dereferencing it, returning nil for an unknown group instead of crashing.
+function TestVeafCarrierWithMockCarrier:test_getAtc_unknown_group_returns_nil()
+  luaunit.assertNil(veafCarrierOperations.getAtcForCarrierOperations("no-such-carrier"))
+end
+
 os.exit(luaunit.LuaUnit.run())

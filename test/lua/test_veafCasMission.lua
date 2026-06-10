@@ -140,4 +140,16 @@ function TestVeafCasMarkTextAnalysisKeywords:test_disperse_with_value()
   luaunit.assertEquals(r.disperseOnAttack, 30)
 end
 
+-- SECREV-007: generateAirDefenseGroup must return nil (not dereference a nil
+-- group) when the underlying group definition cannot be found.
+TestVeafCasMissionAirDefense = {}
+
+function TestVeafCasMissionAirDefense:test_returns_nil_when_group_not_found()
+  local savedVeafUnits = veafUnits
+  veafUnits = { findGroup = function() return nil end }
+  local result = veafCasMission.generateAirDefenseGroup("AD-1", 1, veafCasMission.SIDE_RED)
+  veafUnits = savedVeafUnits
+  luaunit.assertNil(result)
+end
+
 os.exit(luaunit.LuaUnit.run())

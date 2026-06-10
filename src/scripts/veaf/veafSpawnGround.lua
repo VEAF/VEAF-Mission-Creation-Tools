@@ -631,8 +631,9 @@ function veafSpawn.spawnConvoy(
 
   -- generate the armored vehicles
   if armor and armor > 0 then
-    -- generate the group
-    local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor, side, size / 2)
+    -- generate the group (size may be nil here; the platoon is half the convoy size)
+    local platoonSize = size and (size / 2) or nil
+    local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor, side, platoonSize)
 
     -- process the group
     local group = veafUnits.processGroup(group)

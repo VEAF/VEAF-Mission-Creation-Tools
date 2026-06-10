@@ -9,7 +9,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+- **RCE fixed**: parsing a `.miz` file no longer executes embedded Lua. `luadata.unserialize()` ran `lua.execute()` on untrusted mission content via an unsandboxed lupa runtime; it now routes through the pure-Python `_unserialize()` state machine (no code execution). Output is proven byte-identical to the former path across every real `.miz` fixture; a malicious-payload test asserts no execution. Also fixes a parser fidelity bug (backslash + CRLF/CR Lua line-continuations are now collapsed to `\n`, matching DCS Windows briefing texts) (SECREV-001)
+- **Time-expression eval removed**: the weather moment parser replaced `eval()` with an AST evaluator accepting only numeric literals and `+ - * / // %`; names, attribute access, calls and exponentiation (a huge-number DoS) are rejected (SECREV-003)
+- **Archive hardening**: `.miz` and `published.zip` extraction now validate every member through `veaf_libs.safe_zip.safe_extract_all`, rejecting Zip-Slip paths (absolute or `..`-escaping) and capping entry count and total uncompressed size (zip bomb) (SECREV-004, SECREV-005)
+- `veafSecurity`: stopped logging the cleartext password at debug level (SECREV-009)
+
+### Fixed
+- **Helicopter extraction data loss**: `aircrafts_injector` only captured the *last* helicopter group of each country because the match/capture block was dedented out of its loop; every helicopter group is now extracted (SECREV-002)
+- `convert-v5` weather: zero-valued weather params are no longer silently dropped — 0 °C, 0 wind speed (calm), 0 wind direction (due North), 0 visibility and ground-level cloud base now survive conversion (truthiness guards replaced by `is not None`) (SECREV-006)
+- Lua nil-deref crashes guarded: `veafCasMission.generateAirDefenseGroup` (nil group), `veafCarrierOperations.getAtcForCarrierOperations`/`stopCarrierOperations` (nil carrier/unit), `veafSpawnGround.spawnConvoy` (`size/2` on nil size) (SECREV-007)
+- `veafAirWaves.addWave`: a plain array-of-strings wave now stores each group name instead of the whole parameter table (SECREV-008)
+- `veafSecurity.isAuthenticated`: now falls back to the real `veaf.SecurityDisabled` flag instead of the never-assigned `veafSecurity.SecurityDisabled` (SECREV-009)
+- `veafMove`: an empty mandatory group name is now rejected (`""` is truthy in Lua, so the old guard never fired) (SECREV-010)
+
 ### Changed
+- Test coverage gate (`--cov-fail-under`) raised from 15 to 60 to track actual line coverage (~63%) after the SECREV regression tests, per the Quality Ratchet Policy
 - `CLAUDE.md` §3: documented the **Quality Ratchet Policy** — every lot that substantially edits a mypy-excluded worker must drop its `ignore_errors` entry (and fix the surfaced type errors), and every lot that adds tests must bump `--cov-fail-under` to stay within ~2 points of actual coverage. The exclusions list and the coverage gate are now explicitly erode-only forms of debt
 - CI: migrated GitHub Actions off the deprecated Node.js 20 runtime ahead of the forced 2026-06-16 migration. Bumped `actions/checkout@v4`→`@v5`, `actions/setup-python@v5`→`@v6`, `actions/upload-artifact@v4`→`@v6` (first major running on `node24`), and the third-party actions `JohnnyMorganz/stylua-action@v4`→`@v5`, `softprops/action-gh-release@v2`→`@v3`, `gitleaks/gitleaks-action@v2`→`@v3`. `snok/install-poetry@v1` is a composite action with no Node runtime and was left unchanged
 

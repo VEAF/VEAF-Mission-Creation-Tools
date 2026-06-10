@@ -437,9 +437,17 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         result = generate_mission_yaml_template()
         self.assertIsInstance(result, str)
         self.assertIn("modules:", result)
-        self.assertIn("# qra:", result)
         self.assertIn("# cap_missions:", result)
         self.assertIn("# combat_missions:", result)
+
+    def test_no_standalone_external_modules_or_qra_sections(self) -> None:
+        # MODULES-UNIFY: SKYNET/CTLD/CSAR/QRA live under modules: only.
+        from veaf_libs.lua_config_generator import generate_mission_yaml_template
+
+        result = generate_mission_yaml_template()
+        self.assertNotIn("external_modules:", result)
+        self.assertNotIn("# qra:", result)
+        self.assertIn("QRA", result)  # still documented, under modules:
 
     def test_enabled_module_appears_uncommented(self) -> None:
         from veaf_libs.lua_config_generator import generate_mission_yaml_template

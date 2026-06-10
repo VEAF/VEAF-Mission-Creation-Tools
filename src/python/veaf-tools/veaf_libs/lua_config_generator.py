@@ -11,8 +11,10 @@ Sections handled
 - ``global_log_level:`` — veaf.ForcedLogLevel
 - ``settings:``         — arbitrary veaf.config.XXX = value
 - ``lua_modules:``      — per-module enable / logLevel / init params / data
-- ``external_modules:`` — Skynet-IADS, CTLD
-- ``qra:``              — VeafQRA builder chains (inside QRA module block)
+                          (internal split of the unified ``modules:`` block)
+- ``external_modules:`` — internal repr for Skynet-IADS / CTLD / CSAR, populated
+                          from ``modules.SKYNET`` / ``modules.CTLD`` / ``modules.CSAR``
+- ``qra:``              — internal repr for VeafQRA chains, populated from ``modules.QRA``
 - ``cap_missions:``     — veafCombatMission.addCapMission() calls
 - ``combat_missions:``  — veafCombatMission.AddMissionsWithSkillAndScale() calls
 """
@@ -1034,59 +1036,56 @@ def generate_mission_yaml_template(
                 lines.append("    #   - name: Battle Area Alpha")
                 lines.append('    #     lat: "41.123456"')
                 lines.append('    #     lon: "44.987654"')
+            elif mid == "QRA":
+                lines += [
+                    "    # silence_all: false",
+                    "    # definitions:",
+                    "    #   - name: Base QRA",
+                    "    #     coalition: RED           # RED | BLUE | NEUTRAL",
+                    "    #     enemy_coalitions:",
+                    "    #       - BLUE",
+                    "    #     trigger_zone: QRA zone",
+                    "    #     zone_radius: 30000",
+                    "    #     groups_by_enemy_count:",
+                    "    #       - enemy_count: 1",
+                    "    #         groups:",
+                    "    #           - Group1",
+                    "    #         random_pick: 1",
+                    "    #     delay_before_rearming: 30",
+                    "    #     delay_before_activating: 30",
+                ]
         else:
             lines.append(f"  # {yaml_key}:")
             lines.append("  #   enabled: false")
 
-    # Emit community script entries in the same modules: block (UX-003)
+    # Emit community script entries in the same modules: block (UX-003).
+    # SKYNET / CTLD / CSAR carry their config nested here too — there is no
+    # separate external_modules: section any more (MODULES-UNIFY).
+    for doc_line in _yaml_comment("generated.mission_yaml.section.external"):
+        lines.append(f"  {doc_line}" if doc_line.startswith("#") else doc_line)
     lines.append("  # ── Community scripts ──")
     for script in get_community_script_files():
         sid = script["id"]
-        lines.append(f"  # {sid}: true")
-
-    # ── External modules ──────────────────────────────────────────────────
-    lines.append("")
-    lines.extend(_yaml_comment("generated.mission_yaml.section.external"))
-    lines += [
-        "# external_modules:",
-        "#   skynet:",
-        "#     enabled: false",
-        "#     include_red_in_radio: false",
-        "#     debug_red: false",
-        "#     include_blue_in_radio: false",
-        "#     debug_blue: false",
-        "#   ctld:",
-        "#     enabled: false",
-        "#     # ctld.xxx = value  (e.g. hoverPickup: true)",
-        "#   csar:",
-        "#     enabled: false",
-        "#     # csar.xxx = value  (e.g. enableAllslots: true)",
-    ]
-
-    # ── QRA ───────────────────────────────────────────────────────────────
-    lines.append("")
-    lines.extend(_yaml_comment("generated.mission_yaml.section.qra"))
-    lines += [
-        "# qra:",
-        "#   silence_all: false",
-        "#   definitions:",
-        "#     - name: Base QRA",
-        "#       coalition: RED           # RED | BLUE | NEUTRAL",
-        "#       enemy_coalitions:",
-        "#         - BLUE",
-        "#       trigger_zone: QRA zone",
-        "#       zone_radius: 30000",
-        "#       groups_by_enemy_count:",
-        "#         - enemy_count: 1",
-        "#           groups:",
-        "#             - Group1",
-        "#             - Group2",
-        "#           random_pick: 1       # how many groups to pick randomly",
-        "#       delay_before_rearming: 30",
-        "#       delay_before_activating: 30",
-        "#       # react_on_helicopters: true",
-        "#       # airport_link: Kutaisi",
-    ]
+        upper = sid.upper()
+        if upper == "SKYNET":
+            lines += [
+                f"  # {sid}:",
+                "  #   enabled: false",
+                "  #   include_red_in_radio: false",
+                "  #   debug_red: false",
+                "  #   include_blue_in_radio: false",
+                "  #   debug_blue: false",
+            ]
+        elif upper in ("CTLD", "CSAR"):
+            example = "hoverPickup: true" if upper == "CTLD" else "enableAllslots: true"
+            lines += [
+                f"  # {sid}:",
+                "  #   enabled: false",
+                f"  #   settings:                # {sid.lower()}.xxx = value pairs",
+                f"  #     {example}",
+            ]
+        else:
+            lines.append(f"  # {sid}: true")
 
     # ── CAP missions ──────────────────────────────────────────────────────
     lines.append("")

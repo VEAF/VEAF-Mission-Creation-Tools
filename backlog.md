@@ -22,6 +22,16 @@
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ⬜ |
+| Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ⬜ |
+| Lot TODO0609-CONVERT-FIDELITY — convert-v5 report fidelity: comment full migrated blocks, emit commented-out v5 elements, silenceAtc key | ⬜ |
+| Lot TODO0609-ERA-AUTODETECT — auto-detect mission era (incl. WW2) from `.miz` content, manual override wins | ⬜ |
+| Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits / dcsUnits definitions from Lua to YAML (spike + impl) | ⬜ |
+| Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ⬜ |
+| Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ⬜ |
+| Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
+| Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ⬜ |
+| Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
+| Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ⬜ |
 
 ---
 
@@ -170,5 +180,151 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | PREREL-003 (B3/B4) | Hardcoded English in `mission_builder_worker.py`: ~L333-338 missing-files message and ~L1168 `"Injecting dcs-bridge.lua"` spinner must use `t()`; add FR translations to `fr.json`. | fix | ✅ |
 | PREREL-004 (I1) | `paths.py`: replace `exit(-1)` with a raised exception (utility code should not call `exit()`; makes it testable). | fix | ✅ |
 | PREREL-005 (cosmetic) | `v5_converter.py` (~L885): remove the dead `is None` branch (never reached). Low priority. | chore | ✅ |
+
+---
+
+## Lot TODO0609-MODULES-UNIFY — Single `modules:` block as the source of truth
+
+**Goal**: Today a module/community-script can appear in up to three places in `mission.yaml`: a toggle under `modules:`, a detailed block under `external_modules:`, and a top-level `qra:` block. Collapse everything into a single `modules:` block where each module has one entry with its config nested (Skynet, CTLD, CSAR, QRA included). Remove `external_modules:` and the top-level `qra:`. **Hard break** — v6 is not officially released yet, so no backward-compatibility shim. Covers todo-2026.06.09 items 5, 6, 8.
+
+**Decisions** (grilling 2026-06-10): everything nested under `modules:`; remove `external_modules:`/`qra:`; hard break (no deprecation); `convert-v5` extracts CTLD/CSAR config from v5. See `docs/adr/0001-modules-single-source-of-truth.md`.
+
+**Branch**: `feat/modules-unify` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| MODULES-UNIFY-001 | Redesign the `mission.yaml` schema: one `modules:` block, each module/community-script an entry with nested config (incl. `skynet`, `ctld`, `csar`, `qra`). Update the default template and the validator. | `src/defaults/mission-folder/mission.yaml`, `veaf_libs/yaml_validator.py` | feat | ⬜ |
+| MODULES-UNIFY-002 | `lua_config_generator`: read nested per-module config from `modules:`; drop all handling of `external_modules:` and top-level `qra:`. | `veaf_libs/lua_config_generator.py`, `test/python/` | feat | ⬜ |
+| MODULES-UNIFY-003 | `convert-v5`: emit converted modules (incl. QRA) into the new nested `modules:` structure instead of separate `external_modules:`/`qra:` sections. | `mission_builder/config_migrator.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
+| MODULES-UNIFY-004 | `convert-v5`: extract CTLD/CSAR config from `missionConfig.lua` (`ctld.xxx = …` / `csar.xxx = …` assignments) into `modules.CTLD` / `modules.CSAR`. (todo item 6) | `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
+| MODULES-UNIFY-005 | Update docs: `doc/MISSION_YAML_REFERENCE.md` (+ `.fr`), migration guide, and any example referencing `external_modules:`/`qra:`. | `doc/MISSION_YAML_REFERENCE*.md`, `doc/mission-maker/MIGRATION_GUIDE*.md` | chore | ⬜ |
+
+---
+
+## Lot TODO0609-CONVERT-FIDELITY — convert-v5 report & extraction fidelity
+
+**Goal**: Make the `convert-v5` annotated report (`convert-v5-report.md`) and YAML output faithfully reflect what was migrated, so the mission-maker can spot at a glance the v5 code that was NOT auto-migrated and decide what to do (migrate by hand, report a bug, move to `mission-script.lua`). Covers todo-2026.06.09 items 4, 9, 10.
+
+> Depends on TODO0609-MODULES-UNIFY for the target YAML shape that commented-out elements (-001) are emitted into.
+
+**Branch**: `feat/convert-fidelity` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CONVERT-FIDELITY-001 | Re-parse commented-out v5 elements (any extractable module, e.g. a commented `combatZone_Abu_al_Duhur`) and re-emit them as **commented** YAML in `mission.yaml`, instead of silently dropping them. (todo item 4) | `mission_builder/config_migrator.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
+| CONVERT-FIDELITY-002 | In the annotated `missionConfig`, comment out the **entire** `if veafXxx then … end` init block of a migrated module (not only the `initialize()` line), so non-migrated code visually stands out. (todo item 9) | `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
+| CONVERT-FIDELITY-003 | Add `mission.silence_atc_on_all_airbases` to the default `mission.yaml` (value `true`) and emit the corresponding Lua. At conversion, scan `missionConfig.lua` for an active `veaf.silenceAtcOnAllAirbases()` call → `true`, else `false`. (todo item 10) | `src/defaults/mission-folder/mission.yaml`, `veaf_libs/lua_config_generator.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
+
+---
+
+## Lot TODO0609-ERA-AUTODETECT — Automatic mission era detection
+
+**Goal**: The mission era (especially `WW2`) is currently manual or extracted from v5 only if present. Add automatic detection from the `.miz` content when `era` is not provided. A manual `mission.yaml` `era` always wins. Covers todo-2026.06.09 item 7.
+
+**Decision** (grilling 2026-06-10): combined heuristic — mission year **and** WW2-era unit/aircraft types — with a `mission.yaml` override that always takes precedence.
+
+**Branch**: `feat/era-autodetect` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| ERA-AUTODETECT-001 | Detection helper combining the DCS mission year and a WW2 unit/aircraft-type reference list to infer the era; document the priority rule. Unit tests over fixtures (WW2 by year, WW2 by units, modern, ambiguous). | `mission_builder/`, `test/python/` | feat | ⬜ |
+| ERA-AUTODETECT-002 | Wire the helper into conversion/build: use detected era only when `mission.yaml` `era` is absent; manual value always wins. Maintain the WW2-era types reference table. | `mission_builder/config_migrator.py` / `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+
+---
+
+## Lot TODO0609-SPAWN-EXTERNALIZE — Externalize spawn group definitions to YAML
+
+**Goal**: Move spawn-related definitions out of hand-edited Lua into YAML. Scope: the `veafUnits.GroupsDatabase` / `veafUnits.UnitsDatabase` and `dcsUnits.lua` (all produced by ad-hoc Lua generator scripts that must be adapted), **and especially** per-mission spawn group definitions used by the `_spawn group` command. Large, runtime-impacting; starts with a spike. Covers todo-2026.06.09 item 1.
+
+> **Boundary** (HANDOFF §6): this is the *generate-a-Lua-base* axis (A + `veafUnits`), explicitly **out of scope** of TODO0609-AIRCRAFT-INJECT (the *inject-groups* axis, B + C). Do not seek a unified A↔B/C group schema; the two chantiers are factored along the pipeline axis, not "it's a group".
+
+**Branch**: `feat/spawn-externalize` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SPAWN-EXTERNALIZE-001 (spike) | Design note: target YAML shape for unit/group definitions; how the Lua runtime consumes it (static vs dynamic loading); how the ad-hoc generator scripts that build `veafUnits` / `dcsUnits.lua` are adapted; per-mission override mechanism for `_spawn group`. Deliverable: reco + implementation tickets. | `src/scripts/veaf/veafUnits.lua`, `dcsUnits.lua`, generator scripts | spike | ⬜ |
+| SPAWN-EXTERNALIZE-002 | Implement per the spike (placeholder — split into concrete tickets once -001 lands). | TBD | feat | ⬜ |
+
+---
+
+## Lot TODO0609-DYNLOAD-CLARIFY — Clarify dynamic script loading
+
+**Goal**: Understand and document the two dynamic-loading files — `VeafDynamicLoader.lua` (loads VEAF scripts) and `veafDynamicConfig.lua` (loads mission scripts) — determine whether one is obsolete, and clarify the overall static-vs-dynamic loading of VEAF scripts (including how `convert-v5` handles legacy v5 dynamic-loading triggers). Covers todo-2026.06.09 item 2.
+
+**Branch**: `chore/dynload-clarify` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DYNLOAD-CLARIFY-001 (spike) | Trace and document both files' roles and the static/dynamic loading flow; identify any obsolete artifact and propose its removal; document the conversion behaviour for legacy dynamic-loading triggers. Deliverable: doc update + cleanup tickets if needed. | `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, `src/scripts/veaf/VeafDynamicLoader.lua`, `mission_builder/mission_builder_worker.py`, `doc/` | spike | ⬜ |
+
+---
+
+## Lot TODO0609-PRESETS-FIDELITY — Iso-functional radio presets conversion
+
+**Goal**: v5 presets encode DCS module quirks (e.g. Mi-24 channel 0 mapped to channel 20 on injection, AJS-37 offsets). The current `convert-v5` loses these. First make conversion iso-functional with the v5 mission; then analyse whether the v6 `presets.yaml` data structure is adequate (the v5 structure may have been better) and propose enriched defaults. Covers todo-2026.06.09 item 13.
+
+**Branch**: `fix/presets-fidelity` → PR → `develop-v6` (13a); follow-up branch for 13b once the spike lands
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| PRESETS-FIDELITY-001 (13a) | Make `convert-v5` produce a `presets.yaml` iso-functional with the v5 mission's presets — preserve per-module channel mappings/offsets (Mi-24 ch0→20, AJS-37, …). Regression tests against real v5 preset fixtures. | `mission_builder/v5_pipeline_converters.py`, `presets_injector/`, `test/python/` | fix | ⬜ |
+| PRESETS-FIDELITY-002 (13b, spike) | Analyse the v6 `presets.yaml` data structure vs the v5 presets structure; decide whether to redesign it; propose a default `presets.yaml` that accounts for DCS module quirks. Deliverable: reco + tickets. | `presets_injector/`, `src/defaults/mission-folder/src/presets.yaml` | spike | ⬜ |
+
+---
+
+## Lot TODO0609-TRIGGERS-VERIFY — Verify trigger migration for custom scripts
+
+**Goal**: DCS trigger migration is automatic (`build --migrate-from-v5`). Verify with Flogas the behaviour of triggers for **custom scripts** (custom-script loading) and confirm nothing is lost or mis-handled. Covers todo-2026.06.09 item 3. External dependency: Flogas's input/missions.
+
+**Branch**: `chore/triggers-verify` (only if changes are needed) → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TRIGGERS-VERIFY-001 | Verify, with Flogas, how custom-script triggers are migrated by `build --migrate-from-v5`; document findings; open fix tickets if a defect is confirmed. | `mission_builder/mission_builder_worker.py`, `doc/` | chore | ⬜ |
+
+---
+
+## Lot TODO0609-TUI-FOLDER-HINT — Clarify the TUI mission-folder default
+
+**Goal**: In the TUI, the mission-folder prompt shows a bare `.` default, which is not obviously the current directory. Add an explanatory label and show the resolved absolute path. Covers todo-2026.06.09 item 11.
+
+**Branch**: `feat/tui-folder-hint` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TUI-FOLDER-HINT-001 | Enrich the mission-folder prompt: explanatory label (`. = current folder`, FR/EN) and display the resolved absolute path as a hint. Update locales and tests. | `veaf_libs/tui.py`, locales, `test/python/` | feat | ⬜ |
+
+---
+
+## Lot TODO0609-AIRCRAFT-INJECT — Split aircraft-group injection (spawnable vs dynamic-slot template)
+
+**Goal**: Restore the historically-distinct handling of two separate uses of injected aircraft groups that was half-lost in the Python rewrite: **(B) spawnable aircraft groups** cloned at runtime by `veafSpawn` (name prefix `veafSpawn-`) and **(C) dynamic-slot templates** consumed natively by DCS (`dynSpawnTemplate == true`). Two separate, independently-configurable pipeline steps; reliable flag/prefix-based sorting. Source: `HANDOFF-aircraft-groups-injection.md`. This is the analysis behind todo-2026.06.09 item 12 (the defaults files are legitimate and kept; `spawnables.yaml` "doesn't serve" because no step injects it — a pipeline bug).
+
+**Frozen decisions** (see `CONTEXT.md` and `docs/adr/0002-aircraft-group-injection-sort-criteria.md`): two distinct features sharing one extract/inject tool; sort by `dynSpawnTemplate` flag (priority) then `veafSpawn-` prefix, else ignore; **drop the legacy `.*[tT]emplate.*` name sort** (root cause of the historical misrouting bug).
+
+**Branch**: `feat/aircraft-inject` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| AIRCRAFT-INJECT-001 | Replace the single `aircraft_groups` pipeline step with two: `spawnable_aircrafts` (→ `src/spawnables.yaml`) and `dynamic_slot_templates` (→ `src/dynamic-templates.yaml`), each independently configurable (`true/false` or `{enabled, file, mode}`). Decide hard-break vs compat for the old step / `aircraft-templates.yaml`/`templates.yaml` names (ADR 0001 precedent favours a clean hard break). | `veaf_tools/commands/build.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+| AIRCRAFT-INJECT-002 | Keep both default files in `src/defaults/mission-folder/src/` — `spawnables.yaml` (B) and the renamed (C) file; update the defaults mapping + `test/python/mission_builder/test_mission_builder_defaults.py`. | `src/defaults/mission-folder/src/`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+| AIRCRAFT-INJECT-003 | Implement the flag/prefix sort in the extractor (route each group to B or C, ignore the rest); ideally one extraction pass emitting both files (or a `--kind` flag — to arbitrate). **Includes the helicopters indentation bug** (`find_matching_groups` ~L1070-1086): same defect as SECREV-002 — coordinate so it is fixed once, not twice. | `aircrafts_injector/aircrafts_injector_worker.py`, `test/python/` | fix | ⬜ |
+| AIRCRAFT-INJECT-004 | Two injection steps, each injecting its file as-is (no name regex); verify `add`/`replace` mode per step. | `aircrafts_injector/aircrafts_injector_worker.py`, `test/python/` | feat | ⬜ |
+| AIRCRAFT-INJECT-005 | `convert-v5`: produce **both** v6 files from the v5 `settings.lua`, applying the same flag/prefix sort; update `V5_PIPELINE_CANDIDATES` / `V6_PIPELINE_CANDIDATES`. | `mission_builder/v5_pipeline_converters.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
+| AIRCRAFT-INJECT-006 | Cleanup: fix the dead `.vscode/launch.json` reference (`settings-templates.lua`); realign `doc/mission-maker/scripts/veafSpawn.md` (+ `.en`), `doc/MISSION_YAML_REFERENCE*.md`, `doc/PIPELINE_REFERENCE.md` on the real schema + the B/C distinction. | `.vscode/launch.json`, `doc/` | chore | ⬜ |
+
+**Open questions to settle with David** (handoff §7): (1) canonical name for the (C) file (`dynamic-templates.yaml` / `dynamic-slot-templates.yaml`?); (2) canonical pipeline step names; (3) hard break vs compat on `aircraft_groups`/`aircraft-templates.yaml`; (4) extraction: one pass → two files, or two `--kind` invocations; (5) bonus warehouse wiring (handoff §5: `dynSpawnTemplate` groups also need the `.miz` `warehouses` file to reference them for DCS to offer them as Dynamic Slots) — this lot or a separate one.
+
+---
+
+## Lot TODO0609-DEFAULTS-AUDIT — Audit the defaults mission-folder for dead files
+
+**Goal**: `prepare` copies the whole `src/defaults/mission-folder/` tree into a new mission via `rglob` (`prepare.py:68`), so any leftover file ships to users. The aircraft YAML files are legitimate (see TODO0609-AIRCRAFT-INJECT). Audit the rest to confirm nothing else is dead weight. Covers todo-2026.06.09 item 12.
+
+**Branch**: `chore/defaults-audit` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DEFAULTS-AUDIT-001 | Audit each file under `src/defaults/mission-folder/` for whether it is actually consumed at first build (candidates to verify: `src/presets.md`, `src/README-versions.md`, `src/options`). Report role + used/unused per file; remove or document anything genuinely dead. Exclude the aircraft YAML (owned by TODO0609-AIRCRAFT-INJECT). | `src/defaults/mission-folder/`, `doc/` | chore | ⬜ |
 
 ---

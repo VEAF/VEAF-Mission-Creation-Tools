@@ -47,11 +47,11 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| DOC-CHATBOT-001 | Cloudflare Worker RAG proxy: Origin allow-list (anti-CSRF), per-IP KV rate-limit, query embedding → Vectorize topK retrieval (lang filter) → Gemini SSE streaming. | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/wrangler.toml` | feat | ✅ |
-| DOC-CHATBOT-002 | Index build script: walk `doc/`, chunk markdown (greedy merge, oversized-paragraph + metadata-cap safe), embed in throttled batches, emit NDJSON for `wrangler vectorize insert`. Unit tests for the chunker + Worker helpers. | `poc/doc-chatbot/worker/scripts/build-index.mjs`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
-| DOC-CHATBOT-003 | MkDocs widget: vanilla-JS resizable sidebar (Solde-style), language auto-detection, SSE consume, marked + DOMPurify rendering; environment-aware endpoint config; wired via `mkdocs.yml`. | `doc/assets/chatbot/*.js`, `doc/assets/chatbot/*.css`, `mkdocs.yml` | feat | ✅ |
-| DOC-CHATBOT-004 | CI workflow to rebuild + upsert the Vectorize index whenever docs change (keeps answers fresh). | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
-| DOC-CHATBOT-005 | Productionization prerequisites (do NOT merge before): Vectorize requires the paid Workers plan ($5/mo); add repo secrets `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; ship the widget to the versioned (mike) docs; map a Gemini 429 to the localized "too many requests" message. | — | feat | ⬜ |
+| DOC-CHATBOT-001 | Cloudflare Worker RAG proxy: Origin allow-list (anti-CSRF), per-IP KV rate-limit, query embedding → in-Worker cosine ranking over a KV-stored vector index (lang-scoped) → Gemini SSE streaming. No paid vector DB. | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/wrangler.toml` | feat | ✅ |
+| DOC-CHATBOT-002 | Index build script: walk `doc/`, chunk markdown (greedy merge, oversized-paragraph safe), embed in throttled batches, emit per-language binary Float32 blobs + text bulk files for KV. Unit tests for the chunker + Worker helpers. | `poc/doc-chatbot/worker/scripts/build-index.mjs`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
+| DOC-CHATBOT-003 | MkDocs widget: vanilla-JS resizable sidebar (Solde-style), language auto-detection, SSE consume, sanitized DOM rendering (DOMPurify, no innerHTML), lazy CDN load; environment-aware endpoint config; wired via `mkdocs.yml`. | `doc/assets/chatbot/*.js`, `doc/assets/chatbot/*.css`, `mkdocs.yml` | feat | ✅ |
+| DOC-CHATBOT-004 | CI workflow to rebuild the index and upload it to KV whenever docs change (keeps answers fresh). | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
+| DOC-CHATBOT-005 | Productionization prerequisites (do NOT merge before): add repo secrets `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN` (KV edit), `CLOUDFLARE_ACCOUNT_ID`; ship the widget to the versioned (mike) docs; map a Gemini 429 to the localized "too many requests" message. (No paid plan needed — the search runs in the Worker.) | — | feat | ⬜ |
 
 ---
 

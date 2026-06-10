@@ -4,23 +4,24 @@
  * Responsibilities:
  *   - CORS / domain allow-list (anti-CSRF): only accept requests from known doc origins.
  *   - Per-IP rate-limiting via KV (burst + daily guards).
- *   - RAG retrieval: embed the user question (Gemini embeddings), query the Vectorize index for
- *     the most relevant documentation passages (filtered by language), and inject only those few
- *     passages into the prompt — keeping each request small enough to stay well under the Gemini
- *     free-tier tokens-per-minute ceiling.
+ *   - RAG retrieval: embed the user question (Gemini embeddings), then rank the documentation
+ *     passages by cosine similarity against an embeddings index stored in KV (binary Float32
+ *     vectors, L2-normalized so cosine == dot product), and inject only the top-K passages into
+ *     the prompt — keeping each request small enough to stay well under the Gemini free-tier
+ *     tokens-per-minute ceiling. The similarity search runs in the Worker (no paid vector DB).
  *   - Proxy the conversation to Gemini and stream the answer back to the browser as SSE.
  *
  * The Gemini API key is held as a Worker Secret (GEMINI_API_KEY) and never reaches the client.
  *
  * Bindings expected (see wrangler.toml):
  *   - env.GEMINI_API_KEY  (Secret)         Google Gemini API key (used for embeddings + generation).
- *   - env.CHAT_KV         (KV namespace)   per-IP rate-limit counters.
- *   - env.VEC             (Vectorize)      doc-passage embeddings index (built by scripts/build-index.mjs).
+ *   - env.CHAT_KV         (KV namespace)   per-IP rate-limit counters + the embeddings index
+ *                                          (`idx:vec:{lang}` binary blob, `idx:txt:{lang}:{i}` JSON).
  */
 
 const MODEL = "gemini-2.5-flash-lite";
 const EMBED_MODEL = "gemini-embedding-001";
-const EMBED_DIMS = 768; // matches the Vectorize index dimensions
+const EMBED_DIMS = 768; // embedding dimensionality (must match the index built by build-index.mjs)
 const TOP_K = 6; // passages retrieved per question
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -121,23 +122,60 @@ async function embed(env, text, taskType) {
   return json.embedding.values;
 }
 
+/** In-place L2 normalization (so cosine similarity reduces to a dot product). */
+function l2normalize(v) {
+  let sumSq = 0;
+  for (let i = 0; i < v.length; i++) sumSq += v[i] * v[i];
+  const norm = Math.sqrt(sumSq) || 1;
+  for (let i = 0; i < v.length; i++) v[i] /= norm;
+  return v;
+}
+
+// Per-isolate cache of the language-scoped vector blobs (loaded once, reused across requests).
+const vecCache = {};
+
+/** Load the binary Float32 vector blob for a language from KV (cached on the isolate). */
+async function loadVectors(env, lang) {
+  if (!vecCache[lang]) {
+    const buf = await env.CHAT_KV.get(`idx:vec:${lang}`, { type: "arrayBuffer" });
+    if (!buf) throw new Error(`no index for ${lang}`);
+    vecCache[lang] = new Float32Array(buf);
+  }
+  return vecCache[lang];
+}
+
 /**
- * Retrieve the most relevant documentation passages for the query via Vectorize, filtered by
- * language. Returns the concatenated passage texts to inject into the prompt.
+ * Retrieve the most relevant documentation passages: embed the query, rank every indexed vector by
+ * cosine similarity (dot product on normalized vectors) in the Worker, then fetch the top-K texts
+ * from KV. Returns the concatenated passages to inject into the prompt.
  */
 async function retrieveContext(env, lang, query) {
-  const vector = await embed(env, query, "RETRIEVAL_QUERY");
-  const result = await env.VEC.query(vector, {
-    topK: TOP_K,
-    returnMetadata: "all",
-    filter: { lang },
-  });
-  const passages = (result.matches || [])
-    .map((m) => {
-      const md = m.metadata || {};
-      return md.text ? `# ${md.title || md.path || ""}\n\n${md.text}` : "";
-    })
-    .filter(Boolean);
+  const q = l2normalize(Float32Array.from(await embed(env, query, "RETRIEVAL_QUERY")));
+  const vecs = await loadVectors(env, lang);
+  const count = Math.floor(vecs.length / EMBED_DIMS);
+
+  // Keep the running top-K (small, so an array + sort is cheaper than a heap here).
+  const top = [];
+  for (let i = 0; i < count; i++) {
+    const off = i * EMBED_DIMS;
+    let dot = 0;
+    for (let d = 0; d < EMBED_DIMS; d++) dot += q[d] * vecs[off + d];
+    if (top.length < TOP_K) {
+      top.push({ i, score: dot });
+      if (top.length === TOP_K) top.sort((a, b) => a.score - b.score);
+    } else if (dot > top[0].score) {
+      top[0] = { i, score: dot };
+      top.sort((a, b) => a.score - b.score);
+    }
+  }
+  top.sort((a, b) => b.score - a.score);
+
+  const texts = await Promise.all(
+    top.map((m) => env.CHAT_KV.get(`idx:txt:${lang}:${m.i}`, { type: "json" })),
+  );
+  const passages = texts
+    .filter(Boolean)
+    .map((m) => `# ${m.title || m.path || ""}\n\n${m.text}`);
   if (!passages.length) throw new Error("no passages retrieved");
   return passages.join("\n\n---\n\n");
 }

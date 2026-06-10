@@ -184,5 +184,6 @@ temp/
 
 # doc-chatbot POC (Cloudflare Worker) — local secrets & build artifacts
 poc/doc-chatbot/worker/.dev.vars
-poc/doc-chatbot/worker/vectors.ndjson
+poc/doc-chatbot/worker/vec-*.bin
+poc/doc-chatbot/worker/txt-*.json
 poc/doc-chatbot/worker/.wrangler/

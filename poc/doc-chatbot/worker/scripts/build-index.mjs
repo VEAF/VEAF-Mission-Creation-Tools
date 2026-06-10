@@ -24,7 +24,16 @@ const BATCH = 50; // embeddings per batch — kept under the 100/min free-tier l
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DOC_DIR = path.resolve(__dirname, "../../../../doc");
-const OUT_FILE = path.resolve(__dirname, "../vectors.ndjson");
+const WORKER_DIR = path.resolve(__dirname, "..");
+
+/** In-place L2 normalization so the Worker's cosine similarity reduces to a dot product. */
+function l2normalize(v) {
+  let sumSq = 0;
+  for (let i = 0; i < v.length; i++) sumSq += v[i] * v[i];
+  const norm = Math.sqrt(sumSq) || 1;
+  for (let i = 0; i < v.length; i++) v[i] /= norm;
+  return v;
+}
 
 async function resolveKey() {
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
@@ -130,26 +139,24 @@ async function main() {
   const files = await collectMarkdown(DOC_DIR);
   console.log(`Found ${files.length} markdown files under ${DOC_DIR}`);
 
-  // Build the chunk records (text + metadata) before embedding.
+  // Build the chunk records before embedding.
   const records = [];
   for (const file of files) {
     const content = await readFile(file, "utf8");
     const relPath = path.relative(path.resolve(__dirname, "../../../../"), file).replace(/\\/g, "/");
     const lang = relPath.endsWith(".en.md") ? "en" : "fr";
     const title = titleOf(content, relPath);
-    chunkMarkdown(content).forEach((text, i) => {
-      records.push({ id: `v${records.length}`, text, metadata: { text, path: relPath, lang, title } });
-      void i;
-    });
+    for (const text of chunkMarkdown(content)) {
+      records.push({ text, lang, title, path: relPath });
+    }
   }
   console.log(`Prepared ${records.length} chunks; embedding in batches of ${BATCH}…`);
 
-  const lines = [];
   for (let i = 0; i < records.length; i += BATCH) {
     const batch = records.slice(i, i + BATCH);
     const vectors = await embedBatch(key, batch.map((r) => r.text));
     batch.forEach((r, j) => {
-      lines.push(JSON.stringify({ id: r.id, values: vectors[j], metadata: r.metadata }));
+      r.vector = vectors[j];
     });
     console.log(`  embedded ${Math.min(i + BATCH, records.length)}/${records.length}`);
     // Free-tier embeddings allow 100 requests/min and each chunk counts as one request, so wait
@@ -160,9 +167,23 @@ async function main() {
     }
   }
 
-  await writeFile(OUT_FILE, lines.join("\n") + "\n", "utf8");
-  console.log(`\nWrote ${lines.length} vectors to ${OUT_FILE}`);
-  console.log("Next: npx wrangler vectorize insert veaf-docs --file vectors.ndjson");
+  // Emit, per language: a binary Float32 blob of L2-normalized vectors (for in-Worker cosine) and
+  // a bulk file of per-chunk texts keyed `idx:txt:{lang}:{i}` (matching the blob order) for KV.
+  for (const lang of [...new Set(records.map((r) => r.lang))]) {
+    const recs = records.filter((r) => r.lang === lang);
+    const blob = new Float32Array(recs.length * EMBED_DIMS);
+    recs.forEach((r, i) => blob.set(l2normalize(Float32Array.from(r.vector)), i * EMBED_DIMS));
+    await writeFile(path.join(WORKER_DIR, `vec-${lang}.bin`), Buffer.from(blob.buffer));
+    const bulk = recs.map((r, i) => ({
+      key: `idx:txt:${lang}:${i}`,
+      value: JSON.stringify({ text: r.text, title: r.title, path: r.path }),
+    }));
+    await writeFile(path.join(WORKER_DIR, `txt-${lang}.json`), JSON.stringify(bulk));
+    console.log(`  ${lang}: ${recs.length} vectors -> vec-${lang}.bin, txt-${lang}.json`);
+  }
+  console.log("\nNext — upload the index to KV (see wrangler.toml header), e.g.:");
+  console.log('  npx wrangler kv key  put --binding CHAT_KV "idx:vec:fr" --path vec-fr.bin');
+  console.log("  npx wrangler kv bulk put --binding CHAT_KV txt-fr.json");
 }
 
 // Run only when executed directly (not when imported by tests).

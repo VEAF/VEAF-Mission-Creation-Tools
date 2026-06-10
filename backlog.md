@@ -27,7 +27,7 @@
 | Lot TODO0609-ERA-AUTODETECT — auto-detect mission era (incl. WW2) from `.miz` content, manual override wins | ✅ |
 | Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits / dcsUnits definitions from Lua to YAML (spike + impl) | ⬜ |
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ⬜ |
-| Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | 🔄 |
+| Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ⬜ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
@@ -278,7 +278,7 @@ was constrained to a working branch.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| PRESETS-FIDELITY-001 (13a) | Make `convert-v5` produce a `presets.yaml` iso-functional with the v5 mission's presets — preserve per-module channel mappings/offsets (Mi-24 ch0→20, AJS-37, …). Regression tests against real v5 preset fixtures. | `mission_builder/v5_pipeline_converters.py`, `presets_injector/`, `test/python/` | fix | ⬜ |
+| PRESETS-FIDELITY-001 (13a) | Make `convert-v5` produce a `presets.yaml` iso-functional with the v5 mission's presets — preserve per-module channel mappings/offsets (Mi-24 ch0→20, AJS-37, …). Regression tests against real v5 preset fixtures. | `mission_builder/v5_pipeline_converters.py`, `presets_injector/`, `test/python/` | fix | ✅ |
 | PRESETS-FIDELITY-002 (13b, spike) | Analyse the v6 `presets.yaml` data structure vs the v5 presets structure; decide whether to redesign it; propose a default `presets.yaml` that accounts for DCS module quirks. Deliverable: reco + tickets. | `presets_injector/`, `src/defaults/mission-folder/src/presets.yaml` | spike | ✅ |
 
 ---

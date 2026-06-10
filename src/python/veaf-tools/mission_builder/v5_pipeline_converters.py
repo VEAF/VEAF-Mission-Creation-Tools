@@ -121,6 +121,22 @@ def _extract_block_at(text: str, open_brace_pos: int) -> str | None:
     return None
 
 
+#: A parsed channel value: either a resolved reference ``(table_var, token)``
+#: such as ``("radioPresetsBlue", "##RADIO1_20##")`` or a hardcoded frequency.
+_ChannelValue = tuple[str, str] | float
+
+
+@dataclass
+class _RadioSlot:
+    """One DCS radio slot (``["Radio"][N]``) parsed from a ``radioSettings`` entry."""
+
+    block_text: str
+    channels: list[tuple[int, _ChannelValue]] = field(default_factory=list)
+    """Ordered ``(dcs_channel_index, value)`` pairs (value is a token ref or literal)."""
+    modulations: dict[int, int] = field(default_factory=dict)
+    """Maps DCS channel index to its modulation flag (``0`` = AM, ``1`` = FM)."""
+
+
 @dataclass
 class _RadioEntry:
     """Per-aircraft entry parsed from the v5 ``radioSettings`` table."""
@@ -132,6 +148,8 @@ class _RadioEntry:
     radio_sources: dict[int, str | None] = field(default_factory=dict)
     """Maps DCS radio index (1-based) to source: ``"uhf"``, ``"vhf"``, ``"fm"``,
     ``"warbird"``, or ``None`` for hardcoded frequencies."""
+    radio_slots: dict[int, _RadioSlot] = field(default_factory=dict)
+    """Maps DCS radio index (1-based) to its fully parsed slot (channels + modulations)."""
 
 
 #: Ordered checks to identify which standard preset table a radio block references.
@@ -158,6 +176,108 @@ def _detect_radio_block_source(block_text: str) -> str | None:
         if pattern.search(block_text):
             return source
     return None
+
+
+#: Matches a v5 preset reference like ``radioPresetsBlue["##RADIO1_20##"]``.
+_CHANNEL_REF_RE = re.compile(r'(\w+)\s*\[\s*"(##[^"]+##)"\s*\]')
+
+
+def _extract_named_subblock(block_text: str, key: str) -> str | None:
+    """Return the ``{…}`` body of ``["key"] = {…}`` inside *block_text*, or ``None``."""
+    m = re.search(rf'\["{re.escape(key)}"\]\s*=\s*\{{', block_text)
+    if not m:
+        return None
+    return _extract_block_at(block_text, m.end() - 1)
+
+
+def _parse_slot_channels(slot_block: str) -> list[tuple[int, _ChannelValue]]:
+    """Parse the ``["channels"]`` sub-table of a radio slot.
+
+    Args:
+        slot_block: Raw Lua text of a single ``["Radio"][N] = { … }`` slot.
+
+    Returns:
+        Ordered ``(channel_index, value)`` pairs where *value* is a
+        ``(table_var, token)`` reference tuple or a hardcoded ``float``.
+    """
+    channels_block = _extract_named_subblock(slot_block, "channels")
+    if not channels_block:
+        return []
+    result: list[tuple[int, _ChannelValue]] = []
+    for m in re.finditer(r"\[(\d+)\]\s*=\s*([^\n,}]+)", channels_block):
+        idx = int(m.group(1))
+        raw = m.group(2).strip().rstrip(",").strip()
+        ref = _CHANNEL_REF_RE.match(raw)
+        if ref:
+            result.append((idx, (ref.group(1), ref.group(2))))
+            continue
+        try:
+            result.append((idx, float(raw)))
+        except ValueError:
+            continue
+    return result
+
+
+def _parse_slot_modulations(slot_block: str) -> dict[int, int]:
+    """Parse the ``["modulations"]`` sub-table of a radio slot into ``{index: flag}``."""
+    mods_block = _extract_named_subblock(slot_block, "modulations")
+    if not mods_block:
+        return {}
+    return {int(m.group(1)): int(m.group(2)) for m in re.finditer(r"\[(\d+)\]\s*=\s*(\d+)", mods_block)}
+
+
+def _token_channel_number(token: str) -> tuple[str, int] | None:
+    """Return ``(token_type, channel_number)`` for a preset token, or ``None``.
+
+    Handles standard tokens (``##RADIO1_20##`` → ``("radio1", 20)``) and warbird
+    tokens (``##RADIO_FuG16_01##`` → ``("FuG16", 1)``). ``BASE``/``NAME`` and any
+    other shape return ``None``.
+    """
+    m = re.match(r"^##RADIO(\d+)_(\d+)##$", token)
+    if m:
+        return f"radio{m.group(1)}", int(m.group(2))
+    m = re.match(r"^##RADIO_([A-Za-z0-9]+)_(\d+)##$", token)
+    if m:
+        return m.group(1), int(m.group(2))
+    return None
+
+
+def _slot_is_clean(slot: _RadioSlot) -> bool:
+    """Return True when a slot is a plain 1:1 image of a single standard preset table.
+
+    A *clean* slot only references preset tokens (no hardcoded literals), uses a
+    single token type, and maps DCS channel index ``i`` to that table's channel
+    ``i`` contiguously from 1 — i.e. no rotation, offset, mixing, or extras.
+    """
+    if not slot.channels:
+        return False
+    token_type: str | None = None
+    for position, (idx, value) in enumerate(slot.channels, start=1):
+        if not isinstance(value, tuple):
+            return False  # hardcoded literal
+        parsed = _token_channel_number(value[1])
+        if parsed is None:
+            return False  # BASE / NAME / unparseable token
+        this_type, channel_number = parsed
+        if idx != position or channel_number != idx:
+            return False  # offset or rotation
+        if token_type is None:
+            token_type = this_type
+        elif token_type != this_type:
+            return False  # mixed token types within one slot
+    return True
+
+
+def _entry_is_standard(entry: _RadioEntry) -> bool:
+    """Return True when every radio slot is clean and carries no active modulation."""
+    if not entry.radio_slots:
+        return False
+    for slot in entry.radio_slots.values():
+        if not _slot_is_clean(slot):
+            return False
+        if any(flag != 0 for flag in slot.modulations.values()):
+            return False
+    return True
 
 
 def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
@@ -203,6 +323,7 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
 
         # Parse radio sources from ["Radio"] = { [N] = { … }, … }
         radio_sources: dict[int, str | None] = {}
+        radio_slots: dict[int, _RadioSlot] = {}
         radio_section_m = re.search(r'\["Radio"\]\s*=\s*\{', block_text)
         if radio_section_m:
             radio_block = _extract_block_at(block_text, radio_section_m.end() - 1)
@@ -212,6 +333,11 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
                     sub_block = _extract_block_at(radio_block, rm.end() - 1)
                     if sub_block:
                         radio_sources[idx] = _detect_radio_block_source(sub_block)
+                        radio_slots[idx] = _RadioSlot(
+                            block_text=sub_block,
+                            channels=_parse_slot_channels(sub_block),
+                            modulations=_parse_slot_modulations(sub_block),
+                        )
 
         entries.append(
             _RadioEntry(
@@ -220,6 +346,7 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
                 is_pattern=is_pattern,
                 coalition=coalition,
                 radio_sources=radio_sources,
+                radio_slots=radio_slots,
             )
         )
 
@@ -659,6 +786,126 @@ def _safe_fullmatch(pattern: str, text: str) -> bool:
         return False
 
 
+#: v5 preset table variable names that hold token → frequency mappings.
+_PRESET_TABLE_VARS: tuple[str, ...] = (
+    "radioPresetsBlue",
+    "radioPresetsRed",
+    "radioPresetsWarbirdBlue",
+    "radioPresetsWarbirdRed",
+)
+
+
+def _parse_token_freqs(content: str, table_name: str) -> dict[str, float]:
+    """Parse a v5 preset table into a flat ``{token: frequency}`` map.
+
+    Only numeric entries are kept, so ``##RADIOx_NAME_yy##`` string titles are
+    skipped while ``##RADIO_FuG16_BASE##`` numeric literals are retained.
+    """
+    table_text = _extract_lua_table_text(content, table_name)
+    if not table_text:
+        return {}
+    try:
+        _raw = luadata.unserialize(f"__t = {table_text}", all_is_dict=True) or {}
+        raw: dict[str, Any] = _raw if isinstance(_raw, dict) else {}
+    except Exception:
+        return {}
+    return {str(k): float(v) for k, v in raw.items() if isinstance(v, (int, float))}
+
+
+def _build_token_resolver(content: str) -> dict[str, dict[str, float]]:
+    """Return ``{table_var: {token: frequency}}`` for every v5 preset table."""
+    return {var: _parse_token_freqs(content, var) for var in _PRESET_TABLE_VARS}
+
+
+def _resolve_channel_value(value: _ChannelValue, resolver: dict[str, dict[str, float]]) -> float | None:
+    """Resolve a parsed channel value to its frequency, or ``None`` if unresolvable."""
+    if isinstance(value, tuple):
+        table_var, token = value
+        return resolver.get(table_var, {}).get(token)
+    return value
+
+
+def _aircraft_slug(aircraft: str) -> str:
+    """Build a YAML-safe identifier fragment from an aircraft type or pattern."""
+    slug = re.sub(r"[^a-z0-9]+", "_", aircraft.lower()).strip("_")
+    return slug or "aircraft"
+
+
+#: Maps a detected radio-block source to a v6 radio ``type``.
+_DEDICATED_TYPE_BY_SOURCE: dict[str | None, str] = {
+    "uhf": "uhf",
+    "vhf": "vhf",
+    "fm": "fm",
+    "warbird": "vhf",
+    None: "uhf",
+}
+
+
+def _emit_dedicated_preset(
+    entry: _RadioEntry,
+    resolver: dict[str, dict[str, float]],
+    radios_collection: dict[str, Any],
+    presets_collection: dict[str, Any],
+    presets_assignments: dict[str, Any],
+    helicopter_types: set[str],
+    warnings: list[str],
+) -> None:
+    """Emit a per-aircraft preset that reproduces a bespoke v5 ``["Radio"]`` table.
+
+    Each radio slot becomes a dedicated radio whose channels carry the exact
+    frequencies from the v5 table (resolving preset tokens, keeping hardcoded
+    literals). When a slot defines a ``modulations`` table, every channel also
+    carries its ``mod`` flag so the AM/FM selection round-trips.
+    """
+    coalition = entry.coalition
+    cap = coalition.capitalize()
+    slug = _aircraft_slug(entry.aircraft)
+    preset_name = f"{coalition}_{slug}"
+    radios_key = f"{coalition}_radios"
+    presets_key = f"{coalition}_presets"
+
+    coalition_radios = radios_collection.setdefault(radios_key, {})
+    preset_radios: dict[str, str] = {}
+
+    for slot_idx in sorted(entry.radio_slots.keys()):
+        slot = entry.radio_slots[slot_idx]
+        has_mods = bool(slot.modulations)
+        radio_name = f"radio_{coalition}_{slug}_{slot_idx}"
+        rtype = _DEDICATED_TYPE_BY_SOURCE[_detect_radio_block_source(slot.block_text)]
+
+        v6_channels: dict[int, Any] = {}
+        for ch_idx, value in slot.channels:
+            freq = _resolve_channel_value(value, resolver)
+            if freq is None:
+                warnings.append(
+                    t(
+                        "convert_v5.warn.radio_hardcoded_skip",
+                        aircraft=entry.aircraft,
+                        coalition=coalition,
+                    )
+                )
+                continue
+            if has_mods:
+                v6_channels[ch_idx] = {"freq": freq, "mod": int(slot.modulations.get(ch_idx, 0))}
+            else:
+                v6_channels[ch_idx] = freq
+
+        coalition_radios[radio_name] = {
+            "title": f"{entry.aircraft} radio {slot_idx}",
+            "type": rtype,
+            "channels": v6_channels,
+        }
+        preset_radios[f"radio_{slot_idx}"] = radio_name
+
+    presets_collection.setdefault(presets_key, {})[preset_name] = {
+        "title": f"{cap} coalition - {entry.aircraft} (iso-functional)",
+        "radios": preset_radios,
+    }
+
+    for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):
+        presets_assignments[coalition].setdefault(cat, {})[entry.aircraft] = preset_name
+
+
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """Convert v5 ``radioSettings.lua`` → v6 ``presets.yaml``.
 
@@ -674,9 +921,14 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
 
     - Exact ``type`` entries and ``typePattern`` regex entries are both written
       as keys in ``presets_assignments`` (the v6 injector supports regex keys).
-    - Warbird aircraft are assigned ``{coalition}_warbird``.
-    - VHF-primary aircraft get a new ``{coalition}_vhf_primary`` preset.
-    - Fully hardcoded entries (no preset table references) emit a warning.
+    - **Standard** layouts (every radio slot is a plain 1:1 image of a standard
+      preset table) keep the lightweight shared assignment: UHF-primary via the
+      ``all`` fallback, VHF/FM-primary via ``{coalition}_vhf_primary`` /
+      ``{coalition}_fm_primary``, warbird via ``{coalition}_warbird``.
+    - **Bespoke** layouts (channel rotations, offsets, hardcoded specials,
+      active modulations, or extra radios) get a dedicated per-aircraft preset
+      that reproduces the exact channel→frequency map plus modulations, making
+      the conversion iso-functional with the v5 mission (see ADR 0003).
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
@@ -756,8 +1008,24 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         return warnings
 
     # Per-aircraft assignments extracted from radioSettings
+    token_resolver = _build_token_resolver(content)
     for entry in _parse_radio_settings_entries(content):
         if not entry.radio_sources or entry.coalition not in presets_assignments:
+            continue
+
+        # Bespoke radio layouts (rotations, offsets, hardcoded specials, active
+        # modulations, extra radios) cannot be expressed by a shared preset —
+        # emit a dedicated per-aircraft preset that reproduces the exact map.
+        if not _entry_is_standard(entry):
+            _emit_dedicated_preset(
+                entry,
+                token_resolver,
+                radios_collection,
+                presets_collection,
+                presets_assignments,
+                helicopter_types,
+                warnings,
+            )
             continue
 
         radio1_source = entry.radio_sources.get(1)
@@ -790,16 +1058,6 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
                     "title": f"{entry.coalition.capitalize()} coalition - FM primary",
                     "radios": {"radio_1": fm_radio_name},
                 }
-        elif radio1_source is None:
-            # Fully hardcoded frequencies — no preset mapping possible
-            warnings.append(
-                t(
-                    "convert_v5.warn.radio_hardcoded_skip",
-                    aircraft=entry.aircraft,
-                    coalition=entry.coalition,
-                )
-            )
-            continue
         else:
             continue
 

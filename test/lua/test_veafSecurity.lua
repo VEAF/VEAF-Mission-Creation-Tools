@@ -184,5 +184,13 @@ function TestVeafSecurity:test_isAuthenticated_falsy_after_flag_cleared()
   luaunit.assertTrue(not veafSecurity.isAuthenticated())
 end
 
+-- SECREV-009: isAuthenticated must fall back to veaf.SecurityDisabled (the real
+-- flag), not the never-assigned veafSecurity.SecurityDisabled.
+function TestVeafSecurity:test_isAuthenticated_true_when_security_disabled()
+  veafSecurity.authenticated = false
+  veaf.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isAuthenticated())
+end
+
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

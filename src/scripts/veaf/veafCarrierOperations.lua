@@ -659,6 +659,10 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
   veaf.loggers.get(veafCarrierOperations.Id):debug("getAtcForCarrierOperations(" .. groupName .. ")")
 
   local carrier = veafCarrierOperations.carriers[groupName]
+  if not carrier then
+    veaf.loggers.get(veafCarrierOperations.Id):error("Cannot find the carrier group " .. tostring(groupName))
+    return nil
+  end
   local carrierUnit = Unit.getByName(carrier.carrierUnitName)
   local currentHeading = -1
   local currentSpeed = -1
@@ -785,9 +789,6 @@ function veafCarrierOperations.stopCarrierOperations(parameters)
     trigger.action.outText(text, 5)
     return
   end
-
-  local carrierUnit = Unit.getByName(carrier.carrierUnitName)
-  local carrierPosition = carrierUnit:getPosition().p
 
   local text = "The carrier group " .. groupName .. " has stopped air operations ; it's moving back to its initial position"
   veaf.loggers.get(veafCarrierOperations.Id):info(text)

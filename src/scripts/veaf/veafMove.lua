@@ -236,8 +236,8 @@ function veafMove.markTextAnalysis(text)
     end
   end
 
-  -- check mandatory parameter "group"
-  if not switch.groupName then
+  -- check mandatory parameter "group" (defaults to "", which is truthy in Lua)
+  if not switch.groupName or switch.groupName == "" then
     return nil
   end
   return switch

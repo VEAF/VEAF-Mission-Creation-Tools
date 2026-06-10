@@ -564,6 +564,14 @@ function TestAirWaveZoneAddWave:test_addWave_table_with_groups_array()
   luaunit.assertEquals(z.waves[1].delay, 10)
 end
 
+-- SECREV-008: a plain array of strings (no `groups` key) must insert each
+-- element, not the whole parameter table.
+function TestAirWaveZoneAddWave:test_addWave_plain_array_of_strings()
+  local z = AirWaveZone:new()
+  z:addWave({ "g1", "g2" })
+  luaunit.assertEquals(z.waves[1].groups, { "g1", "g2" })
+end
+
 function TestAirWaveZoneAddWave:test_addWave_no_args_does_nothing()
   local z = AirWaveZone:new()
   z:addWave()

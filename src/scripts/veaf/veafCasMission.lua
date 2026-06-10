@@ -765,11 +765,11 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     veaf.loggers
       .get(veafCasMission.Id)
       :error(string.format("veafCasMission.generateAirDefenseGroup cannot find group [%s]", _groupDefinition or ""))
+    return nil
   end
   group.description = groupName
   group.groupName = groupName
 
-  ---@diagnostic disable-next-line: need-check-nil
   veaf.loggers.get(veafCasMission.Id):trace("#group.units = " .. #group.units)
   return group
 end

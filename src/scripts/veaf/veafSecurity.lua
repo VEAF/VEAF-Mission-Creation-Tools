@@ -549,7 +549,7 @@ function veafSecurity._checkPassword(password, level)
   if password == nil then
     return false
   end
-  veaf.loggers.get(veafSecurity.Id):debug(string.format("checkPassword(password = %s)", password))
+  veaf.loggers.get(veafSecurity.Id):debug("checkPassword(password = <redacted>)")
   local hash = sha1.hex(password)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("hash = [%s]", hash))
   if level[hash] ~= nil then
@@ -653,7 +653,7 @@ function veafSecurity.checkSecurity_MM(password)
 end
 
 function veafSecurity.isAuthenticated()
-  return veafSecurity.authenticated or veafSecurity.SecurityDisabled
+  return veafSecurity.authenticated or veaf.SecurityDisabled
 end
 
 function veafSecurity.initialize()

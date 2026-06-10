@@ -304,7 +304,7 @@ function AirWaveZone:addWave(...)
           for j = 1, #parameter, 1 do
             local s = parameter[j]
             if type(s) == "string" then
-              table.insert(groups, parameter)
+              table.insert(groups, s)
             end
           end
           break

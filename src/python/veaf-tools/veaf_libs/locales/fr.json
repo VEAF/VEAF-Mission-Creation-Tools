@@ -578,6 +578,7 @@
   "converter.yaml.loglevel.desc2": "# Valeurs : error | warning | info | debug | trace",
   "converter.yaml.loglevel.desc3": "# Retirez ou mettez 'info' avant de déployer pour les joueurs.",
   "converter.yaml.header.identity": "# ── Identité de la mission ────────────────────────────────────────────────────",
+  "converter.yaml.header.commented_elements": "# ── Éléments v5 commentés (désactivés en v5 — décommentez pour réactiver) ──",
   "converter.yaml.header.security": "# ── Sécurité ──────────────────────────────────────────────────────────────────",
   "converter.yaml.header.modules": "# ── Configuration des modules ────────────────────────────────────────────────",
   "converter.yaml.modules.desc1": "# Activer ou désactiver les modules VEAF et les scripts communautaires.",

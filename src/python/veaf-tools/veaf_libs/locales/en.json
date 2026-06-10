@@ -578,6 +578,7 @@
   "converter.yaml.loglevel.desc2": "# Values: error | warning | info | debug | trace",
   "converter.yaml.loglevel.desc3": "# Remove or set to 'info' before deploying to players.",
   "converter.yaml.header.identity": "# ── Mission identity ──────────────────────────────────────────────────────────",
+  "converter.yaml.header.commented_elements": "# ── Commented-out v5 elements (disabled in v5 — uncomment to re-enable) ──",
   "converter.yaml.header.security": "# ── Security ──────────────────────────────────────────────────────────────────",
   "converter.yaml.header.modules": "# ── Module configuration ─────────────────────────────────────────────────────",
   "converter.yaml.modules.desc1": "# Enable or disable VEAF modules and community scripts.",

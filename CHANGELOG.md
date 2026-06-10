@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- CI: migrated GitHub Actions off the deprecated Node.js 20 runtime ahead of the forced 2026-06-16 migration. Bumped `actions/checkout@v4`→`@v5`, `actions/setup-python@v5`→`@v6`, `actions/upload-artifact@v4`→`@v6` (first major running on `node24`), and the third-party actions `JohnnyMorganz/stylua-action@v4`→`@v5`, `softprops/action-gh-release@v2`→`@v3`, `gitleaks/gitleaks-action@v2`→`@v3`. `snok/install-poetry@v1` is a composite action with no Node runtime and was left unchanged
+
+---
+
 ## [6.4.0] — 2026-06-09
 
 ### Fixed

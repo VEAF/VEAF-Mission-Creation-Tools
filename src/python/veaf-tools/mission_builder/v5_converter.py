@@ -1031,11 +1031,16 @@ class V5Converter:
         report.auto_resolved_deps = saved_deps
 
         # Lines present only in the de-commented YAML are the recovered elements.
-        matcher = difflib.SequenceMatcher(a=active_yaml.splitlines(), b=decommented_yaml.splitlines())
+        # Only ``insert`` opcodes are taken: a ``replace`` could carry lines that
+        # are modifications of *active* config rather than purely recovered
+        # elements, which we must not mislabel as "commented-out".
+        active_lines = active_yaml.splitlines()
+        decommented_lines = decommented_yaml.splitlines()
+        matcher = difflib.SequenceMatcher(a=active_lines, b=decommented_lines)
         recovered: list[str] = []
         for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
-            if tag in ("insert", "replace"):
-                recovered.extend(line for line in decommented_yaml.splitlines()[j1:j2] if line.strip())
+            if tag == "insert":
+                recovered.extend(line for line in decommented_lines[j1:j2] if line.strip())
         if not recovered:
             return active_yaml
 

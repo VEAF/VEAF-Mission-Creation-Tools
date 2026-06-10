@@ -252,6 +252,9 @@ class ConfigMigrator:
 
         lines = content.splitlines()
 
+        # CONVERT-FIDELITY-002: fully comment out pure init blocks.
+        pure_block_indices, pure_block_starts = self._find_pure_init_blocks(lines)
+
         output: list[str] = []
         enabled_modules: list[str] = []
         removed_dofiles: list[str] = []
@@ -280,6 +283,19 @@ class ConfigMigrator:
                 # Line that opens and immediately closes (or is entirely in one
                 # line) falls through to normal processing below.
                 output.append(raw_line)
+                continue
+
+            # ── Pure init block → comment the whole block (CONVERT-FIDELITY-002) ──
+            idx0 = lineno - 1
+            if idx0 in pure_block_indices:
+                if idx0 in pure_block_starts:
+                    mod_id = pure_block_starts[idx0]
+                    if mod_id not in enabled_modules:
+                        enabled_modules.append(mod_id)
+                if stripped.startswith("--"):
+                    output.append(raw_line)
+                else:
+                    output.append(f"-- [v6 migration] {raw_line.rstrip()}")
                 continue
 
             # ── Single-line comment → pass through ─────────────────────────
@@ -468,6 +484,63 @@ class ConfigMigrator:
     _SECURITY_RE = re.compile(r"(?:veaf|veafSecurity)\.SecurityDisabled\s*=\s*(true|false)")
     _FORCED_LOG_RE = re.compile(r'veaf\.ForcedLogLevel\s*=\s*"([^"]+)"')
     _SILENCE_ATC_RE = re.compile(r"^[ \t]*veaf\.silenceAtcOnAllAirbases\s*\(\s*\)", re.MULTILINE)
+
+    _INIT_CALL_RE = re.compile(r"^(veaf\w+)\.initialize\s*\(")
+
+    def _find_pure_init_blocks(self, lines: list[str]) -> tuple[set[int], dict[int, str]]:
+        """Locate top-level ``if veafXxx then … end`` blocks that are pure init.
+
+        A block is *pure* when its body contains nothing but blank lines,
+        comments (including already-extracted ``-- [v6 …]`` lines) and the
+        module's own ``initialize()`` call(s). Such a block is fully migrated to
+        ``mission.yaml`` and can be commented out in its entirety, so that any
+        non-migrated custom code left in ``missionConfig.lua`` stands out
+        (CONVERT-FIDELITY-002).
+
+        Args:
+            lines: The (pre-extracted) missionConfig.lua lines.
+
+        Returns:
+            A ``(indices, starts)`` tuple — ``indices`` is the set of line
+            indices to comment out, ``starts`` maps each block's first-line index
+            to the module id it enables.
+        """
+        indices: set[int] = set()
+        starts: dict[int, str] = {}
+        i = 0
+        n = len(lines)
+        while i < n:
+            match = self._IF_VEAF_RE.match(lines[i])
+            # Top-level guards only (unindented).
+            if not match or (lines[i][:1].isspace()):
+                i += 1
+                continue
+            depth = self._net_depth(lines[i])
+            if depth <= 0:
+                i += 1
+                continue
+            mod_var = match.group(1)
+            j = i + 1
+            body: list[int] = []
+            while j < n and depth > 0:
+                depth += self._net_depth(lines[j])
+                if depth > 0:
+                    body.append(j)
+                j += 1
+            end_idx = j - 1
+            pure = all(
+                (not lines[b].strip())
+                or lines[b].strip().startswith("--")
+                or (self._INIT_CALL_RE.match(lines[b].strip()) is not None and lines[b].strip().startswith(mod_var))
+                for b in body
+            )
+            if pure and end_idx > i:
+                starts[i] = self._var_to_id.get(mod_var, mod_var)
+                indices.update(range(i, end_idx + 1))
+                i = end_idx + 1
+            else:
+                i += 1
+        return indices, starts
 
     def _extract_identity_and_security(self, content: str, result: MigrationResult) -> str:
         content, result.mission_name = self._extract_inline_value(self._MISSION_NAME_RE, content)

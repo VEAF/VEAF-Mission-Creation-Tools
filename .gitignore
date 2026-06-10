@@ -180,3 +180,4 @@ site_test/search/search_index.json
 .coverage
 coverage.xml
 temp/
+.claude/scheduled_tasks.lock

@@ -1,0 +1,13 @@
+externaliser la définition des groupes pour les spawn
+eclaircir le dynamicconfig et dynamicloader à la conversion
+voir avec Flogas pour les triggers
+convertir les éléments (ex: combat zone) qui sont commented-out (ex: combatZone_Abu_al_Duhur dans la mission de Tripack) et le générer en commented-out (pour le moment c'est pas généré).
+qra est à part dans yaml c'est pas bon
+la config ctld + csar n'est pas repris 
+vérifier si la detection ww2 est automatique
+les scripts commu sont à part (et en double - ex skynet) alors qu'ils devraient être dans modules
+y'a des éléments de missionConfig qui ne sont pas mis en commentaire v6 dans le rapport alors qu'ils ont été migrés (ex: weather)
+gérer veaf.silenceAtcOnAllAirbases() en yaml
+"? Dossier de mission ." (TUI) : c'est pas clair que c'est le dossier courant
+vérifier les defaults au premier build, j'ai l'impression qu'il y a des fichiers qui servent pas
+conversion des presets radio de Tripack n'est pas complète il manque les spécificités du AJS entre autres

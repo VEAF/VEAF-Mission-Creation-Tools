@@ -10,6 +10,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import luadata  # type: ignore[import-untyped]
 import yaml
 from mission_tools import (
     DEFAULT_SCRIPTS_LOCATION,
@@ -32,6 +33,8 @@ from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
+
+from mission_builder.era_detector import detect_era
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -1170,6 +1173,29 @@ class MissionBuilderWorker(BaseWorker):
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
+    def _detect_era_from_base(self) -> str | None:
+        """Auto-detect the mission era from the base mission's units and date.
+
+        Reads the unpacked DCS ``mission`` table from ``src/mission/`` (available
+        before the output ``.miz`` is built) and runs the era heuristic. Used only
+        when ``mission.yaml`` does not set ``mission.era`` — a manual value always
+        wins (ERA-AUTODETECT-002).
+
+        Returns:
+            The detected era, or ``None`` when the base mission cannot be read.
+        """
+        mission_file = self.mission_folder / "src" / "mission" / "mission"
+        if not mission_file.exists():
+            return None
+        try:
+            content = luadata.unserialize(mission_file.read_text(encoding="utf-8"), keep_as_dict=["trig", "trigrules"])
+        except Exception as exc:  # noqa: BLE001 - era detection must never break the build
+            logger.debug(f"era auto-detect: could not parse base mission {mission_file}: {exc}")
+            return None
+        if not isinstance(content, dict):
+            return None
+        return detect_era(content)
+
     def write_config_lua(self) -> None:
         """Write veaf-config.lua from mission_yaml (or legacy lua_modules / global_log_level)."""
         # Build a YAML dict to pass to the generator
@@ -1186,6 +1212,15 @@ class MissionBuilderWorker(BaseWorker):
                 yaml_dict["global_log_level"] = self.global_log_level
             if self.lua_modules:
                 yaml_dict["lua_modules"] = self.lua_modules
+
+        # ERA-AUTODETECT-002: fill in the era only when the user did not set it.
+        mission_cfg = dict(yaml_dict.get("mission") or {})
+        if not mission_cfg.get("era"):
+            detected_era = self._detect_era_from_base()
+            if detected_era:
+                mission_cfg["era"] = detected_era
+                yaml_dict["mission"] = mission_cfg
+                logger.info(t("builder.era_detected", era=detected_era))
 
         if not yaml_dict:
             return

@@ -503,6 +503,7 @@
   "builder.copied_from_defaults": "Copied required file '{file}' from default folder '{folder}'",
   "builder.mission_read_error": "An error occurred while reading the {path} file; is this a valid DCS mission?",
   "builder.veaf_config_generated": "Generated '{file}' from mission.yaml",
+  "builder.era_detected": "Auto-detected mission era: {era} (set mission.era in mission.yaml to override)",
   "aircraft_injector.validating_yaml": "Validating YAML file {path}",
   "aircraft_injector.yaml_valid": "YAML validation successful",
   "aircraft_injector.yaml_invalid": "YAML validation failed",

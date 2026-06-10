@@ -25,6 +25,15 @@
 - **Static Typing**: Type annotations are mandatory for all functions with explicit return syntax `-> ReturnType`. Use modern unions like `Type | None`.
 - **Docstrings**: Write comprehensive docstrings strictly following the Google format (with `Args:`, `Returns:`, `Raises:` sections).
 
+### Quality Ratchet Policy (mypy exclusions + coverage gate)
+
+The mypy `ignore_errors` overrides in `pyproject.toml` (the excluded workers list) and the `--cov-fail-under` coverage gate are **technical debt to erode, never to grow**. They are eroded lot-by-lot, not in a single big-bang:
+
+- **mypy exclusions**: any lot that *substantially* edits a worker still listed under `ignore_errors` MUST drop that worker's entry as part of its Definition of Done, and fix the surfaced type errors. Never add a new entry to the excluded list.
+- **Coverage gate**: any lot that adds tests MUST bump `--cov-fail-under` so the gate never sits more than **~2 points below** actual measured coverage. The number only ever goes up.
+
+These are enforcement obligations on **every** lot, not a separate clean-up task — the dedicated `QUALITY-GATE` lot only mops up whatever workers no other lot has reopened.
+
 ---
 
 ## 4. TDD and Behavioral Coverage Rule

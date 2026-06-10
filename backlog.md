@@ -33,7 +33,7 @@
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ⬜ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
-| Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ⬜ |
+| Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | 🔄 |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
 
 ---
@@ -363,7 +363,7 @@ was constrained to a working branch.
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | QUALITY-001 | Remove `ignore_errors` for the simplest still-excluded workers (start with `presets_injector_worker`, `waypoints_injector_worker`), fix the surfaced type errors, leave the rest. | `pyproject.toml`, touched workers, `test/python/` | chore | ⬜ |
-| QUALITY-002 | Document the ratchet policy in `CLAUDE.md` §3: every lot that substantially touches an excluded worker drops its `ignore_errors` entry as part of its Definition of Done; every lot that adds tests bumps `--cov-fail-under` so the gate never sits more than ~2 pts below actual coverage. | `CLAUDE.md`, `pyproject.toml` | chore | ⬜ |
+| QUALITY-002 | Document the ratchet policy in `CLAUDE.md` §3: every lot that substantially touches an excluded worker drops its `ignore_errors` entry as part of its Definition of Done; every lot that adds tests bumps `--cov-fail-under` so the gate never sits more than ~2 pts below actual coverage. | `CLAUDE.md`, `pyproject.toml` | chore | ✅ |
 
 > Cross-cutting reminder: the worker-reopening lots (MODULES-UNIFY, AIRCRAFT-INJECT, CONVERT-FIDELITY, SECREV) should each drop the touched worker's mypy exclusion as part of their own work, so this lot only mops up the remainder.
 

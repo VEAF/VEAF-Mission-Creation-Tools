@@ -418,29 +418,34 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
 
     params: dict[str, Any] = {}
 
-    # Temperature
+    # Temperature — use `is not None` so legitimate 0 values are not dropped.
     season = wd.get("season") or {}
-    if temp := season.get("temperature"):
+    temp = season.get("temperature")
+    if temp is not None:
         params["temperature"] = round(float(temp), 1)
 
-    # Wind at ground level
+    # Wind at ground level (0 speed = calm, 0 dir = due North are valid)
     wind = wd.get("wind") or {}
     at_ground = wind.get("atGround") or {}
-    if speed := at_ground.get("speed"):
+    speed = at_ground.get("speed")
+    if speed is not None:
         params["wind_speed"] = round(float(speed), 1)
-    if direction := at_ground.get("dir"):
+    direction = at_ground.get("dir")
+    if direction is not None:
         params["wind_direction"] = round(float(direction), 1)
 
     # Visibility
     vis = wd.get("visibility") or {}
-    if dist := vis.get("distance"):
+    dist = vis.get("distance")
+    if dist is not None:
         params["visibility"] = int(dist)
 
     # Clouds
     clouds = wd.get("clouds") or {}
     if preset := clouds.get("preset"):
         params["cloud_type"] = _CLOUD_PRESET_MAP.get(str(preset), "scattered")
-    if base := clouds.get("base"):
+    base = clouds.get("base")
+    if base is not None:
         params["cloud_height"] = int(base)
 
     return params, warnings

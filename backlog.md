@@ -23,7 +23,7 @@
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
-| Lot TODO0609-CONVERT-FIDELITY — convert-v5 report fidelity: comment full migrated blocks, emit commented-out v5 elements, silenceAtc key | ⬜ |
+| Lot TODO0609-CONVERT-FIDELITY — convert-v5 report fidelity: comment full migrated blocks, emit commented-out v5 elements, silenceAtc key | 🔄 |
 | Lot TODO0609-ERA-AUTODETECT — auto-detect mission era (incl. WW2) from `.miz` content, manual override wins | ⬜ |
 | Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits / dcsUnits definitions from Lua to YAML (spike + impl) | ⬜ |
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ⬜ |
@@ -222,11 +222,11 @@ was constrained to a working branch.
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | CONVERT-FIDELITY-001 | Re-parse commented-out v5 elements (any extractable module, e.g. a commented `combatZone_Abu_al_Duhur`) and re-emit them as **commented** YAML in `mission.yaml`, instead of silently dropping them. (todo item 4) | `mission_builder/config_migrator.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
-| CONVERT-FIDELITY-002 | In the annotated `missionConfig`, comment out the **entire** `if veafXxx then … end` init block of a migrated module (not only the `initialize()` line), so non-migrated code visually stands out. (todo item 9) | `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
-| CONVERT-FIDELITY-003 | Add `mission.silence_atc_on_all_airbases` to the default `mission.yaml` (value `true`) and emit the corresponding Lua. At conversion, scan `missionConfig.lua` for an active `veaf.silenceAtcOnAllAirbases()` call → `true`, else `false`. (todo item 10) | `src/defaults/mission-folder/mission.yaml`, `veaf_libs/lua_config_generator.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
-| CONVERT-FIDELITY-004 | Prepend a numeric summary header to `convert-v5-report.md` (e.g. "N modules migrated · M need manual action (lines …)") so the mission-maker sees at a glance whether work remains, without reading the full annotated config. Drives off the same data the annotation pass already computes. | `mission_builder/v5_converter.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ⬜ |
+| CONVERT-FIDELITY-002 | In the annotated `missionConfig`, comment out the **entire** `if veafXxx then … end` init block of a migrated module (not only the `initialize()` line), so non-migrated code visually stands out. (todo item 9) | `mission_builder/config_migrator.py`, `test/python/` | feat | ✅ |
+| CONVERT-FIDELITY-003 | Add `mission.silence_atc_on_all_airbases` to the default `mission.yaml` (value `true`) and emit the corresponding Lua. At conversion, scan `missionConfig.lua` for an active `veaf.silenceAtcOnAllAirbases()` call → `true`, else `false`. (todo item 10) | `src/defaults/mission-folder/mission.yaml`, `veaf_libs/lua_config_generator.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ✅ |
+| CONVERT-FIDELITY-004 | Prepend a numeric summary header to `convert-v5-report.md` (e.g. "N modules migrated · M need manual action (lines …)") so the mission-maker sees at a glance whether work remains, without reading the full annotated config. Drives off the same data the annotation pass already computes. | `mission_builder/v5_converter.py`, `mission_builder/config_migrator.py`, `test/python/` | feat | ✅ |
 
----
+> **001 deferred to a follow-up PR**: 002/003/004 shipped together; 001 (re-parse *any* commented-out extractable element → commented YAML) is larger and under-specified ("which extractors?" + a reusable per-element commented-YAML emitter entangled with the section-by-section builder). Needs a tighter spec before implementation.
 
 ## Lot TODO0609-ERA-AUTODETECT — Automatic mission era detection
 

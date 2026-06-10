@@ -54,6 +54,9 @@ class MigrationResult:
     global_log_level_extracted: str | None = None
     skynet_config: dict | None = None
 
+    # ── CONVERT-FIDELITY-003: silence ATC on all airbases ─────────────────────
+    silence_atc: bool = False
+
     # ── MODULES-UNIFY-004: CTLD / CSAR settings (ctld.xxx / csar.xxx) ──────────
     ctld_config: dict = field(default_factory=dict)
     csar_config: dict = field(default_factory=dict)
@@ -249,6 +252,9 @@ class ConfigMigrator:
 
         lines = content.splitlines()
 
+        # CONVERT-FIDELITY-002: fully comment out pure init blocks.
+        pure_block_indices, pure_block_starts = self._find_pure_init_blocks(lines)
+
         output: list[str] = []
         enabled_modules: list[str] = []
         removed_dofiles: list[str] = []
@@ -277,6 +283,19 @@ class ConfigMigrator:
                 # Line that opens and immediately closes (or is entirely in one
                 # line) falls through to normal processing below.
                 output.append(raw_line)
+                continue
+
+            # ── Pure init block → comment the whole block (CONVERT-FIDELITY-002) ──
+            idx0 = lineno - 1
+            if idx0 in pure_block_indices:
+                if idx0 in pure_block_starts:
+                    mod_id = pure_block_starts[idx0]
+                    if mod_id not in enabled_modules:
+                        enabled_modules.append(mod_id)
+                if stripped.startswith("--"):
+                    output.append(raw_line)
+                else:
+                    output.append(f"-- [v6 migration] {raw_line.rstrip()}")
                 continue
 
             # ── Single-line comment → pass through ─────────────────────────
@@ -362,6 +381,7 @@ class ConfigMigrator:
             security_disabled=partial.security_disabled,
             global_log_level_extracted=partial.global_log_level_extracted,
             skynet_config=partial.skynet_config,
+            silence_atc=partial.silence_atc,
             ctld_config=partial.ctld_config,
             csar_config=partial.csar_config,
             assets_extracted=partial.assets_extracted,
@@ -463,6 +483,78 @@ class ConfigMigrator:
     _EXPORT_PATH_RE = re.compile(r'veaf\.config\.MISSION_EXPORT_PATH\s*=\s*(?:"([^"]*)"|(nil))')
     _SECURITY_RE = re.compile(r"(?:veaf|veafSecurity)\.SecurityDisabled\s*=\s*(true|false)")
     _FORCED_LOG_RE = re.compile(r'veaf\.ForcedLogLevel\s*=\s*"([^"]+)"')
+    # The ``^`` + ``MULTILINE`` anchor is load-bearing: it matches only a call at
+    # the start of a line (after indentation), so a commented ``-- veaf.silence…``
+    # is NOT matched — that is exactly the "active call only" guarantee.
+    _SILENCE_ATC_RE = re.compile(r"^[ \t]*veaf\.silenceAtcOnAllAirbases\s*\(\s*\)", re.MULTILINE)
+
+    @staticmethod
+    def _is_pure_init_body_line(stripped: str, mod_var: str) -> bool:
+        """Whether a guard-body line keeps the block "pure init".
+
+        Pure-init body lines are blanks, comments (including already-extracted
+        ``-- [v6 …]`` lines), or this module's own ``initialize()`` call.
+
+        Args:
+            stripped: The already-stripped body line.
+            mod_var: The guard's module variable (e.g. ``veafSpawn``).
+
+        Returns:
+            ``True`` when the line does not disqualify the block from being pure.
+        """
+        if not stripped or stripped.startswith("--"):
+            return True
+        return re.match(rf"{re.escape(mod_var)}\.initialize\s*\(", stripped) is not None
+
+    def _find_pure_init_blocks(self, lines: list[str]) -> tuple[set[int], dict[int, str]]:
+        """Locate top-level ``if veafXxx then … end`` blocks that are pure init.
+
+        A block is *pure* when its body contains nothing but blank lines,
+        comments (including already-extracted ``-- [v6 …]`` lines) and the
+        module's own ``initialize()`` call(s). Such a block is fully migrated to
+        ``mission.yaml`` and can be commented out in its entirety, so that any
+        non-migrated custom code left in ``missionConfig.lua`` stands out
+        (CONVERT-FIDELITY-002).
+
+        Args:
+            lines: The (pre-extracted) missionConfig.lua lines.
+
+        Returns:
+            A ``(indices, starts)`` tuple — ``indices`` is the set of line
+            indices to comment out, ``starts`` maps each block's first-line index
+            to the module id it enables.
+        """
+        stripped = [line.strip() for line in lines]
+        indices: set[int] = set()
+        starts: dict[int, str] = {}
+        i = 0
+        n = len(lines)
+        while i < n:
+            match = self._IF_VEAF_RE.match(lines[i])
+            # Top-level guards only (unindented).
+            if not match or (lines[i][:1].isspace()):
+                i += 1
+                continue
+            depth = self._net_depth(lines[i])
+            if depth <= 0:
+                i += 1
+                continue
+            mod_var = match.group(1)
+            j = i + 1
+            body: list[int] = []
+            while j < n and depth > 0:
+                depth += self._net_depth(lines[j])
+                if depth > 0:
+                    body.append(j)
+                j += 1
+            end_idx = j - 1
+            if end_idx > i and all(self._is_pure_init_body_line(stripped[b], mod_var) for b in body):
+                starts[i] = self._var_to_id.get(mod_var, mod_var)
+                indices.update(range(i, end_idx + 1))
+                i = end_idx + 1
+            else:
+                i += 1
+        return indices, starts
 
     def _extract_identity_and_security(self, content: str, result: MigrationResult) -> str:
         content, result.mission_name = self._extract_inline_value(self._MISSION_NAME_RE, content)
@@ -485,6 +577,17 @@ class ConfigMigrator:
         content, ll = self._extract_inline_value(self._FORCED_LOG_RE, content)
         if ll is not None:
             result.global_log_level_extracted = ll
+
+        # CONVERT-FIDELITY-003: an active (non-commented) silenceAtcOnAllAirbases()
+        # call → mission.silence_atc_on_all_airbases: true.
+        m_atc = self._SILENCE_ATC_RE.search(content)
+        if m_atc:
+            result.silence_atc = True
+            line_start = content.rfind("\n", 0, m_atc.start()) + 1
+            line_end = content.find("\n", m_atc.end())
+            line_end = len(content) if line_end == -1 else line_end
+            commented = f"-- [v6 extracted to mission.yaml] {content[line_start:line_end].strip()}"
+            content = content[:line_start] + commented + content[line_end:]
 
         return content
 

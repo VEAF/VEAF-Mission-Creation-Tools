@@ -527,6 +527,23 @@ class TestV5ConverterIntegration(unittest.TestCase):
             assert normalized["external_modules"]["ctld"]["hoverPickup"] is True
             assert normalized["external_modules"]["ctld"]["maximumDistanceLimit"] == 200
 
+    def test_mission_yaml_silence_atc_emitted_when_v5_active(self) -> None:
+        # CONVERT-FIDELITY-003: an active call → mission.silence_atc_on_all_airbases: true.
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "veaf.silenceAtcOnAllAirbases()\n")
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertIn("silence_atc_on_all_airbases: true", yaml_content)
+
+    def test_mission_yaml_silence_atc_absent_when_v5_inactive(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- nothing\n")
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertNotIn("silence_atc_on_all_airbases", yaml_content)
+
     def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)
@@ -656,3 +673,40 @@ class TestBuildMissionYamlDependencyResolution(unittest.TestCase):
         self.assertIn(note, markdown)
         # The auto-resolved module names appear in the rendered report
         self.assertIn("GROUNDAI", markdown)
+
+
+class TestSummaryHeader(unittest.TestCase):
+    """CONVERT-FIDELITY-004 — at-a-glance numeric summary header."""
+
+    def setUp(self) -> None:
+        self._prev = current_language()
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language(self._prev)
+
+    def _report(self, **kwargs: object) -> ConversionReport:
+        return ConversionReport(mission_folder=Path("/tmp/m"), timestamp="2024-01-01 12:00", version="1.0.0", **kwargs)
+
+    def test_summary_precedes_folder_section(self) -> None:
+        md = self._report().to_markdown()
+        self.assertIn("## Summary", md)
+        self.assertLess(md.index("## Summary"), md.index("## Mission Folder"))
+
+    def test_module_count_reported(self) -> None:
+        mr = MigrationResult(new_content="", enabled_modules=["SPAWN", "RADIO", "MOVE"])
+        md = self._report(migration_result=mr).to_markdown()
+        self.assertIn("3 module(s) migrated", md)
+
+    def test_no_manual_action_when_clean(self) -> None:
+        md = self._report().to_markdown()
+        self.assertIn("Nothing needs manual action", md)
+
+    def test_manual_action_count_and_lines(self) -> None:
+        report = self._report(
+            manual_review=["missionConfig.lua — line 12: review this", "line 30: and that"],
+            warnings=["a generic warning with no line"],
+        )
+        md = report.to_markdown()
+        self.assertIn("3 item(s) need manual action", md)
+        self.assertIn("lines: 12, 30", md)

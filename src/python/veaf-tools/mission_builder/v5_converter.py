@@ -196,6 +196,38 @@ class ConversionReport:
     # Report rendering
     # -----------------------------------------------------------------------
 
+    def _summary_lines(self) -> list[str]:
+        """Build the at-a-glance numeric summary header (CONVERT-FIDELITY-004).
+
+        Reports how many modules were migrated and how many items still need
+        manual action (with the source line numbers mentioned, when present), so
+        the mission-maker sees whether work remains without reading the whole
+        annotated config.
+
+        Returns:
+            Markdown lines for the summary section (ending with a divider).
+        """
+        n_modules = len(self.migration_result.enabled_modules) if self.migration_result else 0
+        manual_items = list(self.manual_review) + list(self.warnings)
+        line_nums = sorted(
+            {int(num) for item in manual_items for num in re.findall(r"(?:line|ligne)\s+(\d+)", item, re.IGNORECASE)}
+        )
+
+        lines = [
+            f"## {t('report.section.summary')}",
+            "",
+            f"- {t('report.summary.modules', n=n_modules)}",
+        ]
+        if manual_items:
+            entry = t("report.summary.manual", m=len(manual_items))
+            if line_nums:
+                entry += t("report.summary.manual_lines", lines=", ".join(str(num) for num in line_nums))
+            lines.append(f"- {entry}")
+        else:
+            lines.append(f"- {t('report.summary.no_manual')}")
+        lines += ["", "---", ""]
+        return lines
+
     def to_markdown(self) -> str:
         """Return the full conversion report as a Markdown string."""
         lines: list[str] = []
@@ -207,6 +239,12 @@ class ConversionReport:
             "",
             "---",
             "",
+        ]
+
+        # ── At-a-glance numeric summary (CONVERT-FIDELITY-004) ────────────────
+        lines += self._summary_lines()
+
+        lines += [
             f"## {t('report.section.folder')}",
             "",
             f"`{self.mission_folder}`",
@@ -963,7 +1001,7 @@ class V5Converter:
         ]
 
         # ── Mission identity ───────────────────────────────────────────────
-        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None):
+        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None or mr.silence_atc):
             lines.append(t("converter.yaml.header.identity"))
             lines.append("mission:")
             if mr.mission_name:
@@ -973,6 +1011,9 @@ class V5Converter:
             if mr.mission_export_path is not None:
                 ep_yaml = _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
+            # CONVERT-FIDELITY-003: only emit when active (absent ≡ not silenced).
+            if mr.silence_atc:
+                lines.append("  silence_atc_on_all_airbases: true")
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────

@@ -482,6 +482,84 @@ def _yaml_dict_block(data: dict, indent: int = 6) -> list[str]:
     return [f"{prefix}{line}" for line in raw.splitlines()]
 
 
+def _yaml_scalar(value: object) -> str:
+    """Render a scalar as a YAML value (bool/str/number)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return _yaml_str(value)
+    return str(value)
+
+
+def _ctld_csar_settings(mr: object, upper: str) -> dict:
+    """Return the extracted CTLD/CSAR ``ctld.xxx`` / ``csar.xxx`` settings dict.
+
+    Args:
+        mr: The mission conversion result.
+        upper: ``"CTLD"`` or ``"CSAR"``.
+
+    Returns:
+        The settings dict (empty when nothing was extracted).
+    """
+    attr = "ctld_config" if upper == "CTLD" else "csar_config"
+    return getattr(mr, attr, None) or {}
+
+
+def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], indent: int) -> list[str]:
+    """Emit the QRA ``silence_all`` + ``definitions`` block at the given indent.
+
+    Used to nest QRA config under ``modules.QRA`` (MODULES-UNIFY); the indent is
+    the column of the ``silence_all:`` / ``definitions:`` keys.
+
+    Args:
+        silence_all: The ``ToggleAllSilence`` value, or ``None`` (defaults False).
+        definitions: The extracted QRA builder-chain definitions.
+        indent: Number of leading spaces for the top-level QRA keys.
+
+    Returns:
+        The YAML comment/value lines.
+    """
+    base = " " * indent
+    item = " " * (indent + 2)
+    field = " " * (indent + 4)
+    sub = " " * (indent + 6)
+    lines = [f"{base}silence_all: {'true' if silence_all else 'false'}", f"{base}definitions:"]
+    for qra in definitions:
+        lines.append(f"{item}- name: {_yaml_str(qra.get('name', 'QRA'))}")
+        if coalition := qra.get("coalition"):
+            lines.append(f"{field}coalition: {coalition}")
+        if enemies := qra.get("enemy_coalitions"):
+            lines.append(f"{field}enemy_coalitions:")
+            lines.extend(f"{sub}- {e}" for e in enemies)
+        if tz := qra.get("trigger_zone"):
+            lines.append(f"{field}trigger_zone: {tz}")
+        if zr := qra.get("zone_radius"):
+            lines.append(f"{field}zone_radius: {zr}")
+        if sg := qra.get("simple_groups"):
+            lines.append(f"{field}simple_groups:")
+            lines.extend(f"{sub}- {g}" for g in sg)
+        if gbc := qra.get("groups_by_enemy_count"):
+            lines.append(f"{field}groups_by_enemy_count:")
+            for entry in gbc:
+                lines.append(f"{sub}- enemy_count: {entry['enemy_count']}")
+                groups = entry.get("groups", [])
+                if groups:
+                    lines.append(f"{sub}  groups:")
+                    lines.extend(f"{sub}    - {g}" for g in groups)
+                lines.append(f"{sub}  random_pick: {entry.get('random_pick', 1)}")
+        if dbr := qra.get("delay_before_rearming"):
+            lines.append(f"{field}delay_before_rearming: {dbr}")
+        if dba := qra.get("delay_before_activating"):
+            lines.append(f"{field}delay_before_activating: {dba}")
+        if qra.get("react_on_helicopters"):
+            lines.append(f"{field}react_on_helicopters: true")
+        if al := qra.get("airport_link"):
+            lines.append(f"{field}airport_link: {_yaml_str(al)}")
+        if not qra.get("start", True):
+            lines.append(t("converter.yaml.qra.start_comment"))
+    return lines
+
+
 def _is_v6_migration_comment(line: str) -> bool:
     """Return True for lines that are pure v6 migration annotations (not code)."""
     stripped = line.lstrip()
@@ -929,6 +1007,10 @@ class V5Converter:
 
         enabled_modules = mr.enabled_modules if mr else []
         enabled_set = set(enabled_modules) | _BASE_ALWAYS_ON
+        # QRA config now lives under modules.QRA, so the module must be enabled
+        # whenever QRA definitions were extracted (MODULES-UNIFY).
+        if mr and mr.qra_definitions:
+            enabled_set.add("QRA")
         # Pre-resolve module dependencies (e.g. CASMISSION → GROUNDAI, SPAWN) so
         # the generated mission.yaml is self-consistent and the build no longer
         # needs to auto-enable them at config-generation time with a warning.
@@ -958,6 +1040,7 @@ class V5Converter:
                     or (mid == "SANCTUARY" and mr and mr.sanctuary_zones_extracted)
                     or (mid == "COMBATZONE" and mr and (mr.combat_zone_settings_extracted or mr.combat_zones_extracted))
                     or (mid == "AIRWAVES" and mr and mr.airwave_zones_extracted)
+                    or (mid == "QRA" and mr and mr.qra_definitions)
                 )
                 lines.extend(yaml_module_entry(yaml_key, mid, has_config=has_config))
                 # Inject extracted config under the module entry
@@ -995,6 +1078,9 @@ class V5Converter:
                     lines.append("    airwave_zones:")
                     lines.extend(_yaml_list_block(mr.airwave_zones_extracted, indent=4))
 
+                elif mid == "QRA" and mr and mr.qra_definitions:
+                    lines.extend(_emit_qra_definitions(mr.qra_silence_all, mr.qra_definitions, indent=4))
+
         # Emit any enabled module not in any known category (safety net)
         categorized = {mid for mods in MODULE_CATEGORIES.values() for mid in mods}
         uncategorized = [mid for mid in enabled_by_id if mid not in categorized]
@@ -1009,75 +1095,28 @@ class V5Converter:
         if all_community:
             lines.append(t("converter.yaml.community.header"))
             lines.append(t("converter.yaml.community.desc"))
+            lines.append(f"# Doc: {_DOC_BASE}#ctld-and-csar-integration")
             for script in all_community:
                 sid = script["id"]
-                val = "true" if sid in detected_comm else "false"
-                lines.append(f"  {sid.upper()}: {val}")
+                upper = sid.upper()
+                detected = sid in detected_comm
+                if upper == "SKYNET" and mr and mr.skynet_config:
+                    sc = mr.skynet_config
+                    lines.append("  SKYNET:")
+                    lines.append("    enabled: true")
+                    lines.append(f"    include_red_in_radio: {'true' if sc.get('include_red_in_radio') else 'false'}")
+                    lines.append(f"    debug_red: {'true' if sc.get('debug_red') else 'false'}")
+                    lines.append(f"    include_blue_in_radio: {'true' if sc.get('include_blue_in_radio') else 'false'}")
+                    lines.append(f"    debug_blue: {'true' if sc.get('debug_blue') else 'false'}")
+                elif upper in ("CTLD", "CSAR") and detected and mr and _ctld_csar_settings(mr, upper):
+                    lines.append(f"  {upper}:")
+                    lines.append("    enabled: true")
+                    lines.append("    settings:")
+                    for key, value in _ctld_csar_settings(mr, upper).items():
+                        lines.append(f"      {key}: {_yaml_scalar(value)}")
+                else:
+                    lines.append(f"  {upper}: {'true' if detected else 'false'}")
         lines.append("")
-
-        # ── External modules (Skynet) ──────────────────────────────────────
-        if mr and mr.skynet_config:
-            sc = mr.skynet_config
-            lines.append(t("converter.yaml.header.external"))
-            lines.append(t("converter.yaml.external.desc"))
-            lines.append(f"# Doc: {_DOC_BASE}#ctld-and-csar-integration")
-            lines.append("external_modules:")
-            lines.append("  skynet:")
-            lines.append("    enabled: true")
-            lines.append(f"    include_red_in_radio: {'true' if sc.get('include_red_in_radio') else 'false'}")
-            lines.append(f"    debug_red: {'true' if sc.get('debug_red') else 'false'}")
-            lines.append(f"    include_blue_in_radio: {'true' if sc.get('include_blue_in_radio') else 'false'}")
-            lines.append(f"    debug_blue: {'true' if sc.get('debug_blue') else 'false'}")
-            lines.append("")
-
-        # ── QRA ───────────────────────────────────────────────────────────
-        if mr and mr.qra_definitions:
-            lines.append(t("converter.yaml.header.qra"))
-            lines.append(f"# Doc: {_DOC_BASE}#configuration-examples")
-            lines.append("qra:")
-            if mr.qra_silence_all is not None:
-                lines.append(f"  silence_all: {'true' if mr.qra_silence_all else 'false'}")
-            else:
-                lines.append("  silence_all: false")
-            lines.append("  definitions:")
-            for qra in mr.qra_definitions:
-                name = qra.get("name", "QRA")
-                lines.append(f"    - name: {_yaml_str(name)}")
-                if coalition := qra.get("coalition"):
-                    lines.append(f"      coalition: {coalition}")
-                if enemies := qra.get("enemy_coalitions"):
-                    lines.append("      enemy_coalitions:")
-                    for e in enemies:
-                        lines.append(f"        - {e}")
-                if tz := qra.get("trigger_zone"):
-                    lines.append(f"      trigger_zone: {tz}")
-                if zr := qra.get("zone_radius"):
-                    lines.append(f"      zone_radius: {zr}")
-                if sg := qra.get("simple_groups"):
-                    lines.append("      simple_groups:")
-                    for g in sg:
-                        lines.append(f"        - {g}")
-                if gbc := qra.get("groups_by_enemy_count"):
-                    lines.append("      groups_by_enemy_count:")
-                    for entry in gbc:
-                        lines.append(f"        - enemy_count: {entry['enemy_count']}")
-                        groups = entry.get("groups", [])
-                        if groups:
-                            lines.append("          groups:")
-                            for g in groups:
-                                lines.append(f"            - {g}")
-                        lines.append(f"          random_pick: {entry.get('random_pick', 1)}")
-                if dbr := qra.get("delay_before_rearming"):
-                    lines.append(f"      delay_before_rearming: {dbr}")
-                if dba := qra.get("delay_before_activating"):
-                    lines.append(f"      delay_before_activating: {dba}")
-                if qra.get("react_on_helicopters"):
-                    lines.append("      react_on_helicopters: true")
-                if al := qra.get("airport_link"):
-                    lines.append(f"      airport_link: {_yaml_str(al)}")
-                if not qra.get("start", True):
-                    lines.append(t("converter.yaml.qra.start_comment"))
-            lines.append("")
 
         # ── CAP missions ──────────────────────────────────────────────────
         if mr and mr.cap_missions_extracted:

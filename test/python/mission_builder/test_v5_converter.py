@@ -473,6 +473,38 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertIn("CTLD: true", yaml_content)
             self.assertIn("SKYNET: false", yaml_content)
 
+    def test_mission_yaml_unifies_skynet_and_qra_under_modules(self) -> None:
+        # MODULES-UNIFY: no standalone external_modules:/qra: — SKYNET nested in
+        # the community area, QRA config under modules.QRA.
+        mission_config = (
+            "veafSkynet.initialize(true, false, true, false)\n"
+            "VeafQRA.ToggleAllSilence(false)\n"
+            'local q = VeafQRA:new()\n  :setName("NorthQRA")\n  :setCoalition(coalition.side.RED)\n  :start()\n'
+        )
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, mission_config)
+            self._make_community_folder(folder, ["Skynet-IADS.lua"])
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            # No standalone sections any more
+            self.assertNotIn("external_modules:", yaml_content)
+            self.assertNotIn("\nqra:", yaml_content)
+            # SKYNET nested in modules with its flags
+            self.assertIn("  SKYNET:", yaml_content)
+            self.assertIn("include_red_in_radio: true", yaml_content)
+            # QRA nested under modules.QRA
+            self.assertIn("definitions:", yaml_content)
+            self.assertIn("NorthQRA", yaml_content)
+            # Output round-trips through the unified-schema normalizer
+            import yaml as _yaml
+
+            from mission_builder.mission_builder_worker import _normalize_mission_yaml
+
+            normalized = _normalize_mission_yaml(_yaml.safe_load(yaml_content))
+            self.assertTrue(normalized["external_modules"]["skynet"]["include_red_in_radio"])
+            self.assertEqual(normalized["qra"]["definitions"][0]["name"], "NorthQRA")
+
     def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)

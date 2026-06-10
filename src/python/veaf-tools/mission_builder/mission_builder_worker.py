@@ -56,11 +56,66 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+def _as_enabled_dict(cfg: object) -> dict:
+    """Coerce a module entry value into a config dict with an ``enabled`` flag.
+
+    Args:
+        cfg: A module entry value: a dict, a bool shorthand, or ``None`` (bare).
+
+    Returns:
+        A dict carrying at least ``enabled`` (defaulting to ``True``).
+    """
+    if isinstance(cfg, dict):
+        result = dict(cfg)
+        result.setdefault("enabled", True)
+        return result
+    if cfg is False:
+        return {"enabled": False}
+    return {"enabled": True}
+
+
+def _extract_external_and_qra(modules_raw: dict, lua_mods: dict) -> tuple[dict, dict | None]:
+    """Translate the unified ``modules:`` block into the generator's internals.
+
+    ``SKYNET`` / ``CTLD`` / ``CSAR`` nested config maps to the internal
+    ``external_modules`` shape; ``QRA`` config maps to the internal ``qra``
+    section. The QRA-specific keys are stripped from the ``lua_modules`` entry so
+    they are not emitted as ``setConfig`` calls. (MODULES-UNIFY: single source of
+    truth — there is no top-level ``external_modules:`` / ``qra:`` any more.)
+
+    Args:
+        modules_raw: The raw ``modules:`` mapping from mission.yaml.
+        lua_mods: The VEAF-module split (mutated in place for QRA).
+
+    Returns:
+        A ``(external_modules, qra)`` tuple; ``qra`` is ``None`` when absent.
+    """
+    external_modules: dict = {}
+    qra: dict | None = None
+    for mod_id, cfg in modules_raw.items():
+        upper = mod_id.upper()
+        if upper == "SKYNET":
+            external_modules["skynet"] = _as_enabled_dict(cfg)
+        elif upper in ("CTLD", "CSAR"):
+            entry = _as_enabled_dict(cfg)
+            settings = entry.pop("settings", None) or {}
+            entry.update(settings)
+            external_modules[upper.lower()] = entry
+        elif upper == "QRA" and isinstance(cfg, dict):
+            qra = {key: cfg[key] for key in ("silence_all", "definitions") if key in cfg}
+            qra_mod = lua_mods.get("QRA")
+            if isinstance(qra_mod, dict):
+                lua_mods["QRA"] = {k: v for k, v in qra_mod.items() if k not in ("silence_all", "definitions")}
+    return external_modules, qra
+
+
 def _normalize_mission_yaml(yaml_data: dict) -> dict:
     """Normalize legacy mission.yaml keys to the current unified format.
 
     - ``modules:`` (new) is split into ``lua_modules`` + ``community_scripts``
-      for internal processing.  If both ``modules:`` and the legacy keys are
+      for internal processing, and the nested per-module config for SKYNET /
+      CTLD / CSAR / QRA is translated into the internal ``external_modules`` /
+      ``qra`` representation.  If both ``modules:`` and the legacy keys are
       present, ``modules:`` takes precedence and a warning is emitted.
     - Deprecated ``lua_modules:`` / ``community_scripts:`` keys are accepted
       with a deprecation warning.
@@ -89,6 +144,11 @@ def _normalize_mission_yaml(yaml_data: dict) -> dict:
         result = dict(yaml_data)
         result["lua_modules"] = lua_mods
         result["community_scripts"] = comm_scripts
+        external_modules, qra = _extract_external_and_qra(modules_raw, lua_mods)
+        if external_modules:
+            result["external_modules"] = external_modules
+        if qra is not None:
+            result["qra"] = qra
         return result
 
     if has_legacy:

@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Documentation chatbot (RAG)**: a free, bilingual assistant embedded in the docs site. A Cloudflare Worker (free tier) holds the Gemini key, enforces an Origin allow-list + per-IP rate-limit, and answers via retrieval-augmented generation — embedding the question (`gemini-embedding-001`), retrieving the most relevant doc passages from a Vectorize index (language-filtered), and streaming a grounded answer from `gemini-2.5-flash-lite`. A vanilla-JS resizable sidebar widget is wired into MkDocs (`mkdocs.yml`), and a CI workflow rebuilds the index when docs change. RAG was chosen over full-document injection, which hit the Gemini free-tier tokens-per-minute ceiling (~2 questions/min). Code under `poc/doc-chatbot/` + `doc/assets/chatbot/`; not yet shipped to the public site (needs the paid Workers plan + CI secrets) (DOC-CHATBOT-001..004)
+
 ### Changed
 - **`mission.yaml` `modules:` is now the single source of truth** (hard break, pre-release — see ADR 0001). Skynet, CTLD, CSAR and QRA are configured under their `modules:` entry instead of the removed `external_modules:` / `qra:` sections: `modules.SKYNET` (flags), `modules.CTLD` / `modules.CSAR` (with a `settings:` sub-block for `ctld.xxx` / `csar.xxx` pairs), `modules.QRA` (`silence_all` + `definitions:`). The default template and the generated mission.yaml emit the unified shape; `convert-v5` produces it directly and now extracts CTLD/CSAR settings from `missionConfig.lua`. Docs (`MISSION_YAML_REFERENCE*`, migration guides) updated (MODULES-UNIFY-001..005)
 - **Semantic validation of the `modules:` block**: an unknown module key, a removed `external_modules:` / `qra:` section, a wrongly-typed value, or a bad `enabled` / `logLevel` now raise a localized error at build time; an unrecognized `init:` parameter emits a warning instead of being silently dropped (MODULES-UNIFY-006)

@@ -1,0 +1,4 @@
+# Copy to `.dev.vars` for local `wrangler dev` (never commit the real file).
+GEMINI_API_KEY=your-gemini-api-key-here
+# Optional: a GitHub token raises the unauthenticated API limit (60/h) to 5000/h.
+# GITHUB_TOKEN=your-github-token-here

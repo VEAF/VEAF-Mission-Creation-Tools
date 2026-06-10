@@ -181,3 +181,8 @@ site_test/search/search_index.json
 coverage.xml
 temp/
 .claude/scheduled_tasks.lock
+
+# doc-chatbot POC (Cloudflare Worker) — local secrets & build artifacts
+poc/doc-chatbot/worker/.dev.vars
+poc/doc-chatbot/worker/vectors.ndjson
+poc/doc-chatbot/worker/.wrangler/

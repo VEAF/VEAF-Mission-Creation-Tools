@@ -59,6 +59,10 @@ class CustomScript:
 def _as_enabled_dict(cfg: object) -> dict:
     """Coerce a module entry value into a config dict with an ``enabled`` flag.
 
+    Precondition: ``validate_modules_semantics`` has already rejected
+    unexpected scalar types (a module value must be bool, null, or a mapping),
+    so any non-dict value reaching here is a deliberate bool/None shorthand.
+
     Args:
         cfg: A module entry value: a dict, a bool shorthand, or ``None`` (bare).
 
@@ -98,8 +102,9 @@ def _extract_external_and_qra(modules_raw: dict, lua_mods: dict) -> tuple[dict, 
             external_modules["skynet"] = _as_enabled_dict(cfg)
         elif upper in ("CTLD", "CSAR"):
             entry = _as_enabled_dict(cfg)
-            settings = entry.pop("settings", None) or {}
-            entry.update(settings)
+            settings = entry.pop("settings", None)
+            if isinstance(settings, dict):
+                entry.update(settings)
             external_modules[upper.lower()] = entry
         elif upper == "QRA" and isinstance(cfg, dict):
             qra = {key: cfg[key] for key in ("silence_all", "definitions") if key in cfg}

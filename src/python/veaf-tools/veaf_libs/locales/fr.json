@@ -75,6 +75,7 @@
   "yaml.semantic.wrong_type": "mission.yaml : le module '{module}' doit être un booléen, vide, ou un dictionnaire (reçu {type}).",
   "yaml.semantic.bad_enabled": "mission.yaml : module '{module}' : 'enabled' doit valoir true ou false (reçu {type}).",
   "yaml.semantic.bad_loglevel": "mission.yaml : module '{module}' : 'logLevel' doit être une chaîne (reçu {type}).",
+  "yaml.semantic.bad_settings": "mission.yaml : module '{module}' : 'settings' doit être un dictionnaire de paires clé : valeur (reçu {type}).",
   "yaml.semantic.unknown_init_param": "mission.yaml : module '{module}' : paramètre init non reconnu '{param}' — il sera ignoré.",
   "weather.loading_config": "Chargement de la configuration depuis {path}",
   "weather.config_loaded": "Configuration chargée : {count} version(s) à créer",

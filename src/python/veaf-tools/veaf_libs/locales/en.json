@@ -75,6 +75,7 @@
   "yaml.semantic.wrong_type": "mission.yaml: module '{module}' must be a boolean, empty, or a mapping (got {type}).",
   "yaml.semantic.bad_enabled": "mission.yaml: module '{module}': 'enabled' must be true or false (got {type}).",
   "yaml.semantic.bad_loglevel": "mission.yaml: module '{module}': 'logLevel' must be a string (got {type}).",
+  "yaml.semantic.bad_settings": "mission.yaml: module '{module}': 'settings' must be a mapping of key: value pairs (got {type}).",
   "yaml.semantic.unknown_init_param": "mission.yaml: module '{module}': unrecognized init parameter '{param}' — it will be ignored.",
   "weather.loading_config": "Loading configuration from {path}",
   "weather.config_loaded": "Configuration loaded: {count} version(s) to create",

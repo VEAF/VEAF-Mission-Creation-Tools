@@ -126,6 +126,11 @@ class TestValidateModulesSemantics(unittest.TestCase):
         with self.assertRaises(typer.Abort):
             fn({"modules": {"RADIO": {"enabled": "yes"}}})
 
+    def test_bad_settings_type_is_error(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "settings": True}}})
+
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"bogus": True}}}})

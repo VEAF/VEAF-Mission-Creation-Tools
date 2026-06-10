@@ -1,5 +1,6 @@
 """YAML file validation with user-friendly, localised error reporting."""
 
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -68,15 +69,19 @@ def validate_yaml_file(path: Path) -> None:
         logger.error(msg)
 
 
-def _known_module_keys() -> set[str]:
-    """Return the set of valid ``modules:`` keys (VEAF + community), upper-cased."""
+@lru_cache(maxsize=1)
+def _known_module_keys() -> frozenset[str]:
+    """Return the set of valid ``modules:`` keys (VEAF + community), upper-cased.
+
+    Cached: the VEAF module and community-script lists are static per process.
+    """
     from mission_tools.mission_constants import get_community_script_files
 
     from veaf_libs.lua_config_generator import get_modules
 
     keys = {m["id"].upper() for m in get_modules()}
     keys |= {s["id"].upper() for s in get_community_script_files()}
-    return keys
+    return frozenset(keys)
 
 
 def validate_modules_semantics(yaml_data: dict) -> None:
@@ -122,6 +127,8 @@ def validate_modules_semantics(yaml_data: dict) -> None:
                 errors.append(t("yaml.semantic.bad_enabled", module=key, type=type(cfg["enabled"]).__name__))
             if "logLevel" in cfg and not isinstance(cfg["logLevel"], str):
                 errors.append(t("yaml.semantic.bad_loglevel", module=key, type=type(cfg["logLevel"]).__name__))
+            if "settings" in cfg and not isinstance(cfg["settings"], dict):
+                errors.append(t("yaml.semantic.bad_settings", module=key, type=type(cfg["settings"]).__name__))
             init = cfg.get("init")
             if isinstance(init, dict):
                 allowed = {param for param, _ in _MODULE_INIT_PARAMS.get(key.upper(), [])}

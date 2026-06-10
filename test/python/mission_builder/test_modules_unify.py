@@ -46,6 +46,12 @@ class TestCtldCsarTranslation:
         result = _normalize_mission_yaml({"modules": {"CSAR": {"enabled": True}}})
         assert result["external_modules"]["csar"] == {"enabled": True}
 
+    def test_non_mapping_settings_does_not_crash(self) -> None:
+        # Defensive: validate_modules_semantics rejects this upstream, but the
+        # normalizer must not raise TypeError if a bad settings slips through.
+        result = _normalize_mission_yaml({"modules": {"CTLD": {"enabled": True, "settings": True}}})
+        assert result["external_modules"]["ctld"] == {"enabled": True}
+
 
 class TestQraTranslation:
     def test_qra_config_maps_to_qra_section(self) -> None:

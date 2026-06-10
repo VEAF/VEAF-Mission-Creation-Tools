@@ -9,6 +9,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **`mission.yaml` `modules:` is now the single source of truth** (hard break, pre-release — see ADR 0001). Skynet, CTLD, CSAR and QRA are configured under their `modules:` entry instead of the removed `external_modules:` / `qra:` sections: `modules.SKYNET` (flags), `modules.CTLD` / `modules.CSAR` (with a `settings:` sub-block for `ctld.xxx` / `csar.xxx` pairs), `modules.QRA` (`silence_all` + `definitions:`). The default template and the generated mission.yaml emit the unified shape; `convert-v5` produces it directly and now extracts CTLD/CSAR settings from `missionConfig.lua`. Docs (`MISSION_YAML_REFERENCE*`, migration guides) updated (MODULES-UNIFY-001..005)
+- **Semantic validation of the `modules:` block**: an unknown module key, a removed `external_modules:` / `qra:` section, a wrongly-typed value, or a bad `enabled` / `logLevel` now raise a localized error at build time; an unrecognized `init:` parameter emits a warning instead of being silently dropped (MODULES-UNIFY-006)
+
 ### Security
 - **RCE fixed**: parsing a `.miz` file no longer executes embedded Lua. `luadata.unserialize()` ran `lua.execute()` on untrusted mission content via an unsandboxed lupa runtime; it now routes through the pure-Python `_unserialize()` state machine (no code execution). Output is proven byte-identical to the former path across every real `.miz` fixture; a malicious-payload test asserts no execution. Also fixes a parser fidelity bug (backslash + CRLF/CR Lua line-continuations are now collapsed to `\n`, matching DCS Windows briefing texts) (SECREV-001)
 - **Time-expression eval removed**: the weather moment parser replaced `eval()` with an AST evaluator accepting only numeric literals and `+ - * / // %`; names, attribute access, calls and exponentiation (a huge-number DoS) are rejected (SECREV-003)

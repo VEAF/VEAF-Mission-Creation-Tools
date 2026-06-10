@@ -476,6 +476,7 @@ class MissionBuilderWorker(BaseWorker):
             return
 
         assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
 
         bridge_bytes = bridge_file.read_bytes()
         self.dcs_bridge_bytes = bridge_bytes
@@ -566,11 +567,11 @@ class MissionBuilderWorker(BaseWorker):
                                 )
                             continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
-                relative_path = self.mission_folder / relative_path / f.name
-                if not relative_path.exists():
-                    relative_path.parent.mkdir(parents=True, exist_ok=True)
-                    logger.warning(t("builder.copied_from_defaults", file=relative_path, folder=defaults_folder))
-                    shutil.copy(f, relative_path)
+                target_path = self.mission_folder / relative_path / f.name
+                if not target_path.exists():
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    logger.warning(t("builder.copied_from_defaults", file=target_path, folder=defaults_folder))
+                    shutil.copy(f, target_path)
 
         # OLDSCRIPTS-002: warn about unexpected .lua files in src/scripts/
         # The glob src/scripts/*.lua in get_mission_script_files() picks up ALL .lua files in
@@ -820,7 +821,7 @@ class MissionBuilderWorker(BaseWorker):
             """
             # Let's create a better structure: a list of triggers which all have the corresponding categories.
             category_names = triggers.keys()
-            result = {}
+            result: dict = {}
             action_keys = sorted(
                 triggers["actions"].keys()
             )  # this is the most complete category, it always contains all the triggers; this is important later
@@ -846,7 +847,7 @@ class MissionBuilderWorker(BaseWorker):
             Each of these categories is a LUA table with all the data for each trigger about this category.
             """
 
-            result = {}
+            result: dict = {}
             for trigger_key, trigger_data in triggers.items():
                 for category_name, category_data in trigger_data.items():
                     if category_name not in result:
@@ -914,7 +915,9 @@ class MissionBuilderWorker(BaseWorker):
             },
         }
 
-        mission_triggers = self.dcs_mission.mission_content["trig"]  # type: ignore[index]
+        assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
+        mission_triggers = self.dcs_mission.mission_content["trig"]
         # DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
         # Each of these categories is a LUA table with all the data for each trigger about this category.
         # To properly insert our VEAF triggers to the mission triggers, we need to make sure that we move (shift) all the keys in each category in a coherent fashion.
@@ -1134,7 +1137,9 @@ class MissionBuilderWorker(BaseWorker):
         ]
 
         # compress the dictionary keyset, leaving space for the VEAF trigrules
-        trigrules = self.dcs_mission.mission_content["trigrules"]  # type: ignore[index]
+        assert self.dcs_mission is not None
+        assert self.dcs_mission.mission_content is not None
+        trigrules = self.dcs_mission.mission_content["trigrules"]
         new_trigrules = dict(enumerate(new_trigrules_list, start=1))
         nb_new_trigrules = len(new_trigrules)
         result_trigrules = {

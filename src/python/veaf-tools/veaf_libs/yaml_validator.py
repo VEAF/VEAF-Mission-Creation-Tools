@@ -71,6 +71,7 @@ def validate_yaml_file(path: Path) -> None:
 def _known_module_keys() -> set[str]:
     """Return the set of valid ``modules:`` keys (VEAF + community), upper-cased."""
     from mission_tools.mission_constants import get_community_script_files
+
     from veaf_libs.lua_config_generator import get_modules
 
     keys = {m["id"].upper() for m in get_modules()}

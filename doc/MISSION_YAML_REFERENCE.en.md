@@ -175,25 +175,31 @@ Each key becomes `veaf.config.MY_MISSION_FLAG = 42` in the generated `veaf-confi
 
 ---
 
-### `external_modules:`
+### Third-party modules: `SKYNET` / `CTLD` / `CSAR` (under `modules:`)
 
-Configuration for third-party Lua modules integrated via VEAF.
+> **v6 change (hard break)**: the `external_modules:` and `qra:` sections no longer exist. All of their configuration now lives under the `modules:` block, the single source of truth. See [ADR 0001](adr/0001-modules-single-source-of-truth.md).
+
+Skynet IADS, CTLD and CSAR are configured like any other module, directly under `modules:`:
 
 ```yaml
-external_modules:
-  skynet:
-    enabled: false
+modules:
+  SKYNET:
+    enabled: true
     include_red_in_radio: false      # add RED IADS status to F10 menu
     debug_red: false                 # verbose Skynet debug for RED
     include_blue_in_radio: false     # add BLUE IADS status to F10 menu
     debug_blue: false                # verbose Skynet debug for BLUE
-  ctld:
-    enabled: false
-    # any ctld.xxx = value pairs can be added here
-    # e.g. hoverPickup: true
+  CTLD:
+    enabled: true
+    settings:                        # ctld.xxx = value pairs
+      hoverPickup: true
+  CSAR:
+    enabled: true
+    settings:                        # csar.xxx = value pairs
+      enableAllslots: true
 ```
 
-#### `external_modules.skynet` fields
+#### `modules.SKYNET` fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -203,21 +209,14 @@ external_modules:
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
 
-#### `external_modules.ctld` fields
+#### `modules.CTLD` / `modules.CSAR` fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable CTLD integration |
-| *(any ctld property)* | any | — | Any `ctld.xxx` property (e.g. `hoverPickup: true`) |
+| `enabled` | boolean | `false` | Enable CTLD / CSAR integration |
+| `settings` | mapping | — | `ctld.xxx` / `csar.xxx` pairs (e.g. `hoverPickup: true`, `enableAllslots: true`) |
 
-#### `external_modules.csar` fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable CSAR integration |
-| *(any csar property)* | any | — | Any `csar.xxx` property (e.g. `enableAllslots: true`, `csarPrefix: "MEDEVAC"`) |
-
-VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
+VEAF generates the `ctld.xxx = value` / `csar.xxx = value` assignments and the `initialize()` call in `veaf-config.lua`. On `convert-v5`, these settings are extracted automatically from `missionConfig.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
 
 ---
 
@@ -324,12 +323,12 @@ modules:
 
 ---
 
-### `qra:`, `cap_missions:`, `combat_missions:`
+### `modules.QRA`, `cap_missions:`, `combat_missions:`
 
-Top-level sections for QRA, CAP mission, and combat mission definitions. These require the corresponding modules enabled under `modules:`.
+QRA definitions live under `modules.QRA` (`silence_all` + `definitions:`). The `cap_missions:` / `combat_missions:` sections remain top-level. All require the corresponding modules enabled under `modules:`.
 
 See the respective module pages for full schema:
-- [`qra:`](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) — Quick Reaction Alert definitions
+- [`modules.QRA`](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) — Quick Reaction Alert definitions
 - [`cap_missions:` and `combat_missions:`](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) — CAP and combat mission definitions
 
 ---
@@ -470,9 +469,9 @@ veaf-tools.exe build --profile SERVER
 
 | Section / Field | Description |
 |-----------------|-------------|
-| [`qra:`](#qra-cap_missions-combat_missions) | QRA definitions |
-| [`cap_missions:`](#qra-cap_missions-combat_missions) | CAP mission definitions |
-| [`combat_missions:`](#qra-cap_missions-combat_missions) | Combat mission definitions |
+| [`modules.QRA`](#modulesqra-cap_missions-combat_missions) | QRA definitions |
+| [`cap_missions:`](#modulesqra-cap_missions-combat_missions) | CAP mission definitions |
+| [`combat_missions:`](#modulesqra-cap_missions-combat_missions) | Combat mission definitions |
 | `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
 | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
 | `modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
@@ -481,7 +480,7 @@ veaf-tools.exe build --profile SERVER
 
 | Section / Field | Description |
 |-----------------|-------------|
-| `external_modules.skynet` | Skynet IADS integration |
+| `modules.SKYNET` | Skynet IADS integration |
 | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
 | `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
 | `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
@@ -525,7 +524,7 @@ veaf-tools.exe build --profile SERVER
 | veafSanctuary | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md#configuration-missionyaml) |
 | veafCombatZone | `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md#configuration-missionyaml) |
 | veafAirWaves | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml) |
-| veafQraManager | `modules.QRA` + `qra:` | [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) |
+| veafQraManager | `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) |
 | veafCasMission | `cap_missions:` + `combat_missions:` | [veafCasMission](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) |
 
 ---

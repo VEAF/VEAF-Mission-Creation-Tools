@@ -31,7 +31,7 @@ from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
-from veaf_libs.yaml_validator import validate_yaml_file
+from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -198,6 +198,7 @@ class MissionBuilderWorker(BaseWorker):
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)
+            validate_modules_semantics(self.mission_yaml)
             self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}

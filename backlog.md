@@ -13,7 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
-| Phase 0b — GitHub cleanup | ⬜ |
+| Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | 🔄 |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
 | Lot 5 — RELEASE | ⬜ |
@@ -129,8 +129,8 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| CLOSE-001 | Close WONTFIX issues: #55, #146, #147, #180, #193, #246 | chore | ⬜ |
-| CLOSE-002 | Close STALE issues: #9, #19, #41, #167 | chore | ⬜ |
+| CLOSE-001 | Close WONTFIX issues: #55, #146, #147, #180, #193, #246 | chore | ✅ |
+| CLOSE-002 | Close STALE issues: #9, #19, #41, #167 | chore | ✅ |
 
 <details>
 <summary>Issues to close</summary>

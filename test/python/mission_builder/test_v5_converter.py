@@ -505,6 +505,28 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertTrue(normalized["external_modules"]["skynet"]["include_red_in_radio"])
             self.assertEqual(normalized["qra"]["definitions"][0]["name"], "NorthQRA")
 
+    def test_mission_yaml_ctld_settings_nested_under_modules(self) -> None:
+        # MODULES-UNIFY-004: ctld.xxx assignments become modules.CTLD.settings.
+        mission_config = "ctld.hoverPickup = true\nctld.maximumDistanceLimit = 200\n"
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, mission_config)
+            self._make_community_folder(folder, ["CTLD.lua"])
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertNotIn("external_modules:", yaml_content)
+            self.assertIn("  CTLD:", yaml_content)
+            self.assertIn("    settings:", yaml_content)
+            self.assertIn("hoverPickup: true", yaml_content)
+
+            import yaml as _yaml
+
+            from mission_builder.mission_builder_worker import _normalize_mission_yaml
+
+            normalized = _normalize_mission_yaml(_yaml.safe_load(yaml_content))
+            assert normalized["external_modules"]["ctld"]["hoverPickup"] is True
+            assert normalized["external_modules"]["ctld"]["maximumDistanceLimit"] == 200
+
     def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)

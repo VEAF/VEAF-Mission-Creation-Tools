@@ -14,6 +14,7 @@ from typing import IO, Any
 
 import luadata
 from veaf_libs.logger import logger
+from veaf_libs.safe_zip import safe_extract_all
 
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
@@ -282,6 +283,6 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
 def extract_miz(miz_file_path: Path, extracted_folder_path: Path):
     """Extract the mission from the .miz file (unzip it)."""
 
-    # Extract all files to a folder
+    # Extract all files to a folder (validated against Zip Slip / zip bombs)
     with zipfile.ZipFile(miz_file_path, "r") as zip_ref:
-        zip_ref.extractall(extracted_folder_path)
+        safe_extract_all(zip_ref, extracted_folder_path)

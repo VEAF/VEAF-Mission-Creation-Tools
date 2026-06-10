@@ -34,6 +34,7 @@ from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
+from veaf_libs.safe_zip import safe_extract_all
 from veaf_tools.helpers import _is_double_clicked
 
 # Parse --lang early from sys.argv so that --help is also rendered in the
@@ -409,7 +410,7 @@ exit /b 0
                     temp_extract_dir.mkdir(exist_ok=True)
 
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
-                    zip_file.extractall(temp_extract_dir)
+                    safe_extract_all(zip_file, temp_extract_dir)
 
                     # Move ALL extracted files to the published directory
                     # The zip content structure is: published/* which becomes the root after extraction
@@ -431,7 +432,7 @@ exit /b 0
                 # No locked exe, extract directly to published directory
                 with spinner_context(t("updater.extracting", version=release_version)):
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
-                    zip_file.extractall(published_dir)
+                    safe_extract_all(zip_file, published_dir)
 
             logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 

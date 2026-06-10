@@ -14,6 +14,7 @@ except ImportError:
 
 from veaf_libs.logger import logger
 
+
 def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verbose: bool = False) -> tuple:
     """Unserialize stringified lua data to python data
 
@@ -179,6 +180,12 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
             elif byte_current == byte_quoting_char:
                 data = (
                     sbins[pos1:pos]
+                    # Lua line continuation: a backslash followed by a real
+                    # newline (LF, CRLF or CR) collapses to a single "\n".
+                    # CRLF/CR must be handled before LF to match Lua on the
+                    # Windows line endings DCS uses in briefing texts.
+                    .replace(b"\\\r\n", b"\n")
+                    .replace(b"\\\r", b"\n")
                     .replace(b"\\\n", b"\n")
                     .replace(b'\\"', b'"')
                     .replace(b"\\\\", b"\\")
@@ -385,15 +392,63 @@ def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_
     return py_dict
 
 
+def _apply_dict_policy(value: object, keep_as_dict: list[str] | None, all_is_dict: bool) -> object:
+    """Apply the ``keep_as_dict`` / ``all_is_dict`` policy to a parsed Lua value.
+
+    The pure-Python ``_unserialize`` state machine collapses every table to a
+    list when its keys form a contiguous ``1..n`` sequence (and to an empty list
+    when the table is empty). This pass reproduces, byte for byte, the behaviour
+    of the former lupa-based ``_lua_table_to_dict`` so that rerouting ``.miz``
+    parsing away from ``lua.execute`` keeps identical output:
+
+    - an empty table becomes ``{}`` (Lua ``{}`` is ambiguous; the historical
+      behaviour treated it as a dict);
+    - once a key listed in ``keep_as_dict`` is reached, that whole subtree stays
+      a dict (``all_is_dict`` propagates down);
+    - the list branch intentionally drops ``keep_as_dict`` for nested values,
+      matching the historical converter.
+
+    Args:
+        value: A value produced by ``_unserialize`` (dict, list, or scalar).
+        keep_as_dict: Keys whose subtree must remain a dict even if list-shaped.
+        all_is_dict: When ``True``, force every nested table to a dict.
+
+    Returns:
+        The value with the dict/list policy applied.
+    """
+    if isinstance(value, list):
+        if not value:
+            return {}
+        if all_is_dict:
+            return {i + 1: _apply_dict_policy(item, keep_as_dict, True) for i, item in enumerate(value)}
+        return [_apply_dict_policy(item, None, False) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _apply_dict_policy(item, keep_as_dict, True if (keep_as_dict and key in keep_as_dict) else all_is_dict)
+            for key, item in value.items()
+        }
+    return value
+
+
 def unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict | list:
-    if LuaRuntime is None:
-        raise ImportError(
-            "lupa is required to deserialize Lua data. "
-            "Install it with: pip install lupa  or: poetry install --extras lua"
-        )
-    # noinspection PyArgumentList
-    lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)  # type: ignore[call-arg]
-    lua.execute(raw)
-    variable = raw.split("=")[0].strip()
-    lua_table = lua.globals()[variable]
-    return _lua_table_to_dict(lua_table,keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)
+    """Deserialize stringified Lua data to Python data, without executing Lua.
+
+    Routes parsing through the pure-Python ``_unserialize`` state machine instead
+    of ``lua.execute`` (which would run arbitrary code embedded in an untrusted
+    ``.miz`` file — an arbitrary code execution vector). The output is made
+    identical to the former lupa-based path by ``_apply_dict_policy``.
+
+    Args:
+        raw: Raw Lua data string (e.g. ``mission = { ... }``).
+        encoding: String encoding. Defaults to ``"utf-8"``.
+        multival: Return a tuple for multiple top-level values. Defaults to ``False``.
+        keep_as_dict: Keys whose subtree must remain a dict even if list-shaped.
+        all_is_dict: When ``True``, force every table to a dict.
+
+    Returns:
+        The parsed Python structure (a tuple when ``multival`` is ``True``).
+    """
+    parsed = _unserialize(raw, encoding=encoding, multival=multival)
+    if multival:
+        return tuple(_apply_dict_policy(value, keep_as_dict, all_is_dict) for value in parsed)  # type: ignore[return-value]
+    return _apply_dict_policy(parsed, keep_as_dict, all_is_dict)  # type: ignore[return-value]

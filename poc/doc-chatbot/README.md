@@ -41,7 +41,7 @@ so near-daily doc updates re-index with zero manual effort.
 cd poc/doc-chatbot/worker
 npm install
 
-# 1. KV namespace (per-IP rate-limit) — paste the returned ids into wrangler.toml:
+# 1. KV namespace (per-IP rate-limit) — paste the returned IDs into wrangler.toml:
 npx wrangler kv namespace create CHAT_KV
 npx wrangler kv namespace create CHAT_KV --preview
 

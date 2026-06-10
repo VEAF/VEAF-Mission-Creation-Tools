@@ -88,15 +88,20 @@ function sse(data) {
 async function allowRequest(env, ip) {
   const minKey = `rl:min:${ip}`;
   const dayKey = `rl:day:${ip}`;
-  const [minRaw, dayRaw] = await Promise.all([env.CHAT_KV.get(minKey), env.CHAT_KV.get(dayKey)]);
-  const minCount = minRaw ? parseInt(minRaw, 10) : 0;
-  const dayCount = dayRaw ? parseInt(dayRaw, 10) : 0;
-  if (minCount >= RL_MAX_PER_WINDOW || dayCount >= RL_MAX_PER_DAY) return false;
-  await Promise.all([
-    env.CHAT_KV.put(minKey, String(minCount + 1), { expirationTtl: RL_WINDOW }),
-    env.CHAT_KV.put(dayKey, String(dayCount + 1), { expirationTtl: 86400 }),
-  ]);
-  return true;
+  try {
+    const [minRaw, dayRaw] = await Promise.all([env.CHAT_KV.get(minKey), env.CHAT_KV.get(dayKey)]);
+    const minCount = minRaw ? parseInt(minRaw, 10) : 0;
+    const dayCount = dayRaw ? parseInt(dayRaw, 10) : 0;
+    if (minCount >= RL_MAX_PER_WINDOW || dayCount >= RL_MAX_PER_DAY) return false;
+    await Promise.all([
+      env.CHAT_KV.put(minKey, String(minCount + 1), { expirationTtl: RL_WINDOW }),
+      env.CHAT_KV.put(dayKey, String(dayCount + 1), { expirationTtl: 86400 }),
+    ]);
+    return true;
+  } catch {
+    // Fail open: if KV is unavailable, skip rate-limiting rather than 500 the whole request.
+    return true;
+  }
 }
 
 /** Embed a single text with the Gemini embeddings API. */

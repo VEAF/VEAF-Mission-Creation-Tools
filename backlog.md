@@ -14,7 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Phase 0b — GitHub cleanup | ✅ |
-| Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | 🔄 |
+| Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
 | Lot 5 — RELEASE | ⬜ |
 | Lot FIX-BUILD-BARE-NAME-PATH — `build` with a bare mission name produces a relative output path, breaking the weather step | ✅ |
@@ -96,7 +96,7 @@
 | CI-NODE24-001 | Bump `actions/checkout@v4` → `@v5` in all workflows | `.github/workflows/docs.yml`, `python-quality.yml`, `release.yml`, `lua-ci.yml` (×3), `sbom.yml`, `secret-scanning.yml` | chore | ✅ |
 | CI-NODE24-002 | Bump `actions/setup-python@v5` → `@v6` in all workflows | `.github/workflows/docs.yml`, `python-quality.yml`, `release.yml`, `sbom.yml` | chore | ✅ |
 | CI-NODE24-003 | Bump Node.js 20 actions to their first Node.js 24 major: `actions/upload-artifact@v4`→`@v6` (v5 still defaults to Node 20; v6 is `runs.using: node24`), `JohnnyMorganz/stylua-action@v4`→`@v5`, `softprops/action-gh-release@v2`→`@v3`, `gitleaks/gitleaks-action@v2`→`@v3`. `snok/install-poetry@v1` left as-is (composite action — no Node runtime, unaffected). | `.github/workflows/python-quality.yml`, `sbom.yml`, `lua-ci.yml`, `secret-scanning.yml` | chore | ✅ |
-| CI-NODE24-004 | Trigger each workflow (or wait for natural runs) and confirm the Node.js 20 deprecation annotation no longer appears | CI runs | chore | 🔄 |
+| CI-NODE24-004 | Trigger each workflow (or wait for natural runs) and confirm the Node.js 20 deprecation annotation no longer appears | CI runs | chore | ✅ |
 
 **Behavioral-change review (third-party major bumps)**: each cross-major bump was checked against its upstream release notes and confirmed to be a **runtime-only** Node 20→24 migration for our usage — no new defaults or flags affect these workflows: `stylua-action@v5` (Node 24 only; same `version`/`args` inputs), `action-gh-release@v3` (Node 24 only; v2 stays on Node 20), `gitleaks-action@v3` (Node 24 only; same `GITLEAKS_*` env contract). `upload-artifact@v6` keeps the v4 single-immutable-artifact-per-name semantics our steps already rely on (the v7 non-zipped-artifact change is opt-in and not adopted here).
 

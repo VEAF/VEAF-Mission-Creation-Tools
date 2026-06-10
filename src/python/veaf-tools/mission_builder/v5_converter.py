@@ -18,6 +18,7 @@ DCS trigger conversion (v5 → v6) is handled automatically by
 
 from __future__ import annotations
 
+import difflib
 import re
 import shutil
 from collections.abc import Callable
@@ -191,10 +192,44 @@ class ConversionReport:
     """Relative paths of v5 files/folders backed up under ``backup_v5/``."""
     missionconfig_annotated_content: str = ""
     """Annotated missionConfig.lua content (with [v6 ...] comments) — embedded in report."""
+    missionconfig_source: str = ""
+    """Original (pre-migration) missionConfig.lua content — used to recover commented-out v5 elements."""
 
     # -----------------------------------------------------------------------
     # Report rendering
     # -----------------------------------------------------------------------
+
+    def _summary_lines(self) -> list[str]:
+        """Build the at-a-glance numeric summary header (CONVERT-FIDELITY-004).
+
+        Reports how many modules were migrated and how many items still need
+        manual action (with the source line numbers mentioned, when present), so
+        the mission-maker sees whether work remains without reading the whole
+        annotated config.
+
+        Returns:
+            Markdown lines for the summary section (ending with a divider).
+        """
+        n_modules = len(self.migration_result.enabled_modules) if self.migration_result else 0
+        manual_items = list(self.manual_review) + list(self.warnings)
+        line_nums = sorted(
+            {int(num) for item in manual_items for num in re.findall(r"(?:line|ligne)\s+(\d+)", item, re.IGNORECASE)}
+        )
+
+        lines = [
+            f"## {t('report.section.summary')}",
+            "",
+            f"- {t('report.summary.modules', n=n_modules)}",
+        ]
+        if manual_items:
+            entry = t("report.summary.manual", m=len(manual_items))
+            if line_nums:
+                entry += t("report.summary.manual_lines", lines=", ".join(str(num) for num in line_nums))
+            lines.append(f"- {entry}")
+        else:
+            lines.append(f"- {t('report.summary.no_manual')}")
+        lines += ["", "---", ""]
+        return lines
 
     def to_markdown(self) -> str:
         """Return the full conversion report as a Markdown string."""
@@ -207,6 +242,12 @@ class ConversionReport:
             "",
             "---",
             "",
+        ]
+
+        # ── At-a-glance numeric summary (CONVERT-FIDELITY-004) ────────────────
+        lines += self._summary_lines()
+
+        lines += [
             f"## {t('report.section.folder')}",
             "",
             f"`{self.mission_folder}`",
@@ -503,6 +544,34 @@ def _ctld_csar_settings(mr: object, upper: str) -> dict:
     """
     attr = "ctld_config" if upper == "CTLD" else "csar_config"
     return getattr(mr, attr, None) or {}
+
+
+_DECOMMENT_RE = re.compile(r"^(\s*)--+ ?(.*)$")
+
+
+def _decomment_lua(content: str) -> str:
+    """Strip the leading ``--`` from single-line comments to reveal v5 code.
+
+    Used to recover *commented-out* v5 elements (CONVERT-FIDELITY-001): a
+    re-extraction of the de-commented text surfaces any builder chains / tables
+    the mission-maker had disabled. ``-- [v6 …]`` migration markers are left
+    untouched (they are not original v5 elements). Prose comments are harmless —
+    the extraction is pattern-based, so non-code lines simply do not match.
+
+    Args:
+        content: The original missionConfig.lua content.
+
+    Returns:
+        The content with single-line comments un-commented.
+    """
+    out: list[str] = []
+    for line in content.splitlines():
+        if line.lstrip().startswith("-- [v6"):
+            out.append(line)
+            continue
+        match = _DECOMMENT_RE.match(line)
+        out.append(f"{match.group(1)}{match.group(2)}" if match else line)
+    return "\n".join(out)
 
 
 def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], indent: int) -> list[str]:
@@ -810,6 +879,7 @@ class V5Converter:
         original_content = src.read_text(encoding="utf-8")
         result = self._migrator.migrate(original_content)
         report.migration_result = result
+        report.missionconfig_source = original_content
         annotated_content = result.new_content
 
         mission_folder = report.mission_folder
@@ -911,6 +981,7 @@ class V5Converter:
             return
 
         content = self._build_mission_yaml(report)
+        content = self._append_commented_v5_elements(report, content)
         dest.write_text(content, encoding="utf-8")
         report.mission_yaml_generated = True
         report.mission_yaml_path = dest
@@ -925,6 +996,57 @@ class V5Converter:
         report.actions.append(
             t("convert_v5.action.yaml_generated", enabled=enabled_count, total=all_count, pipeline=pipeline_note)
         )
+
+    def _append_commented_v5_elements(self, report: ConversionReport, active_yaml: str) -> str:
+        """Recover commented-out v5 elements and append them as commented YAML.
+
+        Re-extracts the de-commented ``missionConfig.lua`` and diffs the
+        resulting ``mission.yaml`` against the active one; any lines that exist
+        only because of previously-commented elements are appended under a
+        clearly-marked, fully-commented block so the mission-maker can re-enable
+        them by uncommenting (CONVERT-FIDELITY-001). Returns ``active_yaml``
+        unchanged when there is nothing to recover.
+
+        Args:
+            report: The conversion report (source + active migration result).
+            active_yaml: The mission.yaml built from the active configuration.
+
+        Returns:
+            ``active_yaml``, optionally followed by the commented-elements block.
+        """
+        source = report.missionconfig_source
+        active_mr = report.migration_result
+        if not source or active_mr is None:
+            return active_yaml
+
+        decommented = _decomment_lua(source)
+        if decommented == source:
+            return active_yaml
+
+        # Build the de-commented mission.yaml with the same report context.
+        saved_deps = list(report.auto_resolved_deps)
+        report.migration_result = self._migrator.migrate(decommented)
+        decommented_yaml = self._build_mission_yaml(report)
+        report.migration_result = active_mr
+        report.auto_resolved_deps = saved_deps
+
+        # Lines present only in the de-commented YAML are the recovered elements.
+        # Only ``insert`` opcodes are taken: a ``replace`` could carry lines that
+        # are modifications of *active* config rather than purely recovered
+        # elements, which we must not mislabel as "commented-out".
+        active_lines = active_yaml.splitlines()
+        decommented_lines = decommented_yaml.splitlines()
+        matcher = difflib.SequenceMatcher(a=active_lines, b=decommented_lines)
+        recovered: list[str] = []
+        for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+            if tag == "insert":
+                recovered.extend(line for line in decommented_lines[j1:j2] if line.strip())
+        if not recovered:
+            return active_yaml
+
+        block = ["", t("converter.yaml.header.commented_elements")]
+        block += [f"# {line}" for line in recovered]
+        return active_yaml + "\n" + "\n".join(block) + "\n"
 
     def _build_mission_yaml(self, report: ConversionReport) -> str:
         """Produce the full mission.yaml content (with explanatory comments)."""
@@ -963,7 +1085,7 @@ class V5Converter:
         ]
 
         # ── Mission identity ───────────────────────────────────────────────
-        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None):
+        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None or mr.silence_atc):
             lines.append(t("converter.yaml.header.identity"))
             lines.append("mission:")
             if mr.mission_name:
@@ -973,6 +1095,9 @@ class V5Converter:
             if mr.mission_export_path is not None:
                 ep_yaml = _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
+            # CONVERT-FIDELITY-003: only emit when active (absent ≡ not silenced).
+            if mr.silence_atc:
+                lines.append("  silence_atc_on_all_airbases: true")
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────

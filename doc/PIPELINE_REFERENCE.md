@@ -135,6 +135,18 @@ presets_assignments:
       all: blue_default
 ```
 
+### Valeur d'un canal
+
+Un canal peut être défini de trois façons :
+
+- un **nom de canal** (alias résolu depuis `channels_collection`) : `01: Guard` ;
+- une **fréquence** directe (MHz) : `01: 243.0` ;
+- un **objet** : `01: { freq: 243.0, mod: 1 }`, où `mod` est la modulation (`0` = AM, `1` = FM). Le champ `mod` est optionnel ; absent, DCS utilise sa valeur par défaut.
+
+### Conversion v5 iso-fonctionnelle (`convert-v5`)
+
+Pour les agencements radio **standards** (canaux 1:1 d'une table de préréglages), `convert-v5` génère une affectation partagée légère. Pour les agencements **sur mesure** — rotation de canaux (Mi-24P canal 0 → préréglage #20), canal factice initial / fréquences en dur / modulations AM-FM par canal (AJS37), ou radios supplémentaires — il génère un **préréglage dédié `{coalition}_{aéronef}`** reproduisant exactement la carte canal → fréquence (y compris les `mod`), pour rester iso-fonctionnel avec la mission v5 (voir ADR 0003).
+
 ### Validation des fréquences
 
 Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée par rapport aux spécifications matérielles de ses radios.

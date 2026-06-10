@@ -1072,18 +1072,18 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                         for group in groups_list:
                             group_name = group.get("name", "")
 
-                        # Check if group name matches pattern
-                        if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
-                            matched_count += 1
-                            logger.debug(f"Matched helicopter group: {group_name}")
-                            group_key = f"{coalition_name}/{country_name}/helicopters/{group_name}"
-                            self.matched_groups[group_key] = {
-                                "group": group,
-                                "aircraft_category": "helicopters",
-                                "coalition_name": coalition_name,
-                                "country_name": country_name,
-                                "group_name": group_name,
-                            }
+                            # Check if group name matches pattern
+                            if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
+                                matched_count += 1
+                                logger.debug(f"Matched helicopter group: {group_name}")
+                                group_key = f"{coalition_name}/{country_name}/helicopters/{group_name}"
+                                self.matched_groups[group_key] = {
+                                    "group": group,
+                                    "aircraft_category": "helicopters",
+                                    "coalition_name": coalition_name,
+                                    "country_name": country_name,
+                                    "group_name": group_name,
+                                }
 
         if not silent:
             logger.info(t("aircraft_injector.groups_matched", count=matched_count))

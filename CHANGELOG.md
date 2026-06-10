@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- `CLAUDE.md` §3: documented the **Quality Ratchet Policy** — every lot that substantially edits a mypy-excluded worker must drop its `ignore_errors` entry (and fix the surfaced type errors), and every lot that adds tests must bump `--cov-fail-under` to stay within ~2 points of actual coverage. The exclusions list and the coverage gate are now explicitly erode-only forms of debt
 - CI: migrated GitHub Actions off the deprecated Node.js 20 runtime ahead of the forced 2026-06-16 migration. Bumped `actions/checkout@v4`→`@v5`, `actions/setup-python@v5`→`@v6`, `actions/upload-artifact@v4`→`@v6` (first major running on `node24`), and the third-party actions `JohnnyMorganz/stylua-action@v4`→`@v5`, `softprops/action-gh-release@v2`→`@v3`, `gitleaks/gitleaks-action@v2`→`@v3`. `snok/install-poetry@v1` is a composite action with no Node runtime and was left unchanged
 
 ---

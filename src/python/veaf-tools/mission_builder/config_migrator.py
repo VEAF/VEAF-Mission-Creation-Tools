@@ -483,9 +483,28 @@ class ConfigMigrator:
     _EXPORT_PATH_RE = re.compile(r'veaf\.config\.MISSION_EXPORT_PATH\s*=\s*(?:"([^"]*)"|(nil))')
     _SECURITY_RE = re.compile(r"(?:veaf|veafSecurity)\.SecurityDisabled\s*=\s*(true|false)")
     _FORCED_LOG_RE = re.compile(r'veaf\.ForcedLogLevel\s*=\s*"([^"]+)"')
+    # The ``^`` + ``MULTILINE`` anchor is load-bearing: it matches only a call at
+    # the start of a line (after indentation), so a commented ``-- veaf.silence…``
+    # is NOT matched — that is exactly the "active call only" guarantee.
     _SILENCE_ATC_RE = re.compile(r"^[ \t]*veaf\.silenceAtcOnAllAirbases\s*\(\s*\)", re.MULTILINE)
 
-    _INIT_CALL_RE = re.compile(r"^(veaf\w+)\.initialize\s*\(")
+    @staticmethod
+    def _is_pure_init_body_line(stripped: str, mod_var: str) -> bool:
+        """Whether a guard-body line keeps the block "pure init".
+
+        Pure-init body lines are blanks, comments (including already-extracted
+        ``-- [v6 …]`` lines), or this module's own ``initialize()`` call.
+
+        Args:
+            stripped: The already-stripped body line.
+            mod_var: The guard's module variable (e.g. ``veafSpawn``).
+
+        Returns:
+            ``True`` when the line does not disqualify the block from being pure.
+        """
+        if not stripped or stripped.startswith("--"):
+            return True
+        return re.match(rf"{re.escape(mod_var)}\.initialize\s*\(", stripped) is not None
 
     def _find_pure_init_blocks(self, lines: list[str]) -> tuple[set[int], dict[int, str]]:
         """Locate top-level ``if veafXxx then … end`` blocks that are pure init.
@@ -505,6 +524,7 @@ class ConfigMigrator:
             indices to comment out, ``starts`` maps each block's first-line index
             to the module id it enables.
         """
+        stripped = [line.strip() for line in lines]
         indices: set[int] = set()
         starts: dict[int, str] = {}
         i = 0
@@ -528,13 +548,7 @@ class ConfigMigrator:
                     body.append(j)
                 j += 1
             end_idx = j - 1
-            pure = all(
-                (not lines[b].strip())
-                or lines[b].strip().startswith("--")
-                or (self._INIT_CALL_RE.match(lines[b].strip()) is not None and lines[b].strip().startswith(mod_var))
-                for b in body
-            )
-            if pure and end_idx > i:
+            if end_idx > i and all(self._is_pure_init_body_line(stripped[b], mod_var) for b in body):
                 starts[i] = self._var_to_id.get(mod_var, mod_var)
                 indices.update(range(i, end_idx + 1))
                 i = end_idx + 1

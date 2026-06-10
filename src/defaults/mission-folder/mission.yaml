@@ -35,6 +35,7 @@
 #   name: My-Mission            # shown in radio menus and log messages
 #   export_path: null           # null = default DCS Saved Games path
 #   era: MODERN                 # MODERN | COLD_WAR | WW2
+#   silence_atc_on_all_airbases: true   # mute DCS ATC at every airdrome
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:

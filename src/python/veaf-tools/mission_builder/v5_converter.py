@@ -963,7 +963,7 @@ class V5Converter:
         ]
 
         # ── Mission identity ───────────────────────────────────────────────
-        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None):
+        if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None or mr.silence_atc):
             lines.append(t("converter.yaml.header.identity"))
             lines.append("mission:")
             if mr.mission_name:
@@ -973,6 +973,9 @@ class V5Converter:
             if mr.mission_export_path is not None:
                 ep_yaml = _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
+            # CONVERT-FIDELITY-003: only emit when active (absent ≡ not silenced).
+            if mr.silence_atc:
+                lines.append("  silence_atc_on_all_airbases: true")
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────

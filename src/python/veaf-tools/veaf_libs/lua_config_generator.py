@@ -784,6 +784,8 @@ def generate_config_lua(
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
         if language := mission_cfg.get("language"):
             lines.append(f'veaf.config.language = "{language}"')
+        if mission_cfg.get("silence_atc_on_all_airbases"):
+            lines.append("veaf.silenceAtcOnAllAirbases()")
         lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────

@@ -23,6 +23,14 @@ class TestMissionIdentity(unittest.TestCase):
     def test_no_mission_section_emits_nothing(self) -> None:
         lua = generate_config_lua({})
         self.assertNotIn("MISSION_NAME", lua)
+
+    def test_silence_atc_emitted_when_true(self) -> None:
+        lua = generate_config_lua({"mission": {"silence_atc_on_all_airbases": True}})
+        self.assertIn("veaf.silenceAtcOnAllAirbases()", lua)
+
+    def test_silence_atc_not_emitted_when_false(self) -> None:
+        lua = generate_config_lua({"mission": {"name": "X", "silence_atc_on_all_airbases": False}})
+        self.assertNotIn("silenceAtcOnAllAirbases", lua)
         self.assertNotIn("veaf.config.era", lua)
 
 

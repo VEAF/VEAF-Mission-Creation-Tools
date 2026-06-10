@@ -54,6 +54,9 @@ class MigrationResult:
     global_log_level_extracted: str | None = None
     skynet_config: dict | None = None
 
+    # ── CONVERT-FIDELITY-003: silence ATC on all airbases ─────────────────────
+    silence_atc: bool = False
+
     # ── MODULES-UNIFY-004: CTLD / CSAR settings (ctld.xxx / csar.xxx) ──────────
     ctld_config: dict = field(default_factory=dict)
     csar_config: dict = field(default_factory=dict)
@@ -362,6 +365,7 @@ class ConfigMigrator:
             security_disabled=partial.security_disabled,
             global_log_level_extracted=partial.global_log_level_extracted,
             skynet_config=partial.skynet_config,
+            silence_atc=partial.silence_atc,
             ctld_config=partial.ctld_config,
             csar_config=partial.csar_config,
             assets_extracted=partial.assets_extracted,
@@ -463,6 +467,7 @@ class ConfigMigrator:
     _EXPORT_PATH_RE = re.compile(r'veaf\.config\.MISSION_EXPORT_PATH\s*=\s*(?:"([^"]*)"|(nil))')
     _SECURITY_RE = re.compile(r"(?:veaf|veafSecurity)\.SecurityDisabled\s*=\s*(true|false)")
     _FORCED_LOG_RE = re.compile(r'veaf\.ForcedLogLevel\s*=\s*"([^"]+)"')
+    _SILENCE_ATC_RE = re.compile(r"^[ \t]*veaf\.silenceAtcOnAllAirbases\s*\(\s*\)", re.MULTILINE)
 
     def _extract_identity_and_security(self, content: str, result: MigrationResult) -> str:
         content, result.mission_name = self._extract_inline_value(self._MISSION_NAME_RE, content)
@@ -485,6 +490,17 @@ class ConfigMigrator:
         content, ll = self._extract_inline_value(self._FORCED_LOG_RE, content)
         if ll is not None:
             result.global_log_level_extracted = ll
+
+        # CONVERT-FIDELITY-003: an active (non-commented) silenceAtcOnAllAirbases()
+        # call → mission.silence_atc_on_all_airbases: true.
+        m_atc = self._SILENCE_ATC_RE.search(content)
+        if m_atc:
+            result.silence_atc = True
+            line_start = content.rfind("\n", 0, m_atc.start()) + 1
+            line_end = content.find("\n", m_atc.end())
+            line_end = len(content) if line_end == -1 else line_end
+            commented = f"-- [v6 extracted to mission.yaml] {content[line_start:line_end].strip()}"
+            content = content[:line_start] + commented + content[line_end:]
 
         return content
 

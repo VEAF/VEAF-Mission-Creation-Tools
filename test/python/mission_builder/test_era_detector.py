@@ -60,3 +60,8 @@ class TestDetectEra:
 
     def test_malformed_content_does_not_crash(self) -> None:
         assert detect_era({"coalition": "nonsense", "date": "bad"}) == ERA_MODERN
+
+    def test_non_integer_year_defaults_to_modern(self) -> None:
+        # Locks in the isinstance(..., int) guard: a string/None year is ignored.
+        assert detect_era({"date": {"Year": "2011"}}) == ERA_MODERN
+        assert detect_era({"date": {"Year": None}}) == ERA_MODERN

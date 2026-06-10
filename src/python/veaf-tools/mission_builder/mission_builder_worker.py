@@ -1189,7 +1189,8 @@ class MissionBuilderWorker(BaseWorker):
             return None
         try:
             content = luadata.unserialize(mission_file.read_text(encoding="utf-8"), keep_as_dict=["trig", "trigrules"])
-        except Exception:  # noqa: BLE001 - era detection must never break the build
+        except Exception as exc:  # noqa: BLE001 - era detection must never break the build
+            logger.debug(f"era auto-detect: could not parse base mission {mission_file}: {exc}")
             return None
         if not isinstance(content, dict):
             return None

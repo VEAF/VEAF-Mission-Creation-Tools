@@ -406,6 +406,13 @@ These settings are normally set via the CLI (`--dev-mode`, `--scripts-path`) and
 
 `dynamic_loading` resolves as: `--dynamic-mode`/`--no-dynamic-mode` (CLI) > `build.dynamic_loading` (profile-overridable) > `false`.
 
+**Dynamic loading — DEV vs PROD.** When `dynamic_loading: true`, scripts load from disk at runtime (so they are not exposed inside the `.miz`/`.trk`):
+
+- **DEV** (`dev_mode: true`) — `scripts_path` must point at a VEAF-Mission-Creation-Tools checkout; the framework loads the **individual** `veaf/*.lua` via `VeafDynamicLoader.lua` (edit and re-test without rebuilding).
+- **PROD** (`dev_mode: false`) — the framework loads the concatenated **bundle** `veaf/veaf-scripts.lua` from `scripts_path` (default `<mission>/published`, installed by the updater).
+
+In **both** modes the mission scripts — including your `custom_scripts:` — are loaded from disk via a **generated** `src/scripts/veafDynamicConfig.lua` (do not edit it by hand; declare scripts in `custom_scripts:`). The build errors out if the framework loader is missing under `scripts_path`.
+
 ```yaml
 build:
   dev_mode: true

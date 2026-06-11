@@ -23,6 +23,7 @@
 | Lot FIX-LUADATA-NIL — pure-Python luadata parser (SECREV-001) rejects `nil` values, breaking convert-v5 on `country = nil` | ✅ |
 | Lot CONVERT-CUSTOM-LOADER-HINT — guide users whose v5 mission uses a custom Lua script-loader toward the v6 `custom_scripts:` mechanism (resolves IMC2-003) | ✅ |
 | Lot PERF-LUADATA-PARSER — pure-Python luadata parser (SECREV-001) slow on large missions; build 5-10× slower | ✅ |
+| Lot FIX-DYNLOAD-PUBLISHED — dynamic loading broken from `published/` (loaded individual scripts absent from the bundle); split DEV/PROD + generate veafDynamicConfig.lua | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -135,6 +136,20 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | PERF-LUADATA-PARSER-001 | (a) Stop sorting/rescanning on every append — keep entries in append order, track array length incrementally via an int-key set, sort once lazily in `node_to_table` (`O(n²·log n)` → `O(n)`). (b) Skip insignificant whitespace runs at C speed (`re.search`) in states where whitespace only advances the cursor. `read_miz` 0.86 s → 0.33 s (~2.6×). Output identical (array/sparse-key ordering, whitespace-insensitivity, string whitespace preserved — guarded by tests). | `luadata/serializer/unserialize.py`, `test/python/security/test_luadata_parser_perf.py` | perf | ✅ |
+
+---
+
+## Lot FIX-DYNLOAD-PUBLISHED — make dynamic loading work in DEV and PROD
+
+**Goal**: Dynamic loading was broken from a `published/` install (Flogas): the build always emitted the DEV framework loader (`VeafDynamicLoader.lua`, which `loadfile`s the **individual** `veaf/*.lua`), but `published.zip` ships only the concatenated **bundle** `veaf/veaf-scripts.lua` — so the individual files were absent → runtime "no file" error. Also, the mission maker's `custom_scripts` were never loaded dynamically (the hand-maintained `veafDynamicConfig.lua` only listed `mission-script.lua`). Per David: support two scenarios — **DEV** (load individual scripts from a repo checkout, `scripts_path`) and **PROD** (load the bundle from `scripts_path`, default `./published`) — and in both, load the mission maker's custom scripts dynamically.
+
+**Branch**: `feat/dynload-prod` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DYNLOAD-PROD-001 | Framework loader depends on mode: DEV (`dev_mode: true`) → `VeafDynamicLoader.lua` (individual scripts from the repo); PROD → bundle `veaf/veaf-scripts.lua` from `scripts_path` (default `published/`, already in `published.zip` — no packaging change). Applied to both the trigger and trigrule forms. | `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
+| DYNLOAD-PROD-002 | Generate `src/scripts/veafDynamicConfig.lua` from the mission script list (`mission-script.lua` + `custom_scripts`, same order as the static triggers) so dynamic mode loads the mission maker's custom scripts too. File becomes generated (documented "do not edit"). | `mission_builder/mission_builder_worker.py`, `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, locales, `test/python/` | feat | ✅ |
+| DYNLOAD-PROD-003 | Build-time validation: if dynamic loading is on and the framework loader is missing under `scripts_path` (DEV: `VeafDynamicLoader.lua`; PROD: `veaf/veaf-scripts.lua`), fail with a clear localized error instead of shipping a `.miz` that breaks at runtime. Document DEV/PROD in `MISSION_YAML_REFERENCE*`. | `mission_builder/mission_builder_worker.py`, locales, `doc/`, `test/python/` | feat | ✅ |
 
 ---
 

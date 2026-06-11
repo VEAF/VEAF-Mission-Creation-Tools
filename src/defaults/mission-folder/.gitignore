@@ -6,8 +6,10 @@
 # Published VEAF scripts (downloaded by the build pipeline)
 /published/
 
-# Build artifacts
-/build/
+# Build output — generated .miz files and weather variants
+# (the mission is built from src/; force-add a base .miz with `git add -f` if you commit one)
+*.miz
+/missions/
 *.miz.bak
 
 # OS / editor noise

@@ -397,16 +397,25 @@ These settings are normally set via the CLI (`--dev-mode`, `--scripts-path`) and
 |-------|------|---------|-------------|
 | `dev_mode` | `bool` | `false` | When `true`, scripts are loaded from `<scripts_path>/build/veaf-scripts.lua` instead of the published copy |
 | `scripts_path` | `string` | *(user config)* | Path to a local VEAF-Mission-Creation-Tools clone; required when `dev_mode: true` |
+| `dynamic_loading` | `bool` | `false` | When `true`, VEAF **and** mission scripts are loaded from disk at runtime (dynamic mode, dev/test) instead of being embedded in the `.miz`. Profile-overridable. CLI: `--dynamic-mode` / `--no-dynamic-mode` (takes precedence) |
 
 `scripts_path` resolution order (first match wins):
 1. `--scripts-path <path>` CLI option
 2. `mission.yaml build.scripts_path`
 3. `~/veafmct.yaml scripts_path`
 
+`dynamic_loading` resolves as: `--dynamic-mode`/`--no-dynamic-mode` (CLI) > `build.dynamic_loading` (profile-overridable) > `false`.
+
 ```yaml
 build:
   dev_mode: true
   scripts_path: C:/dev/VEAF-Mission-Creation-Tools
+  dynamic_loading: false
+
+profiles:
+  test:
+    build:
+      dynamic_loading: true   # dynamic loading for the test profile
 ```
 
 > See the [Developer Mode](developer/GUIDE.md#developer-mode) section of the Developer Guide for the full workflow.

@@ -111,8 +111,9 @@ def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     no_veaf_triggers: bool = typer.Option(False, help=t("cmd.build.opt.no_veaf_triggers")),
-    dynamic_mode: bool = typer.Option(
-        False,
+    dynamic_mode: bool | None = typer.Option(
+        None,
+        "--dynamic-mode/--no-dynamic-mode",
         help=t("cmd.build.opt.dynamic_mode"),
     ),
     dev_mode: bool | None = typer.Option(

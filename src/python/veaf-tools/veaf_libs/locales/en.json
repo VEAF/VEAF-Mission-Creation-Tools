@@ -654,6 +654,7 @@
   "cmd.inject_presets.config_not_found": "Configuration file {path} does not exist!",
   "cmd.prepare.initializing": "Initializing mission folder: {path}",
   "cmd.prepare.copying_defaults": "Copying default files from {path}",
+  "cmd.prepare.defaults_not_found": "Default files not found. Run the updater first to install them under 'published/'. Searched:\n  {paths}",
   "cmd.prepare.failed": "Preparation failed: {error}",
   "cmd.user_config.banner": "[bold green]veaf-tools User Config v{version}[/bold green]",
   "cmd.waypoints.exclusive_options": "Cannot use both --only-airplanes and --only-helicopters simultaneously.",

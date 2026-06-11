@@ -111,6 +111,7 @@ For every action requested by the user, execute these steps in order:
 4. Update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature).
 5. Increment the PATCH version in `pyproject.toml`.
 6. Run `poetry install` to update the development environment.
+7. **Defaults lockstep**: if the change touches how `convert-v5` or `lua_config_generator` produce `mission.yaml` (comments, config blocks, module keys, structure), update `src/defaults/mission-folder/mission.yaml` in the **same lot** so the shipped default stays aligned with the generated output.
 
 ---
 

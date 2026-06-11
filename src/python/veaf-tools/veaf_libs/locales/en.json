@@ -625,6 +625,7 @@
   "builder.custom_lua_included": "Custom Lua file 'src/scripts/{file}' declared in mission.yaml and will be included in the build.",
   "builder.unexpected_lua_file": "Unexpected Lua file 'src/scripts/{file}' found in your mission folder. This file will be included in the build. You can declare it under 'custom_scripts' in mission.yaml to suppress this warning.",
   "builder.options_missing": "The 'options' file is missing from {path}; it's a useful item of your source tree!",
+  "builder.declared_group_missing": "Group '{group}' declared in {section} is not present in the mission — it must be placed in the Mission Editor, otherwise the feature fails at runtime (e.g. veafAssets.respawn).",
   "extractor.mission_not_found": "The input mission '{path}' does not exist or is not a file",
   "extractor.output_folder_not_found": "The output mission folder '{path}' does not exist or is not a folder",
   "mission_tools.alternative_folder": "Used alternative folder '{alt}' to get '{file}' because nothing was found in '{orig}'",

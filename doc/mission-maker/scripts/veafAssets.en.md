@@ -15,6 +15,9 @@ Manages the persistent assets in a mission — tankers, AWACS, and carriers. Pro
 
 - `veafRadio` — F10 menu
 - `veafCarrierOperations` — for carrier assets (optional, auto-integrated)
+- **MiST** — mandatory: respawn (`veafAssets.respawn`) uses `mist.respawnGroup`.
+
+> ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in MiST's database (`mist.DBs.MEgroupsByName`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
 
 ---
 

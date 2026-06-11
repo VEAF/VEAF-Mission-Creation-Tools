@@ -35,6 +35,7 @@ from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
 
 from mission_builder.era_detector import detect_era
+from mission_builder.group_validation import find_missing_declared_groups
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -635,6 +636,17 @@ class MissionBuilderWorker(BaseWorker):
         except KeyError:
             logger.error(t("builder.mission_read_error", path=self.output_mission))
             raise
+
+    def validate_declared_groups(self) -> None:
+        """Warn when a config-declared group (ASSETS, QRA, …) is absent from the mission.
+
+        Such groups must be placed in the Mission Editor; a missing one makes the
+        feature fail silently at runtime (e.g. ``veafAssets.respawn`` → MiST error).
+        """
+        if not self.mission_yaml or not self.dcs_mission or not self.dcs_mission.mission_content:
+            return
+        for section, group in find_missing_declared_groups(self.mission_yaml, self.dcs_mission.mission_content):
+            logger.warning(t("builder.declared_group_missing", group=group, section=section))
 
     def clear_veaf_triggers(self) -> None:
         """
@@ -1259,6 +1271,9 @@ class MissionBuilderWorker(BaseWorker):
         # Load the mission from the .miz file (unzip it) and process aircraft groups
         with spinner_context(t("builder.reading_mission", output=self.output_mission), silent=silent):
             self.read_mission()
+
+        # Warn about config-declared groups (ASSETS, QRA, …) absent from the mission
+        self.validate_declared_groups()
 
         # First, remove all the VEAF triggers
         with spinner_context(t("builder.clearing_triggers"), silent=silent):

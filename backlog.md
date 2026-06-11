@@ -43,6 +43,25 @@
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + Vectorize + Gemini) embedded in the MkDocs site | 🔄 |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
 | Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | 🔄 |
+| Lot DCSDATA — fix the missing-country-id ME crash, generate DCS country data from the datamine, consolidate all DCS-data generators under one `veaf-build` command with freshness guards, and lift the 2-ground-group mission requirement | 🔄 |
+
+---
+
+## Lot DCSDATA — DCS country data pipeline, missing-id crash fix, and generator consolidation
+
+**Goal**: `inject-aircrafts` crashes DCS at mission load (`me_mission.lua:512`, `fixCountriesNames` → `attempt to index field '?' (a nil value)`) when a `mission.yaml` injects aircraft into a country (e.g. `France`) that has no ground unit in the source `.miz`. Root cause: `AircraftGroupsInjectorWorker._ensure_country` only recovers a country's DCS numeric `id` by looking it up in another coalition already present in the mission (commit `bc37be3`, partial); a country absent everywhere is created **without `id`**, which DCS dereferences as nil on load. This lot makes country-id resolution systematic (mission → generated DCS table → hard error), generates the name→id table from the `Quaggles/dcs-lua-datamine` repo (each `_G/db/Countries/*.lua` carries `Name` + `WorldID`, CJTF/UN included — no DCS install needed), consolidates the scattered DCS-data generators (`dcsDataExport.lua`, `dcs_units_parser.py`, `radio_specs_updater.py`) under a single `veaf-build update-dcs-data` command with a pinned upstream + freshness guards (per-PR consistency + scheduled drift watcher), and finally lifts the documented "≥1 blue + ≥1 red ground group" base-mission requirement once a spike confirms a synthetic unit-less country satisfies the injectors and survives a DCS save.
+
+**Branch**: `feature/DCSDATA` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DCSDATA-001 | Make `_get_or_create_country` resolve the DCS `id` systematically: reuse an id already present in the mission, else look it up in the generated country table, else raise a clear build error (never emit a country without `id`). Regression test: inject an aircraft into a country absent from the whole mission, assert the created country carries the correct DCS id. Verified on the real demo mission (France now `id: 5`). | `aircrafts_injector/aircrafts_injector_worker.py`, `veaf_libs/dcs_countries.py`, `test/python/` | fix | ✅ |
+| DCSDATA-002 | Country-table provider: generate `name → WorldID` (+ `ShortName`/`InternationalName` for robust matching) from `Quaggles/dcs-lua-datamine` `_G/db/Countries/*.lua`; commit the artifact; parser + unit tests. CJTF Blue/Red and UN Peacekeepers covered with no special-casing. | `veaf_build/dcs_data/`, `veaf_libs/data/dcs-countries.yaml`, `test/python/` | feat | ✅ |
+| DCSDATA-003 | Consolidate DCS-data generators under a `dcs_data` module with per-data "providers" (units, radio, countries), each emitting a committed artifact (+ optional doc). Expose one `veaf-build update-dcs-data [--units] [--radio] [--countries] [--all]` command; keep `update-radio-specs` as a compat alias. Document the two sourcing strategies (in-DCS export vs datamine clone) and when to re-run. | `veaf_build/`, `doc/` | feat | ⬜ |
+| DCSDATA-004 | Pin the upstream datamine ref (commit SHA/tag) in config and stamp the provenance ref into each generated artifact's header — fixes the current non-reproducible `master`/`--depth=1` clone in `radio_specs_updater`. | `veaf_build/`, generated artifacts | chore | ⬜ |
+| DCSDATA-005 | Per-PR consistency guard: CI re-runs the generators against the **pinned** ref and `git diff --exit-code`, failing when committed artifacts are stale (forgot `update-dcs-data`) or hand-edited. | `.github/workflows/` | chore | ⬜ |
+| DCSDATA-006 | Scheduled drift watcher (weekly cron): compare upstream `master` HEAD to the pinned ref; when upstream moved, open a PR that bumps the pin + regenerates, for human review (decouples external DCS churn from per-PR CI). | `.github/workflows/` | chore | ⬜ |
+| DCSDATA-007 | Spike + impl: verify in the DCS ME that a build-synthesized unit-less country (valid id) per used coalition satisfies `inject-presets`/`inject-waypoints` and survives save; if confirmed, have the build ensure it systematically and lift the documented 2-ground-group base-mission requirement (update `doc/mission-maker/GUIDE`). **Manual DCS validation point.** | `mission_builder/`, `aircrafts_injector/`, `doc/mission-maker/GUIDE.*.md` | feat | ⬜ |
 
 ---
 

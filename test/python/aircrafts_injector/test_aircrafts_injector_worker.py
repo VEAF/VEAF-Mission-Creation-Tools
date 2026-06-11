@@ -264,5 +264,56 @@ class TestInjectGroupsEdgeCases(unittest.TestCase):
         self.assertFalse(result.success)
 
 
+class TestCountryIdResolution(unittest.TestCase):
+    """_get_or_create_country must always stamp a valid DCS country.id.
+
+    A country created without an ``id`` crashes the DCS Mission Editor on load
+    (``me_mission.lua`` → ``fixCountriesNames`` → nil-index). This regression
+    covers a country absent from the whole mission (e.g. injecting French
+    aircraft into a USA/Ukraine-only mission).
+    """
+
+    def test_country_absent_from_mission_gets_dcs_id(self) -> None:
+        """A brand-new country absent everywhere is created with its DCS id."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])  # blue/USA only
+        coalition = worker.dcs_mission.mission_content["coalition"]["blue"]
+
+        country = worker._get_or_create_country(coalition, "France")
+
+        self.assertEqual(country["id"], 5)  # France == 5 in the DCS country table
+
+    def test_country_display_name_resolves(self) -> None:
+        """The Mission Editor display name (e.g. CJTF Blue) resolves to an id."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        coalition = worker.dcs_mission.mission_content["coalition"]["blue"]
+
+        country = worker._get_or_create_country(coalition, "CJTF Blue")
+
+        self.assertEqual(country["id"], 80)
+
+    def test_existing_mission_id_takes_priority(self) -> None:
+        """An id already present in the mission is preserved over the table."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        # blue/USA already carries id 2; a non-standard id would still win.
+        coalition = worker.dcs_mission.mission_content["coalition"]["blue"]
+        coalition["country"][0]["id"] = 999
+
+        country = worker._get_or_create_country(coalition, "USA")
+
+        self.assertEqual(country["id"], 999)
+
+    def test_unknown_country_raises(self) -> None:
+        """An unknown country name fails loudly instead of emitting a nil id."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        coalition = worker.dcs_mission.mission_content["coalition"]["blue"]
+
+        with self.assertRaises(ValueError):
+            worker._get_or_create_country(coalition, "Wakanda")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -235,6 +235,13 @@ class MissionBuilderWorker(BaseWorker):
         self.collected_mission_script_files: dict[str, bytes] | None = None
         self.collected_mission_data_files: dict[str, bytes] | None = None
 
+        # Make sure mission.yaml is present BEFORE we read it: if the user has no
+        # mission.yaml, copy the default (which ships an active modules block) now.
+        # Copying it later (in complete_src_folder_with_defaults, during work())
+        # would be too late — the config below would already have been resolved
+        # from an absent file → no veaf-config.lua and wrong module toggles.
+        self._ensure_default_mission_yaml(scripts_path_override)
+
         # Read mission.yaml, then apply build profile (deep-merge)
         self.mission_yaml: dict = {}
         self.pipeline_cfg: dict = {}
@@ -592,6 +599,28 @@ class MissionBuilderWorker(BaseWorker):
         trig["conditions"][1] = "return true"
         trig["flag"][1] = True
         trig["funcStartup"][1] = "if mission.trig.conditions[1]() then mission.trig.actions[1]() end"
+
+    def _ensure_default_mission_yaml(self, scripts_path_override: str | Path | None) -> None:
+        """Copy the default mission.yaml into the mission folder if it is missing.
+
+        Runs before the config is resolved in ``__init__``: the default ships an
+        active ``modules:`` block, so resolving from an absent mission.yaml would
+        produce an empty config (no veaf-config.lua, wrong module toggles). Mirrors
+        the source-path logic of :meth:`complete_src_folder_with_defaults`.
+
+        Args:
+            scripts_path_override: The CLI/explicit scripts path, if any (dev mode).
+        """
+        mission_yaml_path = self.mission_folder / "mission.yaml"
+        if mission_yaml_path.exists():
+            return
+        scripts_root = (
+            Path(scripts_path_override) if scripts_path_override else (self.mission_folder / "published" / "src")
+        )
+        default_yaml = scripts_root / "defaults" / "mission-folder" / "mission.yaml"
+        if default_yaml.is_file():
+            shutil.copy(default_yaml, mission_yaml_path)
+            logger.warning(t("builder.copied_from_defaults", file=mission_yaml_path, folder=default_yaml.parent))
 
     def complete_src_folder_with_defaults(self) -> None:
         defaults_folder: Path = (

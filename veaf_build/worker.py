@@ -363,6 +363,14 @@ class BuildAndReleaseWorker:
                 )
                 if radio_specs_yaml.exists():
                     extra.append((radio_specs_yaml, "presets_injector/data"))
+                veaf_tools_dir = self.src_dir / "python" / "veaf-tools"
+                bundled_data = [
+                    # DCS country name->id table, read by the aircraft injector at runtime.
+                    (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
+                    # Hidden placeholder ground groups, injected into empty coalitions at build.
+                    (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
+                ]
+                extra.extend((path, dest) for path, dest in bundled_data if path.exists())
                 self._build_pyinstaller_executable(
                     "veaf-tools",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",

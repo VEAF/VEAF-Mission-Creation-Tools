@@ -1,0 +1,151 @@
+{
+  "blue": {
+    "country_id": 2,
+    "country_name": "USA",
+    "group": {
+      "visible": false,
+      "tasks": {},
+      "uncontrollable": false,
+      "task": "Ground Nothing",
+      "taskSelected": true,
+      "route": {
+        "spans": [
+          [
+            {
+              "y": 721147.76435826,
+              "x": -265790.5946588
+            },
+            {
+              "y": 721147.76435826,
+              "x": -265790.5946588
+            }
+          ]
+        ],
+        "points": [
+          {
+            "alt": 603,
+            "type": "Turning Point",
+            "ETA": 0,
+            "alt_type": "BARO",
+            "formation_template": "",
+            "y": 0,
+            "x": 0,
+            "ETA_locked": true,
+            "speed": 0,
+            "action": "Off Road",
+            "task": {
+              "id": "ComboTask",
+              "params": {
+                "tasks": [
+                  {
+                    "number": 1,
+                    "auto": true,
+                    "id": "WrappedAction",
+                    "enabled": true,
+                    "params": {
+                      "action": {
+                        "id": "EPLRS",
+                        "params": {
+                          "value": true,
+                          "groupId": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "speed_locked": true
+          }
+        ]
+      },
+      "groupId": 0,
+      "hidden": true,
+      "units": [
+        {
+          "skill": "Average",
+          "coldAtStart": false,
+          "type": "Hummer",
+          "unitId": 0,
+          "y": 0,
+          "x": 0,
+          "name": "VEAF-placeholder-blue-1",
+          "heading": 0.93226206457512,
+          "playerCanDrive": false
+        }
+      ],
+      "y": 0,
+      "x": 0,
+      "name": "VEAF-placeholder-blue",
+      "start_time": 0,
+      "lateActivation": false
+    }
+  },
+  "red": {
+    "country_id": 0,
+    "country_name": "Russia",
+    "group": {
+      "visible": false,
+      "tasks": {},
+      "uncontrollable": false,
+      "task": "Ground Nothing",
+      "taskSelected": true,
+      "route": {
+        "spans": [
+          [
+            {
+              "y": 629783.98233368,
+              "x": -332133.27392405
+            },
+            {
+              "y": 629783.98233368,
+              "x": -332133.27392405
+            }
+          ]
+        ],
+        "points": [
+          {
+            "alt": 8,
+            "type": "Turning Point",
+            "ETA": 0,
+            "alt_type": "BARO",
+            "formation_template": "",
+            "y": 0,
+            "x": 0,
+            "name": "",
+            "ETA_locked": true,
+            "speed": 5.5555555555556,
+            "action": "Off Road",
+            "task": {
+              "id": "ComboTask",
+              "params": {
+                "tasks": {}
+              }
+            },
+            "speed_locked": true
+          }
+        ]
+      },
+      "groupId": 0,
+      "hidden": true,
+      "units": [
+        {
+          "skill": "Average",
+          "coldAtStart": false,
+          "type": "Tigr_233036",
+          "unitId": 0,
+          "y": 0,
+          "x": 0,
+          "name": "VEAF-placeholder-red-1",
+          "heading": 1.0799764006319,
+          "playerCanDrive": false
+        }
+      ],
+      "y": 0,
+      "x": 0,
+      "name": "VEAF-placeholder-red",
+      "start_time": 0,
+      "lateActivation": false
+    }
+  }
+}

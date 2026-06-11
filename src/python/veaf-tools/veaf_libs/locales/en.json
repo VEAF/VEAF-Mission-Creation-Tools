@@ -629,6 +629,7 @@
   "builder.custom_loader_hint": "'src/scripts/{file}' appears to load other Lua scripts (loadfile/dofile/require). In v6 you no longer need a custom loader: list your scripts under 'custom_scripts:' in mission.yaml (each loaded at the right time, before/after mission-script.lua, with a load trigger generated automatically). See the documentation. A leftover v5 loader can then be deleted.",
   "builder.options_missing": "The 'options' file is missing from {path}; it's a useful item of your source tree!",
   "builder.declared_group_missing": "Group '{group}' declared in {section} is not present in the mission — it must be placed in the Mission Editor, otherwise the feature fails at runtime (e.g. veafAssets.respawn).",
+  "builder.coalition_placeholder_injected": "Coalition '{side}' had no unit — injected a hidden placeholder ground group so DCS registers it (no manual ground group needed).",
   "extractor.mission_not_found": "The input mission '{path}' does not exist or is not a file",
   "extractor.output_folder_not_found": "The output mission folder '{path}' does not exist or is not a folder",
   "mission_tools.alternative_folder": "Used alternative folder '{alt}' to get '{file}' because nothing was found in '{orig}'",

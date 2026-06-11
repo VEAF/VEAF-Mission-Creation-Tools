@@ -50,7 +50,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 | `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
 | VS Code or Notepad++ | Editing Lua/YAML config files | Recommended |
 
-> **Base mission requirement**: The `.miz` you create in the DCS Mission Editor must contain **at least one blue ground group and one red ground group**. Without both, the Lua coalition tables are incomplete, which can cause the injection tools (`inject-presets`, `inject-waypoints`) to silently skip groups.
+> **Base mission coalitions**: each side coalition (blue/red) needs at least one ground unit, otherwise its Lua coalition tables are incomplete and DCS purges the empty side — which used to require placing one blue and one red ground group by hand. **The build now handles this for you**: if a side coalition has no unit, it injects a single *hidden* placeholder ground unit (on the coalition bullseye) so DCS registers the side. You can still place your own ground groups — the placeholder is only added when a side is empty.
 
 ---
 

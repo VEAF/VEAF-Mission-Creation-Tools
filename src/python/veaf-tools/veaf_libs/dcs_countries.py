@@ -16,17 +16,26 @@ any of the spellings a mission may use (e.g. ``France``, ``CJTF Blue``).
 from __future__ import annotations
 
 import functools
+import importlib.resources
+import sys
 from pathlib import Path
 
 import yaml
 
-_DATA_FILE = Path(__file__).parent / "data" / "dcs-countries.yaml"
+
+def _read_data_file() -> str:
+    """Read the country table, whether running from source or a PyInstaller bundle."""
+    bundle_path = Path(getattr(sys, "_MEIPASS", "")) / "veaf_libs" / "data" / "dcs-countries.yaml"
+    if bundle_path.exists():
+        return bundle_path.read_text(encoding="utf-8")
+    pkg = importlib.resources.files("veaf_libs") / "data"
+    return (pkg / "dcs-countries.yaml").read_text(encoding="utf-8")
 
 
 @functools.lru_cache(maxsize=1)
 def _name_to_id() -> dict[str, int]:
     """Build (and cache) the case-insensitive name/alias -> id mapping."""
-    raw = yaml.safe_load(_DATA_FILE.read_text(encoding="utf-8"))
+    raw = yaml.safe_load(_read_data_file())
     mapping: dict[str, int] = {}
     for entry in raw.get("countries", []):
         country_id = int(entry["id"])

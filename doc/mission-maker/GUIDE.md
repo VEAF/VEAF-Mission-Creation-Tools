@@ -49,7 +49,7 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 | `veaf-tools.exe` | CLI de manipulation de `.miz` au moment du build | Oui (pour le pipeline de build) |
 | VS Code ou Notepad++ | Édition des fichiers Lua/YAML de configuration | Recommandé |
 
-> **Exigence pour la mission de base** : Le `.miz` créé dans l'éditeur DCS doit contenir **au moins un groupe terrestre bleu et un groupe terrestre rouge**. Sans les deux, les tables Lua de coalition sont incomplètes, ce qui peut amener les outils d'injection (`inject-presets`, `inject-waypoints`) à ignorer silencieusement des groupes.
+> **Coalitions de la mission de base** : chaque coalition (bleue/rouge) a besoin d'au moins une unité au sol, sinon ses tables Lua de coalition sont incomplètes et DCS supprime le camp vide — ce qui obligeait auparavant à placer un groupe terrestre bleu et un rouge à la main. **Le build s'en charge désormais** : si une coalition n'a aucune unité, il injecte un unique groupe sol placeholder *caché* (sur le bullseye de la coalition) pour que DCS reconnaisse le camp. Vous pouvez toujours placer vos propres groupes — le placeholder n'est ajouté que si un camp est vide.
 
 ---
 

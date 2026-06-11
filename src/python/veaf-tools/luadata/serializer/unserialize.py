@@ -1,4 +1,5 @@
 import math
+import re
 
 try:
     from lupa.lua51 import LuaRuntime, lua_type
@@ -13,6 +14,22 @@ except ImportError:
             lua_type = None  # type: ignore[assignment]
 
 from veaf_libs.logger import logger
+
+#: First non-whitespace byte — used to fast-skip indentation/newlines in bulk.
+_NON_WS_RE = re.compile(rb"[^ \t\r\n]")
+#: States in which whitespace is insignificant (it only advances the cursor), so a
+#: whole run of whitespace can be skipped at C speed instead of one byte per loop.
+_WS_SKIP_STATES = frozenset(
+    {
+        "SEEK_CHILD",
+        "VALUE",
+        "VALUE_END",
+        "KEY_SIMPLE_END",
+        "KEY_EXPRESSION_OPEN",
+        "KEY_EXPRESSION_FINISH",
+        "KEY_EXPRESSION_CLOSE",
+    }
+)
 
 
 def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verbose: bool = False) -> tuple:
@@ -31,7 +48,7 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
         tuple([*]): unserialized data
     """
     sbins = raw.encode(encoding)
-    root = {"entries": [], "lualen": 0, "is_root": True}
+    root = {"entries": [], "lualen": 0, "is_root": True, "int_keys": set()}
     node = root
     stack = []
     state = "SEEK_CHILD"
@@ -50,25 +67,25 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
         return math.inf
 
     def node_entries_append(node, key, val):
+        # Performance: do NOT sort the whole list on every append (that made this
+        # O(n^2 log n) per table — crippling on large DCS arrays like route points).
+        # Keep entries in append order; track the array length incrementally via a
+        # set of integer keys (amortised O(1)); sort once, lazily, in node_to_table.
         node["entries"].append([key, val])
-        node["entries"].sort(key=sorter)
-        lualen = 0
-        for kv in node["entries"]:
-            if kv[0] == lualen + 1:
-                lualen = lualen + 1
-        node["lualen"] = lualen
+        if isinstance(key, int):
+            int_keys = node["int_keys"]
+            int_keys.add(key)
+            lualen = node["lualen"]
+            while (lualen + 1) in int_keys:
+                lualen += 1
+            node["lualen"] = lualen
 
     def node_to_table(node):
-        if len(node["entries"]) == node["lualen"]:
-            lst = []
-            for kv in node["entries"]:
-                lst.append(kv[1])
-            return lst
-        else:
-            dct = {}
-            for kv in node["entries"]:
-                dct[kv[0]] = kv[1]
-            return dct
+        # Single sort at table close (was previously done on every append).
+        entries = sorted(node["entries"], key=sorter)
+        if len(entries) == node["lualen"]:
+            return [kv[1] for kv in entries]
+        return {kv[0]: kv[1] for kv in entries}
 
     while pos <= slen:
         byte_current = None
@@ -81,6 +98,13 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
                 or byte_current == b"\n"
                 or byte_current == b"\t"
             )
+            # Performance: skip a whole run of insignificant whitespace at C speed.
+            # Only safe in states where whitespace merely advances the cursor (not
+            # inside strings, numbers or comments, which consume whitespace).
+            if byte_current_is_space and comment is None and state in _WS_SKIP_STATES:
+                match = _NON_WS_RE.search(sbins, pos)
+                pos = match.start() if match else slen
+                continue
         if verbose:
             print("[step] pos", pos, byte_current, state, comment, key, node)
 
@@ -175,7 +199,7 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
             elif byte_current == b"{":
                 stack.append({"node": node, "state": state, "key": key})
                 state = "SEEK_CHILD"
-                node = {"entries": [], "lualen": 0, "is_root": False}
+                node = {"entries": [], "lualen": 0, "is_root": False, "int_keys": set()}
         elif state == "TEXT":
             if byte_current is None:
                 errmsg = "unexpected string ending: missing close quote."

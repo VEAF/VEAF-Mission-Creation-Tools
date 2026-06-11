@@ -31,7 +31,7 @@
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
-| Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ⬜ |
+| Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
@@ -353,7 +353,24 @@ was constrained to a working branch.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| DEFAULTS-AUDIT-001 | Audit each file under `src/defaults/mission-folder/` for whether it is actually consumed at first build (candidates to verify: `src/presets.md`, `src/README-versions.md`, `src/options`). Report role + used/unused per file; remove or document anything genuinely dead. Exclude the aircraft YAML (owned by TODO0609-AIRCRAFT-INJECT). | `src/defaults/mission-folder/`, `doc/` | chore | ⬜ |
+| DEFAULTS-AUDIT-001 | Audit each file under `src/defaults/mission-folder/` for whether it is actually consumed at first build (candidates to verify: `src/presets.md`, `src/README-versions.md`, `src/options`). Report role + used/unused per file; remove or document anything genuinely dead. Exclude the aircraft YAML (owned by TODO0609-AIRCRAFT-INJECT). | `src/defaults/mission-folder/`, `doc/` | chore | ✅ |
+
+**Audit result (DEFAULTS-AUDIT-001)**: the suspected dead files `src/presets.md` and `src/README-versions.md` are **no longer present** in the scaffold (already removed). Every remaining file is consumed at first build — none is dead:
+
+| File | Role | Status |
+|------|------|--------|
+| `.gitignore` | Scaffolds the user repo to ignore generated/downloaded artifacts (`/published/`, `/build/`, `veaf*.exe`, `*.miz.bak`) | used (scaffold) |
+| `mission.yaml` | Main build configuration (modules, identity, missions) | used |
+| `src/options` | DCS options table injected into the `.miz` (`miz_tools.py` options injection) | used |
+| `src/presets.yaml` | Radio presets — `presets` pipeline step | used |
+| `src/spawnables.yaml` | Predefined spawnable groups — SPAWN module | used |
+| `src/templates.yaml` | Aircraft-group templates — SPAWN module (owned by AIRCRAFT-INJECT) | used (excluded from this audit) |
+| `src/versions.yaml` | Weather/time variants — `weather` pipeline step | used |
+| `src/waypoints.yaml` | Bullseye / navigation points — `waypoints` pipeline step | used |
+| `src/scripts/mission-script.lua` | User custom Lua, loaded after generated `veaf-config.lua` | used |
+| `src/scripts/veafDynamicConfig.lua` | Dynamic script-loading config (dev/test live-reload) | used |
+
+Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree (FR/EN) was corrected to list every shipped default with its role, so the structure documentation now matches reality.
 
 ---
 

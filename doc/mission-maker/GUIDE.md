@@ -159,15 +159,25 @@ MyMission/
 ├── src/
 │   ├── mission/                  # Données DCS extraites (via extract)
 │   ├── scripts/
-│   │   └── mission-script.lua    # Votre code Lua personnalisé (optionnel)
-│   ├── presets.yaml             # Préréglages de fréquences radio
-│   ├── spawnables.yaml          # Groupes spawnable prédéfinis
-│   └── waypoints.yaml           # Bullseye / points de navigation
+│   │   ├── mission-script.lua    # Votre code Lua personnalisé (optionnel)
+│   │   └── veafDynamicConfig.lua # Config de chargement dynamique des scripts (dev/test)
+│   ├── options                  # Table d'options DCS injectée dans le .miz
+│   ├── presets.yaml             # Préréglages de fréquences radio (étape presets)
+│   ├── spawnables.yaml          # Groupes spawnable prédéfinis (SPAWN)
+│   ├── templates.yaml           # Modèles de groupes d'aéronefs (SPAWN)
+│   ├── versions.yaml            # Variantes météo/horaires (étape weather)
+│   └── waypoints.yaml           # Bullseye / points de navigation (étape waypoints)
 ├── published/                    # Scripts & outils VEAF (auto-installés)
 ├── mission.yaml                  # Configuration de build
+├── .gitignore                    # Exclut les fichiers générés/téléchargés
 ├── veaf-tools.exe                # Outil CLI (auto-installé)
 └── veaf-tools-updater.exe
 ```
+
+> Chaque fichier listé sous `src/` (hormis la sortie d'extraction `mission/`)
+> provient du gabarit `defaults/mission-folder/` de l'outil et est consommé dès
+> le premier build — les `*.yaml` par leur étape de pipeline/module, `options`
+> par injection dans le `.miz`, et les `scripts/*.lua` par le chargement de scripts.
 
 ---
 

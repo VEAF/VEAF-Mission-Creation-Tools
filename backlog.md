@@ -29,7 +29,7 @@
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ⬜ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
-| Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ⬜ |
+| Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ⬜ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
@@ -320,7 +320,7 @@ was constrained to a working branch.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| TUI-FOLDER-HINT-001 | Enrich the mission-folder prompt: explanatory label (`. = current folder`, FR/EN) and display the resolved absolute path as a hint. Update locales and tests. | `veaf_libs/tui.py`, locales, `test/python/` | feat | ⬜ |
+| TUI-FOLDER-HINT-001 | Enrich the mission-folder prompt: explanatory label (`. = current folder`, FR/EN) and display the resolved absolute path as a hint. Update locales and tests. | `veaf_libs/tui.py`, locales, `test/python/` | feat | ✅ |
 
 ---
 

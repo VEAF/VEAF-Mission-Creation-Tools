@@ -468,6 +468,7 @@
   "tui.cmd.inject_weather.description": "Inject weather and time-of-day variants into a .miz file",
   "tui.cmd.convert_v5.description": "Convert a v5-style VEAF mission folder to v6 format",
   "tui.cmd.prepare.description": "Initialise a new VEAF mission folder with default files",
+  "tui.hint.mission_folder": "'.' = current folder → {path}",
   "tui.instruction": "(↑↓ navigate, Enter confirm)",
   "tui.select_command": "Select a command",
   "update.new_version": "[yellow]⚠ A newer version of veaf-tools is available: [bold]{latest}[/bold] (you have {current})[/yellow]",

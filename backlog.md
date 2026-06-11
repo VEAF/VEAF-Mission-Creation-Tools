@@ -30,6 +30,7 @@
 | Lot FIX-DEFAULTS-MODULES — MiST mandatory (always injected), remove WEATHERMARK from default, TUM kept | ✅ |
 | Lot WEATHERMARK-REMOVE — retire the WeatherMark community script everywhere (file, registry, validator, docs) | ⬜ |
 | Lot TUM-INIT — generate `TUM.initialize()` in veaf-config.lua so `TUM: true` actually starts TheUniversalMission | ⬜ |
+| Lot BUILD-AUTOVERSION — `veaf-build` auto-computes the release build number from the project base version vs the published.zip version | ⬜ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -272,6 +273,24 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | TUM-INIT-001 | Emit `TUM.initialize()` in `veaf-config.lua` when `TUM` is enabled (decide config surface, e.g. a `settings:` block). Add tests. | `veaf_libs/lua_config_generator.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+
+---
+
+## Lot BUILD-AUTOVERSION — auto-compute the release build number
+
+**Goal**: `veaf-build` should derive the release version automatically instead of requiring `--version`. Scheme is `X.Y.Z.BUILD`.
+
+Algorithm:
+1. Read the **project base version** from `pyproject.toml` (`X.Y.Z`, e.g. `6.4.20`).
+2. If `published.zip` exists, read its **published version** (from `veaf-version.json` inside it, e.g. `6.4.20.3`).
+3. If the published version shares the **same base** as the project (`6.4.20` == `6.4.20`) → **increment the build number** (`6.4.20.3` → `6.4.20.4`).
+4. Otherwise (different base, e.g. project bumped to `6.4.21`, or no `published.zip`) → start from the project base with **build number 1** (`6.4.21.1`).
+
+Notes: `--version` should remain an explicit override. Keep the provenance/version stamping (`veaf-version.json`) consistent. Add unit tests for each branch (same base → +1, new base → .1, no zip → .1).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| BUILD-AUTOVERSION-001 | Compute the release `X.Y.Z.BUILD` from project base vs `published.zip` version per the algorithm above; `--version` overrides; tests for each branch. | `veaf_build/`, `test/python/` | feat | ⬜ |
 
 ---
 

@@ -123,7 +123,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         nb_units_processed = 0
         for group in [g for g in self.groups.values() if g.human_pilot]:
             if preset_definition := self.presets_manager.get_radios_for(
-                coalition=group.coalition, aircraft_type=group.aircraft_type, unit_type=group.unit_type
+                coalition=group.coalition,
+                aircraft_type=group.aircraft_type,
+                unit_type=group.unit_type if group.unit_type is not None else "all",
             ):
                 preset_definition.used_in_mission = True
                 logger.debug(

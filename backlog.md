@@ -24,6 +24,7 @@
 | Lot CONVERT-CUSTOM-LOADER-HINT — guide users whose v5 mission uses a custom Lua script-loader toward the v6 `custom_scripts:` mechanism (resolves IMC2-003) | ✅ |
 | Lot PERF-LUADATA-PARSER — pure-Python luadata parser (SECREV-001) slow on large missions; build 5-10× slower | ✅ |
 | Lot FIX-DYNLOAD-PUBLISHED — dynamic loading broken from `published/` (loaded individual scripts absent from the bundle); split DEV/PROD + generate veafDynamicConfig.lua | ✅ |
+| Lot FIX-EMPTY-COALITION-COUNTRY — `build` crashes (`'dict' object has no attribute 'append'`) on a mission with an empty coalition side | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -193,6 +194,18 @@
 | DYNLOAD-PROD-001 | Framework loader depends on mode: DEV (`dev_mode: true`) → `VeafDynamicLoader.lua` (individual scripts from the repo); PROD → bundle `veaf/veaf-scripts.lua` from `scripts_path` (default `published/`, already in `published.zip` — no packaging change). Applied to both the trigger and trigrule forms. | `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
 | DYNLOAD-PROD-002 | Generate `src/scripts/veafDynamicConfig.lua` from the mission script list (`mission-script.lua` + `custom_scripts`, same order as the static triggers) so dynamic mode loads the mission maker's custom scripts too. File becomes generated (documented "do not edit"). | `mission_builder/mission_builder_worker.py`, `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, locales, `test/python/` | feat | ✅ |
 | DYNLOAD-PROD-003 | Build-time validation: if dynamic loading is on and the framework loader is missing under `scripts_path` (DEV: `VeafDynamicLoader.lua`; PROD: `veaf/veaf-scripts.lua`), fail with a clear localized error instead of shipping a `.miz` that breaks at runtime. Document DEV/PROD in `MISSION_YAML_REFERENCE*`. | `mission_builder/mission_builder_worker.py`, locales, `doc/`, `test/python/` | feat | ✅ |
+
+---
+
+## Lot FIX-EMPTY-COALITION-COUNTRY — build crash on an empty coalition side
+
+**Goal**: `veaf-tools build` crashed with `AttributeError: 'dict' object has no attribute 'append'` (`coalition_placeholder._find_or_add_country`) on a minimal mission where one side is empty. An empty DCS `country = {}` Lua table deserializes to a dict (not a list) under `all_is_dict`, so `setdefault("country", [])` returned the existing dict and `.append` failed. Reproduced with a single-A-10C Caucasus mission (blue populated, red/neutrals empty).
+
+**Branch**: `fix/empty-coalition-country` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-EMPTY-COALITION-COUNTRY-001 | Coerce a coalition's `country` to a list (handling the empty-`{}` dict case, keeping any values) before appending the placeholder country. Regression test with `country: {}`. | `mission_builder/coalition_placeholder.py`, `test/python/mission_builder/test_coalition_placeholder.py` | fix | ✅ |
 
 ---
 

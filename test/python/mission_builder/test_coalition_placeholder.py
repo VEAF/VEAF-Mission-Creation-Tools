@@ -25,7 +25,9 @@ def _mission(blue_units: bool, red_units: bool) -> dict:
     if blue_units:
         blue["country"].append(_populated_country(100, 200))
     if red_units:
-        red["country"].append({"id": 0, "name": "Russia", "vehicle": {"group": [{"groupId": 101, "units": [_unit(201)]}]}})
+        red["country"].append(
+            {"id": 0, "name": "Russia", "vehicle": {"group": [{"groupId": 101, "units": [_unit(201)]}]}}
+        )
     return {"coalition": {"blue": blue, "red": red}}
 
 
@@ -76,6 +78,24 @@ class TestEnsureCoalitionsPopulated(unittest.TestCase):
         assert group is not None
         self.assertGreater(group["groupId"], 100)
         self.assertGreater(group["units"][0]["unitId"], 200)
+
+    def test_empty_dict_country_is_coerced(self) -> None:
+        """An empty side whose ``country`` is ``{}`` (luadata all_is_dict) must not crash.
+
+        DCS empty Lua tables (`country = {}`) deserialize to a dict, not a list, so
+        the placeholder injection used to crash with `'dict' object has no attribute
+        'append'`. The country container is coerced to a list.
+        """
+        mission = {
+            "coalition": {
+                "blue": {"bullseye": {"x": 1.0, "y": 2.0}, "country": {}},
+                "red": {"bullseye": {"x": 3.0, "y": 4.0}, "country": {}},
+            }
+        }
+        injected = ensure_coalitions_populated(mission)
+        self.assertEqual(sorted(injected), ["blue", "red"])
+        self.assertIsInstance(mission["coalition"]["blue"]["country"], list)
+        self.assertIsNotNone(_placeholder_group(mission, "blue"))
 
     def test_roster_valid_country_created(self) -> None:
         """The placeholder is attached to its roster-valid template country."""

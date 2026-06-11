@@ -66,7 +66,12 @@ def _max_ids(mission_content: dict) -> tuple[int, int]:
 
 def _find_or_add_country(coalition: dict, country_id: int, country_name: str) -> dict:
     """Return the coalition country with *country_id*, creating it if absent."""
-    countries = coalition.setdefault("country", [])
+    countries = coalition.get("country")
+    if not isinstance(countries, list):
+        # An empty DCS table (`country = {}`) deserializes to a dict (all_is_dict),
+        # not a list — coerce it (keeping any values) so we can append to it.
+        countries = list(countries.values()) if isinstance(countries, dict) else []
+        coalition["country"] = countries
     for country in countries:
         if country.get("id") == country_id:
             return country

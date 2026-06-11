@@ -44,8 +44,19 @@
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
 | Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | 🔄 |
 | Lot DCSDATA — fix the missing-country-id ME crash, generate DCS country data from the datamine, consolidate all DCS-data generators under one `veaf-build` command with freshness guards, and lift the 2-ground-group mission requirement | 🔄 |
+| Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 
 ---
+
+## Lot FIX-WAYPOINTS-ETA-LOCKED — injected routes have no locked-ETA waypoint
+
+**Goal**: `inject-waypoints` rebuilds each player aircraft's route from a `waypoints.yaml` flight plan (matched by aircraft type, so a catch-all plan rewrites every human slot). Every `WaypointDefinition` defaults to `ETA_locked=false` and the flight plans don't set it, so the injected route has **no** waypoint with a locked ETA — DCS then refuses to save the mission with *"Route has no waypoints with locked time!"* on every affected group. Fix: after building the route, if no waypoint is locked, lock the first one (its departure), as DCS itself does. Verified end-to-end on the demo mission (F18 Stennis 1, Yak 52 CTLD, test-QRA, … all now have a locked first waypoint). Note: the separate *"Invalid frequency 243 MHz"* error is user config — `presets.yaml` presets the UHF guard frequency (243.0), which DCS reserves; not a build bug.
+
+**Branch**: `fix/WAYPOINTS-ETA-LOCKED` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-WP-ETA-001 | In `_inject_waypoints_into_group`, lock the first waypoint when the flight plan locked none, so DCS accepts the route. Respect an explicit lock on any waypoint. Regression tests. | `waypoints_injector/waypoints_injector_worker.py`, `test/python/` | fix | ✅ |
 
 ## Lot DCSDATA — DCS country data pipeline, missing-id crash fix, and generator consolidation
 

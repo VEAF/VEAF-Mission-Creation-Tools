@@ -2411,12 +2411,6 @@ function veaf.outTextForGroup(unitName, message, duration)
   return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
---- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
---- @deprecated use veafWeatherData.getWeatherString instead
-function veaf.weatherReport(vec3, alt, withLASTE)
-  return "veaf.weatherReport is deprecated, use veafWeatherData.getWeatherString instead"
-end
-
 local function _initializeCountriesAndCoalitions()
   veaf.countriesByCoalition = {}
   veaf.coalitionByCountry = {}

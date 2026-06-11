@@ -26,6 +26,7 @@
 | Lot FIX-DYNLOAD-PUBLISHED — dynamic loading broken from `published/` (loaded individual scripts absent from the bundle); split DEV/PROD + generate veafDynamicConfig.lua | ✅ |
 | Lot FIX-EMPTY-COALITION-COUNTRY — `build` crashes (`'dict' object has no attribute 'append'`) on a mission with an empty coalition side | ✅ |
 | Lot FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE — waypoint injection wiped a flight's takeoff → "flight delayed to start"; append-not-replace. Also reverts FIX-DEFAULTS-AIRCRAFT-ROSTER (misdiagnosis) | ✅ |
+| Lot FIX-DEFAULT-MODULES-ACTIVE — default mission.yaml was all-commented → no VEAF menu on a fresh build; ship an active baseline modules block | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -224,6 +225,18 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 
 ### Future note (not in this lot)
 - Prevent spawnable (`veafSpawn-`) and dynamic-slot template groups from being **selectable** in the DCS slot list (they appear as choosable slots today). To investigate.
+
+---
+
+## Lot FIX-DEFAULT-MODULES-ACTIVE — default mission.yaml ships an active modules block
+
+**Goal**: A freshly-scaffolded mission's default `mission.yaml` had **every** module commented out → building it activated no module → **no VEAF F10 menu** in game. Per David, the default must mirror `convert-v5`'s baseline so a fresh mission works out of the box. Active set chosen (option C minus MISSILEGUARDIAN).
+
+**Branch**: `fix/default-mission-yaml-active-modules` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-DEFAULT-MODULES-ACTIVE-001 | Default `mission.yaml` ships an **active** `modules:` block: mandatory infrastructure (bare) + `SECURITY`/`RADIO`/`GROUNDAI`/`SPAWN`/`NAMEDPOINTS`/`MOVE`/`GRASS`/`WEATHER`/`REMOTE`/`AIRBASES`/`INTERPRETER: true`; community scripts `false`; config-requiring modules (`ASSETS`, `QRA`, `SHORTCUTS`, `SANCTUARY`, combat, …) as commented examples. Mirrors convert-v5 baseline (IMC2-007 lockstep). | `src/defaults/mission-folder/mission.yaml` | fix | ✅ |
 
 ---
 

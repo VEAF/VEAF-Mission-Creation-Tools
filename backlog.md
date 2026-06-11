@@ -28,6 +28,7 @@
 | Lot FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE — waypoint injection wiped a flight's takeoff → "flight delayed to start"; append-not-replace. Also reverts FIX-DEFAULTS-AIRCRAFT-ROSTER (misdiagnosis) | ✅ |
 | Lot FIX-DEFAULT-MODULES-ACTIVE — default mission.yaml was all-commented → no VEAF menu on a fresh build; ship an active baseline modules block | ✅ |
 | Lot FIX-DEFAULTS-MODULES — MiST mandatory (always injected), remove WEATHERMARK from default, TUM kept | ✅ |
+| Lot FIX-BUILD-COPY-DEFAULTS — default mission.yaml copied AFTER config read → no veaf-config.lua when mission.yaml absent; copy it before reading | ✅ |
 | Lot WEATHERMARK-REMOVE — retire the WeatherMark community script everywhere (file, registry, validator, docs) | ⬜ |
 | Lot TUM-INIT — generate `TUM.initialize()` in veaf-config.lua so `TUM: true` actually starts TheUniversalMission | ⬜ |
 | Lot BUILD-AUTOVERSION — `veaf-build` auto-computes the release build number from the project base version vs the published.zip version | ⬜ |
@@ -253,6 +254,18 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-DEFAULTS-MODULES-001 | MiST mandatory: always inject the `mist` community script regardless of the `modules:` entry (`MANDATORY_COMMUNITY_SCRIPTS`); a bare `MIST:` is the default form (silent), an explicit `MIST: false` is warned and ignored. Default lists `MIST:` in the mandatory infrastructure block. Remove `WEATHERMARK` from the default. Tests for MiST-kept-when-disabled. | `mission_builder/mission_builder_worker.py`, `src/defaults/mission-folder/mission.yaml`, locales, `test/python/` | fix | ✅ |
+
+---
+
+## Lot FIX-BUILD-COPY-DEFAULTS — copy default mission.yaml before reading config
+
+**Goal**: When the user has no `mission.yaml`, `build` resolved the config from the absent file in `MissionBuilderWorker.__init__` **before** `complete_src_folder_with_defaults()` (run later in `work()`) copied the default into the folder. Result: `self.mission_yaml` (and everything derived — `veaf-config.lua`, community toggles, custom_scripts, dynamic_mode) stayed empty → **no veaf-config.lua, no VEAF menu**, and all community scripts wrongly enabled. Fix the ordering so the default is available before the config is read.
+
+**Branch**: `fix/build-copy-defaults-before-read` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-BUILD-COPY-DEFAULTS-001 | Add `_ensure_default_mission_yaml()` called at the very start of `__init__` (before the mission.yaml read): copy the default mission.yaml from `<scripts_path or mission/published/src>/defaults/mission-folder/` into the mission folder if missing. The later `complete_src_folder_with_defaults()` still copies the other defaults. Tests: absent mission.yaml → copied + config resolved (veaf-config, MiST kept, SKYNET off); existing mission.yaml not overwritten. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ✅ |
 
 ---
 

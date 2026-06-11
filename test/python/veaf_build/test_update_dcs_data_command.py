@@ -57,6 +57,13 @@ class TestUpdateDcsDataDispatch(unittest.TestCase):
         gen_countries.assert_called_once()
         gen_radio.assert_not_called()
 
+    def test_all_and_radio_runs_both(self) -> None:
+        """An explicit --radio is honored even when combined with --all."""
+        gen_countries, gen_radio, code = self._run("--all", "--radio")
+        self.assertEqual(code, 0)
+        gen_countries.assert_called_once()
+        gen_radio.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

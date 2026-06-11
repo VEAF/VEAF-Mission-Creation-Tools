@@ -356,27 +356,26 @@ def update_dcs_data(
         count = countries_provider.generate()
         console.print(f"[green]✓ {count} countries written[/green]")
 
-    if run_all or radio:
-        if run_all:
-            # The radio artifact carries manual overlays (dcs_rejects_on_load flags +
-            # a bilingual doc) that the generator does NOT reproduce, so it must not be
-            # blindly regenerated as part of --all.
-            console.print(
-                "[yellow]Skipping radio specs under --all: the radio artifact has manual "
-                "overlays. Regenerate it explicitly with --radio, then re-apply the "
-                "`dcs_rejects_on_load` flags and the hand-written doc section.[/yellow]"
-            )
-        else:
-            console.print(
-                "[yellow]⚠ Regenerating radio specs OVERWRITES manual overlays "
-                "(`dcs_rejects_on_load` flags + the bilingual critical-aircraft doc). "
-                "Re-apply them after generation.[/yellow]"
-            )
-            console.print(f"[cyan]Generating DCS radio specs (datamine@{ref_short})...[/cyan]")
-            from veaf_build.radio_specs_updater import main as update_radio
+    # Radio is regenerated only when explicitly requested (--radio), even under
+    # --all: it is a hybrid artifact with manual overlays the generator cannot
+    # reproduce, so --all must never silently overwrite it.
+    if radio:
+        console.print(
+            "[yellow]⚠ Regenerating radio specs OVERWRITES manual overlays "
+            "(`dcs_rejects_on_load` flags + the bilingual critical-aircraft doc). "
+            "Re-apply them after generation.[/yellow]"
+        )
+        console.print(f"[cyan]Generating DCS radio specs (datamine@{ref_short})...[/cyan]")
+        from veaf_build.radio_specs_updater import main as update_radio
 
-            update_radio()
-            console.print("[green]✓ radio specs written (re-apply manual overlays now)[/green]")
+        update_radio()
+        console.print("[green]✓ radio specs written (re-apply manual overlays now)[/green]")
+    elif run_all:
+        console.print(
+            "[yellow]Skipping radio specs under --all: the radio artifact has manual "
+            "overlays. Regenerate it explicitly with --radio, then re-apply the "
+            "`dcs_rejects_on_load` flags and the hand-written doc section.[/yellow]"
+        )
 
 
 @app.command()

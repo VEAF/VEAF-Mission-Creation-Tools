@@ -20,35 +20,29 @@ from __future__ import annotations
 
 import copy
 import functools
-import importlib.resources
 import json
-import sys
-from pathlib import Path
+
+from veaf_libs.bundled_data import read_bundled_text
 
 _SIDES = ("blue", "red")
-_GROUND_CATEGORIES = ("vehicle", "plane", "helicopter")
-
-
-def _read_templates_file() -> str:
-    """Read the templates, whether running from source or a PyInstaller bundle."""
-    bundle_path = Path(getattr(sys, "_MEIPASS", "")) / "mission_builder" / "data" / "placeholder_groups.json"
-    if bundle_path.exists():
-        return bundle_path.read_text(encoding="utf-8")
-    pkg = importlib.resources.files("mission_builder") / "data"
-    return (pkg / "placeholder_groups.json").read_text(encoding="utf-8")
+# Every category that can hold a group with units. Used both to decide whether a
+# coalition already has a unit (any unit keeps its DCS country alive — aircraft,
+# ships and statics all count) and to scan the global group/unit id space so the
+# injected placeholder never reuses an existing id.
+_UNIT_CATEGORIES = ("vehicle", "plane", "helicopter", "ship", "static")
 
 
 @functools.lru_cache(maxsize=1)
 def _templates() -> dict:
     """Load (and cache) the committed placeholder templates."""
-    return json.loads(_read_templates_file())
+    return json.loads(read_bundled_text("mission_builder", "data", "placeholder_groups.json"))
 
 
 def _coalition_unit_count(coalition: dict) -> int:
     """Count every unit across every country/category of a coalition."""
     total = 0
     for country in coalition.get("country", []):
-        for category in _GROUND_CATEGORIES:
+        for category in _UNIT_CATEGORIES:
             for group in country.get(category, {}).get("group", []):
                 total += len(group.get("units", []))
     return total
@@ -62,7 +56,7 @@ def _max_ids(mission_content: dict) -> tuple[int, int]:
         if not isinstance(coalition, dict):
             continue
         for country in coalition.get("country", []):
-            for category in _GROUND_CATEGORIES:
+            for category in _UNIT_CATEGORIES:
                 for group in country.get(category, {}).get("group", []):
                     max_group_id = max(max_group_id, int(group.get("groupId", 0) or 0))
                     for unit in group.get("units", []):

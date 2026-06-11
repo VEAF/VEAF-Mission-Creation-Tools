@@ -28,7 +28,11 @@ _COUNTRIES_SUBTREE = "_G/db/Countries"
 DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
 
 # Top-level fields are indented with a single tab; nested fields (Units, Awards,
-# ...) use two or more, so anchoring on a single leading tab is unambiguous.
+# ...) use two or more, so anchoring on a single leading tab is unambiguous — a
+# looser `^\s*` would wrongly match nested `Name` entries (e.g. under Units).
+# A datamine reformatting would therefore parse nothing; _MIN_EXPECTED_COUNTRIES
+# turns that into a loud failure instead of a silently empty table.
+_MIN_EXPECTED_COUNTRIES = 50
 _NAME_RE = re.compile(r'^\tName\s*=\s*"([^"]*)"', re.MULTILINE)
 _WORLD_ID_RE = re.compile(r"^\tWorldID\s*=\s*(\d+)", re.MULTILINE)
 _SHORT_NAME_RE = re.compile(r'^\tShortName\s*=\s*"([^"]*)"', re.MULTILINE)
@@ -146,5 +150,10 @@ def generate(output: Path | None = None, ref: str = DATAMINE_REF) -> int:
         clone_root = Path(tmp) / "dcs-lua-datamine"
         clone_datamine(clone_root, [_COUNTRIES_SUBTREE], ref)
         entries = extract_all_countries(clone_root)
+    if len(entries) < _MIN_EXPECTED_COUNTRIES:
+        raise RuntimeError(
+            f"Parsed only {len(entries)} countries (< {_MIN_EXPECTED_COUNTRIES}) at ref {ref} — "
+            "the datamine top-level field format (Name/WorldID) may have changed; update the parser."
+        )
     write_countries_yaml(entries, output, ref)
     return len(entries)

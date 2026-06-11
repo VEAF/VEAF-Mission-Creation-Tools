@@ -7,7 +7,7 @@ into committed artifacts so the build never needs a DCS installation.
 
 ## Sourcing strategies
 
-There are **two** ways DCS data enters the repository, and they are not
+There are **two** ways for DCS data to enter the repository, and they are not
 interchangeable:
 
 | Source | How | Needs DCS? | Examples |

@@ -352,3 +352,51 @@ class TestGenerateValidationReport(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPresetRadioCompatibility(unittest.TestCase):
+    """_preset_radio_compatible skips presets wholly out of an aircraft's radio range."""
+
+    @staticmethod
+    def _uhf_preset(*freqs: float) -> PresetDefinition:
+        pd = PresetDefinition(name="p")
+        rd = RadioDefinition(name="uhf", radio_type="uhf")
+        for i, freq in enumerate(freqs, 1):
+            rd.add_channel(Channel(name_or_number=str(i), freq=freq))
+        pd.add_radio(rd)
+        return pd
+
+    @staticmethod
+    def _group(unit_type: str) -> Group:
+        return Group(
+            group_dcs={}, aircraft_type="plane", country="USA", coalition="blue", unit_type=unit_type
+        )
+
+    def test_incompatible_preset_skipped(self) -> None:
+        """A UHF preset is wholly incompatible with the Yak-52 (sub-MHz ARK-15M)."""
+        worker = _make_worker()
+        self.assertFalse(
+            worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(243.0, 225.0))
+        )
+
+    def test_compatible_preset_kept(self) -> None:
+        """The same UHF preset fits an FA-18C, which has a UHF radio."""
+        worker = _make_worker()
+        self.assertTrue(
+            worker._preset_radio_compatible(self._group("FA-18C_hornet"), self._uhf_preset(243.0, 225.0))
+        )
+
+    def test_unknown_aircraft_treated_compatible(self) -> None:
+        """An aircraft absent from the radio specs is not second-guessed."""
+        worker = _make_worker()
+        self.assertTrue(
+            worker._preset_radio_compatible(self._group("NoSuchJet"), self._uhf_preset(243.0))
+        )
+
+    def test_partially_valid_preset_kept(self) -> None:
+        """If at least one frequency is in range, the preset is kept."""
+        worker = _make_worker()
+        # Yak-52 ARK-15M range ~0.1-1.795 MHz: one in-range, one out-of-range.
+        self.assertTrue(
+            worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(0.5, 243.0))
+        )

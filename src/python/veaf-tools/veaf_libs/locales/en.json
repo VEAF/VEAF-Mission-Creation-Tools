@@ -484,6 +484,7 @@
   "group_injector.spinner.writing": "Writing mission...",
   "presets_injector.error.load_config": "Failed to load config file {path}: {error}",
   "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
+  "presets_injector.skip_incompatible_radio": "Skipped preset injection for group '{group}' ({unit_type}): every preset frequency is out of range for this aircraft's radio — kept its original radio (DCS would reject the mission otherwise).",
   "presets_injector.injected": "injected presets into {count} aircraft(s)",
   "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
   "presets_injector.spinner.processing_groups": "Processing groups...",

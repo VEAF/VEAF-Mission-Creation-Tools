@@ -436,9 +436,12 @@ exit /b 0
 
             logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 
-            # Step 2: Move key files from published folder to current directory
+            # Step 2: Move key files from published folder to current directory.
+            # README.md is intentionally NOT moved (IMC2-002): its relative links
+            # are dead in the mission folder and it would overwrite the user's own
+            # README — it stays under /published/; the online docs are the source.
             with spinner_context(t("updater.installing")):
-                files_to_move = ["veaf-tools.exe", "README.md"]
+                files_to_move = ["veaf-tools.exe"]
 
                 for filename in files_to_move:
                     source_file = published_dir / filename

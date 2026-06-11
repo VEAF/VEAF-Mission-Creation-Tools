@@ -654,6 +654,7 @@
   "cmd.inject_presets.config_not_found": "Fichier de configuration {path} introuvable !",
   "cmd.prepare.initializing": "Initialisation du dossier de mission : {path}",
   "cmd.prepare.copying_defaults": "Copie des fichiers par défaut depuis {path}",
+  "cmd.prepare.defaults_not_found": "Fichiers par défaut introuvables. Lancez d'abord l'updater pour les installer sous 'published/'. Recherché :\n  {paths}",
   "cmd.prepare.failed": "Échec de la préparation : {error}",
   "cmd.user_config.banner": "[bold green]veaf-tools User Config v{version}[/bold green]",
   "cmd.waypoints.exclusive_options": "Impossible d'utiliser --only-airplanes et --only-helicopters simultanément.",

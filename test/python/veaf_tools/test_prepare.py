@@ -88,5 +88,27 @@ class TestPrepareNeverOverwrite(unittest.TestCase):
         self.assertIn("# default mission.yaml", content)
 
 
+class TestPrepareDefaultsResolution(unittest.TestCase):
+    """`prepare` resolves defaults from the mission folder's published/ (IMC2-001)."""
+
+    def test_mission_published_is_first_candidate(self) -> None:
+        from veaf_tools.commands.prepare import _defaults_source_candidates
+
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            candidates = _defaults_source_candidates(folder)
+        self.assertEqual(candidates[0], folder / "published" / "src" / "defaults" / "mission-folder")
+
+    def test_resolves_from_mission_published(self) -> None:
+        from veaf_tools.commands.prepare import _resolve_defaults_source
+
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            installed = folder / "published" / "src" / "defaults" / "mission-folder"
+            installed.mkdir(parents=True)
+            # Even though the dev-checkout fallback exists during the test run, published/ wins.
+            self.assertEqual(_resolve_defaults_source(folder), installed)
+
+
 if __name__ == "__main__":
     unittest.main()

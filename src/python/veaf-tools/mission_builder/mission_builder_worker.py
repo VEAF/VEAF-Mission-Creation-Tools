@@ -59,6 +59,25 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+def resolve_dynamic_mode(cli_override: bool | None, build_cfg: dict) -> bool:
+    """Resolve the dynamic-loading flag (IMC2-008).
+
+    Precedence: explicit CLI flag (``--dynamic-mode``/``--no-dynamic-mode``) wins;
+    otherwise ``build.dynamic_loading`` from mission.yaml (profile-overridable);
+    otherwise static loading (``False``).
+
+    Args:
+        cli_override: The CLI value (``None`` when neither flag was passed).
+        build_cfg: The ``build:`` mapping from the (profile-resolved) mission.yaml.
+
+    Returns:
+        ``True`` for dynamic loading, ``False`` for static.
+    """
+    if cli_override is not None:
+        return cli_override
+    return bool(build_cfg.get("dynamic_loading", False))
+
+
 def _as_enabled_dict(cfg: object) -> dict:
     """Coerce a module entry value into a config dict with an ``enabled`` flag.
 
@@ -188,7 +207,7 @@ class MissionBuilderWorker(BaseWorker):
 
         self.output_mission = output_mission
         self.mission_folder = mission_folder
-        self.dynamic_mode = dynamic_mode
+        # dynamic_mode is resolved below (CLI override > build.dynamic_loading > default)
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
         self.dcs_mission: DcsMission | None = None
@@ -211,6 +230,10 @@ class MissionBuilderWorker(BaseWorker):
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
 
+        # Resolve dynamic loading: CLI override > mission.yaml (build.dynamic_loading,
+        # profile-overridable) > default (static). Lets profiles (TEST/SERVER) switch it.
+        self.dynamic_mode: bool = resolve_dynamic_mode(dynamic_mode, build_cfg)
+
         # Extract lua_modules and global_log_level from yaml
         lua_modules: dict | None = self.mission_yaml.get("lua_modules") or None
         if lua_modules:
@@ -231,7 +254,7 @@ class MissionBuilderWorker(BaseWorker):
         effective_scripts_path_str: str | Path | None = (
             scripts_path_override or build_cfg.get("scripts_path") or (str(_uc_sp) if _uc_sp else None)
         )
-        if not effective_scripts_path_str and dynamic_mode:
+        if not effective_scripts_path_str and self.dynamic_mode:
             effective_scripts_path_str = mission_folder / "published"
         if effective_scripts_path_str:
             self.scripts_path: Path | None = resolve_path(path=effective_scripts_path_str, should_exist=True)

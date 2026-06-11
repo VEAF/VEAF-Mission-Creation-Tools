@@ -159,7 +159,7 @@
 #   # ── Community scripts ─────────────────────────────────────────────────────
 #   MIST: true
 #   STTS: true
-#   WEATHERMARK: true
+#   WEATHERMARK: false          # rarely needed — enable only if you use weather markers
 #   CTLD:
 #     enabled: true
 #     settings:                # ctld.xxx = value pairs (e.g. hoverPickup: true)
@@ -225,10 +225,18 @@
 # pipeline:
 #   presets: false
 #   waypoints: true
-#   aircraft_groups:
-#     file: src/my-aircraft.yaml
+#   spawnable_aircrafts:            # src/spawnables.yaml (veafSpawn- groups)
+#     file: src/spawnables.yaml
 #     mode: replace
+#   dynamic_slot_templates: true    # src/dynamic-slot-templates.yaml (dynSpawnTemplate)
 #   weather: false
+
+# ── Build settings ────────────────────────────────────────────────────────────
+# Usually set via the CLI (--dev-mode, --scripts-path, --dynamic-mode) and persisted here.
+# build:
+#   dev_mode: false         # true = resolve scripts from a local dev repo
+#   # scripts_path: null    # path to VEAF-Mission-Creation-Tools repo root (dev mode)
+#   dynamic_loading: false  # true = load scripts from disk at runtime (dev/test); profile-overridable
 
 # ── Version pinning ──────────────────────────────────────────────────────────────────────────────
 # veaf_tools:

@@ -1337,6 +1337,7 @@ class V5Converter:
             "# build:",
             "#   dev_mode: false         # true = resolve scripts from a local dev repo",
             "#   # scripts_path: null   # path to VEAF-Mission-Creation-Tools repo root (dev mode)",
+            "#   dynamic_loading: false  # true = load scripts from disk at runtime (dev/test); profile-overridable",
         ]
 
         return "\n".join(lines) + "\n"

@@ -8,6 +8,36 @@ from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, log
 from veaf_tools.helpers import _ask_replace
 
 
+def _defaults_source_candidates(mission_folder: Path) -> list[Path]:
+    """Ordered locations to look for the default mission-folder scaffold.
+
+    The defaults ship in ``published.zip`` and are installed by the updater into
+    ``<mission>/published/`` — so that is the primary location and the only one
+    that works from the packaged exe (where ``__file__`` lives in a PyInstaller
+    temp dir). The dev-checkout path is the fallback.
+
+    Args:
+        mission_folder: The folder being prepared.
+
+    Returns:
+        Candidate ``defaults/mission-folder`` directories, most-preferred first.
+    """
+    return [
+        # Installed by the updater from published.zip
+        mission_folder / "published" / "src" / "defaults" / "mission-folder",
+        # Dev checkout: <repo>/src/defaults/mission-folder
+        Path(__file__).resolve().parents[4] / "defaults" / "mission-folder",
+    ]
+
+
+def _resolve_defaults_source(mission_folder: Path) -> Path | None:
+    """Return the first existing default-scaffold directory, or ``None``."""
+    for candidate in _defaults_source_candidates(mission_folder):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 @app.command(help=t("cmd.prepare.help"))
 def prepare(
     mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
@@ -32,30 +62,18 @@ def prepare(
 
         logger.info(t("cmd.prepare.initializing", path=p_mission_folder))
 
-        # Resolve the defaults source directory.
-        # __file__ is either:
-        #   - published/veaf-tools/veaf_tools/commands/prepare.py  (installed)
-        #   - src/python/veaf-tools/veaf_tools/commands/prepare.py  (dev)
-        install_source = Path(__file__).parent.parent.parent  # published/veaf-tools/ or src/python/veaf-tools/
-
-        # Installed: published/src/defaults/mission-folder
-        defaults_source = install_source.parent / "src" / "defaults" / "mission-folder"
-
-        # Dev: src/defaults/mission-folder
-        if not defaults_source.exists():
-            defaults_source = install_source.parent.parent / "defaults" / "mission-folder"
-
-        if not defaults_source.exists():
-            searched = [
-                str(install_source.parent / "src" / "defaults" / "mission-folder"),
-                str(install_source.parent.parent / "defaults" / "mission-folder"),
-            ]
+        # Resolve the defaults from the target mission folder's published/ (installed
+        # by the updater from published.zip) — this is the only location that works
+        # from the packaged exe; the dev checkout is the fallback.
+        defaults_source = _resolve_defaults_source(p_mission_folder)
+        if defaults_source is None:
+            searched = [str(c) for c in _defaults_source_candidates(p_mission_folder)]
             logger.error(
-                "Default files not found. Searched:\n  " + "\n  ".join(searched),
+                t("cmd.prepare.defaults_not_found", paths="\n  ".join(searched)),
                 raise_exception=True,
             )
 
-        defaults_source_path: Path = defaults_source
+        defaults_source_path: Path = defaults_source  # type: ignore[assignment]
         files_installed = 0
         files_skipped = 0
         yes_to_all = force

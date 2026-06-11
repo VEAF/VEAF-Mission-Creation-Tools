@@ -131,6 +131,33 @@ class BuildAndReleaseWorker:
                 logger.error("'tool.poetry.version' field not found in pyproject.toml")
             return version
 
+    def _published_zip_version(self) -> str | None:
+        """Return the version stamped in an existing ``published.zip``, or None."""
+        published_zip = self.output_path / "published.zip"
+        if not published_zip.exists():
+            return None
+        try:
+            with zipfile.ZipFile(published_zip) as zf:
+                return json.loads(zf.read("veaf-version.json")).get("version")
+        except (KeyError, ValueError, zipfile.BadZipFile, json.JSONDecodeError):
+            return None
+
+    def resolve_auto_version(self) -> str:
+        """Compute the release ``X.Y.Z.BUILD`` version when ``--version`` is not given.
+
+        Reads the project base (``X.Y.Z``) from pyproject.toml and the previously
+        published version from ``published.zip``. If the published version shares
+        the same base (``X.Y.Z.<n>``), the build number is incremented; otherwise
+        (different base, or no published.zip) the build number restarts at 1.
+        """
+        base = self.get_version_from_file()
+        published = self._published_zip_version()
+        if published:
+            parts = published.split(".")
+            if len(parts) >= 4 and parts[-1].isdigit() and ".".join(parts[:-1]) == base:
+                return f"{base}.{int(parts[-1]) + 1}"
+        return f"{base}.1"
+
     # ========================================================================
     # Build Functions
     # ========================================================================
@@ -808,8 +835,8 @@ See git history for detailed changes.
     def run(self) -> None:  # sourcery skip: extract-method, extract-duplicate-method
         """Execute the build and release process."""
         if not self.version:
-            self.version = self.get_version_from_file()
-            logger.info(f"Version not specified, using from pyproject.toml: {self.version}")
+            self.version = self.resolve_auto_version()
+            logger.info(f"Version not specified, auto-computed (project base + build number): {self.version}")
 
         # Print configuration
         table = Table(title="Build Configuration")

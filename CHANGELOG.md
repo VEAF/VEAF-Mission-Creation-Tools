@@ -9,7 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+- **WeatherMark community script retired**: its weather-report helpers were already replaced by `veafWeather` (the only remaining usage was a commented-out, deprecated `veaf.weatherReport` body). Removed `src/scripts/community/WeatherMark.lua`, the `weathermark` community-script entry, the dead `veaf.weatherReport` body, and the docs reference (WEATHERMARK-REMOVE-001)
+
 ### Added
+- `TUM` now actually starts: when enabled, `veaf-config.lua` emits `if TUM then TUM.initialize() end` so TheUniversalMission is initialized at runtime (previously `TUM: true` loaded the script but never called `initialize()`) (TUM-INIT-001)
+- `veaf-build` **auto-computes the release build number** when `--version` is omitted: it reads the project base (`X.Y.Z`) and the previous `published.zip` version — same base → increments the build number (`X.Y.Z.4`), different base or no `published.zip` → starts at `X.Y.Z.1`. `--version` still overrides (BUILD-AUTOVERSION-001)
 - **Automatic mission-era detection**: when `mission.era` is not set in `mission.yaml`, `build` infers it (`WW2` / `COLD_WAR` / `MODERN`) from the base mission — a combined heuristic over the DCS mission **year** and a **WW2-era unit/aircraft-type** reference table (WW2 wins on the unit signal even at a modern default year). A manually-set `mission.era` always takes precedence (ERA-AUTODETECT-001/002)
 - `convert-v5`: **commented-out v5 elements are no longer silently dropped** — a combat zone, asset, QRA, shortcut, etc. that was disabled with `--` in `missionConfig.lua` is now re-emitted at the end of `mission.yaml` as a fully-commented **"Commented-out v5 elements"** block, so you can re-enable it by uncommenting. Generic across every extractor (a de-commented re-extraction is diffed against the active config; pattern-based extraction ignores prose) (CONVERT-FIDELITY-001)
 - `convert-v5`: the annotated report (`convert-v5-report.md`) now opens with an at-a-glance **Summary** — how many modules were migrated and how many items still need manual action (with the source line numbers) — so you see whether work remains without reading the full annotated config (CONVERT-FIDELITY-004)

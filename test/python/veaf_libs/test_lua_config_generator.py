@@ -392,3 +392,16 @@ def test_resolve_module_dependencies_leaf_and_empty():
     """A module with no dependencies (or an empty set) resolves to nothing."""
     assert resolve_module_dependencies({"MARKERS"}) == []
     assert resolve_module_dependencies(set()) == []
+
+
+def test_tum_initialize_emitted_when_enabled():
+    """TUM.initialize() is emitted when the tum community script is enabled (TUM-INIT)."""
+    lua = generate_config_lua({"modules": {"RADIO": True}, "community_scripts": {"tum": True}})
+    assert "TUM.initialize()" in lua
+    assert "if TUM then" in lua
+
+
+def test_tum_initialize_absent_when_disabled():
+    """No TUM.initialize() when tum is disabled."""
+    lua = generate_config_lua({"community_scripts": {"tum": False}})
+    assert "TUM.initialize()" not in lua

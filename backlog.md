@@ -29,9 +29,9 @@
 | Lot FIX-DEFAULT-MODULES-ACTIVE — default mission.yaml was all-commented → no VEAF menu on a fresh build; ship an active baseline modules block | ✅ |
 | Lot FIX-DEFAULTS-MODULES — MiST mandatory (always injected), remove WEATHERMARK from default, TUM kept | ✅ |
 | Lot FIX-BUILD-COPY-DEFAULTS — default mission.yaml copied AFTER config read → no veaf-config.lua when mission.yaml absent; copy it before reading | ✅ |
-| Lot WEATHERMARK-REMOVE — retire the WeatherMark community script everywhere (file, registry, validator, docs) | ⬜ |
-| Lot TUM-INIT — generate `TUM.initialize()` in veaf-config.lua so `TUM: true` actually starts TheUniversalMission | ⬜ |
-| Lot BUILD-AUTOVERSION — `veaf-build` auto-computes the release build number from the project base version vs the published.zip version | ⬜ |
+| Lot WEATHERMARK-REMOVE — retire the WeatherMark community script everywhere (file, registry, validator, docs) | ✅ |
+| Lot TUM-INIT — generate `TUM.initialize()` in veaf-config.lua so `TUM: true` actually starts TheUniversalMission | ✅ |
+| Lot BUILD-AUTOVERSION — `veaf-build` auto-computes the release build number from the project base version vs the published.zip version | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -275,7 +275,7 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| WEATHERMARK-REMOVE-001 | Remove the `weathermark` community script: drop `src/scripts/community/WeatherMark.lua`, the `weathermark` entry in `get_community_script_files()`, any validator/i18n references, and the documentation. Ensure no build/convert path still references it. | `mission_tools/mission_constants.py`, `src/scripts/community/`, `doc/`, `test/python/` | chore | ⬜ |
+| WEATHERMARK-REMOVE-001 | Remove the `weathermark` community script: drop `src/scripts/community/WeatherMark.lua`, the `weathermark` entry in `get_community_script_files()`, any validator/i18n references, and the documentation. Ensure no build/convert path still references it. | `mission_tools/mission_constants.py`, `src/scripts/community/`, `doc/`, `test/python/` | chore | ✅ |
 
 ---
 
@@ -285,7 +285,7 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| TUM-INIT-001 | Emit `TUM.initialize()` in `veaf-config.lua` when `TUM` is enabled (decide config surface, e.g. a `settings:` block). Add tests. | `veaf_libs/lua_config_generator.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+| TUM-INIT-001 | Emit `TUM.initialize()` in `veaf-config.lua` when `TUM` is enabled (decide config surface, e.g. a `settings:` block). Add tests. | `veaf_libs/lua_config_generator.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
 
 ---
 
@@ -303,7 +303,7 @@ Notes: `--version` should remain an explicit override. Keep the provenance/versi
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| BUILD-AUTOVERSION-001 | Compute the release `X.Y.Z.BUILD` from project base vs `published.zip` version per the algorithm above; `--version` overrides; tests for each branch. | `veaf_build/`, `test/python/` | feat | ⬜ |
+| BUILD-AUTOVERSION-001 | Compute the release `X.Y.Z.BUILD` from project base vs `published.zip` version per the algorithm above; `--version` overrides; tests for each branch. | `veaf_build/`, `test/python/` | feat | ✅ |
 
 ---
 

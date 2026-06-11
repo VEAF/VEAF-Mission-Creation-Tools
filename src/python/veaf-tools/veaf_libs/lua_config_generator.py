@@ -743,6 +743,25 @@ def _resolve_deps(effective: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
+    """Return whether a community script is enabled, matching the build's opt-out rule.
+
+    No ``community_scripts`` section (or the id absent) means enabled; a dict uses
+    its ``enabled`` flag (default true); ``None`` means disabled; otherwise the
+    value's truthiness. Mirrors ``MissionBuilderWorker`` community parsing so the
+    generated init matches what is actually injected.
+    """
+    comm = mission_yaml.get("community_scripts")
+    if not isinstance(comm, dict) or not comm or script_id not in comm:
+        return True
+    cfg = comm[script_id]
+    if isinstance(cfg, dict):
+        return bool(cfg.get("enabled", True))
+    if cfg is None:
+        return False
+    return bool(cfg)
+
+
 def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
@@ -932,6 +951,15 @@ def generate_config_lua(
         for key, value in csar_props.items():
             lines.append(f"    csar.{key} = {_to_lua_scalar(value)}")
         lines.append("    csar.initialize()")
+        lines.append("end")
+        lines.append("")
+
+    # TheUniversalMission (TUM) — community script with no config, only an init call.
+    if _community_enabled(mission_yaml, "tum"):
+        lines.append("-- ── TheUniversalMission (TUM) ────────────────────────────────────────────────")
+        lines.append("-- Note: TheUniversalMission.lua must be loaded by mission-script.lua before this block.")
+        lines.append("if TUM then")
+        lines.append("    TUM.initialize()")
         lines.append("end")
         lines.append("")
 

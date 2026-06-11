@@ -30,7 +30,6 @@ def get_community_script_files() -> list[dict[str, str]]:
     return [
         {"id": "mist", "path": "src/scripts/community/mist.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "stts", "path": "src/scripts/community/DCS-SimpleTextToSpeech.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
-        {"id": "weathermark", "path": "src/scripts/community/WeatherMark.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "ctld", "path": "src/scripts/community/CTLD.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "aien", "path": "src/scripts/community/AIEN.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "csar", "path": "src/scripts/community/CSAR.lua", "dest": DEFAULT_SCRIPTS_LOCATION},

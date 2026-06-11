@@ -292,7 +292,6 @@ modules:
 |----|--------|
 | `MIST` | MIST (Mission Scripting Tools) |
 | `STTS` | DCS-SimpleTextToSpeech |
-| `WEATHERMARK` | WeatherMark |
 | `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
 | `AIEN` | AIEN (AI Enhancement) |
 | `CSAR` | CSAR (Combat Search and Rescue) |

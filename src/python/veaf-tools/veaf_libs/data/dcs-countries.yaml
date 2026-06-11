@@ -1,0 +1,375 @@
+# DCS country name -> id table.
+# Generated from https://github.com/Quaggles/dcs-lua-datamine
+# Source ref: dc7d15e8e34150441b109346eea4ca18eb0104a7
+# Re-run `veaf-build update-dcs-data --countries` to regenerate after a pin bump.
+# DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
+
+countries:
+- id: 0
+  name: Russia
+  short: RUS
+  international: Russia
+- id: 1
+  name: Ukraine
+  short: UKR
+  international: Ukraine
+- id: 2
+  name: USA
+  short: USA
+  international: USA
+- id: 3
+  name: Turkey
+  short: TUR
+  international: Turkey
+- id: 4
+  name: UK
+  short: UK
+  international: UK
+- id: 5
+  name: France
+  short: FRA
+  international: France
+- id: 6
+  name: Germany
+  short: GER
+  international: Germany
+- id: 7
+  name: USAF Aggressors
+  short: AUSAF
+  international: USAF Aggressors
+- id: 8
+  name: Canada
+  short: CAN
+  international: Canada
+- id: 9
+  name: Spain
+  short: SPN
+  international: Spain
+- id: 10
+  name: The Netherlands
+  short: NETH
+  international: The Netherlands
+- id: 11
+  name: Belgium
+  short: BEL
+  international: Belgium
+- id: 12
+  name: Norway
+  short: NOR
+  international: Norway
+- id: 13
+  name: Denmark
+  short: DEN
+  international: Denmark
+- id: 15
+  name: Israel
+  short: ISR
+  international: Israel
+- id: 16
+  name: Georgia
+  short: GRG
+  international: Georgia
+- id: 17
+  name: Insurgents
+  short: INS
+  international: Insurgents
+- id: 18
+  name: Abkhazia
+  short: ABH
+  international: Abkhazia
+- id: 19
+  name: South Ossetia
+  short: RSO
+  international: South Ossetia
+- id: 20
+  name: Italy
+  short: ITA
+  international: Italy
+- id: 21
+  name: Australia
+  short: AUS
+  international: Australia
+- id: 22
+  name: Switzerland
+  short: SUI
+  international: Switzerland
+- id: 23
+  name: Austria
+  short: AUT
+  international: Austria
+- id: 24
+  name: Belarus
+  short: BLR
+  international: Belarus
+- id: 25
+  name: Bulgaria
+  short: BGR
+  international: Bulgaria
+- id: 26
+  name: Czech Republic
+  short: CZE
+  international: Czech Republic
+- id: 27
+  name: China
+  short: CHN
+  international: China
+- id: 28
+  name: Croatia
+  short: HRV
+  international: Croatia
+- id: 29
+  name: Egypt
+  short: EGY
+  international: Egypt
+- id: 30
+  name: Finland
+  short: FIN
+  international: Finland
+- id: 31
+  name: Greece
+  short: GRC
+  international: Greece
+- id: 32
+  name: Hungary
+  short: HUN
+  international: Hungary
+- id: 33
+  name: India
+  short: IND
+  international: India
+- id: 34
+  name: Iran
+  short: IRN
+  international: Iran
+- id: 35
+  name: Iraq
+  short: IRQ
+  international: Iraq
+- id: 36
+  name: Japan
+  short: JPN
+  international: Japan
+- id: 37
+  name: Kazakhstan
+  short: KAZ
+  international: Kazakhstan
+- id: 38
+  name: North Korea
+  short: PRK
+  international: North Korea
+- id: 39
+  name: Pakistan
+  short: PAK
+  international: Pakistan
+- id: 40
+  name: Poland
+  short: POL
+  international: Poland
+- id: 41
+  name: Romania
+  short: ROU
+  international: Romania
+- id: 42
+  name: Saudi Arabia
+  short: SAU
+  international: Saudi Arabia
+- id: 43
+  name: Serbia
+  short: SRB
+  international: Serbia
+- id: 44
+  name: Slovakia
+  short: SVK
+  international: Slovakia
+- id: 45
+  name: South Korea
+  short: KOR
+  international: South Korea
+- id: 46
+  name: Sweden
+  short: SWE
+  international: Sweden
+- id: 47
+  name: Syria
+  short: SYR
+  international: Syria
+- id: 48
+  name: Yemen
+  short: YEM
+  international: Yemen
+- id: 49
+  name: Vietnam
+  short: VNM
+  international: Vietnam
+- id: 50
+  name: Venezuela
+  short: VEN
+  international: Venezuela
+- id: 51
+  name: Tunisia
+  short: TUN
+  international: Tunisia
+- id: 52
+  name: Thailand
+  short: THA
+  international: Thailand
+- id: 53
+  name: Sudan
+  short: SDN
+  international: Sudan
+- id: 54
+  name: Philippines
+  short: PHL
+  international: Philippines
+- id: 55
+  name: Morocco
+  short: MAR
+  international: Morocco
+- id: 56
+  name: Mexico
+  short: MEX
+  international: Mexico
+- id: 57
+  name: Malaysia
+  short: MYS
+  international: Malaysia
+- id: 58
+  name: Libya
+  short: LBY
+  international: Libya
+- id: 59
+  name: Jordan
+  short: JOR
+  international: Jordan
+- id: 60
+  name: Indonesia
+  short: IDN
+  international: Indonesia
+- id: 61
+  name: Honduras
+  short: HND
+  international: Honduras
+- id: 62
+  name: Ethiopia
+  short: ETH
+  international: Ethiopia
+- id: 63
+  name: Chile
+  short: CHL
+  international: Chile
+- id: 64
+  name: Brazil
+  short: BRA
+  international: Brazil
+- id: 65
+  name: Bahrain
+  short: BHR
+  international: Bahrain
+- id: 66
+  name: Third Reich
+  short: NZG
+  international: Third Reich
+- id: 67
+  name: Yugoslavia
+  short: YUG
+  international: Yugoslavia
+- id: 68
+  name: USSR
+  short: SUN
+  international: USSR
+- id: 69
+  name: Italian Social Republic
+  short: RSI
+  international: Italian Social Republic
+- id: 70
+  name: Algeria
+  short: DZA
+  international: Algeria
+- id: 71
+  name: Kuwait
+  short: KWT
+  international: Kuwait
+- id: 72
+  name: Qatar
+  short: QAT
+  international: Qatar
+- id: 73
+  name: Oman
+  short: OMN
+  international: Oman
+- id: 74
+  name: United Arab Emirates
+  short: ARE
+  international: United Arab Emirates
+- id: 75
+  name: South Africa
+  short: RSA
+  international: South Africa
+- id: 76
+  name: Cuba
+  short: CUB
+  international: Cuba
+- id: 77
+  name: Portugal
+  short: PRT
+  international: Portugal
+- id: 78
+  name: GDR
+  short: GDR
+  international: GDR
+- id: 79
+  name: Lebanon
+  short: LBN
+  international: Lebanon
+- id: 80
+  name: Combined Joint Task Forces Blue
+  short: BLUE
+  international: CJTF Blue
+- id: 81
+  name: Combined Joint Task Forces Red
+  short: RED
+  international: CJTF Red
+- id: 82
+  name: United Nations Peacekeepers
+  short: UN
+  international: UN
+- id: 83
+  name: Argentina
+  short: ARG
+  international: Argentina
+- id: 84
+  name: Cyprus
+  short: CYP
+  international: Cyprus
+- id: 85
+  name: Slovenia
+  short: SVN
+  international: Slovenia
+- id: 86
+  name: Bolivia
+  short: BOL
+  international: Bolivia
+- id: 87
+  name: Ghana
+  short: GHA
+  international: Ghana
+- id: 88
+  name: Nigeria
+  short: NGA
+  international: Nigeria
+- id: 89
+  name: Peru
+  short: PER
+  international: Peru
+- id: 90
+  name: Ecuador
+  short: ECU
+  international: Ecuador
+- id: 91
+  name: Afghanistan
+  short: AFG
+  international: Afghanistan
+- id: 92
+  name: New Zealand
+  short: NZL
+  international: New Zealand

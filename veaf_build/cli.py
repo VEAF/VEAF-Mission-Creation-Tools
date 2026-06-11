@@ -328,6 +328,56 @@ def build_and_publish(
         sys.exit(1)
 
 
+@app.command(name="update-dcs-data")
+def update_dcs_data(
+    countries: bool = typer.Option(False, "--countries", help="Regenerate the DCS country name->id table."),
+    radio: bool = typer.Option(False, "--radio", help="Regenerate the DCS aircraft radio specs."),
+    all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
+) -> None:
+    """Regenerate the DCS reference data committed in this repository.
+
+    Each artifact is generated from the Quaggles/dcs-lua-datamine dump at the
+    pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the output is
+    reproducible and CI fails if a committed artifact drifts from the generator.
+    With no flag, every artifact is regenerated.
+
+    Note: the DCS *units* database (`dcsUnits.lua`) comes from an in-DCS export
+    (`src/scripts/veaf/dcsDataExport.lua`), not the datamine, so it is refreshed
+    separately and is not covered by this command.
+    """
+    from veaf_build.dcs_data import countries as countries_provider
+    from veaf_build.dcs_data.datamine import DATAMINE_REF
+
+    run_all = all_data or not (countries or radio)
+    ref_short = DATAMINE_REF[:8]
+
+    if run_all or countries:
+        console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")
+        count = countries_provider.generate()
+        console.print(f"[green]✓ {count} countries written[/green]")
+
+    # Radio is regenerated only when explicitly requested (--radio), even under
+    # --all: it is a hybrid artifact with manual overlays the generator cannot
+    # reproduce, so --all must never silently overwrite it.
+    if radio:
+        console.print(
+            "[yellow]⚠ Regenerating radio specs OVERWRITES manual overlays "
+            "(`dcs_rejects_on_load` flags + the bilingual critical-aircraft doc). "
+            "Re-apply them after generation.[/yellow]"
+        )
+        console.print(f"[cyan]Generating DCS radio specs (datamine@{ref_short})...[/cyan]")
+        from veaf_build.radio_specs_updater import main as update_radio
+
+        update_radio()
+        console.print("[green]✓ radio specs written (re-apply manual overlays now)[/green]")
+    elif run_all:
+        console.print(
+            "[yellow]Skipping radio specs under --all: the radio artifact has manual "
+            "overlays. Regenerate it explicitly with --radio, then re-apply the "
+            "`dcs_rejects_on_load` flags and the hand-written doc section.[/yellow]"
+        )
+
+
 @app.command()
 def about() -> None:
     """Show information about the VEAF Tools build system."""

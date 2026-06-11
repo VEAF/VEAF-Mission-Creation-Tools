@@ -23,6 +23,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.dcs_countries import country_id_for_name
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
@@ -585,8 +586,11 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             if country.get("name", "").lower() == country_name_lower:
                 return country
 
-        # Country not in this coalition — look it up in other coalitions to preserve its DCS numeric id.
-        # DCS ME (fixCountriesNames) requires country.id to be present; a missing id causes a nil-index crash.
+        # Resolve the country's DCS numeric id. DCS ME (fixCountriesNames) dereferences
+        # country.id on load, so a country without an id crashes the mission at load time.
+        # Priority: (1) an id already used for this country elsewhere in the mission
+        # (preserves any non-standard id), (2) the generated DCS country table,
+        # (3) hard error — never emit a country without an id.
         dcs_id: int | None = None
         if self.dcs_mission and self.dcs_mission.mission_content:
             for other_coalition in self.dcs_mission.mission_content.get("coalition", {}).values():
@@ -597,9 +601,22 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                 if dcs_id is not None:
                     break
 
-        new_country: dict = {"name": country_name, "plane": {"group": []}, "helicopter": {"group": []}}
-        if dcs_id is not None:
-            new_country["id"] = dcs_id
+        if dcs_id is None:
+            dcs_id = country_id_for_name(country_name)
+
+        if dcs_id is None:
+            raise ValueError(
+                f"Cannot inject aircraft into unknown country '{country_name}': no DCS "
+                f"country id found in the mission or the DCS country table. Check the "
+                f"spelling, or refresh the table with `veaf-build update-dcs-data --countries`."
+            )
+
+        new_country: dict = {
+            "name": country_name,
+            "id": dcs_id,
+            "plane": {"group": []},
+            "helicopter": {"group": []},
+        }
         countries.append(new_country)
         return new_country
 

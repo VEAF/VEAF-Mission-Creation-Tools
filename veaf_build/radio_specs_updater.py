@@ -4,8 +4,11 @@ and generates:
   - src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml
   - doc/mission-maker/dcs-radio-specs.md
 
-Run manually whenever DCS is updated with new aircraft or changed radio specs:
-    poetry run update-radio-specs
+Run manually whenever the pinned datamine ref is bumped (after a DCS patch):
+    veaf-build update-dcs-data --radio   (or the `update-radio-specs` alias)
+
+The datamine is cloned at a pinned ref (veaf_build.dcs_data.datamine.DATAMINE_REF)
+so generation is reproducible and CI can detect stale artifacts.
 
 Source: https://github.com/Quaggles/dcs-lua-datamine
 """
@@ -13,7 +16,6 @@ Source: https://github.com/Quaggles/dcs-lua-datamine
 from __future__ import annotations
 
 import re
-import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -21,7 +23,8 @@ from pathlib import Path
 
 import yaml
 
-REPO_URL = "https://github.com/Quaggles/dcs-lua-datamine.git"
+from veaf_build.dcs_data.datamine import DATAMINE_REF, clone_datamine
+
 CATEGORIES = {
     "plane": "_G/db/Units/Planes/Plane",
     "helicopter": "_G/db/Units/Helicopters/Helicopter",
@@ -38,21 +41,10 @@ MODULATION_MAP = {0: "AM", 1: "FM", 2: "AM/FM"}
 # ---------------------------------------------------------------------------
 
 
-def clone_repo(dest: Path) -> None:
-    """Shallow-clone dcs-lua-datamine into dest (no history, faster)."""
-    print(f"Cloning {REPO_URL} into {dest}...")
-    subprocess.run(
-        ["git", "clone", "--depth=1", "--filter=blob:none", "--sparse", REPO_URL, str(dest)],
-        check=True,
-        capture_output=True,
-    )
-    # Sparse-checkout only the Units subtree we need
-    subprocess.run(
-        ["git", "sparse-checkout", "set", "_G/db/Units/Planes/Plane", "_G/db/Units/Helicopters/Helicopter"],
-        cwd=dest,
-        check=True,
-        capture_output=True,
-    )
+def clone_repo(dest: Path, ref: str = DATAMINE_REF) -> None:
+    """Sparse-clone the Units subtree of dcs-lua-datamine at a pinned ref."""
+    print(f"Cloning dcs-lua-datamine@{ref} into {dest}...")
+    clone_datamine(dest, list(CATEGORIES.values()), ref)
     print("Clone complete.")
 
 
@@ -145,7 +137,6 @@ def parse_panel_radio(lua_content: str) -> list[AircraftRadio] | None:
         if block[pos] == "{":
             radio_block = _extract_block(block, pos)
             if radio_block:
-                name_match = re.search(r'name\s*=\s*"([^"]+)"', radio_block)
                 range_match = re.search(r"range\s*=\s*\{", radio_block)
                 if range_match:
                     range_block = _extract_block(radio_block, range_match.end() - 1)
@@ -241,7 +232,8 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
     with open(output, "w", encoding="utf-8") as f:
         f.write("# DCS aircraft radio frequency specifications\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
-        f.write("# Re-run `poetry run update-radio-specs` to update after a DCS patch.\n")
+        f.write(f"# Source ref: {DATAMINE_REF}\n")
+        f.write("# Re-run `veaf-build update-dcs-data --radio` to update after a pin bump.\n")
         f.write("#\n")
         f.write("# Structure:\n")
         f.write("#   <dcs_unit_type_id>:\n")
@@ -278,7 +270,8 @@ def write_markdown(specs: list[AircraftSpec], output: Path) -> None:
         "compatible with the target aircraft's radio hardware.",
         "",
         "> **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  ",
-        "> Re-generate with `poetry run update-radio-specs` after a DCS patch.",
+        f"> Source ref: `{DATAMINE_REF}`  ",
+        "> Re-generate with `veaf-build update-dcs-data --radio` after a pin bump.",
         "",
         "---",
         "",

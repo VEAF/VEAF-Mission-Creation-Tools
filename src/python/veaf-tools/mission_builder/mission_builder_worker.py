@@ -34,6 +34,7 @@ from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
 
+from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
 from mission_builder.group_validation import find_missing_declared_groups
 
@@ -682,6 +683,20 @@ class MissionBuilderWorker(BaseWorker):
             return
         for section, group in find_missing_declared_groups(self.mission_yaml, self.dcs_mission.mission_content):
             logger.warning(t("builder.declared_group_missing", group=group, section=section))
+
+    def ensure_coalitions_populated(self) -> None:
+        """Inject a hidden placeholder ground unit into any empty side coalition.
+
+        Lifts the historical "place one blue and one red ground group by hand"
+        requirement: a side coalition with no unit would leave its DCS tables
+        incomplete (injectors skip groups; DCS purges unit-less countries), so a
+        single hidden placeholder ground group is added on the coalition
+        bullseye. See :func:`coalition_placeholder.ensure_coalitions_populated`.
+        """
+        if not self.dcs_mission or not self.dcs_mission.mission_content:
+            return
+        for side in ensure_coalitions_populated(self.dcs_mission.mission_content):
+            logger.info(t("builder.coalition_placeholder_injected", side=side))
 
     def clear_veaf_triggers(self) -> None:
         """
@@ -1367,6 +1382,9 @@ class MissionBuilderWorker(BaseWorker):
         # Load the mission from the .miz file (unzip it) and process aircraft groups
         with spinner_context(t("builder.reading_mission", output=self.output_mission), silent=silent):
             self.read_mission()
+
+        # Ensure each side coalition owns at least one unit (hidden placeholder if not)
+        self.ensure_coalitions_populated()
 
         # Warn about config-declared groups (ASSETS, QRA, …) absent from the mission
         self.validate_declared_groups()

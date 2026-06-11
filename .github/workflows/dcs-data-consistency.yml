@@ -1,0 +1,48 @@
+name: DCS Data Consistency
+
+# Regenerate the pure, datamine-sourced DCS artifacts against the pinned ref and
+# fail if the committed files drift from the generator output (forgot to run
+# `veaf-build update-dcs-data`, or hand-edited a generated file).
+#
+# Only PURE artifacts are guarded here. The radio specs are a hybrid artifact
+# (generated base + manual `dcs_rejects_on_load` overlays + bilingual doc) and
+# therefore cannot use a regenerate-equality check.
+
+on:
+  push:
+    branches: [develop-v6, main]
+    paths:
+      - "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
+      - "veaf_build/dcs_data/**"
+      - ".github/workflows/dcs-data-consistency.yml"
+  pull_request:
+    paths:
+      - "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
+      - "veaf_build/dcs_data/**"
+      - ".github/workflows/dcs-data-consistency.yml"
+
+jobs:
+  dcs-data-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --without build --all-extras
+
+      - name: Regenerate the country table against the pinned ref
+        run: poetry run veaf-build update-dcs-data --countries
+
+      - name: Fail if the committed artifact drifts from the generator
+        run: |
+          if ! git diff --exit-code src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml; then
+            echo "::error::dcs-countries.yaml is out of date or hand-edited. Run 'veaf-build update-dcs-data --countries' and commit the result (bump DATAMINE_REF first if intended)."
+            exit 1
+          fi

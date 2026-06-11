@@ -1,0 +1,79 @@
+name: DCS Data Drift Watcher
+
+# Weekly check: has the upstream dcs-lua-datamine moved past our pinned ref?
+# If so, open a PR that bumps DATAMINE_REF and regenerates the pure artifacts,
+# so a human can review the DCS data change. This decouples upstream DCS churn
+# from per-PR CI (the consistency guard only ever checks against the pin).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compare pinned ref to upstream HEAD
+        id: compare
+        run: |
+          current="$(grep -oP 'DATAMINE_REF = "\K[0-9a-f]+' veaf_build/dcs_data/datamine.py)"
+          latest="$(git ls-remote https://github.com/Quaggles/dcs-lua-datamine.git HEAD | cut -f1)"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$current" = "$latest" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Pin is up to date ($current)."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream moved: $current -> $latest"
+          fi
+
+      - uses: actions/setup-python@v6
+        if: steps.compare.outputs.changed == 'true'
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        if: steps.compare.outputs.changed == 'true'
+        run: pip install poetry
+
+      - name: Install dependencies
+        if: steps.compare.outputs.changed == 'true'
+        run: poetry install --without build --all-extras
+
+      - name: Bump the pin and regenerate pure artifacts
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          sed -i "s/${{ steps.compare.outputs.current }}/${{ steps.compare.outputs.latest }}/" veaf_build/dcs_data/datamine.py
+          poetry run veaf-build update-dcs-data --countries
+
+      - name: Open a pull request
+        if: steps.compare.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/datamine-pin-bump
+          title: "chore(dcs-data): bump datamine pin and regenerate country table"
+          commit-message: "chore(dcs-data): bump DATAMINE_REF and regenerate countries"
+          body: |
+            The upstream `Quaggles/dcs-lua-datamine` moved past our pinned ref.
+
+            - Pin: `${{ steps.compare.outputs.current }}` → `${{ steps.compare.outputs.latest }}`
+            - Regenerated the **pure** `dcs-countries.yaml` automatically.
+
+            **Manual follow-up before merge** (not done automatically, by design):
+            - **Radio** (`dcs-radio-specs.yaml/.md`): hybrid artifact — run
+              `veaf-build update-dcs-data --radio`, then re-apply the
+              `dcs_rejects_on_load` overlays and the bilingual doc section.
+            - **Units** (once DCSDATA-008 lands): run `--units` and review the
+              semantic-equivalence diff.
+
+            Review the country diff for unexpected changes before merging.
+          labels: dcs-data

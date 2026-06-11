@@ -80,6 +80,8 @@ Ces commandes sont aussi accessibles depuis le chat multijoueur (avec le hook se
 
 Le brouillard peut être contrôlé en cours de mission — utile pour l'immersion, les scénarios d'entraînement ou les événements scriptés.
 
+> ⚠️ **Dépendant de la carte/version DCS** : le contrôle du brouillard utilise l'API moderne de DCS (`world.weather.setFogThickness` / `setFogAnimation`). Il est vérifié fonctionnel sur le **Caucase**. Si le brouillard ne change pas en jeu sur une carte donnée, c'est une **limitation de DCS** (support du brouillard variable selon la carte/version), pas un bug de VEAF.
+
 ### Constantes prédéfinies
 
 Trois familles de brouillard sont disponibles. S'active avec `:activate()` :

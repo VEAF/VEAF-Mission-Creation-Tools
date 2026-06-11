@@ -1,0 +1,16 @@
+{
+  "name": "veaf-docs-chatbot-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "POC Cloudflare Worker proxy for the VEAF documentation chatbot",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build-index": "node scripts/build-index.mjs",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

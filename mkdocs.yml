@@ -30,6 +30,13 @@ theme:
     - search.suggest
     - content.code.copy
 
+# POC: documentation chatbot widget (see poc/doc-chatbot/). Paths are relative to docs_dir (doc/).
+extra_css:
+  - assets/chatbot/veaf-chatbot.css
+extra_javascript:
+  - assets/chatbot/veaf-chatbot-config.js
+  - assets/chatbot/veaf-chatbot.js
+
 markdown_extensions:
   - toc:
       slugify: !!python/object/apply:pymdownx.slugs.slugify

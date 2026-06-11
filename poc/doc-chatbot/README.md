@@ -63,10 +63,10 @@ npx wrangler secret put GEMINI_API_KEY
 node scripts/build-index.mjs
 
 # Upload to KV:
-npx wrangler kv key  put --binding CHAT_KV "idx:vec:fr" --path vec-fr.bin
-npx wrangler kv key  put --binding CHAT_KV "idx:vec:en" --path vec-en.bin
-npx wrangler kv bulk put --binding CHAT_KV txt-fr.json
-npx wrangler kv bulk put --binding CHAT_KV txt-en.json
+npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
+npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
 ```
 
 Re-run these whenever the documentation changes (this is what the CI workflow automates).

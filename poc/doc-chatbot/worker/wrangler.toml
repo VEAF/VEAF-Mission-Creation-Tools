@@ -5,10 +5,10 @@ compatibility_date = "2025-01-01"
 # KV namespace: per-IP rate-limit counters AND the embeddings index (binary vectors + texts).
 # The similarity search runs in the Worker, so no paid vector DB is needed. Load the index with:
 #   node scripts/build-index.mjs   # writes vec-{lang}.bin + txt-{lang}.json
-#   npx wrangler kv key  put --binding CHAT_KV "idx:vec:fr" --path vec-fr.bin
-#   npx wrangler kv key  put --binding CHAT_KV "idx:vec:en" --path vec-en.bin
-#   npx wrangler kv bulk put --binding CHAT_KV txt-fr.json
-#   npx wrangler kv bulk put --binding CHAT_KV txt-en.json
+#   npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+#   npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+#   npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
+#   npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
 [[kv_namespaces]]
 binding = "CHAT_KV"
 id = "9599c6c3af6649b291ed8fdc26545dce"

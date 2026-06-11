@@ -87,6 +87,8 @@ veaf.outTextForUnit(unitName, report, 30)
 
 The runtime fog system lets you change visibility conditions during a mission — useful for immersion, training scenarios, or scripted events.
 
+> ⚠️ **Map/DCS-version dependent**: fog control uses the modern DCS API (`world.weather.setFogThickness` / `setFogAnimation`). It is verified working on **Caucasus**. If fog does not change in-game on a given map, that is a **DCS limitation** (fog support varies by map/version), not a VEAF bug.
+
 ### Pre-defined fog constants
 
 Three fog families are available. Activate any constant with `:activate()`:

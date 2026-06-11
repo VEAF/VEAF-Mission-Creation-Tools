@@ -506,6 +506,7 @@
   "builder.scripts_folder_missing": "Le dossier scripts {path} n'existe pas !",
   "builder.unknown_module_ids": "--log-modules : ID(s) de module inconnu(s) : {ids} — vérifiez l'orthographe",
   "builder.unknown_community_script": "ID de script communautaire inconnu {id} dans 'community_scripts:' ; ignoré.",
+  "builder.mandatory_community_kept": "Le script communautaire '{id}' est obligatoire (dépendance VEAF) et reste activé ; la demande de désactivation est ignorée.",
   "builder.dcs_bridge_downloading": "dcs_bridge : téléchargement de dcs-bridge.lua depuis {url}",
   "builder.inject_dcs_bridge": "Injection de dcs-bridge.lua",
   "builder.copied_from_defaults": "Fichier requis '{file}' copié depuis le dossier par défaut '{folder}'",

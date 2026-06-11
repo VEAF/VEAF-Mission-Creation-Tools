@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.4.8"
+version = "6.4.9"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -108,8 +108,6 @@ module = [
     "aircrafts_injector.aircrafts_injector_worker",
     "mission_converter.mission_converter_worker",
     "mission_extractor.mission_extractor_worker",
-    "presets_injector.presets_injector_worker",
-    "waypoints_injector.waypoints_injector_worker",
     "waypoints_injector.waypoints_manager",
     "weather_injector.utils.lua_converter",
     "weather_injector.weather.dcs_weather_converter",

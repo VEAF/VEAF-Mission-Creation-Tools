@@ -113,7 +113,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a specific group."""
         # Create route structure
-        route = {"points": [], "routeRelativeTOD": False}
+        route: dict[str, Any] = {"points": [], "routeRelativeTOD": False}
 
         # Convert waypoint definitions to DCS mission format
         for i, waypoint in enumerate(waypoints, 1):
@@ -307,7 +307,7 @@ class WaypointsExtractorWorker(BaseWorker):
         if not silent:
             logger.info(t("waypoints_injector.saving_waypoints", path=self.output_yaml))
 
-        output_data = {"waypoints": {}}
+        output_data: dict[str, Any] = {"waypoints": {}}
 
         # Extract waypoint definitions from matched groups
         for key, group_info in self.matched_groups.items():

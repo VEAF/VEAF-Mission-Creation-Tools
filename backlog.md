@@ -25,7 +25,7 @@
 | Lot PERF-LUADATA-PARSER — pure-Python luadata parser (SECREV-001) slow on large missions; build 5-10× slower | ✅ |
 | Lot FIX-DYNLOAD-PUBLISHED — dynamic loading broken from `published/` (loaded individual scripts absent from the bundle); split DEV/PROD + generate veafDynamicConfig.lua | ✅ |
 | Lot FIX-EMPTY-COALITION-COUNTRY — `build` crashes (`'dict' object has no attribute 'append'`) on a mission with an empty coalition side | ✅ |
-| Lot FIX-DEFAULTS-AIRCRAFT-ROSTER — default spawnables/dynamic-slot-templates ship a demo roster → builds inject phantom late-activation slots ("flight delayed to start") | ✅ |
+| Lot FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE — waypoint injection wiped a flight's takeoff → "flight delayed to start"; append-not-replace. Also reverts FIX-DEFAULTS-AIRCRAFT-ROSTER (misdiagnosis) | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -210,15 +210,20 @@
 
 ---
 
-## Lot FIX-DEFAULTS-AIRCRAFT-ROSTER — empty default aircraft files
+## Lot FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE — waypoint injection wipes the takeoff
 
-**Goal**: The shipped default `src/spawnables.yaml` (58 groups) and `src/dynamic-slot-templates.yaml` (104 groups) carried a full demo roster. Since AIRCRAFT-INJECT made `spawnables.yaml` actually injected (and dynamic-slot-templates is injected too), any mission built without its own files got ~160 extra **late-activation client** groups injected. Taking a slot then triggers the DCS native message **"YOUR FLIGHT IS DELAYED TO START, PLEASE WAIT"**. Reported on a minimal Caucasus mission and the demo mission (6.4.21). A fresh scaffold must ship no aircraft groups.
+**Goal**: Taking a player slot in a built mission showed the DCS native message **"YOUR FLIGHT IS DELAYED TO START, PLEASE WAIT"** and the slot could not be taken. Root cause: the waypoints injector rebuilt each matched group's route from scratch with **only** the injected waypoints, wiping the original `TakeOffParking` point — the default `waypoints.yaml` example matches `all_blue_planes`, so a human A-10C2 lost its parking departure and got an airborne first waypoint (ETA in the future) → DCS delays the flight. Per David: injection must **append** waypoints to the end of the existing route, and **replace in place only a waypoint of the same name** — never wipe the route.
 
-**Branch**: `fix/empty-default-aircraft-rosters` → PR → `develop-v6`
+This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the default spawnables/dynamic-slot-templates was a misdiagnosis — injecting those late-activation/dyn-spawn groups is normal and intended; they were not the cause of the message.
+
+**Branch**: `fix/waypoints-injection-preserve-route` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-DEFAULTS-AIRCRAFT-ROSTER-001 | Replace the default `spawnables.yaml` and `dynamic-slot-templates.yaml` rosters with empty structures (`airplanes`/`helicopters` → `coalitions: {}`). Populate via `extract-aircraft-groups` / `convert-v5`. Regression test asserting both defaults carry zero groups. | `src/defaults/mission-folder/src/spawnables.yaml`, `src/defaults/mission-folder/src/dynamic-slot-templates.yaml`, `test/python/mission_builder/test_default_scaffold.py` | fix | ✅ |
+| FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE-001 | `_inject_waypoints_into_group`: start from the group's existing route; append each injected waypoint at the end, replacing in place only a same-named waypoint; never recreate the route (takeoff/landing preserved); keep the ETA-locked guard and renumber `num`. Revert #438. Regression tests (takeoff preserved + append, replace-by-name). Verified end-to-end on the reporter's `test.miz`. | `waypoints_injector/waypoints_injector_worker.py`, `test/python/waypoints_injector/test_waypoints_injector_worker.py` | fix | ✅ |
+
+### Future note (not in this lot)
+- Prevent spawnable (`veafSpawn-`) and dynamic-slot template groups from being **selectable** in the DCS slot list (they appear as choosable slots today). To investigate.
 
 ---
 

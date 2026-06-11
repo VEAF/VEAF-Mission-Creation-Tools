@@ -66,7 +66,13 @@ class TestAddGroup(unittest.TestCase):
 
     def test_group_with_name_stored(self) -> None:
         worker = self._worker()
-        group = Group(group_dcs={"name": "Hornet Lead"}, aircraft_type="plane", country="USA", coalition="blue", name="Hornet Lead")
+        group = Group(
+            group_dcs={"name": "Hornet Lead"},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="Hornet Lead",
+        )
         worker.add_group(group)
         self.assertIn("Hornet Lead", worker.groups)
 
@@ -80,8 +86,12 @@ class TestAddGroup(unittest.TestCase):
         worker = self._worker()
         group = Group(
             group_dcs={"name": "Client Group"},
-            aircraft_type="plane", country="USA", coalition="blue",
-            name="Client Group", unit_type="FA-18C_hornet", human_pilot=True,
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="Client Group",
+            unit_type="FA-18C_hornet",
+            human_pilot=True,
         )
         worker.add_group(group)
         stored = worker.groups["Client Group"]
@@ -92,8 +102,11 @@ class TestAddGroup(unittest.TestCase):
         worker = self._worker()
         group = Group(
             group_dcs={"name": "Player Group"},
-            aircraft_type="plane", country="Russia", coalition="red",
-            name="Player Group", human_pilot=True,
+            aircraft_type="plane",
+            country="Russia",
+            coalition="red",
+            name="Player Group",
+            human_pilot=True,
         )
         worker.add_group(group)
         self.assertTrue(worker.groups["Player Group"].human_pilot)
@@ -102,8 +115,11 @@ class TestAddGroup(unittest.TestCase):
         worker = self._worker()
         group = Group(
             group_dcs={"name": "AI Patrol"},
-            aircraft_type="plane", country="USA", coalition="blue",
-            name="AI Patrol", human_pilot=False,
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="AI Patrol",
+            human_pilot=False,
         )
         worker.add_group(group)
         self.assertFalse(worker.groups["AI Patrol"].human_pilot)
@@ -112,8 +128,11 @@ class TestAddGroup(unittest.TestCase):
         worker = self._worker()
         group = Group(
             group_dcs={"name": "Mixed"},
-            aircraft_type="plane", country="USA", coalition="blue",
-            name="Mixed", human_pilot=True,
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="Mixed",
+            human_pilot=True,
         )
         worker.add_group(group)
         self.assertTrue(worker.groups["Mixed"].human_pilot)
@@ -178,6 +197,57 @@ class TestInjectWaypointsIntoGroup(unittest.TestCase):
         points = group.group_dcs["route"]["points"]
         self.assertFalse(points[0]["ETA_locked"])
         self.assertTrue(points[1]["ETA_locked"])
+
+
+class TestInjectPreservesExistingRoute(unittest.TestCase):
+    """Injection must append to the existing route, replacing only same-named points.
+
+    Regression: the injector used to wipe the whole route, destroying the
+    takeoff-from-parking point of a human slot → DCS "your flight is delayed to
+    start, please wait" and the slot could not be taken (FIX waypoints injection).
+    """
+
+    def _group_with_route(self) -> Group:
+        return Group(
+            group_dcs={
+                "route": {
+                    "routeRelativeTOD": False,
+                    "points": [
+                        {"type": "TakeOffParking", "action": "From Parking Area", "name": "", "alt": 10, "num": 1},
+                        {"type": "Turning Point", "action": "Turning Point", "name": "BULLSEYE", "alt": 1000, "num": 2},
+                    ],
+                }
+            },
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="Aerial-1",
+            unit_type="A-10C_2",
+            human_pilot=True,
+        )
+
+    def test_takeoff_preserved_and_new_waypoint_appended(self) -> None:
+        worker = WaypointsInjectorWorker(waypoints_file=None, input_mission=None, output_mission=None)
+        group = self._group_with_route()
+        wp = WaypointDefinition(type="Turning Point", action="Turning Point", alt=3048.0, name="INITIAL_POINT")
+        worker._inject_waypoints_into_group(group, [wp])
+        points = group.group_dcs["route"]["points"]
+        # Takeoff stays first, BULLSEYE stays, INITIAL_POINT appended → 3 points.
+        self.assertEqual(points[0]["type"], "TakeOffParking")
+        self.assertEqual([p.get("name") for p in points], ["", "BULLSEYE", "INITIAL_POINT"])
+        self.assertEqual([p["num"] for p in points], [1, 2, 3])
+
+    def test_same_named_waypoint_replaced_in_place(self) -> None:
+        worker = WaypointsInjectorWorker(waypoints_file=None, input_mission=None, output_mission=None)
+        group = self._group_with_route()
+        wp = WaypointDefinition(type="Turning Point", action="Turning Point", alt=6096.0, name="BULLSEYE")
+        worker._inject_waypoints_into_group(group, [wp])
+        points = group.group_dcs["route"]["points"]
+        # No duplicate: BULLSEYE replaced in place; takeoff untouched.
+        self.assertEqual(len(points), 2)
+        self.assertEqual(points[0]["type"], "TakeOffParking")
+        self.assertEqual(points[1]["name"], "BULLSEYE")
+        self.assertEqual(points[1]["alt"], 6096.0)
 
 
 class TestProcessGroups(unittest.TestCase):

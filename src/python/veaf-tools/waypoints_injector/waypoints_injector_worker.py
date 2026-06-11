@@ -111,25 +111,44 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             logger.tech(t("waypoints_injector.injected", count=nb_groups_processed))
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
-        """Inject waypoints into a specific group."""
-        # Create route structure
-        route: dict[str, Any] = {"points": [], "routeRelativeTOD": False}
+        """Inject waypoints into a group's route, preserving its existing route.
 
-        # Convert waypoint definitions to DCS mission format
-        for i, waypoint in enumerate(waypoints, 1):
+        Each injected waypoint is **appended** to the end of the group's current
+        route, *except* when a waypoint with the same ``name`` already exists — in
+        which case it replaces that one in place. The group's existing points
+        (notably its takeoff-from-parking / landing points) are never wiped, so a
+        human-piloted slot keeps a valid departure (otherwise DCS reports
+        "your flight is delayed to start" and the slot cannot be taken).
+        """
+        # Start from the existing route (preserve its metadata and points).
+        route: dict[str, Any] = group.group_dcs.get("route") or {"points": [], "routeRelativeTOD": False}
+        points: list[dict[str, Any]] = route.get("points") or []
+        route["points"] = points
+
+        # Index existing points by (non-empty) name for in-place replacement.
+        index_by_name = {p["name"]: i for i, p in enumerate(points) if p.get("name")}
+
+        for waypoint in waypoints:
             wp_dict = waypoint.to_dict()
-            # Add sequence number
-            wp_dict["num"] = i
-            route["points"].append(wp_dict)
+            name = wp_dict.get("name")
+            if name and name in index_by_name:
+                points[index_by_name[name]] = wp_dict  # replace the same-named waypoint in place
+            else:
+                if name:
+                    index_by_name[name] = len(points)
+                points.append(wp_dict)  # append at the end
+
+        # Renumber sequentially (DCS expects 1-based contiguous `num`).
+        for i, point in enumerate(points, 1):
+            point["num"] = i
 
         # DCS refuses to save a flight whose route has no waypoint with a locked
-        # ETA ("Route has no waypoints with locked time!"). If the flight plan
-        # locked none, lock the first waypoint (its departure), as DCS does.
-        points = route["points"]
+        # ETA ("Route has no waypoints with locked time!"). If none is locked,
+        # lock the first waypoint (its departure), as DCS does.
         if points and not any(point.get("ETA_locked") for point in points):
             points[0]["ETA_locked"] = True
 
-        # Inject route into group
+        # Inject route back into group.
         group.group_dcs["route"] = route
 
     def write_mission(self, silent: bool = False) -> None:

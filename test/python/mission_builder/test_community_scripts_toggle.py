@@ -55,10 +55,7 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
     def test_multiple_scripts_disabled(self) -> None:
         """Multiple scripts disabled are all absent."""
         worker = _make_worker(
-            "community_scripts:\n"
-            "  ctld: {enabled: false}\n"
-            "  csar: {enabled: false}\n"
-            "  mist: {enabled: true}\n"
+            "community_scripts:\n  ctld: {enabled: false}\n  csar: {enabled: false}\n  mist: {enabled: true}\n"
         )
         assert worker.enabled_community_script_ids is not None
         self.assertNotIn("ctld", worker.enabled_community_script_ids)
@@ -104,6 +101,27 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
         """A non-dict community_scripts value is ignored; all scripts remain active."""
         worker = _make_worker("community_scripts: not-a-dict\n")
         self.assertIsNone(worker.enabled_community_script_ids)
+
+
+class TestMistMandatory(unittest.TestCase):
+    """MiST is a mandatory community dependency — always injected (FIX-DEFAULTS-MODULES)."""
+
+    def test_mist_kept_when_disabled_explicitly(self) -> None:
+        worker = _make_worker("community_scripts:\n  mist: {enabled: false}\n  ctld: {enabled: false}\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("mist", worker.enabled_community_script_ids)  # mandatory → kept
+        self.assertNotIn("ctld", worker.enabled_community_script_ids)  # ordinary → disabled
+
+    def test_mist_kept_with_false_shorthand(self) -> None:
+        worker = _make_worker("community_scripts:\n  mist: false\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("mist", worker.enabled_community_script_ids)
+
+    def test_mist_kept_when_bare_in_modules(self) -> None:
+        # The default ships `modules:\n  MIST:` (bare) → normalized to community mist=None → kept.
+        worker = _make_worker("modules:\n  MIST:\n  RADIO: true\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("mist", worker.enabled_community_script_ids)
 
 
 class TestActiveCommunityScripts(unittest.TestCase):

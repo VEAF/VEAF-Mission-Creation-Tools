@@ -72,6 +72,12 @@ def lua_loads_other_scripts(text: str) -> bool:
     return bool(_LUA_SCRIPT_LOADER_RE.search(text))
 
 
+#: Community scripts that are hard dependencies of the VEAF scripts and are always
+#: injected, regardless of (or despite) the `modules:` entry (MiST is used pervasively,
+#: e.g. by veafAssets.respawn). Disabling one is warned and ignored.
+MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset({"mist"})
+
+
 def resolve_dynamic_mode(cli_override: bool | None, build_cfg: dict) -> bool:
     """Resolve the dynamic-loading flag (IMC2-008).
 
@@ -378,6 +384,16 @@ class MissionBuilderWorker(BaseWorker):
                     enabled = False
                 else:
                     enabled = bool(script_cfg)
+                if script_id in MANDATORY_COMMUNITY_SCRIPTS:
+                    # MiST is a hard dependency of the VEAF scripts — always inject it.
+                    # A bare `MIST:` (None) is the mandatory default form (kept silently);
+                    # an explicit disable is the user trying to turn it off → warn and keep.
+                    explicitly_disabled = script_cfg is False or (
+                        isinstance(script_cfg, dict) and script_cfg.get("enabled") is False
+                    )
+                    if explicitly_disabled:
+                        logger.warning(t("builder.mandatory_community_kept", id=script_id))
+                    enabled = True
                 if not enabled:
                     self.enabled_community_script_ids.discard(script_id)
 

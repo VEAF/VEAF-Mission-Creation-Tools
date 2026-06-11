@@ -60,6 +60,7 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
+  MIST:                     # MiST community lib — mandatory (VEAF dependency), always injected
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true
   RADIO: true               # the VEAF F10 radio menu
@@ -154,9 +155,8 @@ modules:
   #           - groups: su27-2ship
   #             delay: 0
   # ── Community scripts (off by default — enable what your mission uses) ─────
-  MIST: false
+  # (MiST is mandatory and lives in the Infrastructure block above.)
   STTS: false
-  WEATHERMARK: false
   CTLD: false               # extended: CTLD -> { enabled: true, settings: { hoverPickup: true } }
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }

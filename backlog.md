@@ -27,6 +27,9 @@
 | Lot FIX-EMPTY-COALITION-COUNTRY — `build` crashes (`'dict' object has no attribute 'append'`) on a mission with an empty coalition side | ✅ |
 | Lot FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE — waypoint injection wiped a flight's takeoff → "flight delayed to start"; append-not-replace. Also reverts FIX-DEFAULTS-AIRCRAFT-ROSTER (misdiagnosis) | ✅ |
 | Lot FIX-DEFAULT-MODULES-ACTIVE — default mission.yaml was all-commented → no VEAF menu on a fresh build; ship an active baseline modules block | ✅ |
+| Lot FIX-DEFAULTS-MODULES — MiST mandatory (always injected), remove WEATHERMARK from default, TUM kept | ✅ |
+| Lot WEATHERMARK-REMOVE — retire the WeatherMark community script everywhere (file, registry, validator, docs) | ⬜ |
+| Lot TUM-INIT — generate `TUM.initialize()` in veaf-config.lua so `TUM: true` actually starts TheUniversalMission | ⬜ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -237,6 +240,38 @@ This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the defa
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-DEFAULT-MODULES-ACTIVE-001 | Default `mission.yaml` ships an **active** `modules:` block: mandatory infrastructure (bare) + `SECURITY`/`RADIO`/`GROUNDAI`/`SPAWN`/`NAMEDPOINTS`/`MOVE`/`GRASS`/`WEATHER`/`REMOTE`/`AIRBASES`/`INTERPRETER: true`; community scripts `false`; config-requiring modules (`ASSETS`, `QRA`, `SHORTCUTS`, `SANCTUARY`, combat, …) as commented examples. Mirrors convert-v5 baseline (IMC2-007 lockstep). | `src/defaults/mission-folder/mission.yaml` | fix | ✅ |
+
+---
+
+## Lot FIX-DEFAULTS-MODULES — MiST mandatory, drop WEATHERMARK from default
+
+**Goal**: David's review of the default `mission.yaml`: (1) MiST is a hard VEAF dependency → must always be injected (like the mandatory infrastructure modules); (2) WEATHERMARK no longer belongs in our scripts → remove it from the default (full removal tracked separately); (3) TUM has no initialization in the generated config (kept in the default; init tracked separately).
+
+**Branch**: `fix/defaults-mist-weathermark-tum` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-DEFAULTS-MODULES-001 | MiST mandatory: always inject the `mist` community script regardless of the `modules:` entry (`MANDATORY_COMMUNITY_SCRIPTS`); a bare `MIST:` is the default form (silent), an explicit `MIST: false` is warned and ignored. Default lists `MIST:` in the mandatory infrastructure block. Remove `WEATHERMARK` from the default. Tests for MiST-kept-when-disabled. | `mission_builder/mission_builder_worker.py`, `src/defaults/mission-folder/mission.yaml`, locales, `test/python/` | fix | ✅ |
+
+---
+
+## Lot WEATHERMARK-REMOVE — retire the WeatherMark community script
+
+**Goal**: WEATHERMARK is no longer used by VEAF. Remove it everywhere now that the default no longer references it.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| WEATHERMARK-REMOVE-001 | Remove the `weathermark` community script: drop `src/scripts/community/WeatherMark.lua`, the `weathermark` entry in `get_community_script_files()`, any validator/i18n references, and the documentation. Ensure no build/convert path still references it. | `mission_tools/mission_constants.py`, `src/scripts/community/`, `doc/`, `test/python/` | chore | ⬜ |
+
+---
+
+## Lot TUM-INIT — initialize TheUniversalMission from config
+
+**Goal**: `TUM: true` in `mission.yaml` currently does nothing — the generated `veaf-config.lua` never calls `TUM.initialize()` (the runtime logs "loaded, but not initialized"). Generate the init so the toggle actually starts TUM.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TUM-INIT-001 | Emit `TUM.initialize()` in `veaf-config.lua` when `TUM` is enabled (decide config surface, e.g. a `settings:` block). Add tests. | `veaf_libs/lua_config_generator.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
 
 ---
 

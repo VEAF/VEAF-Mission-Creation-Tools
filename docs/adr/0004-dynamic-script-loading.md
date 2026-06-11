@@ -11,6 +11,24 @@ runtime by whether the `VEAF_DYNAMIC_*PATH` globals are set. Two files —
 documents what each does and concludes neither is obsolete (DYNLOAD-CLARIFY
 spike, todo-2026.06.09 item 2).
 
+## Background — why a mission-scripts loader exists
+
+The mission-layer loader was introduced by
+[VEAF-mission-converter#17](https://github.com/VEAF/VEAF-mission-converter/issues/17)
+(MacFlorent, 2024-10-07). In dynamic mode the template originally loaded a single
+`missionConfig.lua` via one mission-editor trigger; adding more mission scripts
+meant hand-creating and ordering extra triggers. The issue's fix: replace that
+single trigger with **one loader file holding a configurable list of scripts**,
+so a mission maker keeps a CombatZones file, a CAPs file, etc. alongside
+`mission-script.lua` and only edits the loader to register them.
+
+That loader is today's **`veafDynamicConfig.lua`** — its `scriptsToLoad` table
+(with explicit *before*/*after* `mission-script.lua` slots) is exactly the
+configurable list issue #17 asked for. The issue proposed the name
+`veafDynamicLoader.lua`; it shipped as `veafDynamicConfig.lua`, which also avoids
+colliding with the pre-existing framework loader `VeafDynamicLoader.lua`. That
+near-identical naming is the very confusion this ADR resolves.
+
 ## The two loaders are different layers, not duplicates
 
 | File | Location | Loads | Scope |

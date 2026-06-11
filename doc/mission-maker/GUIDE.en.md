@@ -160,15 +160,25 @@ MyMission/
 ├── src/
 │   ├── mission/                  # Extracted DCS mission data (from extract)
 │   ├── scripts/
-│   │   └── mission-script.lua    # Your custom Lua code (optional)
-│   ├── presets.yaml             # Radio frequency presets
-│   ├── spawnables.yaml          # Predefined spawnable groups
-│   └── waypoints.yaml           # Bullseye / navigation points
+│   │   ├── mission-script.lua    # Your custom Lua code (optional)
+│   │   └── veafDynamicConfig.lua # Dynamic script-loading config (dev/test)
+│   ├── options                  # DCS options table injected into the .miz
+│   ├── presets.yaml             # Radio frequency presets (presets step)
+│   ├── spawnables.yaml          # Predefined spawnable groups (SPAWN)
+│   ├── templates.yaml           # Aircraft-group templates (SPAWN)
+│   ├── versions.yaml            # Weather/time variants (weather step)
+│   └── waypoints.yaml           # Bullseye / navigation points (waypoints step)
 ├── published/                    # VEAF scripts & tools (auto-installed)
 ├── mission.yaml                  # Build-time configuration
+├── .gitignore                    # Excludes generated/downloaded files
 ├── veaf-tools.exe                # CLI tool (auto-installed)
 └── veaf-tools-updater.exe
 ```
+
+> Every file listed under `src/` (except the `mission/` extract output) ships from
+> the tool's `defaults/mission-folder/` scaffold and is consumed at the first
+> build — the `*.yaml` files by their pipeline/module step, `options` by `.miz`
+> injection, and the `scripts/*.lua` files by script loading.
 
 ---
 

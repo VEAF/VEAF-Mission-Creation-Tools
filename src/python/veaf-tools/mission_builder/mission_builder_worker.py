@@ -60,6 +60,17 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+#: Lua calls that load another script file — the sign of a custom "loader" script.
+#: Kept deliberately broad (no attempt to parse the loaded list): we only detect
+#: that the file loads scripts, then point the user at the v6 `custom_scripts:` way.
+_LUA_SCRIPT_LOADER_RE = re.compile(r"\b(?:loadfile|dofile|require)\b|a_do_script_file|do_script_file")
+
+
+def lua_loads_other_scripts(text: str) -> bool:
+    """Return True when *text* looks like a Lua script that loads other scripts."""
+    return bool(_LUA_SCRIPT_LOADER_RE.search(text))
+
+
 def resolve_dynamic_mode(cli_override: bool | None, build_cfg: dict) -> bool:
     """Resolve the dynamic-loading flag (IMC2-008).
 
@@ -603,6 +614,13 @@ class MissionBuilderWorker(BaseWorker):
                     logger.info(t("builder.custom_lua_included", file=lua_file.name))
                     continue
                 logger.warning(t("builder.unexpected_lua_file", file=lua_file.name))
+                # A script that itself loads other scripts (a v5-style custom loader)
+                # cannot be auto-migrated reliably — point the user at the v6 way.
+                try:
+                    if lua_loads_other_scripts(lua_file.read_text(encoding="utf-8", errors="ignore")):
+                        logger.warning(t("builder.custom_loader_hint", file=lua_file.name))
+                except OSError:
+                    pass
 
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""

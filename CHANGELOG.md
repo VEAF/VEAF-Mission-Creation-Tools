@@ -11,6 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 - **WeatherMark community script retired**: its weather-report helpers were already replaced by `veafWeather` (the only remaining usage was a commented-out, deprecated `veaf.weatherReport` body). Removed `src/scripts/community/WeatherMark.lua`, the `weathermark` community-script entry, the dead `veaf.weatherReport` body, and the docs reference (WEATHERMARK-REMOVE-001)
+- Removed the now-empty deprecated `veaf.weatherReport` stub entirely (no callers; superseded by `veafWeatherData.getWeatherString`) (WEATHERMARK-REMOVE-002)
 
 ### Added
 - `TUM` now actually starts: when enabled, `veaf-config.lua` emits `if TUM then TUM.initialize() end` so TheUniversalMission is initialized at runtime (previously `TUM: true` loaded the script but never called `initialize()`) (TUM-INIT-001)

@@ -25,7 +25,6 @@
 | Lot PERF-LUADATA-PARSER — pure-Python luadata parser (SECREV-001) slow on large missions; build 5-10× slower | ✅ |
 | Lot FIX-DYNLOAD-PUBLISHED — dynamic loading broken from `published/` (loaded individual scripts absent from the bundle); split DEV/PROD + generate veafDynamicConfig.lua | ✅ |
 | Lot FIX-EMPTY-COALITION-COUNTRY — `build` crashes (`'dict' object has no attribute 'append'`) on a mission with an empty coalition side | ✅ |
-| Lot FIX-DEFAULTS-AIRCRAFT-ROSTER — default spawnables/dynamic-slot-templates ship a demo roster → builds inject phantom late-activation slots ("flight delayed to start") | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -207,18 +206,6 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-EMPTY-COALITION-COUNTRY-001 | Coerce a coalition's `country` to a list (handling the empty-`{}` dict case, keeping any values) before appending the placeholder country. Regression test with `country: {}`. | `mission_builder/coalition_placeholder.py`, `test/python/mission_builder/test_coalition_placeholder.py` | fix | ✅ |
-
----
-
-## Lot FIX-DEFAULTS-AIRCRAFT-ROSTER — empty default aircraft files
-
-**Goal**: The shipped default `src/spawnables.yaml` (58 groups) and `src/dynamic-slot-templates.yaml` (104 groups) carried a full demo roster. Since AIRCRAFT-INJECT made `spawnables.yaml` actually injected (and dynamic-slot-templates is injected too), any mission built without its own files got ~160 extra **late-activation client** groups injected. Taking a slot then triggers the DCS native message **"YOUR FLIGHT IS DELAYED TO START, PLEASE WAIT"**. Reported on a minimal Caucasus mission and the demo mission (6.4.21). A fresh scaffold must ship no aircraft groups.
-
-**Branch**: `fix/empty-default-aircraft-rosters` → PR → `develop-v6`
-
-| # | Ticket | Files | Type | Status |
-|---|--------|-------|------|--------|
-| FIX-DEFAULTS-AIRCRAFT-ROSTER-001 | Replace the default `spawnables.yaml` and `dynamic-slot-templates.yaml` rosters with empty structures (`airplanes`/`helicopters` → `coalitions: {}`). Populate via `extract-aircraft-groups` / `convert-v5`. Regression test asserting both defaults carry zero groups. | `src/defaults/mission-folder/src/spawnables.yaml`, `src/defaults/mission-folder/src/dynamic-slot-templates.yaml`, `test/python/mission_builder/test_default_scaffold.py` | fix | ✅ |
 
 ---
 

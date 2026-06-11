@@ -17,7 +17,9 @@ from .radio_frequency_validator import (
     ChannelFrequency,
     FrequencyIssue,
     collect_invalid_channel_frequencies,
+    get_valid_ranges,
     is_strict,
+    validate_frequencies,
     warn_invalid_channel_frequencies,
 )
 
@@ -115,6 +117,39 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         return nb_units_processed
 
+    def _preset_radio_compatible(self, group: Group, preset_definition: PresetDefinition) -> bool:
+        """Whether the resolved preset fits the aircraft's radio hardware.
+
+        Returns ``False`` only when *every* preset frequency is out of range for a
+        known aircraft — e.g. a UHF/VHF preset resolved (via an ``all`` fallback)
+        for a Yak-52, whose only radio is the sub-MHz ARK-15M. Injecting such a
+        preset would overwrite the correct radio with frequencies the DCS Mission
+        Editor refuses to save, so the injection is skipped and the original radio
+        kept. Empty presets and unknown aircraft (no spec data) are always
+        treated as compatible.
+
+        Args:
+            group: The aircraft group being processed.
+            preset_definition: The preset resolved for that group.
+
+        Returns:
+            ``True`` if at least one preset frequency is valid (or compatibility
+            cannot be determined), ``False`` if the preset is wholly incompatible.
+        """
+        if preset_definition == PresetDefinition.EMPTY or not group.unit_type:
+            return True
+        if get_valid_ranges(group.unit_type) is None:
+            return True
+        freqs = [
+            ch.freq
+            for radio in preset_definition.radios.values()
+            for ch in radio.channels
+            if isinstance(ch.freq, (int, float))
+        ]
+        if not freqs:
+            return True
+        return len(validate_frequencies(group.unit_type, freqs)) < len(freqs)
+
     def process_groups(self, silent: bool = False) -> None:
         """Inject presets into all human-piloted groups."""
         if not silent:
@@ -127,6 +162,15 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 aircraft_type=group.aircraft_type,
                 unit_type=group.unit_type if group.unit_type is not None else "all",
             ):
+                if not self._preset_radio_compatible(group, preset_definition):
+                    logger.warning(
+                        t(
+                            "presets_injector.skip_incompatible_radio",
+                            group=group.name,
+                            unit_type=group.unit_type,
+                        )
+                    )
+                    continue
                 preset_definition.used_in_mission = True
                 logger.debug(
                     f"Injecting preset '{preset_definition}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})"

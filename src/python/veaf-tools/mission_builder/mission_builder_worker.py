@@ -534,8 +534,8 @@ class MissionBuilderWorker(BaseWorker):
         # "pipeline" (key in self.pipeline_cfg) or "lua_module" (key in
         # self.mission_yaml["lua_modules"]).
         _DEFAULT_FILE_MODULE_MAP: dict[str, dict[str, str]] = {
-            "spawnables.yaml": {"lua_module": "SPAWN"},
-            "templates.yaml": {"lua_module": "SPAWN"},
+            "spawnables.yaml": {"pipeline": "spawnable_aircrafts"},
+            "dynamic-slot-templates.yaml": {"pipeline": "dynamic_slot_templates"},
             "waypoints.yaml": {"pipeline": "waypoints"},
             "presets.yaml": {"pipeline": "presets"},
             "versions.yaml": {"pipeline": "weather"},
@@ -543,37 +543,20 @@ class MissionBuilderWorker(BaseWorker):
         for f in defaults_folder.rglob("*"):
             if f.is_file():
                 mapping = _DEFAULT_FILE_MODULE_MAP.get(f.name)
-                if mapping is not None:
-                    if "pipeline" in mapping:
-                        step_cfg = self.pipeline_cfg.get(mapping["pipeline"])
-                        if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
-                            logger.debug(f"Skipping default '{f.name}': pipeline '{mapping['pipeline']}' is disabled")
-                            dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
-                            if dest.exists():
-                                logger.warning(
-                                    t(
-                                        "builder.orphan_pipeline_file",
-                                        file=dest.relative_to(self.mission_folder),
-                                        step=mapping["pipeline"],
-                                    )
+                if mapping is not None and "pipeline" in mapping:
+                    step_cfg = self.pipeline_cfg.get(mapping["pipeline"])
+                    if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+                        logger.debug(f"Skipping default '{f.name}': pipeline '{mapping['pipeline']}' is disabled")
+                        dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
+                        if dest.exists():
+                            logger.warning(
+                                t(
+                                    "builder.orphan_pipeline_file",
+                                    file=dest.relative_to(self.mission_folder),
+                                    step=mapping["pipeline"],
                                 )
-                            continue
-                    elif "lua_module" in mapping:
-                        mod_cfg = (self.mission_yaml.get("lua_modules") or {}).get(mapping["lua_module"])
-                        if isinstance(mod_cfg, dict) and not mod_cfg.get("enabled", mod_cfg.get("enable", True)):
-                            logger.debug(
-                                f"Skipping default '{f.name}': lua_module '{mapping['lua_module']}' is disabled"
                             )
-                            dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
-                            if dest.exists():
-                                logger.warning(
-                                    t(
-                                        "builder.orphan_lua_module",
-                                        file=dest.relative_to(self.mission_folder),
-                                        module=mapping["lua_module"],
-                                    )
-                                )
-                            continue
+                        continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
                 target_path = self.mission_folder / relative_path / f.name
                 if not target_path.exists():

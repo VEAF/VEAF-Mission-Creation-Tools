@@ -245,7 +245,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\aircrafts-injector",
-            "args": ["extract-aircraft-groups",  "templates.yaml", "--lua-input", "../../defaults/veafSpawnableAircraftsEditor/settings-templates.lua", "--group-name-pattern", ".*[tT]emplate.*"],
+            "args": ["extract-aircraft-groups", "--lua-input", "../demo-mission/src/spawnableAircrafts/settings.lua", "--output-spawnables", "spawnables.yaml", "--output-dynamic-templates", "dynamic-slot-templates.yaml"],
             "console": "integratedTerminal"
         },    
         {

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.4.10"
+version = "6.4.11"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -105,7 +105,6 @@ module = [
     "luadata",
     "luadata.*",
     # Existing application files with known type errors
-    "aircrafts_injector.aircrafts_injector_worker",
     "mission_converter.mission_converter_worker",
     "mission_extractor.mission_extractor_worker",
     "waypoints_injector.waypoints_manager",
@@ -129,7 +128,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=65",
+    "--cov-fail-under=66",
 ]
 
 # ---------------------------------------------------------------------------

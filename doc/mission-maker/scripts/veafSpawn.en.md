@@ -167,31 +167,19 @@ _teleport, name "Viper Flight"
 
 ---
 
-## Spawnable Groups (spawnables.yaml)
+## Spawnable aircraft groups (`src/spawnables.yaml`)
 
-Define reusable group templates that players can spawn with `_spawn group`:
+> ⚠️ Not to be confused with the `_spawn group` command (ground/helicopter groups from the `veafUnits` database). This is about real **aircraft groups**, hidden and late-activated, that `veafSpawn` **clones** on demand in-game.
 
-```yaml
-groups:
-  - name: "RED-CAP"
-    description: "Red CAP (2 × MiG-29S)"
-    coalition: red
-    country: Russia
-    units:
-      - type: MiG-29S
-        skill: High
-      - type: MiG-29S
-        skill: High
+A **spawnable aircraft group** is identified by the **`veafSpawn-` name prefix** (the `veafSpawn` runtime contract). At build time, the `spawnable_aircrafts` pipeline step injects `src/spawnables.yaml` into the `.miz`.
 
-  - name: "ARMOR-PLATOON"
-    description: "Armoured platoon (4 × T-80)"
-    coalition: red
-    country: Russia
-    units:
-      - type: T-80
-        count: 4
-        skill: Average
+The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c). It is usually produced by extracting from a mission:
+
+```bash
+veaf-tools extract-aircraft-groups --kind spawnable
 ```
+
+**Dynamic-slot templates** (`dynSpawnTemplate = true`, DCS Dynamic Slots) are a separate family, in `src/dynamic-slot-templates.yaml` (step `dynamic_slot_templates`) — see [ADR 0002](../../adr/0002-aircraft-group-injection-sort-criteria.md).
 
 ---
 

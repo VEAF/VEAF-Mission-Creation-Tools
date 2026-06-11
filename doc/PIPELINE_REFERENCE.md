@@ -12,7 +12,8 @@ Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
 |-------|----------------|----------------|
 | `presets` | `src/presets.yaml` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains |
 | `waypoints` | `src/waypoints.yaml` ou `waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
-| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml` ou `aircraft-templates.yaml` | Injecte des définitions de groupes d'aéronefs (slots/groupes à spawner) |
+| `spawnable_aircrafts` | `src/spawnables.yaml` | Injecte les groupes d'avions **spawnables** (préfixe `veafSpawn-`, clonés par `veafSpawn`) |
+| `dynamic_slot_templates` | `src/dynamic-slot-templates.yaml` | Injecte les **modèles de slot dynamique** (`dynSpawnTemplate = true`, consommés par DCS) |
 | `weather` | `src/versions.yaml` ou `versions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
 
 Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`.
@@ -25,9 +26,10 @@ Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config
 pipeline:
   presets: false                        # ignoré même si src/presets.yaml existe
   waypoints: true                       # auto-détection : exécuté seulement si le fichier existe
-  aircraft_groups:
-    file: src/my-aircraft.yaml          # chemin de fichier non-standard
+  spawnable_aircrafts:
+    file: src/my-spawnables.yaml        # chemin de fichier non-standard
     mode: replace                       # add (défaut) | replace
+  dynamic_slot_templates: false         # ignorer l'injection des modèles de slot dynamique
   weather: false                        # ignorer les variantes météo
 ```
 
@@ -37,7 +39,8 @@ pipeline:
 |-------|------|--------|--------|-------------|
 | `presets` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `waypoints` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
-| `aircraft_groups` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `spawnable_aircrafts` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `dynamic_slot_templates` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `weather` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 
 Quand la valeur est un objet, les sous-champs suivants s'appliquent :
@@ -45,7 +48,7 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 | Sous-champ | Type | Défaut | Description |
 |------------|------|--------|-------------|
 | `file` | string | *(voir défauts par étape)* | Chemin vers le fichier de config, relatif au dossier mission |
-| `mode` | `add` \| `replace` | `add` | *(aircraft_groups uniquement)* `add` conserve les groupes existants ; `replace` met à jour les groupes de même nom |
+| `mode` | `add` \| `replace` | `add` | *(étapes d'injection de groupes uniquement)* `add` conserve les groupes existants ; `replace` met à jour les groupes de même nom |
 
 **Auto-détection** (quand non défini ou `true`) : l'étape ne s'exécute que si son fichier par défaut est trouvé. L'absence du fichier ignore silencieusement l'étape.
 
@@ -259,18 +262,23 @@ settings:
 
 ---
 
-## Étape 3 — Groupes d'aéronefs (`aircraft-templates.yaml`)
+## Étape 3 — Groupes d'aéronefs : spawnables (B) et modèles de slot dynamique (C)
 
-Injecte des définitions de groupes d'aéronefs dans la mission. Utilisé pour les groupes à spawner et les modèles de slots joueurs.
+Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](adr/0002-aircraft-group-injection-sort-criteria.md)) :
 
-### Emplacement par défaut
+- **(B) groupes spawnables** (`src/spawnables.yaml`, étape `spawnable_aircrafts`) : vrais groupes cachés, clonés à la demande en jeu par `veafSpawn`. Marqueur : préfixe de nom `veafSpawn-`.
+- **(C) modèles de slot dynamique** (`src/dynamic-slot-templates.yaml`, étape `dynamic_slot_templates`) : groupes servant de **modèle** aux Dynamic Slots DCS, consommés nativement par le moteur. Marqueur : flag DCS `dynSpawnTemplate = true`.
+
+À l'extraction (`extract-aircraft-groups`), chaque groupe est routé vers l'une des deux familles selon ce critère (le flag prime sur le préfixe) ; les autres groupes sont ignorés. Par défaut, l'extraction produit **les deux** fichiers ; l'option `--kind spawnable|dynamic-template` en restreint un seul. L'ancien tri par nom `.*[tT]emplate.*` est abandonné (il misroutait un spawnable nommé « … Template … »).
+
+### Emplacements par défaut
 
 ```
-<dossier-mission>/src/aircraft-templates.yaml
-
-Aussi accepté : src/templates.yaml
-                aircraft-templates.yaml  (racine du dossier mission)
+<dossier-mission>/src/spawnables.yaml              # (B) spawnable_aircrafts
+<dossier-mission>/src/dynamic-slot-templates.yaml  # (C) dynamic_slot_templates
 ```
+
+> **Rupture v6** : les anciens noms `src/aircraft-templates.yaml` / `src/templates.yaml` et l'étape `aircraft_groups` ne sont plus utilisés. `convert-v5` produit directement les deux nouveaux fichiers.
 
 ### Modes d'injection
 

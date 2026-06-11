@@ -25,6 +25,7 @@ from typing import Any
 
 import luadata
 import yaml
+from aircrafts_injector import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
@@ -1110,17 +1111,23 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+#: Name of the dynamic-slot-template (C) file, sibling of the spawnables (B) file.
+_DYNAMIC_TEMPLATES_FILENAME = "dynamic-slot-templates.yaml"
+
+
 def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
-    """Convert v5 ``spawnableAircrafts/settings.lua`` → v6 ``templates.yaml``.
+    """Convert v5 ``spawnableAircrafts/settings.lua`` → **two** v6 YAML files.
 
-    Performs a structural conversion:
+    Each aircraft group is sorted (ADR 0002) into one of two families and written
+    to its own file:
 
-    - ``settings.categories.plane.coalitions.COALITION.countries.COUNTRY.groups.NAME``
-      → ``airplanes.coalitions.COALITION.COUNTRY.NAME``
-    - ``settings.categories.helicopter.…``
-      → ``helicopters.coalitions.…``
+    - **spawnable aircraft groups** (name prefix ``veafSpawn-``) → *v6_path*
+      (``src/spawnables.yaml``);
+    - **dynamic-slot templates** (``dynSpawnTemplate == true``, flag wins) →
+      the sibling ``src/dynamic-slot-templates.yaml``.
 
-    DCS group data (routes, tasks, units, …) is preserved as-is.
+    Groups that are neither are ignored (ordinary mission groups). DCS group data
+    (routes, tasks, units, …) is preserved as-is.
 
     .. warning::
         ``groupId`` / ``unitId`` values in the exported YAML are the original IDs
@@ -1144,10 +1151,11 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
     categories = raw.get("categories") or {}
 
     _CATEGORY_MAP: dict[str, str] = {"plane": "airplanes", "helicopter": "helicopters"}
-    output: dict[str, Any] = {
-        "airplanes": {"coalitions": {}},
-        "helicopters": {"coalitions": {}},
-    }
+
+    def _empty() -> dict[str, Any]:
+        return {"airplanes": {"coalitions": {}}, "helicopters": {"coalitions": {}}}
+
+    outputs: dict[str, dict[str, Any]] = {KIND_SPAWNABLE: _empty(), KIND_DYNAMIC_TEMPLATE: _empty()}
 
     for v5_cat, v6_cat in _CATEGORY_MAP.items():
         cat_data = categories.get(v5_cat) or {}
@@ -1156,18 +1164,23 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
             if not isinstance(coalition_data, dict):
                 continue
             countries_data = coalition_data.get("countries") or {}
-            v6_coalition: dict[str, Any] = {}
             for country, country_data in countries_data.items():
                 if not isinstance(country_data, dict):
                     continue
-                groups = country_data.get("groups") or {}
-                if groups:
-                    v6_coalition[str(country)] = {str(k): v for k, v in groups.items()}
-            if v6_coalition:
-                output[v6_cat]["coalitions"][str(coalition)] = v6_coalition
+                for name, group in (country_data.get("groups") or {}).items():
+                    # Build a classifiable view (the group key is its name).
+                    group_for_sort = dict(group) if isinstance(group, dict) else {}
+                    group_for_sort.setdefault("name", name)
+                    kind = classify_aircraft_group(group_for_sort)
+                    if kind is None:
+                        continue
+                    coalitions_out = outputs[kind][v6_cat]["coalitions"]
+                    coalitions_out.setdefault(str(coalition), {}).setdefault(str(country), {})[str(name)] = group
 
-    _yaml_dump(output, v6_path)
-    logger.info(t("v5convert.aircraft_done", source=v5_path.name, target=v6_path.name))
+    dynamic_path = v6_path.parent / _DYNAMIC_TEMPLATES_FILENAME
+    _yaml_dump(outputs[KIND_SPAWNABLE], v6_path)
+    _yaml_dump(outputs[KIND_DYNAMIC_TEMPLATE], dynamic_path)
+    logger.info(t("v5convert.aircraft_done", source=v5_path.name, target=f"{v6_path.name} + {dynamic_path.name}"))
     warnings.append(t("convert_v5.warn.aircraft_review", filename=v5_path.name))
     return warnings
 

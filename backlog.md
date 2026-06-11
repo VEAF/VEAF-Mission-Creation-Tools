@@ -30,11 +30,12 @@
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
-| Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ⬜ |
+| Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
+| Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ⬜ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + Vectorize + Gemini) embedded in the MkDocs site | 🔄 |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
 
@@ -359,14 +360,26 @@ was constrained to a working branch.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| AIRCRAFT-INJECT-001 | Replace the single `aircraft_groups` pipeline step with two: `spawnable_aircrafts` (→ `src/spawnables.yaml`) and `dynamic_slot_templates` (→ `src/dynamic-templates.yaml`), each independently configurable (`true/false` or `{enabled, file, mode}`). Decide hard-break vs compat for the old step / `aircraft-templates.yaml`/`templates.yaml` names (ADR 0001 precedent favours a clean hard break). | `veaf_tools/commands/build.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
-| AIRCRAFT-INJECT-002 | Keep both default files in `src/defaults/mission-folder/src/` — `spawnables.yaml` (B) and the renamed (C) file; update the defaults mapping + `test/python/mission_builder/test_mission_builder_defaults.py`. | `src/defaults/mission-folder/src/`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
-| AIRCRAFT-INJECT-003 | Implement the flag/prefix sort in the extractor (route each group to B or C, ignore the rest); ideally one extraction pass emitting both files (or a `--kind` flag — to arbitrate). **Includes the helicopters indentation bug** (`find_matching_groups` ~L1070-1086): same defect as SECREV-002 — coordinate so it is fixed once, not twice. | `aircrafts_injector/aircrafts_injector_worker.py`, `test/python/` | fix | ⬜ |
-| AIRCRAFT-INJECT-004 | Two injection steps, each injecting its file as-is (no name regex); verify `add`/`replace` mode per step. | `aircrafts_injector/aircrafts_injector_worker.py`, `test/python/` | feat | ⬜ |
-| AIRCRAFT-INJECT-005 | `convert-v5`: produce **both** v6 files from the v5 `settings.lua`, applying the same flag/prefix sort; update `V5_PIPELINE_CANDIDATES` / `V6_PIPELINE_CANDIDATES`. | `mission_builder/v5_pipeline_converters.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ⬜ |
-| AIRCRAFT-INJECT-006 | Cleanup: fix the dead `.vscode/launch.json` reference (`settings-templates.lua`); realign `doc/mission-maker/scripts/veafSpawn.md` (+ `.en`), `doc/MISSION_YAML_REFERENCE*.md`, `doc/PIPELINE_REFERENCE.md` on the real schema + the B/C distinction. | `.vscode/launch.json`, `doc/` | chore | ⬜ |
+| AIRCRAFT-INJECT-001 | Replace the single `aircraft_groups` pipeline step with two: `spawnable_aircrafts` (→ `src/spawnables.yaml`) and `dynamic_slot_templates` (→ `src/dynamic-slot-templates.yaml`), each independently configurable (`true/false` or `{enabled, file, mode}`). Hard break: old step + `aircraft-templates.yaml`/`templates.yaml` names dropped (legacy-file warning kept). | `veaf_tools/commands/build.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
+| AIRCRAFT-INJECT-002 | Keep both default files in `src/defaults/mission-folder/src/` — `spawnables.yaml` (B) and `dynamic-slot-templates.yaml` (C, renamed from `templates.yaml`); update the defaults mapping + tests. Removed the now-dead `lua_module` defaults-copy branch. | `src/defaults/mission-folder/src/`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
+| AIRCRAFT-INJECT-003 | Flag/prefix sort in the extractor via shared `classify_aircraft_group` (route each group to B or C, ignore the rest); one pass emits both files by default, `--kind` restricts. Helicopters indentation bug was already fixed by SECREV-002 (no double-fix needed). | `aircrafts_injector/aircrafts_injector_worker.py`, `test/python/` | fix | ✅ |
+| AIRCRAFT-INJECT-004 | Two injection steps, each injecting its file as-is (no name regex); `add`/`replace` mode per step. | `aircrafts_injector/aircrafts_injector_worker.py`, `veaf_tools/commands/build.py`, `test/python/` | feat | ✅ |
+| AIRCRAFT-INJECT-005 | `convert-v5`: produces **both** v6 files from the v5 `settings.lua`, applying the same flag/prefix sort; updated `V5_PIPELINE_CANDIDATES` / `V6_PIPELINE_CANDIDATES`. | `mission_builder/v5_pipeline_converters.py`, `mission_builder/v5_converter.py`, `test/python/` | feat | ✅ |
+| AIRCRAFT-INJECT-006 | Cleanup: fixed the dead `.vscode/launch.json` reference; realigned `doc/mission-maker/scripts/veafSpawn.md` (+ `.en`), `doc/MISSION_YAML_REFERENCE*.md`, `doc/PIPELINE_REFERENCE*.md` on the real schema + the B/C distinction. | `.vscode/launch.json`, `doc/` | chore | ✅ |
 
-**Open questions to settle with David** (handoff §7): (1) canonical name for the (C) file (`dynamic-templates.yaml` / `dynamic-slot-templates.yaml`?); (2) canonical pipeline step names; (3) hard break vs compat on `aircraft_groups`/`aircraft-templates.yaml`; (4) extraction: one pass → two files, or two `--kind` invocations; (5) bonus warehouse wiring (handoff §5: `dynSpawnTemplate` groups also need the `.miz` `warehouses` file to reference them for DCS to offer them as Dynamic Slots) — this lot or a separate one.
+**Open questions — settled with David (2026-06-11)**: (1) (C) file → **`dynamic-slot-templates.yaml`**; (2) step names → **`spawnable_aircrafts`** + **`dynamic_slot_templates`**; (3) **hard break** (old step/names dropped, ADR 0001 precedent); (4) extraction → **one pass writes both files by default**, `--kind spawnable|dynamic-template` restricts to one; (5) warehouse wiring → **separate lot DYNSLOT-WAREHOUSE** (handoff §5, deferred).
+
+---
+
+## Lot DYNSLOT-WAREHOUSE — Wire dynamic-slot templates into the `.miz` warehouses
+
+**Goal**: Injecting a `dynSpawnTemplate=true` group puts the **group** in the mission, but for DCS to actually offer it as a Dynamic Slot the `.miz` **`warehouses`** file must also reference it (`airports[id].dynamicSpawn=true` + aircraft list). The current injector does not touch `warehouses`. Split off from AIRCRAFT-INJECT (handoff §5). Reference: `test/veaf-tools/demo-mission/src/mission/warehouses` (`dynamicSpawn = true`).
+
+**Branch**: `feat/dynslot-warehouse` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DYNSLOT-WAREHOUSE-001 (spike) | Investigate the `warehouses` schema for Dynamic Slots and design how the `dynamic_slot_templates` injection should wire injected templates into it automatically. Deliverable: reco + implementation tickets. | `aircrafts_injector/`, `mission_tools/`, `doc/` | spike | ⬜ |
 
 ---
 

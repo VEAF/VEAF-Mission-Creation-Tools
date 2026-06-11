@@ -166,11 +166,12 @@ def build(
     # Each step is auto-enabled when its config file is found in src/.
     # Override in mission.yaml under the `pipeline:` key.
     #   pipeline:
-    #     presets: false              # disable even if src/presets.yaml exists
+    #     presets: false                 # disable even if src/presets.yaml exists
     #     waypoints:
-    #       file: custom/wp.yaml     # use a non-default path
-    #     aircraft_groups:
-    #       mode: replace            # add (default) or replace
+    #       file: custom/wp.yaml         # use a non-default path
+    #     spawnable_aircrafts:
+    #       mode: replace                # add (default) or replace
+    #     dynamic_slot_templates: false  # disable dynamic-slot-templates.yaml injection
     #     weather: false
 
     def _step_file(key: str, *candidates: str) -> Path | None:
@@ -212,31 +213,37 @@ def build(
             output_mission=p_output_mission,
         ).work()
 
-    aircraft_path = _step_file(
-        "aircraft_groups", "src/aircraft-templates.yaml", "src/templates.yaml", "aircraft-templates.yaml"
-    )
-    if aircraft_path:
-        aircraft_mode = "add"
-        step_cfg = worker.pipeline_cfg.get("aircraft_groups")
+    def _inject_aircraft_step(step_key: str, candidate: str) -> None:
+        """Inject one aircraft-group family file (spawnables or dynamic-slot templates)."""
+        path = _step_file(step_key, candidate)
+        if not path:
+            return
+        mode = "add"
+        step_cfg = worker.pipeline_cfg.get(step_key)
         if isinstance(step_cfg, dict):
-            aircraft_mode = step_cfg.get("mode", "add")
-        validator = AircraftGroupsYAMLValidator(aircraft_path)
+            mode = step_cfg.get("mode", "add")
+        validator = AircraftGroupsYAMLValidator(path)
         is_valid, _ = validator.validate()
         if is_valid:
-            logger.info(t("pipeline.injecting_aircraft_mode", path=aircraft_path, mode=aircraft_mode))
-            logger.step(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
-            aircraft_result = AircraftGroupsInjectorWorker(
-                input_yaml=aircraft_path,
+            logger.info(t("pipeline.injecting_aircraft_mode", path=path, mode=mode))
+            logger.step(t("pipeline.console.aircraft", file=path.name, mode=mode))
+            result = AircraftGroupsInjectorWorker(
+                input_yaml=path,
                 target_mission=p_output_mission,
                 output_mission=p_output_mission,
-            ).inject(mode=aircraft_mode, silent=False)
-            logger.tech(t("pipeline.console.aircraft_done", count=aircraft_result.groups_injected))
+            ).inject(mode=mode, silent=False)
+            logger.tech(t("pipeline.console.aircraft_done", count=result.groups_injected))
         else:
-            logger.warning(t("cmd.build.aircraft_validation_failed", path=aircraft_path))
+            logger.warning(t("cmd.build.aircraft_validation_failed", path=path))
             console.print(t("pipeline.console.aircraft_invalid"))
-    else:
-        _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
-        if _orphan.exists():
+
+    # Two independent steps (ADR 0002): spawnable aircraft groups and dynamic-slot templates.
+    _inject_aircraft_step("spawnable_aircrafts", "src/spawnables.yaml")
+    _inject_aircraft_step("dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+
+    # Warn about pre-v6 files that are no longer injected (hard break — see ADR 0002).
+    for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):
+        if (p_mission_folder / _legacy).exists():
             logger.warning(t("cmd.build.orphan_aircraft_file"))
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")

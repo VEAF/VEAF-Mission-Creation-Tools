@@ -18,7 +18,8 @@ Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-t
 |-----------------------|---------------|------|
 | `waypoints.yaml` | `waypoints` | Injecte les waypoints nommés dans la mission |
 | `presets.yaml` | `presets` | Configure les presets radio de chaque groupe d'avions |
-| `aircraft-templates.yaml` | `aircraft_groups` | Définit les templates de groupes d'avions |
+| `spawnables.yaml` | `spawnable_aircrafts` | Groupes d'avions spawnables (préfixe `veafSpawn-`) |
+| `dynamic-slot-templates.yaml` | `dynamic_slot_templates` | Modèles de slot dynamique (`dynSpawnTemplate=true`) |
 | `versions.yaml` | `weather` | Génère une variante `.miz` par preset météo |
 
 Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools build` puis compilés dans le `.miz`.
@@ -35,12 +36,14 @@ dossier mission/
 │   └── pipeline:
 │       ├── waypoints: true  ──► src/waypoints.yaml       (injection build-time)
 │       ├── presets:  true   ──► src/presets.yaml          (injection build-time)
-│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
+│       ├── spawnable_aircrafts: true     ──► src/spawnables.yaml
+│       ├── dynamic_slot_templates: true  ──► src/dynamic-slot-templates.yaml
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml
     ├── presets.yaml
-    ├── aircraft-templates.yaml
+    ├── spawnables.yaml
+    ├── dynamic-slot-templates.yaml
     └── versions.yaml
 ```
 
@@ -376,9 +379,10 @@ Contrôle les étapes optionnelles du pipeline de build. Voir la [Référence Pi
 pipeline:
   presets: false
   waypoints: true
-  aircraft_groups:
-    file: src/my-aircraft.yaml
+  spawnable_aircrafts:
+    file: src/my-spawnables.yaml
     mode: replace
+  dynamic_slot_templates: false
   weather: false
 ```
 
@@ -481,7 +485,7 @@ veaf-tools.exe build --profile SERVER
 | `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
 | [`modules.SKYNET` / `.CTLD` / `.CSAR`](#modules-tiers--skynet--ctld--csar-sous-modules) | Skynet IADS, CTLD, CSAR |
 | [`veaf_tools:`](#veaf_tools) | Contrainte de version |
-| `pipeline.aircraft_groups` | [schéma aircraft-templates.yaml](PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs-aircraft-templatesyaml) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c) |
 | `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#étape-4--variantes-météo--horaire-versionsyaml) |
 | [`custom_scripts:`](#custom_scripts) | Scripts Lua custom à inclure dans la mission |
 | [`build:`](#build) | Mode développeur et chemin des scripts |

@@ -18,7 +18,8 @@ These files drive the **design-time injection** steps that `veaf-tools build` pe
 |------------------|--------------|--------------|
 | `waypoints.yaml` | `waypoints` | Injects named waypoints into the mission |
 | `presets.yaml` | `presets` | Configures radio presets for each aircraft group |
-| `aircraft-templates.yaml` | `aircraft_groups` | Defines aircraft group templates |
+| `spawnables.yaml` | `spawnable_aircrafts` | Spawnable aircraft groups (`veafSpawn-` prefix) |
+| `dynamic-slot-templates.yaml` | `dynamic_slot_templates` | Dynamic-slot templates (`dynSpawnTemplate=true`) |
 | `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
 
 These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools build` and then compiled into the `.miz`.
@@ -35,12 +36,14 @@ mission folder/
 │   └── pipeline:
 │       ├── waypoints: true  ──► src/waypoints.yaml     (build-time injection)
 │       ├── presets:  true   ──► src/presets.yaml        (build-time injection)
-│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
+│       ├── spawnable_aircrafts: true     ──► src/spawnables.yaml
+│       ├── dynamic_slot_templates: true  ──► src/dynamic-slot-templates.yaml
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml
     ├── presets.yaml
-    ├── aircraft-templates.yaml
+    ├── spawnables.yaml
+    ├── dynamic-slot-templates.yaml
     └── versions.yaml
 ```
 
@@ -376,9 +379,10 @@ Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELIN
 pipeline:
   presets: false
   waypoints: true
-  aircraft_groups:
-    file: src/my-aircraft.yaml
+  spawnable_aircrafts:
+    file: src/my-spawnables.yaml
     mode: replace
+  dynamic_slot_templates: false
   weather: false
 ```
 
@@ -502,7 +506,7 @@ veaf-tools.exe build --profile SERVER
 | [`pipeline:`](#pipeline) | Pipeline step control |
 | `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#step-1--radio-presets-presetsyaml) |
 | `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#step-2--waypoints-waypointsyaml) |
-| `pipeline.aircraft_groups` | [aircraft-templates.yaml schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-aircraft-templatesyaml) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
 | `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-4--weather--time-versions-versionsyaml) |
 | [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |

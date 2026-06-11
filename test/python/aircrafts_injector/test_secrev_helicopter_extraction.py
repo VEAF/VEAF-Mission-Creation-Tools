@@ -14,7 +14,12 @@ from mission_tools.miz_tools import DcsMission
 
 
 def _mission_with_helicopters() -> DcsMission:
-    """One coalition, one country, two helicopter groups (and one plane group)."""
+    """One coalition, one country, three helicopter groups (and one plane group).
+
+    All groups are spawnable (``veafSpawn-`` prefix) so the ADR-0002 sort keeps
+    every one of them — the regression here is about iteration not dropping
+    groups, independent of the sort criterion.
+    """
     content = {
         "coalition": {
             "blue": {
@@ -23,14 +28,14 @@ def _mission_with_helicopters() -> DcsMission:
                         "name": "USA",
                         "plane": {
                             "group": [
-                                {"name": "Viper 1", "units": [{"type": "F-16C_50"}]},
+                                {"name": "veafSpawn-Viper 1", "units": [{"type": "F-16C_50"}]},
                             ]
                         },
                         "helicopter": {
                             "group": [
-                                {"name": "Huey 1", "units": [{"type": "UH-1H"}]},
-                                {"name": "Apache 1", "units": [{"type": "AH-64D_BLK_II"}]},
-                                {"name": "Kiowa 1", "units": [{"type": "OH58D"}]},
+                                {"name": "veafSpawn-Huey 1", "units": [{"type": "UH-1H"}]},
+                                {"name": "veafSpawn-Apache 1", "units": [{"type": "AH-64D_BLK_II"}]},
+                                {"name": "veafSpawn-Kiowa 1", "units": [{"type": "OH58D"}]},
                             ]
                         },
                     }
@@ -41,8 +46,10 @@ def _mission_with_helicopters() -> DcsMission:
     return DcsMission(file_path=Path("dummy.miz"), mission_content=content)
 
 
-def _extractor() -> AircraftGroupsExtractorWorker:
-    worker = AircraftGroupsExtractorWorker(input_lua=Path("lua-input"))
+def _extractor(**kwargs: object) -> AircraftGroupsExtractorWorker:
+    worker = AircraftGroupsExtractorWorker(
+        input_lua=Path("lua-input"), output_spawnables=Path("out-spawnables.yaml"), **kwargs
+    )
     worker.dcs_mission = _mission_with_helicopters()
     return worker
 
@@ -53,7 +60,7 @@ def test_all_helicopter_groups_are_matched() -> None:
     helo_names = {
         info["group_name"] for info in worker.matched_groups.values() if info["aircraft_category"] == "helicopters"
     }
-    assert helo_names == {"Huey 1", "Apache 1", "Kiowa 1"}
+    assert helo_names == {"veafSpawn-Huey 1", "veafSpawn-Apache 1", "veafSpawn-Kiowa 1"}
 
 
 def test_helicopter_and_plane_groups_coexist() -> None:
@@ -64,7 +71,6 @@ def test_helicopter_and_plane_groups_coexist() -> None:
 
 
 def test_helicopter_only_filter_keeps_all_helicopters() -> None:
-    worker = AircraftGroupsExtractorWorker(input_lua=Path("lua-input"), aircraft_type="helicopters")
-    worker.dcs_mission = _mission_with_helicopters()
+    worker = _extractor(aircraft_type="helicopters")
     worker.find_matching_groups(silent=True)
     assert len(worker.matched_groups) == 3

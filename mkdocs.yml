@@ -125,6 +125,7 @@ nav:
   - Developer:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
+    - DCS data generators: developer/dcs-data.md
     - Testing: TESTING.md
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md

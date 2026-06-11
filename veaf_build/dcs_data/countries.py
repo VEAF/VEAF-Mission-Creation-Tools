@@ -24,6 +24,9 @@ from veaf_build.dcs_data.datamine import DATAMINE_REF, clone_datamine
 
 _COUNTRIES_SUBTREE = "_G/db/Countries"
 
+# Committed artifact consumed at design time by veaf_libs.dcs_countries.
+DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
+
 # Top-level fields are indented with a single tab; nested fields (Units, Awards,
 # ...) use two or more, so anchoring on a single leading tab is unambiguous.
 _NAME_RE = re.compile(r'^\tName\s*=\s*"([^"]*)"', re.MULTILINE)
@@ -123,17 +126,20 @@ def write_countries_yaml(entries: list[CountryEntry], output: Path, ref: str = D
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
-def generate(output: Path, ref: str = DATAMINE_REF) -> int:
+def generate(output: Path | None = None, ref: str = DATAMINE_REF) -> int:
     """Clone the datamine at *ref*, extract countries, and write the YAML table.
 
     Args:
-        output: Destination YAML path for the country table.
+        output: Destination YAML path for the country table. Defaults to the
+            committed :data:`DEFAULT_OUTPUT`.
         ref: Upstream datamine ref to generate from. Defaults to the pinned
             :data:`DATAMINE_REF`.
 
     Returns:
         The number of countries written.
     """
+    if output is None:
+        output = DEFAULT_OUTPUT
     with tempfile.TemporaryDirectory() as tmp:
         clone_root = Path(tmp) / "dcs-lua-datamine"
         clone_datamine(clone_root, [_COUNTRIES_SUBTREE], ref)

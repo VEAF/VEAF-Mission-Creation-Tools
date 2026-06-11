@@ -25,7 +25,7 @@ from typing import Any
 
 import luadata
 import yaml
-from aircrafts_injector import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
+from mission_tools import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 

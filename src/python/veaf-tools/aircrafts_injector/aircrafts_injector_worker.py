@@ -11,7 +11,14 @@ from typing import Any
 
 import luadata
 import yaml
-from mission_tools import DcsMission, read_miz, write_miz
+from mission_tools import (
+    KIND_DYNAMIC_TEMPLATE,
+    KIND_SPAWNABLE,
+    DcsMission,
+    classify_aircraft_group,
+    read_miz,
+    write_miz,
+)
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -21,37 +28,6 @@ from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 console = Console()
-
-# ============================================================================
-# Aircraft-group sort criteria (ADR 0002)
-# ============================================================================
-
-#: Runtime prefix that marks a spawnable aircraft group (cloned by veafSpawn).
-SPAWNABLE_NAME_PREFIX = "veafSpawn-"
-
-#: Sort kinds.
-KIND_SPAWNABLE = "spawnable"
-KIND_DYNAMIC_TEMPLATE = "dynamic_template"
-
-
-def classify_aircraft_group(group: dict[str, Any]) -> str | None:
-    """Sort an aircraft group into one of the two reusable families (ADR 0002).
-
-    Args:
-        group: A DCS aircraft group table.
-
-    Returns:
-        ``"dynamic_template"`` when the group carries the native DCS flag
-        ``dynSpawnTemplate == true`` (the flag wins even for ``veafSpawn-`` names),
-        ``"spawnable"`` when its name starts with ``veafSpawn-``, or ``None`` for
-        an ordinary mission group that is not a reusable spawn asset.
-    """
-    if group.get("dynSpawnTemplate") is True:
-        return KIND_DYNAMIC_TEMPLATE
-    name = group.get("name", "")
-    if isinstance(name, str) and name.startswith(SPAWNABLE_NAME_PREFIX):
-        return KIND_SPAWNABLE
-    return None
 
 
 # ============================================================================

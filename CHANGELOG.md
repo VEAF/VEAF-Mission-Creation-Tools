@@ -38,6 +38,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veafSecurity`: stopped logging the cleartext password at debug level (SECREV-009)
 
 ### Fixed
+- **`convert-v5` lost tables containing `nil` values** (regression from SECREV-001): the pure-Python `luadata` parser never handled Lua `nil`, so any table with a `key = nil` entry — pervasive in v5 (`country = nil`, commented-out `["waypoints"]` blocks) — failed to parse (`Unserialize luadata failed … unexpected character`) and was silently dropped (e.g. the `settings` table of `waypointsSettings.lua`). `nil` values are now accepted and dropped per Lua semantics (the entry does not exist); no code execution is reintroduced (FIX-LUADATA-NIL-001)
 - `prepare` **broken in the packaged exe** (IMC2-001): default files were resolved relative to `__file__` (a PyInstaller temp dir in the frozen exe) → `Default files not found`. They are now resolved from the target mission folder's `published/src/defaults/mission-folder` (where the updater installs them from `published.zip`), with the dev checkout as fallback
 - The updater no longer **moves `README.md` into the mission folder** (IMC2-002): it had dead relative links and overwrote the user's own README. The online documentation is the single source; the README stays under `/published/`
 - Scaffold `.gitignore` now excludes built `*.miz` files and the `/missions/` output folder, and drops the stale `/build/` entry (IMC2-006). Existing missions must apply this to their own `.gitignore` (it is `NEVER_OVERWRITE`)

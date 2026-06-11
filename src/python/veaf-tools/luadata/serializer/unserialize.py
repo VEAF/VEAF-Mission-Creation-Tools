@@ -165,6 +165,13 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
                 state = "VALUE_END"
                 key = None
                 pos = pos + 4
+            elif byte_current == b"n" and sbins[pos: pos + 3] == b"nil":
+                # Lua `nil` value: in Lua a table entry assigned nil simply does
+                # not exist, so we drop the entry (do not append it) — matching
+                # the original lua-execution behaviour for `country = nil` etc.
+                state = "VALUE_END"
+                key = None
+                pos = pos + 2
             elif byte_current == b"{":
                 stack.append({"node": node, "state": state, "key": key})
                 state = "SEEK_CHILD"

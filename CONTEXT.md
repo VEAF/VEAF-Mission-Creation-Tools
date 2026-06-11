@@ -92,5 +92,7 @@ there at runtime.
 
 **Dynamic loading**:
 VEAF and mission scripts loaded from disk at runtime via the `VEAF_DYNAMIC_*PATH`
-globals. `VeafDynamicLoader.lua` loads the VEAF scripts; `veafDynamicConfig.lua`
-loads the mission scripts.
+globals. `VeafDynamicLoader.lua` (framework layer) loads the VEAF scripts;
+`veafDynamicConfig.lua` (mission layer) loads the mission scripts. Both are live,
+not duplicates — see [ADR 0004](docs/adr/0004-dynamic-script-loading.md) for the
+six-trigger static/dynamic flow.

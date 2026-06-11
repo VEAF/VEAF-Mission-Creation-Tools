@@ -26,7 +26,7 @@
 | Lot TODO0609-CONVERT-FIDELITY — convert-v5 report fidelity: comment full migrated blocks, emit commented-out v5 elements, silenceAtc key | ✅ |
 | Lot TODO0609-ERA-AUTODETECT — auto-detect mission era (incl. WW2) from `.miz` content, manual override wins | ✅ |
 | Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits / dcsUnits definitions from Lua to YAML (spike + impl) | ⬜ |
-| Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ⬜ |
+| Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ✅ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
@@ -301,7 +301,14 @@ was constrained to a working branch.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| DYNLOAD-CLARIFY-001 (spike) | Trace and document both files' roles and the static/dynamic loading flow; identify any obsolete artifact and propose its removal; document the conversion behaviour for legacy dynamic-loading triggers. Deliverable: doc update + cleanup tickets if needed. | `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, `src/scripts/veaf/VeafDynamicLoader.lua`, `mission_builder/mission_builder_worker.py`, `doc/` | spike | ⬜ |
+| DYNLOAD-CLARIFY-001 (spike) | Trace and document both files' roles and the static/dynamic loading flow; identify any obsolete artifact and propose its removal; document the conversion behaviour for legacy dynamic-loading triggers. Deliverable: doc update + cleanup tickets if needed. | `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, `src/scripts/VeafDynamicLoader.lua`, `mission_builder/mission_builder_worker.py`, `doc/` | spike | ✅ |
+
+**Spike result (DYNLOAD-CLARIFY-001)** — see [ADR 0004](docs/adr/0004-dynamic-script-loading.md):
+
+- **Neither file is obsolete.** They are two layers of the same dynamic-loading mechanism: `VeafDynamicLoader.lua` (`src/scripts/`) loads the **VEAF framework** modules (`src/scripts/veaf/*.lua`) from `VEAF_DYNAMIC_SCRIPTSPATH`; `veafDynamicConfig.lua` (mission scaffold) loads the **mission's** scripts from `VEAF_DYNAMIC_MISSIONPATH`. Both are referenced by the build's injected triggers (3 and 5 respectively).
+- **Loading flow**: the build injects six paired triggers (set-path ×2, dynamic/static for VEAF scripts, dynamic/static for mission scripts). Dynamic mode `loadfile`s from disk (dev/test, live iteration); static mode `a_do_script_file`s scripts embedded as `.miz` map resources (distribution) and bypasses both loader files.
+- **No cleanup tickets** for these two files.
+- **Deferred**: whether a legacy v5 mission's own VEAF loading triggers are removed during `build --migrate-from-v5` (the build prepends its six triggers and shifts existing ones up without inspecting them) is owned by **TODO0609-TRIGGERS-VERIFY**, not this spike.
 
 ---
 

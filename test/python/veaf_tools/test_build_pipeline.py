@@ -1,86 +1,100 @@
-"""Tests for build.py pipeline orphan warnings — AORPHAN-002."""
+"""Tests for build.py pipeline legacy-file warnings (AIRCRAFT-INJECT) and output resolution."""
 
 from __future__ import annotations
 
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
-class TestAircraftOrphanWarning(unittest.TestCase):
-    """Orphan-file warning when aircraft_groups is disabled but file exists (AORPHAN-002)."""
+class TestLegacyAircraftFileWarning(unittest.TestCase):
+    """After the hard break (ADR 0002), the old aircraft-group files are no longer injected.
 
-    def _run_orphan_check(self, p_mission_folder: Path, pipeline_cfg: dict, *, file_present: bool) -> list[str]:
-        """Exercise the orphan-check logic from build.py in isolation."""
-        if file_present:
-            src_dir = p_mission_folder / "src"
-            src_dir.mkdir(parents=True, exist_ok=True)
-            (src_dir / "aircraft-templates.yaml").write_text("# stub\n", encoding="utf-8")
+    The build warns whenever a pre-v6 ``src/aircraft-templates.yaml`` or
+    ``src/templates.yaml`` is still present, so the user notices it is ignored.
+    """
+
+    def _run_legacy_check(self, p_mission_folder: Path, legacy_files: list[str]) -> list[str]:
+        """Exercise the legacy-warning logic from build.py in isolation."""
+        src_dir = p_mission_folder / "src"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        for rel in legacy_files:
+            (p_mission_folder / rel).write_text("# stub\n", encoding="utf-8")
 
         warnings: list[str] = []
 
-        def fake_warning(msg: str, *args: object, **kwargs: object) -> None:
-            warnings.append(msg % args if args else msg)
-
-        # Replicate the exact logic added in build.py (else branch after aircraft_path check)
-        step_cfg = pipeline_cfg.get("aircraft_groups")
-        aircraft_path = None  # simulate _step_file returning None (step disabled or file absent)
-        if not (step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False)):
-            # step is not explicitly disabled — check candidates
-            for candidate in ("src/aircraft-templates.yaml", "src/templates.yaml", "aircraft-templates.yaml"):
-                p = p_mission_folder / candidate
-                if p.exists():
-                    aircraft_path = p
-                    break
-
-        if aircraft_path is None:
-            _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
-            if _orphan.exists():
-                fake_warning(
-                    "Orphan file 'src/aircraft-templates.yaml': "
-                    "pipeline 'aircraft_groups' is disabled or skipped "
-                    "but the file still exists in your mission folder. "
-                    "You can safely delete it, or enable 'aircraft_groups' in mission.yaml."
-                )
-
+        # Replicate the exact loop added in build.py.
+        for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):
+            if (p_mission_folder / _legacy).exists():
+                warnings.append(f"orphan: {_legacy}")
         return warnings
 
-    def test_warning_emitted_when_disabled_and_file_present(self) -> None:
+    def test_warning_for_aircraft_templates(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            warnings = self._run_orphan_check(
-                Path(td),
-                pipeline_cfg={"aircraft_groups": False},
-                file_present=True,
-            )
-        self.assertTrue(any("aircraft-templates.yaml" in w for w in warnings))
+            warnings = self._run_legacy_check(Path(td), ["src/aircraft-templates.yaml"])
+        self.assertEqual(len(warnings), 1)
 
-    def test_no_warning_when_file_absent(self) -> None:
+    def test_warning_for_templates(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            warnings = self._run_orphan_check(
-                Path(td),
-                pipeline_cfg={"aircraft_groups": False},
-                file_present=False,
-            )
+            warnings = self._run_legacy_check(Path(td), ["src/templates.yaml"])
+        self.assertEqual(len(warnings), 1)
+
+    def test_warning_for_both_legacy_files(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            warnings = self._run_legacy_check(Path(td), ["src/aircraft-templates.yaml", "src/templates.yaml"])
+        self.assertEqual(len(warnings), 2)
+
+    def test_no_warning_when_no_legacy_file(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            warnings = self._run_legacy_check(Path(td), [])
         self.assertEqual(warnings, [])
 
-    def test_no_warning_when_step_enabled_and_file_present(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            warnings = self._run_orphan_check(
-                Path(td),
-                pipeline_cfg={},  # aircraft_groups not explicitly disabled
-                file_present=True,
-            )
-        self.assertEqual(warnings, [])
 
-    def test_no_warning_when_step_absent_and_file_absent(self) -> None:
+class TestResolvePipelineStepFile(unittest.TestCase):
+    """Aircraft-group steps resolve to the new canonical files (AIRCRAFT-INJECT, IMC-Day §8 #3)."""
+
+    def _resolve(self, folder: Path, cfg: dict, key: str, *candidates: str) -> Path | None:
+        from veaf_tools.commands.build import resolve_pipeline_step_file
+
+        return resolve_pipeline_step_file(cfg, folder, key, *candidates)
+
+    def test_spawnable_aircrafts_resolves_spawnables_yaml(self) -> None:
+        """Regression (IMC-Day §8 #3): spawnables.yaml must be wired to a real injection step."""
         with tempfile.TemporaryDirectory() as td:
-            warnings = self._run_orphan_check(
-                Path(td),
-                pipeline_cfg={},
-                file_present=False,
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "spawnables.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {}, "spawnable_aircrafts", "src/spawnables.yaml")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.name, "spawnables.yaml")  # type: ignore[union-attr]
+
+    def test_dynamic_slot_templates_resolves_new_file(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "dynamic-slot-templates.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {}, "dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.name, "dynamic-slot-templates.yaml")  # type: ignore[union-attr]
+
+    def test_disabled_step_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "spawnables.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {"spawnable_aircrafts": False}, "spawnable_aircrafts", "src/spawnables.yaml")
+        self.assertIsNone(result)
+
+    def test_custom_file_path_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "custom").mkdir()
+            (folder / "custom" / "my.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(
+                folder, {"spawnable_aircrafts": {"file": "custom/my.yaml"}}, "spawnable_aircrafts", "src/spawnables.yaml"
             )
-        self.assertEqual(warnings, [])
+        self.assertEqual(result.name, "my.yaml")  # type: ignore[union-attr]
 
 
 class TestResolveOutputMission(unittest.TestCase):

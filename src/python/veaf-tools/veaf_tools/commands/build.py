@@ -78,6 +78,34 @@ def _resolve_output_mission(
     return p_output_mission, safe_name
 
 
+def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: str, *candidates: str) -> Path | None:
+    """Resolve the input file for a pipeline step, or ``None`` to skip it.
+
+    A step is skipped when it is ``false`` or ``{enabled: false}``. A custom
+    ``{file: …}`` path wins; otherwise the first existing default candidate is used.
+
+    Args:
+        pipeline_cfg: The ``pipeline:`` mapping from mission.yaml.
+        mission_folder: The mission folder the candidates are resolved against.
+        key: The pipeline step key (e.g. ``spawnable_aircrafts``).
+        candidates: Default file paths (relative to *mission_folder*), tried in order.
+
+    Returns:
+        The resolved existing path, or ``None`` when the step is disabled or no file exists.
+    """
+    step_cfg = pipeline_cfg.get(key)
+    if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+        return None
+    if isinstance(step_cfg, dict) and "file" in step_cfg:
+        p = mission_folder / step_cfg["file"]
+        return p if p.exists() else None
+    for candidate in candidates:
+        p = mission_folder / candidate
+        if p.exists():
+            return p
+    return None
+
+
 @app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
@@ -166,26 +194,17 @@ def build(
     # Each step is auto-enabled when its config file is found in src/.
     # Override in mission.yaml under the `pipeline:` key.
     #   pipeline:
-    #     presets: false              # disable even if src/presets.yaml exists
+    #     presets: false                 # disable even if src/presets.yaml exists
     #     waypoints:
-    #       file: custom/wp.yaml     # use a non-default path
-    #     aircraft_groups:
-    #       mode: replace            # add (default) or replace
+    #       file: custom/wp.yaml         # use a non-default path
+    #     spawnable_aircrafts:
+    #       mode: replace                # add (default) or replace
+    #     dynamic_slot_templates: false  # disable dynamic-slot-templates.yaml injection
     #     weather: false
 
     def _step_file(key: str, *candidates: str) -> Path | None:
         """Return the resolved file for a pipeline step, or None to skip."""
-        step_cfg = worker.pipeline_cfg.get(key)
-        if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
-            return None
-        if isinstance(step_cfg, dict) and "file" in step_cfg:
-            p = p_mission_folder / step_cfg["file"]
-            return p if p.exists() else None
-        for candidate in candidates:
-            p = p_mission_folder / candidate
-            if p.exists():
-                return p
-        return None
+        return resolve_pipeline_step_file(worker.pipeline_cfg, p_mission_folder, key, *candidates)
 
     presets_path = _step_file("presets", "src/presets.yaml")
     if presets_path:
@@ -212,32 +231,38 @@ def build(
             output_mission=p_output_mission,
         ).work()
 
-    aircraft_path = _step_file(
-        "aircraft_groups", "src/aircraft-templates.yaml", "src/templates.yaml", "aircraft-templates.yaml"
-    )
-    if aircraft_path:
-        aircraft_mode = "add"
-        step_cfg = worker.pipeline_cfg.get("aircraft_groups")
+    def _inject_aircraft_step(step_key: str, candidate: str) -> None:
+        """Inject one aircraft-group family file (spawnables or dynamic-slot templates)."""
+        path = _step_file(step_key, candidate)
+        if not path:
+            return
+        mode = "add"
+        step_cfg = worker.pipeline_cfg.get(step_key)
         if isinstance(step_cfg, dict):
-            aircraft_mode = step_cfg.get("mode", "add")
-        validator = AircraftGroupsYAMLValidator(aircraft_path)
+            mode = step_cfg.get("mode", "add")
+        validator = AircraftGroupsYAMLValidator(path)
         is_valid, _ = validator.validate()
         if is_valid:
-            logger.info(t("pipeline.injecting_aircraft_mode", path=aircraft_path, mode=aircraft_mode))
-            logger.step(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
-            aircraft_result = AircraftGroupsInjectorWorker(
-                input_yaml=aircraft_path,
+            logger.info(t("pipeline.injecting_aircraft_mode", path=path, mode=mode))
+            logger.step(t("pipeline.console.aircraft", file=path.name, mode=mode))
+            result = AircraftGroupsInjectorWorker(
+                input_yaml=path,
                 target_mission=p_output_mission,
                 output_mission=p_output_mission,
-            ).inject(mode=aircraft_mode, silent=False)
-            logger.tech(t("pipeline.console.aircraft_done", count=aircraft_result.groups_injected))
+            ).inject(mode=mode, silent=False)
+            logger.tech(t("pipeline.console.aircraft_done", count=result.groups_injected))
         else:
-            logger.warning(t("cmd.build.aircraft_validation_failed", path=aircraft_path))
+            logger.warning(t("cmd.build.aircraft_validation_failed", path=path))
             console.print(t("pipeline.console.aircraft_invalid"))
-    else:
-        _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
-        if _orphan.exists():
-            logger.warning(t("cmd.build.orphan_aircraft_file"))
+
+    # Two independent steps (ADR 0002): spawnable aircraft groups and dynamic-slot templates.
+    _inject_aircraft_step("spawnable_aircrafts", "src/spawnables.yaml")
+    _inject_aircraft_step("dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+
+    # Warn about pre-v6 files that are no longer injected (hard break — see ADR 0002).
+    for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):
+        if (p_mission_folder / _legacy).exists():
+            logger.warning(t("cmd.build.orphan_aircraft_file", file=_legacy))
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:

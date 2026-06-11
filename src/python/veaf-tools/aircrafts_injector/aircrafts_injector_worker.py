@@ -11,7 +11,14 @@ from typing import Any
 
 import luadata
 import yaml
-from mission_tools import DcsMission, read_miz, write_miz
+from mission_tools import (
+    KIND_DYNAMIC_TEMPLATE,
+    KIND_SPAWNABLE,
+    DcsMission,
+    classify_aircraft_group,
+    read_miz,
+    write_miz,
+)
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -410,7 +417,7 @@ class AircraftGroupsYAMLValidator:
         report = self.get_summary() + "\n\n"
 
         # Group errors by level
-        errors_by_level = {"error": [], "warning": [], "info": []}
+        errors_by_level: dict[str, list[ValidationError]] = {"error": [], "warning": [], "info": []}
         for error in self.errors:
             errors_by_level[error.level].append(error)
 
@@ -867,10 +874,16 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         "Radio",  # Radio configuration (uppercase variant)
     }
 
+    @staticmethod
+    def _empty_structure() -> dict[str, Any]:
+        """Return a fresh empty extraction structure (airplanes + helicopters)."""
+        return {"airplanes": {"coalitions": {}}, "helicopters": {"coalitions": {}}}
+
     def __init__(
         self,
         input_mission: Path | None = None,
-        output_yaml: Path | None = None,
+        output_spawnables: Path | None = None,
+        output_dynamic_templates: Path | None = None,
         group_name_pattern: str | None = None,
         input_lua: Path | None = None,
         aircraft_type: str | None = None,
@@ -878,10 +891,16 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         """
         Initialize the extractor.
 
+        Aircraft groups are sorted into two reusable families (ADR 0002):
+        spawnable aircraft groups (``veafSpawn-`` prefix) and dynamic-slot
+        templates (``dynSpawnTemplate == true``). Each family is written to its
+        own YAML file; a family whose output path is ``None`` is not written.
+
         Args:
             input_mission: Path to the input .miz mission file (mutually exclusive with input_lua)
-            output_yaml: Path to the output YAML file
-            group_name_pattern: Regular expression pattern to match group names
+            output_spawnables: Path to the spawnable-aircraft YAML (None → not written)
+            output_dynamic_templates: Path to the dynamic-slot-template YAML (None → not written)
+            group_name_pattern: Optional extra regex filter on group names (sorting itself is by ADR 0002)
             input_lua: Path to input Lua file with settings table (mutually exclusive with input_mission)
             aircraft_type: Filter by aircraft type: 'airplanes', 'helicopters', or None for both
         """
@@ -889,18 +908,27 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         if (input_mission is None and input_lua is None) or (input_mission is not None and input_lua is not None):
             raise ValueError("Must provide exactly one of: input_mission or input_lua")
 
+        # At least one output family must be requested
+        if output_spawnables is None and output_dynamic_templates is None:
+            raise ValueError("Must request at least one of: output_spawnables or output_dynamic_templates")
+
         # Validate aircraft_type if provided
         if aircraft_type and aircraft_type not in ("airplanes", "helicopters"):
             raise ValueError(f"Invalid aircraft_type: {aircraft_type}. Must be 'airplanes', 'helicopters', or None")
 
         self.input_mission = input_mission
         self.input_lua = input_lua
-        self.output_yaml = output_yaml
+        self.output_spawnables = output_spawnables
+        self.output_dynamic_templates = output_dynamic_templates
         self.group_name_pattern = re.compile(group_name_pattern) if group_name_pattern else None
         self.aircraft_type = aircraft_type  # Filter by aircraft type
         self.dcs_mission: DcsMission | None = None
         self.lua_data: dict | None = None  # Store parsed Lua data
-        self.extracted_templates = {"airplanes": {"coalitions": {}}, "helicopters": {"coalitions": {}}}
+        # One extraction structure per family, keyed by classify_aircraft_group() kind.
+        self.extracted: dict[str, dict[str, Any]] = {
+            KIND_SPAWNABLE: self._empty_structure(),
+            KIND_DYNAMIC_TEMPLATE: self._empty_structure(),
+        }
         self.matched_groups: dict[str, dict] = {}  # Store matched groups for interactive selection
 
     def read_lua_file(self, silent: bool = False) -> None:
@@ -1035,6 +1063,33 @@ class AircraftGroupsExtractorWorker(BaseWorker):
 
         matched_count = 0
 
+        def _collect(category: str, dcs_key: str, coalition_name: str, country_name: str, country_dict: dict) -> int:
+            """Match, sort (ADR 0002) and store the groups of one aircraft category."""
+            nonlocal_count = 0
+            container = country_dict.get(dcs_key, {})
+            if not container:
+                return 0
+            for group in container.get("group", []):
+                group_name = group.get("name", "")
+                # Optional extra name filter; routing itself is by ADR 0002.
+                if self.group_name_pattern is not None and not self.group_name_pattern.search(group_name):
+                    continue
+                kind = classify_aircraft_group(group)
+                if kind is None:
+                    continue  # ordinary mission group — not a reusable spawn asset
+                nonlocal_count += 1
+                logger.debug(f"Matched {category} group: {group_name} → {kind}")
+                group_key = f"{coalition_name}/{country_name}/{category}/{group_name}"
+                self.matched_groups[group_key] = {
+                    "group": group,
+                    "aircraft_category": category,
+                    "coalition_name": coalition_name,
+                    "country_name": country_name,
+                    "group_name": group_name,
+                    "kind": kind,
+                }
+            return nonlocal_count
+
         for coalition_name in coalitions_dict.keys():
             coalition_data = coalitions_dict[coalition_name]
             countries_list = coalition_data.get("country", [])
@@ -1045,45 +1100,11 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             for country_dict in countries_list:
                 country_name = country_dict.get("name", "Unknown")
 
-                # Process plane groups
                 if self.aircraft_type is None or self.aircraft_type == "airplanes":
-                    if plane_data := country_dict.get("plane", {}):
-                        groups_list = plane_data.get("group", [])
-                        for group in groups_list:
-                            group_name = group.get("name", "")
+                    matched_count += _collect("airplanes", "plane", coalition_name, country_name, country_dict)
 
-                            # Check if group name matches pattern
-                            if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
-                                matched_count += 1
-                                logger.debug(f"Matched plane group: {group_name}")
-                                group_key = f"{coalition_name}/{country_name}/airplanes/{group_name}"
-                                self.matched_groups[group_key] = {
-                                    "group": group,
-                                    "aircraft_category": "airplanes",
-                                    "coalition_name": coalition_name,
-                                    "country_name": country_name,
-                                    "group_name": group_name,
-                                }
-
-                # Process helicopter groups
                 if self.aircraft_type is None or self.aircraft_type == "helicopters":
-                    if helo_data := country_dict.get("helicopter", {}):
-                        groups_list = helo_data.get("group", [])
-                        for group in groups_list:
-                            group_name = group.get("name", "")
-
-                            # Check if group name matches pattern
-                            if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
-                                matched_count += 1
-                                logger.debug(f"Matched helicopter group: {group_name}")
-                                group_key = f"{coalition_name}/{country_name}/helicopters/{group_name}"
-                                self.matched_groups[group_key] = {
-                                    "group": group,
-                                    "aircraft_category": "helicopters",
-                                    "coalition_name": coalition_name,
-                                    "country_name": country_name,
-                                    "group_name": group_name,
-                                }
+                    matched_count += _collect("helicopters", "helicopter", coalition_name, country_name, country_dict)
 
         if not silent:
             logger.info(t("aircraft_injector.groups_matched", count=matched_count))
@@ -1171,9 +1192,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                 # Default: skip (n, empty string, or any other input)
                 console.print(t("aircraft_injector.selector_skipped"))
 
-        # Add selected groups to templates
+        # Add selected groups to their family structure
         for group_info in selected_groups.values():
             self._add_group_to_templates(
+                group_info["kind"],
                 group_info["group"],
                 group_info["aircraft_category"],
                 group_info["coalition_name"],
@@ -1198,9 +1220,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
 
         self.find_matching_groups(silent)
 
-        # Add all matched groups to templates (old behavior)
+        # Route every matched group to its family structure
         for group_info in self.matched_groups.values():
             self._add_group_to_templates(
+                group_info["kind"],
                 group_info["group"],
                 group_info["aircraft_category"],
                 group_info["coalition_name"],
@@ -1244,44 +1267,37 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                 self._remove_excluded_properties(item)
 
     def _add_group_to_templates(
-        self, group: dict, aircraft_category: str, coalition_name: str, country_name: str
+        self, kind: str, group: dict, aircraft_category: str, coalition_name: str, country_name: str
     ) -> None:
-        """Add a group to the extracted templates with full details."""
+        """Add a group to the *kind* family structure with full details."""
         group_name = group.get("name", "Unknown")
+        structure = self.extracted[kind][aircraft_category]["coalitions"]
 
-        # Initialize coalition structure if needed
-        if coalition_name not in self.extracted_templates[aircraft_category]["coalitions"]:
-            self.extracted_templates[aircraft_category]["coalitions"][coalition_name] = {}
-
-        # Initialize country if needed
-        if country_name not in self.extracted_templates[aircraft_category]["coalitions"][coalition_name]:
-            self.extracted_templates[aircraft_category]["coalitions"][coalition_name][country_name] = {}
+        # Initialize coalition / country structure if needed
+        structure.setdefault(coalition_name, {}).setdefault(country_name, {})
 
         # Clean the group data and store it
-        cleaned_group = self._clean_group_data(group)
-        self.extracted_templates[aircraft_category]["coalitions"][coalition_name][country_name][group_name] = (
-            cleaned_group
-        )
+        structure[coalition_name][country_name][group_name] = self._clean_group_data(group)
 
-    def write_yaml(self, silent: bool = False) -> None:
-        """Write the extracted templates to a YAML file."""
-        assert self.output_yaml is not None
+    def _write_structure(self, structure: dict[str, Any], path: Path, silent: bool) -> None:
+        """Write a single family structure to *path*."""
         if not silent:
-            logger.info(t("aircraft_injector.writing_templates", path=self.output_yaml))
-
+            logger.info(t("aircraft_injector.writing_templates", path=path))
         try:
-            # Create output directory if it doesn't exist
-            self.output_yaml.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(self.output_yaml, "w") as yaml_file:
-                yaml.dump(
-                    self.extracted_templates, yaml_file, default_flow_style=False, sort_keys=True, allow_unicode=True
-                )
-
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as yaml_file:
+                yaml.dump(structure, yaml_file, default_flow_style=False, sort_keys=True, allow_unicode=True)
             if not silent:
-                logger.info(t("aircraft_injector.templates_written", path=self.output_yaml))
+                logger.info(t("aircraft_injector.templates_written", path=path))
         except Exception as e:
             logger.error(t("aircraft_injector.templates_write_failed", error=str(e)), exception_type=IOError)
+
+    def write_yaml(self, silent: bool = False) -> None:
+        """Write each requested family structure to its YAML file."""
+        if self.output_spawnables is not None:
+            self._write_structure(self.extracted[KIND_SPAWNABLE], self.output_spawnables, silent)
+        if self.output_dynamic_templates is not None:
+            self._write_structure(self.extracted[KIND_DYNAMIC_TEMPLATE], self.output_dynamic_templates, silent)
 
     def extract(self, silent: bool = False, interactive: bool = False) -> None:
         """
@@ -1305,10 +1321,11 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             # In interactive mode, user selects groups
             groups_selected = self.select_groups_interactively()
         else:
-            # Non-interactive: add all matched groups
+            # Non-interactive: route every matched group to its family structure
             with spinner_context("Extracting groups...", silent=silent):
                 for group_info in self.matched_groups.values():
                     self._add_group_to_templates(
+                        group_info["kind"],
                         group_info["group"],
                         group_info["aircraft_category"],
                         group_info["coalition_name"],

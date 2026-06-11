@@ -32,7 +32,11 @@ def extract_aircraft_groups(
         DEFAULT_MISSION_FILE,
         help=t("cmd.extract_aircraft.opt.mission"),
     ),
-    output_yaml: str = typer.Option("aircraft-templates.yaml", help=t("cmd.extract_aircraft.opt.output_yaml")),
+    kind: str = typer.Option("both", help=t("cmd.extract_aircraft.opt.kind")),
+    output_spawnables: str = typer.Option("src/spawnables.yaml", help=t("cmd.extract_aircraft.opt.output_spawnables")),
+    output_dynamic_templates: str = typer.Option(
+        "src/dynamic-slot-templates.yaml", help=t("cmd.extract_aircraft.opt.output_dynamic_templates")
+    ),
     group_name_pattern: str = typer.Option(".*", help=t("cmd.extract_aircraft.opt.pattern")),
     only_airplanes: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_airplanes")),
     only_helicopters: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_helicopters")),
@@ -46,6 +50,8 @@ def extract_aircraft_groups(
     # Validate exclusive options
     if only_airplanes and only_helicopters:
         logger.error(t("cmd.aircraft.exclusive_options"), exception_type=ValueError)
+    if kind not in ("both", "spawnable", "dynamic-template"):
+        logger.error(t("cmd.aircraft.invalid_kind", kind=kind), exception_type=ValueError)
 
     # Convert boolean options to aircraft_type
     aircraft_type = "airplanes" if only_airplanes else ("helicopters" if only_helicopters else None)
@@ -59,10 +65,23 @@ def extract_aircraft_groups(
             console.print(md_render)
         exit()
 
-    # Resolve output YAML file
+    # Resolve output files (default: both families; --kind restricts to one)
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
-    p_output_yaml = resolve_path(
-        path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True
+    p_spawnables = (
+        resolve_path(
+            path=output_spawnables, default_path=p_mission_folder / output_spawnables, create_if_not_exist=True
+        )
+        if kind in ("both", "spawnable")
+        else None
+    )
+    p_dynamic = (
+        resolve_path(
+            path=output_dynamic_templates,
+            default_path=p_mission_folder / output_dynamic_templates,
+            create_if_not_exist=True,
+        )
+        if kind in ("both", "dynamic-template")
+        else None
     )
 
     # Handle Lua input or mission input
@@ -71,7 +90,8 @@ def extract_aircraft_groups(
         p_lua_input = resolve_path(path=lua_input, should_exist=True)
         worker = AircraftGroupsExtractorWorker(
             input_lua=p_lua_input,
-            output_yaml=p_output_yaml,
+            output_spawnables=p_spawnables,
+            output_dynamic_templates=p_dynamic,
             group_name_pattern=group_name_pattern,
             aircraft_type=aircraft_type,
         )
@@ -91,7 +111,8 @@ def extract_aircraft_groups(
         # Call the worker
         worker = AircraftGroupsExtractorWorker(
             input_mission=p_input_mission,
-            output_yaml=p_output_yaml,
+            output_spawnables=p_spawnables,
+            output_dynamic_templates=p_dynamic,
             group_name_pattern=group_name_pattern,
             aircraft_type=aircraft_type,
         )
@@ -108,7 +129,7 @@ def inject_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     mode: str = typer.Option("add", help=t("cmd.inject_aircraft.opt.mode")),
-    template_file: str = typer.Option("aircraft-templates.yaml", help=t("cmd.inject_aircraft.opt.yaml_file")),
+    template_file: str = typer.Option("src/spawnables.yaml", help=t("cmd.inject_aircraft.opt.yaml_file")),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
         help=t("cmd.inject_aircraft.opt.mission"),

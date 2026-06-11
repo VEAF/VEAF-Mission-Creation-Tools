@@ -666,6 +666,8 @@ class TestConvertAircraftGroups(unittest.TestCase):
     def tearDown(self) -> None:
         self._tmp_dir.cleanup()
 
+    # A spawnable plane (B), a dynamic-slot template plane (C), a spawnable heli (B),
+    # and an ordinary group (ignored).
     _SETTINGS_LUA = """
 settings = {
     categories = {
@@ -675,8 +677,9 @@ settings = {
                     countries = {
                         USA = {
                             groups = {
-                                CAP1 = { groupId = 100, name = "CAP1" },
-                                CAS1 = { groupId = 101, name = "CAS1" }
+                                ["veafSpawn-CAP1"] = { groupId = 100, name = "veafSpawn-CAP1" },
+                                ["F-15 Template"] = { groupId = 101, name = "F-15 Template", dynSpawnTemplate = true },
+                                ["Ordinary CAS"] = { groupId = 102, name = "Ordinary CAS" }
                             }
                         }
                     }
@@ -689,7 +692,7 @@ settings = {
                     countries = {
                         USA = {
                             groups = {
-                                SAR1 = { groupId = 200, name = "SAR1" }
+                                ["veafSpawn-SAR1"] = { groupId = 200, name = "veafSpawn-SAR1" }
                             }
                         }
                     }
@@ -705,29 +708,35 @@ settings = {
         p.write_text(content, encoding="utf-8")
         return p
 
-    def test_planes_structure(self) -> None:
+    def _convert(self) -> tuple[dict, dict]:
         v5 = self._write_settings(self._SETTINGS_LUA)
-        v6 = self.tmp / "templates.yaml"
-        convert_aircraft_groups(v5, v6)
-        self.assertTrue(v6.exists())
-        data = yaml.safe_load(v6.read_text())
-        self.assertIn("airplanes", data)
-        self.assertIn("BLUE", data["airplanes"]["coalitions"])
-        self.assertIn("USA", data["airplanes"]["coalitions"]["BLUE"])
-        self.assertIn("CAP1", data["airplanes"]["coalitions"]["BLUE"]["USA"])
+        spawnables = self.tmp / "spawnables.yaml"
+        convert_aircraft_groups(v5, spawnables)
+        dynamic = self.tmp / "dynamic-slot-templates.yaml"
+        self.assertTrue(spawnables.exists())
+        self.assertTrue(dynamic.exists())
+        return yaml.safe_load(spawnables.read_text()), yaml.safe_load(dynamic.read_text())
 
-    def test_helicopters_structure(self) -> None:
-        v5 = self._write_settings(self._SETTINGS_LUA)
-        v6 = self.tmp / "templates.yaml"
-        convert_aircraft_groups(v5, v6)
-        data = yaml.safe_load(v6.read_text())
-        self.assertIn("helicopters", data)
-        self.assertIn("BLUE", data["helicopters"]["coalitions"])
+    def test_spawnables_get_prefixed_groups(self) -> None:
+        spawnables, _ = self._convert()
+        planes = spawnables["airplanes"]["coalitions"]
+        self.assertIn("veafSpawn-CAP1", planes["BLUE"]["USA"])
+        self.assertNotIn("F-15 Template", planes["BLUE"]["USA"])  # dynSpawnTemplate → other file
+        self.assertNotIn("Ordinary CAS", planes["BLUE"]["USA"])  # ignored
+
+    def test_spawnable_helicopters_routed(self) -> None:
+        spawnables, _ = self._convert()
+        self.assertIn("veafSpawn-SAR1", spawnables["helicopters"]["coalitions"]["BLUE"]["USA"])
+
+    def test_dynamic_templates_get_flagged_groups(self) -> None:
+        _, dynamic = self._convert()
+        planes = dynamic["airplanes"]["coalitions"]
+        self.assertIn("F-15 Template", planes["BLUE"]["USA"])
+        self.assertNotIn("veafSpawn-CAP1", planes["BLUE"]["USA"])  # spawnable → other file
 
     def test_review_warning_appended(self) -> None:
         v5 = self._write_settings(self._SETTINGS_LUA)
-        v6 = self.tmp / "templates.yaml"
-        warns = convert_aircraft_groups(v5, v6)
+        warns = convert_aircraft_groups(v5, self.tmp / "spawnables.yaml")
         self.assertTrue(any(v5.name in w for w in warns))
 
     def test_invalid_lua_returns_warning(self) -> None:

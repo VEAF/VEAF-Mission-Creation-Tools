@@ -98,7 +98,7 @@ COMMANDS: list[CommandSpec] = [
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("template_file", t("tui.arg.template_file"), default="aircraft-templates.yaml"),
+            ArgPrompt("template_file", t("tui.arg.template_file"), default="src/spawnables.yaml"),
         ],
     ),
     CommandSpec(
@@ -130,7 +130,7 @@ COMMANDS: list[CommandSpec] = [
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("output_yaml", t("tui.arg.output_yaml"), default="aircraft-templates.yaml"),
+            ArgPrompt("kind", t("tui.arg.extract_aircraft_kind"), default="both"),
         ],
     ),
     CommandSpec(

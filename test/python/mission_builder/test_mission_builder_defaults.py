@@ -53,22 +53,37 @@ class TestCompleteDefaultsFiltering(unittest.TestCase):
         # temp dirs are cleaned up by individual tests
         pass
 
-    def test_file_copied_when_module_enabled(self) -> None:
-        """spawnables.yaml is copied when SPAWN is enabled."""
+    def test_file_copied_when_pipeline_step_enabled(self) -> None:
+        """spawnables.yaml is copied when its pipeline step is enabled."""
         tmpdir, _ = self._run(
-            {"lua_modules": {"SPAWN": {"enable": True}}},
+            {"pipeline": {"spawnable_aircrafts": True}},
             ["spawnables.yaml"],
         )
         self.assertTrue((tmpdir / "src" / "spawnables.yaml").exists())
         shutil.rmtree(tmpdir)
 
-    def test_file_not_copied_when_lua_module_disabled(self) -> None:
-        """spawnables.yaml is NOT copied when SPAWN is disabled."""
+    def test_file_not_copied_when_pipeline_step_disabled(self) -> None:
+        """spawnables.yaml is NOT copied when its pipeline step is disabled."""
         tmpdir, _ = self._run(
-            {"lua_modules": {"SPAWN": {"enable": False}}},
+            {"pipeline": {"spawnable_aircrafts": False}},
             ["spawnables.yaml"],
         )
         self.assertFalse((tmpdir / "src" / "spawnables.yaml").exists())
+        shutil.rmtree(tmpdir)
+
+    def test_dynamic_slot_templates_not_copied_when_disabled(self) -> None:
+        """dynamic-slot-templates.yaml is NOT copied when its pipeline step is disabled."""
+        tmpdir, _ = self._run(
+            {"pipeline": {"dynamic_slot_templates": False}},
+            ["dynamic-slot-templates.yaml"],
+        )
+        self.assertFalse((tmpdir / "src" / "dynamic-slot-templates.yaml").exists())
+        shutil.rmtree(tmpdir)
+
+    def test_dynamic_slot_templates_copied_by_default(self) -> None:
+        """dynamic-slot-templates.yaml IS copied when its pipeline step is left at its default."""
+        tmpdir, _ = self._run({}, ["dynamic-slot-templates.yaml"])
+        self.assertTrue((tmpdir / "src" / "dynamic-slot-templates.yaml").exists())
         shutil.rmtree(tmpdir)
 
     def test_file_not_copied_when_pipeline_disabled_false(self) -> None:
@@ -104,6 +119,35 @@ class TestCompleteDefaultsFiltering(unittest.TestCase):
         self.assertTrue((tmpdir / "src" / "waypoints.yaml").exists())
         shutil.rmtree(tmpdir)
 
+    def test_copying_a_missing_default_logs_a_message(self) -> None:
+        """Recreating a deleted default must not be silent (IMC-Day §8 #2)."""
+        from unittest.mock import patch
+
+        from veaf_libs.logger import logger
+
+        tmpdir = Path(tempfile.mkdtemp())
+        defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
+        _seed_defaults(defaults_folder, "spawnables.yaml")
+        worker = _make_worker(tmpdir, defaults_folder, {})
+
+        messages: list[str] = []
+        orig = logger.warning
+
+        def capture(msg, *args, **kwargs):
+            messages.append(str(msg))
+            return orig(msg, *args, **kwargs)
+
+        with patch.object(logger, "warning", side_effect=capture):
+            worker.complete_src_folder_with_defaults()
+
+        copied = (tmpdir / "src" / "spawnables.yaml").exists()
+        shutil.rmtree(tmpdir)
+        self.assertTrue(copied)
+        self.assertTrue(
+            any("spawnables.yaml" in m for m in messages),
+            "Copying a missing default must emit an explicit message",
+        )
+
 
 class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
     """An orphan warning is emitted when a file already exists but its module is disabled (IMC-008)."""
@@ -115,7 +159,7 @@ class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
         set_language("en")
 
     def test_orphan_warning_logged(self) -> None:
-        """When SPAWN is disabled and spawnables.yaml already exists, a warning is emitted."""
+        """When the pipeline step is disabled and spawnables.yaml already exists, a warning is emitted."""
         from unittest.mock import patch
 
         from veaf_libs.logger import logger
@@ -128,7 +172,7 @@ class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
         (tmpdir / "src").mkdir(parents=True, exist_ok=True)
         (tmpdir / "src" / "spawnables.yaml").write_text("existing content", encoding="utf-8")
 
-        worker = _make_worker(tmpdir, defaults_folder, {"lua_modules": {"SPAWN": {"enable": False}}})
+        worker = _make_worker(tmpdir, defaults_folder, {"pipeline": {"spawnable_aircrafts": False}})
 
         warnings: list[str] = []
         orig_warning = logger.warning

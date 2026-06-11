@@ -12,7 +12,8 @@ The pipeline runs four optional steps, in this order:
 |------|-------------|--------------|
 | `presets` | `src/presets.yaml` | Injects radio frequency presets into human-piloted aircraft groups |
 | `waypoints` | `src/waypoints.yaml` or `waypoints.yaml` | Injects waypoint templates into human-piloted aircraft groups |
-| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml`, or `aircraft-templates.yaml` | Injects aircraft group definitions (slots/spawnable groups) |
+| `spawnable_aircrafts` | `src/spawnables.yaml` | Injects **spawnable** aircraft groups (`veafSpawn-` prefix, cloned by `veafSpawn`) |
+| `dynamic_slot_templates` | `src/dynamic-slot-templates.yaml` | Injects **dynamic-slot templates** (`dynSpawnTemplate = true`, consumed by DCS) |
 | `weather` | `src/versions.yaml` or `versions.yaml` | Creates multiple mission variants with different weather and time |
 
 Each step is **auto-detected**: it runs if its default config file exists. You can override this behaviour in `mission.yaml`.
@@ -25,9 +26,10 @@ Each step is **auto-detected**: it runs if its default config file exists. You c
 pipeline:
   presets: false                        # skip even if src/presets.yaml exists
   waypoints: true                       # auto-detect: runs only if the config file exists
-  aircraft_groups:
-    file: src/my-aircraft.yaml          # non-default file path
+  spawnable_aircrafts:
+    file: src/my-spawnables.yaml        # non-default file path
     mode: replace                       # add (default) | replace
+  dynamic_slot_templates: false         # skip dynamic-slot-template injection
   weather: false                        # skip weather variants
 ```
 
@@ -37,7 +39,8 @@ pipeline:
 |-------|------|---------|----------|-------------|
 | `presets` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `waypoints` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
-| `aircraft_groups` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| `spawnable_aircrafts` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| `dynamic_slot_templates` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `weather` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 
 When set to an object, the following sub-fields apply:
@@ -45,7 +48,7 @@ When set to an object, the following sub-fields apply:
 | Sub-field | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `file` | string | *(see step defaults)* | Path to the config file, relative to the mission folder |
-| `mode` | `add` \| `replace` | `add` | *(aircraft_groups only)* `add` keeps existing groups; `replace` updates same-named groups |
+| `mode` | `add` \| `replace` | `add` | *(group-injection steps only)* `add` keeps existing groups; `replace` updates same-named groups |
 
 **Auto-detection** (when not set or `true`): the step runs only if its default file is found. Absence of the file silently skips the step.
 
@@ -261,18 +264,23 @@ settings:
 
 ---
 
-## Step 3 — Aircraft Groups (`aircraft-templates.yaml`)
+## Step 3 — Aircraft Groups: spawnables (B) and dynamic-slot templates (C)
 
-Injects aircraft group definitions into the mission. Used for spawnable groups and player slot templates.
+Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](adr/0002-aircraft-group-injection-sort-criteria.md)):
 
-### Default file location
+- **(B) spawnable groups** (`src/spawnables.yaml`, step `spawnable_aircrafts`): real hidden groups cloned on demand in-game by `veafSpawn`. Marker: the `veafSpawn-` name prefix.
+- **(C) dynamic-slot templates** (`src/dynamic-slot-templates.yaml`, step `dynamic_slot_templates`): groups used as a **model** for DCS Dynamic Slots, consumed natively by the engine. Marker: the DCS flag `dynSpawnTemplate = true`.
+
+At extraction (`extract-aircraft-groups`), each group is routed to one of the two families by this criterion (the flag wins over the prefix); other groups are ignored. By default extraction writes **both** files; `--kind spawnable|dynamic-template` restricts it to one. The old `.*[tT]emplate.*` name sort is abandoned (it misrouted a spawnable named "… Template …").
+
+### Default file locations
 
 ```
-<mission-folder>/src/aircraft-templates.yaml
-
-Also accepted: src/templates.yaml
-                aircraft-templates.yaml  (mission root)
+<mission-folder>/src/spawnables.yaml              # (B) spawnable_aircrafts
+<mission-folder>/src/dynamic-slot-templates.yaml  # (C) dynamic_slot_templates
 ```
+
+> **v6 hard break**: the old `src/aircraft-templates.yaml` / `src/templates.yaml` names and the `aircraft_groups` step are gone. `convert-v5` produces the two new files directly.
 
 ### Injection modes
 

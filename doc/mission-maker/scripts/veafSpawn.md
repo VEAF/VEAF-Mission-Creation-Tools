@@ -166,31 +166,19 @@ _teleport, name "Viper Flight"
 
 ---
 
-## Groupes spawnables (spawnables.yaml)
+## Groupes d'avions spawnables (`src/spawnables.yaml`)
 
-Définir des modèles de groupes réutilisables que les joueurs peuvent faire apparaître avec `_spawn group` :
+> ⚠️ À ne pas confondre avec la commande `_spawn group` (groupes **sol/hélico** de la base `veafUnits`). Ici il s'agit de **groupes d'avions** réels, cachés et en *late activation*, que `veafSpawn` **clone** à la demande en jeu.
 
-```yaml
-groups:
-  - name: "RED-CAP"
-    description: "CAP rouge (2 × MiG-29S)"
-    coalition: red
-    country: Russia
-    units:
-      - type: MiG-29S
-        skill: High
-      - type: MiG-29S
-        skill: High
+Un **groupe d'avion spawnable** est identifié par le **préfixe de nom `veafSpawn-`** (contrat runtime de `veafSpawn`). À la construction, l'étape de pipeline `spawnable_aircrafts` injecte `src/spawnables.yaml` dans le `.miz`.
 
-  - name: "ARMOR-PLATOON"
-    description: "Peloton blindé (4 × T-80)"
-    coalition: red
-    country: Russia
-    units:
-      - type: T-80
-        count: 4
-        skill: Average
+Le fichier utilise le **schéma DCS complet** des groupes d'aéronefs (`airplanes`/`helicopters` → `coalitions` → pays → groupe), identique à celui décrit dans la [Référence Pipeline — Étape 3](../../PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c). On l'obtient en général par extraction depuis une mission :
+
+```bash
+veaf-tools extract-aircraft-groups --kind spawnable
 ```
+
+Les **modèles de slot dynamique** (`dynSpawnTemplate = true`, slots Dynamic Slots DCS) sont une famille distincte, dans `src/dynamic-slot-templates.yaml` (étape `dynamic_slot_templates`) — voir l'[ADR 0002](../../adr/0002-aircraft-group-injection-sort-criteria.md).
 
 ---
 

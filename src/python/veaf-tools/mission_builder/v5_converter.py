@@ -61,7 +61,10 @@ MISSIONCONFIG_CANDIDATES: list[Path] = [
 V6_PIPELINE_CANDIDATES: dict[str, list[str]] = {
     "presets": ["src/presets.yaml"],
     "waypoints": ["src/waypoints.yaml"],
-    "aircraft_groups": ["src/aircraft-templates.yaml", "src/templates.yaml"],
+    # convert_aircraft_groups writes BOTH families from one v5 settings.lua; the
+    # primary target (v6_candidates[0]) is spawnables.yaml and the sibling
+    # dynamic-slot-templates.yaml is written alongside it.
+    "aircraft_groups": ["src/spawnables.yaml", "src/dynamic-slot-templates.yaml"],
     "weather": ["src/versions.yaml"],
 }
 

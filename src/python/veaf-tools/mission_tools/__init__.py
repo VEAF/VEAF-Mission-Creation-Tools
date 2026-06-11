@@ -4,6 +4,12 @@ VEAF Mission Mission Tools Package
 This package provides tools to work on VEAF mission files.
 """
 
+from .aircraft_group_sort import (
+    KIND_DYNAMIC_TEMPLATE,
+    KIND_SPAWNABLE,
+    SPAWNABLE_NAME_PREFIX,
+    classify_aircraft_group,
+)
 from .mission_constants import (
     DEFAULT_SCRIPTS_LOCATION,
     collect_files_from_globs,
@@ -17,6 +23,10 @@ from .mission_constants import (
 from .miz_tools import DcsMission, Group, create_miz, extract_miz, read_miz, write_miz
 
 __all__ = [
+    "classify_aircraft_group",
+    "KIND_SPAWNABLE",
+    "KIND_DYNAMIC_TEMPLATE",
+    "SPAWNABLE_NAME_PREFIX",
     "read_miz",
     "write_miz",
     "create_miz",

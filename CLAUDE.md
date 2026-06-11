@@ -17,6 +17,16 @@
 - **RULE N°2 (Absolute Simplicity)**: Produce the minimum volume of code necessary to solve the current problem. Do not add any speculative features or abstractions.
 - **RULE N°3 (Zero Assumptions)**: If an instruction is ambiguous, contradictory, or confusing, STOP immediately and ask questions to clarify the intent.
 
+### Runtime debugging (DCS log)
+
+When investigating a **runtime / in-game** issue (scripts not loading, missing VEAF
+radio menu, a feature misbehaving in DCS), read the **DCS log** to see what actually
+happened at runtime — script load order, module initialization, and Lua errors.
+
+- Location: `%USERPROFILE%\Saved Games\DCS\Logs\dcs.log` (or `DCS.openbeta`).
+  On this machine: `C:\Users\David\Saved Games\DCS\Logs\dcs.log`.
+- Useful greps: `VEAF`, `SCRIPTING`, `STATIC VEAF scripts loading` / `STATIC Mission scripts loading`, `initialize`, `ERROR`.
+
 ---
 
 ## 3. Code Quality and Style (Zero Tolerance)

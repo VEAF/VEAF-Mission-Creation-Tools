@@ -629,6 +629,7 @@
   "builder.unexpected_lua_file": "Fichier Lua inattendu 'src/scripts/{file}' trouvé dans votre dossier mission. Ce fichier sera inclus dans la construction. Vous pouvez le déclarer dans la section 'custom_scripts' de mission.yaml pour supprimer cet avertissement.",
   "builder.custom_loader_hint": "'src/scripts/{file}' semble charger d'autres scripts Lua (loadfile/dofile/require). En v6, plus besoin d'un loader custom : listez vos scripts dans la section 'custom_scripts:' de mission.yaml (chacun chargé au bon moment, avant/après mission-script.lua, avec un trigger de chargement généré automatiquement). Voir la documentation. Un loader v5 résiduel peut alors être supprimé.",
   "builder.options_missing": "Le fichier 'options' est absent de {path} ; c'est un élément utile de votre arborescence source !",
+  "builder.coalition_country_unexpected": "Un 'country' de coalition n'est ni une liste ni une table (reçu {type}) ; il est ignoré et le camp est considéré comme vide.",
   "builder.declared_group_missing": "Le groupe '{group}' déclaré dans {section} est absent de la mission — il doit être placé dans le Mission Editor, sinon la fonctionnalité échoue au runtime (ex. veafAssets.respawn).",
   "builder.coalition_placeholder_injected": "La coalition '{side}' n'avait aucune unité — un groupe sol placeholder caché a été injecté pour que DCS la reconnaisse (plus besoin de groupe sol manuel).",
   "extractor.mission_not_found": "La mission d'entrée '{path}' n'existe pas ou n'est pas un fichier",

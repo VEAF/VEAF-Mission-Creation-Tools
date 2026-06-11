@@ -97,6 +97,14 @@ class TestEnsureCoalitionsPopulated(unittest.TestCase):
         self.assertIsInstance(mission["coalition"]["blue"]["country"], list)
         self.assertIsNotNone(_placeholder_group(mission, "blue"))
 
+    def test_unexpected_country_type_is_handled(self) -> None:
+        """A malformed non-list/non-dict ``country`` is coerced to an empty list (with a warning)."""
+        mission = {"coalition": {"blue": {"bullseye": {"x": 1.0, "y": 2.0}, "country": "oops"}}}
+        injected = ensure_coalitions_populated(mission)
+        self.assertEqual(injected, ["blue"])
+        self.assertIsInstance(mission["coalition"]["blue"]["country"], list)
+        self.assertIsNotNone(_placeholder_group(mission, "blue"))
+
     def test_roster_valid_country_created(self) -> None:
         """The placeholder is attached to its roster-valid template country."""
         mission = _mission(blue_units=False, red_units=False)

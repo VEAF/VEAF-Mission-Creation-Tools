@@ -23,6 +23,8 @@ import functools
 import json
 
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.i18n import t
+from veaf_libs.logger import logger
 
 _SIDES = ("blue", "red")
 # Every category that can hold a group with units. Used both to decide whether a
@@ -64,14 +66,30 @@ def _max_ids(mission_content: dict) -> tuple[int, int]:
     return max_group_id, max_unit_id
 
 
+def _coerce_country_list(coalition: dict) -> list:
+    """Normalize a coalition's ``country`` field to a list (in place).
+
+    An empty DCS ``country = {}`` table deserializes to a dict (all_is_dict), not
+    a list, which breaks the unit-count / id scans and the placeholder append.
+    A dict is coerced keeping its values; anything else (malformed) is replaced
+    by an empty list with a warning rather than silently iterated/discarded.
+    """
+    countries = coalition.get("country")
+    if isinstance(countries, list):
+        return countries
+    if isinstance(countries, dict):
+        countries = list(countries.values())
+    else:
+        if countries is not None:
+            logger.warning(t("builder.coalition_country_unexpected", type=type(countries).__name__))
+        countries = []
+    coalition["country"] = countries
+    return countries
+
+
 def _find_or_add_country(coalition: dict, country_id: int, country_name: str) -> dict:
     """Return the coalition country with *country_id*, creating it if absent."""
-    countries = coalition.get("country")
-    if not isinstance(countries, list):
-        # An empty DCS table (`country = {}`) deserializes to a dict (all_is_dict),
-        # not a list — coerce it (keeping any values) so we can append to it.
-        countries = list(countries.values()) if isinstance(countries, dict) else []
-        coalition["country"] = countries
+    countries = _coerce_country_list(coalition)
     for country in countries:
         if country.get("id") == country_id:
             return country
@@ -119,6 +137,12 @@ def ensure_coalitions_populated(mission_content: dict) -> list[str]:
     coalitions = mission_content.get("coalition")
     if not isinstance(coalitions, dict):
         return []
+
+    # Normalize every coalition's country container to a list up front, so the
+    # id/unit scans below never trip over an empty `{}` (dict) or a malformed value.
+    for coalition in coalitions.values():
+        if isinstance(coalition, dict):
+            _coerce_country_list(coalition)
 
     templates = _templates()
     next_group_id, next_unit_id = (n + 1 for n in _max_ids(mission_content))

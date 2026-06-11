@@ -153,6 +153,32 @@ class TestInjectWaypointsIntoGroup(unittest.TestCase):
         worker._inject_waypoints_into_group(group, [wp])
         self.assertEqual(len(group.group_dcs["route"]["points"]), 1)
 
+    def test_locks_first_waypoint_when_none_locked(self) -> None:
+        """An injected route with no locked ETA gets its first waypoint locked.
+
+        Regression: DCS rejects "Route has no waypoints with locked time!" when a
+        flight plan (e.g. the catch-all plan) leaves every waypoint unlocked.
+        """
+        worker = WaypointsInjectorWorker(waypoints_file=None, input_mission=None, output_mission=None)
+        group = Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue")
+        wp1 = WaypointDefinition(type="Turning Point", action="Turning Point", alt=1000.0, ETA_locked=False)
+        wp2 = WaypointDefinition(type="Turning Point", action="Turning Point", alt=1000.0, ETA_locked=False)
+        worker._inject_waypoints_into_group(group, [wp1, wp2])
+        points = group.group_dcs["route"]["points"]
+        self.assertTrue(points[0]["ETA_locked"])
+        self.assertFalse(points[1]["ETA_locked"])
+
+    def test_preserves_explicit_lock(self) -> None:
+        """An explicit lock on any waypoint is respected; the first is not forced."""
+        worker = WaypointsInjectorWorker(waypoints_file=None, input_mission=None, output_mission=None)
+        group = Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue")
+        wp1 = WaypointDefinition(type="Turning Point", action="Turning Point", alt=1000.0, ETA_locked=False)
+        wp2 = WaypointDefinition(type="Turning Point", action="Turning Point", alt=1000.0, ETA_locked=True)
+        worker._inject_waypoints_into_group(group, [wp1, wp2])
+        points = group.group_dcs["route"]["points"]
+        self.assertFalse(points[0]["ETA_locked"])
+        self.assertTrue(points[1]["ETA_locked"])
+
 
 class TestProcessGroups(unittest.TestCase):
     def _worker_with_human_group(self) -> WaypointsInjectorWorker:

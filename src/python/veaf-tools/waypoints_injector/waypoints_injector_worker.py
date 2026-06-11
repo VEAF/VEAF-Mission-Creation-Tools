@@ -122,6 +122,13 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             wp_dict["num"] = i
             route["points"].append(wp_dict)
 
+        # DCS refuses to save a flight whose route has no waypoint with a locked
+        # ETA ("Route has no waypoints with locked time!"). If the flight plan
+        # locked none, lock the first waypoint (its departure), as DCS does.
+        points = route["points"]
+        if points and not any(point.get("ETA_locked") for point in points):
+            points[0]["ETA_locked"] = True
+
         # Inject route into group
         group.group_dcs["route"] = route
 

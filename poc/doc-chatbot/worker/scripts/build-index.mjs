@@ -120,10 +120,18 @@ async function embedBatch(key, texts, attempt = 0) {
   });
   if (res.status === 429 && attempt < 6) {
     const body = await res.text();
+    // A per-DAY quota cannot clear by retrying within the run — fail fast with a clear message
+    // (the API sometimes still returns a short retryDelay for it, so detect the quota id/text).
+    if (/per[\s_]?day|RequestsPerDay/i.test(body)) {
+      throw new Error(
+        "Daily embeddings free-tier quota (1000/day for gemini-embedding-001) is exhausted. " +
+          "Re-run after it resets (midnight Pacific).",
+      );
+    }
     const m = body.match(/retry in ([\d.]+)s/i) || body.match(/"retryDelay":\s*"(\d+)s"/);
     const wait = (m ? Math.ceil(parseFloat(m[1])) : 60) + 3;
     if (wait > 120) {
-      throw new Error(`Daily embeddings quota likely exhausted (API asks to retry in ${wait}s). Try again later.`);
+      throw new Error(`Embeddings quota retry delay too long (${wait}s) — aborting; try again later.`);
     }
     console.log(`  quota window hit, waiting ${wait}s then retrying…`);
     await sleep(wait * 1000);

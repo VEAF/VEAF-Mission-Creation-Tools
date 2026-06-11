@@ -35,6 +35,8 @@ class ArgPrompt:
     """True → yes/no confirm; False → text input."""
     is_option: bool = True
     """True → rendered as ``--key value``; False → positional argument."""
+    resolve_path: bool = False
+    """True → show the absolute path the current default resolves to as a hint."""
 
     @property
     def cli_flag(self) -> str:
@@ -67,7 +69,7 @@ COMMANDS: list[CommandSpec] = [
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False, resolve_path=True),
         ],
     ),
     CommandSpec(
@@ -116,7 +118,9 @@ COMMANDS: list[CommandSpec] = [
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder_dest"), default=".", is_option=False),
+            ArgPrompt(
+                "mission_folder", t("tui.arg.mission_folder_dest"), default=".", is_option=False, resolve_path=True
+            ),
         ],
     ),
     CommandSpec(
@@ -143,7 +147,9 @@ COMMANDS: list[CommandSpec] = [
         cli_name="convert-v5",
         description=t("tui.cmd.convert_v5.description"),
         prompts=[
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False),
+            ArgPrompt(
+                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+            ),
             ArgPrompt("force", t("tui.arg.convert_v5_force"), default="", is_flag=True),
             ArgPrompt("icao", t("tui.arg.convert_v5_icao"), default=""),
         ],
@@ -152,7 +158,9 @@ COMMANDS: list[CommandSpec] = [
         cli_name="prepare",
         description=t("tui.cmd.prepare.description"),
         prompts=[
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False),
+            ArgPrompt(
+                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+            ),
         ],
     ),
     CommandSpec(
@@ -234,6 +242,22 @@ def _resolve_prompt_default(prompt: ArgPrompt, last_args: dict[str, Any], yaml_d
     return prompt.default
 
 
+def _folder_hint(default_value: str) -> str:
+    """Return a localized hint showing the absolute path *default_value* resolves to.
+
+    Clarifies the otherwise-opaque ``.`` default by spelling out that it means
+    the current folder and showing the fully resolved path it points at.
+
+    Args:
+        default_value: The path string currently offered as the prompt default.
+
+    Returns:
+        A one-line localized hint string for the prompt's ``long_instruction``.
+    """
+    resolved = Path(default_value or ".").resolve()
+    return t("tui.hint.mission_folder", path=resolved)
+
+
 # ---------------------------------------------------------------------------
 # Wizard entry point
 # ---------------------------------------------------------------------------
@@ -298,10 +322,11 @@ def run_wizard() -> list[str]:
                     default=bool(last_args.get(prompt.key, prompt.default)),
                 ).execute()
             else:
-                value = inquirer.text(  # type: ignore[attr-defined]
-                    message=display_label,
-                    default=_resolve_prompt_default(prompt, last_args, yaml_defaults),
-                ).execute()
+                default_value = _resolve_prompt_default(prompt, last_args, yaml_defaults)
+                text_kwargs: dict[str, Any] = {"message": display_label, "default": default_value}
+                if prompt.resolve_path:
+                    text_kwargs["long_instruction"] = _folder_hint(default_value)
+                value = inquirer.text(**text_kwargs).execute()  # type: ignore[attr-defined]
             collected[prompt.key] = value
 
         # ── Step 3: build CLI args list ──────────────────────────────────────

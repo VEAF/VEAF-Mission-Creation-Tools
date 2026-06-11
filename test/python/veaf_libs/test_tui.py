@@ -10,6 +10,7 @@ from veaf_libs.tui import (
     COMMANDS,
     ArgPrompt,
     CommandSpec,
+    _folder_hint,
     _mission_yaml_defaults,
     _resolve_prompt_default,
     run_wizard,
@@ -67,9 +68,7 @@ class TestMissionYamlDefaults:
         assert _mission_yaml_defaults(tmp_path) == {}
 
     def test_derives_mission_name_for_name_prompts(self, tmp_path: Path) -> None:
-        (tmp_path / "mission.yaml").write_text(
-            "mission:\n  name: Operation-Thunder\n", encoding="utf-8"
-        )
+        (tmp_path / "mission.yaml").write_text("mission:\n  name: Operation-Thunder\n", encoding="utf-8")
         defaults = _mission_yaml_defaults(tmp_path)
         assert defaults["mission_name_or_file"] == "Operation-Thunder"
         assert defaults["input_mission_name_or_file"] == "Operation-Thunder"
@@ -98,9 +97,7 @@ class TestResolvePromptDefault:
 
     def test_yaml_used_when_no_saved_preference(self) -> None:
         prompt = self._prompt()
-        result = _resolve_prompt_default(
-            prompt, last_args={}, yaml_defaults={"mission_name_or_file": "FromYaml"}
-        )
+        result = _resolve_prompt_default(prompt, last_args={}, yaml_defaults={"mission_name_or_file": "FromYaml"})
         assert result == "FromYaml"
 
     def test_static_default_when_no_saved_no_yaml(self) -> None:
@@ -116,6 +113,37 @@ class TestResolvePromptDefault:
             yaml_defaults={"mission_name_or_file": "FromYaml"},
         )
         assert result == "FromYaml"
+
+
+class TestFolderHint:
+    def test_dot_resolves_to_cwd(self) -> None:
+        hint = _folder_hint(".")
+        assert str(Path.cwd().resolve()) in hint
+
+    def test_empty_defaults_to_cwd(self) -> None:
+        hint = _folder_hint("")
+        assert str(Path.cwd().resolve()) in hint
+
+    def test_relative_path_resolved_to_absolute(self) -> None:
+        hint = _folder_hint("./sub/folder")
+        assert str((Path.cwd() / "sub" / "folder").resolve()) in hint
+
+    def test_hint_is_non_empty_string(self) -> None:
+        assert _folder_hint(".").strip() != ""
+
+
+class TestMissionFolderResolvePathFlag:
+    def test_resolve_path_defaults_to_false(self) -> None:
+        assert ArgPrompt("k", "label").resolve_path is False
+
+    def test_all_mission_folder_prompts_resolve_path(self) -> None:
+        folder_prompts = [p for cmd in COMMANDS for p in cmd.prompts if p.key == "mission_folder"]
+        assert folder_prompts  # guard: the prompts exist
+        assert all(p.resolve_path for p in folder_prompts)
+
+    def test_non_folder_prompts_do_not_resolve_path(self) -> None:
+        other_prompts = [p for cmd in COMMANDS for p in cmd.prompts if p.key != "mission_folder"]
+        assert all(not p.resolve_path for p in other_prompts)
 
 
 class TestRunWizard:
@@ -167,7 +195,7 @@ class TestRunWizard:
 
         mock_select_instance = type("S", (), {"execute": lambda self: "extract"})()
 
-        def _fake_text(message: str, default: str):  # type: ignore[no-untyped-def]
+        def _fake_text(message: str, default: str, **kwargs):  # type: ignore[no-untyped-def]
             captured.setdefault("first_default", default)
             return type("T", (), {"execute": lambda self: default})()
 
@@ -185,6 +213,30 @@ class TestRunWizard:
 
         assert captured["first_default"] == "Op-Thunder"
         assert "Op-Thunder" in result
+
+    def test_mission_folder_prompt_passes_long_instruction(self) -> None:
+        """The mission_folder prompt must receive a resolved-path hint; others must not."""
+        kwargs_by_default: dict[str, dict] = {}
+
+        def _fake_text(message: str, default: str, **kwargs):  # type: ignore[no-untyped-def]
+            kwargs_by_default[default] = kwargs
+            return type("T", (), {"execute": lambda self, _d=default: _d})()
+
+        mock_select_instance = type("S", (), {"execute": lambda self: "extract"})()
+
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value="extract"):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.preferences.save_invocation"):
+                        with patch("veaf_libs.tui._mission_yaml_defaults", return_value={}):
+                            with patch("InquirerPy.inquirer.select", return_value=mock_select_instance):
+                                with patch("InquirerPy.inquirer.text", side_effect=_fake_text):
+                                    run_wizard()
+
+        # extract → mission_name_or_file (default "mission.miz", no hint) + mission_folder (default ".", hint)
+        assert "long_instruction" not in kwargs_by_default["mission.miz"]
+        assert "long_instruction" in kwargs_by_default["."]
+        assert str(Path.cwd().resolve()) in kwargs_by_default["."]["long_instruction"]
 
     def test_about_command_returns_no_extra_args(self) -> None:
         """'about' has no prompts — result is just ['about']."""

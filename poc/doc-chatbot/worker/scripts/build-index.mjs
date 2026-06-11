@@ -1,19 +1,25 @@
 /**
- * Build the Vectorize index for the VEAF documentation chatbot (POC).
+ * Build the documentation chatbot embeddings index (KV format) for the VEAF docs.
  *
- * Reads the local Markdown docs (../../../../doc), splits them into chunks, embeds each chunk
- * with the Gemini embeddings API (gemini-embedding-001, 768 dims), and writes an NDJSON file
- * ready for `wrangler vectorize insert`.
+ * Reads the local Markdown docs (../../../../doc), splits them into chunks, embeds each chunk with
+ * the Gemini embeddings API (gemini-embedding-001, 768 dims) and writes, per language:
+ *   - vec-{lang}.bin   : a binary Float32 blob of L2-normalized vectors (in-Worker cosine search)
+ *   - txt-{lang}.json  : a `wrangler kv bulk put` file of per-chunk texts (keys idx:txt:{lang}:{i})
+ *
+ * Embedding is INCREMENTAL: a content-addressed cache (.embed-cache.json, keyed by the SHA-256 of
+ * the chunk text) is reused across runs, so only new/changed chunks are embedded. In CI the cache
+ * is persisted with actions/cache — a typical doc edit then costs a handful of embeds, well under
+ * the free-tier 1000/day cap. With no cache (cold run) every chunk is embedded.
  *
  * Usage (from poc/doc-chatbot/worker):
  *   GEMINI_API_KEY=... node scripts/build-index.mjs
- *   # then:
- *   npx wrangler vectorize insert veaf-docs --file vectors.ndjson
+ *   then upload the outputs to KV (see wrangler.toml header).
  *
  * The key is read from GEMINI_API_KEY, falling back to the .dev.vars file.
  */
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 const EMBED_MODEL = "gemini-embedding-001";
@@ -25,6 +31,9 @@ const BATCH = 50; // embeddings per batch — kept under the 100/min free-tier l
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DOC_DIR = path.resolve(__dirname, "../../../../doc");
 const WORKER_DIR = path.resolve(__dirname, "..");
+const CACHE_FILE = path.join(WORKER_DIR, ".embed-cache.json");
+
+const sha256 = (text) => createHash("sha256").update(text).digest("hex");
 
 /** In-place L2 normalization so the Worker's cosine similarity reduces to a dot product. */
 function l2normalize(v) {
@@ -77,7 +86,7 @@ function chunkMarkdown(content) {
       let b = "";
       for (const para of sec.split(/\n\s*\n/)) {
         // A single paragraph (e.g. a big table or code block) can itself exceed MAX_CHARS, so
-        // slice it at the character level to guarantee no chunk blows the Vectorize metadata cap.
+        // slice it at the character level to guarantee no chunk blows the metadata size cap.
         for (let k = 0; k < para.length; k += MAX_CHARS) {
           const piece = para.slice(k, k + MAX_CHARS);
           if (b && b.length + piece.length + 2 > MAX_CHARS) {
@@ -104,6 +113,15 @@ function titleOf(content, relPath) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Load the content-addressed embedding cache ({sha256: number[]}); empty on a cold run. */
+async function loadCache() {
+  try {
+    return JSON.parse(await readFile(CACHE_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+}
 
 async function embedBatch(key, texts, attempt = 0) {
   const res = await fetch(`${BASE}/${EMBED_MODEL}:batchEmbedContents?key=${key}`, {
@@ -143,11 +161,10 @@ async function embedBatch(key, texts, attempt = 0) {
 }
 
 async function main() {
-  const key = await resolveKey();
   const files = await collectMarkdown(DOC_DIR);
   console.log(`Found ${files.length} markdown files under ${DOC_DIR}`);
 
-  // Build the chunk records before embedding.
+  // Build the chunk records (with a content hash) before embedding.
   const records = [];
   for (const file of files) {
     const content = await readFile(file, "utf8");
@@ -155,32 +172,46 @@ async function main() {
     const lang = relPath.endsWith(".en.md") ? "en" : "fr";
     const title = titleOf(content, relPath);
     for (const text of chunkMarkdown(content)) {
-      records.push({ text, lang, title, path: relPath });
+      records.push({ text, lang, title, path: relPath, hash: sha256(text) });
     }
   }
-  console.log(`Prepared ${records.length} chunks; embedding in batches of ${BATCH}…`);
 
-  for (let i = 0; i < records.length; i += BATCH) {
-    const batch = records.slice(i, i + BATCH);
-    const vectors = await embedBatch(key, batch.map((r) => r.text));
-    batch.forEach((r, j) => {
-      r.vector = vectors[j];
-    });
-    console.log(`  embedded ${Math.min(i + BATCH, records.length)}/${records.length}`);
-    // Free-tier embeddings allow 100 requests/min and each chunk counts as one request, so wait
-    // out the per-minute window between batches.
-    if (i + BATCH < records.length) {
-      console.log("  waiting 61s for the embeddings free-tier quota window…");
-      await sleep(61000);
+  // Incremental: reuse cached vectors; only embed chunks whose text is new/changed.
+  const cache = await loadCache();
+  const toEmbed = records.filter((r) => !cache[r.hash]);
+  console.log(
+    `Prepared ${records.length} chunks; ${records.length - toEmbed.length} cached, ${toEmbed.length} to embed.`,
+  );
+
+  if (toEmbed.length) {
+    const key = await resolveKey();
+    for (let i = 0; i < toEmbed.length; i += BATCH) {
+      const batch = toEmbed.slice(i, i + BATCH);
+      const vectors = await embedBatch(key, batch.map((r) => r.text));
+      batch.forEach((r, j) => {
+        cache[r.hash] = vectors[j];
+      });
+      console.log(`  embedded ${Math.min(i + BATCH, toEmbed.length)}/${toEmbed.length}`);
+      // Free-tier embeddings allow 100 requests/min and each chunk counts as one request, so wait
+      // out the per-minute window between batches.
+      if (i + BATCH < toEmbed.length) {
+        console.log("  waiting 61s for the embeddings free-tier quota window…");
+        await sleep(61000);
+      }
     }
   }
+
+  // Persist the cache, pruned to the chunks that currently exist (bounds its size).
+  const pruned = {};
+  for (const r of records) pruned[r.hash] = cache[r.hash];
+  await writeFile(CACHE_FILE, JSON.stringify(pruned));
 
   // Emit, per language: a binary Float32 blob of L2-normalized vectors (for in-Worker cosine) and
   // a bulk file of per-chunk texts keyed `idx:txt:{lang}:{i}` (matching the blob order) for KV.
   for (const lang of [...new Set(records.map((r) => r.lang))]) {
     const recs = records.filter((r) => r.lang === lang);
     const blob = new Float32Array(recs.length * EMBED_DIMS);
-    recs.forEach((r, i) => blob.set(l2normalize(Float32Array.from(r.vector)), i * EMBED_DIMS));
+    recs.forEach((r, i) => blob.set(l2normalize(Float32Array.from(cache[r.hash])), i * EMBED_DIMS));
     await writeFile(path.join(WORKER_DIR, `vec-${lang}.bin`), Buffer.from(blob.buffer));
     const bulk = recs.map((r, i) => ({
       key: `idx:txt:${lang}:${i}`,
@@ -190,8 +221,8 @@ async function main() {
     console.log(`  ${lang}: ${recs.length} vectors -> vec-${lang}.bin, txt-${lang}.json`);
   }
   console.log("\nNext — upload the index to KV (see wrangler.toml header), e.g.:");
-  console.log('  npx wrangler kv key  put --binding CHAT_KV "idx:vec:fr" --path vec-fr.bin');
-  console.log("  npx wrangler kv bulk put --binding CHAT_KV txt-fr.json");
+  console.log('  npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin');
+  console.log("  npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json");
 }
 
 // Run only when executed directly (not when imported by tests).

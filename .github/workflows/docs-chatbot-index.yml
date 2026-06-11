@@ -46,6 +46,18 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      # Persist the content-addressed embedding cache across runs so a doc edit only re-embeds the
+      # changed chunks (stays well under the free-tier 1000 embeds/day). restore-keys falls back to
+      # the most recent cache when the exact (docs-hash) key misses; the updated cache is saved
+      # post-job under the new key.
+      - name: Restore embeddings cache
+        uses: actions/cache@v4
+        with:
+          path: poc/doc-chatbot/worker/.embed-cache.json
+          key: doc-embeddings-${{ hashFiles('doc/**/*.md') }}
+          restore-keys: |
+            doc-embeddings-
+
       - name: Build the embeddings index
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

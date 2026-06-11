@@ -37,6 +37,7 @@
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + Vectorize + Gemini) embedded in the MkDocs site | 🔄 |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
+| Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | ⬜ |
 
 ---
 
@@ -329,11 +330,16 @@ was constrained to a working branch.
 
 **Goal**: DCS trigger migration is automatic (`build --migrate-from-v5`). Verify with Flogas the behaviour of triggers for **custom scripts** (custom-script loading) and confirm nothing is lost or mis-handled. Covers todo-2026.06.09 item 3. External dependency: Flogas's input/missions.
 
+**Field feedback (IMC-Day second round, `tests-mct6-imcday(3).md` §9, tested on 6.4.0)** confirms the need and adds three concrete defects, ticketized below: the legacy v5 dynamic-loading triggers are not recovered by the migration ([VEAF-mission-converter#17](https://github.com/VEAF/VEAF-mission-converter/issues/17), explicitly deferred to this lot by ADR 0004), the injected loading triggers are recreated on every build so user customizations of load order are lost (possible in MCT 5), and the legacy "CTLD beacons loading" trigger survives migration even when CTLD is disabled.
+
 **Branch**: `chore/triggers-verify` (only if changes are needed) → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | TRIGGERS-VERIFY-001 | Verify, with Flogas, how custom-script triggers are migrated by `build --migrate-from-v5`; document findings; open fix tickets if a defect is confirmed. | `mission_builder/mission_builder_worker.py`, `doc/` | chore | ⬜ |
+| TRIGGERS-VERIFY-002 | `build --migrate-from-v5` does not recover the mission's existing v5 dynamic-loading triggers (`dynamicLoader` in the *VEAF scripts loading* trigger, `dynamicConfig` in *mission script loading*): the build prepends its six triggers and shifts existing ones up without inspecting them (ADR 0004 deferred item). Detect the legacy loading triggers, migrate them into the v6 mechanism, and remove the obsolete ones. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ⬜ |
+| TRIGGERS-VERIFY-003 | The injected loading triggers are recreated on every build, so they can drift from what the dynamic loader actually does and any user customization (MCT 5 allowed editing the "config" loading triggers, e.g. to load scripts before/after) is lost. Decide and implement how load order / trigger content can be preserved or parameterized across builds. | `mission_builder/mission_builder_worker.py`, `doc/`, `test/python/` | spike | ⬜ |
+| TRIGGERS-VERIFY-004 | The legacy "CTLD beacons loading" trigger (present in v5 missions, not injected by the build) survives migration even when the CTLD module is disabled — remove or disable it during migration when CTLD is off. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ⬜ |
 
 ---
 
@@ -440,5 +446,24 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 |---|--------|-------|------|--------|
 | SPAWN-REFACTOR-001 | Characterization tests for `veafSpawnParser.markTextAnalysis`: 30+ marker variants incl. typos, missing values, and multiple parameters; lock current behaviour before any change. Prerequisite for UXPILOT-003 and for any dedup. | `test/lua/test_veafSpawnParser.lua` (new) | feat | ⬜ |
 | SPAWN-REFACTOR-002 | Extract a spawn-type **descriptor table** (`{type → {defaults, validators}}`) consumed by the parser, and a shared `VeafSpawner` base for the duplicated validation/debug blocks. Only within the scope of a lot already touching these files. | `src/scripts/veaf/veafSpawnParser.lua`, `veafSpawnAircraft.lua`, `veafSpawnGround.lua`, `veafSpawnCore.lua`, `test/lua/` | refactor | ⬜ |
+
+---
+
+## Lot IMC-FEEDBACK-2 — Second-round IMC-Day user feedback (6.4.0)
+
+**Goal**: Address the second round of IMC-Day migration field feedback (`tests-mct6-imcday(3).md`, tested with v6.4.0 on 2026-06-10; the first round, 2026-05-31 / v6.2.0, was handled by the archived Lot 26 IMC-FEEDBACK). Items already fixed in `develop-v6` carry no ticket here: Skynet listed twice and QRA/`external_modules:` scattering are solved by TODO0609-MODULES-UNIFY (ships with the next release). The `spawnables.yaml`/`templates.yaml` confusion repros were handed to **TODO0609-AIRCRAFT-INJECT**, and the trigger-migration repros to **TODO0609-TRIGGERS-VERIFY** (see there).
+
+**Branch**: `fix/imc-feedback-2` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| IMC2-001 | **`prepare` broken in the packaged exe**: default files are resolved relative to `__file__`, which points inside the PyInstaller temp dir (`Temp\_MEI…`) in a frozen exe, and `src/defaults/` is not bundled in the `veaf-tools.spec` `datas` → `Default files not found`. Bundle the defaults in the spec and resolve via `sys._MEIPASS` (same pattern as `veaf_libs/i18n.py:34`). | `veaf-tools.spec`, `veaf_tools/commands/prepare.py`, `test/python/` | fix | ⬜ |
+| IMC2-002 | **Updater overwrites the mission folder's `README.md`**: `veaf-tools-updater.py:441` moves the published zip's `README.md` into the mission folder on every update, clobbering the user's own README — and its relative links are dead there anyway. Stop moving it (keep it under `/published/`), or write a minimal README pointing to the online documentation, never overwriting an existing one. | `veaf-tools-updater.py`, `test/python/` | fix | ⬜ |
+| IMC2-003 | **`custom_scripts` load trigger not created** (reported on 6.4.0): the scripts are taken into account (orphan warnings disappear) but no loading trigger shows up in the mission. The code path looks correct (`mission_builder_worker.py:796-802`, default `generate_load_trigger: true`) — reproduce and fix. Likely the root cause of the "custom F10 menu not shown" report (script never loaded at runtime). | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ⬜ |
+| IMC2-004 | **`veafAssets.respawn` fails with MIST errors** (`T2-Shell-1 not found in mist.DBs.MEgroupsByName`): respawn relies on `mist.respawnGroup` (`veafAssets.lua:157`), which fails for groups absent from the `.miz` or spawned dynamically. Investigate and fix; also surface the ASSETS→MIST dependency (document it and/or validate it at build time) — answers the "is MIST mandatory?" feedback. | `src/scripts/veaf/veafAssets.lua`, `veaf_libs/lua_config_generator.py`, `doc/`, `test/lua/` | fix | ⬜ |
+| IMC2-005 | **Fog modification does not work in-game**: `veafWeather.lua` already uses the modern DCS fog API (`world.weather.setFogThickness`/`setFogAnimation`, `:1366`) — reproduce, diagnose and fix. | `src/scripts/veaf/veafWeather.lua`, `test/lua/` | fix | ⬜ |
+| IMC2-006 | **Scaffold `.gitignore` gaps**: add exclusions for built `.miz` files and the `/missions/` output folder; check whether `/build/` is still produced and drop it if not. The file is `NEVER_OVERWRITE`, so existing users must apply the change manually — say so in the changelog entry. | `src/defaults/mission-folder/.gitignore`, `test/python/` | fix | ⬜ |
+| IMC2-007 | **Per-module descriptive comments** in the default `mission.yaml` template (category headers already exist, individual descriptions don't); decide WEATHERMARK's default (reported as useless — default it to `false` or drop it from the template). | `src/defaults/mission-folder/mission.yaml`, `doc/MISSION_YAML_REFERENCE*.md` | feat | ⬜ |
+| IMC2-008 | **Dynamic loading not controllable from `mission.yaml`/profiles**: it is a build-time flag only, so `profiles:` (TEST/SERVER) cannot switch it — exactly what the feedback asks for ("des profils de build… aussi pour les dynamic loadings"). Add a YAML key (e.g. `build.dynamic_loading`) overridable per profile; document it in the Build Profiles doc to fix discoverability ("ça existe peut-être mais je n'ai pas compris comment ça fonctionne"). | `veaf_tools/commands/build.py`, `veaf_libs/build_profiles.py`, `doc/MISSION_YAML_REFERENCE*.md`, `test/python/` | feat | ⬜ |
 
 ---

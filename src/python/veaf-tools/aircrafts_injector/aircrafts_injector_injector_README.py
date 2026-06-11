@@ -63,7 +63,7 @@ python veaf-tools.py inject-aircraft-groups [MISSION_NAME_OR_FILE] [OUTPUT_MISSI
 ## Options
 
 - `--template-file FILE`: Path to the YAML file containing aircraft groups
-  - Default: `aircraft-templates.yaml`
+  - Default: `src/spawnables.yaml` (use `src/dynamic-slot-templates.yaml` for dynamic-slot templates)
 
 - `--mode MODE`: Injection mode
   - `add`: Add new groups to existing ones (default)
@@ -250,11 +250,11 @@ from aircrafts_injector import (
     AircraftGroupsInjectorWorker
 )
 
-# Step 1: Extract groups from a mission
+# Step 1: Extract groups from a mission (sorted into the two families)
 extractor = AircraftGroupsExtractorWorker(
     input_mission=Path("mission-with-templates.miz"),
-    output_yaml=Path("templates.yaml"),
-    group_name_pattern="veafSpawn-.*"
+    output_spawnables=Path("src/spawnables.yaml"),
+    output_dynamic_templates=Path("src/dynamic-slot-templates.yaml"),
 )
 extractor.extract(interactive=True)
 

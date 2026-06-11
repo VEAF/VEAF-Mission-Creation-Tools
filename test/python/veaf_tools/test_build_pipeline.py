@@ -51,6 +51,52 @@ class TestLegacyAircraftFileWarning(unittest.TestCase):
         self.assertEqual(warnings, [])
 
 
+class TestResolvePipelineStepFile(unittest.TestCase):
+    """Aircraft-group steps resolve to the new canonical files (AIRCRAFT-INJECT, IMC-Day §8 #3)."""
+
+    def _resolve(self, folder: Path, cfg: dict, key: str, *candidates: str) -> Path | None:
+        from veaf_tools.commands.build import resolve_pipeline_step_file
+
+        return resolve_pipeline_step_file(cfg, folder, key, *candidates)
+
+    def test_spawnable_aircrafts_resolves_spawnables_yaml(self) -> None:
+        """Regression (IMC-Day §8 #3): spawnables.yaml must be wired to a real injection step."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "spawnables.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {}, "spawnable_aircrafts", "src/spawnables.yaml")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.name, "spawnables.yaml")  # type: ignore[union-attr]
+
+    def test_dynamic_slot_templates_resolves_new_file(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "dynamic-slot-templates.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {}, "dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.name, "dynamic-slot-templates.yaml")  # type: ignore[union-attr]
+
+    def test_disabled_step_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "src").mkdir()
+            (folder / "src" / "spawnables.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(folder, {"spawnable_aircrafts": False}, "spawnable_aircrafts", "src/spawnables.yaml")
+        self.assertIsNone(result)
+
+    def test_custom_file_path_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "custom").mkdir()
+            (folder / "custom" / "my.yaml").write_text("# stub\n", encoding="utf-8")
+            result = self._resolve(
+                folder, {"spawnable_aircrafts": {"file": "custom/my.yaml"}}, "spawnable_aircrafts", "src/spawnables.yaml"
+            )
+        self.assertEqual(result.name, "my.yaml")  # type: ignore[union-attr]
+
+
 class TestResolveOutputMission(unittest.TestCase):
     """Output-mission resolution — FIX-BUILD-BARE-NAME-PATH-001."""
 

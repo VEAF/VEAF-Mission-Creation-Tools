@@ -1126,10 +1126,11 @@ def generate_mission_yaml_template(
     lines += [
         "#",
         "# pipeline:",
-        "#   presets: true             # src/presets.yaml",
-        "#   waypoints: true           # src/waypoints.yaml",
-        "#   aircraft_groups: true     # src/aircraft-templates.yaml",
-        "#   weather: true             # src/versions.yaml",
+        "#   presets: true                 # src/presets.yaml",
+        "#   waypoints: true               # src/waypoints.yaml",
+        "#   spawnable_aircrafts: true     # src/spawnables.yaml",
+        "#   dynamic_slot_templates: true  # src/dynamic-slot-templates.yaml",
+        "#   weather: true                 # src/versions.yaml",
     ]
 
     return "\n".join(lines) + "\n"

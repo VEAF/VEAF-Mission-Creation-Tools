@@ -119,6 +119,35 @@ class TestCompleteDefaultsFiltering(unittest.TestCase):
         self.assertTrue((tmpdir / "src" / "waypoints.yaml").exists())
         shutil.rmtree(tmpdir)
 
+    def test_copying_a_missing_default_logs_a_message(self) -> None:
+        """Recreating a deleted default must not be silent (IMC-Day §8 #2)."""
+        from unittest.mock import patch
+
+        from veaf_libs.logger import logger
+
+        tmpdir = Path(tempfile.mkdtemp())
+        defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
+        _seed_defaults(defaults_folder, "spawnables.yaml")
+        worker = _make_worker(tmpdir, defaults_folder, {})
+
+        messages: list[str] = []
+        orig = logger.warning
+
+        def capture(msg, *args, **kwargs):
+            messages.append(str(msg))
+            return orig(msg, *args, **kwargs)
+
+        with patch.object(logger, "warning", side_effect=capture):
+            worker.complete_src_folder_with_defaults()
+
+        copied = (tmpdir / "src" / "spawnables.yaml").exists()
+        shutil.rmtree(tmpdir)
+        self.assertTrue(copied)
+        self.assertTrue(
+            any("spawnables.yaml" in m for m in messages),
+            "Copying a missing default must emit an explicit message",
+        )
+
 
 class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
     """An orphan warning is emitted when a file already exists but its module is disabled (IMC-008)."""

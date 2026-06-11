@@ -369,6 +369,12 @@ was constrained to a working branch.
 
 **Open questions — settled with David (2026-06-11)**: (1) (C) file → **`dynamic-slot-templates.yaml`**; (2) step names → **`spawnable_aircrafts`** + **`dynamic_slot_templates`**; (3) **hard break** (old step/names dropped, ADR 0001 precedent); (4) extraction → **one pass writes both files by default**, `--kind spawnable|dynamic-template` restricts to one; (5) warehouse wiring → **separate lot DYNSLOT-WAREHOUSE** (handoff §5, deferred).
 
+**Field feedback integrated** (IMC-Day 2026-06-10, tested on 6.4.0 — `tests-mct6-imcday(3).md` §8):
+- The orphan warning (FIX-AIRCRAFT-ORPHAN) flagged `aircraft-templates.yaml` while the step actually consumed `templates.yaml` — the split removes that mismatch; pre-v6 names now emit a clear "ignored, use the new files" migration message (param-ized by file). Residual `aircraft-templates.yaml` references purged from `build.py` message, `lua_config_generator` comment, TUI, and the injector/extractor READMEs.
+- Deleted defaults silently reappeared: confirmed `complete_src_folder_with_defaults` logs `builder.copied_from_defaults` on every recopy, and skips when the step is disabled (regression test added).
+- `spawnables.yaml` was copied but injected by no step (the lot's root motivation): the `spawnable_aircrafts` step now consumes it — acceptance test asserts `resolve_pipeline_step_file` wires `src/spawnables.yaml`.
+- Fixed a TUI regression introduced mid-lot: `extract-aircraft-groups` no longer passes the removed `--output-yaml` (now `--kind`); `inject-aircraft-groups` defaults to `src/spawnables.yaml`.
+
 ---
 
 ## Lot DYNSLOT-WAREHOUSE — Wire dynamic-slot templates into the `.miz` warehouses

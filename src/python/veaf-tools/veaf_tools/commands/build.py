@@ -78,6 +78,34 @@ def _resolve_output_mission(
     return p_output_mission, safe_name
 
 
+def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: str, *candidates: str) -> Path | None:
+    """Resolve the input file for a pipeline step, or ``None`` to skip it.
+
+    A step is skipped when it is ``false`` or ``{enabled: false}``. A custom
+    ``{file: …}`` path wins; otherwise the first existing default candidate is used.
+
+    Args:
+        pipeline_cfg: The ``pipeline:`` mapping from mission.yaml.
+        mission_folder: The mission folder the candidates are resolved against.
+        key: The pipeline step key (e.g. ``spawnable_aircrafts``).
+        candidates: Default file paths (relative to *mission_folder*), tried in order.
+
+    Returns:
+        The resolved existing path, or ``None`` when the step is disabled or no file exists.
+    """
+    step_cfg = pipeline_cfg.get(key)
+    if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+        return None
+    if isinstance(step_cfg, dict) and "file" in step_cfg:
+        p = mission_folder / step_cfg["file"]
+        return p if p.exists() else None
+    for candidate in candidates:
+        p = mission_folder / candidate
+        if p.exists():
+            return p
+    return None
+
+
 @app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
@@ -176,17 +204,7 @@ def build(
 
     def _step_file(key: str, *candidates: str) -> Path | None:
         """Return the resolved file for a pipeline step, or None to skip."""
-        step_cfg = worker.pipeline_cfg.get(key)
-        if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
-            return None
-        if isinstance(step_cfg, dict) and "file" in step_cfg:
-            p = p_mission_folder / step_cfg["file"]
-            return p if p.exists() else None
-        for candidate in candidates:
-            p = p_mission_folder / candidate
-            if p.exists():
-                return p
-        return None
+        return resolve_pipeline_step_file(worker.pipeline_cfg, p_mission_folder, key, *candidates)
 
     presets_path = _step_file("presets", "src/presets.yaml")
     if presets_path:
@@ -244,7 +262,7 @@ def build(
     # Warn about pre-v6 files that are no longer injected (hard break — see ADR 0002).
     for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):
         if (p_mission_folder / _legacy).exists():
-            logger.warning(t("cmd.build.orphan_aircraft_file"))
+            logger.warning(t("cmd.build.orphan_aircraft_file", file=_legacy))
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:

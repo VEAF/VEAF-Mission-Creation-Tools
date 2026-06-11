@@ -65,9 +65,13 @@ python veaf-tools.py extract-aircraft-groups --lua-input settings-templates.lua 
 
 ## Options
 
-- `--output-yaml FILE`: Path where the extracted templates YAML will be saved
-  - Default: `aircraft-templates.yaml`
-  - Example: `--output-yaml templates.yaml`
+Groups are sorted (ADR 0002) into two families and written to two files by default:
+
+- `--kind both|spawnable|dynamic-template`: which families to extract (default `both`)
+- `--output-spawnables FILE`: spawnable aircraft groups (`veafSpawn-` prefix)
+  - Default: `src/spawnables.yaml`
+- `--output-dynamic-templates FILE`: dynamic-slot templates (`dynSpawnTemplate=true`)
+  - Default: `src/dynamic-slot-templates.yaml`
 
 - `--lua-input FILE`: Path to a Lua settings file to extract from instead of a mission file
   - Example: `--lua-input settings-templates.lua`

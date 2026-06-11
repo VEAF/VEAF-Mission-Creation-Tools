@@ -106,6 +106,8 @@ def write_countries_yaml(entries: list[CountryEntry], output: Path, ref: str = D
             header for provenance.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
+    # Force LF so the artifact is byte-identical across platforms — the CI
+    # consistency guard regenerates on Linux and diffs against the committed file.
     data = {
         "countries": [
             {
@@ -117,7 +119,7 @@ def write_countries_yaml(entries: list[CountryEntry], output: Path, ref: str = D
             for e in entries
         ]
     }
-    with open(output, "w", encoding="utf-8") as f:
+    with open(output, "w", encoding="utf-8", newline="\n") as f:
         f.write("# DCS country name -> id table.\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
         f.write(f"# Source ref: {ref}\n")

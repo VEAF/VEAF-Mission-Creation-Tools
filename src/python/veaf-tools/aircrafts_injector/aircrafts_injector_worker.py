@@ -1303,11 +1303,6 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         # Clean the group data and store it
         structure[coalition_name][country_name][group_name] = self._clean_group_data(group)
 
-    @staticmethod
-    def _structure_has_groups(structure: dict[str, Any]) -> bool:
-        """Return True when *structure* holds at least one group."""
-        return any(structure[cat]["coalitions"] for cat in ("airplanes", "helicopters"))
-
     def _write_structure(self, structure: dict[str, Any], path: Path, silent: bool) -> None:
         """Write a single family structure to *path*."""
         if not silent:

@@ -80,6 +80,12 @@ class TestCompleteDefaultsFiltering(unittest.TestCase):
         self.assertFalse((tmpdir / "src" / "dynamic-slot-templates.yaml").exists())
         shutil.rmtree(tmpdir)
 
+    def test_dynamic_slot_templates_copied_by_default(self) -> None:
+        """dynamic-slot-templates.yaml IS copied when its pipeline step is left at its default."""
+        tmpdir, _ = self._run({}, ["dynamic-slot-templates.yaml"])
+        self.assertTrue((tmpdir / "src" / "dynamic-slot-templates.yaml").exists())
+        shutil.rmtree(tmpdir)
+
     def test_file_not_copied_when_pipeline_disabled_false(self) -> None:
         """waypoints.yaml is NOT copied when pipeline.waypoints is False."""
         tmpdir, _ = self._run(

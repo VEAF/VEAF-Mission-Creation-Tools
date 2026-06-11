@@ -22,6 +22,7 @@
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ✅ |
 | Lot FIX-LUADATA-NIL — pure-Python luadata parser (SECREV-001) rejects `nil` values, breaking convert-v5 on `country = nil` | ✅ |
 | Lot CONVERT-CUSTOM-LOADER-HINT — guide users whose v5 mission uses a custom Lua script-loader toward the v6 `custom_scripts:` mechanism (resolves IMC2-003) | ✅ |
+| Lot PERF-LUADATA-PARSER — pure-Python luadata parser (SECREV-001) slow on large missions; build 5-10× slower | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
 | Lot SECREV — full-repo code review findings (lupa RCE, helicopter extraction data loss, zip hardening, Lua nil-derefs) | ✅ |
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
@@ -122,6 +123,20 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | CUSTOM-LOADER-HINT-001 | When the build finds an undeclared `src/scripts/*.lua` whose content loads other scripts (heuristic on `loadfile`/`dofile`/`require`/`a_do_script_file`/`do_script_file`), emit an explanatory warning pointing to the v6 `custom_scripts:` section (instead of the generic "declare it" advice). Generic, no parsing of the loaded list. Replaces the IMC2-003 auto-migration idea (deemed too brittle for rare advanced cases). | `mission_builder/mission_builder_worker.py`, locales, `test/python/` | feat | ✅ |
+
+---
+
+## Lot PERF-LUADATA-PARSER — speed up the pure-Python Lua parser on large missions
+
+**Goal**: SECREV-001 replaced the lua-executing parser with a pure-Python state machine to remove RCE. On large missions (Flogas, 8.9 MB `.miz`) the build became 5-10× slower — `read_miz` ≈ 0.86 s, dominated by the parser. Profiling showed two hotspots: `node_entries_append` re-sorted + rescanned the whole entry list on **every** append (`O(n²·log n)` per table), and the main loop walked the input one byte at a time (`sbins[pos:pos+1]` slice + whitespace test per char). Recover speed without reintroducing code execution.
+
+**Branch**: `perf/luadata-parser` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| PERF-LUADATA-PARSER-001 | (a) Stop sorting/rescanning on every append — keep entries in append order, track array length incrementally via an int-key set, sort once lazily in `node_to_table` (`O(n²·log n)` → `O(n)`). (b) Skip insignificant whitespace runs at C speed (`re.search`) in states where whitespace only advances the cursor. `read_miz` 0.86 s → 0.33 s (~2.6×). Output identical (array/sparse-key ordering, whitespace-insensitivity, string whitespace preserved — guarded by tests). | `luadata/serializer/unserialize.py`, `test/python/security/test_luadata_parser_perf.py` | perf | ✅ |
+
+---
 
 ## Lot SECREV — Full-repo code review findings
 

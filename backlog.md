@@ -49,7 +49,7 @@
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ⬜ |
-| Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + Vectorize + Gemini) embedded in the MkDocs site | 🔄 |
+| Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
 | Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | ✅ |
 | Lot DCSDATA — fix the missing-country-id ME crash, generate DCS country data from the datamine, consolidate all DCS-data generators under one `veaf-build` command with freshness guards, and lift the 2-ground-group mission requirement | 🔄 |
@@ -110,7 +110,7 @@
 | DOC-CHATBOT-002 | Index build script: walk `doc/`, chunk markdown (greedy merge, oversized-paragraph safe), embed in throttled batches, emit per-language binary Float32 blobs + text bulk files for KV. Unit tests for the chunker + Worker helpers. | `poc/doc-chatbot/worker/scripts/build-index.mjs`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
 | DOC-CHATBOT-003 | MkDocs widget: vanilla-JS resizable sidebar (Solde-style), language auto-detection, SSE consume, sanitized DOM rendering (DOMPurify, no innerHTML), lazy CDN load; environment-aware endpoint config; wired via `mkdocs.yml`. | `doc/assets/chatbot/*.js`, `doc/assets/chatbot/*.css`, `mkdocs.yml` | feat | ✅ |
 | DOC-CHATBOT-004 | CI workflow to rebuild the index and upload it to KV whenever docs change (keeps answers fresh). | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
-| DOC-CHATBOT-005 | Productionization prerequisites (do NOT merge before): add repo secrets `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN` (KV edit), `CLOUDFLARE_ACCOUNT_ID`; ship the widget to the versioned (mike) docs; map a Gemini 429 to the localized "too many requests" message. (No paid plan needed — the search runs in the Worker.) | — | feat | ⬜ |
+| DOC-CHATBOT-005 | Productionization prerequisites. **Done**: (1) repo secrets `GEMINI_API_KEY` / `CLOUDFLARE_API_TOKEN` (KV edit) / `CLOUDFLARE_ACCOUNT_ID` set by David; (2) the widget already ships to the versioned (mike) docs — it is wired in `mkdocs.yml` (`extra_javascript`/`extra_css`) and `docs.yml` deploys via `mike deploy`, which builds with that config, so every version includes it (no extra work); (3) a Gemini **429** now maps to the localized "too many requests" message instead of the generic "unavailable", on both the generation and embedding paths (`upstreamErrorMessage`). | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
 
 ---
 

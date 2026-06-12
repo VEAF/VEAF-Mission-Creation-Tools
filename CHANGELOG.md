@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Documentation chatbot — Gemini 429 handling** (DOC-CHATBOT-005): when the Gemini free-tier quota is hit, the docs chatbot now answers with the localized "too many requests, retry shortly" message instead of the generic "temporarily unavailable", on both the generation and embedding paths. Completes the chatbot lot (repo secrets set; the widget already ships to the versioned `mike` docs via `mkdocs.yml`)
 - `build`: **automatic CTLD/CSAR sound packaging** (BUILD-COMMUNITY-SOUNDS-001). CTLD and CSAR play their sounds by filename at runtime, so the files must be in the mission's `l10n/DEFAULT/`. The tools now ship the canonical sounds (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`, sourced upstream) under `src/scripts/community/sounds/` and, when CTLD or CSAR is enabled, inject the ones a mission is missing — **without overwriting** sounds the mission already provides. Nothing is injected when both modules are off. A required sound shipped by neither the tools nor the mission (e.g. `radiobeep.ogg`, the JTAC fallback beep, which upstream does not redistribute) is reported with a build warning so the mission maker can add it. No DCS trigger or `mapResource` entry is created — packaging the file in `l10n/DEFAULT/` is sufficient
 
 ### Fixed

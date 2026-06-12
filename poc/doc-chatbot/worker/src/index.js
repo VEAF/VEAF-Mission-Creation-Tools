@@ -52,6 +52,15 @@ const MESSAGES = {
   },
 };
 
+/**
+ * Map an upstream Gemini failure status to the right localized user message.
+ * A 429 (the free-tier quota was hit) becomes the "too many requests" message
+ * rather than the generic "unavailable", so the pilot knows to simply retry.
+ */
+function upstreamErrorMessage(lang, status) {
+  return status === 429 ? MESSAGES[lang].rateLimited : MESSAGES[lang].unavailable;
+}
+
 /** Build the system instruction that frames the model as the VEAF docs assistant. */
 function systemInstruction(lang, passages) {
   const langName = lang === "en" ? "English" : "French";
@@ -117,7 +126,11 @@ async function embed(env, text, taskType) {
       outputDimensionality: EMBED_DIMS,
     }),
   });
-  if (!res.ok) throw new Error(`embed ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`embed ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   const json = await res.json();
   return json.embedding.values;
 }
@@ -215,7 +228,7 @@ async function streamGemini(env, lang, messages, passages) {
         controller.enqueue(encoder.encode(sse({ error: msg })));
         controller.close();
       };
-      if (!upstream.ok || !upstream.body) return fail(MESSAGES[lang].unavailable);
+      if (!upstream.ok || !upstream.body) return fail(upstreamErrorMessage(lang, upstream.status));
 
       const reader = upstream.body.getReader();
       let buffer = "";
@@ -261,7 +274,7 @@ function latestQuery(messages) {
 }
 
 // Named exports for unit testing (unused by the Workers runtime, which only calls the default export).
-export { latestQuery, toGeminiContents };
+export { latestQuery, toGeminiContents, upstreamErrorMessage };
 
 export default {
   async fetch(request, env) {
@@ -310,9 +323,9 @@ export default {
     let passages;
     try {
       passages = await retrieveContext(env, lang, query);
-    } catch {
-      return new Response(sse({ error: MESSAGES[lang].unavailable }), {
-        status: 502,
+    } catch (err) {
+      return new Response(sse({ error: upstreamErrorMessage(lang, err?.status) }), {
+        status: err?.status === 429 ? 429 : 502,
         headers: { ...cors, "Content-Type": "text/event-stream" },
       });
     }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
-import { latestQuery, toGeminiContents } from "../src/index.js";
+import { latestQuery, toGeminiContents, upstreamErrorMessage } from "../src/index.js";
 
 test("chunkMarkdown merges many tiny heading-sections instead of one chunk each", () => {
   const md = Array.from({ length: 20 }, (_, i) => `## H${i}\n\nshort body ${i}`).join("\n");
@@ -48,4 +48,15 @@ test("toGeminiContents maps assistant->model, drops empties, trims history", () 
   assert.ok(out.length <= 12, `history not trimmed: ${out.length}`);
   assert.ok(out.every((m) => m.role === "user" || m.role === "model"));
   assert.ok(out.every((m) => m.parts[0].text.trim().length > 0));
+});
+
+test("upstreamErrorMessage maps a Gemini 429 to the localized rate-limit message", () => {
+  assert.equal(upstreamErrorMessage("fr", 429), "Trop de requêtes, réessayez dans un instant.");
+  assert.equal(upstreamErrorMessage("en", 429), "Too many requests, please try again shortly.");
+});
+
+test("upstreamErrorMessage falls back to 'unavailable' for other failures", () => {
+  assert.equal(upstreamErrorMessage("fr", 500), "Assistant momentanément indisponible.");
+  assert.equal(upstreamErrorMessage("en", 503), "Assistant temporarily unavailable.");
+  assert.equal(upstreamErrorMessage("en", undefined), "Assistant temporarily unavailable.");
 });

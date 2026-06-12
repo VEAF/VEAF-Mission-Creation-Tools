@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `build`: the legacy v5 **CTLD/CSAR sound-preload trigger** (an `out_sound` registering `beacon.ogg` / `beaconsilent.ogg` / `CSAR.ogg`…) is now dropped — along with its `mapResource` entries — when **both** CTLD and CSAR are disabled, instead of surviving as dead weight. It is left untouched when either module is enabled. Non-community sounds are never touched. Re-creating/packaging the trigger when a module is enabled is tracked separately (`BUILD-COMMUNITY-SOUNDS`) (TRIGGERS-VERIFY-004)
+
 ### Removed
 - **WeatherMark community script retired**: its weather-report helpers were already replaced by `veafWeather` (the only remaining usage was a commented-out, deprecated `veaf.weatherReport` body). Removed `src/scripts/community/WeatherMark.lua`, the `weathermark` community-script entry, the dead `veaf.weatherReport` body, and the docs reference (WEATHERMARK-REMOVE-001)
 - Removed the now-empty deprecated `veaf.weatherReport` stub entirely (no callers; superseded by `veafWeatherData.getWeatherString`) (WEATHERMARK-REMOVE-002)

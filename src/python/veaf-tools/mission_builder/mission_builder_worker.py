@@ -18,6 +18,7 @@ from mission_tools import (
     collect_files_from_globs,
     create_miz,
     get_community_script_files,
+    get_community_sound_files,
     get_mission_data_files,
     get_mission_script_files,
     read_miz,
@@ -448,6 +449,34 @@ class MissionBuilderWorker(BaseWorker):
             return all_scripts
         return [s for s in all_scripts if s["id"] in self.enabled_community_script_ids]
 
+    def _community_enabled(self, script_id: str) -> bool:
+        """Return True if the given community script id is enabled for this build.
+
+        Args:
+            script_id: The community script id (e.g. ``"ctld"``).
+
+        Returns:
+            True when the id is enabled. ``enabled_community_script_ids is None``
+            means "all enabled" (opt-out semantics, no ``community_scripts:`` section).
+        """
+        if self.enabled_community_script_ids is None:
+            return True
+        return script_id in self.enabled_community_script_ids
+
+    def _find_community_sound_resource_keys(self) -> list[str]:
+        """Return mapResource keys whose value is a known CTLD/CSAR sound file.
+
+        Used to locate the legacy "community sound preload" trigger's resources so
+        they can be dropped when neither CTLD nor CSAR needs them.
+
+        Returns:
+            The matching mapResource keys (empty if the mission has no such sounds).
+        """
+        if not (self.dcs_mission and self.dcs_mission.map_resource_content):
+            return []
+        sound_files = {name for names in get_community_sound_files().values() for name in names}
+        return [key for key, value in self.dcs_mission.map_resource_content.items() if str(value) in sound_files]
+
     def get_collected_community_script_files(self) -> dict[str, bytes]:
         if self.collected_community_script_files:
             return self.collected_community_script_files
@@ -784,6 +813,13 @@ class MissionBuilderWorker(BaseWorker):
             return veaf_dict_keys_to_remove
 
         veaf_dict_keys_to_remove = _find_veaf_triggers()
+
+        # TRIGGERS-VERIFY-004: a legacy "community sound preload" trigger registers the
+        # CTLD/CSAR beacon sounds via out_sound. When both CTLD and CSAR are disabled
+        # those sounds are dead weight, so drop the trigger and its mapResource entries.
+        # (Re-creating it when a module is enabled is the BUILD-COMMUNITY-SOUNDS lot.)
+        if not self._community_enabled("ctld") and not self._community_enabled("csar"):
+            veaf_dict_keys_to_remove.extend(self._find_community_sound_resource_keys())
 
         # Remove all these keys from the dictionary
         if self.dcs_mission and self.dcs_mission.dictionary_content:

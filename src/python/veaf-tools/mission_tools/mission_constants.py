@@ -39,6 +39,22 @@ def get_community_script_files() -> list[dict[str, str]]:
     ]
 
 
+def get_community_sound_files() -> dict[str, tuple[str, ...]]:
+    """Sound assets required by community scripts, keyed by community script id.
+
+    These ``.ogg`` files must be registered in the mission (via an ``out_sound``
+    trigger) for the corresponding community script to play them at runtime.
+
+    Returns:
+        Mapping of community script id to the sound filenames it requires.
+    """
+
+    return {
+        "ctld": ("beacon.ogg", "beaconsilent.ogg", "radiobeep.ogg"),
+        "csar": ("CSAR.ogg", "csar-beacon.ogg"),
+    }
+
+
 def get_veaf_script_files() -> list[tuple[str, str]]:
     """Get list of VEAF script files.Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
 

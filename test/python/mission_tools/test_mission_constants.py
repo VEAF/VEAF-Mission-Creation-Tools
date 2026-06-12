@@ -9,6 +9,7 @@ from pathlib import Path
 from mission_tools.mission_constants import (
     collect_files_from_globs,
     get_community_script_files,
+    get_community_sound_files,
     get_legacy_script_files,
     get_mission_data_files,
     get_mission_files_to_cleanup_on_extract,
@@ -66,6 +67,17 @@ class TestGetterFunctions(unittest.TestCase):
     def test_community_scripts_include_mist(self) -> None:
         paths = [item["path"] for item in get_community_script_files()]
         self.assertTrue(any("mist.lua" in p for p in paths))
+
+    def test_community_sound_files_keyed_by_module(self) -> None:
+        result = get_community_sound_files()
+        self.assertIsInstance(result, dict)
+        self.assertIn("ctld", result)
+        self.assertIn("csar", result)
+        self.assertIn("beacon.ogg", result["ctld"])
+        self.assertIn("CSAR.ogg", result["csar"])
+        for names in result.values():
+            self.assertIsInstance(names, tuple)
+            self.assertTrue(all(name.endswith(".ogg") for name in names))
 
     def test_all_getter_return_types(self) -> None:
         for fn in [

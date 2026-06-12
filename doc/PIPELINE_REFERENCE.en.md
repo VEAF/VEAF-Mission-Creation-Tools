@@ -446,6 +446,52 @@ versions:
 
 ---
 
+## Step 5 — Dynamic-Slot Warehouses (`warehouses.yaml`)
+
+Configures DCS **Dynamic Slots** per coalition. It runs **after** aircraft
+injection (so the `dynSpawnTemplate` groups already exist) and edits the
+mission's `warehouses`: it enables `dynamicSpawn` on the selected airbases, sets
+fuel / munitions and aircraft stock, and links each offered aircraft type to its
+template group via `linkDynTempl`.
+
+### Default file location
+
+`src/warehouses.yaml` (auto-enabled when present; disable with `pipeline: { warehouses: false }`).
+
+### Schema
+
+```yaml
+<coalition>:                 # blue | red | neutral. An undeclared coalition is left untouched.
+  defaults:                  # applied to every selected airport
+    fuel: unlimited          # optional -> unlimitedFuel
+    weapons: unlimited       # optional -> unlimitedMunitions
+    aircrafts:               # aircraft types offered as dynamic slots
+      <DCS type>: { amount: unlimited | <int>, template: "<group name>" }
+  airports:                  # optional. Absent -> ALL airports of this coalition get `defaults`.
+    <name or id>: { }                       # defaults only
+    <name or id>: { aircrafts: { ... } }    # defaults + per-airport override
+```
+
+- `template` references a template group by **name**; omit it to auto-match a
+  template group of the same **aircraft type** (same coalition).
+- Airports may be named only on installed theatres present in the committed
+  airdrome table (`veaf-build update-dcs-data --airdromes`); otherwise use the
+  numeric id (visible in the mission's `warehouses` as `airports[<id>]`).
+
+### Minimal example
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+    aircrafts:
+      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
+  airports:
+    Senaki-Kolkhi: {}
+```
+
+---
+
 ## See Also
 
 - [mission.yaml Reference](MISSION_YAML_REFERENCE.md) — top-level mission configuration

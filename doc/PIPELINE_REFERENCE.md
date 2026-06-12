@@ -444,6 +444,52 @@ versions:
 
 ---
 
+## Étape 5 — Warehouses Dynamic-Slot (`warehouses.yaml`)
+
+Configure les **Dynamic Slots** DCS par coalition. S'exécute **après** l'injection
+des aéronefs (pour que les groupes `dynSpawnTemplate` existent déjà) et modifie les
+`warehouses` de la mission : active `dynamicSpawn` sur les aérodromes choisis, fixe
+carburant / munitions et le stock d'aéronefs, et lie chaque type d'aéronef proposé
+à son groupe-modèle via `linkDynTempl`.
+
+### Emplacement par défaut
+
+`src/warehouses.yaml` (auto-activé si présent ; désactiver avec `pipeline: { warehouses: false }`).
+
+### Schéma
+
+```yaml
+<coalition>:                 # blue | red | neutral. Une coalition non déclarée est laissée intacte.
+  defaults:                  # appliqué à chaque aérodrome sélectionné
+    fuel: unlimited          # optionnel -> unlimitedFuel
+    weapons: unlimited       # optionnel -> unlimitedMunitions
+    aircrafts:               # types d'aéronefs proposés en slot dynamique
+      <type DCS>: { amount: unlimited | <entier>, template: "<nom de groupe>" }
+  airports:                  # optionnel. Absent -> TOUS les aérodromes de la coalition reçoivent `defaults`.
+    <nom ou id>: { }                        # defaults seuls
+    <nom ou id>: { aircrafts: { ... } }     # defaults + override par aérodrome
+```
+
+- `template` référence un groupe-modèle par **nom** ; omettez-le pour l'auto-matcher
+  à un groupe-modèle du même **type d'aéronef** (même coalition).
+- Les aérodromes ne peuvent être nommés que sur les théâtres installés présents dans
+  la table committée (`veaf-build update-dcs-data --airdromes`) ; sinon utilisez l'id
+  numérique (visible dans les `warehouses` de la mission : `airports[<id>]`).
+
+### Exemple minimal
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+    aircrafts:
+      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
+  airports:
+    Senaki-Kolkhi: {}
+```
+
+---
+
 ## Voir aussi
 
 - [Référence mission.yaml](MISSION_YAML_REFERENCE.md) — configuration top-level de la mission

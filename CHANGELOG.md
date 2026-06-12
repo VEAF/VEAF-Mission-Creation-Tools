@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Dynamic-Slot warehouse wiring** (`warehouses.yaml`, DYNSLOT-WAREHOUSE). A new build pipeline step configures DCS Dynamic Slots per coalition: it enables `dynamicSpawn` on the selected airbases, sets fuel/munitions and aircraft stock, and links each offered aircraft type to its `dynSpawnTemplate` group via `linkDynTempl` (the model providing loadout/livery/radio/route). Airbases are selected by **all-of-coalition** (default), by **name** (resolved via the airdrome table + mission theatre), or by **id**, with per-airport overrides. Runs after aircraft injection so the template groups exist. Ships a commented `src/warehouses.yaml` default (no-op until filled). See `doc/PIPELINE_REFERENCE.*`
 - **Airdrome name→id table** (`veaf_libs/data/airdromes.yaml`, DYNSLOT-WAREHOUSE prerequisite). Maps, per theatre, an airfield display name to the numeric DCS airdrome id used as `airports[<id>]` in a mission's `warehouses`. Generated from a local DCS install's terrain `Beacons.lua` via `veaf-build update-dcs-data --airdromes --dcs-path <DCS>` (install-dependent, not CI-guarded). Resolver `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)`. Ships 7 theatres / 194 airfields; beacon-less maps (Normandy) yield no entries (callers fall back to ids)
 
 ### Changed

@@ -77,6 +77,8 @@ class TestGetterFunctions(unittest.TestCase):
         self.assertIn("CSAR.ogg", result["csar"])
         # beacon.ogg is shared: CSAR uses it for its pilot radio beacon too
         self.assertIn("beacon.ogg", result["csar"])
+        # csar-beacon.ogg is not referenced by any script and must not be listed
+        self.assertNotIn("csar-beacon.ogg", result["csar"])
         for names in result.values():
             self.assertIsInstance(names, tuple)
             self.assertTrue(all(name.endswith(".ogg") for name in names))

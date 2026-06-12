@@ -556,9 +556,11 @@ class MissionBuilderWorker(BaseWorker):
             required: Sound filenames required by the enabled community modules.
             collected: Sounds found among the tool-shipped assets.
         """
-        collected_names = {Path(key).name for key in collected}
-        mission_names = {Path(key).name for key in self.get_collected_mission_data_files()}
-        missing = sorted(name for name in required if name not in collected_names and name not in mission_names)
+        # Match the exact l10n/DEFAULT destination, not just the basename: a sound
+        # sitting elsewhere in the mission (e.g. kneeboard/beacon.ogg) does not make
+        # it available to the scripts, which look it up in l10n/DEFAULT.
+        provided = set(collected) | set(self.get_collected_mission_data_files())
+        missing = sorted(name for name in required if f"{DEFAULT_SCRIPTS_LOCATION}/{name}" not in provided)
         if missing:
             logger.warning(t("builder.community_sounds_missing", files=", ".join(missing)))
 

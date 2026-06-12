@@ -55,21 +55,9 @@ Une fois configuré, tous les outils utiliseront automatiquement ces paramètres
 
 ## Interroger la documentation (assistant IA)
 
-`veaf-tools ask` répond à vos questions sur la documentation VEAF via un assistant IA, en s'appuyant sur la documentation elle-même (RAG). Il réutilise le même index de recherche que le chatbot du site de documentation.
+`veaf-tools ask` répond à vos questions sur la documentation VEAF via un assistant IA, en s'appuyant sur la documentation elle-même (RAG). C'est le même assistant que le chatbot du site de documentation.
 
-### Configuration (clé API Gemini)
-
-L'assistant utilise Google Gemini avec **votre propre** clé API gratuite (l'outil n'en fournit aucune) :
-
-1. Obtenez une clé gratuite sur <https://aistudio.google.com/apikey>.
-2. Fournissez-la au choix :
-   - variable d'environnement : `GEMINI_API_KEY=...`
-   - ou dans `~/veafmct.yaml` :
-     ```yaml
-     gemini_api_key: "votre-clé-ici"
-     ```
-
-La première question télécharge l'index de recherche (quelques Mo) dans `~/.veaf/doc-index/` et le met en cache ; les exécutions suivantes ne le re-téléchargent que lorsque la documentation change.
+**Aucune configuration, aucune clé API.** La commande envoie votre question au service de documentation VEAF, qui génère la réponse — pas besoin de clé Google/Gemini. (Des limites d'usage raisonnable s'appliquent par utilisateur.) Une connexion Internet est requise.
 
 ### Utilisation
 

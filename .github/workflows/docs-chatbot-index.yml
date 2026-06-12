@@ -27,8 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools'
     permissions:
-      # write: publish the index as assets on the rolling 'doc-index' release (for the CLI client)
-      contents: write
+      contents: read
     defaults:
       run:
         working-directory: poc/doc-chatbot/worker
@@ -73,16 +72,3 @@ jobs:
           npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
           npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
           npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
-
-      # Publish the same index as assets on a rolling 'doc-index' release so the `veaf-tools ask`
-      # CLI (CHATBOT-CLI) can fetch it over plain HTTPS — no Cloudflare credentials needed.
-      - name: Publish the index as a release asset
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view doc-index >/dev/null 2>&1 || \
-            gh release create doc-index \
-              --title "Documentation chatbot index" \
-              --notes "Rolling embeddings index consumed by the \`veaf-tools ask\` CLI. Updated automatically when the docs change." \
-              --prerelease
-          gh release upload doc-index vec-fr.bin vec-en.bin txt-fr.json txt-en.json --clobber

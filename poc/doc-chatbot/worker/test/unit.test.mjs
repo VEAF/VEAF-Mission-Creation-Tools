@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
-import { latestQuery, toGeminiContents, upstreamErrorMessage } from "../src/index.js";
+import { latestQuery, toGeminiContents, upstreamErrorMessage, isAllowedClient } from "../src/index.js";
 
 test("chunkMarkdown merges many tiny heading-sections instead of one chunk each", () => {
   const md = Array.from({ length: 20 }, (_, i) => `## H${i}\n\nshort body ${i}`).join("\n");
@@ -59,4 +59,20 @@ test("upstreamErrorMessage falls back to 'unavailable' for other failures", () =
   assert.equal(upstreamErrorMessage("fr", 500), "Assistant momentanément indisponible.");
   assert.equal(upstreamErrorMessage("en", 503), "Assistant temporarily unavailable.");
   assert.equal(upstreamErrorMessage("en", undefined), "Assistant temporarily unavailable.");
+});
+
+test("isAllowedClient accepts an allow-listed browser Origin", () => {
+  assert.equal(isAllowedClient("https://veaf.github.io", null), true);
+  assert.equal(isAllowedClient("https://evil.example", null), false);
+  assert.equal(isAllowedClient(null, null), false);
+});
+
+test("isAllowedClient accepts the CLI header without an Origin", () => {
+  assert.equal(isAllowedClient(null, "cli"), true);
+  assert.equal(isAllowedClient(null, "nope"), false);
+});
+
+test("isAllowedClient allows an allow-listed Origin regardless of the client header", () => {
+  assert.equal(isAllowedClient("https://veaf.github.io", "nope"), true);
+  assert.equal(isAllowedClient("https://evil.example", "nope"), false);
 });

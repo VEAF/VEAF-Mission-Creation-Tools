@@ -53,6 +53,41 @@ Once configured, all tools will automatically use these settings.
 
 ---
 
+## Ask the Documentation (AI Assistant)
+
+`veaf-tools ask` answers questions about the VEAF documentation with an AI assistant, grounded in the docs themselves (RAG). It reuses the same search index that powers the chatbot on the documentation website.
+
+### Setup (Gemini API key)
+
+The assistant uses Google Gemini with **your own** free API key (the tool never ships one):
+
+1. Get a free key at <https://aistudio.google.com/apikey>.
+2. Provide it either way:
+   - environment variable: `GEMINI_API_KEY=...`
+   - or in `~/veafmct.yaml`:
+     ```yaml
+     gemini_api_key: "your-key-here"
+     ```
+
+The first question downloads the search index (a few MB) into `~/.veaf/doc-index/` and caches it; later runs only re-download it when the docs change.
+
+### Usage
+
+```bash
+# One-shot question
+veaf-tools ask "How do I enable CTLD in my mission?"
+
+# Interactive session (type 'quit' or Ctrl-D to exit)
+veaf-tools ask
+
+# Answer in English (default follows --lang)
+veaf-tools --lang en ask "How are radio presets injected?"
+```
+
+It is also available from the interactive TUI as **« Ask the documentation »**.
+
+---
+
 ## For End Users: Updating
 
 ### Basic Update (Recommended)

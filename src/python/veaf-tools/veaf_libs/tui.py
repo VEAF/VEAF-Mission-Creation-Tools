@@ -164,6 +164,11 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="ask",
+        description=t("tui.cmd.ask.description"),
+        prompts=[],
+    ),
+    CommandSpec(
         cli_name="about",
         description=t("tui.cmd.about.description"),
         prompts=[],

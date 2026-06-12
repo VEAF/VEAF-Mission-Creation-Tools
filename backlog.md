@@ -50,7 +50,7 @@
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ⬜ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
-| Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ⬜ |
+| Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ✅ |
 | Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | ✅ |
 | Lot DCSDATA — fix the missing-country-id ME crash, generate DCS country data from the datamine, consolidate all DCS-data generators under one `veaf-build` command with freshness guards, and lift the 2-ground-group mission requirement | 🔄 |
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
@@ -122,12 +122,12 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| CHATBOT-CLI-001 | Publish the embeddings index as a public artifact in the docs CI (in addition to the KV upload), e.g. to gh-pages, so non-Cloudflare clients can fetch it. | `.github/workflows/docs-chatbot-index.yml` (or `docs.yml`) | feat | ⬜ |
-| CHATBOT-CLI-002 | `index_store`: download the published `vec-{lang}.bin` + `txt-{lang}.json`, cache under `~/.veaf/doc-index/` with a version/etag check, expose load helpers (Float32 vectors + texts). | `doc_chatbot/index_store.py`, `test/python/doc_chatbot/test_index_store.py` | feat | ⬜ |
-| CHATBOT-CLI-003 | `DocChatWorker` (`BaseWorker`): embed the question (`gemini-embedding-001`, 768d, user key) → cosine top-K over the cached index → stream a grounded answer from `gemini-2.5-flash-lite` (SSE via `requests`). Resolve the key from `GEMINI_API_KEY` env or `~/veafmct.yaml`; clear localized error if missing. | `doc_chatbot/doc_chat_worker.py`, `veaf_libs/user_config.py`, `test/python/doc_chatbot/test_doc_chat_worker.py` | feat | ⬜ |
-| CHATBOT-CLI-004 | `ask` CLI command: one-shot (`veaf-tools ask "…"`) + interactive REPL (session history, `quit`); language from the global `--lang`; rendered via Rich `console`. | `veaf_tools/commands/ask.py`, `veaf_tools/commands/__init__.py`, `veaf_libs/locales/{en,fr}.json` | feat | ⬜ |
-| CHATBOT-CLI-005 | TUI entry « Ask the documentation »: InquirerPy Q&A loop (ask → answer → another?/back), reusing `DocChatWorker`. | `veaf_libs/tui.py`, `veaf_libs/locales/{en,fr}.json` | feat | ⬜ |
-| CHATBOT-CLI-006 | Docs (`doc/TOOLS_REFERENCE*.md` + TUI mention), `CHANGELOG`, and bump the coverage gate per the ratchet policy. | `doc/TOOLS_REFERENCE.md`, `doc/TOOLS_REFERENCE.en.md`, `CHANGELOG.md`, `pyproject.toml` | feat | ⬜ |
+| CHATBOT-CLI-001 | Publish the embeddings index as a public artifact in the docs CI. **Done**: `docs-chatbot-index.yml` now also uploads `vec/txt-{lang}` to a rolling `doc-index` GitHub Release (in addition to the KV upload), so non-Cloudflare clients can fetch it over plain HTTPS. | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
+| CHATBOT-CLI-002 | `index_store`: download the published `vec-{lang}.bin` + `txt-{lang}.json`, cache under `~/.veaf/doc-index/` with an ETag check, expose load helpers (Float32 vectors + texts); fall back to the cache when offline. | `doc_chatbot/index_store.py`, `test/python/doc_chatbot/test_index_store.py` | feat | ✅ |
+| CHATBOT-CLI-003 | `DocChatWorker` (`BaseWorker`): embed the question (`gemini-embedding-001`, 768d, user key) → cosine top-K over the cached index → stream a grounded answer from `gemini-2.5-flash-lite` (SSE via `requests`). Resolve the key from `GEMINI_API_KEY` env or `~/veafmct.yaml`; clear localized error if missing. | `doc_chatbot/doc_chat_worker.py`, `test/python/doc_chatbot/test_doc_chat_worker.py` | feat | ✅ |
+| CHATBOT-CLI-004 | `ask` CLI command: one-shot (`veaf-tools ask "…"`) + interactive REPL (session history, `quit`); language from the global `--lang`; rendered via Rich `console`. | `veaf_tools/commands/ask.py`, `veaf_tools/commands/__init__.py`, `veaf_libs/locales/{en,fr}.json` | feat | ✅ |
+| CHATBOT-CLI-005 | TUI entry « Ask the documentation » (runs `veaf-tools ask` → its REPL, reusing `DocChatWorker`). | `veaf_libs/tui.py`, `veaf_libs/locales/{en,fr}.json` | feat | ✅ |
+| CHATBOT-CLI-006 | Docs (`doc/TOOLS_REFERENCE*.md` + TUI mention), `CHANGELOG`, version bump, and bump the coverage gate (66→67) per the ratchet policy. | `doc/TOOLS_REFERENCE.md`, `doc/TOOLS_REFERENCE.en.md`, `CHANGELOG.md`, `pyproject.toml` | feat | ✅ |
 
 ---
 

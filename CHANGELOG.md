@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Airdrome name→id table** (`veaf_libs/data/airdromes.yaml`, DYNSLOT-WAREHOUSE prerequisite). Maps, per theatre, an airfield display name to the numeric DCS airdrome id used as `airports[<id>]` in a mission's `warehouses`. Generated from a local DCS install's terrain `Beacons.lua` via `veaf-build update-dcs-data --airdromes --dcs-path <DCS>` (install-dependent, not CI-guarded). Resolver `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)`. Ships 7 theatres / 194 airfields; beacon-less maps (Normandy) yield no entries (callers fall back to ids)
+
 ### Changed
 - **DCS units database now comes from the datamine** (DCSDATA-008), retiring the in-DCS export (`dcsDataExport.lua`) as the source of `dcsUnits.lua` (the export stays for airbases/weapons). New two-stage pipeline: `veaf-build update-dcs-data --units` parses `Quaggles/dcs-lua-datamine` into a committed canonical `dcsUnits.yaml`, then renders `src/scripts/veaf/dcsUnits.lua` from it. The runtime schema is simplified — keyed by DCS type, with a single `kind` (`air`/`naval`/`infantry`/`vehicle`/`static`) replacing the four booleans — and `veafUnits` was updated accordingly (fast keyed lookup in `findDcsUnit`). Both artifacts are pure and CI-guarded (consistency + drift). Validated against the previous 833-unit file: 0 kind regressions, the 2 datamine-absent units carried over. Documented in `doc/developer/dcs-data.*`
 

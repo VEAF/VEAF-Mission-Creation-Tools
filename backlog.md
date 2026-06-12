@@ -48,7 +48,7 @@
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
-| Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ⬜ |
+| Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | 🟡 |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ✅ |
 | Lot CHATBOT-CLI-WORKER — `ask` proxies the project Worker (no user API key); supersedes the direct-key path | ✅ |
@@ -631,11 +631,19 @@ was constrained to a working branch.
 
 **Goal**: Injecting a `dynSpawnTemplate=true` group puts the **group** in the mission, but for DCS to actually offer it as a Dynamic Slot the `.miz` **`warehouses`** file must also reference it (`airports[id].dynamicSpawn=true` + aircraft list). The current injector does not touch `warehouses`. Split off from AIRCRAFT-INJECT (handoff §5). Reference: `test/veaf-tools/demo-mission/src/mission/warehouses` (`dynamicSpawn = true`).
 
+**Spike findings (001 ✅)**: Dynamic Slots are **per airbase** — `warehouses.airports[<id>].dynamicSpawn = true` enables them; `aircrafts[<type>]` is the warehouse stock; **`aircrafts[<type>].linkDynTempl = <groupId>`** links the slot to a `dynSpawnTemplate=true` group (the model providing loadout/livery/radio/route — confirmed in the demo: `linkDynTempl=2114` ↔ group "DST - UH-1H" groupId 2114). The template group's physical placement is irrelevant. The airport key `<id>` is the DCS **airdrome id**; warehouses carry no names, and the datamine has no airdrome table — but each airport block has a `coalition` field (so "all airports of a coalition" needs no names), and name→id is recoverable from the **install** (`Mods/terrains/*/Beacons.lua`). Config model (David): `warehouses.yaml` per coalition (undeclared → untouched); per coalition global defaults (fuel/weapons/aircraft+templates) applied to all coalition airports, or a specific airport list (by name or id) with overrides; the build sets `dynamicSpawn`, stock, fuel and `linkDynTempl`.
+
 **Branch**: `feat/dynslot-warehouse` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| DYNSLOT-WAREHOUSE-001 (spike) | Investigate the `warehouses` schema for Dynamic Slots and design how the `dynamic_slot_templates` injection should wire injected templates into it automatically. Deliverable: reco + implementation tickets. | `aircrafts_injector/`, `mission_tools/`, `doc/` | spike | ⬜ |
+| DYNSLOT-WAREHOUSE-001 (spike) | Investigate the `warehouses` Dynamic-Slot schema and design the wiring. **Done** — see findings above. | `mission_tools/`, `doc/` | spike | ✅ |
+| DYNSLOT-WAREHOUSE-002 | Airdrome name→id table (prerequisite for naming airbases): `airdromes.yaml` generated from a DCS install's terrain `Beacons.lua` (`update-dcs-data --airdromes --dcs-path`), resolver `veaf_libs.dcs_airdromes`, bundled in the exe; install-dependent (not CI-guarded). | `veaf_build/dcs_data/airdromes.py`, `veaf_libs/{data/airdromes.yaml,dcs_airdromes.py}`, `veaf_build/cli.py`, `test/python/` | feat | ✅ |
+| DYNSLOT-WAREHOUSE-003 | `warehouses.yaml` schema + parsing/validation (per coalition; global defaults + per-airport overrides; airports by name or id). | `mission_builder/` (or a worker), `test/python/` | feat | ⬜ |
+| DYNSLOT-WAREHOUSE-004 | Apply `warehouses.yaml` to the mission `warehouses` at build: select airports (ids / names via airdromes table + mission theatre / all-of-coalition), set `dynamicSpawn`, stock, fuel/munitions. | `mission_builder/`, `test/python/` | feat | ⬜ |
+| DYNSLOT-WAREHOUSE-005 | `linkDynTempl`: resolve each injected `dynSpawnTemplate` group's `groupId` (by group name, else by aircraft type) and wire it into the targeted `aircrafts[<type>]` entries. | `mission_builder/`, `aircrafts_injector/`, `test/python/` | feat | ⬜ |
+| DYNSLOT-WAREHOUSE-006 | Defaults `src/defaults/mission-folder/warehouses.yaml` (commented template) + FR/EN docs + integration tests. | `src/defaults/`, `doc/`, `test/python/` | feat | ⬜ |
+| DYNSLOT-WAREHOUSE-NAMES (follow-up) | Broaden airdrome name coverage to beacon-less maps (e.g. Normandy/WW2) via another install source if needed. | `veaf_build/dcs_data/airdromes.py` | feat | ⬜ |
 
 ---
 

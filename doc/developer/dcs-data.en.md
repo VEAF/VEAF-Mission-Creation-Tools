@@ -14,6 +14,7 @@ interchangeable:
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
 | **In-DCS export** | run `src/scripts/veaf/dcsDataExport.lua` from the Mission Editor, commit the dump | yes | airbases, weapons |
+| **DCS install files** | read terrain files from a local DCS install (`--dcs-path`) | install only (not running) | airdrome name→id table |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
 data VEAF needs at build/runtime. The in-DCS export now only covers data the
@@ -28,7 +29,11 @@ veaf-build update-dcs-data            # every pure artifact (countries + units)
 veaf-build update-dcs-data --countries
 veaf-build update-dcs-data --units    # regenerates dcsUnits.yaml AND dcsUnits.lua
 veaf-build update-dcs-data --radio
+veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
 ```
+
+`--radio` and `--airdromes` are excluded from the no-flag / `--all` run: radio has
+manual overlays, and airdromes need a local DCS install path.
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -149,3 +154,23 @@ Two things the datamine does not provide are handled explicitly in
 
 When DCS ships a unit the datamine lacks, or a new offshore static, add it to the
 relevant constant.
+
+## The airdrome table
+
+`src/python/veaf-tools/veaf_libs/data/airdromes.yaml` maps, **per theatre**, an
+airfield display name to its numeric **airdrome id** — the same id a mission's
+`warehouses` uses as `airports[<id>]`. It lets build tools (the Dynamic-Slot
+warehouse wiring) accept airfield *names* instead of raw ids.
+
+It is **install-dependent**, not datamine-sourced: the data lives only in each
+map's `Mods/terrains/<Theatre>/Beacons.lua` (airfield beacons carry a
+`display_name` and a `beaconId = 'airfield<ID>_<n>'`). So it is generated from a
+local DCS install and is **not CI-guarded** (a CI runner has no DCS install):
+
+```bash
+veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Caveats:
+the table only covers **installed** theatres, and beacon-less maps (e.g. Normandy,
+WW2) yield no entries — callers fall back to ids. Resolution is case-insensitive.

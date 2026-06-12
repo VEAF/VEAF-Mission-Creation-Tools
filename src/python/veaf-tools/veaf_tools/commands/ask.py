@@ -7,6 +7,9 @@ from veaf_libs.i18n import current_language
 
 from veaf_tools.app import VERBOSE_HELP, app, console, logger, t
 
+#: Cap the in-memory REPL history (the worker only sends the most recent turns).
+_MAX_KEPT_TURNS = 24
+
 
 def _stream_answer(worker: DocChatWorker, question: str, history: list[dict[str, str]]) -> str:
     """Stream one answer to the console as it arrives and return the full text.
@@ -51,6 +54,8 @@ def ask(
         answer = _stream_answer(worker, text, history)
         history.append({"role": "user", "content": text})
         history.append({"role": "assistant", "content": answer})
+        # Cap the in-memory history in long REPL sessions (the worker only sends the tail anyway).
+        del history[:-_MAX_KEPT_TURNS]
 
     def _print_error(exc: Exception) -> None:
         # RuntimeError already carries a localized Gemini message; an OSError means

@@ -110,6 +110,14 @@ class TestAskStreaming(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 list(worker.ask("q"))
 
+    def test_network_error_becomes_runtimeerror(self) -> None:
+        worker = DocChatWorker(lang="fr", api_key="k")
+        with mock.patch.object(worker, "_retrieve", return_value="ctx"), mock.patch.object(
+            doc_chat_worker.requests, "post", side_effect=doc_chat_worker.requests.RequestException("offline")
+        ):
+            with self.assertRaises(RuntimeError):
+                list(worker.ask("q"))
+
 
 class TestExtractText(unittest.TestCase):
     def test_extracts_parts(self) -> None:

@@ -114,7 +114,10 @@ class DocChatWorker(BaseWorker):
             "taskType": "RETRIEVAL_QUERY",
             "outputDimensionality": EMBED_DIMS,
         }
-        resp = requests.post(url, json=body, timeout=_TIMEOUT)
+        try:
+            resp = requests.post(url, json=body, timeout=_TIMEOUT)
+        except requests.RequestException as exc:
+            raise RuntimeError(t("ask.gemini_error", status="network")) from exc
         if resp.status_code != 200:
             raise RuntimeError(t("ask.gemini_error", status=resp.status_code))
         return resp.json()["embedding"]["values"]
@@ -173,7 +176,11 @@ class DocChatWorker(BaseWorker):
             "contents": self._contents(question, history),
         }
         url = f"{GEMINI_BASE}/{MODEL}:streamGenerateContent?alt=sse&key={self.api_key}"
-        with requests.post(url, json=body, timeout=_TIMEOUT, stream=True) as resp:
+        try:
+            response = requests.post(url, json=body, timeout=_TIMEOUT, stream=True)
+        except requests.RequestException as exc:
+            raise RuntimeError(t("ask.gemini_error", status="network")) from exc
+        with response as resp:
             if resp.status_code != 200:
                 raise RuntimeError(t("ask.gemini_error", status=resp.status_code))
             for raw in resp.iter_lines(decode_unicode=True):

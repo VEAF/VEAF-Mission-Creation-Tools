@@ -13,7 +13,8 @@ Les données DCS entrent dans le dépôt de **deux** façons, non interchangeabl
 | Source | Comment | Besoin de DCS ? | Exemples |
 |--------|---------|-----------------|----------|
 | **Datamine communautaire** | clone de `Quaggles/dcs-lua-datamine` à un ref pinné | non | table des pays, **base des unités**, specs radio |
-| **Export in-DCS** | exécuter `src/scripts/veaf/dcsDataExport.lua` depuis l'éditeur, committer le dump | oui | aérodromes, armements |
+| **Export in-DCS** | exécuter `src/scripts/veaf/dcsDataExport.lua` depuis l'éditeur, committer le dump | oui | airbases, armements |
+| **Fichiers d'install DCS** | lire les fichiers terrain d'une install locale (`--dcs-path`) | install seule (pas lancé) | table nom→id des aérodromes |
 
 La voie datamine est reproductible et vérifiable en CI ; c'est la voie par défaut
 pour toutes les données dont VEAF a besoin au build/runtime. L'export in-DCS ne
@@ -29,7 +30,11 @@ veaf-build update-dcs-data            # tous les artefacts purs (countries + uni
 veaf-build update-dcs-data --countries
 veaf-build update-dcs-data --units    # régénère dcsUnits.yaml ET dcsUnits.lua
 veaf-build update-dcs-data --radio
+veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
 ```
+
+`--radio` et `--airdromes` sont exclus du run sans flag / `--all` : radio a des
+overlays manuels, et airdromes nécessite le chemin d'une install DCS locale.
 
 Le datamine est cloné à un ref **pinné**
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), donc la génération est
@@ -151,3 +156,25 @@ Deux choses absentes du datamine sont gérées explicitement dans
 
 Quand DCS livre une unité absente du datamine, ou un nouveau statique offshore,
 ajoutez-le à la constante correspondante.
+
+## La table des aérodromes
+
+`src/python/veaf-tools/veaf_libs/data/airdromes.yaml` associe, **par théâtre**, un
+nom d'aérodrome à son **id numérique** — le même id que `airports[<id>]` dans les
+`warehouses` d'une mission. Elle permet aux outils de build (le câblage warehouse
+des Dynamic Slots) d'accepter des **noms** d'aérodrome au lieu d'ids bruts.
+
+Elle est **dépendante de l'install**, pas du datamine : la donnée n'existe que dans
+le `Mods/terrains/<Théâtre>/Beacons.lua` de chaque carte (les beacons d'aérodrome
+portent un `display_name` et un `beaconId = 'airfield<ID>_<n>'`). Elle est donc
+générée depuis une install DCS locale et **non gardée par la CI** (un runner CI
+n'a pas d'install DCS) :
+
+```bash
+veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Limites : la
+table ne couvre que les théâtres **installés**, et les cartes sans beacons (ex.
+Normandy, WW2) ne donnent aucune entrée — l'appelant retombe alors sur les ids. La
+résolution est insensible à la casse.

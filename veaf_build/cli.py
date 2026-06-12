@@ -333,23 +333,40 @@ def update_dcs_data(
     countries: bool = typer.Option(False, "--countries", help="Regenerate the DCS country name->id table."),
     units: bool = typer.Option(False, "--units", help="Regenerate the DCS units database (YAML + dcsUnits.lua)."),
     radio: bool = typer.Option(False, "--radio", help="Regenerate the DCS aircraft radio specs."),
+    airdromes: bool = typer.Option(
+        False, "--airdromes", help="Regenerate the airdrome name->id table (needs --dcs-path)."
+    ),
+    dcs_path: str | None = typer.Option(None, "--dcs-path", help="Path to a DCS World install (for --airdromes)."),
     all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
 ) -> None:
     """Regenerate the DCS reference data committed in this repository.
 
-    Each artifact is generated from the Quaggles/dcs-lua-datamine dump at the
-    pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the output is
-    reproducible and CI fails if a committed artifact drifts from the generator.
-    With no flag, every pure artifact (countries, units) is regenerated; radio is
-    excluded under --all because it has manual overlays (use --radio explicitly).
+    Datamine-sourced artifacts are generated from the Quaggles/dcs-lua-datamine
+    dump at the pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the
+    output is reproducible and CI fails if a committed artifact drifts. With no
+    flag, every pure datamine artifact (countries, units) is regenerated; radio
+    (manual overlays) and airdromes (install-dependent) are excluded from --all
+    and must be requested explicitly.
     """
     from veaf_build.dcs_data import countries as countries_provider
     from veaf_build.dcs_data import units as units_provider
     from veaf_build.dcs_data import units_lua
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
-    run_all = all_data or not (countries or units or radio)
+    run_all = all_data or not (countries or units or radio or airdromes)
     ref_short = DATAMINE_REF[:8]
+
+    if airdromes:
+        if not dcs_path:
+            console.print("[red]--airdromes requires --dcs-path <DCS World install>[/red]")
+            raise typer.Exit(code=1)
+        from pathlib import Path
+
+        from veaf_build.dcs_data import airdromes as airdromes_provider
+
+        console.print(f"[cyan]Generating airdrome table from {dcs_path}...[/cyan]")
+        count = airdromes_provider.generate(Path(dcs_path))
+        console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")

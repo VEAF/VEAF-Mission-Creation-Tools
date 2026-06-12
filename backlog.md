@@ -41,7 +41,7 @@
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ✅ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | 🟡 |
-| Lot BUILD-COMMUNITY-SOUNDS — build packages CTLD/CSAR sound assets + injects the preload trigger when enabled | ⬜ |
+| Lot BUILD-COMMUNITY-SOUNDS — build packages CTLD/CSAR sound assets into l10n/DEFAULT when enabled (files-only) | 🟡 |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
@@ -557,18 +557,18 @@ was constrained to a working branch.
 
 **Goal**: Make the build responsible for the community-script sound assets, so a mission does not have to carry them by hand. Today the `.ogg` files (CTLD: `beacon.ogg`, `beaconsilent.ogg`, `radiobeep.ogg`; CSAR: `CSAR.ogg`, `csar-beacon.ogg`) live only in the mission's own `src/mission/l10n/DEFAULT/` and are registered by a hand-made v5 `out_sound` trigger. `TRIGGERS-VERIFY-004` only *removes* that trigger when both modules are off; this lot covers the *add* side (David: "ajouter si CTLD ou CSAR enabled" + "du coup oui" the build should package the sounds itself).
 
-**Scope**:
-- Ship the CTLD/CSAR sound assets with the tool (e.g. `src/scripts/community/sounds/` + `published.zip`), keyed per community script id (reuse `get_community_sound_files()`).
-- When CTLD or CSAR is enabled, the build packages the relevant `.ogg` into the `.miz` (`l10n/DEFAULT/` + mapResource entries) **and** injects a Mission Start `out_sound` trigger that registers them. Nothing when both are off.
-- Idempotent: a rebuild must not duplicate the trigger or the resources (drop any prior community-sound trigger first, then re-inject).
+**Resolved design** (David: "fichiers seuls"): CTLD/CSAR play their sounds **by filename** at runtime (`outSoundForCoalition("beacon.ogg")`, `outSoundForGroup("l10n/DEFAULT/CSAR.ogg")`), so the v5 `out_sound` trigger and the `mapResource` registration are **not** needed — packaging the `.ogg` in `l10n/DEFAULT/` is sufficient. Empirically confirmed the exact sound set per module:
+- CTLD: `beacon.ogg`, `beaconsilent.ogg`, `radiobeep.ogg`
+- CSAR: `beacon.ogg` (shared), `CSAR.ogg`
 
-**Open questions**: confirm the exact sound set per module against the shipped CTLD/CSAR `.lua`; decide whether the assets ship loose or inside `published.zip`.
+`csar-beacon.ogg` is not referenced anywhere and was dropped from the mapping. `radiobeep.ogg` (JTAC fallback beep, CTLD only) is **not redistributed by upstream** and is left to the mission maker — the build warns when an enabled module's required sound is shipped by neither the tools nor the mission. Assets flow into `published.zip` automatically (the release packager already includes all of `src/scripts/community/**`).
 
 **Branch**: `feat/build-community-sounds` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| BUILD-COMMUNITY-SOUNDS-001 | Ship the CTLD/CSAR sound assets with the tool and add a packaging step that, when CTLD or CSAR is enabled, copies the `.ogg` into the `.miz` (`l10n/DEFAULT/` + mapResource) and injects an idempotent Mission Start `out_sound` preload trigger. | `mission_builder/mission_builder_worker.py`, `mission_tools/mission_constants.py`, `src/scripts/community/sounds/`, `test/python/` | feat | ⬜ |
+| BUILD-COMMUNITY-SOUNDS-001 | Ship the CTLD/CSAR sound assets (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`) under `src/scripts/community/sounds/` and inject the ones a mission is missing into `l10n/DEFAULT/` when CTLD or CSAR is enabled (mission-provided sounds win; nothing when both off; warn on a required sound shipped by neither tool nor mission). Files-only — no `mapResource` entry, no `out_sound` trigger. | `mission_builder/mission_builder_worker.py`, `mission_tools/mission_constants.py`, `src/scripts/community/sounds/`, `test/python/` | feat | ✅ |
+| BUILD-COMMUNITY-SOUNDS-002 | Add `radiobeep.ogg` (JTAC fallback beep) to the shipped assets once a redistributable source is available (David to provide). | `src/scripts/community/sounds/` | feat | ⬜ |
 
 ---
 

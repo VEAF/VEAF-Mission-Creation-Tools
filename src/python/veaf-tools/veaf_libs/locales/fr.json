@@ -507,6 +507,7 @@
   "builder.unknown_module_ids": "--log-modules : ID(s) de module inconnu(s) : {ids} — vérifiez l'orthographe",
   "builder.unknown_community_script": "ID de script communautaire inconnu {id} dans 'community_scripts:' ; ignoré.",
   "builder.mandatory_community_kept": "Le script communautaire '{id}' est obligatoire (dépendance VEAF) et reste activé ; la demande de désactivation est ignorée.",
+  "builder.community_sounds_missing": "Des fichiers son requis par un module communautaire activé ne sont fournis ni par les outils ni par la mission : {files}. Ajoutez-les dans src/mission/l10n/DEFAULT/ sinon la fonctionnalité associée sera muette (ex. beacons CTLD).",
   "builder.dcs_bridge_downloading": "dcs_bridge : téléchargement de dcs-bridge.lua depuis {url}",
   "builder.inject_dcs_bridge": "Injection de dcs-bridge.lua",
   "builder.copied_from_defaults": "Fichier requis '{file}' copié depuis le dossier par défaut '{folder}'",

@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `build`: **automatic CTLD/CSAR sound packaging** (BUILD-COMMUNITY-SOUNDS-001). CTLD and CSAR play their sounds by filename at runtime, so the files must be in the mission's `l10n/DEFAULT/`. The tools now ship the canonical sounds (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`, sourced upstream) under `src/scripts/community/sounds/` and, when CTLD or CSAR is enabled, inject the ones a mission is missing — **without overwriting** sounds the mission already provides. Nothing is injected when both modules are off. A required sound shipped by neither the tools nor the mission (e.g. `radiobeep.ogg`, the JTAC fallback beep, which upstream does not redistribute) is reported with a build warning so the mission maker can add it. No DCS trigger or `mapResource` entry is created — packaging the file in `l10n/DEFAULT/` is sufficient
+
 ### Fixed
 - `build`: the legacy v5 **CTLD/CSAR sound-preload trigger** (an `out_sound` registering `beacon.ogg` / `beaconsilent.ogg` / `CSAR.ogg`…) is now dropped — along with its `mapResource` entries — when **both** CTLD and CSAR are disabled, instead of surviving as dead weight. It is left untouched when either module is enabled. Non-community sounds are never touched. Re-creating/packaging the trigger when a module is enabled is tracked separately (`BUILD-COMMUNITY-SOUNDS`) (TRIGGERS-VERIFY-004)
 

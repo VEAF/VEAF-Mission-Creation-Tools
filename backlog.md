@@ -40,7 +40,8 @@
 | Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits / dcsUnits definitions from Lua to YAML (spike + impl) | ⬜ |
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ✅ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
-| Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ⬜ |
+| Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | 🟡 |
+| Lot BUILD-COMMUNITY-SOUNDS — build packages CTLD/CSAR sound assets + injects the preload trigger when enabled | ⬜ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
@@ -541,14 +542,33 @@ was constrained to a working branch.
 
 **Field feedback (IMC-Day second round, `tests-mct6-imcday(3).md` §9, tested on 6.4.0)** confirms the need and adds three concrete defects, ticketized below: the legacy v5 dynamic-loading triggers are not recovered by the migration ([VEAF-mission-converter#17](https://github.com/VEAF/VEAF-mission-converter/issues/17), explicitly deferred to this lot by ADR 0004), the injected loading triggers are recreated on every build so user customizations of load order are lost (possible in MCT 5), and the legacy "CTLD beacons loading" trigger survives migration even when CTLD is disabled.
 
-**Branch**: `chore/triggers-verify` (only if changes are needed) → PR → `develop-v6`
+**Branch**: `fix/triggers-verify` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| TRIGGERS-VERIFY-001 | Verify, with Flogas, how custom-script triggers are migrated by `build --migrate-from-v5`; document findings; open fix tickets if a defect is confirmed. | `mission_builder/mission_builder_worker.py`, `doc/` | chore | ⬜ |
-| TRIGGERS-VERIFY-002 | `build --migrate-from-v5` does not recover the mission's existing v5 dynamic-loading triggers (`dynamicLoader` in the *VEAF scripts loading* trigger, `dynamicConfig` in *mission script loading*): the build prepends its six triggers and shifts existing ones up without inspecting them (ADR 0004 deferred item). Detect the legacy loading triggers, migrate them into the v6 mechanism, and remove the obsolete ones. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ⬜ |
-| TRIGGERS-VERIFY-003 | The injected loading triggers are recreated on every build, so they can drift from what the dynamic loader actually does and any user customization (MCT 5 allowed editing the "config" loading triggers, e.g. to load scripts before/after) is lost. Decide and implement how load order / trigger content can be preserved or parameterized across builds. | `mission_builder/mission_builder_worker.py`, `doc/`, `test/python/` | spike | ⬜ |
-| TRIGGERS-VERIFY-004 | The legacy "CTLD beacons loading" trigger (present in v5 missions, not injected by the build) survives migration even when the CTLD module is disabled — remove or disable it during migration when CTLD is off. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ⬜ |
+| TRIGGERS-VERIFY-001 | Verify, with Flogas, how custom-script triggers are migrated by `build --migrate-from-v5`; document findings; open fix tickets if a defect is confirmed. | `mission_builder/mission_builder_worker.py`, `doc/` | chore | ✅ |
+| TRIGGERS-VERIFY-002 | `build --migrate-from-v5` does not recover the mission's existing v5 dynamic-loading triggers (`dynamicLoader` in the *VEAF scripts loading* trigger, `dynamicConfig` in *mission script loading*): the build prepends its six triggers and shifts existing ones up without inspecting them (ADR 0004 deferred item). Detect the legacy loading triggers, migrate them into the v6 mechanism, and remove the obsolete ones. **Finding: already handled** — `clear_veaf_triggers` removes the six v5 loading triggers by their condition strings (`return VEAF_DYNAMIC_PATH…`) before the v6 ones are inserted (verified empirically on the v5 demo mission: 14→8 actions). No code change needed. | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ✅ |
+| TRIGGERS-VERIFY-003 | The injected loading triggers are recreated on every build, so they can drift from what the dynamic loader actually does and any user customization (MCT 5 allowed editing the "config" loading triggers, e.g. to load scripts before/after) is lost. Decide and implement how load order / trigger content can be preserved or parameterized across builds. **Deferred**: design spike, no consumer demand yet; load order is owned by `mission.yaml` (`pipeline`/script order) in v6, so editing the generated triggers by hand is discouraged. Revisit if a user needs pre/post hooks. | `mission_builder/mission_builder_worker.py`, `doc/`, `test/python/` | spike | ⬜ |
+| TRIGGERS-VERIFY-004 | The legacy "CTLD/CSAR sound preload" trigger (an `out_sound` trigger registering `beacon.ogg` / `beaconsilent.ogg` / `CSAR.ogg` …, present in v5 missions, not injected by the build) survives the build even when both CTLD and CSAR are disabled. Remove it (and its mapResource entries) during the build when **both** CTLD and CSAR are off; keep it when either is enabled. Re-creating/packaging it when a module is enabled is the `BUILD-COMMUNITY-SOUNDS` lot. | `mission_builder/mission_builder_worker.py`, `mission_tools/mission_constants.py`, `test/python/` | fix | ✅ |
+
+---
+
+## Lot BUILD-COMMUNITY-SOUNDS — Build owns CTLD/CSAR sound preloading
+
+**Goal**: Make the build responsible for the community-script sound assets, so a mission does not have to carry them by hand. Today the `.ogg` files (CTLD: `beacon.ogg`, `beaconsilent.ogg`, `radiobeep.ogg`; CSAR: `CSAR.ogg`, `csar-beacon.ogg`) live only in the mission's own `src/mission/l10n/DEFAULT/` and are registered by a hand-made v5 `out_sound` trigger. `TRIGGERS-VERIFY-004` only *removes* that trigger when both modules are off; this lot covers the *add* side (David: "ajouter si CTLD ou CSAR enabled" + "du coup oui" the build should package the sounds itself).
+
+**Scope**:
+- Ship the CTLD/CSAR sound assets with the tool (e.g. `src/scripts/community/sounds/` + `published.zip`), keyed per community script id (reuse `get_community_sound_files()`).
+- When CTLD or CSAR is enabled, the build packages the relevant `.ogg` into the `.miz` (`l10n/DEFAULT/` + mapResource entries) **and** injects a Mission Start `out_sound` trigger that registers them. Nothing when both are off.
+- Idempotent: a rebuild must not duplicate the trigger or the resources (drop any prior community-sound trigger first, then re-inject).
+
+**Open questions**: confirm the exact sound set per module against the shipped CTLD/CSAR `.lua`; decide whether the assets ship loose or inside `published.zip`.
+
+**Branch**: `feat/build-community-sounds` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| BUILD-COMMUNITY-SOUNDS-001 | Ship the CTLD/CSAR sound assets with the tool and add a packaging step that, when CTLD or CSAR is enabled, copies the `.ogg` into the `.miz` (`l10n/DEFAULT/` + mapResource) and injects an idempotent Mission Start `out_sound` preload trigger. | `mission_builder/mission_builder_worker.py`, `mission_tools/mission_constants.py`, `src/scripts/community/sounds/`, `test/python/` | feat | ⬜ |
 
 ---
 

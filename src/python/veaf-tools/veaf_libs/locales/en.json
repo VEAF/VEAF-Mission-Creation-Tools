@@ -58,6 +58,7 @@
   "pipeline.injecting_weather": "Pipeline: injecting weather variants from {path}",
   "pipeline.injecting_warehouses": "Pipeline: applying Dynamic-Slot warehouses from {path}",
   "warehouses.template_not_found": "Dynamic-slot template '{template}' not found for aircraft type '{type}'; no linkDynTempl set.",
+  "warehouses.invalid_amount": "Invalid stock amount '{amount}' for aircraft type '{type}'; expected an integer or 'unlimited'. Ignored.",
   "warehouses.no_airports": "The mission has no warehouse airports; skipping Dynamic-Slot wiring.",
   "warehouses.airport_not_found": "Airport '{airport}' not found in the warehouses (theatre '{theatre}'); skipped.",
   "warehouses.done": "Warehouses: {airports} airport(s) configured, {templates} template link(s) set.",

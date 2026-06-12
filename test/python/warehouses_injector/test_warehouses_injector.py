@@ -63,6 +63,13 @@ class TestCoalitionSelection:
         assert ap[24]["dynamicSpawn"] is True
         assert ap[23]["dynamicSpawn"] is False
 
+    def test_specific_airport_by_numeric_string(self) -> None:
+        m = _mission()
+        cfg = {"blue": {"defaults": {}, "airports": {"24": {}}}}  # numeric string key
+        apply_warehouses(m, cfg)
+        assert m.warehouses_content["airports"][24]["dynamicSpawn"] is True
+        assert m.warehouses_content["airports"][23]["dynamicSpawn"] is False
+
     def test_specific_airport_by_name(self) -> None:
         m = _mission(theatre="Caucasus")
         cfg = {"blue": {"defaults": {}, "airports": {"Senaki-Kolkhi": {}}}}  # Senaki-Kolkhi == id 23

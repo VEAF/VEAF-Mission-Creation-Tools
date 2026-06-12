@@ -62,7 +62,7 @@ def _build_template_index(mission: DcsMission) -> dict[tuple[str, str, str], int
             continue
         coalition = (group.coalition or "").lower()
         if group.name:
-            index[(coalition, "name", group.name.lower())] = int(group_id)
+            index.setdefault((coalition, "name", group.name.lower()), int(group_id))
         if group.unit_type:
             index.setdefault((coalition, "type", group.unit_type.lower()), int(group_id))
     return index
@@ -134,8 +134,11 @@ def _apply_to_airport(
                 entry["unlimited"] = True
                 entry.setdefault("initialAmount", 100)
             elif amount is not None:
-                entry["unlimited"] = False
-                entry["initialAmount"] = int(amount)
+                try:
+                    entry["initialAmount"] = int(amount)
+                    entry["unlimited"] = False
+                except (TypeError, ValueError):
+                    logger.warning(t("warehouses.invalid_amount", amount=amount, type=aircraft_type))
             group_id = _resolve_template_group_id(template_index, coalition_key, aircraft_type, acfg.get("template"))
             if group_id is not None:
                 entry["linkDynTempl"] = group_id

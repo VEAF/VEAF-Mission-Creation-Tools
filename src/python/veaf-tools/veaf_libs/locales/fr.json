@@ -58,6 +58,7 @@
   "pipeline.injecting_weather": "Pipeline : injection des variantes météo depuis {path}",
   "pipeline.injecting_warehouses": "Pipeline : application des warehouses Dynamic-Slot depuis {path}",
   "warehouses.template_not_found": "Modèle dynamic-slot « {template} » introuvable pour le type d'aéronef « {type} » ; linkDynTempl non posé.",
+  "warehouses.invalid_amount": "Quantité de stock « {amount} » invalide pour le type d'aéronef « {type} » ; un entier ou « unlimited » est attendu. Ignorée.",
   "warehouses.no_airports": "La mission n'a aucun aéroport dans les warehouses ; câblage Dynamic-Slot ignoré.",
   "warehouses.airport_not_found": "Aéroport « {airport} » introuvable dans les warehouses (théâtre « {theatre} ») ; ignoré.",
   "warehouses.done": "Warehouses : {airports} aéroport(s) configuré(s), {templates} lien(s) de modèle posé(s).",

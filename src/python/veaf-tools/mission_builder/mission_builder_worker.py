@@ -232,6 +232,7 @@ class MissionBuilderWorker(BaseWorker):
         self.no_veaf_triggers: bool = no_veaf_triggers
         self.dcs_mission: DcsMission | None = None
         self.collected_community_script_files: dict[str, bytes] | None = None
+        self.collected_community_sound_files: dict[str, bytes] | None = None
         self.collected_veaf_script_files: dict[str, bytes] | None = None
         self.collected_mission_script_files: dict[str, bytes] | None = None
         self.collected_mission_data_files: dict[str, bytes] | None = None
@@ -508,6 +509,59 @@ class MissionBuilderWorker(BaseWorker):
         message = t("builder.missing_files", folder=scripts_folder, files=files_str) + "\n" + t("builder.update_hint")
         logger.error(message=message)
 
+    def get_collected_community_sound_files(self) -> dict[str, bytes]:
+        """Collect the ``.ogg`` sounds required by the enabled CTLD/CSAR modules.
+
+        CTLD and CSAR play their sounds by filename, so the files must sit in the
+        mission's ``l10n/DEFAULT/``. The tool ships them under
+        ``src/scripts/community/sounds/``; this returns the ones for enabled
+        modules, keyed for ``l10n/DEFAULT``. Sounds the mission already provides
+        win on merge (see :meth:`create_mission`). A required sound shipped by
+        neither the tool nor the mission is reported so the maker can add it.
+
+        Returns:
+            Mapping of ``l10n/DEFAULT/<name>`` to file bytes (empty when no
+            enabled module needs sounds).
+        """
+        if self.collected_community_sound_files is not None:
+            return self.collected_community_sound_files
+
+        required: set[str] = set()
+        for script_id, names in get_community_sound_files().items():
+            if self._community_enabled(script_id):
+                required.update(names)
+
+        if not required:
+            self.collected_community_sound_files = {}
+            return self.collected_community_sound_files
+
+        scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
+        file_patterns = [
+            (f"src/scripts/community/sounds/{name}", DEFAULT_SCRIPTS_LOCATION) for name in sorted(required)
+        ]
+        collected = collect_files_from_globs(base_folder=scripts_folder, file_patterns=file_patterns)
+
+        self._warn_missing_community_sounds(required, collected)
+        self.collected_community_sound_files = collected
+        return self.collected_community_sound_files
+
+    def _warn_missing_community_sounds(self, required: set[str], collected: dict[str, bytes]) -> None:
+        """Warn about required community sounds shipped by neither the tool nor the mission.
+
+        The build merges the tool-shipped sounds with the mission's own files; a
+        required sound present in neither will be absent at runtime (e.g. CTLD
+        beacons "won't work"). The mission maker must then add it by hand.
+
+        Args:
+            required: Sound filenames required by the enabled community modules.
+            collected: Sounds found among the tool-shipped assets.
+        """
+        collected_names = {Path(key).name for key in collected}
+        mission_names = {Path(key).name for key in self.get_collected_mission_data_files()}
+        missing = sorted(name for name in required if name not in collected_names and name not in mission_names)
+        if missing:
+            logger.warning(t("builder.community_sounds_missing", files=", ".join(missing)))
+
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files:
             return self.collected_mission_script_files
@@ -720,7 +774,8 @@ class MissionBuilderWorker(BaseWorker):
         logger.debug("Create the initial mission file from the mission folder")
 
         files = (
-            self.get_collected_community_script_files()
+            self.get_collected_community_sound_files()
+            | self.get_collected_community_script_files()
             | self.get_collected_veaf_script_files()
             | self.get_collected_mission_script_files()
             | self.get_collected_mission_data_files()

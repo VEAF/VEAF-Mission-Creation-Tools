@@ -42,8 +42,11 @@ def get_community_script_files() -> list[dict[str, str]]:
 def get_community_sound_files() -> dict[str, tuple[str, ...]]:
     """Sound assets required by community scripts, keyed by community script id.
 
-    These ``.ogg`` files must be registered in the mission (via an ``out_sound``
-    trigger) for the corresponding community script to play them at runtime.
+    CTLD and CSAR play these ``.ogg`` files by name at runtime
+    (``outSoundForCoalition("beacon.ogg")`` …), so the files must be packaged in
+    the mission's ``l10n/DEFAULT/`` folder. The tool ships them under
+    ``src/scripts/community/sounds/`` and the build injects the ones a mission
+    is missing when the owning module is enabled.
 
     Returns:
         Mapping of community script id to the sound filenames it requires.
@@ -51,7 +54,7 @@ def get_community_sound_files() -> dict[str, tuple[str, ...]]:
 
     return {
         "ctld": ("beacon.ogg", "beaconsilent.ogg", "radiobeep.ogg"),
-        "csar": ("CSAR.ogg", "csar-beacon.ogg"),
+        "csar": ("beacon.ogg", "CSAR.ogg"),
     }
 
 

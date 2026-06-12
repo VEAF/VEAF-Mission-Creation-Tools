@@ -20,6 +20,7 @@ These files drive the **design-time injection** steps that `veaf-tools build` pe
 | `presets.yaml` | `presets` | Configures radio presets for each aircraft group |
 | `spawnables.yaml` | `spawnable_aircrafts` | Spawnable aircraft groups (`veafSpawn-` prefix) |
 | `dynamic-slot-templates.yaml` | `dynamic_slot_templates` | Dynamic-slot templates (`dynSpawnTemplate=true`) |
+| `warehouses.yaml` | `warehouses` | Dynamic-Slot warehouses: `dynamicSpawn`, stock, fuel, template links |
 | `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
 
 These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools build` and then compiled into the `.miz`.
@@ -38,6 +39,7 @@ mission folder/
 │       ├── presets:  true   ──► src/presets.yaml        (build-time injection)
 │       ├── spawnable_aircrafts: true     ──► src/spawnables.yaml
 │       ├── dynamic_slot_templates: true  ──► src/dynamic-slot-templates.yaml
+│       ├── warehouses: true  ──► src/warehouses.yaml
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml

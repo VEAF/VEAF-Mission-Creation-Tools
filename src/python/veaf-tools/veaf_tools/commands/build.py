@@ -10,6 +10,7 @@ from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from veaf_libs.paths import resolve_path
 from veaf_libs.yaml_validator import validate_yaml_file
+from warehouses_injector import WarehousesInjectorWorker
 from waypoints_injector import WaypointsInjectorWorker
 from weather_injector import WeatherInjectorWorker
 
@@ -264,6 +265,25 @@ def build(
     for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):
         if (p_mission_folder / _legacy).exists():
             logger.warning(t("cmd.build.orphan_aircraft_file", file=_legacy))
+
+    # Dynamic-Slot warehouse wiring — must run after aircraft injection so the
+    # dynSpawnTemplate groups (and their groupIds) exist for linkDynTempl.
+    warehouses_path = _step_file("warehouses", "src/warehouses.yaml", "warehouses.yaml")
+    if warehouses_path:
+        logger.info(t("pipeline.injecting_warehouses", path=warehouses_path))
+        logger.step(t("pipeline.console.warehouses", file=warehouses_path.name))
+        wh_result = WarehousesInjectorWorker(
+            config_file=warehouses_path,
+            input_mission=p_output_mission,
+            output_mission=p_output_mission,
+        ).work()
+        logger.tech(
+            t(
+                "pipeline.console.warehouses_done",
+                airports=wh_result.airports_configured,
+                templates=wh_result.templates_linked,
+            )
+        )
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:

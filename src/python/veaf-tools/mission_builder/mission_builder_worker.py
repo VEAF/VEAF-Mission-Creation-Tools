@@ -720,6 +720,7 @@ class MissionBuilderWorker(BaseWorker):
             "spawnables.yaml": {"pipeline": "spawnable_aircrafts"},
             "dynamic-slot-templates.yaml": {"pipeline": "dynamic_slot_templates"},
             "waypoints.yaml": {"pipeline": "waypoints"},
+            "warehouses.yaml": {"pipeline": "warehouses"},
             "presets.yaml": {"pipeline": "presets"},
             "versions.yaml": {"pipeline": "weather"},
         }

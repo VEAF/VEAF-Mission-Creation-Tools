@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **DCS units database now comes from the datamine** (DCSDATA-008), retiring the in-DCS export (`dcsDataExport.lua`) as the source of `dcsUnits.lua` (the export stays for airbases/weapons). New two-stage pipeline: `veaf-build update-dcs-data --units` parses `Quaggles/dcs-lua-datamine` into a committed canonical `dcsUnits.yaml`, then renders `src/scripts/veaf/dcsUnits.lua` from it. The runtime schema is simplified — keyed by DCS type, with a single `kind` (`air`/`naval`/`infantry`/`vehicle`/`static`) replacing the four booleans — and `veafUnits` was updated accordingly (fast keyed lookup in `findDcsUnit`). Both artifacts are pure and CI-guarded (consistency + drift). Validated against the previous 833-unit file: 0 kind regressions, the 2 datamine-absent units carried over. Documented in `doc/developer/dcs-data.*`
+
 ### Added
 - **`veaf-tools ask` — documentation chatbot in the CLI/TUI** (CHATBOT-CLI). Ask a question about the VEAF docs and get a grounded AI answer — the same assistant as the website chatbot. One-shot (`veaf-tools ask "how do I enable CTLD?"`) or an interactive REPL, plus a TUI entry « Ask the documentation ». **No API key and no setup**: the command proxies the question to the project's documentation Worker (which owns the Gemini key, runs the RAG and streams the answer), identifying itself with an `X-VEAF-Client: cli` header and bounded by the Worker's per-IP rate limit
 - **Documentation chatbot — Gemini 429 handling** (DOC-CHATBOT-005): when the Gemini free-tier quota is hit, the docs chatbot now answers with the localized "too many requests, retry shortly" message instead of the generic "temporarily unavailable", on both the generation and embedding paths. Completes the chatbot lot (repo secrets set; the widget already ships to the versioned `mike` docs via `mkdocs.yml`)

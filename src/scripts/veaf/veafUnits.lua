@@ -164,11 +164,15 @@ function veafUnits.findDcsUnit(unitType)
   veaf.loggers.get(veafUnits.Id):trace("veafUnits.findDcsUnit(unitType=" .. unitType .. ")")
 
   -- find the desired unit in the DCS units database
-  local unit = nil
-  for _, u in pairs(dcsUnits.DcsUnitsDatabase) do
-    if (u and u.type and unitType:lower() == u.type:lower()) or (u and u.name and unitType:lower() == u.name:lower()) then
-      unit = u
-      break
+  -- fast path: the database is keyed by DCS type id
+  local unit = dcsUnits.DcsUnitsDatabase[unitType]
+  -- fallback: case-insensitive match on type or name
+  if not unit then
+    for _, u in pairs(dcsUnits.DcsUnitsDatabase) do
+      if (u and u.type and unitType:lower() == u.type:lower()) or (u and u.name and unitType:lower() == u.name:lower()) then
+        unit = u
+        break
+      end
     end
   end
 
@@ -346,24 +350,21 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
         }, -- end of ["aliases"]
     }, -- end of [9]
 ]]
+  -- dcsUnit.kind is one of "air"/"naval"/"infantry"/"vehicle"/"static" (replaces
+  -- the legacy mutually-exclusive booleans). Fortifications keep result.static
+  -- unset, matching the previous behaviour.
   result.category = dcsUnit.category
   result.typeName = dcsUnit.type
   result.displayName = dcsUnit.description
-  result.naval = dcsUnit.naval
-  result.air = dcsUnit.air
+  result.naval = dcsUnit.kind == "naval"
+  result.air = dcsUnit.kind == "air"
 
-  if
-    not dcsUnit.naval
-    and not dcsUnit.air
-    and not dcsUnit.infantry
-    and not dcsUnit.vehicle
-    and (dcsUnit.attribute == nil or dcsUnit.attribute.Fortifications == nil)
-  then
+  if dcsUnit.kind == "static" and (dcsUnit.attribute == nil or dcsUnit.attribute.Fortifications == nil) then
     result.static = true
   end
 
-  result.infantry = dcsUnit.infantry
-  result.vehicle = dcsUnit.vehicle
+  result.infantry = dcsUnit.kind == "infantry"
+  result.vehicle = dcsUnit.kind == "vehicle"
   --[[
     result.size = { x = veaf.round(dcsUnit.desc.box.max.x - dcsUnit.desc.box.min.x, 1), y = veaf.round(dcsUnit.desc.box.max.y - dcsUnit.desc.box.min.y, 1), z = veaf.round(dcsUnit.desc.box.max.z - dcsUnit.desc.box.min.z, 1)}
     result.width = result.size.z

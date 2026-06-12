@@ -1,8 +1,8 @@
 """DCS World units database parser.
 
-Parses ``dcsUnits.lua`` (the VEAF-maintained copy of the DCS unit database)
-and generates a Markdown reference document listing all known unit types,
-organized by category.
+Reads the canonical ``dcsUnits.yaml`` (generated from the datamine by
+``veaf-build update-dcs-data --units``) and produces a Markdown reference
+document listing all known unit types, organized by category.
 
 Typical usage by ``build-and-release.py``:
 
@@ -10,7 +10,7 @@ Typical usage by ``build-and-release.py``:
 
     count = generate_dcs_units_doc(
         output_path=build_dir / "dcs-units-reference.md",
-        lua_path=build_dir / "dcsUnits.lua",
+        yaml_path=src_dir / "python/veaf-tools/veaf_libs/data/dcsUnits.yaml",
     )
 """
 
@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
+
+import yaml
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -40,8 +42,8 @@ class DcsUnit:
     description: str
     """DCS description string (may duplicate name)."""
 
-    aliases: list[str] = field(default_factory=list)
-    """Alternative identifiers recognised by VEAF spawning commands."""
+    kind: str = ""
+    """Coarse VEAF kind: ``air`` / ``naval`` / ``infantry`` / ``vehicle`` / ``static``."""
 
     attributes: list[str] = field(default_factory=list)
     """Named DCS attribute flags (tactical role identifiers)."""
@@ -80,103 +82,39 @@ def _is_meaningful_attribute(attr: str) -> bool:
 # Parsing
 # ---------------------------------------------------------------------------
 
-_RE_ENTRY_START = re.compile(r"^\[\d+\]\s*=\s*\{?\s*(--.*)?$")
-# Closing-brace pattern: matches `}`, `},`, or `}, -- any comment`.
-# The state machine knows which block we are in, so a single loose pattern
-# serves for entry ends, attribute sub-table ends, and aliases sub-table ends.
-_RE_CLOSE = re.compile(r"^\},?\s*(--.*)?$")
-_RE_ATTR_OPEN = re.compile(r'^\["attribute"\]\s*=\s*\{?\s*(--.*)?$')
-_RE_ALIAS_OPEN = re.compile(r'^\["aliases"\]\s*=\s*\{?\s*(--.*)?$')
-_RE_STRING_FLAG = re.compile(r'^\["([^"]+)"\]\s*=\s*true\s*,?$')
-_RE_ALIAS_VALUE = re.compile(r'^\[\d+\]\s*=\s*"([^"]+)"\s*,?$')
-_RE_FIELD = re.compile(r'^\["([^"]+)"\]\s*=\s*"([^"]*)"\s*,?$')
 
+def parse_dcs_units(yaml_path: Path) -> list[DcsUnit]:
+    """Parse the units YAML and return the list of :class:`DcsUnit` entries.
 
-def _parse_units(content: str) -> list[DcsUnit]:
-    """Extract all unit entries from the raw text of ``dcsUnits.lua``."""
+    Args:
+        yaml_path: Path to the committed ``dcsUnits.yaml``.
+
+    Returns:
+        The parsed units (empty if the file has no ``units`` list).
+    """
+    data = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
     units: list[DcsUnit] = []
-    current: dict[str, str] | None = None
-    attrs: list[str] = []
-    aliases: list[str] = []
-    in_database = False
-    in_attribute = False
-    in_aliases = False
-
-    for raw_line in content.splitlines():
-        line = raw_line.strip()
-
-        # ── locate the database table ────────────────────────────────────────
-        if not in_database:
-            if "dcsUnits.DcsUnitsDatabase" in line:
-                in_database = True
-            continue
-
-        # ── end of the whole database ────────────────────────────────────────
-        # The outer closing brace ends the table; stop parsing.
-        if line == "}" and current is None:
-            break
-
-        # ── inside an attribute sub-table ────────────────────────────────────
-        if in_attribute:
-            if _RE_CLOSE.match(line):
-                in_attribute = False
-            elif m := _RE_STRING_FLAG.match(line):
-                attrs.append(m.group(1))
-            continue
-
-        # ── inside an aliases sub-table ──────────────────────────────────────
-        if in_aliases:
-            if _RE_CLOSE.match(line):
-                in_aliases = False
-            elif m := _RE_ALIAS_VALUE.match(line):
-                aliases.append(m.group(1))
-            continue
-
-        # ── between entries ──────────────────────────────────────────────────
-        if current is None:
-            if _RE_ENTRY_START.match(line):
-                current = {}
-                attrs = []
-                aliases = []
-            continue
-
-        # ── inside an entry ──────────────────────────────────────────────────
-        if _RE_CLOSE.match(line):
-            units.append(
-                DcsUnit(
-                    type_id=current.get("type", ""),
-                    name=current.get("name", ""),
-                    category=current.get("category", ""),
-                    description=current.get("description", ""),
-                    aliases=list(aliases),
-                    attributes=list(attrs),
-                )
+    for entry in data.get("units") or []:
+        units.append(
+            DcsUnit(
+                type_id=entry.get("type", ""),
+                name=entry.get("name", ""),
+                category=entry.get("category", ""),
+                description=entry.get("description", ""),
+                kind=entry.get("kind", ""),
+                attributes=list(entry.get("attributes") or []),
             )
-            current = None
-            in_attribute = False
-            in_aliases = False
-            continue
-
-        if _RE_ATTR_OPEN.match(line):
-            in_attribute = True
-            continue
-
-        if _RE_ALIAS_OPEN.match(line):
-            in_aliases = True
-            continue
-
-        if m := _RE_FIELD.match(line):
-            fname, fval = m.group(1), m.group(2)
-            if fname in {"type", "name", "category", "description"}:
-                current[fname] = fval
-
+        )
     return units
 
 
-def parse_dcs_units(lua_path: Path) -> list[DcsUnit]:
-    """Parse *lua_path* and return the list of :class:`DcsUnit` entries."""
-    content = lua_path.read_text(encoding="utf-8", errors="ignore")
-    return _parse_units(content)
+def _read_db_version(yaml_path: Path) -> str:
+    """Extract the datamine provenance ref from the YAML header comment, if present."""
+    for line in yaml_path.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"#\s*Source ref:\s*(\S+)", line)
+        if m:
+            return f"datamine-{m.group(1)[:8]}"
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -248,20 +186,20 @@ def generate_reference_markdown(units: list[DcsUnit], db_version: str = "") -> s
 # ---------------------------------------------------------------------------
 
 
-def generate_dcs_units_doc(output_path: Path, lua_path: Path) -> int:
-    """Parse *lua_path* and write the Markdown reference to *output_path*.
+def generate_dcs_units_doc(output_path: Path, yaml_path: Path) -> int:
+    """Parse *yaml_path* and write the Markdown reference to *output_path*.
 
-    Called by ``build-and-release.py`` after the Lua scripts are built.
+    Called by ``build-and-release.py`` after the DCS data is generated.
+
+    Args:
+        output_path: Destination Markdown file.
+        yaml_path: Source ``dcsUnits.yaml``.
 
     Returns:
         Number of units documented.
     """
-    content = lua_path.read_text(encoding="utf-8", errors="ignore")
-    units = _parse_units(content)
-
-    ver_match = re.search(r'dcsUnits\.Version\s*=\s*"([^"]+)"', content)
-    db_version = ver_match.group(1) if ver_match else ""
-
+    units = parse_dcs_units(yaml_path)
+    db_version = _read_db_version(yaml_path)
     md = generate_reference_markdown(units, db_version)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(md, encoding="utf-8")

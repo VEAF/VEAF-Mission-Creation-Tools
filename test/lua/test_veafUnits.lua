@@ -5,15 +5,16 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 
--- Provide a minimal dcsUnits stub (instead of loading the 16k-line file)
+-- Provide a minimal dcsUnits stub (instead of loading the 16k-line file).
+-- New schema: keyed by DCS type id, with a single `kind` field.
 dcsUnits = {
   DcsUnitsDatabase = {
-    { type = "ZSU-23-4 Shilka",     name = "AAA ZSU-23-4 Shilka",  category = "Air Defence", vehicle  = true,  description = "AAA ZSU-23-4 Shilka" },
-    { type = "SA-18 Igla-S manpad", name = "MANPAD SA-18 Igla-S",   category = "Air Defence", infantry = true,  description = "MANPAD SA-18 Igla-S" },
-    { type = "LHA_Tarawa",          name = "LHA Tarawa",             category = "Ships",       naval    = true,  description = "LHA Tarawa" },
-    { type = "Vulcan",              name = "AAA Vulcan M163",        category = "Air Defence", vehicle  = true,  description = "AAA Vulcan M163" },
-    { type = "A-10C",               name = "A-10C Thunderbolt II",   category = "Airplanes",   air      = true,  description = "A-10C Thunderbolt II" },
-    { type = "Ural-375",            name = "Ural-375 Truck",         category = "Trucks",      vehicle  = true,  description = "Ural-375 Truck" },
+    ["ZSU-23-4 Shilka"] = { type = "ZSU-23-4 Shilka", name = "AAA ZSU-23-4 Shilka", category = "Air Defence", kind = "vehicle", description = "AAA ZSU-23-4 Shilka" },
+    ["SA-18 Igla-S manpad"] = { type = "SA-18 Igla-S manpad", name = "MANPAD SA-18 Igla-S", category = "Air Defence", kind = "infantry", description = "MANPAD SA-18 Igla-S" },
+    ["LHA_Tarawa"] = { type = "LHA_Tarawa", name = "LHA Tarawa", category = "Ship", kind = "naval", description = "LHA Tarawa" },
+    ["Vulcan"] = { type = "Vulcan", name = "AAA Vulcan M163", category = "Air Defence", kind = "vehicle", description = "AAA Vulcan M163" },
+    ["A-10C"] = { type = "A-10C", name = "A-10C Thunderbolt II", category = "Plane", kind = "air", description = "A-10C Thunderbolt II" },
+    ["Ural-375"] = { type = "Ural-375", name = "Ural-375 Truck", category = "Unarmed", kind = "vehicle", description = "Ural-375 Truck" },
   },
   NavalStatics = {},
 }
@@ -60,7 +61,7 @@ function TestVeafUnitsMakeUnitFromDcsStructure:test_nil_input_returns_nil()
 end
 
 function TestVeafUnitsMakeUnitFromDcsStructure:test_vehicle_unit()
-  local dcsUnit = { type = "Vulcan", category = "Air Defence", vehicle = true, description = "AAA Vulcan M163" }
+  local dcsUnit = { type = "Vulcan", category = "Air Defence", kind = "vehicle", description = "AAA Vulcan M163" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 1)
   luaunit.assertNotNil(result)
   luaunit.assertEquals(result.typeName, "Vulcan")
@@ -71,15 +72,15 @@ function TestVeafUnitsMakeUnitFromDcsStructure:test_vehicle_unit()
 end
 
 function TestVeafUnitsMakeUnitFromDcsStructure:test_infantry_unit()
-  local dcsUnit = { type = "SA-18 Igla-S manpad", category = "Air Defence", infantry = true, description = "MANPAD" }
+  local dcsUnit = { type = "SA-18 Igla-S manpad", category = "Air Defence", kind = "infantry", description = "MANPAD" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 2)
   luaunit.assertTrue(result.infantry)
-  luaunit.assertNil(result.vehicle)
+  luaunit.assertFalse(result.vehicle)
   luaunit.assertEquals(result.cell, 2)
 end
 
 function TestVeafUnitsMakeUnitFromDcsStructure:test_naval_unit()
-  local dcsUnit = { type = "LHA_Tarawa", category = "Ships", naval = true, description = "LHA Tarawa" }
+  local dcsUnit = { type = "LHA_Tarawa", category = "Ships", kind = "naval", description = "LHA Tarawa" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 1)
   luaunit.assertTrue(result.naval)
   -- naval is not static
@@ -87,21 +88,29 @@ function TestVeafUnitsMakeUnitFromDcsStructure:test_naval_unit()
 end
 
 function TestVeafUnitsMakeUnitFromDcsStructure:test_air_unit()
-  local dcsUnit = { type = "A-10C", category = "Airplanes", air = true, description = "A-10C" }
+  local dcsUnit = { type = "A-10C", category = "Airplanes", kind = "air", description = "A-10C" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 3)
   luaunit.assertTrue(result.air)
   luaunit.assertFalse(result.static == true)
 end
 
 function TestVeafUnitsMakeUnitFromDcsStructure:test_static_unit()
-  -- unit with no air, naval, infantry, vehicle, and no Fortifications = static
-  local dcsUnit = { type = "Fortification_Bunker", category = "Fortifications", description = "Bunker" }
+  -- kind == "static" and not a Fortification => result.static
+  local dcsUnit = { type = "Fortification_Bunker", category = "Fortification", kind = "static", description = "Bunker" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 1)
   luaunit.assertTrue(result.static)
 end
 
+function TestVeafUnitsMakeUnitFromDcsStructure:test_fortification_is_not_static()
+  -- a Fortification keeps result.static unset, matching the legacy behaviour
+  local dcsUnit =
+    { type = "Bunker", category = "Fortification", kind = "static", description = "Bunker", attribute = { Fortifications = true } }
+  local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 1)
+  luaunit.assertFalse(result.static == true)
+end
+
 function TestVeafUnitsMakeUnitFromDcsStructure:test_displayName()
-  local dcsUnit = { type = "Ural-375", description = "Ural-375 Truck", vehicle = true }
+  local dcsUnit = { type = "Ural-375", description = "Ural-375 Truck", kind = "vehicle" }
   local result = veafUnits.makeUnitFromDcsStructure(dcsUnit, 1)
   luaunit.assertEquals(result.displayName, "Ural-375 Truck")
 end

@@ -12,19 +12,21 @@ interchangeable:
 
 | Source | How | Needs DCS? | Examples |
 |--------|-----|-----------|----------|
-| **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, radio specs |
-| **In-DCS export** | run `src/scripts/veaf/dcsDataExport.lua` from the Mission Editor, commit the dump | yes | `dcsUnits.lua` (unit database) |
+| **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
+| **In-DCS export** | run `src/scripts/veaf/dcsDataExport.lua` from the Mission Editor, commit the dump | yes | airbases, weapons |
 
-The datamine path is reproducible and CI-checkable; the in-DCS export is a
-manual step performed when DCS adds units.
+The datamine path is reproducible and CI-checkable; it is the default for all the
+data VEAF needs at build/runtime. The in-DCS export now only covers data the
+datamine does not expose (airbases, weapons) and is a rare manual step.
 
 ## The `update-dcs-data` command
 
 Datamine-sourced artifacts are regenerated with:
 
 ```bash
-veaf-build update-dcs-data            # everything safe to regenerate (countries)
+veaf-build update-dcs-data            # every pure artifact (countries + units)
 veaf-build update-dcs-data --countries
+veaf-build update-dcs-data --units    # regenerates dcsUnits.yaml AND dcsUnits.lua
 veaf-build update-dcs-data --radio
 ```
 
@@ -38,6 +40,9 @@ bump `DATAMINE_REF`, re-run the command, and commit the diff.
 
 - **`dcs-countries.yaml`** is a **pure** artifact — 100 % generator output. Never
   edit it by hand; CI fails if it drifts from the generator.
+- **`dcsUnits.yaml`** and the rendered **`dcsUnits.lua`** are **pure** artifacts
+  too (see [The units database](#the-units-database)). Both are CI-guarded; edit
+  the generator, not the files.
 - **`dcs-radio-specs.yaml` / `dcs-radio-specs.md`** are **hybrid**: a generated
   base plus **manual overlays** the generator does not reproduce — the
   `dcs_rejects_on_load` flags (aircraft that crash DCS on load with an
@@ -57,3 +62,90 @@ to its numeric id, matched by canonical name, Mission Editor display name
 injector, which must stamp a valid `country.id` on any country it synthesizes,
 otherwise the DCS Mission Editor crashes on load
 (`me_mission.lua` → `fixCountriesNames` → nil-index).
+
+## The units database
+
+The DCS unit database is generated from the datamine in **two stages**:
+
+```text
+_G/db/Units/**          (datamine, pinned ref)
+   │  veaf_build.dcs_data.units   →  parse + derive
+   ▼
+dcsUnits.yaml           (committed canonical source, veaf_libs/data/)
+   │  veaf_build.dcs_data.units_lua  →  render
+   ▼
+dcsUnits.lua            (committed runtime table, src/scripts/veaf/)
+   │  loaded in DCS
+   ▼
+veafUnits / veafSkynetIadsHelper   (runtime consumers)
+```
+
+`veaf-build update-dcs-data --units` runs both stages.
+
+### Derived `kind`
+
+Each unit gets a single **`kind`** — `air` / `naval` / `infantry` / `vehicle` /
+`static` — derived from the DCS `attribute` flags, in priority order:
+
+| Priority | Signal (attribute) | kind |
+|---|---|---|
+| 1 | `Air` | `air` |
+| 2 | `Naval` or `Ships` | `naval` |
+| 3 | `Infantry` | `infantry` |
+| 4 | `Ground vehicles` / `Vehicles` / `GroundUnits` / `RailwayUnits` | `vehicle` |
+| 5 | *(none of the above)* | `static` |
+
+`kind` replaces the four mutually-exclusive booleans the old in-DCS export wrote
+(`naval`/`air`/`infantry`/`vehicle`). `RailwayUnits`/`GroundUnits` catch rail
+stock (locomotives, wagons), which the old export classified as vehicles.
+
+### YAML and Lua schema
+
+`dcsUnits.yaml` is the source of truth:
+
+```yaml
+units:
+- type: "1L13 EWR"          # DCS type id (database key)
+  name: EWR 1L13            # display name
+  kind: vehicle
+  category: Air Defence     # DCS display category (planes/ships/helicopters derived from the folder)
+  description: EWR 1L13
+  attributes: [EWR, "Air Defence vehicles", ...]
+naval_statics:              # offshore statics DCS places on water (curated list)
+- offshore WindTurbine
+```
+
+`dcsUnits.lua` renders that into the lean runtime table — keyed by `type`, with a
+single `kind` and an `attribute` map (Skynet keys on `SAM SR` / `EWR`):
+
+```lua
+dcsUnits.NavalStatics = { ["offshore WindTurbine"] = true, ... }
+dcsUnits.DcsUnitsDatabase = {
+  ["1L13 EWR"] = {
+    type = "1L13 EWR", name = "EWR 1L13", kind = "vehicle",
+    category = "Air Defence", description = "EWR 1L13",
+    attribute = { ["EWR"] = true, ... },
+  },
+}
+```
+
+The runtime reads `type`, `name`, `description`, `category`, `kind` and
+`attribute`; `veafUnits.processUnit` turns `kind` back into the
+`naval`/`air`/`infantry`/`vehicle`/`static` flags the rest of the code expects.
+The Lua file is **excluded from `stylua`** (`.styluaignore`) because its
+formatting is deterministic generator output.
+
+### Carried-over units and naval statics
+
+Two things the datamine does not provide are handled explicitly in
+`veaf_build/dcs_data/units.py`:
+
+- **`CARRIED_UNITS`** — units present in the old export but absent from the
+  datamine (currently `Container_20ft` / `Container_40ft`). Carried verbatim so
+  the migration never loses a unit.
+- **`NAVAL_STATICS`** — the short offshore-static list (`Oil platform`, …). The
+  datamine has no reliable flag for these (`isPutToWater` is false even for the
+  offshore wind turbine), so the list is curated here.
+
+When DCS ships a unit the datamine lacks, or a new offshore static, add it to the
+relevant constant.

@@ -53,7 +53,7 @@ jobs:
         if: steps.compare.outputs.changed == 'true'
         run: |
           sed -i "s/${{ steps.compare.outputs.current }}/${{ steps.compare.outputs.latest }}/" veaf_build/dcs_data/datamine.py
-          poetry run veaf-build update-dcs-data --countries
+          poetry run veaf-build update-dcs-data --countries --units
 
       - name: Open a pull request
         if: steps.compare.outputs.changed == 'true'
@@ -66,14 +66,14 @@ jobs:
             The upstream `Quaggles/dcs-lua-datamine` moved past our pinned ref.
 
             - Pin: `${{ steps.compare.outputs.current }}` → `${{ steps.compare.outputs.latest }}`
-            - Regenerated the **pure** `dcs-countries.yaml` automatically.
+            - Regenerated the **pure** artifacts automatically: `dcs-countries.yaml`
+              and the units database (`dcsUnits.yaml` + `dcsUnits.lua`).
 
             **Manual follow-up before merge** (not done automatically, by design):
             - **Radio** (`dcs-radio-specs.yaml/.md`): hybrid artifact — run
               `veaf-build update-dcs-data --radio`, then re-apply the
               `dcs_rejects_on_load` overlays and the bilingual doc section.
-            - **Units** (once DCSDATA-008 lands): run `--units` and review the
-              semantic-equivalence diff.
 
-            Review the country diff for unexpected changes before merging.
+            Review the country and units diffs for unexpected changes before merging
+            (e.g. a unit changing `kind`, or many units added/removed).
           labels: dcs-data

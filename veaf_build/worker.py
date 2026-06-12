@@ -333,18 +333,18 @@ class BuildAndReleaseWorker:
             logger.warning(f"Failed to copy Lua files to published directory: {e}")
 
     def _generate_dcs_units_doc(self) -> None:
-        """Parse dcsUnits.lua and write a Markdown reference to the build directory."""
+        """Parse the units YAML and write a Markdown reference to the build directory."""
         with spinner_context("Generating DCS units reference..."):
             try:
                 from veaf_libs.dcs_units_parser import generate_dcs_units_doc  # type: ignore[import-not-found]
 
-                lua_path = self.build_dir / "dcsUnits.lua"
-                if not lua_path.exists():
-                    logger.warning("dcsUnits.lua not found in build dir; skipping reference doc")
+                yaml_path = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "data" / "dcsUnits.yaml"
+                if not yaml_path.exists():
+                    logger.warning("dcsUnits.yaml not found; skipping units reference doc")
                     return
 
                 out_path = self.build_dir / "dcs-units-reference.md"
-                count = generate_dcs_units_doc(out_path, lua_path)
+                count = generate_dcs_units_doc(out_path, yaml_path)
                 logger.debug(f"DCS units reference written: {count} units → {out_path}")
             except Exception as e:
                 logger.warning(f"Could not generate DCS units reference: {e}")

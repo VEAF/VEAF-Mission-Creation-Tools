@@ -13,11 +13,15 @@ on:
     branches: [develop-v6, main]
     paths:
       - "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
+      - "src/python/veaf-tools/veaf_libs/data/dcsUnits.yaml"
+      - "src/scripts/veaf/dcsUnits.lua"
       - "veaf_build/dcs_data/**"
       - ".github/workflows/dcs-data-consistency.yml"
   pull_request:
     paths:
       - "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
+      - "src/python/veaf-tools/veaf_libs/data/dcsUnits.yaml"
+      - "src/scripts/veaf/dcsUnits.lua"
       - "veaf_build/dcs_data/**"
       - ".github/workflows/dcs-data-consistency.yml"
 
@@ -37,12 +41,15 @@ jobs:
       - name: Install dependencies
         run: poetry install --without build --all-extras
 
-      - name: Regenerate the country table against the pinned ref
-        run: poetry run veaf-build update-dcs-data --countries
+      - name: Regenerate the pure artifacts against the pinned ref
+        run: poetry run veaf-build update-dcs-data --countries --units
 
-      - name: Fail if the committed artifact drifts from the generator
+      - name: Fail if a committed artifact drifts from the generator
         run: |
-          if ! git diff --exit-code src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml; then
-            echo "::error::dcs-countries.yaml is out of date or hand-edited. Run 'veaf-build update-dcs-data --countries' and commit the result (bump DATAMINE_REF first if intended)."
+          if ! git diff --exit-code \
+            src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml \
+            src/python/veaf-tools/veaf_libs/data/dcsUnits.yaml \
+            src/scripts/veaf/dcsUnits.lua; then
+            echo "::error::A generated DCS artifact is out of date or hand-edited. Run 'veaf-build update-dcs-data --countries --units' and commit the result (bump DATAMINE_REF first if intended)."
             exit 1
           fi

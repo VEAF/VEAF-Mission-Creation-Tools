@@ -1,12 +1,10 @@
 """Documentation chatbot client (CHATBOT-CLI).
 
-Brings the VEAF documentation RAG chatbot to the design-time tooling: download the
-embeddings index built by the docs CI, then embed the question and generate a
-grounded answer with the user's own Gemini key — no Cloudflare credentials, no
-local re-embedding.
+Brings the VEAF documentation chatbot to the CLI/TUI. The CLI proxies questions to
+the project's Cloudflare Worker (which owns the Gemini key and runs the RAG), so
+no per-user API key is required.
 """
 
-from .doc_chat_worker import DocChatWorker, MissingApiKeyError
-from .index_store import EMBED_DIMS, DocIndex, fetch_index
+from .worker_client import DEFAULT_ENDPOINT, WorkerChatWorker
 
-__all__ = ["DocChatWorker", "MissingApiKeyError", "DocIndex", "fetch_index", "EMBED_DIMS"]
+__all__ = ["WorkerChatWorker", "DEFAULT_ENDPOINT"]

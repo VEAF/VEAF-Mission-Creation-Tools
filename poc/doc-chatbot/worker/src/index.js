@@ -273,8 +273,18 @@ function latestQuery(messages) {
   return "";
 }
 
+/**
+ * Decide whether a request may use the chat endpoint.
+ * Browsers must come from an allow-listed Origin (anti-CSRF). Non-browser clients
+ * (the `veaf-tools ask` CLI) have no Origin, so they identify with the
+ * ``X-VEAF-Client: cli`` header instead; both paths stay capped by the per-IP rate limit.
+ */
+function isAllowedClient(origin, cliHeader) {
+  return cliHeader === "cli" || (!!origin && ALLOWED_ORIGINS.has(origin));
+}
+
 // Named exports for unit testing (unused by the Workers runtime, which only calls the default export).
-export { latestQuery, toGeminiContents, upstreamErrorMessage };
+export { latestQuery, toGeminiContents, upstreamErrorMessage, isAllowedClient };
 
 export default {
   async fetch(request, env) {
@@ -290,8 +300,8 @@ export default {
       return new Response("Not found", { status: 404, headers: cors });
     }
 
-    // Domain allow-list (anti-CSRF): reject anything not from a known doc origin.
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    // Allow browsers from a known doc origin (anti-CSRF) or the CLI (X-VEAF-Client header).
+    if (!isAllowedClient(origin, request.headers.get("X-VEAF-Client"))) {
       return new Response("Forbidden", { status: 403, headers: cors });
     }
 

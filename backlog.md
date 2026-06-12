@@ -51,6 +51,7 @@
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ⬜ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ✅ |
+| Lot CHATBOT-CLI-WORKER — `ask` proxies the project Worker (no user API key); supersedes the direct-key path | ✅ |
 | Lot IMC-FEEDBACK-2 — second-round IMC-Day user feedback (tested with 6.4.0 on 2026-06-10) | ✅ |
 | Lot DCSDATA — fix the missing-country-id ME crash, generate DCS country data from the datamine, consolidate all DCS-data generators under one `veaf-build` command with freshness guards, and lift the 2-ground-group mission requirement | 🔄 |
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
@@ -128,6 +129,21 @@
 | CHATBOT-CLI-004 | `ask` CLI command: one-shot (`veaf-tools ask "…"`) + interactive REPL (session history, `quit`); language from the global `--lang`; rendered via Rich `console`. | `veaf_tools/commands/ask.py`, `veaf_tools/commands/__init__.py`, `veaf_libs/locales/{en,fr}.json` | feat | ✅ |
 | CHATBOT-CLI-005 | TUI entry « Ask the documentation » (runs `veaf-tools ask` → its REPL, reusing `DocChatWorker`). | `veaf_libs/tui.py`, `veaf_libs/locales/{en,fr}.json` | feat | ✅ |
 | CHATBOT-CLI-006 | Docs (`doc/TOOLS_REFERENCE*.md` + TUI mention), `CHANGELOG`, version bump, and bump the coverage gate (66→67) per the ratchet policy. | `doc/TOOLS_REFERENCE.md`, `doc/TOOLS_REFERENCE.en.md`, `CHANGELOG.md`, `pyproject.toml` | feat | ✅ |
+
+> **Superseded by `CHATBOT-CLI-WORKER`.** David's review: mission makers are not technical enough to obtain a Gemini key, so the CLI must work **with no key by default**. The original "download the index + embed/generate with the user's own key" design (001–003) was reworked to proxy the existing Cloudflare Worker (which already holds the project key server-side). The direct-key path was removed.
+
+---
+
+## Lot CHATBOT-CLI-WORKER — `ask` proxies the Worker (no user key)
+
+**Goal**: Make `veaf-tools ask` work out of the box with **no API key**. A project key cannot be shipped in the distributed tool (it would be scraped and the quota/key abused), so the default routes through the project's Cloudflare Worker — which owns the Gemini key server-side, runs the RAG and streams the answer, exactly like the website chatbot. Supersedes CHATBOT-CLI-001/002/003 (the direct-key + local-index path was removed). David's decisions: **Worker only** (no user-key path) and the CLI authenticates with a **dedicated header** (not by loosening the browser Origin allow-list).
+
+**Branch**: `feat/chatbot-cli-worker` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CHATBOT-CLI-WORKER-001 | Worker: accept non-browser CLI requests via an `X-VEAF-Client: cli` header (`isAllowedClient`), keeping the browser Origin allow-list and the per-IP rate limit. Unit-tested. | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
+| CHATBOT-CLI-WORKER-002 | Replace the direct-key client with `WorkerChatWorker` (POST `/chat` + `X-VEAF-Client` header, stream the SSE answer); rewire `ask`; remove `index_store`/`doc_chat_worker` and the key handling; revert the GitHub-Release index publish (no longer needed). Docs FR/EN (no key), CHANGELOG, version bump, locales, tests. | `doc_chatbot/worker_client.py`, `veaf_tools/commands/ask.py`, `.github/workflows/docs-chatbot-index.yml`, `doc/TOOLS_REFERENCE*.md`, `test/python/doc_chatbot/test_worker_client.py` | feat | ✅ |
 
 ---
 

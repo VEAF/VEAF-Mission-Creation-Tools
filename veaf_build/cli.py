@@ -331,6 +331,7 @@ def build_and_publish(
 @app.command(name="update-dcs-data")
 def update_dcs_data(
     countries: bool = typer.Option(False, "--countries", help="Regenerate the DCS country name->id table."),
+    units: bool = typer.Option(False, "--units", help="Regenerate the DCS units database (YAML + dcsUnits.lua)."),
     radio: bool = typer.Option(False, "--radio", help="Regenerate the DCS aircraft radio specs."),
     all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
 ) -> None:
@@ -339,22 +340,27 @@ def update_dcs_data(
     Each artifact is generated from the Quaggles/dcs-lua-datamine dump at the
     pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the output is
     reproducible and CI fails if a committed artifact drifts from the generator.
-    With no flag, every artifact is regenerated.
-
-    Note: the DCS *units* database (`dcsUnits.lua`) comes from an in-DCS export
-    (`src/scripts/veaf/dcsDataExport.lua`), not the datamine, so it is refreshed
-    separately and is not covered by this command.
+    With no flag, every pure artifact (countries, units) is regenerated; radio is
+    excluded under --all because it has manual overlays (use --radio explicitly).
     """
     from veaf_build.dcs_data import countries as countries_provider
+    from veaf_build.dcs_data import units as units_provider
+    from veaf_build.dcs_data import units_lua
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
-    run_all = all_data or not (countries or radio)
+    run_all = all_data or not (countries or units or radio)
     ref_short = DATAMINE_REF[:8]
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")
         count = countries_provider.generate()
         console.print(f"[green]✓ {count} countries written[/green]")
+
+    if run_all or units:
+        console.print(f"[cyan]Generating DCS units database (datamine@{ref_short})...[/cyan]")
+        count = units_provider.generate()
+        rendered = units_lua.generate()
+        console.print(f"[green]✓ {count} units written (dcsUnits.yaml + dcsUnits.lua: {rendered})[/green]")
 
     # Radio is regenerated only when explicitly requested (--radio), even under
     # --all: it is a hybrid artifact with manual overlays the generator cannot

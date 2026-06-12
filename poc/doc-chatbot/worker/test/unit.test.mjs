@@ -71,3 +71,8 @@ test("isAllowedClient accepts the CLI header without an Origin", () => {
   assert.equal(isAllowedClient(null, "cli"), true);
   assert.equal(isAllowedClient(null, "nope"), false);
 });
+
+test("isAllowedClient allows an allow-listed Origin regardless of the client header", () => {
+  assert.equal(isAllowedClient("https://veaf.github.io", "nope"), true);
+  assert.equal(isAllowedClient("https://evil.example", "nope"), false);
+});

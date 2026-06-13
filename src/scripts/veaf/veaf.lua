@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.56.2"
+veaf.Version = "1.57.0"
 
 --- Development version ?
 veaf.Development = false
@@ -129,6 +129,11 @@ veaf.ERA = {
 }
 
 veaf.config.era = veaf.ERA.MODERN -- default era
+
+--- Default language for in-game messages (veaf.t). Overridden per mission by
+--- `veaf.config.language`, emitted from mission.yaml's `mission.language`.
+veaf.I18N_DEFAULT_LANGUAGE = "fr"
+veaf.config.language = veaf.config.language or veaf.I18N_DEFAULT_LANGUAGE
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Mist database wrappers
@@ -2425,6 +2430,38 @@ function veaf.reportToPilot(message, duration, coalition)
   else
     trigger.action.outText(message, duration)
   end
+end
+
+--- Translate an in-game message key to the active language.
+--- The active language is `veaf.config.language` (set from mission.yaml, default
+--- `veaf.I18N_DEFAULT_LANGUAGE` = "fr"). The catalog (`veaf.i18nCatalog`) is
+--- populated by veafI18n.lua. Fallback order: requested language → default
+--- language → the key itself (so a missing entry never crashes a message).
+--- Extra arguments are interpolated with string.format.
+--- @param key string the catalog key (e.g. "marker.command_failed")
+--- @param ... any optional string.format arguments
+--- @treturn string the localized (and formatted) message
+function veaf.t(key, ...)
+  local lang = (veaf.config and veaf.config.language) or veaf.I18N_DEFAULT_LANGUAGE
+  local entry = veaf.i18nCatalog and veaf.i18nCatalog[key]
+  local text
+  if entry then
+    text = entry[lang] or entry[veaf.I18N_DEFAULT_LANGUAGE]
+  end
+  if not text then
+    text = key
+  end
+  if select("#", ...) > 0 then
+    local ok, formatted = pcall(string.format, text, ...)
+    if ok then
+      text = formatted
+    else
+      -- a placeholder/argument mismatch: keep the raw text but log it so the
+      -- catalog entry can be fixed (rather than silently swallowing the error).
+      veaf.loggers.get(veaf.Id):warn(string.format("veaf.t: format failed for key '%s': %s", tostring(key), tostring(formatted)))
+    end
+  end
+  return text
 end
 
 --- Levenshtein edit distance between two strings (used for "did you mean?" hints).

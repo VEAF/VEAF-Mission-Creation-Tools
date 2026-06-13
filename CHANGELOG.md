@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **In-game message localization (Lua runtime i18n)** (LUA-I18N-001/002/003, FR default + EN). The Lua scripts had no i18n — every pilot-facing message was a hardcoded English literal. New `veaf.t(key, ...)` lookup (in `veaf.lua`) over a `veaf.i18nCatalog` catalog (new `veafI18n.lua` module), with `string.format` interpolation and fallback (requested language → French → the key). The active language is `veaf.config.language`, emitted into `veaf-config.lua` from `mission.yaml`'s `mission.language` (default `fr`; mission-global, since DCS exposes no per-pilot language). First consumers migrated: the UXPILOT pilot-feedback messages (marker-command failure, unknown spawn parameter + "did you mean" hint) now have FR + EN entries. The remaining `outText` literals are migrated module-by-module over time (LUA-I18N-004). See ADR 0006
+
 ### Changed
 - **Spawn subsystem de-duplicated** (SPAWN-EXTERNALIZE-005 / SPAWN-REFACTOR-002), iso-functional and covered by the characterization tests. Three repetitive blocks became data-driven: (1) the per-command security preamble (`if not (bypassSecurity or veafSecurity.checkSecurity_Lx(...)) then return nil, nil, true end`, repeated in ~25 handlers) is now applied centrally by the dispatcher — `registerCommandHandler(key, security, fn)` declares the level (`L9`/`L1`/`MM`, or none for smoke/flare/signal); (2) the ~50-branch mark-text keyword parser (`if key:lower() == "…"`) is now a `veafSpawn.ParameterRules` descriptor list (the recognized-key set for typo hints is derived from it — single source of truth); (3) the command-detection if/elseif chain that seeds per-command defaults is now a `veafSpawn.CommandDescriptors` ordered list (first match wins). No behaviour change to `_spawn`/`_destroy`/`_teleport`/`_drawing`/`_mm` commands
 

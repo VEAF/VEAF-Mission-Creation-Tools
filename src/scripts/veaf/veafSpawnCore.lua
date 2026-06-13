@@ -214,11 +214,11 @@ function veafSpawn.executeCommand(
         for _, p in ipairs(options.unknownParameters) do
           local hint = "'" .. tostring(p.key) .. "'"
           if p.suggestion then
-            hint = hint .. " (did you mean '" .. tostring(p.suggestion) .. "'?)"
+            hint = hint .. veaf.t("spawn.did_you_mean", tostring(p.suggestion))
           end
           table.insert(hints, hint)
         end
-        veaf.reportToPilot("VEAF spawn: unknown parameter(s): " .. table.concat(hints, ", "), 15, coalition)
+        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, coalition)
       end
 
       local repeatDelay = repeatDelay

@@ -713,9 +713,9 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| LUA-I18N-001 (spike) | Decide the mechanism, the active-language source (mission.yaml → `veaf-config.lua` → `veaf.language`, default FR), catalog layout, and fallback rules. Deliverable: design note + framework skeleton + tests. | `src/scripts/veaf/`, `doc/`, `test/lua/` | spike | ⬜ |
-| LUA-I18N-002 | Implement `veaf.t(key, ...)` + the catalog + `veaf.language` wiring (`lua_config_generator` emits it from `mission.yaml`, default `"fr"`); fallbacks (lang → FR → key). luaunit tests. | `src/scripts/veaf/veaf.lua` (or `veafI18n.lua`), `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml`, `test/lua/`, `test/python/` | feat | ⬜ |
-| LUA-I18N-003 | Migrate the **pilot-feedback** messages (UXPILOT-FEEDBACK: `veaf.reportToPilot` call sites in `veafMarkers` / `veafSpawnCore`) to `veaf.t`, with FR + EN entries — the first real consumer. | `src/scripts/veaf/veafMarkers.lua`, `src/scripts/veaf/veafSpawnCore.lua`, catalog, `test/lua/` | feat | ⬜ |
+| LUA-I18N-001 (spike) | Decide the mechanism, the active-language source (mission.yaml → `veaf-config.lua` → `veaf.language`, default FR), catalog layout, and fallback rules. Deliverable: design note + framework skeleton + tests. | `src/scripts/veaf/`, `doc/`, `test/lua/` | spike | ✅ |
+| LUA-I18N-002 | Implement `veaf.t(key, ...)` + the catalog + `veaf.language` wiring (`lua_config_generator` emits it from `mission.yaml`, default `"fr"`); fallbacks (lang → FR → key). luaunit tests. | `src/scripts/veaf/veaf.lua` (or `veafI18n.lua`), `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml`, `test/lua/`, `test/python/` | feat | ✅ |
+| LUA-I18N-003 | Migrate the **pilot-feedback** messages (UXPILOT-FEEDBACK: `veaf.reportToPilot` call sites in `veafMarkers` / `veafSpawnCore`) to `veaf.t`, with FR + EN entries — the first real consumer. | `src/scripts/veaf/veafMarkers.lua`, `src/scripts/veaf/veafSpawnCore.lua`, catalog, `test/lua/` | feat | ✅ |
 | LUA-I18N-004 (incremental) | Migrate the remaining hardcoded in-game messages module-by-module to `veaf.t` (FR + EN). Erode over time; not a single PR. | `src/scripts/veaf/*.lua`, catalog, `test/lua/` | feat | ⬜ |
 
 ---

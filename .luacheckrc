@@ -53,7 +53,7 @@ globals = {
   "veafAirWaves", "veafAssets", "veafCacheManager", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGrass", "veafGroundAI",
-  "veafInterpreter", "veafMarkers", "veafMissileGuardian", "veafMove",
+  "veafI18n", "veafInterpreter", "veafMarkers", "veafMissileGuardian", "veafMove",
   "veafNamedPoints", "veafQraManager", "veafRadio", "veafRecorder", "veafRemote",
   "veafSanctuary", "veafSecurity", "veafShortcuts",
   "veafSkynet", "veafSkynetMonitor",

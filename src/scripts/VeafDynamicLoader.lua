@@ -25,6 +25,8 @@ end
 
 -- load the VEAF scripts
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veaf.lua' )
+__Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafI18n.lua' )
+__Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafCommands.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafTime.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafAirbases.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafWeather.lua' )
@@ -50,10 +52,11 @@ __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafSkynetIadsHel
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafSkynetIadsMonitor.lua' ) -- FG 01/04/2023
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafSanctuary.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafQraManager.lua' )
-__Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafAirwaves.lua' )
+__Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafAirWaves.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafEventHandler.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafCacheManager.lua' )
 __Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafGroundAI.lua' )
+__Veaf.Include( VEAF_DYNAMIC_SCRIPTSPATH .. '/src/scripts/veaf/veafMissileGuardian.lua' )
 
 -- set the environment in debug mode
 env.info( '*** VEAF-DYNAMICLOADER set the environment in debug mode *** ' )

@@ -690,19 +690,7 @@ function veafTransportMission.buildRadioMenu()
 end
 
 function veafTransportMission.help(unitName)
-  local text = 'Create a marker and type "_transport" in the text\n'
-    .. "This will create a default friendly group awaiting cargo that you need to transport\n"
-    .. "You can add options (comma separated) :\n"
-    .. '   "defense [0-5]" to specify air defense cover on the way (1 = light, 5 = heavy)\n'
-    .. "        defense = 1 : 3-7 soldiers, GAZ-3308 transport\n"
-    .. "        defense = 2 : 3-7 soldiers, BTR-80 APC\n"
-    .. "        defense = 3 : 3-7 soldiers, chance of BMP-1 IFV, chance of Igla manpad\n"
-    .. "        defense = 4 : 3-7 soldiers, big chance of BMP-1 IFV, big chance of Igla-S manpad, chance of ZU-23 on a truck\n"
-    .. "        defense = 5 : 3-7 soldiers, BMP-1 IFV, big chance of Igla-S manpad, chance of ZSU-23-4 Shilka\n"
-    .. '   "size [1-5]" to change the number of cargo items to be transported (1 per participating helo, usually)\n'
-    .. '   "blocade [0-5]" to specify enemy blocade around the drop zone (1 = light, 5 = heavy)'
-
-  veaf.outTextForUnit(unitName, text, 30)
+  veaf.outTextForUnit(unitName, veaf.t("transport.help"), 30)
 end
 
 function veafTransportMission.endTransportOfCargo(cargoName)

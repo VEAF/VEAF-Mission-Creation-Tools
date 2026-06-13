@@ -102,7 +102,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
   if not carrier then
     local text = "Cannot find the carrier group " .. groupName
     veaf.loggers.get(veafCarrierOperations.Id):error(text)
-    veaf.outTextForGroup(userUnitName, text, 5)
+    veaf.outTextForGroup(userUnitName, veaf.t("carrier.not_found", groupName), 5)
     return
   end
 
@@ -150,7 +150,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
   if not carrier then
     local text = "Cannot find the carrier group " .. groupName
     veaf.loggers.get(veafCarrierOperations.Id):error(text)
-    veaf.outTextForGroup(userUnitName, text, 5)
+    veaf.outTextForGroup(userUnitName, veaf.t("carrier.not_found", groupName), 5)
     return
   end
 
@@ -677,7 +677,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
   if not carrier then
     local text = "Cannot find the carrier group " .. groupName
     veaf.loggers.get(veafCarrierOperations.Id):error(text)
-    trigger.action.outText(text, 5)
+    trigger.action.outText(veaf.t("carrier.not_found", groupName), 5)
     return
   end
 
@@ -786,13 +786,13 @@ function veafCarrierOperations.stopCarrierOperations(parameters)
   if not carrier then
     local text = "Cannot find the carrier group " .. groupName
     veaf.loggers.get(veafCarrierOperations.Id):error(text)
-    trigger.action.outText(text, 5)
+    trigger.action.outText(veaf.t("carrier.not_found", groupName), 5)
     return
   end
 
   local text = "The carrier group " .. groupName .. " has stopped air operations ; it's moving back to its initial position"
   veaf.loggers.get(veafCarrierOperations.Id):info(text)
-  veaf.outTextForGroup(userUnitName, text, 5)
+  veaf.outTextForGroup(userUnitName, veaf.t("carrier.stopped", groupName), 5)
   carrier.conductingAirOperations = false
   carrier.stoppedAirOperations = true
 
@@ -946,13 +946,7 @@ function veafCarrierOperations.buildRadioMenu()
 end
 
 function veafCarrierOperations.help(unitName)
-  local text = "Use the radio menus to start and end carrier operations\n"
-    .. "START: carrier will find out the wind and set sail at optimum speed to achieve a 25kn headwind\n"
-    .. "       the radio menu will show the recovery course and TACAN information\n"
-    .. "END  : carrier will go back to its starting point (where it was when the START command was issued)\n"
-    .. "RESET: carrier will go back to where it was when the mission started"
-
-  veaf.outTextForGroup(unitName, text, 30)
+  veaf.outTextForGroup(unitName, veaf.t("carrier.help"), 30)
 end
 
 function veafCarrierOperations.initializeCarrierGroups()

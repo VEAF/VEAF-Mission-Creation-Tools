@@ -217,7 +217,7 @@ function veafRemote.executeRemoteCommand(command, password)
   veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeRemoteCommand([%s])", command))
   if not (veafSecurity.checkPassword_L1(password)) then
     veaf.loggers.get(veafRemote.Id):error(string.format("veafRemote.executeRemoteCommand([%s]) - bad or missing password", command))
-    trigger.action.outText("Bad or missing password", 5)
+    trigger.action.outText(veaf.t("remote.bad_password"), 5)
     return false
   end
   local commandData = veafRemote.monitoredCommands[command:lower()]

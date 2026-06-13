@@ -742,7 +742,7 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
         else
           veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defenses to")
           if not silent then
-            trigger.action.outText("Could not find SAM site within range to add point defenses to", 15)
+            trigger.action.outText(veaf.t("skynet.no_sam_in_range"), 15)
           end
         end
       elseif forceEwr then

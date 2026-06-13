@@ -50,6 +50,38 @@ veaf.i18nCatalog = {
     fr = " (vouliez-vous dire « %s » ?)",
     en = " (did you mean '%s'?)",
   },
+
+  -- veafRadio
+  ["radio.auth_required"] = {
+    fr = "Votre radio doit être authentifiée pour les commandes « + »",
+    en = "Your radio has to be authenticated for '+'' commands",
+  },
+  ["radio.playing_format"] = {
+    fr = "%s (%s) : diffusion de %s",
+    en = "%s (%s) : playing %s",
+  },
+
+  -- veafRemote
+  ["remote.bad_password"] = {
+    fr = "Mot de passe incorrect ou manquant",
+    en = "Bad or missing password",
+  },
+
+  -- veafSkynetIadsHelper
+  ["skynet.no_sam_in_range"] = {
+    fr = "Aucun site SAM à portée pour y ajouter des défenses rapprochées",
+    en = "Could not find SAM site within range to add point defenses to",
+  },
+
+  -- veafSecurity
+  ["security.password_invalid"] = {
+    fr = "le mot de passe est absent ou incorrect",
+    en = "password was not set or was not correct",
+  },
+  ["security.use_password"] = {
+    fr = "Veuillez utiliser l'option « , password <mot de passe %s> »",
+    en = "Please use the ', password <%s password>' option",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(string.format("Loading version %s", veafI18n.Version))

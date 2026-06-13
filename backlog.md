@@ -45,7 +45,7 @@
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
-| Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
+| Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ✅ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | 🟡 |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ✅ |
@@ -682,9 +682,9 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| UXPILOT-001 | **Global safety net**: wrap the marker-command dispatch in the `veafMarkers` event handlers in `pcall`; on error, show a short localized `outText` to the placing pilot and log the stack via `veaf.loggers`. luaunit test simulating a handler that raises. | `src/scripts/veaf/veafMarkers.lua`, `test/lua/` | feat | ⬜ |
-| UXPILOT-002 | **Unified feedback helper**: add `veaf.reportToPilot(message, duration)` (thin, test-safe wrapper over `trigger.action.outText`) and route currently-silent parse failures through it — starting with `veafNamedPoints.executeCommand` (returns `false` with no message). | `src/scripts/veaf/veaf.lua`, `src/scripts/veaf/veafNamedPoints.lua`, `test/lua/` | feat | ⬜ |
-| UXPILOT-003 | **Unknown-parameter hints**: in `veafSpawnParser`, when a marker parameter key is not recognized, warn the pilot via `veaf.reportToPilot` and suggest the nearest known key (simple edit-distance over the known-keys list). Depends on UXPILOT-002 and on **SPAWN-REFACTOR-001** (characterization tests must exist first). | `src/scripts/veaf/veafSpawnParser.lua`, `test/lua/` | feat | ⬜ |
+| UXPILOT-001 | **Global safety net**: the `veafMarkers.onEvent` dispatch (already `pcall`-wrapped + logged) now also surfaces a short in-game message to the placing coalition when a handler errors; the stack stays in the DCS log. luaunit tests (handler raises → reportToPilot called; success → not called). | `src/scripts/veaf/veafMarkers.lua`, `test/lua/` | feat | ✅ |
+| UXPILOT-002 | **Unified feedback helper**: added `veaf.reportToPilot(message, duration, coalition)` (thin wrapper over `outText` / `outTextForCoalition`), used by 001 and 003. **Note**: the planned `veafNamedPoints.executeCommand` routing was dropped — its `markTextAnalysis` never returns nil when the keyphrase is present, so the "parse failed" branch is unreachable (no genuine silent failure to route there). | `src/scripts/veaf/veaf.lua`, `test/lua/` | feat | ✅ |
+| UXPILOT-003 | **Unknown-parameter hints**: `markTextAnalysis` now collects unrecognized parameter keys into `options.unknownParameters` (skipping the command keyphrase), with a nearest-key suggestion via `veaf.nearestMatch` (Levenshtein); `veafSpawn.executeCommand` reports them to the placing pilot. Known keys live in `veafSpawn.KnownParameterKeys`. luaunit tests (unknown collected, typo→suggestion, valid input clean). | `src/scripts/veaf/veafSpawnParser.lua`, `src/scripts/veaf/veafSpawnCore.lua`, `src/scripts/veaf/veaf.lua`, `test/lua/` | feat | ✅ |
 
 ---
 

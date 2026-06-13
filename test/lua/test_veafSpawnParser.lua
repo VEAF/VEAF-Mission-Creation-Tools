@@ -257,4 +257,32 @@ function TestParserParams:test_static_and_immortal_flags()
   luaunit.assertTrue(r.immortal)
 end
 
+-- ---------------------------------------------------------------------------
+-- Unknown-parameter detection (UXPILOT-003)
+-- ---------------------------------------------------------------------------
+TestParserUnknownParams = {}
+
+function TestParserUnknownParams:test_valid_input_has_no_unknown()
+  luaunit.assertNil(analyse("_spawn unit, name F-16C, side blue").unknownParameters)
+end
+
+function TestParserUnknownParams:test_unknown_key_is_collected()
+  local r = analyse("_spawn unit, name F-16C, wibble 3")
+  luaunit.assertIsTable(r.unknownParameters)
+  luaunit.assertEquals(#r.unknownParameters, 1)
+  luaunit.assertEquals(r.unknownParameters[1].key, "wibble")
+end
+
+function TestParserUnknownParams:test_typo_suggests_nearest_key()
+  -- "headng" is one edit from "heading"
+  local r = analyse("_spawn unit, name F-16C, headng 270")
+  luaunit.assertEquals(r.unknownParameters[1].suggestion, "heading")
+end
+
+function TestParserUnknownParams:test_command_keyphrase_not_flagged()
+  -- the "_spawn" / subtype token must never be reported as an unknown parameter
+  local r = analyse("_spawn group, name g")
+  luaunit.assertNil(r.unknownParameters)
+end
+
 os.exit(luaunit.LuaUnit.run())

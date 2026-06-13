@@ -9,6 +9,69 @@
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- All parameter keys the mark-text parser recognizes (used to flag typos and
+--- suggest the nearest match — UXPILOT-003). Keep in sync with the keyword chain
+--- in markTextAnalysis.
+veafSpawn.KnownParameterKeys = {
+  "unitname",
+  "name",
+  "czname",
+  "destination",
+  "dest",
+  "isconvoy",
+  "patrol",
+  "offroad",
+  "skynet",
+  "ewr",
+  "pointdefense",
+  "alarm",
+  "radius",
+  "spacing",
+  "multiplier",
+  "alt",
+  "altdelta",
+  "speed",
+  "capradius",
+  "shells",
+  "hdg",
+  "heading",
+  "country",
+  "side",
+  "password",
+  "power",
+  "laser",
+  "freq",
+  "mod",
+  "band",
+  "code",
+  "channel",
+  "arrow",
+  "fill",
+  "color",
+  "skill",
+  "dist",
+  "distance",
+  "weight",
+  "type",
+  "nofarpmarkers",
+  "smoke",
+  "size",
+  "defense",
+  "armor",
+  "repeat",
+  "delay",
+  "static",
+  "immortal",
+  "delayed",
+  "showmfd",
+  "disperse",
+}
+
+veafSpawn._knownParameterKeySet = {}
+for _, _k in ipairs(veafSpawn.KnownParameterKeys) do
+  veafSpawn._knownParameterKeySet[_k] = true
+end
+
 function veafSpawn.convertLaserToFreq(laser)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
   local laser = tonumber(laser)
@@ -267,6 +330,17 @@ function veafSpawn.markTextAnalysis(text)
     local str = veaf.breakString(veaf.trim(keyphrase), " ")
     local key = str[1]
     local val = str[2] or ""
+
+    -- Flag a parameter key we don't recognize (skip the command keyphrase itself,
+    -- e.g. "_spawn") so the caller can hint the pilot about a likely typo.
+    local keyLower = key:lower()
+    if keyLower ~= "" and keyLower:sub(1, 1) ~= "_" and not veafSpawn._knownParameterKeySet[keyLower] then
+      options.unknownParameters = options.unknownParameters or {}
+      table.insert(options.unknownParameters, {
+        key = key,
+        suggestion = veaf.nearestMatch(keyLower, veafSpawn.KnownParameterKeys, 3),
+      })
+    end
 
     if key:lower() == "unitname" then
       -- Set name.

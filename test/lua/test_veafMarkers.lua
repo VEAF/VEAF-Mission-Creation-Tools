@@ -139,4 +139,36 @@ function TestVeafMarkersUnregister:test_unregister_unknown_id_safe()
   luaunit.assertEquals(#veafMarkers.onEventMarkAddEventHandlers, 1)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafMarkersOnEvent (UXPILOT-001: surface handler failures to the pilot)
+-- ---------------------------------------------------------------------------
+TestVeafMarkersOnEvent = {}
+
+function TestVeafMarkersOnEvent:test_handler_error_reports_to_pilot()
+  resetHandlers()
+  local captured = nil
+  local orig = trigger.action.outTextForCoalition
+  trigger.action.outTextForCoalition = function(side, text, duration)
+    captured = { side = side, text = text }
+  end
+  local handlers = { { f = function() error("boom") end, id = 1 } }
+  veafMarkers.onEvent({ text = "_spawn x", pos = { x = 0, y = 0, z = 0 }, coalition = 2 }, handlers)
+  trigger.action.outTextForCoalition = orig
+  luaunit.assertNotNil(captured)
+  luaunit.assertEquals(captured.side, 2)
+end
+
+function TestVeafMarkersOnEvent:test_handler_success_does_not_report()
+  resetHandlers()
+  local called = false
+  local orig = trigger.action.outTextForCoalition
+  trigger.action.outTextForCoalition = function()
+    called = true
+  end
+  local handlers = { { f = function() end, id = 1 } }
+  veafMarkers.onEvent({ text = "_spawn x", pos = { x = 0, y = 0, z = 0 }, coalition = 2 }, handlers)
+  trigger.action.outTextForCoalition = orig
+  luaunit.assertFalse(called)
+end
+
 os.exit(luaunit.LuaUnit.run())

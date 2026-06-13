@@ -72,7 +72,9 @@ _spawn unit, name T-80, group 4, hdg 270, spacing 50
 _spawn group, name [NOM_GROUPE]
 ```
 
-Le groupe doit être défini dans `spawnables.yaml`.
+L'alias de groupe doit exister dans la **base de spawn** : celle intégrée (ex. `sa2`, `sa3`, …) ou votre `src/spawn-groups.yaml` optionnel qui l'étend/la surcharge. La base vit en YAML et est injectée dans le `.miz` au build (pas de Lua à éditer). Voir [Référence Pipeline — données de spawn](../../PIPELINE_REFERENCE.md).
+
+> **Une faute de frappe annule la commande.** Si un paramètre n'est pas reconnu (ex. `headng` au lieu de `heading`), le spawn n'est **pas** effectué et le pilote reçoit un indice (*vouliez-vous dire « heading » ?*). Corrigez le texte du marqueur et réessayez.
 
 ### Faire apparaître une patrouille CAP
 

@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.5.0] — 2026-06-13
+
 ### Changed
 - **`SHORTCUTS` enabled by default** in the shipped `mission.yaml`, so the built-in spawn aliases (`-shilka`, `-sa2`, …) work out of the box. The default previously left `SHORTCUTS` commented as "needs a list", which was misleading — a `shortcuts:` list is only needed to add *custom* aliases on top of the built-in ones
 - **`CASMISSION` and `TRANSPORTMISSION` enabled by default**. Both are marker-driven (`_cas` / `_transport`), need no configuration and impose nothing, so they join the default baseline. Default policy: a module ships ON when it is useful to everyone, needs no config block and changes nothing on its own; it stays OFF when it requires a config block (ASSETS/SANCTUARY/COMBATMISSION/COMBATZONE/QRA/AIRWAVES), changes gameplay (MISSILEGUARDIAN), is carrier-specific, or is a community script

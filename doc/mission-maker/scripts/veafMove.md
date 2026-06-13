@@ -31,7 +31,7 @@ veafMove.initialize()
 ### Déplacer un groupe
 
 ```
-_move unit, name [NOM_GROUPE]
+_move group, name [NOM_GROUPE]
 ```
 
 Déplace le groupe nommé vers la position du marqueur. Les unités terrestres traceront un itinéraire vers la destination ; les aéronefs voleront directement.

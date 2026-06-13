@@ -28,6 +28,8 @@ veafCasMission.start()
 
 `start()` activates the watchdog that monitors the CAS group.
 
+> **Enabled by default** in the shipped `mission.yaml`. It is marker-driven (`_cas`) and needs no configuration — just place a `_cas` marker. The block below is only needed to tune it.
+
 ---
 
 ## Configuration (`mission.yaml`)

@@ -25,6 +25,8 @@ Creates helicopter/transport pickup-and-delivery missions. Defines cargo or troo
 veafTransportMission.initialize()
 ```
 
+> **Enabled by default** in the shipped `mission.yaml`. It is marker-driven (`_transport`) and needs no configuration — just place a `_transport` marker.
+
 ---
 
 ## Key Concepts

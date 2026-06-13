@@ -28,6 +28,8 @@ veafShortcuts.initialize()
 
 Cela enregistre automatiquement la liste d'aliases par défaut.
 
+> **Activé par défaut.** Les alias intégrés (`-shilka`, `-sa2`, …) fonctionnent d'emblée — la liste `shortcuts:` ci-dessous ne sert qu'à ajouter vos *propres* alias custom.
+
 ---
 
 ## Configuration (`mission.yaml`)

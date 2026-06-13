@@ -415,9 +415,9 @@ function veafMissileGuardian.ActivateGuardian(name, silent)
   local result = guardian:activate(silent)
   if not silent and not guardian:isSilent() then
     if result then
-      trigger.action.outText("VeafMG_Guardian " .. guardian:getFriendlyName() .. " has been activated.", 10)
+      trigger.action.outText(veaf.t("entity.activated", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
     else
-      trigger.action.outText("VeafMG_Guardian " .. guardian:getFriendlyName() .. " was already active.", 10)
+      trigger.action.outText(veaf.t("entity.already_active", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
     end
   end
   veafMissileGuardian.buildRadioMenu()
@@ -430,9 +430,9 @@ function veafMissileGuardian.DesactivateGuardian(name, silent)
   local result = guardian:desactivate(silent)
   if not silent and not guardian:isSilent() then
     if result then
-      trigger.action.outText("VeafMG_Guardian " .. guardian:getFriendlyName() .. " has been desactivated.", 10)
+      trigger.action.outText(veaf.t("entity.deactivated", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
     else
-      trigger.action.outText("VeafMG_Guardian " .. guardian:getFriendlyName() .. " was already inactive.", 10)
+      trigger.action.outText(veaf.t("entity.already_inactive", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
     end
   end
   veafMissileGuardian.buildRadioMenu()

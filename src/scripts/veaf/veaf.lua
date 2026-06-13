@@ -1595,7 +1595,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     end
   end
   if not endPoint then
-    local msg = "A point named " .. destination .. " cannot be found, and these are not valid coordinates !"
+    local msg = veaf.t("spawn.point_not_found", destination)
     veaf.loggers.get(veaf.Id):warn(msg)
     trigger.action.outText(msg, 5)
     return
@@ -2864,7 +2864,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
 
   if not delay1 then
     -- no more delay, let's end this !
-    trigger.action.outText("Ending mission !", 30)
+    trigger.action.outText(veaf.t("mission.ending"), 30)
     veaf.loggers.get(veaf.Id):info("ending mission")
     trigger.action.setUserFlag("666", 1)
   else

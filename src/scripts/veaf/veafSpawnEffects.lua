@@ -62,7 +62,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
   -- check spawned position validity
   if spawnPosition == nil then
     veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning cargo " .. cargoType)
-    trigger.action.outText("cannot find a suitable position for spawning cargo " .. cargoType, 5)
+    trigger.action.outText(veaf.t("spawn.no_position_cargo", cargoType), 5)
     return
   end
 
@@ -80,7 +80,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       cargoType = unit.type
     else
       veaf.loggers.get(veafSpawn.Id):info("could not find cargo type named " .. veaf.p(cargoType))
-      trigger.action.outText("could not find cargo type named " .. veaf.p(cargoType), 15)
+      trigger.action.outText(veaf.t("spawn.cargo_type_not_found", veaf.p(cargoType)), 15)
       return
     end
 
@@ -162,7 +162,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
     end
   else
     veaf.loggers.get(veafSpawn.Id):info("could not find cargo type named " .. veaf.p(cargoType))
-    trigger.action.outText("could not find cargo type named " .. veaf.p(cargoType), 15)
+    trigger.action.outText(veaf.t("spawn.cargo_type_not_found", veaf.p(cargoType)), 15)
     return
   end
   return unitName
@@ -186,7 +186,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
   if spawnPosition == nil then
     veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning static " .. staticType)
     if not silent then
-      trigger.action.outText("cannot find a suitable position for spawning static " .. staticType, 5)
+      trigger.action.outText(veaf.t("spawn.no_position_static", staticType), 5)
     end
     return
   end
@@ -473,9 +473,9 @@ function veafSpawn.teleport(spawnSpot, name, silent)
   local grp = mist.teleportToPoint(vars)
   if not silent then
     if grp then
-      trigger.action.outText("Teleported group " .. name, 5)
+      trigger.action.outText(veaf.t("spawn.teleported", name), 5)
     else
-      trigger.action.outText("Cannot teleport group : " .. name, 5)
+      trigger.action.outText(veaf.t("spawn.cannot_teleport", name), 5)
     end
   end
 end

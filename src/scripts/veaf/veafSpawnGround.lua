@@ -255,7 +255,7 @@ local function validateSpawnPosition(spawnPosition, unit, silent)
   if not veafUnits.checkPositionForUnit(spawnPosition, unit) then
     veaf.loggers.get(veafSpawn.Id):info("Cannot find a suitable position for spawning unit " .. unit.typeName)
     if not silent then
-      trigger.action.outText("Cannot find a suitable position for spawning unit " .. unit.typeName, 5)
+      trigger.action.outText(veaf.t("spawn.no_position_unit", unit.typeName), 5)
     end
     return false
   end
@@ -344,7 +344,7 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
   veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
 
   if not silent then
-    trigger.action.outText("Spawned dynamic infantry group " .. groupName, 5)
+    trigger.action.outText(veaf.t("spawn.spawned_infantry", groupName), 5)
   end
 
   return groupName
@@ -401,7 +401,7 @@ function veafSpawn.spawnArmoredPlatoon(
   veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
 
   if not silent then
-    trigger.action.outText("Spawned dynamic armored platoon " .. groupName, 5)
+    trigger.action.outText(veaf.t("spawn.spawned_armored", groupName), 5)
   end
 
   return groupName
@@ -439,7 +439,7 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
   veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest)
 
   if not silent then
-    trigger.action.outText("Spawned dynamic air defense battery " .. groupName, 5)
+    trigger.action.outText(veaf.t("spawn.spawned_airdef", groupName), 5)
   end
 
   return groupName
@@ -491,7 +491,7 @@ function veafSpawn.spawnTransportCompany(
   veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
 
   if not silent then
-    trigger.action.outText("Spawned dynamic transport company " .. groupName, 5)
+    trigger.action.outText(veaf.t("spawn.spawned_transport", groupName), 5)
   end
 
   return groupName
@@ -535,7 +535,7 @@ function veafSpawn.spawnFullCombatGroup(
   veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
 
   if not silent then
-    trigger.action.outText("Spawned full combat group " .. groupName, 5)
+    trigger.action.outText(veaf.t("spawn.spawned_combat", groupName), 5)
   end
 
   return groupName
@@ -581,7 +581,7 @@ function veafSpawn.spawnConvoy(
   )
 
   if not destination then
-    trigger.action.outText("No destination entered!", 5)
+    trigger.action.outText(veaf.t("spawn.no_destination"), 5)
     return false
   end
 
@@ -603,7 +603,7 @@ function veafSpawn.spawnConvoy(
     end
   end
   if not point then
-    trigger.action.outText("A point named " .. destination .. " cannot be found, and these are not valid coordinates !", 5)
+    trigger.action.outText(veaf.t("spawn.point_not_found", destination), 5)
     return false
   end
 
@@ -663,7 +663,7 @@ function veafSpawn.spawnConvoy(
     mist.goRoute(groupName, route)
 
     if not silent then
-      trigger.action.outText("Spawned convoy " .. groupName, 5)
+      trigger.action.outText(veaf.t("spawn.spawned_convoy", groupName), 5)
     end
   end
 
@@ -730,7 +730,7 @@ end
 function veafSpawn._getConvoyOrWarn(unitName)
   local convoyName = veafSpawn._findClosestConvoy(unitName)
   if not convoyName then
-    veaf.outTextForUnit(unitName, "No convoy found", 10)
+    veaf.outTextForUnit(unitName, veaf.t("spawn.no_convoy"), 10)
     return nil
   end
   return convoyName
@@ -762,12 +762,12 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
       local endPoint = veaf.placePointOnLand({ x = route[2].x, y = 0, z = route[2].y })
       trigger.action.smoke(startPoint, trigger.smokeColor.GREEN)
       trigger.action.smoke(endPoint, trigger.smokeColor.RED)
-      veaf.outTextForUnit(unitName, closestConvoyName .. " is going from green to red smoke", 10)
+      veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_smoke_switch", closestConvoyName), 10)
     else
       local averageGroupPosition = veaf.getAveragePosition(closestConvoyName)
       ---@diagnostic disable-next-line: param-type-mismatch
       trigger.action.smoke(averageGroupPosition, trigger.smokeColor.WHITE)
-      veaf.outTextForUnit(unitName, closestConvoyName .. " marked with white smoke", 10)
+      veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_white_smoke", closestConvoyName), 10)
     end
   end
 end
@@ -801,7 +801,7 @@ function veafSpawn.infoOnAllConvoys(unitName)
     end
   end
   if text == "" then
-    veaf.outTextForUnit(unitName, "No convoy found", 10)
+    veaf.outTextForUnit(unitName, veaf.t("spawn.no_convoy"), 10)
   else
     veaf.outTextForUnit(unitName, text, 30)
   end
@@ -823,9 +823,9 @@ function veafSpawn.cleanupAllConvoys()
     veafSpawn.spawnedConvoys[name] = nil
   end
   if foundOne then
-    trigger.action.outText("All convoys cleaned up", 10)
+    trigger.action.outText(veaf.t("spawn.convoys_cleaned"), 10)
   else
-    trigger.action.outText("No convoy found", 10)
+    trigger.action.outText(veaf.t("spawn.no_convoy"), 10)
   end
 end
 

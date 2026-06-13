@@ -314,7 +314,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
     end
     if not (self:hasPassword(hash)) then
       veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", self:getName())
-      trigger.action.outText("Please use the ', password <alias password>' option", 5)
+      trigger.action.outText(veaf.t("security.use_password", "alias"), 5)
       return false
     end
   end
@@ -420,7 +420,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
     end
     if not (self:hasPassword(hash)) then
       veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", self:getName())
-      trigger.action.outText("Please use the ', password <alias password>' option", 5)
+      trigger.action.outText(veaf.t("security.use_password", "alias"), 5)
       return false
     end
   end
@@ -524,7 +524,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
         end
         if not (alias:hasPassword(hash)) then
           veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", alias:getName())
-          trigger.action.outText("Please use the ', password <alias password>' option", 5)
+          trigger.action.outText(veaf.t("security.use_password", "alias"), 5)
           return false
         end
       end

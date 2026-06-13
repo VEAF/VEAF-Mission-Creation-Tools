@@ -262,7 +262,7 @@ function veafRadio._proxyMethod(parameters)
     realMethod(realParameters)
   else
     veaf.loggers.get(veafRadio.Id):error("Your radio has to be authenticated for '+'' commands")
-    trigger.action.outText("Your radio has to be authenticated for '+'' commands", 5)
+    trigger.action.outText(veaf.t("radio.auth_required"), 5)
   end
 end
 
@@ -815,7 +815,7 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, name, coalit
   veafRadio._transmitViaSRS(nil, pathToMP3, frequencies, modulations, name, coalition, eventPos)
 
   if not quiet and coalition then
-    trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : playing %s", name, frequencies, pathToMP3), 30)
+    trigger.action.outTextForCoalition(coalition, veaf.t("radio.playing_format", name, frequencies, pathToMP3), 30)
   end
 end
 

@@ -1585,7 +1585,7 @@ function veafWeather.setAndActivateFog(fogObject)
   veafWeather.existingFog = fogObject
   fogObject:enable()
 
-  trigger.action.outText("Fog set to " .. fogObject.name, 5)
+  trigger.action.outText(veaf.t("weather.fog_set", fogObject.name), 5)
 
   return fogObject
 end

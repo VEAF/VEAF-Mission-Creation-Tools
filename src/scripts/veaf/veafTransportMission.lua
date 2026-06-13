@@ -354,18 +354,18 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
   veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot ", veaf.lp(targetSpot))
 
   if veafTransportMission.friendlyGroupAliveCheckTaskID ~= "none" then
-    trigger.action.outText("A transport mission already exists !", 5)
+    trigger.action.outText(veaf.t("transport.exists"), 5)
     return
   end
 
   if not from then
-    trigger.action.outText('The "from" keyword is mandatory !', 5)
+    trigger.action.outText(veaf.t("transport.from_mandatory"), 5)
     return
   end
 
   local startPoint = veafNamedPoints.getPoint(from)
   if not startPoint then
-    trigger.action.outText("A point named " .. from .. " cannot be found !", 5)
+    trigger.action.outText(veaf.t("transport.point_not_found", from), 5)
     return
   end
 
@@ -507,7 +507,7 @@ function veafTransportMission.friendlyGroupWatchdog()
       timer.getTime() + veafTransportMission.SecondsBetweenWatchdogChecks
     )
   else
-    trigger.action.outText("Friendly group has been destroyed! The mission is a failure!", 5)
+    trigger.action.outText(veaf.t("transport.failure"), 5)
     veafTransportMission.cleanupAfterMission()
   end
 end
@@ -563,7 +563,7 @@ end
 function veafTransportMission.smokeTarget()
   veaf.loggers.get(veafTransportMission.Id):debug("smokeTarget()")
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafTransportMission.BlueGroupName), trigger.smokeColor.Green)
-  trigger.action.outText("Copy smoke requested, GREEN smoke marks the drop zone!", 5)
+  trigger.action.outText(veaf.t("transport.smoke_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request smoke on drop zone")
   veafRadio.addCommandToSubmenu("Drop zone is marked with GREEN smoke", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.smokeResetTaskID =
@@ -576,7 +576,7 @@ function veafTransportMission.smokeReset()
   veaf.loggers.get(veafTransportMission.Id):debug("smokeReset()")
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Drop zone is marked with GREEN smoke")
   veafRadio.addCommandToSubmenu("Request smoke on drop zone", veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
-  trigger.action.outText("Smoke marker over drop zone available", 5)
+  trigger.action.outText(veaf.t("transport.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
 
@@ -584,7 +584,7 @@ end
 function veafTransportMission.flareTarget()
   veaf.loggers.get(veafTransportMission.Id):debug("flareTarget()")
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafTransportMission.BlueGroupName))
-  trigger.action.outText("Copy illumination flare requested, illumination flare over target area!", 5)
+  trigger.action.outText(veaf.t("transport.illum_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request illumination flare over drop zone")
   veafRadio.addCommandToSubmenu("Drop zone is lit with illumination flare", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.flareResetTaskID =
@@ -601,14 +601,14 @@ function veafTransportMission.flareReset()
     veafTransportMission.targetMarkersPath,
     veafTransportMission.flareTarget
   )
-  trigger.action.outText("Illumination flare over drop zone available", 5)
+  trigger.action.outText(veaf.t("transport.illum_available"), 5)
   veafRadio.refreshRadioMenu()
 end
 
 --- Called from the "Skip delivery" radio menu : remove the current transport mission
 function veafTransportMission.skip()
   veafTransportMission.cleanupAfterMission()
-  trigger.action.outText("Transport mission cleaned up.", 5)
+  trigger.action.outText(veaf.t("transport.cleaned"), 5)
 end
 
 --- Cleanup after either mission is ended or aborted
@@ -706,8 +706,7 @@ function veafTransportMission.help(unitName)
 end
 
 function veafTransportMission.endTransportOfCargo(cargoName)
-  local text = "Congratulations on a job well done ! Cargo " .. cargoName .. " has been delivered safely"
-  trigger.action.outText(text, 15)
+  trigger.action.outText(veaf.t("transport.cargo_delivered", cargoName), 15)
   -- TODO reset cargo position
   -- mist.respawnGroup(cargoName, 15)
   -- does not work yet because 1. the unit name is changed by mist and 2. the trigger zone condition does not work with the new unit (maybe bc of 1. ?)
@@ -729,7 +728,7 @@ function veafTransportMission.resetAllCargoes()
       end
     end
   end
-  trigger.action.outText("All cargoes have been respawned", 15)
+  trigger.action.outText(veaf.t("transport.cargoes_respawned"), 15)
 end
 
 function veafTransportMission.initializeAllHelosInCTLD()

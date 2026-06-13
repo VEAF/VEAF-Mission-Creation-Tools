@@ -259,7 +259,7 @@ function veafMove.moveGroup(eventPos, groupName, speed, altitude)
 
   local result = veaf.moveGroupTo(groupName, eventPos, speed, altitude)
   if not result then
-    trigger.action.outText(groupName .. " not found for move group command", 10)
+    trigger.action.outText(veaf.t("move.group_not_found", groupName), 10)
   end
   return result
 end
@@ -334,7 +334,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
   if not tankerUnit then
     veaf.loggers.get(veafMove.Id):warn("Cannot find tanker unit around marker")
-    trigger.action.outText("Cannot find tanker unit around marker", 10)
+    trigger.action.outText(veaf.t("move.no_tanker"), 10)
     return false
   end
 
@@ -438,7 +438,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   local unitGroup = Group.getByName(groupName)
   if unitGroup == nil then
     veaf.loggers.get(veafMove.Id):info(groupName .. " not found for move tanker command")
-    trigger.action.outText(groupName .. " not found for move tanker command", 10)
+    trigger.action.outText(veaf.t("move.tanker_not_found", groupName), 10)
     return false
   end
 
@@ -788,7 +788,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
   local unitGroup = Group.getByName(groupName)
   if unitGroup == nil then
     veaf.loggers.get(veafMove.Id):info(groupName .. " not found for move afac command")
-    trigger.action.outText(groupName .. " not found for move afac command", 10)
+    trigger.action.outText(veaf.t("move.afac_not_found", groupName), 10)
     return false
   end
 
@@ -864,7 +864,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
     if FACflag == false or OrbitFlag == false then
       veaf.loggers.get(veafMove.Id):info(groupName .. " has an invalid FAC/Orbit configuration")
-      trigger.action.outText(groupName .. " has an invalid FAC/Orbit configuration", 10)
+      trigger.action.outText(veaf.t("move.invalid_fac", groupName), 10)
       return false
     end
 
@@ -951,7 +951,7 @@ function veafMove.moveTankerToMe(parameters)
       true,
       false
     )
-    veaf.outTextForUnit(unitName, string.format("%s - Moving to your position right away !", tankerName), 15)
+    veaf.outTextForUnit(unitName, veaf.t("move.tanker_moving", tankerName), 15)
   end
 end
 

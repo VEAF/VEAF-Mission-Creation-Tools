@@ -1455,6 +1455,61 @@ function TestVeafJsonKindOf:test_nestedArrayRoundtrip()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafPilotFeedback (UXPILOT-FEEDBACK)
+-- ---------------------------------------------------------------------------
+TestVeafPilotFeedback = {}
+
+function TestVeafPilotFeedback:test_reportToPilot_to_all_uses_outText()
+  local captured = nil
+  local orig = trigger.action.outText
+  trigger.action.outText = function(text, duration)
+    captured = { text = text, duration = duration }
+  end
+  veaf.reportToPilot("hello", 12)
+  trigger.action.outText = orig
+  luaunit.assertEquals(captured.text, "hello")
+  luaunit.assertEquals(captured.duration, 12)
+end
+
+function TestVeafPilotFeedback:test_reportToPilot_to_coalition()
+  local captured = nil
+  local orig = trigger.action.outTextForCoalition
+  trigger.action.outTextForCoalition = function(side, text, duration)
+    captured = { side = side, text = text }
+  end
+  veaf.reportToPilot("hi", 10, 2)
+  trigger.action.outTextForCoalition = orig
+  luaunit.assertEquals(captured.side, 2)
+  luaunit.assertEquals(captured.text, "hi")
+end
+
+function TestVeafPilotFeedback:test_reportToPilot_default_duration()
+  local captured = nil
+  local orig = trigger.action.outText
+  trigger.action.outText = function(text, duration)
+    captured = duration
+  end
+  veaf.reportToPilot("x")
+  trigger.action.outText = orig
+  luaunit.assertEquals(captured, 15)
+end
+
+function TestVeafPilotFeedback:test_levenshtein()
+  luaunit.assertEquals(veaf.levenshtein("heading", "heading"), 0)
+  luaunit.assertEquals(veaf.levenshtein("headng", "heading"), 1)
+  luaunit.assertEquals(veaf.levenshtein("", "abc"), 3)
+  luaunit.assertEquals(veaf.levenshtein("abc", ""), 3)
+end
+
+function TestVeafPilotFeedback:test_nearestMatch_finds_close()
+  luaunit.assertEquals(veaf.nearestMatch("headng", { "heading", "speed", "size" }), "heading")
+end
+
+function TestVeafPilotFeedback:test_nearestMatch_returns_nil_when_too_far()
+  luaunit.assertNil(veaf.nearestMatch("zzzzzzzz", { "heading", "speed" }, 3))
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

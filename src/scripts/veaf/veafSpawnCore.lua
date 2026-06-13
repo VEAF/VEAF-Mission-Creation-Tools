@@ -179,6 +179,17 @@ function veafSpawn.executeCommand(
     local options = veafSpawn.markTextAnalysis(eventText)
 
     if options then
+      -- Hint the pilot about unrecognized parameters (likely typos) — UXPILOT-003.
+      if options.unknownParameters then
+        for _, p in ipairs(options.unknownParameters) do
+          local msg = "VEAF spawn: unknown parameter '" .. tostring(p.key) .. "'"
+          if p.suggestion then
+            msg = msg .. " — did you mean '" .. tostring(p.suggestion) .. "'?"
+          end
+          veaf.reportToPilot(msg, 15, coalition)
+        end
+      end
+
       local repeatDelay = repeatDelay
       local repeatCount = repeatCount
       local allowStartDelay = allowStartDelay or false

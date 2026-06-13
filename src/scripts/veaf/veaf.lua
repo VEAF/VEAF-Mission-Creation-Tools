@@ -2411,6 +2411,72 @@ function veaf.outTextForGroup(unitName, message, duration)
   return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
+--- Surface a message to a pilot in-game (UXPILOT-FEEDBACK).
+--- Thin, test-safe wrapper over trigger.action.outText: when a coalition is
+--- given, the message is shown only to that coalition (e.g. the pilot who placed
+--- a marker); otherwise it is shown to everyone.
+--- @param message string the text to display
+--- @param duration number|nil seconds to display (defaults to 15)
+--- @param coalition number|nil optional coalition id to scope the message to
+function veaf.reportToPilot(message, duration, coalition)
+  duration = duration or 15
+  if coalition then
+    trigger.action.outTextForCoalition(coalition, message, duration)
+  else
+    trigger.action.outText(message, duration)
+  end
+end
+
+--- Levenshtein edit distance between two strings (used for "did you mean?" hints).
+--- @param a string
+--- @param b string
+--- @treturn number the number of single-character edits to turn a into b
+function veaf.levenshtein(a, b)
+  a = a or ""
+  b = b or ""
+  if a == b then
+    return 0
+  end
+  if #a == 0 then
+    return #b
+  end
+  if #b == 0 then
+    return #a
+  end
+  local prev = {}
+  for j = 0, #b do
+    prev[j] = j
+  end
+  for i = 1, #a do
+    local cur = { [0] = i }
+    local ai = a:sub(i, i)
+    for j = 1, #b do
+      local cost = (ai == b:sub(j, j)) and 0 or 1
+      cur[j] = math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+    end
+    prev = cur
+  end
+  return prev[#b]
+end
+
+--- Find the closest match to `word` among `candidates`, within `maxDistance`.
+--- @param word string the (case-insensitive) input
+--- @param candidates table list of candidate strings
+--- @param maxDistance number|nil maximum accepted distance (defaults to 3)
+--- @treturn string|nil the nearest candidate, or nil if none is close enough
+function veaf.nearestMatch(word, candidates, maxDistance)
+  maxDistance = maxDistance or 3
+  local best, bestDistance = nil, maxDistance + 1
+  local lowered = (word or ""):lower()
+  for _, candidate in pairs(candidates or {}) do
+    local distance = veaf.levenshtein(lowered, tostring(candidate):lower())
+    if distance < bestDistance then
+      best, bestDistance = candidate, distance
+    end
+  end
+  return best
+end
+
 local function _initializeCountriesAndCoalitions()
   veaf.countriesByCoalition = {}
   veaf.coalitionByCountry = {}

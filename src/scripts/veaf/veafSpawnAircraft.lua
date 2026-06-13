@@ -66,14 +66,14 @@ function veafSpawn.spawnUnit(
 
   if not unit then
     veaf.loggers.get(veafSpawn.Id):info("cannot find unit " .. name)
-    trigger.action.outText("cannot find unit " .. name, 5)
+    trigger.action.outText(veaf.t("spawn.cannot_find_unit", name), 5)
     return
   end
 
   -- cannot spawn planes or helos yet [TODO], however spawning them as a static is fine
   if unit.air and not static then
     veaf.loggers.get(veafSpawn.Id):info("Air units cannot be spawned at the moment (work in progress)")
-    trigger.action.outText("Air units cannot be spawned at the moment (work in progress)", 5)
+    trigger.action.outText(veaf.t("spawn.air_wip"), 5)
     return
   end
 
@@ -128,7 +128,7 @@ function veafSpawn.spawnUnit(
 
   if not spawnSpot then
     veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning unit " .. unit.displayName)
-    trigger.action.outText("cannot find a suitable position for spawning unit " .. unit.displayName, 5)
+    trigger.action.outText(veaf.t("spawn.no_position_unit", unit.displayName), 5)
     return
   else
     local toInsert = {}
@@ -406,7 +406,7 @@ function veafSpawn.listAllCAP(unitName)
     text = text .. name .. "\n"
   end
   if text == "" then
-    veaf.outTextForUnit(unitName, "No CAP available for spawn", 10)
+    veaf.outTextForUnit(unitName, veaf.t("spawn.no_cap"), 10)
   else
     veaf.outTextForUnit(unitName, text, 30)
   end
@@ -464,7 +464,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   elseif veafSpawn.AFAC.numberSpawned[coalition] > veafSpawn.AFAC.maximumAmount then
     veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, one needs to be destroyed")
     if not silent then
-      trigger.action.outTextForCoalition(coalition, "The limit for AFACs was reached, one needs to be destroyed", 15)
+      trigger.action.outTextForCoalition(coalition, veaf.t("spawn.afac_limit"), 15)
     end
     return false
   end

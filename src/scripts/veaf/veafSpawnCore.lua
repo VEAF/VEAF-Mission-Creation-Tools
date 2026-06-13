@@ -393,15 +393,12 @@ function veafSpawn.executeCommand(
                 if veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity) then
                   veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
                   if not bypassSecurity then
-                    trigger.action.outText(string.format('Group added to the IADS named "%s"', options.skynet), 15)
+                    trigger.action.outText(veaf.t("spawn.iads_group_added", options.skynet), 15)
                   end
                 else
                   veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
                   if not bypassSecurity then
-                    trigger.action.outText(
-                      string.format('Could not add group to the IADS named "%s", network not found or group not supported', options.skynet),
-                      15
-                    )
+                    trigger.action.outText(veaf.t("spawn.iads_group_not_added", options.skynet), 15)
                   end
                 end
               end
@@ -635,7 +632,7 @@ function veafSpawn.doSpawnGroup(
     if not groupDefinition then
       veaf.loggers.get(veafSpawn.Id):info("cannot find group " .. name)
       if not silent then
-        trigger.action.outText("cannot find group " .. name, 5)
+        trigger.action.outText(veaf.t("spawn.cannot_find_group", name), 5)
       end
       return nil
     end
@@ -673,7 +670,7 @@ function veafSpawn.doSpawnGroup(
     if not veafUnits.checkPositionForUnit(spawnPoint, unit) then
       veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning unit " .. unitType)
       if not silent then
-        trigger.action.outText("cannot find a suitable position for spawning unit " .. unitType, 5)
+        trigger.action.outText(veaf.t("spawn.no_position_unit", unitType), 5)
       end
     else
       local toInsert = {
@@ -723,7 +720,7 @@ function veafSpawn.doSpawnGroup(
 
   if not silent then
     -- message the group spawning
-    trigger.action.outText("A " .. group.description .. "(" .. country .. ") has been spawned", 5)
+    trigger.action.outText(veaf.t("spawn.group_spawned", group.description, country), 5)
   end
 
   return groupName

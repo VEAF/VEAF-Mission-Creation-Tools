@@ -515,12 +515,12 @@ end
 
 function veafSecurity.logout(withMessage, unitName)
   if not veafSecurity.authenticated and withMessage then
-    veaf.outTextForUnit(unitName, "The system was already locked down", 5)
+    veaf.outTextForUnit(unitName, veaf.t("security.already_locked"), 5)
     return
   end
   veafSecurity.authenticated = false
   if withMessage then
-    veaf.outTextForUnit(unitName, "The system has been locked down", 5)
+    veaf.outTextForUnit(unitName, veaf.t("security.locked"), 5)
   end
   veafRadio.refreshRadioMenu()
   if veafSecurity.logoutWatchdog then
@@ -535,7 +535,7 @@ function veafSecurity.authenticate(minutes, unitName)
     actualMinutes = veafSecurity.authDuration
   end
   if not veafSecurity.authenticated then
-    veaf.outTextForUnit(unitName, string.format("The system is authenticated for %d minutes", actualMinutes), 15)
+    veaf.outTextForUnit(unitName, veaf.t("security.authenticated_minutes", actualMinutes), 15)
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
     if veafSecurity.logoutWatchdog then

@@ -82,6 +82,24 @@ veaf.i18nCatalog = {
     fr = "Veuillez utiliser l'option « , password <mot de passe %s> »",
     en = "Please use the ', password <%s password>' option",
   },
+  ["security.already_locked"] = {
+    fr = "Le système était déjà verrouillé",
+    en = "The system was already locked down",
+  },
+  ["security.locked"] = {
+    fr = "Le système a été verrouillé",
+    en = "The system has been locked down",
+  },
+  ["security.authenticated_minutes"] = {
+    fr = "Le système est authentifié pour %d minutes",
+    en = "The system is authenticated for %d minutes",
+  },
+
+  -- veafNamedPoints
+  ["namedpoints.no_remote"] = {
+    fr = "aucune commande à distance pour veafNamedPoints ; pour l'atc et la météo, essayez -weather",
+    en = "no remote command for veafNamedPoints; for atc and weather try -weather",
+  },
 
   -- veafSpawn (aircraft / core / effects / ground)
   ["spawn.cannot_find_unit"] = {

@@ -263,7 +263,7 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
     return false
   end
 
-  veaf.outTextForUnit(_unitName, "no remote command for veafNamedPoints; for atc and weather try -weather", 30)
+  veaf.outTextForUnit(_unitName, veaf.t("namedpoints.no_remote"), 30)
 
   --[[ keep this for later if we need a remote access for the veafNamedPoints script
     if _command then

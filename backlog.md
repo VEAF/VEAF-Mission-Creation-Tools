@@ -77,7 +77,7 @@
 | C6 | Dynamic mission trigrule loaded `veaf-config.lua` twice (explicit + via `veafDynamicConfig.lua`) → modules initialized twice → markers fired twice; removed the redundant explicit load | `mission_builder/mission_builder_worker.py`, `test/python/` | fix | ✅ |
 | C7 | `_spawn unit` success message + JTAC variant routed through `veaf.t` (FR+EN) | `src/scripts/veaf/veafSpawnAircraft.lua`, `veafI18n.lua` | fix | ✅ |
 | C8 | Warehouse dynamic-slot aircraft nested by category (`aircrafts.helicopters`/`.planes`) so `linkDynTempl` binds; classified via the DCS units DB | `warehouses_injector/warehouses_injector_worker.py`, `test/python/` | fix | ✅ |
-| C9 | Presets: drop per-aircraft out-of-range channels (instead of an unsaveable mission) + add the missing MiG-15bis radio spec (extends FIX-PRESETS-RADIO-COMPAT) | `presets_injector/`, `presets_injector/data/dcs-radio-specs.yaml`, `test/python/` | fix | ✅ |
+| C9 | Presets: drop per-aircraft out-of-range channels so the mission still saves + add the missing MiG-15bis radio spec (extends FIX-PRESETS-RADIO-COMPAT) | `presets_injector/`, `presets_injector/data/dcs-radio-specs.yaml`, `test/python/` | fix | ✅ |
 | C10 | Coalition refactor: `veaf.getOppositeCoalition` (spawn side) + `veaf.getRequesterCoalition` (feedback audience) replace the scattered inversion; the unknown-parameter hint reaches the requester | `src/scripts/veaf/veaf.lua`, `veafSpawnCore.lua`, `veafCasMission.lua`, `veafShortcuts.lua`, `veafMarkers.lua`, `test/lua/` | fix | ✅ |
 | C11 | An unknown spawn parameter aborts the command (message, no spawn) instead of spawning anyway | `src/scripts/veaf/veafSpawnCore.lua`, `test/lua/` | fix | ✅ |
 

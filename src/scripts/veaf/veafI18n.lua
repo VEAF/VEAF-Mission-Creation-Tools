@@ -95,6 +95,40 @@ veaf.i18nCatalog = {
     en = "The system is authenticated for %d minutes",
   },
 
+  -- veafShortcuts
+  ["shortcuts.combatmission_name_mandatory"] = {
+    fr = "VeafAliasForCombatMission : le nom de la mission est obligatoire",
+    en = "VeafAliasForCombatMission: mission name is mandatory",
+  },
+  ["shortcuts.combatmission_not_found"] = {
+    fr = "VeafAliasForCombatMission : la mission %s n'existe pas",
+    en = "VeafAliasForCombatMission: mission %s does not exist",
+  },
+  ["shortcuts.combatzone_name_mandatory"] = {
+    fr = "VeafAliasForCombatZone : le nom de la zone est obligatoire",
+    en = "VeafAliasForCombatZone: zone name is mandatory",
+  },
+  ["shortcuts.combatzone_not_found"] = {
+    fr = "VeafAliasForCombatZone : la zone %s n'existe pas",
+    en = "VeafAliasForCombatZone: zone %s does not exist",
+  },
+  ["shortcuts.alias_not_found"] = {
+    fr = "VeafAlias [%s] introuvable !",
+    en = "VeafAlias [%s] was not found !",
+  },
+  ["shortcuts.running_batch_alias"] = {
+    fr = "exécution de l'alias batch [%s] : %s",
+    en = "running batch alias [%s] : %s",
+  },
+  ["shortcuts.running_batch_list"] = {
+    fr = "exécution de la liste batch [%s]",
+    en = "running batch list [%s]",
+  },
+  ["shortcuts.cannot_decode_coords"] = {
+    fr = "impossible de décoder les coordonnées [%s]",
+    en = "unable to decode coordinates [%s]",
+  },
+
   -- veafNamedPoints
   ["namedpoints.no_remote"] = {
     fr = "aucune commande à distance pour veafNamedPoints ; pour l'atc et la météo, essayez -weather",
@@ -346,6 +380,18 @@ veaf.i18nCatalog = {
   ["groundai.handler_info"] = {
     fr = "Gestionnaire IA %s : %s",
     en = "AI handler %s: %s",
+  },
+  ["groundai.cannot_aim"] = {
+    fr = "%s ne peut pas viser, aucune coordonnée de cible fournie",
+    en = "%s cannot aim, no target coordinates provided",
+  },
+  ["groundai.cannot_fire_effect"] = {
+    fr = "%s ne peut pas tirer pour effet, aucune coordonnée de cible fournie et aucune cible précédente",
+    en = "%s cannot fire for effect, no target coordinates provided and no previous target exist",
+  },
+  ["groundai.firing"] = {
+    fr = "%s tire %d obus sur %s avec une dispersion de %s m",
+    en = "%s is firing %d shells at %s with a %s m dispersion",
   },
 
   -- veafWeather

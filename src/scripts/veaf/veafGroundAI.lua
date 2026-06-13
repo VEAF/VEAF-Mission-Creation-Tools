@@ -445,7 +445,7 @@ function ArtilleryUnitHandler:fireForAim(coordinates, shells, radius)
   if not coordinates then
     veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireForAim() : no target coordinates", veaf.p(self:getName()))
     if not self.silent then
-      local message = string.format("%s cannot aim, no target coordinates provided", veaf.p(self:getName()))
+      local message = veaf.t("groundai.cannot_aim", veaf.p(self:getName()))
       trigger.action.outText(message, 10)
     end
     return
@@ -472,8 +472,7 @@ function ArtilleryUnitHandler:fireForEffect(coordinates, shells, radius)
       .get(veafGroundAI.Id)
       :warn(self.CLASS_NAME .. "[%s]:fireForEffect() : no previous target - cannot fire for effect", veaf.p(self:getName()))
     if not self.silent then
-      local message =
-        string.format("%s cannot fire for effect, no target coordinates provided and no previous target exist", veaf.p(self:getName()))
+      local message = veaf.t("groundai.cannot_fire_effect", veaf.p(self:getName()))
       trigger.action.outText(message, 10)
     end
     return
@@ -536,13 +535,7 @@ function ArtilleryUnitHandler:handleOrder(order)
       local lat, lon, _ = coord.LOtoLL(target)
       local grid = coord.LLtoMGRS(lat, lon)
       local coordinates = grid.UTMZone .. " " .. grid.MGRSDigraph .. " " .. grid.Easting .. " " .. grid.Northing
-      local message = string.format(
-        "%s is firing %d shells at %s with a %s m dispersion",
-        veaf.p(self:getName()),
-        veaf.p(shells),
-        veaf.p(coordinates),
-        veaf.p(radius)
-      )
+      local message = veaf.t("groundai.firing", veaf.p(self:getName()), veaf.p(shells), veaf.p(coordinates), veaf.p(radius))
       trigger.action.outText(message, 10)
       veaf.loggers.get(veafGroundAI.Id):trace(
         "ArtilleryUnitHandler[%s]:handleOrder() : firing %d shells at %s with a %s m dispersion",

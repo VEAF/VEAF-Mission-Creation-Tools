@@ -168,6 +168,7 @@ class BuildAndReleaseWorker:
             try:
                 # Define the list of scripts to concatenate (order matters!)
                 lua_scripts = [
+                    "veafI18n.lua",
                     "dcsUnits.lua",
                     "veafCacheManager.lua",
                     "veafEventHandler.lua",

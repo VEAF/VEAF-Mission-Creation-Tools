@@ -425,6 +425,52 @@ function TestVeafSpawnCore:test_registerCommandHandler()
   luaunit.assertEquals(veafSpawn.commandHandlers[1].key, "testkey")
 end
 
+function TestVeafSpawnCore:test_registerCommandHandler_legacy_2arg_has_no_security()
+  local fn = function() end
+  veafSpawn.registerCommandHandler("k", fn)
+  luaunit.assertEquals(veafSpawn.commandHandlers[1].fn, fn)
+  luaunit.assertNil(veafSpawn.commandHandlers[1].security)
+end
+
+function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
+  local fn = function() end
+  veafSpawn.registerCommandHandler("k", "L9", fn)
+  luaunit.assertEquals(veafSpawn.commandHandlers[1].fn, fn)
+  luaunit.assertEquals(veafSpawn.commandHandlers[1].security, "L9")
+end
+
+function TestVeafSpawnCore:test_security_gate_blocks_handler_when_check_fails()
+  local orig = veafSecurity.checkSecurity_MM
+  veafSecurity.checkSecurity_MM = function() return false end
+  local called = false
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  -- check fails -> handler must not run
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
+  veafSecurity.checkSecurity_MM = orig
+  luaunit.assertFalse(called)
+end
+
+function TestVeafSpawnCore:test_security_gate_allows_handler_when_check_passes()
+  local orig = veafSecurity.checkSecurity_MM
+  veafSecurity.checkSecurity_MM = function() return true end
+  local called = false
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
+  veafSecurity.checkSecurity_MM = orig
+  luaunit.assertTrue(called)
+end
+
+function TestVeafSpawnCore:test_security_gate_bypassed_when_bypassSecurity()
+  local orig = veafSecurity.checkSecurity_MM
+  veafSecurity.checkSecurity_MM = function() return false end
+  local called = false
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  -- bypassSecurity = true -> handler runs even though the check would fail
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, true, nil, nil, nil, nil, false)
+  veafSecurity.checkSecurity_MM = orig
+  luaunit.assertTrue(called)
+end
+
 function TestVeafSpawnCore:test_executeCommand_nil_text()
   local result = veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, nil, 2, 0, true, nil, nil, nil, nil, false)
   luaunit.assertFalse(result)

@@ -9,67 +9,223 @@
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- All parameter keys the mark-text parser recognizes (used to flag typos and
---- suggest the nearest match — UXPILOT-003). Keep in sync with the keyword chain
---- in markTextAnalysis.
-veafSpawn.KnownParameterKeys = {
-  "unitname",
-  "name",
-  "czname",
-  "destination",
-  "dest",
-  "isconvoy",
-  "patrol",
-  "offroad",
-  "skynet",
-  "ewr",
-  "pointdefense",
-  "alarm",
-  "radius",
-  "spacing",
-  "multiplier",
-  "alt",
-  "altdelta",
-  "speed",
-  "capradius",
-  "shells",
-  "hdg",
-  "heading",
-  "country",
-  "side",
-  "password",
-  "power",
-  "laser",
-  "freq",
-  "mod",
-  "band",
-  "code",
-  "channel",
-  "arrow",
-  "fill",
-  "color",
-  "skill",
-  "dist",
-  "distance",
-  "weight",
-  "type",
-  "nofarpmarkers",
-  "smoke",
-  "size",
-  "defense",
-  "armor",
-  "repeat",
-  "delay",
-  "static",
-  "immortal",
-  "delayed",
-  "showmfd",
-  "disperse",
+-- Parameter rules: the data-driven replacement for the long if/elseif chain that
+-- used to parse mark-text keywords. Each rule lists the key(s) it handles and an
+-- `apply(options, val)` mutator; an optional `when(options)` predicate gates
+-- context-specific rules (e.g. "name" sets cargoType only for a cargo command).
+-- Rules are applied in order and ALL matching rules run, exactly reproducing the
+-- original chained-`if` semantics. The recognized-key set (for typo hints,
+-- UXPILOT-003) is derived from these rules, so there is a single source of truth.
+
+local function _num(field)
+  return function(options, val)
+    options[field] = veaf.getRandomizableNumeric(val)
+  end
+end
+
+local function _str(field)
+  return function(options, val)
+    options[field] = val
+  end
+end
+
+local function _flag(field)
+  return function(options)
+    options[field] = true
+  end
+end
+
+local function _numNonNegative(field)
+  return function(options, val)
+    local nVal = veaf.getRandomizableNumeric(val)
+    if nVal >= 0 then
+      options[field] = nVal
+    end
+  end
+end
+
+veafSpawn.ParameterRules = {
+  { keys = { "unitname" }, apply = _str("unitName") },
+  { keys = { "name" }, apply = _str("name") },
+  { keys = { "czname" }, apply = _str("czName") },
+  {
+    keys = { "destination", "dest" },
+    apply = function(options, val)
+      options.destination = val
+      options.AlarmState = 0 -- leave on auto: some units won't move at alarm state red
+      options.spacing = 1 -- compress the convoy so it isn't extremely long at departure
+      options.radius = 1 -- spawn exactly on the marker (avoid spawning in trees etc.)
+    end,
+  },
+  { keys = { "isconvoy" }, apply = _flag("convoy") },
+  { keys = { "patrol" }, apply = _flag("patrol") },
+  { keys = { "offroad" }, apply = _flag("offroad") },
+  {
+    keys = { "skynet" },
+    apply = function(options, val)
+      options.skynet = val:lower()
+      if options.skynet == "" or options.skynet == "true" then
+        options.skynet = true
+      elseif options.skynet == "false" then
+        options.skynet = false
+      end
+    end,
+  },
+  { keys = { "ewr" }, apply = _flag("forceEwr") },
+  {
+    keys = { "pointdefense" },
+    apply = function(options, val)
+      options.pointDefense = true
+      if val ~= "" then
+        options.pointDefense = tostring(val)
+      end
+    end,
+  },
+  {
+    -- to be placed after skynet: SAMs in the skynet network work better at alarm
+    -- state red, so AlarmState defaults to 2 (red) when skynet is enabled.
+    keys = { "alarm" },
+    apply = function(options, val)
+      if (val == "0" or val == "2" or val == "1") and not options.skynet then
+        options.AlarmState = tonumber(val)
+      end
+    end,
+  },
+  { keys = { "radius" }, apply = _num("radius") },
+  { keys = { "spacing" }, apply = _num("spacing") },
+  { keys = { "multiplier" }, apply = _num("multiplier") },
+  { keys = { "alt" }, apply = _num("altitude") },
+  { keys = { "altdelta" }, apply = _num("altitudedelta") },
+  { keys = { "speed" }, apply = _num("speed") },
+  { keys = { "capradius" }, apply = _num("capradius") },
+  { keys = { "shells" }, apply = _num("shells") },
+  { keys = { "hdg", "heading" }, apply = _num("heading") },
+  {
+    keys = { "country" },
+    apply = function(options, val)
+      options.country = val:upper()
+    end,
+  },
+  {
+    keys = { "side" },
+    apply = function(options, val)
+      if val:upper() == "BLUE" then
+        options.side = veafCasMission.SIDE_BLUE
+      else
+        options.side = veafCasMission.SIDE_RED
+      end
+    end,
+  },
+  { keys = { "password" }, apply = _str("password") },
+  { keys = { "power" }, apply = _num("power") },
+  {
+    keys = { "laser" },
+    apply = function(options, val)
+      local nVal = veaf.getRandomizableNumeric(val)
+      options.freq = veafSpawn.convertLaserToFreq(nVal)
+      options.laserCode = nVal
+    end,
+  },
+  { keys = { "freq" }, apply = _str("freq") },
+  { keys = { "mod" }, apply = _str("mod") },
+  { keys = { "band" }, apply = _str("tacanBand") },
+  { keys = { "code" }, apply = _str("tacanCode") },
+  { keys = { "channel" }, apply = _num("tacanChannel") },
+  { keys = { "arrow" }, apply = _flag("drawArrow") },
+  { keys = { "fill" }, apply = _str("drawFillColor") },
+  {
+    keys = { "color" },
+    apply = function(options, val)
+      options.drawColor = val
+      if val:lower() == "red" then
+        options.smokeColor = trigger.smokeColor.RED
+      elseif val:lower() == "green" then
+        options.smokeColor = trigger.smokeColor.GREEN
+      elseif val:lower() == "orange" then
+        options.smokeColor = trigger.smokeColor.ORANGE
+      elseif val:lower() == "blue" then
+        options.smokeColor = trigger.smokeColor.BLUE
+      elseif val:lower() == "white" then
+        options.smokeColor = trigger.smokeColor.WHITE
+      end
+    end,
+  },
+  { keys = { "skill" }, apply = _str("skill") },
+  { keys = { "dist", "distance" }, apply = _num("distance") },
+  {
+    keys = { "name" },
+    when = function(options)
+      return options.cargo
+    end,
+    apply = _str("cargoType"),
+  },
+  {
+    keys = { "weight" },
+    when = function(options)
+      return options.cargo
+    end,
+    apply = function(options, val)
+      local nVal = veaf.getRandomizableNumeric(val)
+      if nVal >= 0 and nVal <= veafSpawn.cargoWeightBiasRange then
+        options.cargoWeightBias = nVal
+      elseif nVal > veafSpawn.cargoWeightBiasRange then
+        options.cargoWeightBias = veafSpawn.cargoWeightBiasRange
+      elseif nVal < 0 then
+        options.cargoWeightBias = 0
+      end
+    end,
+  },
+  { keys = { "type" }, apply = _str("type") },
+  {
+    keys = { "nofarpmarkers" },
+    when = function(options)
+      return options.farp
+    end,
+    apply = _flag("noFarpMarkers"),
+  },
+  {
+    keys = { "smoke" },
+    when = function(options)
+      return options.cargo
+    end,
+    apply = _flag("cargoSmoke"),
+  },
+  { keys = { "size" }, apply = _num("size") },
+  { keys = { "defense" }, apply = _numNonNegative("defense") },
+  { keys = { "armor" }, apply = _numNonNegative("armor") },
+  { keys = { "repeat" }, apply = _num("repeatCount") },
+  { keys = { "delay" }, apply = _num("repeatDelay") },
+  { keys = { "static" }, apply = _flag("forceStatic") },
+  { keys = { "immortal" }, apply = _flag("immortal") },
+  {
+    keys = { "delayed" },
+    apply = function(options, val)
+      local nVal = veaf.getRandomizableNumeric(val)
+      if nVal >= 0 then
+        options.delayedStart = nVal
+      else
+        options.delayedStart = veafSpawn.MIN_REPEAT_DELAY
+      end
+    end,
+  },
+  { keys = { "showmfd" }, apply = _flag("showMFD") },
+  { keys = { "disperse" }, apply = _numNonNegative("disperse") },
 }
 
+--- All parameter keys the mark-text parser recognizes, derived from ParameterRules
+--- (single source of truth) and used to flag typos and suggest the nearest match
+--- (UXPILOT-003). Each rule also gets a precomputed `_keyset` for O(1) matching.
 veafSpawn._knownParameterKeySet = {}
-for _, _k in ipairs(veafSpawn.KnownParameterKeys) do
-  veafSpawn._knownParameterKeySet[_k] = true
+veafSpawn.KnownParameterKeys = {}
+for _, _rule in ipairs(veafSpawn.ParameterRules) do
+  _rule._keyset = {}
+  for _, _k in ipairs(_rule.keys) do
+    _rule._keyset[_k] = true
+    if not veafSpawn._knownParameterKeySet[_k] then
+      veafSpawn._knownParameterKeySet[_k] = true
+      table.insert(veafSpawn.KnownParameterKeys, _k)
+    end
+  end
 end
 
 function veafSpawn.convertLaserToFreq(laser)
@@ -89,6 +245,306 @@ function veafSpawn.convertLaserToFreq(laser)
 end
 
 --- Extract keywords from mark text.
+-- Command descriptors: the data-driven replacement for the long if/elseif chain
+-- that detected the command keyphrase and seeded its default options. `match` is
+-- the (lower-cased) substring searched in the mark text; `init(options)` seeds the
+-- defaults for that command. The list is ordered and the FIRST match wins, exactly
+-- reproducing the original elseif chain.
+veafSpawn.CommandDescriptors = {
+  {
+    match = veafSpawn.SpawnKeyphrase .. " unit",
+    init = function(options)
+      options.unit = true
+      options.forceStatic = false
+      options.immortal = false
+      options.spacing = 5
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " afac",
+    init = function(options)
+      options.afac = true
+      options.laserCode = 1688
+      options.freq = veafSpawn.convertLaserToFreq(1688)
+      options.mod = "fm"
+      options.immortal = false
+      options.country = "USA" -- default country for the AFAC
+      options.name = "mq-9" -- default AFAC spawned
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " cap",
+    init = function(options)
+      options.cap = true
+      options.speed = nil
+      options.capradius = nil
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " group",
+    init = function(options)
+      options.group = true
+      options.forceStatic = false
+      options.immortal = false
+      options.spacing = 5
+      options.size = math.random(7) + 8
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.isConvoy = false
+      options.patrol = false
+      options.offroad = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " farp",
+    init = function(options)
+      options.farp = true
+      options.noFarpMarkers = false
+      options.type = nil
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " fob",
+    init = function(options)
+      options.fob = true
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " convoy",
+    init = function(options)
+      options.convoy = true
+      options.size = 10
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.isConvoy = false
+      options.patrol = false
+      options.offroad = false
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " infantrygroup",
+    init = function(options)
+      options.infantryGroup = true
+      options.size = math.random(7) + 8
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " armorgroup",
+    init = function(options)
+      options.armoredPlatoon = true
+      options.size = math.random(7) + 8
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " samgroup",
+    init = function(options)
+      options.airDefenseBattery = true
+      options.size = math.random(7) + 8
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " transportgroup",
+    init = function(options)
+      options.transportCompany = true
+      options.size = math.random(2, 5)
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " combatgroup",
+    init = function(options)
+      options.fullCombatGroup = true
+      options.size = 1
+      options.defense = math.random(5)
+      options.armor = math.random(5)
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " smoke",
+    init = function(options)
+      options.smoke = true
+      options.smokeColor = trigger.smokeColor.RED
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " flare",
+    init = function(options)
+      options.flare = true
+      options.smokeColor = trigger.smokeColor.RED
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " signal",
+    init = function(options)
+      options.signal = true
+      options.smokeColor = trigger.smokeColor.RED
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " cargo",
+    init = function(options)
+      options.cargo = true
+      options.cargoType = "container_cargo"
+      options.cargoWeightBias = 2
+      options.cargoSmoke = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " logistic",
+    init = function(options)
+      options.logistic = true
+      options.cargoType = "container_cargo"
+      options.cargoWeightBias = 2
+      options.cargoSmoke = false
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " bomb",
+    init = function(options)
+      options.bomb = true
+      options.power = 100
+      options.shells = 1
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " jtac",
+    init = function(options)
+      options.role = "jtac"
+      options.unit = true
+      options.laserCode = 1688
+      options.freq = veafSpawn.convertLaserToFreq(1688)
+      options.mod = "fm"
+      options.immortal = false
+      options.spacing = 5
+      options.country = "USA" -- default country for friendly JTAC
+      options.name = "LUV HMMWV Jeep" -- default name for JTAC
+      options.unitName = "JTAC1" -- default JTAC name (overwrites previous unit with same name)
+    end,
+  },
+  {
+    match = veafSpawn.SpawnKeyphrase .. " tacan",
+    init = function(options)
+      options.role = "tacan"
+      options.unit = true
+      options.tacanChannel = nil
+      options.tacanBand = nil
+      options.immortal = false
+      options.spacing = 5
+      options.country = "USA" -- default country for friendly tacan
+      options.name = "TACAN_beacon" -- default name for tacan
+      options.unitName = "TACAN TCN" -- default name (overwrites previous unit with same name)
+    end,
+  },
+  {
+    match = veafSpawn.DestroyKeyphrase,
+    init = function(options)
+      options.destroy = true
+    end,
+  },
+  {
+    match = veafSpawn.TeleportKeyphrase,
+    init = function(options)
+      options.teleport = true
+    end,
+  },
+  {
+    match = veafSpawn.DrawingKeyphrase .. " add",
+    init = function(options)
+      options.addDrawing = true
+      options.drawColor = nil
+      options.drawFillColor = nil
+      options.drawArrow = nil
+    end,
+  },
+  {
+    match = veafSpawn.DrawingKeyphrase .. " erase",
+    init = function(options)
+      options.eraseDrawing = true
+    end,
+  },
+  {
+    match = veafSpawn.DrawingKeyphrase .. " square",
+    init = function(options)
+      options.drawSquare = true
+      options.drawColor = nil
+      options.drawFillColor = nil
+      options.drawArrow = nil
+    end,
+  },
+  {
+    match = veafSpawn.DrawingKeyphrase .. " circle",
+    init = function(options)
+      options.drawCircle = true
+      options.drawColor = nil
+      options.drawFillColor = nil
+      options.drawArrow = nil
+    end,
+  },
+  {
+    match = veafSpawn.MissionMasterKeyphrase .. " flagon",
+    init = function(options)
+      options.mmFlagOn = true
+    end,
+  },
+  {
+    match = veafSpawn.MissionMasterKeyphrase .. " flagoff",
+    init = function(options)
+      options.mmFlagOff = true
+    end,
+  },
+  {
+    match = veafSpawn.MissionMasterKeyphrase .. " getflag",
+    init = function(options)
+      options.mmGetFlag = true
+    end,
+  },
+  {
+    match = veafSpawn.MissionMasterKeyphrase .. " run",
+    init = function(options)
+      options.mmRun = true
+    end,
+  },
+}
+
 function veafSpawn.markTextAnalysis(text)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))
 
@@ -115,210 +571,18 @@ function veafSpawn.markTextAnalysis(text)
   options.shells = 1
   options.power = 100
 
-  -- Check for correct keywords.
-  if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
-    -- ground
-    options.unit = true
-    options.forceStatic = false
-    options.immortal = false
-    options.spacing = 5
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " afac") then
-    -- air
-    options.afac = true
-    options.laserCode = 1688
-    options.freq = veafSpawn.convertLaserToFreq(1688)
-    options.mod = "fm"
-    options.immortal = false
-    --default country for the AFAC
-    options.country = "USA"
-    --default AFAC spawned
-    options.name = "mq-9"
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cap") then
-    -- air
-    options.cap = true
-    options.speed = nil
-    options.capradius = nil
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " group") then
-    -- ground
-    options.group = true
-    options.forceStatic = false
-    options.immortal = false
-    options.spacing = 5
-    options.size = math.random(7) + 8
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.isConvoy = false
-    options.patrol = false
-    options.offroad = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " farp") then
-    -- ground
-    options.farp = true
-    options.noFarpMarkers = false
-    options.type = nil
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " fob") then
-    options.fob = true
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " convoy") then
-    -- ground
-    options.convoy = true
-    options.size = 10
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.isConvoy = false
-    options.patrol = false
-    options.offroad = false
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " infantrygroup") then
-    -- ground
-    options.infantryGroup = true
-    options.size = math.random(7) + 8
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.immortal = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " armorgroup") then
-    -- ground
-    options.armoredPlatoon = true
-    options.size = math.random(7) + 8
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.immortal = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " samgroup") then
-    -- ground
-    options.airDefenseBattery = true
-    options.size = math.random(7) + 8
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.immortal = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " transportgroup") then
-    -- ground
-    options.transportCompany = true
-    options.size = math.random(2, 5)
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.immortal = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " combatgroup") then
-    -- ground
-    options.fullCombatGroup = true
-    options.size = 1
-    options.defense = math.random(5)
-    options.armor = math.random(5)
-    options.spacing = 5
-    options.skynet = false
-    options.forceEwr = false
-    options.pointDefense = false
-    options.immortal = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " smoke") then
-    -- effects
-    options.smoke = true
-    options.smokeColor = trigger.smokeColor.RED
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " flare") then
-    -- effects
-    options.flare = true
-    options.smokeColor = trigger.smokeColor.RED
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " signal") then
-    -- effects
-    options.signal = true
-    options.smokeColor = trigger.smokeColor.RED
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cargo") then
-    -- cargo
-    options.cargo = true
-    options.cargoType = "container_cargo"
-    options.cargoWeightBias = 2
-    options.cargoSmoke = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " logistic") then
-    -- cargo
-    options.logistic = true
-    options.cargoType = "container_cargo"
-    options.cargoWeightBias = 2
-    options.cargoSmoke = false
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " bomb") then
-    -- effects
-    options.bomb = true
-    options.power = 100
-    options.shells = 1
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " jtac") then
-    options.role = "jtac"
-    options.unit = true
-    options.laserCode = 1688
-    options.freq = veafSpawn.convertLaserToFreq(1688)
-    options.mod = "fm"
-    options.immortal = false
-    options.spacing = 5
-    -- default country for friendly JTAC: USA
-    options.country = "USA"
-    -- default name for JTAC
-    options.name = "LUV HMMWV Jeep"
-    -- default JTAC name (will overwrite previous unit with same name)
-    options.unitName = "JTAC1"
-  elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then
-    -- air
-    options.role = "tacan"
-    options.unit = true
-    options.tacanChannel = nil
-    options.tacanBand = nil
-    options.immortal = false
-    options.spacing = 5
-    -- default country for friendly tacan: USA
-    options.country = "USA"
-    -- default name for tacan
-    options.name = "TACAN_beacon"
-    -- default name (will overwrite previous unit with same name)
-    options.unitName = "TACAN TCN"
-  elseif text:lower():find(veafSpawn.DestroyKeyphrase) then
-    options.destroy = true
-  elseif text:lower():find(veafSpawn.TeleportKeyphrase) then
-    options.teleport = true
-  elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " add") then
-    -- drawing
-    options.addDrawing = true
-    options.drawColor = nil
-    options.drawFillColor = nil
-    options.drawArrow = nil
-  elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
-    -- drawing
-    options.eraseDrawing = true
-  elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " square") then
-    -- drawing
-    options.drawSquare = true
-    options.drawColor = nil
-    options.drawFillColor = nil
-    options.drawArrow = nil
-  elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " circle") then
-    -- drawing
-    options.drawCircle = true
-    options.drawColor = nil
-    options.drawFillColor = nil
-    options.drawArrow = nil
-  elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagon") then
-    options.mmFlagOn = true
-  elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagoff") then
-    options.mmFlagOff = true
-  elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " getflag") then
-    options.mmGetFlag = true
-  elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " run") then
-    options.mmRun = true
-  else
+  -- Detect the command keyphrase and seed its defaults (data-driven; see
+  -- CommandDescriptors). First match wins, as the original elseif chain did.
+  local textLower = text:lower()
+  local matched = false
+  for _, cmd in ipairs(veafSpawn.CommandDescriptors) do
+    if textLower:find(cmd.match) then
+      cmd.init(options)
+      matched = true
+      break
+    end
+  end
+  if not matched then
     return nil
   end
 
@@ -342,371 +606,12 @@ function veafSpawn.markTextAnalysis(text)
       })
     end
 
-    if key:lower() == "unitname" then
-      -- Set name.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword unitname = %s", tostring(val)))
-      options.unitName = val
-    end
-
-    if key:lower() == "name" then
-      -- Set name.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword name = %s", tostring(val)))
-      options.name = val
-    end
-
-    if key:lower() == "czname" then
-      -- Set name.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword czname = %s", tostring(val)))
-      options.czName = val
-    end
-
-    if key:lower() == "destination" or key:lower() == "dest" then
-      -- Set destination.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword destination = %s", tostring(val)))
-      options.destination = val
-      options.AlarmState = 0 --since some units will not move when they are told to have an alarm state red, it's best to by default leave it on auto. AI is pretty all knowing anyways, it knows when it should go to red state
-      options.spacing = 1 --compress the convoy to not make it extremely long at departure
-      options.radius = 1 --convoy spawns on the marker exactly to not have them spawn in trees etc.
-    end
-
-    if key:lower() == "isconvoy" then
-      veaf.loggers.get(veafSpawn.Id):trace("Keyword isconvoy found")
-      options.convoy = true
-    end
-
-    if key:lower() == "patrol" then
-      veaf.loggers.get(veafSpawn.Id):trace("Keyword patrol found")
-      options.patrol = true
-    end
-
-    if key:lower() == "offroad" then
-      veaf.loggers.get(veafSpawn.Id):trace("Keyword offroad found")
-      options.offroad = true
-    end
-
-    if key:lower() == "skynet" then
-      -- Retreive the name of the IADS you wish to add the spawned group to
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword skynet = %s", tostring(val)))
-      options.skynet = val:lower()
-      if options.skynet == "" or options.skynet == "true" then
-        options.skynet = true
-      elseif options.skynet == "false" then
-        options.skynet = false
-      end
-    end
-
-    if key:lower() == "ewr" then
-      -- Set force IADS EWR toggle for unit spawn
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword ewr found"))
-      options.forceEwr = true
-    end
-
-    if key:lower() == "pointdefense" then
-      -- Tells IADS to add the spawned SAM to the point defenses of the specified site or to the nearest site
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword pointdefense found"))
-      options.pointDefense = true
-      if val ~= "" then
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("groupName specified : %s", tostring(val)))
-        options.pointDefense = tostring(val)
-      end
-    end
-
-    --to be placed after the skynet input, SAMs in the skynet network work better if set to AlarmState RED, so AlarmState is equal to 2 if skynet is enabled
-    if key:lower() == "alarm" then
-      -- Set Alarm State of the unit to be spawned
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword alarm = %s", tostring(val)))
-      if (val == "0" or val == "2" or val == "1") and not options.skynet then
-        options.AlarmState = tonumber(val)
-      end
-    end
-
-    if key:lower() == "radius" then
-      -- Set name.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword radius = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.radius = nVal
-    end
-
-    if key:lower() == "spacing" then
-      -- Set spacing.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword spacing = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.spacing = nVal
-    end
-
-    if key:lower() == "multiplier" then
-      -- Set multiplier.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword multiplier = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.multiplier = nVal
-    end
-
-    if key:lower() == "alt" then
-      -- Set altitude.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword alt = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.altitude = nVal
-    end
-
-    if key:lower() == "altdelta" then
-      -- Set altitude delta.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword altdelta = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.altitudedelta = nVal
-    end
-
-    if key:lower() == "speed" then
-      -- Set speed.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword speed = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.speed = nVal
-    end
-
-    if key:lower() == "capradius" then
-      -- Set capradius.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword capradius = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.capradius = nVal
-    end
-
-    if key:lower() == "shells" then
-      -- Set altitude.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword shells = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.shells = nVal
-    end
-
-    if key:lower() == "hdg" then
-      -- Set heading.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword hdg = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.heading = nVal
-    end
-
-    if key:lower() == "heading" then
-      -- Set heading.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword heading = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.heading = nVal
-    end
-
-    if key:lower() == "country" then
-      -- Set country
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword country = %s", tostring(val)))
-      options.country = val:upper()
-    end
-
-    if key:lower() == "side" then
-      -- Set side
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword side = %s", tostring(val)))
-      if val:upper() == "BLUE" then
-        options.side = veafCasMission.SIDE_BLUE
-      else
-        options.side = veafCasMission.SIDE_RED
-      end
-    end
-
-    if key:lower() == "password" then
-      -- Unlock the command
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword password", tostring(val)))
-      options.password = val
-    end
-
-    if key:lower() == "power" then
-      -- Set bomb power.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword power = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.power = nVal
-    end
-
-    if key:lower() == "laser" then
-      -- Set laser code.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("laser code = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.freq = veafSpawn.convertLaserToFreq(nVal)
-      options.laserCode = nVal
-    end
-
-    if key:lower() == "freq" then
-      -- Set JTAC/AFAC frequency.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("freq = %s", tostring(val)))
-      options.freq = val
-    end
-
-    if key:lower() == "mod" then
-      -- Set JTAC/AFAC modulation.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("mod = %s", tostring(val)))
-      options.mod = val
-    end
-
-    if key:lower() == "band" then
-      -- Set TACAN band
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("band = %s", tostring(val)))
-      options.tacanBand = val
-    end
-
-    if key:lower() == "code" then
-      -- Set TACAN code
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("code = %s", tostring(val)))
-      options.tacanCode = val
-    end
-
-    if key:lower() == "channel" then
-      -- Set TACAN channel.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("channel = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.tacanChannel = nVal
-    end
-
-    if key:lower() == "arrow" then
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword arrow = %s", tostring(val)))
-      options.drawArrow = true
-    end
-    if key:lower() == "fill" then
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword fill = %s", tostring(val)))
-      options.drawFillColor = val
-    end
-
-    if key:lower() == "color" then
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword color = %s", tostring(val)))
-      options.drawColor = val
-      -- Set smoke color.
-      if val:lower() == "red" then
-        options.smokeColor = trigger.smokeColor.RED
-      elseif val:lower() == "green" then
-        options.smokeColor = trigger.smokeColor.GREEN
-      elseif val:lower() == "orange" then
-        options.smokeColor = trigger.smokeColor.ORANGE
-      elseif val:lower() == "blue" then
-        options.smokeColor = trigger.smokeColor.BLUE
-      elseif val:lower() == "white" then
-        options.smokeColor = trigger.smokeColor.WHITE
-      end
-    end
-
-    if key:lower() == "skill" then
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword skill = %s", tostring(val)))
-      options.skill = val
-    end
-
-    if key:lower() == "dist" or key:lower() == "distance" then
-      -- Set distance.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword distance = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.distance = nVal
-    end
-
-    if options.cargo and key:lower() == "name" then
-      -- Set cargo type.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword name = %s", tostring(val)))
-      options.cargoType = val
-    end
-
-    if options.cargo and key:lower() == "weight" then
-      -- Set cargo type.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword weight = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 and nVal <= veafSpawn.cargoWeightBiasRange then
-        options.cargoWeightBias = nVal
-      elseif nVal > veafSpawn.cargoWeightBiasRange then
-        options.cargoWeightBias = veafSpawn.cargoWeightBiasRange
-      elseif nVal < 0 then
-        options.cargoWeightBias = 0
-      end
-    end
-
-    if key:lower() == "type" then
-      -- Set farp type.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword type = %s", tostring(val)))
-      options.type = val
-    end
-
-    if options.farp and key:lower() == "nofarpmarkers" then
-      -- Skip the invisible FARP special vehicles that mark the position of the FARP
-      veaf.loggers.get(veafSpawn.Id):trace("Keyword noFarpMarkers is set")
-      options.noFarpMarkers = true
-    end
-
-    if options.cargo and key:lower() == "smoke" then
-      -- Mark with green smoke.
-      veaf.loggers.get(veafSpawn.Id):trace("Keyword smoke is set")
-      options.cargoSmoke = true
-    end
-
-    if key:lower() == "size" then
-      -- Set size.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword size = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.size = nVal
-    end
-
-    if key:lower() == "defense" then
-      -- Set defense.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword defense = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
-        options.defense = nVal
-      end
-    end
-
-    if key:lower() == "armor" then
-      -- Set armor.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword armor = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
-        options.armor = nVal
-      end
-    end
-
-    if key:lower() == "repeat" then
-      -- Set repeat count.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword repeat = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.repeatCount = nVal
-    end
-
-    if key:lower() == "delay" then
-      -- Set delay.
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword delay = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      options.repeatDelay = nVal
-    end
-
-    if key:lower() == "static" then
-      -- Set static unit spawn toggle
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword static found"))
-      options.forceStatic = true
-    end
-
-    if key:lower() == "immortal" then
-      -- Set spawned unit to invisible and immortal
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword immortal found"))
-      options.immortal = true
-    end
-
-    if key:lower() == "delayed" then
-      -- Set delayed start on first spawn occurence
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword delayed = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
-        options.delayedStart = nVal
-      else
-        options.delayedStart = veafSpawn.MIN_REPEAT_DELAY
-      end
-    end
-
-    if key:lower() == "showmfd" then
-      -- Set hiddenOnMFD option or not
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword showmfd found"))
-      options.showMFD = true
-    end
-
-    if key:lower() == "disperse" then
-      -- Set hiddenOnMFD option or not
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword disperse = %s", tostring(val)))
-      local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
-        options.disperse = nVal
+    -- Apply every parameter rule whose key matches (data-driven; see ParameterRules).
+    -- ALL matching rules run, in order, reproducing the original chained-if behaviour.
+    for _, rule in ipairs(veafSpawn.ParameterRules) do
+      if rule._keyset[keyLower] and (not rule.when or rule.when(options)) then
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword %s = %s", keyLower, tostring(val)))
+        rule.apply(options, val)
       end
     end
   end

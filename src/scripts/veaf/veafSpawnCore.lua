@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.59.2"
+veafSpawn.Version = "1.59.3"
 
 -- trace level, specific to this module (uncomment for debugging)
 --veafSpawn.LogLevel = "trace"
@@ -135,11 +135,32 @@ veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ...
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Security levels recognized by the command dispatcher; mapped to a veafSecurity
+--- check applied centrally before a handler runs (nil = no check needed).
+veafSpawn.SECURITY_CHECKS = {
+  L9 = function(options, markId)
+    return veafSecurity.checkSecurity_L9(options.password, markId)
+  end,
+  L1 = function(options, markId)
+    return veafSecurity.checkSecurity_L1(options.password, markId)
+  end,
+  MM = function(options, markId)
+    return veafSecurity.checkSecurity_MM(options.password)
+  end,
+}
+
 --- Register a command handler for executeCommand().
--- @param key   options field name that activates this handler (e.g. "unit", "farp")
--- @param fn    function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
-function veafSpawn.registerCommandHandler(key, fn)
-  table.insert(veafSpawn.commandHandlers, { key = key, fn = fn })
+-- @param key       options field name that activates this handler (e.g. "unit", "farp")
+-- @param security  optional security level ("L9"/"L1"/"MM") checked centrally before fn;
+--                  omit for no check. Accepts the legacy 2-arg form (key, fn).
+-- @param fn        function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
+function veafSpawn.registerCommandHandler(key, security, fn)
+  if fn == nil then
+    -- legacy 2-arg form: (key, fn), no security check
+    fn = security
+    security = nil
+  end
+  table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
 
 function veafSpawn.executeCommand(
@@ -291,13 +312,23 @@ function veafSpawn.executeCommand(
 
         -- Dispatch to registered command handler (ordered list, first match wins)
         local _handler = nil
+        local _security = nil
         for _, _entry in ipairs(veafSpawn.commandHandlers) do
           if options[_entry.key] then
             _handler = _entry.fn
+            _security = _entry.security
             break
           end
         end
         if _handler then
+          -- Centralized security gate (was duplicated in every handler's preamble):
+          -- a failed check aborts the command, as the old `return nil, nil, true` did.
+          if not bypassSecurity and _security then
+            local _check = veafSpawn.SECURITY_CHECKS[_security]
+            if _check and not _check(options, markId) then
+              return
+            end
+          end
           local _g, _done, _abort = _handler(eventPos, options, coalition, markId, bypassSecurity)
           if _abort then
             return
@@ -835,66 +866,42 @@ end
 -- Core command handlers (drawing + mission master) — registered at load time
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("addDrawing", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("addDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.addPointToDrawing(eventPos, options.name, options.drawColor, options.drawFillColor, options.type, options.drawArrow)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawSquare", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("drawSquare", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawSquare(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawCircle", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("drawCircle", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawCircle(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("eraseDrawing", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("eraseDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.eraseDrawing(options.name)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("mmFlagOn", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("mmFlagOn", "MM", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.missionMasterSetFlag(options.name, 1)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("mmFlagOff", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("mmFlagOff", "MM", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.missionMasterSetFlag(options.name, 0)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("mmGetFlag", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("mmGetFlag", "MM", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.missionMasterGetFlag(options.name)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("mmRun", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("mmRun", "MM", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.missionMasterRun(options.name)
   return nil, nil, false
 end)

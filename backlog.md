@@ -37,7 +37,7 @@
 | Lot TODO0609-MODULES-UNIFY — single `modules:` block as source of truth (QRA + community config nested), CTLD/CSAR extracted from v5 | ✅ |
 | Lot TODO0609-CONVERT-FIDELITY — convert-v5 report fidelity: comment full migrated blocks, emit commented-out v5 elements, silenceAtc key | ✅ |
 | Lot TODO0609-ERA-AUTODETECT — auto-detect mission era (incl. WW2) from `.miz` content, manual override wins | ✅ |
-| Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits definitions from Lua to YAML (spike ✅ + impl) | 🟡 |
+| Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits definitions from Lua to YAML (spike ✅ + impl) | ✅ |
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ✅ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
 | Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | 🟡 |
@@ -48,7 +48,7 @@
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ✅ |
 | Lot LUA-I18N — localize in-game VEAF messages (Lua runtime i18n; FR default + EN) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
-| Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | 🟡 |
+| Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ✅ |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ✅ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ✅ |
@@ -526,7 +526,7 @@ was constrained to a working branch.
 | SPAWN-EXTERNALIZE-002 | Extract the framework `UnitsDatabase` + `GroupsDatabase` from `veafUnits.lua` into a shipped `veaf-units.yaml`; build a Lua emitter; **parity-check** the generated Lua is semantically equal to today's tables (oracle, like DCSDATA-008); then default the in-`veafUnits.lua` tables to empty. | `src/scripts/veaf/veafUnits.lua`, `veaf-units.yaml`, emitter, `test/` | feat | ✅ |
 | SPAWN-EXTERNALIZE-003 | New `veaf-tools build` pipeline step: render the spawn-data Lua from the shipped `veaf-units.yaml` and inject it into the `.miz`; runtime populates `veafUnits.*` after the framework loads. End-to-end test (built `.miz` has the data; `_spawn group <alias>` resolves). | `veaf_tools/commands/build.py`, new worker, `mission_builder/`, `test/python/` | feat | ✅ |
 | SPAWN-EXTERNALIZE-004 | Per-mission `src/spawn-groups.yaml` (+ optional `src/spawn-units.yaml`): merge over the framework data (alias collision → mission wins), so `_spawn group <custom>` works. Commented default + FR/EN docs + tests. | `warehouses_injector`-style worker, `src/defaults/`, `doc/`, `test/python/` | feat | ✅ |
-| SPAWN-EXTERNALIZE-005 (= SPAWN-REFACTOR-002) | De-duplicate the spawn subsystem (shared validation/debug blocks, descriptor table) now that data is external and the parser is characterized. | `src/scripts/veaf/veafSpawn*.lua`, `test/lua/` | refactor | ⬜ |
+| SPAWN-EXTERNALIZE-005 (= SPAWN-REFACTOR-002) | De-duplicate the spawn subsystem (shared validation/debug blocks, descriptor table) now that data is external and the parser is characterized. | `src/scripts/veaf/veafSpawn*.lua`, `test/lua/` | refactor | ✅ |
 
 ---
 
@@ -746,7 +746,7 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | SPAWN-REFACTOR-001 | Characterization tests for `veafSpawnParser.markTextAnalysis`: 41 marker variants (rejects/typos/missing values, every command + defaults, air-role defaults, parameter parsing), captured against the live parser and asserting only deterministic fields (math.random defaults left unasserted). Locks behaviour before any dedup; unblocks UXPILOT-003. | `test/lua/test_veafSpawnParser.lua` | feat | ✅ |
-| SPAWN-REFACTOR-002 | Extract a spawn-type **descriptor table** (`{type → {defaults, validators}}`) consumed by the parser, and a shared `VeafSpawner` base for the duplicated validation/debug blocks. Only within the scope of a lot already touching these files. | `src/scripts/veaf/veafSpawnParser.lua`, `veafSpawnAircraft.lua`, `veafSpawnGround.lua`, `veafSpawnCore.lua`, `test/lua/` | refactor | ⬜ |
+| SPAWN-REFACTOR-002 | Extract a spawn-type **descriptor table** (`{type → {defaults, validators}}`) consumed by the parser, and a shared `VeafSpawner` base for the duplicated validation/debug blocks. Only within the scope of a lot already touching these files. Done as SPAWN-EXTERNALIZE-005: `CommandDescriptors` (per-command defaults) + `ParameterRules` (keyword parsing) tables, and centralized the security preamble in `registerCommandHandler`/dispatch. | `src/scripts/veaf/veafSpawnParser.lua`, `veafSpawnAircraft.lua`, `veafSpawnGround.lua`, `veafSpawnCore.lua`, `test/lua/` | refactor | ✅ |
 
 ---
 

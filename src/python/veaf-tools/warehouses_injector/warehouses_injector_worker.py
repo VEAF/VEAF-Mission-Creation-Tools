@@ -15,12 +15,15 @@ Config shape (per coalition; an undeclared coalition is left untouched)::
 
 ``template`` references a ``dynSpawnTemplate=true`` group by **name**; when omitted
 it is auto-matched to a template group of the same **aircraft type** (same
-coalition). The link is written as ``aircrafts[<type>].linkDynTempl = <groupId>``.
+coalition). The link is written as
+``aircrafts[<helicopters|planes>][<type>].linkDynTempl = <groupId>`` — DCS nests
+dynamic-slot aircraft by category, and a flat entry is silently ignored.
 """
 
 from __future__ import annotations
 
 import copy
+import functools
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,11 +32,77 @@ from mission_tools import read_miz, write_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
+from veaf_libs.dcs_units_parser import parse_dcs_units
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 #: Config coalition keys mapped to the warehouses ``coalition`` field values.
 _COALITION_FIELD = {"blue": "BLUE", "red": "RED", "neutral": "NEUTRAL"}
+
+#: DCS warehouses nest dynamic-slot aircraft under these sub-tables by category;
+#: an aircraft entry placed at the wrong level (or flat) is ignored by DCS.
+_CATEGORY_TO_WAREHOUSE = {"helicopter": "helicopters", "plane": "planes"}
+
+#: Sub-table used when an aircraft type cannot be classified.
+_DEFAULT_WAREHOUSE_CATEGORY = "planes"
+
+#: Committed DCS units database (relative to this worker).
+_DCS_UNITS_YAML = Path(__file__).resolve().parent.parent / "veaf_libs" / "data" / "dcsUnits.yaml"
+
+
+@functools.lru_cache(maxsize=1)
+def _dcs_unit_categories() -> dict[str, str]:
+    """Map DCS aircraft type (lowercase) -> warehouse sub-table key, from the units DB.
+
+    Used as a fallback to classify aircraft types that are not present as groups in
+    the mission being built.
+    """
+    result: dict[str, str] = {}
+    try:
+        for unit in parse_dcs_units(_DCS_UNITS_YAML):
+            key = _CATEGORY_TO_WAREHOUSE.get(unit.category.lower())
+            if key:
+                result[unit.type_id.lower()] = key
+    except (OSError, ValueError):  # never break the build on a units-DB read issue
+        return {}
+    return result
+
+
+def _build_mission_categories(mission: DcsMission) -> dict[str, str]:
+    """Map aircraft type (lowercase) -> warehouse sub-table key, from the mission groups.
+
+    Fallback for mod aircraft absent from the committed units DB. Only single-unit
+    dynamic-spawn template groups are considered: a multi-unit group's reported
+    ``unit_type`` is just its last unit, so the same type could otherwise be filed
+    under both categories (planes and helicopters) depending on iteration order.
+    """
+    index: dict[str, str] = {}
+    for group in mission.iter_groups():
+        # Only single-unit templates: a multi-unit group's reported unit_type is
+        # just its last unit, which would file the same type under both categories.
+        if (
+            group.unit_type
+            and group.group_dcs.get("dynSpawnTemplate") is True
+            and len(group.group_dcs.get("units") or []) == 1
+        ):
+            index[group.unit_type.lower()] = _CATEGORY_TO_WAREHOUSE.get(
+                (group.aircraft_type or "").lower(), _DEFAULT_WAREHOUSE_CATEGORY
+            )
+    return index
+
+
+def _warehouse_category(aircraft_type: str, mission_categories: dict[str, str]) -> str:
+    """Resolve the warehouse sub-table ("helicopters"|"planes") for an aircraft type.
+
+    The committed DCS units database is authoritative (unambiguous per type); the
+    mission's dynamic-spawn templates are a fallback for mod aircraft absent from it.
+    """
+    key = aircraft_type.lower()
+    category = _dcs_unit_categories().get(key) or mission_categories.get(key)
+    if category:
+        return category
+    logger.warning(t("warehouses.unknown_category", type=aircraft_type))
+    return _DEFAULT_WAREHOUSE_CATEGORY
 
 
 @dataclass
@@ -114,6 +183,7 @@ def _apply_to_airport(
     settings: dict,
     template_index: dict[tuple[str, str, str], int],
     coalition_key: str,
+    mission_categories: dict[str, str],
 ) -> int:
     """Apply one airport's settings in place; return the number of templates linked."""
     airport["dynamicSpawn"] = True
@@ -128,7 +198,10 @@ def _apply_to_airport(
         stock = airport.setdefault("aircrafts", {})
         for aircraft_type, acfg in aircrafts_cfg.items():
             acfg = acfg or {}
-            entry = stock.setdefault(aircraft_type, {})
+            # DCS nests dynamic-slot aircraft under aircrafts.{helicopters,planes};
+            # a flat entry is silently ignored (template never binds).
+            category = _warehouse_category(aircraft_type, mission_categories)
+            entry = stock.setdefault(category, {}).setdefault(aircraft_type, {})
             amount = acfg.get("amount")
             if amount == "unlimited":
                 entry["unlimited"] = True
@@ -166,6 +239,7 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
 
     theatre = str(mission.theatre_content or "")
     template_index = _build_template_index(mission)
+    mission_categories = _build_mission_categories(mission)
 
     airports_configured = 0
     templates_linked = 0
@@ -191,7 +265,9 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
             }
 
         for airport_id, settings in targets.items():
-            templates_linked += _apply_to_airport(airports[airport_id], settings, template_index, coalition_key)
+            templates_linked += _apply_to_airport(
+                airports[airport_id], settings, template_index, coalition_key, mission_categories
+            )
             airports_configured += 1
 
     return WarehousesResult(airports_configured, templates_linked)

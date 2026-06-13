@@ -1722,8 +1722,9 @@ function veafShortcuts.initialize()
   veaf.loggers.get(veafShortcuts.Id):info("Initializing module")
   veafShortcuts.buildDefaultList()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
-    return veafShortcuts.executeCommand(pos, event.text, coal, event.idx, bypass, groups, route)
+    -- An alias usually expands to a spawn: markers target the opposing side by default.
+    local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
+    return veafShortcuts.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, route)
   end, veafCommands.PRIORITY_SHORTCUTS)
   veafRemote.registerRemoteModule("alias", veafShortcuts.executeCommandFromRemote)
   veafShortcuts.dumpAliasesList()

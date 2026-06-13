@@ -93,8 +93,9 @@ class TestStockAndFuel:
         a = m.warehouses_content["airports"][23]
         assert a["unlimitedFuel"] is True
         assert a["unlimitedMunitions"] is True
-        assert a["aircrafts"]["UH-1H"]["unlimited"] is True
-        assert a["aircrafts"]["Yak-52"] == {"unlimited": False, "initialAmount": 10}
+        # DCS nests dynamic-slot aircraft by category: helicopters vs planes.
+        assert a["aircrafts"]["helicopters"]["UH-1H"]["unlimited"] is True
+        assert a["aircrafts"]["planes"]["Yak-52"] == {"unlimited": False, "initialAmount": 10}
 
 
 class TestTemplateLinking:
@@ -102,27 +103,27 @@ class TestTemplateLinking:
         m = _mission()
         cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 1, "template": "DST - UH-1H"}}}}}
         result = apply_warehouses(m, cfg)
-        assert m.warehouses_content["airports"][23]["aircrafts"]["UH-1H"]["linkDynTempl"] == 2114
+        assert m.warehouses_content["airports"][23]["aircrafts"]["helicopters"]["UH-1H"]["linkDynTempl"] == 2114
         assert result.templates_linked == 2  # both blue airports
 
     def test_link_auto_by_type(self) -> None:
         m = _mission()
         cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 1}}}}}  # no template -> match by type
         apply_warehouses(m, cfg)
-        assert m.warehouses_content["airports"][24]["aircrafts"]["UH-1H"]["linkDynTempl"] == 2114
+        assert m.warehouses_content["airports"][24]["aircrafts"]["helicopters"]["UH-1H"]["linkDynTempl"] == 2114
 
     def test_unknown_template_no_link(self) -> None:
         m = _mission()
         cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 1, "template": "Nope"}}}}}
         result = apply_warehouses(m, cfg)
-        assert "linkDynTempl" not in m.warehouses_content["airports"][23]["aircrafts"]["UH-1H"]
+        assert "linkDynTempl" not in m.warehouses_content["airports"][23]["aircrafts"]["helicopters"]["UH-1H"]
         assert result.templates_linked == 0
 
     def test_non_template_group_ignored(self) -> None:
         m = _mission(groups=[_template_group(5, "Normal UH-1H", "UH-1H", dyn=False)])
         cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 1}}}}}
         apply_warehouses(m, cfg)
-        assert "linkDynTempl" not in m.warehouses_content["airports"][23]["aircrafts"]["UH-1H"]
+        assert "linkDynTempl" not in m.warehouses_content["airports"][23]["aircrafts"]["helicopters"]["UH-1H"]
 
 
 class TestPerAirportOverride:
@@ -136,9 +137,48 @@ class TestPerAirportOverride:
         }
         apply_warehouses(m, cfg)
         a24 = m.warehouses_content["airports"][24]["aircrafts"]
-        assert a24["UH-1H"]["unlimited"] is True  # from defaults
-        assert a24["Yak-52"]["initialAmount"] == 5  # from override
+        assert a24["helicopters"]["UH-1H"]["unlimited"] is True  # from defaults
+        assert a24["planes"]["Yak-52"]["initialAmount"] == 5  # from override
         assert 23 not in [k for k in m.warehouses_content["airports"] if m.warehouses_content["airports"][k]["dynamicSpawn"] and k == 23]
+
+
+class TestCategoryNesting:
+    """C8: DCS nests dynamic-slot aircraft under aircrafts.{helicopters,planes};
+    a flat entry is silently ignored and the template never binds."""
+
+    def test_helicopter_and_plane_nested_by_category(self) -> None:
+        groups = [
+            {"groupId": 10, "name": "DST - UH-1H", "dynSpawnTemplate": True, "units": [{"type": "UH-1H"}]},
+            {"groupId": 11, "name": "DST - A-10C II", "dynSpawnTemplate": True, "units": [{"type": "A-10C_2"}]},
+        ]
+        mission_content = {
+            "coalition": {
+                "blue": {
+                    "country": [
+                        {
+                            "name": "USA",
+                            "helicopter": {"group": [groups[0]]},
+                            "plane": {"group": [groups[1]]},
+                        }
+                    ]
+                }
+            }
+        }
+        warehouses = {"airports": {23: {"coalition": "BLUE", "dynamicSpawn": False, "aircrafts": {}}}}
+        m = DcsMission(
+            file_path=Path("d.miz"),
+            mission_content=mission_content,
+            warehouses_content=warehouses,
+            theatre_content="Caucasus",
+        )
+        cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 1}, "A-10C_2": {"amount": 1}}}}}
+        apply_warehouses(m, cfg)
+
+        aircrafts = m.warehouses_content["airports"][23]["aircrafts"]
+        assert aircrafts["helicopters"]["UH-1H"]["linkDynTempl"] == 10
+        assert aircrafts["planes"]["A-10C_2"]["linkDynTempl"] == 11
+        # Nothing placed flat (the bug): only the two category sub-tables.
+        assert set(aircrafts.keys()) == {"helicopters", "planes"}
 
 
 class TestEdgeCases:

@@ -22,8 +22,13 @@ if not veafQraManager or not veafQraManager.Id then
   local _dir = ""
   if debug and debug.getinfo then
     local _info = debug.getinfo(1, "S")
-    if _info and _info.source and _info.source:sub(1, 1) == "@" then
-      _dir = _info.source:sub(2):match("^(.+[\\/])") or ""
+    if _info and _info.source then
+      -- source is "@<path>" (loadfile) or "<path>" (DCS dynamic loadfile, shown as [string "<path>"])
+      local _src = _info.source
+      if _src:sub(1, 1) == "@" then
+        _src = _src:sub(2)
+      end
+      _dir = _src:match("^(.+[\\/])") or ""
     end
   end
   dofile(_dir .. "veafQraLogistics.lua")

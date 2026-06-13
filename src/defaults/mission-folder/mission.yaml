@@ -73,7 +73,8 @@ modules:
   GROUNDAI: true
   SPAWN: true
   NAMEDPOINTS: true
-  # SHORTCUTS needs a `shortcuts:` list — uncomment and fill in to enable:
+  SHORTCUTS: true           # built-in aliases (-shilka, -sa2, …) ; add custom ones with the extended form below
+  # SHORTCUTS (extended form, to add custom aliases on top of the built-in ones):
   #   SHORTCUTS:
   #     enabled: true
   #     shortcuts:
@@ -108,11 +109,12 @@ modules:
   #         coalition: BLUE
   #         delay_warning: 30
   #         delay_spawn: 60
-  # ── Combat (off by default — enable + configure) ──────────────────────────
-  # CASMISSION: true
-  # TRANSPORTMISSION: true
+  # ── Combat ────────────────────────────────────────────────────────────────
+  CASMISSION: true          # `_cas` marker — on-demand CAS target group (no config)
+  TRANSPORTMISSION: true    # `_transport` marker — on-demand transport mission (no config)
+  # The rest need configuration — enable + configure as needed:
   # COMBATMISSION: true
-  # CARRIER: true
+  # CARRIER: true             # carrier-operations radio menus (if a carrier is present)
   #   COMBATZONE:
   #     enabled: true
   #     combat_zone_settings:
@@ -216,6 +218,8 @@ modules:
 #     file: src/spawnables.yaml
 #     mode: replace
 #   dynamic_slot_templates: true    # src/dynamic-slot-templates.yaml (dynSpawnTemplate)
+#   warehouses: true                # src/warehouses.yaml (Dynamic-Slot warehouses)
+#   spawn_data: true                # always on; src/spawn-groups.yaml extends the spawn DB. false = disable
 #   weather: false
 
 # ── Build settings ────────────────────────────────────────────────────────────

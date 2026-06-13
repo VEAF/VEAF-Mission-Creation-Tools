@@ -2,6 +2,7 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
+import copy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -71,19 +72,59 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         """Collect the group; actual preset injection happens in process_groups()."""
         self.add_group(group)
 
+    def _drop_out_of_range_channels(self, group: Group, preset_definition: PresetDefinition) -> PresetDefinition:
+        """Return a copy of the preset with channels out of range for the aircraft removed.
+
+        DCS refuses to save a mission if *any* radio channel is outside the
+        aircraft's valid frequency ranges. Rather than overwrite a partially
+        compatible radio with an unsaveable set, the out-of-range channels are
+        dropped and the in-range ones kept. Empty presets and unknown aircraft
+        (no spec data) are returned unchanged.
+
+        Args:
+            group: The aircraft group being processed.
+            preset_definition: The preset resolved for that group.
+
+        Returns:
+            The preset to inject — the original when nothing is out of range, else
+            a filtered copy.
+        """
+        if preset_definition == PresetDefinition.EMPTY or not group.unit_type:
+            return preset_definition
+        if get_valid_ranges(group.unit_type) is None:
+            return preset_definition
+        all_freqs = [
+            ch.freq
+            for radio in preset_definition.radios.values()
+            for ch in radio.channels
+            if isinstance(ch.freq, (int, float))
+        ]
+        invalid = set(validate_frequencies(group.unit_type, all_freqs))
+        if not invalid:
+            return preset_definition
+        filtered = copy.deepcopy(preset_definition)
+        for radio in filtered.radios.values():
+            radio.channels = [
+                ch for ch in radio.channels if not (isinstance(ch.freq, (int, float)) and ch.freq in invalid)
+            ]
+        return filtered
+
     def process_units(self, group: Group, preset_definition: PresetDefinition) -> int:
         nb_units_processed = 0
+        # Drop channels DCS would reject for this aircraft (keeps the mission saveable);
+        # the original preset is still used below to report which channels were dropped.
+        inject_preset = self._drop_out_of_range_channels(group, preset_definition)
         if units := group.group_dcs.get("units", {}):
             for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
                 nb_units_processed += 1
-                unit["Radio"] = preset_definition.to_dict()
-                if preset_definition == PresetDefinition.EMPTY:
+                unit["Radio"] = inject_preset.to_dict()
+                if inject_preset == PresetDefinition.EMPTY:
                     if "frequency" in group.group_dcs:
                         del group.group_dcs["frequency"]
-                elif first_freq := preset_definition.get_freq_of_first_channel_of_first_radio():
+                elif first_freq := inject_preset.get_freq_of_first_channel_of_first_radio():
                     # FM-primary radios (Gazelle, Ka-50…) have HumanRadio in VHF/UHF range:
                     # injecting the FM channel freq would make the ME flag it as invalid.
-                    first_radio_type = next(iter(preset_definition.radios.values())).radio_type
+                    first_radio_type = next(iter(inject_preset.radios.values())).radio_type
                     if first_radio_type != "fm":
                         group.group_dcs["frequency"] = first_freq
 

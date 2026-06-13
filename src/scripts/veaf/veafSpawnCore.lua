@@ -180,7 +180,8 @@ function veafSpawn.executeCommand(
   repeatCount,
   repeatDelay,
   route,
-  allowStartDelay
+  allowStartDelay,
+  requesterCoalition
 )
   veaf.loggers.get(veafSpawn.Id):trace("eventPos=%s", eventPos)
   veaf.loggers.get(veafSpawn.Id):debug("eventText=%s", eventText)
@@ -218,7 +219,14 @@ function veafSpawn.executeCommand(
           end
           table.insert(hints, hint)
         end
-        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, coalition)
+        -- Address the hint to the requester (the pilot who issued the command), not
+        -- to `coalition` (the side the units spawn for). nil => shown to everyone.
+        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, requesterCoalition)
+        -- An unrecognized parameter is an error: report it and ABORT, so a typo
+        -- never silently spawns something the pilot did not intend. The marker is
+        -- left in place so the pilot can fix the typo. (Known keys are derived from
+        -- ParameterRules, so a flagged key is one that would have done nothing.)
+        return false
       end
 
       local repeatDelay = repeatDelay
@@ -232,7 +240,7 @@ function veafSpawn.executeCommand(
           :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
         mist.scheduleFunction(
           veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false },
+          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition },
           timer.getTime() + startDelay
         )
         return true
@@ -264,11 +272,19 @@ function veafSpawn.executeCommand(
           :trace(
             string.format("scheduling veafSpawn.executeCommand for %s repeats in %s seconds", veaf.p(repeatCount), veaf.p(repeatDelay))
           )
-        mist.scheduleFunction(
-          veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, false },
-          timer.getTime() + repeatDelay
-        )
+        mist.scheduleFunction(veafSpawn.executeCommand, {
+          eventPos,
+          eventText,
+          coalition,
+          markId,
+          bypassSecurity,
+          spawnedGroups,
+          repeatCount,
+          repeatDelay,
+          route,
+          false,
+          requesterCoalition,
+        }, timer.getTime() + repeatDelay)
       end
 
       if not options.radius then
@@ -919,8 +935,11 @@ function veafSpawn.initialize()
   veafSpawn.buildRadioMenu()
   veafSpawn.initializeAirUnitTemplates()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
-    return veafSpawn.executeCommand(pos, event.text, coal, event.idx, bypass, groups, nil, nil, route, true)
+    -- Markers spawn for the opposing side by default; interpreter/remote commands
+    -- spawn for the issuing unit's own side. Feedback always goes to the requester.
+    local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
+    local requesterCoalition = veaf.getRequesterCoalition(event)
+    return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
   end, veafCommands.PRIORITY_SPAWN)
   veafSpawn.dumpSpawnablePlanesList()
 end

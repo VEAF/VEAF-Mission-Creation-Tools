@@ -20,6 +20,16 @@ class TestMissionIdentity(unittest.TestCase):
         lua = generate_config_lua({"mission": {"language": "fr"}})
         self.assertIn('veaf.config.language = "fr"', lua)
 
+    def test_module_var_name_uses_table_not_filename(self) -> None:
+        # Modules whose public table differs from their filename must map to the
+        # table name (read from `<table>.Id`), else the generated config would call
+        # e.g. veafSpawnCore.initialize() — a nil global — and never initialize.
+        from veaf_libs.lua_config_generator import _build_id_to_var
+
+        mapping = _build_id_to_var()
+        self.assertEqual(mapping["SPAWN"], "veafSpawn")  # file veafSpawnCore.lua
+        self.assertEqual(mapping["QRA"], "veafQraManager")  # file veafQraCore.lua
+
     def test_language_falls_back_to_tools_language(self) -> None:
         from veaf_libs.i18n import current_language, set_language
 

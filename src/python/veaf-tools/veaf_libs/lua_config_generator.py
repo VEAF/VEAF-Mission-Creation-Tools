@@ -330,11 +330,17 @@ def _yaml_comment(key: str) -> list[str]:
 
 
 def _build_id_to_var() -> dict[str, str]:
-    """Return a mapping of module ID → Lua variable name from the module list."""
+    """Return a mapping of module ID → Lua variable (table) name from the module list.
+
+    Uses the scanner's ``var_name`` (read from the ``<table>.Id = "..."`` line), NOT
+    the filename stem: a module's public table may differ from its file, e.g.
+    ``veafSpawnCore.lua`` defines ``veafSpawn`` and ``veafQraCore.lua`` defines
+    ``veafQraManager``. Using the filename would emit ``veafSpawnCore.initialize()``
+    (a nil global) and the module would never initialize.
+    """
     result: dict[str, str] = {}
     for mod in get_modules():
-        var_name = mod["filename"].removesuffix(".lua")
-        result[mod["id"]] = var_name
+        result[mod["id"]] = mod["var_name"] or mod["filename"].removesuffix(".lua")
     return result
 
 
@@ -1165,6 +1171,8 @@ def generate_mission_yaml_template(
         "#   waypoints: true               # src/waypoints.yaml",
         "#   spawnable_aircrafts: true     # src/spawnables.yaml",
         "#   dynamic_slot_templates: true  # src/dynamic-slot-templates.yaml",
+        "#   warehouses: true              # src/warehouses.yaml (Dynamic-Slot warehouses)",
+        "#   spawn_data: true              # always on; src/spawn-groups.yaml extends the spawn DB",
         "#   weather: true                 # src/versions.yaml",
     ]
 

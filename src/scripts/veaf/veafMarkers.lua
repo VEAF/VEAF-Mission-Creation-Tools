@@ -128,7 +128,7 @@ function veafMarkers.onEvent(event, eventHandlersTable)
         veaf.loggers.get(veafMarkers.Id):error("Error in event handler #" .. eventHandler.id .. " : " .. errmsg)
         -- Surface the failure in-game to the pilot who placed the marker (the log
         -- is invisible during a flight); the stack trace stays in the DCS log.
-        veaf.reportToPilot(veaf.t("marker.command_failed"), 15, event.coalition)
+        veaf.reportToPilot(veaf.t("marker.command_failed"), 15, veaf.getRequesterCoalition(event))
       end
       veaf.loggers.get(veafMarkers.Id):debug("Returning after eventHandler #" .. eventHandler.id)
     end

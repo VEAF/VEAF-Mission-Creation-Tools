@@ -447,7 +447,7 @@ veaf.i18nCatalog = {
   },
   ["groundai.cannot_fire_effect"] = {
     fr = "%s ne peut pas tirer pour effet, aucune coordonnée de cible fournie et aucune cible précédente",
-    en = "%s cannot fire for effect, no target coordinates provided and no previous target exist",
+    en = "%s cannot fire for effect, no target coordinates provided and no previous target exists",
   },
   ["groundai.firing"] = {
     fr = "%s tire %d obus sur %s avec une dispersion de %s m",

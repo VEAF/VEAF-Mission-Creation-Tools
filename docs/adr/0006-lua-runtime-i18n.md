@@ -20,10 +20,13 @@ tools' design-time i18n, `veaf_libs.i18n` + `locales/{en,fr}.json`).
 - **Catalog** `veaf.i18nCatalog = { ["key"] = { fr = "...", en = "..." } }` lives in
   a dedicated **`veafI18n.lua`** module, loaded first in the framework bundle. The
   function and the data are split so `veaf.t` exists even if the catalog is absent.
-- **Active language** is `veaf.config.language`, emitted into `veaf-config.lua`
-  from `mission.yaml`'s `mission.language` by `lua_config_generator` (plumbing that
-  already existed). Default is **`fr`** (`veaf.I18N_DEFAULT_LANGUAGE`, also set as
-  the `veaf.config.language` default in `veaf.lua`).
+- **Active language** is `veaf.config.language`, emitted into `veaf-config.lua` by
+  `lua_config_generator`. Source priority: `mission.yaml`'s `mission.language`
+  (explicit per-mission choice) → otherwise the **tools' resolved language**
+  (`current_language()`: `--lang` > `VEAF_LANG` > user config > OS locale > `en`),
+  so a mission built by a French maker defaults to FR in-game and others to their
+  locale. `veaf.I18N_DEFAULT_LANGUAGE = "fr"` in `veaf.lua` remains only as the
+  ultimate runtime fallback (e.g. a mission with no `veaf-config.lua`).
 - **Fallback** order: requested language → default language (`fr`) → the key
   itself, so a missing entry never crashes a message.
 

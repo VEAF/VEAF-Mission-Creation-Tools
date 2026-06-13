@@ -669,7 +669,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
         local handlerName = options.name
         local handler = veafGroundAI.get(handlerName)
         if handler then
-          trigger.action.outText(string.format("AI handler %s: %s", handlerName, handler:getDescription()), 10)
+          trigger.action.outText(veaf.t("groundai.handler_info", handlerName, handler:getDescription()), 10)
           return true
         end
       elseif options.verb == veafGroundAI.VERB_ORDER then

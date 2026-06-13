@@ -2864,7 +2864,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
 
   if not delay1 then
     -- no more delay, let's end this !
-    trigger.action.outText("Ending mission !", 30)
+    trigger.action.outText(veaf.t("mission.ending"), 30)
     veaf.loggers.get(veaf.Id):info("ending mission")
     trigger.action.setUserFlag("666", 1)
   else

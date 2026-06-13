@@ -245,6 +245,126 @@ veaf.i18nCatalog = {
     fr = "Groupe objectif CAS nettoyé.",
     en = "CAS objective group cleaned up.",
   },
+
+  -- veaf (core)
+  ["mission.ending"] = {
+    fr = "Fin de la mission !",
+    en = "Ending mission !",
+  },
+
+  -- veafMove
+  ["move.group_not_found"] = {
+    fr = "%s introuvable pour la commande move group",
+    en = "%s not found for move group command",
+  },
+  ["move.tanker_not_found"] = {
+    fr = "%s introuvable pour la commande move tanker",
+    en = "%s not found for move tanker command",
+  },
+  ["move.afac_not_found"] = {
+    fr = "%s introuvable pour la commande move afac",
+    en = "%s not found for move afac command",
+  },
+  ["move.no_tanker"] = {
+    fr = "Impossible de trouver un ravitailleur autour du marqueur",
+    en = "Cannot find tanker unit around marker",
+  },
+  ["move.invalid_fac"] = {
+    fr = "%s a une configuration FAC/Orbite invalide",
+    en = "%s has an invalid FAC/Orbit configuration",
+  },
+  ["move.tanker_moving"] = {
+    fr = "%s - En route vers votre position immédiatement !",
+    en = "%s - Moving to your position right away !",
+  },
+
+  -- veafTransportMission
+  ["transport.exists"] = {
+    fr = "Une mission de transport existe déjà !",
+    en = "A transport mission already exists !",
+  },
+  ["transport.from_mandatory"] = {
+    fr = "Le mot-clé « from » est obligatoire !",
+    en = 'The "from" keyword is mandatory !',
+  },
+  ["transport.point_not_found"] = {
+    fr = "Le point nommé %s est introuvable !",
+    en = "A point named %s cannot be found !",
+  },
+  ["transport.failure"] = {
+    fr = "Le groupe ami a été détruit ! La mission est un échec !",
+    en = "Friendly group has been destroyed! The mission is a failure!",
+  },
+  ["transport.smoke_requested"] = {
+    fr = "Bien reçu, fumée demandée : la fumée VERTE marque la zone de largage !",
+    en = "Copy smoke requested, GREEN smoke marks the drop zone!",
+  },
+  ["transport.smoke_available"] = {
+    fr = "Marquage fumigène sur la zone de largage disponible",
+    en = "Smoke marker over drop zone available",
+  },
+  ["transport.illum_requested"] = {
+    fr = "Bien reçu, fusée éclairante demandée : fusée éclairante au-dessus de la zone cible !",
+    en = "Copy illumination flare requested, illumination flare over target area!",
+  },
+  ["transport.illum_available"] = {
+    fr = "Fusée éclairante sur la zone de largage disponible",
+    en = "Illumination flare over drop zone available",
+  },
+  ["transport.cleaned"] = {
+    fr = "Mission de transport nettoyée.",
+    en = "Transport mission cleaned up.",
+  },
+  ["transport.cargoes_respawned"] = {
+    fr = "Toutes les cargaisons ont été réapparues",
+    en = "All cargoes have been respawned",
+  },
+  ["transport.cargo_delivered"] = {
+    fr = "Félicitations pour ce travail bien fait ! La cargaison %s a été livrée en toute sécurité",
+    en = "Congratulations on a job well done ! Cargo %s has been delivered safely",
+  },
+
+  -- veafGroundAI
+  ["groundai.handler_info"] = {
+    fr = "Gestionnaire IA %s : %s",
+    en = "AI handler %s: %s",
+  },
+
+  -- veafWeather
+  ["weather.fog_set"] = {
+    fr = "Brouillard réglé sur %s",
+    en = "Fog set to %s",
+  },
+
+  -- veafAssets
+  ["assets.inactive"] = {
+    fr = "%s n'est ni actif ni en vie",
+    en = "%s is not active nor alive",
+  },
+  ["assets.active_one"] = {
+    fr = "%s est actif ; une unité en vie\n",
+    en = "%s is active ; one unit is alive\n",
+  },
+  ["assets.active"] = {
+    fr = "%s est actif ; %d unités en vie\n",
+    en = "%s is active ; %d units are alive\n",
+  },
+  ["assets.disposed"] = {
+    fr = "J'ai éliminé %s",
+    en = "I've disposed of %s",
+  },
+  ["assets.respawned"] = {
+    fr = "J'ai fait réapparaître %s",
+    en = "I've respawned %s",
+  },
+  ["assets.lasing"] = {
+    fr = " désignation laser au code %s",
+    en = " lasing with code %s",
+  },
+  ["assets.help"] = {
+    fr = "Le menu radio liste tous les actifs, amis ou ennemis\nUtilisez ces menus pour faire réapparaître les actifs au besoin\n",
+    en = "The radio menu lists all the assets, friendly or enemy\nUse these menus to respawn the assets when needed\n",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(string.format("Loading version %s", veafI18n.Version))

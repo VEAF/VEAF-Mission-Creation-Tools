@@ -99,7 +99,7 @@ function veafAssets.info(parameters)
   if theAsset then
     local group = Group.getByName(theAsset.name)
     veaf.loggers.get(veafAssets.Id):trace(string.format("assets[%s] = '%s'", theAsset.name, theAsset.description))
-    local text = theAsset.description .. " is not active nor alive"
+    local text = veaf.t("assets.inactive", theAsset.description)
     if group then
       veaf.loggers.get(veafAssets.Id):debug("found asset group")
       local nAlive = 0
@@ -111,9 +111,9 @@ function veafAssets.info(parameters)
       end
       if nAlive > 0 then
         if nAlive == 1 then
-          text = string.format("%s is active ; one unit is alive\n", theAsset.description)
+          text = veaf.t("assets.active_one", theAsset.description)
         else
-          text = string.format("%s is active ; %d units are alive\n", theAsset.description, nAlive)
+          text = veaf.t("assets.active", theAsset.description, nAlive)
         end
         if theAsset.information then
           text = text .. theAsset.information
@@ -140,8 +140,7 @@ function veafAssets.dispose(name)
         Unit.destroy(unit)
       end
     end
-    local text = "I've disposed of " .. theAsset.description
-    trigger.action.outText(text, 30)
+    trigger.action.outText(veaf.t("assets.disposed", theAsset.description), 30)
   end
 end
 
@@ -166,11 +165,11 @@ function veafAssets.respawn(name)
         mist.respawnGroup(linkedGroup, true)
       end
     end
-    local text = "I've respawned " .. theAsset.description
+    local text = veaf.t("assets.respawned", theAsset.description)
     if theAsset.jtac then
       if ctld then
         veafSpawn.JTACAutoLase(name, theAsset.jtac, theAsset)
-        text = text .. " lasing with code " .. theAsset.jtac
+        text = text .. veaf.t("assets.lasing", theAsset.jtac)
       end
     end
     trigger.action.outText(text, 30)
@@ -179,8 +178,7 @@ end
 
 function veafAssets.help(unitName)
   veaf.loggers.get(veafAssets.Id):trace(string.format("help(%s)", unitName or ""))
-  local text = "The radio menu lists all the assets, friendly or enemy\n" .. "Use these menus to respawn the assets when needed\n"
-  veaf.outTextForGroup(unitName, text, 30)
+  veaf.outTextForGroup(unitName, veaf.t("assets.help"), 30)
 end
 
 function veafAssets.get(assetName)

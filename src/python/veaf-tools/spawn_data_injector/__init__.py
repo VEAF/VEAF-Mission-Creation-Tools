@@ -2,10 +2,10 @@
 
 ``veafUnits.lua`` no longer hard-codes its ``UnitsDatabase`` / ``GroupsDatabase``
 literals; they live in ``veaf_libs/data/veaf-units.yaml`` (framework) and, per
-mission, in ``src/spawn-groups.yaml`` / ``src/spawn-units.yaml``. At mission
-build the framework and mission YAML are merged, rendered to a Lua module that
-assigns the two tables, and injected into the ``.miz`` after the framework
-bundle. See ADR 0005.
+mission, in ``src/spawn-groups.yaml`` (which may hold both ``units:`` and
+``groups:``). At mission build the framework and mission YAML are merged,
+rendered to a Lua module that assigns the two tables, and injected into the
+``.miz`` after the framework bundle. See ADR 0005.
 """
 
 from __future__ import annotations

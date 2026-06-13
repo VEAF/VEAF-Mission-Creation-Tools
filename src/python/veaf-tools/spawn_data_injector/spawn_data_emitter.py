@@ -55,12 +55,19 @@ def _lua_string(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _lua_number(value: int | float) -> str:
+    """Render a YAML number as Lua, collapsing integral floats (``10.0`` -> ``10``)."""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 def _lua_scalar(value: Any) -> str:
-    """Render a scalar (str/bool/int) as Lua source."""
+    """Render a scalar (str/bool/int/float) as Lua source."""
     if isinstance(value, bool):
         return "true" if value else "false"
-    if isinstance(value, int):
-        return str(value)
+    if isinstance(value, (int, float)):
+        return _lua_number(value)
     if isinstance(value, str):
         return _lua_string(value)
     raise TypeError(f"unsupported scalar type: {type(value).__name__} ({value!r})")

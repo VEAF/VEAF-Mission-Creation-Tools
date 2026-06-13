@@ -287,9 +287,9 @@ def build(
         )
 
     # Spawn-data injection — always on (the framework spawn DB must ship), unless
-    # explicitly disabled. Merges an optional per-mission src/spawn-groups.yaml /
-    # src/spawn-units.yaml over the framework data. Runs before weather so every
-    # weather variant embeds the data. See ADR 0005.
+    # explicitly disabled. Merges an optional per-mission src/spawn-groups.yaml
+    # (which may hold both `units:` and `groups:`) over the framework data. Runs
+    # before weather so every weather variant embeds the data. See ADR 0005.
     spawn_step_cfg = worker.pipeline_cfg.get("spawn_data")
     spawn_disabled = spawn_step_cfg is False or (
         isinstance(spawn_step_cfg, dict) and spawn_step_cfg.get("enabled") is False

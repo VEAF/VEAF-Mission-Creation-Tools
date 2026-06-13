@@ -118,6 +118,25 @@ def test_render_field_variants() -> None:
     assert _extract_table(lua, "GroupsDatabase") == _expected_groups_db(data["groups"])
 
 
+def test_render_collapses_integral_floats() -> None:
+    """User YAML numbers may parse as floats (e.g. ``size: 10.0``); render as ints."""
+    data = {
+        "units": [],
+        "groups": [
+            {
+                "aliases": ["g"],
+                "disposition": {"h": 3, "w": 3},
+                "units": [{"type": "U", "cell": 8.0, "size": 10.0}],
+            }
+        ],
+    }
+    lua = render_spawn_data_lua(data)
+    parsed = _extract_table(lua, "GroupsDatabase")
+    unit = parsed[0]["group"]["units"][0]
+    assert unit["cell"] == 8
+    assert unit["size"] == 10
+
+
 def test_render_escapes_special_chars() -> None:
     """Quotes and backslashes in strings round-trip safely."""
     data = {

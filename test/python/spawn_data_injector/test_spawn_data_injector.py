@@ -50,6 +50,10 @@ class TestInjectSpawnData:
         )
         assert mission.mission_content["trig"]["conditions"][3] == "return true"
         assert mission.mission_content["trig"]["flag"][3] is True
+        # funcStartup is what DCS actually runs at mission start
+        assert mission.mission_content["trig"]["funcStartup"][3] == (
+            "if mission.trig.conditions[3]() then mission.trig.actions[3]() end"
+        )
 
     def test_trigrule_uses_a_do_script_file(self) -> None:
         mission = _mission_with_triggers()

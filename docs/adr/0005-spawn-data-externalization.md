@@ -27,8 +27,10 @@ the *inject-groups* axis of TODO0609-AIRCRAFT-INJECT.)
 - **Framework data** — `veaf-units.yaml`, shipped with the tool (in `published.zip`
   beside the community scripts), replacing the hand-coded `UnitsDatabase` /
   `GroupsDatabase` literals in `veafUnits.lua`.
-- **Per-mission data** — `src/spawn-groups.yaml` (and optionally `src/spawn-units.yaml`)
-  in the mission folder, letting a mission maker add or override spawn groups/units.
+- **Per-mission data** — `src/spawn-groups.yaml` in the mission folder (a single
+  file carrying both `units:` and `groups:`), letting a mission maker add or
+  override spawn units/groups. (Implemented as one file rather than the originally
+  envisaged `spawn-groups.yaml` + `spawn-units.yaml` split — simpler, same schema.)
 
 **Generation happens at the MISSION build (`veaf-tools build`), not at `veaf-build`.**
 This is the key difference from `dcsUnits` (which `veaf-build update-dcs-data`

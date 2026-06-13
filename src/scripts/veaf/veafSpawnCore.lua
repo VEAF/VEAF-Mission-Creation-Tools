@@ -180,14 +180,17 @@ function veafSpawn.executeCommand(
 
     if options then
       -- Hint the pilot about unrecognized parameters (likely typos) — UXPILOT-003.
+      -- Aggregate into a single message to avoid spamming when several keys are wrong.
       if options.unknownParameters then
+        local hints = {}
         for _, p in ipairs(options.unknownParameters) do
-          local msg = "VEAF spawn: unknown parameter '" .. tostring(p.key) .. "'"
+          local hint = "'" .. tostring(p.key) .. "'"
           if p.suggestion then
-            msg = msg .. " — did you mean '" .. tostring(p.suggestion) .. "'?"
+            hint = hint .. " (did you mean '" .. tostring(p.suggestion) .. "'?)"
           end
-          veaf.reportToPilot(msg, 15, coalition)
+          table.insert(hints, hint)
         end
+        veaf.reportToPilot("VEAF spawn: unknown parameter(s): " .. table.concat(hints, ", "), 15, coalition)
       end
 
       local repeatDelay = repeatDelay

@@ -1595,7 +1595,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     end
   end
   if not endPoint then
-    local msg = "A point named " .. destination .. " cannot be found, and these are not valid coordinates !"
+    local msg = veaf.t("spawn.point_not_found", destination)
     veaf.loggers.get(veaf.Id):warn(msg)
     trigger.action.outText(msg, 5)
     return

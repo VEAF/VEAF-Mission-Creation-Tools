@@ -47,7 +47,7 @@
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
-| Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ⬜ |
+| Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | 🟡 |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ✅ |
 | Lot DOC-CHATBOT — free RAG documentation chatbot (Cloudflare Worker + in-Worker cosine + Gemini) embedded in the MkDocs site | ✅ |
 | Lot CHATBOT-CLI — expose the doc chatbot as a `veaf-tools` CLI command (`ask`) + TUI entry, reusing the CI-built index | ✅ |
@@ -713,7 +713,7 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| SPAWN-REFACTOR-001 | Characterization tests for `veafSpawnParser.markTextAnalysis`: 30+ marker variants incl. typos, missing values, and multiple parameters; lock current behaviour before any change. Prerequisite for UXPILOT-003 and for any dedup. | `test/lua/test_veafSpawnParser.lua` (new) | feat | ⬜ |
+| SPAWN-REFACTOR-001 | Characterization tests for `veafSpawnParser.markTextAnalysis`: 41 marker variants (rejects/typos/missing values, every command + defaults, air-role defaults, parameter parsing), captured against the live parser and asserting only deterministic fields (math.random defaults left unasserted). Locks behaviour before any dedup; unblocks UXPILOT-003. | `test/lua/test_veafSpawnParser.lua` | feat | ✅ |
 | SPAWN-REFACTOR-002 | Extract a spawn-type **descriptor table** (`{type → {defaults, validators}}`) consumed by the parser, and a shared `VeafSpawner` base for the duplicated validation/debug blocks. Only within the scope of a lot already touching these files. | `src/scripts/veaf/veafSpawnParser.lua`, `veafSpawnAircraft.lua`, `veafSpawnGround.lua`, `veafSpawnCore.lua`, `test/lua/` | refactor | ⬜ |
 
 ---

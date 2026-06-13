@@ -78,9 +78,15 @@ def _build_mission_categories(mission: DcsMission) -> dict[str, str]:
     """
     index: dict[str, str] = {}
     for group in mission.iter_groups():
-        if group.unit_type and group.group_dcs.get("dynSpawnTemplate") is True:
+        # Only single-unit templates: a multi-unit group's reported unit_type is
+        # just its last unit, which would file the same type under both categories.
+        if (
+            group.unit_type
+            and group.group_dcs.get("dynSpawnTemplate") is True
+            and len(group.group_dcs.get("units") or []) == 1
+        ):
             index[group.unit_type.lower()] = _CATEGORY_TO_WAREHOUSE.get(
-                group.aircraft_type, _DEFAULT_WAREHOUSE_CATEGORY
+                (group.aircraft_type or "").lower(), _DEFAULT_WAREHOUSE_CATEGORY
             )
     return index
 

@@ -44,9 +44,10 @@ environment), so runtime consumption stays Lua: the injected data module assigns
 framework bundle (`veafUnits.lua` defines the functions and now defaults the two
 tables to empty); the injected module then populates them.
 
-**Merge semantics**: per-mission entries are appended; an alias collision lets the
-mission entry win (override), so a mission can replace a framework group by reusing
-its alias. (Confirm exact collision policy in -004.)
+**Merge semantics** (confirmed in -004): per-mission entries are appended; if a
+mission entry shares **any** alias (case-insensitive) with a framework entry, it
+**replaces** that entry, so a mission can override a framework unit/group by
+reusing one of its aliases. Implemented in `spawn_data_injector.merge_spawn_data`.
 
 ## Consequences
 

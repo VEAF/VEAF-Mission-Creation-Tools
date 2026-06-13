@@ -1,0 +1,900 @@
+# VEAF framework spawn data — source of truth for veafUnits.UnitsDatabase
+# and veafUnits.GroupsDatabase. Rendered to a Lua module and injected into
+# the .miz at mission build (veaf-tools build). See ADR 0005.
+#
+# units:  alias -> DCS unit type, for `_spawn unit <alias>`.
+# groups: composite groups (SAM sites, convoys, ...), for `_spawn group <alias>`.
+#   disposition: {h, w} layout grid in cells (a cell is 10m x 10m).
+#   units[].cell: preferred grid cell; number: count or {min, max} random range;
+#   hdg: heading; size: fixed cell size (m); random: randomize within cell;
+#   fitToUnit: shrink the cell to the unit's exact footprint.
+#   hidden: keep out of generated documentation listings.
+
+units:
+- {aliases: [hq7], unitType: HQ-7_LN_SP}
+- {aliases: [hq7eo], unitType: HQ-7_LN_EO}
+- {aliases: [sa8, sa-8], unitType: Osa 9A33 ln}
+- {aliases: [sa9, sa-9], unitType: Strela-1 9P31}
+- {aliases: [sa13, sa-13], unitType: Strela-10M3}
+- {aliases: [sa15, sa-15], unitType: Tor 9A331}
+- {aliases: [sa18, sa-18, manpad], unitType: SA-18 Igla-S manpad}
+- {aliases: [dogear], unitType: Dog Ear radar}
+- {aliases: [shilka], unitType: ZSU-23-4 Shilka}
+- {aliases: [tarawa], unitType: LHA_Tarawa}
+- {aliases: [blue-ewr], unitType: FPS-117}
+- {aliases: [red-ewr], unitType: 1L13 EWR}
+- {aliases: [avenger], unitType: M1097 Avenger}
+groups:
+- aliases: [hq7]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: HQ-7_STR_SP, cell: 8}
+  - {type: HQ-7_LN_SP, cell: 1, hdg: 300}
+  - {type: HQ-7_LN_SP, cell: 5, hdg: 60}
+  - {type: HQ-7_LN_SP, cell: 23, hdg: 180}
+  - {type: Ural-375, random: true}
+  description: HQ-7 SAM site
+  groupName: HQ-7
+- aliases: [hq7_single]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: HQ-7_LN_SP, cell: 1}
+  - {type: Ural-375, random: true}
+  description: HQ-7 SAM site
+  groupName: HQ-7
+- aliases: [hq7-noew]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: HQ-7_LN_SP, cell: 1, hdg: 300}
+  - {type: HQ-7_LN_SP, cell: 5, hdg: 60}
+  - {type: HQ-7_LN_SP, cell: 23, hdg: 180}
+  - {type: Ural-375, random: true}
+  description: HQ-7 SAM site without STR
+  groupName: HQ-7
+- aliases: [hq7eo]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: HQ-7_STR_SP, cell: 8}
+  - {type: HQ-7_LN_EO, cell: 1, hdg: 300}
+  - {type: HQ-7_LN_EO, cell: 5, hdg: 60}
+  - {type: HQ-7_LN_EO, cell: 23, hdg: 180}
+  - {type: Ural-375, random: true}
+  description: HQ-7EO SAM site
+  groupName: HQ-7
+- aliases: [hq7eo_single]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: HQ-7_LN_EO, cell: 1}
+  - {type: Ural-375, random: true}
+  description: HQ-7EO SAM site
+  groupName: HQ-7
+- aliases: [hq7eo-noew]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: HQ-7_LN_EO, cell: 1, hdg: 300}
+  - {type: HQ-7_LN_EO, cell: 5, hdg: 60}
+  - {type: HQ-7_LN_EO, cell: 23, hdg: 180}
+  - {type: Ural-375, random: true}
+  description: HQ-7EO SAM site without STR
+  groupName: HQ-7
+- aliases: [sa2, sa-2, fs]
+  disposition: {h: 6, w: 8}
+  units:
+  - {type: SNR_75V, cell: 20}
+  - {type: p-19 s-125 sr, cell: 48}
+  - {type: S_75M_Volhov, cell: 2, hdg: 315}
+  - {type: S_75M_Volhov, cell: 6, hdg: 45}
+  - {type: S_75M_Volhov, cell: 17, hdg: 270}
+  - {type: S_75M_Volhov, cell: 24, hdg: 90}
+  - {type: S_75M_Volhov, cell: 34, hdg: 225}
+  - {type: S_75M_Volhov, cell: 38, hdg: 135}
+  - {type: ZSU_57_2, number: {max: 2, min: 1}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 2, min: 1}, random: true}
+  - {type: ZIL-135, number: {max: 2, min: 1}, random: true}
+  description: SA-2 SAM site
+  groupName: SA2
+- aliases: [sa3, sa-3, lb]
+  disposition: {h: 7, w: 9}
+  units:
+  - {type: p-19 s-125 sr, cell: 1}
+  - {type: snr s-125 tr, cell: 33}
+  - {type: 5p73 s-125 ln, cell: 18, hdg: 30}
+  - {type: 5p73 s-125 ln, cell: 30, hdg: 270}
+  - {type: 5p73 s-125 ln, cell: 61, hdg: 150}
+  - {type: ZSU_57_2, number: {max: 2, min: 1}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 2, min: 1}, random: true}
+  - {type: ZIL-135, number: {max: 2, min: 1}, random: true}
+  description: SA-3 SAM site
+  groupName: SA3
+- aliases: [sa5, sa-5, S-200, S200, s200, s-200]
+  disposition: {h: 155, w: 120}
+  units:
+  - {type: RLS_19J6, cell: 17614, size: 10}
+  - {type: RPC_5N62V, cell: 15118, size: 10}
+  - {type: generator_5i57, cell: 15358, hdg: 80, size: 10}
+  - {type: generator_5i57, cell: 17854, hdg: 75, size: 10}
+  - {type: S-200_Launcher, cell: 676, hdg: 2, size: 10}
+  - {type: S-200_Launcher, cell: 702, hdg: 4, size: 10}
+  - {type: S-200_Launcher, cell: 2749, hdg: 358, size: 10}
+  - {type: S-200_Launcher, cell: 3069, hdg: 358, size: 10}
+  - {type: S-200_Launcher, cell: 4786, hdg: 358, size: 10}
+  - {type: S-200_Launcher, cell: 5115, hdg: 355, size: 10}
+  - {type: S-200_Launcher, cell: 7231, hdg: 347, size: 10}
+  - {type: S-200_Launcher, cell: 8045, hdg: 343, size: 10}
+  - {type: S-200_Launcher, cell: 8935, hdg: 341, size: 10}
+  - {type: S-200_Launcher, cell: 9962, hdg: 355, size: 10}
+  - {type: S-200_Launcher, cell: 10734, hdg: 350, size: 10}
+  - {type: S-200_Launcher, cell: 11781, hdg: 340, size: 10}
+  - {type: ZIL-135, cell: 76, hdg: 174, size: 10}
+  - {type: ZIL-135, cell: 102, hdg: 181, size: 10}
+  - {type: ZIL-135, cell: 2149, hdg: 194, size: 10}
+  - {type: ZIL-135, cell: 2469, hdg: 179, size: 10}
+  - {type: ZIL-135, cell: 4186, hdg: 165, size: 10}
+  - {type: ZIL-135, cell: 4515, hdg: 183, size: 10}
+  - {type: ZIL-135, cell: 6631, hdg: 157, size: 10}
+  - {type: ZIL-135, cell: 7445, hdg: 175, size: 10}
+  - {type: ZIL-135, cell: 8335, hdg: 165, size: 10}
+  - {type: ZIL-135, cell: 9362, hdg: 175, size: 10}
+  - {type: ZIL-135, cell: 10134, hdg: 172, size: 10}
+  - {type: ZIL-135, cell: 11181, hdg: 179, size: 10}
+  - {type: ZIL-131 KUNG, cell: 2730, hdg: 192, size: 10}
+  - {type: ZIL-131 KUNG, cell: 9262, hdg: 170, size: 10}
+  - {type: ZIL-131 KUNG, cell: 14616, size: 10}
+  description: S200 SAM site
+  groupName: S200
+- aliases: [sa6, sa-6, '06']
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Kub 1S91 str, cell: 25}
+  - {type: Kub 2P25 ln, cell: 4, hdg: 180}
+  - {type: Kub 2P25 ln, cell: 22, hdg: 90}
+  - {type: Kub 2P25 ln, cell: 28, hdg: 270}
+  - {type: Kub 2P25 ln, cell: 46, hdg: 0}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ATZ-5, random: true}
+  - {type: ZIL-135, number: {max: 2, min: 1}, random: true}
+  - {type: Ural-375 PBU, random: true}
+  description: SA-6 SAM site
+  groupName: SA6
+- aliases: [sa8_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Osa 9A33 ln, random: true}
+  - {type: GAZ-66, random: true}
+  description: Sa-8 SAM site
+  groupName: SA8
+- aliases: [sa9_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Strela-1 9P31, random: true}
+  - {type: GAZ-66, random: true}
+  description: Sa-9 SAM site
+  groupName: SA9
+- aliases: [sa10, s300, bb]
+  disposition: {h: 10, w: 13}
+  units:
+  - {type: S-300PS 40B6MD sr, cell: 130}
+  - {type: S-300PS 40B6M tr, cell: 7}
+  - {type: S-300PS 5P85C ln, cell: 29}
+  - {type: S-300PS 5P85D ln, cell: 37}
+  - {type: S-300PS 5P85D ln, cell: 43}
+  - {type: S-300PS 5P85C ln, cell: 49}
+  - {type: S-300PS 5P85C ln, cell: 57}
+  - {type: S-300PS 5P85D ln, cell: 61}
+  - {type: S-300PS 5P85D ln, cell: 71}
+  - {type: S-300PS 5P85C ln, cell: 73}
+  - {type: S-300PS 64H6E sr, cell: 98}
+  - {type: S-300PS 54K6 cp, cell: 118}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: 2S6 Tunguska, random: true}
+  description: S300 SAM site
+  groupName: S300
+- aliases: [sa11, sa-11, sd]
+  disposition: {h: 9, w: 9}
+  units:
+  - {type: SA-11 Buk SR 9S18M1, cell: 42}
+  - {type: SA-11 Buk CC 9S470M1, cell: 39}
+  - {type: SA-11 Buk LN 9A310M1, cell: 1}
+  - {type: SA-11 Buk LN 9A310M1, cell: 5}
+  - {type: SA-11 Buk LN 9A310M1, cell: 9}
+  - {type: SA-11 Buk LN 9A310M1, cell: 72}
+  - {type: SA-11 Buk LN 9A310M1, cell: 76}
+  - {type: SA-11 Buk LN 9A310M1, cell: 81}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ATZ-5, random: true}
+  - {type: Ural-375, number: {max: 2, min: 1}, random: true}
+  description: SA-11 SAM site
+  groupName: SA11
+- aliases: [sa13_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Strela-10M3, random: true}
+  - {type: GAZ-66, random: true}
+  description: Sa-13 SAM site
+  groupName: SA13
+- aliases: [sa15_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Tor 9A331, random: true}
+  - {type: GAZ-66, random: true}
+  description: Sa-15 SAM site
+  groupName: SA15
+- aliases: [sa15m2_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: CHAP_TorM2, random: true}
+  - {type: GAZ-66, random: true}
+  description: Sa-15M2 SAM site
+  groupName: SA15
+- aliases: [sa22_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: CHAP_PantsirS1, random: true}
+  - {type: GAZ-66, random: true}
+  description: SA-22 SAM site
+  groupName: SA22
+- aliases: [insurgent_manpad_squad, ins_manpad]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: Igla manpad INS, random: true}
+  - {type: Infantry AK Ins, number: {max: 3, min: 2}, random: true}
+  - {type: HL_DSHK, random: true}
+  description: Insurgent Sa-18 Manpad Squad
+  groupName: Insurgent Manpad Squad
+- aliases: [sa18_squad]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: SA-18 Igla manpad, number: {max: 2, min: 1}, random: true}
+  - {type: Infantry AK, number: {max: 4, min: 2}, random: true}
+  - {type: UAZ-469, random: true}
+  description: Sa-18 Manpad Squad
+  groupName: Red Manpad Squad
+- aliases: [sa18s_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: MANPADS SA-18 Igla-S "Grouse" C2, random: true}
+  - {type: SA-18 Igla-S manpad, number: {max: 2, min: 1}, random: true}
+  - {type: Infantry AK ver2, number: {max: 6, min: 2}, random: true}
+  - {type: Tigr_233036, random: true}
+  description: Sa-18S Manpad Squad
+  groupName: Red Modern Manpad Squad
+- aliases: [sa19_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: 2S6 Tunguska, random: true}
+  - {type: Ural-375, random: true}
+  description: Sa-19 SAM site
+  groupName: SA19
+- aliases: [red_ewr, ewr]
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: 55G6 EWR, cell: 25}
+  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: SA-18 Igla manpad, random: true}
+  - {type: Ural-375 PBU, random: true}
+  description: Red EWR
+  groupName: Red EWR
+- aliases: [rapier_optical, rpo]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: rapier_fsa_optical_tracker_unit, cell: 9}
+  - {type: rapier_fsa_optical_tracker_unit, cell: 17}
+  - {type: rapier_fsa_launcher, cell: 1, hdg: 315}
+  - {type: rapier_fsa_launcher, cell: 5, hdg: 45}
+  - {type: rapier_fsa_launcher, cell: 21, hdg: 225}
+  - {type: rapier_fsa_launcher, cell: 25, hdg: 135}
+  - {type: Land_Rover_101_FC, number: {max: 2, min: 1}, random: true}
+  description: Rapier SAM site
+  groupName: Rapier
+- aliases: [rapier_radar, rpr]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: rapier_fsa_blindfire_radar, cell: 13}
+  - {type: rapier_fsa_optical_tracker_unit, cell: 9}
+  - {type: rapier_fsa_optical_tracker_unit, cell: 17}
+  - {type: rapier_fsa_launcher, cell: 1, hdg: 315}
+  - {type: rapier_fsa_launcher, cell: 5, hdg: 45}
+  - {type: rapier_fsa_launcher, cell: 21, hdg: 225}
+  - {type: rapier_fsa_launcher, cell: 25, hdg: 135}
+  - {type: Land_Rover_101_FC, number: {max: 2, min: 1}, random: true}
+  description: Rapier SAM site with radar
+  groupName: Rapier-radar
+- aliases: [stinger_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: MANPADS Stinger C2, random: true}
+  - {type: MANPADS Stinger C2, random: true}
+  - {type: Soldier stinger, random: true}
+  - {type: Soldier stinger, random: true}
+  - {type: Soldier M4 GRG, number: {max: 4, min: 3}, random: true}
+  - {type: Hummer, random: true}
+  - {type: Hummer, random: true}
+  description: Stinger Manpad Squad
+  groupName: Blue Manpad Squad
+- aliases: [avenger_squad]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: M1097 Avenger, random: true}
+  - {type: M 818, random: true}
+  description: Avenger SAM site
+  groupName: Avenger
+- aliases: [roland]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Roland Radar, cell: 8}
+  - {type: Roland ADS, cell: 1, hdg: 300}
+  - {type: Roland ADS, cell: 5, hdg: 60}
+  - {type: Roland ADS, cell: 23, hdg: 180}
+  - {type: M 818, random: true}
+  description: Roland SAM site
+  groupName: Roland
+- aliases: [roland-noew]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Roland ADS, cell: 1, hdg: 300}
+  - {type: Roland ADS, cell: 5, hdg: 60}
+  - {type: Roland ADS, cell: 23, hdg: 180}
+  - {type: M 818, random: true}
+  description: Roland SAM site
+  groupName: Roland
+- aliases: [nasams_c, nasams, NASAMS, NASAMS_C]
+  disposition: {h: 7, w: 11}
+  units:
+  - {type: NASAMS_Radar_MPQ64F1, cell: 41}
+  - {type: NASAMS_LN_C, cell: 4, hdg: 315}
+  - {type: NASAMS_LN_C, cell: 11, hdg: 45}
+  - {type: NASAMS_LN_C, cell: 70, hdg: 225}
+  - {type: NASAMS_LN_C, cell: 77, hdg: 135}
+  - {type: NASAMS_Command_Post, cell: 34}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  - {type: M1097 Avenger, number: {max: 2, min: 1}, random: true}
+  description: NASAMS C battery
+  groupName: NASAMS C battery
+- aliases: [nasams_b, NASAMS_B]
+  disposition: {h: 7, w: 11}
+  units:
+  - {type: NASAMS_Radar_MPQ64F1, cell: 41}
+  - {type: NASAMS_LN_B, cell: 4, hdg: 315}
+  - {type: NASAMS_LN_B, cell: 11, hdg: 45}
+  - {type: NASAMS_LN_B, cell: 70, hdg: 225}
+  - {type: NASAMS_LN_B, cell: 77, hdg: 135}
+  - {type: NASAMS_Command_Post, cell: 34}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  - {type: M1097 Avenger, number: {max: 2, min: 1}, random: true}
+  description: NASAMS B battery
+  groupName: NASAMS B battery
+- aliases: [hawk, ha, mim-23]
+  disposition: {h: 40, w: 40}
+  units:
+  - {type: Hawk sr, cell: 816}
+  - {type: Hawk cwar, cell: 826}
+  - {type: Hawk cwar, cell: 1100}
+  - {type: Hawk tr, cell: 381, hdg: 0}
+  - {type: Hawk tr, cell: 1208, hdg: 240}
+  - {type: Hawk tr, cell: 1231, hdg: 120}
+  - {type: Hawk pcp, cell: 941}
+  - {type: Hawk ln, cell: 22, hdg: 0}
+  - {type: Hawk ln, cell: 297, hdg: 300}
+  - {type: Hawk ln, cell: 306, hdg: 60}
+  - {type: Hawk ln, cell: 1042, hdg: 300}
+  - {type: Hawk ln, cell: 1401, hdg: 240}
+  - {type: Hawk ln, cell: 1568, hdg: 180}
+  - {type: Hawk ln, cell: 1080, hdg: 60}
+  - {type: Hawk ln, cell: 1440, hdg: 120}
+  - {type: Hawk ln, cell: 1588, hdg: 180}
+  - {type: M 818, number: {max: 6, min: 4}, random: true}
+  - {type: Vulcan, number: {max: 3, min: 2}, random: true}
+  - {type: M1097 Avenger, random: true}
+  description: Hawk SAM site
+  groupName: Hawk
+- aliases: [patriot, pa, mim-104]
+  disposition: {h: 7, w: 12}
+  units:
+  - {type: Patriot str, cell: 66, hdg: 0}
+  - {type: Patriot cp, cell: 78}
+  - {type: Patriot AMG, cell: 79}
+  - {type: Patriot ECS, cell: 67}
+  - {type: Patriot EPP, cell: 68}
+  - {type: Patriot ln, cell: 1, hdg: 280}
+  - {type: Patriot ln, cell: 2, hdg: 300}
+  - {type: Patriot ln, cell: 28, hdg: 20}
+  - {type: Patriot ln, cell: 29, hdg: 40}
+  - {type: Patriot ln, cell: 32, hdg: 330}
+  - {type: Patriot ln, cell: 33, hdg: 310}
+  - {type: Patriot ln, cell: 11, hdg: 60}
+  - {type: Patriot ln, cell: 12, hdg: 80}
+  - {type: M 818, number: {max: 5, min: 2}, random: true}
+  - {type: Vulcan, cell: 60, number: {max: 1, min: 0}}
+  - {type: Vulcan, cell: 48, number: {max: 1, min: 0}}
+  - {type: Vulcan, cell: 54}
+  description: Patriot SAM site
+  groupName: Patriot
+- aliases: [blue_ewr]
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: FPS-117 Dome, cell: 25}
+  - {type: M1097 Avenger, random: true}
+  description: Blue EWR
+  groupName: Blue EWR
+- aliases: [infantry section, infsec]
+  disposition: {h: 10, w: 4}
+  units:
+  - {type: IFV BTR-80, cell: 38, random: true}
+  - {type: IFV BTR-80, cell: 39, random: true}
+  - {type: INF Soldier AK, number: {max: 30, min: 12}, random: true}
+  - {type: SA-18 Igla manpad, number: {max: 2, min: 0}, random: true}
+  description: Mechanized infantry section with APCs
+  groupName: Mechanized infantry section
+- aliases: [US infgroup]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Hummer, number: {max: 2, min: 1}, random: true}
+  - {type: Soldier M249, number: {max: 2, min: 1}, random: true}
+  - {type: Soldier M4, number: {max: 4, min: 2}, random: true}
+  - {type: Soldier M4 GRG, number: {max: 15, min: 6}, random: true}
+  description: US infantry group
+  groupName: US infantry group
+- aliases: [insurgent_arty]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: tt_B8M1, number: {max: 2, min: 1}}
+  - {type: HL_B8M1, number: {max: 2, min: 1}}
+  description: Insurgent artillery battery
+  groupName: Insurgent artillery battery
+- aliases: [mortar]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: 2B11 mortar, number: 4}
+  description: 2B11 Mortar team
+  groupName: 2B11 Mortar team
+- aliases: [M-109]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: M-109, number: 8}
+  - {type: MLRS FDDM, number: 1}
+  - {type: M 818, number: 1}
+  description: M-109 artillery battery
+  groupName: M-109 artillery battery
+- aliases: [PLZ05]
+  disposition: {h: 2, w: 3}
+  units:
+  - {type: PLZ05, number: 3}
+  - {type: Grad_FDDM, number: 1}
+  - {type: Ural-375, number: 1}
+  description: PLZ05 artillery battery
+  groupName: PLZ05 artillery battery
+- aliases: [Msta]
+  disposition: {h: 2, w: 3}
+  units:
+  - {type: SAU Msta, number: 3}
+  - {type: Grad_FDDM, number: 1}
+  - {type: Ural-375, number: 1}
+  description: Msta artillery battery
+  groupName: Msta artillery battery
+- aliases: [MLRS]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: MLRS, number: 4}
+  - {type: MLRS FDDM, number: 1}
+  - {type: M 818, number: 1}
+  description: M270 MLRS artillery battery
+  groupName: M270 MLRS artillery battery
+- aliases: [SmerchCM]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: Smerch, number: 4}
+  - {type: Grad_FDDM, number: 1}
+  - {type: ZIL-135, number: 2}
+  description: Smerch (CM) MLRS artillery battery
+  groupName: Smerch (CM) MLRS artillery battery
+- aliases: [SmerchHE]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: Smerch_HE, number: 4}
+  - {type: Grad_FDDM, number: 1}
+  - {type: ZIL-135, number: 2}
+  description: Smerch (HE) MLRS artillery battery
+  groupName: Smerch (HE) MLRS artillery battery
+- aliases: [Uragan]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: Uragan_BM-27, number: 4}
+  - {type: Grad_FDDM, number: 1}
+  - {type: ZIL-135, number: 2}
+  description: Uragan MLRS artillery battery
+  groupName: Uragan MLRS artillery battery
+- aliases: [Grad]
+  disposition: {h: 2, w: 4}
+  units:
+  - {type: Grad-URAL, number: 4}
+  - {type: Grad_FDDM, number: 1}
+  - {type: Ural-375, number: 2}
+  description: Grad MLRS artillery battery
+  groupName: Grad MLRS artillery battery
+- aliases: [US supply convoy, blueconvoy]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: Hummer, number: {max: 4, min: 2}, random: true}
+  - {type: Truck M 818, number: {max: 6, min: 3}, random: true}
+  - {type: Truck M978 HEMTT Tanker, number: {max: 3, min: 0}, random: true}
+  - {type: Truck Predator GCS, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Predator TrojanSpirit, number: {max: 2, min: 0}, random: true}
+  description: US supply convoy
+  groupName: US supply convoy
+- aliases: [RU supply convoy with defense, redconvoy-def]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: 2S6 Tunguska, number: {max: 1, min: 0}, random: true}
+  - {type: Strela-10M3, number: {max: 1, min: 0}, random: true}
+  - {type: Strela-1 9P31, number: {max: 1, min: 0}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 0}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
+  - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
+  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  description: RU supply convoy with defense
+  groupName: RU supply convoy with defense
+- aliases: [RU supply convoy with light defense, redconvoy-lightdef]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 0}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
+  - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
+  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  description: RU supply convoy with light defense
+  groupName: RU supply convoy with light defense
+- aliases: [RU supply convoy with no defense, redconvoy-nodef]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
+  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  description: RU supply convoy with no defense
+  groupName: RU supply convoy with no defense
+- aliases: [RU small supply convoy with defense, redsmallconvoy-def]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: 2S6 Tunguska, number: {max: 1, min: 0}, random: true}
+  - {type: Strela-10M3, number: {max: 1, min: 0}, random: true}
+  - {type: Strela-1 9P31, number: {max: 1, min: 0}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 0}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
+  - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
+  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  description: RU small supply convoy with defense
+  groupName: RU small supply convoy with defense
+- aliases: [RU small supply convoy with light defense, redsmallconvoy-lightdef]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 0}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
+  - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
+  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  description: RU small supply convoy with light defense
+  groupName: RU small supply convoy with light defense
+- aliases: [RU small supply convoy with no defense, redsmallconvoy-nodef, redconvoy, convoy]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
+  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  description: RU small supply convoy with no defense
+  groupName: RU small supply convoy with no defense
+- aliases: [hv_convoy_red]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Tor 9A331, hdg: 0, number: {max: 1, min: 0}, random: true}
+  - {type: 2S6 Tunguska, hdg: 0, number: {max: 1, min: 0}, random: true}
+  - {type: Scud_B, hdg: 0, number: {max: 2, min: 0}, random: true}
+  - {type: T-72B3, hdg: 0, random: true}
+  - {type: BTR-82A, hdg: 0, random: true}
+  - {type: ZIL-135, hdg: 0, random: true}
+  - {type: Tigr_233036, hdg: 0, random: true}
+  - {type: Strela-10M3, hdg: 0, number: {max: 1, min: 0}, random: true}
+  description: High Value Attack convoy red
+  groupName: High Value Attack convoy red
+- aliases: [attack_convoy_red]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Tor 9A331, number: {max: 1, min: 0}, random: true}
+  - {type: ZSU-23-4 Shilka, random: true}
+  - {type: T-72B3, random: true}
+  - {type: BTR-82A, random: true}
+  - {type: ZIL-135, random: true}
+  - {type: Strela-10M3, random: true}
+  description: Attack convoy red
+  groupName: Attack convoy red
+- aliases: [QRC_red]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Roland ADS, number: {max: 1, min: 0}, random: true}
+  - {type: BTR-82A, number: {max: 1, min: 0}, random: true}
+  - {type: BTR-82A, random: true}
+  - {type: VAB_Mephisto, random: true}
+  - {type: VAB_Mephisto, random: true}
+  description: Quick reaction convoy red
+  groupName: Quick reaction convoy red
+- aliases: [civilian_convoy_red]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: LAZ Bus, number: {max: 3, min: 1}, random: true}
+  - {type: LiAZ Bus, number: {max: 3, min: 1}, random: true}
+  description: Civilian convoy red
+  groupName: Civilian convoy red
+- aliases: [QRC_blue]
+  disposition: {h: 4, w: 4}
+  units:
+  - {type: Roland ADS, number: {max: 1, min: 0}, random: true}
+  - {type: M1128 Stryker MGS, number: {max: 1, min: 0}, random: true}
+  - {type: M1128 Stryker MGS, random: true}
+  - {type: M1134 Stryker ATGM, random: true}
+  - {type: M1134 Stryker ATGM, random: true}
+  description: Quick reaction convoy blue
+  groupName: Quick reaction convoy blue
+- aliases: [cargoships-nodef, cargoships]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: Dry-cargo ship-1, number: {max: 3, min: 1}, size: 150, random: true}
+  - {type: Dry-cargo ship-2, number: {max: 3, min: 1}, size: 150, random: true}
+  - {type: ELNYA, number: {max: 3, min: 1}, size: 150, random: true}
+  description: Cargo ships with no defense
+  groupName: Cargo ships with no defense
+- aliases: [cargoships-escorted]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: Dry-cargo ship-1, number: {max: 3, min: 1}, size: 150, random: true}
+  - {type: Dry-cargo ship-2, number: {max: 3, min: 1}, size: 150, random: true}
+  - {type: ELNYA, number: {max: 3, min: 1}, size: 150, random: true}
+  - {type: MOLNIYA, number: {max: 2, min: 1}, size: 150, random: true}
+  - {type: ALBATROS, number: {max: 2, min: 1}, size: 150, random: true}
+  - {type: NEUSTRASH, number: {max: 1, min: 0}, size: 150, random: true}
+  description: Cargo ships with escort
+  groupName: Cargo ships with escort
+- aliases: [combatships]
+  disposition: {h: 20, w: 20}
+  units:
+  - {type: MOLNIYA, number: {max: 3, min: 2}, size: 150, random: true}
+  - {type: ALBATROS, number: {max: 3, min: 2}, size: 150, random: true}
+  - {type: NEUSTRASH, number: {max: 2, min: 1}, size: 150, random: true}
+  description: Combat ships with possible FFG defense
+  groupName: Combat ships
+- aliases: [generateAirDefenseGroup-BLUE-5]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Hawk sr, cell: 8}
+  - {type: Hawk pcp, cell: 13}
+  - {type: Hawk tr, cell: 15}
+  - {type: Hawk ln, cell: 1, hdg: 225}
+  - {type: Hawk ln, cell: 3, hdg: 0}
+  - {type: Hawk ln, cell: 21, hdg: 135}
+  - {type: M48 Chaparral, number: {max: 4, min: 2}, random: true}
+  - {type: Gepard, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-5
+  groupName: generateAirDefenseGroup-BLUE-5
+- aliases: [generateAirDefenseGroup-BLUE-4]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Roland Radar, random: true}
+  - {type: Roland ADS, hdg: 0, random: true}
+  - {type: Roland ADS, hdg: 225, random: true}
+  - {type: Roland ADS, hdg: 135, random: true}
+  - {type: M48 Chaparral, number: {max: 4, min: 2}, random: true}
+  - {type: Gepard, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-4
+  groupName: generateAirDefenseGroup-BLUE-4
+- aliases: [generateAirDefenseGroup-BLUE-3]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Gepard, number: {max: 4, min: 2}, random: true}
+  - {type: M6 Linebacker, hdg: 0, random: true}
+  - {type: M6 Linebacker, hdg: 90, random: true}
+  - {type: M6 Linebacker, hdg: 180, random: true}
+  - {type: M6 Linebacker, hdg: 270, random: true}
+  - {type: M1097 Avenger, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-3
+  groupName: generateAirDefenseGroup-BLUE-3
+- aliases: [generateAirDefenseGroup-BLUE-2]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Vulcan, number: {max: 4, min: 2}, random: true}
+  - {type: M1097 Avenger, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-2
+  groupName: generateAirDefenseGroup-BLUE-2
+- aliases: [generateAirDefenseGroup-BLUE-1]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Vulcan, number: {max: 3, min: 1}, random: true}
+  - {type: M1097 Avenger, number: {max: 1, min: 0}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-1
+  groupName: generateAirDefenseGroup-BLUE-1
+- aliases: [generateAirDefenseGroup-BLUE-0]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: AAV7, number: {max: 3, min: 1}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-0
+  groupName: generateAirDefenseGroup-BLUE-0
+- aliases: [generateAirDefenseGroup-RED-5]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: Tor 9A331, hdg: 180, number: 1, random: true}
+  - {type: Osa 9A33 ln, number: {max: 2, min: 1}, random: true}
+  - {type: Strela-10M3, number: {max: 2, min: 1}, random: true}
+  - {type: 2S6 Tunguska, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: 1, random: true}
+  - {type: S-60_Type59_Artillery, number: 1, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-5
+  groupName: generateAirDefenseGroup-RED-5
+- aliases: [generateAirDefenseGroup-RED-4]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: Osa 9A33 ln, number: {max: 2, min: 1}, random: true}
+  - {type: Strela-10M3, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 1}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-4
+  groupName: generateAirDefenseGroup-RED-4
+- aliases: [generateAirDefenseGroup-RED-3]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: Strela-10M3, number: {max: 2, min: 1}, random: true}
+  - {type: Strela-1 9P31, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-3
+  groupName: generateAirDefenseGroup-RED-3
+- aliases: [generateAirDefenseGroup-RED-2]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: Strela-1 9P31, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-2
+  groupName: generateAirDefenseGroup-RED-2
+- aliases: [generateAirDefenseGroup-RED-1]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-1
+  groupName: generateAirDefenseGroup-RED-1
+- aliases: [generateAirDefenseGroup-RED-0]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Ural-375 ZU-23, number: {max: 1, min: 0}, random: true}
+  - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-0
+  groupName: generateAirDefenseGroup-RED-0
+- aliases: [RU-SAM-Shilka-Battery, shilka-battery]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Dog Ear radar, cell: 13}
+  - {type: ZSU-23-4 Shilka, hdg: 0, random: true}
+  - {type: ZSU-23-4 Shilka, hdg: 90, random: true}
+  - {type: ZSU-23-4 Shilka, hdg: 180, random: true}
+  - {type: ZSU-23-4 Shilka, hdg: 270, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: ZSU-23-4 battery
+  groupName: ZSU-23-4 battery
+- aliases: [RU-SAM-S60-Battery, s60-battery]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Dog Ear radar, cell: 13}
+  - {type: S-60_Type59_Artillery, hdg: 0, random: true}
+  - {type: S-60_Type59_Artillery, hdg: 90, random: true}
+  - {type: S-60_Type59_Artillery, hdg: 180, random: true}
+  - {type: S-60_Type59_Artillery, hdg: 270, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: S-60 battery
+  groupName: S-60 battery
+- aliases: [RU-SAM-SA9-Battery, sa9-battery]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Dog Ear radar, cell: 13}
+  - {type: Strela-1 9P31, hdg: 0, random: true}
+  - {type: Strela-1 9P31, hdg: 90, random: true}
+  - {type: Strela-1 9P31, hdg: 180, random: true}
+  - {type: Strela-1 9P31, hdg: 270, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: SA-9 battery
+  groupName: SA-9 battery
+- aliases: [RU-SAM-SA13-Battery, sa13-battery]
+  disposition: {h: 5, w: 5}
+  units:
+  - {type: Dog Ear radar, cell: 13}
+  - {type: Strela-10M3, hdg: 0, random: true}
+  - {type: Strela-10M3, hdg: 90, random: true}
+  - {type: Strela-10M3, hdg: 180, random: true}
+  - {type: Strela-10M3, hdg: 270, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: SA-13 battery
+  groupName: SA-13 battery
+- aliases: [US-refuel, refuel-group]
+  disposition: {h: 1, w: 4}
+  units:
+  - {type: M978 HEMTT Tanker, cell: 1, fitToUnit: true}
+  - {type: M1043 HMMWV Armament, cell: 2, fitToUnit: true}
+  - {type: Truck M939 Heavy, cell: 3, fitToUnit: true}
+  - {type: Diesel Power Station 5I57A, cell: 4, fitToUnit: true}
+  description: US refuel group
+  groupName: US refuel group

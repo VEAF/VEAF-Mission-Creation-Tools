@@ -723,6 +723,7 @@ class MissionBuilderWorker(BaseWorker):
             "warehouses.yaml": {"pipeline": "warehouses"},
             "presets.yaml": {"pipeline": "presets"},
             "versions.yaml": {"pipeline": "weather"},
+            "spawn-groups.yaml": {"pipeline": "spawn_data"},
         }
         for f in defaults_folder.rglob("*"):
             if f.is_file():

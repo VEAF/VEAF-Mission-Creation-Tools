@@ -6,7 +6,7 @@ Cette page documente les étapes optionnelles du **pipeline de build** que `veaf
 
 ## Vue d'ensemble
 
-Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
+Le pipeline exécute les étapes optionnelles suivantes, dans cet ordre :
 
 | Étape | Fichier config | Ce qu'elle fait |
 |-------|----------------|----------------|
@@ -14,9 +14,11 @@ Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
 | `waypoints` | `src/waypoints.yaml` ou `waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
 | `spawnable_aircrafts` | `src/spawnables.yaml` | Injecte les groupes d'avions **spawnables** (préfixe `veafSpawn-`, clonés par `veafSpawn`) |
 | `dynamic_slot_templates` | `src/dynamic-slot-templates.yaml` | Injecte les **modèles de slot dynamique** (`dynSpawnTemplate = true`, consommés par DCS) |
+| `warehouses` | `src/warehouses.yaml` | Configure les warehouses pour les slots dynamiques (Dynamic Slots) |
+| `spawn_data` | `src/spawn-groups.yaml` *(optionnel)* | Injecte la base de données de spawn (`_spawn unit`/`_spawn group`) ; **toujours active** (les données du framework sont embarquées) |
 | `weather` | `src/versions.yaml` ou `versions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
 
-Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`.
+Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`. **Exception** : `spawn_data` s'exécute toujours (même sans fichier mission) afin d'embarquer la base de spawn du framework ; le fichier `src/spawn-groups.yaml` ne sert qu'à l'étendre.
 
 ---
 
@@ -30,6 +32,7 @@ pipeline:
     file: src/my-spawnables.yaml        # chemin de fichier non-standard
     mode: replace                       # add (défaut) | replace
   dynamic_slot_templates: false         # ignorer l'injection des modèles de slot dynamique
+  spawn_data: false                     # désactiver l'injection de la base de spawn (framework inclus)
   weather: false                        # ignorer les variantes météo
 ```
 
@@ -41,6 +44,7 @@ pipeline:
 | `waypoints` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `spawnable_aircrafts` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `dynamic_slot_templates` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `spawn_data` | bool \| objet | toujours | Non | `true`/non défini = **toujours exécuté** (données framework embarquées), `false` = désactiver complètement, objet `{file: …}` = fichier mission non-standard |
 | `weather` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 
 Quand la valeur est un objet, les sous-champs suivants s'appliquent :
@@ -487,6 +491,50 @@ blue:
   airports:
     Senaki-Kolkhi: {}
 ```
+
+---
+
+## Étape 6 — Données de spawn (`spawn-groups.yaml`)
+
+Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0005-spawn-data-externalization.md).
+
+### Toujours active
+
+Contrairement aux autres étapes, `spawn_data` s'exécute **toujours** (même sans fichier mission) car la base de spawn du framework doit être embarquée pour que `_spawn` fonctionne. Pour la désactiver entièrement :
+
+```yaml
+pipeline:
+  spawn_data: false
+```
+
+### Étendre la base (`src/spawn-groups.yaml`)
+
+Un fichier `src/spawn-groups.yaml` (optionnel) permet d'ajouter ou de redéfinir des unités/groupes pour une mission donnée. Il est **fusionné par-dessus** les données du framework :
+
+- un alias inédit est **ajouté** ;
+- un alias déjà présent dans le framework **remplace** l'entrée correspondante (override).
+
+### Schéma
+
+```yaml
+units:                              # -> _spawn unit <alias>
+  - aliases: [myaaa]                # un ou plusieurs alias (insensibles à la casse)
+    unitType: ZSU-23-4 Shilka       # un type d'unité DCS
+
+groups:                             # -> _spawn group <alias>
+  - aliases: [mysam]
+    disposition: {h: 3, w: 3}       # grille de placement en cellules (10m x 10m)
+    units:
+      - {type: ZSU-23-4 Shilka, cell: 1}
+      - {type: Ural-375, random: true}                       # placé aléatoirement dans sa cellule
+      - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
+    description: Mon site SAM
+    groupName: MySAM
+```
+
+Champs d'une unité de groupe : `type` (requis), `cell` (cellule préférée), `number` (quantité, ou `{min, max}` aléatoire), `hdg` (cap), `size` (taille de cellule fixe en m), `random` (placement aléatoire dans la cellule), `fitToUnit` (cellule ajustée à l'emprise exacte de l'unité).
+
+La base du framework est définie dans `veaf_libs/data/veaf-units.yaml` (embarqué dans l'outil).
 
 ---
 

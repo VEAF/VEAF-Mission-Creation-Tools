@@ -8,6 +8,7 @@ from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLV
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
+from spawn_data_injector import SpawnDataInjectorWorker
 from veaf_libs.paths import resolve_path
 from veaf_libs.yaml_validator import validate_yaml_file
 from warehouses_injector import WarehousesInjectorWorker
@@ -284,6 +285,26 @@ def build(
                 templates=wh_result.templates_linked,
             )
         )
+
+    # Spawn-data injection — always on (the framework spawn DB must ship), unless
+    # explicitly disabled. Merges an optional per-mission src/spawn-groups.yaml /
+    # src/spawn-units.yaml over the framework data. Runs before weather so every
+    # weather variant embeds the data. See ADR 0005.
+    spawn_step_cfg = worker.pipeline_cfg.get("spawn_data")
+    spawn_disabled = spawn_step_cfg is False or (
+        isinstance(spawn_step_cfg, dict) and spawn_step_cfg.get("enabled") is False
+    )
+    if not spawn_disabled:
+        spawn_data_path = _step_file("spawn_data", "src/spawn-groups.yaml")
+        logger.step(t("pipeline.console.spawn_data"))
+        spawn_result = SpawnDataInjectorWorker(
+            input_mission=p_output_mission,
+            output_mission=p_output_mission,
+            mission_data_file=spawn_data_path,
+        ).work()
+        if spawn_data_path:
+            logger.info(t("pipeline.injecting_spawn_data", path=spawn_data_path))
+        logger.tech(t("pipeline.console.spawn_data_done", units=spawn_result.units, groups=spawn_result.groups))
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:

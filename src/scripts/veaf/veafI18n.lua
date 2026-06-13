@@ -23,7 +23,7 @@ veafI18n = {}
 veafI18n.Id = "I18N"
 
 --- Version.
-veafI18n.Version = "1.1.0"
+veafI18n.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafI18n.LogLevel = "trace"

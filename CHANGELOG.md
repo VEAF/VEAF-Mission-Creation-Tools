@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Dynamic mode no longer initializes the VEAF modules twice**. The dynamic mission-loading trigger loaded `veaf-config.lua` explicitly *and* via `veafDynamicConfig.lua` (which already heads its `scriptsToLoad` list with it), so every module's `initialize()` ran twice — e.g. `veafCommands` registered its central marker-dispatch handler twice, making a single F10 marker command (such as `_spawn group, name sa2`) execute twice. The redundant explicit load was removed from the dynamic trigrule; `veafDynamicConfig.lua` remains the single entry point and loads `veaf-config.lua` first. Static mode was unaffected
+
 ### Changed
 - **Default `mission.yaml` documents the newest pipeline steps**: the commented `pipeline:` block (shipped default + the `convert-v5`/generated template) now also lists `warehouses` (Dynamic-Slot warehouses, `src/warehouses.yaml`) and `spawn_data` (always-on spawn-database injection, extended by `src/spawn-groups.yaml`), so mission makers discover them. No behaviour change — both steps and their default files already shipped; only the inline documentation was stale
 - **In-game default language now follows the tools' language** (LUA-I18N). When `mission.yaml` does not set `mission.language`, the build emits `veaf.config.language` from the tools' resolved language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) instead of a hard-coded `fr`. So a mission built by a French maker defaults to French in-game and others to their locale; `mission.language` still overrides, and the Lua-side `veaf.I18N_DEFAULT_LANGUAGE = "fr"` remains only as the ultimate runtime fallback. No new CLI surface — the existing global `veaf-tools --lang` already drives it

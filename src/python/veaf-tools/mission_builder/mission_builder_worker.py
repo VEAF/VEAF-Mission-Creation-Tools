@@ -1370,11 +1370,9 @@ class MissionBuilderWorker(BaseWorker):
                         "predicate": "a_do_script",
                         "zone": 184,
                     },
-                    # Load veaf-config.lua before mission-script.lua (if present)
-                    {
-                        "predicate": "a_do_script",
-                        "text": 'local _f = loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/veaf-config.lua"); if _f then _f() end',
-                    },
+                    # veafDynamicConfig.lua loads every mission script in order, veaf-config.lua
+                    # first (it heads scriptsToLoad). Loading veaf-config.lua explicitly here too
+                    # would run it twice → modules initialized twice → duplicated marker handlers.
                     {
                         "predicate": "a_do_script",
                         "text": 'assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/veafDynamicConfig.lua"))()',

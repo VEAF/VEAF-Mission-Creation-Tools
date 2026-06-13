@@ -54,7 +54,7 @@ veaf.i18nCatalog = {
   -- veafRadio
   ["radio.auth_required"] = {
     fr = "Votre radio doit être authentifiée pour les commandes « + »",
-    en = "Your radio has to be authenticated for '+'' commands",
+    en = "Your radio has to be authenticated for '+' commands",
   },
   ["radio.playing_format"] = {
     fr = "%s (%s) : diffusion de %s",
@@ -219,7 +219,7 @@ veaf.i18nCatalog = {
   },
   ["entity.deactivated"] = {
     fr = "%s a été désactivé.",
-    en = "%s has been desactivated.",
+    en = "%s has been deactivated.",
   },
   ["entity.already_inactive"] = {
     fr = "%s était déjà inactif.",

@@ -27,8 +27,10 @@ the *inject-groups* axis of TODO0609-AIRCRAFT-INJECT.)
 - **Framework data** — `veaf-units.yaml`, shipped with the tool (in `published.zip`
   beside the community scripts), replacing the hand-coded `UnitsDatabase` /
   `GroupsDatabase` literals in `veafUnits.lua`.
-- **Per-mission data** — `src/spawn-groups.yaml` (and optionally `src/spawn-units.yaml`)
-  in the mission folder, letting a mission maker add or override spawn groups/units.
+- **Per-mission data** — `src/spawn-groups.yaml` in the mission folder (a single
+  file carrying both `units:` and `groups:`), letting a mission maker add or
+  override spawn units/groups. (Implemented as one file rather than the originally
+  envisaged `spawn-groups.yaml` + `spawn-units.yaml` split — simpler, same schema.)
 
 **Generation happens at the MISSION build (`veaf-tools build`), not at `veaf-build`.**
 This is the key difference from `dcsUnits` (which `veaf-build update-dcs-data`
@@ -44,9 +46,10 @@ environment), so runtime consumption stays Lua: the injected data module assigns
 framework bundle (`veafUnits.lua` defines the functions and now defaults the two
 tables to empty); the injected module then populates them.
 
-**Merge semantics**: per-mission entries are appended; an alias collision lets the
-mission entry win (override), so a mission can replace a framework group by reusing
-its alias. (Confirm exact collision policy in -004.)
+**Merge semantics** (confirmed in -004): per-mission entries are appended; if a
+mission entry shares **any** alias (case-insensitive) with a framework entry, it
+**replaces** that entry, so a mission can override a framework unit/group by
+reusing one of its aliases. Implemented in `spawn_data_injector.merge_spawn_data`.
 
 ## Consequences
 

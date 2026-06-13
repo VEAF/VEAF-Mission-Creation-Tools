@@ -21,6 +21,29 @@ dcsUnits = {
 
 dofile(src .. "/veafUnits.lua")
 
+-- veafUnits.lua now ships its UnitsDatabase / GroupsDatabase empty; at mission
+-- build the spawn-data module (rendered from veaf-units.yaml) populates them.
+-- These tests simulate that injection with a small known fixture (SPAWN-EXTERNALIZE).
+veafUnits.UnitsDatabase = {
+  { aliases = { "shilka" }, unitType = "ZSU-23-4 Shilka" },
+  { aliases = { "tarawa" }, unitType = "LHA_Tarawa" },
+  { aliases = { "sa18", "sa-18", "manpad" }, unitType = "SA-18 Igla-S manpad" },
+}
+veafUnits.GroupsDatabase = {
+  {
+    aliases = { "testsam" },
+    group = {
+      disposition = { h = 3, w = 3 },
+      units = {
+        { "ZSU-23-4 Shilka", cell = 1 },
+        { "Ural-375", random = true },
+      },
+      description = "Test SAM site",
+      groupName = "TestSAM",
+    },
+  },
+}
+
 -- ---------------------------------------------------------------------------
 -- TestVeafUnitsConstants
 -- ---------------------------------------------------------------------------

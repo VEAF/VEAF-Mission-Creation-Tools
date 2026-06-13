@@ -174,7 +174,7 @@ Renvoie la chaîne de `candidates` la plus proche dans la limite de `maxDistance
 
 ##### `veaf.getRequesterCoalition(event)`
 
-La coalition qui a émis une commande (poseur du marqueur / unité interpreter), normalisée en `coalition.side.RED`/`.BLUE`, ou `nil` si inconnue/all. À utiliser pour le feedback pilote — **pas** pour décider le camp des unités spawnées.
+La coalition qui a émis une commande (poseur du marqueur / unité `veafInterpreter`), normalisée en `coalition.side.RED`/`.BLUE`, ou `nil` si inconnue/all. À utiliser pour le feedback pilote — **pas** pour décider le camp des unités spawnées.
 
 ##### `veaf.getOppositeCoalition(side)`
 

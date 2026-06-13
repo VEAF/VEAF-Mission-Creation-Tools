@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
@@ -58,6 +59,18 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot DOC-REVIEW — full documentation proofreading pass
+
+**Goal**: a complete, exhaustive read-through of the whole `doc/` tree (every FR `.md` + EN `.en.md` pair) — not just the targeted, changelog-driven audit done for the 6.5.0 release. Check: technical accuracy vs current behaviour, FR/EN parity (no desync), broken/relative links, stale filenames and command names, terminology consistency, examples that still run, and overall readability for mission makers / pilots / script developers. The 6.5.0 release touched many areas (YAML data + datamine, Dynamic Slots, in-game i18n, doc chatbot, aircraft-template split, dynamic loading, defaults), so the docs deserve a full pass.
+
+**Branch**: `feature/DOC-REVIEW` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DOC-REVIEW-001 | Full proofreading pass of `doc/` (FR/EN): accuracy, parity, links, stale names, terminology, examples | `doc/**` | chore | ⬜ |
 
 ---
 

@@ -216,6 +216,8 @@ modules:
 #     file: src/spawnables.yaml
 #     mode: replace
 #   dynamic_slot_templates: true    # src/dynamic-slot-templates.yaml (dynSpawnTemplate)
+#   warehouses: true                # src/warehouses.yaml (Dynamic-Slot warehouses)
+#   spawn_data: true                # always on; src/spawn-groups.yaml extends the spawn DB. false = disable
 #   weather: false
 
 # ── Build settings ────────────────────────────────────────────────────────────

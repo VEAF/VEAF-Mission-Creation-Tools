@@ -1165,6 +1165,8 @@ def generate_mission_yaml_template(
         "#   waypoints: true               # src/waypoints.yaml",
         "#   spawnable_aircrafts: true     # src/spawnables.yaml",
         "#   dynamic_slot_templates: true  # src/dynamic-slot-templates.yaml",
+        "#   warehouses: true              # src/warehouses.yaml (Dynamic-Slot warehouses)",
+        "#   spawn_data: true              # always on; src/spawn-groups.yaml extends the spawn DB",
         "#   weather: true                 # src/versions.yaml",
     ]
 

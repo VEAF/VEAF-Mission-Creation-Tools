@@ -460,6 +460,14 @@ function TestVeafSpawnCore:test_security_gate_allows_handler_when_check_passes()
   luaunit.assertTrue(called)
 end
 
+function TestVeafSpawnCore:test_security_gate_fail_closed_on_unknown_level()
+  local called = false
+  -- an unknown security level must DENY (fail-closed), never silently pass
+  veafSpawn.registerCommandHandler("mmGetFlag", "BOGUS", function() called = true end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
+  luaunit.assertFalse(called)
+end
+
 function TestVeafSpawnCore:test_security_gate_bypassed_when_bypassSecurity()
   local orig = veafSecurity.checkSecurity_MM
   veafSecurity.checkSecurity_MM = function() return false end

@@ -160,6 +160,13 @@ function veafSpawn.registerCommandHandler(key, security, fn)
     fn = security
     security = nil
   end
+  -- Catch a mistyped level early: an unknown level is fail-closed by the dispatcher
+  -- (it denies), so warn so the typo doesn't silently lock the command instead.
+  if security ~= nil and veafSpawn.SECURITY_CHECKS[security] == nil then
+    veaf.loggers
+      .get(veafSpawn.Id)
+      :warn(string.format("registerCommandHandler(%s): unknown security level %s", tostring(key), tostring(security)))
+  end
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
 
@@ -323,9 +330,10 @@ function veafSpawn.executeCommand(
         if _handler then
           -- Centralized security gate (was duplicated in every handler's preamble):
           -- a failed check aborts the command, as the old `return nil, nil, true` did.
+          -- Fail-closed: an unknown security level denies rather than silently passing.
           if not bypassSecurity and _security then
             local _check = veafSpawn.SECURITY_CHECKS[_security]
-            if _check and not _check(options, markId) then
+            if not _check or not _check(options, markId) then
               return
             end
           end

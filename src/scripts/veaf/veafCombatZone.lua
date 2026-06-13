@@ -1901,13 +1901,13 @@ function veafCombatZone.ActivateZone(zoneName, silent)
   if zone then
     if zone:isActive() then
       if not silent then
-        trigger.action.outText("VeafCombatZone " .. zone:getFriendlyName() .. " is already active.", 10)
+        trigger.action.outText(veaf.t("entity.is_already_active", "VeafCombatZone " .. zone:getFriendlyName()), 10)
       end
       return
     end
     mist.scheduleFunction(zone.activate, { zone }, timer.getTime() + 1)
     if not silent then
-      trigger.action.outText("VeafCombatZone " .. zone:getFriendlyName() .. " has been activated.", 10)
+      trigger.action.outText(veaf.t("entity.activated", "VeafCombatZone " .. zone:getFriendlyName()), 10)
       mist.scheduleFunction(veafCombatZone.GetInformationOnZone, { { zoneName } }, timer.getTime() + 2)
     end
     return zone
@@ -1932,13 +1932,13 @@ function veafCombatZone.DesactivateZone(zoneName, silent)
   if zone then
     if not (zone:isActive()) then
       if not silent then
-        trigger.action.outText("VeafCombatZone " .. zone:getFriendlyName() .. " is not active.", 10)
+        trigger.action.outText(veaf.t("entity.is_not_active", "VeafCombatZone " .. zone:getFriendlyName()), 10)
       end
       return
     end
     zone:desactivate()
     if not silent then
-      trigger.action.outText("VeafCombatZone " .. zone:getFriendlyName() .. " has been desactivated.", 10)
+      trigger.action.outText(veaf.t("entity.deactivated", "VeafCombatZone " .. zone:getFriendlyName()), 10)
     end
     return zone
   else

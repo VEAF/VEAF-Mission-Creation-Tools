@@ -1164,10 +1164,10 @@ function veafCombatMission.ActivateMission(name, silent, unitName)
   local result = mission:activate(silent)
   if not silent and not mission:isSilent() then
     if result then
-      veaf.outTextForUnit(unitName, "VeafCombatMission " .. mission:getFriendlyName() .. " has been activated.", 10)
+      veaf.outTextForUnit(unitName, veaf.t("entity.activated", "VeafCombatMission " .. mission:getFriendlyName()), 10)
       mist.scheduleFunction(veafCombatMission.GetInformationOnMission, { { name } }, timer.getTime() + 1)
     else
-      veaf.outTextForUnit(unitName, "VeafCombatMission " .. mission:getFriendlyName() .. " was already active.", 10)
+      veaf.outTextForUnit(unitName, veaf.t("entity.already_active", "VeafCombatMission " .. mission:getFriendlyName()), 10)
     end
   end
   veafCombatMission.buildRadioMenu()
@@ -1187,7 +1187,7 @@ function veafCombatMission.DesactivateMission(name, silent, unitName)
   local mission = veafCombatMission.GetMission(name)
   mission:desactivate()
   if not silent and not mission:isSilent() then
-    veaf.outTextForUnit(unitName, "VeafCombatMission " .. mission:getFriendlyName() .. " has been desactivated.", 10)
+    veaf.outTextForUnit(unitName, veaf.t("entity.deactivated", "VeafCombatMission " .. mission:getFriendlyName()), 10)
   end
   veafCombatMission.buildRadioMenu()
 end

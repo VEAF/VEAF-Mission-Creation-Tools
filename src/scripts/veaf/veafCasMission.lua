@@ -1015,7 +1015,7 @@ end
 --- Generates a CAS mission
 function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
   if veafCasMission.groupAliveCheckTaskID ~= "none" then
-    trigger.action.outText("A CAS target group already exists !", 15)
+    trigger.action.outText(veaf.t("cas.target_exists"), 15)
     return
   end
   if side == veafCasMission.SIDE_BLUE then
@@ -1158,7 +1158,7 @@ end
 function veafCasMission.smokeCasTargetGroup()
   veaf.loggers.get(veafCasMission.Id):trace("veafCasMission.smokeCasTargetGroup START")
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.casGroupName), trigger.smokeColor.Red)
-  trigger.action.outText("Copy smoke requested, RED smoke on the deck!", 5)
+  trigger.action.outText(veaf.t("cas.smoke_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
   veafRadio.addCommandToSubmenu("Target is marked with red smoke", veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.smokeResetTaskID =
@@ -1170,14 +1170,14 @@ end
 function veafCasMission.smokeReset()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target is marked with red smoke")
   veafRadio.addCommandToSubmenu("Request smoke on target area", veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
-  trigger.action.outText("Smoke marker available", 5)
+  trigger.action.outText(veaf.t("cas.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
 
 --- add an illumination flare over the target area
 function veafCasMission.flareCasTargetGroup()
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.casGroupName))
-  trigger.action.outText("Copy illumination flare requested, illumination flare over target area!", 5)
+  trigger.action.outText(veaf.t("cas.illum_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
   veafRadio.addCommandToSubmenu("Target area is marked with illumination flare", veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.flareResetTaskID =
@@ -1193,7 +1193,7 @@ function veafCasMission.flareReset()
     veafCasMission.targetMarkersPath,
     veafCasMission.flareCasTargetGroup
   )
-  trigger.action.outText("Target illumination available", 5)
+  trigger.action.outText(veaf.t("cas.illum_available"), 5)
   veafRadio.refreshRadioMenu()
 end
 
@@ -1205,7 +1205,7 @@ function veafCasMission.casGroupWatchdog()
     veafCasMission.groupAliveCheckTaskID =
       mist.scheduleFunction(veafCasMission.casGroupWatchdog, {}, timer.getTime() + veafCasMission.SecondsBetweenWatchdogChecks)
   else
-    trigger.action.outText("CAS objective group destroyed!", 5)
+    trigger.action.outText(veaf.t("cas.objective_destroyed"), 5)
     veafCasMission.cleanupAfterMission()
   end
 end
@@ -1213,7 +1213,7 @@ end
 --- Called from the "Skip target" radio menu : remove the current CAS target group
 function veafCasMission.skipCasTarget()
   veafCasMission.cleanupAfterMission()
-  trigger.action.outText("CAS objective group cleaned up.", 5)
+  trigger.action.outText(veaf.t("cas.objective_cleaned"), 5)
 end
 
 --- Cleanup after either mission is ended or aborted

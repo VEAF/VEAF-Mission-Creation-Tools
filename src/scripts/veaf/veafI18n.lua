@@ -188,6 +188,63 @@ veaf.i18nCatalog = {
     fr = "Impossible d'ajouter le groupe à l'IADS nommé « %s », réseau introuvable ou groupe non pris en charge",
     en = 'Could not add group to the IADS named "%s", network not found or group not supported',
   },
+
+  -- Generic entity activation state (veafCombatZone / veafCombatMission / veafMissileGuardian).
+  -- The "%s" is the already-composed "<Label> <name>" (e.g. "VeafCombatZone Alpha").
+  ["entity.activated"] = {
+    fr = "%s a été activé.",
+    en = "%s has been activated.",
+  },
+  ["entity.already_active"] = {
+    fr = "%s était déjà actif.",
+    en = "%s was already active.",
+  },
+  ["entity.deactivated"] = {
+    fr = "%s a été désactivé.",
+    en = "%s has been desactivated.",
+  },
+  ["entity.already_inactive"] = {
+    fr = "%s était déjà inactif.",
+    en = "%s was already inactive.",
+  },
+  ["entity.is_already_active"] = {
+    fr = "%s est déjà actif.",
+    en = "%s is already active.",
+  },
+  ["entity.is_not_active"] = {
+    fr = "%s n'est pas actif.",
+    en = "%s is not active.",
+  },
+
+  -- veafCasMission
+  ["cas.target_exists"] = {
+    fr = "Un groupe cible CAS existe déjà !",
+    en = "A CAS target group already exists !",
+  },
+  ["cas.smoke_requested"] = {
+    fr = "Bien reçu, fumée demandée : fumée ROUGE sur la cible !",
+    en = "Copy smoke requested, RED smoke on the deck!",
+  },
+  ["cas.smoke_available"] = {
+    fr = "Marquage fumigène disponible",
+    en = "Smoke marker available",
+  },
+  ["cas.illum_requested"] = {
+    fr = "Bien reçu, fusée éclairante demandée : fusée éclairante au-dessus de la zone cible !",
+    en = "Copy illumination flare requested, illumination flare over target area!",
+  },
+  ["cas.illum_available"] = {
+    fr = "Éclairage de la cible disponible",
+    en = "Target illumination available",
+  },
+  ["cas.objective_destroyed"] = {
+    fr = "Groupe objectif CAS détruit !",
+    en = "CAS objective group destroyed!",
+  },
+  ["cas.objective_cleaned"] = {
+    fr = "Groupe objectif CAS nettoyé.",
+    en = "CAS objective group cleaned up.",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(string.format("Loading version %s", veafI18n.Version))

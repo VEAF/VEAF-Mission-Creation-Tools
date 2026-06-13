@@ -73,7 +73,8 @@ modules:
   GROUNDAI: true
   SPAWN: true
   NAMEDPOINTS: true
-  # SHORTCUTS needs a `shortcuts:` list — uncomment and fill in to enable:
+  SHORTCUTS: true           # built-in aliases (-shilka, -sa2, …) ; add custom ones with the extended form below
+  # SHORTCUTS (extended form, to add custom aliases on top of the built-in ones):
   #   SHORTCUTS:
   #     enabled: true
   #     shortcuts:

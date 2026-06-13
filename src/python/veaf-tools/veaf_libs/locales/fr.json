@@ -61,6 +61,7 @@
   "warehouses.invalid_amount": "Quantité de stock « {amount} » invalide pour le type d'aéronef « {type} » ; un entier ou « unlimited » est attendu. Ignorée.",
   "warehouses.no_airports": "La mission n'a aucun aéroport dans les warehouses ; câblage Dynamic-Slot ignoré.",
   "warehouses.airport_not_found": "Aéroport « {airport} » introuvable dans les warehouses (théâtre « {theatre} ») ; ignoré.",
+  "warehouses.unknown_category": "Impossible de classer le type d'aéronef « {type} » (avion ou hélicoptère) ; « planes » par défaut. Le modèle dynamic-slot peut ne pas se lier.",
   "warehouses.done": "Warehouses : {airports} aéroport(s) configuré(s), {templates} lien(s) de modèle posé(s).",
   "pipeline.injecting_spawn_data": "Pipeline : injection des données de spawn (fusion de {path})",
   "spawn_data.done": "Données de spawn : {units} unité(s) et {groups} groupe(s) injecté(s).",

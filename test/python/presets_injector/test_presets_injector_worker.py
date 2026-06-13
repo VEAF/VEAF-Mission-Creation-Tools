@@ -393,6 +393,13 @@ class TestPresetRadioCompatibility(unittest.TestCase):
             worker._preset_radio_compatible(self._group("NoSuchJet"), self._uhf_preset(243.0))
         )
 
+    def test_mig15bis_uhf_preset_skipped(self) -> None:
+        """MiG-15bis (HF RSI-6K, 3.75-5 MHz) is wholly incompatible with a UHF preset (C9 follow-up)."""
+        worker = _make_worker()
+        self.assertFalse(
+            worker._preset_radio_compatible(self._group("MiG-15bis"), self._uhf_preset(243.0, 251.0))
+        )
+
     def test_partially_valid_preset_kept(self) -> None:
         """If at least one frequency is in range, the preset is kept."""
         worker = _make_worker()

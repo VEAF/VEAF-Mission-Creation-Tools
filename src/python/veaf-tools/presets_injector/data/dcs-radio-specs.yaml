@@ -667,6 +667,26 @@ Mi-8MT:
     - max_mhz: 59.9
       min_mhz: 20.0
       modulation: AM/FM
+MiG-15bis:
+  category: plane
+  dcs_rejects_on_load: true
+  name: RSI-6K
+  radios:
+  - name: RSI-6K
+    ranges:
+    - max_mhz: 5.0
+      min_mhz: 3.75
+      modulation: AM
+MiG-15bis_FC:
+  category: plane
+  dcs_rejects_on_load: true
+  name: RSI-6K
+  radios:
+  - name: RSI-6K
+    ranges:
+    - max_mhz: 5.0
+      min_mhz: 3.75
+      modulation: AM
 MiG-19P:
   category: plane
   dcs_rejects_on_load: true

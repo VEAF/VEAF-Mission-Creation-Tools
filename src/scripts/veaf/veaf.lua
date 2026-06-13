@@ -2455,6 +2455,10 @@ function veaf.t(key, ...)
     local ok, formatted = pcall(string.format, text, ...)
     if ok then
       text = formatted
+    else
+      -- a placeholder/argument mismatch: keep the raw text but log it so the
+      -- catalog entry can be fixed (rather than silently swallowing the error).
+      veaf.loggers.get(veaf.Id):warn(string.format("veaf.t: format failed for key '%s': %s", tostring(key), tostring(formatted)))
     end
   end
   return text

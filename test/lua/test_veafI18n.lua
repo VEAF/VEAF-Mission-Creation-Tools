@@ -60,4 +60,12 @@ function TestVeafI18n:test_missing_key_with_args_does_not_crash()
   luaunit.assertEquals(veaf.t("totally.unknown", "x"), "totally.unknown")
 end
 
+function TestVeafI18n:test_format_mismatch_returns_raw_without_crashing()
+  -- a placeholder/argument mismatch must not crash: keep the raw text (and log).
+  veaf.i18nCatalog["test.fmt"] = { fr = "count: %d" }
+  local result = veaf.t("test.fmt", "not-a-number")
+  veaf.i18nCatalog["test.fmt"] = nil
+  luaunit.assertEquals(result, "count: %d")
+end
+
 os.exit(luaunit.LuaUnit.run())

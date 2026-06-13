@@ -212,6 +212,14 @@ veaf.i18nCatalog = {
     fr = "Un %s(%s) est apparu",
     en = "A %s(%s) has been spawned",
   },
+  ["spawn.unit_spawned"] = {
+    fr = "Un %s (%s) est apparu",
+    en = "A %s (%s) has been spawned",
+  },
+  ["spawn.jtac_spawned"] = {
+    fr = "JTAC créé, désignation sur %s, disponible sur %s %s",
+    en = "JTAC spawned, lasing on %s, available on %s %s",
+  },
   ["spawn.teleported"] = {
     fr = "Groupe téléporté %s",
     en = "Teleported group %s",

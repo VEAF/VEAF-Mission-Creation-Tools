@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`_spawn unit` success message is now localized** (i18n follow-up). The single-unit spawn feedback (`veafSpawn.spawnUnit`) and its JTAC variant were left as hardcoded English literals during LUA-I18N-004; they now go through `veaf.t` with new FR + EN catalog entries (`spawn.unit_spawned`, `spawn.jtac_spawned`), so `_spawn unit, name <alias>` reports in the mission language like `_spawn group` already did
 - **Dynamic mode no longer initializes the VEAF modules twice**. The dynamic mission-loading trigger loaded `veaf-config.lua` explicitly *and* via `veafDynamicConfig.lua` (which already heads its `scriptsToLoad` list with it), so every module's `initialize()` ran twice — e.g. `veafCommands` registered its central marker-dispatch handler twice, making a single F10 marker command (such as `_spawn group, name sa2`) execute twice. The redundant explicit load was removed from the dynamic trigrule; `veafDynamicConfig.lua` remains the single entry point and loads `veaf-config.lua` first. Static mode was unaffected
 
 ### Changed

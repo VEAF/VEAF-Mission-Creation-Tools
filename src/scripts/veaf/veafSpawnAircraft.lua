@@ -261,9 +261,9 @@ function veafSpawn.spawnUnit(
   -- message the unit spawning
   veaf.loggers.get(veafSpawn.Id):trace(string.format("message the unit spawning"))
   if (role == "jtac") or not silent then
-    local message = "A " .. unit.displayName .. " (" .. country .. ") has been spawned"
+    local message = veaf.t("spawn.unit_spawned", unit.displayName, country)
     if role == "jtac" and not static then
-      message = "JTAC spawned, lasing on " .. code .. ", available on " .. freq .. " " .. mod
+      message = veaf.t("spawn.jtac_spawned", code, freq, mod)
     end
     veaf.loggers.get(veafSpawn.Id):trace(message)
     trigger.action.outText(message, 15)

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 
-from veaf_libs.i18n import t
+from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_module_scanner import get_modules
 
@@ -801,11 +801,18 @@ def generate_config_lua(
             lines.append(f"veaf.config.MISSION_EXPORT_PATH = {lua_ep}")
         if era := mission_cfg.get("era"):
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
-        if language := mission_cfg.get("language"):
-            lines.append(f'veaf.config.language = "{language}"')
         if mission_cfg.get("silence_atc_on_all_airbases"):
             lines.append("veaf.silenceAtcOnAllAirbases()")
         lines.append("")
+
+    # ── In-game message language ───────────────────────────────────────────
+    # veaf.t() reads veaf.config.language. mission.yaml's mission.language is the
+    # explicit per-mission choice; otherwise fall back to the tools' resolved
+    # language (--lang / VEAF_LANG / user config / OS locale / "en"), so a mission
+    # built by a French maker defaults to FR in-game and others to their locale.
+    language = mission_cfg.get("language") or current_language()
+    lines.append(f'veaf.config.language = "{language}"')
+    lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────
     security_cfg: dict = mission_yaml.get("security") or {}

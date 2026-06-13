@@ -130,7 +130,7 @@ mission:
   name: "Ma-Mission"          # affiché dans les menus radio et les messages de log
   export_path: null           # null = chemin DCS Saved Games par défaut
   era: MODERN                 # MODERN | COLD_WAR | WW2
-  language: fr                # langue des messages VEAF en jeu : fr (défaut) | en
+  language: fr                # langue des messages VEAF en jeu : fr | en (défaut : langue des outils)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -138,7 +138,7 @@ mission:
 | `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs |
 | `export_path` | string \| null | `null` | Non | Surcharge le chemin d'export DCS Saved Games |
 | `era` | string | `MODERN` | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn |
-| `language` | string | `fr` | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()` |
+| `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 
 ---
 

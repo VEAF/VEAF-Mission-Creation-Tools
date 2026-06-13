@@ -20,6 +20,30 @@ class TestMissionIdentity(unittest.TestCase):
         lua = generate_config_lua({"mission": {"language": "fr"}})
         self.assertIn('veaf.config.language = "fr"', lua)
 
+    def test_language_falls_back_to_tools_language(self) -> None:
+        from veaf_libs.i18n import current_language, set_language
+
+        prev = current_language()
+        try:
+            set_language("en")
+            self.assertIn('veaf.config.language = "en"', generate_config_lua({}))
+            set_language("fr")
+            self.assertIn('veaf.config.language = "fr"', generate_config_lua({}))
+        finally:
+            set_language(prev)
+
+    def test_mission_language_overrides_tools_language(self) -> None:
+        from veaf_libs.i18n import current_language, set_language
+
+        prev = current_language()
+        try:
+            set_language("en")
+            lua = generate_config_lua({"mission": {"language": "fr"}})
+            self.assertIn('veaf.config.language = "fr"', lua)
+            self.assertNotIn('veaf.config.language = "en"', lua)
+        finally:
+            set_language(prev)
+
     def test_no_mission_section_emits_nothing(self) -> None:
         lua = generate_config_lua({})
         self.assertNotIn("MISSION_NAME", lua)

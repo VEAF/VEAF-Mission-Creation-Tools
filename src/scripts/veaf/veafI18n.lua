@@ -23,7 +23,7 @@ veafI18n = {}
 veafI18n.Id = "I18N"
 
 --- Version.
-veafI18n.Version = "1.1.0"
+veafI18n.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafI18n.LogLevel = "trace"
@@ -93,6 +93,76 @@ veaf.i18nCatalog = {
   ["security.authenticated_minutes"] = {
     fr = "Le système est authentifié pour %d minutes",
     en = "The system is authenticated for %d minutes",
+  },
+
+  -- veafShortcuts
+  ["shortcuts.combatmission_name_mandatory"] = {
+    fr = "VeafAliasForCombatMission : le nom de la mission est obligatoire",
+    en = "VeafAliasForCombatMission: mission name is mandatory",
+  },
+  ["shortcuts.combatmission_not_found"] = {
+    fr = "VeafAliasForCombatMission : la mission %s n'existe pas",
+    en = "VeafAliasForCombatMission: mission %s does not exist",
+  },
+  ["shortcuts.combatzone_name_mandatory"] = {
+    fr = "VeafAliasForCombatZone : le nom de la zone est obligatoire",
+    en = "VeafAliasForCombatZone: zone name is mandatory",
+  },
+  ["shortcuts.combatzone_not_found"] = {
+    fr = "VeafAliasForCombatZone : la zone %s n'existe pas",
+    en = "VeafAliasForCombatZone: zone %s does not exist",
+  },
+  ["shortcuts.alias_not_found"] = {
+    fr = "VeafAlias [%s] introuvable !",
+    en = "VeafAlias [%s] was not found !",
+  },
+  ["shortcuts.running_batch_alias"] = {
+    fr = "exécution de l'alias batch [%s] : %s",
+    en = "running batch alias [%s] : %s",
+  },
+  ["shortcuts.running_batch_list"] = {
+    fr = "exécution de la liste batch [%s]",
+    en = "running batch list [%s]",
+  },
+  ["shortcuts.cannot_decode_coords"] = {
+    fr = "impossible de décoder les coordonnées [%s]",
+    en = "unable to decode coordinates [%s]",
+  },
+
+  -- veafCarrierOperations
+  ["carrier.not_found"] = {
+    fr = "Groupe porte-avions introuvable : %s",
+    en = "Cannot find the carrier group %s",
+  },
+  ["carrier.stopped"] = {
+    fr = "Le groupe porte-avions %s a cessé ses opérations aériennes ; il retourne à sa position initiale",
+    en = "The carrier group %s has stopped air operations ; it's moving back to its initial position",
+  },
+  ["carrier.help"] = {
+    fr = "Utilisez les menus radio pour démarrer et arrêter les opérations du porte-avions\n"
+      .. "START : le porte-avions détermine le vent et fait route à vitesse optimale pour obtenir un vent debout de 25 kn\n"
+      .. "        le menu radio affichera le cap de récupération et les informations TACAN\n"
+      .. "END   : le porte-avions retourne à son point de départ (là où il était au lancement de la commande START)\n"
+      .. "RESET : le porte-avions retourne à sa position au début de la mission",
+    en = "Use the radio menus to start and end carrier operations\n"
+      .. "START: carrier will find out the wind and set sail at optimum speed to achieve a 25kn headwind\n"
+      .. "       the radio menu will show the recovery course and TACAN information\n"
+      .. "END  : carrier will go back to its starting point (where it was when the START command was issued)\n"
+      .. "RESET: carrier will go back to where it was when the mission started",
+  },
+
+  -- veafSanctuary (enforcement status shown to the protected coalition)
+  ["sanctuary.unit_in_zone"] = {
+    fr = "L'unité %s est dans la zone %s depuis %d secondes",
+    en = "Unit %s is in the %s zone since %d seconds",
+  },
+  ["sanctuary.instant_kill"] = {
+    fr = "Destruction immédiate de l'unité %s, dans la zone %s depuis %d secondes",
+    en = "Instantly killing unit %s, in zone %s since %d seconds",
+  },
+  ["sanctuary.spawning_defenses"] = {
+    fr = "Déploiement de défenses pour repousser l'unité %s, dans la zone %s depuis %d secondes",
+    en = "Spawning defense systems to fend off unit %s, in zone %s since %d seconds",
   },
 
   -- veafNamedPoints
@@ -341,11 +411,47 @@ veaf.i18nCatalog = {
     fr = "Félicitations pour ce travail bien fait ! La cargaison %s a été livrée en toute sécurité",
     en = "Congratulations on a job well done ! Cargo %s has been delivered safely",
   },
+  ["transport.help"] = {
+    fr = 'Créez un marqueur et tapez "_transport" dans le texte\n'
+      .. "Cela créera un groupe ami par défaut attendant une cargaison à transporter\n"
+      .. "Vous pouvez ajouter des options (séparées par des virgules) :\n"
+      .. '   "defense [0-5]" pour préciser la couverture de défense aérienne en route (1 = légère, 5 = lourde)\n'
+      .. "        defense = 1 : 3-7 soldats, transport GAZ-3308\n"
+      .. "        defense = 2 : 3-7 soldats, APC BTR-80\n"
+      .. "        defense = 3 : 3-7 soldats, possibilité d'IFV BMP-1, possibilité de manpad Igla\n"
+      .. "        defense = 4 : 3-7 soldats, forte chance d'IFV BMP-1, forte chance de manpad Igla-S, possibilité de ZU-23 sur camion\n"
+      .. "        defense = 5 : 3-7 soldats, IFV BMP-1, forte chance de manpad Igla-S, possibilité de ZSU-23-4 Shilka\n"
+      .. '   "size [1-5]" pour changer le nombre de cargaisons à transporter (1 par hélico participant, en général)\n'
+      .. '   "blocade [0-5]" pour préciser le blocus ennemi autour de la zone de largage (1 = léger, 5 = lourd)',
+    en = 'Create a marker and type "_transport" in the text\n'
+      .. "This will create a default friendly group awaiting cargo that you need to transport\n"
+      .. "You can add options (comma separated) :\n"
+      .. '   "defense [0-5]" to specify air defense cover on the way (1 = light, 5 = heavy)\n'
+      .. "        defense = 1 : 3-7 soldiers, GAZ-3308 transport\n"
+      .. "        defense = 2 : 3-7 soldiers, BTR-80 APC\n"
+      .. "        defense = 3 : 3-7 soldiers, chance of BMP-1 IFV, chance of Igla manpad\n"
+      .. "        defense = 4 : 3-7 soldiers, big chance of BMP-1 IFV, big chance of Igla-S manpad, chance of ZU-23 on a truck\n"
+      .. "        defense = 5 : 3-7 soldiers, BMP-1 IFV, big chance of Igla-S manpad, chance of ZSU-23-4 Shilka\n"
+      .. '   "size [1-5]" to change the number of cargo items to be transported (1 per participating helo, usually)\n'
+      .. '   "blocade [0-5]" to specify enemy blocade around the drop zone (1 = light, 5 = heavy)',
+  },
 
   -- veafGroundAI
   ["groundai.handler_info"] = {
     fr = "Gestionnaire IA %s : %s",
     en = "AI handler %s: %s",
+  },
+  ["groundai.cannot_aim"] = {
+    fr = "%s ne peut pas viser, aucune coordonnée de cible fournie",
+    en = "%s cannot aim, no target coordinates provided",
+  },
+  ["groundai.cannot_fire_effect"] = {
+    fr = "%s ne peut pas tirer pour effet, aucune coordonnée de cible fournie et aucune cible précédente",
+    en = "%s cannot fire for effect, no target coordinates provided and no previous target exists",
+  },
+  ["groundai.firing"] = {
+    fr = "%s tire %d obus sur %s avec une dispersion de %s m",
+    en = "%s is firing %d shells at %s with a %s m dispersion",
   },
 
   -- veafWeather

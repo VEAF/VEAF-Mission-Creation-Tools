@@ -686,13 +686,21 @@ function VeafSanctuaryZone:handleUnit(unit, data)
     )
 
     local message = string.format("Unit %s is in the %s zone since %d seconds", playername, self:getName(), timeInZone)
-    trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
+    trigger.action.outTextForCoalition(
+      self:getCoalition(),
+      veaf.t("sanctuary.unit_in_zone", playername, self:getName(), timeInZone),
+      veafSanctuary.MESSAGE_TIME
+    )
     veafSanctuary.recordAction(message)
     local groupId = unit:getGroup():getID()
     if self:getDelayInstant() > -1 and timeInZone >= self:getDelayInstant() then
       -- insta-death !
       local message = string.format("Instantly killing unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
-      trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
+      trigger.action.outTextForCoalition(
+        self:getCoalition(),
+        veaf.t("sanctuary.instant_kill", playername, self:getName(), timeInZone),
+        veafSanctuary.MESSAGE_TIME
+      )
       veafSanctuary.recordAction(message)
       -- flak the plane - :destroy() does not work for human players and weapons in MP
       veafSpawn.destroyObjectWithFlak(unit, 2, 2)
@@ -703,7 +711,11 @@ function VeafSanctuaryZone:handleUnit(unit, data)
       local message =
         string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
       veafSanctuary.recordAction(string.format("Issuing a warning to protected coalition : %s", message))
-      trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
+      trigger.action.outTextForCoalition(
+        self:getCoalition(),
+        veaf.t("sanctuary.spawning_defenses", playername, self:getName(), timeInZone),
+        veafSanctuary.MESSAGE_TIME
+      )
 
       local message = string.format("CRITICAL: %s - %s", playername, self:getMessageSpawn())
       veafSanctuary.recordAction(string.format("Issuing a warning to trespasser : %s", message))

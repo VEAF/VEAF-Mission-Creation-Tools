@@ -46,7 +46,7 @@
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ✅ |
-| Lot LUA-I18N — localize in-game VEAF messages (Lua runtime i18n; FR default + EN) | ⬜ |
+| Lot LUA-I18N — localize in-game VEAF messages (Lua runtime i18n; FR default + EN) | ✅ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | ✅ |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ✅ |
@@ -716,7 +716,7 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 | LUA-I18N-001 (spike) | Decide the mechanism, the active-language source (mission.yaml → `veaf-config.lua` → `veaf.language`, default FR), catalog layout, and fallback rules. Deliverable: design note + framework skeleton + tests. | `src/scripts/veaf/`, `doc/`, `test/lua/` | spike | ✅ |
 | LUA-I18N-002 | Implement `veaf.t(key, ...)` + the catalog + `veaf.language` wiring (`lua_config_generator` emits it from `mission.yaml`, default `"fr"`); fallbacks (lang → FR → key). luaunit tests. | `src/scripts/veaf/veaf.lua` (or `veafI18n.lua`), `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml`, `test/lua/`, `test/python/` | feat | ✅ |
 | LUA-I18N-003 | Migrate the **pilot-feedback** messages (UXPILOT-FEEDBACK: `veaf.reportToPilot` call sites in `veafMarkers` / `veafSpawnCore`) to `veaf.t`, with FR + EN entries — the first real consumer. | `src/scripts/veaf/veafMarkers.lua`, `src/scripts/veaf/veafSpawnCore.lua`, catalog, `test/lua/` | feat | ✅ |
-| LUA-I18N-004 (incremental) | Migrate the remaining hardcoded in-game messages module-by-module to `veaf.t` (FR + EN). Done preemptively in one pass for all **discrete** messages (spawn, combat zone/mission, missile guardian, CAS, transport, move, radio, security, skynet helper, named points, ground AI, weather fog, assets). **Remaining**: large dynamically-assembled status/report builders (weather/ATC report, carrier-ops/air-waves status, long help/report blocks) that mix data + mission-configurable templates — a smaller follow-up. | `src/scripts/veaf/*.lua`, catalog, `test/lua/` | feat | 🟡 |
+| LUA-I18N-004 | Migrate the hardcoded in-game messages to `veaf.t` (FR + EN). Done across all modules with pilot-facing prose: spawn, combat zone/mission, missile guardian, CAS, transport (incl. help), move, radio, security, skynet helper, named points, ground AI, carrier ops, sanctuary enforcement, shortcuts, weather fog, assets. Logs stay English; only on-screen text localized. **Deliberately out of scope**: mission-configurable templates (Air-Waves, QRA, Ground-AI start/stop, Combat-Zone events, Sanctuary warnings — user-overridable, not catalog material) and large data reports (weather/ATC METAR report, transport nav report, carrier list/recovery status). Localizing those = a separate lot if ever wanted. | `src/scripts/veaf/*.lua`, catalog, `test/lua/` | feat | ✅ |
 
 ---
 

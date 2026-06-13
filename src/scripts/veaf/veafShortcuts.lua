@@ -325,7 +325,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   if not missionName or #missionName == 0 then
     local msg = string.format("VeafAliasForCombatMission: mission name is mandatory")
     veaf.loggers.get(veafShortcuts.Id):warn(msg)
-    trigger.action.outText(msg, 5)
+    trigger.action.outText(veaf.t("shortcuts.combatmission_name_mandatory"), 5)
     return false
   end
 
@@ -333,7 +333,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   if not mission then
     local msg = string.format("VeafAliasForCombatMission: mission %s does not exist", veaf.p(missionName))
     veaf.loggers.get(veafShortcuts.Id):warn(msg)
-    trigger.action.outText(msg, 5)
+    trigger.action.outText(veaf.t("shortcuts.combatmission_not_found", veaf.p(missionName)), 5)
     return false
   end
 
@@ -431,7 +431,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   if not zoneName or #zoneName == 0 then
     local msg = string.format("VeafAliasForCombatZone: zone name is mandatory")
     veaf.loggers.get(veafShortcuts.Id):warn(msg)
-    trigger.action.outText(msg, 5)
+    trigger.action.outText(veaf.t("shortcuts.combatzone_name_mandatory"), 5)
     return false
   end
 
@@ -439,7 +439,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   if not zone then
     local msg = string.format("VeafAliasForCombatZone: zone %s does not exist", veaf.p(zoneName))
     veaf.loggers.get(veafShortcuts.Id):warn(msg)
-    trigger.action.outText(msg, 5)
+    trigger.action.outText(veaf.t("shortcuts.combatzone_not_found", veaf.p(zoneName)), 5)
     return false
   end
 
@@ -469,7 +469,7 @@ function veafShortcuts.GetAlias(aliasName)
   if not alias then
     local message = string.format("VeafAlias [%s] was not found !", aliasName)
     veaf.loggers.get(veafShortcuts.Id):error(message)
-    trigger.action.outText(message, 5)
+    trigger.action.outText(veaf.t("shortcuts.alias_not_found", aliasName), 5)
   end
 
   return alias
@@ -531,7 +531,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
 
       local _msg = string.format("running batch alias [%s] : %s", alias:getName(), alias:getDescription())
       veaf.loggers.get(veafShortcuts.Id):info(_msg)
-      trigger.action.outText(_msg, 10)
+      trigger.action.outText(veaf.t("shortcuts.running_batch_alias", alias:getName(), alias:getDescription()), 10)
 
       -- run the batch
       for index, textToExecute in ipairs(alias:getBatchAliases()) do
@@ -570,7 +570,7 @@ function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition,
     local _msg = string.format("running batch list [%s]", veaf.p(aliasBatchList))
     veaf.loggers.get(veafShortcuts.Id):info(_msg)
     if not silent then
-      trigger.action.outText(_msg, 10)
+      trigger.action.outText(veaf.t("shortcuts.running_batch_list", veaf.p(aliasBatchList)), 10)
     end
 
     -- run the batch
@@ -624,7 +624,7 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
           else
             local _msg = string.format("unable to decode coordinates [%s]", veaf.p(coords))
             veaf.loggers.get(veafShortcuts.Id):warn(_msg)
-            trigger.action.outText(_msg, 5)
+            trigger.action.outText(veaf.t("shortcuts.cannot_decode_coords", veaf.p(coords)), 5)
             return
           end
         end

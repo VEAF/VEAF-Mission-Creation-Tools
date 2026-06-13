@@ -109,11 +109,12 @@ modules:
   #         coalition: BLUE
   #         delay_warning: 30
   #         delay_spawn: 60
-  # ── Combat (off by default — enable + configure) ──────────────────────────
-  # CASMISSION: true
-  # TRANSPORTMISSION: true
+  # ── Combat ────────────────────────────────────────────────────────────────
+  CASMISSION: true          # `_cas` marker — on-demand CAS target group (no config)
+  TRANSPORTMISSION: true    # `_transport` marker — on-demand transport mission (no config)
+  # The rest need configuration — enable + configure as needed:
   # COMBATMISSION: true
-  # CARRIER: true
+  # CARRIER: true             # carrier-operations radio menus (if a carrier is present)
   #   COMBATZONE:
   #     enabled: true
   #     combat_zone_settings:

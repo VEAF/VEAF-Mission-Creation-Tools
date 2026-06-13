@@ -484,10 +484,7 @@ end
 -- Effects spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("cargo", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("cargo", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCargo(
     eventPos,
     options.radius,
@@ -502,34 +499,22 @@ veafSpawn.registerCommandHandler("cargo", function(eventPos, options, coalition,
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("logistic", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("logistic", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnLogistic(eventPos, options.radius, options.country, bypassSecurity, not options.showMFD)
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("destroy", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("destroy", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.destroy(eventPos, options.radius, options.unitName)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("teleport", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("teleport", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.teleport(eventPos, options.name, bypassSecurity)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("bomb", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("bomb", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.power, options.altitude, options.altitudedelta, options.password)
   return nil, nil, false
 end)

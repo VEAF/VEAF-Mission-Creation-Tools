@@ -463,6 +463,7 @@ veafSecurity = {
   checkPassword_L0 = function(...) return true end,
   checkSecurity_L9 = function(...) return true end,
   checkSecurity_L1 = function(...) return true end,
+  checkSecurity_MM = function(...) return true end,
 }
 
 -- ---------------------------------------------------------------------------

@@ -1410,10 +1410,7 @@ end
 -- Aircraft spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("unit", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("unit", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
   local code = options.laserCode
   local channel = options.freq
   local band = options.mod
@@ -1442,10 +1439,7 @@ veafSpawn.registerCommandHandler("unit", function(eventPos, options, coalition, 
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("afac", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnAFAC(
     eventPos,
     options.name,
@@ -1463,10 +1457,7 @@ veafSpawn.registerCommandHandler("afac", function(eventPos, options, coalition, 
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("cap", function(eventPos, options, coalition, markId, bypassSecurity)
-  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
-    return nil, nil, true
-  end
+veafSpawn.registerCommandHandler("cap", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCombatAirPatrol(
     eventPos,
     options.radius,

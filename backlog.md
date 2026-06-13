@@ -46,6 +46,7 @@
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
 | Lot UXPILOT-FEEDBACK — surface command errors to pilots (global pcall guard + unified feedback + unknown-parameter hints) | ✅ |
+| Lot LUA-I18N — localize in-game VEAF messages (Lua runtime i18n; FR default + EN) | ⬜ |
 | Lot QUALITY-GATE — erode mypy `ignore_errors` and ratchet the coverage gate, one worker per lot | ✅ |
 | Lot SPAWN-REFACTOR — characterize `veafSpawnParser` with tests, then de-duplicate the spawn subsystem | 🟡 |
 | Lot DYNSLOT-WAREHOUSE — wire injected `dynSpawnTemplate` groups into the `.miz` `warehouses` so DCS offers them as Dynamic Slots | ✅ |
@@ -685,6 +686,28 @@ Conclusion: nothing to remove. The `doc/mission-maker/GUIDE` project-layout tree
 | UXPILOT-001 | **Global safety net**: the `veafMarkers.onEvent` dispatch (already `pcall`-wrapped + logged) now also surfaces a short in-game message to the placing coalition when a handler errors; the stack stays in the DCS log. luaunit tests (handler raises → reportToPilot called; success → not called). | `src/scripts/veaf/veafMarkers.lua`, `test/lua/` | feat | ✅ |
 | UXPILOT-002 | **Unified feedback helper**: added `veaf.reportToPilot(message, duration, coalition)` (thin wrapper over `outText` / `outTextForCoalition`), used by 001 and 003. **Note**: the planned `veafNamedPoints.executeCommand` routing was dropped — its `markTextAnalysis` never returns nil when the keyphrase is present, so the "parse failed" branch is unreachable (no genuine silent failure to route there). | `src/scripts/veaf/veaf.lua`, `test/lua/` | feat | ✅ |
 | UXPILOT-003 | **Unknown-parameter hints**: `markTextAnalysis` now collects unrecognized parameter keys into `options.unknownParameters` (skipping the command keyphrase), with a nearest-key suggestion via `veaf.nearestMatch` (Levenshtein); `veafSpawn.executeCommand` reports them to the placing pilot. Known keys live in `veafSpawn.KnownParameterKeys`. luaunit tests (unknown collected, typo→suggestion, valid input clean). | `src/scripts/veaf/veafSpawnParser.lua`, `src/scripts/veaf/veafSpawnCore.lua`, `src/scripts/veaf/veaf.lua`, `test/lua/` | feat | ✅ |
+
+---
+
+## Lot LUA-I18N — Localize in-game VEAF messages (Lua runtime; FR default + EN)
+
+**Goal**: The Lua runtime (scripts executing inside DCS) has **no i18n** — every pilot-facing message (`trigger.action.outText*`) is a hardcoded **English** literal. Add a lightweight Lua i18n layer so in-game messages can be localized, with **French as the default** and English available. This is the runtime counterpart of the design-time i18n the Python tools already have (`veaf_libs.i18n` + `locales/{en,fr}.json`). Driver: UXPILOT-FEEDBACK shipped English-only pilot messages because there was nothing to localize against (see its note).
+
+**Design constraints / open questions** (resolve in the spike):
+
+- **Mechanism**: a `veaf.t(key, ...)` lookup over a catalog `{ key = { fr = "...", en = "..." } }`, with `string.format`-style interpolation and fallback (missing language → default FR → key).
+- **Active language**: set once from `mission.yaml` (e.g. `language: fr|en`) → emitted by `lua_config_generator` into `veaf-config.lua` as `veaf.language` (default `"fr"`). DCS does **not** expose a reliable per-pilot UI language, so this is mission-global (not per-coalition/per-pilot) unless a cheap per-player signal is found.
+- **Catalog location**: one Lua catalog module loaded by the framework (e.g. `veafI18n.lua`), vs per-module inline tables. Keep it test-friendly (`poetry run test-lua`).
+- **Migration is incremental**: ship the framework + the UXPILOT pilot-feedback messages first; migrate the rest module-by-module (hundreds of `outText` literals — erode over time, do not big-bang).
+
+**Branch**: `feat/lua-i18n` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUA-I18N-001 (spike) | Decide the mechanism, the active-language source (mission.yaml → `veaf-config.lua` → `veaf.language`, default FR), catalog layout, and fallback rules. Deliverable: design note + framework skeleton + tests. | `src/scripts/veaf/`, `doc/`, `test/lua/` | spike | ⬜ |
+| LUA-I18N-002 | Implement `veaf.t(key, ...)` + the catalog + `veaf.language` wiring (`lua_config_generator` emits it from `mission.yaml`, default `"fr"`); fallbacks (lang → FR → key). luaunit tests. | `src/scripts/veaf/veaf.lua` (or `veafI18n.lua`), `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml`, `test/lua/`, `test/python/` | feat | ⬜ |
+| LUA-I18N-003 | Migrate the **pilot-feedback** messages (UXPILOT-FEEDBACK: `veaf.reportToPilot` call sites in `veafMarkers` / `veafSpawnCore`) to `veaf.t`, with FR + EN entries — the first real consumer. | `src/scripts/veaf/veafMarkers.lua`, `src/scripts/veaf/veafSpawnCore.lua`, catalog, `test/lua/` | feat | ⬜ |
+| LUA-I18N-004 (incremental) | Migrate the remaining hardcoded in-game messages module-by-module to `veaf.t` (FR + EN). Erode over time; not a single PR. | `src/scripts/veaf/*.lua`, catalog, `test/lua/` | feat | ⬜ |
 
 ---
 

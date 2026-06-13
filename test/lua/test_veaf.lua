@@ -1510,6 +1510,33 @@ function TestVeafPilotFeedback:test_nearestMatch_returns_nil_when_too_far()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafCoalition — requester vs opposite coalition (COALITION-REFACTOR)
+-- ---------------------------------------------------------------------------
+TestVeafCoalition = {}
+
+function TestVeafCoalition:test_requester_returns_red_blue()
+  luaunit.assertEquals(veaf.getRequesterCoalition({ coalition = coalition.side.RED }), coalition.side.RED)
+  luaunit.assertEquals(veaf.getRequesterCoalition({ coalition = coalition.side.BLUE }), coalition.side.BLUE)
+end
+
+function TestVeafCoalition:test_requester_nil_for_neutral_all_or_missing()
+  luaunit.assertNil(veaf.getRequesterCoalition({ coalition = coalition.side.NEUTRAL }))
+  luaunit.assertNil(veaf.getRequesterCoalition({ coalition = -1 }))
+  luaunit.assertNil(veaf.getRequesterCoalition({}))
+  luaunit.assertNil(veaf.getRequesterCoalition(nil))
+end
+
+function TestVeafCoalition:test_opposite_swaps_red_blue()
+  luaunit.assertEquals(veaf.getOppositeCoalition(coalition.side.RED), coalition.side.BLUE)
+  luaunit.assertEquals(veaf.getOppositeCoalition(coalition.side.BLUE), coalition.side.RED)
+end
+
+function TestVeafCoalition:test_opposite_defaults_neutral_to_red()
+  luaunit.assertEquals(veaf.getOppositeCoalition(coalition.side.NEUTRAL), coalition.side.RED)
+  luaunit.assertEquals(veaf.getOppositeCoalition(-1), coalition.side.RED)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

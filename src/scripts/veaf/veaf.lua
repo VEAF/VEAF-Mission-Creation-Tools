@@ -2432,6 +2432,37 @@ function veaf.reportToPilot(message, duration, coalition)
   end
 end
 
+--- The coalition that issued a command, normalized for pilot feedback.
+--- Use this for messages addressed to whoever placed the marker / carried the
+--- interpreter command (reportToPilot), NOT for deciding the side of spawned
+--- units (see veaf.getOppositeCoalition). Returns the RED/BLUE side, or nil when
+--- the requester is unknown/all (callers then fall back to an all-coalitions message).
+--- @param event table the command event (has a `coalition` field)
+--- @treturn number|nil coalition.side.RED / .BLUE, or nil
+function veaf.getRequesterCoalition(event)
+  local c = event and event.coalition
+  if c == coalition.side.RED or c == coalition.side.BLUE then
+    return c
+  end
+  return nil
+end
+
+--- The opposing coalition — the default side for units spawned from a marker.
+--- A marker placed by one coalition spawns threats for the other by default
+--- (RED→BLUE, BLUE→RED). Anything else (neutral/all) defaults to RED, preserving
+--- the historical behaviour. Pass an explicit `side`/`country` to override.
+--- @param c number a coalition.side value
+--- @treturn number the opposite coalition.side
+function veaf.getOppositeCoalition(c)
+  if c == coalition.side.RED then
+    return coalition.side.BLUE
+  elseif c == coalition.side.BLUE then
+    return coalition.side.RED
+  else
+    return coalition.side.RED
+  end
+end
+
 --- Translate an in-game message key to the active language.
 --- The active language is `veaf.config.language` (set from mission.yaml, default
 --- `veaf.I18N_DEFAULT_LANGUAGE` = "fr"). The catalog (`veaf.i18nCatalog`) is

@@ -180,7 +180,8 @@ function veafSpawn.executeCommand(
   repeatCount,
   repeatDelay,
   route,
-  allowStartDelay
+  allowStartDelay,
+  requesterCoalition
 )
   veaf.loggers.get(veafSpawn.Id):trace("eventPos=%s", eventPos)
   veaf.loggers.get(veafSpawn.Id):debug("eventText=%s", eventText)
@@ -218,7 +219,9 @@ function veafSpawn.executeCommand(
           end
           table.insert(hints, hint)
         end
-        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, coalition)
+        -- Address the hint to the requester (the pilot who issued the command), not
+        -- to `coalition` (the side the units spawn for). nil => shown to everyone.
+        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, requesterCoalition)
       end
 
       local repeatDelay = repeatDelay
@@ -232,7 +235,7 @@ function veafSpawn.executeCommand(
           :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
         mist.scheduleFunction(
           veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false },
+          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition },
           timer.getTime() + startDelay
         )
         return true
@@ -266,7 +269,19 @@ function veafSpawn.executeCommand(
           )
         mist.scheduleFunction(
           veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, false },
+          {
+            eventPos,
+            eventText,
+            coalition,
+            markId,
+            bypassSecurity,
+            spawnedGroups,
+            repeatCount,
+            repeatDelay,
+            route,
+            false,
+            requesterCoalition,
+          },
           timer.getTime() + repeatDelay
         )
       end
@@ -919,8 +934,11 @@ function veafSpawn.initialize()
   veafSpawn.buildRadioMenu()
   veafSpawn.initializeAirUnitTemplates()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
-    return veafSpawn.executeCommand(pos, event.text, coal, event.idx, bypass, groups, nil, nil, route, true)
+    -- Markers spawn for the opposing side by default; interpreter/remote commands
+    -- spawn for the issuing unit's own side. Feedback always goes to the requester.
+    local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
+    local requesterCoalition = veaf.getRequesterCoalition(event)
+    return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
   end, veafCommands.PRIORITY_SPAWN)
   veafSpawn.dumpSpawnablePlanesList()
 end

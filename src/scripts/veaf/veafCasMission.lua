@@ -1286,8 +1286,9 @@ end
 function veafCasMission.initialize()
   veafCasMission.buildRadioMenu()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
-    return veafCasMission.executeCommand(pos, event.text, coal, event.idx, bypass)
+    -- Markers spawn the CAS target for the opposing side by default.
+    local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
+    return veafCasMission.executeCommand(pos, event.text, spawnSide, event.idx, bypass)
   end, veafCommands.PRIORITY_CASMISSION)
 end
 

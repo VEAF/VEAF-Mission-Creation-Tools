@@ -54,6 +54,26 @@ class TestGenerateVeafDynamicConfig:
         # Order preserved (FgTools before FgMission).
         assert content.index('"FgTools.lua"') < content.index('"FgMission.lua"')
 
+    def test_does_not_include_itself(self, tmp_path: Path) -> None:
+        """veafDynamicConfig.lua is the loader; it must never be in the list it iterates
+        (else it would loadfile itself in an infinite loop at mission start)."""
+        worker = _bare_worker()
+        worker.mission_folder = tmp_path
+        worker.custom_scripts = []
+        # get_collected_mission_script_files() naturally includes veafDynamicConfig.lua
+        # (it is a .lua in src/scripts/); the generated list must filter it out.
+        worker.collected_mission_script_files = {
+            "src/scripts/veaf-config.lua": b"",
+            "src/scripts/mission-script.lua": b"",
+            "src/scripts/veafDynamicConfig.lua": b"",
+        }
+        worker.generate_veaf_dynamic_config()
+
+        content = (tmp_path / "src" / "scripts" / "veafDynamicConfig.lua").read_text(encoding="utf-8")
+        assert '"mission-script.lua",' in content
+        assert '"veaf-config.lua",' in content
+        assert '"veafDynamicConfig.lua",' not in content
+
     def test_excludes_scripts_with_load_trigger_disabled(self, tmp_path: Path) -> None:
         worker = _bare_worker()
         worker.mission_folder = tmp_path

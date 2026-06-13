@@ -1006,6 +1006,10 @@ class MissionBuilderWorker(BaseWorker):
             Path(script_file_name).name
             for script_file_name in self.get_collected_mission_script_files()
             if self._resolves_load_trigger(Path(script_file_name).name)
+            # veafDynamicConfig.lua IS the dynamic loader (loaded directly by the
+            # dynamic mission trigger); it must never appear in the list it iterates,
+            # or it would load itself in an infinite loop.
+            and Path(script_file_name).name != "veafDynamicConfig.lua"
         ]
 
     def generate_veaf_dynamic_config(self) -> None:

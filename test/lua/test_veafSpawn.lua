@@ -439,6 +439,28 @@ function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
   luaunit.assertEquals(veafSpawn.commandHandlers[1].security, "L9")
 end
 
+function TestVeafSpawnCore:test_unknown_parameter_aborts_without_spawning()
+  -- An unrecognized parameter (typo) must abort the command, not spawn anyway.
+  local spawned = false
+  veafSpawn.registerCommandHandler("unit", function()
+    spawned = true
+    return nil
+  end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_spawn unit, name shilka, headng 90", 1, nil, true)
+  luaunit.assertFalse(spawned)
+end
+
+function TestVeafSpawnCore:test_known_parameters_still_spawn()
+  -- A valid command (no unknown parameter) still reaches its handler.
+  local spawned = false
+  veafSpawn.registerCommandHandler("unit", function()
+    spawned = true
+    return nil
+  end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_spawn unit, name shilka, heading 90", 1, nil, true)
+  luaunit.assertTrue(spawned)
+end
+
 function TestVeafSpawnCore:test_security_gate_blocks_handler_when_check_fails()
   local orig = veafSecurity.checkSecurity_MM
   veafSecurity.checkSecurity_MM = function() return false end

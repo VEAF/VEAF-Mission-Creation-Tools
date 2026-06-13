@@ -222,6 +222,11 @@ function veafSpawn.executeCommand(
         -- Address the hint to the requester (the pilot who issued the command), not
         -- to `coalition` (the side the units spawn for). nil => shown to everyone.
         veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, requesterCoalition)
+        -- An unrecognized parameter is an error: report it and ABORT, so a typo
+        -- never silently spawns something the pilot did not intend. The marker is
+        -- left in place so the pilot can fix the typo. (Known keys are derived from
+        -- ParameterRules, so a flagged key is one that would have done nothing.)
+        return false
       end
 
       local repeatDelay = repeatDelay
@@ -267,23 +272,19 @@ function veafSpawn.executeCommand(
           :trace(
             string.format("scheduling veafSpawn.executeCommand for %s repeats in %s seconds", veaf.p(repeatCount), veaf.p(repeatDelay))
           )
-        mist.scheduleFunction(
-          veafSpawn.executeCommand,
-          {
-            eventPos,
-            eventText,
-            coalition,
-            markId,
-            bypassSecurity,
-            spawnedGroups,
-            repeatCount,
-            repeatDelay,
-            route,
-            false,
-            requesterCoalition,
-          },
-          timer.getTime() + repeatDelay
-        )
+        mist.scheduleFunction(veafSpawn.executeCommand, {
+          eventPos,
+          eventText,
+          coalition,
+          markId,
+          bypassSecurity,
+          spawnedGroups,
+          repeatCount,
+          repeatDelay,
+          route,
+          false,
+          requesterCoalition,
+        }, timer.getTime() + repeatDelay)
       end
 
       if not options.radius then

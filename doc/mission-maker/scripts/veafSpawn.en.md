@@ -73,7 +73,9 @@ _spawn unit, name T-80, group 4, hdg 270, spacing 50
 _spawn group, name [GROUP_NAME]
 ```
 
-Group must be defined in `spawnables.yaml`.
+The group alias must exist in the **spawn database**: the built-in one (e.g. `sa2`, `sa3`, …) or your optional `src/spawn-groups.yaml`, which extends/overrides it. The database lives in YAML and is injected into the `.miz` at build time (no Lua to edit). See [Pipeline Reference — spawn data](../../PIPELINE_REFERENCE.md).
+
+> **Typos abort the command.** If a parameter is not recognized (e.g. `headng` instead of `heading`), the spawn is **not** performed and the pilot gets a hint (*did you mean 'heading'?*). Fix the marker text and try again.
 
 ### Spawn a CAP patrol
 

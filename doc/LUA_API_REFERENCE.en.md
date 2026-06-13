@@ -152,6 +152,34 @@ veaf.DEFAULT_SPEED_KTS = 350
 veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 ```
 
+#### Localization (i18n) & pilot feedback
+
+In-game pilot-facing messages are localized (FR/EN). The active language is `veaf.config.language` (set from `mission.language`, else the tools' language, default `fr`); logs always stay in English.
+
+##### `veaf.t(key, ...)`
+
+Returns the localized string for `key` from `veaf.i18nCatalog` (populated by `veafI18n.lua`), with `string.format` interpolation. Fallback: requested language → French → the key itself (a missing entry never crashes).
+
+```lua
+trigger.action.outText(veaf.t("spawn.group_spawned", group.description, country), 5)
+```
+
+##### `veaf.reportToPilot(message, duration, coalition)`
+
+Shows `message` in-game. With a `coalition` it uses `outTextForCoalition`; otherwise (or `nil`) it shows it to everyone (`outText`). Use it for command feedback addressed to the requester.
+
+##### `veaf.nearestMatch(word, candidates, maxDistance)`
+
+Returns the closest string in `candidates` within `maxDistance` Levenshtein edits (or `nil`). Used for the "did you mean …?" spawn-parameter hint.
+
+##### `veaf.getRequesterCoalition(event)`
+
+The coalition that issued a command (marker placer / interpreter unit), normalized to `coalition.side.RED`/`.BLUE`, or `nil` when unknown/all. Use it for pilot feedback — **not** for deciding the side of spawned units.
+
+##### `veaf.getOppositeCoalition(side)`
+
+The opposing coalition — the default side of units spawned from a marker (RED↔BLUE; neutral/all → RED). Pass an explicit `side`/`country` parameter to override.
+
 #### JSON Functions
 
 ##### `veaf.json.stringify(obj, as_key)`

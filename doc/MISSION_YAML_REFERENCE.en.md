@@ -554,6 +554,6 @@ veaf-tools.exe build --profile SERVER
 
 ## See Also
 
-- [Pipeline Reference](PIPELINE_REFERENCE.md) — YAML schemas for presets, waypoints, aircraft-templates, versions
+- [Pipeline Reference](PIPELINE_REFERENCE.md) — YAML schemas for presets, waypoints, spawnables, dynamic-slot-templates, warehouses, spawn-groups, versions
 - [Mission Maker Guide](mission-maker/GUIDE.md) — complete workflow
 - [Lua API Reference](LUA_API_REFERENCE.md) — Lua builder chain API for advanced use

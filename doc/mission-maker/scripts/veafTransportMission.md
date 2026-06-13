@@ -24,6 +24,8 @@ Crée des missions de transport en hélicoptère ou aéronef avec des zones de c
 veafTransportMission.initialize()
 ```
 
+> **Activé par défaut** dans le `mission.yaml` livré. Piloté par marqueur (`_transport`), sans configuration requise — posez simplement un marqueur `_transport`.
+
 ---
 
 ## Concepts clés

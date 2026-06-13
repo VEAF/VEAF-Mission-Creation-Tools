@@ -163,8 +163,10 @@ MyMission/
 │   │   └── veafDynamicConfig.lua # Config de chargement dynamique des scripts (dev/test)
 │   ├── options                  # Table d'options DCS injectée dans le .miz
 │   ├── presets.yaml             # Préréglages de fréquences radio (étape presets)
-│   ├── spawnables.yaml          # Groupes spawnable prédéfinis (SPAWN)
-│   ├── templates.yaml           # Modèles de groupes d'aéronefs (SPAWN)
+│   ├── spawnables.yaml          # Groupes d'avions spawnables (préfixe veafSpawn-, étape spawnable_aircrafts)
+│   ├── dynamic-slot-templates.yaml # Modèles de Dynamic Slots (dynSpawnTemplate=true, étape dynamic_slot_templates)
+│   ├── warehouses.yaml          # Dynamic Slots par coalition (étape warehouses, optionnel)
+│   ├── spawn-groups.yaml        # Extension/override de la base de spawn (étape spawn_data, optionnel)
 │   ├── versions.yaml            # Variantes météo/horaires (étape weather)
 │   └── waypoints.yaml           # Bullseye / points de navigation (étape waypoints)
 ├── published/                    # Scripts & outils VEAF (auto-installés)
@@ -211,11 +213,17 @@ flowchart TD
     TRIG --> PIPE{Étapes optionnelles du pipeline}
     PIPE -->|presets.yaml| P1[inject-presets]
     PIPE -->|waypoints.yaml| P2[inject-waypoints]
-    PIPE -->|aircraft-templates.yaml| P3[inject-aircraft-groups]
+    PIPE -->|spawnables.yaml| P3[inject spawnable aircraft]
+    PIPE -->|dynamic-slot-templates.yaml| P3b[inject Dynamic-Slot templates]
+    PIPE -->|warehouses.yaml| P5[wire Dynamic Slots]
+    PIPE -->|spawn-groups.yaml| P6[inject spawn data]
     PIPE -->|versions.yaml| P4[inject-weather]
     P1 --> OUT[.miz final prêt à voler]
     P2 --> OUT
     P3 --> OUT
+    P3b --> OUT
+    P5 --> OUT
+    P6 --> OUT
     P4 --> OUT
 ```
 

@@ -32,7 +32,7 @@ veafMove.initialize()
 ### Move a group
 
 ```
-_move unit, name [GROUP_NAME]
+_move group, name [GROUP_NAME]
 ```
 
 Moves the named group to the marker position. Ground units will path to the destination; aircraft will fly directly.

@@ -152,6 +152,34 @@ veaf.DEFAULT_SPEED_KTS = 350
 veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 ```
 
+#### Localisation (i18n) & retour pilote
+
+Les messages en jeu destinés au pilote sont localisés (FR/EN). La langue active est `veaf.config.language` (issue de `mission.language`, sinon la langue des outils, défaut `fr`) ; les logs restent toujours en anglais.
+
+##### `veaf.t(key, ...)`
+
+Renvoie la chaîne localisée pour `key` depuis `veaf.i18nCatalog` (peuplé par `veafI18n.lua`), avec interpolation `string.format`. Repli : langue demandée → français → la clé elle-même (une entrée manquante ne plante jamais).
+
+```lua
+trigger.action.outText(veaf.t("spawn.group_spawned", group.description, country), 5)
+```
+
+##### `veaf.reportToPilot(message, duration, coalition)`
+
+Affiche `message` en jeu. Avec une `coalition`, utilise `outTextForCoalition` ; sinon (ou `nil`), l'affiche à tous (`outText`). À utiliser pour le feedback de commande adressé à l'émetteur.
+
+##### `veaf.nearestMatch(word, candidates, maxDistance)`
+
+Renvoie la chaîne de `candidates` la plus proche dans la limite de `maxDistance` éditions de Levenshtein (ou `nil`). Sert à l'indice « vouliez-vous dire… ? » des paramètres de spawn.
+
+##### `veaf.getRequesterCoalition(event)`
+
+La coalition qui a émis une commande (poseur du marqueur / unité interpreter), normalisée en `coalition.side.RED`/`.BLUE`, ou `nil` si inconnue/all. À utiliser pour le feedback pilote — **pas** pour décider le camp des unités spawnées.
+
+##### `veaf.getOppositeCoalition(side)`
+
+La coalition opposée — le camp par défaut des unités spawnées depuis un marqueur (RED↔BLUE ; neutre/all → RED). Passez un paramètre `side`/`country` explicite pour surcharger.
+
 #### Fonctions JSON
 
 ##### `veaf.json.stringify(obj, as_key)`

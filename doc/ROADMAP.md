@@ -39,7 +39,7 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 - ✅ **Mission YAML → sélection de modules** — la section `lua_modules` dans `mission.yaml` pilote quels modules sont inclus et comment ils sont initialisés
 
 ### Release
-- 🔵 **Release v6.1.0** — squash merge `develop-v6` → `master`, publication avec changelog complet
+- ✅ **Releases v6.x** — publication continue depuis `develop-v6` (tags `published-vx.y.z`) ; version courante **6.5.0**. Le merge `develop-v6` → `master` est réservé aux jalons stables.
 
 ---
 

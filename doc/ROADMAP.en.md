@@ -39,7 +39,7 @@ This document describes the intended direction for the project. Items are ordere
 - ✅ **Mission YAML → module selection** — `lua_modules` section in `mission.yaml` drives which modules are included and how they are initialized
 
 ### Release
-- ✅ **v6.2.0 release** — squash merge `develop-v6` → `master`, published 2026-05-30
+- ✅ **v6.x releases** — published continuously from `develop-v6` (`published-vx.y.z` tags); current version **6.5.0**. The `develop-v6` → `master` merge is reserved for stable milestones.
 - ✅ **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
 - ✅ **v6.3.3 release** — stabilization and bug fixes: Lua initialize() crashes, build pipeline fixes, build profiles, CSAR YAML-first, auto dependency resolution
 

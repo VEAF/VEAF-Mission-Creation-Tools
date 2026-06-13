@@ -400,3 +400,56 @@ class TestPresetRadioCompatibility(unittest.TestCase):
         self.assertTrue(
             worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(0.5, 243.0))
         )
+
+
+class TestDropOutOfRangeChannels(unittest.TestCase):
+    """C9: out-of-range channels are dropped so the Mission Editor can still save."""
+
+    @staticmethod
+    def _preset(*freqs: float) -> PresetDefinition:
+        pd = PresetDefinition(name="p")
+        rd = RadioDefinition(name="r", radio_type="uhf")
+        for i, freq in enumerate(freqs, 1):
+            rd.add_channel(Channel(name_or_number=str(i), freq=freq))
+        pd.add_radio(rd)
+        return pd
+
+    @staticmethod
+    def _group(unit_type: str) -> Group:
+        return Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue", unit_type=unit_type)
+
+    @staticmethod
+    def _freqs(preset: PresetDefinition) -> list[float]:
+        return [ch.freq for radio in preset.radios.values() for ch in radio.channels]
+
+    def test_out_of_range_channel_dropped_in_range_kept(self) -> None:
+        """A P-51D (valid up to ~200 MHz) keeps 124 MHz but drops the 243 MHz UHF Guard."""
+        worker = _make_worker()
+        filtered = worker._drop_out_of_range_channels(self._group("P-51D"), self._preset(124.0, 243.0))
+        self.assertEqual(self._freqs(filtered), [124.0])
+
+    def test_fully_compatible_preset_returned_unchanged(self) -> None:
+        """An FA-18C (UHF 225-399) keeps every channel — same object back, no copy."""
+        worker = _make_worker()
+        preset = self._preset(243.0, 251.0)
+        self.assertIs(worker._drop_out_of_range_channels(self._group("FA-18C_hornet"), preset), preset)
+
+    def test_unknown_aircraft_returned_unchanged(self) -> None:
+        worker = _make_worker()
+        preset = self._preset(243.0)
+        self.assertIs(worker._drop_out_of_range_channels(self._group("NoSuchJet"), preset), preset)
+
+    def test_process_units_writes_only_in_range_channels(self) -> None:
+        """End-to-end: the injected Radio dict for a P-51D carries no out-of-range frequency."""
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"skill": "Client"}]},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            unit_type="P-51D",
+        )
+        worker.process_units(group, self._preset(124.0, 243.0))
+        channels = group.group_dcs["units"][0]["Radio"][1]["channels"]
+        self.assertIn(124.0, channels.values())
+        self.assertNotIn(243.0, channels.values())

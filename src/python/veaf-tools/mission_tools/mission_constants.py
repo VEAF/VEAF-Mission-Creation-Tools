@@ -52,6 +52,24 @@ def get_optin_community_script_ids() -> set[str]:
     return {"tum"}
 
 
+def is_community_script_enabled_by_default(script_id: str) -> bool:
+    """Return whether a community script is active when not explicitly listed.
+
+    This is the single source of truth for the "no ``community_scripts:`` section,
+    or id not listed" case, shared by the builder enablement and the config
+    generator so the two paths cannot drift apart: opt-out scripts default to
+    enabled, opt-in scripts (see :func:`get_optin_community_script_ids`) default
+    to disabled.
+
+    Args:
+        script_id: The community script id (e.g. ``"ctld"``, ``"tum"``).
+
+    Returns:
+        True when the script is on by default, False for opt-in scripts.
+    """
+    return script_id not in get_optin_community_script_ids()
+
+
 def get_community_sound_files() -> dict[str, tuple[str, ...]]:
     """Sound assets required by community scripts, keyed by community script id.
 

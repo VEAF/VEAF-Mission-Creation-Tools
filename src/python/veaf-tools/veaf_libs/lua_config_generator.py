@@ -758,11 +758,11 @@ def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     otherwise the value's truthiness. Mirrors ``MissionBuilderWorker`` community
     parsing so the generated init matches what is actually injected.
     """
-    from mission_tools.mission_constants import get_optin_community_script_ids
+    from mission_tools.mission_constants import is_community_script_enabled_by_default
 
     comm = mission_yaml.get("community_scripts")
     if not isinstance(comm, dict) or not comm or script_id not in comm:
-        return script_id not in get_optin_community_script_ids()
+        return is_community_script_enabled_by_default(script_id)
     cfg = comm[script_id]
     if isinstance(cfg, dict):
         return bool(cfg.get("enabled", True))

@@ -22,6 +22,7 @@ from mission_tools import (
     get_mission_data_files,
     get_mission_script_files,
     get_optin_community_script_ids,
+    is_community_script_enabled_by_default,
     read_miz,
     write_miz,
 )
@@ -470,7 +471,7 @@ class MissionBuilderWorker(BaseWorker):
             and opt-in scripts (e.g. TUM) are not.
         """
         if self.enabled_community_script_ids is None:
-            return script_id not in get_optin_community_script_ids()
+            return is_community_script_enabled_by_default(script_id)
         return script_id in self.enabled_community_script_ids
 
     def _find_community_sound_resource_keys(self) -> list[str]:

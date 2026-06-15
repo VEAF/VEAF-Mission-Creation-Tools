@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
-from mission_tools.mission_constants import get_community_script_files, get_optin_community_script_ids
+from mission_tools.mission_constants import (
+    get_community_script_files,
+    get_optin_community_script_ids,
+    is_community_script_enabled_by_default,
+)
 
 
 def _make_worker(yaml_content: str) -> MissionBuilderWorker:
@@ -198,6 +202,13 @@ class TestOptInScripts(unittest.TestCase):
         worker = _make_worker("community_scripts:\n  tum: {enabled: false}\n")
         assert worker.enabled_community_script_ids is not None
         self.assertNotIn("tum", worker.enabled_community_script_ids)
+
+    def test_shared_default_helper(self) -> None:
+        """is_community_script_enabled_by_default: opt-out → True, opt-in → False (shared source of truth)."""
+        for optin in get_optin_community_script_ids():
+            self.assertFalse(is_community_script_enabled_by_default(optin))
+        self.assertTrue(is_community_script_enabled_by_default("ctld"))
+        self.assertTrue(is_community_script_enabled_by_default("csar"))
 
 
 if __name__ == "__main__":

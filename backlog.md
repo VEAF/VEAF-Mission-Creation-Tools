@@ -15,7 +15,7 @@
 |-----|--------|
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ⬜ |
-| Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ⬜ |
+| Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
 | Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ⬜ |
 | Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
 | Phase 0b — GitHub cleanup | ✅ |
@@ -80,9 +80,19 @@
 
 **Goal**: understand the runtime error `ERROR: Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR in the mission editor and make sure at least one contains an airbase.` Identify which module/script raises it (REDFOR/BLUEFOR zone convention — likely a community or campaign-style script), when it fires, whether it is expected/benign or a VEAF-side issue, and what (if anything) the build or docs should do about it.
 
+**Branch**: `feature/INVESTIGATE-REDFOR-ZONES` → PR → `develop-v6`
+
+**Findings (spike DONE)**:
+
+- **Source**: the message is emitted by **TheUniversalMission (TUM)**, the bundled third-party community script `src/scripts/community/TheUniversalMission.lua` (akaAgar's *the-universal-mission-for-dcs-world*) — **not** by any VEAF script. Exact site: `TUM.territories.onStartUp()` (`TheUniversalMission.lua:29272-29279`), reached via `TUM.initialize()` → local `startUpMission()` (`:30300`).
+- **When it fires**: only when **TUM is initialized**. Since lot **TUM-INIT**, the VEAF build emits `if TUM then TUM.initialize() end` in the generated `veaf-config.lua` whenever the mission selects `TUM: true` in `mission.yaml` `modules:`. So selecting the `TUM` community module on a mission that was not authored as a TUM mission triggers this code path at mission start.
+- **Why**: TUM is a self-contained PvE mission generator that takes over the whole map. At startup `TUM.territories.onStartUp()` (1) **strips every airbase to NEUTRAL** (`autoCapture(false)` + `setCoalition(NEUTRAL)`), then (2) scans all trigger zones: a zone whose name starts (case-insensitively) with `BLUFOR`/`REDFOR` is assigned to BLUE/RED and **captures every airbase geographically inside it** for that side (`addZoneToCoalition`, `:29138`). It then requires **each** side to own **≥1 territory zone AND ≥1 airbase**; otherwise it logs this ERROR and aborts (`return false` → `trigger.action.outText("A critical error has happened, cannot start the mission.")`). The `for side=1,2` loop maps `side 1 → RED → "REDFOR"`, `side 2 → BLUE → "BLUFOR"`.
+- **Verdict — expected, not a VEAF bug**: this is a **mission-design prerequisite of the TUM framework**, working as TUM intends. It is benign in the sense that nothing in the VEAF tooling is broken; the mission maker enabled a self-contained mission framework without giving it the map it needs. (TUM has further prerequisites that abort `startUpMission()` the same way: Player/Client slots present, exactly one `Player` slot in single-player, ≥1 generic mission zone, and `autoexec.cfg` enabling `net.dostring_in`.)
+- **Resolution (no code change)**: build behaviour is correct — we must not silently swallow a community script's startup contract. Documented the prerequisite in `MISSION_YAML_REFERENCE` (FR/EN) next to the `TUM` module id: enable `TUM` only for a TUM-style mission, and set up the ME with a `BLUFOR…` zone and a `REDFOR…` zone, each containing at least one airbase (plus ≥1 other mission zone). No build-time guard added: VEAF cannot know whether the maker intends a TUM mission, and TUM's own error message already tells the pilot exactly what to add.
+
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| INVESTIGATE-REDFOR-ZONES-001 | Trace the source of the REDFOR-zones error; document the cause and the fix or the required mission-editor setup | TBD | spike | ⬜ |
+| INVESTIGATE-REDFOR-ZONES-001 | Trace the source of the REDFOR-zones error; document the cause and the required mission-editor setup. **Done**: traced to TUM's `TUM.territories.onStartUp()` (community script); it is an expected TUM mission-design prerequisite (BLUFOR/REDFOR territory zones each owning an airbase), not a VEAF bug. Documented the prerequisite under the `TUM` module id in `MISSION_YAML_REFERENCE` (FR/EN). No code/guard change. | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.en.md` | spike | ✅ |
 
 ---
 

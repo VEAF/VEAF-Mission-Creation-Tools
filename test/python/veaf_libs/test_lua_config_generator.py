@@ -405,3 +405,22 @@ def test_tum_initialize_absent_when_disabled():
     """No TUM.initialize() when tum is disabled."""
     lua = generate_config_lua({"community_scripts": {"tum": False}})
     assert "TUM.initialize()" not in lua
+
+
+def test_tum_initialize_absent_by_default():
+    """TUM is opt-in: omitting it (vanilla / convert-v5 default) must NOT emit TUM.initialize() (TUM-AUTOINIT)."""
+    # community_scripts present but TUM not listed → still disabled
+    lua = generate_config_lua({"community_scripts": {"ctld": True}})
+    assert "TUM.initialize()" not in lua
+    # no community_scripts section at all → still disabled
+    assert "TUM.initialize()" not in generate_config_lua({"modules": {"RADIO": True}})
+
+
+def test_optout_script_still_enabled_by_default():
+    """Opt-out scripts (e.g. ctld) stay enabled when absent — the opt-in change must not regress them."""
+    from mission_builder.mission_builder_worker import _normalize_mission_yaml
+    from veaf_libs.lua_config_generator import _community_enabled
+
+    normalized = _normalize_mission_yaml({"modules": {"RADIO": True}})
+    assert _community_enabled(normalized, "ctld") is True
+    assert _community_enabled(normalized, "tum") is False

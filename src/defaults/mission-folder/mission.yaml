@@ -165,7 +165,7 @@ modules:
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
   HERCULES: false
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, ... }
-  TUM: false
+  TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CTLD, CSAR and QRA are configured entirely inside the `modules:`
 # block above (single source of truth). There is no separate `external_modules:`

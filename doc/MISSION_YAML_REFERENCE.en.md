@@ -310,6 +310,8 @@ modules:
 > `Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR…`
 >
 > This is **not a VEAF bug**: it is a TUM design prerequisite. To use it, create in the mission editor a trigger zone whose name starts with `BLUFOR` and another starting with `REDFOR`, each containing **at least one airbase**, plus at least one other mission zone. Only enable `TUM` for a TUM-style mission.
+>
+> **Opt-in (unlike the other community scripts).** TUM is the only community script that is **off by default**: a vanilla mission, a freshly v5-converted mission, or a `modules:` block that does not mention `TUM` all leave it **disabled**. Only an explicit `TUM: true` turns it on. The other community scripts are *opt-out* (active unless you set them to `false`). When `TUM: true`, the build automatically calls `TUM.initialize()` at start-up — you do not need to add anything to `mission-script.lua`.
 
 **VEAF module IDs:**
 

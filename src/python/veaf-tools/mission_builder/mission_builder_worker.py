@@ -21,6 +21,7 @@ from mission_tools import (
     get_community_sound_files,
     get_mission_data_files,
     get_mission_script_files,
+    get_optin_community_script_ids,
     read_miz,
     write_miz,
 )
@@ -374,14 +375,17 @@ class MissionBuilderWorker(BaseWorker):
         if comm_raw is not None and not isinstance(comm_raw, dict):
             logger.warning(t("builder.community_scripts_not_mapping", type=type(comm_raw).__name__))
             comm_raw = None
-        # Empty dict {} is treated the same as absent: all scripts remain active.
+        # Empty dict {} is treated the same as absent: opt-out scripts stay active,
+        # opt-in scripts (e.g. TUM) stay disabled (see _active_community_scripts).
+        optin_ids = get_optin_community_script_ids()
         if not comm_raw:
             self.enabled_community_script_ids: set[str] | None = None
         else:
-            # Opt-out semantics: start with all ids enabled, remove those explicitly disabled.
+            # Opt-out scripts start enabled; opt-in scripts (e.g. TUM) start disabled
+            # and are only turned on by an explicit `<ID>: true`.
             all_community_scripts = get_community_script_files()
             all_ids = {s["id"] for s in all_community_scripts}
-            self.enabled_community_script_ids = set(all_ids)
+            self.enabled_community_script_ids = set(all_ids) - optin_ids
             for script_id, script_cfg in comm_raw.items():
                 if script_id not in all_ids:
                     logger.warning(t("builder.unknown_community_script", id=script_id))
@@ -403,7 +407,9 @@ class MissionBuilderWorker(BaseWorker):
                     if explicitly_disabled:
                         logger.warning(t("builder.mandatory_community_kept", id=script_id))
                     enabled = True
-                if not enabled:
+                if enabled:
+                    self.enabled_community_script_ids.add(script_id)
+                else:
                     self.enabled_community_script_ids.discard(script_id)
 
         # Parse dcs_bridge section from mission.yaml
@@ -447,7 +453,9 @@ class MissionBuilderWorker(BaseWorker):
         """Return community script descriptors filtered by enabled_community_script_ids."""
         all_scripts = get_community_script_files()
         if self.enabled_community_script_ids is None:
-            return all_scripts
+            # No community_scripts section: opt-out scripts active, opt-in (e.g. TUM) off.
+            optin_ids = get_optin_community_script_ids()
+            return [s for s in all_scripts if s["id"] not in optin_ids]
         return [s for s in all_scripts if s["id"] in self.enabled_community_script_ids]
 
     def _community_enabled(self, script_id: str) -> bool:
@@ -457,11 +465,12 @@ class MissionBuilderWorker(BaseWorker):
             script_id: The community script id (e.g. ``"ctld"``).
 
         Returns:
-            True when the id is enabled. ``enabled_community_script_ids is None``
-            means "all enabled" (opt-out semantics, no ``community_scripts:`` section).
+            True when the id is enabled. With no ``community_scripts:`` section
+            (``enabled_community_script_ids is None``), opt-out scripts are enabled
+            and opt-in scripts (e.g. TUM) are not.
         """
         if self.enabled_community_script_ids is None:
-            return True
+            return script_id not in get_optin_community_script_ids()
         return script_id in self.enabled_community_script_ids
 
     def _find_community_sound_resource_keys(self) -> list[str]:

@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
-from mission_tools.mission_constants import get_community_script_files
+from mission_tools.mission_constants import get_community_script_files, get_optin_community_script_ids
 from veaf_libs.i18n import t
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
@@ -1220,6 +1220,9 @@ class V5Converter:
         # Community scripts appended at end of modules: block (IDs in uppercase)
         all_community = get_community_script_files()
         detected_comm = report.detected_community_script_ids
+        # Opt-in scripts (e.g. TUM) must never be enabled automatically — they need a
+        # specific mission-design setup — even when their .lua is present in the bundle.
+        optin_comm = get_optin_community_script_ids()
         if all_community:
             lines.append(t("converter.yaml.community.header"))
             lines.append(t("converter.yaml.community.desc"))
@@ -1242,6 +1245,9 @@ class V5Converter:
                     lines.append("    settings:")
                     for key, value in _ctld_csar_settings(mr, upper).items():
                         lines.append(f"      {key}: {_yaml_scalar(value)}")
+                elif sid in optin_comm:
+                    # Opt-in: keep disabled by default; the maker enables it explicitly.
+                    lines.append(f"  {upper}: false")
                 else:
                     lines.append(f"  {upper}: {'true' if detected else 'false'}")
         lines.append("")

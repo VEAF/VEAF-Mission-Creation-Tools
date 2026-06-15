@@ -39,6 +39,19 @@ def get_community_script_files() -> list[dict[str, str]]:
     ]
 
 
+def get_optin_community_script_ids() -> set[str]:
+    """Community script ids that are OFF unless explicitly enabled (opt-in).
+
+    Most community scripts are opt-out (active by default unless turned off). A few
+    impose a mission-design contract and must never start on their own — e.g. TUM
+    (TheUniversalMission) requires BLUFOR/REDFOR territory zones each owning an
+    airbase, and raises a start-up error otherwise. Those are opt-in: a vanilla
+    mission, a freshly converted v5 mission, or a ``modules:`` block that does not
+    mention them leaves them disabled; only ``<ID>: true`` turns them on.
+    """
+    return {"tum"}
+
+
 def get_community_sound_files() -> dict[str, tuple[str, ...]]:
     """Sound assets required by community scripts, keyed by community script id.
 

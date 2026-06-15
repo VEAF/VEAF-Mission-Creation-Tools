@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+- **Documented the `TUM` "no territory zones / no airfields" start-up error** (INVESTIGATE-REDFOR-ZONES spike). Traced the runtime error `Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR…` to the bundled third-party **The Universal Mission (TUM)** community script (`TUM.territories.onStartUp()`), reached when a mission selects `TUM: true` (the build auto-calls `TUM.initialize()` since TUM-INIT). It is an expected TUM mission-design prerequisite — not a VEAF bug: TUM makes every airbase neutral and re-assigns zones/airfields from `BLUFOR…`/`REDFOR…` trigger zones, requiring each side to own at least one zone containing an airbase. `MISSION_YAML_REFERENCE` (FR/EN) now documents this prerequisite next to the `TUM` module id. No code change
+
 ## [6.5.0] — 2026-06-13
 
 ### Changed

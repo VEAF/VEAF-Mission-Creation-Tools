@@ -305,6 +305,12 @@ modules:
 
 > Un identifiant inconnu déclenche un avertissement au build et est ignoré.
 
+> **`TUM` (The Universal Mission) — prérequis de mission.** TUM est un générateur de mission PvE autonome (script communautaire tiers) qui prend le contrôle de toute la carte à l'initialisation : il rend tous les aérodromes neutres, puis attribue les zones et aérodromes aux camps d'après les **zones de déclencheur** (*trigger zones*) de l'éditeur de mission. Si vous activez `TUM: true` sur une mission qui n'a pas été conçue pour TUM, le script s'interrompt au démarrage avec une erreur du type :
+>
+> `Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR…`
+>
+> Ce n'est **pas un bug VEAF** : c'est un prérequis de design de TUM. Pour l'utiliser, créez dans l'éditeur de mission une zone dont le nom commence par `BLUFOR` et une autre commençant par `REDFOR`, chacune contenant **au moins un aérodrome**, plus au moins une autre zone de mission. N'activez `TUM` que pour une mission de type TUM.
+
 **IDs de modules VEAF :**
 
 | ID | Module | Page doc |

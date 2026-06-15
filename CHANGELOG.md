@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **`TUM` (The Universal Mission) is now opt-in and auto-initialized** (TUM-AUTOINIT). TUM imposes a mission-design contract (BLUFOR/REDFOR territory zones, each owning an airbase) and aborts at start-up otherwise, so it must never start on its own. It is now the only community script that is **off by default**: a vanilla mission, a freshly v5-converted mission, or a `modules:` block that omits `TUM` all leave it disabled — only an explicit `TUM: true` enables it (the other community scripts stay opt-out, active unless set to `false`). Previously TUM followed the opt-out default, so it was enabled — and `TUM.initialize()` emitted — for missions that never set it up, producing the `Coalition red has no territory zones…` runtime error. When `TUM: true`, the build now calls `TUM.initialize()` automatically at start-up, so no manual `mission-script.lua` wiring is needed. `convert-v5` emits `TUM: false` even when the TUM file is detected
+
 ### Documentation
 - **Documented the `TUM` "no territory zones / no airfields" start-up error** (INVESTIGATE-REDFOR-ZONES spike). The runtime error `Coalition red has no territory zones and/or controls no airfields…` comes from the third-party **The Universal Mission (TUM)** community script, not from VEAF: it is an expected TUM mission-design prerequisite (`BLUFOR…`/`REDFOR…` trigger zones, each owning an airbase). `MISSION_YAML_REFERENCE` (FR/EN) now documents this next to the `TUM` module id. Full analysis journaled in `backlog.md`. No code change
 

@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
-from mission_tools.mission_constants import get_community_script_files
+from mission_tools.mission_constants import (
+    get_community_script_files,
+    get_optin_community_script_ids,
+    is_community_script_enabled_by_default,
+)
 
 
 def _make_worker(yaml_content: str) -> MissionBuilderWorker:
@@ -127,12 +131,21 @@ class TestMistMandatory(unittest.TestCase):
 class TestActiveCommunityScripts(unittest.TestCase):
     """Unit tests for _active_community_scripts helper."""
 
-    def test_none_returns_all(self) -> None:
-        """_active_community_scripts returns all scripts when enabled_community_script_ids is None."""
+    def test_none_returns_all_optout(self) -> None:
+        """_active_community_scripts returns every opt-out script (all but opt-in ids) when the set is None."""
         worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
         worker.enabled_community_script_ids = None
         result = worker._active_community_scripts()
-        self.assertEqual(result, get_community_script_files())
+        expected = [s for s in get_community_script_files() if s["id"] not in get_optin_community_script_ids()]
+        self.assertEqual(result, expected)
+
+    def test_none_excludes_optin_scripts(self) -> None:
+        """Opt-in scripts (e.g. TUM) are NOT active by default when the set is None."""
+        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+        worker.enabled_community_script_ids = None
+        active_ids = {s["id"] for s in worker._active_community_scripts()}
+        for optin in get_optin_community_script_ids():
+            self.assertNotIn(optin, active_ids)
 
     def test_empty_set_returns_nothing(self) -> None:
         """_active_community_scripts returns empty list when no ids are enabled."""
@@ -159,6 +172,43 @@ class TestActiveCommunityScripts(unittest.TestCase):
         # All other community scripts remain active
         self.assertIn("mist", active_ids)
         self.assertIn("ctld", active_ids)
+
+
+class TestOptInScripts(unittest.TestCase):
+    """Opt-in community scripts (e.g. TUM) are OFF unless explicitly enabled — TUM-AUTOINIT."""
+
+    def test_optin_absent_from_section_is_disabled(self) -> None:
+        """A community_scripts section that omits an opt-in id leaves it disabled."""
+        worker = _make_worker("community_scripts:\n  ctld: {enabled: true}\n")
+        assert worker.enabled_community_script_ids is not None
+        for optin in get_optin_community_script_ids():
+            self.assertNotIn(optin, worker.enabled_community_script_ids)
+        self.assertIn("ctld", worker.enabled_community_script_ids)
+
+    def test_optin_disabled_when_bare_modules_block(self) -> None:
+        """A modules: block without the opt-in key leaves it inactive (vanilla/convert-v5 default)."""
+        worker = _make_worker("modules:\n  RADIO: true\n  SPAWN: true\n")
+        active_ids = {s["id"] for s in worker._active_community_scripts()}
+        self.assertNotIn("tum", active_ids)
+
+    def test_optin_enabled_when_explicitly_true(self) -> None:
+        """Only an explicit <ID>: true turns an opt-in script on."""
+        worker = _make_worker("community_scripts:\n  tum: {enabled: true}\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("tum", worker.enabled_community_script_ids)
+
+    def test_optin_disabled_when_explicitly_false(self) -> None:
+        """An explicit <ID>: false keeps the opt-in script off."""
+        worker = _make_worker("community_scripts:\n  tum: {enabled: false}\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertNotIn("tum", worker.enabled_community_script_ids)
+
+    def test_shared_default_helper(self) -> None:
+        """is_community_script_enabled_by_default: opt-out → True, opt-in → False (shared source of truth)."""
+        for optin in get_optin_community_script_ids():
+            self.assertFalse(is_community_script_enabled_by_default(optin))
+        self.assertTrue(is_community_script_enabled_by_default("ctld"))
+        self.assertTrue(is_community_script_enabled_by_default("csar"))
 
 
 if __name__ == "__main__":

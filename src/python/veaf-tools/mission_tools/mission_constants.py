@@ -39,6 +39,37 @@ def get_community_script_files() -> list[dict[str, str]]:
     ]
 
 
+def get_optin_community_script_ids() -> set[str]:
+    """Community script ids that are OFF unless explicitly enabled (opt-in).
+
+    Most community scripts are opt-out (active by default unless turned off). A few
+    impose a mission-design contract and must never start on their own — e.g. TUM
+    (TheUniversalMission) requires BLUFOR/REDFOR territory zones each owning an
+    airbase, and raises a start-up error otherwise. Those are opt-in: a vanilla
+    mission, a freshly converted v5 mission, or a ``modules:`` block that does not
+    mention them leaves them disabled; only ``<ID>: true`` turns them on.
+    """
+    return {"tum"}
+
+
+def is_community_script_enabled_by_default(script_id: str) -> bool:
+    """Return whether a community script is active when not explicitly listed.
+
+    This is the single source of truth for the "no ``community_scripts:`` section,
+    or id not listed" case, shared by the builder enablement and the config
+    generator so the two paths cannot drift apart: opt-out scripts default to
+    enabled, opt-in scripts (see :func:`get_optin_community_script_ids`) default
+    to disabled.
+
+    Args:
+        script_id: The community script id (e.g. ``"ctld"``, ``"tum"``).
+
+    Returns:
+        True when the script is on by default, False for opt-in scripts.
+    """
+    return script_id not in get_optin_community_script_ids()
+
+
 def get_community_sound_files() -> dict[str, tuple[str, ...]]:
     """Sound assets required by community scripts, keyed by community script id.
 

@@ -14,6 +14,9 @@
 | Lot | Status |
 |-----|--------|
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
+| Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ⬜ |
+| Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ⬜ |
+| Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ⬜ |
 | Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
@@ -60,6 +63,36 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot TUM-AUTOINIT — auto-init TheUniversalMission when selected
+
+**Goal**: when `TUM` is selected in `mission.yaml` `modules:`, `TUM.initialize()` (TheUniversalMission) must be called automatically. A prior lot (TUM-INIT, ✅) already emits `if TUM then TUM.initialize() end` in the generated `veaf-config.lua` — so this is to **verify/repair** the end-to-end path (is the TUM community script actually loaded before that block when selected? is the init call reached?) and fix whatever prevents auto-init in practice.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TUM-AUTOINIT-001 | Verify TUM is loaded + initialized when `TUM: true`; fix the missing/ordering link so `TUM.initialize()` runs without manual code | `veaf_libs/lua_config_generator.py`, mission_builder, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot INVESTIGATE-REDFOR-ZONES — "red has no territory zones / no airfields" error
+
+**Goal**: understand the runtime error `ERROR: Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR in the mission editor and make sure at least one contains an airbase.` Identify which module/script raises it (REDFOR/BLUEFOR zone convention — likely a community or campaign-style script), when it fires, whether it is expected/benign or a VEAF-side issue, and what (if anything) the build or docs should do about it.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| INVESTIGATE-REDFOR-ZONES-001 | Trace the source of the REDFOR-zones error; document the cause and the fix or the required mission-editor setup | TBD | spike | ⬜ |
+
+---
+
+## Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 emits unparseable mission.yaml
+
+**Goal**: on a freshly converted v5 mission, `build` aborts with a YAML syntax error in the generated `mission.yaml` (observed: "Erreur de syntaxe dans mission.yaml, ligne 308, colonne 7 — l'erreur débute vers la ligne 212, colonne 7", indentation). `convert-v5` is producing structurally invalid YAML. Reproduce, find the offending emitted block (indentation/escaping around the reported lines), fix the generator, and add a regression test that the generated mission.yaml always parses.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-CONVERT-V5-INVALID-YAML-001 | Reproduce + fix the indentation/structure bug in the convert-v5 mission.yaml emitter; regression test that output parses | `mission_builder/v5_converter.py` (+ converters), `test/python/mission_builder/` | fix | ⬜ |
 
 ---
 

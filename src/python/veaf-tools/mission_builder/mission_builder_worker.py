@@ -62,6 +62,45 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+# --- Unified VEAF load-trigger specification -------------------------------------
+# A VEAF load trigger is written into BOTH the DCS ``trig`` table (compiled form)
+# and the ``trigrules`` table (editor form). Historically each was hand-built
+# separately and drifted (see CUSTOM-SCRIPTS-TRIGGERS / C6). They are now derived
+# from a single ordered list of VeafTriggerSpec so the two forms can never diverge.
+
+
+@dataclass(frozen=True)
+class LuaAction:
+    """A raw Lua statement run by an action.
+
+    The ``lua`` is the logical (unescaped) statement. The ``trig`` emitter wraps it
+    as ``a_do_script("<escaped>")``; the ``trigrules`` emitter stores it raw in
+    ``text``. ``extra_trigrule_fields`` carries trigrule-only editor leftovers
+    (e.g. ``meters``/``zone`` on some env.info actions).
+    """
+
+    lua: str
+    extra_trigrule_fields: dict | None = None
+
+
+@dataclass(frozen=True)
+class FileAction:
+    """Load an embedded script by its mapResource key (``a_do_script_file``)."""
+
+    map_key: str
+
+
+@dataclass(frozen=True)
+class VeafTriggerSpec:
+    """One VEAF trigger, source of truth for both the trig and trigrules forms."""
+
+    dict_key: str
+    comment: str
+    color_item: str
+    rule_has_flag: bool
+    actions: list[LuaAction | FileAction]
+
+
 #: Lua calls that load another script file — the sign of a custom "loader" script.
 #: Kept deliberately broad (no attempt to parse the loaded list): we only detect
 #: that the file loads scripts, then point the user at the v6 `custom_scripts:` way.
@@ -995,22 +1034,29 @@ class MissionBuilderWorker(BaseWorker):
         """Return the framework script to load dynamically, depending on dev vs prod mode."""
         return self._DYNAMIC_FRAMEWORK_LOADER_DEV if self.dev_mode else self._DYNAMIC_FRAMEWORK_LOADER_PROD
 
-    def _ordered_mission_script_names(self) -> list[str]:
-        """Ordered basenames of the mission scripts that get a load trigger.
+    def _ordered_mission_script_files(self) -> list[str]:
+        """Ordered collected paths of the mission scripts that get a load trigger.
 
-        This is the single source of truth shared by the static load triggers and
-        the generated ``veafDynamicConfig.lua`` (dynamic mode), guaranteeing both
-        modes load the same files — including the mission maker's ``custom_scripts``.
+        Single source of truth shared by the static load triggers (mapResource +
+        the static mission trigger) and the generated ``veafDynamicConfig.lua``
+        (dynamic mode), guaranteeing both modes load the same files — including the
+        mission maker's ``custom_scripts``.
+
+        ``veafDynamicConfig.lua`` IS the dynamic loader (loaded directly by the
+        dynamic mission trigger); it must never appear in the list it iterates (it
+        would load itself in a loop) nor in the static list, so it is excluded here
+        — in one place for every consumer.
         """
         return [
-            Path(script_file_name).name
+            script_file_name
             for script_file_name in self.get_collected_mission_script_files()
             if self._resolves_load_trigger(Path(script_file_name).name)
-            # veafDynamicConfig.lua IS the dynamic loader (loaded directly by the
-            # dynamic mission trigger); it must never appear in the list it iterates,
-            # or it would load itself in an infinite loop.
             and Path(script_file_name).name != "veafDynamicConfig.lua"
         ]
+
+    def _ordered_mission_script_names(self) -> list[str]:
+        """Ordered basenames of the mission scripts — see :meth:`_ordered_mission_script_files`."""
+        return [Path(p).name for p in self._ordered_mission_script_files()]
 
     def generate_veaf_dynamic_config(self) -> None:
         """Generate ``src/scripts/veafDynamicConfig.lua`` from the mission script list.
@@ -1062,12 +1108,10 @@ class MissionBuilderWorker(BaseWorker):
             new_map_resource_script_files[map_resource_key] = Path(script_file_name).name
 
         new_map_resource_mission_script_files = {}
-        trigger_key_index = 0
-        for script_file_name in self.get_collected_mission_script_files():
-            if not self._resolves_load_trigger(Path(script_file_name).name):
-                continue
+        # Single source of truth: same ordered, filtered list as the static mission
+        # trigger and veafDynamicConfig.lua (excludes veafDynamicConfig.lua itself).
+        for trigger_key_index, script_file_name in enumerate(self._ordered_mission_script_files()):
             map_resource_key = f"VEAF_MapKey_ActionText_11{trigger_key_index:03}"
-            trigger_key_index += 1
             new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 

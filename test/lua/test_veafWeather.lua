@@ -19,7 +19,13 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafTime.lua")
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafWeather.lua")
+
+-- The rendering assertions below pin the English wording; the weather report is
+-- now localized (FR is the default language) so force English for these tests.
+-- FR coverage of the weather catalog lives in test_veafI18n.lua.
+veaf.config.language = "en"
 
 -- ----------------------------------------------------------------------------
 -- Helpers

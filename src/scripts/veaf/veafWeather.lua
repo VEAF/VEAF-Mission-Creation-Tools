@@ -617,7 +617,7 @@ function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnet
   bMagnetic = bMagnetic or false
 
   if nSpeedMps <= 0.5 then
-    return "calm"
+    return veaf.t("weather.wind_calm")
   end
 
   local iDirection = self:getNormalizedWindDirection(iDirection, bMagnetic)
@@ -697,17 +697,17 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
   end
 
   if self.VisibilityAffect == _visibilityAffect.Fog then
-    sVisibility = sVisibility .. " - fog"
+    sVisibility = sVisibility .. veaf.t("weather.vis_fog")
   elseif self.VisibilityAffect == _visibilityAffect.Haze then
-    sVisibility = sVisibility .. " - haze"
+    sVisibility = sVisibility .. veaf.t("weather.vis_haze")
   elseif self.VisibilityAffect == _visibilityAffect.Mist then
-    sVisibility = sVisibility .. " - mist"
+    sVisibility = sVisibility .. veaf.t("weather.vis_mist")
   end
   if self.Dust then
-    sVisibility = sVisibility .. " - dust"
+    sVisibility = sVisibility .. veaf.t("weather.vis_dust")
   end
   if self.Precipitation then
-    sVisibility = sVisibility .. " - precipitations"
+    sVisibility = sVisibility .. veaf.t("weather.vis_precipitations")
   end
 
   return sVisibility
@@ -724,16 +724,16 @@ function veafWeatherData:toStringClouds(unitSystem, bHeight)
   local sCloudBase = ""
 
   if cloudDensity == _cloudDensity.Clear then
-    sCloudDensity = "No clouds"
+    sCloudDensity = veaf.t("weather.clouds_none")
   else
     if cloudDensity == _cloudDensity.Scattered then
-      sCloudDensity = "Scattered clouds"
+      sCloudDensity = veaf.t("weather.clouds_scattered")
     elseif cloudDensity == _cloudDensity.Broken then
-      sCloudDensity = "Broken clouds"
+      sCloudDensity = veaf.t("weather.clouds_broken")
     elseif cloudDensity == _cloudDensity.Overcast then
-      sCloudDensity = "Overcast clouds"
+      sCloudDensity = veaf.t("weather.clouds_overcast")
     else
-      sCloudDensity = "Few clouds"
+      sCloudDensity = veaf.t("weather.clouds_few")
     end
 
     if iCloudBaseMeters ~= nil and iCloudBaseMeters > 0 then
@@ -864,21 +864,17 @@ function veafWeatherData:toString(unitSystem, bWithLaste)
   bWithLaste = bWithLaste or false
 
   local sString = ""
-  sString = sString .. string.format("Wind:          %s", self:toStringWind(unitSystem, self.WindDirection, self.WindSpeedMps))
+  sString = sString .. veaf.t("weather.line_wind", self:toStringWind(unitSystem, self.WindDirection, self.WindSpeedMps))
   sString = sString .. "\n"
-  sString = sString .. string.format("\nVisibility:    %s", self:toStringVisibility(unitSystem))
-  sString = sString .. string.format("\nClouds:        %s", self:toStringClouds(unitSystem, true))
+  sString = sString .. veaf.t("weather.line_visibility", self:toStringVisibility(unitSystem))
+  sString = sString .. veaf.t("weather.line_clouds", self:toStringClouds(unitSystem, true))
   sString = sString .. "\n"
   sString = sString
-    .. string.format(
-      "\nTemperature:   %s - Dew point: %s",
-      self:toStringTemperature(self.TemperatureCelcius),
-      self:toStringTemperature(self.DewPointCelcius)
-    )
-  sString = sString .. string.format("\nQNH:           %s", self:toStringPressure(unitSystem, self.QnhHpa))
-  sString = sString .. string.format("\nQFE:           %s", self:toStringPressure(unitSystem, self.QfeHpa))
-  sString = sString .. string.format("\nSunrise:       %s", self:toStringSunTime(self.SunriseZulu, true, true))
-  sString = sString .. string.format("\nSunset:       %s", self:toStringSunTime(self.SunsetZulu, true, true))
+    .. veaf.t("weather.line_temp_dew", self:toStringTemperature(self.TemperatureCelcius), self:toStringTemperature(self.DewPointCelcius))
+  sString = sString .. veaf.t("weather.line_qnh", self:toStringPressure(unitSystem, self.QnhHpa))
+  sString = sString .. veaf.t("weather.line_qfe", self:toStringPressure(unitSystem, self.QfeHpa))
+  sString = sString .. veaf.t("weather.line_sunrise", self:toStringSunTime(self.SunriseZulu, true, true))
+  sString = sString .. veaf.t("weather.line_sunset", self:toStringSunTime(self.SunsetZulu, true, true))
 
   sString = sString .. "\n"
   if bWithLaste then
@@ -908,9 +904,9 @@ function veafWeatherData:toStringExtended(unitSystem, bHeight)
   local nLatitude, nLongitude = coord.LOtoLL(self.Vec3)
 
   local sString = ""
-  sString = sString .. string.format("Time:          %s", veafTime.absTimeToStringDateTime(self.AbsTime))
-  sString = sString .. string.format("\nLocation:      %s", mist.tostringLL(nLatitude, nLongitude, 0, true))
-  sString = sString .. string.format("\nAltitude:      %s", sAltitude)
+  sString = sString .. veaf.t("weather.line_time", veafTime.absTimeToStringDateTime(self.AbsTime))
+  sString = sString .. veaf.t("weather.line_location", mist.tostringLL(nLatitude, nLongitude, 0, true))
+  sString = sString .. veaf.t("weather.line_altitude", sAltitude)
   sString = sString .. "\n\n" .. self:toString(unitSystem, bHeight)
   return sString
 end
@@ -919,25 +915,21 @@ function veafWeatherData:toStringAtis(unitSystem)
   unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
 
   local sAtis = ""
-  sAtis = sAtis .. string.format("Wind %s", self:toStringWind(unitSystem, self.WindDirection, self.WindSpeedMps, true))
+  sAtis = sAtis .. veaf.t("weather.atis_wind", self:toStringWind(unitSystem, self.WindDirection, self.WindSpeedMps, true))
   if self:isCavok() then
-    sAtis = sAtis .. "\nCeiling and visiblity OK, CAVOK"
+    sAtis = sAtis .. veaf.t("weather.atis_cavok")
   else
-    sAtis = sAtis .. string.format("\nVisibility %s, %s", self:toStringVisibility(unitSystem), self:toStringClouds(unitSystem, true))
+    sAtis = sAtis .. veaf.t("weather.atis_visibility", self:toStringVisibility(unitSystem), self:toStringClouds(unitSystem, true))
   end
 
   sAtis = sAtis
-    .. string.format(
-      "\nTemperature %s, dew point %s",
-      self:toStringTemperature(self.TemperatureCelcius),
-      self:toStringTemperature(self.DewPointCelcius)
-    )
-  sAtis = sAtis .. string.format("\nQNH %s", self:toStringPressure(unitSystem, self.QnhHpa))
+    .. veaf.t("weather.atis_temp_dew", self:toStringTemperature(self.TemperatureCelcius), self:toStringTemperature(self.DewPointCelcius))
+  sAtis = sAtis .. veaf.t("weather.atis_qnh", self:toStringPressure(unitSystem, self.QnhHpa))
 
   if veafTime.isAeronauticalNight(self.Vec3, self.AbsTime) then
-    sAtis = sAtis .. string.format("\nSunrise %s", self:toStringSunTime(self.SunriseZulu, true, false))
+    sAtis = sAtis .. veaf.t("weather.atis_sunrise", self:toStringSunTime(self.SunriseZulu, true, false))
   else
-    sAtis = sAtis .. string.format("\nSunset %s", self:toStringSunTime(self.SunsetZulu, true, false))
+    sAtis = sAtis .. veaf.t("weather.atis_sunset", self:toStringSunTime(self.SunsetZulu, true, false))
   end
 
   return sAtis

@@ -396,6 +396,127 @@ veaf.i18nCatalog = {
       .. '   "spacing [1-5]" changes the groups spacing (1 = dense, 3 = default, 5 = sparse)',
   },
 
+  -- veafWeather (report / ATIS). Standardized aeronautical abbreviations
+  -- (CAVOK, QNH, QFE, kts, m/s, NM, SM, ft, Hpa, inHg, mmHg, °M/°T, AGL/ASL,
+  -- FL, LASTE) stay identical in both languages; only descriptive words and
+  -- line labels are translated. Label padding aligns the values visually.
+  ["weather.wind_calm"] = {
+    fr = "calme",
+    en = "calm",
+  },
+  ["weather.vis_fog"] = {
+    fr = " - brouillard",
+    en = " - fog",
+  },
+  ["weather.vis_haze"] = {
+    fr = " - brume sèche",
+    en = " - haze",
+  },
+  ["weather.vis_mist"] = {
+    fr = " - brume",
+    en = " - mist",
+  },
+  ["weather.vis_dust"] = {
+    fr = " - poussière",
+    en = " - dust",
+  },
+  ["weather.vis_precipitations"] = {
+    fr = " - précipitations",
+    en = " - precipitations",
+  },
+  ["weather.clouds_none"] = {
+    fr = "Pas de nuages",
+    en = "No clouds",
+  },
+  ["weather.clouds_scattered"] = {
+    fr = "Nuages épars",
+    en = "Scattered clouds",
+  },
+  ["weather.clouds_broken"] = {
+    fr = "Nuages fragmentés",
+    en = "Broken clouds",
+  },
+  ["weather.clouds_overcast"] = {
+    fr = "Ciel couvert",
+    en = "Overcast clouds",
+  },
+  ["weather.clouds_few"] = {
+    fr = "Quelques nuages",
+    en = "Few clouds",
+  },
+  ["weather.line_wind"] = {
+    fr = "Vent :         %s",
+    en = "Wind:          %s",
+  },
+  ["weather.line_visibility"] = {
+    fr = "\nVisibilité :   %s",
+    en = "\nVisibility:    %s",
+  },
+  ["weather.line_clouds"] = {
+    fr = "\nNuages :       %s",
+    en = "\nClouds:        %s",
+  },
+  ["weather.line_temp_dew"] = {
+    fr = "\nTempérature :   %s - Point de rosée : %s",
+    en = "\nTemperature:   %s - Dew point: %s",
+  },
+  ["weather.line_qnh"] = {
+    fr = "\nQNH :          %s",
+    en = "\nQNH:           %s",
+  },
+  ["weather.line_qfe"] = {
+    fr = "\nQFE :          %s",
+    en = "\nQFE:           %s",
+  },
+  ["weather.line_sunrise"] = {
+    fr = "\nLever :        %s",
+    en = "\nSunrise:       %s",
+  },
+  ["weather.line_sunset"] = {
+    fr = "\nCoucher :      %s",
+    en = "\nSunset:       %s",
+  },
+  ["weather.line_time"] = {
+    fr = "Heure :        %s",
+    en = "Time:          %s",
+  },
+  ["weather.line_location"] = {
+    fr = "\nPosition :     %s",
+    en = "\nLocation:      %s",
+  },
+  ["weather.line_altitude"] = {
+    fr = "\nAltitude :     %s",
+    en = "\nAltitude:      %s",
+  },
+  ["weather.atis_wind"] = {
+    fr = "Vent %s",
+    en = "Wind %s",
+  },
+  ["weather.atis_cavok"] = {
+    fr = "\nPlafond et visibilité OK, CAVOK",
+    en = "\nCeiling and visiblity OK, CAVOK",
+  },
+  ["weather.atis_visibility"] = {
+    fr = "\nVisibilité %s, %s",
+    en = "\nVisibility %s, %s",
+  },
+  ["weather.atis_temp_dew"] = {
+    fr = "\nTempérature %s, point de rosée %s",
+    en = "\nTemperature %s, dew point %s",
+  },
+  ["weather.atis_qnh"] = {
+    fr = "\nQNH %s",
+    en = "\nQNH %s",
+  },
+  ["weather.atis_sunrise"] = {
+    fr = "\nLever %s",
+    en = "\nSunrise %s",
+  },
+  ["weather.atis_sunset"] = {
+    fr = "\nCoucher %s",
+    en = "\nSunset %s",
+  },
+
   -- veaf (core)
   ["mission.ending"] = {
     fr = "Fin de la mission !",

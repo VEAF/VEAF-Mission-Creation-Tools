@@ -29,7 +29,8 @@ def validate(
 
     p_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=False)
     if not Path(p_folder).is_dir():
-        logger.error(t("builder.folder_not_found", path=p_folder), exception_type=FileNotFoundError)
+        console.print(f"[red]✗[/]  {t('builder.folder_not_found', path=p_folder)}")
+        raise typer.Exit(code=1)
 
     issues = validate_mission_folder(Path(p_folder))
     errors = [i for i in issues if i.level == ERROR]

@@ -137,7 +137,10 @@ def _aircraft_counts(mission: dict) -> tuple[int, int]:
             if not isinstance(country, dict):
                 continue
             for category in _GROUP_CATEGORIES:
-                for group in (country.get(category) or {}).get("group") or []:
+                container = country.get(category)
+                if not isinstance(container, dict):
+                    continue
+                for group in container.get("group") or []:
                     if not isinstance(group, dict):
                         continue
                     groups += 1

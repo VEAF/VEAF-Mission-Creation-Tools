@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ⬜ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ✅ |
@@ -76,6 +77,22 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot CLI-TUI-BRIDGE — fall back to the TUI for missing options
+
+**Goal**: make the CLI and TUI two faces of the same flow. When a veaf-tools command is invoked **without the options it needs** (or with `--tui` on any command), drop into the TUI **at the right step**, pre-filling whatever was already given on the command line and only prompting for the rest, then run the command. Examples: `veaf-tools` → main menu; `veaf-tools prepare` → prepare's option prompts (template, path…); `veaf-tools prepare c:\tmp` → prepare's prompts **minus** the path (already supplied) → just asks the template. This supersedes prepare's interim `no_args_is_help` (bare `prepare` will enter the TUI prepare flow instead of printing help).
+
+**Design notes / open questions (to settle when scoping)**:
+- **Trigger**: `--tui` on any command (force), OR a "required" prompt for that command is missing from the CLI. Only commands that have a `CommandSpec` participate; others keep plain Typer behaviour.
+- **"Provided vs default" detection**: Typer args carry defaults, so we can't natively tell "user typed it" from "default". Inspect `sys.argv` against the command's `CommandSpec.prompts` (map positional/flag tokens → `ArgPrompt.key`), in `main()` before `app()`.
+- **Which prompts are "required"**: mark them on `ArgPrompt` (e.g. a `required`/`prompt_if_missing` flag) so optional flags (`--verbose`, `--force`) don't force the TUI; for `prepare`, template + folder qualify.
+- **Reuse**: extend `run_wizard` to accept a target command + a set of pre-filled args and skip those prompts; `main()` routes to it.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CLI-TUI-BRIDGE-001 | `--tui` flag + missing-required detection routes any `CommandSpec` command into the TUI, pre-filling CLI-provided args and prompting the rest; replace prepare's `no_args_is_help`; tests; docs | `veaf_tools/app.py`, `veaf_libs/tui.py`, `veaf_tools/commands/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
 
 ---
 

@@ -16,6 +16,7 @@
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | 🔄 |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ⬜ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ⬜ |
+| Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
@@ -116,6 +117,18 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | LUA-I18N-CAS-001 | Route the short `_cas` feedback messages through `veaf.t` (FR + EN); decide on the detailed target report; Lua tests | `src/scripts/veaf/veafCasMission.lua`, `src/scripts/veaf/veafI18n.lua`, `test/lua/` | feat | ⬜ |
+
+---
+
+## Lot FIX-CONVERT-V5-COMMENTS — convert-v5 must ignore Lua comments
+
+**Goal**: `convert-v5` analyses `missionConfig.lua` to detect active modules and extract ASSETS/QRA definitions, but it does **not** respect Lua comments. In the standard VEAF template, each module body is shipped inside a `--[[ … ]]` "uncomment to enable" block; convert-v5 (1) treats a module as active from the `if veafXxx then` guard even when its entire body is commented, and (2) regex-scans `name=…` definitions **inside** `--[[ ]]` blocks, emitting phantom ASSETS/QRA into `mission.yaml`. Found during DCS-UPDATE-VERIFY (R7-BUG) on the Training-Syrie mission: 14 commented-out assets + QRA were emitted as active, then flagged "absent from the mission" at build (the real groups have different names). High impact — most real v5 missions ship config commented. **Fix**: strip Lua line (`--`) and block (`--[[ ]]`) comments from `missionConfig.lua` before module-activation detection and asset/QRA extraction; a commented module body should not enable the module or contribute definitions. Regression test on a fixture with a fully-commented `veafAssets.Assets` block.
+
+**Branch**: `fix/convert-v5-comments` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CV5COM-001 | Strip Lua comments before convert-v5's module-activation + ASSETS/QRA extraction; commented bodies contribute nothing; regression tests | `mission_builder/v5_converter.py` (+ analysis helpers), `test/python/mission_builder/` | fix | ⬜ |
 
 ---
 

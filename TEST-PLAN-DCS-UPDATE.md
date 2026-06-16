@@ -88,7 +88,7 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 | R4 | ME save round-trip in the new DCS | reopen/save the `.miz`, reload OK | ⬜ |
 | R5 | Dynamic Slots offered (warehouse `linkDynTempl`) | dynamic-slot aircraft selectable | ⬜ |
 | R6 | Presets / waypoints: mission **saves** | no "Invalid frequency" / "Route has no locked time" | ⬜ |
-| R7 | `convert-v5` on a `.miz` saved by the **new** ME | no read crash (mission format may have changed) | ⬜ |
+| R7 | toolchain reads a new-DCS-format mission (`build`/`convert-v5`) | no read/parse crash | ✅ build read a real mission (127-aircraft presets injected, no luadata crash); convert-v5 ran. Found a convert-v5 fidelity bug → spun off (see R7-BUG) |
 
 > Journal anything that breaks here as a new remark → analysis → fix entry; fixes go
 > on `feature/dcs-update-verify`, one PR at the end.
@@ -160,3 +160,23 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 - **Decision** (David): handle in a dedicated **LUA-I18N-CAS** lot (not this
   campaign — it's an i18n gap, unrelated to the DCS update). Cosmetic; `_cas` is
   fully functional.
+
+### R7-BUG — `convert-v5` extracts commented-out config as active 🔍 spun off
+
+- **Remark**: `convert-v5` on a real mission (Training-Syrie) produced a `mission.yaml`
+  declaring ASSETS (tankers/carriers: `T1-Arco-1`, `CSG-74 Stennis`, …) and QRA groups;
+  the subsequent `build` then warned that all 24 of them are "absent from the mission".
+- **Analysis**: in the v5 `missionConfig.lua`, the **entire** `veafAssets.Assets`
+  block is inside a Lua block comment `--[[ … ]]` (the standard "uncomment to enable"
+  template), i.e. ASSETS was **disabled** in v5. But `convert-v5` (1) counted the
+  module "active" from the `if veafAssets then` guard alone, ignoring that its whole
+  body is commented, and (2) regex-scanned `name=…` definitions **inside** the
+  `--[[ ]]` block, emitting 14 phantom assets (and similarly QRA) into `mission.yaml`.
+  The mission's real groups are named differently (`Arco11`, `Texaco11`, …), so the
+  phantom declarations all fail the build's group-presence check. So the elements
+  aren't *missing* — `convert-v5` wrongly *added* disabled config. The `.miz`-format
+  read itself was fine (no luadata crash), so R7's actual goal passed.
+- **Decision**: dedicated lot **FIX-CONVERT-V5-COMMENTS** (convert-v5 must strip Lua
+  `--` line and `--[[ ]]` block comments before detecting active modules and
+  extracting ASSETS/QRA). High impact — the VEAF template ships everything commented,
+  so most real v5 missions hit this. Unrelated to the DCS update; spun off.

@@ -37,6 +37,13 @@ class TestLuaBundleManifest(unittest.TestCase):
             len(LUA_BUNDLE_SCRIPTS), len(set(LUA_BUNDLE_SCRIPTS)), "LUA_BUNDLE_SCRIPTS has duplicate entries"
         )
 
+    def test_bundle_and_excluded_are_disjoint(self) -> None:
+        # A file must not be both bundled and explicitly excluded.
+        self.assertTrue(
+            set(LUA_BUNDLE_SCRIPTS).isdisjoint(LUA_BUNDLE_EXCLUDED),
+            "a veaf/*.lua file is both bundled and explicitly excluded",
+        )
+
     def test_spawn_parser_bundled_after_core(self) -> None:
         # veafSpawnParser extends the veafSpawn table created by veafSpawnCore, so it
         # must be concatenated after it (the original regression: parser was absent).

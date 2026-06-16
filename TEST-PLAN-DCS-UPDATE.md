@@ -84,7 +84,7 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 | R0 | custom_scripts loads in **static** (PR #476) | `FgTest.lua` line in `dcs.log` | ✅ `=== VEAF CUSTOM SCRIPT FgTest LOADED (static test) ===` at 12:56 — confirms PR #476 end-to-end in the updated DCS |
 | R1 | Mission loads without new errors | no new `ERROR` in `dcs.log` | ⬜ |
 | R2 | VEAF scripts load (static **and** dynamic) | `STATIC/DYNAMIC … scripts loading`, `initialize` | ⬜ |
-| R3 | F10 VEAF radio menu + `_spawn`/`_cas`/aliases | in game | 🐞 found a real bug (see R3-BUG below) → fixed |
+| R3 | F10 VEAF radio menu + `_spawn`/`_cas`/aliases | in game | ✅ functional (2 bugs fixed: R3-BUG, R3-FINDING-2); 1 cosmetic i18n gap spun off (R3-FINDING-3) |
 | R4 | ME save round-trip in the new DCS | reopen/save the `.miz`, reload OK | ⬜ |
 | R5 | Dynamic Slots offered (warehouse `linkDynTempl`) | dynamic-slot aircraft selectable | ⬜ |
 | R6 | Presets / waypoints: mission **saves** | no "Invalid frequency" / "Route has no locked time" | ⬜ |
@@ -146,4 +146,17 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
   escapes the `-`), which does **not** match `MQ-9`. Renamed the template group
   identifier to `veafSpawn-MQ9 - AFAC - JTAC - DRONE` (the DCS unit type stays
   `MQ-9 Reaper`) so the established `"mq9"` search resolves it.
-- **Status**: ✅ fixed (MQ-9 restored + named to match) — David to re-test `_cas`/`-afac`.
+- **Status**: ✅ fixed (MQ-9 restored + named to match) — David confirmed `_cas`/`-afac` spawn the AFAC in-game.
+
+### R3-FINDING-3 — `_cas` feedback messages are in English 🔍 spun off
+
+- **Remark**: with `_cas` working, David noted its on-screen messages are English
+  even though `veaf.config.language = "fr"`.
+- **Analysis**: the post-`_cas` confirmation (`veafCasMission.lua:1103`, "TARGET:
+  Group of N vehicles…") and the F10 target report (1118-1151) are hardcoded English
+  literals, not routed through `veaf.t` — missed by LUA-I18N-004. The detailed report
+  (LAT/LON, MGRS, bullseye, weather) is the "data report" category LUA-I18N-004
+  explicitly deferred; the short confirmation is straightforward to localize.
+- **Decision** (David): handle in a dedicated **LUA-I18N-CAS** lot (not this
+  campaign — it's an i18n gap, unrelated to the DCS update). Cosmetic; `_cas` is
+  fully functional.

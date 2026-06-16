@@ -9,9 +9,13 @@ from pathlib import Path
 import veaf_tools.commands  # noqa: F401  — side effect: registers all commands on `app`
 import yaml
 from typer.testing import CliRunner
+from veaf_libs.mission_template import TIER_NAMES
 from veaf_tools.app import app
 
 _runner = CliRunner()
+
+# The template names the CLI exposes — derived from the source of truth, not hardcoded.
+_ALL_TEMPLATES = (*TIER_NAMES, "custom")
 
 
 class TestPrepareTemplates(unittest.TestCase):
@@ -21,13 +25,13 @@ class TestPrepareTemplates(unittest.TestCase):
         result = _runner.invoke(app, ["prepare"])
         self.assertNotEqual(result.exit_code, 0)  # no_args_is_help exits non-zero
         self.assertIn("Usage", result.output)
-        for name in ("minimal", "standard", "full", "custom"):
+        for name in _ALL_TEMPLATES:
             self.assertIn(name, result.output)
 
     def test_list_templates(self) -> None:
         result = _runner.invoke(app, ["prepare", "--list-templates"])
         self.assertEqual(result.exit_code, 0)
-        for name in ("minimal", "standard", "full", "custom"):
+        for name in _ALL_TEMPLATES:
             self.assertIn(name, result.output)
 
     def test_minimal_template_generates_focused_mission_yaml(self) -> None:

@@ -101,3 +101,23 @@ release approval (#18). Everything else, Claude runs without blocking on you.
 > cluster (CONVERT-FIDELITY, ERA, PRESETS) → AIRCRAFT-INJECT decision → spawn axis
 > (tests first, then aircraft-inject, externalize+dedup, pilot UX) → spikes/cleanup →
 > RELEASE.** QUALITY-GATE rides along; David is only needed at the 🧑 gates.
+
+---
+
+## 5. Forward-looking vision (NOT backlog yet)
+
+> These are **prospective** initiatives — captured so they are not lost, but **not yet
+> scoped backlog**. None has a branch, tickets, or a committed plan. Each becomes a real
+> `backlog.md` lot (with a Summary row and detailed tickets) only the day we decide to
+> start it. Order below is thematic, not a commitment.
+
+| Theme | Initiative | One-line intent | Notes / dependencies |
+|-------|------------|-----------------|----------------------|
+| **Dependencies** | **DROP-MIST** | Remove the hard dependency on MiST entirely — VEAF scripts no longer require or inject MiST. | MiST is injected unconditionally today (`FIX-DEFAULTS-MODULES`). Foundation for the campaign work below. |
+| **Runtime** | **PERSISTENCE** | New module to persist mission state across runs: DCS units (position/route/mission) **and** VEAF state machines (casMission, combatZone, QRA, …). | Foundation for dynamic campaigns. |
+| **Campaign** | **DYNAMIC-CAMPAIGN** | Foothold-*style* dynamic, persistent campaign generation built entirely on VEAF tools — no Moose, no MiST. | Builds on PERSISTENCE + DROP-MIST. |
+| **Campaign** | **FOOTHOLD-V6** | Rework the **existing** Foothold process and bring it onto the v6 toolchain. | Port of the current setup — distinct from the from-scratch DYNAMIC-CAMPAIGN engine. |
+| **Integration** | **DCS-BRIDGE-FINISH** | Finish integrating `veaf-dcs-bridge` (TCP socket DCS ↔ external server). | Base injection already shipped (`FEAT-DCS-BRIDGE`, archived); remaining scope TBD. |
+| **AI** | **AI-GAMEMASTER** | An LLM (e.g. Claude) runs a dynamic campaign live, with `veaf-dcs-bridge` exposed as an **MCP server** giving the AI the keys to DCS while the player flies against its improvisation. | Depends on DCS-BRIDGE-FINISH; overlaps DYNAMIC-CAMPAIGN. |
+| **TUM** | **TUM-EXPLOIT** | Exploit/integrate TUM more deeply and borrow techniques from its code — notably the **Disposition API** and `net.dostring_in` (things impossible in the vanilla DCS API). | TUM already bundled. |
+| **Missions** | **PORT-MISSIONS-V6** | Port all VEAF missions (the *open trainings*) to v6. | Also a large-scale real-world validation of the v6 tooling. |

@@ -18,7 +18,7 @@
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ✅ |
 | Lot LUA-I18N-WEATHER — localize the `veafWeatherData` report (`toString`/`toStringExtended`/`toStringAtis`); keep standardized aeronautical abbreviations as-is | ✅ |
 | Lot LUA-I18N-SWEEP — audit + localize all remaining non-community VEAF on-screen messages (move/namedpoints/spawn/qra/airwaves/sanctuary/groundai/mg/combatzone/combatmission/carrier/transport) | ✅ |
-| Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |
+| Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ✅ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
@@ -169,7 +169,7 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| CV5COM-001 | Strip Lua comments before convert-v5's module-activation + ASSETS/QRA extraction; commented bodies contribute nothing; regression tests | `mission_builder/v5_converter.py` (+ analysis helpers), `test/python/mission_builder/` | fix | ⬜ |
+| CV5COM-001 | Strip Lua comments before convert-v5's module-activation + ASSETS/QRA extraction; commented bodies contribute nothing; regression tests | `mission_builder/config_migrator.py`, `test/python/mission_builder/test_convert_v5_commented_modules.py` | fix | ✅ |
 
 ---
 

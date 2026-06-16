@@ -184,6 +184,87 @@ def _lua_extract_string(text: str, call_name: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Comment masking (FIX-CONVERT-V5-COMMENTS)
+# ---------------------------------------------------------------------------
+
+#: Opening of a Lua block comment ``--[[`` / ``--[==[`` (capturing the level).
+_BLOCK_COMMENT_OPEN_RE = re.compile(r"--\[(=*)\[")
+#: Opening of a Lua long string ``[[`` / ``[==[`` (NOT a comment — left intact).
+_LONG_STRING_OPEN_RE = re.compile(r"\[(=*)\[")
+
+
+def _strip_lua_comments(content: str) -> str:
+    """Return *content* with every Lua comment replaced by spaces.
+
+    Both single-line (``-- …``) and block (``--[[ … ]]``, ``--[==[ … ]==]``)
+    comments are blanked. The transformation is *offset- and line-preserving*:
+    each commented character (except newlines) becomes a space, so positions and
+    line numbers stay identical to the original. This lets the caller search the
+    masked text for active code while editing the original by the same offsets.
+
+    String literals (``"…"``, ``'…'``) and long strings (``[[ … ]]``) are skipped
+    so a ``--`` *inside* a string is not mistaken for a comment.
+
+    Args:
+        content: The Lua source to mask.
+
+    Returns:
+        The masked source (same length, comments turned to spaces).
+    """
+    out = list(content)
+    n = len(content)
+    i = 0
+
+    def _blank(start: int, end: int) -> None:
+        for k in range(start, end):
+            if out[k] != "\n":
+                out[k] = " "
+
+    while i < n:
+        ch = content[i]
+        if ch in ('"', "'"):
+            # Short string literal — skip to its (unescaped) closing quote.
+            i += 1
+            while i < n:
+                if content[i] == "\\":
+                    i += 2
+                    continue
+                if content[i] == ch:
+                    i += 1
+                    break
+                if content[i] == "\n":
+                    break  # unterminated literal — bail out safely
+                i += 1
+            continue
+        if ch == "-" and content.startswith("--", i):
+            block = _BLOCK_COMMENT_OPEN_RE.match(content, i)
+            if block:
+                close = "]" + block.group(1) + "]"
+                end = content.find(close, block.end())
+                end = n if end == -1 else end + len(close)
+                _blank(i, end)
+                i = end
+                continue
+            # Single-line comment → blank to end of line.
+            eol = content.find("\n", i)
+            eol = n if eol == -1 else eol
+            _blank(i, eol)
+            i = eol
+            continue
+        if ch == "[":
+            long_str = _LONG_STRING_OPEN_RE.match(content, i)
+            if long_str:
+                # A long string is code data, not a comment — skip it intact.
+                close = "]" + long_str.group(1) + "]"
+                end = content.find(close, long_str.end())
+                i = n if end == -1 else end + len(close)
+                continue
+        i += 1
+
+    return "".join(out)
+
+
+# ---------------------------------------------------------------------------
 # Migrator
 # ---------------------------------------------------------------------------
 
@@ -238,12 +319,68 @@ class ConfigMigrator:
         closes = len(ConfigMigrator._CLOSE_KW_RE.findall(no_comment))
         return opens - closes
 
+    def _active_module_ids(self, code: str) -> set[str]:
+        """Return the IDs of modules genuinely activated in *code*.
+
+        *code* must be a comment-masked source (see :func:`_strip_lua_comments`),
+        so commented-out lines appear blank. A module is considered active when
+        either:
+
+        - a bare ``veafXxx.initialize()`` call is present (any nesting), or
+        - an ``if veafXxx then … end`` guard has at least one non-blank body line
+          (i.e. its body is not entirely commented out).
+
+        The result is intentionally *over-inclusive* (it never drops a genuinely
+        active module): it is used only to filter out phantom modules whose body
+        is fully commented, so false positives here are harmless.
+
+        Args:
+            code: Comment-masked ``missionConfig.lua`` source.
+
+        Returns:
+            The set of active module IDs (mapped via ``var_name``).
+        """
+        active_vars: set[str] = set()
+        # Each open guard: [var, entry_depth, has_active_body].
+        stack: list[list] = []
+        depth = 0
+        for line in code.splitlines():
+            stripped = line.strip()
+            bare = self._BARE_INIT_RE.match(line)
+            if bare:
+                active_vars.add(bare.group(2))
+            guard = self._IF_VEAF_RE.match(line)
+            net = self._net_depth(line)
+            if guard and net > 0:
+                stack.append([guard.group(1), depth, False])
+                depth += net
+                continue
+            new_depth = depth + net
+            # A non-blank line strictly inside the innermost guard is body content.
+            if stripped and stack and new_depth > stack[-1][1]:
+                stack[-1][2] = True
+            while stack and new_depth <= stack[-1][1]:
+                var, _, has_active = stack.pop()
+                if has_active:
+                    active_vars.add(var)
+            depth = new_depth
+        for var, _, has_active in stack:  # unclosed guards (malformed source)
+            if has_active:
+                active_vars.add(var)
+        return {self._var_to_id.get(v, v) for v in active_vars}
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def migrate(self, content: str) -> MigrationResult:
         """Transform *content* and return a :class:`MigrationResult`."""
+        # FIX-CONVERT-V5-COMMENTS: module IDs whose body is genuinely active in
+        # the *original* source (computed on a comment-masked copy). A guard whose
+        # entire body sits inside a ``--[[ ]]`` / ``--`` comment is excluded, so a
+        # commented-out module is never reported as enabled.
+        active_module_ids = self._active_module_ids(_strip_lua_comments(content))
+
         # Phase 0 — Pre-extract YAML-transferable data (YAML-009 – YAML-012)
         # Creates a partial result to collect extracted fields, then run the
         # existing line-by-line pass on the pre-processed content.
@@ -364,6 +501,11 @@ class ConfigMigrator:
             if current_guard_var is not None and depth == 0:
                 current_guard_var = None
 
+        # ── Drop modules whose body is entirely commented (FIX-CONVERT-V5-COMMENTS) ──
+        # The line-by-line pass records a module from its ``if veafXxx then`` guard
+        # regardless of whether the body is active; keep only those proven active.
+        enabled_modules = [m for m in enabled_modules if m in active_module_ids]
+
         # ── Build YAML snippet ──────────────────────────────────────────────
         yaml_snippet = self._build_yaml_snippet(enabled_modules)
 
@@ -428,8 +570,12 @@ class ConfigMigrator:
         return content[:start] + commented + content[end:]
 
     def _extract_inline_value(self, pattern: re.Pattern[str], content: str) -> tuple[str, str | None]:
-        """Find the first match of *pattern*, comment out that line, return (new_content, captured_group_1)."""
-        m = pattern.search(content)
+        """Find the first match of *pattern*, comment out that line, return (new_content, captured_group_1).
+
+        The match is searched on a comment-masked copy so an assignment that sits
+        inside a Lua comment is ignored (FIX-CONVERT-V5-COMMENTS).
+        """
+        m = pattern.search(_strip_lua_comments(content))
         if not m:
             return content, None
         value = m.group(1)
@@ -560,7 +706,7 @@ class ConfigMigrator:
         content, result.mission_name = self._extract_inline_value(self._MISSION_NAME_RE, content)
         content, result.mission_era = self._extract_inline_value(self._ERA_RE, content)
 
-        m_ep = self._EXPORT_PATH_RE.search(content)
+        m_ep = self._EXPORT_PATH_RE.search(_strip_lua_comments(content))
         if m_ep:
             result.mission_export_path = m_ep.group(1) if m_ep.group(1) is not None else None  # nil → None
             line_start = content.rfind("\n", 0, m_ep.start()) + 1
@@ -580,7 +726,7 @@ class ConfigMigrator:
 
         # CONVERT-FIDELITY-003: an active (non-commented) silenceAtcOnAllAirbases()
         # call → mission.silence_atc_on_all_airbases: true.
-        m_atc = self._SILENCE_ATC_RE.search(content)
+        m_atc = self._SILENCE_ATC_RE.search(_strip_lua_comments(content))
         if m_atc:
             result.silence_atc = True
             line_start = content.rfind("\n", 0, m_atc.start()) + 1
@@ -598,7 +744,7 @@ class ConfigMigrator:
     )
 
     def _extract_skynet(self, content: str, result: MigrationResult) -> str:
-        m = self._SKYNET_INIT_RE.search(content)
+        m = self._SKYNET_INIT_RE.search(_strip_lua_comments(content))
         if not m:
             return content
         result.skynet_config = {
@@ -660,10 +806,12 @@ class ConfigMigrator:
             The content with extracted assignment lines commented out.
         """
         out_lines: list[str] = []
-        for line in content.splitlines(keepends=True):
+        # Match on a comment-masked copy so commented assignments are ignored.
+        code_lines = _strip_lua_comments(content).splitlines(keepends=True)
+        for line, code_line in zip(content.splitlines(keepends=True), code_lines):
             stripped_nl = line.rstrip("\r\n")
             newline = line[len(stripped_nl) :]
-            match = self._CTLD_CSAR_ASSIGN_RE.match(stripped_nl)
+            match = self._CTLD_CSAR_ASSIGN_RE.match(code_line.rstrip("\r\n"))
             if match:
                 indent, table, key, raw = match.group(1), match.group(2), match.group(3), match.group(4)
                 target = result.ctld_config if table == "ctld" else result.csar_config
@@ -693,13 +841,17 @@ class ConfigMigrator:
         return asset
 
     def _extract_assets(self, content: str, result: MigrationResult) -> str:
-        m = self._ASSETS_TABLE_START_RE.search(content)
+        # Search and slice on a comment-masked copy so neither a fully-commented
+        # table nor individually-commented rows produce phantom assets
+        # (FIX-CONVERT-V5-COMMENTS). Offsets match the real content (same length).
+        code = _strip_lua_comments(content)
+        m = self._ASSETS_TABLE_START_RE.search(code)
         if not m:
             return content
         # Find the opening brace (last char of the match)
         open_pos = m.end() - 1
-        close_pos = self._find_matching_close(content, open_pos, "{", "}")
-        table_text = content[open_pos + 1 : close_pos - 1]  # between outer braces
+        close_pos = self._find_matching_close(code, open_pos, "{", "}")
+        table_text = code[open_pos + 1 : close_pos - 1]  # between outer braces
 
         # Parse each inner row
         assets: list[dict] = []
@@ -729,8 +881,13 @@ class ConfigMigrator:
     _QRA_SILENCE_ALL_RE = re.compile(r"VeafQRA\.ToggleAllSilence\((true|false)\)")
 
     def _extract_qra_chains(self, content: str, result: MigrationResult) -> str:
+        # Anchors are matched on a comment-masked copy so chains sitting inside a
+        # Lua comment are not extracted (FIX-CONVERT-V5-COMMENTS). The ``:start()``
+        # probe below still runs on the real content to honour a deliberately
+        # commented-out ``--:start()`` within an *active* chain.
+        code = _strip_lua_comments(content)
         # Extract ToggleAllSilence
-        m_silence = self._QRA_SILENCE_ALL_RE.search(content)
+        m_silence = self._QRA_SILENCE_ALL_RE.search(code)
         if m_silence:
             result.qra_silence_all = m_silence.group(1) == "true"
             line_start = content.rfind("\n", 0, m_silence.start()) + 1
@@ -744,7 +901,7 @@ class ConfigMigrator:
         _START_RE = re.compile(r"(?:local\s+)?(\w+)\s*=\s*VeafQRA:new\(\)")
         replacements: list[tuple[int, int, dict]] = []
 
-        for m in list(_START_RE.finditer(content)):
+        for m in list(_START_RE.finditer(code)):
             chain_start = m.start()
             # Find the next :start() after this point — also match commented-out --:start()
             start_end_m = re.search(r"(--\s*)?:start\s*\(\s*\)", content[m.end() :])
@@ -845,7 +1002,7 @@ class ConfigMigrator:
 
     def _extract_cap_missions(self, content: str, result: MigrationResult) -> str:
         replacements: list[tuple[int, int, dict]] = []
-        for m in list(self._CAP_MISSION_RE.finditer(content)):
+        for m in list(self._CAP_MISSION_RE.finditer(_strip_lua_comments(content))):
             cap = {
                 "group_name": m.group(1),
                 "menu_name": m.group(2),
@@ -873,10 +1030,11 @@ class ConfigMigrator:
     def _extract_combat_missions(self, content: str, result: MigrationResult) -> str:
         replacements: list[tuple[int, int, dict]] = []
 
-        for m in list(self._ADD_MISSIONS_RE.finditer(content)):
+        code = _strip_lua_comments(content)
+        for m in list(self._ADD_MISSIONS_RE.finditer(code)):
             call_start = m.start()
             open_pos = m.end() - 1  # position of `(`
-            close_pos = self._find_matching_close(content, open_pos, "(", ")")
+            close_pos = self._find_matching_close(code, open_pos, "(", ")")
             call_text = content[call_start:close_pos]
             cm = self._parse_combat_mission(call_text)
             if cm:
@@ -958,7 +1116,8 @@ class ConfigMigrator:
         """Extract VeafAlias builder chains from the if veafShortcuts block."""
         replacements: list[tuple[int, int, dict]] = []
 
-        for m in list(self._ALIAS_START_RE.finditer(content)):
+        # Anchor on a comment-masked copy so commented-out aliases are skipped.
+        for m in list(self._ALIAS_START_RE.finditer(_strip_lua_comments(content))):
             chain_start = m.start()
             # Find veafShortcuts.AddAlias( that wraps this
             # The alias chain ends at the last ')' of AddAlias(...)
@@ -1023,7 +1182,10 @@ class ConfigMigrator:
 
     def _extract_named_points(self, content: str, result: MigrationResult) -> str:
         """Comment out the entire if veafNamedPoints then block (v5 API is obsolete in v6)."""
-        m = self._NAMEDPOINTS_BLOCK_RE.search(content)
+        # Match and scan on a comment-masked copy so a commented-out block is
+        # ignored (FIX-CONVERT-V5-COMMENTS). Offsets match the real content.
+        code = _strip_lua_comments(content)
+        m = self._NAMEDPOINTS_BLOCK_RE.search(code)
         if not m:
             return content
 
@@ -1031,11 +1193,11 @@ class ConfigMigrator:
         # Find the matching end
         depth = 0
         i = m.start()
-        while i < len(content):
+        while i < len(code):
             # Scan for open/close keywords
-            line_end = content.find("\n", i)
-            line_end = len(content) if line_end == -1 else line_end
-            line = content[i:line_end]
+            line_end = code.find("\n", i)
+            line_end = len(code) if line_end == -1 else line_end
+            line = code[i:line_end]
             depth += self._net_depth(line)
             i = line_end + 1
             if depth == 0:
@@ -1063,7 +1225,8 @@ class ConfigMigrator:
         """Extract VeafSanctuaryZone builder chains."""
         replacements: list[tuple[int, int, dict]] = []
 
-        for m in list(self._SANCTUARY_ZONE_START_RE.finditer(content)):
+        # Anchor on a comment-masked copy so commented-out zones are skipped.
+        for m in list(self._SANCTUARY_ZONE_START_RE.finditer(_strip_lua_comments(content))):
             # Find veafSanctuary.addZone( that wraps this
             add_zone_re = re.compile(r"veafSanctuary\.addZone\s*\(")
             preceding = content[max(0, m.start() - 200) : m.start()]
@@ -1157,7 +1320,9 @@ class ConfigMigrator:
         settings: dict = {}
         replacements: list[tuple[int, int]] = []
 
-        for m in list(self._CZ_EVENT_MSG_RE.finditer(content)):
+        # Match on a comment-masked copy so commented assignments are ignored.
+        code = _strip_lua_comments(content)
+        for m in list(self._CZ_EVENT_MSG_RE.finditer(code)):
             key = m.group(1)
             value = m.group(2) or m.group(3)  # None if nil
             settings[f"event_message_{key.lower()}"] = value
@@ -1173,7 +1338,7 @@ class ConfigMigrator:
             "CombatZoneRadioMenuName": "combat_zone_menu_name",
             "OperationRadioMenuName": "operation_menu_name",
         }
-        for m in list(self._CZ_SCALAR_RE.finditer(content)):
+        for m in list(self._CZ_SCALAR_RE.finditer(code)):
             attr = m.group(1)
             if attr not in _CZ_KNOWN_SCALARS:
                 continue
@@ -1206,8 +1371,10 @@ class ConfigMigrator:
         """Extract VeafCombatZone and VeafCombatOperation definitions."""
         replacements: list[tuple[int, int, dict]] = []
 
+        # Anchor on a comment-masked copy so commented-out definitions are skipped.
+        code = _strip_lua_comments(content)
         # Extract VeafCombatZone definitions
-        for m in list(self._CZ_ZONE_START_RE.finditer(content)):
+        for m in list(self._CZ_ZONE_START_RE.finditer(code)):
             call_start = m.start()
             # Find the opening paren of AddZone(
             open_idx = content.index("(", m.start())
@@ -1224,7 +1391,7 @@ class ConfigMigrator:
                 replacements.append((line_start, chain_end, zone_def))
 
         # Extract VeafCombatOperation definitions
-        for m in list(self._CZ_OP_START_RE.finditer(content)):
+        for m in list(self._CZ_OP_START_RE.finditer(code)):
             call_start = m.start()
             open_idx = content.index("(", m.start())
             close_pos = self._find_matching_close(content, open_idx, "(", ")")
@@ -1346,7 +1513,8 @@ class ConfigMigrator:
         """Extract AirWaveZone builder chains."""
         replacements: list[tuple[int, int, dict, list[str]]] = []
 
-        for m in list(self._AIRWAVE_START_RE.finditer(content)):
+        # Anchor on a comment-masked copy so commented-out zones are skipped.
+        for m in list(self._AIRWAVE_START_RE.finditer(_strip_lua_comments(content))):
             chain_start = m.start()
             # Find end: :start() or end of chain (next non-chained line)
             # The chain can span many lines; look for :start() or a line not starting with ':'
@@ -1545,7 +1713,8 @@ class ConfigMigrator:
         """Extract veafSecurity.password_MM hash entries."""
         replacements: list[tuple[int, int, str]] = []
 
-        for m in list(self._PASSWORD_MM_RE.finditer(content)):
+        # Match on a comment-masked copy so commented entries are ignored.
+        for m in list(self._PASSWORD_MM_RE.finditer(_strip_lua_comments(content))):
             hash_val = m.group(1)
             line_start = content.rfind("\n", 0, m.start()) + 1
             line_end = content.find("\n", m.end())

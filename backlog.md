@@ -13,6 +13,10 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | 🔄 |
+| Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ⬜ |
+| Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ⬜ |
+| Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
@@ -70,6 +74,61 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign
+
+**Goal**: a DCS World update landed; re-verify the maximum of things the toolchain depends on — every DCS-derived datum **and** the in-game runtime behaviour — and journal each check (remark → analysis → fix) in `TEST-PLAN-DCS-UPDATE.md`. Key insight: almost all DCS data comes from the **Quaggles datamine** at a pinned `DATAMINE_REF` (not the local DCS install), so a DCS update does **not** auto-change our data — only a datamine bump does. Only **airdromes** (`airdromes.yaml`, from `Mods/terrains/<map>/Beacons.lua`) depend on the local install and are **not** CI-guarded. Single branch, single PR at the end if fixes are produced.
+
+**Branch**: `feature/dcs-update-verify` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DCS-VERIFY-D1 | Datamine drift check: pinned `DATAMINE_REF` vs upstream HEAD | `veaf_build/dcs_data/datamine.py` | chore | ✅ |
+| DCS-VERIFY-D2 | Regenerate countries + units at the pinned ref, assert no drift from committed data | `veaf_libs/data/`, `src/scripts/veaf/dcsUnits.lua` | chore | ✅ |
+| DCS-VERIFY-D3 | Regenerate airdromes from the updated local DCS install; verify dynamic-slot warehouse name→id wiring | `veaf_libs/data/airdromes.yaml` | chore | ✅ (+6 Syria airfields) |
+| DCS-VERIFY-D4 | Regenerate radio specs + re-apply `dcs_rejects_on_load` overlays (only if datamine bumped) | `presets_injector/data/dcs-radio-specs.yaml` | chore | ⬜ (deferred) |
+| DCS-VERIFY-D5 | Run all DCS-data tests | `test/python/veaf_build/`, `test/python/veaf_libs/` | test | ✅ |
+| DCS-VERIFY-R3-BUG | Static bundle dropped `veafSpawnParser.lua` (spawn-refactor regression) → `_cas`/`_spawn` parsing broke in static (`convertLaserToFreq` nil). Added it to the bundle list; extracted `LUA_BUNDLE_SCRIPTS`/`LUA_BUNDLE_EXCLUDED`; manifest-completeness test | `veaf_build/worker.py`, `test/python/veaf_build/test_lua_bundle_manifest.py` | fix | ✅ |
+| DCS-VERIFY-R3-MQ9 | v5→v6 regression: default `spawnables.yaml` dropped the `veafSpawn-MQ-9 - AFAC - JTAC - DRONE` template → `_cas` AFAC + `-afac` alias found no MQ-9. Restored it (extracted from the demo mission, under `airplanes`) | `src/defaults/mission-folder/src/spawnables.yaml` | fix | ✅ |
+| DCS-VERIFY-R | In-game runtime checklist in the updated DCS (R0-R7): mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5/build read. All green; 2 bugs fixed in-lot (bundle, MQ-9), 3 findings spun off | `TEST-PLAN-DCS-UPDATE.md` | test | ✅ |
+
+---
+
+## Lot FIX-SPAWNABLES-CATEGORY — default spawnables mis-categorize planes as helicopters
+
+**Goal**: the shipped default `src/defaults/mission-folder/src/spawnables.yaml` files all 50 fixed-wing CAP templates (F-15C, M-2000C, MiGs, …) under the **`helicopters:`** category (`airplanes:` was empty before the MQ-9 restore). The build injects them faithfully → in the `.miz` they land under the country's `helicopter` group table instead of `plane`. Confirmed in a built mission. The current `extract-aircraft-groups` tool categorizes correctly (it put the MQ-9 under `airplanes`), so this is a **stale extraction artifact** baked into the committed default, not a live tool bug. Found during DCS-UPDATE-VERIFY (R3-FINDING-2) and spun off. **TBD**: (1) confirm whether the wrong category actually breaks CAP spawning at runtime or veaf re-derives it from the unit type (sets priority); (2) regenerate / re-categorize the default set under `airplanes`; (3) check the source the default was generated from.
+
+**Branch**: `fix/spawnables-category` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SPAWNCAT-001 | Confirm runtime impact, then re-categorize the default CAP templates from `helicopters` to `airplanes` (regenerate via `extract` if that's the clean source); regression test asserting planes land under `airplanes` | `src/defaults/mission-folder/src/spawnables.yaml`, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot LUA-I18N-CAS — localize `_cas` user-facing messages
+
+**Goal**: LUA-I18N-004 routed most module messages through `veaf.t` but missed `veafCasMission`'s on-screen text, which stays English even when `veaf.config.language = "fr"`. Found during DCS-UPDATE-VERIFY (R3-FINDING-3). In scope: the short post-`_cas` spawn confirmation (`veafCasMission.lua:1103`, "TARGET: Group of N vehicles and M soldiers…") and any other short CAS feedback. The detailed F10 target report (LAT/LON, MGRS, bullseye, weather, ~1118-1151) is the "data report" category LUA-I18N-004 deliberately deferred — decide whether to include it. Add `veaf.t` keys with FR + EN catalog entries (`veafI18n.lua`) and Lua tests, following the LUA-I18N-004 pattern.
+
+**Branch**: `feature/lua-i18n-cas` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUA-I18N-CAS-001 | Route the short `_cas` feedback messages through `veaf.t` (FR + EN); decide on the detailed target report; Lua tests | `src/scripts/veaf/veafCasMission.lua`, `src/scripts/veaf/veafI18n.lua`, `test/lua/` | feat | ⬜ |
+
+---
+
+## Lot FIX-CONVERT-V5-COMMENTS — convert-v5 must ignore Lua comments
+
+**Goal**: `convert-v5` analyses `missionConfig.lua` to detect active modules and extract ASSETS/QRA definitions, but it does **not** respect Lua comments. In the standard VEAF template, each module body is shipped inside a `--[[ … ]]` "uncomment to enable" block; convert-v5 (1) treats a module as active from the `if veafXxx then` guard even when its entire body is commented, and (2) regex-scans `name=…` definitions **inside** `--[[ ]]` blocks, emitting phantom ASSETS/QRA into `mission.yaml`. Found during DCS-UPDATE-VERIFY (R7-BUG) on the Training-Syrie mission: 14 commented-out assets + QRA were emitted as active, then flagged "absent from the mission" at build (the real groups have different names). High impact — most real v5 missions ship config commented. **Fix**: strip Lua line (`--`) and block (`--[[ ]]`) comments from `missionConfig.lua` before module-activation detection and asset/QRA extraction; a commented module body should not enable the module or contribute definitions. Regression test on a fixture with a fully-commented `veafAssets.Assets` block.
+
+**Branch**: `fix/convert-v5-comments` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CV5COM-001 | Strip Lua comments before convert-v5's module-activation + ASSETS/QRA extraction; commented bodies contribute nothing; regression tests | `mission_builder/v5_converter.py` (+ analysis helpers), `test/python/mission_builder/` | fix | ⬜ |
 
 ---
 

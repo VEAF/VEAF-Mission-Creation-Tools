@@ -1,5 +1,93 @@
 airplanes:
-  coalitions: {}
+  coalitions:
+    blue:
+      CJTF Blue:
+        veafSpawn-MQ9 - AFAC - JTAC - DRONE:
+          communication: true
+          frequency: 226.6
+          groupId: 152
+          hidden: true
+          hiddenOnMFD: true
+          hiddenOnPlanner: true
+          lateActivation: true
+          modulation: 0
+          name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
+          radioSet: true
+          route:
+            points:
+            - ETA: 0
+              ETA_locked: true
+              action: Turning Point
+              alt: 2000
+              alt_type: BARO
+              formation_template: ''
+              name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
+              properties:
+                addopt: {}
+              speed: 80.555555555556
+              speed_locked: true
+              task:
+                id: ComboTask
+                params:
+                  tasks:
+                  - auto: true
+                    enabled: true
+                    id: FAC
+                    number: 1
+                    params:
+                      callname: 1
+                      datalink: true
+                      designation: Auto
+                      frequency: 133000000
+                      modulation: 0
+                      number: 9
+                  - auto: true
+                    enabled: true
+                    id: WrappedAction
+                    number: 2
+                    params:
+                      action:
+                        id: EPLRS
+                        params:
+                          groupId: 27
+                          value: true
+              type: Turning Point
+              x: -250000
+              y: -360000
+            routeRelativeTOT: true
+          start_time: 0
+          task: AFAC
+          taskSelected: true
+          tasks: {}
+          uncontrolled: false
+          units:
+          - alt: 2000
+            alt_type: BARO
+            callsign:
+              1: 2
+              2: 5
+              3: 9
+              name: Springfield59
+            hardpoint_racks: true
+            heading: 2.7233683240106
+            livery_id: '''camo'' scheme'
+            name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
+            onboard_num: '030'
+            payload:
+              chaff: 0
+              flare: 0
+              fuel: 1300
+              gun: 100
+              pylons: {}
+            psi: -2.7233683240106
+            skill: High
+            speed: 80.555555555556
+            type: MQ-9 Reaper
+            unitId: 208
+            x: -250000
+            y: -360000
+          x: -250000
+          y: -360000
 helicopters:
   coalitions:
     blue:

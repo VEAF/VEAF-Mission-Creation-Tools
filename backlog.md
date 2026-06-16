@@ -13,8 +13,18 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
+| Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
+| Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
+| Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
+| Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
+| Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
+| Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
+| Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
+| Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
+| Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
+| Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ✅ |
 | Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
-| Lot CUSTOM-SCRIPTS-TRIGGERS — derive the VEAF load triggers' `trig` (compiled) and `trigrules` (editor) forms from a single ordered `VeafTriggerSpec` list; fixes the static-mission drift that dropped `custom_scripts` from the editor form | 🔄 |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
@@ -63,6 +73,145 @@
 
 ---
 
+## Lot FIX-VERSION-PY-EOL — generated `_version.py` always shows as modified
+
+**Goal**: `veaf-build` writes `veaf_tools/_version.py` (and restores its stub) in Python text mode, so on Windows `\n` is translated to `\r\n`. The git-tracked stub is normalized to LF (`.gitattributes` `eol=lf`), so every build left the working tree permanently "modified" with a CRLF-only, content-less diff — recurring friction. **Done**: `_write_version_py` / `_restore_version_py` now pass `newline="\n"`; the same latent bug in `radio_specs_updater` (tracked `dcs-radio-specs.yaml` / `.md`) was fixed too, matching the `dcs_data` generators that already force LF. Regression tests assert LF output. Working tree `_version.py` renormalized.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-VERSION-PY-EOL-001 | Force LF (`newline="\n"`) in `_write_version_py`/`_restore_version_py` and the radio-specs writers; renormalize the tracked stub; LF regression tests | `veaf_build/worker.py`, `veaf_build/radio_specs_updater.py`, `test/python/veaf_build/test_version_py_eol.py` | fix | ✅ |
+
+---
+
+## Lot LUACHECK-CI — add luacheck to the CI Lua quality gate
+
+**Goal**: ensure real static analysis on the Lua side (a blind spot in the quality ratchet — only `stylua --check` formatting was assumed to run). **Investigation revealed the work was already done**: `.github/workflows/lua-ci.yml` has a dedicated `Luacheck` job (installs Lua 5.1 + luacheck via LuaRocks, runs `luacheck src/scripts/veaf/ --config .luacheckrc`), a committed `.luacheckrc` exists, and the job passes green (0 warnings, e.g. PR #473). The Lua quality gate already enforces luacheck.
+
+**Done**: the only real gap was a **stale, self-contradictory `CLAUDE.md`** — its Lua section (§7) tells you to run luacheck, but the workflow step (§8.6) said "`luacheck` is not installed, skip it". Fixed §8.6 to list `luacheck --config .luacheckrc src/scripts/veaf/` alongside `stylua`, note both are CI-enforced (`lua-ci.yml`), and that a missing local install (Windows) means relying on the CI check — never treating the gate as skippable. `copilot-instructions.md` was already correct. No CI/`.luacheckrc`/script changes needed; luacheck stays not-installed locally on Windows (CI is the source of truth).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUACHECK-CI-001 | Investigate the existing CI Luacheck job; fix the stale `CLAUDE.md` §8.6 "not installed, skip it" note to reflect that luacheck is a CI-enforced Lua gate | `CLAUDE.md` | chore | ✅ |
+
+---
+
+## Lot LUA-COVERAGE — Lua test-coverage objective for runtime modules
+
+**Goal**: the Lua runtime modules (`veafCasMission`, `veafCombatZone`, `veafQraManager`, …) are far less tested than the Python side. Establish a measurable Lua coverage objective (luacov via `test-lua`), set a baseline gate, and add tests for the least-covered critical modules. Secures the campaign/persistence work that will touch these modules.
+
+**Done (wave 1)**: luacov + the report table were already wired in `test-lua`; the gaps were the **gate** and **CI**. Added `--cov-fail-under FLOAT` to `test-lua` (`_display_coverage_report` now returns the total %; exit 1 when below the floor) with Python tests, and a new `lua-coverage` CI job in `lua-ci.yml` (lua5.1 + luacov via LuaRocks → `poetry run test-lua --cov-fail-under 67`). Baseline measured 68.50 %; floor set to **67** (ratchet — only ever goes up). **Backfill**: `veafUnits` 20.36 % → **93.10 %** (33 tests targeting `placeGroup`/`processGroup`/`findGroup`/`countInfantryAndVehicles`/`removePathfindingFixUnit`/log/trace/initialize), lifting the total to **69.73 %**. A file-scoped `math.random` mock reproduces DCS' permissive reversed-interval behaviour (`placeGroup` L609-610 passes m>n on normal groups; DCS tolerates it, stock Lua 5.1 raises "interval is empty") — a DCS-environment mock, not a bug. **Wave 2+ (separate lots)**: the ~50 % cluster (`Sanctuary`, `CombatMission`, `Skynet*`, `Weather`, `MissileGuardian`, `CombatZone`, `CasMission`, …), raising the floor each pass.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUA-COVERAGE-001 | Coverage gate (`--cov-fail-under` in `test-lua` + `lua-coverage` CI job, floor 67) + `veafUnits` backfill 20→93 % (total 68.50→69.73 %) | `veaf_build/lua_tests.py`, `.github/workflows/lua-ci.yml`, `test/lua/test_veafUnits.lua`, `test/python/veaf_build/test_lua_coverage_gate.py`, `CLAUDE.md` | test | ✅ |
+
+> **Wave 2+ tracked separately**: raising the ~50 %-covered cluster (`Sanctuary`, `CombatMission`, `Skynet*`, `Weather`, `MissileGuardian`, `CombatZone`, `CasMission`, …) and ratcheting the floor up will be its own lot when scheduled.
+
+---
+
+## Lot QUALITY-GATE-FINISH — erode the remaining mypy exclusions
+
+**Goal**: finish the Quality Ratchet Policy (`CLAUDE.md` §3) — the `QUALITY-GATE` lot is closed but, per policy, the dedicated lot still mops up whatever workers no other lot reopened. Remaining `ignore_errors = true` application workers (the bundled `luadata` library stays excluded as third-party): `mission_converter.mission_converter_worker`, `mission_extractor.mission_extractor_worker`, `waypoints_injector.waypoints_manager`, `weather_injector.utils.lua_converter`, `weather_injector.weather.dcs_weather_converter`, `weather_injector.weather_injector_worker`. Drop each entry, fix the surfaced type errors, and do a final `--cov-fail-under` ratchet.
+
+**Done**: removed all six application-worker entries from the mypy `ignore_errors` override (only `luadata*` third-party stays). Measuring first showed just **7 errors across 2 files** — the other four workers were error-free. Fixes were behaviour-preserving: `config: dict[str, Any]` annotation in `weather_injector/utils/lua_converter.py` (4 errors), and in `mission_extractor_worker.py` renamed a shadowed loop variable + dropped two redundant `: Path` re-annotations (3 errors). The whole `src/python/veaf-tools` tree now passes `mypy` with no per-module opt-outs. No `--cov-fail-under` bump: the lot adds no tests and coverage is unchanged (68.37 % vs gate 67, gap < 2). No behaviour change → existing tests cover (suite green).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| QUALITY-GATE-FINISH-001 | Remove the remaining application-worker entries from the mypy `ignore_errors` list and fix the surfaced errors (keep `luadata*` third-party exclusion); bump `--cov-fail-under` per policy | `pyproject.toml`, `src/python/veaf-tools/**`, `test/python/` | chore | ✅ |
+
+---
+
+## Lot VALIDATE — `veaf-tools validate` (pre-build linter)
+
+**Goal**: add a `veaf-tools validate` command that lints a mission folder **before** build, turning late DCS-side crashes into clear design-time errors. Checks to cover: incoherent/unknown `modules:` entries, `custom_scripts` files that do not exist, presets/waypoints that match no aircraft in the `.miz`, missing REDFOR/BLUFOR territory zones when `TUM: true`, and structural validity of `mission.yaml` (overlaps the active `FIX-CONVERT-V5-INVALID-YAML` lot — share the YAML-parse check). Exit non-zero on error, with localized messages.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| VALIDATE-001 | `validate` command + worker: mission.yaml parse/schema, module coherence, custom_scripts file existence, presets/waypoints aircraft matching, TUM zone prerequisite; localized output; tests; docs | `veaf_tools/commands/`, `veaf_libs/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+
+---
+
+## Lot SCAFFOLD — `veaf-tools new` (mission folder scaffolding)
+
+**Goal**: add a `veaf-tools new` command that scaffolds a ready-to-use mission folder (a typed `mission.yaml` plus the `src/` tree) from one or more templates (blank training, CAS, QRA…), lowering the entry cost for new mission makers. Reuses the shipped `defaults/mission-folder/` baseline as the default template.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SCAFFOLD-001 | `new` command + worker: generate a mission folder from a template (default = `defaults/mission-folder`), optional named templates, TUI entry; tests; docs | `veaf_tools/commands/`, `veaf_libs/tui.py`, `src/defaults/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+
+---
+
+## Lot BUILD-PUBLISH-LOCAL — local publish mode for `veaf-build`
+
+**Goal**: add a **local publish** mode to `veaf-build` that, instead of uploading the release to GitHub (rarely done now that the CI handles publishing), deploys the build output directly into a **user-provided target directory** — a VEAF mission source folder. The mode copies the contents of the `published/` folder plus the two compiled executables (`veaf-tools.exe`, `veaf-tools-updater.exe`) into that folder, so a mission maker gets the latest tooling + scripts locally without going through GitHub / the updater.
+
+**Open questions to settle when scoping**: new subcommand vs a `--local <dir>` flag on `publish`; whether to deploy from `published/` or `published.zip`; overwrite/clean semantics on the target; whether the two `.exe` go at the folder root or a subfolder; cross-platform behaviour (the `.exe` are Windows-only).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| BUILD-PUBLISH-LOCAL-001 | Add a local publish mode to `veaf-build` (deploy `published/` contents + `veaf-tools.exe` + `veaf-tools-updater.exe` into a user-given mission source folder, no GitHub). CLI option, worker logic, tests, docs (`TOOLS_REFERENCE*`/mission-maker guide), CHANGELOG, version bump. | `veaf_build/cli.py`, `veaf_build/worker.py`, `test/python/veaf_build/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+
+---
+
+## Lot TUM-AUTOINIT — auto-init TheUniversalMission when selected
+
+**Goal**: when `TUM` is selected in `mission.yaml` `modules:`, `TUM.initialize()` (TheUniversalMission) must be called automatically — **but TUM must never be enabled by default** (vanilla mission or `convert-v5`), because it aborts at start-up without BLUFOR/REDFOR territory zones.
+
+**Done**: made TUM **opt-in** across the build. New `get_optin_community_script_ids()` (`mission_constants.py`) returns `{"tum"}`; the builder enablement (`enabled_community_script_ids`, `_active_community_scripts`, `_community_enabled`), the generator `_community_enabled` (None-branch), and `convert-v5` output now treat opt-in ids as OFF unless an explicit `<ID>: true` is set — while opt-out scripts (ctld, csar, …) keep their active-by-default behaviour. When `TUM: true`, the generator still emits `if TUM then TUM.initialize() end`. `convert-v5` emits `TUM: false` even when the TUM file is detected. Tests added (builder opt-in parsing, generator default-off, convert-v5 emit). Doc: `MISSION_YAML_REFERENCE` (FR/EN) opt-in note, default `mission.yaml` comment, CHANGELOG.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TUM-AUTOINIT-001 | Make TUM opt-in (off by default everywhere) and auto-init `TUM.initialize()` only when `TUM: true` | `mission_tools/mission_constants.py`, `mission_builder/mission_builder_worker.py`, `mission_builder/v5_converter.py`, `veaf_libs/lua_config_generator.py`, `test/python/` | fix | ✅ |
+
+---
+
+## Lot INVESTIGATE-REDFOR-ZONES — "red has no territory zones / no airfields" error
+
+**Goal**: understand the runtime error `ERROR: Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR in the mission editor and make sure at least one contains an airbase.` Identify which module/script raises it (REDFOR/BLUEFOR zone convention — likely a community or campaign-style script), when it fires, whether it is expected/benign or a VEAF-side issue, and what (if anything) the build or docs should do about it.
+
+**Branch**: `feature/INVESTIGATE-REDFOR-ZONES` → PR → `develop-v6`
+
+**Findings (spike DONE)**:
+
+- **Source**: the message is emitted by **TheUniversalMission (TUM)**, the bundled third-party community script `src/scripts/community/TheUniversalMission.lua` (akaAgar's *the-universal-mission-for-dcs-world*) — **not** by any VEAF script. Exact site: `TUM.territories.onStartUp()` (`TheUniversalMission.lua:29272-29279`), reached via `TUM.initialize()` → local `startUpMission()` (`:30300`).
+- **When it fires**: only when **TUM is initialized**. Since lot **TUM-INIT**, the VEAF build emits `if TUM then TUM.initialize() end` in the generated `veaf-config.lua` whenever the mission selects `TUM: true` in `mission.yaml` `modules:`. So selecting the `TUM` community module on a mission that was not authored as a TUM mission triggers this code path at mission start.
+- **Why**: TUM is a self-contained PvE mission generator that takes over the whole map. At startup `TUM.territories.onStartUp()` (1) **strips every airbase to NEUTRAL** (`autoCapture(false)` + `setCoalition(NEUTRAL)`), then (2) scans all trigger zones: a zone whose name starts (case-insensitively) with `BLUFOR`/`REDFOR` is assigned to BLUE/RED and **captures every airbase geographically inside it** for that side (`addZoneToCoalition`, `:29138`). It then requires **each** side to own **≥1 territory zone AND ≥1 airbase**; otherwise it logs this ERROR and aborts (`return false` → `trigger.action.outText("A critical error has happened, cannot start the mission.")`). The `for side=1,2` loop maps `side 1 → RED → "REDFOR"`, `side 2 → BLUE → "BLUFOR"`.
+- **Verdict — expected, not a VEAF bug**: this is a **mission-design prerequisite of the TUM framework**, working as TUM intends. It is benign in the sense that nothing in the VEAF tooling is broken; the mission maker enabled a self-contained mission framework without giving it the map it needs. (TUM has further prerequisites that abort `startUpMission()` the same way: Player/Client slots present, exactly one `Player` slot in single-player, ≥1 generic mission zone, and `autoexec.cfg` enabling `net.dostring_in`.)
+- **Resolution (no code change)**: build behaviour is correct — we must not silently swallow a community script's startup contract. Documented the prerequisite in `MISSION_YAML_REFERENCE` (FR/EN) next to the `TUM` module id: enable `TUM` only for a TUM-style mission, and set up the ME with a `BLUFOR…` zone and a `REDFOR…` zone, each containing at least one airbase (plus ≥1 other mission zone). No build-time guard added: VEAF cannot know whether the maker intends a TUM mission, and TUM's own error message already tells the pilot exactly what to add.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| INVESTIGATE-REDFOR-ZONES-001 | Trace the source of the REDFOR-zones error; document the cause and the required mission-editor setup. **Done**: traced to TUM's `TUM.territories.onStartUp()` (community script); it is an expected TUM mission-design prerequisite (BLUFOR/REDFOR territory zones each owning an airbase), not a VEAF bug. Documented the prerequisite under the `TUM` module id in `MISSION_YAML_REFERENCE` (FR/EN). No code/guard change. | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.en.md` | spike | ✅ |
+
+---
+
+## Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 emits unparseable mission.yaml
+
+**Goal**: on a freshly converted v5 mission, `build` aborts with a YAML syntax error in the generated `mission.yaml` (observed: "Erreur de syntaxe dans mission.yaml, ligne 308, colonne 7 — l'erreur débute vers la ligne 212, colonne 7", indentation). `convert-v5` is producing structurally invalid YAML. Reproduce, find the offending emitted block (indentation/escaping around the reported lines), fix the generator, and add a regression test that the generated mission.yaml always parses.
+
+**Done**: reproduced on the reporting mission (`Training-Syrie`) — exact error `expected <block end>, but found '?'` at line 212/308. Root cause in `_emit_qra_definitions`: a QRA defined with `start = false` in v5 emitted `start: false` via the `converter.yaml.qra.start_comment` translation, which **hard-coded a 6-space indent** — placing the field at the `definitions:` sequence level instead of inside its `- name:` item (8-space `field` indent like every other QRA field). The misaligned key broke the block sequence. Fixed by emitting `f"{field}start: false  {t(...)}"` and reducing the FR/EN translation to the comment only. (No twin bug — `start_comment` was the only i18n value hard-coding YAML indentation.) Verified: `Training-Syrie` now parses; 4 regression tests assert the QRA block parses (single/multiple disabled defs, correct indent, `start:true` emits nothing).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-CONVERT-V5-INVALID-YAML-001 | Reproduce + fix the indentation bug in the convert-v5 mission.yaml emitter (QRA `start: false` indent via hard-coded i18n); regression tests that output parses | `mission_builder/v5_converter.py`, `veaf_libs/locales/{en,fr}.json`, `test/python/mission_builder/test_convert_v5_qra_yaml.py` | fix | ✅ |
+
+---
+
+## Lot CUSTOM-SCRIPTS-TRIGGERS — unify trigger emission, fix custom_scripts loading
+
+**Goal**: Flogas reported that in 6.5.0 a script declared in `custom_scripts` is parsed (its missing-file warning clears) but is **not loaded in static missions** — no load trigger carries it. Root cause: every VEAF load trigger is emitted twice with duplicated, divergent logic — `insert_veaf_triggers()` (`trig` table) and `insert_veaf_trigrules()` (`trigrules` table, the one DCS executes). The static mission trigger #6 diverged: the `trigrules` form hardcodes only veaf-config + mission-script (omits custom_scripts — the bug), while the `trig` form wrongly includes `veafDynamicConfig.lua` (latent error in static). This duplication also caused C6 (double-spawn).
+
+**Approach** (validated with David): emit BOTH forms from a single per-trigger spec (`VeafTriggerSpec` + `LuaAction`/`FileAction`) so they can never diverge; the static mission trigger and the dynamic `veafDynamicConfig.lua` both use the one ordered list `_ordered_mission_script_names()` (veaf-config → mission-script → custom_scripts; excludes veafDynamicConfig.lua, in one place). Keep `custom_scripts` API as a single `generate_load_trigger` flag (repaired to apply in both modes); mode-specific script sets ("dynamic-only" debug scripts) are handled via build **profiles** (documented). `mission-script.lua` stays auto-loaded first. Annexes: spawn-data trigger kept separate + documented; CTLD-beacons legacy v5 trigger deferred (needs Flogas's exact CTLD/CSAR config). Plan: `C:\Users\David\.claude\plans\federated-churning-pascal.md`.
+
+**Branch**: `feature/custom-scripts-triggers` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CUSTOM-SCRIPTS-TRIGGERS-001 | Unify trig/trigrules emission from a single spec (`_build_veaf_trigger_specs` + `_emit_trig_action_string`/`_emit_trigrule_actions`); fix static #6 to load custom_scripts and exclude veafDynamicConfig.lua; repair `generate_load_trigger`; tests (custom_scripts in both static trigrule & veafDynamicConfig; trig↔trigrules parity; golden #1-5). **Note**: `meters`/`zone` dropped (not preserved) per David's in-session decision, superseding the plan's "preserve" note. | `mission_builder/mission_builder_worker.py`, `test/python/mission_builder/` | fix | ✅ |
+| CUSTOM-SCRIPTS-TRIGGERS-002 | Docs: custom_scripts semantics + how to get "dynamic-only"/"static-only" via build profiles (deep-merge replaces lists → repeat base scripts); spawn-data rationale | `doc/MISSION_YAML_REFERENCE.*`, maker docs, `CHANGELOG.md` | chore | ⬜ |
+
+---
+
 ## Lot DOC-REVIEW — full documentation proofreading pass
 
 **Goal**: a complete, exhaustive read-through of the whole `doc/` tree (every FR `.md` + EN `.en.md` pair) — not just the targeted, changelog-driven audit done for the 6.5.0 release. Check: technical accuracy vs current behaviour, FR/EN parity (no desync), broken/relative links, stale filenames and command names, terminology consistency, examples that still run, and overall readability for mission makers / pilots / script developers. The 6.5.0 release touched many areas (YAML data + datamine, Dynamic Slots, in-game i18n, doc chatbot, aircraft-template split, dynamic loading, defaults), so the docs deserve a full pass.
@@ -72,19 +221,6 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | DOC-REVIEW-001 | Full proofreading pass of `doc/` (FR/EN): accuracy, parity, links, stale names, terminology, examples | `doc/**` | chore | ⬜ |
-
----
-
-## Lot CUSTOM-SCRIPTS-TRIGGERS — single ordered source for the VEAF load triggers
-
-**Goal**: a VEAF load trigger is written into the `.miz` in two forms — the DCS `trig` table (the compiled `funcStartup` form actually executed at runtime) and the `trigrules` table (the Mission Editor form). They were hand-built separately in `insert_veaf_triggers` / `insert_veaf_trigrules` and drifted: the static-mission `trig` form loads the full ordered mission-script list (so it honours `custom_scripts`), while the static-mission `trigrules` form only loaded `veaf-config.lua` + `mission-script.lua`. A mission maker who re-opens and re-saves the built `.miz` in the ME gets the trigrules recompiled into `trig` → **loses custom-script loading in static mode**. Same drift class as the C6 double-load bug. Fix: derive both forms from a single ordered `list[VeafTriggerSpec]` (built by the WIP commit `d964e80b`) via two emitters, so the two forms can never diverge. Drop the now-dead `meters`/`zone` editor leftovers on the env.info actions.
-
-**Branch**: `feature/custom-scripts-triggers` → PR → `develop-v6`
-
-| # | Ticket | Files | Type | Status |
-|---|--------|-------|------|--------|
-| CST-001 | Characterization test: build the VEAF triggers and assert the `trig` and `trigrules` forms load the **same** ordered mission scripts (incl. a declared `custom_scripts` entry). Red on current code. | `test/python/mission_builder/` | test | ✅ |
-| CST-002 | `_build_veaf_trigger_specs` returns the 6 ordered `VeafTriggerSpec`; two emitters (`trig` string / `trigrules` action dicts) derive each form; `insert_veaf_triggers` / `insert_veaf_trigrules` consume the shared list and keep only the shift/insert mechanics. Drop `extra_trigrule_fields` + `meters`/`zone`. | `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
 
 ---
 

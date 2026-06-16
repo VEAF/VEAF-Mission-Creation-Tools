@@ -479,13 +479,14 @@ class BuildAndReleaseWorker:
             path.write_text(
                 _VERSION_PY_HEADER + f'__version__ = "{self.version}"\n',
                 encoding="utf-8",
+                newline="\n",
             )
             logger.debug(f"Wrote _version.py: __version__ = {self.version!r}")
 
     def _restore_version_py(self, path: Path) -> None:
         """Restore _version.py to the committed stub content."""
         try:
-            path.write_text(_VERSION_PY_STUB, encoding="utf-8")
+            path.write_text(_VERSION_PY_STUB, encoding="utf-8", newline="\n")
             logger.debug("Restored _version.py stub")
         except Exception as e:
             logger.warning(f"Failed to restore _version.py: {e}")

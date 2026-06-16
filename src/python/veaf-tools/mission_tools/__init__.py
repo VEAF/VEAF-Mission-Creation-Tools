@@ -19,7 +19,9 @@ from .mission_constants import (
     get_mission_data_files,
     get_mission_files_to_cleanup_on_extract,
     get_mission_script_files,
+    get_optin_community_script_ids,
     get_veaf_script_files,
+    is_community_script_enabled_by_default,
 )
 from .miz_tools import DcsMission, Group, create_miz, extract_miz, read_miz, write_miz
 
@@ -36,6 +38,8 @@ __all__ = [
     "Group",
     "DEFAULT_SCRIPTS_LOCATION",
     "get_community_script_files",
+    "get_optin_community_script_ids",
+    "is_community_script_enabled_by_default",
     "get_community_sound_files",
     "get_mission_data_files",
     "get_mission_script_files",

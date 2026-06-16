@@ -750,16 +750,19 @@ def _resolve_deps(effective: dict) -> dict:
 
 
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
-    """Return whether a community script is enabled, matching the build's opt-out rule.
+    """Return whether a community script is enabled, matching the build's enable rule.
 
-    No ``community_scripts`` section (or the id absent) means enabled; a dict uses
-    its ``enabled`` flag (default true); ``None`` means disabled; otherwise the
-    value's truthiness. Mirrors ``MissionBuilderWorker`` community parsing so the
-    generated init matches what is actually injected.
+    When the ``community_scripts`` section is absent or the id is not listed: an
+    opt-out script is enabled, an opt-in script (e.g. TUM) is not. When listed, a
+    dict uses its ``enabled`` flag (default true); ``None`` means disabled;
+    otherwise the value's truthiness. Mirrors ``MissionBuilderWorker`` community
+    parsing so the generated init matches what is actually injected.
     """
+    from mission_tools.mission_constants import is_community_script_enabled_by_default
+
     comm = mission_yaml.get("community_scripts")
     if not isinstance(comm, dict) or not comm or script_id not in comm:
-        return True
+        return is_community_script_enabled_by_default(script_id)
     cfg = comm[script_id]
     if isinstance(cfg, dict):
         return bool(cfg.get("enabled", True))

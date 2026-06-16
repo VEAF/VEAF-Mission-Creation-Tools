@@ -70,3 +70,32 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: "2.4.0"
           args: --check src/scripts/veaf/
+
+  # ---------------------------------------------------------------------------
+  # Lua line coverage (luacov) with a ratchet floor — number only ever goes up
+  # ---------------------------------------------------------------------------
+  lua-coverage:
+    name: Lua Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Lua 5.1 + luacov (via LuaRocks)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y lua5.1 liblua5.1-dev luarocks
+          sudo luarocks install luacov
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --without build --all-extras
+
+      - name: Run Lua tests with coverage floor
+        run: poetry run test-lua --cov-fail-under 67

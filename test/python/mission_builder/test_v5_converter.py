@@ -527,6 +527,19 @@ class TestV5ConverterIntegration(unittest.TestCase):
             assert normalized["external_modules"]["ctld"]["hoverPickup"] is True
             assert normalized["external_modules"]["ctld"]["maximumDistanceLimit"] == 200
 
+    def test_mission_yaml_optin_script_false_even_when_detected(self) -> None:
+        # TUM-AUTOINIT: opt-in scripts (TUM) must be emitted as false even when the
+        # community file is present, so a freshly converted v5 mission never auto-starts them.
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            self._make_community_folder(folder, ["mist.lua", "TheUniversalMission.lua"])
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertIn("MIST: true", yaml_content)  # opt-out, detected → true
+            self.assertIn("TUM: false", yaml_content)  # opt-in, even when detected → false
+            self.assertNotIn("TUM: true", yaml_content)
+
     def test_mission_yaml_silence_atc_emitted_when_v5_active(self) -> None:
         # CONVERT-FIDELITY-003: an active call → mission.silence_atc_on_all_airbases: true.
         with tempfile.TemporaryDirectory() as td:

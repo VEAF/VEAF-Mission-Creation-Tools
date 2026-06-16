@@ -89,7 +89,7 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 - **Environment**: Code written in pure Lua 5.1 executing inside the DCS World environment, without external dependencies.
 - **Naming Conventions**: Files named as `veafFeature.lua`, global module table in camelCase (`veafFeature = {}`), and class definitions in PascalCase (`VeafFeature`).
 - **Quality Validation**: Run `luacheck --config .luacheckrc src/scripts/veaf/` and `stylua --check src/scripts/veaf/`.
-- **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`.
+- **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`. Line coverage is available via `poetry run test-lua --coverage` (luacov); the CI `lua-coverage` job enforces a ratchet floor with `--cov-fail-under` — like the Python coverage gate, the number only ever goes up.
 
 ---
 
@@ -103,7 +103,7 @@ For every action requested by the user, execute these steps in order:
 3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
-6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` for Lua — `luacheck` is not installed, skip it). Resolve all errors before continuing.
+6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.

@@ -14,7 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
-| Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ⬜ |
+| Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ⬜ |
 | Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
@@ -104,7 +104,9 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| SPAWNCAT-001 | Confirm runtime impact, then re-categorize the default CAP templates from `helicopters` to `airplanes` (regenerate via `extract` if that's the clean source); regression test asserting planes land under `airplanes` | `src/defaults/mission-folder/src/spawnables.yaml`, `test/python/` | fix | ⬜ |
+| SPAWNCAT-001 | Confirm runtime impact, then re-categorize the default CAP templates from `helicopters` to `airplanes` (regenerate via `extract` if that's the clean source); regression test asserting planes land under `airplanes` | `src/defaults/mission-folder/src/spawnables.yaml`, `test/python/` | fix | ✅ |
+
+**Outcome**: confirmed **not cosmetic** — the CAP spawn path (`veafSpawnAircraft.lua` → `mist.teleportToPoint` clone → `mist.dynAdd`) never re-derives the category, so `coalition.addGroup` receives `Unit.Category.HELICOPTER` for fixed-wing units. Regenerating from the source mission was rejected (the extractor reflects the source `.miz` faithfully, so a mis-categorized source would reproduce the bug). Fixed with a category-aware migration keyed on the canonical `dcsUnits.yaml`: all 50 templates moved `helicopters:` → `airplanes:` (none was a real helicopter), 51 group bodies preserved byte-for-byte. New `test_spawnables_defaults_category.py` guards both the shipped data (both directions) and the injector bucket → DCS-table mapping.
 
 ---
 

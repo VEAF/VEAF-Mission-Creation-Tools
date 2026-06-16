@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     inject_presets,
     prepare,
     user_config,
+    validate,
     waypoints,
     weather,
 )

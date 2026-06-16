@@ -302,6 +302,7 @@ security:
 | Command | What it does |
 |---------|-------------|
 | `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz` |
+| `validate` | Lints the mission folder **before** build — reports config errors and runtime risks without building (exit non-zero on error; `--strict` fails on warnings too) |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `inject-presets` | Injects radio frequency plans for all human cockpits |
 | `inject-weather` | Creates weather/time variants from a YAML config |

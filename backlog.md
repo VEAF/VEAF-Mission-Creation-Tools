@@ -23,7 +23,7 @@
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
 | Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
-| Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
+| Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ✅ |
 | Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
 | Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | ✅ |
@@ -227,7 +227,7 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| VALIDATE-001 | `validate` command + worker: mission.yaml parse/schema, module coherence, custom_scripts file existence, presets/waypoints aircraft matching, TUM zone prerequisite; localized output; tests; docs | `veaf_tools/commands/`, `veaf_libs/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+| VALIDATE-001 | `validate` command + `veaf_libs.mission_validator`: mission.yaml syntax/semantics (reusing non-aborting `check_yaml_syntax`/`collect_module_issues`), custom_scripts existence, declared-group presence, presets/waypoints aircraft presence (coarse), TUM zone prerequisite; `--strict`; localized FR/EN output; tests; maker-guide docs | `veaf_tools/commands/validate.py`, `veaf_libs/mission_validator.py`, `veaf_libs/yaml_validator.py`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ✅ |
 
 ---
 

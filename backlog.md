@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
 | Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
@@ -63,6 +64,18 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot BUILD-PUBLISH-LOCAL — local publish mode for `veaf-build`
+
+**Goal**: add a **local publish** mode to `veaf-build` that, instead of uploading the release to GitHub (rarely done now that the CI handles publishing), deploys the build output directly into a **user-provided target directory** — a VEAF mission source folder. The mode copies the contents of the `published/` folder plus the two compiled executables (`veaf-tools.exe`, `veaf-tools-updater.exe`) into that folder, so a mission maker gets the latest tooling + scripts locally without going through GitHub / the updater.
+
+**Open questions to settle when scoping**: new subcommand vs a `--local <dir>` flag on `publish`; whether to deploy from `published/` or `published.zip`; overwrite/clean semantics on the target; whether the two `.exe` go at the folder root or a subfolder; cross-platform behaviour (the `.exe` are Windows-only).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| BUILD-PUBLISH-LOCAL-001 | Add a local publish mode to `veaf-build` (deploy `published/` contents + `veaf-tools.exe` + `veaf-tools-updater.exe` into a user-given mission source folder, no GitHub). CLI option, worker logic, tests, docs (`TOOLS_REFERENCE*`/mission-maker guide), CHANGELOG, version bump. | `veaf_build/cli.py`, `veaf_build/worker.py`, `test/python/veaf_build/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
 
 ---
 

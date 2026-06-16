@@ -1100,7 +1100,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   )
 
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
-  local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers. See F10 radio menu for details\n"
+  local message = veaf.t("cas.spawn_confirmation", nbVehicles, nbInfantry)
   trigger.action.outText(message, 5)
 
   veafRadio.refreshRadioMenu()
@@ -1115,10 +1115,10 @@ function veafCasMission.reportTargetInformation(unitName)
   -- generate information dispatch
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
 
-  local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers.\n"
+  local message = veaf.t("cas.report_target", nbVehicles, nbInfantry)
 
   if veafCasMission.afacName then
-    message = message .. "AFAC on station: " .. veafCasMission.afacName .. "\n"
+    message = message .. veaf.t("cas.report_afac", veafCasMission.afacName)
   end
 
   message = message .. "\n"
@@ -1140,15 +1140,15 @@ function veafCasMission.reportTargetInformation(unitName)
   local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
   local distMetric = mist.utils.round(dist / 1000, 0)
   local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-  local fromBullseye = string.format("%03d", dir) .. " for " .. distMetric .. "km /" .. distImperial .. "nm"
+  local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
 
-  message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-  message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-  message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-  message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+  message = message .. veaf.t("cas.report_latlon_decimal", mist.tostringLL(lat, lon, 2))
+  message = message .. veaf.t("cas.report_latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("cas.report_mgrs", mgrsString)
+  message = message .. veaf.t("cas.report_bullseye", fromBullseye)
   message = message .. "\n"
 
-  message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
+  message = message .. veaf.t("cas.report_weather_header") .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
 
   -- send message only for the unit
   veaf.outTextForGroup(unitName, message, 30)
@@ -1267,14 +1267,7 @@ function veafCasMission.buildRadioMenu()
 end
 
 function veafCasMission.help(unitName)
-  local text = 'Create a marker and type "_cas" in the text\n'
-    .. "This will create a default CAS target group\n"
-    .. "You can add options (comma separated) :\n"
-    .. '   "defense 0" completely disables air defenses\n'
-    .. '   "defense [1-5]" specifies air defense cover (1 = light, 5 = heavy)\n'
-    .. '   "size [1-5]" changes the group size (1 = small, 5 = huge)\n'
-    .. '   "armor [1-5]" specifies armor presence (1 = light, 5 = heavy)\n'
-    .. '   "spacing [1-5]" changes the groups spacing (1 = dense, 3 = default, 5 = sparse)'
+  local text = veaf.t("cas.help")
 
   veaf.outTextForGroup(unitName, text, 30)
 end

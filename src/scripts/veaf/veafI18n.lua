@@ -341,6 +341,60 @@ veaf.i18nCatalog = {
     fr = "Groupe objectif CAS nettoyé.",
     en = "CAS objective group cleaned up.",
   },
+  ["cas.spawn_confirmation"] = {
+    fr = "CIBLE : groupe de %d véhicules et %d fantassins. Voir le menu radio F10 pour les détails\n",
+    en = "TARGET: Group of %d vehicles and %d soldiers. See F10 radio menu for details\n",
+  },
+  ["cas.report_target"] = {
+    fr = "CIBLE : groupe de %d véhicules et %d fantassins.\n",
+    en = "TARGET: Group of %d vehicles and %d soldiers.\n",
+  },
+  ["cas.report_afac"] = {
+    fr = "AFAC en station : %s\n",
+    en = "AFAC on station: %s\n",
+  },
+  ["cas.report_latlon_decimal"] = {
+    fr = "LAT LON (décimal): %s.\n",
+    en = "LAT LON (decimal): %s.\n",
+  },
+  ["cas.report_latlon_dms"] = {
+    fr = "LAT LON (DMS)    : %s.\n",
+    en = "LAT LON (DMS)    : %s.\n",
+  },
+  ["cas.report_mgrs"] = {
+    fr = "MGRS/UTM         : %s.\n",
+    en = "MGRS/UTM         : %s.\n",
+  },
+  ["cas.report_bullseye"] = {
+    fr = "DEPUIS BULLSEYE  : %s.\n",
+    en = "FROM BULLSEYE    : %s.\n",
+  },
+  ["cas.report_bullseye_value"] = {
+    fr = "%03d pour %d km /%d nm",
+    en = "%03d for %dkm /%dnm",
+  },
+  ["cas.report_weather_header"] = {
+    fr = "\n\nMÉTÉO :\n",
+    en = "\n\nWEATHER:\n",
+  },
+  ["cas.help"] = {
+    fr = "Créez un marqueur et tapez « _cas » dans le texte\n"
+      .. "Cela crée un groupe cible CAS par défaut\n"
+      .. "Vous pouvez ajouter des options (séparées par des virgules) :\n"
+      .. "   « defense 0 » désactive complètement les défenses aériennes\n"
+      .. "   « defense [1-5] » règle la couverture de défense aérienne (1 = légère, 5 = lourde)\n"
+      .. "   « size [1-5] » change la taille du groupe (1 = petit, 5 = énorme)\n"
+      .. "   « armor [1-5] » règle la présence de blindés (1 = légère, 5 = lourde)\n"
+      .. "   « spacing [1-5] » change l'espacement des groupes (1 = dense, 3 = défaut, 5 = épars)",
+    en = 'Create a marker and type "_cas" in the text\n'
+      .. "This will create a default CAS target group\n"
+      .. "You can add options (comma separated) :\n"
+      .. '   "defense 0" completely disables air defenses\n'
+      .. '   "defense [1-5]" specifies air defense cover (1 = light, 5 = heavy)\n'
+      .. '   "size [1-5]" changes the group size (1 = small, 5 = huge)\n'
+      .. '   "armor [1-5]" specifies armor presence (1 = light, 5 = heavy)\n'
+      .. '   "spacing [1-5]" changes the groups spacing (1 = dense, 3 = default, 5 = sparse)',
+  },
 
   -- veaf (core)
   ["mission.ending"] = {

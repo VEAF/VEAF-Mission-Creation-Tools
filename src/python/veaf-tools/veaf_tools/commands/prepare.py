@@ -38,23 +38,70 @@ def _resolve_defaults_source(mission_folder: Path) -> Path | None:
     return None
 
 
+def _resolve_template_modules(template: str) -> set[str]:
+    """Resolve a ``--template`` value to the set of module ids to enable.
+
+    Named tiers map to their fixed module set; ``custom`` opens an interactive
+    multi-select. An unknown name aborts the CLI.
+
+    Args:
+        template: ``minimal`` / ``standard`` / ``full`` / ``custom``.
+
+    Returns:
+        The module ids to enable in the generated ``mission.yaml``.
+    """
+    from veaf_libs.mission_template import TIER_NAMES, tier_modules
+
+    name = template.lower()
+    if name in TIER_NAMES:
+        return tier_modules(name)
+    if name == "custom":
+        return _select_custom_modules()
+    logger.error(t("cmd.prepare.unknown_template", template=template, valid=", ".join((*TIER_NAMES, "custom"))))
+    raise typer.Exit(code=1)
+
+
+def _select_custom_modules() -> set[str]:
+    """Interactively pick the modules to enable (``custom`` template)."""
+    from InquirerPy import inquirer  # type: ignore[import-untyped]
+    from veaf_libs.mission_template import SELECTABLE_MODULES, tier_modules
+
+    preselected = tier_modules("standard")
+    choices = [{"name": mod, "value": mod, "enabled": mod in preselected} for mod in SELECTABLE_MODULES]
+    selected = inquirer.checkbox(
+        message=t("cmd.prepare.custom_prompt"),
+        choices=choices,
+        instruction="(space = toggle, enter = confirm)",
+    ).execute()
+    return set(selected)
+
+
 @app.command(help=t("cmd.prepare.help"))
 def prepare(
     mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
+    template: str | None = typer.Option(None, "--template", "-t", help=t("cmd.prepare.opt.template")),
+    list_templates: bool = typer.Option(False, "--list-templates", help=t("cmd.prepare.opt.list_templates")),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help=t("cmd.prepare.opt.force")),
 ) -> None:
+    from veaf_libs.mission_template import TIER_NAMES
 
     logger.set_verbose(verbose)
 
     # Set the title and version
     console.print(t("cmd.prepare.title", version=VERSION))
 
+    if list_templates:
+        console.print(t("cmd.prepare.templates_list", templates=", ".join((*TIER_NAMES, "custom"))))
+        return
+
     if readme:
         console.print(t("cmd.prepare.subtitle"))
         console.print(t("cmd.prepare.readme.intro"))
         exit()
+
+    enabled_modules = _resolve_template_modules(template) if template else None
 
     try:
         # Resolve mission folder
@@ -115,12 +162,21 @@ def prepare(
                     logger.debug(f"Installed: {relative_path}")
                     files_installed += 1
 
+        # Apply the chosen template: regenerate mission.yaml from the selected module set
+        # (overwrites the copied default). No --template keeps the shipped default as-is.
+        if enabled_modules is not None:
+            from veaf_libs.mission_template import generate_mission_yaml
+
+            (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")
+            console.print(t("cmd.prepare.template_applied", template=template, count=len(enabled_modules)))
+
         # Print summary
         console.print(t("cmd.prepare.done"))
         console.print(t("cmd.prepare.files_installed", count=files_installed))
         if files_skipped > 0:
             console.print(t("cmd.prepare.files_skipped", count=files_skipped))
         console.print(t("cmd.prepare.folder_ready", path=p_mission_folder.resolve()))
+        console.print(t("cmd.prepare.next_steps"))
 
     except Exception as e:
         logger.error(t("cmd.prepare.failed", error=str(e)))

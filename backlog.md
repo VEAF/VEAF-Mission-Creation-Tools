@@ -13,6 +13,11 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot LUACHECK-CI — add `luacheck` to the CI Lua quality gate (only `stylua --check` runs today) | ⬜ |
+| Lot LUA-COVERAGE — establish a Lua test-coverage objective for the runtime modules | ⬜ |
+| Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ⬜ |
+| Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
+| Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
 | Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
@@ -64,6 +69,56 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot LUACHECK-CI — add luacheck to the CI Lua quality gate
+
+**Goal**: the Lua quality gate currently runs only `stylua --check` (formatting); `luacheck` is not installed (`CLAUDE.md` §8 explicitly skips it). There is no real static analysis on the Lua side — a blind spot in the quality ratchet. Install/configure `luacheck` (with `.luacheckrc`), wire it into the CI Lua job, fix or baseline the surfaced warnings, and flip `CLAUDE.md` §8/§6 to require it. Matters before DROP-MIST / PERSISTENCE start editing the runtime.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUACHECK-CI-001 | Wire `luacheck --config .luacheckrc src/scripts/veaf/` into CI; resolve/baseline warnings; update `CLAUDE.md` (stop skipping luacheck) | `.github/workflows/`, `.luacheckrc`, `src/scripts/veaf/`, `CLAUDE.md` | chore | ⬜ |
+
+---
+
+## Lot LUA-COVERAGE — Lua test-coverage objective for runtime modules
+
+**Goal**: the Lua runtime modules (`veafCasMission`, `veafCombatZone`, `veafQraManager`, …) are far less tested than the Python side. Establish a measurable Lua coverage objective (luacov via `test-lua`), set a baseline gate, and add tests for the least-covered critical modules. Secures the campaign/persistence work that will touch these modules.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUA-COVERAGE-001 | Add luacov to the `test-lua` run, report + baseline a coverage floor, backfill tests on the least-covered runtime modules | `test/lua/`, `src/scripts/veaf/`, CI | test | ⬜ |
+
+---
+
+## Lot QUALITY-GATE-FINISH — erode the remaining mypy exclusions
+
+**Goal**: finish the Quality Ratchet Policy (`CLAUDE.md` §3) — the `QUALITY-GATE` lot is closed but, per policy, the dedicated lot still mops up whatever workers no other lot reopened. Remaining `ignore_errors = true` application workers (the bundled `luadata` library stays excluded as third-party): `mission_converter.mission_converter_worker`, `mission_extractor.mission_extractor_worker`, `waypoints_injector.waypoints_manager`, `weather_injector.utils.lua_converter`, `weather_injector.weather.dcs_weather_converter`, `weather_injector.weather_injector_worker`. Drop each entry, fix the surfaced type errors, and do a final `--cov-fail-under` ratchet.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| QUALITY-GATE-FINISH-001 | Remove the remaining application-worker entries from the mypy `ignore_errors` list and fix the surfaced errors (keep `luadata*` third-party exclusion); bump `--cov-fail-under` per policy | `pyproject.toml`, `src/python/veaf-tools/**`, `test/python/` | chore | ⬜ |
+
+---
+
+## Lot VALIDATE — `veaf-tools validate` (pre-build linter)
+
+**Goal**: add a `veaf-tools validate` command that lints a mission folder **before** build, turning late DCS-side crashes into clear design-time errors. Checks to cover: incoherent/unknown `modules:` entries, `custom_scripts` files that do not exist, presets/waypoints that match no aircraft in the `.miz`, missing REDFOR/BLUFOR territory zones when `TUM: true`, and structural validity of `mission.yaml` (overlaps the active `FIX-CONVERT-V5-INVALID-YAML` lot — share the YAML-parse check). Exit non-zero on error, with localized messages.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| VALIDATE-001 | `validate` command + worker: mission.yaml parse/schema, module coherence, custom_scripts file existence, presets/waypoints aircraft matching, TUM zone prerequisite; localized output; tests; docs | `veaf_tools/commands/`, `veaf_libs/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+
+---
+
+## Lot SCAFFOLD — `veaf-tools new` (mission folder scaffolding)
+
+**Goal**: add a `veaf-tools new` command that scaffolds a ready-to-use mission folder (a typed `mission.yaml` plus the `src/` tree) from one or more templates (blank training, CAS, QRA…), lowering the entry cost for new mission makers. Reuses the shipped `defaults/mission-folder/` baseline as the default template.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SCAFFOLD-001 | `new` command + worker: generate a mission folder from a template (default = `defaults/mission-folder`), optional named templates, TUI entry; tests; docs | `veaf_tools/commands/`, `veaf_libs/tui.py`, `src/defaults/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
 
 ---
 

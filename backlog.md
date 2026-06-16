@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — add `luacheck` to the CI Lua quality gate (only `stylua --check` runs today) | ⬜ |
 | Lot LUA-COVERAGE — establish a Lua test-coverage objective for the runtime modules | ⬜ |
 | Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ⬜ |
@@ -69,6 +70,16 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot FIX-VERSION-PY-EOL — generated `_version.py` always shows as modified
+
+**Goal**: `veaf-build` writes `veaf_tools/_version.py` (and restores its stub) in Python text mode, so on Windows `\n` is translated to `\r\n`. The git-tracked stub is normalized to LF (`.gitattributes` `eol=lf`), so every build left the working tree permanently "modified" with a CRLF-only, content-less diff — recurring friction. **Done**: `_write_version_py` / `_restore_version_py` now pass `newline="\n"`; the same latent bug in `radio_specs_updater` (tracked `dcs-radio-specs.yaml` / `.md`) was fixed too, matching the `dcs_data` generators that already force LF. Regression tests assert LF output. Working tree `_version.py` renormalized.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-VERSION-PY-EOL-001 | Force LF (`newline="\n"`) in `_write_version_py`/`_restore_version_py` and the radio-specs writers; renormalize the tracked stub; LF regression tests | `veaf_build/worker.py`, `veaf_build/radio_specs_updater.py`, `test/python/veaf_build/test_version_py_eol.py` | fix | ✅ |
 
 ---
 

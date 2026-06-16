@@ -229,7 +229,7 @@ def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
 def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     data = specs_to_yaml_dict(specs)
-    with open(output, "w", encoding="utf-8") as f:
+    with open(output, "w", encoding="utf-8", newline="\n") as f:
         f.write("# DCS aircraft radio frequency specifications\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
         f.write(f"# Source ref: {DATAMINE_REF}\n")
@@ -297,7 +297,7 @@ def write_markdown(specs: list[AircraftSpec], output: Path) -> None:
                     first = False
         lines.append("")
 
-    output.write_text("\n".join(lines), encoding="utf-8")
+    output.write_text("\n".join(lines), encoding="utf-8", newline="\n")
     print(f"Markdown written to {output}")
 
 

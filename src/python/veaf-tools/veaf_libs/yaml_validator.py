@@ -42,6 +42,24 @@ def validate_yaml_file(path: Path) -> None:
     Args:
         path: Path to the YAML file to validate.
     """
+    msg = check_yaml_syntax(path)
+    if msg is not None:
+        logger.error(msg)
+
+
+def check_yaml_syntax(path: Path) -> str | None:
+    """Return a localised YAML syntax-error message for *path*, or ``None`` if it parses.
+
+    Non-aborting counterpart of :func:`validate_yaml_file` — used by the pre-build
+    ``validate`` command to aggregate issues instead of terminating on the first one.
+
+    Args:
+        path: Path to the YAML file to check.
+
+    Returns:
+        A human-readable, localised error message (file, line, column, hint) when the
+        file fails to parse; ``None`` when it is syntactically valid.
+    """
     try:
         with path.open(encoding="utf-8") as fh:
             yaml.safe_load(fh)
@@ -65,8 +83,8 @@ def validate_yaml_file(path: Path) -> None:
             )
 
         msg += "\n" + t(_hint_key(problem))
-
-        logger.error(msg)
+        return msg
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -103,9 +121,30 @@ def validate_modules_semantics(yaml_data: dict) -> None:
     Args:
         yaml_data: The parsed (un-normalized) mission.yaml content.
     """
+    errors, warnings = collect_module_issues(yaml_data)
+    for warning in warnings:
+        logger.warning(warning)
+    if errors:
+        logger.error("\n".join(errors))
+
+
+def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
+    """Collect ``modules:`` semantic issues without aborting (errors, warnings).
+
+    Non-aborting counterpart of :func:`validate_modules_semantics` — used by the
+    pre-build ``validate`` command to aggregate issues. Same checks; the messages are
+    returned instead of being sent to the logger.
+
+    Args:
+        yaml_data: The parsed (un-normalized) mission.yaml content.
+
+    Returns:
+        A ``(errors, warnings)`` tuple of localised message strings.
+    """
     from veaf_libs.lua_config_generator import _MODULE_INIT_PARAMS
 
     errors: list[str] = []
+    warnings: list[str] = []
 
     for section in _REMOVED_SECTIONS:
         if section in yaml_data:
@@ -134,7 +173,6 @@ def validate_modules_semantics(yaml_data: dict) -> None:
                 allowed = {param for param, _ in _MODULE_INIT_PARAMS.get(key.upper(), [])}
                 for param in init:
                     if param not in allowed:
-                        logger.warning(t("yaml.semantic.unknown_init_param", module=key, param=param))
+                        warnings.append(t("yaml.semantic.unknown_init_param", module=key, param=param))
 
-    if errors:
-        logger.error("\n".join(errors))
+    return errors, warnings

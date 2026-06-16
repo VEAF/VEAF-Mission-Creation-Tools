@@ -301,6 +301,7 @@ security:
 | Commande | Ce qu'elle fait |
 |----------|----------------|
 | `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz` |
+| `validate` | Vérifie le dossier de mission **avant** le build — signale les erreurs de config et les risques runtime sans builder (sortie non nulle en cas d'erreur ; `--strict` échoue aussi sur les avertissements) |
 | `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
 | `inject-presets` | Injecte des plans de fréquences radio pour tous les cockpits humains |
 | `inject-weather` | Crée des variantes météo/heure depuis une config YAML |

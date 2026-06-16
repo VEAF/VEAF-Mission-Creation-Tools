@@ -68,4 +68,66 @@ function TestVeafI18n:test_format_mismatch_returns_raw_without_crashing()
   luaunit.assertEquals(result, "count: %d")
 end
 
+-- ---------------------------------------------------------------------------
+-- LUA-I18N-CAS: veafCasMission on-screen messages
+-- ---------------------------------------------------------------------------
+
+function TestVeafI18n:test_cas_spawn_confirmation_french()
+  luaunit.assertEquals(
+    veaf.t("cas.spawn_confirmation", 4, 6),
+    "CIBLE : groupe de 4 véhicules et 6 fantassins. Voir le menu radio F10 pour les détails\n"
+  )
+end
+
+function TestVeafI18n:test_cas_spawn_confirmation_english()
+  veaf.config.language = "en"
+  luaunit.assertEquals(
+    veaf.t("cas.spawn_confirmation", 4, 6),
+    "TARGET: Group of 4 vehicles and 6 soldiers. See F10 radio menu for details\n"
+  )
+end
+
+function TestVeafI18n:test_cas_report_target_interpolates_both_languages()
+  luaunit.assertEquals(veaf.t("cas.report_target", 2, 3), "CIBLE : groupe de 2 véhicules et 3 fantassins.\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("cas.report_target", 2, 3), "TARGET: Group of 2 vehicles and 3 soldiers.\n")
+end
+
+function TestVeafI18n:test_cas_report_afac()
+  luaunit.assertEquals(veaf.t("cas.report_afac", "Texaco"), "AFAC en station : Texaco\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("cas.report_afac", "Texaco"), "AFAC on station: Texaco\n")
+end
+
+function TestVeafI18n:test_cas_report_bullseye_value_formats_heading_and_distances()
+  -- %03d heading padding and the metric/imperial distances are interpolated.
+  luaunit.assertEquals(veaf.t("cas.report_bullseye_value", 45, 12, 7), "045 pour 12 km /7 nm")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("cas.report_bullseye_value", 45, 12, 7), "045 for 12km /7nm")
+end
+
+function TestVeafI18n:test_cas_report_geo_labels_are_localized()
+  luaunit.assertEquals(veaf.t("cas.report_mgrs", "37T 12345 67890"), "MGRS/UTM         : 37T 12345 67890.\n")
+  luaunit.assertEquals(veaf.t("cas.report_bullseye", "045 pour 12 km /7 nm"), "DEPUIS BULLSEYE  : 045 pour 12 km /7 nm.\n")
+end
+
+function TestVeafI18n:test_cas_report_weather_header()
+  luaunit.assertEquals(veaf.t("cas.report_weather_header"), "\n\nMÉTÉO :\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("cas.report_weather_header"), "\n\nWEATHER:\n")
+end
+
+function TestVeafI18n:test_cas_help_is_localized_and_keeps_command_tokens()
+  local fr = veaf.t("cas.help")
+  luaunit.assertStrContains(fr, "Créez un marqueur")
+  -- command tokens must stay literal in both languages
+  luaunit.assertStrContains(fr, "_cas")
+  luaunit.assertStrContains(fr, "defense [1-5]")
+  veaf.config.language = "en"
+  local en = veaf.t("cas.help")
+  luaunit.assertStrContains(en, "Create a marker")
+  luaunit.assertStrContains(en, "_cas")
+  luaunit.assertStrContains(en, "spacing [1-5]")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -14,6 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
+| Lot CUSTOM-SCRIPTS-TRIGGERS — derive the VEAF load triggers' `trig` (compiled) and `trigrules` (editor) forms from a single ordered `VeafTriggerSpec` list; fixes the static-mission drift that dropped `custom_scripts` from the editor form | 🔄 |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
@@ -71,6 +72,19 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | DOC-REVIEW-001 | Full proofreading pass of `doc/` (FR/EN): accuracy, parity, links, stale names, terminology, examples | `doc/**` | chore | ⬜ |
+
+---
+
+## Lot CUSTOM-SCRIPTS-TRIGGERS — single ordered source for the VEAF load triggers
+
+**Goal**: a VEAF load trigger is written into the `.miz` in two forms — the DCS `trig` table (the compiled `funcStartup` form actually executed at runtime) and the `trigrules` table (the Mission Editor form). They were hand-built separately in `insert_veaf_triggers` / `insert_veaf_trigrules` and drifted: the static-mission `trig` form loads the full ordered mission-script list (so it honours `custom_scripts`), while the static-mission `trigrules` form only loaded `veaf-config.lua` + `mission-script.lua`. A mission maker who re-opens and re-saves the built `.miz` in the ME gets the trigrules recompiled into `trig` → **loses custom-script loading in static mode**. Same drift class as the C6 double-load bug. Fix: derive both forms from a single ordered `list[VeafTriggerSpec]` (built by the WIP commit `d964e80b`) via two emitters, so the two forms can never diverge. Drop the now-dead `meters`/`zone` editor leftovers on the env.info actions.
+
+**Branch**: `feature/custom-scripts-triggers` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CST-001 | Characterization test: build the VEAF triggers and assert the `trig` and `trigrules` forms load the **same** ordered mission scripts (incl. a declared `custom_scripts` entry). Red on current code. | `test/python/mission_builder/` | test | ✅ |
+| CST-002 | `_build_veaf_trigger_specs` returns the 6 ordered `VeafTriggerSpec`; two emitters (`trig` string / `trigrules` action dicts) derive each form; `insert_veaf_triggers` / `insert_veaf_trigrules` consume the shared list and keep only the shift/insert mechanics. Drop `extra_trigrule_fields` + `meters`/`zone`. | `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ |
 
 ---
 

@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **The Mission Editor form of the VEAF load triggers no longer drops `custom_scripts`** (CUSTOM-SCRIPTS-TRIGGERS). Each VEAF load trigger is written into the `.miz` twice: the compiled `trig` table (the `funcStartup` form DCS runs at mission start) and the `trigrules` table (the Mission Editor form). The two were hand-built separately and had drifted — the static-mission `trig` form loaded the full ordered mission-script list (so it honoured `custom_scripts`), while the static-mission `trigrules` form loaded only `veaf-config.lua` + `mission-script.lua`. A built mission ran correctly, but a mission maker who re-opened it in the ME and saved would have DCS recompile the trigrules into `trig` and **silently lose custom-script loading in static mode**. Both forms are now derived from a single ordered `VeafTriggerSpec` list, so they can never reference a different set of scripts. The now-unused `meters`/`zone` editor leftovers on the `env.info` actions were dropped
+
+### Changed
+- **VEAF load-trigger generation refactored to a single source of truth** (CUSTOM-SCRIPTS-TRIGGERS). The compiled `trig` form and the editor `trigrules` form are derived from one ordered `VeafTriggerSpec` list via two emitters (`_emit_trig_action_string` / `_emit_trigrule_actions`), and the six trigger dictionary keys are shared between the dictionary population and the trigger specs. No runtime behaviour change for a freshly built mission
+
 ## [6.5.0] — 2026-06-13
 
 ### Changed

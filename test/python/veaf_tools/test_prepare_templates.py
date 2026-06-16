@@ -59,18 +59,6 @@ class TestPrepareTemplates(unittest.TestCase):
             result = _runner.invoke(app, ["prepare", "--template", "nope", tmp])
             self.assertNotEqual(result.exit_code, 0)
 
-    def test_custom_picker_escape_aborts(self) -> None:
-        # Escape in the custom module picker (InquirerPy "skip" → None) must cancel the
-        # whole prepare cleanly rather than scaffolding an empty module set.
-        from unittest import mock
-
-        stub = type("P", (), {"execute": lambda self: None})()  # None == Escape
-        with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch("InquirerPy.inquirer.checkbox", return_value=stub):
-                result = _runner.invoke(app, ["prepare", "--template", "custom", tmp])
-        self.assertNotEqual(result.exit_code, 0)
-        self.assertFalse((Path(tmp) / "mission.yaml").exists())
-
 
 if __name__ == "__main__":
     unittest.main()

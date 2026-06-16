@@ -327,8 +327,6 @@ In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead
 
 Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
-**Navigation**: pressing **Escape** steps back one level (returns to the previous question, answers preserved); on a command's first question it returns to the command-selection menu; at the main menu it quits the wizard.
-
 ---
 
 ## Typical Build Workflow

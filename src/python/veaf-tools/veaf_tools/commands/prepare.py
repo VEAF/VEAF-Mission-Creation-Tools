@@ -90,12 +90,8 @@ def _select_custom_modules() -> set[str]:
     selected = inquirer.checkbox(
         message=t("cmd.prepare.custom_prompt"),
         choices=choices,
-        instruction="(space = toggle, enter = confirm, escape = cancel)",
-        mandatory=False,
-        keybindings={"skip": [{"key": "escape"}]},
+        instruction="(space = toggle, enter = confirm)",
     ).execute()
-    if selected is None:  # Escape → cancel the whole prepare cleanly
-        raise typer.Abort()
     return set(selected)
 
 

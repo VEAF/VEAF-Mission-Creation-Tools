@@ -25,7 +25,7 @@
 | Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
 | Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ✅ |
 | Lot SCAFFOLD — module-preset templates for `prepare` (minimal/standard/full/custom) generating mission.yaml; no separate `new` command | ✅ |
-| Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
+| Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ✅ |
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | ✅ |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
 | Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
@@ -245,11 +245,11 @@
 
 **Goal**: add a **local publish** mode to `veaf-build` that, instead of uploading the release to GitHub (rarely done now that the CI handles publishing), deploys the build output directly into a **user-provided target directory** — a VEAF mission source folder. The mode copies the contents of the `published/` folder plus the two compiled executables (`veaf-tools.exe`, `veaf-tools-updater.exe`) into that folder, so a mission maker gets the latest tooling + scripts locally without going through GitHub / the updater.
 
-**Open questions to settle when scoping**: new subcommand vs a `--local <dir>` flag on `publish`; whether to deploy from `published/` or `published.zip`; overwrite/clean semantics on the target; whether the two `.exe` go at the folder root or a subfolder; cross-platform behaviour (the `.exe` are Windows-only).
+**Decisions (settled)**: dedicated subcommand `publish-local <dir>` (not a flag on the GitHub-specific `publish`); deploy from the canonical `published.zip`; the goal is to reproduce the **end state of the updater run in a mission folder** — extract `published.zip` into `<dir>/published/` and **move** both `.exe` to the folder root; overwrite in place (the `.exe` are overwritten); the `.exe` are carried by `published.zip` so no cross-platform special-casing.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| BUILD-PUBLISH-LOCAL-001 | Add a local publish mode to `veaf-build` (deploy `published/` contents + `veaf-tools.exe` + `veaf-tools-updater.exe` into a user-given mission source folder, no GitHub). CLI option, worker logic, tests, docs (`TOOLS_REFERENCE*`/mission-maker guide), CHANGELOG, version bump. | `veaf_build/cli.py`, `veaf_build/worker.py`, `test/python/veaf_build/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+| BUILD-PUBLISH-LOCAL-001 | `veaf-build publish-local <dir>` (+ `deploy_published_locally` worker): extract `published.zip` into `<dir>/published/`, move `veaf-tools.exe`/`veaf-tools-updater.exe` to root — reproduces the updater's end state, no GitHub. Tests, `TOOLS_REFERENCE` (FR/EN), CHANGELOG, version bump. | `veaf_build/cli.py`, `veaf_build/worker.py`, `test/python/veaf_build/`, `doc/`, `CHANGELOG.md` | feat | ✅ |
 
 ---
 

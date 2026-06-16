@@ -227,6 +227,42 @@ def publish(
         input(PAUSE_MESSAGE)
 
 
+@app.command(name="publish-local")
+def publish_local(
+    target: str = typer.Argument(..., help="Local VEAF mission folder to deploy the build into."),
+    published_zip: str = typer.Option(
+        "published.zip", help="Path to the built published.zip (default: ./published.zip)."
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    pause: bool = typer.Option(False, help="Pause when finished"),
+) -> None:
+    """Deploy a built release into a local mission folder (no GitHub).
+
+    Reproduces the end state of publishing to GitHub then running the updater in the
+    mission folder: extracts published.zip into <target>/published/ and moves
+    veaf-tools.exe / veaf-tools-updater.exe to <target>/. Run `veaf-build build` first.
+    """
+    from veaf_build.worker import deploy_published_locally
+
+    logger.set_verbose(verbose)
+    console.print("[bold green]VEAF Tools Local Publish[/bold green]")
+
+    zip_path = Path(published_zip)
+    if not zip_path.exists():
+        logger.error(f"Release package not found at {zip_path}. Run 'veaf-build build' first.")
+        sys.exit(1)
+
+    target_path = Path(target)
+    target_path.mkdir(parents=True, exist_ok=True)
+
+    moved = deploy_published_locally(zip_path, target_path)
+    console.print(f"[green]Deployed {zip_path.name} into {target_path.resolve()}[/green]")
+    console.print(f"  published/ refreshed; executables at root: {', '.join(moved) or 'none'}")
+
+    if pause:
+        input(PAUSE_MESSAGE)
+
+
 @app.command(name="build-and-publish")
 def build_and_publish(
     version: str | None = typer.Option(

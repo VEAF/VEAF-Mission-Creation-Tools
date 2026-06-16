@@ -273,6 +273,20 @@ Before publishing, you need:
    # Result: published.zip containing the structure above
    ```
 
+### Local Publish (testing, no GitHub)
+
+To try a build in a real mission folder without going through GitHub + the updater,
+deploy the build output locally. After `veaf-build build`:
+
+```bash
+veaf-build publish-local "D:/path/to/my-mission"
+```
+
+This reproduces the end state of publishing to GitHub and then running the updater in
+that mission folder: it extracts `published.zip` into `<target>/published/` and moves
+`veaf-tools.exe` / `veaf-tools-updater.exe` to the mission-folder root. Use
+`--published-zip <path>` if your `published.zip` is elsewhere. No GitHub token needed.
+
 ### Basic Publish
 
 To publish a new release:

@@ -273,6 +273,20 @@ Avant de publier, vous avez besoin de :
    # Résultat : published.zip contenant la structure ci-dessus
    ```
 
+### Publication locale (test, sans GitHub)
+
+Pour tester un build dans un vrai dossier de mission sans passer par GitHub + l'updater,
+déployez la sortie du build en local. Après `veaf-build build` :
+
+```bash
+veaf-build publish-local "D:/chemin/vers/ma-mission"
+```
+
+Cela reproduit l'état final d'une publication GitHub suivie d'un updater lancé dans ce
+dossier de mission : extrait `published.zip` dans `<cible>/published/` et déplace
+`veaf-tools.exe` / `veaf-tools-updater.exe` à la racine du dossier de mission. Utilisez
+`--published-zip <chemin>` si votre `published.zip` est ailleurs. Aucun token GitHub requis.
+
 ### Publication simple
 
 Pour publier une nouvelle release :

@@ -185,20 +185,25 @@ theatres:
     BEIRUT: 6
     BenGurion: 221
     Cheka: 40
+    Cukurova: 90
     DAMASCUS: 7
     DEIR_EZ-ZOR: 42
     Damascus: 7
+    Diyarbakir: 217
     ERCAN: 49
     FAMAGUSTA_GECITKALE: 50
     GAZIANTEP: 11
     GAZIPASA/ALANYA: 41
     GECITKALE: 50
     HATAY: 15
+    Hatzerim: 81
     INCIRLIC: 16
     KALDE: 6
+    Konya: 218
     LATAKIA: 21
     Larnaca: 47
     MEZZEH: 25
+    Nevatim: 62
     PALMYRA: 28
     Pafos: 46
     PrinceHussein: 64
@@ -206,3 +211,4 @@ theatres:
     ROSH-PINA: 34
     Sanliurfa: 58
     TEL_NOF: 220
+    Teyman: 91

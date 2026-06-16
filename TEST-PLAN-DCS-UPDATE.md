@@ -53,11 +53,19 @@ when upstream moves.
 - **Result**: `pytest test/python/veaf_build/test_dcs_data_* test/python/veaf_libs/test_dcs_*`
   → **51 passed**. Parsing + consumers green against committed data.
 
-### D3 — Airdromes (install-dependent) ⬜ — needs DCS path
-- **Action**: `veaf-build update-dcs-data --airdromes --dcs-path "<DCS install>"`,
-  then `git diff veaf_libs/data/airdromes.yaml`. If new/changed maps appear, commit
-  the regenerated table and re-check dynamic-slot warehouse name→id wiring.
-- **Blocked on**: David to provide the DCS install path.
+### D3 — Airdromes (install-dependent) ✅ — found a real impact
+- **Remark**: airdromes come from the local install; did the DCS update change them?
+- **Result**: `veaf-build update-dcs-data --airdromes --dcs-path "c:/jeux/DCS World"`
+  (7 terrains installed) → **+6 Syria airfields** the committed table was missing:
+  `Cukurova`, `Diyarbakir`, `Hatzerim`, `Konya`, `Nevatim`, `Teyman` (Israeli/Turkish
+  bases from the Syria-map expansion). Now 199 airfields. Tests:
+  `test_dcs_data_airdromes` + `test_dcs_airdromes` → **13 passed**.
+- **Analysis**: the **only** DCS-derived datum actually impacted by this update —
+  expected, since airdromes are the sole install-dependent, non-CI-guarded artifact.
+  Before this refresh, `airdrome_id_for_name()` could not resolve those 6 bases, so a
+  dynamic-slot warehouse referencing one would **silently fail to wire** (airbase
+  falls back to default slots, no error).
+- **Fix**: regenerated `airdromes.yaml` committed.
 
 ### D4 — Radio specs ⬜ — deferred
 - Only needed if `DATAMINE_REF` is bumped. `--radio` overwrites the manual

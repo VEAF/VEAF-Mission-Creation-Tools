@@ -84,7 +84,7 @@
 |---|--------|-------|------|--------|
 | DCS-VERIFY-D1 | Datamine drift check: pinned `DATAMINE_REF` vs upstream HEAD | `veaf_build/dcs_data/datamine.py` | chore | ✅ |
 | DCS-VERIFY-D2 | Regenerate countries + units at the pinned ref, assert no drift from committed data | `veaf_libs/data/`, `src/scripts/veaf/dcsUnits.lua` | chore | ✅ |
-| DCS-VERIFY-D3 | Regenerate airdromes from the updated local DCS install; verify dynamic-slot warehouse name→id wiring | `veaf_libs/data/airdromes.yaml` | chore | ⬜ (needs `--dcs-path`) |
+| DCS-VERIFY-D3 | Regenerate airdromes from the updated local DCS install; verify dynamic-slot warehouse name→id wiring | `veaf_libs/data/airdromes.yaml` | chore | ✅ (+6 Syria airfields) |
 | DCS-VERIFY-D4 | Regenerate radio specs + re-apply `dcs_rejects_on_load` overlays (only if datamine bumped) | `presets_injector/data/dcs-radio-specs.yaml` | chore | ⬜ (deferred) |
 | DCS-VERIFY-D5 | Run all DCS-data tests | `test/python/veaf_build/`, `test/python/veaf_libs/` | test | ✅ |
 | DCS-VERIFY-R | In-game runtime checklist in the updated DCS (mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5 on new ME output) | `TEST-PLAN-DCS-UPDATE.md` | test | ⬜ (in-game, David) |

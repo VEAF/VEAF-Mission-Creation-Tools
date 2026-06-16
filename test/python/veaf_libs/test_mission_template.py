@@ -73,6 +73,14 @@ class TestMissionTemplate(unittest.TestCase):
         self.assertNotIn("MIST", SELECTABLE_MODULES)
         self.assertIn("QRA", SELECTABLE_MODULES)
 
+    def test_module_lowest_tier(self) -> None:
+        from veaf_libs.mission_template import module_lowest_tier
+
+        self.assertEqual(module_lowest_tier("RADIO"), "minimal")
+        self.assertEqual(module_lowest_tier("WEATHER"), "standard")
+        self.assertEqual(module_lowest_tier("QRA"), "standard")
+        self.assertEqual(module_lowest_tier("MISSILEGUARDIAN"), "full")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,16 +9,29 @@ from pathlib import Path
 import veaf_tools.commands  # noqa: F401  — side effect: registers all commands on `app`
 import yaml
 from typer.testing import CliRunner
+from veaf_libs.mission_template import TIER_NAMES
 from veaf_tools.app import app
 
 _runner = CliRunner()
 
+# The template names the CLI exposes — derived from the source of truth, not hardcoded.
+_ALL_TEMPLATES = (*TIER_NAMES, "custom")
+
 
 class TestPrepareTemplates(unittest.TestCase):
+    def test_no_args_shows_help_not_scaffold(self) -> None:
+        # Bare `prepare` must show the help (options + template names), not silently
+        # scaffold the current directory.
+        result = _runner.invoke(app, ["prepare"])
+        self.assertNotEqual(result.exit_code, 0)  # no_args_is_help exits non-zero
+        self.assertIn("Usage", result.output)
+        for name in _ALL_TEMPLATES:
+            self.assertIn(name, result.output)
+
     def test_list_templates(self) -> None:
         result = _runner.invoke(app, ["prepare", "--list-templates"])
         self.assertEqual(result.exit_code, 0)
-        for name in ("minimal", "standard", "full", "custom"):
+        for name in _ALL_TEMPLATES:
             self.assertIn(name, result.output)
 
     def test_minimal_template_generates_focused_mission_yaml(self) -> None:
@@ -31,6 +44,15 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertIn("SPAWN", modules)
             self.assertNotIn("WEATHER", modules)  # standard-only
             self.assertNotIn("SECURITY", modules)  # off by default
+
+    def test_ask_replace_non_interactive_keeps_all(self) -> None:
+        # Without a TTY (CI, pipes), the overwrite prompt must not block: keep everything.
+        from unittest import mock
+
+        from veaf_tools.helpers import _ask_replace
+
+        with mock.patch("sys.stdin.isatty", return_value=False):
+            self.assertEqual(_ask_replace(Path("some/file.yaml")), (False, True))
 
     def test_unknown_template_exits_nonzero(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

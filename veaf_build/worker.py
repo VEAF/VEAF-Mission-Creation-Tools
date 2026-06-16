@@ -31,6 +31,46 @@ _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_MESSAGE: str = "Press Enter to exit..."
 
+#: Executables that live at the mission-folder root (the updater moves them out of published/).
+_ROOT_EXECUTABLES: tuple[str, ...] = ("veaf-tools.exe", "veaf-tools-updater.exe")
+
+
+def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
+    """Deploy a built ``published.zip`` into a local mission folder, as the updater would.
+
+    Reproduces the end state of running ``veaf-tools-updater`` inside a mission folder,
+    without GitHub: extracts ``published.zip`` into ``<target>/published/`` and **moves**
+    ``veaf-tools.exe`` / ``veaf-tools-updater.exe`` up to ``<target>/`` (the updater keeps
+    them at the folder root, not under ``published/``). The running-exe deferred-update
+    dance is intentionally skipped — there is no locked mission exe when deploying from a
+    fresh build.
+
+    Args:
+        published_zip: The ``published.zip`` produced by ``veaf-build build``.
+        target: The local VEAF mission folder to deploy into (created if missing).
+
+    Returns:
+        The root-level executables actually moved into ``target``.
+    """
+    from veaf_libs.safe_zip import safe_extract_all  # type: ignore[import-not-found]
+
+    published_dir = target / "published"
+    published_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(published_zip) as zip_ref:
+        safe_extract_all(zip_ref, published_dir)
+
+    moved: list[str] = []
+    for exe in _ROOT_EXECUTABLES:
+        source = published_dir / exe
+        if source.exists():
+            dest = target / exe
+            if dest.exists():
+                dest.unlink()
+            shutil.move(str(source), str(dest))
+            moved.append(exe)
+    return moved
+
+
 # Ordered list of the VEAF Lua modules concatenated into the static `veaf-scripts.lua`
 # bundle (order matters: a module must come after any module whose table it extends).
 # `veaf.lua` is bundled first, separately. Every other `src/scripts/veaf/*.lua` file

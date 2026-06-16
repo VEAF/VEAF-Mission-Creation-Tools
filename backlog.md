@@ -26,7 +26,7 @@
 | Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
 | Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
 | Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
-| Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | 🔄 |
+| Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | ✅ |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
 | Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
 | Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ✅ |

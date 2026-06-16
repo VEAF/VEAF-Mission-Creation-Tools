@@ -16,7 +16,7 @@
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — add `luacheck` to the CI Lua quality gate (only `stylua --check` runs today) | ⬜ |
 | Lot LUA-COVERAGE — establish a Lua test-coverage objective for the runtime modules | ⬜ |
-| Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ⬜ |
+| Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
 | Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
 | Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
 | Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
@@ -107,9 +107,11 @@
 
 **Goal**: finish the Quality Ratchet Policy (`CLAUDE.md` §3) — the `QUALITY-GATE` lot is closed but, per policy, the dedicated lot still mops up whatever workers no other lot reopened. Remaining `ignore_errors = true` application workers (the bundled `luadata` library stays excluded as third-party): `mission_converter.mission_converter_worker`, `mission_extractor.mission_extractor_worker`, `waypoints_injector.waypoints_manager`, `weather_injector.utils.lua_converter`, `weather_injector.weather.dcs_weather_converter`, `weather_injector.weather_injector_worker`. Drop each entry, fix the surfaced type errors, and do a final `--cov-fail-under` ratchet.
 
+**Done**: removed all six application-worker entries from the mypy `ignore_errors` override (only `luadata*` third-party stays). Measuring first showed just **7 errors across 2 files** — the other four workers were error-free. Fixes were behaviour-preserving: `config: dict[str, Any]` annotation in `weather_injector/utils/lua_converter.py` (4 errors), and in `mission_extractor_worker.py` renamed a shadowed loop variable + dropped two redundant `: Path` re-annotations (3 errors). The whole `src/python/veaf-tools` tree now passes `mypy` with no per-module opt-outs. No `--cov-fail-under` bump: the lot adds no tests and coverage is unchanged (68.37 % vs gate 67, gap < 2). No behaviour change → existing tests cover (suite green).
+
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| QUALITY-GATE-FINISH-001 | Remove the remaining application-worker entries from the mypy `ignore_errors` list and fix the surfaced errors (keep `luadata*` third-party exclusion); bump `--cov-fail-under` per policy | `pyproject.toml`, `src/python/veaf-tools/**`, `test/python/` | chore | ⬜ |
+| QUALITY-GATE-FINISH-001 | Remove the remaining application-worker entries from the mypy `ignore_errors` list and fix the surfaced errors (keep `luadata*` third-party exclusion); bump `--cov-fail-under` per policy | `pyproject.toml`, `src/python/veaf-tools/**`, `test/python/` | chore | ✅ |
 
 ---
 

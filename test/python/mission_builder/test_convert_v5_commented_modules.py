@@ -124,3 +124,10 @@ class TestCommentedGuardDoesNotEnableModule:
         config = "if veafMove then\n    -- veafMove.initialize()\nend\n"
         result = self.m.migrate(config)
         assert "MOVE" not in result.enabled_modules
+
+    def test_minimally_active_guard_is_enabled(self) -> None:
+        # Positive counterpart: a single non-blank, non-comment body line keeps
+        # the module enabled (guards against _active_module_ids being too strict).
+        config = "if veafMove then\n    veafMove.initialize()\nend\n"
+        result = self.m.migrate(config)
+        assert "MOVE" in result.enabled_modules

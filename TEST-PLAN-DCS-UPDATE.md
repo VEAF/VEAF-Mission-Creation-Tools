@@ -140,4 +140,10 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
   under the DCS `helicopter` category (`airplanes:` empty) — a stale extraction
   artifact (the current `extract` tool categorizes correctly). Tracked as its own lot
   (FIX-SPAWNABLES-CATEGORY), out of this campaign.
-- **Status**: ✅ fixed (MQ-9 restored) — David to re-test `_cas`/`-afac` in-game.
+- **Naming gotcha**: the first restore kept the demo's group name `veafSpawn-MQ-9 -
+  AFAC - JTAC - DRONE`, but `_cas`/`_spawn afac` search the literal `"mq9"` and
+  `findSpawnableAircraftGroupname` matches it as the substring `MQ9` (escapeRegex
+  escapes the `-`), which does **not** match `MQ-9`. Renamed the template group
+  identifier to `veafSpawn-MQ9 - AFAC - JTAC - DRONE` (the DCS unit type stays
+  `MQ-9 Reaper`) so the established `"mq9"` search resolves it.
+- **Status**: ✅ fixed (MQ-9 restored + named to match) — David to re-test `_cas`/`-afac`.

@@ -2,7 +2,7 @@ airplanes:
   coalitions:
     blue:
       CJTF Blue:
-        veafSpawn-MQ-9 - AFAC - JTAC - DRONE:
+        veafSpawn-MQ9 - AFAC - JTAC - DRONE:
           communication: true
           frequency: 226.6
           groupId: 152
@@ -11,7 +11,7 @@ airplanes:
           hiddenOnPlanner: true
           lateActivation: true
           modulation: 0
-          name: veafSpawn-MQ-9 - AFAC - JTAC - DRONE
+          name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
           radioSet: true
           route:
             points:
@@ -21,7 +21,7 @@ airplanes:
               alt: 2000
               alt_type: BARO
               formation_template: ''
-              name: veafSpawn-MQ-9 - AFAC - JTAC - DRONE
+              name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
               properties:
                 addopt: {}
               speed: 80.555555555556
@@ -71,7 +71,7 @@ airplanes:
             hardpoint_racks: true
             heading: 2.7233683240106
             livery_id: '''camo'' scheme'
-            name: veafSpawn-MQ-9 - AFAC - JTAC - DRONE
+            name: veafSpawn-MQ9 - AFAC - JTAC - DRONE
             onboard_num: '030'
             payload:
               chaff: 0

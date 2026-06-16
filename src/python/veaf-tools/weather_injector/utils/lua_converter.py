@@ -91,7 +91,7 @@ class LuaToYamlConverter:
         ```
         """
         try:
-            config = {}
+            config: dict[str, Any] = {}
 
             # Parse position
             position = LuaToYamlConverter._extract_table(lua_content, "position")

@@ -97,8 +97,8 @@ class MissionExtractorWorker(BaseWorker):
             # VEAF and legacy entries are (path, dest) tuples; community entries are dicts.
             script_files: list[tuple[str, str]] = list(get_veaf_script_files()) + list(get_legacy_script_files())
             script_files += [(s["path"], s["dest"]) for s in get_community_script_files()]
-            for file_in_mission in [Path(dest) / Path(path).name for path, dest in script_files]:
-                file_in_temp: Path = temp_dir / file_in_mission
+            for veaf_file_in_mission in [Path(dest) / Path(path).name for path, dest in script_files]:
+                file_in_temp: Path = temp_dir / veaf_file_in_mission
                 rm_file_or_dir(file_in_temp)
 
             # Create the src and src/scripts folders if needed
@@ -109,7 +109,7 @@ class MissionExtractorWorker(BaseWorker):
 
             # Remove or move the extracted mission files (remove unwanted files or move files not present in the src folder)
             for file_in_mission, move_to_mission_src_folder_if_not_exist in get_mission_files_to_cleanup_on_extract():
-                file_in_temp: Path = temp_dir / file_in_mission
+                file_in_temp = temp_dir / file_in_mission
                 remove = True
                 if move_to_mission_src_folder_if_not_exist:
                     file_in_mission_name = Path(file_in_mission).name
@@ -123,7 +123,7 @@ class MissionExtractorWorker(BaseWorker):
             # Remove or move the additional mission script files (remove LUA files present in the src/scripts folder or move files not present)
             temp_mission_dir = temp_dir / "l10n" / "DEFAULT"
             for file_in_temp in temp_mission_dir.glob("*.lua"):
-                file_in_mission_src_folder: Path = src_scripts_folder / file_in_temp.name
+                file_in_mission_src_folder = src_scripts_folder / file_in_temp.name
                 if file_in_mission_src_folder.exists():
                     rm_file_or_dir(file_in_temp)  # delete temp file
                 else:

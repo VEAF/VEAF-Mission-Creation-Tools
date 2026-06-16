@@ -318,9 +318,12 @@
 
 **Branch**: `feature/DOC-REVIEW` → PR → `develop-v6`
 
+> **Chatbot index during this lot**: this pass touches most of `doc/**` at once, which would trigger the `Rebuild docs chatbot index` CI workflow on every push and risk exhausting the Gemini free-tier embeddings quota (1000/day). **Before starting**, disable that workflow (GitHub → Actions → "Rebuild docs chatbot index" → ⋯ → Disable workflow). **When done**, re-enable it and refresh the index once — either trigger the workflow manually (`workflow_dispatch`), or run it locally with `poetry run reindex-docs` (incremental, on-disk cache; a single full pass ≈ 500-700 embeds stays under the cap).
+
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | DOC-REVIEW-001 | Full proofreading pass of `doc/` (FR/EN): accuracy, parity, links, stale names, terminology, examples | `doc/**` | chore | ⬜ |
+| DOC-REVIEW-002 | Disable the `Rebuild docs chatbot index` workflow before the pass; re-enable + reindex once after (`poetry run reindex-docs` or manual `workflow_dispatch`) | `.github/workflows/docs-chatbot-index.yml` | chore | ⬜ |
 
 ---
 

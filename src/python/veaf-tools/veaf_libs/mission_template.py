@@ -147,6 +147,15 @@ _CATALOG: tuple[Module, ...] = (
     Module("AIRBASES", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
     Module("MISSILEGUARDIAN", FEATURE, "Features", tiers=frozenset({"full"})),
     # ── Combat ──
+    # GROUNDAI sits in exactly CASMISSION's tiers: CASMISSION depends on it, so the build
+    # would silently auto-enable it otherwise — keep the dependency declared, not implicit.
+    Module(
+        "GROUNDAI",
+        FEATURE,
+        "Combat",
+        comment="ground units AI behaviour (required by CASMISSION)",
+        tiers=frozenset({"standard", "full"}),
+    ),
     Module("CASMISSION", FEATURE, "Combat", comment="`_cas` marker (no config)", tiers=frozenset({"standard", "full"})),
     Module(
         "TRANSPORTMISSION",

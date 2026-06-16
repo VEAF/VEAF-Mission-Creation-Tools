@@ -39,10 +39,14 @@ class TestMissionTemplate(unittest.TestCase):
             self.assertIn("SECURITY", text)  # the commented how-to is always emitted
             self.assertNotIn("SECURITY", _modules(text))  # ...but never active
 
-    def test_groundai_is_nowhere(self) -> None:
-        self.assertNotIn("GROUNDAI", CATALOG)
-        for tier in ("minimal", "standard", "full"):
-            self.assertNotIn("GROUNDAI", generate_mission_yaml(tier_modules(tier)))
+    def test_groundai_tracks_casmission_tiers(self) -> None:
+        # GROUNDAI is CASMISSION's dependency: it must sit in exactly the same tiers so
+        # enabling CASMISSION never silently auto-enables an undeclared GROUNDAI at build.
+        self.assertIn("GROUNDAI", CATALOG)
+        self.assertEqual(CATALOG["GROUNDAI"].tiers, CATALOG["CASMISSION"].tiers)
+        for tier in ("standard", "full"):
+            self.assertIn("GROUNDAI", _modules(generate_mission_yaml(tier_modules(tier))))
+        self.assertNotIn("GROUNDAI", _modules(generate_mission_yaml(tier_modules("minimal"))))
 
     def test_standard_enables_toggles_and_comments_config_modules(self) -> None:
         text = generate_mission_yaml(tier_modules("standard"))

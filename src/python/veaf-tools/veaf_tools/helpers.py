@@ -170,24 +170,30 @@ def _read_single_char() -> str:
 
 
 def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
-    """Prompt to replace an existing file. Returns (should_replace, yes_to_all)."""
-    sys.stdout.write(t("file.already_exists", path=relative_path) + "\n")
-    while True:
-        sys.stdout.write(t("file.replace_prompt"))
-        sys.stdout.flush()
-        try:
-            ch = _read_single_char().lower()
-        except KeyboardInterrupt:
-            sys.stdout.write("\n")
-            return False, False
-        sys.stdout.write(ch + "\n")
-        if ch in ("a", "t"):  # 'a' (EN) or 't' for "tous" (FR)
-            return True, True
-        if ch in ("y", "o"):  # 'y' (EN) or 'o' for "oui" (FR)
-            return True, False
-        if ch in ("n", "\r", "\n", ""):
-            return False, False
-        sys.stdout.write(t("file.replace_hint") + "\n")
+    """Ask whether to replace an existing file via a clear menu.
+
+    Returns ``(should_replace, remember_for_rest)`` — when ``remember_for_rest`` is
+    ``True`` the caller applies ``should_replace`` to every remaining file (the
+    "replace all" / "keep all" choices). Non-interactive runs keep everything without
+    prompting (``(False, True)``).
+    """
+    if not sys.stdin.isatty():
+        return (False, True)
+
+    from InquirerPy import inquirer  # type: ignore[import-untyped]
+    from InquirerPy.base.control import Choice  # type: ignore[import-untyped]
+
+    choice: tuple[bool, bool] = inquirer.select(
+        message=t("file.replace_prompt", path=relative_path),
+        choices=[
+            Choice(value=(True, False), name=t("file.replace.this")),
+            Choice(value=(False, False), name=t("file.keep.this")),
+            Choice(value=(True, True), name=t("file.replace.all")),
+            Choice(value=(False, True), name=t("file.keep.all")),
+        ],
+        default=(False, False),
+    ).execute()
+    return choice
 
 
 def _update_build_config_in_yaml(yaml_path: Path, dev_mode: bool, scripts_path: Path | None) -> None:

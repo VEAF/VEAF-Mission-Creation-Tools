@@ -197,6 +197,21 @@ def tier_modules(tier: str) -> set[str]:
 SELECTABLE_MODULES: tuple[str, ...] = tuple(m.id for m in _CATALOG if m.kind not in (INFRA, SECURITY))
 
 
+def module_lowest_tier(module_id: str) -> str | None:
+    """Return the lowest named tier a module belongs to (tiers are cumulative), or ``None``.
+
+    e.g. ``RADIO`` → ``"minimal"`` (also in standard/full), ``WEATHER`` → ``"standard"``,
+    ``MISSILEGUARDIAN`` → ``"full"``. Used to tag modules in the ``custom`` picker.
+    """
+    tiers = CATALOG[module_id].tiers
+    return next((name for name in TIER_NAMES if name in tiers), None)
+
+
+def module_category(module_id: str) -> str:
+    """Return a module's catalog category (for grouping in the picker)."""
+    return CATALOG[module_id].category
+
+
 def generate_mission_yaml(enabled: set[str]) -> str:
     """Generate a ``mission.yaml`` text whose ``modules:`` block reflects *enabled*.
 

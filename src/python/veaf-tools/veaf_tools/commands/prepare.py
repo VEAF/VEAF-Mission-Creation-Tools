@@ -62,12 +62,31 @@ def _resolve_template_modules(template: str) -> set[str]:
 
 
 def _select_custom_modules() -> set[str]:
-    """Interactively pick the modules to enable (``custom`` template)."""
+    """Interactively pick the modules to enable (``custom`` template).
+
+    Modules are listed in catalog order, grouped by category, each tagged with the lowest
+    tier it belongs to; the ``standard`` set is pre-checked.
+    """
     from InquirerPy import inquirer  # type: ignore[import-untyped]
-    from veaf_libs.mission_template import SELECTABLE_MODULES, tier_modules
+    from InquirerPy.base.control import Choice  # type: ignore[import-untyped]
+    from InquirerPy.separator import Separator  # type: ignore[import-untyped]
+    from veaf_libs.mission_template import (
+        SELECTABLE_MODULES,
+        module_category,
+        module_lowest_tier,
+        tier_modules,
+    )
 
     preselected = tier_modules("standard")
-    choices = [{"name": mod, "value": mod, "enabled": mod in preselected} for mod in SELECTABLE_MODULES]
+    choices: list = []
+    current_category = ""
+    for mod in SELECTABLE_MODULES:
+        category = module_category(mod)
+        if category != current_category:
+            choices.append(Separator(f"── {category} ──"))
+            current_category = category
+        tier = module_lowest_tier(mod) or ""
+        choices.append(Choice(value=mod, name=f"{mod}  · {tier}", enabled=mod in preselected))
     selected = inquirer.checkbox(
         message=t("cmd.prepare.custom_prompt"),
         choices=choices,
@@ -123,7 +142,9 @@ def prepare(
         defaults_source_path: Path = defaults_source  # type: ignore[assignment]
         files_installed = 0
         files_skipped = 0
-        yes_to_all = force
+        # Remembered overwrite decision for existing files: None = ask each time,
+        # True = replace all, False = keep all. --force starts in "replace all".
+        auto_replace: bool | None = True if force else None
 
         # Files that must never be overwritten, even with --force, to preserve user customizations
         NEVER_OVERWRITE: frozenset[str] = frozenset({".gitignore"})
@@ -145,10 +166,12 @@ def prepare(
                         files_skipped += 1
                         continue
 
-                    if not yes_to_all:
-                        should_replace, yes_to_all = _ask_replace(relative_path)
+                    if auto_replace is None:
+                        should_replace, remember = _ask_replace(relative_path)
+                        if remember:
+                            auto_replace = should_replace
                     else:
-                        should_replace = True
+                        should_replace = auto_replace
 
                     if should_replace:
                         shutil.copy2(source_file, dest_file)

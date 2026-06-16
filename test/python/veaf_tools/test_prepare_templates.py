@@ -41,6 +41,15 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertNotIn("WEATHER", modules)  # standard-only
             self.assertNotIn("SECURITY", modules)  # off by default
 
+    def test_ask_replace_non_interactive_keeps_all(self) -> None:
+        # Without a TTY (CI, pipes), the overwrite prompt must not block: keep everything.
+        from unittest import mock
+
+        from veaf_tools.helpers import _ask_replace
+
+        with mock.patch("sys.stdin.isatty", return_value=False):
+            self.assertEqual(_ask_replace(Path("some/file.yaml")), (False, True))
+
     def test_unknown_template_exits_nonzero(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result = _runner.invoke(app, ["prepare", "--template", "nope", tmp])

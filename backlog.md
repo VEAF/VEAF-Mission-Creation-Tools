@@ -14,7 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
-| Lot LUACHECK-CI — add `luacheck` to the CI Lua quality gate (only `stylua --check` runs today) | ⬜ |
+| Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — establish a Lua test-coverage objective for the runtime modules | ⬜ |
 | Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
 | Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ⬜ |
@@ -85,11 +85,13 @@
 
 ## Lot LUACHECK-CI — add luacheck to the CI Lua quality gate
 
-**Goal**: the Lua quality gate currently runs only `stylua --check` (formatting); `luacheck` is not installed (`CLAUDE.md` §8 explicitly skips it). There is no real static analysis on the Lua side — a blind spot in the quality ratchet. Install/configure `luacheck` (with `.luacheckrc`), wire it into the CI Lua job, fix or baseline the surfaced warnings, and flip `CLAUDE.md` §8/§6 to require it. Matters before DROP-MIST / PERSISTENCE start editing the runtime.
+**Goal**: ensure real static analysis on the Lua side (a blind spot in the quality ratchet — only `stylua --check` formatting was assumed to run). **Investigation revealed the work was already done**: `.github/workflows/lua-ci.yml` has a dedicated `Luacheck` job (installs Lua 5.1 + luacheck via LuaRocks, runs `luacheck src/scripts/veaf/ --config .luacheckrc`), a committed `.luacheckrc` exists, and the job passes green (0 warnings, e.g. PR #473). The Lua quality gate already enforces luacheck.
+
+**Done**: the only real gap was a **stale, self-contradictory `CLAUDE.md`** — its Lua section (§7) tells you to run luacheck, but the workflow step (§8.6) said "`luacheck` is not installed, skip it". Fixed §8.6 to list `luacheck --config .luacheckrc src/scripts/veaf/` alongside `stylua`, note both are CI-enforced (`lua-ci.yml`), and that a missing local install (Windows) means relying on the CI check — never treating the gate as skippable. `copilot-instructions.md` was already correct. No CI/`.luacheckrc`/script changes needed; luacheck stays not-installed locally on Windows (CI is the source of truth).
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| LUACHECK-CI-001 | Wire `luacheck --config .luacheckrc src/scripts/veaf/` into CI; resolve/baseline warnings; update `CLAUDE.md` (stop skipping luacheck) | `.github/workflows/`, `.luacheckrc`, `src/scripts/veaf/`, `CLAUDE.md` | chore | ⬜ |
+| LUACHECK-CI-001 | Investigate the existing CI Luacheck job; fix the stale `CLAUDE.md` §8.6 "not installed, skip it" note to reflect that luacheck is a CI-enforced Lua gate | `CLAUDE.md` | chore | ✅ |
 
 ---
 

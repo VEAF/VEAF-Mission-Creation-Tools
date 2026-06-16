@@ -92,7 +92,7 @@
 | DCS-VERIFY-D5 | Run all DCS-data tests | `test/python/veaf_build/`, `test/python/veaf_libs/` | test | ✅ |
 | DCS-VERIFY-R3-BUG | Static bundle dropped `veafSpawnParser.lua` (spawn-refactor regression) → `_cas`/`_spawn` parsing broke in static (`convertLaserToFreq` nil). Added it to the bundle list; extracted `LUA_BUNDLE_SCRIPTS`/`LUA_BUNDLE_EXCLUDED`; manifest-completeness test | `veaf_build/worker.py`, `test/python/veaf_build/test_lua_bundle_manifest.py` | fix | ✅ |
 | DCS-VERIFY-R3-MQ9 | v5→v6 regression: default `spawnables.yaml` dropped the `veafSpawn-MQ-9 - AFAC - JTAC - DRONE` template → `_cas` AFAC + `-afac` alias found no MQ-9. Restored it (extracted from the demo mission, under `airplanes`) | `src/defaults/mission-folder/src/spawnables.yaml` | fix | ✅ |
-| DCS-VERIFY-R | In-game runtime checklist in the updated DCS (mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5 on new ME output) | `TEST-PLAN-DCS-UPDATE.md` | test | ⬜ (in-game, David) |
+| DCS-VERIFY-R | In-game runtime checklist in the updated DCS (R0-R7): mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5/build read. All green; 2 bugs fixed in-lot (bundle, MQ-9), 3 findings spun off | `TEST-PLAN-DCS-UPDATE.md` | test | ✅ |
 
 ---
 

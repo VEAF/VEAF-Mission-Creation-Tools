@@ -24,6 +24,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Documentation
 - **Documented the `TUM` "no territory zones / no airfields" start-up error** (INVESTIGATE-REDFOR-ZONES spike). The runtime error `Coalition red has no territory zones and/or controls no airfields…` comes from the third-party **The Universal Mission (TUM)** community script, not from VEAF: it is an expected TUM mission-design prerequisite (`BLUFOR…`/`REDFOR…` trigger zones, each owning an airbase). `MISSION_YAML_REFERENCE` (FR/EN) now documents this next to the `TUM` module id. Full analysis journaled in `backlog.md`. No code change
+- **Clarified `custom_scripts` loading semantics** (CUSTOM-SCRIPTS-TRIGGERS). `MISSION_YAML_REFERENCE` (FR/EN) now states that `generate_load_trigger` is a single flag governing **both** the static (embedded) and dynamic (from-disk) loading modes, documents the load order (`veaf-config.lua` → `mission-script.lua` → `custom_scripts`), and shows — with a worked FR/EN example — how to load a script in only one variant (e.g. a dynamic-only debug script) via a build **profile**, including the deep-merge pitfall (profile lists *replace*, so the profile must repeat the base scripts)
 
 ## [6.5.0] — 2026-06-13
 

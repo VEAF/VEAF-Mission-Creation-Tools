@@ -48,14 +48,13 @@ veafCombatZone.CombatZoneRadioMenuName = nil
 -- Combat operations specific radio menu name
 veafCombatZone.OperationRadioMenuName = nil
 
+-- Event messages are i18n catalog keys (see veafI18n.lua), resolved through
+-- veaf.t() at send time so they localize to the mission language.
 veafCombatZone.EventMessages = {
-  CombatZoneComplete = [[
-    Well done ! All enemies in zone %s have been destroyed or routed.
-    The zone will now be desactivated.
-    You can replay by activating it again, in the radio menu.]],
-  PopSmokeRequest = "Copy RED smoke requested on %s !",
-  UseFlareRequest = "Copy illumination flare requested on %s !",
-  CombatOperationComplete = "Operation %s is over. Congratulations !",
+  CombatZoneComplete = "combatzone.complete",
+  PopSmokeRequest = "combatzone.smoke_requested",
+  UseFlareRequest = "combatzone.flare_requested",
+  CombatOperationComplete = "combatzone.operation_complete",
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -674,7 +673,7 @@ function VeafCombatZone:initialize()
     if not self.triggerZone then
       local message = string.format("Trigger zone [%s] does not exist in the mission !", veaf.p(self.missionEditorZoneName))
       veaf.loggers.get(veafCombatZone.Id):error(message)
-      trigger.action.outText(message, 5)
+      trigger.action.outText(veaf.t("combatzone.zone_not_in_mission", veaf.p(self.missionEditorZoneName)), 5)
       return self
     end
   end
@@ -690,7 +689,7 @@ function VeafCombatZone:initialize()
   if not self.zoneCenter then
     local message = string.format("Trigger zone [%s] does not exist in the mission !", veaf.p(self.missionEditorZoneName))
     veaf.loggers.get(veafCombatZone.Id):error(message)
-    trigger.action.outText(message, 5)
+    trigger.action.outText(veaf.t("combatzone.zone_not_in_mission", veaf.p(self.missionEditorZoneName)), 5)
     return self
   end
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("zone center = [%s]", veaf.vecToString(self.zoneCenter)))
@@ -812,9 +811,9 @@ end
 
 function VeafCombatZone:getInformation(unitName)
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getInformation()", veaf.p(self.missionEditorZoneName)))
-  local message = "COMBAT ZONE " .. self:getFriendlyName() .. " \n\n"
+  local message = veaf.t("combatzone.header", self:getFriendlyName())
   if self:getBriefing() then
-    message = message .. "BRIEFING: \n"
+    message = message .. veaf.t("report.briefing_label")
     message = message .. self:getBriefing()
     message = message .. "\n\n"
   end
@@ -882,18 +881,18 @@ function VeafCombatZone:getInformation(unitName)
     if nbShipsB + nbStaticsB + nbVehiclesB + nbInfantryB > 0 and self:isShowUnitsList() then
       local msgs = {}
       if nbShipsB > 0 then
-        table.insert(msgs, nbShipsB .. " ship(s)")
+        table.insert(msgs, veaf.t("report.count_ships", nbShipsB))
       end
       if nbStaticsB > 0 then
-        table.insert(msgs, nbStaticsB .. " structure(s)")
+        table.insert(msgs, veaf.t("report.count_structures", nbStaticsB))
       end
       if nbVehiclesB > 0 then
-        table.insert(msgs, nbVehiclesB .. " vehicle(s)")
+        table.insert(msgs, veaf.t("report.count_vehicles", nbVehiclesB))
       end
       if nbInfantryB > 0 then
-        table.insert(msgs, nbInfantryB .. " soldier(s)")
+        table.insert(msgs, veaf.t("report.count_soldiers", nbInfantryB))
       end
-      message = message .. "FRIENDS: " .. table.concat(msgs, ",") .. " remaining.\n"
+      message = message .. veaf.t("combatzone.friends", table.concat(msgs, ","))
       if self:isTraining() then
         local firstUnit = true
         for name, count in pairs(unitsByTypeB) do
@@ -910,18 +909,18 @@ function VeafCombatZone:getInformation(unitName)
     if nbShipsR + nbStaticsR + nbVehiclesR + nbInfantryR > 0 and self:isShowUnitsList() then
       local msgs = {}
       if nbShipsR > 0 then
-        table.insert(msgs, nbShipsR .. " ship(s)")
+        table.insert(msgs, veaf.t("report.count_ships", nbShipsR))
       end
       if nbStaticsR > 0 then
-        table.insert(msgs, nbStaticsR .. " structure(s)")
+        table.insert(msgs, veaf.t("report.count_structures", nbStaticsR))
       end
       if nbVehiclesR > 0 then
-        table.insert(msgs, nbVehiclesR .. " vehicle(s)")
+        table.insert(msgs, veaf.t("report.count_vehicles", nbVehiclesR))
       end
       if nbInfantryR > 0 then
-        table.insert(msgs, nbInfantryR .. " soldier(s)")
+        table.insert(msgs, veaf.t("report.count_soldiers", nbInfantryR))
       end
-      message = message .. "ENEMIES: " .. table.concat(msgs, ",") .. " remaining.\n"
+      message = message .. veaf.t("combatzone.enemies", table.concat(msgs, ","))
       if self:isTraining() then
         local firstUnit = true
         for name, count in pairs(unitsByTypeR) do
@@ -955,19 +954,21 @@ function VeafCombatZone:getInformation(unitName)
       local dist = mist.utils.get2DDist(zoneCenter, bullseye)
       local distMetric = mist.utils.round(dist / 1000, 0)
       local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-      local fromBullseye = string.format("%03d", dir) .. " for " .. distMetric .. "km /" .. distImperial .. "nm"
+      local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-      message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-      message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-      message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-      message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+      message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
+      message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+      message = message .. veaf.t("report.mgrs", mgrsString)
+      message = message .. veaf.t("report.from_bullseye", fromBullseye)
       message = message .. "\n"
 
       -- get altitude, qfe and wind information
-      message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(zoneCenter, nil, veafWeatherUnitSystem.Systems.Full)
+      message = message
+        .. veaf.t("report.weather_header")
+        .. veafWeatherData.getWeatherString(zoneCenter, nil, veafWeatherUnitSystem.Systems.Full)
     end
   else
-    message = message .. "zone is not yet active."
+    message = message .. veaf.t("combatzone.not_active")
   end
 
   return message
@@ -1205,7 +1206,7 @@ function VeafCombatZone:completionCheck()
   if nbUnitsR == 0 then
     -- everyone is dead, let's end this mess
     if veafCombatZone.EventMessages.CombatZoneComplete then
-      local message = string.format(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
+      local message = veaf.t(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
       trigger.action.outText(message, 15)
     end
     -- call the onCompleted hook
@@ -1247,7 +1248,7 @@ function VeafCombatZone:popSmoke()
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenSmokeRequests
   )
-  trigger.action.outText(string.format(veafCombatZone.EventMessages.PopSmokeRequest, self:getFriendlyName()), 5)
+  trigger.action.outText(veaf.t(veafCombatZone.EventMessages.PopSmokeRequest, self:getFriendlyName()), 5)
   self:updateRadioMenu()
 
   return self
@@ -1264,7 +1265,7 @@ function VeafCombatZone:popFlare()
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenFlareRequests
   )
-  trigger.action.outText(string.format(veafCombatZone.EventMessages.UseFlareRequest, self:getFriendlyName()), 5)
+  trigger.action.outText(veaf.t(veafCombatZone.EventMessages.UseFlareRequest, self:getFriendlyName()), 5)
   self:updateRadioMenu()
 
   return self
@@ -1638,7 +1639,7 @@ function VeafCombatOperation:updatePrimaryTasks()
     self:desactivate()
 
     if veafCombatZone.EventMessages.CombatOperationComplete then
-      trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+      trigger.action.outText(veaf.t(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
     end
     return self
   end
@@ -1862,7 +1863,7 @@ function veafCombatZone.GetZone(zoneName)
     if not zone then
       local message = string.format("VeafCombatZone [%s] was not found !", zoneName)
       veaf.loggers.get(veafCombatZone.Id):error(message)
-      trigger.action.outText(message, 5)
+      trigger.action.outText(veaf.t("combatzone.zone_not_found", zoneName), 5)
     end
     return zone
   else
@@ -2112,12 +2113,7 @@ function veafCombatZone.buildRadioMenu()
 end
 
 function veafCombatZone.help(unitName)
-  local text = "Combat zones are defined by the mission maker\n"
-    .. "You can activate and desactivate them at will,\n"
-    .. "as well as ask for information, JTAC laser and smoke. \n\n"
-    .. "Combat operations are defined by the mission maker\n"
-    .. "A combat operation is a series of combat zones to complete,\n"
-    .. "You can ask information to get briefing and intel for current tasking orders."
+  local text = veaf.t("combatzone.help")
   veaf.outTextForGroup(unitName, text, 30)
 end
 

@@ -58,15 +58,19 @@ veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT = 10
 veafQraManager.DEFAULT_airbaseMinLifePercent = 0.9
 
 veafQraManager.AllSilence = false --value to set all spawned QRAs to silent if true. By default it's false but this value can be set in the missionConfig
-veafQraManager.DEFAULT_MESSAGE_START = "%s is online"
-veafQraManager.DEFAULT_MESSAGE_DEPLOY = "%s is deploying"
-veafQraManager.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
-veafQraManager.DEFAULT_MESSAGE_READY = "%s is ready"
-veafQraManager.DEFAULT_MESSAGE_OUT = "%s is out of aircrafts"
-veafQraManager.DEFAULT_MESSAGE_RESUPPLIED = "%s has been resupplied"
-veafQraManager.DEFAULT_MESSAGE_AIRBASE_DOWN = "%s lost it's airbase"
-veafQraManager.DEFAULT_MESSAGE_AIRBASE_UP = "%s now has an airbase"
-veafQraManager.DEFAULT_MESSAGE_STOP = "%s is offline"
+-- Default status messages are i18n catalog keys (see veafI18n.lua). They are
+-- resolved through veaf.t() at send time, so they localize to the mission
+-- language; a mission that overrides them with its own literal text keeps it
+-- verbatim (veaf.t() returns an unknown key unchanged before formatting).
+veafQraManager.DEFAULT_MESSAGE_START = "qra.msg_start"
+veafQraManager.DEFAULT_MESSAGE_DEPLOY = "qra.msg_deploy"
+veafQraManager.DEFAULT_MESSAGE_DESTROYED = "qra.msg_destroyed"
+veafQraManager.DEFAULT_MESSAGE_READY = "qra.msg_ready"
+veafQraManager.DEFAULT_MESSAGE_OUT = "qra.msg_out"
+veafQraManager.DEFAULT_MESSAGE_RESUPPLIED = "qra.msg_resupplied"
+veafQraManager.DEFAULT_MESSAGE_AIRBASE_DOWN = "qra.msg_airbase_down"
+veafQraManager.DEFAULT_MESSAGE_AIRBASE_UP = "qra.msg_airbase_up"
+veafQraManager.DEFAULT_MESSAGE_STOP = "qra.msg_stop"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -204,7 +208,7 @@ end
 ---@param template string  A format string with one %s placeholder for the description.
 ---@return string
 function VeafQRACore:_buildStatusMessage(template)
-  return string.format(template, self:getDescription())
+  return veaf.t(template, self:getDescription())
 end
 
 --- Send a status message to all enemy coalitions, unless the QRA is silent.

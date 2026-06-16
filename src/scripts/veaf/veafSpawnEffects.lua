@@ -35,13 +35,11 @@ function veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD
 
     -- message the unit spawning
     if not silent then
-      local message = "Logistic unit " .. unitName .. " has been spawned and was added to CTLD."
-      trigger.action.outText(message, 15)
+      trigger.action.outText(veaf.t("spawn.logistic_spawned", unitName), 15)
     end
     return unitName
   else
-    local message = "Logistic unit could not be spawned"
-    trigger.action.outText(message, 15)
+    trigger.action.outText(veaf.t("spawn.logistic_failed"), 15)
     return
   end
 end
@@ -152,9 +150,9 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       end
 
       -- message the unit spawning
-      local message = "Cargo " .. unitName .. " weighing " .. cargoWeight .. " kg has been spawned"
+      local message = veaf.t("spawn.cargo_spawned", unitName, cargoWeight)
       if cargoSmoke then
-        message = message .. ". It's marked with green smoke and red flares"
+        message = message .. veaf.t("spawn.marked_smoke_flares")
       end
       if not silent then
         trigger.action.outText(message, 15)
@@ -229,9 +227,9 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
     end
 
     -- message the unit spawning
-    local message = "Static " .. unitName .. " has been spawned"
+    local message = veaf.t("spawn.static_spawned", unitName)
     if smoke then
-      message = message .. ". It's marked with green smoke and red flares"
+      message = message .. veaf.t("spawn.marked_smoke_flares")
     end
     if not silent then
       trigger.action.outText(message, 5)

@@ -385,14 +385,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
     routeDistance = mist.vec.mag(vecAB)
     veaf.loggers.get(veafTransportMission.Id):trace("routeDistance=" .. routeDistance)
     if routeDistance < veafTransportMission.MinimumRouteDistance then
-      trigger.action.outText(
-        "This drop zone is too close ; you have to place it at least "
-          .. veafTransportMission.MinimumRouteDistance / 1000
-          .. " km away from point "
-          .. from
-          .. " !",
-        5
-      )
+      trigger.action.outText(veaf.t("transport.dropzone_too_close", veafTransportMission.MinimumRouteDistance / 1000, from), 5)
       return
     end
 
@@ -487,7 +480,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
     veafTransportMission.flareTarget
   )
 
-  local message = "See F10 radio menu for details\n" -- TODO
+  local message = veaf.t("transport.see_f10") -- TODO
   trigger.action.outText(message, 5)
 
   veafRadio.refreshRadioMenu()
@@ -516,10 +509,10 @@ function veafTransportMission.reportTargetInformation(unitName)
   -- generate information dispatch
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafTransportMission.BlueGroupName)
 
-  local message = "DROP ZONE : ressuply a group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers.\n"
+  local message = veaf.t("transport.report_dropzone", nbVehicles, nbInfantry)
   message = message .. "\n"
   if veafTransportMission.DoRadioTransmission then
-    message = message .. "NAVIGATION: They will transmit on 550 kHz every " .. veafTransportMission.SecondsBetweenAdfLoops .. " seconds.\n"
+    message = message .. veaf.t("transport.report_navigation", veafTransportMission.SecondsBetweenAdfLoops)
   end
 
   -- add coordinates and position from bullseye
@@ -533,12 +526,12 @@ function veafTransportMission.reportTargetInformation(unitName)
   local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
   local distMetric = mist.utils.round(dist / 1000, 0)
   local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-  local fromBullseye = string.format("%03d", dir) .. " for " .. distMetric .. "km /" .. distImperial .. "nm"
+  local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-  message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-  message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-  message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-  message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+  message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
+  message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("report.mgrs", mgrsString)
+  message = message .. veaf.t("report.from_bullseye", fromBullseye)
   message = message .. "\n"
 
   -- get altitude, qfe and wind information
@@ -547,13 +540,13 @@ function veafTransportMission.reportTargetInformation(unitName)
   --local qfeinHg = mist.utils.getQFE(averageGroupPosition, true)
   local windDirection, windStrength = veaf.getWind(veaf.placePointOnLand(averageGroupPosition))
 
-  message = message .. "DROP ZONE ALT       : " .. altitude .. " meters.\n"
+  message = message .. veaf.t("transport.report_alt", altitude)
   --message = message .. 'TARGET QFW       : ' .. qfeHp .. " hPa / " .. qfeinHg .. " inHg.\n"
-  local windText = "no wind.\n"
+  local windText = veaf.t("transport.wind_none")
   if windStrength > 0 then
-    windText = string.format("from %s at %s m/s.\n", windDirection, windStrength)
+    windText = veaf.t("transport.wind_from", windDirection, windStrength)
   end
-  message = message .. "WIND OVER DROP ZONE : " .. windText
+  message = message .. veaf.t("transport.report_wind", windText)
 
   -- send message only for the unit
   veaf.outTextForUnit(unitName, message, 30)

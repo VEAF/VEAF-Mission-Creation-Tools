@@ -45,8 +45,11 @@ veafGroundAI.WATCHDOG_DELAY = 1
 GroundUnitHandler = {}
 GroundUnitHandler.CLASS_NAME = "GroundUnitHandler"
 
-GroundUnitHandler.DEFAULT_MESSAGE_STOP = "Ground unit %s has stopped executing and awaiting orders."
-GroundUnitHandler.DEFAULT_MESSAGE_START = "Ground unit %s is executing or awaiting orders."
+-- Default messages are i18n catalog keys (see veafI18n.lua), resolved through
+-- veaf.t() at send time so they localize to the mission language; a mission
+-- overriding them with its own literal keeps it verbatim.
+GroundUnitHandler.DEFAULT_MESSAGE_STOP = "groundai.msg_stop"
+GroundUnitHandler.DEFAULT_MESSAGE_START = "groundai.msg_start"
 
 function GroundUnitHandler.init(object)
   -- technical name (GroundUnitHandler instance name)
@@ -278,7 +281,7 @@ function GroundUnitHandler:start()
   veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:start()", veaf.lp(self:getName()))
   self.status = GroundUnitHandler.STATUS_ACTIVE
   if not self.silent then
-    trigger.action.outText(string.format(self.messageStart, self:getName()), 10)
+    trigger.action.outText(veaf.t(self.messageStart, self:getName()), 10)
   end
   if self.onStart then
     self.onStart(self)
@@ -290,7 +293,7 @@ function GroundUnitHandler:stop()
   veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:stop()", veaf.lp(self:getName()))
   self.status = GroundUnitHandler.STATUS_READY
   if not self.silent then
-    trigger.action.outText(string.format(self.messageStop, self:getName()), 10)
+    trigger.action.outText(veaf.t(self.messageStop, self:getName()), 10)
   end
   if self.onStop then
     self.onStop(self)

@@ -1234,6 +1234,10 @@ class MissionBuilderWorker(BaseWorker):
             LuaAction(f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{self._dynamic_framework_load_path()}"))()')
         )
 
+        # The map-resource dicts are populated in load order (community→VEAF scripts
+        # for the first, _ordered_mission_script_files() for the second), and dicts
+        # preserve insertion order, so iterating them keeps the scripts in load order
+        # (e.g. veaf-config.lua before mission-script.lua).
         static_scripts: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC VEAF scripts loading")')]
         static_scripts += [FileAction(key) for key in new_map_resource_script_files]
 

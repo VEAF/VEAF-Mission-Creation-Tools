@@ -13,7 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | 🔄 |
+| Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ⬜ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ⬜ |
 | Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |

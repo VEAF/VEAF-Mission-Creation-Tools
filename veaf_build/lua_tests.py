@@ -80,10 +80,16 @@ def _pct_color(pct_str: str) -> str:
     return f"[red]{pct_str}[/red]"
 
 
-def _display_coverage_report() -> None:
+def _display_coverage_report() -> float | None:
+    """Display the per-module Lua coverage table and return the overall percentage.
+
+    Returns:
+        The overall coverage percentage across VEAF source modules, or ``None``
+        when no report or no VEAF coverage data is available.
+    """
     if not _REPORT_FILE.exists():
         console.print("[yellow]No coverage report generated.[/yellow]")
-        return
+        return None
 
     table = Table(title="Lua Coverage Report")
     table.add_column("File", style="cyan")
@@ -119,7 +125,7 @@ def _display_coverage_report() -> None:
 
     if not rows:
         console.print("[yellow]No coverage data found for src/scripts/veaf/.[/yellow]")
-        return
+        return None
 
     for display, hits, missed in rows:
         total = hits + missed
@@ -129,16 +135,18 @@ def _display_coverage_report() -> None:
     total_hits = sum(r[1] for r in rows)
     total_missed = sum(r[2] for r in rows)
     total_lines = total_hits + total_missed
+    total_value: float | None = None
     if total_lines > 0:
-        total_pct = f"{100 * total_hits / total_lines:.2f}%"
+        total_value = 100 * total_hits / total_lines
         table.add_row(
             "[bold]TOTAL[/bold]",
             f"[bold]{total_hits}[/bold]",
             f"[bold]{total_missed}[/bold]",
-            _pct_color(total_pct),
+            _pct_color(f"{total_value:.2f}%"),
         )
 
     console.print(table)
+    return total_value
 
 
 @app.command()
@@ -152,9 +160,18 @@ def run(
         "-c",
         help="Collect and display Lua line coverage via luacov (requires: luarocks install luacov).",
     ),
+    cov_fail_under: float | None = typer.Option(
+        None,
+        "--cov-fail-under",
+        help="Fail (exit 1) when total Lua coverage is below this percentage. Implies --coverage.",
+    ),
 ) -> None:
     """Run the Lua unit test suite (test/lua/test_*.lua)."""
     lua = _find_lua()
+
+    # A coverage floor only makes sense with coverage collection enabled.
+    if cov_fail_under is not None:
+        coverage = True
 
     if coverage and not _luacov_module_available(lua):
         console.print(
@@ -199,15 +216,31 @@ def run(
             console.print(f"[red]  - {name}[/red]")
     console.print("[white]======================================[/white]")
 
+    coverage_below_floor = False
     if coverage:
         console.print("\nGenerating coverage report...")
         if _run_luacov_reporter(lua):
-            _display_coverage_report()
+            total_pct = _display_coverage_report()
+            if cov_fail_under is not None:
+                if total_pct is None:
+                    console.print("[red]Coverage floor requested but no coverage data was produced.[/red]")
+                    coverage_below_floor = True
+                elif total_pct < cov_fail_under:
+                    console.print(
+                        f"[red]Lua coverage {total_pct:.2f}% is below the required {cov_fail_under:.2f}%.[/red]"
+                    )
+                    coverage_below_floor = True
+                else:
+                    console.print(
+                        f"[green]Lua coverage {total_pct:.2f}% meets the required {cov_fail_under:.2f}%.[/green]"
+                    )
         else:
             console.print("[yellow]Coverage report generation failed.[/yellow]")
+            if cov_fail_under is not None:
+                coverage_below_floor = True
         _STATS_FILE.unlink(missing_ok=True)
 
-    raise typer.Exit(1 if failed > 0 else 0)
+    raise typer.Exit(1 if (failed > 0 or coverage_below_floor) else 0)
 
 
 def main() -> None:

@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Internal
+- **Lua coverage gate + `veafUnits` backfill** (LUA-COVERAGE, wave 1). `test-lua` gained a `--cov-fail-under` option that fails the run when total luacov coverage drops below the floor; a new `lua-coverage` CI job enforces a **67 %** floor (ratchet — only ever goes up). Backfilled `veafUnits.lua` from 20 % to 93 % (33 new tests covering `placeGroup`/`processGroup` geometry and friends), lifting total Lua coverage to 69.7 %. Modules still around ~50 % (`Sanctuary`, `CombatMission`, `Skynet*`, `Weather`, …) are left for later waves
 - **mypy `ignore_errors` debt fully eroded** (QUALITY-GATE-FINISH). The six remaining application workers under the mypy `ignore_errors` override (`mission_converter_worker`, `mission_extractor_worker`, `waypoints_manager`, `weather_injector`'s `lua_converter` / `dcs_weather_converter` / `weather_injector_worker`) are now type-checked. Four had no errors; the seven surfaced errors were fixed without behaviour change (annotate `config: dict[str, Any]` in the weather lua-converter; drop redundant `: Path` re-annotations and rename a shadowed loop variable in the extractor). Only the bundled third-party `luadata` library stays excluded. The whole `src/python/veaf-tools` tree now passes `mypy` with no per-module opt-outs
 
 ### Fixed

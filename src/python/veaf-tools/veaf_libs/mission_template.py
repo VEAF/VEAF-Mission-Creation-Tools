@@ -186,8 +186,9 @@ def tier_modules(tier: str) -> set[str]:
     return {m.id for m in _CATALOG if tier in m.tiers}
 
 
-#: Modules a user may pick in the ``custom`` template (everything except always-on infra).
-SELECTABLE_MODULES: tuple[str, ...] = tuple(m.id for m in _CATALOG if m.kind != INFRA)
+#: Modules a user may pick in the ``custom`` template — everything except the
+#: always-emitted ones (infrastructure and the SECURITY how-to block).
+SELECTABLE_MODULES: tuple[str, ...] = tuple(m.id for m in _CATALOG if m.kind not in (INFRA, SECURITY))
 
 
 def generate_mission_yaml(enabled: set[str]) -> str:
@@ -210,7 +211,9 @@ def generate_mission_yaml(enabled: set[str]) -> str:
     ]
     current_category = ""
     for module in _CATALOG:
-        include = module.kind == INFRA or module.id in enabled
+        # Infrastructure and the SECURITY how-to are always emitted; everything else only
+        # when in the selected set (SECURITY renders as a commented "off by default" block).
+        include = module.kind in (INFRA, SECURITY) or module.id in enabled
         if not include:
             continue
         if module.category != current_category:

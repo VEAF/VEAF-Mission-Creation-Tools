@@ -31,10 +31,13 @@ class TestMissionTemplate(unittest.TestCase):
         for mod in ("WEATHER", "CASMISSION", "QRA", "TUM"):
             self.assertNotIn(mod, active)
 
-    def test_security_is_never_active(self) -> None:
-        # David's rule: security off by default in the package (commented), in every tier.
-        for tier in ("minimal", "standard", "full"):
-            self.assertNotIn("SECURITY", _modules(generate_mission_yaml(tier_modules(tier))))
+    def test_security_is_always_present_but_never_active(self) -> None:
+        # David's rule: security off by default (commented) but always shown — every tier
+        # AND a custom set that omits it must still carry the commented SECURITY how-to.
+        for enabled in (tier_modules("minimal"), tier_modules("standard"), tier_modules("full"), {"RADIO"}):
+            text = generate_mission_yaml(enabled)
+            self.assertIn("SECURITY", text)  # the commented how-to is always emitted
+            self.assertNotIn("SECURITY", _modules(text))  # ...but never active
 
     def test_groundai_is_nowhere(self) -> None:
         self.assertNotIn("GROUNDAI", CATALOG)

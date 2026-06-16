@@ -64,6 +64,101 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+# --- Unified VEAF load-trigger specification -------------------------------------
+# A VEAF load trigger is written into BOTH the DCS ``trig`` table (compiled form)
+# and the ``trigrules`` table (editor form). Historically each was hand-built
+# separately and drifted (see CUSTOM-SCRIPTS-TRIGGERS / C6). They are now derived
+# from a single ordered list of VeafTriggerSpec so the two forms can never diverge.
+
+
+@dataclass(frozen=True)
+class LuaAction:
+    """A raw Lua statement run by an action.
+
+    The ``lua`` is the logical (unescaped) statement. The ``trig`` emitter wraps it
+    as ``a_do_script("<escaped>")``; the ``trigrules`` emitter stores it raw in
+    ``text``.
+    """
+
+    lua: str
+
+
+@dataclass(frozen=True)
+class FileAction:
+    """Load an embedded script by its mapResource key (``a_do_script_file``)."""
+
+    map_key: str
+
+
+@dataclass(frozen=True)
+class VeafTriggerSpec:
+    """One VEAF trigger, source of truth for both the trig and trigrules forms."""
+
+    dict_key: str
+    comment: str
+    color_item: str
+    rule_has_flag: bool
+    actions: list[LuaAction | FileAction]
+
+
+#: Dictionary keys of the 6 VEAF load triggers, in order. Shared by the dictionary
+#: population (:meth:`update_dictionary_with_veaf_entries`) and the trigger specs
+#: (:meth:`_build_veaf_trigger_specs`) so a trigger's condition can never point at a
+#: dictionary entry the other half forgot to write.
+_VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
+    "VEAF_DictKey_ActionText_12001",
+    "VEAF_DictKey_ActionText_12002",
+    "VEAF_DictKey_ActionText_12003",
+    "VEAF_DictKey_ActionText_12004",
+    "VEAF_DictKey_ActionText_12005",
+    "VEAF_DictKey_ActionText_12006",
+)
+
+
+def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
+    """Emit the compiled ``trig`` form of a trigger's actions: one concatenated string.
+
+    Each action becomes a ``;``-terminated Lua call. ``LuaAction`` is wrapped in
+    ``a_do_script("…")`` with its inner double quotes escaped; ``FileAction`` becomes
+    ``a_do_script_file(getValueResourceByKey("<key>"))``.
+
+    Args:
+        actions: The ordered actions of one :class:`VeafTriggerSpec`.
+
+    Returns:
+        The concatenated Lua string stored under the trigger's ``actions[idx]``.
+    """
+    parts: list[str] = []
+    for action in actions:
+        if isinstance(action, FileAction):
+            parts.append(f'a_do_script_file(getValueResourceByKey("{action.map_key}"));')
+        else:
+            escaped = action.lua.replace('"', '\\"')
+            parts.append(f'a_do_script("{escaped}");')
+    return "".join(parts)
+
+
+def _emit_trigrule_actions(actions: list[LuaAction | FileAction]) -> list[dict]:
+    """Emit the Mission Editor ``trigrules`` form of a trigger's actions: action dicts.
+
+    ``LuaAction`` becomes ``{"predicate": "a_do_script", "text": <raw lua>}``;
+    ``FileAction`` becomes ``{"predicate": "a_do_script_file", "file": <key>}``.
+
+    Args:
+        actions: The ordered actions of one :class:`VeafTriggerSpec`.
+
+    Returns:
+        The list stored under the trigrule's ``actions``.
+    """
+    result: list[dict] = []
+    for action in actions:
+        if isinstance(action, FileAction):
+            result.append({"predicate": "a_do_script_file", "file": action.map_key})
+        else:
+            result.append({"predicate": "a_do_script", "text": action.lua})
+    return result
+
+
 #: Lua calls that load another script file — the sign of a custom "loader" script.
 #: Kept deliberately broad (no attempt to parse the loaded list): we only detect
 #: that the file loads scripts, then point the user at the v6 `custom_scripts:` way.
@@ -950,25 +1045,30 @@ class MissionBuilderWorker(BaseWorker):
         All existing triggers (all their items within the sub-categories) will be shifted 6 ranks up, changing the indexes in the LUA code.
         We'll also add 6 corresponding trigrules, shifting the existing ones accordingly
         """
-        new_dictionary = self.update_dictionary_with_veaf_entries()
-        new_map_resource_script_files, new_map_resource_mission_script_files, new_map_resource_key_by_file = (
+        self.update_dictionary_with_veaf_entries()
+        new_map_resource_script_files, new_map_resource_mission_script_files, _ = (
             self.update_map_resource_with_veaf_entries()
         )
-        self.insert_veaf_triggers(new_dictionary, new_map_resource_script_files, new_map_resource_mission_script_files)
-        self.insert_veaf_trigrules(new_map_resource_key_by_file)
+        # Single ordered source of truth — both the compiled trig form and the editor
+        # trigrules form are derived from this one list, so they can never diverge.
+        specs = self._build_veaf_trigger_specs(new_map_resource_script_files, new_map_resource_mission_script_files)
+        self.insert_veaf_triggers(specs)
+        self.insert_veaf_trigrules(specs)
 
     def update_dictionary_with_veaf_entries(self) -> dict:
         """
         Update the dictionary for all the VEAF triggers in the mission.
         """
 
+        mode = "true" if self.dynamic_mode else "false"
+        keys = _VEAF_TRIGGER_DICT_KEYS
         new_dictionary = {
-            "VEAF_DictKey_ActionText_12001": f"return {'true' if self.dynamic_mode else 'false'} -- VEAF scripts loading mode (false = static, true = dynamic)",
-            "VEAF_DictKey_ActionText_12002": f"return {'true' if self.dynamic_mode else 'false'} -- Mission scripts loading mode (false = static, true = dynamic)",
-            "VEAF_DictKey_ActionText_12003": "return VEAF_DYNAMIC_SCRIPTSPATH~=nil",
-            "VEAF_DictKey_ActionText_12004": "return VEAF_DYNAMIC_SCRIPTSPATH==nil",
-            "VEAF_DictKey_ActionText_12005": "return VEAF_DYNAMIC_MISSIONPATH~=nil",
-            "VEAF_DictKey_ActionText_12006": "return VEAF_DYNAMIC_MISSIONPATH==nil",
+            keys[0]: f"return {mode} -- VEAF scripts loading mode (false = static, true = dynamic)",
+            keys[1]: f"return {mode} -- Mission scripts loading mode (false = static, true = dynamic)",
+            keys[2]: "return VEAF_DYNAMIC_SCRIPTSPATH~=nil",
+            keys[3]: "return VEAF_DYNAMIC_SCRIPTSPATH==nil",
+            keys[4]: "return VEAF_DYNAMIC_MISSIONPATH~=nil",
+            keys[5]: "return VEAF_DYNAMIC_MISSIONPATH==nil",
         }
 
         # merge the new dictionary with the mission dictionary
@@ -1005,22 +1105,29 @@ class MissionBuilderWorker(BaseWorker):
         """Return the framework script to load dynamically, depending on dev vs prod mode."""
         return self._DYNAMIC_FRAMEWORK_LOADER_DEV if self.dev_mode else self._DYNAMIC_FRAMEWORK_LOADER_PROD
 
-    def _ordered_mission_script_names(self) -> list[str]:
-        """Ordered basenames of the mission scripts that get a load trigger.
+    def _ordered_mission_script_files(self) -> list[str]:
+        """Ordered collected paths of the mission scripts that get a load trigger.
 
-        This is the single source of truth shared by the static load triggers and
-        the generated ``veafDynamicConfig.lua`` (dynamic mode), guaranteeing both
-        modes load the same files — including the mission maker's ``custom_scripts``.
+        Single source of truth shared by the static load triggers (mapResource +
+        the static mission trigger) and the generated ``veafDynamicConfig.lua``
+        (dynamic mode), guaranteeing both modes load the same files — including the
+        mission maker's ``custom_scripts``.
+
+        ``veafDynamicConfig.lua`` IS the dynamic loader (loaded directly by the
+        dynamic mission trigger); it must never appear in the list it iterates (it
+        would load itself in a loop) nor in the static list, so it is excluded here
+        — in one place for every consumer.
         """
         return [
-            Path(script_file_name).name
+            script_file_name
             for script_file_name in self.get_collected_mission_script_files()
             if self._resolves_load_trigger(Path(script_file_name).name)
-            # veafDynamicConfig.lua IS the dynamic loader (loaded directly by the
-            # dynamic mission trigger); it must never appear in the list it iterates,
-            # or it would load itself in an infinite loop.
             and Path(script_file_name).name != "veafDynamicConfig.lua"
         ]
+
+    def _ordered_mission_script_names(self) -> list[str]:
+        """Ordered basenames of the mission scripts — see :meth:`_ordered_mission_script_files`."""
+        return [Path(p).name for p in self._ordered_mission_script_files()]
 
     def generate_veaf_dynamic_config(self) -> None:
         """Generate ``src/scripts/veafDynamicConfig.lua`` from the mission script list.
@@ -1072,12 +1179,10 @@ class MissionBuilderWorker(BaseWorker):
             new_map_resource_script_files[map_resource_key] = Path(script_file_name).name
 
         new_map_resource_mission_script_files = {}
-        trigger_key_index = 0
-        for script_file_name in self.get_collected_mission_script_files():
-            if not self._resolves_load_trigger(Path(script_file_name).name):
-                continue
+        # Single source of truth: same ordered, filtered list as the static mission
+        # trigger and veafDynamicConfig.lua (excludes veafDynamicConfig.lua itself).
+        for trigger_key_index, script_file_name in enumerate(self._ordered_mission_script_files()):
             map_resource_key = f"VEAF_MapKey_ActionText_11{trigger_key_index:03}"
-            trigger_key_index += 1
             new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 
@@ -1091,13 +1196,105 @@ class MissionBuilderWorker(BaseWorker):
 
         return new_map_resource_script_files, new_map_resource_mission_script_files, new_map_resource_key_by_file
 
-    def insert_veaf_triggers(
-        self, new_dictionary: dict, new_map_resource_script_files: dict, new_map_resource_mission_script_files: dict
-    ) -> None:
+    def _veaf_dynamic_paths(self) -> tuple[str, str]:
+        """Return the (scripts, mission) dynamic-load paths as Lua long-bracket literals.
+
+        Both are absolute, ``/``-terminated paths wrapped in ``[[ ]]`` so they need no
+        escaping when emitted into a Lua statement. The scripts path falls back to the
+        output mission's ``published/`` folder when no explicit scripts path is set.
+
+        Returns:
+            A ``(scripts_path, mission_path)`` tuple of ``[[…/]]`` literals.
         """
-        Create all the VEAF triggers in the mission.
-        We'll add 6 triggers, all Mission Start with the right actions, conditions and funcStartup sub-categories.
-        All existing triggers (all their items within the sub-categories) will be shifted 6 ranks up, changing the indexes in the LUA code.
+        scripts_root = self.scripts_path or (self.output_mission.parent / "published")
+        scripts_path = f"[[{scripts_root.resolve().as_posix()}/]]"
+        mission_path = f"[[{self.output_mission.parent.resolve().as_posix()}/]]"
+        return scripts_path, mission_path
+
+    def _build_veaf_trigger_specs(
+        self, new_map_resource_script_files: dict, new_map_resource_mission_script_files: dict
+    ) -> list[VeafTriggerSpec]:
+        """Build the 6 ordered VEAF load triggers — the single source for both forms.
+
+        The order matches :data:`_VEAF_TRIGGER_DICT_KEYS`: set the two dynamic-path
+        globals (each runs only in its dynamic mode), then load the VEAF scripts
+        (dynamic vs static) and the mission scripts (dynamic vs static). The
+        static-mission trigger loads the **full** ordered mission-script list — the
+        same one the dynamic loader iterates — so ``custom_scripts`` are honoured in
+        both modes and the two emitted forms reference exactly the same files.
+
+        Args:
+            new_map_resource_script_files: mapResource keys → VEAF/community script names.
+            new_map_resource_mission_script_files: mapResource keys → mission script names.
+
+        Returns:
+            The 6 specs, in trigger order.
+        """
+        scripts_path, mission_path = self._veaf_dynamic_paths()
+        keys = _VEAF_TRIGGER_DICT_KEYS
+
+        dynamic_scripts: list[LuaAction | FileAction] = [
+            LuaAction('env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)')
+        ]
+        dynamic_scripts += [
+            LuaAction(f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{file["path"]}"))()')
+            for file in self._active_community_scripts()
+        ]
+        dynamic_scripts.append(
+            LuaAction(f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{self._dynamic_framework_load_path()}"))()')
+        )
+
+        # The map-resource dicts are populated in load order (community→VEAF scripts
+        # for the first, _ordered_mission_script_files() for the second), and dicts
+        # preserve insertion order, so iterating them keeps the scripts in load order
+        # (e.g. veaf-config.lua before mission-script.lua).
+        static_scripts: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC VEAF scripts loading")')]
+        static_scripts += [FileAction(key) for key in new_map_resource_script_files]
+
+        static_mission: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC Mission scripts loading")')]
+        static_mission += [FileAction(key) for key in new_map_resource_mission_script_files]
+
+        return [
+            VeafTriggerSpec(
+                keys[0],
+                "VEAF scripts loading method",
+                "0x00ffffff",
+                True,
+                [LuaAction(f"VEAF_DYNAMIC_SCRIPTSPATH = {scripts_path}")],
+            ),
+            VeafTriggerSpec(
+                keys[1],
+                "Mission scripts loading method",
+                "0x00ffffff",
+                True,
+                [LuaAction(f"VEAF_DYNAMIC_MISSIONPATH = {mission_path}")],
+            ),
+            VeafTriggerSpec(keys[2], "VEAF scripts loading - dynamic", "0x00ff80ff", False, dynamic_scripts),
+            VeafTriggerSpec(keys[3], "VEAF scripts loading - static", "0x00ff80ff", False, static_scripts),
+            VeafTriggerSpec(
+                keys[4],
+                "Mission scripts loading - dynamic",
+                "0x8080ffff",
+                False,
+                [
+                    LuaAction('env.info("DYNAMIC Mission scripts loading from "..VEAF_DYNAMIC_MISSIONPATH)'),
+                    LuaAction('assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/veafDynamicConfig.lua"))()'),
+                ],
+            ),
+            VeafTriggerSpec(keys[5], "Mission scripts loading - static", "0x8080ffff", False, static_mission),
+        ]
+
+    def insert_veaf_triggers(self, specs: list[VeafTriggerSpec]) -> None:
+        """Insert the compiled ``trig`` form of the VEAF triggers, derived from *specs*.
+
+        Each spec becomes one trigger (Mission Start): its actions are emitted as a
+        single concatenated Lua string, its condition references the spec's dictionary
+        key, and its ``funcStartup`` wires the two together. All existing triggers are
+        shifted up by ``len(specs)`` ranks, with their inter-trigger ``[idx]`` Lua
+        references rewritten to match.
+
+        Args:
+            specs: The ordered VEAF trigger specs from :meth:`_build_veaf_trigger_specs`.
         """
 
         def transform_triggers_dcs_structure_to_new_structure(triggers) -> dict:
@@ -1145,59 +1342,20 @@ class MissionBuilderWorker(BaseWorker):
 
             return result
 
-        conditions_trigger = {
-            idx + 1: f'return(c_predicate(getValueDictByKey("{new_dict_key}")) )'
-            for idx, new_dict_key in enumerate(new_dictionary)
-        }
-
-        dynamic_script_loading_trigger = (
-            'a_do_script("env.info(\\"DYNAMIC VEAF scripts loading from \\"..VEAF_DYNAMIC_SCRIPTSPATH)");'
-        )
-        for file in self._active_community_scripts():
-            dynamic_script_loading_trigger += (
-                f'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"{file["path"]}\\"))()");'
-            )
-        dynamic_script_loading_trigger += f'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"{self._dynamic_framework_load_path()}\\"))()");'
-
-        static_script_loading_trigger = 'a_do_script("env.info(\\"STATIC VEAF scripts loading\\")");'
-        for map_resource_key in new_map_resource_script_files:
-            static_script_loading_trigger += f'a_do_script_file(getValueResourceByKey("{map_resource_key}"));'
-
-        dynamic_mission_loading_trigger = 'a_do_script("env.info(\\"DYNAMIC Mission scripts loading from \\"..VEAF_DYNAMIC_MISSIONPATH)");a_do_script("assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\"/src/scripts/veafDynamicConfig.lua\\"))()");'
-
-        static_mission_loading_trigger = 'a_do_script("env.info(\\"STATIC Mission scripts loading\\")");'
-        for map_resource_key in new_map_resource_mission_script_files:
-            static_mission_loading_trigger += f'a_do_script_file(getValueResourceByKey("{map_resource_key}"));'
-
-        VEAF_DYNAMIC_SCRIPTSPATH = (
-            f"[[{self.scripts_path.resolve().as_posix()}/]]"
-            if self.scripts_path
-            else f"[[{(self.output_mission.parent / 'published').resolve().as_posix()}/]]"
-        )
-        veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
-
+        nb = len(specs)
         veaf_triggers = {
             "customStartup": {},
             "func": {},
             "custom": {},
             "events": {},
-            "flag": {1: True, 2: True, 3: True, 4: True, 5: True, 6: True},
-            "conditions": conditions_trigger,
-            "actions": {
-                1: f'a_do_script("VEAF_DYNAMIC_SCRIPTSPATH = {VEAF_DYNAMIC_SCRIPTSPATH}");',
-                2: f'a_do_script("VEAF_DYNAMIC_MISSIONPATH = {veaf_dynamic_mission_path}");',
-                3: f"{dynamic_script_loading_trigger}",
-                4: f"{static_script_loading_trigger}",
-                5: f"{dynamic_mission_loading_trigger}",
-                6: f"{static_mission_loading_trigger}",
+            "flag": {i: True for i in range(1, nb + 1)},
+            "conditions": {
+                i: f'return(c_predicate(getValueDictByKey("{spec.dict_key}")) )'
+                for i, spec in enumerate(specs, start=1)
             },
+            "actions": {i: _emit_trig_action_string(spec.actions) for i, spec in enumerate(specs, start=1)},
             "funcStartup": {
-                1: "if mission.trig.conditions[1]() then mission.trig.actions[1]() end",
-                2: "if mission.trig.conditions[2]() then mission.trig.actions[2]() end",
-                3: "if mission.trig.conditions[3]() then mission.trig.actions[3]() end",
-                4: "if mission.trig.conditions[4]() then mission.trig.actions[4]() end",
-                5: "if mission.trig.conditions[5]() then mission.trig.actions[5]() end",
-                6: "if mission.trig.conditions[6]() then mission.trig.actions[6]() end",
+                i: f"if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end" for i in range(1, nb + 1)
             },
         }
 
@@ -1238,186 +1396,37 @@ class MissionBuilderWorker(BaseWorker):
             result_triggers_new_structure
         )
 
-    def insert_veaf_trigrules(self, new_map_resource_key_by_file: dict) -> None:
+    def insert_veaf_trigrules(self, specs: list[VeafTriggerSpec]) -> None:
+        """Insert the Mission Editor ``trigrules`` form of the VEAF triggers, from *specs*.
+
+        Each spec becomes one trigrule: its actions are emitted as editor action dicts
+        and its rule references the spec's dictionary key (with the ``flag`` field only
+        for the path-setting triggers). Deriving from the same *specs* as
+        :meth:`insert_veaf_triggers` guarantees the editor and compiled forms load the
+        identical, fully-ordered set of scripts — closing the static-mission drift that
+        previously dropped ``custom_scripts`` from the editor form. All existing
+        trigrules are shifted up by ``len(specs)`` ranks.
+
+        Args:
+            specs: The ordered VEAF trigger specs from :meth:`_build_veaf_trigger_specs`.
         """
-        Create all the VEAF trigrules in the mission.
-        We'll add 6 trigrules corresponding to the 6 new triggers.
-        All existing trigrules will be shifted 6 ranks up, changing the indexes in the LUA code.
-        """
-
-        VEAF_DYNAMIC_SCRIPTSPATH = (
-            f"[[{self.scripts_path.resolve().as_posix()}/]]"
-            if self.scripts_path
-            else f"[[{(self.output_mission.parent / 'published').resolve().as_posix()}/]]"
-        )
-        veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
-
-        veaf_community_scripts_map_keys = [
-            new_map_resource_key_by_file.get(script_file_name, "")
-            for script_file_name in self.get_collected_community_script_files()
-        ]
-        veaf_scripts_map_keys = [
-            new_map_resource_key_by_file.get(script_file_name, "")
-            for script_file_name in self.get_collected_veaf_script_files()
-        ]
-
-        veaf_mission_config_map_key = new_map_resource_key_by_file.get(
-            f"{DEFAULT_SCRIPTS_LOCATION}/mission-script.lua", ""
-        )
-        # Optional generated config, loaded before mission-script.lua
-        veaf_modules_config_map_key = new_map_resource_key_by_file.get(
-            f"{DEFAULT_SCRIPTS_LOCATION}/veaf-config.lua", ""
-        )
-
-        static_script_loading_actions = [
-            {"predicate": "a_do_script", "text": 'env.info("STATIC VEAF scripts loading")'}
-        ]
-        static_script_loading_actions.extend(
-            {"predicate": "a_do_script_file", "file": f"{file_path}"} for file_path in veaf_community_scripts_map_keys
-        )
-        static_script_loading_actions.extend(
-            {"predicate": "a_do_script_file", "file": f"{file_path}"} for file_path in veaf_scripts_map_keys
-        )
-
-        dynamic_script_loading_actions = [
-            {
-                "predicate": "a_do_script",
-                "text": 'env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)',
-            }
-        ]
-        dynamic_script_loading_actions.extend(
-            {
-                "predicate": "a_do_script",
-                "text": f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{file["path"]}"))()',
-            }
-            for file in self._active_community_scripts()
-        )
-        dynamic_script_loading_actions.append(
-            {
-                "predicate": "a_do_script",
-                "text": f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{self._dynamic_framework_load_path()}"))()',
-            }
-        )
-
         new_trigrules_list = [
             {
                 "rules": [
                     {
-                        "flag": 1,
-                        "text": "VEAF_DictKey_ActionText_12001",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12001",
+                        **({"flag": 1} if spec.rule_has_flag else {}),
+                        "text": spec.dict_key,
+                        "KeyDict_text": spec.dict_key,
                         "predicate": "c_predicate",
                     }
                 ],
-                "comment": "VEAF scripts loading method",
+                "comment": spec.comment,
                 "predicate": "triggerStart",
                 "eventlist": "",
-                "actions": [
-                    {"predicate": "a_do_script", "text": f"VEAF_DYNAMIC_SCRIPTSPATH = {VEAF_DYNAMIC_SCRIPTSPATH}"}
-                ],
-                "colorItem": "0x00ffffff",
-            },
-            {
-                "rules": [
-                    {
-                        "flag": 1,
-                        "text": "VEAF_DictKey_ActionText_12002",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12002",
-                        "predicate": "c_predicate",
-                    }
-                ],
-                "comment": "Mission scripts loading method",
-                "predicate": "triggerStart",
-                "eventlist": "",
-                "actions": [
-                    {"predicate": "a_do_script", "text": f"VEAF_DYNAMIC_MISSIONPATH = {veaf_dynamic_mission_path}"}
-                ],
-                "colorItem": "0x00ffffff",
-            },
-            {
-                "rules": [
-                    {
-                        "text": "VEAF_DictKey_ActionText_12003",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12003",
-                        "predicate": "c_predicate",
-                    }
-                ],
-                "comment": "VEAF scripts loading - dynamic",
-                "predicate": "triggerStart",
-                "eventlist": "",
-                "actions": dynamic_script_loading_actions,
-                "colorItem": "0x00ff80ff",
-            },
-            {
-                "rules": [
-                    {
-                        "text": "VEAF_DictKey_ActionText_12004",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12004",
-                        "predicate": "c_predicate",
-                    }
-                ],
-                "comment": "VEAF scripts loading - static",
-                "predicate": "triggerStart",
-                "eventlist": "",
-                "actions": static_script_loading_actions,
-                "colorItem": "0x00ff80ff",
-            },
-            {
-                "rules": [
-                    {
-                        "text": "VEAF_DictKey_ActionText_12005",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12005",
-                        "predicate": "c_predicate",
-                    }
-                ],
-                "comment": "Mission scripts loading - dynamic",
-                "predicate": "triggerStart",
-                "eventlist": "",
-                "actions": [
-                    {
-                        "text": 'env.info("DYNAMIC Mission scripts loading from "..VEAF_DYNAMIC_MISSIONPATH)',
-                        "meters": 1000,
-                        "predicate": "a_do_script",
-                        "zone": 184,
-                    },
-                    # veafDynamicConfig.lua loads every mission script in order, veaf-config.lua
-                    # first (it heads scriptsToLoad). Loading veaf-config.lua explicitly here too
-                    # would run it twice → modules initialized twice → duplicated marker handlers.
-                    {
-                        "predicate": "a_do_script",
-                        "text": 'assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/veafDynamicConfig.lua"))()',
-                    },
-                ],
-                "colorItem": "0x8080ffff",
-            },
-            {
-                "rules": [
-                    {
-                        "text": "VEAF_DictKey_ActionText_12006",
-                        "KeyDict_text": "VEAF_DictKey_ActionText_12006",
-                        "predicate": "c_predicate",
-                    }
-                ],
-                "comment": "Mission scripts loading - static",
-                "predicate": "triggerStart",
-                "eventlist": "",
-                "actions": [
-                    {
-                        "text": 'env.info("STATIC Mission scripts loading")',
-                        "meters": 1000,
-                        "predicate": "a_do_script",
-                        "zone": 184,
-                    },
-                    # Load veaf-config.lua before mission-script.lua (if present)
-                    *(
-                        [{"predicate": "a_do_script_file", "file": f"{veaf_modules_config_map_key}"}]
-                        if veaf_modules_config_map_key
-                        else []
-                    ),
-                    {"predicate": "a_do_script_file", "file": f"{veaf_mission_config_map_key}"},
-                ],
-                "colorItem": "0x8080ffff",
-            },
+                "actions": _emit_trigrule_actions(spec.actions),
+                "colorItem": spec.color_item,
+            }
+            for spec in specs
         ]
 
         # compress the dictionary keyset, leaving space for the VEAF trigrules

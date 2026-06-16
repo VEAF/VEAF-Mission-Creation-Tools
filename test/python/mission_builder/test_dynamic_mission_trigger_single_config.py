@@ -39,7 +39,7 @@ def _dynamic_mission_trigrule(worker: MissionBuilderWorker) -> dict:
 class TestDynamicMissionTriggerSingleConfig(unittest.TestCase):
     def test_dynamic_trigrule_loads_dynamic_config_not_explicit_veaf_config(self) -> None:
         worker = _make_worker()
-        worker.insert_veaf_trigrules({})
+        worker.insert_veaf_trigrules(worker._build_veaf_trigger_specs({}, {}))
 
         rule = _dynamic_mission_trigrule(worker)
         action_texts = [a.get("text", "") for a in rule["actions"]]

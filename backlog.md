@@ -225,8 +225,8 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| CUSTOM-SCRIPTS-TRIGGERS-001 | Unify trig/trigrules emission from a single spec; fix static #6 to load custom_scripts and exclude veafDynamicConfig.lua; repair `generate_load_trigger`; tests (custom_scripts in both static trigrule & veafDynamicConfig; trig↔trigrules parity; golden #1-5) | `mission_builder/mission_builder_worker.py`, `test/python/mission_builder/` | fix | 🔄 |
-| CUSTOM-SCRIPTS-TRIGGERS-002 | Docs: custom_scripts semantics + how to get "dynamic-only"/"static-only" via build profiles (deep-merge replaces lists → repeat base scripts); spawn-data rationale | `doc/MISSION_YAML_REFERENCE.*`, maker docs, `CHANGELOG.md` | chore | ⬜ |
+| CUSTOM-SCRIPTS-TRIGGERS-001 | Unify trig/trigrules emission from a single spec (`_build_veaf_trigger_specs` + `_emit_trig_action_string`/`_emit_trigrule_actions`); fix static #6 to load custom_scripts and exclude veafDynamicConfig.lua; repair `generate_load_trigger`; tests (custom_scripts in both static trigrule & veafDynamicConfig; trig↔trigrules parity; golden #1-5). **Note**: `meters`/`zone` dropped (not preserved) per David's in-session decision, superseding the plan's "preserve" note. | `mission_builder/mission_builder_worker.py`, `test/python/mission_builder/` | fix | ✅ |
+| CUSTOM-SCRIPTS-TRIGGERS-002 | Docs: custom_scripts semantics (loads in both modes, order veaf-config → mission-script → custom_scripts) + how to get "dynamic-only"/"static-only" via build profiles (deep-merge replaces lists → repeat base scripts) | `doc/MISSION_YAML_REFERENCE.*` (FR/EN), `CHANGELOG.md` | chore | ✅ |
 
 ---
 

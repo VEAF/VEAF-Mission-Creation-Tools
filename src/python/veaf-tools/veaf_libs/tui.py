@@ -37,6 +37,10 @@ class ArgPrompt:
     """True → rendered as ``--key value``; False → positional argument."""
     resolve_path: bool = False
     """True → show the absolute path the current default resolves to as a hint."""
+    required: bool = False
+    """True → when this arg is absent from the CLI, drop into the TUI to ask for it."""
+    choices: list[str] | None = None
+    """When set, the wizard offers a select among these values instead of free text."""
 
     @property
     def cli_flag(self) -> str:
@@ -159,7 +163,19 @@ COMMANDS: list[CommandSpec] = [
         description=t("tui.cmd.prepare.description"),
         prompts=[
             ArgPrompt(
-                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+                "mission_folder",
+                t("tui.arg.mission_folder_init"),
+                default=".",
+                is_option=False,
+                resolve_path=True,
+                required=True,
+            ),
+            ArgPrompt(
+                "template",
+                t("tui.arg.prepare_template"),
+                default="standard",
+                choices=["minimal", "standard", "full", "custom"],
+                required=True,
             ),
         ],
     ),
@@ -268,14 +284,108 @@ def _folder_hint(default_value: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def run_wizard() -> list[str]:
+def _parse_provided(spec: CommandSpec, tokens: list[str]) -> tuple[dict[str, str], list[str]]:
+    """Split a command's CLI tokens into known prompt values and pass-through extras.
+
+    Positional tokens fill the spec's positional prompts in order; ``--kebab[=val]``
+    tokens that match a spec option prompt are captured; everything else (unknown
+    options like ``--verbose``, surplus positionals) is preserved verbatim for the
+    rebuilt command line.
+
+    Returns:
+        ``(provided, passthrough)`` — ``provided`` maps ``ArgPrompt.key`` → value;
+        ``passthrough`` is the list of unrecognised tokens, in order.
+    """
+    option_prompts = {p.cli_flag: p for p in spec.prompts if p.is_option}
+    positional_prompts = [p for p in spec.prompts if not p.is_option]
+    provided: dict[str, str] = {}
+    passthrough: list[str] = []
+    pos_index = 0
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok.startswith("-"):
+            name, eq, inline = tok.partition("=")
+            prompt = option_prompts.get(name)
+            if prompt is None:
+                passthrough.append(tok)
+            elif prompt.is_flag:
+                provided[prompt.key] = "true"
+            elif eq:
+                provided[prompt.key] = inline
+            elif i + 1 < len(tokens):
+                provided[prompt.key] = tokens[i + 1]
+                i += 1
+            i += 1
+            continue
+        if pos_index < len(positional_prompts):
+            provided[positional_prompts[pos_index].key] = tok
+            pos_index += 1
+        else:
+            passthrough.append(tok)
+        i += 1
+    return provided, passthrough
+
+
+def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
+    """Decide whether to route a CLI invocation into the TUI, returning rewritten args.
+
+    Rules (interactive terminals only):
+      - no command at all → run the full wizard (main menu);
+      - a command with a ``CommandSpec`` invoked with ``--tui`` **or** missing a
+        ``required`` prompt → run the wizard for that command, pre-filling the args
+        already given on the CLI and prompting only the rest;
+      - otherwise → ``None`` (let Typer run the command unchanged).
+
+    Args:
+        args: ``sys.argv[1:]``.
+
+    Returns:
+        The rewritten arg list to hand to Typer, or ``None`` to run as-is.
+    """
+    import sys
+
+    if not sys.stdout.isatty():
+        return None
+
+    force_tui = "--tui" in args
+    tokens = [a for a in args if a != "--tui"]
+
+    if not tokens:
+        return run_wizard() or None
+
+    command, rest = tokens[0], tokens[1:]
+    spec = _COMMAND_MAP.get(command)
+    if spec is None:
+        return None
+
+    provided, passthrough = _parse_provided(spec, rest)
+    missing_required = [p for p in spec.prompts if p.required and p.key not in provided]
+    if not force_tui and not missing_required:
+        return None
+
+    wizard_args = run_wizard(preselected=command, provided=provided)
+    if not wizard_args:
+        return None
+    return wizard_args + passthrough
+
+
+def run_wizard(preselected: str | None = None, provided: dict[str, str] | None = None) -> list[str]:
     """Run the interactive wizard and return a list of CLI arguments for Typer.
+
+    Args:
+        preselected: When set to a known command name, skip the command-selection step
+            and prompt only that command's arguments (the CLI-TUI bridge entry point).
+        provided: Argument values already supplied on the command line (by ``key``);
+            those prompts are skipped and passed straight through.
 
     Returns an empty list when the terminal is not interactive or the user
     cancels.  Unexpected errors are logged and re-raised so they are visible
     to the user rather than silently swallowed.
     """
     import sys
+
+    provided = provided or {}
 
     # Only meaningful in an interactive terminal
     if not sys.stdout.isatty():
@@ -292,16 +402,18 @@ def run_wizard() -> list[str]:
     try:
         last_command = get_last_command()
 
-        # ── Step 1: select command ───────────────────────────────────────────
-        choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS]
-        default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
-
-        selected: str = inquirer.select(  # type: ignore[attr-defined]
-            message=t("tui.select_command"),
-            choices=choices,
-            default=default_choice,
-            instruction=t("tui.instruction"),
-        ).execute()
+        # ── Step 1: select command (skipped when the bridge pre-selects one) ──
+        if preselected and preselected in _COMMAND_MAP:
+            selected = preselected
+        else:
+            choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS]
+            default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
+            selected = inquirer.select(  # type: ignore[attr-defined]
+                message=t("tui.select_command"),
+                choices=choices,
+                default=default_choice,
+                instruction=t("tui.instruction"),
+            ).execute()
 
         spec = _COMMAND_MAP[selected]
         if not spec.prompts:
@@ -315,14 +427,26 @@ def run_wizard() -> list[str]:
         collected: dict[str, Any] = {}
 
         for prompt in spec.prompts:
+            # Already supplied on the command line → keep it, don't re-ask.
+            if prompt.key in provided:
+                collected[prompt.key] = provided[prompt.key]
+                continue
             # Show the CLI flag/name with color prefix for options
             if prompt.is_option:
                 display_label = f"{prompt.cli_flag}  {prompt.label}"
             else:
                 display_label = prompt.label
-            if prompt.is_flag:
+            value: Any
+            if prompt.choices:
+                default_choice = last_args.get(prompt.key, prompt.default)
+                value = inquirer.select(  # type: ignore[attr-defined]
+                    message=display_label,
+                    choices=prompt.choices,
+                    default=default_choice if default_choice in prompt.choices else prompt.choices[0],
+                ).execute()
+            elif prompt.is_flag:
                 # Flags are booleans — only the saved preference is relevant.
-                value: Any = inquirer.confirm(  # type: ignore[attr-defined]
+                value = inquirer.confirm(  # type: ignore[attr-defined]
                     message=display_label,
                     default=bool(last_args.get(prompt.key, prompt.default)),
                 ).execute()

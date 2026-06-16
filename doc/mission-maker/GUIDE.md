@@ -315,6 +315,17 @@ security:
 
 Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
+### Mode interactif (assistant)
+
+Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) plutôt que d'échouer sur une option manquante :
+
+- `veaf-tools.exe` (sans argument) → menu de sélection de commande, puis questions.
+- `veaf-tools.exe prepare` → l'assistant demande le dossier cible **et** le template de modules.
+- `veaf-tools.exe prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
+- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe build --tui`).
+
+Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
+
 ---
 
 ## Workflow de build typique

@@ -12,7 +12,9 @@ from veaf_libs.tui import (
     CommandSpec,
     _folder_hint,
     _mission_yaml_defaults,
+    _parse_provided,
     _resolve_prompt_default,
+    maybe_bridge_to_tui,
     run_wizard,
 )
 
@@ -250,3 +252,131 @@ class TestRunWizard:
                             result = run_wizard()
 
         assert result == ["about"]
+
+
+class TestParseProvided:
+    """Splitting a command's CLI tokens into known prompt values + pass-through extras."""
+
+    def _spec(self) -> CommandSpec:
+        return CommandSpec(
+            cli_name="demo",
+            description="demo",
+            prompts=[
+                ArgPrompt("folder", "Folder", is_option=False),
+                ArgPrompt("template", "Template", is_option=True),
+                ArgPrompt("force", "Force", is_option=True, is_flag=True),
+            ],
+        )
+
+    def test_positional_fills_in_order(self) -> None:
+        provided, extra = _parse_provided(self._spec(), ["c:/tmp"])
+        assert provided == {"folder": "c:/tmp"}
+        assert extra == []
+
+    def test_option_with_separate_value(self) -> None:
+        provided, extra = _parse_provided(self._spec(), ["c:/tmp", "--template", "full"])
+        assert provided == {"folder": "c:/tmp", "template": "full"}
+        assert extra == []
+
+    def test_option_with_inline_equals(self) -> None:
+        provided, _ = _parse_provided(self._spec(), ["--template=minimal"])
+        assert provided == {"template": "minimal"}
+
+    def test_flag_option_captured(self) -> None:
+        provided, _ = _parse_provided(self._spec(), ["--force"])
+        assert provided == {"force": "true"}
+
+    def test_unknown_option_passes_through(self) -> None:
+        provided, extra = _parse_provided(self._spec(), ["c:/tmp", "--verbose"])
+        assert provided == {"folder": "c:/tmp"}
+        assert extra == ["--verbose"]
+
+    def test_surplus_positional_passes_through(self) -> None:
+        provided, extra = _parse_provided(self._spec(), ["a", "b"])
+        assert provided == {"folder": "a"}
+        assert extra == ["b"]
+
+
+class TestMaybeBridgeToTui:
+    """The CLI ↔ TUI routing decision."""
+
+    def test_returns_none_when_not_tty(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            assert maybe_bridge_to_tui(["prepare"]) is None
+
+    def test_bare_invocation_runs_full_wizard(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=["build", "mission.miz", "."]) as rw:
+                result = maybe_bridge_to_tui([])
+        rw.assert_called_once_with()
+        assert result == ["build", "mission.miz", "."]
+
+    def test_all_required_provided_runs_as_is(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard") as rw:
+                result = maybe_bridge_to_tui(["prepare", "c:/tmp", "--template", "full"])
+        rw.assert_not_called()
+        assert result is None
+
+    def test_missing_required_triggers_wizard_with_provided(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=["prepare", "c:/tmp", "--template", "full"]) as rw:
+                result = maybe_bridge_to_tui(["prepare", "c:/tmp"])
+        rw.assert_called_once_with(preselected="prepare", provided={"mission_folder": "c:/tmp"})
+        assert result == ["prepare", "c:/tmp", "--template", "full"]
+
+    def test_tui_flag_forces_wizard_even_when_complete(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=["prepare", "c:/tmp", "--template", "full"]) as rw:
+                result = maybe_bridge_to_tui(["prepare", "c:/tmp", "--template", "full", "--tui"])
+        rw.assert_called_once()
+        assert result == ["prepare", "c:/tmp", "--template", "full"]
+
+    def test_unknown_command_runs_as_is(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard") as rw:
+                result = maybe_bridge_to_tui(["totally-unknown-command"])
+            rw.assert_not_called()
+        assert result is None
+
+    def test_passthrough_tokens_are_appended(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=["prepare", "c:/tmp", "--template", "full"]):
+                result = maybe_bridge_to_tui(["prepare", "c:/tmp", "--verbose"])
+        assert result == ["prepare", "c:/tmp", "--template", "full", "--verbose"]
+
+
+class TestRunWizardBridge:
+    """run_wizard's bridge entry points: preselected command + pre-filled args + choices."""
+
+    def test_preselected_skips_command_select(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value=""):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.preferences.save_invocation"):
+                        with patch("InquirerPy.inquirer.select") as sel:
+                            result = run_wizard(
+                                preselected="prepare",
+                                provided={"mission_folder": "c:/tmp", "template": "full"},
+                            )
+                            sel.assert_not_called()  # nothing left to ask
+        assert result[0] == "prepare"
+        assert "c:/tmp" in result
+        assert "--template" in result
+        assert "full" in result
+
+    def test_provided_value_is_not_prompted(self) -> None:
+        # folder provided, template missing → only the template (choices) select is shown
+        sel_instance = type("S", (), {"execute": lambda self: "minimal"})()
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value=""):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.preferences.save_invocation"):
+                        with patch("InquirerPy.inquirer.select", return_value=sel_instance) as sel:
+                            with patch("InquirerPy.inquirer.text") as txt:
+                                result = run_wizard(preselected="prepare", provided={"mission_folder": "c:/tmp"})
+                                txt.assert_not_called()  # folder pre-filled → not asked
+                                sel.assert_called_once()  # template choices select
+        assert "c:/tmp" in result
+        assert "--template" in result
+        assert "minimal" in result

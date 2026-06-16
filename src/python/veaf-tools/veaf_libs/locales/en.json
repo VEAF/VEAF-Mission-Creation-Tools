@@ -501,6 +501,7 @@
   "tui.arg.mission_folder": "Mission folder",
   "tui.arg.mission_folder_dest": "Mission folder (destination)",
   "tui.arg.mission_folder_init": "Mission folder to initialise",
+  "tui.arg.prepare_template": "Module preset (template) for the generated mission.yaml",
   "tui.arg.mission_name_no_ext": "Mission name (no extension)",
   "tui.arg.mission_name_or_file": "Mission name or .miz file",
   "tui.arg.output_yaml": "Output YAML file",

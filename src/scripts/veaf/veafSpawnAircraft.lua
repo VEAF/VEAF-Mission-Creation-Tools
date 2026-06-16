@@ -454,7 +454,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   if not groupName then
     local message = string.format('The AFAC aircraft template could not be found for "%s"', veaf.p(name))
     veaf.loggers.get(veafSpawn.Id):info(message)
-    trigger.action.outTextForCoalition(coalition, message, 15)
+    trigger.action.outTextForCoalition(coalition, veaf.t("spawn.afac_template_not_found", veaf.p(name)), 15)
     return nil
   end
   veaf.loggers.get(veafSpawn.Id):trace("found template=%s", groupName)
@@ -672,20 +672,16 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     end
 
     local humanFrequency = dcsFrequency / 1000000
-    local text = "AFAC "
-      .. string.format(veafSpawn.AFAC.numberSpawned[coalition])
-      .. "/"
-      .. string.format(veafSpawn.AFAC.maximumAmount)
-      .. " - "
-      .. string.format(_spawnedGroup.name)
-      .. " ("
-      .. string.format(country)
-      .. ") - on "
-      .. string.format(humanFrequency)
-      .. "AM (DCS AFAC) or "
-      .. string.format(frequency)
-      .. string.upper(mod)
-      .. " (SRS)"
+    local text = veaf.t(
+      "spawn.afac_report",
+      veafSpawn.AFAC.numberSpawned[coalition],
+      veafSpawn.AFAC.maximumAmount,
+      _spawnedGroup.name,
+      country,
+      humanFrequency,
+      frequency,
+      string.upper(mod)
+    )
     veaf.loggers.get(veafSpawn.Id):info(text)
     if not silent then
       trigger.action.outTextForCoalition(coalition, text, 15)
@@ -727,15 +723,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     Controller.setCommand(controller, _setCallsign)
 
     if veafNamedPoints and not silent then
-      text = "AFAC"
-        .. " - "
-        .. string.format(_spawnedGroup.name)
-        .. " - "
-        .. string.format(humanFrequency)
-        .. "AM (DCS) or "
-        .. string.format(frequency)
-        .. string.upper(mod)
-        .. " (SRS)"
+      text = veaf.t("spawn.afac_namepoint", _spawnedGroup.name, humanFrequency, frequency, string.upper(mod))
       veafNamedPoints.namePoint({ x = spawnSpot.x, y = altitude, z = spawnSpot.z }, text, veaf.getCoalitionForCountry(country, true), true)
     end
 
@@ -821,7 +809,7 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
   else
     local message = string.format('The CAP aircraft template could not be found for "%s"', veaf.p(name))
     veaf.loggers.get(veafSpawn.Id):info(message)
-    trigger.action.outText(message, 15)
+    trigger.action.outText(veaf.t("spawn.cap_template_not_found", veaf.p(name)), 15)
     return nil
   end
   veaf.loggers.get(veafSpawn.Id):trace("templatesNamesToChooseFrom=%s", veaf.lp(templatesNamesToChooseFrom))
@@ -1167,7 +1155,7 @@ function veafSpawn.spawnCombatAirPatrol(
   local message = string.format("A CAP of %s (%s) has been spawned", name, country)
   veaf.loggers.get(veafSpawn.Id):info(message)
   if not silent then
-    trigger.action.outText(message, 15)
+    trigger.action.outText(veaf.t("spawn.cap_spawned", name, country), 15)
   end
 
   return _spawnedGroup.name

@@ -17,6 +17,7 @@
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ✅ |
 | Lot LUA-I18N-WEATHER — localize the `veafWeatherData` report (`toString`/`toStringExtended`/`toStringAtis`); keep standardized aeronautical abbreviations as-is | ✅ |
+| Lot LUA-I18N-SWEEP — audit + localize all remaining non-community VEAF on-screen messages (move/namedpoints/spawn/qra/airwaves/sanctuary/groundai/mg/combatzone/combatmission/carrier/transport) | ✅ |
 | Lot FIX-CONVERT-V5-COMMENTS — `convert-v5` extracts commented-out (`--[[ ]]`) ASSETS/QRA definitions as active and counts comment-only module bodies as enabled → phantom config + spurious "group absent" build warnings | ⬜ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
@@ -136,6 +137,27 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | LUA-I18N-WEATHER-001 | Route the `veafWeatherData` report (toString/Extended/Atis + helpers) through `veaf.t` (FR + EN), keep aeronautical abbreviations; update `test_veafWeather.lua` (load i18n, pin en) and add FR catalog tests | `src/scripts/veaf/veafWeather.lua`, `src/scripts/veaf/veafI18n.lua`, `test/lua/` | feat | ✅ |
+
+---
+
+## Lot LUA-I18N-SWEEP — localize all remaining VEAF on-screen messages
+
+**Goal**: complete the i18n migration started by LUA-I18N-004/CAS/WEATHER. Per the project rule, every VEAF on-screen message must be localized (only community modules like CTLD are exempt). An exhaustive parallel audit of all non-community `veaf*.lua` modules found ~100 player-facing strings (passed to `outText*` / `markTo*`) still hardcoded in English. Route them all through `veaf.t` with FR + EN catalog entries.
+
+**Decisions**:
+
+- **Brevity / aeronautical codes stay verbatim** in both languages (extends the WEATHER decision): TACAN, ICLS, LINK 4, ACLS, BRC, COMM, BRA, MERGED, CAVOK, QNH, QFE, kn, kts, NM, SM, MGRS, AM, SRS, etc.
+- **F10 radio-menu labels are out of scope** — they double as `delCommand` identifiers, so localizing them would break command removal.
+- **Mission-overridable default messages** (QRA, AirWaves, Sanctuary, GroundAI, MissileGuardian, the default CAP objective) now store i18n **keys** as their defaults and resolve them through `veaf.t` at send time: the default localizes, while a mission's custom override passes through unchanged (`veaf.t` returns an unknown key verbatim before formatting).
+- Logs stay English; only on-screen text is localized.
+
+**Branch**: `feature/lua-i18n-sweep` → PR → `develop-v6`
+
+**Done**: ~95 catalog keys added (FR + EN) across `move.*`, `namedpoints.*`, `spawn.*`, `qra.*`, `airwaves.*`, `sanctuary.*`, `groundai.*`, `mg.*`, `report.*` (shared coord/count fragments), `combatzone.*`, `combatmission.*`, `carrier.*`, `transport.*`. 13 modules routed through `veaf.t`. Rendering tests in `test_veafCombatZone`/`test_veafCombatMission`/`test_veafCarrierOperations` now load `veafI18n.lua` and pin `language = "en"`; representative FR/EN tests added to `test_veafI18n.lua` (32 total). Full Lua suite green (34 suites), stylua clean, no duplicate catalog keys.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| LUA-I18N-SWEEP-001 | Audit + route all remaining non-community VEAF on-screen messages through `veaf.t` (FR + EN); key-as-default pattern for overridable templates; keep brevity codes and radio-menu labels; update affected rendering tests + add FR catalog tests | `src/scripts/veaf/*.lua`, `src/scripts/veaf/veafI18n.lua`, `test/lua/` | feat | ✅ |
 
 ---
 

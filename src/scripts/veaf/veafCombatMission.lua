@@ -243,7 +243,7 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
       if (nbKillsToWin == -1 and nbLiveUnits == 0) or (nbKillsToWin >= 0 and nbDeadUnits >= nbKillsToWin) then
         -- objective is achieved
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("objective is achieved"))
-        local msg = string.format(self:getMessage(), nbDeadUnits)
+        local msg = veaf.t(self:getMessage(), nbDeadUnits)
         if not mission:isSilent() then
           trigger.action.outText(msg, 15)
         end
@@ -293,7 +293,7 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
       if failed then
         -- objective is failed
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("objective is failed"))
-        local msg = string.format(self:getMessage(), killedObjectsNames)
+        local msg = veaf.t(self:getMessage(), killedObjectsNames)
         if not mission:isSilent() then
           trigger.action.outText(msg, 15)
         end
@@ -762,7 +762,7 @@ end
 
 function VeafCombatMission:getRemainingEnemiesString()
   local nbLiveUnits, nbDamagedUnits, nbDeadUnits = self:getRemainingEnemies()
-  return string.format("%d alive (%d damaged), %d dead", nbLiveUnits, nbDamagedUnits, nbDeadUnits)
+  return veaf.t("combatmission.enemies_count", nbLiveUnits, nbDamagedUnits, nbDeadUnits)
 end
 
 function VeafCombatMission:getRemainingEnemies(whatsInAKill)
@@ -818,28 +818,28 @@ end
 
 function VeafCombatMission:getInformation()
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:getInformation()", self.name or ""))
-  local message = "COMBAT MISSION " .. self:getFriendlyName() .. " \n\n"
+  local message = veaf.t("combatmission.header", self:getFriendlyName())
   if self:getBriefing() then
-    message = message .. "BRIEFING: \n"
+    message = message .. veaf.t("report.briefing_label")
     message = message .. self:getBriefing()
     message = message .. "\n\n"
   end
   if self:getObjectives() and #self:getObjectives() > 0 then
-    message = message .. "OBJECTIVES: \n"
+    message = message .. veaf.t("combatmission.objectives_label")
     for _, objective in pairs(self:getObjectives()) do
-      message = message .. " - " .. objective:getDescription() .. "\n"
+      message = message .. " - " .. veaf.t(objective:getDescription()) .. "\n"
     end
     message = message .. "\n\n"
   end
   if self:isActive() then
     -- generate information dispatch
-    message = message .. "ENEMIES : " .. self:getRemainingEnemiesString() .. "\n"
+    message = message .. veaf.t("combatmission.enemies_label", self:getRemainingEnemiesString())
 
     if self:isTraining() then
       -- TODO find the position of the enemies
     end
   else
-    message = message .. "mission is not yet active."
+    message = message .. veaf.t("combatmission.not_active")
   end
 
   return message
@@ -976,14 +976,7 @@ function VeafCombatMission:completionCheck()
     local result = objective:onCheck(self)
     if result == VeafCombatMissionObjective.FAILED then
       -- mission is failed
-      local message = string.format(
-        [[
-Objective not met : %s
-The mission %s will now end.
-You can replay by starting it again, in the radio menu.]],
-        objective:getDescription(),
-        self:getFriendlyName()
-      )
+      local message = veaf.t("combatmission.objective_failed", objective:getDescription(), self:getFriendlyName())
       if not self:isSilent() then
         trigger.action.outText(message, 15)
       end
@@ -991,13 +984,7 @@ You can replay by starting it again, in the radio menu.]],
       reschedule = false
     elseif result == VeafCombatMissionObjective.SUCCESS then
       -- mission is won
-      local message = string.format(
-        [[
-All objectives were met !
-The mission %s is a success ! It will now end.
-You can replay by starting it again, in the radio menu.]],
-        self:getFriendlyName()
-      )
+      local message = veaf.t("combatmission.mission_success", self:getFriendlyName())
       if not self:isSilent() then
         trigger.action.outText(message, 15)
       end
@@ -1109,7 +1096,7 @@ function veafCombatMission.GetMission(name)
   if not mission then
     local message = string.format("VeafCombatMission [%s] was not found !", name)
     veaf.loggers.get(veafCombatMission.Id):error(message)
-    trigger.action.outText(message, 5)
+    trigger.action.outText(veaf.t("combatmission.mission_not_found", name), 5)
   end
   return mission
 end
@@ -1384,9 +1371,7 @@ function veafCombatMission.buildRadioMenu()
 end
 
 function veafCombatMission.help(unitName)
-  local text = "Combat missions are defined by the mission maker, and listed here\n"
-    .. "You can start and stop them at will,\n"
-    .. "as well as ask for information about their status."
+  local text = veaf.t("combatmission.help")
 
   veaf.outTextForGroup(unitName, text, 30)
 end
@@ -1400,7 +1385,7 @@ function veafCombatMission.listAvailableMissions(unitName)
   end
   table.sort(sortedMissions)
 
-  local text = "List of all available combat missions:\n"
+  local text = veaf.t("combatmission.list_available")
 
   for _, missionName in pairs(sortedMissions) do
     text = text .. " - " .. missionName .. "\n"
@@ -1418,10 +1403,10 @@ function veafCombatMission.listActiveMissions()
   end
   table.sort(sortedMissions)
 
-  local text = "No active combat mission !"
+  local text = veaf.t("combatmission.no_active")
 
   if #sortedMissions > 0 then
-    text = "List of active combat missions:\n"
+    text = veaf.t("combatmission.list_active")
 
     for _, missionName in pairs(sortedMissions) do
       text = text .. " - " .. missionName .. "\n"
@@ -1499,8 +1484,8 @@ function veafCombatMission.addCapMission(
       :addObjective(
         VeafCombatMissionObjective:new()
           :setName("Kill all the ennemies")
-          :setDescription("you must kill all of the ennemies")
-          :setMessage("%d ennemies destroyed !")
+          :setDescription("combatmission.obj_kill_all_desc")
+          :setMessage("combatmission.obj_kill_all_msg")
           :configureAsKillEnemiesObjective()
       )
       :initialize(),

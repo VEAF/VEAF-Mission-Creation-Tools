@@ -182,4 +182,69 @@ function TestVeafI18n:test_weather_qnh_label_keeps_abbreviation_both_languages()
   luaunit.assertEquals(veaf.t("weather.line_qnh", "1013Hpa"), "\nQNH:           1013Hpa")
 end
 
+-- ---------------------------------------------------------------------------
+-- LUA-I18N-SWEEP: remaining VEAF module messages
+-- ---------------------------------------------------------------------------
+
+function TestVeafI18n:test_sweep_spawn_messages()
+  luaunit.assertEquals(veaf.t("spawn.cargo_spawned", "Box", 200), "Cargo Box pesant 200 kg apparu")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("spawn.cargo_spawned", "Box", 200), "Cargo Box weighing 200 kg has been spawned")
+end
+
+function TestVeafI18n:test_sweep_move_help_keeps_command_tokens()
+  local fr = veaf.t("move.help")
+  luaunit.assertStrContains(fr, "_move")
+  luaunit.assertStrContains(fr, "name [groupname]")
+end
+
+function TestVeafI18n:test_sweep_namedpoints_label()
+  luaunit.assertEquals(veaf.t("namedpoints.label", "ALPHA"), "VEAF - Point nommé ALPHA")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("namedpoints.label", "ALPHA"), "VEAF - Point named ALPHA")
+end
+
+function TestVeafI18n:test_sweep_template_defaults_resolve_as_keys()
+  -- QRA / AirWaves / Sanctuary / GroundAI / MG default messages are catalog keys
+  luaunit.assertEquals(veaf.t("qra.msg_start", "Batumi QRA"), "Batumi QRA est en ligne")
+  luaunit.assertEquals(veaf.t("airwaves.msg_won", "Wave"), "Wave - gagné (plus de vagues)")
+  luaunit.assertEquals(veaf.t("groundai.msg_start", "Convoy"), "L'unité terrestre Convoy exécute ou attend des ordres.")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("qra.msg_start", "Batumi QRA"), "Batumi QRA is online")
+  luaunit.assertEquals(veaf.t("mg.warning", "Colt", "Viper"), "Warning, Colt : you've been attacked by Viper and a missile is in the air")
+end
+
+function TestVeafI18n:test_sweep_unknown_key_passes_through_for_custom_overrides()
+  -- a mission overriding a default message with its own literal must keep it
+  -- verbatim (veaf.t returns an unknown key unchanged, then formats it).
+  luaunit.assertEquals(veaf.t("My custom %s message", "QRA"), "My custom QRA message")
+end
+
+function TestVeafI18n:test_sweep_shared_report_fragments()
+  luaunit.assertEquals(veaf.t("report.count_vehicles", 3), "3 véhicule(s)")
+  luaunit.assertEquals(veaf.t("report.mgrs", "37T 1 2"), "MGRS/UTM         : 37T 1 2.\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("report.count_vehicles", 3), "3 vehicle(s)")
+end
+
+function TestVeafI18n:test_sweep_combat_headers()
+  luaunit.assertEquals(veaf.t("combatzone.header", "Alpha"), "ZONE DE COMBAT Alpha \n\n")
+  luaunit.assertEquals(veaf.t("combatmission.not_active"), "la mission n'est pas encore active.")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("combatzone.header", "Alpha"), "COMBAT ZONE Alpha \n\n")
+end
+
+function TestVeafI18n:test_sweep_carrier_keeps_aero_codes()
+  -- aeronautical codes (BRC, TACAN, COMM, kn) stay; only words are translated
+  luaunit.assertEquals(veaf.t("carrier.atc_tanker", "Texaco", "51", "X", "127.5"), "\n  - Ravitailleur Texaco : TACAN 51X, COMM 127.5\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("carrier.atc_tanker", "Texaco", "51", "X", "127.5"), "\n  - Tanker Texaco : TACAN 51X, COMM 127.5\n")
+end
+
+function TestVeafI18n:test_sweep_transport_report()
+  luaunit.assertEquals(veaf.t("transport.report_dropzone", 2, 5), "ZONE DE LARGAGE : ravitailler un groupe de 2 véhicules et 5 soldats.\n")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("transport.report_dropzone", 2, 5), "DROP ZONE : ressuply a group of 2 vehicles and 5 soldiers.\n")
+end
+
 os.exit(luaunit.LuaUnit.run())

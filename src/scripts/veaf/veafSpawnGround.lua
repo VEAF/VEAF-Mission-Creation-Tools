@@ -214,11 +214,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
       end
     end
   end
-  trigger.action.outTextForCoalition(
-    _side,
-    string.format("Finished building FOB %s! Crates and Troops can now be picked up.", _fobName),
-    10
-  )
+  trigger.action.outTextForCoalition(_side, veaf.t("spawn.fob_built", _fobName), 10)
 
   _namedPoint.tower = "No Control"
 
@@ -790,12 +786,12 @@ function veafSpawn.infoOnAllConvoys(unitName)
       ---@diagnostic disable-next-line: param-type-mismatch
       local lat, lon = coord.LOtoLL(averageGroupPosition)
       local llString = mist.tostringLL(lat, lon, 0, true)
-      text = text .. " - " .. name .. ", " .. nbVehicles .. " vehicles : " .. llString
+      text = text .. veaf.t("spawn.convoy_info", name, nbVehicles, llString)
       if veafSpawn.spawnedConvoys[name].stopped then
-        text = text .. ", stopped"
+        text = text .. veaf.t("spawn.convoy_stopped")
       end
     else
-      text = text .. " - " .. name .. " has been destroyed"
+      text = text .. veaf.t("spawn.convoy_destroyed", name)
       -- convoy has been dispatched, remove it from the convoys list
       veafSpawn.spawnedConvoys[name] = nil
     end

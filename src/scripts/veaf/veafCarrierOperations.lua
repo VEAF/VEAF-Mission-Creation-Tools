@@ -131,7 +131,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
 
   veafCarrierOperations.continueCarrierOperations(groupName) -- will update the *carrier* structure
 
-  local text = veafCarrierOperations.getAtcForCarrierOperations(groupName) .. "\n\nGetting a good alignment may require up to 5 minutes"
+  local text = veafCarrierOperations.getAtcForCarrierOperations(groupName) .. veaf.t("carrier.alignment_delay")
 
   veaf.loggers.get(veafCarrierOperations.Id):info(text)
   veaf.outTextForGroup(userUnitName, text, 25)
@@ -301,7 +301,11 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
         veaf.p(newDir)
       )
       veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
-      veaf.outTextForGroup(userUnitName, msg, 5)
+      veaf.outTextForGroup(
+        userUnitName,
+        veaf.t("carrier.obstruction", veaf.p(#obstructions), veaf.p(dir), veaf.p(groupName), veaf.p(newDir)),
+        5
+      )
       headingRad = mist.utils.toRadian(newDir)
       length = 4000
       newWaypoint = {
@@ -686,7 +690,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
 
   if carrier.conductingAirOperations then
     local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) / 60, 1)
-    result = "The carrier group " .. groupName .. " is conducting air operations :\n"
+    result = veaf.t("carrier.atc_conducting", groupName)
     if carrier.ATC.tower then
       result = result .. "  - ATC : " .. carrier.ATC.tower .. "\n"
     end
@@ -699,33 +703,24 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
     if carrier.ATC.link4 then
       result = result .. "  - LINK 4 : " .. carrier.ATC.link4 .. ", "
       if carrier.ATC.acls then
-        result = result .. "ACLS is available"
+        result = result .. veaf.t("carrier.atc_acls_available")
       end
       result = result .. "\n"
     end
     --"  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
-    result = result
-      .. "\n  - BRC : "
-      .. carrier.heading
-      .. " (true) at "
-      .. carrier.speed
-      .. " kn\n"
-      .. "  - Remaining time : "
-      .. remainingTime
-      .. " minutes\n"
+    result = result .. veaf.t("carrier.atc_brc", carrier.heading, carrier.speed, remainingTime)
     if carrier.tankerData then
       result = result
-        .. "\n  - Tanker "
-        .. carrier.tankerData.tankerCallsign
-        .. " : TACAN "
-        .. carrier.tankerData.tankerTacanChannel
-        .. carrier.tankerData.tankerTacanMode
-        .. ", COMM "
-        .. carrier.tankerData.tankerFrequency
-        .. "\n"
+        .. veaf.t(
+          "carrier.atc_tanker",
+          carrier.tankerData.tankerCallsign,
+          carrier.tankerData.tankerTacanChannel,
+          carrier.tankerData.tankerTacanMode,
+          carrier.tankerData.tankerFrequency
+        )
     end
   else
-    result = "The carrier group " .. groupName .. " is not conducting carrier air operations\n"
+    result = veaf.t("carrier.atc_not_conducting", groupName)
   end
 
   if not skipNavigationData then
@@ -739,19 +734,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
             local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
             veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
             ]]
-      -- stylua: ignore start
-      result = result
-        .. "\n"
-        .. "Current navigation parameters :\n"
-        .. "  - Current heading (true) "
-        .. veaf.round(currentHeading, 0)
-        .. "\n"
-        --"  - Current heading (mag)  " .. veaf.round(currentHeading, 0) .. "\n" ..
-
-        .. "  - Current speed "
-        .. currentSpeed
-        .. " kn\n"
-      -- stylua: ignore end
+      result = result .. veaf.t("carrier.atc_navigation", veaf.round(currentHeading, 0), currentSpeed)
     end
   end
 
@@ -763,7 +746,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
       weatherUnitSystem = veafWeatherUnitSystem.Systems.MetricEastern -- for Russian carriers
     end
   end
-  result = result .. "\nWEATHER:\n" .. veafWeatherData.getWeatherString(startPosition, nil, weatherUnitSystem, 20) -- typical carrier deck height
+  result = result .. veaf.t("carrier.atc_weather_header") .. veafWeatherData.getWeatherString(startPosition, nil, weatherUnitSystem, 20) -- typical carrier deck height
 
   return result
 end
@@ -1075,7 +1058,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafCarrierOperations.listAvailableCarriers(forGroup)
-  local _message = "Available carriers :\n"
+  local _message = veaf.t("carrier.available_list")
   for name, carrier in pairs(veafCarrierOperations.carriers) do
     _message = _message .. " - " .. name .. "\n"
   end

@@ -517,6 +517,477 @@ veaf.i18nCatalog = {
     en = "\nSunset %s",
   },
 
+  -- veafMove
+  ["move.tanker_set_no_orbit"] = {
+    fr = "Impossible de régler le ravitailleur %s : aucune tâche ORBIT définie",
+    en = "Cannot set tanker %s parameters because it has no ORBIT task defined",
+  },
+  ["move.tanker_set_params"] = {
+    fr = "Ravitailleur %s réglé à %d kn (sol) à %d ft",
+    en = "Set tanker %s to %d kn (ground) at %d ft",
+  },
+  ["move.tanker_move_no_orbit"] = {
+    fr = "Impossible de déplacer le ravitailleur %s : aucune tâche ORBIT définie",
+    en = "Cannot move tanker %s because it has no ORBIT task defined",
+  },
+  ["move.help"] = {
+    fr = "Créez un marqueur et tapez « _move <group|tanker|afac>, name <groupname> » dans le texte\n"
+      .. "Cela envoie un ordre de déplacement au groupe spécifié dans DCS\n"
+      .. "Tapez « _move group, name [groupname] » pour déplacer le groupe vers le point du marqueur\n"
+      .. "     ajoutez « , speed [speed] » pour déplacer le groupe à la vitesse indiquée (en nœuds)\n"
+      .. "Tapez « _move tanker, name [groupname] » pour créer un nouveau plan de vol ravitailleur et déplacer le ravitailleur.\n"
+      .. "     ajoutez « , speed [speed] » pour déplacer le ravitailleur et exécuter sa mission de ravitaillement à la vitesse indiquée (en nœuds)\n"
+      .. "     ajoutez « , alt [altitude] » pour préciser l'altitude de la branche de ravitaillement (en pieds)\n"
+      .. "Tapez « _move afac, name [groupname] » pour créer un nouveau plan de vol JTAC et déplacer le drone AFAC.\n"
+      .. "     ajoutez « , speed [speed] » pour déplacer le drone et exécuter sa mission à la vitesse indiquée (en nœuds)\n"
+      .. "     ajoutez « , alt [altitude] » pour préciser l'altitude à laquelle le drone tournera (en pieds)",
+    en = 'Create a marker and type "_move <group|tanker|afac>, name <groupname> " in the text\n'
+      .. "This will issue a move command to the specified group in the DCS world\n"
+      .. 'Type "_move group, name [groupname]" to move the specified group to the marker point\n'
+      .. '     add ", speed [speed]" to make the group move and at the specified speed (in knots)\n'
+      .. 'Type "_move tanker, name [groupname]" to create a new tanker flight plan and move the specified tanker.\n'
+      .. '     add ", speed [speed]" to make the tanker move and execute its refuel mission at the specified speed (in knots)\n'
+      .. '     add ", alt [altitude]" to specify the refuel leg altitude (in feet)\n'
+      .. 'Type "_move afac, name [groupname]" to create a new JTAC flight plan and move the specified afac drone.\n'
+      .. '     add ", speed [speed]" to make the tanker move and execute its mission at the specified speed (in knots)\n'
+      .. '     add ", alt [altitude]" to specify the altitude at which the drone will circle (in feet)',
+  },
+
+  -- veafNamedPoints
+  ["namedpoints.added"] = {
+    fr = "VEAF - Point nommé %s ajouté pour sa propre coalition.",
+    en = "VEAF - Point named %s added for own coalition.",
+  },
+  ["namedpoints.label"] = {
+    fr = "VEAF - Point nommé %s",
+    en = "VEAF - Point named %s",
+  },
+
+  -- veafSpawn (effects / ground / aircraft feedback)
+  ["spawn.logistic_spawned"] = {
+    fr = "Unité logistique %s apparue et ajoutée à CTLD.",
+    en = "Logistic unit %s has been spawned and was added to CTLD.",
+  },
+  ["spawn.logistic_failed"] = {
+    fr = "L'unité logistique n'a pas pu être créée",
+    en = "Logistic unit could not be spawned",
+  },
+  ["spawn.cargo_spawned"] = {
+    fr = "Cargo %s pesant %s kg apparu",
+    en = "Cargo %s weighing %s kg has been spawned",
+  },
+  ["spawn.marked_smoke_flares"] = {
+    fr = ". Il est marqué par une fumée verte et des fusées rouges",
+    en = ". It's marked with green smoke and red flares",
+  },
+  ["spawn.static_spawned"] = {
+    fr = "Statique %s apparu",
+    en = "Static %s has been spawned",
+  },
+  ["spawn.drawing_not_found"] = {
+    fr = "Impossible de trouver un dessin nommé %s",
+    en = "Could not find a drawing named %s",
+  },
+  ["spawn.fob_built"] = {
+    fr = "FOB %s terminée ! Caisses et troupes peuvent maintenant être récupérées.",
+    en = "Finished building FOB %s! Crates and Troops can now be picked up.",
+  },
+  ["spawn.convoy_info"] = {
+    fr = " - %s, %d véhicules : %s",
+    en = " - %s, %d vehicles : %s",
+  },
+  ["spawn.convoy_stopped"] = {
+    fr = ", à l'arrêt",
+    en = ", stopped",
+  },
+  ["spawn.convoy_destroyed"] = {
+    fr = " - %s a été détruit",
+    en = " - %s has been destroyed",
+  },
+  ["spawn.afac_template_not_found"] = {
+    fr = "Le modèle d'avion AFAC est introuvable pour « %s »",
+    en = 'The AFAC aircraft template could not be found for "%s"',
+  },
+  ["spawn.afac_report"] = {
+    fr = "AFAC %s/%s - %s (%s) - sur %sAM (DCS AFAC) ou %s%s (SRS)",
+    en = "AFAC %s/%s - %s (%s) - on %sAM (DCS AFAC) or %s%s (SRS)",
+  },
+  ["spawn.afac_namepoint"] = {
+    fr = "AFAC - %s - %sAM (DCS) ou %s%s (SRS)",
+    en = "AFAC - %s - %sAM (DCS) or %s%s (SRS)",
+  },
+  ["spawn.cap_template_not_found"] = {
+    fr = "Le modèle d'avion CAP est introuvable pour « %s »",
+    en = 'The CAP aircraft template could not be found for "%s"',
+  },
+  ["spawn.cap_spawned"] = {
+    fr = "Une CAP de %s (%s) est apparue",
+    en = "A CAP of %s (%s) has been spawned",
+  },
+
+  -- veafQraManager (default status messages; %s = QRA description)
+  ["qra.msg_start"] = {
+    fr = "%s est en ligne",
+    en = "%s is online",
+  },
+  ["qra.msg_deploy"] = {
+    fr = "%s se déploie",
+    en = "%s is deploying",
+  },
+  ["qra.msg_destroyed"] = {
+    fr = "%s a été détruit",
+    en = "%s has been destroyed",
+  },
+  ["qra.msg_ready"] = {
+    fr = "%s est prêt",
+    en = "%s is ready",
+  },
+  ["qra.msg_out"] = {
+    fr = "%s n'a plus d'avions",
+    en = "%s is out of aircrafts",
+  },
+  ["qra.msg_resupplied"] = {
+    fr = "%s a été réapprovisionné",
+    en = "%s has been resupplied",
+  },
+  ["qra.msg_airbase_down"] = {
+    fr = "%s a perdu sa base aérienne",
+    en = "%s lost it's airbase",
+  },
+  ["qra.msg_airbase_up"] = {
+    fr = "%s dispose maintenant d'une base aérienne",
+    en = "%s now has an airbase",
+  },
+  ["qra.msg_stop"] = {
+    fr = "%s est hors ligne",
+    en = "%s is offline",
+  },
+
+  -- veafAirWaves (default messages)
+  ["airwaves.msg_start"] = {
+    fr = "%s - en ligne",
+    en = "%s - online",
+  },
+  ["airwaves.msg_wait_for_humans"] = {
+    fr = "%s - attente de %s secondes pour plus de joueurs",
+    en = "%s - waiting %s seconds for more players",
+  },
+  ["airwaves.msg_wait_to_deploy"] = {
+    fr = "%s - attente de %s secondes avant la prochaine vague",
+    en = "%s - waiting %s seconds before next wave",
+  },
+  ["airwaves.msg_deploy"] = {
+    fr = "%s - déploiement de la vague %s",
+    en = "%s - deploying wave %s",
+  },
+  ["airwaves.msg_deploy_players"] = {
+    fr = "Vague %s en déploiement, %s",
+    en = "Wave %s deploying, %s",
+  },
+  ["airwaves.msg_outside_of_zone"] = {
+    fr = "%s - vous êtes hors de la zone depuis %s secondes ; revenez à l'intérieur, ou vous serez détruit après %s secondes.",
+    en = "%s - you've been outside of the zone for %s seconds; go back inside, or you'll be destroyed after %s seconds.",
+  },
+  ["airwaves.msg_destroyed"] = {
+    fr = "%s - la vague %s a été détruite",
+    en = "%s - wave %s has been destroyed",
+  },
+  ["airwaves.msg_won"] = {
+    fr = "%s - gagné (plus de vagues)",
+    en = "%s - won (no more waves)",
+  },
+  ["airwaves.msg_lost"] = {
+    fr = "%s - perdu (plus de joueurs)",
+    en = "%s - lost (no more players)",
+  },
+  ["airwaves.msg_stop"] = {
+    fr = "%s - hors ligne",
+    en = "%s - offline",
+  },
+
+  -- veafSanctuary (default messages)
+  ["sanctuary.msg_warning"] = {
+    fr = "Attention, %s : vous êtes entré dans une zone sanctuaire et serez abattu dans %d secondes si vous ne partez pas IMMÉDIATEMENT",
+    en = "Warning, %s : you've entered a sanctuary zone and will be shot in %d seconds if you don't leave IMMEDIATELY",
+  },
+  ["sanctuary.msg_spawn"] = {
+    fr = "Vous avez été prévenu : déploiement des systèmes de défense",
+    en = "You've been warned : deploying defense systems",
+  },
+  ["sanctuary.msg_shot_target"] = {
+    fr = "Attention, %s : vous avez été attaqué par %s ; nous avons détruit le missile en vol !",
+    en = "Warning, %s : you've been attacked by %s ; we destroyed the missile in the air !",
+  },
+  ["sanctuary.msg_shot_launcher"] = {
+    fr = "Attention, %s : vous avez attaqué %s ; nous avons détruit le missile en vol. Ne recommencez pas ou nous vous détruirons !",
+    en = "Warning, %s : you've attacked %s ; we destroyed the missile in the air. Don't do that again or we'll destroy you !",
+  },
+  ["sanctuary.critical_prefix"] = {
+    fr = "CRITIQUE : %s - %s",
+    en = "CRITICAL: %s - %s",
+  },
+
+  -- veafGroundAI (default messages)
+  ["groundai.msg_stop"] = {
+    fr = "L'unité terrestre %s a cessé d'exécuter et attend des ordres.",
+    en = "Ground unit %s has stopped executing and awaiting orders.",
+  },
+  ["groundai.msg_start"] = {
+    fr = "L'unité terrestre %s exécute ou attend des ordres.",
+    en = "Ground unit %s is executing or awaiting orders.",
+  },
+
+  -- veafMissileGuardian
+  ["mg.warning"] = {
+    fr = "Attention, %s : vous avez été attaqué par %s et un missile est en vol",
+    en = "Warning, %s : you've been attacked by %s and a missile is in the air",
+  },
+
+  -- Shared report fragments (combat zone/mission, transport). Coordinate labels
+  -- keep their aeronautical form; only the descriptive words are translated.
+  ["report.briefing_label"] = {
+    fr = "BRIEFING : \n",
+    en = "BRIEFING: \n",
+  },
+  ["report.count_ships"] = {
+    fr = "%d navire(s)",
+    en = "%d ship(s)",
+  },
+  ["report.count_structures"] = {
+    fr = "%d structure(s)",
+    en = "%d structure(s)",
+  },
+  ["report.count_vehicles"] = {
+    fr = "%d véhicule(s)",
+    en = "%d vehicle(s)",
+  },
+  ["report.count_soldiers"] = {
+    fr = "%d soldat(s)",
+    en = "%d soldier(s)",
+  },
+  ["report.latlon_decimal"] = {
+    fr = "LAT LON (décimal): %s.\n",
+    en = "LAT LON (decimal): %s.\n",
+  },
+  ["report.latlon_dms"] = {
+    fr = "LAT LON (DMS)    : %s.\n",
+    en = "LAT LON (DMS)    : %s.\n",
+  },
+  ["report.mgrs"] = {
+    fr = "MGRS/UTM         : %s.\n",
+    en = "MGRS/UTM         : %s.\n",
+  },
+  ["report.from_bullseye"] = {
+    fr = "DEPUIS BULLSEYE  : %s.\n",
+    en = "FROM BULLSEYE    : %s.\n",
+  },
+  ["report.bullseye_value"] = {
+    fr = "%03d pour %d km /%d nm",
+    en = "%03d for %dkm /%dnm",
+  },
+  ["report.weather_header"] = {
+    fr = "\n\nMÉTÉO :\n",
+    en = "\n\nWEATHER:\n",
+  },
+
+  -- veafCombatZone
+  ["combatzone.complete"] = {
+    fr = "\n    Bien joué ! Tous les ennemis de la zone %s ont été détruits ou mis en déroute."
+      .. "\n    La zone va maintenant être désactivée."
+      .. "\n    Vous pouvez rejouer en l'activant à nouveau, dans le menu radio.",
+    en = "\n    Well done ! All enemies in zone %s have been destroyed or routed."
+      .. "\n    The zone will now be desactivated."
+      .. "\n    You can replay by activating it again, in the radio menu.",
+  },
+  ["combatzone.smoke_requested"] = {
+    fr = "Bien reçu, fumée ROUGE demandée sur %s !",
+    en = "Copy RED smoke requested on %s !",
+  },
+  ["combatzone.flare_requested"] = {
+    fr = "Bien reçu, fusée éclairante demandée sur %s !",
+    en = "Copy illumination flare requested on %s !",
+  },
+  ["combatzone.operation_complete"] = {
+    fr = "L'opération %s est terminée. Félicitations !",
+    en = "Operation %s is over. Congratulations !",
+  },
+  ["combatzone.zone_not_in_mission"] = {
+    fr = "La zone trigger [%s] n'existe pas dans la mission !",
+    en = "Trigger zone [%s] does not exist in the mission !",
+  },
+  ["combatzone.header"] = {
+    fr = "ZONE DE COMBAT %s \n\n",
+    en = "COMBAT ZONE %s \n\n",
+  },
+  ["combatzone.friends"] = {
+    fr = "AMIS : %s restants.\n",
+    en = "FRIENDS: %s remaining.\n",
+  },
+  ["combatzone.enemies"] = {
+    fr = "ENNEMIS : %s restants.\n",
+    en = "ENEMIES: %s remaining.\n",
+  },
+  ["combatzone.not_active"] = {
+    fr = "la zone n'est pas encore active.",
+    en = "zone is not yet active.",
+  },
+  ["combatzone.zone_not_found"] = {
+    fr = "VeafCombatZone [%s] introuvable !",
+    en = "VeafCombatZone [%s] was not found !",
+  },
+  ["combatzone.help"] = {
+    fr = "Les zones de combat sont définies par le créateur de mission\n"
+      .. "Vous pouvez les activer et les désactiver à volonté,\n"
+      .. "ainsi que demander des informations, un laser JTAC et de la fumée. \n\n"
+      .. "Les opérations de combat sont définies par le créateur de mission\n"
+      .. "Une opération de combat est une série de zones de combat à terminer,\n"
+      .. "Vous pouvez demander des informations pour le briefing et le renseignement des ordres en cours.",
+    en = "Combat zones are defined by the mission maker\n"
+      .. "You can activate and desactivate them at will,\n"
+      .. "as well as ask for information, JTAC laser and smoke. \n\n"
+      .. "Combat operations are defined by the mission maker\n"
+      .. "A combat operation is a series of combat zones to complete,\n"
+      .. "You can ask information to get briefing and intel for current tasking orders.",
+  },
+
+  -- veafCombatMission
+  ["combatmission.enemies_count"] = {
+    fr = "%d en vie (%d endommagés), %d morts",
+    en = "%d alive (%d damaged), %d dead",
+  },
+  ["combatmission.header"] = {
+    fr = "MISSION DE COMBAT %s \n\n",
+    en = "COMBAT MISSION %s \n\n",
+  },
+  ["combatmission.objectives_label"] = {
+    fr = "OBJECTIFS : \n",
+    en = "OBJECTIVES: \n",
+  },
+  ["combatmission.enemies_label"] = {
+    fr = "ENNEMIS : %s\n",
+    en = "ENEMIES : %s\n",
+  },
+  ["combatmission.not_active"] = {
+    fr = "la mission n'est pas encore active.",
+    en = "mission is not yet active.",
+  },
+  ["combatmission.objective_failed"] = {
+    fr = "\nObjectif non atteint : %s\nLa mission %s va maintenant se terminer.\nVous pouvez rejouer en la relançant, dans le menu radio.",
+    en = "\nObjective not met : %s\nThe mission %s will now end.\nYou can replay by starting it again, in the radio menu.",
+  },
+  ["combatmission.mission_success"] = {
+    fr = "\nTous les objectifs ont été atteints !\nLa mission %s est un succès ! Elle va maintenant se terminer.\nVous pouvez rejouer en la relançant, dans le menu radio.",
+    en = "\nAll objectives were met !\nThe mission %s is a success ! It will now end.\nYou can replay by starting it again, in the radio menu.",
+  },
+  ["combatmission.mission_not_found"] = {
+    fr = "VeafCombatMission [%s] introuvable !",
+    en = "VeafCombatMission [%s] was not found !",
+  },
+  ["combatmission.help"] = {
+    fr = "Les missions de combat sont définies par le créateur de mission, et listées ici\n"
+      .. "Vous pouvez les démarrer et les arrêter à volonté,\n"
+      .. "ainsi que demander des informations sur leur état.",
+    en = "Combat missions are defined by the mission maker, and listed here\n"
+      .. "You can start and stop them at will,\n"
+      .. "as well as ask for information about their status.",
+  },
+  ["combatmission.list_available"] = {
+    fr = "Liste de toutes les missions de combat disponibles :\n",
+    en = "List of all available combat missions:\n",
+  },
+  ["combatmission.no_active"] = {
+    fr = "Aucune mission de combat active !",
+    en = "No active combat mission !",
+  },
+  ["combatmission.list_active"] = {
+    fr = "Liste des missions de combat actives :\n",
+    en = "List of active combat missions:\n",
+  },
+  ["combatmission.obj_kill_all_desc"] = {
+    fr = "vous devez tuer tous les ennemis",
+    en = "you must kill all of the ennemies",
+  },
+  ["combatmission.obj_kill_all_msg"] = {
+    fr = "%d ennemis détruits !",
+    en = "%d ennemies destroyed !",
+  },
+
+  -- veafCarrierOperations (ATC report; aeronautical codes kept verbatim)
+  ["carrier.alignment_delay"] = {
+    fr = "\n\nObtenir un bon alignement peut prendre jusqu'à 5 minutes",
+    en = "\n\nGetting a good alignment may require up to 5 minutes",
+  },
+  ["carrier.obstruction"] = {
+    fr = "Obstruction détectée au cap %s, déroutement de %s vers le cap %s",
+    en = "Obstruction found at heading %s, derouting %s to heading %s",
+  },
+  ["carrier.atc_conducting"] = {
+    fr = "Le groupe porte-avions %s mène des opérations aériennes :\n",
+    en = "The carrier group %s is conducting air operations :\n",
+  },
+  ["carrier.atc_acls_available"] = {
+    fr = "ACLS est disponible",
+    en = "ACLS is available",
+  },
+  ["carrier.atc_brc"] = {
+    fr = "\n  - BRC : %s (vrai) à %s kn\n  - Temps restant : %s minutes\n",
+    en = "\n  - BRC : %s (true) at %s kn\n  - Remaining time : %s minutes\n",
+  },
+  ["carrier.atc_tanker"] = {
+    fr = "\n  - Ravitailleur %s : TACAN %s%s, COMM %s\n",
+    en = "\n  - Tanker %s : TACAN %s%s, COMM %s\n",
+  },
+  ["carrier.atc_not_conducting"] = {
+    fr = "Le groupe porte-avions %s ne mène pas d'opérations aériennes\n",
+    en = "The carrier group %s is not conducting carrier air operations\n",
+  },
+  ["carrier.atc_navigation"] = {
+    fr = "\nParamètres de navigation actuels :\n  - Cap actuel (vrai) %s\n  - Vitesse actuelle %s kn\n",
+    en = "\nCurrent navigation parameters :\n  - Current heading (true) %s\n  - Current speed %s kn\n",
+  },
+  ["carrier.atc_weather_header"] = {
+    fr = "\nMÉTÉO :\n",
+    en = "\nWEATHER:\n",
+  },
+  ["carrier.available_list"] = {
+    fr = "Porte-avions disponibles :\n",
+    en = "Available carriers :\n",
+  },
+
+  -- veafTransportMission
+  ["transport.see_f10"] = {
+    fr = "Voir le menu radio F10 pour les détails\n",
+    en = "See F10 radio menu for details\n",
+  },
+  ["transport.dropzone_too_close"] = {
+    fr = "Cette zone de largage est trop proche ; placez-la à au moins %s km du point %s !",
+    en = "This drop zone is too close ; you have to place it at least %s km away from point %s !",
+  },
+  ["transport.report_dropzone"] = {
+    fr = "ZONE DE LARGAGE : ravitailler un groupe de %d véhicules et %d soldats.\n",
+    en = "DROP ZONE : ressuply a group of %d vehicles and %d soldiers.\n",
+  },
+  ["transport.report_navigation"] = {
+    fr = "NAVIGATION : ils émettront sur 550 kHz toutes les %s secondes.\n",
+    en = "NAVIGATION: They will transmit on 550 kHz every %s seconds.\n",
+  },
+  ["transport.report_alt"] = {
+    fr = "ALT ZONE LARGAGE    : %s mètres.\n",
+    en = "DROP ZONE ALT       : %s meters.\n",
+  },
+  ["transport.wind_none"] = {
+    fr = "pas de vent.\n",
+    en = "no wind.\n",
+  },
+  ["transport.wind_from"] = {
+    fr = "de %s à %s m/s.\n",
+    en = "from %s at %s m/s.\n",
+  },
+  ["transport.report_wind"] = {
+    fr = "VENT SUR ZONE LARGAGE : %s",
+    en = "WIND OVER DROP ZONE : %s",
+  },
+
   -- veaf (core)
   ["mission.ending"] = {
     fr = "Fin de la mission !",

@@ -173,17 +173,20 @@ veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 0
 
 veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_PLAYERS = nil -- no outside of zone mechanism by default for players
 veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_IA = 30
-veafAirWaves.DEFAULT_MESSAGE_START = "%s - online"
-veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS = "%s - waiting %s seconds for more players"
-veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY = "%s - waiting %s seconds before next wave"
-veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "%s - deploying wave %s"
-veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS = "Wave %s deploying, %s"
-veafAirWaves.DEFAULT_MESSAGE_OUTSIDE_OF_ZONE_PLAYERS =
-  "%s - you've been outside of the zone for %s seconds; go back inside, or you'll be destroyed after %s seconds."
-veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "%s - wave %s has been destroyed"
-veafAirWaves.DEFAULT_MESSAGE_WON = "%s - won (no more waves)"
-veafAirWaves.DEFAULT_MESSAGE_LOST = "%s - lost (no more players)"
-veafAirWaves.DEFAULT_MESSAGE_STOP = "%s - offline"
+-- Default messages are i18n catalog keys (see veafI18n.lua), resolved through
+-- veaf.t() at send time so they localize to the mission language; a mission
+-- overriding them with its own literal keeps it verbatim (veaf.t() returns an
+-- unknown key unchanged before formatting).
+veafAirWaves.DEFAULT_MESSAGE_START = "airwaves.msg_start"
+veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS = "airwaves.msg_wait_for_humans"
+veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY = "airwaves.msg_wait_to_deploy"
+veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "airwaves.msg_deploy"
+veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS = "airwaves.msg_deploy_players"
+veafAirWaves.DEFAULT_MESSAGE_OUTSIDE_OF_ZONE_PLAYERS = "airwaves.msg_outside_of_zone"
+veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "airwaves.msg_destroyed"
+veafAirWaves.DEFAULT_MESSAGE_WON = "airwaves.msg_won"
+veafAirWaves.DEFAULT_MESSAGE_LOST = "airwaves.msg_lost"
+veafAirWaves.DEFAULT_MESSAGE_STOP = "airwaves.msg_stop"
 
 function AirWaveZone:new(objectToCopy)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWave:new()")
@@ -1083,7 +1086,7 @@ end
 function AirWaveZone:signalStart()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalStart()", veaf.lp(self.name))
   if not self.silent then
-    local msg = string.format(self.messageStart, self:getDescription())
+    local msg = veaf.t(self.messageStart, self:getDescription())
     for coalition, _ in pairs(self.playerCoalitions) do
       trigger.action.outTextForCoalition(coalition, msg, 15)
     end
@@ -1096,7 +1099,7 @@ end
 function AirWaveZone:signalWaitForHumans()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWaitForHumans()", veaf.lp(self.name))
   if not self.silent then
-    self:signalToPlayers(string.format(self.messageWaitForHumans, self:getDescription(), self.delayBeforeActivation))
+    self:signalToPlayers(veaf.t(self.messageWaitForHumans, self:getDescription(), self.delayBeforeActivation))
   end
   if self.onWaitForHumans then
     self.onWaitForHumans(self.name, self.playerUnitsNames)
@@ -1106,7 +1109,7 @@ end
 function AirWaveZone:signalWaitToDeploy()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWaitToDeploy()", veaf.lp(self.name))
   if not self.silent then
-    self:signalToPlayers(string.format(self.messageWaitToDeploy, self:getDescription(), self.delayBeforeNextWave))
+    self:signalToPlayers(veaf.t(self.messageWaitToDeploy, self:getDescription(), self.delayBeforeNextWave))
   end
   if self.onWaitToDeploy then
     self.onWaitToDeploy(self.name, self.playerUnitsNames)
@@ -1117,7 +1120,7 @@ function AirWaveZone:signalDeploy()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalDeploy()", veaf.lp(self.name))
   if not self.silent then
     -- messages to all
-    local msg = string.format(self.messageDeploy, self:getDescription(), self.currentWaveIndex)
+    local msg = veaf.t(self.messageDeploy, self:getDescription(), self.currentWaveIndex)
     for coalition, _ in pairs(self.playerCoalitions) do
       trigger.action.outTextForCoalition(coalition, msg, 15)
     end
@@ -1155,7 +1158,7 @@ function AirWaveZone:signalDeploy()
           end
           if groupId and not groupsAlreadyMessaged[groupId] then
             groupsAlreadyMessaged[groupId] = true
-            trigger.action.outTextForGroup(groupId, string.format(self.messageDeployPlayers, self.currentWaveIndex, braaS), 15)
+            trigger.action.outTextForGroup(groupId, veaf.t(self.messageDeployPlayers, self.currentWaveIndex, braaS), 15)
           end
         end
       end
@@ -1169,7 +1172,7 @@ end
 function AirWaveZone:signalDestroyed()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalDestroyed()", veaf.lp(self.name))
   if not self.silent then
-    self:signalToPlayers(string.format(self.messageDestroyed, self:getDescription(), self.currentWaveIndex))
+    self:signalToPlayers(veaf.t(self.messageDestroyed, self:getDescription(), self.currentWaveIndex))
   end
   if self.onDestroyed then
     self.onDestroyed(self.name, self.currentWaveIndex, self.playerUnitsNames)
@@ -1183,7 +1186,7 @@ function AirWaveZone:signalOutsideOfZone(playerUnitName, seconds)
   if not self.silent then
     veaf.outTextForUnit(
       playerUnitName,
-      string.format(self.messageOutsideOfZone, self:getDescription(), seconds, self.maxSecondsOutsideOfZonePlayers),
+      veaf.t(self.messageOutsideOfZone, self:getDescription(), seconds, self.maxSecondsOutsideOfZonePlayers),
       15
     )
   end
@@ -1195,7 +1198,7 @@ end
 function AirWaveZone:signalWon()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWon()", veaf.lp(self.name))
   if not self.silent then
-    self:signalToPlayers(string.format(self.messageWon, self:getDescription()))
+    self:signalToPlayers(veaf.t(self.messageWon, self:getDescription()))
   end
   if self.onWon then
     self.onWon(self.name, self.playerUnitsNames)
@@ -1205,7 +1208,7 @@ end
 function AirWaveZone:signalLost()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalLost()", veaf.lp(self.name))
   if not self.silent then
-    local msg = string.format(self.messageLost, self:getDescription())
+    local msg = veaf.t(self.messageLost, self:getDescription())
     for coalition, _ in pairs(self.playerCoalitions) do
       trigger.action.outTextForCoalition(coalition, msg, 15)
     end
@@ -1218,7 +1221,7 @@ end
 function AirWaveZone:signalStop()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalStop()", veaf.lp(self.name))
   if not self.silent then
-    local msg = string.format(self.messageStop, self:getDescription())
+    local msg = veaf.t(self.messageStop, self:getDescription())
     for coalition, _ in pairs(self.playerCoalitions) do
       trigger.action.outTextForCoalition(coalition, msg, 15)
     end

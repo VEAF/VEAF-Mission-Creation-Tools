@@ -171,7 +171,8 @@ VeafMG_Guardian = {
 }
 VeafMG_Guardian.__index = VeafMG_Guardian
 
-VeafMG_Guardian.WARNING_MESSAGE = "Warning, %s : you've been attacked by %s and a missile is in the air"
+-- i18n catalog key (see veafI18n.lua), resolved through veaf.t() at send time.
+VeafMG_Guardian.WARNING_MESSAGE = "mg.warning"
 VeafMG_Guardian.WARNING_MESSAGE_TIME = 10
 
 function VeafMG_Guardian:new()
@@ -275,7 +276,7 @@ function VeafMG_Guardian:onEvent(event)
               veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("Issuing a warning to unit %s", veaf.p(_playername)))
               trigger.action.outTextForGroup(
                 _groupId,
-                string.format(VeafMG_Guardian.WARNING_MESSAGE, _playername, _weapon:getShooterName()),
+                veaf.t(VeafMG_Guardian.WARNING_MESSAGE, _playername, _weapon:getShooterName()),
                 VeafMG_Guardian.WARNING_MESSAGE_TIME
               )
             end

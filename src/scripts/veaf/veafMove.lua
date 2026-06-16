@@ -374,7 +374,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
   if not orbitTask then
     local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
     veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(text, 10)
+    trigger.action.outText(veaf.t("move.tanker_set_no_orbit", tankerGroupName), 10)
     return false
   end
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
@@ -410,7 +410,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
   local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
   veaf.loggers.get(veafMove.Id):info(msg)
-  trigger.action.outText(msg, 10)
+  trigger.action.outText(veaf.t("move.tanker_set_params", tankerGroupName, speed, alt), 10)
   return true
 end
 
@@ -550,7 +550,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   if not orbitTask then
     local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
     veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(text, 10)
+    trigger.action.outText(veaf.t("move.tanker_move_no_orbit", groupName), 10)
     return false
   end
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
@@ -984,16 +984,7 @@ function veafMove.buildRadioMenu()
 end
 
 function veafMove.help(unitName)
-  local text = 'Create a marker and type "_move <group|tanker|afac>, name <groupname> " in the text\n'
-    .. "This will issue a move command to the specified group in the DCS world\n"
-    .. 'Type "_move group, name [groupname]" to move the specified group to the marker point\n'
-    .. '     add ", speed [speed]" to make the group move and at the specified speed (in knots)\n'
-    .. 'Type "_move tanker, name [groupname]" to create a new tanker flight plan and move the specified tanker.\n'
-    .. '     add ", speed [speed]" to make the tanker move and execute its refuel mission at the specified speed (in knots)\n'
-    .. '     add ", alt [altitude]" to specify the refuel leg altitude (in feet)\n'
-    .. 'Type "_move afac, name [groupname]" to create a new JTAC flight plan and move the specified afac drone.\n'
-    .. '     add ", speed [speed]" to make the tanker move and execute its mission at the specified speed (in knots)\n'
-    .. '     add ", alt [altitude]" to specify the altitude at which the drone will circle (in feet)'
+  local text = veaf.t("move.help")
   veaf.outTextForGroup(unitName, text, 30)
 end
 

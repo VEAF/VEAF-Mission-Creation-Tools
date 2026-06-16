@@ -41,9 +41,11 @@ veafSanctuary.DelayBetweenChecks = 15
 -- default delay before warning
 veafSanctuary.DEFAULT_DELAY_WARNING = 0
 
--- default message when entering the zone
-veafSanctuary.DEFAULT_MESSAGE_WARNING =
-  "Warning, %s : you've entered a sanctuary zone and will be shot in %d seconds if you don't leave IMMEDIATELY"
+-- default messages are i18n catalog keys (see veafI18n.lua), resolved through
+-- veaf.t() at send time so they localize to the mission language; a mission
+-- overriding them with its own literal keeps it verbatim (veaf.t() returns an
+-- unknown key unchanged before formatting).
+veafSanctuary.DEFAULT_MESSAGE_WARNING = "sanctuary.msg_warning"
 
 -- time to display the messages
 veafSanctuary.MESSAGE_TIME = 20
@@ -55,7 +57,7 @@ veafSanctuary.DEFAULT_DELAY_INSTANT = -1
 veafSanctuary.DEFAULT_DELAY_SPAWN = -1
 
 -- default message when defenses are spawned
-veafSanctuary.DEFAULT_MESSAGE_SPAWN = "You've been warned : deploying defense systems"
+veafSanctuary.DEFAULT_MESSAGE_SPAWN = "sanctuary.msg_spawn"
 
 -- time to start spawning harder defenses
 veafSanctuary.HARDER_DEFENSES_AFTER = 75
@@ -70,11 +72,10 @@ veafSanctuary.DESTROY_WEAPONS_AFTER = 2
 veafSanctuary.FORGIVE_SHOOTER_AFTER = 10 * 60 -- 10 minutes
 
 -- default message to target when weapon launch is detected
-veafSanctuary.DEFAULT_MESSAGE_SHOT_TARGET = "Warning, %s : you've been attacked by %s ; we destroyed the missile in the air !"
+veafSanctuary.DEFAULT_MESSAGE_SHOT_TARGET = "sanctuary.msg_shot_target"
 
 -- default message to launcher when weapon launch is detected
-veafSanctuary.DEFAULT_MESSAGE_SHOT_LAUNCHER =
-  "Warning, %s : you've attacked %s ; we destroyed the missile in the air. Don't do that again or we'll destroy you !"
+veafSanctuary.DEFAULT_MESSAGE_SHOT_LAUNCHER = "sanctuary.msg_shot_launcher"
 
 -- number of offenses (misile launches at players in a zone) that will justify destruction
 veafSanctuary.DEFAULT_OFFENSES_BEFORE_DESTRUCTION = 3
@@ -608,7 +609,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
               -- destroy the weapon with flak  - :destroy() does not work for human players and weapons in MP
               veafSpawn.destroyObjectWithFlak(weapon, 1)
               -- warn the target
-              local message = string.format(self:getMessageShotTarget(), targetPlayername, launcherPlayername)
+              local message = veaf.t(self:getMessageShotTarget(), targetPlayername, launcherPlayername)
               veafSanctuary.recordAction(string.format("Issuing a warning to target : %s", message))
               trigger.action.outTextForGroup(targetUnit:getGroup():getID(), message, veafSanctuary.MESSAGE_TIME)
               -- count the offence
@@ -640,7 +641,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                 )
               else
                 -- warn the launcher
-                local message = string.format(self:getMessageShotLauncher(), launcherPlayername, targetPlayername)
+                local message = veaf.t(self:getMessageShotLauncher(), launcherPlayername, targetPlayername)
                 veafSanctuary.recordAction(string.format("Issuing a warning to shooter : %s", message))
                 trigger.action.outTextForGroup(launcherUnit:getGroup():getID(), message, veafSanctuary.MESSAGE_TIME)
               end
@@ -717,7 +718,7 @@ function VeafSanctuaryZone:handleUnit(unit, data)
         veafSanctuary.MESSAGE_TIME
       )
 
-      local message = string.format("CRITICAL: %s - %s", playername, self:getMessageSpawn())
+      local message = veaf.t("sanctuary.critical_prefix", playername, veaf.t(self:getMessageSpawn()))
       veafSanctuary.recordAction(string.format("Issuing a warning to trespasser : %s", message))
       trigger.action.outTextForGroup(groupId, message, veafSanctuary.MESSAGE_TIME)
     elseif self:getDelayWarning() > -1 and timeInZone >= self:getDelayWarning() then
@@ -726,7 +727,7 @@ function VeafSanctuaryZone:handleUnit(unit, data)
       if delay < 0 or (self:getDelaySpawn() > 0 and self:getDelaySpawn() < delay) then
         delay = self:getDelaySpawn()
       end
-      local message = string.format(self:getMessageWarning(), playername, delay - timeInZone)
+      local message = veaf.t(self:getMessageWarning(), playername, delay - timeInZone)
       veafSanctuary.recordAction(string.format("Issuing a warning to trespasser : %s", message))
       trigger.action.outTextForGroup(groupId, message, veafSanctuary.MESSAGE_TIME)
     end

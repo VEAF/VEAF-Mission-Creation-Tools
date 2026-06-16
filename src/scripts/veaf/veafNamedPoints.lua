@@ -116,12 +116,12 @@ function veafNamedPoints.namePoint(targetSpot, name, coalition, silent)
 
   local message = nil
   if not silent then
-    message = "VEAF - Point named " .. name .. " added for own coalition."
+    message = veaf.t("namedpoints.added", name)
   end
 
   veafNamedPoints.markid = veafNamedPoints.markid + 1
   point.markerId = veafNamedPoints.markid
-  trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named " .. name, point, coalition, true, message)
+  trigger.action.markToCoalition(veafNamedPoints.markid, veaf.t("namedpoints.label", name), point, coalition, true, message)
   veaf.loggers.get(veafNamedPoints.Id):trace(string.format("created point %s", veaf.p(point)))
 end
 

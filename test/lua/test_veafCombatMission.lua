@@ -13,7 +13,12 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCombatMission.lua")
+
+-- The assertions below pin the English wording; messages are now localized
+-- (FR is the default language) so force English for these tests.
+veaf.config.language = "en"
 
 -- ============================================================================
 -- TestVeafCombatMissionObjective

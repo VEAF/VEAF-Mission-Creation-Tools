@@ -24,7 +24,7 @@
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
 | Lot QUALITY-GATE-FINISH — erode the remaining mypy `ignore_errors` workers + final coverage ratchet | ✅ |
 | Lot VALIDATE — `veaf-tools validate`: lint `mission.yaml` + `.miz` before build | ✅ |
-| Lot SCAFFOLD — `veaf-tools new`: scaffold a ready-to-use mission folder from templates | ⬜ |
+| Lot SCAFFOLD — module-preset templates for `prepare` (minimal/standard/full/custom) generating mission.yaml; no separate `new` command | ✅ |
 | Lot BUILD-PUBLISH-LOCAL — `veaf-build` local publish mode: deploy `published/` + the two `.exe` into a user-given VEAF mission source folder instead of GitHub | ⬜ |
 | Lot CUSTOM-SCRIPTS-TRIGGERS — custom_scripts not loaded in static (trig/trigrules divergence); unify trigger emission + fix (Flogas feedback) | ✅ |
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
@@ -233,11 +233,11 @@
 
 ## Lot SCAFFOLD — `veaf-tools new` (mission folder scaffolding)
 
-**Goal**: add a `veaf-tools new` command that scaffolds a ready-to-use mission folder (a typed `mission.yaml` plus the `src/` tree) from one or more templates (blank training, CAS, QRA…), lowering the entry cost for new mission makers. Reuses the shipped `defaults/mission-folder/` baseline as the default template.
+**Goal**: lower the entry cost for new mission makers by scaffolding a `mission.yaml` from a chosen module preset. **Decision (with David)**: `prepare` already copies the default scaffold, so **do not add a separate `new` command** — extend `prepare` with `--template`. Templates are coverage tiers, not per-module: `minimal` (infra + RADIO/SPAWN/SHORTCUTS/INTERPRETER), `standard` (everyday set), `full` (everything; config-heavy modules as commented examples), `custom` (interactive module pick). In all cases the generated `mission.yaml` reflects the chosen modules + adapted config defaults. `SECURITY` off by default everywhere; `GROUNDAI` excluded (unfinished); `TUM` only in `full`, commented + warning.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| SCAFFOLD-001 | `new` command + worker: generate a mission folder from a template (default = `defaults/mission-folder`), optional named templates, TUI entry; tests; docs | `veaf_tools/commands/`, `veaf_libs/tui.py`, `src/defaults/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+| SCAFFOLD-001 | Data-driven module catalog + `mission.yaml` generator (`veaf_libs/mission_template.py`, single source of truth); `prepare --template minimal\|standard\|full\|custom` + `--list-templates` + interactive `custom` + next-steps guidance; localized FR/EN; tests (generator + CLI); maker-guide docs | `veaf_libs/mission_template.py`, `veaf_tools/commands/prepare.py`, locales, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ✅ |
 
 ---
 

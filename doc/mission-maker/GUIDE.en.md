@@ -301,6 +301,7 @@ security:
 
 | Command | What it does |
 |---------|-------------|
+| `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them |
 | `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz` |
 | `validate` | Lints the mission folder **before** build — reports config errors and runtime risks without building (exit non-zero on error; `--strict` fails on warnings too) |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |

@@ -624,7 +624,7 @@
   "converter.yaml.header.external": "# ── Modules externes ─────────────────────────────────────────────────────────",
   "converter.yaml.external.desc": "# Intégrations Lua tierces : Skynet IADS, CTLD, CSAR.",
   "converter.yaml.header.qra": "# ── Définitions QRA (extraites de missionConfig.lua) ─────────────────────────",
-  "converter.yaml.qra.start_comment": "      start: false  # était commenté en v5 — mettre à true pour activer",
+  "converter.yaml.qra.start_comment": "# était commenté en v5 — mettre à true pour activer",
   "converter.yaml.header.cap": "# ── Missions CAP (extraites de missionConfig.lua) ────────────────────────────",
   "converter.yaml.header.combat": "# ── Missions combat (extraites de missionConfig.lua) ─────────────────────────",
   "converter.yaml.header.pipeline": "# ── Pipeline de construction ─────────────────────────────────────────────────",

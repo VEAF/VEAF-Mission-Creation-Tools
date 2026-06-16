@@ -628,7 +628,7 @@ def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], ind
         if al := qra.get("airport_link"):
             lines.append(f"{field}airport_link: {_yaml_str(al)}")
         if not qra.get("start", True):
-            lines.append(t("converter.yaml.qra.start_comment"))
+            lines.append(f"{field}start: false  {t('converter.yaml.qra.start_comment')}")
     return lines
 
 

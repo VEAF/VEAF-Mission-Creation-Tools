@@ -366,8 +366,10 @@ Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warnin
 
 **Comportement de chargement**
 
-- `generate_load_trigger: true` (défaut) → le script est injecté dans le `.miz` **et** un trigger DCS `a_do_script_file` est généré, il se charge au démarrage de la mission comme les autres scripts de mission.
-- `generate_load_trigger: false` → le script est injecté dans le `.miz` mais **aucun** trigger n'est généré ; c'est `mission-script.lua` (ou un autre script) qui doit le charger via `dofile`.
+- `generate_load_trigger: true` (défaut) → le script est chargé au démarrage de la mission, dans les **deux** modes de chargement : en build **statique** il est embarqué dans le `.miz` et chargé par le trigger VEAF de chargement des scripts de mission ; en build **dynamique** il est chargé depuis le disque par le `veafDynamicConfig.lua` généré. Le même flag pilote les deux modes — il n'y a pas de flag par-mode.
+- `generate_load_trigger: false` → le script est tout de même injecté dans le `.miz` mais **aucun** chargement n'est généré dans l'un ou l'autre mode ; c'est `mission-script.lua` (ou un autre script) qui doit le charger via `dofile`.
+
+**Ordre de chargement** : les scripts de mission se chargent toujours dans l'ordre `veaf-config.lua` → `mission-script.lua` → vos `custom_scripts` (dans l'ordre de déclaration). Un script custom peut donc compter sur la config VEAF et sur `mission-script.lua` déjà chargés.
 
 ```yaml
 custom_scripts:
@@ -379,6 +381,27 @@ custom_scripts:
 ```
 
 > Tout fichier `.lua` présent dans `src/scripts/` mais **absent** de cette section (et ne faisant pas partie des fichiers standards) déclenche un warning au build avec un rappel pour le déclarer ici.
+
+**Un script dans une seule variante (ex. un script de debug dynamique-seul)**
+
+`generate_load_trigger` est un flag unique — il ne distingue pas statique et dynamique. Pour charger un script dans une seule variante (un utilitaire de debug que vous voulez **uniquement** dans votre build dynamique local de dev, jamais dans la distribution statique), utilisez un [profil de build](#profiles) plutôt qu'un flag par script :
+
+```yaml
+custom_scripts:
+  scripts:
+    - path: src/scripts/FgMission.lua   # toujours chargé (les deux variantes)
+
+profiles:
+  DEV:
+    custom_scripts:
+      scripts:
+        - path: src/scripts/FgMission.lua    # ⚠️ doit répéter les scripts de base
+        - path: src/scripts/FgDebug.lua      # en plus, dev seulement
+```
+
+Buildez la variante dev avec `veaf-tools build --profile DEV` (elle charge `FgMission.lua` + `FgDebug.lua`) ; le build par défaut ne charge que `FgMission.lua`.
+
+> ⚠️ **Piège** : le deep-merge des profils **remplace les listes, il ne les concatène pas** (voir [`profiles:`](#profiles)). Le `custom_scripts.scripts` du profil doit donc **répéter** les scripts de base et ajouter celui spécifique à la variante — sinon les scripts de base sont perdus dans ce profil.
 
 ---
 

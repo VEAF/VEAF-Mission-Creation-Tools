@@ -130,4 +130,56 @@ function TestVeafI18n:test_cas_help_is_localized_and_keeps_command_tokens()
   luaunit.assertStrContains(en, "spacing [1-5]")
 end
 
+-- ---------------------------------------------------------------------------
+-- LUA-I18N-WEATHER: veafWeatherData report / ATIS
+-- Aeronautical abbreviations stay identical in both languages; only
+-- descriptive words and line labels are translated.
+-- ---------------------------------------------------------------------------
+
+function TestVeafI18n:test_weather_calm_is_localized()
+  luaunit.assertEquals(veaf.t("weather.wind_calm"), "calme")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("weather.wind_calm"), "calm")
+end
+
+function TestVeafI18n:test_weather_cloud_densities_french()
+  luaunit.assertEquals(veaf.t("weather.clouds_none"), "Pas de nuages")
+  luaunit.assertEquals(veaf.t("weather.clouds_scattered"), "Nuages épars")
+  luaunit.assertEquals(veaf.t("weather.clouds_broken"), "Nuages fragmentés")
+  luaunit.assertEquals(veaf.t("weather.clouds_overcast"), "Ciel couvert")
+  luaunit.assertEquals(veaf.t("weather.clouds_few"), "Quelques nuages")
+end
+
+function TestVeafI18n:test_weather_visibility_affects_french()
+  luaunit.assertEquals(veaf.t("weather.vis_fog"), " - brouillard")
+  luaunit.assertEquals(veaf.t("weather.vis_haze"), " - brume sèche")
+  luaunit.assertEquals(veaf.t("weather.vis_mist"), " - brume")
+  luaunit.assertEquals(veaf.t("weather.vis_dust"), " - poussière")
+  luaunit.assertEquals(veaf.t("weather.vis_precipitations"), " - précipitations")
+end
+
+function TestVeafI18n:test_weather_report_labels_interpolate_french()
+  luaunit.assertEquals(veaf.t("weather.line_wind", "calme"), "Vent :         calme")
+  luaunit.assertEquals(veaf.t("weather.line_temp_dew", "15°C", "8°C"), "\nTempérature :   15°C - Point de rosée : 8°C")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("weather.line_wind", "calm"), "Wind:          calm")
+  luaunit.assertEquals(veaf.t("weather.line_temp_dew", "15°C", "8°C"), "\nTemperature:   15°C - Dew point: 8°C")
+end
+
+function TestVeafI18n:test_weather_atis_phraseology()
+  luaunit.assertEquals(veaf.t("weather.atis_cavok"), "\nPlafond et visibilité OK, CAVOK")
+  luaunit.assertEquals(veaf.t("weather.atis_sunrise", "06:12Z"), "\nLever 06:12Z")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("weather.atis_cavok"), "\nCeiling and visiblity OK, CAVOK")
+  luaunit.assertEquals(veaf.t("weather.atis_sunrise", "06:12Z"), "\nSunrise 06:12Z")
+end
+
+function TestVeafI18n:test_weather_qnh_label_keeps_abbreviation_both_languages()
+  -- QNH is a standardized aeronautical abbreviation: it stays in both languages,
+  -- only the FR colon spacing/alignment differs.
+  luaunit.assertEquals(veaf.t("weather.line_qnh", "1013Hpa"), "\nQNH :          1013Hpa")
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("weather.line_qnh", "1013Hpa"), "\nQNH:           1013Hpa")
+end
+
 os.exit(luaunit.LuaUnit.run())

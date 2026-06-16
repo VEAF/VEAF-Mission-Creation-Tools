@@ -22,19 +22,20 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertIn(name, result.output)
 
     def test_minimal_template_generates_focused_mission_yaml(self) -> None:
-        folder = Path(tempfile.mkdtemp())
-        result = _runner.invoke(app, ["prepare", "--template", "minimal", str(folder), "--force"])
-        self.assertEqual(result.exit_code, 0, result.output)
-        modules = (yaml.safe_load((folder / "mission.yaml").read_text(encoding="utf-8")) or {}).get("modules") or {}
-        self.assertIn("RADIO", modules)
-        self.assertIn("SPAWN", modules)
-        self.assertNotIn("WEATHER", modules)  # standard-only
-        self.assertNotIn("SECURITY", modules)  # off by default
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = _runner.invoke(app, ["prepare", "--template", "minimal", str(folder), "--force"])
+            self.assertEqual(result.exit_code, 0, result.output)
+            modules = (yaml.safe_load((folder / "mission.yaml").read_text(encoding="utf-8")) or {}).get("modules") or {}
+            self.assertIn("RADIO", modules)
+            self.assertIn("SPAWN", modules)
+            self.assertNotIn("WEATHER", modules)  # standard-only
+            self.assertNotIn("SECURITY", modules)  # off by default
 
     def test_unknown_template_exits_nonzero(self) -> None:
-        folder = Path(tempfile.mkdtemp())
-        result = _runner.invoke(app, ["prepare", "--template", "nope", str(folder)])
-        self.assertNotEqual(result.exit_code, 0)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = _runner.invoke(app, ["prepare", "--template", "nope", tmp])
+            self.assertNotEqual(result.exit_code, 0)
 
 
 if __name__ == "__main__":

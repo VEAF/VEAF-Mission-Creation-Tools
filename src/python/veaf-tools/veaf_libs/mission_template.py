@@ -182,7 +182,13 @@ TIER_NAMES: tuple[str, ...] = ("minimal", "standard", "full")
 
 
 def tier_modules(tier: str) -> set[str]:
-    """Return the module ids enabled by a named tier (excluding always-on infrastructure)."""
+    """Return the module ids enabled by a named tier (excluding always-on infrastructure).
+
+    Raises:
+        ValueError: if *tier* is not one of :data:`TIER_NAMES`.
+    """
+    if tier not in TIER_NAMES:
+        raise ValueError(f"unknown tier '{tier}' (valid: {', '.join(TIER_NAMES)})")
     return {m.id for m in _CATALOG if tier in m.tiers}
 
 

@@ -84,7 +84,7 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 | R0 | custom_scripts loads in **static** (PR #476) | `FgTest.lua` line in `dcs.log` | ✅ `=== VEAF CUSTOM SCRIPT FgTest LOADED (static test) ===` at 12:56 — confirms PR #476 end-to-end in the updated DCS |
 | R1 | Mission loads without new errors | no new `ERROR` in `dcs.log` | ⬜ |
 | R2 | VEAF scripts load (static **and** dynamic) | `STATIC/DYNAMIC … scripts loading`, `initialize` | ⬜ |
-| R3 | F10 VEAF radio menu + `_spawn`/`_cas`/aliases | in game | ⬜ |
+| R3 | F10 VEAF radio menu + `_spawn`/`_cas`/aliases | in game | 🐞 found a real bug (see R3-BUG below) → fixed |
 | R4 | ME save round-trip in the new DCS | reopen/save the `.miz`, reload OK | ⬜ |
 | R5 | Dynamic Slots offered (warehouse `linkDynTempl`) | dynamic-slot aircraft selectable | ⬜ |
 | R6 | Presets / waypoints: mission **saves** | no "Invalid frequency" / "Route has no locked time" | ⬜ |
@@ -92,3 +92,24 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 
 > Journal anything that breaks here as a new remark → analysis → fix entry; fixes go
 > on `feature/dcs-update-verify`, one PR at the end.
+
+### R3-BUG — `_cas` crashes in static: `convertLaserToFreq` is nil 🐞→✅
+
+- **Remark**: `-cas` (alias → `_cas, disperse`) spawned the Red CAS group, then the
+  marker handler errored: `[veaf-scripts.lua]:32479: attempt to call field
+  'convertLaserToFreq' (a nil value)` (called from `veafCasMission`, building the
+  JTAC laser frequency).
+- **Analysis**: `veafSpawn.convertLaserToFreq` / `markTextAnalysis` live in
+  `veafSpawnParser.lua` (created by the spawn refactor). The **static bundle manifest**
+  in `veaf_build/worker.py` listed `veafSpawnCore/Ground/Aircraft/Effects/Spawn.lua`
+  but **not** `veafSpawnParser.lua` — so its body was never concatenated into
+  `veaf-scripts.lua`. Static/distribution builds therefore lacked those functions
+  (`_cas` JTAC + `_spawn` text parsing broke); dynamic dev builds were unaffected
+  because the dynamic loader globs every `veaf/*.lua`. Pre-existing distribution bug,
+  unrelated to the DCS update — surfaced by the static in-game test.
+- **Fix**: added `veafSpawnParser.lua` to the bundle list (after `veafSpawnCore.lua`),
+  extracted the list to a module-level `LUA_BUNDLE_SCRIPTS` + `LUA_BUNDLE_EXCLUDED`,
+  and added `test_lua_bundle_manifest.py` asserting **every** `veaf/*.lua` on disk is
+  bundled or explicitly excluded — so a future split file can never be silently
+  dropped again. Verified the rebuilt bundle contains `convertLaserToFreq`.
+- **Re-test**: pending — David re-runs `_cas` on a mission rebuilt with the fixed bundle.

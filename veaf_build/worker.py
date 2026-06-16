@@ -31,6 +31,59 @@ _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_MESSAGE: str = "Press Enter to exit..."
 
+# Ordered list of the VEAF Lua modules concatenated into the static `veaf-scripts.lua`
+# bundle (order matters: a module must come after any module whose table it extends).
+# `veaf.lua` is bundled first, separately. Every other `src/scripts/veaf/*.lua` file
+# MUST appear here or in :data:`LUA_BUNDLE_EXCLUDED`, otherwise it is silently dropped
+# from static/distribution builds (test_lua_bundle_manifest guards this).
+LUA_BUNDLE_SCRIPTS: list[str] = [
+    "veafI18n.lua",
+    "dcsUnits.lua",
+    "veafCacheManager.lua",
+    "veafEventHandler.lua",
+    "veafMarkers.lua",
+    "veafCommands.lua",
+    "veafInterpreter.lua",
+    "veafRadio.lua",
+    "veafRemote.lua",
+    "veafSpawnCore.lua",
+    "veafSpawnParser.lua",
+    "veafSpawnGround.lua",
+    "veafSpawnAircraft.lua",
+    "veafSpawnEffects.lua",
+    "veafSpawn.lua",
+    "veafSecurity.lua",
+    "veafShortcuts.lua",
+    "veafAirbases.lua",
+    "veafAirWaves.lua",
+    "veafAssets.lua",
+    "veafCarrierOperations.lua",
+    "veafCasMission.lua",
+    "veafCombatMission.lua",
+    "veafCombatZone.lua",
+    "veafGrass.lua",
+    "veafMissileGuardian.lua",
+    "veafMove.lua",
+    "veafNamedPoints.lua",
+    "veafQraLogistics.lua",
+    "veafQraCore.lua",
+    "veafQraManager.lua",
+    "veafSanctuary.lua",
+    "veafSkynetIadsHelper.lua",
+    "veafSkynetIadsMonitor.lua",
+    "veafTime.lua",
+    "veafTransportMission.lua",
+    "veafUnits.lua",
+    "veafGroundAI.lua",
+    "veafWeather.lua",
+]
+
+# `src/scripts/veaf/*.lua` files deliberately NOT in the runtime bundle:
+# - veaf.lua: the framework root, bundled first and separately (see build_lua_scripts).
+# - dcsDataExport.lua: a datamine export helper run inside DCS to dump unit data, not a
+#   runtime module.
+LUA_BUNDLE_EXCLUDED: frozenset[str] = frozenset({"veaf.lua", "dcsDataExport.lua"})
+
 
 class BuildAndReleaseWorker:
     """Worker class for build and release operations."""
@@ -166,47 +219,10 @@ class BuildAndReleaseWorker:
         """Build Lua scripts artifact by concatenating all Lua files."""
         with spinner_context("Building Lua scripts..."):
             try:
-                # Define the list of scripts to concatenate (order matters!)
-                lua_scripts = [
-                    "veafI18n.lua",
-                    "dcsUnits.lua",
-                    "veafCacheManager.lua",
-                    "veafEventHandler.lua",
-                    "veafMarkers.lua",
-                    "veafCommands.lua",
-                    "veafInterpreter.lua",
-                    "veafRadio.lua",
-                    "veafRemote.lua",
-                    "veafSpawnCore.lua",
-                    "veafSpawnGround.lua",
-                    "veafSpawnAircraft.lua",
-                    "veafSpawnEffects.lua",
-                    "veafSpawn.lua",
-                    "veafSecurity.lua",
-                    "veafShortcuts.lua",
-                    "veafAirbases.lua",
-                    "veafAirWaves.lua",
-                    "veafAssets.lua",
-                    "veafCarrierOperations.lua",
-                    "veafCasMission.lua",
-                    "veafCombatMission.lua",
-                    "veafCombatZone.lua",
-                    "veafGrass.lua",
-                    "veafMissileGuardian.lua",
-                    "veafMove.lua",
-                    "veafNamedPoints.lua",
-                    "veafQraLogistics.lua",
-                    "veafQraCore.lua",
-                    "veafQraManager.lua",
-                    "veafSanctuary.lua",
-                    "veafSkynetIadsHelper.lua",
-                    "veafSkynetIadsMonitor.lua",
-                    "veafTime.lua",
-                    "veafTransportMission.lua",
-                    "veafUnits.lua",
-                    "veafGroundAI.lua",
-                    "veafWeather.lua",
-                ]
+                # The list of scripts to concatenate (order matters!) is the
+                # module-level LUA_BUNDLE_SCRIPTS — kept there so a test can assert it
+                # stays in sync with the files on disk (no module silently dropped).
+                lua_scripts = LUA_BUNDLE_SCRIPTS
 
                 # Step 1: Clean and recreate build directory
                 if self.build_dir.exists():

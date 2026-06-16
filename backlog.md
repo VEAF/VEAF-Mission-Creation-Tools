@@ -87,6 +87,7 @@
 | DCS-VERIFY-D3 | Regenerate airdromes from the updated local DCS install; verify dynamic-slot warehouse name→id wiring | `veaf_libs/data/airdromes.yaml` | chore | ✅ (+6 Syria airfields) |
 | DCS-VERIFY-D4 | Regenerate radio specs + re-apply `dcs_rejects_on_load` overlays (only if datamine bumped) | `presets_injector/data/dcs-radio-specs.yaml` | chore | ⬜ (deferred) |
 | DCS-VERIFY-D5 | Run all DCS-data tests | `test/python/veaf_build/`, `test/python/veaf_libs/` | test | ✅ |
+| DCS-VERIFY-R3-BUG | Static bundle dropped `veafSpawnParser.lua` (spawn-refactor regression) → `_cas`/`_spawn` parsing broke in static (`convertLaserToFreq` nil). Added it to the bundle list; extracted `LUA_BUNDLE_SCRIPTS`/`LUA_BUNDLE_EXCLUDED`; manifest-completeness test | `veaf_build/worker.py`, `test/python/veaf_build/test_lua_bundle_manifest.py` | fix | ✅ |
 | DCS-VERIFY-R | In-game runtime checklist in the updated DCS (mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5 on new ME output) | `TEST-PLAN-DCS-UPDATE.md` | test | ⬜ (in-game, David) |
 
 ---

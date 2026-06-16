@@ -14,6 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | 🔄 |
+| Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ⬜ |
 | Lot FIX-VERSION-PY-EOL — generated `_version.py` written in text mode → CRLF on Windows vs `eol=lf` → working tree always dirty; force LF | ✅ |
 | Lot LUACHECK-CI — `luacheck` already wired in CI + `.luacheckrc`; only the stale `CLAUDE.md` "not installed, skip it" note needed fixing | ✅ |
 | Lot LUA-COVERAGE — Lua coverage gate (`--cov-fail-under` + CI job, floor 67) + backfill `veafUnits` 20→93% | ✅ |
@@ -88,7 +89,20 @@
 | DCS-VERIFY-D4 | Regenerate radio specs + re-apply `dcs_rejects_on_load` overlays (only if datamine bumped) | `presets_injector/data/dcs-radio-specs.yaml` | chore | ⬜ (deferred) |
 | DCS-VERIFY-D5 | Run all DCS-data tests | `test/python/veaf_build/`, `test/python/veaf_libs/` | test | ✅ |
 | DCS-VERIFY-R3-BUG | Static bundle dropped `veafSpawnParser.lua` (spawn-refactor regression) → `_cas`/`_spawn` parsing broke in static (`convertLaserToFreq` nil). Added it to the bundle list; extracted `LUA_BUNDLE_SCRIPTS`/`LUA_BUNDLE_EXCLUDED`; manifest-completeness test | `veaf_build/worker.py`, `test/python/veaf_build/test_lua_bundle_manifest.py` | fix | ✅ |
+| DCS-VERIFY-R3-MQ9 | v5→v6 regression: default `spawnables.yaml` dropped the `veafSpawn-MQ-9 - AFAC - JTAC - DRONE` template → `_cas` AFAC + `-afac` alias found no MQ-9. Restored it (extracted from the demo mission, under `airplanes`) | `src/defaults/mission-folder/src/spawnables.yaml` | fix | ✅ |
 | DCS-VERIFY-R | In-game runtime checklist in the updated DCS (mission loads, scripts load static+dynamic, F10 menu, ME save round-trip, dynamic slots, presets/waypoints save, convert-v5 on new ME output) | `TEST-PLAN-DCS-UPDATE.md` | test | ⬜ (in-game, David) |
+
+---
+
+## Lot FIX-SPAWNABLES-CATEGORY — default spawnables mis-categorize planes as helicopters
+
+**Goal**: the shipped default `src/defaults/mission-folder/src/spawnables.yaml` files all 50 fixed-wing CAP templates (F-15C, M-2000C, MiGs, …) under the **`helicopters:`** category (`airplanes:` was empty before the MQ-9 restore). The build injects them faithfully → in the `.miz` they land under the country's `helicopter` group table instead of `plane`. Confirmed in a built mission. The current `extract-aircraft-groups` tool categorizes correctly (it put the MQ-9 under `airplanes`), so this is a **stale extraction artifact** baked into the committed default, not a live tool bug. Found during DCS-UPDATE-VERIFY (R3-FINDING-2) and spun off. **TBD**: (1) confirm whether the wrong category actually breaks CAP spawning at runtime or veaf re-derives it from the unit type (sets priority); (2) regenerate / re-categorize the default set under `airplanes`; (3) check the source the default was generated from.
+
+**Branch**: `fix/spawnables-category` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| SPAWNCAT-001 | Confirm runtime impact, then re-categorize the default CAP templates from `helicopters` to `airplanes` (regenerate via `extract` if that's the clean source); regression test asserting planes land under `airplanes` | `src/defaults/mission-folder/src/spawnables.yaml`, `test/python/` | fix | ⬜ |
 
 ---
 

@@ -112,4 +112,32 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
   and added `test_lua_bundle_manifest.py` asserting **every** `veaf/*.lua` on disk is
   bundled or explicitly excluded — so a future split file can never be silently
   dropped again. Verified the rebuilt bundle contains `convertLaserToFreq`.
-- **Re-test**: pending — David re-runs `_cas` on a mission rebuilt with the fixed bundle.
+- **Re-test**: ✅ `_cas` no longer crashes (David, mission rebuilt with the fixed bundle).
+
+### R3-FINDING-2 — `_cas` default AFAC (MQ-9) never spawns: no template shipped 🔍 open
+
+- **Remark**: after the `convertLaserToFreq` fix, `_cas` spawns the CAS group fine but
+  logs (INFO, not a crash) `The AFAC aircraft template could not be found for "mq9"` /
+  `The CAP aircraft template could not be found for "mq9"`.
+- **Analysis**: `veafCasMission` hardcodes spawning an MQ-9 AFAC
+  (`veafSpawn.spawnAFAC(..., "mq9", ...)`, veafCasMission.lua:1070). The AFAC is
+  resolved among the `veafSpawn-`-prefixed template groups injected from
+  `spawnables.yaml`. Neither the **shipped default** spawnables
+  (`src/defaults/mission-folder/src/spawnables.yaml`) nor the test mission's own (a
+  real-mission export) contains an MQ-9 / AFAC template — both ship **CAP fighters
+  only**. So `_cas`'s aerial-JTAC AFAC is silently absent for everyone. Pre-existing
+  feature gap, unrelated to the DCS update or the bundle fix; non-fatal (`_cas` still
+  works, just without the Reaper).
+- **Root cause**: v5→v6 regression. v5 shipped `veafSpawn-MQ-9 - AFAC - JTAC - DRONE`
+  in the demo mission; the reworked v6 default spawnables (a different `foxN`-tagged
+  CAP set) dropped it. Confirmed via a diff of the v5 demo vs the v6 default templates.
+- **Fix** (David: restore MQ-9 now): extracted the `veafSpawn-MQ-9 - AFAC - JTAC -
+  DRONE` group from `veaf-demo-mission.miz` with `extract-aircraft-groups` (correct
+  YAML, categorized under `airplanes`) and added it to the default
+  `spawnables.yaml`. Verified the rebuilt mission embeds the template (`-afac` /
+  `_cas` AFAC can now resolve it). Aircrafts-injector + defaults tests green (56).
+- **Spun off**: the v6 default spawnables also files all 50 CAP **plane** templates
+  under the DCS `helicopter` category (`airplanes:` empty) — a stale extraction
+  artifact (the current `extract` tool categorizes correctly). Tracked as its own lot
+  (FIX-SPAWNABLES-CATEGORY), out of this campaign.
+- **Status**: ✅ fixed (MQ-9 restored) — David to re-test `_cas`/`-afac` in-game.

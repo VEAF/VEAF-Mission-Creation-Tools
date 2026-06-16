@@ -76,7 +76,7 @@ def _select_custom_modules() -> set[str]:
     return set(selected)
 
 
-@app.command(help=t("cmd.prepare.help"))
+@app.command(help=t("cmd.prepare.help"), no_args_is_help=True)
 def prepare(
     mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
     template: str | None = typer.Option(None, "--template", "-t", help=t("cmd.prepare.opt.template")),

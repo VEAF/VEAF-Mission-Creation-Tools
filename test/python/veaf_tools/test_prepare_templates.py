@@ -15,6 +15,15 @@ _runner = CliRunner()
 
 
 class TestPrepareTemplates(unittest.TestCase):
+    def test_no_args_shows_help_not_scaffold(self) -> None:
+        # Bare `prepare` must show the help (options + template names), not silently
+        # scaffold the current directory.
+        result = _runner.invoke(app, ["prepare"])
+        self.assertNotEqual(result.exit_code, 0)  # no_args_is_help exits non-zero
+        self.assertIn("Usage", result.output)
+        for name in ("minimal", "standard", "full", "custom"):
+            self.assertIn(name, result.output)
+
     def test_list_templates(self) -> None:
         result = _runner.invoke(app, ["prepare", "--list-templates"])
         self.assertEqual(result.exit_code, 0)

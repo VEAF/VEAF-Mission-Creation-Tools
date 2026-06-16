@@ -89,7 +89,7 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 - **Environment**: Code written in pure Lua 5.1 executing inside the DCS World environment, without external dependencies.
 - **Naming Conventions**: Files named as `veafFeature.lua`, global module table in camelCase (`veafFeature = {}`), and class definitions in PascalCase (`VeafFeature`).
 - **Quality Validation**: Run `luacheck --config .luacheckrc src/scripts/veaf/` and `stylua --check src/scripts/veaf/`.
-- **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`.
+- **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`. Line coverage is available via `poetry run test-lua --coverage` (luacov); the CI `lua-coverage` job enforces a ratchet floor with `--cov-fail-under` — like the Python coverage gate, the number only ever goes up.
 
 ---
 

@@ -81,7 +81,7 @@ Load a freshly built mission in the updated DCS and check `dcs.log`
 
 | # | Check | How | Result |
 |---|-------|-----|--------|
-| R0 | custom_scripts loads in **static** (PR #476) | `FgTest.lua` line in `dcs.log` | ⬜ |
+| R0 | custom_scripts loads in **static** (PR #476) | `FgTest.lua` line in `dcs.log` | ✅ `=== VEAF CUSTOM SCRIPT FgTest LOADED (static test) ===` at 12:56 — confirms PR #476 end-to-end in the updated DCS |
 | R1 | Mission loads without new errors | no new `ERROR` in `dcs.log` | ⬜ |
 | R2 | VEAF scripts load (static **and** dynamic) | `STATIC/DYNAMIC … scripts loading`, `initialize` | ⬜ |
 | R3 | F10 VEAF radio menu + `_spawn`/`_cas`/aliases | in game | ⬜ |

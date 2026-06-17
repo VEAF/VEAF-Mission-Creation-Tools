@@ -460,7 +460,7 @@ profiles:
       dynamic_loading: true   # dynamic loading for the test profile
 ```
 
-> See the [Developer Mode](developer/GUIDE.en.md#developer-mode) section of the Developer Guide for the full workflow.
+> See the [Developer Mode](developer/GUIDE.md#developer-mode) section of the Developer Guide for the full workflow.
 
 ---
 

@@ -172,7 +172,7 @@ _teleport, name "Viper Flight"
 
 A **spawnable aircraft group** is identified by the **`veafSpawn-` name prefix** (the `veafSpawn` runtime contract). At build time, the `spawnable_aircrafts` pipeline step injects `src/spawnables.yaml` into the `.miz`.
 
-The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.en.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c). It is usually produced by extracting from a mission:
+The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c). It is usually produced by extracting from a mission:
 
 ```bash
 veaf-tools extract-aircraft-groups --kind spawnable

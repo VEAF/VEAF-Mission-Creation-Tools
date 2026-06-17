@@ -421,7 +421,7 @@ poetry run test-lua --filter combat
 poetry run test-lua --coverage
 ```
 
-Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.en.md#coverage) for details.
+Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
 
 ### Single Suite
 
@@ -436,7 +436,7 @@ lua test/lua/test_veafSpawn.lua
 - **Module loader:** `test/lua/veaf_loader.lua`
 - No DCS installation required
 
-Full testing reference: [Testing Guide](../TESTING.en.md)
+Full testing reference: [Testing Guide](../TESTING.md)
 
 ---
 
@@ -568,6 +568,6 @@ docs(api): document veafMove tanker helpers
 ## Further Reading
 
 - [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for the modules
-- [Testing Guide](../TESTING.en.md) — test infrastructure details
+- [Testing Guide](../TESTING.md) — test infrastructure details
 - [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI
 - [Roadmap](../ROADMAP.md) — planned work

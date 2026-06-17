@@ -70,7 +70,7 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 
 | Module | File | Role |
 |--------|------|------|
-| [veafSecurity](veafSecurity.en.md) | `veafSecurity.lua` | Role-based permission system (passwords, levels) |
+| [veafSecurity](veafSecurity.md) | `veafSecurity.lua` | Role-based permission system (passwords, levels) |
 
 ---
 

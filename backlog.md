@@ -13,7 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ⬜ |
+| Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
@@ -78,6 +78,20 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot FIX-AIRWAVES-GENERATOR — generated AirWaves configs call non-existent setters
+
+**Goal**: `lua_config_generator._emit_airwave_zone` emitted an `AirWaveZone:new():…:start()` chain including setters absent from `src/scripts/veaf/veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimumSecondsBetweenWaves`, `setMaximumSecondsBetweenWaves`). In Lua a nil method call raises "attempt to call method '…' (a nil value)" → any mission whose `mission.yaml` configures an AirWaves zone crashed at mission start. Found during the DOC-REVIEW audit (out of doc scope).
+
+**Branch**: `fix/airwaves-generator` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-AIRWAVES-GENERATOR-001 | Emit only real `AirWaveZone` methods: map `message_wave_deployed`→`setMessageDeploy`, `message_end_zone`→`setMessageWon`; collapse the inter-wave delay to a single `setDelayBetweenWaves` (prefer the configured min — no runtime random range); drop the unsupported `message_end_all` + max-delay bound. Add a test parsing `veafAirWaves.lua` for the real `AirWaveZone` methods that asserts every emitted method exists | `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `test/python/veaf_libs/test_lua_config_generator.py` | fix | ✅ |
+
+**Done**: generator emits only verified `AirWaveZone` setters; 3 regression tests (`test_emit_airwave_zone_only_real_methods` parses the Lua and asserts no emitted method is non-existent; plus message-mapping and delay-collapse tests). The Lua's runtime model has no random min/max inter-wave delay and no "all zones cleared" message, so those config keys collapse/drop rather than crash. (A proper random-delay + cross-zone-message feature in `veafAirWaves.lua` would be a separate enhancement, not a bug fix.)
 
 ---
 
@@ -354,18 +368,6 @@
 **Phase 2 done (2026-06-17)**: replaced fabricated builder/class APIs with the real ones across the script docs — `VeafGrassRunway` (→ editor-naming workflow), `VeafCombatZone`/`VeafCombatZoneElement`/`VeafCombatOperation` methods, `veafCarrierOperations.addCarrier` (→ auto-discovery), `veafCasMission.start` (→ `initialize`), `VeafSanctuary` (→ `VeafSanctuaryZone` + `addZone`), `VeafMissileGuardian` (→ `VeafMG_Guardian`), `veafMove.moveTanker/changeTanker` signatures + `_teleport`/`SpawnKeyphrase`, `veafNamedPoints.addNamedPoint` (→ `addPoint`/`addDataToPoint`), `veafTransportMission` builder+menu (→ marker `_transport`), `veaf.weatherReport` (→ `veafWeatherData.getWeatherString`), `veafAirWaves` method names + `:initialize()`→`:start()`, `veafAssets` `groupName`/`carrier`/`information`, `veafRadio` example callbacks, and the whole `TOOLS_REFERENCE` publishing half (→ `veaf-build publish`). Deeper symbol-verification also caught and fixed items the original audit missed: `veafAirbases.setAirbaseData` (→ query API) + the `LUA_API_REFERENCE` `Airbase`/`Runway`/`veafCombatMission` `mission:`/`objective:` sections (→ real `veafAirbase`/`VeafCombatMission`/`VeafCombatMissionObjective`), and the `mission-maker/GUIDE` QRA/CombatZone/AirWaves/`VeafAlias` examples. An automated doc→source symbol checker now reports every VEAF method/function call in `doc/**` resolving to a real definition.
 
 > **Still open (asset, not a fabrication)**: `doc/pilot/GUIDE.{md,en.md}` reference 8 screenshots under `../assets/img/pilot/*.png` that don't exist yet (`doc/assets/img/pilot/` is absent). Left in place — the slots are likely intentional pending screenshots; David to add the images or drop the references.
-
----
-
-## Lot FIX-AIRWAVES-GENERATOR — generated AirWaves configs call non-existent setters
-
-**Goal**: `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (`_emit_airwave_zone`) emits an `AirWaveZone:new():…:start()` chain that includes setter calls absent from `src/scripts/veaf/veafAirWaves.lua`: `setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimumSecondsBetweenWaves`, `setMaximumSecondsBetweenWaves`. In Lua, calling a nil method raises "attempt to call method '…' (a nil value)" → **any mission whose `mission.yaml` configures an AirWaves zone crashes at mission start**. Found during the DOC-REVIEW audit (out of doc scope). Map each emitted setter to the real `veafAirWaves` API (e.g. `setMessageDeploy`/`setMessageWon`/`setMessageLost`, `setDelayBetweenWaves`) or add the missing setters to the Lua, then add a generator test asserting every emitted method exists on `AirWaveZone`.
-
-**Branch**: `fix/airwaves-generator` → PR → `develop-v6`
-
-| # | Ticket | Files | Type | Status |
-|---|--------|-------|------|--------|
-| FIX-AIRWAVES-GENERATOR-001 | Reconcile `_emit_airwave_zone` emitted setters with the real `AirWaveZone` API (rename to existing setters and/or add missing ones to `veafAirWaves.lua`); add a test asserting every generated method exists | `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `src/scripts/veaf/veafAirWaves.lua`, `test/python/`, `test/lua/` | fix | ⬜ |
 
 ---
 

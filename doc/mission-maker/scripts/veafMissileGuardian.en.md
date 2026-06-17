@@ -1,19 +1,21 @@
 # veafMissileGuardian — Missile Interception
 
 
-**Module ID:** — | **File:** `veafMissileGuardian.lua`
+**Module ID:** `MISSILEGUARDIAN` | **File:** `veafMissileGuardian.lua`
+
+---
+
+> **Experimental / incomplete module.** This module is a skeleton (version `0.0.2`). The classes described below exist, but the protection logic is not yet implemented (`veafMissileGuardian.getLargeScaleProtector()` and the protector watchdog are stubs). Use for exploratory purposes only.
 
 ---
 
 ## Purpose
 
-Intercepts and destroys specific incoming missiles to protect designated assets or zones. Useful for protecting carriers, FARPs, or other high-value targets from ballistic threats in scenarios where realistic missile defense is desired.
+Aims to intercept and destroy incoming missiles to protect designated assets. A `VeafMG_Guardian` observes units and reacts when a shot targets one of them inside a protected zone, warning the target.
 
 ---
 
 ## Dependencies
-
-- `veafEventHandler` — for missile-fired event monitoring
 
 ---
 
@@ -23,39 +25,41 @@ Intercepts and destroys specific incoming missiles to protect designated assets 
 veafMissileGuardian.initialize()
 ```
 
-Then define protection zones:
+`initialize()` builds the "GUARDIAN" radio menu. Then define a guardian:
 
 ```lua
-VeafMissileGuardian:new()
-  :setName("Carrier Defense")
-  :setGroupName("CVN-73")           -- protect this group
-  :setRadius(30000)                 -- interception radius in metres
-  :setMissileTypes({ "P-700", "Kh-41" })  -- intercept these missile types
-  :initialize()
+local guardian = VeafMG_Guardian:new()
+  :setName("carrier-defense")
+  :setFriendlyName("Carrier Defense")
+  :addProtectedUnit("CVN-73")        -- DCS unit name to protect (call repeatedly for several units)
+  :setProtectedZone(polygon)         -- polygon (list of points) where protection applies
+guardian:start()                     -- register the event handler
 ```
+
+`guardian:stop()` deregisters the event handler.
 
 ---
 
-## Builder Methods
+## Builder Methods (`VeafMG_Guardian`)
+
+The guardian is built with `VeafMG_Guardian:new()`. Each setter returns the guardian, allowing chaining.
 
 | Method | Description |
 |--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setGroupName(name)` | DCS group to protect |
-| `:setZoneName(zone)` | Alternatively, protect a zone |
-| `:setRadius(m)` | Interception radius around the protected target |
-| `:setMissileTypes(list)` | List of DCS weapon type names to intercept |
-| `:setAllMissiles(bool)` | If true, intercept all missiles |
-| `:setSilent(bool)` | Suppress interception messages |
-| `:initialize()` | Activate the guardian |
+| `:setName(value)` | Internal identifier |
+| `:setFriendlyName(value)` | Human-friendly name shown to players |
+| `:addProtectedUnit(value)` | Add a DCS unit to protect (name or unit object) |
+| `:setProtectedZone(value)` | Polygon (list of points) bounding the protection zone |
+| `:start()` | Register the event handler |
+| `:stop()` | Deregister the event handler |
 
 ---
 
 ## Notes
 
-- Missiles are destroyed when they enter the protection radius
-- Use specific missile type lists to avoid intercepting friendly ordnance
-- Works for both anti-ship and surface-to-air missiles
+- The module is experimental: actual missile destruction is not yet implemented
+- A guardian only warns targets inside its protected zone when a shot is detected
+- Internal classes: `VeafMG_Weapon` (weapon in flight), `VeafMG_Guardian` (observer), `VeafMG_Protector` (protector, stub)
 
 ---
 

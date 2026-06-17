@@ -21,28 +21,28 @@ veafAirbases.initialize()
 
 ## Usage
 
-Airbase data is read automatically from the DCS environment. Mission makers can override or supplement data:
+Airbase data (runways and headings) is read automatically from the DCS environment during `veafAirbases.initialize()`. You can then query an airbase for its runway in service based on wind:
 
 ```lua
--- Register a custom airbase configuration
-veafAirbases.setAirbaseData("Senaki-Kolkhi", {
-  atcFrequency = 127500000,   -- Hz
-  atcModulation = radio.modulation.AM,
-  elevation = 43,             -- metres
-  runways = {
-    { heading = 110, ils = { frequency = 109300000, course = 110 } },
-    { heading = 290 },
-  },
-})
+veafAirbases.initialize()
+
+local airbase = veafAirbases.getAirbaseByName("Senaki-Kolkhi")
+if airbase then
+  -- runway in service for a given true wind direction (degrees)
+  local runway = airbase:getRunwayInServiceString(270)
+  veaf.outTextForUnit(unitName, airbase:toString(), 20)
+end
 ```
+
+You can also get the nearest airbase to a unit with `veafAirbases.getNearestAirbase(dcsUnit)`.
 
 ---
 
 ## Notes
 
-- Most DCS airbases are already known to the module
-- Override only when you need custom frequencies or corrections
-- TACAN/ILS data is used by `veafNamedPoints` and carrier operations
+- Most DCS airbases are detected automatically at initialization
+- The runway in service is computed from the wind direction (`getRunwayInService` / `getRunwayInServiceString`)
+- Get an airbase by name (`getAirbaseByName`) or the nearest to a unit (`getNearestAirbase`)
 
 ---
 

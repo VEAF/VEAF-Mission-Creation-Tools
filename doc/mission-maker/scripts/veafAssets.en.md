@@ -91,32 +91,21 @@ Populate `veafAssets.Assets` before calling `initialize()`:
 ```lua
 veafAssets.Assets = {
   {
-    name        = "Texaco",
+    name        = "KC-135 Texaco",       -- DCS group name in the mission
     description = "Texaco (KC-135)",
-    groupName   = "KC-135 Texaco",
-    information = true,    -- show Info button in radio menu
+    information = "Tacan 51Y\nU251.00 (21)",  -- info text (truthy → adds the Info button)
     disposable  = false,   -- allow players to despawn it
   },
   {
-    name        = "Arco",
+    name        = "KC-130 Arco",
     description = "Arco (KC-130)",
-    groupName   = "KC-130 Arco",
-    information = true,
+    information = "Tacan 50Y\nU251.50 (22)",
     disposable  = false,
   },
   {
-    name        = "Overlord",
+    name        = "E-3A Overlord",
     description = "Overlord (E-3A)",
-    groupName   = "E-3A Overlord",
-    information = true,
-    disposable  = false,
-  },
-  {
-    name        = "Mother",
-    description = "CVN-73 Theodore Roosevelt",
-    groupName   = "CVN-73",
-    information = true,
-    carrier     = true,    -- enables carrier-specific info (BRC, TACAN, ICLS)
+    information = "SRS 251.00",
     disposable  = false,
   },
 }
@@ -126,12 +115,12 @@ veafAssets.Assets = {
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Internal identifier |
+| `name` | string | Yes | DCS group name in the mission (also used as the internal identifier) |
 | `description` | string | Yes | Label shown in F10 menu |
-| `groupName` | string | Yes | DCS group name in the mission |
-| `information` | boolean | No | Show Info button (position, TACAN, freq) |
+| `information` | string | No | Info text shown to players; non-empty → adds the Info button |
 | `disposable` | boolean | No | Allow authorised players to despawn the asset |
-| `carrier` | boolean | No | Show carrier-specific info (BRC, TACAN, ICLS) |
+
+> Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.md) module, not by `veafAssets`.
 
 ---
 
@@ -147,7 +136,7 @@ For each asset, a submenu is created under **F10 → Assets**:
 
 ## Notes
 
-- The DCS group must exist in the mission editor with the exact name used in `groupName`
+- The DCS group must exist in the mission editor with the exact name used in `name`
 - Tanker information (TACAN, frequency) is read from the DCS group's waypoint/route settings
 - Carrier information requires `veafCarrierOperations` to be initialised
 

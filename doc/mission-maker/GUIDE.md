@@ -15,11 +15,13 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 7. [Configurer les modules](#configurer-les-modules)
 8. [Outils de conception](#outils-de-conception)
 9. [Workflow de build typique](#workflow-de-build-typique)
-10. [Référence des scripts](#référence-des-scripts)
-11. [Exemples de configuration](#exemples-de-configuration)
-12. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
-13. [Journalisation de débogage](#journalisation-de-débogage)
-14. [Ressources](#ressources)
+10. [Profils de build](#profils-de-build)
+11. [Référence des scripts](#référence-des-scripts)
+12. [Exemples de configuration](#exemples-de-configuration)
+13. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+14. [DCS Bridge](#dcs-bridge)
+15. [Journalisation de débogage](#journalisation-de-débogage)
+16. [Ressources](#ressources)
 
 > **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
@@ -267,7 +269,7 @@ modules:
 -- Mettez ici vos alias, fonctions utilitaires et intégrations de scripts tiers.
 
 -- Exemple : alias de raccourci personnalisé
--- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
+-- veafShortcuts.AddAlias(VeafAlias:new():setName("-cas1"):setVeafCommand("_cas"))
 
 -- Exemple : intégration CTLD (voir la section Intégration CTLD et CSAR pour les détails)
 -- if ctld then ctld.initialize(function()
@@ -430,23 +432,21 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 ```lua
 local northQra = VeafQRA:new()
   :setName("QRA-North")
-  :setZone("ZONE-QRA-NORTH")
+  :setTriggerZone("ZONE-QRA-NORTH")
   :setCoalition(coalition.side.RED)
-  :setGroups({ "MiG-29 QRA" })
-  :setRearmTime(600)
-  :initialize()
+  :addGroup("MiG-29 QRA")
+  :start()
 ```
 
 ### Zone de combat
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setName("Strike Alpha")
-  :setZoneName("ZONE-STRIKE-ALPHA")
-  :setDescription("Colonne blindée avançant sur Senaki")
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-ARMOR"))
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-AAA"))
-  :setBriefing("Détruisez tous les véhicules blindés. Attendez-vous à de la DCA.")
+  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
+  :setFriendlyName("Strike Alpha")
+  :setBriefing("Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.")
+  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
+  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
   :initialize()
 ```
 
@@ -455,12 +455,12 @@ local strikeZone = VeafCombatZone:new()
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-Defense")
-  :setZoneName("ZONE-DEFENSE")
+  :setTriggerZone("ZONE-DEFENSE")
   :setDescription("Zone d'interception")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "MiG-23 Wave 1", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
-  :setMinimumPlayersForWave(1)
-  :initialize()
+  :start()
 ```
 
 ---
@@ -474,11 +474,12 @@ local defenseZone = AirWaveZone:new()
 Vous pouvez activer CTLD et définir ses propriétés directement dans `mission.yaml`, sans Lua :
 
 ```yaml
-external_modules:
-  ctld:
+modules:
+  CTLD:
     enabled: true
-    hoverPickup: false
-    slingLoad: true
+    settings:                # paires ctld.xxx = valeur
+      hoverPickup: false
+      slingLoad: true
 ```
 
 VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au moment du build, y compris l'appel `ctld.initialize()`. Utilisez `mission-script.lua` uniquement pour les paramètres pas encore supportés par le schéma YAML (ex. tables `aircraftType`).
@@ -488,12 +489,13 @@ VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au mome
 CSAR se configure de la même façon :
 
 ```yaml
-external_modules:
-  csar:
+modules:
+  CSAR:
     enabled: true
-    enableAllslots: true
-    useprefix: true
-    csarPrefix: "MEDEVAC"
+    settings:                # paires csar.xxx = valeur
+      enableAllslots: true
+      useprefix: true
+      csarPrefix: "MEDEVAC"
 ```
 
 VEAF génère les assignations `csar.xxx = value` et l'appel `csar.initialize()` dans `veaf-config.lua`. Pour les paramètres complexes comme `aircraftType` (une table par appareil), continuez à utiliser le pattern callback Lua dans `mission-script.lua`.

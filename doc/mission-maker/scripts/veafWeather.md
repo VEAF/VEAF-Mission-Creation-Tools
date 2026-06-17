@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Fournit des rapports météo et l'injection de météo dynamique pour les missions DCS. Génère des rapports lisibles au format METAR et s'intègre avec `veaf-tools.exe weather-inject` pour injecter de la météo réelle ou configurée au moment du build.
+Fournit des rapports météo et l'injection de météo dynamique pour les missions DCS. Génère des rapports lisibles au format METAR et s'intègre avec `veaf-tools.exe inject-weather` pour injecter de la météo réelle ou configurée au moment du build.
 
 ---
 
@@ -30,37 +30,44 @@ veafWeather.initialize()
 La météo est injectée au moment du build (avant le chargement de la mission) avec `veaf-tools.exe` :
 
 ```powershell
-veaf-tools.exe weather-inject --mission mission.miz --config weather.yaml
+veaf-tools.exe inject-weather mission.miz --config-file versions.yaml
 ```
 
-### Exemple weather.yaml
+### Exemple versions.yaml
 
 ```yaml
-weather:
-  source: metar          # "metar" (temps réel) ou "manual"
-  icao: UGSS             # Code ICAO de l'aéroport pour le METAR (Senaki)
-  # override manuel (utilisé quand source: manual)
-  wind:
-    speed: 10            # nœuds
-    direction: 270       # degrés
-  visibility: 8000       # mètres
-  clouds:
-    base: 2500           # pieds
-    density: 5           # 0-10
-  temperature: 18        # °C
-  qnh: 1013              # hPa
+position:
+  latitude: 33.5
+  longitude: 35.5
+  timezone: "Asia/Damascus"
+base_date: "2024-03-15"
+versions:
+  - name: noon-clear
+    time: "12:00"
+    weather:
+      temperature: 25.0
+      wind_speed: 8.0
+      wind_direction: 270.0
+      visibility: 10000.0
+      cloud_type: "clear"
+      fog_enabled: false
+  - name: with-metar
+    time: "14:00"
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
 ```
 
 ---
 
 ## Rapport météo au runtime
 
-Obtenir un rapport météo pour une position :
+Obtenir un rapport météo pour une position (un `vec3`) :
 
 ```lua
-local report = veaf.weatherReport(position, altitude, withLASTE)
+local report = veafWeatherData.getWeatherString(position)
 veaf.outTextForUnit(unitName, report, 30)
 ```
+
+Les arguments suivants sont optionnels : `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. En passant le nom d'une unité DCS comme `dcsElementName`, le rapport s'adapte au type d'appareil (système d'unités, données LASTE pour le A-10).
 
 ---
 
@@ -71,6 +78,7 @@ Le sous-menu **WEATHER AND ATC** du menu radio F10 permet aux joueurs d'obtenir 
 - **Weather on closest point** — météo locale adaptée au type d'appareil (unités et format conformes à l'avion du joueur)
 - **ATC on closest airbase** — informations ATIS de la base la plus proche (piste en service, QFU, etc.)
 - **ATC and weather in one go** — les deux d'un coup
+- **Fog settings → ...** — Réglages brouillard (modifier les conditions de brouillard, voir plus bas)
 
 Ces commandes sont aussi accessibles depuis le chat multijoueur (avec le hook serveur VEAF) : `atc`
 
@@ -153,5 +161,5 @@ Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather
 
 ## Voir aussi
 
-- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe weather-inject`
+- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe inject-weather`
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafWeather`

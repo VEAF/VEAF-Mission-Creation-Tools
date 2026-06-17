@@ -49,7 +49,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `init.help_menus` | booléen | `true` | Non | Afficher les entrées "Aide" intégrées dans les menus radio générés |
 
@@ -71,9 +71,8 @@ Utilisez `veafRadio.createUserMenu()` pour construire un arbre de menus structur
 veafRadio.createUserMenu(
   veafRadio.mainmenu(
     veafRadio.menu("Gestion QRA",
-      veafRadio.command("Démarrer QRA Nord", veafQraManager.startQra, { name = "QRA-NORD" }),
-      veafRadio.command("Arrêter QRA Nord",  veafQraManager.stopQra,  { name = "QRA-NORD" }),
-      veafRadio.command("Statut",            veafQraManager.getStatus,{ name = "QRA-NORD" })
+      veafRadio.command("Démarrer QRA Nord", maMission.demarrerQra, { name = "QRA-NORD" }),
+      veafRadio.command("Arrêter QRA Nord",  maMission.arreterQra,  { name = "QRA-NORD" })
     ),
     veafRadio.menu("Flags",
       veafRadio.command("Activer Flag 10",   trigger.action.setUserFlag, { "FLAG-10", true }),
@@ -136,16 +135,16 @@ local menuQra = veafRadio.addSubMenu("QRA", menuMission)
 veafRadio.addCommandToSubmenu(
   "Démarrer QRA Nord",
   menuQra,
-  veafQraManager.startQra,
+  maMission.demarrerQra,
   { name = "QRA-NORD" },
   veafRadio.USAGE_ForAll
 )
 
 -- Ajouter une commande sécurisée (nécessite /secu login)
 veafRadio.addSecuredCommandToSubmenu(
-  "Arrêt d'urgence tous les QRA",
+  "Arrêt d'urgence",
   menuMission,
-  veafQraManager.stopAll,
+  maMission.arretUrgence,
   {},
   veafRadio.USAGE_ForAll
 )

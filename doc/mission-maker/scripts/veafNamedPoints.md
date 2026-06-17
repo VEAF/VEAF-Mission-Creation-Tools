@@ -43,7 +43,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `custom_points` | objet[] | `[]` | Non | Points nommés prédéfinis |
 | `custom_points[].name` | string | — | Oui | Nom du point — référencé dans les commandes de spawn et les menus radio |
@@ -77,22 +77,24 @@ modules:
 
 ## Prédéfinir des points dans mission-script.lua
 
-Les points nommés peuvent être prédéfinis par programmation :
+Les points nommés peuvent être prédéfinis par programmation. `addPoint(name, point)` prend un vec3 (`{x=…, y=0, z=…}` ; `y` vaut `0` par défaut). Les données ATC/TACAN/ILS/tour de contrôle sont attachées via `addDataToPoint(point, data)` :
 
 ```lua
 veafNamedPoints.initialize()
 
 -- Ajouter un point nommé statique
-veafNamedPoints.addNamedPoint({
-  name      = "FARP Alpha",
-  position  = { x = 123456, y = 0, z = 654321 },  -- vec3 DCS
-  atcFreq   = 127500000,  -- Hz
-  atcMod    = radio.modulation.AM,
-})
+local point = veafNamedPoints.addPoint("FARP Alpha", { x = 123456, y = 0, z = 654321 })
 
--- Ajouter un point à une base aérienne DCS connue
-veafNamedPoints.addNamedPointFromAirbase("Senaki-Kolkhi")
+-- Attacher des données ATC/TACAN/tour/ILS au point
+veafNamedPoints.addDataToPoint(point, {
+  atc   = true,
+  tower = "V131, U260",
+  tacan = "16X BTM",
+  ils   = "110.30",
+})
 ```
+
+`addAirbases()` ajoute en bloc toutes les bases aériennes de la carte (appelée automatiquement par `initialize()`) ; il n'existe pas de fonction d'ajout par base aérienne. `addCities()` ajoute de la même façon les villes du théâtre.
 
 ---
 

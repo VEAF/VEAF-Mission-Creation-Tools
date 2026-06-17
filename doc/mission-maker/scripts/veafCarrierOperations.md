@@ -13,7 +13,7 @@ Gère les opérations de récupération sur porte-avions. Quand les joueurs déc
 ## Dépendances
 
 - `veafRadio` — menu F10
-- `veafAssets` — enregistre les ressources porte-avions (intégration optionnelle)
+- `veafRemote` — expose une commande distante `carrier`
 
 ---
 
@@ -23,23 +23,13 @@ Gère les opérations de récupération sur porte-avions. Quand les joueurs déc
 veafCarrierOperations.initialize()
 ```
 
-Puis enregistrer chaque porte-avions :
-
-```lua
-veafCarrierOperations.addCarrier({
-  name        = "Mother",
-  description = "CVN-73 Theodore Roosevelt",
-  groupName   = "CVN-73",
-})
-```
-
-Ou laisser `veafAssets` gérer l'enregistrement automatiquement quand une ressource porte-avions a `carrier = true`.
+Il n'existe pas d'API d'enregistrement par porte-avions. À l'`initialize()`, le module parcourt tous les groupes de la mission et enregistre automatiquement tout groupe contenant un type d'unité porte-avions connu (voir [Types de porte-avions supportés](#types-de-porte-avions-supportés)). Sa route initiale, son camp et ses données ATC (TACAN/ICLS/LINK4/ACLS/tour, lues dans les tâches programmées du porte-avions) sont capturés à ce moment-là. Il suffit de placer un groupe porte-avions dans l'éditeur de mission — aucun appel de script n'est nécessaire.
 
 ---
 
 ## Configuration (`mission.yaml`)
 
-Les opérations de porte-avions sont activées via l'ID de module `CARRIER`. Les définitions de porte-avions sont généralement déclarées via le module `ASSETS` (voir [veafAssets — Configuration](veafAssets.md#configuration-missionyaml)).
+Les opérations de porte-avions sont activées via l'ID de module `CARRIER`. Les porte-avions eux-mêmes ne sont pas déclarés dans `mission.yaml` : ils sont détectés automatiquement à partir des groupes porte-avions présents dans la mission (voir [Activation](#activation)).
 
 ```yaml
 modules:
@@ -90,36 +80,22 @@ Le module connaît l'offset de pont incliné pour tous les porte-avions DCS stan
 
 ---
 
-## Menu radio F10 (par porte-avions)
+## Menu radio F10
 
-- **Infos** — BRC, vent relatif, canal TACAN, canal ICLS, fréquence ATC
-- **Commencer récupération** — virage face au vent et ouverture d'une fenêtre de 45 minutes
-- **Arrêter récupération** — fin de récupération, reprise de la route d'origine
+Le menu de premier niveau **CARRIER OPS** contient un sous-menu **CARRIER OPS - BLUE** et un sous-menu **CARRIER OPS - RED**, chacun avec un sous-menu par porte-avions (nommé d'après le groupe porte-avions). Lorsque les opérations sont arrêtées, chaque sous-menu de porte-avions propose :
 
----
+- **Start carrier air operations for 45 minutes** — virage face au vent et ouverture d'une fenêtre de récupération de 45 minutes
+- **Start carrier air operations for 90 minutes** — idem, pour 90 minutes (`MAX_OPERATIONS_DURATION` × 2)
+- **ATC - Request informations** — TACAN, ICLS, LINK 4 / ACLS, tour, BRC et temps restant, plus la navigation courante et la météo
 
-## Exemple de configuration
+Pendant les opérations, les deux items *Start* sont remplacés par :
 
-```lua
--- Dans mission-script.lua
-veafCarrierOperations.initialize()
+- **End air operations** — arrête la récupération et renvoie le porte-avions sur sa route initiale
 
--- Les porte-avions sont enregistrés via veafAssets :
-veafAssets.Assets = {
-  {
-    name        = "Mother",
-    description = "CVN-73 Theodore Roosevelt",
-    groupName   = "CVN-73",
-    information = true,
-    carrier     = true,
-  },
-}
-veafAssets.initialize()
-```
+> Par défaut les items *Start*/*End* sont sécurisés (mot de passe requis). Positionnez `veafCarrierOperations.DisableSecurity = true` pour les rendre accessibles à tous.
 
 ---
 
 ## Voir aussi
 
-- [veafAssets](veafAssets.md) — gestion des ressources et intégration menu radio
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCarrierOperations`

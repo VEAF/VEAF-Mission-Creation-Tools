@@ -127,7 +127,7 @@ For anything not covered by an alias, you can write a full VEAF command directly
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, group 4, hdg 270
+_spawn unit, name T-80, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -136,7 +136,7 @@ Common options:
 | Option | Description | Example |
 |--------|-------------|---------|
 | `name [TYPE]` | DCS unit type (required) | `name F-16C` |
-| `group [N]` | Number of units in the group | `group 4` |
+| `multiplier [N]` | Number of units in the group | `multiplier 4` |
 | `hdg [DEG]` | Initial heading in degrees | `hdg 270` |
 | `alt [FT]` | Altitude in feet (aircraft) | `alt 15000` |
 | `speed [KT]` | Speed in knots | `speed 450` |
@@ -189,26 +189,29 @@ Shows: callsign, frequency and position.
 
 ### Carriers
 
+Carrier air operations have their own **CARRIER OPS** menu (not under *Assets*), with a submenu per coalition and then per carrier.
+
 | Action | Menu path |
 |--------|-----------|
-| Get info (BRC, TACAN, ICLS, radio) | Assets → Carriers → [Name] → Info |
-| Turn the carrier into the wind for recovery | Assets → Carriers → [Name] → Start Recovery |
-| Resume normal navigation | Assets → Carriers → [Name] → Stop Recovery |
+| Turn the carrier into the wind (45 minutes) | CARRIER OPS → [coalition] → [Name] → Start carrier air operations for 45 minutes |
+| Turn the carrier into the wind (90 minutes) | CARRIER OPS → [coalition] → [Name] → Start carrier air operations for 90 minutes |
+| Stop operations and resume the route | CARRIER OPS → [coalition] → [Name] → End air operations |
+| Get info (BRC, TACAN, ICLS, radio) | CARRIER OPS → [coalition] → [Name] → ATC - Request informations |
 
 ![Carrier recovery submenu](../assets/img/pilot/carrier-recovery-menu.png)
 
 **Recovery procedure:**
 
-1. **Request recovery** 10–15 minutes before your approach (*Start Recovery*). The carrier turns into the wind to provide about 30 knots of relative wind over the deck.
-2. **Check the info** (*Info*):
+1. **Request air operations** 10–15 minutes before your approach (*Start carrier air operations for 45 minutes*). The carrier turns into the wind to provide its target relative wind over the deck (about 20–25 knots depending on the carrier).
+2. **Check the info** (*ATC - Request informations*):
    - **BRC** (*Base Recovery Course*): the deck heading for recovery;
    - **TACAN channel** (e.g. 73X): for navigation to the carrier;
    - **ICLS channel** (e.g. 13): for glideslope guidance (F/A-18C, F-14);
    - **ATC frequency**.
 3. **Approach and land** following TACAN, then ICLS.
-4. **After landing**, choose *Stop Recovery* to return the carrier to its route.
+4. **After landing**, choose *End air operations* to return the carrier to its route.
 
-> Recovery times out automatically after 45 minutes.
+> Air operations time out automatically after 45 minutes (90 minutes if you chose the longer option).
 
 ---
 
@@ -245,12 +248,11 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 
 **Workflow:**
 
-1. **Generate** — F10 → VEAF → CAS Mission → Generate (with optional parameters via marker, see below).
-2. **Mark the zone** — Smoke or Flare (3-minute cooldown between marks).
-3. **Get info** — position, unit composition, status.
+1. **Generate** — place a `_cas` marker on the map (with optional parameters, see below). The **CAS MISSION** submenu then appears under F10 → VEAF.
+2. **Mark the zone** — *Target markers → Request smoke on target area* or *Request illumination flare over target area* (3-minute cooldown between marks).
+3. **Get info** — *Target information*: position, unit composition, status.
 4. **Engage** — attack the marked targets.
-5. **Advance** — the zone moves to the next one automatically when all units are destroyed, or use **Skip**.
-6. **Clean up** — *Cleanup* removes all remaining units.
+5. **Advance** — the zone moves to the next one automatically when all units are destroyed, or use *Skip current objective*.
 
 ![Smoke marking a CAS target](../assets/img/pilot/cas-smoke.png)
 
@@ -265,7 +267,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 | 4 | Main battle tanks (MBT), ZSU + SA-9 | Difficult |
 | 5 | Heavy armour, SAMs | Expert |
 
-Options for the `_cas` command: `size [0-5]` (force size), `defense [0-5]` (AA level), `armor [0-5]` (armour), `side [blue/red]` (coalition).
+Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA level), `armor [0-5]` (armour), `side [blue/red]` (coalition).
 
 ---
 
@@ -330,8 +332,8 @@ Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Not
 **The units I spawned disappeared. Is that normal?**
 Yes — some missions enforce a range limit (about 40–50 NM): AI is cleaned up if you fly too far away.
 
-**How do I reset a CAS session?**
-F10 → CAS Mission → Cleanup, then Generate again.
+**How do I move to the next CAS target?**
+F10 → CAS MISSION → *Skip current objective*. To start over, place a new `_cas` marker.
 
 **Can I spawn friendly units?**
 Yes: add `side blue` to your command.

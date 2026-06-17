@@ -66,7 +66,7 @@ flowchart TD
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |
 | **Config migration** | Manual rewrite | `veaf-tools.exe convert-v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
 | **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
-| **Skynet / CTLD / CSAR / QRA** | Separate `external_modules:` and `qra:` sections | All under the `modules:` block (`modules.SKYNET`, `modules.CTLD` / `modules.CSAR` with a `settings:` sub-block, `modules.QRA` with `silence_all` + `definitions:`). The `external_modules:` and `qra:` sections no longer exist — see [ADR 0001](../adr/0001-modules-single-source-of-truth.md). `convert-v5` emits the new shape directly. |
+| **Skynet / CTLD / CSAR / QRA** | Separate `external_modules:` and `qra:` sections | All under the `modules:` block (`modules.SKYNET`, `modules.CTLD` / `modules.CSAR` with a `settings:` sub-block, `modules.QRA` with `silence_all` + `definitions:`). The `external_modules:` and `qra:` sections no longer exist — see [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0001-modules-single-source-of-truth.md). `convert-v5` emits the new shape directly. |
 
 ### Step-by-step Migration
 
@@ -108,7 +108,7 @@ This single command handles everything in one pass:
 - **`mission.yaml` generation** — creates `mission.yaml` with the correct `modules:` and `pipeline:` sections.
 - **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
-If your pipeline contains `realweather` weather versions, the tool will ask for the ICAO airport code to embed in the generated config. You can supply it upfront to avoid the interactive prompt:
+If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the tool prints a warning and you edit the generated config manually:
 
 ```powershell
 .\veaf-tools.exe convert-v5 . --icao UGGG
@@ -172,12 +172,13 @@ cd my-mission
 .\veaf-tools-updater.exe
 ```
 
-#### 3. Convert the vanilla .miz
+#### 3. Extract the vanilla .miz, then build
 
-The `convert-mission` command does everything in one step: extract, inject VEAF scripts, rebuild.
+Extract your vanilla `.miz` into the source folder, then run the build, which injects the VEAF scripts and rebuilds a new `.miz`:
 
 ```powershell
-.\veaf-tools.exe convert-mission "C:\path\to\vanilla.miz" .
+.\veaf-tools.exe extract "C:\path\to\vanilla.miz" .
+.\veaf-tools.exe build
 ```
 
 This:
@@ -203,10 +204,11 @@ Then copy your `.miz` as `mission.miz` and run:
 
 #### 5. Configure which modules to enable
 
-Edit `mission.yaml` to enable the modules you want. By default, only the essential modules (markers, spawn, radio) are active:
+Edit `mission.yaml` to enable the modules you want. A set of common modules is active by default — radio, spawn, shortcuts, CAS, transport, weather… — adjust to taste:
 
 ```yaml
-name: My Vanilla Mission
+mission:
+  name: My Vanilla Mission
 
 modules:
   RADIO:
@@ -223,7 +225,7 @@ modules:
 
 For custom Lua (advanced module calls, custom aliases, etc.), edit `src/scripts/mission-script.lua`.
 
-See the [YAML reference](../../MISSION_YAML_REFERENCE.md) and the individual script guides in [scripts/](scripts/README.md) for all options.
+See the [YAML reference](../MISSION_YAML_REFERENCE.md) and the individual script guides in [scripts/](scripts/README.md) for all options.
 
 #### 6. Keep your existing mission content
 
@@ -300,7 +302,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-Module enable/disable is configured in `mission.yaml` → `modules:` — not in this file. See the [YAML reference](../../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
+Module enable/disable is configured in `mission.yaml` → `modules:` — not in this file. See the [YAML reference](../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
 
 ---
 

@@ -90,32 +90,21 @@ Remplir `veafAssets.Assets` avant d'appeler `initialize()` :
 ```lua
 veafAssets.Assets = {
   {
-    name        = "Texaco",
+    name        = "KC-135 Texaco",       -- nom du groupe DCS dans la mission
     description = "Texaco (KC-135)",
-    groupName   = "KC-135 Texaco",
-    information = true,    -- afficher le bouton Infos dans le menu radio
+    information = "Tacan 51Y\nU251.00 (21)",  -- texte des Infos (truthy → ajoute le bouton Infos)
     disposable  = false,   -- permettre aux joueurs de le désactiver
   },
   {
-    name        = "Arco",
+    name        = "KC-130 Arco",
     description = "Arco (KC-130)",
-    groupName   = "KC-130 Arco",
-    information = true,
+    information = "Tacan 50Y\nU251.50 (22)",
     disposable  = false,
   },
   {
-    name        = "Overlord",
+    name        = "E-3A Overlord",
     description = "Overlord (E-3A)",
-    groupName   = "E-3A Overlord",
-    information = true,
-    disposable  = false,
-  },
-  {
-    name        = "Mother",
-    description = "CVN-73 Theodore Roosevelt",
-    groupName   = "CVN-73",
-    information = true,
-    carrier     = true,    -- active les infos spécifiques aux porte-avions (BRC, TACAN, ICLS)
+    information = "SRS 251.00",
     disposable  = false,
   },
 }
@@ -125,12 +114,12 @@ veafAssets.Assets = {
 
 | Champ | Type | Requis | Description |
 |-------|------|--------|-------------|
-| `name` | string | Oui | Identifiant interne |
+| `name` | string | Oui | Nom du groupe DCS dans la mission (sert aussi d'identifiant interne) |
 | `description` | string | Oui | Libellé affiché dans le menu F10 |
-| `groupName` | string | Oui | Nom du groupe DCS dans la mission |
-| `information` | boolean | Non | Afficher le bouton Infos (position, TACAN, fréq) |
+| `information` | string | Non | Texte des infos affiché aux joueurs ; non vide → ajoute le bouton Infos |
 | `disposable` | boolean | Non | Permettre aux joueurs autorisés de désactiver la ressource |
-| `carrier` | boolean | Non | Afficher les infos spécifiques aux porte-avions (BRC, TACAN, ICLS) |
+
+> Les porte-avions sont gérés par le module séparé [veafCarrierOperations](veafCarrierOperations.md), pas par `veafAssets`.
 
 ---
 
@@ -146,7 +135,7 @@ Pour chaque ressource, un sous-menu est créé sous **F10 → Ressources** :
 
 ## Notes
 
-- Le groupe DCS doit exister dans l'éditeur de mission avec exactement le nom utilisé dans `groupName`
+- Le groupe DCS doit exister dans l'éditeur de mission avec exactement le nom utilisé dans `name`
 - Les informations du ravitailleur (TACAN, fréquence) sont lues depuis les paramètres de route/waypoint du groupe DCS
 - Les informations du porte-avions nécessitent que `veafCarrierOperations` soit initialisé
 

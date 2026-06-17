@@ -19,15 +19,17 @@ Définit des zones qui font apparaître des vagues récurrentes d'aéronefs IA. 
 
 ## Activation
 
-Pas d'`initialize()` global. Chaque zone est créée individuellement :
+Pas d'`initialize()` global. Chaque zone est créée individuellement, puis démarrée avec `:start()` :
 
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-East")
-  :setZoneName("ZONE-AIRWAVES-EAST")
+  :setTriggerZone("ZONE-AIRWAVES-EAST")
   :setDescription("Zone d'interception est")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "MiG-23 Wave 1a", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
+  :start()
 ```
 
 ---
@@ -133,35 +135,45 @@ modules:
 
 ---
 
-  :setMinimumPlayersForWave(1)
-  :initialize()
-```
-
----
-
 ## Méthodes du builder AirWaveZone
 
 | Méthode | Description |
 |---------|-------------|
 | `:setName(name)` | Identifiant interne |
-| `:setZoneName(zoneName)` | Zone de trigger DCS définissant la zone d'interception |
+| `:setTriggerZone(zoneName)` | Zone de trigger DCS définissant la zone d'interception |
+| `:setZoneCenter(vec3)` | Centre de la zone (point), alternative à la zone de trigger |
+| `:setZoneCenterFromCoordinates(coords)` | Centre de la zone depuis une chaîne de coordonnées |
+| `:setZoneRadius(m)` | Rayon de la zone en mètres (avec un centre) |
 | `:setDescription(text)` | Libellé pour les messages et les logs |
-| `:addWave(groupNames)` | Ajouter une vague (table de noms de groupes DCS) |
-| `:setMinimumPlayersForWave(n)` | Nombre minimum de joueurs humains pour déclencher une vague |
-| `:setPlayerCoalitions(sides)` | Quelles coalitions comptent comme joueurs |
-| `:setPlayerUnitsNames(names)` | Noms spécifiques d'unités joueur à suivre |
+| `:addWave(...)` | Ajouter une vague — voir [Définition d'une vague](#définition-dune-vague) |
+| `:resetWaves()` | Vider toutes les vagues ajoutées (utile après `mist.utils.deepCopy`) |
+| `:addPlayerCoalition(side)` | Ajouter une coalition dont les joueurs comptent (ex : `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Rayon de dispersion des spawns (défaut : 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns |
+| `:setMaxSecondsOutsideOfZoneIA(n)` | Secondes avant qu'un groupe IA hors zone soit considéré comme perdu |
+| `:setMaxSecondsOutsideOfZonePlayers(n)` | Secondes avant que la zone se réinitialise si tous les joueurs sortent |
+| `:setDelayBetweenWaves(n)` | Délai par défaut en secondes entre les vagues |
+| `:setDelayBeforeActivation(n)` | Secondes après l'entrée des joueurs avant la première vague |
+| `:setMinimumAltitudeInFeet(n)` | Plancher de détection des joueurs (en pieds) |
+| `:setMaximumAltitudeInFeet(n)` | Plafond de détection des joueurs (en pieds) |
+| `:setResetWhenDying(bool)` | Réinitialiser la zone quand un joueur meurt |
 | `:setSilent(bool)` | Supprimer tous les messages |
 | `:setDrawZone(bool)` | Dessiner le contour de la zone sur la carte |
-| `:setOnStart(fn)` | Callback quand la zone s'active |
-| `:setOnWaveDestroyed(fn)` | Callback quand une vague est détruite |
-| `:setOnCompleted(fn)` | Callback quand toutes les vagues sont terminées |
+| `:setOnStart(fn)` | Callback `(zoneName, playerUnits)` quand la zone s'active |
+| `:setOnDeploy(fn)` | Callback `(zoneName, waveIndex, playerUnits)` quand une vague est lancée |
+| `:setOnDestroyed(fn)` | Callback `(zoneName, waveIndex, playerUnits)` quand une vague est détruite |
+| `:setOnWon(fn)` | Callback `(zoneName, playerUnits)` quand toutes les vagues sont terminées |
+| `:setOnLost(fn)` | Callback `(zoneName, playerUnits)` quand la zone est perdue |
+| `:setOnStop(fn)` | Callback `(zoneName, playerUnits)` quand la zone est arrêtée |
 | `:setMessageStart(text)` | Message personnalisé de démarrage de zone |
-| `:setMessageWaitToDeploy(text)` | Message personnalisé d'arrivée de vague |
-| `:setMessageWaveDeployed(text)` | Message personnalisé de vague lancée |
-| `:setMessageWaveDestroyed(text)` | Message personnalisé de vague détruite |
-| `:setMessageCompleted(text)` | Message personnalisé de toutes vagues terminées |
+| `:setMessageDeploy(text)` | Message personnalisé de vague lancée |
+| `:setMessageDeployPlayers(text)` | Message BRAA personnalisé envoyé aux joueurs en zone |
+| `:setMessageDestroyed(text)` | Message personnalisé de vague détruite |
+| `:setMessageWon(text)` | Message personnalisé de toutes vagues terminées |
+| `:setMessageLost(text)` | Message personnalisé de zone perdue |
+| `:setMessageStop(text)` | Message personnalisé d'arrêt de zone |
+| `:start()` | Démarrer la zone |
+| `:stop()` | Arrêter la zone |
 
 ---
 
@@ -249,17 +261,17 @@ Cela permet de monter facilement des menaces étagées venant de directions diff
 ```lua
 AirWaveZone:new()
   :setName("Intercept-West")
-  :setZoneName("ZONE-WEST-INTERCEPT")
+  :setTriggerZone("ZONE-WEST-INTERCEPT")
   :setDescription("Axe de menace ouest")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "Su-25T Strike 1a", "Su-25T Strike 1b" })
   :addWave({ "Su-25T Strike 2a", "Su-25T Strike 2b", "Su-25T Strike 2c" })
   :addWave({ "Su-24M Deep Strike" })
-  :setMinimumPlayersForWave(2)
   :setDrawZone(true)
-  :setOnCompleted(function()
+  :setOnWon(function()
     trigger.action.setUserFlag("WEST_CLEAR", true)
   end)
-  :initialize()
+  :start()
 ```
 
 ### Vagues aléatoires à difficulté croissante
@@ -267,8 +279,9 @@ AirWaveZone:new()
 ```lua
 AirWaveZone:new()
   :setName("Intercept-East")
-  :setZoneName("ZONE-EAST-INTERCEPT")
+  :setTriggerZone("ZONE-EAST-INTERCEPT")
   :setDescription("Axe de menace est — difficulté progressive")
+  :addPlayerCoalition(coalition.side.BLUE)
   -- Vague 1 : tirer 1 ou 2 chasseurs légers dans un pool
   :addWave({
     groups = { "MiG-21 Flight", "MiG-23 Flight", "MiG-29 Flight", "Su-27 Flight" },
@@ -286,9 +299,8 @@ AirWaveZone:new()
   -- Vague 3 : escorte lourde + attaque au sol simultanée (delay négatif)
   :addWave({ groups = { "Su-27 Escort" }, delay = -1 })
   :addWave({ groups = { "Su-24M Strike" } })
-  :setMinimumPlayersForWave(2)
   :setDrawZone(true)
-  :initialize()
+  :start()
 ```
 
 ### Réutiliser une zone modèle par copie profonde
@@ -296,9 +308,9 @@ AirWaveZone:new()
 Quand plusieurs secteurs partagent la même structure de vagues, définissez une zone modèle et clonez-la. Utilisez `:resetWaves()` pour vider les vagues du modèle avant d'ajouter celles propres au secteur :
 
 ```lua
--- Définir un modèle partagé (PAS encore initialisé)
+-- Définir un modèle partagé (PAS encore démarré)
 local zoneTemplate = AirWaveZone:new()
-  :setMinimumPlayersForWave(1)
+  :addPlayerCoalition(coalition.side.BLUE)
   :setDrawZone(true)
   :addWave({ "MiG-29 Wave 1" })
   :addWave({ "Su-27 Wave 2" })
@@ -307,19 +319,19 @@ local zoneTemplate = AirWaveZone:new()
 local zoneNorth = mist.utils.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
-  :setZoneName("ZONE-AW-NORTH")
+  :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Secteur nord")
-  :initialize()
+  :start()
 
 local zoneSouth = mist.utils.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
-  :setZoneName("ZONE-AW-SOUTH")
+  :setTriggerZone("ZONE-AW-SOUTH")
   :setDescription("Secteur sud")
   :resetWaves()                          -- vider les vagues du modèle
   :addWave({ "Su-25T Wave 1" })          -- ajouter les vagues propres au secteur
   :addWave({ "Su-24M Wave 2", "Su-24M Wave 2b" })
-  :initialize()
+  :start()
 ```
 
 ---
@@ -358,7 +370,7 @@ STOP ──start()──► READY
 | `ACTIVE` | La vague courante est spawnée et vivante. |
 | `OVER` | Toutes les vagues ont été détruites — la zone est terminée. |
 
-`NEXTWAVE` est un état transitoire que la zone traverse en un seul cycle de `check()` : elle n'y reste jamais. Les callbacks comme `setOnWaveDestroyed` se déclenchent à la sortie de `ACTIVE → NEXTWAVE`, et `setOnCompleted` à l'entrée de `NEXTWAVE → OVER`.
+`NEXTWAVE` est un état transitoire que la zone traverse en un seul cycle de `check()` : elle n'y reste jamais. Les callbacks comme `setOnDestroyed` se déclenchent à la sortie de `ACTIVE → NEXTWAVE`, et `setOnWon` à l'entrée de `NEXTWAVE → OVER`.
 
 ---
 

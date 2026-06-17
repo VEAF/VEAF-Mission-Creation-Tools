@@ -1,7 +1,7 @@
 # veafSanctuary — Protected Zones
 
 
-**Module ID:** — | **File:** `veafSanctuary.lua`
+**Module ID:** `SANCTUARY` | **File:** `veafSanctuary.lua`
 
 ---
 
@@ -12,8 +12,6 @@ Defines zones that automatically destroy any unit from the specified coalition t
 ---
 
 ## Dependencies
-
-- `veafEventHandler` — for zone-entry detection
 
 ---
 
@@ -26,12 +24,20 @@ veafSanctuary.initialize()
 Then define zones:
 
 ```lua
-VeafSanctuary:new()
+local zone = VeafSanctuaryZone:new()
   :setName("Carrier Zone")
-  :setZoneName("ZONE-CARRIER-PROTECTION")
-  :setCoalition(coalition.side.RED)  -- destroy Red units that enter
-  :setMessage("Hostile aircraft eliminated in carrier defense zone")
-  :initialize()
+  :setCoalition(coalition.side.RED)  -- protect against Red units that enter
+  :setPolygonFromUnits({ "SANCT-NW", "SANCT-NE", "SANCT-SE", "SANCT-SW" }, true)
+  :setDelayWarning(30)               -- seconds before warning
+  :setDelaySpawn(60)                 -- seconds before defenses are deployed
+  :setProtectFromMissiles()          -- also destroy missiles fired at units inside
+veafSanctuary.addZone(zone)
+```
+
+You can also build a zone from a DCS trigger zone:
+
+```lua
+veafSanctuary.addZoneFromTriggerZone("ZONE-CARRIER-PROTECTION")
 ```
 
 ---
@@ -52,7 +58,7 @@ modules:
         delay_warning: 30              # seconds before warning message is sent (default: 0)
         delay_spawn: 60                # seconds before the zone becomes active after mission start
         delay_instant: 0               # seconds between repeated destruction checks (default: 0)
-        protect_from_missiles: false   # true = also intercept missiles heading into the zone
+        protect_from_missiles: false   # true = also destroy missiles fired at units located inside the zone
 ```
 
 | Field | Type | Default | Required | Description |
@@ -66,7 +72,7 @@ modules:
 | `sanctuary_zones[].delay_warning` | integer | `0` | No | Seconds before the warning message is sent |
 | `sanctuary_zones[].delay_spawn` | integer | `0` | No | Seconds before the zone activates after mission start |
 | `sanctuary_zones[].delay_instant` | integer | `0` | No | Seconds between repeated destruction checks |
-| `sanctuary_zones[].protect_from_missiles` | boolean | `false` | No | Also intercept missiles heading into the zone |
+| `sanctuary_zones[].protect_from_missiles` | boolean | `false` | No | Also destroy missiles fired at units located inside the zone |
 
 ### Minimal example
 
@@ -88,14 +94,26 @@ modules:
 
 ## Builder Methods
 
+Zones are built with `VeafSanctuaryZone:new()` then registered via `veafSanctuary.addZone(zone)`. Each setter returns the zone, allowing chaining.
+
 | Method | Description |
 |--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setZoneName(zone)` | DCS trigger zone |
-| `:setCoalition(side)` | Coalition of units to destroy |
-| `:setMessage(text)` | Message shown when a unit is destroyed |
-| `:setSilent(bool)` | Suppress messages |
-| `:initialize()` | Activate the zone |
+| `:setName(value)` | Internal identifier |
+| `:setCoalition(value)` | Protected coalition (units of other coalitions are handled) |
+| `:setRadius(value)` | Radius of the circular zone (metres) |
+| `:setPosition(value)` | Centre of the circular zone |
+| `:setPolygonFromUnits(unitNames, markPositions)` | Define a polygon from a list of DCS unit names; `markPositions` set to `true` draws the zone on the map |
+| `:setPolygonFromUnitsInSequence(unitNamePrefix, markPositions)` | Define a polygon from units named `prefix #001`, `prefix #002`, ... |
+| `:setProtectFromMissiles()` | Enable destruction of missiles fired at units inside the zone (no argument — flag) |
+| `:setDelayWarning(value)` | Seconds before the warning message is sent |
+| `:setOffensesBeforeDestruction(value)` | Number of shots at players before the shooter is destroyed |
+| `:setMessageWarning(value)` | Warning message |
+| `:setMessageShotTarget(value)` | Message to the target when a shot is detected |
+| `:setMessageShotLauncher(value)` | Message to the shooter when a shot is detected |
+| `:setDelayInstant(value)` | Seconds before the trespasser is instantly killed (-1 to disable) |
+| `:setDelaySpawn(value)` | Seconds before defenses are deployed (-1 to disable) |
+| `:setMessageSpawn(value)` | Message shown when defenses are deployed |
+| `:addSpawnedGroups(names)` | Register deployed groups associated with the zone |
 
 ---
 

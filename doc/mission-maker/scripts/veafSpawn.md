@@ -49,17 +49,15 @@ veafSpawn.initialize()
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name F-16C, group 2, hdg 180, alt 20000
-_spawn unit, name T-80, group 4, hdg 270, spacing 50
+_spawn unit, name F-16C, hdg 180, alt 20000
+_spawn unit, name T-80, hdg 270, spacing 50
 ```
 
 **Options :**
 
 - `name` — type d'unité
-- `group` — nombre d'unités
 - `hdg` — cap (degrés)
 - `alt` — altitude (pieds)
-- `speed` — vitesse (nœuds)
 - `side` — coalition
 - `country` — pays
 - `skill` — niveau de compétence IA
@@ -88,7 +86,6 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 - `alt` — altitude de patrouille (pieds)
 - `hdg` — cap initial
 - `speed` — vitesse de patrouille (nœuds)
-- `group` — nombre d'avions
 - `capradius` — rayon d'orbite CAP (mètres)
 - `distance` — distance depuis le marqueur
 
@@ -180,7 +177,7 @@ Le fichier utilise le **schéma DCS complet** des groupes d'aéronefs (`airplane
 veaf-tools extract-aircraft-groups --kind spawnable
 ```
 
-Les **modèles de slot dynamique** (`dynSpawnTemplate = true`, slots Dynamic Slots DCS) sont une famille distincte, dans `src/dynamic-slot-templates.yaml` (étape `dynamic_slot_templates`) — voir l'[ADR 0002](../../adr/0002-aircraft-group-injection-sort-criteria.md).
+Les **modèles de slot dynamique** (`dynSpawnTemplate = true`, slots Dynamic Slots DCS) sont une famille distincte, dans `src/dynamic-slot-templates.yaml` (étape `dynamic_slot_templates`) — voir l'[ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0002-aircraft-group-injection-sort-criteria.md).
 
 ---
 

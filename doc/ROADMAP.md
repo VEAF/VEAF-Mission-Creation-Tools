@@ -40,6 +40,8 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 
 ### Release
 - ✅ **Releases v6.x** — publication continue depuis `develop-v6` (tags `published-vx.y.z`) ; version courante **6.5.0**. Le merge `develop-v6` → `master` est réservé aux jalons stables.
+- ✅ **Release v6.3.0** — corrections de bugs et améliorations UX (Lot 26 + FIX-SORT) : correction du crash convert-v5, auto-pause au double-clic, filtrage des smart defaults, vérification nil de veaf.initialize()
+- ✅ **Release v6.3.3** — stabilisation et corrections de bugs : crashs des initialize() Lua, corrections du pipeline de build, profils de build, CSAR YAML-first, résolution automatique des dépendances
 
 ---
 

@@ -1,6 +1,6 @@
 # veafShortcuts — Aliases de marqueurs
 
-**Module ID :** `SHCUT` | **Fichier :** `veafShortcuts.lua`
+**Module ID :** `SHORTCUTS` | **Fichier :** `veafShortcuts.lua`
 
 ---
 

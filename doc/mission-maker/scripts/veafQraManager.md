@@ -48,38 +48,34 @@ local myQra = VeafQRA:new()
 
 ## Configuration (`mission.yaml`)
 
-Les définitions QRA vivent dans la **section de premier niveau `qra:`** (pas sous `modules:`). Le module `QRA` doit être activé dans `modules:`.
+Les définitions QRA vivent **sous `modules.QRA`** (`silence_all` + `definitions:`). Le module `QRA` doit être activé dans `modules:`.
 
 ```yaml
 modules:
   QRA:
-    enabled: true          # défaut : true
-    logLevel: info        # surcharge optionnelle du niveau de log
-
-qra:
-  silence_all: false      # true = supprimer tous les messages radio QRA globalement
-  definitions:
-    - name: "QRA-Nord"                  # REQUIS — identifiant et préfixe radio
-      coalition: RED                    # REQUIS — RED | BLUE
-      enemy_coalitions: [BLUE]          # coalitions qui déclenchent le scramble
-      trigger_zone: "ZONE-QRA-NORD"    # zone de trigger DCS définissant l'espace aérien
-      zone_radius: 30000               # rayon en mètres (alternative à trigger_zone)
-      simple_groups:                   # noms de groupes DCS à scrambler (inconditionnels)
-        - "Vol QRA MiG-29"
-      groups_by_enemy_count:           # réponse proportionnelle au nombre d'intrus
-        - enemy_count: 1               # scramble quand 1 intrus détecté
-          groups: ["Duo-1", "Duo-2"]   # pool de groupes
-          random_pick: 1               # combien de groupes choisir dans le pool
-        - enemy_count: 3
-          groups: ["Vol-1", "Vol-2"]
-          random_pick: 2
-      delay_before_rearming: 30        # secondes avant réinitialisation après départ des intrus
-      delay_before_activating: 30      # secondes après :start() avant mise en ligne de la QRA
-      react_on_helicopters: false      # true = déclencher aussi sur les hélicoptères ennemis
-      airport_link: "Batumi"           # la QRA se désactive si cette base est détruite
+    silence_all: false      # true = supprimer tous les messages radio QRA globalement
+    definitions:
+      - name: "QRA-Nord"                  # REQUIS — identifiant et préfixe radio
+        coalition: RED                    # REQUIS — RED | BLUE
+        enemy_coalitions: [BLUE]          # coalitions qui déclenchent le scramble
+        trigger_zone: "ZONE-QRA-NORD"    # zone de trigger DCS définissant l'espace aérien
+        zone_radius: 30000               # rayon en mètres (alternative à trigger_zone)
+        simple_groups:                   # noms de groupes DCS à scrambler (inconditionnels)
+          - "Vol QRA MiG-29"
+        groups_by_enemy_count:           # réponse proportionnelle au nombre d'intrus
+          - enemy_count: 1               # scramble quand 1 intrus détecté
+            groups: ["Duo-1", "Duo-2"]   # pool de groupes
+            random_pick: 1               # combien de groupes choisir dans le pool
+          - enemy_count: 3
+            groups: ["Vol-1", "Vol-2"]
+            random_pick: 2
+        delay_before_rearming: 30        # secondes avant réinitialisation après départ des intrus
+        delay_before_activating: 30      # secondes après :start() avant mise en ligne de la QRA
+        react_on_helicopters: false      # true = déclencher aussi sur les hélicoptères ennemis
+        airport_link: "Batumi"           # la QRA se désactive si cette base est détruite
 ```
 
-### Champs de premier niveau `qra:`
+### Champs de `modules.QRA`
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
@@ -110,15 +106,12 @@ qra:
 ```yaml
 modules:
   QRA:
-    enabled: true
-
-qra:
-  definitions:
-    - name: "QRA-Sud"
-      coalition: RED
-      trigger_zone: "ZONE-QRA-SUD"
-      simple_groups:
-        - "Interception Su-27"
+    definitions:
+      - name: "QRA-Sud"
+        coalition: RED
+        trigger_zone: "ZONE-QRA-SUD"
+        simple_groups:
+          - "Interception Su-27"
 ```
 
 ---

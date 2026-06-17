@@ -9,7 +9,7 @@
 
 Two distinct roles:
 
-1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe weather-inject`.
+1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe inject-weather`.
 2. **Runtime**: players can request weather reports and ATC information via the F10 radio menu, and the mission maker can script dynamic fog changes.
 
 ---
@@ -36,25 +36,30 @@ No parameters required.
 Weather is injected at build time (before the mission is loaded) using `veaf-tools.exe`:
 
 ```powershell
-veaf-tools.exe weather-inject --mission mission.miz --config weather.yaml
+veaf-tools.exe inject-weather mission.miz --config-file versions.yaml
 ```
 
-### weather.yaml Example
+### versions.yaml example
 
 ```yaml
-weather:
-  source: metar          # "metar" (real-world) or "manual"
-  icao: UGSS             # ICAO airport code for METAR (Senaki)
-  # manual override (used when source: manual)
-  wind:
-    speed: 10            # knots
-    direction: 270       # degrees
-  visibility: 8000       # metres
-  clouds:
-    base: 2500           # feet
-    density: 5           # 0-10
-  temperature: 18        # °C
-  qnh: 1013              # hPa
+position:
+  latitude: 33.5
+  longitude: 35.5
+  timezone: "Asia/Damascus"
+base_date: "2024-03-15"
+versions:
+  - name: noon-clear
+    time: "12:00"
+    weather:
+      temperature: 25.0
+      wind_speed: 8.0
+      wind_direction: 270.0
+      visibility: 10000.0
+      cloud_type: "clear"
+      fog_enabled: false
+  - name: with-metar
+    time: "14:00"
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
 ```
 
 ---
@@ -74,12 +79,14 @@ When the `WEATHER` module is enabled, a **"WEATHER AND ATC"** submenu appears in
 
 ## Runtime Weather Reports
 
-Get a weather report programmatically:
+Get a weather report programmatically for a position (a `vec3`):
 
 ```lua
-local report = veaf.weatherReport(position, altitude, withLASTE)
+local report = veafWeatherData.getWeatherString(position)
 veaf.outTextForUnit(unitName, report, 30)
 ```
+
+The remaining arguments are optional: `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. Passing a DCS unit name as `dcsElementName` tailors the report to the aircraft type (unit system, LASTE data for the A-10).
 
 ---
 
@@ -162,5 +169,5 @@ The fog name is case-insensitive. Use the exact constant names listed above (wit
 
 ## See Also
 
-- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe weather-inject` full reference
+- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe inject-weather` full reference
 - [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafWeather` API

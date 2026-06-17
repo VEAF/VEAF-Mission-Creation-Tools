@@ -49,7 +49,7 @@ modules:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
 
@@ -71,9 +71,8 @@ Use `veafRadio.createUserMenu()` to build a structured menu tree from a simple L
 veafRadio.createUserMenu(
   veafRadio.mainmenu(
     veafRadio.menu("QRA Management",
-      veafRadio.command("Start QRA North", veafQraManager.startQra, { name = "QRA-NORTH" }),
-      veafRadio.command("Stop QRA North",  veafQraManager.stopQra,  { name = "QRA-NORTH" }),
-      veafRadio.command("Status",          veafQraManager.getStatus,{ name = "QRA-NORTH" })
+      veafRadio.command("Start QRA North", myMission.startQra, { name = "QRA-NORTH" }),
+      veafRadio.command("Stop QRA North",  myMission.stopQra,  { name = "QRA-NORTH" })
     ),
     veafRadio.menu("Flags",
       veafRadio.command("Set Flag 10",   trigger.action.setUserFlag, { "FLAG-10", true }),
@@ -136,16 +135,16 @@ local qraMenu = veafRadio.addSubMenu("QRA", missionMenu)
 veafRadio.addCommandToSubmenu(
   "Start QRA North",
   qraMenu,
-  veafQraManager.startQra,
+  myMission.startQra,
   { name = "QRA-NORTH" },
   veafRadio.USAGE_ForAll
 )
 
 -- Add a secured command (requires /secu login)
 veafRadio.addSecuredCommandToSubmenu(
-  "Emergency stop all QRA",
+  "Emergency stop",
   missionMenu,
-  veafQraManager.stopAll,
+  myMission.emergencyStop,
   {},
   veafRadio.USAGE_ForAll
 )
@@ -178,21 +177,28 @@ Pages of 10 are created automatically with a "Next page" submenu.
 ### QRA start/stop from a custom menu
 
 ```lua
-local controlMenu = veafRadio.addMenu("Mission Control")
+local function _changeQra(parameters)
+    local name, action = veaf.safeUnpack(parameters)
+    local qra = veafQraManager.get(name)
+    if qra then
+        if action:upper() == "START" then
+            qra:start(false)
+        else
+            qra:stop(false)
+        end
+    end
+end
 
-local qraMenu = veafRadio.addSubMenu("Quick Reaction Alerts", controlMenu)
-
-veafRadio.addCommandToSubmenu("Start QRA North",
-  qraMenu, myNorthQRA.start, {}, veafRadio.USAGE_ForAll)
-veafRadio.addCommandToSubmenu("Stop QRA North",
-  qraMenu, myNorthQRA.stop,  {}, veafRadio.USAGE_ForAll)
-
-veafRadio.addCommandToSubmenu("Start QRA South",
-  qraMenu, mySouthQRA.start, {}, veafRadio.USAGE_ForAll)
-veafRadio.addCommandToSubmenu("Stop QRA South",
-  qraMenu, mySouthQRA.stop,  {}, veafRadio.USAGE_ForAll)
-
-veafRadio.refreshRadioMenu()
+veafRadio.createUserMenu(
+    veafRadio.mainmenu(
+        veafRadio.menu("QRA Management",
+            veafRadio.menu("QRA Maykop",
+                veafRadio.command("START", _changeQra, {"QRA-Maykop", "start"}),
+                veafRadio.command("STOP",  _changeQra, {"QRA-Maykop", "stop"})
+            )
+        )
+    )
+)
 ```
 
 ### Destroy a group by name

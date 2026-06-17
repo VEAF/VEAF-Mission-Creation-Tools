@@ -7,15 +7,15 @@
 
 ## Purpose
 
-Creates helicopter/transport pickup-and-delivery missions. Defines cargo or troop pickup zones and drop-off zones. Integrates with CTLD (Combined Arms Transport and Logistics) when available.
+Creates a helicopter transport/logistics training mission, driven by an F10 map marker. When a `_transport` marker is placed, the module spawns cargo to pick up near a named start point, a friendly group awaiting that cargo at the drop zone (placed under the marker), and optionally enemy air defenses along the route.
 
 ---
 
 ## Dependencies
 
 - `veafRadio` — F10 menu
-- `veafMarkers` — optional marker commands
-- CTLD script — optional third-party integration
+- `veafMarkers` — marker event handler (`_transport`)
+- `veafSpawn`, `veafUnits`, `veafNamedPoints`, `veafSecurity`
 
 ---
 
@@ -31,51 +31,46 @@ veafTransportMission.initialize()
 
 ## Key Concepts
 
-- **Loading zone** — where helicopters or transports pick up cargo/troops
-- **Delivery zone** — where cargo/troops must be dropped
-- Missions can have objectives (e.g., deliver N crates to win)
-- Supports both pre-placed and dynamically spawned cargo
+- **Start point** — a named point (declared via `veafNamedPoints`) where the cargo to transport is spawned. It is mandatory and given by the `from` parameter.
+- **Drop zone** — where the friendly group awaiting the cargo is spawned, under the `_transport` marker. The route between the start point and the drop zone must be at least 15 km long.
+- **Route defenses** — optional enemy air defense groups spawned along the route when `defense` is greater than `0`.
+- Only one transport mission can run at a time.
 
 ---
 
-## Example Configuration
+## Marker command
 
-```lua
--- Simple troop transport mission
-local transportMission = VeafTransportMission:new()
-  :setName("Evac-Alpha")
-  :setDescription("Evacuate troops from Firebase Alpha")
-  :setPickupZoneName("ZONE-PICKUP-ALPHA")
-  :setDeliveryZoneName("ZONE-DELIVERY-BASE")
-  :setCargoType("Troops")
-  :setCargoCount(8)
-  :setBriefing("8 soldiers are stranded at Firebase Alpha. Extract them to Senaki base.")
-  :initialize()
+Place a marker on the F10 map and type `_transport` in its text, optionally followed by parameters separated by commas.
+
+```text
+_transport, size 3, defense 2, from FARP London
 ```
 
----
+### Marker parameters
 
-## Builder Methods
-
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setDescription(text)` | F10 menu label |
-| `:setPickupZoneName(zone)` | DCS trigger zone for pickup |
-| `:setDeliveryZoneName(zone)` | DCS trigger zone for delivery |
-| `:setCargoType(type)` | `"Troops"`, `"Crates"`, `"Vehicles"` |
-| `:setCargoCount(n)` | Number of cargo units |
-| `:setBriefing(text)` | Mission briefing text |
-| `:setCoalition(side)` | Mission coalition |
-| `:initialize()` | Register and activate |
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `size <n>` | `1`–`5` | `1` | Number of cargo crates to transport |
+| `defense <n>` | `0`–`5` | `0` | Air defense cover along the route (`1` = light, `5` = heavy) |
+| `blocade <n>` | `0`–`5` | `0` | Enemy blockade around the drop zone (`1` = light, `5` = heavy) |
+| `from <named point>` | named point | — | **Mandatory** start point where the cargo is spawned |
+| `password <pwd>` | string | — | Security password unlocking the command |
 
 ---
 
 ## F10 Radio Menu
 
-- **Info** — pickup zone position, cargo description, delivery zone
-- **Activate** — spawn pickup zone units
-- **Deactivate** — clean up mission
+The **TRANSPORT MISSION** menu always exposes:
+
+- **HELP** — usage reminder
+
+Once a mission is generated, it adds:
+
+- **Drop zone information** — count of friendly units at the drop zone, plus its coordinates (Lat/Lon, MGRS, bearing/range from bullseye), altitude and wind
+- **Skip current objective** — cancel the current mission and clean up
+- **Drop zone markers** (submenu)
+  - **Request smoke on drop zone** — green smoke over the drop zone
+  - **Request illumination flare over drop zone**
 
 ---
 

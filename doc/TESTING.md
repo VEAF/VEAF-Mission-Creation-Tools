@@ -16,7 +16,7 @@ Documentation de la suite de tests unitaires Lua VEAF et du pipeline CI/CD.
 
 ## Vue d'ensemble
 
-Le projet compte 31 suites de tests Lua couvrant tous les modules runtime, totalisant ~915 tests. Les tests s'exécutent en **Lua 5.1** standard avec le framework [luaunit](https://github.com/bluebird75/luaunit). Aucune installation de DCS n'est requise — l'API DCS est simulée par `dcs_mocks.lua`.
+Le projet compte 34 suites de tests Lua couvrant tous les modules runtime, totalisant ~1000 tests. Les tests s'exécutent en **Lua 5.1** standard avec le framework [luaunit](https://github.com/bluebird75/luaunit). Aucune installation de DCS n'est requise — l'API DCS est simulée par `dcs_mocks.lua`.
 
 ---
 
@@ -92,7 +92,7 @@ test/lua/
 ├── luaunit.lua         # Framework de test (embarqué)
 ├── dcs_mocks.lua       # Stubs de l'API DCS
 ├── veaf_loader.lua     # Chargeur de modules pour src/scripts/veaf/
-└── test_*.lua          # Un fichier par module (31 fichiers)
+└── test_*.lua          # Un fichier par module (34 fichiers)
 ```
 
 ### dcs_mocks.lua
@@ -166,6 +166,9 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMove.lua` | 19 | Parsing de commandes de déplacement/téléportation |
 | `test_veafGrass.lua` | 12 | Initialisation de pistes en herbe |
 | `test_veafSpawn.lua` | 55 | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
+| `test_veafSpawnParser.lua` | 45 | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
+| `test_veafCommands.lua` | 8 | Registre de commandes : ordonnancement par priorité et dispatch |
+| `test_veafI18n.lua` | 32 | Couche i18n runtime Lua (`veaf.t`, catalogue `veafI18n`) |
 
 **Modules non couverts** (design-time ou externes uniquement) :
 
@@ -247,11 +250,23 @@ Le workflow GitHub Actions (`.github/workflows/lua-ci.yml`) s'exécute à chaque
 3. Exécution de tous les fichiers `test/lua/test_*.lua`
 4. Échec du job si une suite retourne un code non-zéro
 
+**`luacheck`** — Ubuntu latest
+1. Checkout du dépôt
+2. Installation de `lua5.1` + `luacheck` via LuaRocks
+3. Analyse statique de `src/scripts/veaf/` avec `luacheck --config .luacheckrc` (globaux non définis, variables inutilisées, shadowing)
+4. Échec si une violation est détectée
+
 **`stylua-check`** — Ubuntu latest
 1. Checkout du dépôt
 2. Exécution de `JohnnyMorganz/stylua-action@v4` avec la version `2.4.0`
 3. Vérification de `src/scripts/veaf/` contre `.stylua.toml`
 4. Échec si un fichier n'est pas formaté
+
+**`lua-coverage`** — Ubuntu latest
+1. Checkout du dépôt
+2. Installation de `lua5.1` + `luacov` via LuaRocks, puis de Poetry et des dépendances
+3. Exécution de `poetry run test-lua --cov-fail-under 67` (couverture ligne via luacov)
+4. Échec si la couverture passe sous le plancher de cliquet (le nombre ne fait que monter)
 
 ### Exécuter StyLua localement
 
@@ -261,6 +276,12 @@ stylua --check src/scripts/veaf/
 
 # Auto-formatage
 stylua src/scripts/veaf/
+```
+
+### Exécuter Luacheck localement
+
+```powershell
+luacheck --config .luacheckrc src/scripts/veaf/
 ```
 
 Configuration StyLua (`.stylua.toml`) :

@@ -124,9 +124,9 @@ This approach gives you full visual design in the editor while keeping the zone 
 
 ```lua
 VeafCombatZone:new()
-  :setName("Alpha")
-  :setZoneName("ZONE-ALPHA")
-  :setDescription("Strike Alpha — Armoured column")
+  :setMissionEditorZoneName("ZONE-ALPHA")     -- DCS trigger zone name
+  :setFriendlyName("Alpha")                    -- radio menu label
+  :setBriefing("Strike Alpha — Armoured column")
   :initialize()
 ```
 
@@ -172,6 +172,10 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
 
 ---
+
+## Module Constants
+
+| Constant | Default | Description |
 |----------|---------|-------------|
 | `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | How often the zone watchdog polls (s) |
 | `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Smoke mark cooldown (s) |
@@ -183,47 +187,63 @@ This lets you set up complex spawns (SA-11 battery, convoys with AI routes) with
 
 ## Defining a Zone
 
+In the most common case, elements are populated automatically from the units placed inside the DCS trigger zone via `:addZoneElementsFromZoneNamed(...)`:
+
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setName("Strike Alpha")                   -- internal name
-  :setZoneName("ZONE-STRIKE-ALPHA")          -- DCS trigger zone name
-  :setDescription("Armoured column — Senaki")
+  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")  -- DCS trigger zone name
+  :setFriendlyName("Strike Alpha")                 -- radio menu label
   :setBriefing("Destroy all vehicles. Expect AAA and MANPADS.")
-  :addElement(
-    VeafCombatZoneElement:new()
-      :setGroupName("STRIKE-ALPHA-ARMOR")    -- DCS group to spawn
-      :setSpawnRadius(100)
-  )
-  :addElement(
-    VeafCombatZoneElement:new()
-      :setGroupName("STRIKE-ALPHA-AAA")
-  )
+  :addZoneElementsFromZoneNamed("ZONE-STRIKE-ALPHA")
   :initialize()
+```
+
+You can also build and attach an element manually with `:addZoneElement(...)`:
+
+```lua
+local element = VeafCombatZoneElement:new()
+  :setName("STRIKE-ALPHA-ARMOR")
+  :setDcsGroup(true)
+  :setSpawnGroup("STRIKE-ALPHA-ARMOR")    -- DCS group name to spawn
+  :setSpawnRadius(100)
+
+strikeZone:addZoneElement(element)
 ```
 
 ### VeafCombatZone Builder Methods
 
 | Method | Description |
 |--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setZoneName(zoneName)` | DCS trigger zone that defines the spawn area |
-| `:setDescription(text)` | Short name shown in radio menu |
+| `:setMissionEditorZoneName(name)` | DCS trigger zone that defines the spawn area |
+| `:setFriendlyName(name)` | Label shown in the radio menu |
 | `:setBriefing(text)` | Full briefing text |
-| `:addElement(element)` | Add a unit group to the zone |
-| `:setCoalition(side)` | Override spawn coalition |
-| `:setRadioGroup(name)` | Group zones under a common radio submenu |
-| `:setActivateAtStart(bool)` | Auto-activate when mission starts |
-| `:setSilent(bool)` | Suppress status messages |
-| `:setOnCompleted(fn)` | Callback when all enemies destroyed |
+| `:setOnCompletedHook(fn)` | Callback when all enemies destroyed |
+| `:addZoneElement(element)` | Add an element to the zone |
+| `:addZoneElementsFromZoneNamed(zoneName)` | Populate elements from the units of a trigger zone |
+| `:addSpawnedGroup(groupOrName)` | Register an already-spawned group as belonging to the zone |
+| `:setActive(bool)` | Activate the zone at start |
+| `:setTraining(bool)` | Training mode |
+| `:setCompletable(bool)` | Whether the zone can be marked as completed |
+| `:enableUserActivation()` / `:disableUserActivation()` | Allow/forbid player activation |
+| `:setRadioGroupName(name)` | Restrict the zone radio menu to a group of players |
+| `:setRadioMenuPrefix(text)` | Prefix displayed before the zone name in the menu |
 
 ### VeafCombatZoneElement Builder Methods
 
 | Method | Description |
 |--------|-------------|
-| `:setGroupName(name)` | DCS group to spawn (must exist in mission editor) |
+| `:setName(name)` | Element name |
+| `:setPosition(pos)` | Element position |
+| `:setDcsGroup(bool)` | The element references a DCS group |
+| `:setDcsStatic(bool)` | The element references a DCS static object |
+| `:setSpawnGroup(name)` | DCS group name to spawn |
+| `:setVeafCommand(cmd)` | VEAF command to run instead of a spawn |
+| `:setRoute(route)` | Element AI route |
+| `:setCoalition(side)` | Element coalition |
 | `:setSpawnRadius(m)` | Scatter radius around zone centre |
-| `:setRespawn(bool)` | Whether to respawn when destroyed |
-| `:setRespawnDelay(s)` | Delay before respawn (seconds) |
+| `:setSpawnChance(pct)` | Spawn probability (0–100) |
+| `:setSpawnCount(n)` | Number of instances to spawn |
+| `:setSpawnDelay(s)` | Delay before spawn (seconds) |
 
 ---
 
@@ -243,7 +263,7 @@ local strikeZone = VeafCombatZone:new()
 |--------|-------------|
 | `:disableRadioMenu()` | Disable the radio menu entirely for this zone |
 | `:setRadioMenuPrefix(text)` | Prefix displayed before the zone name in the menu |
-| `:setRadioGroup(name)` | Group zones under a common radio submenu |
+| `:setRadioGroupName(name)` | Restrict the zone radio menu to a group of players |
 | `:setEnableSmokeAndFlare(bool)` | Enable/disable smoke and flare requests (default: `true`) |
 | `:setShowUnitsList(bool)` | Include remaining unit list in the info message (default: `true`) |
 | `:setShowZonePositionInfo(bool)` | Include zone coordinates and weather in the info message (default: `true`) |
@@ -263,15 +283,17 @@ By default, vehicle wrecks and corpses are automatically removed when a zone is 
 Multiple zones can be grouped into an **Operation** that completes when all child zones are done:
 
 ```lua
-VeafCombatOperation:new()
-  :setName("Operation Thunder")
-  :addZone("Strike Alpha")
-  :addZone("Strike Bravo")
+local operation = VeafCombatOperation:new()
+  :setMissionEditorZoneName("OP-THUNDER")
+  :setFriendlyName("Operation Thunder")
   :setBriefing("Destroy both armour columns before they reach Senaki.")
-  :initialize()
+
+operation:addTaskingOrder(alphaZone)                 -- first task
+operation:addTaskingOrder(bravoZone, { "OP-THUNDER-ALPHA" })  -- unlocked after Alpha
+operation:initialize()
 ```
 
-`VeafCombatOperation` extends `VeafCombatZone` — all the builder methods above apply, and the operation itself appears in the radio menu as a single activatable entry.
+`VeafCombatOperation = VeafCombatZone:new()` — the operation extends `VeafCombatZone`. Tasks are added with `:addTaskingOrder(zone, requiredComplete)`, where `zone` is a `VeafCombatZone` and `requiredComplete` is the optional list of zone names that must complete before this one is activated. The operation appears in the radio menu as a single entry.
 
 ---
 
@@ -281,8 +303,8 @@ A zone can automatically activate one or more follow-on zones when it is complet
 
 ```lua
 VeafCombatZone:new()
-  :setName("Strike Alpha")
-  :setZoneName("ZONE-ALPHA")
+  :setMissionEditorZoneName("ZONE-ALPHA")
+  :setFriendlyName("Strike Alpha")
   :addChainedCombatZone("Strike Bravo")     -- triggers when Alpha is done
   :addChainedCombatZone("Strike Charlie")   -- one is chosen at random
   :setChainedCombatZonesDelay(60)           -- wait 60 s before chaining
@@ -307,8 +329,8 @@ Setting a zone to training mode changes two things:
 
 ```lua
 VeafCombatZone:new()
-  :setName("Training-A")
-  :setZoneName("ZONE-TRAINING-A")
+  :setMissionEditorZoneName("ZONE-TRAINING-A")
+  :setFriendlyName("Training-A")
   :setTraining(true)
   :initialize()
 ```

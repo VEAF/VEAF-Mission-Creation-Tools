@@ -36,33 +36,49 @@ _move group, name [NOM_GROUPE]
 
 Déplace le groupe nommé vers la position du marqueur. Les unités terrestres traceront un itinéraire vers la destination ; les aéronefs voleront directement.
 
-### Téléporter un groupe
+### Déplacer un ravitailleur
 
 ```
-_teleport, name [NOM_GROUPE]
+_move tanker, name [NOM_GROUPE]
 ```
 
-Déplace instantanément le groupe vers la position du marqueur. Utile pour les tests.
+Recalcule la route d'orbite du ravitailleur nommé pour qu'elle commence à la position du marqueur. Accepte les mots-clés optionnels `speed`/`spd`, `alt`/`altitude`, `heading`/`hdg`, `distance`/`dist`, `teleport` (téléporte le ravitailleur près de la nouvelle orbite plutôt que de l'y faire voler) et `silent` (ne crée pas de points nommés `refuel start`/`refuel end`).
+
+### Modifier l'orbite d'un ravitailleur
+
+```
+_move tankermission, name [NOM_GROUPE]
+```
+
+Trouve le ravitailleur le plus proche du marqueur et modifie sa vitesse (`speed`/`spd`) et son altitude (`alt`/`altitude`) sans déplacer l'orbite.
+
+### Déplacer un AFAC
+
+```
+_move afac, name [NOM_GROUPE]
+```
+
+Déplace l'orbite de l'AFAC nommé vers la position du marqueur. Accepte les mots-clés optionnels `speed`/`spd`, `alt`/`altitude`, `heading`/`hdg` et `immortal`.
 
 ---
 
 ## Gestion des ravitailleurs (API créateur de mission)
 
-### Modifier l'orbite du ravitailleur
+### Modifier l'orbite d'un ravitailleur
 
-`veafMove.changeTanker(groupName, point, altitude, speed)` — déplace le waypoint d'orbite du ravitailleur vers une nouvelle position.
+`veafMove.changeTanker(eventPos, speed, alt)` — trouve le ravitailleur proche de `eventPos` et change sa vitesse (nœuds) et son altitude (pieds) sans déplacer l'orbite.
 
 ```lua
--- Déplacer Texaco vers une nouvelle position d'orbite
-veafMove.changeTanker("KC-135 Texaco", { x=1000, y=7000, z=2000 }, 7000, 430)
+-- Régler le ravitailleur proche du marqueur à 430 kn / 7000 ft
+veafMove.changeTanker(eventPos, 430, 7000)
 ```
 
-### Déplacer le ravitailleur sur une nouvelle route
+### Déplacer un ravitailleur sur une nouvelle route
 
-`veafMove.moveTanker(groupName, startPoint, endPoint, altitude, speed)` — définit une nouvelle route d'orbite en circuit.
+`veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, teleport, silent)` — recalcule la route d'orbite du ravitailleur nommé à partir de `eventPos`.
 
 ```lua
-veafMove.moveTanker("KC-135 Texaco", startPoint, endPoint, 7000, 430)
+veafMove.moveTanker(eventPos, "KC-135 Texaco", 430, 7000, 270, 30, false, false)
 ```
 
 ---
@@ -71,7 +87,7 @@ veafMove.moveTanker("KC-135 Texaco", startPoint, endPoint, 7000, 430)
 
 | Constante | Valeur par défaut | Description |
 |-----------|-------------------|-------------|
-| `veafMove.SpawnKeyphrase` | `"_move"` | Préfixe de la commande de marqueur pour déplacer |
+| `veafMove.Keyphrase` | `"_move"` | Préfixe des commandes de marqueur |
 
 ---
 

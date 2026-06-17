@@ -20,28 +20,28 @@ veafAirbases.initialize()
 
 ## Utilisation
 
-Les données de base aérienne sont lues automatiquement depuis l'environnement DCS. Les créateurs de missions peuvent surcharger ou compléter les données :
+Les données de base aérienne (pistes et orientations) sont lues automatiquement depuis l'environnement DCS lors de `veafAirbases.initialize()`. On peut ensuite interroger une base pour connaître la piste en service selon le vent :
 
 ```lua
--- Enregistrer une configuration de base aérienne personnalisée
-veafAirbases.setAirbaseData("Senaki-Kolkhi", {
-  atcFrequency = 127500000,   -- Hz
-  atcModulation = radio.modulation.AM,
-  elevation = 43,             -- mètres
-  runways = {
-    { heading = 110, ils = { frequency = 109300000, course = 110 } },
-    { heading = 290 },
-  },
-})
+veafAirbases.initialize()
+
+local airbase = veafAirbases.getAirbaseByName("Senaki-Kolkhi")
+if airbase then
+  -- piste en service pour une direction de vent vrai donnée (degrés)
+  local runway = airbase:getRunwayInServiceString(270)
+  veaf.outTextForUnit(unitName, airbase:toString(), 20)
+end
 ```
+
+On peut aussi récupérer la base la plus proche d'une unité avec `veafAirbases.getNearestAirbase(dcsUnit)`.
 
 ---
 
 ## Notes
 
-- La plupart des bases DCS sont déjà connues du module
-- Ne surcharger que si des fréquences personnalisées ou des corrections sont nécessaires
-- Les données TACAN/ILS sont utilisées par `veafNamedPoints` et les opérations de porte-avions
+- La plupart des bases DCS sont détectées automatiquement à l'initialisation
+- La piste en service est calculée à partir de la direction du vent (`getRunwayInService` / `getRunwayInServiceString`)
+- Récupérez une base par son nom (`getAirbaseByName`) ou la plus proche d'une unité (`getNearestAirbase`)
 
 ---
 

@@ -182,7 +182,7 @@ Chaque clé devient `veaf.config.MON_FLAG_MISSION = 42` dans le `veaf-config.lua
 
 ### Modules tiers : `SKYNET` / `CTLD` / `CSAR` (sous `modules:`)
 
-> **Changement v6 (rupture)** : les sections `external_modules:` et `qra:` n'existent plus. Toute leur configuration vit désormais sous le bloc `modules:`, source unique de vérité. Voir [ADR 0001](adr/0001-modules-single-source-of-truth.md).
+> **Changement v6 (rupture)** : les sections `external_modules:` et `qra:` n'existent plus. Toute leur configuration vit désormais sous le bloc `modules:`, source unique de vérité. Voir [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0001-modules-single-source-of-truth.md).
 
 Skynet IADS, CTLD et CSAR se configurent comme n'importe quel module, directement sous `modules:` :
 
@@ -221,7 +221,7 @@ modules:
 | `enabled` | booléen | `false` | Activer l'intégration CTLD / CSAR |
 | `settings` | dictionnaire | — | Paires `ctld.xxx` / `csar.xxx` (ex: `hoverPickup: true`, `enableAllslots: true`) |
 
-VEAF génère les affectations `ctld.xxx = value` / `csar.xxx = value` et l'appel `initialize()` dans `veaf-config.lua`. À la conversion `convert-v5`, ces réglages sont extraits automatiquement de `missionConfig.lua`. Pour les réglages complexes comme `aircraftType` (table par appareil), continuez d'utiliser le motif de callback Lua dans `mission-script.lua`. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#ctld-and-csar-integration).
+VEAF génère les affectations `ctld.xxx = value` / `csar.xxx = value` et l'appel `initialize()` dans `veaf-config.lua`. À la conversion `convert-v5`, ces réglages sont extraits automatiquement de `missionConfig.lua`. Pour les réglages complexes comme `aircraftType` (table par appareil), continuez d'utiliser le motif de callback Lua dans `mission-script.lua`. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#intégration-ctld-et-csar).
 
 > **Sons.** CTLD et CSAR jouent leurs sons par nom de fichier au runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). Quand CTLD ou CSAR est activé, le build injecte automatiquement les sons requis qu'il embarque (`src/scripts/community/sounds/`) dans le `l10n/DEFAULT/` de la mission, sans écraser un son déjà fourni par votre mission. Un son requis qui n'est fourni ni par les outils ni par votre mission est signalé par un avertissement de build — ajoutez-le dans `src/mission/l10n/DEFAULT/` (ex. `radiobeep.ogg`, le bip de secours JTAC, n'est pas redistribué).
 
@@ -327,6 +327,7 @@ modules:
 | `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
 | `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
 | `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `COMBATMISSION` | veafCombatMission | — |
 | `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.md) |
 | `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.md) |
 | `SECURITY` | veafSecurity | [veafSecurity](mission-maker/scripts/veafSecurity.md) |

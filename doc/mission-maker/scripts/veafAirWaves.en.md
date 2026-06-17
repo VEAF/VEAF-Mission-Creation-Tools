@@ -20,17 +20,17 @@ Defines zones that spawn recurring waves of AI aircraft. When the required numbe
 
 ## Enable
 
-No global `initialize()`. Each zone is individually created:
+No global `initialize()`. Each zone is individually created, then started with `:start()`:
 
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-East")
-  :setZoneName("ZONE-AIRWAVES-EAST")
+  :setTriggerZone("ZONE-AIRWAVES-EAST")
   :setDescription("Eastern intercept zone")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "MiG-23 Wave 1a", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
-  :setMinimumPlayersForWave(1)
-  :initialize()
+  :start()
 ```
 
 ---
@@ -141,32 +141,40 @@ modules:
 | Method | Description |
 |--------|-------------|
 | `:setName(name)` | Internal identifier |
-| `:setZoneName(zoneName)` | DCS trigger zone defining the interception area |
+| `:setTriggerZone(zoneName)` | DCS trigger zone defining the interception area |
+| `:setZoneCenter(vec3)` | Zone centre point, as an alternative to a trigger zone |
+| `:setZoneCenterFromCoordinates(coords)` | Zone centre from a coordinate string |
+| `:setZoneRadius(m)` | Zone radius in metres (when using a centre) |
 | `:setDescription(text)` | Label for messages and logs |
 | `:addWave(...)` | Add a wave — see [Wave definition](#wave-definition) |
 | `:resetWaves()` | Clear all added waves (useful after `mist.utils.deepCopy`) |
-| `:setMinimumPlayersForWave(n)` | Minimum human players needed to trigger a wave |
-| `:setPlayerCoalitions(sides)` | Which coalitions to count as players |
-| `:setPlayerUnitsNames(names)` | Specific player unit names to track |
+| `:addPlayerCoalition(side)` | Add a coalition whose players count (e.g. `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres, lat/lon) |
 | `:setMaxSecondsOutsideOfZoneIA(n)` | Seconds before an AI wave group is considered lost if it leaves the zone |
 | `:setMaxSecondsOutsideOfZonePlayers(n)` | Seconds before the zone resets if all players leave |
+| `:setDelayBetweenWaves(n)` | Default delay in seconds between waves |
+| `:setDelayBeforeActivation(n)` | Seconds after players enter before the first wave |
+| `:setMinimumAltitudeInFeet(n)` | Player detection floor (in feet) |
+| `:setMaximumAltitudeInFeet(n)` | Player detection ceiling (in feet) |
+| `:setResetWhenDying(bool)` | Reset the zone when a player dies |
 | `:setSilent(bool)` | Suppress all messages |
 | `:setDrawZone(bool)` | Draw zone outline on map |
 | `:setOnStart(fn)` | Callback `(zoneName, playerUnits)` when zone activates |
-| `:setOnWaitForHumans(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while waiting for players |
-| `:setOnWaitToDeploy(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while inter-wave timer runs |
-| `:setOnWaveDestroyed(fn)` | Callback `(zoneName, waveIndex, playerUnits)` when a wave is destroyed |
-| `:setOnCompleted(fn)` | Callback `(zoneName, playerUnits)` when all waves done |
-| `:setOnMissionOver(fn)` | Callback `(zoneName, playerUnits)` when the zone ends in a loss |
+| `:setOnDeploy(fn)` | Callback `(zoneName, waveIndex, playerUnits)` when a wave is launched |
+| `:setOnDestroyed(fn)` | Callback `(zoneName, waveIndex, playerUnits)` when a wave is destroyed |
+| `:setOnWon(fn)` | Callback `(zoneName, playerUnits)` when all waves done |
+| `:setOnLost(fn)` | Callback `(zoneName, playerUnits)` when the zone is lost |
+| `:setOnStop(fn)` | Callback `(zoneName, playerUnits)` when the zone is stopped |
 | `:setMessageStart(text)` | Custom zone-start message |
-| `:setMessageWaitForHumans(text)` | Custom "waiting for players" message |
-| `:setMessageWaitToDeploy(text)` | Custom wave-incoming message |
 | `:setMessageDeploy(text)` | Custom wave-launched message |
-| `:setMessageWaveDestroyed(text)` | Custom wave-down message |
-| `:setMessageCompleted(text)` | Custom all-waves-done message |
-| `:setMessageMissionOver(text)` | Custom loss message |
+| `:setMessageDeployPlayers(text)` | Custom BRAA message sent to players in the zone |
+| `:setMessageDestroyed(text)` | Custom wave-down message |
+| `:setMessageWon(text)` | Custom all-waves-done message |
+| `:setMessageLost(text)` | Custom loss message |
+| `:setMessageStop(text)` | Custom zone-stop message |
+| `:start()` | Start the zone |
+| `:stop()` | Stop the zone |
 
 ---
 
@@ -254,17 +262,17 @@ This makes it easy to set up layered threats from different directions without p
 ```lua
 AirWaveZone:new()
   :setName("Intercept-West")
-  :setZoneName("ZONE-WEST-INTERCEPT")
+  :setTriggerZone("ZONE-WEST-INTERCEPT")
   :setDescription("Western threat axis")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "Su-25T Strike 1a", "Su-25T Strike 1b" })
   :addWave({ "Su-25T Strike 2a", "Su-25T Strike 2b", "Su-25T Strike 2c" })
   :addWave({ "Su-24M Deep Strike" })
-  :setMinimumPlayersForWave(2)
   :setDrawZone(true)
-  :setOnCompleted(function()
+  :setOnWon(function()
     trigger.action.setUserFlag("WEST_CLEAR", true)
   end)
-  :initialize()
+  :start()
 ```
 
 ### Randomised waves with escalating difficulty
@@ -272,8 +280,9 @@ AirWaveZone:new()
 ```lua
 AirWaveZone:new()
   :setName("Intercept-East")
-  :setZoneName("ZONE-EAST-INTERCEPT")
+  :setTriggerZone("ZONE-EAST-INTERCEPT")
   :setDescription("Eastern threat axis — progressive difficulty")
+  :addPlayerCoalition(coalition.side.BLUE)
   -- Wave 1: pick 1 or 2 light fighters from a pool
   :addWave({
     groups = { "MiG-21 Flight", "MiG-23 Flight", "MiG-29 Flight", "Su-27 Flight" },
@@ -291,9 +300,8 @@ AirWaveZone:new()
   -- Wave 3: heavy escort + simultaneous ground attack (negative delay)
   :addWave({ groups = { "Su-27 Escort" }, delay = -1 })
   :addWave({ groups = { "Su-24M Strike" } })
-  :setMinimumPlayersForWave(2)
   :setDrawZone(true)
-  :initialize()
+  :start()
 ```
 
 ### Reusing a template zone with deep copy
@@ -301,9 +309,9 @@ AirWaveZone:new()
 When several sectors share the same wave structure, define a template zone and clone it. Use `:resetWaves()` to clear the template's waves before adding sector-specific ones:
 
 ```lua
--- Define a shared template (NOT initialised yet)
+-- Define a shared template (NOT started yet)
 local zoneTemplate = AirWaveZone:new()
-  :setMinimumPlayersForWave(1)
+  :addPlayerCoalition(coalition.side.BLUE)
   :setDrawZone(true)
   :addWave({ "MiG-29 Wave 1" })
   :addWave({ "Su-27 Wave 2" })
@@ -312,19 +320,19 @@ local zoneTemplate = AirWaveZone:new()
 local zoneNorth = mist.utils.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
-  :setZoneName("ZONE-AW-NORTH")
+  :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Northern sector")
-  :initialize()
+  :start()
 
 local zoneSouth = mist.utils.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
-  :setZoneName("ZONE-AW-SOUTH")
+  :setTriggerZone("ZONE-AW-SOUTH")
   :setDescription("Southern sector")
   :resetWaves()                          -- clear template waves
   :addWave({ "Su-25T Wave 1" })          -- add sector-specific waves
   :addWave({ "Su-24M Wave 2", "Su-24M Wave 2b" })
-  :initialize()
+  :start()
 ```
 
 ---
@@ -363,7 +371,7 @@ STOP ──start()──► READY
 | `ACTIVE` | Current wave is spawned and alive. |
 | `OVER` | All waves have been destroyed — the zone is finished. |
 
-`NEXTWAVE` is a transient state that the zone crosses in a single `check()` cycle: it never lingers there. Callbacks such as `setOnWaveDestroyed` fire on the `ACTIVE → NEXTWAVE` exit, and `setOnCompleted` fires on the `NEXTWAVE → OVER` entry.
+`NEXTWAVE` is a transient state that the zone crosses in a single `check()` cycle: it never lingers there. Callbacks such as `setOnDestroyed` fire on the `ACTIVE → NEXTWAVE` exit, and `setOnWon` fires on the `NEXTWAVE → OVER` entry.
 
 ---
 

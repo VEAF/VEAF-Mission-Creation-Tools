@@ -6,15 +6,15 @@
 
 ## Objectif
 
-Crée des missions de transport en hélicoptère ou aéronef avec des zones de chargement et de livraison. Définit des zones de pickup et de dépôt pour du cargo ou des troupes. S'intègre avec CTLD (Combined Arms Transport and Logistics) quand il est disponible.
+Crée une mission d'entraînement au transport et à la logistique en hélicoptère, pilotée par un marqueur sur la carte F10. Quand un marqueur `_transport` est posé, le module fait apparaître le cargo à récupérer près d'un point nommé de départ, un groupe ami qui attend ce cargo sur la zone de livraison (sous le marqueur), et optionnellement des défenses anti-aériennes ennemies le long de la route.
 
 ---
 
 ## Dépendances
 
 - `veafRadio` — menu F10
-- `veafMarkers` — commandes de marqueur optionnelles
-- Script CTLD — intégration tierce optionnelle
+- `veafMarkers` — gestionnaire d'événement de marqueur (`_transport`)
+- `veafSpawn`, `veafUnits`, `veafNamedPoints`, `veafSecurity`
 
 ---
 
@@ -30,51 +30,46 @@ veafTransportMission.initialize()
 
 ## Concepts clés
 
-- **Zone de chargement** — là où les hélicoptères ou transports récupèrent le cargo/les troupes
-- **Zone de livraison** — là où le cargo/les troupes doivent être déposés
-- Les missions peuvent avoir des objectifs (ex : livrer N caisses pour gagner)
-- Supporte les cargos pré-placés et générés dynamiquement
+- **Point de départ** — un point nommé (déclaré via `veafNamedPoints`) où apparaît le cargo à transporter. Il est obligatoire et fourni par le paramètre `from`.
+- **Zone de livraison** — là où apparaît le groupe ami qui attend le cargo, sous le marqueur `_transport`. La route entre le point de départ et la zone de livraison doit faire au moins 15 km.
+- **Défenses sur la route** — groupes de défense anti-aérienne ennemis optionnels, placés le long de la route quand `defense` est supérieur à `0`.
+- Une seule mission de transport peut être active à la fois.
 
 ---
 
-## Exemple de configuration
+## Commande par marqueur
 
-```lua
--- Mission de transport de troupes simple
-local transportMission = VeafTransportMission:new()
-  :setName("Evac-Alpha")
-  :setDescription("Évacuer les troupes de la base avancée Alpha")
-  :setPickupZoneName("ZONE-PICKUP-ALPHA")
-  :setDeliveryZoneName("ZONE-DELIVERY-BASE")
-  :setCargoType("Troops")
-  :setCargoCount(8)
-  :setBriefing("8 soldats sont bloqués à la base Alpha. Extrayez-les vers Senaki.")
-  :initialize()
+Posez un marqueur sur la carte F10 et tapez `_transport` dans son texte, suivi optionnellement de paramètres séparés par des virgules.
+
+```text
+_transport, size 3, defense 2, from FARP London
 ```
 
----
+### Paramètres du marqueur
 
-## Méthodes du builder
-
-| Méthode | Description |
-|---------|-------------|
-| `:setName(name)` | Identifiant interne |
-| `:setDescription(text)` | Libellé du menu F10 |
-| `:setPickupZoneName(zone)` | Zone de trigger DCS pour le pickup |
-| `:setDeliveryZoneName(zone)` | Zone de trigger DCS pour la livraison |
-| `:setCargoType(type)` | `"Troops"`, `"Crates"`, `"Vehicles"` |
-| `:setCargoCount(n)` | Nombre d'unités de cargo |
-| `:setBriefing(text)` | Texte du briefing de mission |
-| `:setCoalition(side)` | Coalition de la mission |
-| `:initialize()` | Enregistrer et activer |
+| Paramètre | Valeurs | Défaut | Description |
+|-----------|---------|--------|-------------|
+| `size <n>` | `1`–`5` | `1` | Nombre de caisses de cargo à transporter |
+| `defense <n>` | `0`–`5` | `0` | Couverture anti-aérienne le long de la route (`1` = légère, `5` = lourde) |
+| `blocade <n>` | `0`–`5` | `0` | Blocus ennemi autour de la zone de livraison (`1` = léger, `5` = lourd) |
+| `from <point nommé>` | point nommé | — | Point de départ **obligatoire** où apparaît le cargo |
+| `password <mdp>` | string | — | Mot de passe de sécurité débloquant la commande |
 
 ---
 
 ## Menu radio F10
 
-- **Infos** — position de la zone de pickup, description du cargo, zone de livraison
-- **Activer** — faire apparaître les unités de la zone de pickup
-- **Désactiver** — nettoyer la mission
+Le menu **TRANSPORT MISSION** expose toujours :
+
+- **HELP** — rappel d'utilisation
+
+Une fois une mission générée, il ajoute :
+
+- **Drop zone information** — nombre d'unités amies sur la zone de livraison, ainsi que ses coordonnées (Lat/Lon, MGRS, relèvement/distance depuis le bullseye), altitude et vent
+- **Skip current objective** — annule la mission en cours et nettoie
+- **Drop zone markers** (sous-menu)
+  - **Request smoke on drop zone** — fumigène vert sur la zone de livraison
+  - **Request illumination flare over drop zone**
 
 ---
 

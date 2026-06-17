@@ -189,26 +189,29 @@ Affiche : indicatif radio (*callsign*), fréquence et position.
 
 ### Porte-avions
 
+Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** (et non sous *Ressources*), avec un sous-menu par camp puis par porte-avions.
+
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Obtenir les infos (BRC, TACAN, ICLS, radio) | Ressources → Porte-avions → [Nom] → Infos |
-| Mettre le porte-avions face au vent pour l'appontage | Ressources → Porte-avions → [Nom] → Commencer récupération |
-| Reprendre la navigation normale | Ressources → Porte-avions → [Nom] → Arrêter récupération |
+| Mettre le porte-avions face au vent (45 minutes) | CARRIER OPS → [camp] → [Nom] → Start carrier air operations for 45 minutes |
+| Mettre le porte-avions face au vent (90 minutes) | CARRIER OPS → [camp] → [Nom] → Start carrier air operations for 90 minutes |
+| Arrêter les opérations et reprendre la route | CARRIER OPS → [camp] → [Nom] → End air operations |
+| Obtenir les infos (BRC, TACAN, ICLS, radio) | CARRIER OPS → [camp] → [Nom] → ATC - Request informations |
 
 ![Sous-menu de récupération du porte-avions](../assets/img/pilot/carrier-recovery-menu.png)
 
 **Procédure d'appontage :**
 
-1. **Demandez la récupération** 10 à 15 minutes avant l'approche (*Commencer récupération*). Le porte-avions se place face au vent pour offrir environ 30 nœuds de vent relatif sur le pont.
-2. **Consultez les infos** (*Infos*) :
+1. **Demandez les opérations aériennes** 10 à 15 minutes avant l'approche (*Start carrier air operations for 45 minutes*). Le porte-avions se place face au vent pour offrir le vent relatif visé sur le pont (environ 20 à 25 nœuds selon le porte-avions).
+2. **Consultez les infos** (*ATC - Request informations*) :
    - **BRC** (*Base Recovery Course*) : le cap du pont pour l'appontage ;
    - **canal TACAN** (ex. 73X) : pour la navigation jusqu'au porte-avions ;
    - **canal ICLS** (ex. 13) : pour le guidage sur le plan de descente (F/A-18C, F-14) ;
    - **fréquence ATC**.
 3. **Approchez et appontez** en suivant le TACAN puis l'ICLS.
-4. **Après l'appontage**, choisissez *Arrêter récupération* pour rendre sa route au porte-avions.
+4. **Après l'appontage**, choisissez *End air operations* pour rendre sa route au porte-avions.
 
-> La récupération s'arrête automatiquement au bout de 45 minutes.
+> Les opérations aériennes s'arrêtent automatiquement au bout de 45 minutes (90 minutes si vous avez choisi l'option longue).
 
 ---
 
@@ -245,12 +248,11 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Déroulement :**
 
-1. **Générer** — F10 → VEAF → Mission CAS → Générer (avec des paramètres optionnels via marqueur, voir plus bas).
-2. **Marquer la zone** — Fumée ou Fusée éclairante (3 minutes de délai entre deux marquages).
-3. **Obtenir les infos** — position, composition des unités, état.
+1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **CAS MISSION** apparaît alors dans F10 → VEAF.
+2. **Marquer la zone** — *Target markers → Request smoke on target area* ou *Request illumination flare over target area* (3 minutes de délai entre deux marquages).
+3. **Obtenir les infos** — *Target information* : position, composition des unités, état.
 4. **Engager** — attaquez les cibles marquées.
-5. **Avancer** — la zone passe automatiquement à la suivante quand toutes les unités sont détruites, ou utilisez **Passer**.
-6. **Nettoyer** — *Nettoyer* supprime toutes les unités restantes.
+5. **Avancer** — la zone passe automatiquement à la suivante quand toutes les unités sont détruites, ou utilisez *Skip current objective*.
 
 ![Fumée marquant une cible CAS](../assets/img/pilot/cas-smoke.png)
 
@@ -330,8 +332,8 @@ Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6
 **Les unités que j'ai fait apparaître ont disparu. Est-ce normal ?**
 Oui, certaines missions imposent une limite de distance (environ 40 à 50 NM) : l'IA est nettoyée si vous vous éloignez trop.
 
-**Comment réinitialiser un entraînement CAS ?**
-F10 → Mission CAS → Nettoyer, puis Générer à nouveau.
+**Comment passer à la cible CAS suivante ?**
+F10 → CAS MISSION → *Skip current objective*. Pour repartir de zéro, posez un nouveau marqueur `_cas`.
 
 **Puis-je faire apparaître des unités amies ?**
 Oui : ajoutez `side blue` à votre commande.

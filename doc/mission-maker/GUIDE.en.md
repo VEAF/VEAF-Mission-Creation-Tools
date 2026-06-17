@@ -270,7 +270,7 @@ modules:
 -- Put custom aliases, helper functions, and third-party script setup here.
 
 -- Example: custom shortcut alias
--- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
+-- veafShortcuts.AddAlias(VeafAlias:new():setName("-cas1"):setVeafCommand("_cas"))
 
 -- Example: CTLD third-party integration (see CTLD and CSAR Integration for full details)
 -- if ctld then ctld.initialize(function()
@@ -433,23 +433,21 @@ All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scrip
 ```lua
 local northQra = VeafQRA:new()
   :setName("QRA-North")
-  :setZone("ZONE-QRA-NORTH")
+  :setTriggerZone("ZONE-QRA-NORTH")
   :setCoalition(coalition.side.RED)
-  :setGroups({ "MiG-29 QRA" })
-  :setRearmTime(600)
-  :initialize()
+  :addGroup("MiG-29 QRA")
+  :start()
 ```
 
 ### Combat Zone
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setName("Strike Alpha")
-  :setZoneName("ZONE-STRIKE-ALPHA")
-  :setDescription("Armoured column advancing on Senaki")
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-ARMOR"))
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-AAA"))
-  :setBriefing("Destroy all armoured vehicles. Expect AAA.")
+  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
+  :setFriendlyName("Strike Alpha")
+  :setBriefing("Armoured column advancing on Senaki. Destroy all armoured vehicles; expect AAA.")
+  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
+  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
   :initialize()
 ```
 
@@ -458,12 +456,12 @@ local strikeZone = VeafCombatZone:new()
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-Defense")
-  :setZoneName("ZONE-DEFENSE")
+  :setTriggerZone("ZONE-DEFENSE")
   :setDescription("Intercept zone")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "MiG-23 Wave 1", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
-  :setMinimumPlayersForWave(1)
-  :initialize()
+  :start()
 ```
 
 ---

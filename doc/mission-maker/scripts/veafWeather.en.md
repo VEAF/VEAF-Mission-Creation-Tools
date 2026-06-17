@@ -79,12 +79,14 @@ When the `WEATHER` module is enabled, a **"WEATHER AND ATC"** submenu appears in
 
 ## Runtime Weather Reports
 
-Get a weather report programmatically:
+Get a weather report programmatically for a position (a `vec3`):
 
 ```lua
-local report = veaf.weatherReport(position, altitude, withLASTE)
+local report = veafWeatherData.getWeatherString(position)
 veaf.outTextForUnit(unitName, report, 30)
 ```
+
+The remaining arguments are optional: `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. Passing a DCS unit name as `dcsElementName` tailors the report to the aircraft type (unit system, LASTE data for the A-10).
 
 ---
 

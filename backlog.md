@@ -32,7 +32,7 @@
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
 | Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
 | Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ✅ |
-| Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | 🟡 |
+| Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ✅ |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
@@ -349,9 +349,11 @@
 |---|--------|-------|------|--------|
 | DOC-REVIEW-001 | Phase 1 — clear-cut fixes across `doc/` (FR/EN): broken links, stale versions/counts/IDs/keys, wrong commands/config, FR/EN parity | `doc/**` | chore | ✅ |
 | DOC-REVIEW-002 | Chatbot index: no manual disable needed — the `Rebuild docs chatbot index` workflow only triggers on `push` to `develop-v6` (+ `workflow_dispatch`), so feature-branch pushes never fire it; the single merge to `develop-v6` reindexes exactly once (= the "refresh once after") | `.github/workflows/docs-chatbot-index.yml` | chore | ✅ |
-| DOC-REVIEW-003 | Phase 2 — rewrite the ~14 fabricated Lua-API doc sections against the real sources (separate follow-up PR) | `doc/mission-maker/scripts/**`, `doc/LUA_API_REFERENCE.*`, `doc/TOOLS_REFERENCE.*`, `doc/pilot/GUIDE.*` | chore | ⬜ |
+| DOC-REVIEW-003 | Phase 2 — rewrote every fabricated Lua-API doc section against the real source (source-grounded, each symbol grep-verified) | `doc/mission-maker/scripts/**`, `doc/LUA_API_REFERENCE.*`, `doc/TOOLS_REFERENCE.*`, `doc/mission-maker/GUIDE.*`, `doc/pilot/GUIDE.*` | chore | ✅ |
 
-> **Phase 1 also flagged broken pilot screenshots**: `doc/pilot/GUIDE.{md,en.md}` reference 8 images under `../assets/img/pilot/*.png` that do not exist (`doc/assets/img/pilot/` is absent). Not auto-fixed — the slots are likely intentional pending screenshots; David to either add the images or decide to drop the references (folded into DOC-REVIEW-003).
+**Phase 2 done (2026-06-17)**: replaced fabricated builder/class APIs with the real ones across the script docs — `VeafGrassRunway` (→ editor-naming workflow), `VeafCombatZone`/`VeafCombatZoneElement`/`VeafCombatOperation` methods, `veafCarrierOperations.addCarrier` (→ auto-discovery), `veafCasMission.start` (→ `initialize`), `VeafSanctuary` (→ `VeafSanctuaryZone` + `addZone`), `VeafMissileGuardian` (→ `VeafMG_Guardian`), `veafMove.moveTanker/changeTanker` signatures + `_teleport`/`SpawnKeyphrase`, `veafNamedPoints.addNamedPoint` (→ `addPoint`/`addDataToPoint`), `veafTransportMission` builder+menu (→ marker `_transport`), `veaf.weatherReport` (→ `veafWeatherData.getWeatherString`), `veafAirWaves` method names + `:initialize()`→`:start()`, `veafAssets` `groupName`/`carrier`/`information`, `veafRadio` example callbacks, and the whole `TOOLS_REFERENCE` publishing half (→ `veaf-build publish`). Deeper symbol-verification also caught and fixed items the original audit missed: `veafAirbases.setAirbaseData` (→ query API) + the `LUA_API_REFERENCE` `Airbase`/`Runway`/`veafCombatMission` `mission:`/`objective:` sections (→ real `veafAirbase`/`VeafCombatMission`/`VeafCombatMissionObjective`), and the `mission-maker/GUIDE` QRA/CombatZone/AirWaves/`VeafAlias` examples. An automated doc→source symbol checker now reports every VEAF method/function call in `doc/**` resolving to a real definition.
+
+> **Still open (asset, not a fabrication)**: `doc/pilot/GUIDE.{md,en.md}` reference 8 screenshots under `../assets/img/pilot/*.png` that don't exist yet (`doc/assets/img/pilot/` is absent). Left in place — the slots are likely intentional pending screenshots; David to add the images or drop the references.
 
 ---
 

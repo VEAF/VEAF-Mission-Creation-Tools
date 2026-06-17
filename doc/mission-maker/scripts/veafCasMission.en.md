@@ -23,10 +23,7 @@ Generates on-demand Close Air Support training zones with configurable size, arm
 
 ```lua
 veafCasMission.initialize()
-veafCasMission.start()
 ```
-
-`start()` activates the watchdog that monitors the CAS group.
 
 > **Enabled by default** in the shipped `mission.yaml`. It is marker-driven (`_cas`) and needs no configuration — just place a `_cas` marker. The block below is only needed to tune it.
 
@@ -148,12 +145,12 @@ Options:
 
 ## F10 Radio Menu
 
-- **Generate** — create a new CAS zone at a random or specified location
-- **Smoke** — mark zone with coloured smoke (3-minute cooldown)
-- **Flare** — mark zone with illumination flares (2-minute cooldown)
-- **Info** — display zone position, composition, and status
-- **Skip** — abandon current zone and generate a new one
-- **Cleanup** — destroy all CAS units and reset
+The **CAS MISSION** submenu only appears once a mission has been generated (via the `_cas` marker). It then exposes:
+
+- **Target information** — display target position, composition, and status
+- **Skip current objective** — abandon the current zone and generate a new one (secured command)
+- **Target markers → Request smoke on target area** — mark the zone with smoke (3-minute cooldown)
+- **Target markers → Request illumination flare over target area** — mark the zone with an illumination flare (2-minute cooldown)
 
 ---
 

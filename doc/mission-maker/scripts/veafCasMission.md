@@ -22,10 +22,7 @@ Génère à la demande des zones d'entraînement Close Air Support (CAS) avec de
 
 ```lua
 veafCasMission.initialize()
-veafCasMission.start()
 ```
-
-`start()` active le watchdog qui surveille le groupe CAS.
 
 > **Activé par défaut** dans le `mission.yaml` livré. Piloté par marqueur (`_cas`), sans configuration requise — posez simplement un marqueur `_cas`. Le bloc ci-dessous ne sert qu'à l'ajuster.
 
@@ -147,12 +144,12 @@ Options :
 
 ## Menu radio F10
 
-- **Générer** — créer une nouvelle zone CAS à un emplacement aléatoire ou spécifié
-- **Fumée** — marquer la zone avec de la fumée colorée (délai de 3 minutes)
-- **Fusée éclairante** — marquer la zone avec des fusées d'illumination (délai de 2 minutes)
-- **Infos** — afficher la position, composition et statut de la zone
-- **Passer** — abandonner la zone courante et en générer une nouvelle
-- **Nettoyer** — détruire toutes les unités CAS et réinitialiser
+Le sous-menu **CAS MISSION** n'apparaît qu'une fois une mission générée (via le marqueur `_cas`). Il propose alors :
+
+- **Target information** — afficher position, composition et statut des cibles
+- **Skip current objective** — abandonner la zone courante et en générer une nouvelle (commande sécurisée)
+- **Target markers → Request smoke on target area** — marquer la zone avec de la fumée (délai de 3 minutes)
+- **Target markers → Request illumination flare over target area** — marquer la zone avec une fusée d'illumination (délai de 2 minutes)
 
 ---
 

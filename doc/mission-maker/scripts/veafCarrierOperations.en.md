@@ -14,7 +14,7 @@ Manages aircraft carrier recovery operations. When players start a recovery, the
 ## Dependencies
 
 - `veafRadio` — F10 menu
-- `veafAssets` — registers carrier assets (optional integration)
+- `veafRemote` — exposes a `carrier` remote command
 
 ---
 
@@ -24,23 +24,13 @@ Manages aircraft carrier recovery operations. When players start a recovery, the
 veafCarrierOperations.initialize()
 ```
 
-Then register each carrier:
-
-```lua
-veafCarrierOperations.addCarrier({
-  name        = "Mother",
-  description = "CVN-73 Theodore Roosevelt",
-  groupName   = "CVN-73",
-})
-```
-
-Or let `veafAssets` handle registration automatically when a carrier asset has `carrier = true`.
+There is no per-carrier registration API. On `initialize()`, the module scans every group in the mission and automatically registers any group containing a known carrier unit type (see [Supported Carrier Types](#supported-carrier-types)). Its initial route, side and ATC data (TACAN/ICLS/LINK4/ACLS/tower, read from the carrier's programmed tasks) are captured at that point. Simply place a carrier group in the mission editor — no script call is needed.
 
 ---
 
 ## Configuration (`mission.yaml`)
 
-Carrier operations are enabled via the `CARRIER` module ID. Carrier definitions are typically declared through the `ASSETS` module (see [veafAssets — Configuration](veafAssets.md#configuration-missionyaml)).
+Carrier operations are enabled via the `CARRIER` module ID. Carriers themselves are not declared in `mission.yaml`: they are auto-discovered from the carrier groups present in the mission (see [Enable](#enable)).
 
 ```yaml
 modules:
@@ -91,36 +81,22 @@ The module knows the angled-deck offset for all stock DCS carriers:
 
 ---
 
-## F10 Radio Menu (per carrier)
+## F10 Radio Menu
 
-- **Info** — BRC, relative wind, TACAN channel, ICLS channel, ATC frequency
-- **Start Recovery** — turn into wind and begin 45-minute recovery window
-- **Stop Recovery** — end recovery, resume original route
+The top-level **CARRIER OPS** menu holds a **CARRIER OPS - BLUE** and a **CARRIER OPS - RED** submenu, each containing one submenu per carrier (named after the carrier group). When operations are stopped, each carrier submenu offers:
 
----
+- **Start carrier air operations for 45 minutes** — turn into the wind and open a 45-minute recovery window
+- **Start carrier air operations for 90 minutes** — same, for 90 minutes (`MAX_OPERATIONS_DURATION` × 2)
+- **ATC - Request informations** — TACAN, ICLS, LINK 4 / ACLS, tower, BRC and remaining time, plus current navigation and weather
 
-## Example Configuration
+While operations are running, the two *Start* items are replaced by:
 
-```lua
--- In mission-script.lua
-veafCarrierOperations.initialize()
+- **End air operations** — stop recovery and send the carrier back to its initial route
 
--- Carriers are registered via veafAssets:
-veafAssets.Assets = {
-  {
-    name        = "Mother",
-    description = "CVN-73 Theodore Roosevelt",
-    groupName   = "CVN-73",
-    information = true,
-    carrier     = true,
-  },
-}
-veafAssets.initialize()
-```
+> By default the *Start*/*End* items are secured (require a password). Set `veafCarrierOperations.DisableSecurity = true` to make them open to everyone.
 
 ---
 
 ## See Also
 
-- [veafAssets](veafAssets.md) — asset management and radio menu integration
 - [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafCarrierOperations` API

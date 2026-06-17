@@ -37,33 +37,49 @@ _move group, name [GROUP_NAME]
 
 Moves the named group to the marker position. Ground units will path to the destination; aircraft will fly directly.
 
-### Teleport a group
+### Move a tanker
 
 ```
-_teleport, name [GROUP_NAME]
+_move tanker, name [GROUP_NAME]
 ```
 
-Instantly moves the group to the marker position. Useful for testing.
+Recomputes the named tanker's orbit route so it starts at the marker position. Accepts the optional keywords `speed`/`spd`, `alt`/`altitude`, `heading`/`hdg`, `distance`/`dist`, `teleport` (teleports the tanker near the new orbit instead of flying it there) and `silent` (skips creating the `refuel start`/`refuel end` named points).
+
+### Change a tanker's orbit
+
+```
+_move tankermission, name [GROUP_NAME]
+```
+
+Finds the tanker nearest the marker and changes its speed (`speed`/`spd`) and altitude (`alt`/`altitude`) without moving the orbit.
+
+### Move an AFAC
+
+```
+_move afac, name [GROUP_NAME]
+```
+
+Moves the named AFAC's orbit to the marker position. Accepts the optional keywords `speed`/`spd`, `alt`/`altitude`, `heading`/`hdg` and `immortal`.
 
 ---
 
 ## Tanker Management (Mission Maker API)
 
-### Change tanker orbit
+### Change a tanker's orbit
 
-`veafMove.changeTanker(groupName, point, altitude, speed)` — moves the tanker's orbit waypoint to a new position.
+`veafMove.changeTanker(eventPos, speed, alt)` — finds the tanker near `eventPos` and changes its speed (knots) and altitude (feet) without moving the orbit.
 
 ```lua
--- Move Texaco to a new orbit position
-veafMove.changeTanker("KC-135 Texaco", { x=1000, y=7000, z=2000 }, 7000, 430)
+-- Set the tanker near the marker to 430 kn / 7000 ft
+veafMove.changeTanker(eventPos, 430, 7000)
 ```
 
-### Move tanker along new route
+### Move a tanker along a new route
 
-`veafMove.moveTanker(groupName, startPoint, endPoint, altitude, speed)` — sets a new race-track orbit route.
+`veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, teleport, silent)` — recomputes the named tanker's orbit route starting from `eventPos`.
 
 ```lua
-veafMove.moveTanker("KC-135 Texaco", startPoint, endPoint, 7000, 430)
+veafMove.moveTanker(eventPos, "KC-135 Texaco", 430, 7000, 270, 30, false, false)
 ```
 
 ---
@@ -72,7 +88,7 @@ veafMove.moveTanker("KC-135 Texaco", startPoint, endPoint, 7000, 430)
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `veafMove.SpawnKeyphrase` | `"_move"` | Marker command prefix for move |
+| `veafMove.Keyphrase` | `"_move"` | Marker command prefix |
 
 ---
 

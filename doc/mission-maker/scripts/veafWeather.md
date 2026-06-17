@@ -60,12 +60,14 @@ versions:
 
 ## Rapport météo au runtime
 
-Obtenir un rapport météo pour une position :
+Obtenir un rapport météo pour une position (un `vec3`) :
 
 ```lua
-local report = veaf.weatherReport(position, altitude, withLASTE)
+local report = veafWeatherData.getWeatherString(position)
 veaf.outTextForUnit(unitName, report, 30)
 ```
+
+Les arguments suivants sont optionnels : `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. En passant le nom d'une unité DCS comme `dcsElementName`, le rapport s'adapte au type d'appareil (système d'unités, données LASTE pour le A-10).
 
 ---
 

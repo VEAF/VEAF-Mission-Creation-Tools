@@ -269,7 +269,7 @@ modules:
 -- Mettez ici vos alias, fonctions utilitaires et intégrations de scripts tiers.
 
 -- Exemple : alias de raccourci personnalisé
--- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
+-- veafShortcuts.AddAlias(VeafAlias:new():setName("-cas1"):setVeafCommand("_cas"))
 
 -- Exemple : intégration CTLD (voir la section Intégration CTLD et CSAR pour les détails)
 -- if ctld then ctld.initialize(function()
@@ -432,23 +432,21 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 ```lua
 local northQra = VeafQRA:new()
   :setName("QRA-North")
-  :setZone("ZONE-QRA-NORTH")
+  :setTriggerZone("ZONE-QRA-NORTH")
   :setCoalition(coalition.side.RED)
-  :setGroups({ "MiG-29 QRA" })
-  :setRearmTime(600)
-  :initialize()
+  :addGroup("MiG-29 QRA")
+  :start()
 ```
 
 ### Zone de combat
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setName("Strike Alpha")
-  :setZoneName("ZONE-STRIKE-ALPHA")
-  :setDescription("Colonne blindée avançant sur Senaki")
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-ARMOR"))
-  :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-AAA"))
-  :setBriefing("Détruisez tous les véhicules blindés. Attendez-vous à de la DCA.")
+  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
+  :setFriendlyName("Strike Alpha")
+  :setBriefing("Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.")
+  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
+  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
   :initialize()
 ```
 
@@ -457,12 +455,12 @@ local strikeZone = VeafCombatZone:new()
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-Defense")
-  :setZoneName("ZONE-DEFENSE")
+  :setTriggerZone("ZONE-DEFENSE")
   :setDescription("Zone d'interception")
+  :addPlayerCoalition(coalition.side.BLUE)
   :addWave({ "MiG-23 Wave 1", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
-  :setMinimumPlayersForWave(1)
-  :initialize()
+  :start()
 ```
 
 ---

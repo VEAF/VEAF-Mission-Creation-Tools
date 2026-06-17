@@ -78,22 +78,24 @@ modules:
 
 ## Pre-defining Points in mission-script.lua
 
-Named points can be pre-defined programmatically:
+Named points can be pre-defined programmatically. `addPoint(name, point)` takes a vec3 (`{x=…, y=0, z=…}`; `y` defaults to `0`). ATC/TACAN/ILS/tower data is attached via `addDataToPoint(point, data)`:
 
 ```lua
 veafNamedPoints.initialize()
 
 -- Add a static named point
-veafNamedPoints.addNamedPoint({
-  name      = "FARP Alpha",
-  position  = { x = 123456, y = 0, z = 654321 },  -- DCS vec3
-  atcFreq   = 127500000,  -- Hz
-  atcMod    = radio.modulation.AM,
-})
+local point = veafNamedPoints.addPoint("FARP Alpha", { x = 123456, y = 0, z = 654321 })
 
--- Add a point at a known DCS airbase
-veafNamedPoints.addNamedPointFromAirbase("Senaki-Kolkhi")
+-- Attach ATC/TACAN/tower/ILS data to the point
+veafNamedPoints.addDataToPoint(point, {
+  atc   = true,
+  tower = "V131, U260",
+  tacan = "16X BTM",
+  ils   = "110.30",
+})
 ```
+
+`addAirbases()` bulk-adds every airbase on the map (called automatically by `initialize()`); there is no per-airbase add function. `addCities()` likewise adds the theatre's cities.
 
 ---
 

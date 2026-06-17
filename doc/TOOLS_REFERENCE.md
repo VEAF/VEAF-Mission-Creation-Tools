@@ -2,10 +2,10 @@
 
 ## Vue d'ensemble
 
-**VEAF Tools** (`veaf-tools-updater.exe`) est un outil en ligne de commande tout-en-un pour gérer les releases et mises à jour des VEAF Mission Creation Tools. Il offre deux fonctions principales :
+Le cycle de vie des releases des VEAF Mission Creation Tools repose sur deux programmes en ligne de commande distincts :
 
-- **`update`** — Pour les utilisateurs finaux : télécharger et installer la dernière version
-- **`publish`** — Pour les administrateurs : créer et publier de nouvelles versions
+- **`veaf-tools-updater.exe`** — Pour les utilisateurs finaux : un outil de mise à jour uniquement qui télécharge et installe la dernière version depuis GitHub. Il n'a **aucune sous-commande** — il se lance directement.
+- **`veaf-build`** — Pour les administrateurs : l'outillage de build et de publication (livré sous forme de `veaf-build.exe` / `poetry run veaf-build`) qui compile les outils et publie les nouvelles versions sur GitHub via sa sous-commande `publish`.
 
 ---
 
@@ -228,11 +228,15 @@ Affiche toutes les options disponibles et leurs descriptions.
 
 ## Pour les administrateurs : Publication
 
+La publication se fait avec **`veaf-build`** (la CLI de build et de release), et non avec l'updater. Le flux habituel est `veaf-build build` (compiler et empaqueter) puis `veaf-build publish` (pousser le paquet sur GitHub), ou `veaf-build build-and-publish` pour enchaîner les deux en une seule commande.
+
 ### Prérequis
 
 Avant de publier, vous avez besoin de :
 
-1. **Un fichier de configuration avec votre token GitHub :**
+1. **Un token GitHub** pour que `veaf-build publish` puisse créer la release. Il est résolu dans cet ordre : l'option `--token`, puis `github.token` dans `veaf-tools-config.yaml`, puis la variable d'environnement `GITHUB_TOKEN`.
+
+   En utilisant le fichier de configuration (recommandé) :
    ```bash
    copy veaf-tools-config.example.yaml veaf-tools-config.yaml
    ```
@@ -252,26 +256,91 @@ Avant de publier, vous avez besoin de :
    - Copier le token en sécurité (ne jamais le commiter dans git !)
    - ⚠️ Ne jamais commiter `veaf-tools-config.yaml` dans git !
 
-2. **Les outils compilés** dans un répertoire `published/` :
-   ```
-   published/
-   ├── veaf-tools-updater.exe      (exécutable compilé)
-   ├── package.json                (avec le champ "version")
-   ├── build-scripts/
-   │   ├── buildDemoMission.cmd
-   │   ├── buildHelicopterTrainingMission.cmd
-   │   ├── buildTRADMission.cmd
-   │   ├── buildOTMission.cmd
-   │   └── ... autres scripts ...
-   └── ... autres fichiers ...
-   ```
+2. **Un `published.zip` compilé** dans le répertoire courant. Il est produit par `veaf-build build` — vous ne l'assemblez pas à la main.
 
-3. **Créer une archive ZIP :**
-   ```bash
-   # Créer published.zip à partir du répertoire published/
-   # Outils : 7-Zip, WinRAR, ou tout utilitaire zip
-   # Résultat : published.zip contenant la structure ci-dessus
-   ```
+### Compiler le paquet
+
+Compilez les outils et produisez `published.zip` :
+
+```bash
+veaf-build build --version 6.0.1
+```
+
+Si vous omettez `--version`, la version est lue depuis `package.json`. Options utiles :
+
+- `--skip-lua` / `--skip-python` — sauter une moitié du build
+- `--dev` — build en mode développement
+- `--output <dir>` — répertoire de sortie du paquet (par défaut : répertoire courant)
+- `--verbose` — sortie détaillée
+- `--pause` — attendre une touche à la fin
+
+### Publication simple
+
+Après le build (et l'édition de `RELEASE_NOTES.md`), publiez le `published.zip` déjà compilé :
+
+**Avec fichier de configuration (recommandé) :**
+```bash
+veaf-build publish --version 6.0.1
+```
+
+**Sans fichier de configuration :**
+```bash
+veaf-build publish --version 6.0.1 --token ghp_xxxxxxxxxxxx
+```
+
+**Remarques :**
+
+- `--version` est une option, pas un argument positionnel. Si elle est omise, la version est lue depuis `package.json`.
+- Le token est lu depuis `veaf-tools-config.yaml` (s'il existe), l'option `--token`, ou la variable d'environnement `GITHUB_TOKEN`.
+- `published.zip` doit déjà exister dans le répertoire courant (lancez `veaf-build build` d'abord).
+
+**Ce qui se passe :**
+1. ✅ Prépare les notes de version (pause interactive pour éditer `RELEASE_NOTES.md`)
+2. ✅ Génère le checksum SHA256 de `published.zip`
+3. ✅ Crée la Release GitHub taguée `published-v6.0.1`
+4. ✅ Upload `published.zip` comme asset
+5. ✅ Upload les métadonnées de checksum (`published-metadata.json`)
+6. ✅ Déplace le tag `published-latest` pour pointer ici
+
+**Résultat :** Les utilisateurs peuvent maintenant se mettre à jour avec `veaf-tools-updater.exe`
+
+### Forcer la republication
+
+Si la release existe déjà et que vous voulez l'écraser :
+
+```bash
+veaf-build publish --version 6.0.1 --force
+```
+
+`--force` écrase la release existante (publication avec `--clobber`).
+
+### Pré-release (test sans impacter les utilisateurs)
+
+```bash
+veaf-build publish --version 6.0.1 --prerelease
+```
+
+`--prerelease` marque la release comme pré-release et laisse le tag `published-latest` intact, de sorte que les utilisateurs en production ne sont pas mis à jour automatiquement. Testez-la explicitement avec :
+
+```bash
+veaf-tools-updater.exe --tag published-v6.0.1
+```
+
+### Mode CI
+
+```bash
+veaf-build publish --version 6.0.1 --ci
+```
+
+`--ci` s'exécute de façon non interactive : il saute toutes les invites et utilise `RELEASE_NOTES.md` tel quel. À utiliser dans les pipelines automatisés.
+
+### Build et publication en une étape
+
+```bash
+veaf-build build-and-publish --version 6.0.1
+```
+
+Cela compile tout, fait une pause pour éditer `RELEASE_NOTES.md`, puis publie sur GitHub. La commande accepte les options de build (`--skip-lua`, `--skip-python`, `--dev`, `--output`), `--token`, `--ci` et `--verbose`.
 
 ### Publication locale (test, sans GitHub)
 
@@ -287,154 +356,20 @@ dossier de mission : extrait `published.zip` dans `<cible>/published/` et dépla
 `veaf-tools.exe` / `veaf-tools-updater.exe` à la racine du dossier de mission. Utilisez
 `--published-zip <chemin>` si votre `published.zip` est ailleurs. Aucun token GitHub requis.
 
-### Publication simple
-
-Pour publier une nouvelle release :
-
-**Avec fichier de configuration (recommandé) :**
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip
-```
-
-**Sans fichier de configuration :**
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxxxxxxxxxxx
-```
-
-**Arguments :**
-
-- `6.0.1` — Numéro de version
-- `./published.zip` — Chemin vers votre fichier zip
-- Le token est lu depuis `veaf-tools-config.yaml` (s'il existe) ou le paramètre `--token`
-
-**Ce qui se passe :**
-1. ✅ Crée un tag Git : `published-v6.0.1`
-2. ✅ Génère le checksum SHA256 du zip
-3. ✅ Crée une Release GitHub pour ce tag
-4. ✅ Upload `published.zip` comme asset
-5. ✅ Upload les métadonnées de checksum (`published-metadata.json`)
-6. ✅ Déplace le tag `published-latest` pour pointer ici
-7. ✅ Pousse tout sur GitHub
-
-**Résultat :** Les utilisateurs peuvent maintenant se mettre à jour avec `veaf-tools-updater`
-
-### Ajouter des notes de version
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip \
-  --release-notes "Corrections : #123, #124. Nouveautés : améliorations de l'éditeur de mission"
-```
-
-Les notes de version apparaissent sur GitHub et aident les utilisateurs à comprendre ce qui a changé.
-
-### Créer en brouillon (non publié)
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --draft
-```
-
-Les releases en brouillon :
-- Ne sont pas visibles par les utilisateurs classiques
-- Ne peuvent être modifiées que par vous
-- Utiles pour tester avant la release officielle
-- Visibles dans la liste des releases GitHub avec le label "Draft"
-
-### Marquer comme pré-release
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --prerelease
-```
-
-Les pré-releases :
-- Sont visibles par les utilisateurs mais marquées comme pré-release
-- Idéales pour les versions beta/test
-- Les utilisateurs ne se mettront pas automatiquement à jour vers elles
-- Utiles pour `6.0.1-beta`, `6.1.0-rc1`, etc.
-
-### Ignorer la création du tag
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --skip-tag
-```
-
-À utiliser quand :
-- Vous avez déjà créé le tag Git manuellement
-- Vous publiez sur un tag existant
-- Vous déboguez le processus de release
-
-### Sortie verbeuse
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --verbose
-```
-
-Affiche les informations de débogage détaillées pour le dépannage.
-
-### Toutes les options combinées
-
-```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip \
-  --release-notes "Version 6.0.1 - Corrections et améliorations" \
-  --verbose
-```
-
 ### Obtenir de l'aide
 
 ```bash
-veaf-tools-updater.exe publish --help
+veaf-build --help
+veaf-build publish --help
 ```
 
-Affiche toutes les options disponibles.
+Affiche toutes les sous-commandes et options disponibles.
 
 ---
 
 ## Pas à pas : Publier une release
 
-### 1. Compiler votre code
-
-```powershell
-./compile.cmd
-```
-
-Crée :
-- `./build/` — Scripts Lua
-- `./published/` — Outils compilés
-
-### 2. Vérifier la structure du répertoire
-
-```
-published/
-├── veaf-tools-updater.exe
-├── package.json              # Vérifier : a un champ "version"
-├── build-scripts/
-│   ├── buildDemoMission.cmd
-│   ├── buildHelicopterTrainingMission.cmd
-│   ├── buildTRADMission.cmd
-│   ├── buildOTMission.cmd
-│   └── ... plus de scripts ...
-└── ... autres fichiers ...
-```
-
-### 3. Mettre à jour la version dans package.json
-
-```json
-{
-  "version": "6.0.1",
-  "name": "veaf-tools",
-  ...
-}
-```
-
-Assurez-vous que le champ version est présent et correct.
-
-### 4. Créer published.zip
-
-Utilisez n'importe quel outil zip (7-Zip, WinRAR, Explorateur Windows) :
-```bash
-# Résultat : published.zip contenant l'intégralité du répertoire published/
-```
-
-### 5. Configurer (première fois uniquement)
+### 1. Configurer (première fois uniquement)
 
 Créez et configurez `veaf-tools-config.yaml` :
 ```bash
@@ -451,14 +386,27 @@ github:
 
 ⚠️ **Important :** Ne jamais commiter `veaf-tools-config.yaml` dans git !
 
-### 6. Publier sur GitHub
+### 2. Compiler le paquet
 
 ```bash
-veaf-tools-updater.exe publish 6.0.1 ./published.zip \
-  --release-notes "Version 6.0.1 - [vos notes de version]"
+veaf-build build --version 6.0.1
 ```
 
-### 7. Vérifier sur GitHub
+Cela compile les scripts Lua et les exécutables Python et produit `published.zip` dans le répertoire de sortie (le répertoire courant par défaut). Si vous omettez `--version`, elle est lue depuis `package.json`.
+
+### 3. Éditer les notes de version
+
+`veaf-build publish` ouvre une pause interactive pour vous permettre d'éditer `RELEASE_NOTES.md` avant la diffusion de la release. Décrivez ce qui a changé pour cette version.
+
+### 4. Publier sur GitHub
+
+```bash
+veaf-build publish --version 6.0.1
+```
+
+Les étapes 2 à 4 peuvent être enchaînées avec `veaf-build build-and-publish --version 6.0.1`.
+
+### 5. Vérifier sur GitHub
 
 Visitez : https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
 
@@ -468,7 +416,7 @@ Vérifiez :
 - ✅ Tag Git créé : `published-v6.0.1`
 - ✅ Tag latest déplacé : `published-latest`
 
-### 8. Annoncer aux utilisateurs
+### 6. Annoncer aux utilisateurs
 
 Informez les utilisateurs qu'ils peuvent se mettre à jour :
 ```bash
@@ -635,20 +583,20 @@ veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 veaf-tools-updater.exe "C:\alternative\path"
 ```
 
-### Problème : fichier introuvable lors de la publication
+### Problème : « Release package not found » lors de la publication
 
-**Cause :** `published.zip` n'existe pas ou le chemin est incorrect.
+**Cause :** `published.zip` n'existe pas dans le répertoire courant.
 
 **Solution :**
 ```bash
 # Verify file exists
 dir published.zip
 
-# Use correct absolute path
-veaf-tools-updater.exe publish 6.0.1 "C:\full\path\to\published.zip" --token ghp_xxx
+# If missing, build it first
+veaf-build build --version 6.0.1
 
-# Create zip if missing
-# (select published/ folder, right-click → Send to → Compressed (zipped))
+# Then publish
+veaf-build publish --version 6.0.1
 ```
 
 ### Problème : « Failed to create GitHub release »
@@ -665,42 +613,17 @@ veaf-tools-updater.exe publish 6.0.1 "C:\full\path\to\published.zip" --token ghp
 # 5. Token must have write permissions
 
 # Update your config file and try again
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --verbose
+veaf-build publish --version 6.0.1 --verbose
 ```
 
-### Problème : « Not a git repository »
+### Problème : la release existe déjà
 
-**Cause :** la commande est lancée depuis le mauvais répertoire ou le dossier `.git` est absent.
+**Cause :** une release avec ce tag a déjà été publiée.
 
 **Solution :**
 ```bash
-# Publish command runs from repo root (has .git/)
-cd D:\dev\_VEAF\VEAF-Mission-Creation-Tools
-
-# Then run publish
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
-
-# Or specify repo path
-veaf-tools-updater.exe publish 6.0.1 ./published.zip \
-  --token ghp_xxx \
-  --repo-path "D:\dev\_VEAF\VEAF-Mission-Creation-Tools"
-```
-
-### Problème : « No release found for tag »
-
-**Cause :** le tag de version existe mais aucune Release GitHub n'a été créée pour lui.
-
-**Solution :**
-```bash
-# The publish command should create the release automatically
-
-# If it didn't:
-# 1. Visit https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
-# 2. Find the tag in "Releases" list
-# 3. Click "Edit" and re-publish
-
-# Or use publish again (it will detect existing tag)
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
+# Overwrite the existing release
+veaf-build publish --version 6.0.1 --force
 ```
 
 ### Obtenir plus d'aide
@@ -708,11 +631,11 @@ veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
 Pour des informations de débogage détaillées :
 
 ```bash
-# Show verbose output
+# Update tool: verbose output
 veaf-tools-updater.exe --verbose
 
-# Or for publish
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --verbose
+# Build/publish tool: verbose output
+veaf-build publish --version 6.0.1 --verbose
 ```
 
 Consultez le fichier `veaf-tools.log` dans le répertoire courant pour les journaux détaillés.
@@ -721,19 +644,22 @@ Consultez le fichier `veaf-tools.log` dans le répertoire courant pour les journ
 
 ## Référence des commandes
 
-### Commande de mise à jour
+### Commande de mise à jour (`veaf-tools-updater.exe`)
+
+L'updater est une commande unique de mise à jour, **sans sous-commande**.
 
 ```bash
 veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
 
 Arguments:
-  MISSION_FOLDER                 Mission folder path (default: current directory)
+  MISSION_FOLDER                 Mission folder path (overrides config file; default: current directory)
 
 Options:
-  --tag TEXT                     Version tag to fetch (default: published-latest)
-  --token TEXT                   GitHub token (optional, overrides config file)
-  --force                        Ignore version check, install anyway
+  --tag TEXT                     Tag name to fetch (default: published-latest)
+  --token TEXT                   GitHub Personal Access Token (overrides config file)
+  --force                        Ignore version check and install anyway
   --no-verify-checksum           Skip checksum verification (not recommended)
+  --zip-file TEXT                Path to a local published.zip file (for testing, skips GitHub)
   --lang TEXT                    Force interface language (en, fr); overrides OS locale and ~/veafmct.yaml
   --verbose                      Show detailed debug output
   --pause                        Wait for user input before exiting
@@ -748,41 +674,50 @@ veaf-tools-updater.exe
 veaf-tools-updater.exe --tag published-v6.0.0
 veaf-tools-updater.exe --token ghp_xxx --verbose
 veaf-tools-updater.exe --force
+veaf-tools-updater.exe --zip-file ./published.zip
 ```
 
-### Commande de publication
+### Commande de publication (`veaf-build publish`)
+
+La publication est une sous-commande de **`veaf-build`** (et non de l'updater).
 
 ```bash
-veaf-tools-updater.exe publish VERSION ZIP_FILE [OPTIONS]
-
-Required:
-  VERSION                        Version number (6.0.1 or v6.0.1)
-  ZIP_FILE                       Path to published.zip
+veaf-build publish [OPTIONS]
 
 Options:
-  --token TEXT                   GitHub token (optional, overrides config file)
-  --repo-path TEXT               Repository path (default: current directory)
-  --release-notes TEXT           Release notes/changelog
-  --draft                        Create as draft (not visible to users)
-  --prerelease                   Mark as pre-release
-  --skip-tag                     Skip Git tag creation
+  --version TEXT                 Semantic version for the release (e.g. 6.0.1). If omitted, read from package.json
+  --token TEXT                   GitHub Personal Access Token with 'repo' scope (or GITHUB_TOKEN env var)
+  --force                        Force publish even if the release already exists (overwrites with --clobber)
+  --prerelease                   Mark as pre-release; does NOT update published-latest
+  --ci                           Non-interactive CI mode: skip all prompts and use RELEASE_NOTES.md as-is
   --verbose                      Show detailed debug output
   --pause                        Wait for user input before exiting
   --help                         Show help message
 ```
 
-**Note :** le token et les autres réglages de `veaf-tools-config.yaml` sont utilisés automatiquement. Les options en ligne de commande priment sur les valeurs du fichier de configuration.
+**Note :** `published.zip` doit déjà exister (lancez `veaf-build build` d'abord). Le token est résolu depuis `--token`, puis `veaf-tools-config.yaml`, puis la variable d'environnement `GITHUB_TOKEN`.
+
+**Autres sous-commandes `veaf-build` :**
+
+- `build [--version --skip-lua --skip-python --dev --output --verbose --pause]` — compile les outils et produit `published.zip`
+- `build-and-publish [--version --token --skip-lua --skip-python --dev --output --ci --verbose]` — build puis publication en une étape
+- `publish-local <target> [--published-zip --verbose --pause]` — déploie un build dans un dossier de mission local (sans GitHub)
+- `update-dcs-data [--countries --units --radio --airdromes --dcs-path --all]` — régénère les données de référence DCS commitées
+- `about` — informations sur le système de build
 
 **Exemples :**
 ```bash
 # With config file (recommended)
-veaf-tools-updater.exe publish 6.0.1 ./published.zip
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --release-notes "Version 6.0.1 - Bug fixes"
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --draft
+veaf-build build --version 6.0.1
+veaf-build publish --version 6.0.1
 
 # Without config file (token required)
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx
-veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --release-notes "..."
+veaf-build publish --version 6.0.1 --token ghp_xxx
+
+# Pre-release / force / CI
+veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1 --force
+veaf-build publish --version 6.0.1 --ci
 ```
 
 ---
@@ -792,7 +727,7 @@ veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --release-n
 ### Pour les utilisateurs
 
 ✅ **À faire :**
-- Lancez `veaf-tools update` régulièrement pour rester à jour
+- Lancez `veaf-tools-updater.exe` régulièrement pour rester à jour
 - Laissez les checksums vérifier l'intégrité (n'utilisez pas `--no-verify-checksum`)
 - Utilisez `--help` en cas de doute sur une option
 
@@ -806,7 +741,7 @@ veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --release-n
 
 ✅ **À faire :**
 - Stockez votre token dans `veaf-tools-config.yaml` (jamais dans git !)
-- Utilisez toujours la commande `publish` pour rester cohérent
+- Publiez toujours avec `veaf-build publish` pour rester cohérent
 - Tenez les notes de version à jour
 - Testez avant de publier en production
 - Utilisez des tokens différents pour des machines différentes
@@ -857,7 +792,7 @@ Toutes les communications avec GitHub utilisent le chiffrement TLS/SSL :
 ## FAQ
 
 **Q : Puis-je revenir à une ancienne version ?**
-R : Oui ! `veaf-tools update --tag published-v6.0.0`
+R : Oui ! `veaf-tools-updater.exe --tag published-v6.0.0`
 
 **Q : Que faire si la publication échoue ?**
 R : Consultez la section Dépannage ci-dessus. La plupart des problèmes sont liés au réseau ou au token.
@@ -871,11 +806,11 @@ R : Aussi souvent que vous avez des changements. Les utilisateurs ne les verront
 **Q : Puis-je supprimer ou annuler une version publiée ?**
 R : Sur GitHub, oui. Mais les utilisateurs l'ont peut-être déjà téléchargée.
 
-**Q : Quelle est la différence entre `--draft` et `--prerelease` ?**
-R : Draft = caché, Prerelease = visible mais marqué comme « non final ».
+**Q : Comment publier une beta sans impacter les utilisateurs ?**
+R : Utilisez `veaf-build publish --version <x.y.z> --prerelease`. Le tag `published-latest` reste intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>`.
 
-**Q : Puis-je publier sans créer de tag git ?**
-R : Oui, avec `--skip-tag`, mais ce n'est pas recommandé.
+**Q : Comment republier par-dessus une release existante ?**
+R : Utilisez `veaf-build publish --version <x.y.z> --force`.
 
 **Q : Combien de temps les tokens durent-ils ?**
 R : Tant que vous ne les révoquez pas. Ils n'expirent pas automatiquement.
@@ -901,7 +836,7 @@ Si vous rencontrez des problèmes :
 ## Historique des versions
 
 ### Actuelle (6.0.1+)
-- ✅ Outil unifié de mise à jour / publication
+- ✅ Outils dédiés : `veaf-tools-updater.exe` (mise à jour) et `veaf-build` (build/publication)
 - ✅ Versionnement basé sur les tags Git
 - ✅ Vérification par checksum SHA256
 - ✅ Comparaison sémantique des versions

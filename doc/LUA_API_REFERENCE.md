@@ -744,15 +744,16 @@ Obtient les données brutes DCS d'un groupe.
 
 **Retourne :** `table` — Table de données DCS du groupe
 
-##### `veaf.weatherReport(vec3, alt, withLASTE)`
+##### `veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`
 
-Génère un rapport météo sous forme de texte.
+Génère un rapport météo sous forme de texte pour une position. Le système d'unités et l'inclusion des données LASTE sont déduits de l'élément DCS fourni (ex. : un A-10 active automatiquement le LASTE).
 
 **Paramètres :**
 
 - `vec3` (vec3) — Position pour le rapport
-- `alt` (number, optionnel) — Altitude pour le rapport (défaut : 0)
-- `withLASTE` (boolean, optionnel) — Inclure les données LASTE
+- `dcsElementName` (string, optionnel) — Nom d'un élément DCS (unité/base) servant à déduire le système d'unités et le LASTE
+- `unitSystem` (string, optionnel) — Système d'unités ; par défaut déduit de l'élément
+- `iSurfaceAltitudeMeters` (number, optionnel) — Altitude du sol en mètres
 
 **Retourne :** `string` — Texte du rapport météo
 
@@ -2932,10 +2933,15 @@ obj:setMessage(value)
 obj:getMessage()
 obj:setParameters(value)
 obj:getParameters()
-obj:setOnStartupFunction(value)
-obj:getOnStartupFunction()
-obj:setOnCheckFunction(value)
-obj:getOnCheckFunction()
+obj:setOnStartup(value)
+obj:getOnStartup()
+obj:setOnCheck(value)
+obj:getOnCheck()
+obj:onStartup(mission)
+obj:onCheck(mission)
+obj:configureAsTimedObjective(timeInSeconds)
+obj:configureAsKillEnemiesObjective(nbKillsToWin, whatsInAKill)
+obj:configureAsPreventDestructionOfSceneryObjectsInZone(zones, objects)
 ```
 
 **Exemple :**
@@ -2943,10 +2949,10 @@ obj:getOnCheckFunction()
 local objective = VeafCombatMissionObjective:new()
 objective:setName("Destroy Armor")
 objective:setDescription("Destroy all enemy tanks")
-objective:setOnStartupFunction(function(mission)
+objective:setOnStartup(function(mission)
   -- Spawn enemy tanks
 end)
-objective:setOnCheckFunction(function(mission)
+objective:setOnCheck(function(mission)
   -- Check if tanks destroyed
   if allTanksDestroyed() then
     return VeafCombatMissionObjective.SUCCESS
@@ -2961,54 +2967,58 @@ Définition complète d'une mission.
 
 **Champs :**
 
-- `name` (string) — Nom de la mission
-- `description` (string) — Description courte
+- `name` (string) — Nom de la mission (technique)
+- `friendlyName` (string) — Nom lisible de la mission
 - `briefing` (string) — Texte de briefing complet
 - `secured` (boolean) — Nécessite une autorisation de sécurité
 - `radioMenuEnabled` (boolean) — Afficher dans le menu F10
 - `objectives` (table) — Tableau d'objectifs
-- `spawnPosition` (vec3) — Emplacement de spawn
-- `altitude` (number) — Altitude de spawn
-- `spawnZone` (string) — Nom de la zone de spawn
-- `spawnRadius` (number) — Dispersion de spawn
-- `activeSquads` (table) — Groupes spawnés
-- `skills` (table) — Niveaux de compétence de l'IA
-- `scales` (table) — Facteurs d'échelle de la mission
+- `elements` (table) — Éléments définis dans la mission
+- `spawnedGroups` (table) — Groupes DCS spawnés
+- `active` (boolean) — La mission est active
+- `training` (boolean) — Mission d'entraînement
+- `hidden` (boolean) — Aucun message à l'activation/désactivation
+- `silent` (boolean) — Comme `hidden`, mais pour une seule activation
 
 **Méthodes :**
 ```lua
 mission = VeafCombatMission:new()
 mission:setName(value)
 mission:getName()
-mission:setDescription(value)
-mission:getDescription()
+mission:setFriendlyName(value)
+mission:getFriendlyName()
 mission:setBriefing(value)
 mission:getBriefing()
 mission:setSecured(value)
-mission:getSecured()
+mission:isSecured()
 mission:setRadioMenuEnabled(value)
-mission:getRadioMenuEnabled()
-mission:setObjectives(value)
-mission:getObjectives()
+mission:isRadioMenuEnabled()
+mission:setActive(value)
+mission:isActive()
+mission:setTraining(value)
+mission:isTraining()
+mission:setHidden(value)
+mission:isHidden()
+mission:setSilent(value)
+mission:isSilent()
 mission:addObjective(objective)
-mission:setSpawnPosition(value)
-mission:getSpawnPosition()
-mission:setAltitude(value)
-mission:getAltitude()
-mission:setSpawnZone(value)
-mission:getSpawnZone()
-mission:setSpawnRadius(value)
-mission:getSpawnRadius()
-mission:getActiveSquads()
+mission:getObjectives()
+mission:addElement(value)
+mission:addSpawnedGroup(group)
+mission:addDefaultObjectives()
+mission:getRemainingEnemies(whatsInAKill)
+mission:getInformation()
+mission:initialize()
+mission:activate(silent)
+mission:desactivate()
 ```
 
 **Exemple :**
 ```lua
 local mission = VeafCombatMission:new()
 mission:setName("Strike Alpha")
-mission:setDescription("Destroy enemy armor column")
+mission:setFriendlyName("Strike Alpha")
 mission:setBriefing("Enemy armor advancing on friendly position. Destroy all tanks.")
-mission:setSpawnZone("SpawnZone1")
 mission:addObjective(destroyTanksObjective)
 mission:addObjective(rtbObjective)
 
@@ -3416,40 +3426,40 @@ Initialise le module CAS.
 
 #### Classes
 
-##### Airbase
+##### veafAirbase
 
-**Propriétés :**
+Descripteur d'aérodrome contenant les informations normalisées d'un aérodrome DCS.
 
-- `name` (string) — Nom de l'aérodrome
-- `position` (vec3) — Position de l'aérodrome
-- `coalition` (coalition) — Propriétaire actuel
-- `runways` (table) — Tableau d'objets Runway
-- `fuelCapacity` (number) — Stockage de carburant
-- `ammoBlueMissile` (number) — Munitions missiles bleus
-- `ammoBlueGun` (number) — Munitions canons bleus
-- `ammoRedMissile` (number) — Munitions missiles rouges
-- `ammoRedGun` (number) — Munitions canons rouges
+**Champs :**
+
+- `Name` (string) — Nom de l'aérodrome
+- `DisplayName` (string) — Nom d'affichage normalisé
+- `Category` (number) — Catégorie DCS (`AIRDROME`, `HELIPAD`, `SHIP`)
+- `DcsAirbase` (DCS Airbase) — Objet aérodrome DCS sous-jacent
+- `Runways` (table) — Tableau d'objets `veafAirbaseRunway`
 
 **Méthodes :**
 ```lua
-airbase:getName()
-airbase:getCoalition()
-airbase:getPosition()
-airbase:getRunways()
-airbase:getRunwayCount()
-airbase:getNearestRunway(position)  -- Piste la plus proche d'une position
+airbase = veafAirbase:create(dcsAirbase)
+airbase:getRunwayInService(iWindDirectionTrue)        -- Meilleure extrémité de piste face au vent
+airbase:getRunwayInServiceString(iWindDirectionTrue)  -- Numéro de piste en service ("02")
+airbase:toString()
 ```
 
-##### Runway
+##### veafAirbaseRunway
 
-**Propriétés :**
+Descripteur de piste contenant les informations normalisées d'une piste d'aérodrome DCS.
 
-- `heading1` (number) — Premier cap (degrés)
-- `heading2` (number) — Cap opposé
-- `width` (number) — Largeur de piste (mètres)
-- `length` (number) — Longueur de piste (mètres)
-- `surface` (string) — Type de surface
-- `closed` (boolean) — Statut fermé
+Chaque objet est une table indexée des deux extrémités de la piste (`[1]` et `[2]`), chacune ayant :
+
+- `Number` (number) — Numéro de piste (1-36)
+- `Heading` (number) — Cap vrai de l'extrémité (degrés)
+
+**Méthodes :**
+```lua
+runway = veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
+runway:toString()
+```
 
 #### Fonctions
 
@@ -3471,26 +3481,26 @@ Obtient un aérodrome par nom.
 
 - `sAirbaseName` (string) — Nom de l'aérodrome
 
-**Retourne :** `Airbase` — Objet Airbase ou nil
+**Retourne :** `veafAirbase` — Objet aérodrome ou nil
 
 **Exemple :**
 ```lua
 local kutaisi = veafAirbases.getAirbaseByName("Kutaisi")
 if kutaisi then
-  veaf.logger:info("Kutaisi has %d runways", kutaisi:getRunwayCount())
-  veaf.logger:info("Position: %s", veaf.vecToString(kutaisi:getPosition()))
+  veaf.loggers.get("AIRBASES"):info("Kutaisi has %d runways", #kutaisi.Runways)
+  veaf.loggers.get("AIRBASES"):info("Airbase: %s", kutaisi:toString())
 end
 ```
 
 ##### `veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)`
 
-Convertit un aérodrome DCS en objet Airbase.
+Convertit un aérodrome DCS en objet `veafAirbase`.
 
 **Paramètres :**
 
 - `dcsAirbase` (DCS Airbase) — Objet aérodrome DCS
 
-**Retourne :** `Airbase` — Objet aérodrome VEAF
+**Retourne :** `veafAirbase` — Objet aérodrome VEAF
 
 ##### `veafAirbases.getNearestAirbaseList(dcsUnit, iCount)`
 
@@ -3501,14 +3511,16 @@ Obtient les aérodromes les plus proches d'une unité.
 - `dcsUnit` (DCS Unit) — Objet unité
 - `iCount` (number) — Nombre de résultats
 
-**Retourne :** `table` — Tableau d'objets Airbase triés par distance
+**Retourne :** `table` — Tableau de paires `{veafAirbase, distance}` triées par distance croissante
 
 **Exemple :**
 ```lua
 local unit = Unit.getByName("Viper 1-1")
 local nearestBases = veafAirbases.getNearestAirbaseList(unit, 3)
-for i, airbase in ipairs(nearestBases) then
-  veaf.logger:info("%d. %s", i, airbase:getName())
+for i, pair in ipairs(nearestBases) do
+  local airbase = pair[1]
+  local distance = pair[2]
+  veaf.loggers.get("AIRBASES"):info("%d. %s (%dm)", i, airbase.Name, distance)
 end
 ```
 
@@ -3520,14 +3532,14 @@ Obtient l'aérodrome le plus proche.
 
 - `dcsUnit` (DCS Unit) — Objet unité
 
-**Retourne :** `Airbase` — Aérodrome le plus proche
+**Retourne :** `veafAirbase` — Aérodrome le plus proche
 
 **Exemple :**
 ```lua
 local unit = Unit.getByName("Viper 1-1")
 local nearest = veafAirbases.getNearestAirbase(unit)
 veaf.outTextForUnit("Viper 1-1",
-  string.format("Nearest airbase: %s", nearest:getName()), 10)
+  string.format("Nearest airbase: %s", nearest.Name), 10)
 ```
 
 ---
@@ -3885,48 +3897,106 @@ Initialise le module radio.
 
 #### Fonctions
 
-##### `veafWeather.setWeather(parameters)`
+##### `veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`
 
-Définit la météo de mission.
-
-**Paramètres :**
-
-- `parameters` (table) — Paramètres météo
-
-**Paramètres météo :**
-```lua
-{
-  qnh = number,              -- Pression (mmHg ou inHg)
-  temperature = number,      -- Température (°C)
-  windDirection = number,    -- Direction du vent (degrés)
-  windSpeed = number,        -- Vitesse du vent (m/s ou nœuds)
-  turbulence = number,       -- Turbulence (0-100)
-  clouds = {                 -- Couches nuageuses
-    {
-      base = number,         -- Altitude de base (mètres)
-      thickness = number,    -- Épaisseur (mètres)
-      density = number,      -- Densité (0-10)
-      iprecptns = number     -- Précipitations
-    }
-  },
-  fog = {                    -- Paramètres de brouillard
-    visibility = number,     -- Visibilité (mètres)
-    thickness = number       -- Épaisseur (mètres)
-  }
-}
-```
-
-**Retourne :** Rien
-
-##### `veafWeather.getWeather(position)`
-
-Obtient la météo actuelle à une position.
+Construit le rapport météo textuel complet à une position donnée.
 
 **Paramètres :**
 
-- `position` (vec3) — Position
+- `vec3` (vec3) — Position
+- `dcsElementName` (string) — Nom de l'élément DCS (sert à déduire le système d'unités par défaut)
+- `unitSystem` (optionnel) — Système d'unités (par défaut déduit du type de l'élément)
+- `iSurfaceAltitudeMeters` (number, optionnel) — Altitude de la surface en mètres
 
-**Retourne :** `table` — Données météo
+**Retourne :** `string` — Le rapport météo
+
+##### `veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)`
+
+Calcule le vent à une position et une altitude.
+
+**Paramètres :**
+
+- `vec3` (vec3) — Position
+- `iAltitudeMeters` (number) — Altitude en mètres
+- `bTurbulence` (boolean, optionnel) — Inclure la turbulence (par défaut `false`)
+
+**Retourne :** `number, number` — Direction (degrés, « d'où vient le vent », `[1, 360]`) et vitesse (m/s)
+
+##### `veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)`
+
+Affiche le rapport météo du point nommé le plus proche de l'unité.
+
+**Paramètres :**
+
+- `unitName` (string) — Nom de l'unité
+- `forUnit` (boolean) — Si `true`, affiche au pilote uniquement ; sinon au groupe
+
+##### `veafWeather.messageAtcClosestAirbase(unitName, forUnit)`
+
+Affiche le rapport ATC (ATIS) de l'aérodrome le plus proche de l'unité.
+
+**Paramètres :**
+
+- `unitName` (string) — Nom de l'unité
+- `forUnit` (boolean) — Si `true`, affiche au pilote uniquement ; sinon au groupe
+
+##### `veafWeather.messageAtcAndWeather(unitName, forUnit)`
+
+Affiche successivement le rapport ATC puis le rapport météo.
+
+**Paramètres :**
+
+- `unitName` (string) — Nom de l'unité
+- `forUnit` (boolean) — Si `true`, affiche au pilote uniquement ; sinon au groupe
+
+##### `veafWeather.createStaticFog(name, thickness, visibility)`
+
+Crée un objet de brouillard statique.
+
+**Paramètres :**
+
+- `name` (string) — Nom du brouillard
+- `thickness` (number) — Épaisseur (mètres)
+- `visibility` (number) — Visibilité (mètres)
+
+**Retourne :** Un objet brouillard
+
+##### `veafWeather.createDynamicFog(name, baseFactor, notAnimated)`
+
+Crée un objet de brouillard dynamique.
+
+**Paramètres :**
+
+- `name` (string) — Nom du brouillard
+- `baseFactor` (number) — Facteur de base du brouillard dynamique
+- `notAnimated` (boolean, optionnel) — Si `true`, le brouillard n'est pas animé
+
+**Retourne :** Un objet brouillard
+
+##### `veafWeather.createAnimatedFog(name, minutes, thickness, visibility)`
+
+Crée un objet de brouillard animé sur une durée donnée.
+
+**Paramètres :**
+
+- `name` (string) — Nom du brouillard
+- `minutes` (number) — Durée de l'animation (minutes)
+- `thickness` (number) — Épaisseur (mètres)
+- `visibility` (number) — Visibilité (mètres)
+
+**Retourne :** Un objet brouillard
+
+##### `veafWeather.setAndActivateFog(fogObject)`
+
+Désactive le brouillard existant éventuel puis active l'objet de brouillard fourni.
+
+**Paramètres :**
+
+- `fogObject` — Un objet brouillard (créé via les fonctions `create*Fog` ou une constante `veafWeather.FOG_*`)
+
+**Retourne :** L'objet brouillard activé
+
+**Constantes de brouillard pré-définies :** `veafWeather.FOG_DYNAMIC_HEAVY`, `FOG_DYNAMIC_MEDIUM`, `FOG_DYNAMIC_SPARSE`, `FOG_STATIC_HEAVY`, `FOG_STATIC_MEDIUM`, `FOG_STATIC_MEDIUM_LOW`, `FOG_STATIC_SPARSE`, `FOG_STATIC_SPARSE_LOW`, `FOG_STATIC_NO`.
 
 ---
 
@@ -3935,36 +4005,70 @@ Obtient la météo actuelle à une position.
 **Module ID :** `TIME`
 **Objectif :** Gestion du temps de mission
 
+> Module en lecture seule : il **calcule** des informations de date et d'heure à
+> partir de l'heure de mission, il ne modifie jamais l'heure ou la date de la mission.
+
 #### Fonctions
 
-##### `veafTime.setTime(hours, minutes)`
+##### `veafTime.getMissionDateTime(iAbsTime)`
 
-Définit l'heure de mission.
-
-**Paramètres :**
-
-- `hours` (number) — Heure (0-23)
-- `minutes` (number, optionnel) — Minute (0-59)
-
-**Retourne :** Rien
-
-**Exemple :**
-```lua
--- Régler l'heure à 14:30
-veafTime.setTime(14, 30)
-```
-
-##### `veafTime.setDate(year, month, day)`
-
-Définit la date de mission.
+Calcule la date et l'heure de mission correspondant à un temps absolu (gère les
+débordements de jour, mois et année).
 
 **Paramètres :**
 
-- `year` (number) — Année
+- `iAbsTime` (number, optionnel) — Temps absolu (par défaut `timer.getAbsTime()`)
+
+**Retourne :** `table` — `{ year, month, day, yday, hour, min, sec }`
+
+##### `veafTime.absTimeToStringTime(iAbsTime, bWithSeconds)`
+
+Formate un temps absolu en chaîne d'heure.
+
+**Paramètres :**
+
+- `iAbsTime` (number) — Temps absolu
+- `bWithSeconds` (boolean, optionnel) — Inclure les secondes
+
+**Retourne :** `string`
+
+##### `veafTime.toZulu(dateTime, nOffsetHours)`
+
+Convertit une date/heure locale en temps Zulu (UTC).
+
+**Paramètres :**
+
+- `dateTime` (table) — Date/heure (format de `getMissionDateTime`)
+- `nOffsetHours` (number, optionnel) — Décalage horaire (par défaut déduit de `getTimezone`)
+
+**Retourne :** `table` — Date/heure en Zulu
+
+##### `veafTime.getSunTimesZulu(vec3, iAbsTime)`
+
+Calcule les heures de lever et coucher du soleil (en Zulu) pour une position.
+
+**Paramètres :**
+
+- `vec3` (vec3) — Position
+- `iAbsTime` (number) — Temps absolu
+
+**Retourne :** Les heures de lever et de coucher du soleil
+
+##### `veafTime.determineSeason(month, latitude)`
+
+Détermine la saison à partir du mois et de la latitude (gère les deux hémisphères).
+
+**Paramètres :**
+
 - `month` (number) — Mois (1-12)
-- `day` (number) — Jour (1-31)
+- `latitude` (number, optionnel) — Latitude (hémisphère nord si `nil` ou `>= 0`)
 
-**Retourne :** Rien
+**Retourne :** `string` — Saison (« spring », « summer », « autumn », « winter »)
+
+> Autres fonctions disponibles : `getMissionAbsTime`, `absTimeToDateTime`,
+> `toStringDate` / `absTimeToStringDate`, `toStringTime`, `toStringDateTime` /
+> `absTimeToStringDateTime`, `getTimezone`, `toLocal`, `getSunTimesLocal`,
+> `isAeronauticalNight`.
 
 ---
 
@@ -3976,134 +4080,64 @@ Définit la date de mission.
 **Version :** datamine-dc7d15e8
 **Objectif :** Base de données complète des unités DCS
 
+> Ce module n'expose pas de fonctions : il fournit uniquement des tables de données.
+
 #### Structures de données
 
-##### Catégories d'unités
+##### `dcsUnits.DcsUnitsDatabase`
 
-```lua
-dcsUnits.CATEGORY = {
-  AIRPLANE = "Airplane",
-  HELICOPTER = "Helicopter",
-  GROUND_UNIT = "Ground Unit",
-  SHIP = "Ship",
-  STATIC = "Static"
-}
-```
+Base de données brute des unités DCS, indexée par identifiant de type DCS.
 
-##### Définition d'une unité
-
-Chaque unité dans la base :
+Schéma de chaque entrée :
 ```lua
 {
-  type = "F-16C_50",           -- Nom de type DCS
-  displayName = "F-16C Viper", -- Nom d'affichage
-  category = "Airplane",       -- Catégorie
-  year = 1984,                 -- Année d'introduction
-  country = {"USA"},           -- Pays
-  tasks = {                    -- Tâches possibles
-    "CAP", "CAS", "SEAD", "Strike"
-  },
-  role = "Multirole Fighter",
-  weapons = {                  -- Types d'armes
-    "AIM-9", "AIM-120", "GBU-12"
-  }
+  type = ".Ammunition depot",      -- Identifiant de type DCS (clé de la table)
+  name = "Ammunition depot",       -- Nom lisible
+  kind = "static",                 -- Genre ("static", "vehicle", "plane", etc.)
+  category = "Warehouse",          -- Catégorie DCS
+  description = "Ammunition depot", -- Description
+  attribute = {},                  -- Table des attributs DCS
 }
 ```
 
-#### Fonctions
+##### `dcsUnits.NavalStatics`
 
-##### `dcsUnits.findUnit(typeName)`
+Ensemble (table de booléens) des noms de statiques considérés comme navals :
 
-Trouve une unité par nom de type.
-
-**Paramètres :**
-
-- `typeName` (string) — Type d'unité (insensible à la casse)
-
-**Retourne :** `table` — Définition d'unité ou nil
-
-**Exemple :**
 ```lua
-local f16 = dcsUnits.findUnit("F-16C_50")
-if f16 then
-  veaf.logger:info("Display: %s", f16.displayName)
-  veaf.logger:info("Role: %s", f16.role)
-  veaf.logger:info("Year: %d", f16.year)
-end
+dcsUnits.NavalStatics = {
+  ["Gas platform"] = true,
+  ["M1 barrage balloon"] = true,
+  ["Oil platform"] = true,
+  ["Oil rig"] = true,
+  ["Orca"] = true,
+  ["offshore WindTurbine"] = true,
+  ["offshore WindTurbine2"] = true,
+}
 ```
 
-##### `dcsUnits.getUnitsByCategory(category)`
-
-Obtient toutes les unités d'une catégorie.
-
-**Paramètres :**
-
-- `category` (string) — Nom de la catégorie
-
-**Retourne :** `table` — Tableau de définitions d'unités
-
-**Exemple :**
-```lua
-local aircraft = dcsUnits.getUnitsByCategory("Airplane")
-for _, unit in ipairs(aircraft) do
-  veaf.logger:info("%s (%s)", unit.displayName, unit.type)
-end
-```
-
-##### `dcsUnits.getUnitsByCountry(country)`
-
-Obtient les unités d'un pays.
-
-**Paramètres :**
-
-- `country` (string) — Nom du pays
-
-**Retourne :** `table` — Tableau de définitions d'unités
-
-##### `dcsUnits.getUnitsByTask(task)`
-
-Obtient les unités capables d'une tâche.
-
-**Paramètres :**
-
-- `task` (string) — Nom de la tâche (ex : "CAP", "CAS", "SEAD")
-
-**Retourne :** `table` — Tableau de définitions d'unités
+> Voir aussi [dcs-data.md](developer/dcs-data.md) pour la description détaillée du schéma.
 
 ---
 
 ### dcsDataExport.lua
 
 **Module ID :** `DCSEXPORT`
-**Objectif :** Exporter les données DCS vers des fichiers
+**Objectif :** Script d'export de données DCS, à exécuter dans l'éditeur de mission
 
-#### Fonctions
+#### Description
 
-##### `dcsDataExport.exportAllUnits(path)`
+Il ne s'agit pas d'une bibliothèque : ce script n'expose **aucune fonction
+publique**. Il est conçu pour être chargé (`dofile`) à la fin du fichier
+`DCS World\MissionEditor\modules\me_mission.lua`. Au chargement, il définit la
+table globale `DcsDataExport` (utilitaires de log et de sérialisation interne)
+puis exécute immédiatement l'export : il écrit la base de données des unités
+(`db.Units.lua`) et appelle `browseUnits(...)` pour chaque catégorie d'unités
+(Animal, Cargo, Vehicle, Effect, Fortification, GrassAirfield, GroundObject,
+Helicopter, Heliport, Personnel, Plane, Ship, Warehouse).
 
-Exporte toutes les unités DCS vers un fichier.
-
-**Paramètres :**
-
-- `path` (string, optionnel) — Répertoire d'export
-
-**Retourne :** Rien
-
-##### `dcsDataExport.exportAirbases(path)`
-
-Exporte les données des aérodromes.
-
-**Paramètres :**
-
-- `path` (string, optionnel) — Répertoire d'export
-
-**Retourne :** Rien
-
-##### `dcsDataExport.exportWeapons(path)`
-
-Exporte les données des armes.
-
-**Retourne :** Rien
+Le répertoire de sortie est défini par la variable locale `export_path` (par
+défaut `.\`, le répertoire courant).
 
 ---
 
@@ -4144,12 +4178,13 @@ veafEventHandler.addCallback("myHandler", {"S_EVENT_TAKEOFF", "S_EVENT_LAND"},
 -- Définir un objectif
 local objective = VeafCombatMissionObjective:new()
 objective:setName("Détruire les chars")
-objective:setOnStartupFunction(function(mission)
+objective:setOnStartup(function(mission)
   -- Spawner les chars
-  veafSpawn.spawnArmoredPlatoon(mission:getSpawnPosition(), 100, nil, nil,
+  local spawnPos = mist.utils.zoneToVec3("TargetZone")
+  veafSpawn.spawnArmoredPlatoon(spawnPos, 100, nil, nil,
     coalition.side.RED, 0, 50, 2, 3, 3, true)
 end)
-objective:setOnCheckFunction(function(mission)
+objective:setOnCheck(function(mission)
   -- Vérifier la complétion
   if allTanksDestroyed() then
     return VeafCombatMissionObjective.SUCCESS
@@ -4160,8 +4195,8 @@ end)
 -- Définir la mission
 local mission = VeafCombatMission:new()
 mission:setName("Chasse aux chars")
-mission:setDescription("Détruire les blindés ennemis")
-mission:setSpawnZone("TargetZone")
+mission:setFriendlyName("Chasse aux chars")
+mission:setBriefing("Détruire les blindés ennemis")
 mission:addObjective(objective)
 
 -- Enregistrer

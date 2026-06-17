@@ -17,40 +17,56 @@ Configures unprepared grass airstrips for use in DCS missions. Provides position
 veafGrass.initialize()
 ```
 
-Then define each grass strip:
-
-```lua
-VeafGrassRunway:new()
-  :setName("FARP Whiskey")
-  :setGroupName("FARP-WHISKEY-GROUP")   -- static objects defining the strip
-  :setRunwayHeading(270)                -- runway heading in degrees
-  :setAtcFrequency(127500000)           -- Hz (127.5 MHz)
-  :setAtcModulation(radio.modulation.AM)
-  :setTacanChannel(74, "X", "WHK")     -- optional TACAN
-  :initialize()
-```
+`veafGrass.initialize()` schedules `veafGrass.buildFarpsUnits` a few seconds after mission start (to let the other modules load) and registers a birth event handler. There is **no builder class**: everything is driven by the names you give to objects in the DCS Mission Editor.
 
 ---
 
-## Builder Methods
+## How it works
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier and label |
-| `:setGroupName(name)` | DCS group of static objects forming the strip |
-| `:setRunwayHeading(deg)` | Primary runway magnetic heading |
-| `:setAtcFrequency(hz)` | ATC radio frequency in Hz |
-| `:setAtcModulation(mod)` | `radio.modulation.AM` or `FM` |
-| `:setTacanChannel(ch, band, morse)` | TACAN channel, band (X/Y), Morse ID |
-| `:initialize()` | Register the strip |
+At startup the module scans every unit in the mission and acts based on its name:
+
+- Static objects whose **name contains `GRASS_RUNWAY`** (case-insensitive) are used as the origin of a grass strip.
+- FARP-type units (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T`, `SINGLE_HELIPAD`) whose **group name starts with `FARP ` (FARP followed by a space)** receive FARP scenery.
+
+---
+
+## Grass Runways
+
+To create a grass runway:
+
+1. Place a static object in the DCS Mission Editor at the right-hand end of the future strip, pointing down the runway axis.
+2. Name it so that its name **contains `GRASS_RUNWAY`** (for example `GRASS_RUNWAY_WHISKEY`).
+3. Call `veafGrass.initialize()` at the module level.
+
+At startup, `veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)` builds the strip scenery (rows of plots on each side, a tower) from that object's position and heading.
+
+---
+
+## FARPs
+
+To dress up a FARP:
+
+1. Place a FARP-type unit (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T` or `SINGLE_HELIPAD`).
+2. Name its **group** so that it starts with `FARP ` (for example `FARP Whiskey`).
+3. Call `veafGrass.initialize()`.
+
+At startup, `veafGrass.buildFarpsUnits(hiddenOnMFD)` adds FARP scenery around each recognised unit (via `veafGrass.buildFarpUnits`).
+
+### Refilling warehouses
+
+Since DCS 2.8, spawned FARPs come up with an empty warehouse. The module provides functions to refill them:
+
+- `veafGrass.fillAllFarpWarehouses()` — browses all valid FARPs and grass strips and fills their warehouses.
+- `veafGrass.fillFarpWarehouse(farp)` — fills the warehouse of a given FARP.
+
+The deposited content is defined by the `veafGrass.WAREHOUSE_ITEMS` table. The `veafGrass.helicoptersOnFARPs` table lists the helicopter types added to FARP warehouses so they are available to the dynamic slot mechanism.
 
 ---
 
 ## Notes
 
-- The "group" should contain the static objects (windsock, fuel trucks, etc.) that visually define the strip
-- Position and heading are read from the group's lead unit
-- ATC frequency is announced via the F10 menu and in radio messages
+- The grass strip's position and heading are read from the static object named `...GRASS_RUNWAY...`.
+- The generated scenery units are hidden on MFDs to avoid cluttering the display.
 
 ---
 

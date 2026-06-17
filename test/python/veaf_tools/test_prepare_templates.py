@@ -59,6 +59,45 @@ class TestPrepareTemplates(unittest.TestCase):
             result = _runner.invoke(app, ["prepare", "--template", "nope", tmp])
             self.assertNotEqual(result.exit_code, 0)
 
+    def test_custom_picker_returns_selected_modules(self) -> None:
+        from unittest import mock
+
+        from veaf_tools.commands.prepare import _select_custom_modules
+
+        picked = type("C", (), {"execute": lambda self: ["RADIO", "SPAWN"]})()
+        with mock.patch("InquirerPy.inquirer.checkbox", return_value=picked):
+            self.assertEqual(_select_custom_modules(), {"RADIO", "SPAWN"})
+
+    def test_custom_picker_back_then_quit_exits_cleanly(self) -> None:
+        # Back out of the picker (checkbox None) → template choice; back out of that
+        # (select None) → clean exit.
+        from unittest import mock
+
+        import typer
+        from veaf_tools.commands.prepare import _resolve_template_modules
+
+        none_cb = type("C", (), {"execute": lambda self: None})()
+        none_sel = type("S", (), {"execute": lambda self: None})()
+        with mock.patch("InquirerPy.inquirer.checkbox", return_value=none_cb):
+            with mock.patch("InquirerPy.inquirer.select", return_value=none_sel):
+                with self.assertRaises(typer.Exit) as ctx:
+                    _resolve_template_modules("custom")
+        self.assertEqual(ctx.exception.exit_code, 0)
+
+    def test_custom_picker_back_to_template_resolves_tier(self) -> None:
+        # Back out of the picker → pick a tier at the template choice → that tier's modules.
+        from unittest import mock
+
+        from veaf_libs.mission_template import tier_modules
+        from veaf_tools.commands.prepare import _resolve_template_modules
+
+        none_cb = type("C", (), {"execute": lambda self: None})()
+        pick_minimal = type("S", (), {"execute": lambda self: "minimal"})()
+        with mock.patch("InquirerPy.inquirer.checkbox", return_value=none_cb):
+            with mock.patch("InquirerPy.inquirer.select", return_value=pick_minimal):
+                result = _resolve_template_modules("custom")
+        self.assertEqual(result, tier_modules("minimal"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,15 +14,19 @@ for _i, _a in enumerate(sys.argv[1:]):
 
 # These imports must come after the lang-setup block above.
 import veaf_tools.commands  # noqa: E402, F401  — side effect: registers all commands
-from veaf_libs.tui import run_wizard  # noqa: E402
-from veaf_tools.app import app  # noqa: E402
+from veaf_libs.logger import console  # noqa: E402
+from veaf_libs.tui import maybe_bridge_to_tui  # noqa: E402
+from veaf_tools.app import VERSION, app  # noqa: E402
 from veaf_tools.helpers import _is_double_clicked  # noqa: E402
 
 if __name__ == "__main__":
-    # When launched with no arguments in an interactive terminal, run the wizard.
-    if len(sys.argv) == 1 and sys.stdout.isatty():
-        if wizard_args := run_wizard():
-            sys.argv = sys.argv[:1] + wizard_args
+    console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
+
+    # CLI ↔ TUI bridge (CLI-TUI-BRIDGE): a bare invocation, `--tui`, or a command
+    # invoked without a required option drops into the wizard — pre-filled with the
+    # args already given on the command line — then runs the completed command.
+    if bridged := maybe_bridge_to_tui(sys.argv[1:]):
+        sys.argv = sys.argv[:1] + bridged
 
     auto_pause = _is_double_clicked()
     try:

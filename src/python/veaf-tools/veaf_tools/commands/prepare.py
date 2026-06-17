@@ -53,19 +53,53 @@ def _resolve_template_modules(template: str) -> set[str]:
     from veaf_libs.mission_template import TIER_NAMES, tier_modules
 
     name = template.lower()
-    if name in TIER_NAMES:
-        return tier_modules(name)
-    if name == "custom":
-        return _select_custom_modules()
-    logger.error(t("cmd.prepare.unknown_template", template=template, valid=", ".join((*TIER_NAMES, "custom"))))
-    raise typer.Exit(code=1)
+    while True:
+        if name in TIER_NAMES:
+            return tier_modules(name)
+        if name == "custom":
+            modules = _select_custom_modules()
+            if modules is not None:
+                return modules
+            # Back (Ctrl-B / Esc Esc): step up one level to the template choice.
+            choice = _prompt_template_choice()
+            if choice is None:  # backed out of the template choice too → quit
+                console.print(t("tui.cancelled"))
+                raise typer.Exit(0)
+            name = choice.lower()
+            continue
+        logger.error(t("cmd.prepare.unknown_template", template=template, valid=", ".join((*TIER_NAMES, "custom"))))
+        raise typer.Exit(code=1)
 
 
-def _select_custom_modules() -> set[str]:
+def _prompt_template_choice() -> str | None:
+    """Re-ask which template to use; return the chosen name, or ``None`` to quit.
+
+    Shown when the user backs out of the ``custom`` module picker — the level
+    above the picker is the template selection itself.
+    """
+    from InquirerPy import inquirer  # type: ignore[import-untyped]
+    from veaf_libs.mission_template import TIER_NAMES
+    from veaf_libs.tui import _skip_keybindings, _touch_prompt_shown
+
+    _touch_prompt_shown()
+    return inquirer.select(
+        message=t("cmd.prepare.template_prompt"),
+        choices=[*TIER_NAMES, "custom"],
+        default="standard",
+        mandatory=False,
+        keybindings=_skip_keybindings(),
+        long_instruction=t("tui.nav_hint"),
+    ).execute()
+
+
+def _select_custom_modules() -> set[str] | None:
     """Interactively pick the modules to enable (``custom`` template).
 
     Modules are listed in catalog order, grouped by category, each tagged with the lowest
     tier it belongs to; the ``standard`` set is pre-checked.
+
+    Returns:
+        The chosen module ids, or ``None`` if the user backed out (Ctrl-B / Esc Esc).
     """
     from InquirerPy import inquirer  # type: ignore[import-untyped]
     from InquirerPy.base.control import Choice  # type: ignore[import-untyped]
@@ -76,6 +110,7 @@ def _select_custom_modules() -> set[str]:
         module_lowest_tier,
         tier_modules,
     )
+    from veaf_libs.tui import _skip_keybindings, _touch_prompt_shown
 
     preselected = tier_modules("standard")
     choices: list = []
@@ -87,11 +122,17 @@ def _select_custom_modules() -> set[str]:
             current_category = category
         tier = module_lowest_tier(mod) or ""
         choices.append(Choice(value=mod, name=f"{mod}  · {tier}", enabled=mod in preselected))
+    _touch_prompt_shown()
     selected = inquirer.checkbox(
         message=t("cmd.prepare.custom_prompt"),
         choices=choices,
         instruction="(space = toggle, enter = confirm)",
+        long_instruction=t("tui.nav_hint"),
+        mandatory=False,
+        keybindings=_skip_keybindings(),
     ).execute()
+    if selected is None:  # Ctrl-B / Esc Esc → back out of the picker
+        return None
     return set(selected)
 
 

@@ -326,6 +326,8 @@ Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) pl
 
 Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
 
+**Navigation** : **Ctrl-B** (ou **Échap** deux fois) revient au prompt précédent ; depuis le menu principal (ou le premier prompt d'une commande), il quitte l'assistant. Un rappel s'affiche en bas de chaque prompt.
+
 ---
 
 ## Workflow de build typique

@@ -217,7 +217,7 @@ class TestRunWizard:
         assert "Op-Thunder" in result
 
     def test_mission_folder_prompt_passes_long_instruction(self) -> None:
-        """The mission_folder prompt must receive a resolved-path hint; others must not."""
+        """The mission_folder prompt's hint includes the resolved path; others only the Esc hint."""
         kwargs_by_default: dict[str, dict] = {}
 
         def _fake_text(message: str, default: str, **kwargs):  # type: ignore[no-untyped-def]
@@ -235,10 +235,12 @@ class TestRunWizard:
                                 with patch("InquirerPy.inquirer.text", side_effect=_fake_text):
                                     run_wizard()
 
-        # extract → mission_name_or_file (default "mission.miz", no hint) + mission_folder (default ".", hint)
-        assert "long_instruction" not in kwargs_by_default["mission.miz"]
-        assert "long_instruction" in kwargs_by_default["."]
-        assert str(Path.cwd().resolve()) in kwargs_by_default["."]["long_instruction"]
+        # extract → mission_name_or_file (default "mission.miz") + mission_folder (default ".").
+        # Both carry a long_instruction now (the Esc hint), but only the folder prompt's
+        # also spells out the resolved absolute path.
+        cwd = str(Path.cwd().resolve())
+        assert cwd not in kwargs_by_default["mission.miz"].get("long_instruction", "")
+        assert cwd in kwargs_by_default["."]["long_instruction"]
 
     def test_about_command_returns_no_extra_args(self) -> None:
         """'about' has no prompts — result is just ['about']."""
@@ -345,6 +347,23 @@ class TestMaybeBridgeToTui:
                 result = maybe_bridge_to_tui(["prepare", "c:/tmp", "--verbose"])
         assert result == ["prepare", "c:/tmp", "--template", "full", "--verbose"]
 
+    def test_cancelling_routed_wizard_exits_cleanly(self) -> None:
+        # User routed into the wizard (missing required option) then cancels →
+        # exit cleanly, not fall through to Typer's help screen.
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=[]):
+                with pytest.raises(SystemExit) as exc:
+                    maybe_bridge_to_tui(["prepare"])
+        assert exc.value.code == 0
+
+    def test_cancelling_bare_wizard_exits_cleanly(self) -> None:
+        # Bare invocation → full wizard → cancel → clean exit, not the top-level help.
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=[]):
+                with pytest.raises(SystemExit) as exc:
+                    maybe_bridge_to_tui([])
+        assert exc.value.code == 0
+
 
 class TestRunWizardBridge:
     """run_wizard's bridge entry points: preselected command + pre-filled args + choices."""
@@ -380,3 +399,72 @@ class TestRunWizardBridge:
         assert "c:/tmp" in result
         assert "--template" in result
         assert "minimal" in result
+
+
+class TestEscapeNavigation:
+    """Escape steps back one level; Escape at the top quits (returns [])."""
+
+    def test_escape_debounce_ignores_startup_then_honours_real_press(self) -> None:
+        import veaf_libs.tui as tui_mod
+
+        tui_mod._touch_prompt_shown()
+        # Immediately after a prompt is shown, an Escape is treated as the Windows
+        # console startup artifact and ignored.
+        assert tui_mod._escape_is_real() is False
+        # Simulate elapsed time past the debounce window → a genuine keypress.
+        tui_mod._prompt_shown_at -= tui_mod._ESC_DEBOUNCE_SECONDS + 0.1
+        assert tui_mod._escape_is_real() is True
+
+    def test_escape_on_first_prompt_of_bridged_command_quits(self) -> None:
+        # prepare is bridge-preselected; Escape on its first prompt → quit ([]).
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value=""):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.tui._ask_one", return_value=None):
+                        result = run_wizard(preselected="prepare", provided={})
+        assert result == []
+
+    def test_escape_steps_back_one_prompt_preserving_answers(self) -> None:
+        # build has two positional prompts. Answer #1, Escape on #2 (back to #1),
+        # re-answer #1, then answer #2 → final args reflect the second pass.
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value=""):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.preferences.save_invocation"):
+                        with patch("veaf_libs.tui._ask_one", side_effect=["mission.miz", None, "newname", "."]):
+                            result = run_wizard(preselected="build", provided={})
+        assert result == ["build", "newname", "."]
+
+    def test_escape_at_command_menu_quits(self) -> None:
+        sel_none = type("S", (), {"execute": lambda self: None})()
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value=""):
+                with patch("InquirerPy.inquirer.select", return_value=sel_none):
+                    result = run_wizard()  # bare wizard, no preselect
+        assert result == []
+
+
+class TestEntryPointsWireBridge:
+    """Both program entry points must route through ``maybe_bridge_to_tui``.
+
+    Regression guard for the CLI-TUI-BRIDGE drift: ``veaf_tools/app.py`` was
+    updated to call the bridge, but the frozen-exe entry script
+    ``src/python/veaf-tools/veaf-tools.py`` (the one the PyInstaller build
+    bundles) was not, so the built ``.exe`` silently kept the old
+    no-args-only wizard and never bridged. Lock both entry points to the bridge.
+    """
+
+    _ROOT = Path(__file__).resolve().parents[3]
+
+    @pytest.mark.parametrize(
+        "entry",
+        [
+            "src/python/veaf-tools/veaf-tools.py",
+            "src/python/veaf-tools/veaf_tools/app.py",
+        ],
+    )
+    def test_entry_point_calls_maybe_bridge_to_tui(self, entry: str) -> None:
+        source = (self._ROOT / entry).read_text(encoding="utf-8")
+        assert "maybe_bridge_to_tui(" in source, f"{entry} must invoke the CLI-TUI bridge"
+        # The superseded bare-invocation-only gate must be gone from both entry points.
+        assert "len(sys.argv) == 1" not in source, f"{entry} still uses the old no-args-only gate"

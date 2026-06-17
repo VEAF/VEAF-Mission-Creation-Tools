@@ -2,11 +2,13 @@
 
 import logging
 import re
+from pathlib import Path
 
 import pytest
 import typer
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
+    _emit_airwave_zone,
     _emit_lua_string,
     _resolve_deps,
     generate_config_lua,
@@ -424,3 +426,92 @@ def test_optout_script_still_enabled_by_default():
     normalized = _normalize_mission_yaml({"modules": {"RADIO": True}})
     assert _community_enabled(normalized, "ctld") is True
     assert _community_enabled(normalized, "tum") is False
+
+
+# ---------------------------------------------------------------------------
+# _emit_airwave_zone — every emitted AirWaveZone method must exist in the Lua
+# (regression guard for FIX-AIRWAVES-GENERATOR: emitting a non-existent setter
+# crashed the mission at start with "attempt to call method '…' (a nil value)").
+# ---------------------------------------------------------------------------
+
+_VEAF_AIRWAVES_LUA = Path(__file__).resolve().parents[3] / "src" / "scripts" / "veaf" / "veafAirWaves.lua"
+
+
+def _airwavezone_methods() -> set[str]:
+    """Real ``AirWaveZone`` method names, parsed from the Lua source."""
+    text = _VEAF_AIRWAVES_LUA.read_text(encoding="utf-8")
+    return set(re.findall(r"function AirWaveZone:([A-Za-z_]\w*)\s*\(", text))
+
+
+def _fully_populated_airwave_zone() -> dict:
+    """An airwave-zone dict exercising every key ``_emit_airwave_zone`` reads."""
+    return {
+        "name": "Defense",
+        "description": "Intercept zone",
+        "player_coalitions": ["BLUE"],
+        "zone_center_coordinates": "N42 E42",
+        "trigger_zone_name": "ZONE-DEF",
+        "zone_radius": 5000,
+        "draw_zone": True,
+        "respawn_default_offset": [0.1, 0.2],
+        "respawn_radius": 300,
+        "delay_before_activation": 30,
+        "delay_between_waves": 120,
+        "min_seconds_between_waves": 60,
+        "max_seconds_between_waves": 180,
+        "max_altitude_ft": 30000,
+        "min_altitude_ft": 1000,
+        "max_seconds_outside_ia": 45,
+        "message_start": "Start",
+        "message_wait_for_humans": "Wait",
+        "message_wave_deployed": "Wave inbound",
+        "message_end_zone": "Zone cleared",
+        "message_end_all": "All cleared",
+        "waves": [{"groups": "Wave1", "delay": 10, "number": "2", "bias": 1}],
+        "minimum_life_percent": 50,
+        "reset_when_dying": True,
+        "start": True,
+    }
+
+
+def _emitted_methods(lines: list[str]) -> list[str]:
+    """Every ``:method(`` call in an emitted builder chain."""
+    return re.findall(r":([A-Za-z_]\w*)\s*\(", "\n".join(lines))
+
+
+def test_emit_airwave_zone_only_real_methods():
+    """Every method the generator emits must exist on ``AirWaveZone`` — otherwise
+    the generated ``veaf-config.lua`` crashes the mission at start."""
+    real = _airwavezone_methods()
+    # sanity: the parser actually found the class methods
+    assert {"setName", "setTriggerZone", "start"} <= real
+    emitted = _emitted_methods(_emit_airwave_zone(_fully_populated_airwave_zone()))
+    unknown = sorted(m for m in set(emitted) if m not in real)
+    assert unknown == [], f"generator emits non-existent AirWaveZone methods: {unknown}"
+
+
+def test_emit_airwave_zone_message_mapping():
+    """The wave-deployed / end-zone messages map to the real setters, and the
+    previously-fabricated names never reappear."""
+    text = "\n".join(_emit_airwave_zone(_fully_populated_airwave_zone()))
+    assert ":setMessageDeploy(" in text
+    assert ":setMessageWon(" in text
+    for bad in (
+        "setMessageWaveDeployed",
+        "setMessageEndZone",
+        "setMessageEndAll",
+        "setMinimumSecondsBetweenWaves",
+        "setMaximumSecondsBetweenWaves",
+    ):
+        assert bad not in text
+
+
+def test_emit_airwave_zone_delay_collapses_range_to_min():
+    """A min/max range collapses to a single ``setDelayBetweenWaves(min)`` (the
+    runtime has no random range); the fixed delay is the fallback."""
+    text = "\n".join(_emit_airwave_zone(_fully_populated_airwave_zone()))
+    assert ":setDelayBetweenWaves(60)" in text  # min wins over delay_between_waves=120
+    assert text.count(":setDelayBetweenWaves(") == 1
+    # fixed delay used when no range is configured
+    zone = {"name": "Z", "delay_between_waves": 90}
+    assert ":setDelayBetweenWaves(90)" in "\n".join(_emit_airwave_zone(zone))

@@ -589,24 +589,28 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setRespawnRadius({rr})")
     if da := zone.get("delay_before_activation"):
         lines.append(f"{indent}    :setDelayBeforeActivation({da})")
-    if dbw := zone.get("delay_between_waves"):
-        lines.append(f"{indent}    :setDelayBetweenWaves({dbw})")
-    if min_bw := zone.get("min_seconds_between_waves"):
-        lines.append(f"{indent}    :setMinimumSecondsBetweenWaves({min_bw})")
-    if max_bw := zone.get("max_seconds_between_waves"):
-        lines.append(f"{indent}    :setMaximumSecondsBetweenWaves({max_bw})")
+    # The runtime AirWaveZone exposes only a single fixed inter-wave delay
+    # (setDelayBetweenWaves); it has no random min/max range. Honour the
+    # documented precedence (a configured min/max range overrides the fixed
+    # delay) by collapsing the range to its minimum; the maximum has no runtime
+    # equivalent and is dropped.
+    delay = zone.get("min_seconds_between_waves") or zone.get("delay_between_waves")
+    if delay:
+        lines.append(f"{indent}    :setDelayBetweenWaves({delay})")
     if max_alt := zone.get("max_altitude_ft"):
         lines.append(f"{indent}    :setMaximumAltitudeInFeet({max_alt})")
     if min_alt := zone.get("min_altitude_ft"):
         lines.append(f"{indent}    :setMinimumAltitudeInFeet({min_alt})")
     if mso := zone.get("max_seconds_outside_ia"):
         lines.append(f"{indent}    :setMaxSecondsOutsideOfZoneIA({mso})")
+    # Map each YAML message key to a real AirWaveZone setter. The runtime has no
+    # "all zones cleared" message, so message_end_all has no equivalent and is
+    # intentionally not emitted.
     for msg_method, yaml_key in [
         ("setMessageStart", "message_start"),
         ("setMessageWaitForHumans", "message_wait_for_humans"),
-        ("setMessageWaveDeployed", "message_wave_deployed"),
-        ("setMessageEndZone", "message_end_zone"),
-        ("setMessageEndAll", "message_end_all"),
+        ("setMessageDeploy", "message_wave_deployed"),
+        ("setMessageWon", "message_end_zone"),
     ]:
         if msg := zone.get(yaml_key):
             msg_lua = _lua_long_string(msg)

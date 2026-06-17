@@ -10,9 +10,10 @@ wizard can pre-fill fields on the next run.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from veaf_libs.i18n import t
 
@@ -37,6 +38,10 @@ class ArgPrompt:
     """True → rendered as ``--key value``; False → positional argument."""
     resolve_path: bool = False
     """True → show the absolute path the current default resolves to as a hint."""
+    required: bool = False
+    """True → when this arg is absent from the CLI, drop into the TUI to ask for it."""
+    choices: list[str] | None = None
+    """When set, the wizard offers a select among these values instead of free text."""
 
     @property
     def cli_flag(self) -> str:
@@ -159,7 +164,19 @@ COMMANDS: list[CommandSpec] = [
         description=t("tui.cmd.prepare.description"),
         prompts=[
             ArgPrompt(
-                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+                "mission_folder",
+                t("tui.arg.mission_folder_init"),
+                default=".",
+                is_option=False,
+                resolve_path=True,
+                required=True,
+            ),
+            ArgPrompt(
+                "template",
+                t("tui.arg.prepare_template"),
+                default="standard",
+                choices=["minimal", "standard", "full", "custom"],
+                required=True,
             ),
         ],
     ),
@@ -268,14 +285,218 @@ def _folder_hint(default_value: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def run_wizard() -> list[str]:
+def _parse_provided(spec: CommandSpec, tokens: list[str]) -> tuple[dict[str, str], list[str]]:
+    """Split a command's CLI tokens into known prompt values and pass-through extras.
+
+    Positional tokens fill the spec's positional prompts in order; ``--kebab[=val]``
+    tokens that match a spec option prompt are captured; everything else (unknown
+    options like ``--verbose``, surplus positionals) is preserved verbatim for the
+    rebuilt command line.
+
+    Returns:
+        ``(provided, passthrough)`` — ``provided`` maps ``ArgPrompt.key`` → value;
+        ``passthrough`` is the list of unrecognised tokens, in order.
+    """
+    option_prompts = {p.cli_flag: p for p in spec.prompts if p.is_option}
+    positional_prompts = [p for p in spec.prompts if not p.is_option]
+    provided: dict[str, str] = {}
+    passthrough: list[str] = []
+    pos_index = 0
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok.startswith("-"):
+            name, eq, inline = tok.partition("=")
+            prompt = option_prompts.get(name)
+            if prompt is None:
+                passthrough.append(tok)
+            elif prompt.is_flag:
+                provided[prompt.key] = "true"
+            elif eq:
+                provided[prompt.key] = inline
+            elif i + 1 < len(tokens):
+                provided[prompt.key] = tokens[i + 1]
+                i += 1
+            i += 1
+            continue
+        if pos_index < len(positional_prompts):
+            provided[positional_prompts[pos_index].key] = tok
+            pos_index += 1
+        else:
+            passthrough.append(tok)
+        i += 1
+    return provided, passthrough
+
+
+def _exit_cancelled() -> NoReturn:
+    """Print a cancellation notice and exit cleanly.
+
+    Called when the user backs out (Ctrl-C / Esc) of a wizard the bridge routed
+    them into. Without this the bridge would return ``None`` and Typer would run
+    the original, incomplete command — dumping its help screen instead of
+    returning the user to the shell.
+    """
+    from veaf_libs.logger import console  # noqa: PLC0415
+
+    console.print(t("tui.cancelled"))
+    raise SystemExit(0)
+
+
+def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
+    """Decide whether to route a CLI invocation into the TUI, returning rewritten args.
+
+    Rules (interactive terminals only):
+      - no command at all → run the full wizard (main menu);
+      - a command with a ``CommandSpec`` invoked with ``--tui`` **or** missing a
+        ``required`` prompt → run the wizard for that command, pre-filling the args
+        already given on the CLI and prompting only the rest;
+      - otherwise → ``None`` (let Typer run the command unchanged).
+
+    When the user cancels a wizard they were routed into, the process exits
+    cleanly (via :func:`_exit_cancelled`) instead of falling through to Typer.
+
+    Args:
+        args: ``sys.argv[1:]``.
+
+    Returns:
+        The rewritten arg list to hand to Typer, or ``None`` to run as-is.
+    """
+    import sys
+
+    if not sys.stdout.isatty():
+        return None
+
+    force_tui = "--tui" in args
+    tokens = [a for a in args if a != "--tui"]
+
+    if not tokens:
+        wizard_args = run_wizard()
+        if not wizard_args:
+            _exit_cancelled()
+        return wizard_args
+
+    command, rest = tokens[0], tokens[1:]
+    spec = _COMMAND_MAP.get(command)
+    if spec is None:
+        return None
+
+    provided, passthrough = _parse_provided(spec, rest)
+    missing_required = [p for p in spec.prompts if p.required and p.key not in provided]
+    if not force_tui and not missing_required:
+        return None
+
+    wizard_args = run_wizard(preselected=command, provided=provided)
+    if not wizard_args:
+        # The user was routed into the wizard (bare call, ``--tui``, or a missing
+        # required option) and cancelled it — exit cleanly rather than letting
+        # Typer run the incomplete command and print its help screen.
+        _exit_cancelled()
+    return wizard_args + passthrough
+
+
+# ── Back navigation ─────────────────────────────────────────────────────────
+# Pressing Ctrl-B (or Escape twice) on any wizard prompt "skips" it (InquirerPy
+# returns ``None``), which the wizard loop reads as "step back one level" — or
+# quit at the top. Ctrl-B is the primary, single-press binding: it is reliable on
+# every prompt type and every platform. A double Escape is offered alongside for
+# users who reach for it by reflex; a *single* bare Escape is deliberately not
+# bound because ESC is the prefix byte for arrow keys, so on the Windows console a
+# lone Escape is ambiguous and a phantom startup ESC regressed the first attempt
+# (the first prompt cancelled itself).
+#
+# A short debounce (reset each time a prompt is shown) gates the Escape binding as
+# a belt-and-braces guard: a real press only ever lands well after the prompt has
+# rendered, so any burst arriving within a few milliseconds of startup is ignored.
+_ESC_DEBOUNCE_SECONDS = 0.4
+_prompt_shown_at = 0.0
+
+
+def _touch_prompt_shown() -> None:
+    """Reset the Escape debounce — call right before displaying a prompt."""
+    global _prompt_shown_at
+    _prompt_shown_at = time.monotonic()
+
+
+def _escape_is_real() -> bool:
+    """True once enough time has elapsed since the prompt rendered for an Escape
+    to be a genuine keypress rather than a console startup artifact."""
+    return time.monotonic() - _prompt_shown_at >= _ESC_DEBOUNCE_SECONDS
+
+
+def _skip_keybindings() -> dict[str, list[dict[str, Any]]]:
+    """InquirerPy keybindings: Ctrl-B (primary) or a debounced double-Escape → ``skip``."""
+    from prompt_toolkit.filters import Condition  # noqa: PLC0415
+
+    return {
+        "skip": [
+            {"key": "c-b"},
+            {"key": ["escape", "escape"], "filter": Condition(_escape_is_real)},
+        ]
+    }
+
+
+def _ask_one(
+    inquirer: Any,
+    prompt: ArgPrompt,
+    last_args: dict[str, Any],
+    yaml_defaults: dict[str, str],
+    current: Any = None,
+) -> Any:
+    """Show a single prompt and return its value, or ``None`` if the user pressed Escape.
+
+    ``current`` (a value collected on a previous pass) takes precedence over saved
+    preferences as the offered default, so stepping back and forth preserves answers.
+    """
+    display_label = f"{prompt.cli_flag}  {prompt.label}" if prompt.is_option else prompt.label
+    esc_hint = t("tui.nav_hint")
+    skip_kb = _skip_keybindings()
+    _touch_prompt_shown()
+    if prompt.choices:
+        default_choice = current if current in prompt.choices else last_args.get(prompt.key, prompt.default)
+        return inquirer.select(  # type: ignore[attr-defined]
+            message=display_label,
+            choices=prompt.choices,
+            default=default_choice if default_choice in prompt.choices else prompt.choices[0],
+            mandatory=False,
+            keybindings=skip_kb,
+            long_instruction=esc_hint,
+        ).execute()
+    if prompt.is_flag:
+        default_flag = bool(current) if current is not None else bool(last_args.get(prompt.key, prompt.default))
+        return inquirer.confirm(  # type: ignore[attr-defined]
+            message=display_label,
+            default=default_flag,
+            mandatory=False,
+            keybindings=skip_kb,
+            long_instruction=esc_hint,
+        ).execute()
+    default_value = current if current not in (None, "") else _resolve_prompt_default(prompt, last_args, yaml_defaults)
+    long_instruction = f"{_folder_hint(default_value)}  {esc_hint}" if prompt.resolve_path else esc_hint
+    return inquirer.text(  # type: ignore[attr-defined]
+        message=display_label,
+        default=default_value,
+        mandatory=False,
+        keybindings=skip_kb,
+        long_instruction=long_instruction,
+    ).execute()
+
+
+def run_wizard(preselected: str | None = None, provided: dict[str, str] | None = None) -> list[str]:
     """Run the interactive wizard and return a list of CLI arguments for Typer.
+
+    Args:
+        preselected: When set to a known command name, skip the command-selection step
+            and prompt only that command's arguments (the CLI-TUI bridge entry point).
+        provided: Argument values already supplied on the command line (by ``key``);
+            those prompts are skipped and passed straight through.
 
     Returns an empty list when the terminal is not interactive or the user
     cancels.  Unexpected errors are logged and re-raised so they are visible
     to the user rather than silently swallowed.
     """
     import sys
+
+    provided = provided or {}
 
     # Only meaningful in an interactive terminal
     if not sys.stdout.isatty():
@@ -291,74 +512,86 @@ def run_wizard() -> list[str]:
 
     try:
         last_command = get_last_command()
-
-        # ── Step 1: select command ───────────────────────────────────────────
-        choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS]
-        default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
-
-        selected: str = inquirer.select(  # type: ignore[attr-defined]
-            message=t("tui.select_command"),
-            choices=choices,
-            default=default_choice,
-            instruction=t("tui.instruction"),
-        ).execute()
-
-        spec = _COMMAND_MAP[selected]
-        if not spec.prompts:
-            # No arguments needed (e.g. 'about')
-            save_invocation(selected, {})
-            return [selected]
-
-        # ── Step 2: prompt for arguments ────────────────────────────────────
-        last_args = get_last_args(selected)
         yaml_defaults = _mission_yaml_defaults()
-        collected: dict[str, Any] = {}
 
-        for prompt in spec.prompts:
-            # Show the CLI flag/name with color prefix for options
-            if prompt.is_option:
-                display_label = f"{prompt.cli_flag}  {prompt.label}"
+        # Two-level loop: command selection (level 0), then the selected command's
+        # prompts (levels 1..N). Escape steps back one level; Escape at the top
+        # (the command menu, or the first prompt of a bridge-preselected command)
+        # quits with an empty result.
+        while True:
+            # ── Step 1: select command (skipped when the bridge pre-selects one) ──
+            if preselected and preselected in _COMMAND_MAP:
+                selected = preselected
             else:
-                display_label = prompt.label
-            if prompt.is_flag:
-                # Flags are booleans — only the saved preference is relevant.
-                value: Any = inquirer.confirm(  # type: ignore[attr-defined]
-                    message=display_label,
-                    default=bool(last_args.get(prompt.key, prompt.default)),
+                choices = [
+                    Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS
+                ]
+                default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
+                _touch_prompt_shown()
+                selected = inquirer.select(  # type: ignore[attr-defined]
+                    message=t("tui.select_command"),
+                    choices=choices,
+                    default=default_choice,
+                    instruction=t("tui.instruction"),
+                    long_instruction=t("tui.nav_hint_menu"),
+                    mandatory=False,
+                    keybindings=_skip_keybindings(),
                 ).execute()
-            else:
-                default_value = _resolve_prompt_default(prompt, last_args, yaml_defaults)
-                text_kwargs: dict[str, Any] = {"message": display_label, "default": default_value}
-                if prompt.resolve_path:
-                    text_kwargs["long_instruction"] = _folder_hint(default_value)
-                value = inquirer.text(**text_kwargs).execute()  # type: ignore[attr-defined]
-            collected[prompt.key] = value
+                if selected is None:  # Escape at the main menu → quit
+                    return []
 
-        # ── Step 3: build CLI args list ──────────────────────────────────────
-        cli_args: list[str] = [selected]
-        positional: list[str] = []
-        options: list[str] = []
+            spec = _COMMAND_MAP[selected]
+            if not spec.prompts:
+                # No arguments needed (e.g. 'about')
+                save_invocation(selected, {})
+                return [selected]
 
-        for prompt in spec.prompts:
-            raw = collected.get(prompt.key)
-            if prompt.is_option:
-                if prompt.is_flag:
-                    # raw is already a bool from inquirer.confirm
-                    if raw:
-                        options.append(prompt.cli_flag)
+            # ── Step 2: prompt for arguments (Escape = back one prompt) ──────────
+            last_args = get_last_args(selected)
+            collected: dict[str, Any] = {p.key: provided[p.key] for p in spec.prompts if p.key in provided}
+            askable = [p for p in spec.prompts if p.key not in provided]
+            idx = 0
+            back_to_menu = False
+            while idx < len(askable):
+                prompt = askable[idx]
+                value = _ask_one(inquirer, prompt, last_args, yaml_defaults, current=collected.get(prompt.key))
+                if value is None:  # Escape
+                    if idx == 0:
+                        # Nothing earlier to revisit: a bridge-preselected command
+                        # quits; a menu-chosen command returns to the selector.
+                        if preselected:
+                            return []
+                        back_to_menu = True
+                        break
+                    idx -= 1
+                    continue
+                collected[prompt.key] = value
+                idx += 1
+            if back_to_menu:
+                continue
+
+            # ── Step 3: build CLI args list ──────────────────────────────────────
+            cli_args: list[str] = [selected]
+            positional: list[str] = []
+            options: list[str] = []
+            for prompt in spec.prompts:
+                raw = collected.get(prompt.key)
+                if prompt.is_option:
+                    if prompt.is_flag:
+                        if raw:  # already a bool from inquirer.confirm
+                            options.append(prompt.cli_flag)
+                    else:
+                        val = str(raw) if raw is not None else ""
+                        if val:
+                            options.extend([prompt.cli_flag, val])
                 else:
-                    val = str(raw) if raw is not None else ""
-                    if val:
-                        options.extend([prompt.cli_flag, val])
-            else:
-                # Positional: preserve order — always append even if empty so
-                # subsequent positionals don't shift into the wrong slot.
-                positional.append(str(raw) if raw is not None else "")
+                    # Positional: preserve order — always append even if empty so
+                    # subsequent positionals don't shift into the wrong slot.
+                    positional.append(str(raw) if raw is not None else "")
+            cli_args += positional + options
 
-        cli_args += positional + options
-
-        save_invocation(selected, collected)
-        return cli_args
+            save_invocation(selected, collected)
+            return cli_args
 
     except (KeyboardInterrupt, EOFError):
         # User pressed Ctrl-C or Ctrl-D — normal cancellation, not an error

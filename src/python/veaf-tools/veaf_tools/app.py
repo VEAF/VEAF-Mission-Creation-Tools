@@ -49,17 +49,18 @@ def main() -> None:
             set_language(_a.split("=", 1)[1])
             break
 
-    from veaf_libs.tui import run_wizard
+    from veaf_libs.tui import maybe_bridge_to_tui
 
     import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
     from veaf_tools.helpers import _is_double_clicked
 
     console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
 
-    # When launched with no arguments in an interactive terminal, run the wizard.
-    if len(sys.argv) == 1 and sys.stdout.isatty():
-        if wizard_args := run_wizard():
-            sys.argv = sys.argv[:1] + wizard_args
+    # CLI ↔ TUI bridge (CLI-TUI-BRIDGE): a bare invocation, `--tui`, or a command
+    # invoked without a required option drops into the wizard — pre-filled with the
+    # args already given on the command line — then runs the completed command.
+    if bridged := maybe_bridge_to_tui(sys.argv[1:]):
+        sys.argv = sys.argv[:1] + bridged
 
     auto_pause = _is_double_clicked()
     try:

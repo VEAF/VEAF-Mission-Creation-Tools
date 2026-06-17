@@ -13,7 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ⬜ |
+| Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
 | Lot LUA-I18N-CAS — localize the `_cas` user-facing messages (missed by LUA-I18N-004): the post-spawn confirmation and the F10 target report are hardcoded English | ✅ |
@@ -92,7 +92,9 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| CLI-TUI-BRIDGE-001 | `--tui` flag + missing-required detection routes any `CommandSpec` command into the TUI, pre-filling CLI-provided args and prompting the rest; replace prepare's `no_args_is_help`; tests; docs | `veaf_tools/app.py`, `veaf_libs/tui.py`, `veaf_tools/commands/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ⬜ |
+| CLI-TUI-BRIDGE-001 | `--tui` flag + missing-required detection routes any `CommandSpec` command into the TUI, pre-filling CLI-provided args and prompting the rest; replace prepare's `no_args_is_help`; tests; docs | `veaf_tools/app.py`, `veaf_libs/tui.py`, `veaf_tools/commands/`, `test/python/`, `doc/`, `CHANGELOG.md` | feat | ✅ |
+
+**Done**: `maybe_bridge_to_tui()` + `_parse_provided()` added to `veaf_libs/tui.py`, called from `app.main()` before Typer dispatch; `ArgPrompt` gained `required` + `choices`; `run_wizard(preselected, provided)` skips the command-select step and any pre-filled prompt, and renders a `choices` select (used by `prepare`'s template). `prepare`'s `no_args_is_help` was **kept** as the non-TTY safety net (in a TTY the bridge rewrites argv first, so it never fires; outside a TTY a bare `prepare` still prints help rather than scaffolding the cwd). Tests in `test_tui.py` (`_parse_provided`, `maybe_bridge_to_tui`, bridge `run_wizard` paths); FR/EN docs in the mission-maker guide; coverage floor 68→69. **Review follow-up**: `GROUNDAI` now sits in `CASMISSION`'s tiers (`standard`/`full`) so the build no longer silently auto-enables an undeclared dependency. (An Escape-navigation attempt was reverted: making every prompt `mandatory=False` + binding a bare `escape` key broke the wizard on the Windows console — the first prompt skipped to `None`, so the bridge fell back to `no_args_is_help`. Escape navigation needs a terminal-tested reimplementation.)
 
 ---
 

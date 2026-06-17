@@ -316,6 +316,19 @@ security:
 
 Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 
+### Interactive mode (wizard)
+
+In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead of failing on a missing option:
+
+- `veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
+- `veaf-tools.exe prepare` → the wizard asks for the target folder **and** the module template.
+- `veaf-tools.exe prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
+- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `veaf-tools.exe build --tui`).
+
+Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
+
+**Navigation**: **Ctrl-B** (or **Escape** pressed twice) steps back to the previous prompt; from the main menu (or a command's first prompt) it quits the wizard. A reminder is shown at the bottom of each prompt.
+
 ---
 
 ## Typical Build Workflow

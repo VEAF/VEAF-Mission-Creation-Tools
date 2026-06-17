@@ -1,6 +1,6 @@
 # VEAF Mission Creation Tools — Documentation
 
-VEAF MCT turns a standard DCS mission into a dynamic, player-driven sandbox — 34 Lua modules, a build pipeline, and a CLI tool that does the heavy lifting.
+VEAF MCT turns a standard DCS mission into a dynamic, player-driven sandbox — 30+ Lua modules, a build pipeline, and a CLI tool that does the heavy lifting.
 
 Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimulator.com/) missions using VEAF Lua scripts and automation tools.
 
@@ -23,7 +23,7 @@ flowchart TD
     A["Base .miz\n(DCS Editor)"] -->|veaf-tools extract| B["Mission folder\n(src/ + mission.yaml)"]
     B --- C["published/\n(VEAF scripts)"]
     B -->|veaf-tools build| D[".miz ready to fly"]
-    D -->|DCS loads| E["34 Lua modules active"]
+    D -->|DCS loads| E["30+ Lua modules active"]
     E -->|Players use| F["F10 markers · Radio menus"]
 ```
 
@@ -38,7 +38,7 @@ flowchart TD
 
 | Reference | Description |
 |-----------|-------------|
-| [Lua API Reference](LUA_API_REFERENCE.md) | Full API for all 34 Lua runtime modules |
+| [Lua API Reference](LUA_API_REFERENCE.md) | Full API for the Lua runtime modules |
 | [Tools CLI Reference](TOOLS_REFERENCE.md) | `veaf-tools.exe` — all commands and options |
 | [Testing Guide](TESTING.md) | Lua unit test suite and CI/CD pipeline |
 | [Roadmap](ROADMAP.md) | Planned features and known limitations |

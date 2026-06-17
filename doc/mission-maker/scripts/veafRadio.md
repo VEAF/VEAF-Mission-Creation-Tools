@@ -49,7 +49,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `init.help_menus` | booléen | `true` | Non | Afficher les entrées "Aide" intégrées dans les menus radio générés |
 

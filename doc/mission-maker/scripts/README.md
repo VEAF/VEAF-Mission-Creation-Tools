@@ -109,3 +109,10 @@ Ce sont des fichiers de données pures — aucune initialisation nécessaire.
 | Module | Contenu |
 |--------|---------|
 | `dcsUnits.lua` | Base de données de tous les types d'unités DCS avec leurs attributs |
+| `dcsDataExport.lua` | Utilitaires d'export des données d'unités |
+
+---
+
+## Référence API complète
+
+Pour l'API publique complète de chaque module (fonctions, paramètres, valeurs de retour, exemples), consultez la [Référence API Lua](../../LUA_API_REFERENCE.md).

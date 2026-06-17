@@ -66,6 +66,14 @@ veafModuleName.start()
 
 Modules that are not `initialize()`d consume no resources and create no radio menus.
 
+## Access Control
+
+| Module | File | Role |
+|--------|------|------|
+| [veafSecurity](veafSecurity.en.md) | `veafSecurity.lua` | Role-based permission system (passwords, levels) |
+
+---
+
 ## Protection Modules
 
 | Module | File | What it does |

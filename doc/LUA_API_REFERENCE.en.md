@@ -1,7 +1,7 @@
 # VEAF Lua Modules - Complete API Reference
 
-**Version:** 6.1.0
-**Last Updated:** May 2026
+**Version:** 6.5.25
+**Last Updated:** June 2026
 **Project:** VEAF Mission Creation Tools
 
 ---
@@ -142,7 +142,7 @@ veaf.loggers.setBaseLevel("info")  -- Global default
 #### Constants
 
 ```lua
-veaf.Version = "1.56.2"
+veaf.Version = "1.57.0"
 veaf.Development = false  -- Enable development features
 veaf.HideNamesFromSpawnedGroups = false
 veaf.BaseLogLevel = 3  -- Default log level (info); acts as a cap for module log levels
@@ -1916,7 +1916,7 @@ Convert a laser code to a TACAN/radio frequency string.
 ### veafSpawn.lua
 
 **Module ID:** `SPAWN`
-**Version:** 1.59.2
+**Version:** 1.59.3
 **Purpose:** Dynamic spawning system for units, groups, convoys, and effects
 
 #### Constants
@@ -1942,7 +1942,7 @@ veafSpawn.AFAC.maximumAmount = 8   -- max simultaneous AFACs
 
 #### Main Functions
 
-##### `veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay)`
+##### `veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay, requesterCoalition)`
 
 Execute spawn command from marker or script.
 
@@ -1958,6 +1958,7 @@ Execute spawn command from marker or script.
 - `repeatDelay` (number, optional) - Delay between spawns (seconds)
 - `route` (table, optional) - Route for spawned groups
 - `allowStartDelay` (boolean, optional) - Allow delayed start
+- `requesterCoalition` (coalition, optional) - Requester coalition
 
 **Returns:** `boolean` - Success flag
 
@@ -3975,7 +3976,7 @@ Set mission date.
 ### dcsUnits.lua
 
 **Module ID:** `DCSUNITS`
-**Version:** 2025.11.17
+**Version:** datamine-dc7d15e8
 **Purpose:** Complete DCS unit database
 
 #### Data Structures
@@ -4076,7 +4077,7 @@ Get units capable of task.
 
 ### dcsDataExport.lua
 
-**Module ID:** `DCSDATAEXPORT`
+**Module ID:** `DCSEXPORT`
 **Version:** (varies)
 **Purpose:** Export DCS data to files
 
@@ -4211,8 +4212,8 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 
 ## Version History
 
-- **v1.56.2** (veaf.lua) - Latest core utilities
-- **v1.59.2** (veafSpawn.lua) - Latest spawn system
+- **v1.57.0** (veaf.lua) - Latest core utilities
+- **v1.59.3** (veafSpawn.lua) - Latest spawn system
 - **v2.2.1** (veafCombatMission.lua) - Latest mission system
 - **v1.15.3** (veafCasMission.lua) - Latest CAS system
 
@@ -4228,5 +4229,5 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ---
 
 **Document Version:** 1.0
-**Last Updated:** May 2026
-**Generated for:** VEAF Mission Creation Tools v6.1.0
+**Last Updated:** June 2026
+**Generated for:** VEAF Mission Creation Tools v6.5.25

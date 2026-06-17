@@ -127,7 +127,7 @@ Pour tout ce qui n'est pas couvert par un alias, vous pouvez écrire directement
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, group 4, hdg 270
+_spawn unit, name T-80, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -136,7 +136,7 @@ Options courantes :
 | Option | Description | Exemple |
 |--------|-------------|---------|
 | `name [TYPE]` | Type d'unité DCS (obligatoire) | `name F-16C` |
-| `group [N]` | Nombre d'unités dans le groupe | `group 4` |
+| `multiplier [N]` | Nombre d'unités dans le groupe | `multiplier 4` |
 | `hdg [DEG]` | Cap initial en degrés | `hdg 270` |
 | `alt [FT]` | Altitude en pieds (aéronefs) | `alt 15000` |
 | `speed [KT]` | Vitesse en nœuds | `speed 450` |
@@ -265,7 +265,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 | 4 | Chars de combat (MBT), ZSU + SA-9 | Difficile |
 | 5 | Blindés lourds, SAM | Expert |
 
-Options de la commande `_cas` : `size [0-5]` (taille de la force), `defense [0-5]` (niveau de DCA), `armor [0-5]` (blindage), `side [blue/red]` (coalition).
+Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5]` (niveau de DCA), `armor [0-5]` (blindage), `side [blue/red]` (coalition).
 
 ---
 

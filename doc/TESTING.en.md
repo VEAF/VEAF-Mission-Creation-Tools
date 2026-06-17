@@ -16,7 +16,7 @@ Documentation for the VEAF Lua unit test suite and CI/CD pipeline.
 
 ## Overview
 
-The project has 31 Lua test suites covering all runtime modules, totalling ~915 tests. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
+The project has 34 Lua test suites covering all runtime modules, totalling ~1000 tests. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
 
 ---
 
@@ -92,7 +92,7 @@ test/lua/
 ├── luaunit.lua         # Test framework (bundled)
 ├── dcs_mocks.lua       # DCS API stubs
 ├── veaf_loader.lua     # Module loader for src/scripts/veaf/
-└── test_*.lua          # One file per module (31 files)
+└── test_*.lua          # One file per module (34 files)
 ```
 
 ### dcs_mocks.lua
@@ -166,6 +166,9 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMove.lua` | 19 | Move/teleport command parsing |
 | `test_veafGrass.lua` | 12 | Grass runway initialization |
 | `test_veafSpawn.lua` | 55 | Spawn commands, mark text analysis, laser freq conversion |
+| `test_veafSpawnParser.lua` | 45 | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
+| `test_veafCommands.lua` | 8 | Command registry: priority ordering and dispatch |
+| `test_veafI18n.lua` | 32 | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |
 
 **Modules not covered** (design-time or external-only):
 
@@ -247,11 +250,23 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 3. Run all `test/lua/test_*.lua` files
 4. Fail the job if any suite exits non-zero
 
+**`luacheck`** — Ubuntu latest
+1. Checkout repository
+2. Install `lua5.1` + `luacheck` via LuaRocks
+3. Run static analysis on `src/scripts/veaf/` with `luacheck --config .luacheckrc` (undefined globals, unused variables, shadowing)
+4. Fail if any violation is found
+
 **`stylua-check`** — Ubuntu latest
 1. Checkout repository
 2. Run `JohnnyMorganz/stylua-action@v4` with version `2.4.0`
 3. Check `src/scripts/veaf/` against `.stylua.toml`
 4. Fail if any file is not formatted
+
+**`lua-coverage`** — Ubuntu latest
+1. Checkout repository
+2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
+3. Run `poetry run test-lua --cov-fail-under 67` (luacov line coverage)
+4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally
 
@@ -261,6 +276,12 @@ stylua --check src/scripts/veaf/
 
 # Auto-format
 stylua src/scripts/veaf/
+```
+
+### Running Luacheck Locally
+
+```powershell
+luacheck --config .luacheckrc src/scripts/veaf/
 ```
 
 StyLua configuration (`.stylua.toml`):

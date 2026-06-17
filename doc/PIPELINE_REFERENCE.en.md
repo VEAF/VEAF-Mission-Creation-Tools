@@ -186,7 +186,7 @@ presets_assignments:
 
 Once the presets are corrected, remove the `none` line to re-enable injection.
 
-Specs cover 85 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
+Specs cover 87 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
 
 > **See also**: [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — full reference table of valid frequency ranges and list of critical aircraft.  
 > To regenerate after a DCS update: `poetry run update-radio-specs`
@@ -270,7 +270,7 @@ settings:
 
 ## Step 3 — Aircraft Groups: spawnables (B) and dynamic-slot templates (C)
 
-Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](adr/0002-aircraft-group-injection-sort-criteria.md)):
+Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0002-aircraft-group-injection-sort-criteria.md)):
 
 - **(B) spawnable groups** (`src/spawnables.yaml`, step `spawnable_aircrafts`): real hidden groups cloned on demand in-game by `veafSpawn`. Marker: the `veafSpawn-` name prefix.
 - **(C) dynamic-slot templates** (`src/dynamic-slot-templates.yaml`, step `dynamic_slot_templates`): groups used as a **model** for DCS Dynamic Slots, consumed natively by the engine. Marker: the DCS flag `dynSpawnTemplate = true`.
@@ -340,7 +340,7 @@ airplanes:
 
 ---
 
-## Step 4 — Weather & Time Versions (`versions.yaml`)
+## Step 6 — Weather & Time Versions (`versions.yaml`)
 
 Creates multiple `.miz` variants from a single base mission, each with a different time and/or weather configuration.
 
@@ -450,7 +450,7 @@ versions:
 
 ---
 
-## Step 5 — Dynamic-Slot Warehouses (`warehouses.yaml`)
+## Step 4 — Dynamic-Slot Warehouses (`warehouses.yaml`)
 
 Configures DCS **Dynamic Slots** per coalition. It runs **after** aircraft
 injection (so the `dynSpawnTemplate` groups already exist) and edits the
@@ -496,7 +496,7 @@ blue:
 
 ---
 
-## Step 6 — Spawn Data (`spawn-groups.yaml`)
+## Step 5 — Spawn Data (`spawn-groups.yaml`)
 
 The `_spawn unit <alias>` and `_spawn group <alias>` marker commands rely on two Lua tables (`veafUnits.UnitsDatabase` and `veafUnits.GroupsDatabase`). Since v6 these are no longer hard-coded in `veafUnits.lua`: they come from YAML, are rendered to Lua, and **injected into the `.miz` at mission build** (DCS cannot parse YAML at runtime). See [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0005-spawn-data-externalization.md).
 

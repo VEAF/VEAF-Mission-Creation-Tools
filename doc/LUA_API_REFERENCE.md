@@ -1,7 +1,7 @@
 # Modules Lua VEAF — Référence API complète
 
-**Version :** 6.1.0
-**Dernière mise à jour :** Mai 2026
+**Version :** 6.5.25
+**Dernière mise à jour :** Juin 2026
 **Projet :** VEAF Mission Creation Tools
 
 ---
@@ -142,7 +142,7 @@ veaf.loggers.setBaseLevel("info")  -- Défaut global
 #### Constantes
 
 ```lua
-veaf.Version = "1.56.2"
+veaf.Version = "1.57.0"
 veaf.Development = false  -- Activer les fonctionnalités de développement
 veaf.HideNamesFromSpawnedGroups = false
 veaf.BaseLogLevel = 3  -- Niveau de log par défaut (info) ; sert de plafond pour les modules
@@ -1915,7 +1915,7 @@ Convertit un code laser en chaîne de fréquence TACAN/radio.
 ### veafSpawn.lua
 
 **Module ID :** `SPAWN`
-**Version :** 1.59.2
+**Version :** 1.59.3
 **Objectif :** Système de spawn dynamique pour unités, groupes, convois et effets
 
 #### Constantes
@@ -1941,7 +1941,7 @@ veafSpawn.AFAC.maximumAmount = 8   -- max AFACs simultanés
 
 #### Fonctions principales
 
-##### `veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay)`
+##### `veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay, requesterCoalition)`
 
 Exécute une commande spawn depuis un marqueur ou un script.
 
@@ -1957,6 +1957,7 @@ Exécute une commande spawn depuis un marqueur ou un script.
 - `repeatDelay` (number, optionnel) — Délai entre les spawns (secondes)
 - `route` (table, optionnel) — Route pour les groupes spawnés
 - `allowStartDelay` (boolean, optionnel) — Autoriser un démarrage différé
+- `requesterCoalition` (coalition, optionnel) — Coalition du demandeur
 
 **Retourne :** `boolean` — Indicateur de succès
 
@@ -3972,7 +3973,7 @@ Définit la date de mission.
 ### dcsUnits.lua
 
 **Module ID :** `DCSUNITS`
-**Version :** 2025.11.17
+**Version :** datamine-dc7d15e8
 **Objectif :** Base de données complète des unités DCS
 
 #### Structures de données
@@ -4073,7 +4074,7 @@ Obtient les unités capables d'une tâche.
 
 ### dcsDataExport.lua
 
-**Module ID :** `DCSDATAEXPORT`
+**Module ID :** `DCSEXPORT`
 **Objectif :** Exporter les données DCS vers des fichiers
 
 #### Fonctions
@@ -4205,8 +4206,8 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 
 ## Historique des versions
 
-- **v1.56.2** (veaf.lua) — Derniers utilitaires de base
-- **v1.59.2** (veafSpawn.lua) — Dernier système de spawn
+- **v1.57.0** (veaf.lua) — Derniers utilitaires de base
+- **v1.59.3** (veafSpawn.lua) — Dernier système de spawn
 - **v2.2.1** (veafCombatMission.lua) — Dernier système de mission
 - **v1.15.3** (veafCasMission.lua) — Dernier système CAS
 
@@ -4222,5 +4223,5 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ---
 
 **Version du document :** 1.0
-**Dernière mise à jour :** Mai 2026
-**Généré pour :** VEAF Mission Creation Tools v6.1.0
+**Dernière mise à jour :** Juin 2026
+**Généré pour :** VEAF Mission Creation Tools v6.5.25

@@ -182,7 +182,7 @@ Each key becomes `veaf.config.MY_MISSION_FLAG = 42` in the generated `veaf-confi
 
 ### Third-party modules: `SKYNET` / `CTLD` / `CSAR` (under `modules:`)
 
-> **v6 change (hard break)**: the `external_modules:` and `qra:` sections no longer exist. All of their configuration now lives under the `modules:` block, the single source of truth. See [ADR 0001](adr/0001-modules-single-source-of-truth.md).
+> **v6 change (hard break)**: the `external_modules:` and `qra:` sections no longer exist. All of their configuration now lives under the `modules:` block, the single source of truth. See [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0001-modules-single-source-of-truth.md).
 
 Skynet IADS, CTLD and CSAR are configured like any other module, directly under `modules:`:
 
@@ -327,6 +327,7 @@ modules:
 | `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
 | `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
 | `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `COMBATMISSION` | veafCombatMission | — |
 | `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.md) |
 | `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.md) |
 | `SECURITY` | veafSecurity | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
@@ -459,7 +460,7 @@ profiles:
       dynamic_loading: true   # dynamic loading for the test profile
 ```
 
-> See the [Developer Mode](developer/GUIDE.md#developer-mode) section of the Developer Guide for the full workflow.
+> See the [Developer Mode](developer/GUIDE.en.md#developer-mode) section of the Developer Guide for the full workflow.
 
 ---
 

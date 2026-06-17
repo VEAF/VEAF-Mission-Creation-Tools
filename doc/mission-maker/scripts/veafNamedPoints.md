@@ -43,7 +43,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `custom_points` | objet[] | `[]` | Non | Points nommés prédéfinis |
 | `custom_points[].name` | string | — | Oui | Nom du point — référencé dans les commandes de spawn et les menus radio |

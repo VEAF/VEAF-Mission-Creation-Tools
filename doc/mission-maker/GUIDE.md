@@ -15,11 +15,13 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 7. [Configurer les modules](#configurer-les-modules)
 8. [Outils de conception](#outils-de-conception)
 9. [Workflow de build typique](#workflow-de-build-typique)
-10. [Référence des scripts](#référence-des-scripts)
-11. [Exemples de configuration](#exemples-de-configuration)
-12. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
-13. [Journalisation de débogage](#journalisation-de-débogage)
-14. [Ressources](#ressources)
+10. [Profils de build](#profils-de-build)
+11. [Référence des scripts](#référence-des-scripts)
+12. [Exemples de configuration](#exemples-de-configuration)
+13. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+14. [DCS Bridge](#dcs-bridge)
+15. [Journalisation de débogage](#journalisation-de-débogage)
+16. [Ressources](#ressources)
 
 > **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
@@ -474,11 +476,12 @@ local defenseZone = AirWaveZone:new()
 Vous pouvez activer CTLD et définir ses propriétés directement dans `mission.yaml`, sans Lua :
 
 ```yaml
-external_modules:
-  ctld:
+modules:
+  CTLD:
     enabled: true
-    hoverPickup: false
-    slingLoad: true
+    settings:                # paires ctld.xxx = valeur
+      hoverPickup: false
+      slingLoad: true
 ```
 
 VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au moment du build, y compris l'appel `ctld.initialize()`. Utilisez `mission-script.lua` uniquement pour les paramètres pas encore supportés par le schéma YAML (ex. tables `aircraftType`).
@@ -488,12 +491,13 @@ VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au mome
 CSAR se configure de la même façon :
 
 ```yaml
-external_modules:
-  csar:
+modules:
+  CSAR:
     enabled: true
-    enableAllslots: true
-    useprefix: true
-    csarPrefix: "MEDEVAC"
+    settings:                # paires csar.xxx = valeur
+      enableAllslots: true
+      useprefix: true
+      csarPrefix: "MEDEVAC"
 ```
 
 VEAF génère les assignations `csar.xxx = value` et l'appel `csar.initialize()` dans `veaf-config.lua`. Pour les paramètres complexes comme `aircraftType` (une table par appareil), continuez à utiliser le pattern callback Lua dans `mission-script.lua`.

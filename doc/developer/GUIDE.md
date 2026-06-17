@@ -33,13 +33,13 @@ flowchart TD
     DT -->|produit| zip(["published.zip"])
     zip -->|consommé par| RT
     subgraph RT["RUNTIME — Lua dans DCS World"]
-        scripts["veaf-scripts.lua<br/>— les 34 modules concaténés"]
+        scripts["veaf-scripts.lua<br/>— les modules concaténés"]
         config["veaf-config.lua<br/>— config générée des modules (depuis mission.yaml)"]
         custom["mission-script.lua<br/>— code Lua custom spécifique à la mission"]
     end
 ```
 
-- **Runtime** (`src/scripts/veaf/`) — 34 modules Lua chargés dans les missions DCS
+- **Runtime** (`src/scripts/veaf/`) — modules Lua chargés dans les missions DCS
 - **Design-time** (`src/python/veaf-tools/`) — outils CLI Python pour la manipulation des fichiers `.miz`
 
 ---
@@ -267,7 +267,7 @@ Pour augmenter la verbosité pour une mission au **moment du build** (global, in
 global_log_level: debug
 ```
 
-Pour le contrôle **par module au moment du build**, utiliser la section `lua_modules` :
+Pour le contrôle **par module au moment du build**, utiliser la section `modules` :
 
 ```yaml
 modules:
@@ -568,7 +568,7 @@ docs(api): documenter les helpers tanker de veafMove
 
 ## Pour aller plus loin
 
-- [Référence API Lua](../LUA_API_REFERENCE.md) — API publique complète des 34 modules
+- [Référence API Lua](../LUA_API_REFERENCE.md) — API publique complète des modules
 - [Guide de tests](../TESTING.md) — détails de l'infrastructure de test
 - [Référence des outils](../TOOLS_REFERENCE.md) — CLI `veaf-tools.exe`
 - [Feuille de route](../ROADMAP.md) — travaux planifiés

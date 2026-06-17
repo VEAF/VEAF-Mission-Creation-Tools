@@ -138,7 +138,7 @@ Options :
 
 | Option | Plage | Description |
 |--------|-------|-------------|
-| `size` | 0–5 | Nombre d'unités cibles |
+| `size` | 1–5 | Nombre d'unités cibles |
 | `defense` | 0–5 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
 | `armor` | 0–5 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
 | `side` | blue/red | Coalition des cibles |

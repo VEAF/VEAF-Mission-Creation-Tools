@@ -49,7 +49,7 @@ modules:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
 

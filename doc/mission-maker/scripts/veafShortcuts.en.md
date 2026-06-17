@@ -1,6 +1,6 @@
 # veafShortcuts — Marker Aliases
 
-**Module ID:** `SHCUT` | **File:** `veafShortcuts.lua`
+**Module ID:** `SHORTCUTS` | **File:** `veafShortcuts.lua`
 
 ---
 
@@ -137,5 +137,6 @@ Most aliases respect the security system (`veafSecurity`). Some utility aliases 
 ## See Also
 
 - [Pilot Guide — Marker Commands](../../pilot/GUIDE.md#marker-commands) — player-facing usage instructions
+- [Aliases Reference](../../ALIASES.en.md) — complete list of all built-in aliases
 - [veafSpawn](veafSpawn.md) — the underlying spawn engine
 - [veafSecurity](veafSecurity.md) — permission system

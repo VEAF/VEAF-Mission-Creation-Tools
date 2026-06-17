@@ -127,7 +127,7 @@ For anything not covered by an alias, you can write a full VEAF command directly
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, group 4, hdg 270
+_spawn unit, name T-80, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -136,7 +136,7 @@ Common options:
 | Option | Description | Example |
 |--------|-------------|---------|
 | `name [TYPE]` | DCS unit type (required) | `name F-16C` |
-| `group [N]` | Number of units in the group | `group 4` |
+| `multiplier [N]` | Number of units in the group | `multiplier 4` |
 | `hdg [DEG]` | Initial heading in degrees | `hdg 270` |
 | `alt [FT]` | Altitude in feet (aircraft) | `alt 15000` |
 | `speed [KT]` | Speed in knots | `speed 450` |
@@ -265,7 +265,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 | 4 | Main battle tanks (MBT), ZSU + SA-9 | Difficult |
 | 5 | Heavy armour, SAMs | Expert |
 
-Options for the `_cas` command: `size [0-5]` (force size), `defense [0-5]` (AA level), `armor [0-5]` (armour), `side [blue/red]` (coalition).
+Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA level), `armor [0-5]` (armour), `side [blue/red]` (coalition).
 
 ---
 

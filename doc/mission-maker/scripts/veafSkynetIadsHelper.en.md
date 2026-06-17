@@ -22,8 +22,8 @@
 ## Configuration (`mission.yaml`)
 
 ```yaml
-external_modules:
-  skynet:
+modules:
+  SKYNET:
     enabled: true
     include_red_in_radio: false   # show RED network status in F10 menu
     debug_red: false              # verbose Skynet logging for RED network

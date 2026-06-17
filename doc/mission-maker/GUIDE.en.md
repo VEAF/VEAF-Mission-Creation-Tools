@@ -16,11 +16,13 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 7. [Configuring Modules](#configuring-modules)
 8. [Design-Time Tools](#design-time-tools)
 9. [Typical Build Workflow](#typical-build-workflow)
-10. [Scripts Reference](#scripts-reference)
-11. [Configuration Examples](#configuration-examples)
-12. [CTLD and CSAR Integration](#ctld-and-csar-integration)
-13. [Debug Logging](#debug-logging)
-14. [Resources](#resources)
+10. [Build Profiles](#build-profiles)
+11. [Scripts Reference](#scripts-reference)
+12. [Configuration Examples](#configuration-examples)
+13. [CTLD and CSAR Integration](#ctld-and-csar-integration)
+14. [DCS Bridge](#dcs-bridge)
+15. [Debug Logging](#debug-logging)
+16. [Resources](#resources)
 
 > **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
@@ -475,11 +477,12 @@ local defenseZone = AirWaveZone:new()
 You can enable CTLD and set its properties directly in `mission.yaml`, without any Lua:
 
 ```yaml
-external_modules:
-  ctld:
+modules:
+  CTLD:
     enabled: true
-    hoverPickup: false
-    slingLoad: true
+    settings:                # ctld.xxx = value pairs
+      hoverPickup: false
+      slingLoad: true
 ```
 
 VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time, including the `ctld.initialize()` call. Use `mission-script.lua` only for settings not yet supported by the YAML schema (e.g. `aircraftType` tables).
@@ -489,12 +492,13 @@ VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build
 CSAR can be configured the same way:
 
 ```yaml
-external_modules:
-  csar:
+modules:
+  CSAR:
     enabled: true
-    enableAllslots: true
-    useprefix: true
-    csarPrefix: "MEDEVAC"
+    settings:                # csar.xxx = value pairs
+      enableAllslots: true
+      useprefix: true
+      csarPrefix: "MEDEVAC"
 ```
 
 VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.

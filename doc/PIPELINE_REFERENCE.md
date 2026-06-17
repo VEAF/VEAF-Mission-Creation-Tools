@@ -90,6 +90,7 @@ radios_collection:
       channels:
         01: Guard                       # numéro de canal → nom-canal (depuis channels_collection)
         02: Batumi
+        10: Stennis
 
 # ── Définitions de préréglages ────────────────────────────────────────────
 presets_collection:
@@ -99,6 +100,7 @@ presets_collection:
       radios:
         radio_1: <nom-radio>            # slot → nom-radio (depuis radios_collection)
         radio_2: <nom-radio>
+        radio_3: <nom-radio>
 
 # ── Règles d'affectation ──────────────────────────────────────────────────
 presets_assignments:
@@ -184,7 +186,7 @@ presets_assignments:
 
 Une fois les presets corrigés, supprimez la ligne `none` pour réactiver l'injection.
 
-Les specs couvrent 85 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
+Les specs couvrent 87 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
 
 > **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides et liste des appareils critiques.  
 > Pour régénérer après une mise à jour DCS : `poetry run update-radio-specs`
@@ -268,7 +270,7 @@ settings:
 
 ## Étape 3 — Groupes d'aéronefs : spawnables (B) et modèles de slot dynamique (C)
 
-Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](adr/0002-aircraft-group-injection-sort-criteria.md)) :
+Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0002-aircraft-group-injection-sort-criteria.md)) :
 
 - **(B) groupes spawnables** (`src/spawnables.yaml`, étape `spawnable_aircrafts`) : vrais groupes cachés, clonés à la demande en jeu par `veafSpawn`. Marqueur : préfixe de nom `veafSpawn-`.
 - **(C) modèles de slot dynamique** (`src/dynamic-slot-templates.yaml`, étape `dynamic_slot_templates`) : groupes servant de **modèle** aux Dynamic Slots DCS, consommés nativement par le moteur. Marqueur : flag DCS `dynSpawnTemplate = true`.
@@ -338,7 +340,7 @@ airplanes:
 
 ---
 
-## Étape 4 — Variantes météo & horaire (`versions.yaml`)
+## Étape 6 — Variantes météo & horaire (`versions.yaml`)
 
 Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec une configuration de temps et/ou de météo différente.
 
@@ -448,7 +450,7 @@ versions:
 
 ---
 
-## Étape 5 — Warehouses Dynamic-Slot (`warehouses.yaml`)
+## Étape 4 — Warehouses Dynamic-Slot (`warehouses.yaml`)
 
 Configure les **Dynamic Slots** DCS par coalition. S'exécute **après** l'injection
 des aéronefs (pour que les groupes `dynSpawnTemplate` existent déjà) et modifie les
@@ -494,7 +496,7 @@ blue:
 
 ---
 
-## Étape 6 — Données de spawn (`spawn-groups.yaml`)
+## Étape 5 — Données de spawn (`spawn-groups.yaml`)
 
 Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0005-spawn-data-externalization.md).
 

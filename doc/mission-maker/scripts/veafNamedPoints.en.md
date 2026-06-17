@@ -44,7 +44,7 @@ modules:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `custom_points` | object[] | `[]` | No | Pre-defined named points |
 | `custom_points[].name` | string | — | Yes | Point name — referenced in spawn commands and radio menus |

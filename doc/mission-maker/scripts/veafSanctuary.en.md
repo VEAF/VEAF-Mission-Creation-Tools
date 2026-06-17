@@ -1,7 +1,7 @@
 # veafSanctuary — Protected Zones
 
 
-**Module ID:** — | **File:** `veafSanctuary.lua`
+**Module ID:** `SANCTUARY` | **File:** `veafSanctuary.lua`
 
 ---
 
@@ -12,8 +12,6 @@ Defines zones that automatically destroy any unit from the specified coalition t
 ---
 
 ## Dependencies
-
-- `veafEventHandler` — for zone-entry detection
 
 ---
 
@@ -52,7 +50,7 @@ modules:
         delay_warning: 30              # seconds before warning message is sent (default: 0)
         delay_spawn: 60                # seconds before the zone becomes active after mission start
         delay_instant: 0               # seconds between repeated destruction checks (default: 0)
-        protect_from_missiles: false   # true = also intercept missiles heading into the zone
+        protect_from_missiles: false   # true = also destroy missiles fired at units located inside the zone
 ```
 
 | Field | Type | Default | Required | Description |
@@ -66,7 +64,7 @@ modules:
 | `sanctuary_zones[].delay_warning` | integer | `0` | No | Seconds before the warning message is sent |
 | `sanctuary_zones[].delay_spawn` | integer | `0` | No | Seconds before the zone activates after mission start |
 | `sanctuary_zones[].delay_instant` | integer | `0` | No | Seconds between repeated destruction checks |
-| `sanctuary_zones[].protect_from_missiles` | boolean | `false` | No | Also intercept missiles heading into the zone |
+| `sanctuary_zones[].protect_from_missiles` | boolean | `false` | No | Also destroy missiles fired at units located inside the zone |
 
 ### Minimal example
 

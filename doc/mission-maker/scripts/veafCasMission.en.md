@@ -139,7 +139,7 @@ Options:
 
 | Option | Range | Description |
 |--------|-------|-------------|
-| `size` | 0–5 | Number of target units |
+| `size` | 1–5 | Number of target units |
 | `defense` | 0–5 | AA defence level (0=none, 5=heavy SAM) |
 | `armor` | 0–5 | Armour level (0=infantry, 5=heavy MBT) |
 | `side` | blue/red | Coalition of targets |

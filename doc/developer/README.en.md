@@ -95,4 +95,4 @@ These commands must pass without errors before committing. CI also runs them aut
 ## Full reference
 
 - [Complete Developer Guide](GUIDE.md) — repository layout, coding conventions, build pipeline, contributing workflow
-- [Testing Guide](../TESTING.md) — Lua and Python test infrastructure in detail
+- [Testing Guide](../TESTING.en.md) — Lua and Python test infrastructure in detail

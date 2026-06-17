@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ⬜ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
 | Lot FIX-SPAWNABLES-CATEGORY — default `spawnables.yaml` files all 50 CAP plane templates under the DCS `helicopter` category (`airplanes:` empty); a stale extraction artifact (current `extract` categorizes correctly) | ✅ |
@@ -31,7 +32,7 @@
 | Lot TUM-AUTOINIT — call TheUniversalMission init automatically when TUM is selected | ✅ |
 | Lot INVESTIGATE-REDFOR-ZONES — understand the "Coalition red has no territory zones / controls no airfields" runtime error | ✅ |
 | Lot FIX-CONVERT-V5-INVALID-YAML — convert-v5 produces a mission.yaml that fails YAML parsing (indentation error) | ✅ |
-| Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | ⬜ |
+| Lot DOC-REVIEW — full documentation proofreading pass (FR/EN), accuracy vs current behaviour after the 6.5.0 changes | 🟡 |
 | Phase 0b — GitHub cleanup | ✅ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
 | Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ✅ |
@@ -339,10 +340,30 @@
 
 > **Chatbot index during this lot**: this pass touches most of `doc/**` at once, which would trigger the `Rebuild docs chatbot index` CI workflow on every push and risk exhausting the Gemini free-tier embeddings quota (1000/day). **Before starting**, disable that workflow (GitHub → Actions → "Rebuild docs chatbot index" → ⋯ → Disable workflow). **When done**, re-enable it and refresh the index once — either trigger the workflow manually (`workflow_dispatch`), or run it locally with `poetry run reindex-docs` (incremental, on-disk cache; a single full pass ≈ 500-700 embeds stays under the cap).
 
+**Audit outcome (2026-06-17)**: a 9-way parallel audit of all 38 FR/EN pairs surfaced ~55 distinct issues, split into two risk classes → delivered in **two phases / two PRs**:
+
+- **Phase 1 (clear-cut)** — broken links (ADRs live in `docs/adr/`, outside `docs_dir: doc` → use absolute GitHub URLs; over-deep `../` links; wrong-language anchors), stale version/count strings (TESTING 31→34 suites + 2 undocumented CI jobs, PIPELINE 85→87 aircraft + step numbering, LUA_API versions/IDs), stale module IDs/keys (`SHCUT`→`SHORTCUTS`, blank→`SANCTUARY`, `enable`→`enabled`, `lua_modules`→`modules`), wrong commands/config (`convert-mission` removed, `weather-inject`→`inject-weather` + real `versions.yaml` schema, Skynet `external_modules:`→`modules.SKYNET`, QRA top-level `qra:`→`modules.QRA`, `_cas`/`_spawn` param fixes), FR/EN parity gaps. **Done in this lot.**
+- **Phase 2 (fabricated Lua APIs)** — ~14 script-doc sections document builder/class APIs that don't exist in the v6.5.25 Lua and need verified rewrites against source (`VeafGrassRunway`, most `VeafCombatZone`/`VeafCombatOperation` methods, `veafCarrierOperations.addCarrier`, `veafCasMission.start`, `VeafSanctuary`→`VeafSanctuaryZone`, `VeafMissileGuardian` (stub), `veafMove.moveTanker/changeTanker` signatures + `_teleport`/`SpawnKeyphrase`, `veafNamedPoints.addNamedPoint`, `veafTransportMission` builder+menu, `veaf.weatherReport`, `veafAirWaves` method names + `:initialize()`→`:start()`, `veafAssets` `groupName`/`carrier`, `veafRadio` example callbacks, the whole `TOOLS_REFERENCE` publishing half, the `LUA_API_REFERENCE` `veafWeather`/`veafTime`/`dcsUnits`/`dcsDataExport` function entries, and the pilot carrier/CAS menu labels). Tracked as **DOC-REVIEW-003**.
+
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| DOC-REVIEW-001 | Full proofreading pass of `doc/` (FR/EN): accuracy, parity, links, stale names, terminology, examples | `doc/**` | chore | ⬜ |
-| DOC-REVIEW-002 | Disable the `Rebuild docs chatbot index` workflow before the pass; re-enable + reindex once after (`poetry run reindex-docs` or manual `workflow_dispatch`) | `.github/workflows/docs-chatbot-index.yml` | chore | ⬜ |
+| DOC-REVIEW-001 | Phase 1 — clear-cut fixes across `doc/` (FR/EN): broken links, stale versions/counts/IDs/keys, wrong commands/config, FR/EN parity | `doc/**` | chore | ✅ |
+| DOC-REVIEW-002 | Chatbot index: no manual disable needed — the `Rebuild docs chatbot index` workflow only triggers on `push` to `develop-v6` (+ `workflow_dispatch`), so feature-branch pushes never fire it; the single merge to `develop-v6` reindexes exactly once (= the "refresh once after") | `.github/workflows/docs-chatbot-index.yml` | chore | ✅ |
+| DOC-REVIEW-003 | Phase 2 — rewrite the ~14 fabricated Lua-API doc sections against the real sources (separate follow-up PR) | `doc/mission-maker/scripts/**`, `doc/LUA_API_REFERENCE.*`, `doc/TOOLS_REFERENCE.*`, `doc/pilot/GUIDE.*` | chore | ⬜ |
+
+> **Phase 1 also flagged broken pilot screenshots**: `doc/pilot/GUIDE.{md,en.md}` reference 8 images under `../assets/img/pilot/*.png` that do not exist (`doc/assets/img/pilot/` is absent). Not auto-fixed — the slots are likely intentional pending screenshots; David to either add the images or decide to drop the references (folded into DOC-REVIEW-003).
+
+---
+
+## Lot FIX-AIRWAVES-GENERATOR — generated AirWaves configs call non-existent setters
+
+**Goal**: `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (`_emit_airwave_zone`) emits an `AirWaveZone:new():…:start()` chain that includes setter calls absent from `src/scripts/veaf/veafAirWaves.lua`: `setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimumSecondsBetweenWaves`, `setMaximumSecondsBetweenWaves`. In Lua, calling a nil method raises "attempt to call method '…' (a nil value)" → **any mission whose `mission.yaml` configures an AirWaves zone crashes at mission start**. Found during the DOC-REVIEW audit (out of doc scope). Map each emitted setter to the real `veafAirWaves` API (e.g. `setMessageDeploy`/`setMessageWon`/`setMessageLost`, `setDelayBetweenWaves`) or add the missing setters to the Lua, then add a generator test asserting every emitted method exists on `AirWaveZone`.
+
+**Branch**: `fix/airwaves-generator` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-AIRWAVES-GENERATOR-001 | Reconcile `_emit_airwave_zone` emitted setters with the real `AirWaveZone` API (rename to existing setters and/or add missing ones to `veafAirWaves.lua`); add a test asserting every generated method exists | `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `src/scripts/veaf/veafAirWaves.lua`, `test/python/`, `test/lua/` | fix | ⬜ |
 
 ---
 

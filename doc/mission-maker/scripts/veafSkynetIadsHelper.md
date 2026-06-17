@@ -22,8 +22,8 @@
 ## Configuration (`mission.yaml`)
 
 ```yaml
-external_modules:
-  skynet:
+modules:
+  SKYNET:
     enabled: true
     include_red_in_radio: false   # afficher l'état du réseau rouge dans le menu F10
     debug_red: false              # logs détaillés Skynet pour le réseau rouge

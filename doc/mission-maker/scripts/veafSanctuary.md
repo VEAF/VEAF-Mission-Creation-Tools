@@ -1,6 +1,6 @@
 # veafSanctuary — Zones protégées
 
-**Module ID:** — | **Fichier:** `veafSanctuary.lua`
+**Module ID:** `SANCTUARY` | **Fichier:** `veafSanctuary.lua`
 
 ---
 
@@ -11,8 +11,6 @@ Définit des zones qui détruisent automatiquement toute unité de la coalition 
 ---
 
 ## Dépendances
-
-- `veafEventHandler` — pour la détection d'entrée dans la zone
 
 ---
 
@@ -51,7 +49,7 @@ modules:
         delay_warning: 30              # secondes avant l'envoi du message d'avertissement (défaut : 0)
         delay_spawn: 60                # secondes avant que la zone devient active après le démarrage
         delay_instant: 0               # secondes entre les contrôles de destruction répétés (défaut : 0)
-        protect_from_missiles: false   # true = intercepter aussi les missiles visant la zone
+        protect_from_missiles: false   # true = détruire aussi les missiles tirés sur les unités présentes dans la zone
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -65,7 +63,7 @@ modules:
 | `sanctuary_zones[].delay_warning` | entier | `0` | Non | Secondes avant l'envoi du message d'avertissement |
 | `sanctuary_zones[].delay_spawn` | entier | `0` | Non | Secondes avant que la zone s'active après le démarrage de la mission |
 | `sanctuary_zones[].delay_instant` | entier | `0` | Non | Secondes entre les contrôles de destruction répétés |
-| `sanctuary_zones[].protect_from_missiles` | booléen | `false` | Non | Intercepter également les missiles visant la zone |
+| `sanctuary_zones[].protect_from_missiles` | booléen | `false` | Non | true = détruire aussi les missiles tirés sur les unités présentes dans la zone |
 
 ### Exemple minimal
 

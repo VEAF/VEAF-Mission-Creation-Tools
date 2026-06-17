@@ -172,6 +172,10 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
 
 ---
+
+## Module Constants
+
+| Constant | Default | Description |
 |----------|---------|-------------|
 | `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | How often the zone watchdog polls (s) |
 | `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Smoke mark cooldown (s) |

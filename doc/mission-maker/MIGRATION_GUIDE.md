@@ -65,7 +65,7 @@ flowchart TD
 | **Emplacement de la config** | Initialisation dispersée dans des scripts de trigger DCS ou un fichier Lua séparé | `mission.yaml` génère `veaf-config.lua` au moment du build ; code Lua personnalisé optionnel dans `mission-script.lua` |
 | **Migration de la config** | Réécriture manuelle | `veaf-tools.exe convert-v5` — une seule commande migre `missionConfig.lua`, convertit les fichiers pipeline (préréglages, waypoints, météo, groupes d'aéronefs) et génère `mission.yaml` + `mission-script.lua`. Utilisez `migrate-config` uniquement pour migrer `missionConfig.lua` seul. |
 | **Niveaux de log des modules** | Définis par module en assignant `veafXxx.LogLevel` avant l'init | Section `modules: → MODULE_ID: logLevel:` dans `mission.yaml` ou option CLI `--log-modules` |
-| **Skynet / CTLD / CSAR / QRA** | Sections séparées `external_modules:` et `qra:` | Tout sous le bloc `modules:` (`modules.SKYNET`, `modules.CTLD` / `modules.CSAR` avec un sous-bloc `settings:`, `modules.QRA` avec `silence_all` + `definitions:`). Les sections `external_modules:` et `qra:` n'existent plus — voir [ADR 0001](../adr/0001-modules-single-source-of-truth.md). `convert-v5` émet directement la nouvelle forme. |
+| **Skynet / CTLD / CSAR / QRA** | Sections séparées `external_modules:` et `qra:` | Tout sous le bloc `modules:` (`modules.SKYNET`, `modules.CTLD` / `modules.CSAR` avec un sous-bloc `settings:`, `modules.QRA` avec `silence_all` + `definitions:`). Les sections `external_modules:` et `qra:` n'existent plus — voir [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0001-modules-single-source-of-truth.md). `convert-v5` émet directement la nouvelle forme. |
 
 ### Migration étape par étape
 
@@ -107,7 +107,7 @@ Cette commande unique gère tout en une seule passe :
 - **Génération de `mission.yaml`** — crée `mission.yaml` avec les sections `modules:` et `pipeline:` correctes.
 - **Rapport de conversion** — sauvegarde `convert-v5-report.md` avec toutes les actions effectuées et les éléments nécessitant une révision manuelle.
 
-Si votre pipeline contient des versions météo `realweather`, l'outil demandera le code ICAO de l'aéroport à intégrer dans la config générée. Vous pouvez le fournir directement pour éviter le prompt interactif :
+Si votre pipeline contient des versions météo `realweather`, fournissez le code ICAO de l'aéroport via l'option `--icao` pour l'intégrer dans la config générée. Si vous l'omettez, l'outil affiche un avertissement et vous devrez éditer manuellement la config générée :
 
 ```powershell
 .\veaf-tools.exe convert-v5 . --icao UGGG
@@ -171,12 +171,13 @@ cd ma-mission
 .\veaf-tools-updater.exe
 ```
 
-#### 3. Convertir le .miz vanilla
+#### 3. Extraire le .miz vanilla puis builder
 
-La commande `convert-mission` fait tout en une étape : extraction, injection des scripts VEAF MCT, rebuild.
+Extrayez votre `.miz` vanilla dans le dossier source, puis lancez le build qui injecte les scripts VEAF MCT et reconstruit un nouveau `.miz` :
 
 ```powershell
-.\veaf-tools.exe convert-mission "C:\chemin\vers\vanilla.miz" .
+.\veaf-tools.exe extract "C:\chemin\vers\vanilla.miz" .
+.\veaf-tools.exe build
 ```
 
 Cela :
@@ -202,10 +203,11 @@ Puis copiez votre `.miz` sous `mission.miz` et exécutez :
 
 #### 5. Configurer les modules à activer
 
-Éditez `mission.yaml` pour activer les modules souhaités. Par défaut, seuls les modules essentiels (marqueurs, spawn, radio) sont actifs :
+Éditez `mission.yaml` pour activer les modules souhaités. Un ensemble de modules courants est actif par défaut — radio, spawn, raccourcis, CAS, transport, météo… — à ajuster selon vos besoins :
 
 ```yaml
-name: Ma Mission Vanilla
+mission:
+  name: Ma Mission Vanilla
 
 modules:
   RADIO:
@@ -222,7 +224,7 @@ modules:
 
 Pour du Lua personnalisé (appels de modules avancés, aliases, etc.), éditez `src/scripts/mission-script.lua`.
 
-Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
+Consultez la [référence YAML](../MISSION_YAML_REFERENCE.md) et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
 
 #### 6. Conserver votre contenu de mission existant
 
@@ -299,7 +301,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-L'activation/désactivation des modules se configure dans `mission.yaml` → `modules:` — pas dans ce fichier. Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
+L'activation/désactivation des modules se configure dans `mission.yaml` → `modules:` — pas dans ce fichier. Consultez la [référence YAML](../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
 
 ---
 

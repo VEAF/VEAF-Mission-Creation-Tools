@@ -523,7 +523,9 @@ def run_wizard(preselected: str | None = None, provided: dict[str, str] | None =
             if preselected and preselected in _COMMAND_MAP:
                 selected = preselected
             else:
-                choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS]
+                choices = [
+                    Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS
+                ]
                 default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
                 _touch_prompt_shown()
                 selected = inquirer.select(  # type: ignore[attr-defined]

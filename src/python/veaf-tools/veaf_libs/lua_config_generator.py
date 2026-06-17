@@ -593,9 +593,12 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     # (setDelayBetweenWaves); it has no random min/max range. Honour the
     # documented precedence (a configured min/max range overrides the fixed
     # delay) by collapsing the range to its minimum; the maximum has no runtime
-    # equivalent and is dropped.
-    delay = zone.get("min_seconds_between_waves") or zone.get("delay_between_waves")
-    if delay:
+    # equivalent and is dropped. A delay of 0 is a valid value (immediate next
+    # wave), so test for presence rather than truthiness.
+    delay = zone.get("min_seconds_between_waves")
+    if delay is None:
+        delay = zone.get("delay_between_waves")
+    if delay is not None:
         lines.append(f"{indent}    :setDelayBetweenWaves({delay})")
     if max_alt := zone.get("max_altitude_ft"):
         lines.append(f"{indent}    :setMaximumAltitudeInFeet({max_alt})")

@@ -439,6 +439,7 @@ _VEAF_AIRWAVES_LUA = Path(__file__).resolve().parents[3] / "src" / "scripts" / "
 
 def _airwavezone_methods() -> set[str]:
     """Real ``AirWaveZone`` method names, parsed from the Lua source."""
+    assert _VEAF_AIRWAVES_LUA.is_file(), f"veafAirWaves.lua not found at expected path: {_VEAF_AIRWAVES_LUA}"
     text = _VEAF_AIRWAVES_LUA.read_text(encoding="utf-8")
     return set(re.findall(r"function AirWaveZone:([A-Za-z_]\w*)\s*\(", text))
 
@@ -513,5 +514,7 @@ def test_emit_airwave_zone_delay_collapses_range_to_min():
     assert ":setDelayBetweenWaves(60)" in text  # min wins over delay_between_waves=120
     assert text.count(":setDelayBetweenWaves(") == 1
     # fixed delay used when no range is configured
-    zone = {"name": "Z", "delay_between_waves": 90}
-    assert ":setDelayBetweenWaves(90)" in "\n".join(_emit_airwave_zone(zone))
+    assert ":setDelayBetweenWaves(90)" in "\n".join(_emit_airwave_zone({"name": "Z", "delay_between_waves": 90}))
+    # an explicit zero delay is honoured (not skipped as falsy), for both keys
+    assert ":setDelayBetweenWaves(0)" in "\n".join(_emit_airwave_zone({"name": "Z", "delay_between_waves": 0}))
+    assert ":setDelayBetweenWaves(0)" in "\n".join(_emit_airwave_zone({"name": "Z", "min_seconds_between_waves": 0}))

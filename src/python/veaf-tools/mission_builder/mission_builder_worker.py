@@ -1208,7 +1208,50 @@ class MissionBuilderWorker(BaseWorker):
             if self._resolves_load_trigger(Path(script_file_name).name)
             and Path(script_file_name).name != "veafDynamicConfig.lua"
         ]
-        return self._position_config_override(files)
+        return self._position_config_override(self._apply_custom_scripts_order(files))
+
+    def _apply_custom_scripts_order(self, files: list[str]) -> list[str]:
+        """Return *files* with the declared ``custom_scripts`` in their declaration order.
+
+        The collected mission scripts arrive in glob/collection order; the maker's
+        intended load order is the ``custom_scripts:`` declaration order
+        (FOOTHOLD-V6-008). Declared scripts are reordered **among the slots they
+        already occupy**, so the positions of undeclared files (VEAF infra
+        ``veaf-config.lua`` / ``mission-script.lua``, unknowns, the generated
+        override) are preserved. A declared script absent from *files* (file not on
+        disk) is skipped.
+
+        Matching is by basename: ``custom_scripts`` paths are stored as basenames
+        (see ``__init__``) and every mission script lives in ``src/scripts/`` (one
+        directory), so basenames are unique and unambiguous here.
+
+        *files* is not mutated; a reordered copy is returned.
+
+        Args:
+            files: The collected mission-script paths, in collection order.
+
+        Returns:
+            A new list with the declared scripts reordered (the same list contents
+            when there is no ``custom_scripts`` or fewer than two are present).
+        """
+        declared: list[str] = []
+        seen: set[str] = set()
+        for cs in self.custom_scripts:  # cs.path is already a basename (set in __init__)
+            if cs.path not in seen:
+                seen.add(cs.path)
+                declared.append(cs.path)
+        if not declared:
+            return files
+        declared_set = set(declared)
+        slots = [i for i, f in enumerate(files) if Path(f).name in declared_set]
+        if len(slots) <= 1:
+            return files
+        by_name = {Path(files[i]).name: files[i] for i in slots}
+        ordered = [by_name[name] for name in declared if name in by_name]
+        result = list(files)
+        for slot, path in zip(slots, ordered):
+            result[slot] = path
+        return result
 
     def _position_config_override(self, files: list[str]) -> list[str]:
         """Move the rendered config-override script to right after its target.

@@ -502,6 +502,40 @@ veaf-tools.exe build --profile SERVER
 
 ---
 
+### `build_variants:`
+
+Liste de profils de build à **émettre ensemble** : un seul `veaf-tools build` produit alors **un `.miz` par variante** (objectif « moulinette » — typiquement Modern et Cold-War d'un même dossier de mission, la variante n'étant qu'une différence de **config**). Chaque variante construit le pipeline complet avec son profil fusionné (voir [`profiles:`](#profiles)) et son `.miz` est suffixé du nom de variante (`<base>_<VARIANT>.miz`).
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `build_variants` | `list[str]` | Noms de profils (déclarés sous `profiles:`) à émettre chacun comme un `.miz` distinct. |
+
+**Règles**
+- Sans `build_variants:` (ou liste vide) → un seul `.miz`, comportement inchangé.
+- `--profile <nom>` est l'**échappatoire** : il force la construction d'une seule variante (ce profil), sans suffixe — `build_variants:` est ignoré.
+- Les variantes sont construites dans l'ordre déclaré ; chaque nom doit correspondre à un profil de `profiles:` (sinon avertissement + config de base, comme `--profile`).
+
+```yaml
+profiles:
+  MODERN:
+    mission:
+      era: MODERN
+  COLD_WAR:
+    mission:
+      era: COLD_WAR
+
+build_variants:
+  - MODERN
+  - COLD_WAR
+```
+
+```powershell
+veaf-tools.exe build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
+veaf-tools.exe build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
+```
+
+---
+
 ## Index par catégorie
 
 ### Essentiel — toute mission

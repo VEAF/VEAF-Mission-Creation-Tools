@@ -67,6 +67,38 @@ veaf-tools convert-other <mission.miz> <dossier-de-sortie> --profile foothold
      fonctionnelle d'emblée ; activez davantage au besoin.
 4. **Émet** un rapport Markdown récapitulant les actions et les points à revoir.
 
+## Surcharge partielle de la config
+
+Une mission tierce comme Foothold embarque un gros fichier de configuration
+maîtrisé par son auteur, que VEAF laisse **intact**. Pour changer quelques
+réglages au déploiement (difficulté, camp de départ, redémarrage auto…) sans
+réécrire ce fichier, remplissez le bloc `config_override:` que le *scaffold*
+laisse commenté :
+
+```yaml
+config_override:
+  target: "Foothold Config.lua"   # le script de config amont que vous surchargez
+  values:
+    CapDifficulty: medium         # global = valeur
+    StartNormal: true
+    AutoRestart: false
+    Some.Nested.Global: 42        # chemin pointé → Some.Nested.Global = 42
+```
+
+Au build, ceci génère un petit `veaf-config-override.lua` qui **ne réaffecte que
+les globals modifiés**, chargé **entre** la config amont intacte et le script de
+*setup* (la config amont se met donc à jour sans réécriture sur une nouvelle
+version Lekaa, et vos surcharges l'emportent). Les valeurs sont transmises
+telles quelles — VEAF ne les interprète jamais ; la mission valide ses propres
+valeurs au runtime.
+
+Chaque clé de surcharge est **validée lexicalement** : chaque segment pointé doit
+apparaître comme identifiant quelque part dans les scripts injectés
+(`src/scripts/*.lua`). Un segment introuvable — une faute de frappe ou un global
+renommé/supprimé en amont — **fait échouer `veaf-tools validate` et le build**,
+transformant une dérive amont silencieuse en alerte au build. (Aucun Lua n'est
+exécuté : la vérification est une recherche mot entier en Python pur.)
+
 ## Après la conversion
 
 - Relisez le `mission.yaml` : activez les modules VEAF voulus, vérifiez l'ordre

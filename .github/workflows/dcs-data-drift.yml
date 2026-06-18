@@ -57,7 +57,7 @@ jobs:
 
       - name: Open a pull request
         if: steps.compare.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/datamine-pin-bump
           title: "chore(dcs-data): bump datamine pin and regenerate country table"

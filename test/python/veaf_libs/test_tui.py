@@ -468,3 +468,21 @@ class TestEntryPointsWireBridge:
         assert "maybe_bridge_to_tui(" in source, f"{entry} must invoke the CLI-TUI bridge"
         # The superseded bare-invocation-only gate must be gone from both entry points.
         assert "len(sys.argv) == 1" not in source, f"{entry} still uses the old no-args-only gate"
+
+
+class TestConvertOtherCommandSpec:
+    def test_command_registered(self) -> None:
+        assert "convert-other" in _COMMAND_MAP
+
+    def test_two_positional_prompts(self) -> None:
+        spec = _COMMAND_MAP["convert-other"]
+        assert [p.key for p in spec.prompts] == ["input_miz", "output_folder"]
+        assert all(not p.is_option for p in spec.prompts)
+        assert all(p.required for p in spec.prompts)
+
+    def test_missing_required_arg_routes_to_wizard(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.tui.run_wizard", return_value=["convert-other", "m.miz", "."]) as rw:
+                result = maybe_bridge_to_tui(["convert-other"])
+        rw.assert_called_once()
+        assert result == ["convert-other", "m.miz", "."]

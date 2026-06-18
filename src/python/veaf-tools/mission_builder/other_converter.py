@@ -235,6 +235,25 @@ def _config_override_block(profile: ConversionProfile) -> list[str]:
     return lines
 
 
+def _community_scripts_block(profile: ConversionProfile) -> list[str]:
+    """Render a ``community_scripts:`` block turning off the profile's bundled scripts.
+
+    Foothold-style missions ship their own community libraries as ``custom_scripts``,
+    so VEAF's bundled copies must stay off (FOOTHOLD-V6-009). Returns nothing when the
+    profile disables none.
+    """
+    if not profile.disabled_community_scripts:
+        return []
+    lines = [
+        f"# VEAF community scripts disabled by the '{profile.name}' conversion profile",
+        "# (this mission provides its own, or does not use them). Re-enable any you need.",
+        "community_scripts:",
+    ]
+    lines += [f"  {script_id}: false" for script_id in profile.disabled_community_scripts]
+    lines.append("")
+    return lines
+
+
 def build_scaffold_yaml(
     loaders: list[DetectedLoader],
     strip_triggers: list[tuple[int, str]],
@@ -248,7 +267,8 @@ def build_scaffold_yaml(
     them in a later lot). Without a *profile* the ``modules:`` block is seeded with
     the ``minimal`` tier; with one, it reflects the profile's modules, a
     ``conversion_profile:`` marker is written (so ``validate``/build can enforce
-    its incompatibilities), and a commented ``config_override`` scaffold is added.
+    its incompatibilities), a commented ``config_override`` scaffold is added, and
+    the profile's bundled community scripts are turned off.
 
     Args:
         loaders: Detected scripts, in load order (already name-normalised).
@@ -305,6 +325,7 @@ def build_scaffold_yaml(
     lines.append("")
 
     lines.extend(_config_override_block(profile) if profile else [])
+    lines.extend(_community_scripts_block(profile) if profile else [])
 
     if profile is not None:
         enabled = set(profile.modules)

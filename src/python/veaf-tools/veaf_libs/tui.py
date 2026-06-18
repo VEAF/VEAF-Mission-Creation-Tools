@@ -177,6 +177,7 @@ COMMANDS: list[CommandSpec] = [
                 is_option=False,
                 required=True,
             ),
+            ArgPrompt("profile", t("tui.arg.convert_other_profile"), default=""),
         ],
     ),
     CommandSpec(

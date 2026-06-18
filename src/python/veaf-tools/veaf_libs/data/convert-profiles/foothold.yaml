@@ -1,0 +1,42 @@
+# Conversion profile — Foothold (community campaign by Lekaa).
+#
+# Author-specific knowledge for adopting a Foothold .miz onto the v6 toolchain
+# via `veaf-tools convert-other --profile foothold`. Data only; the code that
+# reads this stays generic. See ADR 0007.
+#
+# NOTE: the script load ORDER is NOT listed here — convert-other detects it
+# generically from the mission's native triggers.
+
+name: foothold
+description: VEAF adoption of the Foothold campaign (Lekaa).
+
+# VEAF modules to enable in the scaffold (on top of the always-on infrastructure
+# + MIST). Mirrors the historical hand-written VEAF_common.lua integration.
+modules:
+  - RADIO
+  - SPAWN
+  - WEATHER
+  - SHORTCUTS
+  - SECURITY
+  - REMOTE
+
+# VEAF modules known to be incompatible with Foothold. `validate` and the build
+# fail if any of these is enabled in a mission carrying `conversion_profile: foothold`.
+# (Foothold ships its own CTLD — see "Foothold CTLD.lua" — so the VEAF CTLD must stay off.)
+incompatible_modules:
+  - CTLD
+
+# Stabilise upstream versioned script names so `custom_scripts:` paths survive a
+# Lekaa version bump (and `convert-other --update`). Glob pattern -> fixed name.
+name_normalization:
+  - pattern: "Moose_*.lua"
+    replacement: "Moose.lua"
+
+# Partial config-override scaffold: a small set of settings a mission-maker
+# commonly changes, layered over the untouched upstream config file. See ADR 0008.
+config_override:
+  target: "Foothold Config.lua"
+  defaults:
+    CapDifficulty: medium
+    StartNormal: true
+    AutoRestart: false

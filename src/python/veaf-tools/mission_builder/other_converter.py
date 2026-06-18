@@ -12,13 +12,14 @@ knowledge lives here; author-specific data is carried by a *conversion profile*
 from __future__ import annotations
 
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
 from mission_extractor import MissionExtractorWorker
 from mission_tools import read_miz
 from mission_tools.miz_tools import DcsMission
+from veaf_libs.conversion_profile import ConversionProfile, load_profile
 from veaf_libs.i18n import t
 from veaf_libs.mission_template import render_modules_block, tier_modules
 
@@ -142,22 +143,53 @@ def _yaml_dquote(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def _yaml_scalar(value: object) -> str:
+    """Render a Python value as a YAML scalar (bool → true/false, str quoted if needed)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    text = str(value)
+    return _yaml_dquote(text) if (" " in text or not text) else text
+
+
+def _config_override_block(profile: ConversionProfile) -> list[str]:
+    """Render a commented ``config_override`` scaffold from *profile*, or nothing."""
+    spec = profile.config_override
+    if spec is None:
+        return []
+    lines = [
+        "# Partial override of the untouched upstream config. Uncomment and adjust;",
+        f"# layered on top of {spec.target} (only restates what you change). See ADR 0008.",
+        "# config_override:",
+        f"#   target: {_yaml_path(spec.target)}",
+        "#   values:",
+    ]
+    for key, value in spec.defaults.items():
+        lines.append(f"#     {key}: {_yaml_scalar(value)}")
+    lines.append("")
+    return lines
+
+
 def build_scaffold_yaml(
     loaders: list[DetectedLoader],
     strip_triggers: list[tuple[int, str]],
+    profile: ConversionProfile | None = None,
     now: datetime | None = None,
 ) -> str:
     """Build the scaffold ``mission.yaml`` content for an adopted mission.
 
-    The scaffold is intentionally generic (no author-specific knowledge): the
-    detected scripts become an ordered ``custom_scripts:`` block, the detected
-    loader triggers are listed under ``strip_native_triggers:`` (the build strips
-    them in a later lot), and every VEAF module is listed disabled so the
-    mission-maker — or a conversion profile — turns on what the mission needs.
+    The detected scripts become an ordered ``custom_scripts:`` block and the
+    detected loader triggers a ``strip_native_triggers:`` list (the build strips
+    them in a later lot). Without a *profile* the ``modules:`` block is seeded with
+    the ``minimal`` tier; with one, it reflects the profile's modules, a
+    ``conversion_profile:`` marker is written (so ``validate``/build can enforce
+    its incompatibilities), and a commented ``config_override`` scaffold is added.
 
     Args:
-        loaders: Detected scripts, in load order.
+        loaders: Detected scripts, in load order (already name-normalised).
         strip_triggers: Detected native loader triggers ``(index, comment)``.
+        profile: The conversion profile applied, or ``None`` for a generic scaffold.
         now: Timestamp for the header (defaults to the current time).
 
     Returns:
@@ -170,6 +202,15 @@ def build_scaffold_yaml(
         "# Review before building: enable the VEAF modules you need and check the",
         "# custom_scripts load order below.",
         "",
+    ]
+    if profile is not None:
+        lines += [
+            "# Marks this mission as adopted with the named profile; validate/build",
+            "# enforce the profile's module incompatibilities.",
+            f"conversion_profile: {profile.name}",
+            "",
+        ]
+    lines += [
         "global_log_level: info",
         "",
         "# Scripts found in the source mission's native load triggers, in load order.",
@@ -199,12 +240,22 @@ def build_scaffold_yaml(
         lines.append("strip_native_triggers: []")
     lines.append("")
 
-    lines += [
-        "# VEAF modules — the 'minimal' tier (infra + RADIO/SPAWN/SHORTCUTS/INTERPRETER).",
-        "# Enable more as this mission needs them.",
-        "modules:",
-    ]
-    lines.extend(render_modules_block(tier_modules("minimal")))
+    lines.extend(_config_override_block(profile) if profile else [])
+
+    if profile is not None:
+        enabled = set(profile.modules)
+        lines += [
+            f"# VEAF modules — from the '{profile.name}' conversion profile.",
+            "modules:",
+        ]
+    else:
+        enabled = tier_modules("minimal")
+        lines += [
+            "# VEAF modules — the 'minimal' tier (infra + RADIO/SPAWN/SHORTCUTS/INTERPRETER).",
+            "# Enable more as this mission needs them.",
+            "modules:",
+        ]
+    lines.extend(render_modules_block(enabled))
     lines.append("")
 
     return "\n".join(lines)
@@ -227,6 +278,7 @@ class OtherMissionConverter:
         output_mission_folder: Path,
         force: bool = False,
         backup: bool = True,
+        profile_name: str | None = None,
     ) -> ConversionReport:
         """Adopt *input_mission_path* into *output_mission_folder*.
 
@@ -235,12 +287,16 @@ class OtherMissionConverter:
             output_mission_folder: The v6 mission folder to create/populate.
             force: Overwrite an existing ``mission.yaml`` instead of skipping it.
             backup: Back up an existing ``mission.yaml`` to ``.bak`` before overwriting.
+            profile_name: A conversion profile (bundled name or path) tailoring the
+                scaffold (modules, name normalisation, config_override). ``None`` for
+                a generic scaffold seeded with the ``minimal`` tier.
 
         Returns:
             The conversion report.
         """
         report = ConversionReport(mission_folder=output_mission_folder, version=self._version)
         output_mission_folder.mkdir(parents=True, exist_ok=True)
+        profile = load_profile(profile_name) if profile_name else None
 
         # 1. Extract the .miz into the mission folder (scripts land in src/scripts/).
         MissionExtractorWorker(
@@ -255,6 +311,11 @@ class OtherMissionConverter:
         loaders = detect_native_script_loaders(dcs_mission)
         strip_triggers = detect_native_loader_triggers(dcs_mission)
 
+        # 2b. Profile name-normalisation: rename the extracted file and the loader
+        #     entry so custom_scripts paths stay stable across upstream versions.
+        if profile is not None:
+            loaders = self._normalize_script_names(loaders, profile, output_mission_folder / "src" / "scripts")
+
         # 3. Scaffold mission.yaml.
         dest = output_mission_folder / "mission.yaml"
         if dest.exists() and not force:
@@ -264,7 +325,7 @@ class OtherMissionConverter:
         else:
             if dest.exists() and backup:
                 shutil.copy2(dest, dest.with_name("mission.yaml.bak"))
-            dest.write_text(build_scaffold_yaml(loaders, strip_triggers), encoding="utf-8")
+            dest.write_text(build_scaffold_yaml(loaders, strip_triggers, profile), encoding="utf-8")
             report.mission_yaml_generated = True
             report.mission_yaml_path = dest
             report.actions.append(
@@ -276,3 +337,26 @@ class OtherMissionConverter:
         report.manual_review.append(t("convert_other.review.verify_order"))
         report.manual_review.append(t("convert_other.review.test_dcs"))
         return report
+
+    @staticmethod
+    def _normalize_script_names(
+        loaders: list[DetectedLoader],
+        profile: ConversionProfile,
+        scripts_dir: Path,
+    ) -> list[DetectedLoader]:
+        """Rename extracted scripts per *profile* and return loaders with new names.
+
+        Renames ``scripts_dir/<original>`` to ``scripts_dir/<normalised>`` when the
+        profile maps it (and the source file is present), so the on-disk file and
+        the ``custom_scripts`` path agree.
+        """
+        result: list[DetectedLoader] = []
+        for loader in loaders:
+            new_name = profile.normalize_script_name(loader.script)
+            if new_name != loader.script:
+                src = scripts_dir / loader.script
+                dst = scripts_dir / new_name
+                if src.is_file() and not dst.exists():
+                    src.rename(dst)
+            result.append(replace(loader, script=new_name))
+        return result

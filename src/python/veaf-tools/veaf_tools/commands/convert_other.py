@@ -35,6 +35,11 @@ def convert_other(
         "--report-file",
         help=t("cmd.convert_other.opt.report_file"),
     ),
+    profile: str | None = typer.Option(
+        None,
+        "--profile",
+        help=t("cmd.convert_other.opt.profile"),
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
@@ -52,6 +57,7 @@ def convert_other(
         input_mission_path=p_input,
         output_mission_folder=p_output,
         force=force,
+        profile_name=profile,
     )
 
     # ── Console output ────────────────────────────────────────────────────────

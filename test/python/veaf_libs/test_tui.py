@@ -474,11 +474,13 @@ class TestConvertOtherCommandSpec:
     def test_command_registered(self) -> None:
         assert "convert-other" in _COMMAND_MAP
 
-    def test_two_positional_prompts(self) -> None:
+    def test_prompts_shape(self) -> None:
         spec = _COMMAND_MAP["convert-other"]
-        assert [p.key for p in spec.prompts] == ["input_miz", "output_folder"]
-        assert all(not p.is_option for p in spec.prompts)
-        assert all(p.required for p in spec.prompts)
+        assert [p.key for p in spec.prompts] == ["input_miz", "output_folder", "profile"]
+        # The two path args are required positionals; the profile is an optional option.
+        positionals = [p for p in spec.prompts if not p.is_option]
+        assert [p.key for p in positionals] == ["input_miz", "output_folder"]
+        assert all(p.required for p in positionals)
 
     def test_missing_required_arg_routes_to_wizard(self) -> None:
         with patch.object(sys.stdout, "isatty", return_value=True):

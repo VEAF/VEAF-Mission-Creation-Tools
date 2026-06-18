@@ -155,6 +155,30 @@ class TestBuildScaffoldYaml(unittest.TestCase):
         self.assertNotRegex(yaml, r"^\s*WEATHER:\s*true")
 
 
+class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
+    def _profile(self):  # type: ignore[no-untyped-def]
+        from veaf_libs.conversion_profile import load_profile
+
+        return load_profile("foothold")
+
+    def test_writes_conversion_profile_marker(self) -> None:
+        yaml = build_scaffold_yaml([], [], self._profile())
+        self.assertIn("conversion_profile: foothold", yaml)
+
+    def test_modules_block_comes_from_profile(self) -> None:
+        yaml = build_scaffold_yaml([], [], self._profile())
+        self.assertIn("'foothold' conversion profile", yaml)
+        self.assertRegex(yaml, r"RADIO:\s*true")
+        # CTLD is incompatible — never enabled by the scaffold.
+        self.assertNotRegex(yaml, r"^\s*CTLD:\s*true")
+
+    def test_config_override_scaffold_is_commented(self) -> None:
+        yaml = build_scaffold_yaml([], [], self._profile())
+        self.assertIn("# config_override:", yaml)
+        self.assertIn("Foothold Config.lua", yaml)
+        self.assertIn("CapDifficulty", yaml)
+
+
 _REAL_MIZ = Path(r"D:\dev\_VEAF\tmp\test-foothold\test-caucasus\Foothold_CA_4.1.5_Multi_Language_Coldwar-Modern.miz")
 
 
@@ -190,6 +214,21 @@ class TestOtherMissionConverterIntegration(unittest.TestCase):
             self.assertIn("strip_native_triggers:", yaml)
             # Extracted scripts land in src/scripts/.
             self.assertTrue((out / "src" / "scripts" / "AIEN.lua").exists())
+
+    def test_foothold_profile_normalizes_moose_and_marks_profile(self) -> None:
+        from mission_builder.other_converter import OtherMissionConverter
+
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "mission"
+            OtherMissionConverter(version="test").convert(_REAL_MIZ, out, profile_name="foothold")
+
+            yaml = (out / "mission.yaml").read_text(encoding="utf-8")
+            self.assertIn("conversion_profile: foothold", yaml)
+            # Versioned Moose name normalised, on disk and in the scaffold.
+            self.assertTrue((out / "src" / "scripts" / "Moose.lua").exists())
+            self.assertFalse((out / "src" / "scripts" / "Moose_2026-04-28.lua").exists())
+            self.assertIn("src/scripts/Moose.lua", yaml)
+            self.assertNotIn("Moose_2026-04-28.lua", yaml)
 
     def test_existing_yaml_not_overwritten_without_force(self) -> None:
         from mission_builder.other_converter import OtherMissionConverter

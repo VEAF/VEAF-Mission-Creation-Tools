@@ -105,3 +105,33 @@ exécuté : la vérification est une recherche mot entier en Python pur.)
   des `custom_scripts` et leurs dépendances.
 - Construisez puis testez la mission dans DCS pour confirmer le comportement
   iso-fonctionnel.
+
+## Mettre à jour vers un `.miz` upstream plus récent (`--update`)
+
+Quand l'auteur tiers publie une nouvelle version (p. ex. une montée de version
+Foothold de Lekaa), ré-importez-la dans votre dossier déjà adopté avec `--update` :
+
+```bash
+veaf-tools convert-other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
+```
+
+En mode mise à jour, `convert-other` :
+
+- **rafraîchit les scripts tiers** (`src/scripts/*.lua`) et la **base de mission**
+  (`src/mission/**`) depuis le `.miz` frais — en écrasant les copies précédentes
+  au lieu de garder les anciennes (une première adoption conserve les fichiers
+  existants ; `--update` est l'interrupteur explicite « prends la nouvelle
+  version ») ;
+- **ré-applique la normalisation des noms versionnés** pour que les chemins
+  `custom_scripts:` restent stables d'une version à l'autre (p. ex.
+  `Moose_<nouvelle-date>.lua` → `Moose.lua`) ;
+- **préserve votre `mission.yaml` réglé** — il n'est jamais régénéré, donc vos
+  modules, votre `config_override` et vos `custom_scripts` survivent ;
+- **rapporte les scripts ajoutés, mis à jour et retirés en amont** dans le rapport
+  de conversion, pour que vous ajustiez `custom_scripts:` (et
+  `strip_native_triggers:`) pour tout script nouveau ou disparu. Un script retiré
+  en amont est signalé mais laissé sur disque — retirez-le de `custom_scripts:`
+  vous-même s'il ne sert plus.
+
+Relisez le rapport, réconciliez `custom_scripts:` / `strip_native_triggers:` avec
+les scripts ajoutés/retirés, puis reconstruisez et testez dans DCS.

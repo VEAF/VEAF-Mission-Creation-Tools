@@ -80,5 +80,47 @@ class TestMissionExtractorWorkerExtract(unittest.TestCase):
             self.assertFalse(extracted.exists(), "community script should have been removed on extract")
 
 
+class TestMissionExtractorRefresh(unittest.TestCase):
+    """`refresh=True` overwrites existing scripts instead of keeping the old copy (FOOTHOLD-V6-005)."""
+
+    def _miz_with_script(self, miz: Path, script_name: str, script_body: bytes) -> None:
+        with zipfile.ZipFile(miz, "w") as zf:
+            zf.writestr("mission", MINIMAL_MISSION_LUA)
+            zf.writestr("options", MINIMAL_OPTIONS_LUA)
+            zf.writestr("warehouses", MINIMAL_WAREHOUSES_LUA)
+            zf.writestr("theatre", b"Caucasus")
+            zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
+            zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
+            zf.writestr(f"l10n/DEFAULT/{script_name}", script_body)
+
+    def test_default_keeps_existing_script(self) -> None:
+        from mission_extractor.mission_extractor_worker import MissionExtractorWorker
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            (folder / "src" / "scripts").mkdir(parents=True)
+            (folder / "src" / "scripts" / "Engine.lua").write_text("-- OLD\n", encoding="utf-8")
+            miz = folder / "test.miz"
+            self._miz_with_script(miz, "Engine.lua", b"-- NEW\n")
+
+            MissionExtractorWorker(mission_folder=folder, input_mission_path=miz).extract_mission()
+
+            self.assertEqual((folder / "src" / "scripts" / "Engine.lua").read_text(encoding="utf-8"), "-- OLD\n")
+
+    def test_refresh_overwrites_existing_script(self) -> None:
+        from mission_extractor.mission_extractor_worker import MissionExtractorWorker
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            (folder / "src" / "scripts").mkdir(parents=True)
+            (folder / "src" / "scripts" / "Engine.lua").write_text("-- OLD\n", encoding="utf-8")
+            miz = folder / "test.miz"
+            self._miz_with_script(miz, "Engine.lua", b"-- NEW\n")
+
+            MissionExtractorWorker(mission_folder=folder, input_mission_path=miz, refresh=True).extract_mission()
+
+            self.assertEqual((folder / "src" / "scripts" / "Engine.lua").read_text(encoding="utf-8"), "-- NEW\n")
+
+
 if __name__ == "__main__":
     unittest.main()

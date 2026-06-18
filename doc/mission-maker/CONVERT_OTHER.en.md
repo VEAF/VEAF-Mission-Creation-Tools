@@ -102,3 +102,30 @@ search.)
 - Review `mission.yaml`: enable the VEAF modules you want, check the
   `custom_scripts` order and dependencies.
 - Build and test the mission in DCS to confirm iso-functional behaviour.
+
+## Updating to a newer upstream `.miz` (`--update`)
+
+When the third-party author ships a new version (e.g. a Lekaa Foothold bump),
+re-import it into your already-adopted folder with `--update`:
+
+```bash
+veaf-tools convert-other <new-upstream.miz> <output-folder> --profile foothold --update
+```
+
+In update mode `convert-other`:
+
+- **refreshes the third-party scripts** (`src/scripts/*.lua`) and the **mission
+  base** (`src/mission/**`) from the fresh `.miz` — overwriting the previous
+  copies instead of keeping the old ones (a first-time adoption keeps existing
+  files; `--update` is the explicit "take the new version" switch);
+- **re-applies versioned-name normalisation** so `custom_scripts:` paths stay
+  stable across versions (e.g. `Moose_<new-date>.lua` → `Moose.lua`);
+- **preserves your tuned `mission.yaml`** — it is never regenerated, so your
+  modules, `config_override`, and `custom_scripts` edits survive;
+- **reports the scripts added, updated, and removed upstream** in the conversion
+  report, so you can adjust `custom_scripts:` (and `strip_native_triggers:`) for
+  any new or vanished script. A script removed upstream is reported but left on
+  disk — drop it from `custom_scripts:` yourself if it is no longer needed.
+
+Review the report, reconcile `custom_scripts:` / `strip_native_triggers:` with
+any added/removed scripts, then rebuild and test in DCS.

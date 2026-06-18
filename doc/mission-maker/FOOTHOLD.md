@@ -61,7 +61,7 @@ Trois ajustements, tous **config-only** (on ne touche jamais aux scripts upstrea
 
 Foothold embarque **ses propres** bibliothèques (Moose, sa CTLD, AIEN, EWRS,
 Splash…) en `custom_scripts`. Les community scripts VEAF doivent donc rester OFF
-pour éviter double chargement et conflits :
+pour éviter un double chargement et des conflits :
 
 ```yaml
 community_scripts:

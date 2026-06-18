@@ -13,6 +13,8 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ⬜ |
+| Lot CLEANUP-LUPA — remove the dead `lupa` dependency (no longer imported since SECREV-001; still bundled by RC-002) | ⬜ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
@@ -78,6 +80,36 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain
+
+**Goal**: Bring the existing Foothold build process (community mission by Lekaa: Moose + zone-commander engine + CTLD + Splash/AIEN/EWRS, per-map variants) onto the v6 toolchain — a **build-only** port (no gameplay/engine rework), turning the current Mission-Editor-and-disk dance into a reproducible "moulinette" any VEAF member can re-run several times a month against a fresh upstream `.miz`. Architecture: **generic code, author-specific knowledge as data** (see [ADR 0007](docs/adr/0007-third-party-mission-adoption.md)) and **untouched upstream config + partial override validated lexically** (see [ADR 0008](docs/adr/0008-foothold-config-override.md)). The hand-written `VEAF_common.lua` loader (loadfile-by-path, dynamic-only) disappears, replaced by declarative `mission.yaml` (VEAF `modules:` + ordered `custom_scripts:`); static mode becomes the primary deliverable (single `.miz`, no disk sync). Iso-functional: MiST = VEAF module; Moose / zoneCommander / **Foothold CTLD (Lekaa's)** / setup / Config / Splash / AIEN / EWRS = `custom_scripts:` (no VEAF CTLD in Foothold). **Pilot: Caucasus.** Quality ratchet applies: any worker substantially edited here (e.g. `mission_extractor`, `mission_builder`) must drop its mypy `ignore_errors` entry, and the coverage gate bumps.
+
+**Branch**: `feat/foothold-v6` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FOOTHOLD-V6-001 | `convert-other` command — generic third-party `.miz` adoption: extract, generically detect embedded `.lua` + native load triggers, scaffold `mission.yaml` (`custom_scripts:`, `strip_native_triggers:`, baseline VEAF `modules:`), emit a conversion report. Distinct from `convert-v5` (migrate VEAF) — adopts a non-VEAF mission. | `veaf_tools/commands/`, `mission_*/`, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-002 | Conversion-profile system — declarative data profiles (default overridable, e.g. `src/defaults/convert-profiles/foothold.yaml`) carrying script load order, native-trigger patterns to strip, `config_override` scaffold + target config file, versioned-name normalisation rules. Ship the reference `foothold` profile. | `src/defaults/convert-profiles/`, `mission_*/`, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-003 | `strip_native_triggers:` at build — remove native DCS load triggers by name/pattern, reusing the `clear_veaf_triggers` infra. Generic `custom_scripts:`-level option, no "foothold" in code. | `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-004 | Partial config-override — render `config_override:` (generic passthrough `lua-global = value`, nested paths) to a small Lua script loaded **between** upstream config and setup. **Lexical token validation** per path segment against the whole Foothold corpus (corpus β), **build-blocking error** on a not-found segment, pure-Python regex (no Lua execution / no lupa, per SECREV-001). | `lua_config_generator.py` or new lib, `config_migrator.py` helpers, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-005 | `--update` mode — re-import a fresh upstream `.miz`: refresh third-party scripts (fix the extract "keep-old-version" behaviour), normalise versioned names (stable `custom_scripts:` paths), preserve the tuned `mission.yaml`, report scripts added/removed upstream. | `mission_extractor/`, `mission_*/`, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-006 | Modern / Cold-War multi-variant build — a single mission folder yields **both** `.miz` at build time (variant = config only), via VMCT build profiles. | `mission_builder/`, `mission.yaml` profiles, `test/python/` | feat | ⬜ |
+| FOOTHOLD-V6-007 | Caucasus pilot + process doc — integrate Caucasus end-to-end (mission folder committed in `VEAF-Foothold-Caucasus`), document the moulinette (init + `--update`) for a third party, validate iso-functionally in DCS. 🧑 **Gate (David)**: manual DCS test of both variants. | `VEAF-Foothold-Caucasus` repo, `doc/` | feat | ⬜ |
+
+---
+
+## Lot CLEANUP-LUPA — remove the dead `lupa` dependency
+
+**Goal**: `lupa` (Lua runtime) is no longer imported anywhere in `src/python/` — SECREV-001 routed all `.miz`/Lua parsing through the pure-Python `luadata` state machine to remove the RCE, and RC-002 then (needlessly, in hindsight) made `lupa` a non-optional dependency + `hiddenimports` in the `.spec` to bundle it in the exe. It is now pure dead weight in the dependency tree and the binary. Remove it. (Surfaced while planning FOOTHOLD-V6: the config-validation design deliberately avoids reintroducing lupa.)
+
+**Branch**: `chore/cleanup-lupa` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CLEANUP-LUPA-001 | Drop `lupa` from `pyproject.toml` dependencies, from the `hiddenimports` in `veaf-tools.spec`, and the `lupa.*` mypy override; verify no `import lupa` remains and the exe still builds. | `pyproject.toml`, `veaf-tools.spec`, `test/python/` | chore | ⬜ |
 
 ---
 

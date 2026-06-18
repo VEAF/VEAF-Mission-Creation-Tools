@@ -11,6 +11,7 @@ knowledge lives here; author-specific data is carried by a *conversion profile*
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -54,6 +55,57 @@ def _ordered_actions(trigrule: dict) -> list[dict]:
             actions[key] for key in sorted(actions.keys(), key=_dcs_index_sort_key) if isinstance(actions[key], dict)
         ]
     return []
+
+
+@dataclass(frozen=True)
+class ScriptUpdateDiff:
+    """How the third-party scripts changed between the adopted folder and a fresh upstream ``.miz``.
+
+    Attributes:
+        added: Scripts present upstream but not yet in the folder (new this update).
+        removed: Scripts in the folder no longer produced by the upstream mission.
+        updated: Scripts present in both whose content changed.
+    """
+
+    added: tuple[str, ...] = ()
+    removed: tuple[str, ...] = ()
+    updated: tuple[str, ...] = ()
+
+    def is_empty(self) -> bool:
+        """Whether nothing changed (no add/remove/update)."""
+        return not (self.added or self.removed or self.updated)
+
+
+def _sha256(path: Path) -> str:
+    """Return the hex SHA-256 of *path*'s bytes."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def snapshot_scripts(scripts_dir: Path) -> dict[str, str]:
+    """Map each ``*.lua`` basename under *scripts_dir* to its content hash (empty if absent)."""
+    if not scripts_dir.is_dir():
+        return {}
+    return {p.name: _sha256(p) for p in scripts_dir.glob("*.lua")}
+
+
+def diff_scripts(before: dict[str, str], after: dict[str, str], upstream: set[str]) -> ScriptUpdateDiff:
+    """Compute the add/remove/update diff of an ``--update`` re-import.
+
+    Args:
+        before: ``{name: hash}`` of the folder's scripts before the refresh.
+        after: ``{name: hash}`` of the folder's scripts after the refresh.
+        upstream: The script basenames the fresh upstream ``.miz`` provides
+            (normalised), i.e. those it actually loads.
+
+    Returns:
+        The diff. *added* = upstream scripts absent before; *removed* = scripts
+        present before but no longer in the upstream set; *updated* = scripts in
+        both the upstream set and *before* whose hash changed.
+    """
+    added = tuple(sorted(upstream - before.keys()))
+    removed = tuple(sorted(before.keys() - upstream))
+    updated = tuple(sorted(n for n in (upstream & before.keys()) if before.get(n) != after.get(n)))
+    return ScriptUpdateDiff(added=added, removed=removed, updated=updated)
 
 
 @dataclass(frozen=True)
@@ -291,6 +343,7 @@ class OtherMissionConverter:
         force: bool = False,
         backup: bool = True,
         profile_name: str | None = None,
+        update: bool = False,
     ) -> ConversionReport:
         """Adopt *input_mission_path* into *output_mission_folder*.
 
@@ -302,6 +355,10 @@ class OtherMissionConverter:
             profile_name: A conversion profile (bundled name or path) tailoring the
                 scaffold (modules, name normalisation, config_override). ``None`` for
                 a generic scaffold seeded with the ``minimal`` tier.
+            update: Re-import a fresher upstream ``.miz`` (FOOTHOLD-V6-005): refresh
+                the third-party scripts and mission base, **preserve** the tuned
+                ``mission.yaml`` (never scaffold), and report the scripts added,
+                removed, and updated upstream.
 
         Returns:
             The conversion report.
@@ -309,12 +366,17 @@ class OtherMissionConverter:
         report = ConversionReport(mission_folder=output_mission_folder, version=self._version)
         output_mission_folder.mkdir(parents=True, exist_ok=True)
         profile = load_profile(profile_name) if profile_name else None
+        scripts_dir = output_mission_folder / "src" / "scripts"
 
-        # 1. Extract the .miz into the mission folder (scripts land in src/scripts/).
+        # In update mode, snapshot the existing scripts before the refresh overwrites them.
+        before = snapshot_scripts(scripts_dir) if update else {}
+
+        # 1. Extract the .miz (scripts land in src/scripts/). Update refreshes in place.
         MissionExtractorWorker(
             mission_folder=output_mission_folder,
             input_mission_path=input_mission_path,
             keep_community_scripts=True,
+            refresh=update,
         ).work(silent=True)
         report.actions.append(t("convert_other.action.extracted", mission=input_mission_path.name))
 
@@ -326,9 +388,30 @@ class OtherMissionConverter:
         # 2b. Profile name-normalisation: rename the extracted file and the loader
         #     entry so custom_scripts paths stay stable across upstream versions.
         if profile is not None:
-            loaders = self._normalize_script_names(loaders, profile, output_mission_folder / "src" / "scripts")
+            loaders = self._normalize_script_names(loaders, profile, scripts_dir, overwrite=update)
 
-        # 3. Scaffold mission.yaml.
+        if update:
+            self._report_update(report, scripts_dir, before, loaders)
+        else:
+            self._scaffold_mission_yaml(report, output_mission_folder, loaders, strip_triggers, profile, force, backup)
+
+        # 4. Manual review items.
+        report.manual_review.append(t("convert_other.review.enable_modules"))
+        report.manual_review.append(t("convert_other.review.verify_order"))
+        report.manual_review.append(t("convert_other.review.test_dcs"))
+        return report
+
+    @staticmethod
+    def _scaffold_mission_yaml(
+        report: ConversionReport,
+        output_mission_folder: Path,
+        loaders: list[DetectedLoader],
+        strip_triggers: list[tuple[int, str]],
+        profile: ConversionProfile | None,
+        force: bool,
+        backup: bool,
+    ) -> None:
+        """Write (or skip) the scaffold ``mission.yaml`` for a first-time adoption."""
         dest = output_mission_folder / "mission.yaml"
         if dest.exists() and not force:
             report.mission_yaml_existed = True
@@ -344,23 +427,48 @@ class OtherMissionConverter:
                 t("convert_other.action.yaml_generated", scripts=len(loaders), triggers=len(strip_triggers))
             )
 
-        # 4. Manual review items.
-        report.manual_review.append(t("convert_other.review.enable_modules"))
-        report.manual_review.append(t("convert_other.review.verify_order"))
-        report.manual_review.append(t("convert_other.review.test_dcs"))
-        return report
+    @staticmethod
+    def _report_update(
+        report: ConversionReport,
+        scripts_dir: Path,
+        before: dict[str, str],
+        loaders: list[DetectedLoader],
+    ) -> None:
+        """Preserve the tuned ``mission.yaml`` and report the upstream script diff."""
+        after = snapshot_scripts(scripts_dir)
+        upstream = {loader.script for loader in loaders}
+        diff = diff_scripts(before, after, upstream)
+
+        report.mission_yaml_existed = True
+        report.mission_yaml_skipped_reason = t("convert_other.update.yaml_preserved")
+        report.actions.append(t("convert_other.update.yaml_preserved"))
+        if diff.is_empty():
+            report.actions.append(t("convert_other.update.no_changes"))
+        if diff.added:
+            report.actions.append(t("convert_other.update.added", count=len(diff.added), names=", ".join(diff.added)))
+        if diff.updated:
+            report.actions.append(
+                t("convert_other.update.updated", count=len(diff.updated), names=", ".join(diff.updated))
+            )
+        if diff.removed:
+            report.manual_review.append(
+                t("convert_other.update.removed", count=len(diff.removed), names=", ".join(diff.removed))
+            )
 
     @staticmethod
     def _normalize_script_names(
         loaders: list[DetectedLoader],
         profile: ConversionProfile,
         scripts_dir: Path,
+        overwrite: bool = False,
     ) -> list[DetectedLoader]:
         """Rename extracted scripts per *profile* and return loaders with new names.
 
         Renames ``scripts_dir/<original>`` to ``scripts_dir/<normalised>`` when the
         profile maps it (and the source file is present), so the on-disk file and
-        the ``custom_scripts`` path agree.
+        the ``custom_scripts`` path agree. With *overwrite* (``--update``), an
+        existing normalised target is replaced by the fresh copy; otherwise it is
+        kept (first-time adoption never clobbers an existing file).
         """
         result: list[DetectedLoader] = []
         for loader in loaders:
@@ -368,7 +476,10 @@ class OtherMissionConverter:
             if new_name != loader.script:
                 src = scripts_dir / loader.script
                 dst = scripts_dir / new_name
-                if src.is_file() and not dst.exists():
-                    src.rename(dst)
+                if src.is_file():
+                    if dst.exists() and overwrite:
+                        dst.unlink()
+                    if not dst.exists():
+                        src.rename(dst)
             result.append(replace(loader, script=new_name))
         return result

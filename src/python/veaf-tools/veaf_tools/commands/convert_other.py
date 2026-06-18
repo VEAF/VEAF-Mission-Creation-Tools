@@ -40,6 +40,11 @@ def convert_other(
         "--profile",
         help=t("cmd.convert_other.opt.profile"),
     ),
+    update: bool = typer.Option(
+        False,
+        "--update",
+        help=t("cmd.convert_other.opt.update"),
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
@@ -58,6 +63,7 @@ def convert_other(
         output_mission_folder=p_output,
         force=force,
         profile_name=profile,
+        update=update,
     )
 
     # ── Console output ────────────────────────────────────────────────────────

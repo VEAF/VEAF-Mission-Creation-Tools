@@ -9,13 +9,16 @@ actions whose ``file`` is a ``mapResource`` key resolving to a ``.lua`` filename
 
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from mission_builder.other_converter import (
     DetectedLoader,
+    OtherMissionConverter,
     build_scaffold_yaml,
     detect_native_loader_triggers,
     detect_native_script_loaders,
+    diff_scripts,
 )
 from mission_tools.miz_tools import DcsMission
 
@@ -256,6 +259,57 @@ class TestOtherMissionConverterIntegration(unittest.TestCase):
 
             self.assertFalse(report.mission_yaml_generated)
             self.assertIn("sentinel: true", (out / "mission.yaml").read_text(encoding="utf-8"))
+
+    def test_update_preserves_yaml_and_refreshes_scripts(self) -> None:
+        """`--update` re-import: refresh scripts, preserve the tuned mission.yaml, report the diff."""
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "mission"
+            # First adoption (scaffolds mission.yaml, extracts scripts).
+            OtherMissionConverter(version="test").convert(_REAL_MIZ, out, profile_name="foothold")
+
+            # Tune mission.yaml and tamper a script to prove the refresh overwrites it.
+            yaml_path = out / "mission.yaml"
+            yaml_path.write_text(yaml_path.read_text(encoding="utf-8") + "\n# TUNED BY USER\n", encoding="utf-8")
+            aien = out / "src" / "scripts" / "AIEN.lua"
+            aien.write_text("-- TAMPERED\n", encoding="utf-8")
+
+            # Re-import the same upstream with --update.
+            report = OtherMissionConverter(version="test").convert(_REAL_MIZ, out, profile_name="foothold", update=True)
+
+            # mission.yaml preserved (never regenerated in update mode).
+            self.assertFalse(report.mission_yaml_generated)
+            self.assertTrue(report.mission_yaml_existed)
+            self.assertIn("# TUNED BY USER", yaml_path.read_text(encoding="utf-8"))
+            # The tampered script was refreshed from upstream.
+            self.assertNotEqual(aien.read_text(encoding="utf-8"), "-- TAMPERED\n")
+            # The report flags the refreshed (updated) script (case-insensitive on Windows).
+            self.assertTrue(any("aien.lua" in a.lower() for a in report.actions))
+
+
+class TestDiffScripts(unittest.TestCase):
+    """Pure add/remove/update diff for `--update` (FOOTHOLD-V6-005)."""
+
+    def test_added_are_upstream_not_seen_before(self) -> None:
+        diff = diff_scripts(before={"A.lua": "h1"}, after={"A.lua": "h1", "B.lua": "h2"}, upstream={"A.lua", "B.lua"})
+        self.assertEqual(diff.added, ("B.lua",))
+        self.assertEqual(diff.removed, ())
+        self.assertEqual(diff.updated, ())
+
+    def test_removed_are_gone_from_upstream(self) -> None:
+        diff = diff_scripts(before={"A.lua": "h1", "Old.lua": "h0"}, after={"A.lua": "h1"}, upstream={"A.lua"})
+        self.assertEqual(diff.removed, ("Old.lua",))
+
+    def test_updated_are_common_with_changed_hash(self) -> None:
+        diff = diff_scripts(before={"A.lua": "h1"}, after={"A.lua": "h2"}, upstream={"A.lua"})
+        self.assertEqual(diff.updated, ("A.lua",))
+
+    def test_unchanged_yields_empty_diff(self) -> None:
+        diff = diff_scripts(before={"A.lua": "h1"}, after={"A.lua": "h1"}, upstream={"A.lua"})
+        self.assertTrue(diff.is_empty())
+
+    def test_results_are_sorted(self) -> None:
+        diff = diff_scripts(before={}, after={}, upstream={"Z.lua", "A.lua", "M.lua"})
+        self.assertEqual(diff.added, ("A.lua", "M.lua", "Z.lua"))
 
 
 if __name__ == "__main__":

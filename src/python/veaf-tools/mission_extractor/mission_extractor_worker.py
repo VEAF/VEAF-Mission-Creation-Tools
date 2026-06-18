@@ -31,6 +31,7 @@ class MissionExtractorWorker(BaseWorker):
         mission_folder: Path,
         input_mission_path: Path,
         keep_community_scripts: bool = False,
+        refresh: bool = False,
     ):
         """
         Initialize the worker with parameters for both use cases.
@@ -42,11 +43,17 @@ class MissionExtractorWorker(BaseWorker):
                 scripts (CTLD, CSAR, AIEN, …) — used when adopting a third-party
                 mission whose own (possibly customized) copies must be preserved
                 iso-functionally. Defaults to False (VEAF re-injects them).
+            refresh: When True, overwrite scripts already present in
+                ``src/scripts/`` with the freshly-extracted versions instead of
+                keeping the old copy — used by ``convert-other --update`` to
+                re-import a newer upstream ``.miz`` (FOOTHOLD-V6-005). Defaults to
+                False (first-time adoption keeps any existing copy).
         """
 
         self.input_mission_path = input_mission_path
         self.mission_folder = mission_folder
         self.keep_community_scripts = keep_community_scripts
+        self.refresh = refresh
 
         if not (self.input_mission_path and self.input_mission_path.is_file()):
             logger.error(
@@ -81,6 +88,10 @@ class MissionExtractorWorker(BaseWorker):
                     new_parent = new_path.parent
                     if not new_parent.exists():
                         new_parent.mkdir(parents=True, exist_ok=True)
+                    # shutil.move cannot overwrite an existing destination file on
+                    # Windows (os.rename fails); drop it first so refresh overwrites.
+                    if new_path.is_file():
+                        new_path.unlink()
                 if path and path.exists():
                     shutil.move(path, new_path)
             except FileNotFoundError:
@@ -129,7 +140,8 @@ class MissionExtractorWorker(BaseWorker):
                 if move_to_mission_src_folder_if_not_exist:
                     file_in_mission_name = Path(file_in_mission).name
                     file_in_mission_src_folder: Path = src_folder / "scripts" / file_in_mission_name
-                    remove = file_in_mission_src_folder.exists()
+                    # refresh: overwrite the existing copy instead of keeping it.
+                    remove = file_in_mission_src_folder.exists() and not self.refresh
                 if remove:
                     rm_file_or_dir(file_in_temp)  # delete temp file
                 else:
@@ -139,7 +151,8 @@ class MissionExtractorWorker(BaseWorker):
             temp_mission_dir = temp_dir / "l10n" / "DEFAULT"
             for file_in_temp in temp_mission_dir.glob("*.lua"):
                 file_in_mission_src_folder = src_scripts_folder / file_in_temp.name
-                if file_in_mission_src_folder.exists():
+                # refresh: overwrite the existing script with the fresh upstream copy.
+                if file_in_mission_src_folder.exists() and not self.refresh:
                     rm_file_or_dir(file_in_temp)  # delete temp file
                 else:
                     mv_file_or_dir(file_in_temp, file_in_mission_src_folder)

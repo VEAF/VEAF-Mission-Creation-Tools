@@ -1211,25 +1211,32 @@ class MissionBuilderWorker(BaseWorker):
         return self._position_config_override(self._apply_custom_scripts_order(files))
 
     def _apply_custom_scripts_order(self, files: list[str]) -> list[str]:
-        """Reorder the declared ``custom_scripts`` to their declaration order, in place.
+        """Return *files* with the declared ``custom_scripts`` in their declaration order.
 
         The collected mission scripts arrive in glob/collection order; the maker's
         intended load order is the ``custom_scripts:`` declaration order
         (FOOTHOLD-V6-008). Declared scripts are reordered **among the slots they
-        already occupy**, so undeclared files (VEAF infra ``veaf-config.lua`` /
-        ``mission-script.lua``, unknowns, the generated override) never move. A
-        declared script absent from *files* (file not on disk) is skipped.
+        already occupy**, so the positions of undeclared files (VEAF infra
+        ``veaf-config.lua`` / ``mission-script.lua``, unknowns, the generated
+        override) are preserved. A declared script absent from *files* (file not on
+        disk) is skipped.
+
+        Matching is by basename: ``custom_scripts`` paths are stored as basenames
+        (see ``__init__``) and every mission script lives in ``src/scripts/`` (one
+        directory), so basenames are unique and unambiguous here.
+
+        *files* is not mutated; a reordered copy is returned.
 
         Args:
             files: The collected mission-script paths, in collection order.
 
         Returns:
-            The paths with the declared scripts reordered (unchanged when there is
-            no ``custom_scripts`` or fewer than two are present).
+            A new list with the declared scripts reordered (the same list contents
+            when there is no ``custom_scripts`` or fewer than two are present).
         """
         declared: list[str] = []
         seen: set[str] = set()
-        for cs in self.custom_scripts:
+        for cs in self.custom_scripts:  # cs.path is already a basename (set in __init__)
             if cs.path not in seen:
                 seen.add(cs.path)
                 declared.append(cs.path)

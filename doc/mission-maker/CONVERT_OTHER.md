@@ -97,7 +97,7 @@ apparaître comme identifiant quelque part dans les scripts injectés
 (`src/scripts/*.lua`). Un segment introuvable — une faute de frappe ou un global
 renommé/supprimé en amont — **fait échouer `veaf-tools validate` et le build**,
 transformant une dérive amont silencieuse en alerte au build. (Aucun Lua n'est
-exécuté : la vérification est une recherche mot-entier en Python pur.)
+exécuté : la vérification est une recherche mot entier en Python pur.)
 
 ## Après la conversion
 

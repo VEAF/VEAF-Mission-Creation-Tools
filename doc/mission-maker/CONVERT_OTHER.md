@@ -39,7 +39,9 @@ et demande le `.miz` source puis le dossier de sortie.
    - une liste `strip_native_triggers:` des triggers natifs de chargement
      détectés — le **build** les supprimera (lot ultérieur) pour éviter un
      double chargement ; `convert-other` ne fait que les recenser ;
-   - tous les **modules VEAF désactivés** : activez ce dont la mission a besoin.
+   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra + MIST +
+     RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commenté) : une base VEAF
+     fonctionnelle d'emblée ; activez davantage au besoin.
 4. **Émet** un rapport Markdown récapitulant les actions et les points à revoir.
 
 ## Après la conversion

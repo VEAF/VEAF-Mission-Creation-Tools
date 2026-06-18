@@ -144,12 +144,15 @@ class TestBuildScaffoldYaml(unittest.TestCase):
         self.assertIn("ScriptLoader 1", yaml)
         self.assertIn("AIEN", yaml)
 
-    def test_modules_block_present_and_disabled(self) -> None:
+    def test_modules_block_uses_minimal_tier(self) -> None:
         yaml = build_scaffold_yaml(self._loaders(), [])
 
         self.assertIn("modules:", yaml)
-        self.assertRegex(yaml, r"RADIO:\s*false")
-        self.assertNotRegex(yaml, r":\s*true")
+        # The 'minimal' tier enables the core feature modules.
+        self.assertRegex(yaml, r"RADIO:\s*true")
+        self.assertRegex(yaml, r"SPAWN:\s*true")
+        # A standard-tier-only module (WEATHER) is not enabled in minimal.
+        self.assertNotRegex(yaml, r"^\s*WEATHER:\s*true")
 
 
 _REAL_MIZ = Path(r"D:\dev\_VEAF\tmp\test-foothold\test-caucasus\Foothold_CA_4.1.5_Multi_Language_Coldwar-Modern.miz")

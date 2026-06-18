@@ -20,7 +20,7 @@ from mission_extractor import MissionExtractorWorker
 from mission_tools import read_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.i18n import t
-from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.mission_template import render_modules_block, tier_modules
 
 from mission_builder.mission_builder_worker import lua_loads_other_scripts
 from mission_builder.v5_converter import ConversionReport
@@ -200,11 +200,11 @@ def build_scaffold_yaml(
     lines.append("")
 
     lines += [
-        "# VEAF modules — all disabled by default. Enable what this mission needs.",
+        "# VEAF modules — the 'minimal' tier (infra + RADIO/SPAWN/SHORTCUTS/INTERPRETER).",
+        "# Enable more as this mission needs them.",
         "modules:",
     ]
-    for module in get_modules():
-        lines.append(f"  {module['id']}: false")
+    lines.extend(render_modules_block(tier_modules("minimal")))
     lines.append("")
 
     return "\n".join(lines)

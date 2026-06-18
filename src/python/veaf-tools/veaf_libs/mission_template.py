@@ -221,6 +221,38 @@ def module_category(module_id: str) -> str:
     return CATALOG[module_id].category
 
 
+def render_modules_block(enabled: set[str]) -> list[str]:
+    """Render the body of a ``modules:`` block (category-grouped) for *enabled*.
+
+    Infrastructure modules and the SECURITY how-to block are always emitted;
+    every other module only when its id is in *enabled*. Returns the indented
+    lines that go **under** a ``modules:`` key (not the key itself).
+
+    Args:
+        enabled: Module ids to enable (infrastructure is always included).
+
+    Returns:
+        The ``modules:`` body lines.
+    """
+    lines: list[str] = []
+    current_category = ""
+    for module in _CATALOG:
+        include = module.kind in (INFRA, SECURITY) or module.id in enabled
+        if not include:
+            continue
+        if module.category != current_category:
+            lines.append(f"  # ── {module.category} ──")
+            current_category = module.category
+        suffix = f"  # {module.comment}" if module.comment else ""
+        if module.kind == INFRA:
+            lines.append(f"  {module.id}:{suffix}")
+        elif module.kind == FEATURE:
+            lines.append(f"  {module.id}: true{suffix}")
+        else:  # CONFIG / SECURITY / TUM → commented block
+            lines.append(module.config_block)
+    return lines
+
+
 def generate_mission_yaml(enabled: set[str]) -> str:
     """Generate a ``mission.yaml`` text whose ``modules:`` block reflects *enabled*.
 
@@ -239,21 +271,5 @@ def generate_mission_yaml(enabled: set[str]) -> str:
         "",
         "modules:",
     ]
-    current_category = ""
-    for module in _CATALOG:
-        # Infrastructure and the SECURITY how-to are always emitted; everything else only
-        # when in the selected set (SECURITY renders as a commented "off by default" block).
-        include = module.kind in (INFRA, SECURITY) or module.id in enabled
-        if not include:
-            continue
-        if module.category != current_category:
-            lines.append(f"  # ── {module.category} ──")
-            current_category = module.category
-        suffix = f"  # {module.comment}" if module.comment else ""
-        if module.kind == INFRA:
-            lines.append(f"  {module.id}:{suffix}")
-        elif module.kind == FEATURE:
-            lines.append(f"  {module.id}: true{suffix}")
-        else:  # CONFIG / SECURITY / TUM → commented block
-            lines.append(module.config_block)
+    lines.extend(render_modules_block(enabled))
     return "\n".join(lines) + "\n"

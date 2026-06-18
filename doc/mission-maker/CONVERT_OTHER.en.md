@@ -39,7 +39,9 @@ and asks for the source `.miz` then the output folder.
    - a `strip_native_triggers:` list of the detected native loader triggers —
      the **build** will strip them (a later lot) to avoid double loading;
      `convert-other` only records them;
-   - every VEAF module **disabled**: enable what the mission needs.
+   - a `modules:` block seeded with the **`minimal`** tier (infra + MIST +
+     RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commented): a working VEAF
+     baseline out of the box; enable more as needed.
 4. **Emits** a Markdown report summarising the actions and review items.
 
 ## After conversion

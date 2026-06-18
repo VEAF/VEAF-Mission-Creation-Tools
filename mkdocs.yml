@@ -99,6 +99,8 @@ nav:
     - Overview: mission-maker/README.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
+    - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
+    - Foothold moulinette: mission-maker/FOOTHOLD.md
     - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md

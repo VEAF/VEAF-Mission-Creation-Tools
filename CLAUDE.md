@@ -97,6 +97,7 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 
 For every action requested by the user, execute these steps in order:
 
+0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop-v6` (or rebase your branch onto the latest `origin/develop-v6`). Never reason about "what's left to do" or start work from a stale local checkout.
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
 2. **Create a lot** in `BACKLOG.md`: add a new lot with a unique ID, description, tickets, and status `⬜`. Add it to the Summary table.

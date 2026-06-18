@@ -245,8 +245,8 @@ def _community_scripts_block(profile: ConversionProfile) -> list[str]:
     if not profile.disabled_community_scripts:
         return []
     lines = [
-        "# This mission ships its own community libraries (as custom_scripts above), so",
-        "# VEAF's bundled community scripts are turned off to avoid double-loading.",
+        f"# VEAF community scripts disabled by the '{profile.name}' conversion profile",
+        "# (this mission provides its own, or does not use them). Re-enable any you need.",
         "community_scripts:",
     ]
     lines += [f"  {script_id}: false" for script_id in profile.disabled_community_scripts]

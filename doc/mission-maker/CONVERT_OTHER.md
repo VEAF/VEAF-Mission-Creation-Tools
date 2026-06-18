@@ -59,8 +59,9 @@ veaf-tools convert-other <mission.miz> <dossier-de-sortie> --profile foothold
 3. **Génère** un `mission.yaml` *scaffold* :
    - un bloc `custom_scripts:` **ordonné** (l'ordre de chargement d'origine) ;
    - une liste `strip_native_triggers:` des triggers natifs de chargement
-     détectés — le **build** les supprimera (lot ultérieur) pour éviter un
-     double chargement ; `convert-other` ne fait que les recenser ;
+     détectés (par commentaire ou motif glob) — le **build les supprime**
+     (trigrule + entrées `trig` + ressources `mapResource`) pour éviter un
+     double chargement avec les `custom_scripts` réinjectés ;
    - un bloc `modules:` initialisé sur le **tier `minimal`** (infra + MIST +
      RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commenté) : une base VEAF
      fonctionnelle d'emblée ; activez davantage au besoin.

@@ -2,6 +2,7 @@
 Worker module for the VEAF Mission Builder Package.
 """
 
+import fnmatch
 import re
 import shutil
 import tempfile
@@ -169,6 +170,57 @@ _LUA_SCRIPT_LOADER_RE = re.compile(r"\b(?:loadfile|dofile|require)\b|a_do_script
 def lua_loads_other_scripts(text: str) -> bool:
     """Return True when *text* looks like a Lua script that loads other scripts."""
     return bool(_LUA_SCRIPT_LOADER_RE.search(text))
+
+
+def strip_native_load_triggers(dcs_mission: "DcsMission", labels: list[str]) -> None:
+    """Remove native load triggers whose comment matches one of *labels* (glob).
+
+    For a third-party mission adopted via ``convert-other``, the scripts are
+    re-injected as ``custom_scripts``; their original native load triggers must be
+    removed (``strip_native_triggers:``) so nothing is loaded twice. Mutates
+    *dcs_mission* in place: drops the matching ``trigrules`` entries, the matching
+    indices from every compiled ``trig`` category, and the ``mapResource`` keys of
+    their ``a_do_script_file`` actions. No-op when *labels* is empty.
+
+    Args:
+        dcs_mission: The mission being built (mutated in place).
+        labels: ``strip_native_triggers`` values — trigrule comments or globs.
+    """
+    if not labels or not dcs_mission.mission_content:
+        return
+    mission_content = dcs_mission.mission_content
+    trigrules = mission_content.get("trigrules") or {}
+
+    indices_to_remove: list = []
+    map_keys_to_remove: list[str] = []
+    for index, trigrule in list(trigrules.items()):
+        if not isinstance(trigrule, dict):
+            continue
+        comment = str(trigrule.get("comment", ""))
+        if not any(fnmatch.fnmatch(comment, label) for label in labels):
+            continue
+        indices_to_remove.append(index)
+        actions = trigrule.get("actions")
+        action_values = (
+            actions if isinstance(actions, list) else list(actions.values()) if isinstance(actions, dict) else []
+        )
+        for action in action_values:
+            if isinstance(action, dict) and action.get("predicate") == "a_do_script_file" and action.get("file"):
+                map_keys_to_remove.append(action["file"])
+
+    if not indices_to_remove:
+        return
+
+    for index in indices_to_remove:
+        trigrules.pop(index, None)
+    for category in (mission_content.get("trig") or {}).values():
+        if isinstance(category, dict):
+            for index in indices_to_remove:
+                category.pop(index, None)
+    if dcs_mission.map_resource_content:
+        for key in map_keys_to_remove:
+            dcs_mission.map_resource_content.pop(key, None)
+    logger.info(t("builder.stripped_native_triggers", count=len(indices_to_remove)))
 
 
 #: Community scripts that are hard dependencies of the VEAF scripts and are always
@@ -1565,6 +1617,11 @@ class MissionBuilderWorker(BaseWorker):
         # First, remove all the VEAF triggers
         with spinner_context(t("builder.clearing_triggers"), silent=silent):
             self.clear_veaf_triggers()
+
+        # Strip the third-party native load triggers a conversion declared (so the
+        # scripts re-injected as custom_scripts are not loaded twice).
+        if self.dcs_mission is not None:
+            strip_native_load_triggers(self.dcs_mission, self.mission_yaml.get("strip_native_triggers") or [])
 
         # Then, add all the VEAF triggers we need
         if not self.no_veaf_triggers:

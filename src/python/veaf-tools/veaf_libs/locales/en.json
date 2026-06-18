@@ -42,6 +42,7 @@
   "validate.custom_script_missing": "custom_scripts: declared script '{path}' does not exist.",
   "validate.incompatible_module": "modules: '{module}' is incompatible with the '{profile}' conversion profile and must stay disabled.",
   "builder.incompatible_modules": "Cannot build: module(s) {modules} are incompatible with the '{profile}' conversion profile. Disable them in mission.yaml.",
+  "builder.stripped_native_triggers": "Stripped {count} native load trigger(s) declared in strip_native_triggers.",
   "validate.missing_group": "Group '{group}' declared in {section} is absent from the mission — place it in the Mission Editor, or the feature fails at runtime.",
   "validate.presets_no_aircraft": "presets.yaml is configured but the mission has no player aircraft to apply radio presets to.",
   "validate.waypoints_no_aircraft": "waypoints.yaml is configured but the mission has no aircraft groups to inject waypoints into.",

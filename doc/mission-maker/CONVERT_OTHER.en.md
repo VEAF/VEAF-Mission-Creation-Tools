@@ -58,9 +58,10 @@ veaf-tools convert-other <mission.miz> <output-folder> --profile foothold
    **load order** (trigger order × action order).
 3. **Generates** a scaffold `mission.yaml`:
    - an **ordered** `custom_scripts:` block (the original load order);
-   - a `strip_native_triggers:` list of the detected native loader triggers —
-     the **build** will strip them (a later lot) to avoid double loading;
-     `convert-other` only records them;
+   - a `strip_native_triggers:` list of the detected native loader triggers (by
+     comment or glob pattern) — the **build strips them** (trigrule + `trig`
+     entries + `mapResource` resources) so they do not double-load alongside the
+     re-injected `custom_scripts`;
    - a `modules:` block seeded with the **`minimal`** tier (infra + MIST +
      RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commented): a working VEAF
      baseline out of the box; enable more as needed.

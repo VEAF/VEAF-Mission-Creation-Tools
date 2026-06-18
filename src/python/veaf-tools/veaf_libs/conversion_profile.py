@@ -2,7 +2,8 @@
 
 A *conversion profile* carries the author-specific knowledge that `convert-other`
 needs for a given third-party mission family (e.g. Foothold): which VEAF modules
-to enable, which are incompatible, how to normalise versioned script names, and a
+to enable, which are incompatible, which VEAF community scripts to disable (the
+mission ships its own), how to normalise versioned script names, and a
 ``config_override`` scaffold. The profile is data; the code reading it is generic.
 See ADR 0007.
 
@@ -47,6 +48,7 @@ class ConversionProfile:
     description: str = ""
     modules: tuple[str, ...] = ()
     incompatible_modules: tuple[str, ...] = ()
+    disabled_community_scripts: tuple[str, ...] = ()
     name_rules: tuple[NameRule, ...] = ()
     config_override: ConfigOverrideSpec | None = None
 
@@ -78,6 +80,7 @@ def _parse_profile(raw: dict, name_hint: str) -> ConversionProfile:
         description=str(raw.get("description", "")),
         modules=tuple(raw.get("modules") or ()),
         incompatible_modules=tuple(raw.get("incompatible_modules") or ()),
+        disabled_community_scripts=tuple(raw.get("disabled_community_scripts") or ()),
         name_rules=tuple(
             NameRule(pattern=str(r["pattern"]), replacement=str(r["replacement"]))
             for r in (raw.get("name_normalization") or [])

@@ -56,11 +56,12 @@ triggers (in order), and generates a `mission.yaml` with:
 
 Three adjustments, all **config-only** (the upstream scripts are never touched):
 
-### a. Turn off the VEAF community scripts
+### a. VEAF community scripts (already turned off by the profile)
 
 Foothold ships **its own** libraries (Moose, its own CTLD, AIEN, EWRS, Splash…)
 as `custom_scripts`. The VEAF community scripts must therefore stay OFF to avoid
-double-loading and conflicts:
+double-loading and conflicts. The `foothold` profile **already scaffolds** this
+block — nothing to do, just confirm it is present:
 
 ```yaml
 community_scripts:

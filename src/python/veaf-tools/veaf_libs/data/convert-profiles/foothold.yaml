@@ -26,6 +26,20 @@ modules:
 incompatible_modules:
   - CTLD
 
+# VEAF bundled community scripts to disable in the scaffold: Foothold ships its
+# own libraries (Moose, its own CTLD, AIEN, EWRS, Splash, …) as custom_scripts, so
+# VEAF's must stay OFF to avoid double-loading and conflicts. `convert-other`
+# scaffolds a `community_scripts:` block turning each of these off.
+disabled_community_scripts:
+  - mist
+  - stts
+  - ctld
+  - aien
+  - csar
+  - hercules
+  - skynet
+  - tum
+
 # Stabilise upstream versioned script names so `custom_scripts:` paths survive a
 # Lekaa version bump (and `convert-other --update`). Glob pattern -> fixed name.
 name_normalization:

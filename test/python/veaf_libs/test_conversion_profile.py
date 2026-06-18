@@ -32,6 +32,14 @@ class TestBundledFootholdProfile(unittest.TestCase):
         self.assertEqual(profile.config_override.target, "Foothold Config.lua")
         self.assertIn("CapDifficulty", profile.config_override.defaults)
 
+    def test_disables_veaf_community_scripts(self) -> None:
+        # Foothold ships its own community libs — VEAF's must be scaffolded OFF (FOOTHOLD-V6-009).
+        profile = load_profile("foothold")
+        self.assertEqual(
+            set(profile.disabled_community_scripts),
+            {"mist", "stts", "ctld", "aien", "csar", "hercules", "skynet", "tum"},
+        )
+
     def test_normalizes_versioned_moose_name(self) -> None:
         profile = load_profile("foothold")
         self.assertEqual(profile.normalize_script_name("Moose_2026-04-28.lua"), "Moose.lua")
@@ -53,6 +61,13 @@ class TestLoadProfileFromPath(unittest.TestCase):
             self.assertEqual(profile.name, "custom")
             self.assertEqual(profile.modules, ("RADIO",))
             self.assertEqual(profile.incompatible_modules, ("SPAWN",))
+
+    def test_parses_disabled_community_scripts(self) -> None:
+        with TemporaryDirectory() as td:
+            p = Path(td) / "cs.yaml"
+            p.write_text("name: cs\ndisabled_community_scripts: [mist, ctld]\n", encoding="utf-8")
+            profile = load_profile(str(p))
+            self.assertEqual(profile.disabled_community_scripts, ("mist", "ctld"))
 
     def test_unknown_name_raises(self) -> None:
         with self.assertRaises(FileNotFoundError):

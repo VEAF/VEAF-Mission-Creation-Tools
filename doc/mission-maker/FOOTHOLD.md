@@ -57,11 +57,12 @@ natifs (dans l'ordre), et génère un `mission.yaml` avec :
 
 Trois ajustements, tous **config-only** (on ne touche jamais aux scripts upstream) :
 
-### a. Couper les community scripts VEAF
+### a. Community scripts VEAF (déjà coupés par le profil)
 
 Foothold embarque **ses propres** bibliothèques (Moose, sa CTLD, AIEN, EWRS,
 Splash…) en `custom_scripts`. Les community scripts VEAF doivent donc rester OFF
-pour éviter un double chargement et des conflits :
+pour éviter un double chargement et des conflits. Le profil `foothold` **scaffolde
+déjà** ce bloc — rien à faire, vérifiez juste qu'il est présent :
 
 ```yaml
 community_scripts:

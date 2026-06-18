@@ -195,6 +195,17 @@ class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
         self.assertIn("Foothold Config.lua", yaml)
         self.assertIn("CapDifficulty", yaml)
 
+    def test_community_scripts_disabled_block(self) -> None:
+        # Foothold ships its own community libs — the scaffold turns VEAF's off (FOOTHOLD-V6-009).
+        yaml = build_scaffold_yaml([], [], self._profile())
+        self.assertIn("community_scripts:", yaml)
+        for sid in ("mist", "ctld", "aien", "csar", "skynet"):
+            self.assertIn(f"{sid}: false", yaml, f"{sid} must be scaffolded false")
+
+    def test_no_community_scripts_block_without_profile(self) -> None:
+        yaml = build_scaffold_yaml([], [], None)
+        self.assertNotIn("community_scripts:", yaml)
+
 
 _REAL_MIZ = Path(r"D:\dev\_VEAF\tmp\test-foothold\test-caucasus\Foothold_CA_4.1.5_Multi_Language_Coldwar-Modern.miz")
 

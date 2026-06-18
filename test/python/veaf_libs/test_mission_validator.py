@@ -137,6 +137,23 @@ class TestMissionValidator(unittest.TestCase):
         )
         self.assertFalse(any("incompatible" in i.message.lower() for i in validate_mission_folder(folder)))
 
+    def test_config_override_known_segments_pass(self) -> None:
+        folder = _make_folder(
+            'config_override:\n  target: "Foothold Config.lua"\n  values:\n    CapDifficulty: medium\n',
+            mission_table=_MISSION_WITH_PLAYER,
+            extra={"src/scripts/Foothold Config.lua": "CapDifficulty = easy\n"},
+        )
+        self.assertFalse(any("config_override" in i.message for i in validate_mission_folder(folder)))
+
+    def test_config_override_unknown_segment_is_error(self) -> None:
+        folder = _make_folder(
+            'config_override:\n  target: "Foothold Config.lua"\n  values:\n    GhostSetting: 1\n',
+            mission_table=_MISSION_WITH_PLAYER,
+            extra={"src/scripts/Foothold Config.lua": "CapDifficulty = easy\n"},
+        )
+        issues = validate_mission_folder(folder)
+        self.assertTrue(any(i.level == ERROR and "GhostSetting" in i.message for i in issues))
+
 
 if __name__ == "__main__":
     unittest.main()

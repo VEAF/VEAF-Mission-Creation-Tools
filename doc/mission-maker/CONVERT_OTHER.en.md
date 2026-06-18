@@ -67,6 +67,36 @@ veaf-tools convert-other <mission.miz> <output-folder> --profile foothold
      baseline out of the box; enable more as needed.
 4. **Emits** a Markdown report summarising the actions and review items.
 
+## Partial config override
+
+A third-party mission like Foothold ships a large, author-controlled config file
+that VEAF leaves **untouched**. To change a handful of settings at deploy time
+(difficulty, start side, auto-restart…) without rewriting that file, fill the
+`config_override:` block the scaffold leaves commented:
+
+```yaml
+config_override:
+  target: "Foothold Config.lua"   # the upstream config script you layer on top of
+  values:
+    CapDifficulty: medium         # global = value
+    StartNormal: true
+    AutoRestart: false
+    Some.Nested.Global: 42        # dotted path → Some.Nested.Global = 42
+```
+
+At build, this renders a small `veaf-config-override.lua` that **restates only the
+globals you changed**, loaded **between** the untouched upstream config and the
+setup script (so the upstream config drops in unchanged on a new Lekaa version,
+and your overrides win). Values are passed through as-is — VEAF never interprets
+them; the mission validates its own values at runtime.
+
+Each override key is **validated lexically**: every dotted segment must appear as
+an identifier somewhere in the injected scripts (`src/scripts/*.lua`). A segment
+found nowhere — a typo or a global the upstream renamed/removed — **fails
+`veaf-tools validate` and the build**, so silent upstream drift becomes a
+build-time alert. (No Lua is executed: the check is a pure-Python whole-word
+search.)
+
 ## After conversion
 
 - Review `mission.yaml`: enable the VEAF modules you want, check the

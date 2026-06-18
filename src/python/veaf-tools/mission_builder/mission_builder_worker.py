@@ -30,6 +30,12 @@ from mission_tools import (
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import resolve_profile
+from veaf_libs.config_override import (
+    OVERRIDE_SCRIPT_NAME,
+    find_unknown_segments,
+    read_corpus,
+    render_override_lua,
+)
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
@@ -54,6 +60,7 @@ _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
         "veaf-config.lua",
         "mission-script.lua",
         "veafDynamicConfig.lua",
+        OVERRIDE_SCRIPT_NAME,
     }
 )
 
@@ -528,6 +535,19 @@ class MissionBuilderWorker(BaseWorker):
                     path = str(script_item)
                     per_script_trigger = None
                 self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
+
+        # Parse config_override section from mission.yaml (FOOTHOLD-V6-004).
+        # target = the upstream config script the override layers on top of (its
+        # basename anchors the load position); values = the globals to reassign.
+        self.config_override_target: str | None = None
+        self.config_override_values: dict = {}
+        co_raw = self.mission_yaml.get("config_override")
+        if isinstance(co_raw, dict):
+            co_target = co_raw.get("target")
+            self.config_override_target = Path(str(co_target)).name if co_target else None
+            co_values = co_raw.get("values")
+            if isinstance(co_values, dict):
+                self.config_override_values = co_values
 
         # Parse community_scripts section from mission.yaml
         # None means "all enabled" (no section present); a set means only those ids are enabled.
@@ -1182,12 +1202,60 @@ class MissionBuilderWorker(BaseWorker):
         would load itself in a loop) nor in the static list, so it is excluded here
         — in one place for every consumer.
         """
-        return [
+        files = [
             script_file_name
             for script_file_name in self.get_collected_mission_script_files()
             if self._resolves_load_trigger(Path(script_file_name).name)
             and Path(script_file_name).name != "veafDynamicConfig.lua"
         ]
+        return self._position_config_override(files)
+
+    def _position_config_override(self, files: list[str]) -> list[str]:
+        """Move the rendered config-override script to right after its target.
+
+        The override must reassign the upstream globals **after** the config script
+        defines them and **before** the setup script reads them (ADR 0008). It is
+        positioned by file name, independent of the glob/collection order. When the
+        target is not in the list, the override is appended so it still loads.
+
+        Args:
+            files: The collected mission-script paths, in collection order.
+
+        Returns:
+            The paths with the override repositioned (unchanged when there is no
+            config_override).
+        """
+        if not self.config_override_values or not self.config_override_target:
+            return files
+        rest = [f for f in files if Path(f).name != OVERRIDE_SCRIPT_NAME]
+        override = next((f for f in files if Path(f).name == OVERRIDE_SCRIPT_NAME), None)
+        if override is None:
+            return files
+        target_idx = next((i for i, f in enumerate(rest) if Path(f).name == self.config_override_target), None)
+        rest.insert(target_idx + 1 if target_idx is not None else len(rest), override)
+        return rest
+
+    def render_config_override(self) -> None:
+        """Render ``config_override:`` to :data:`OVERRIDE_SCRIPT_NAME`, validated lexically.
+
+        Build-blocking: aborts (``RuntimeError``) when an override key segment is
+        found nowhere in the injected mission scripts — a typo or an upstream
+        rename. The file is written only after validation passes, so an aborted
+        build leaves no stale override. See ADR 0008.
+        """
+        if not self.config_override_values:
+            return
+        scripts_dir = self.mission_folder / "src" / "scripts"
+        unknown = find_unknown_segments(self.config_override_values, read_corpus(scripts_dir))
+        if unknown:
+            logger.error(
+                t("builder.config_override_unknown_segments", segments=", ".join(unknown)),
+                exception_type=RuntimeError,
+            )
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        override_file = scripts_dir / OVERRIDE_SCRIPT_NAME
+        override_file.write_text(render_override_lua(self.config_override_values), encoding="utf-8")
+        logger.info(t("builder.config_override_generated", file=override_file, count=len(self.config_override_values)))
 
     def _ordered_mission_script_names(self) -> list[str]:
         """Ordered basenames of the mission scripts — see :meth:`_ordered_mission_script_files`."""
@@ -1593,6 +1661,13 @@ class MissionBuilderWorker(BaseWorker):
             with spinner_context(t("builder.generating_config"), silent=silent):
                 self.write_config_lua()
             # Invalidate cached mission script files so the new file is picked up
+            self.collected_mission_script_files = None
+
+        # Render the partial config-override script (FOOTHOLD-V6-004): validated
+        # lexically, loaded between the upstream config and setup. Build-blocking.
+        if self.config_override_values:
+            with spinner_context(t("builder.generating_config"), silent=silent):
+                self.render_config_override()
             self.collected_mission_script_files = None
 
         # Regenerate veafDynamicConfig.lua so dynamic mode loads the same mission

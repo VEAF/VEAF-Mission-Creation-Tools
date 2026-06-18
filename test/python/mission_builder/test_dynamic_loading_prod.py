@@ -13,6 +13,8 @@ def _bare_worker() -> MissionBuilderWorker:
     worker.custom_scripts = []
     worker.custom_scripts_generate_load_trigger = True
     worker.collected_mission_script_files = None
+    worker.config_override_target = None
+    worker.config_override_values = {}
     return worker
 
 

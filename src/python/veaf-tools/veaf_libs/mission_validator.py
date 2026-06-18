@@ -9,6 +9,7 @@ Checks:
   1. ``mission.yaml`` YAML syntax                                  (error)
   2. ``modules:`` semantics — unknown key, wrong type, removed section (error / warning)
   3. ``custom_scripts`` declared files exist on disk              (error)
+  3b. ``config_override`` keys exist lexically in the injected corpus (error)
   4. ASSETS/QRA groups declared in mission.yaml exist in the mission (warning)
   5. presets / waypoints configured but no aircraft to apply them to (warning)
   6. ``TUM: true`` requires BLUFOR/REDFOR territory zones          (warning)
@@ -24,6 +25,7 @@ from pathlib import Path
 
 import yaml
 
+from veaf_libs.config_override import find_unknown_segments, read_corpus
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
@@ -79,6 +81,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
 
+    # 3b. config_override keys exist lexically in the injected Foothold corpus
+    issues += _check_config_override(folder, yaml_data)
+
     # 4-6. checks that need the source mission table
     mission = _read_source_mission(folder)
     if mission is None:
@@ -103,6 +108,29 @@ def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue
             continue
         if not (folder / str(path)).is_file():
             issues.append(ValidationIssue(ERROR, t("validate.custom_script_missing", path=path)))
+    return issues
+
+
+def _check_config_override(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Each ``config_override.values`` key segment must exist in the injected corpus.
+
+    Validates lexically (whole-word identifier search) against the concatenated
+    ``src/scripts/*.lua`` sources — a segment found nowhere is a typo or an upstream
+    rename and is reported as an error. See ADR 0008.
+    """
+    co = yaml_data.get("config_override")
+    if not isinstance(co, dict):
+        return []
+    values = co.get("values")
+    if not isinstance(values, dict) or not values:
+        return []
+    corpus = read_corpus(folder / "src" / "scripts")
+    issues: list[ValidationIssue] = []
+    for key in values:
+        for segment in find_unknown_segments({key: values[key]}, corpus):
+            issues.append(
+                ValidationIssue(ERROR, t("validate.config_override_unknown_segment", segment=segment, override_key=key))
+            )
     return issues
 
 

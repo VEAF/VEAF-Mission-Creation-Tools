@@ -733,6 +733,7 @@
   "cmd.build.folder_not_found": "Le dossier de mission {path} n'existe pas !",
   "cmd.build.invalid_mission_name": "mission.name {name} ne contient que des caractères invalides pour un nom de fichier ; 'mission' sera utilisé",
   "cmd.build.settings_persisted": "Paramètres de construction enregistrés dans {path}",
+  "cmd.build.multivariant": "Build multi-variant : génération de {count} variante(s) — {variants}",
   "cmd.build.aircraft_validation_failed": "Pipeline : validation YAML des groupes d'aéronefs échouée — ignoré ({path})",
   "cmd.build.orphan_aircraft_file": "Fichier ignoré '{file}' : les fichiers de groupes d'aéronefs pré-v6 ne sont plus injectés. Les groupes d'aéronefs utilisent désormais 'src/spawnables.yaml' (étape spawnable_aircrafts) et 'src/dynamic-slot-templates.yaml' (étape dynamic_slot_templates) — régénérez-les avec 'extract-aircraft-groups'. Vous pouvez supprimer ce fichier en toute sécurité.",
   "cmd.config.no_module_info": "Aucune information sur les modules Lua VEAF disponible. Lancez la commande depuis un dépôt complet.",

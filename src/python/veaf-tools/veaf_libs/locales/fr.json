@@ -40,6 +40,8 @@
   "validate.no_mission_yaml": "Aucun mission.yaml trouvé dans '{folder}'.",
   "validate.no_source_mission": "Table de mission source (src/mission/mission) introuvable — checks groupes / presets / waypoints / TUM ignorés.",
   "validate.custom_script_missing": "custom_scripts : le script déclaré '{path}' n'existe pas.",
+  "validate.incompatible_module": "modules : « {module} » est incompatible avec le profil de conversion « {profile} » et doit rester désactivé.",
+  "builder.incompatible_modules": "Build impossible : le(s) module(s) {modules} sont incompatibles avec le profil de conversion « {profile} ». Désactivez-les dans mission.yaml.",
   "validate.missing_group": "Le groupe '{group}' déclaré dans {section} est absent de la mission — placez-le dans le Mission Editor, sinon la fonctionnalité échoue au runtime.",
   "validate.presets_no_aircraft": "presets.yaml est configuré mais la mission n'a aucun aéronef joueur auquel appliquer les préréglages radio.",
   "validate.waypoints_no_aircraft": "waypoints.yaml est configuré mais la mission n'a aucun groupe d'aéronefs où injecter des waypoints.",

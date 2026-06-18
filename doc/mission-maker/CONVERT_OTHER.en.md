@@ -25,6 +25,28 @@ and asks for the source `.miz` then the output folder.
 | `OUTPUT_FOLDER` | v6 mission folder to create / populate |
 | `--force` | Overwrite an existing `mission.yaml` (otherwise left untouched) |
 | `--report-file` | Markdown report path (default `<output>/convert-other-report.md`) |
+| `--profile` | Conversion profile (bundled name, e.g. `foothold`, or a path to a `.yaml`) |
+
+## Conversion profiles
+
+Without `--profile` the scaffold is generic (the `minimal` tier). With a profile,
+mission-family-specific knowledge is applied — **data, not code** (see
+[ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). The bundled
+`foothold` profile:
+
+- **enables the VEAF modules** Foothold uses (RADIO, SPAWN, WEATHER, SHORTCUTS,
+  SECURITY, REMOTE) instead of the `minimal` tier;
+- **normalises versioned names** (`Moose_2026-04-28.lua` → `Moose.lua`) so
+  `custom_scripts:` paths stay stable across Lekaa versions;
+- **writes a marker** `conversion_profile: foothold` into `mission.yaml`;
+- **scaffolds a commented `config_override`** targeting `Foothold Config.lua`;
+- **declares incompatible modules** (`CTLD`: Foothold ships its own). Enabling an
+  incompatible module makes **`veaf-tools validate` and the build fail** — including
+  if you enable it by hand later.
+
+```bash
+veaf-tools convert-other <mission.miz> <output-folder> --profile foothold
+```
 
 ## What it does
 

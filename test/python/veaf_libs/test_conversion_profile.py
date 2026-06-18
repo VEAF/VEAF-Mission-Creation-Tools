@@ -4,7 +4,11 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veaf_libs.conversion_profile import ConversionProfile, load_profile
+from veaf_libs.conversion_profile import (
+    ConversionProfile,
+    incompatible_modules_enabled,
+    load_profile,
+)
 
 
 class TestBundledFootholdProfile(unittest.TestCase):
@@ -64,6 +68,26 @@ class TestLoadProfileFromPath(unittest.TestCase):
             p.write_text("name: bare\n", encoding="utf-8")
             profile = load_profile(str(p))
             self.assertEqual(profile, ConversionProfile(name="bare"))
+
+
+class TestIncompatibleModulesEnabled(unittest.TestCase):
+    def test_flags_ctld_enabled_on_foothold(self) -> None:
+        data = {"conversion_profile": "foothold", "modules": {"CTLD": True, "RADIO": True}}
+        self.assertEqual(incompatible_modules_enabled(data), ["CTLD"])
+
+    def test_ctld_disabled_is_fine(self) -> None:
+        data = {"conversion_profile": "foothold", "modules": {"CTLD": False, "RADIO": True}}
+        self.assertEqual(incompatible_modules_enabled(data), [])
+
+    def test_ctld_as_config_dict_counts_as_enabled(self) -> None:
+        data = {"conversion_profile": "foothold", "modules": {"CTLD": {"some": "config"}}}
+        self.assertEqual(incompatible_modules_enabled(data), ["CTLD"])
+
+    def test_no_profile_marker_means_no_check(self) -> None:
+        self.assertEqual(incompatible_modules_enabled({"modules": {"CTLD": True}}), [])
+
+    def test_unknown_profile_is_silent(self) -> None:
+        self.assertEqual(incompatible_modules_enabled({"conversion_profile": "nope", "modules": {"CTLD": True}}), [])
 
 
 if __name__ == "__main__":

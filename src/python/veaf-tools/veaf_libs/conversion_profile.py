@@ -112,3 +112,44 @@ def load_profile(name_or_path: str) -> ConversionProfile:
     except (FileNotFoundError, ModuleNotFoundError) as exc:
         raise FileNotFoundError(f"unknown conversion profile: {name_or_path}") from exc
     return _parse_profile(yaml.safe_load(text) or {}, name_or_path)
+
+
+def _module_enabled(modules_block: dict, module_id: str) -> bool:
+    """Whether *module_id* is enabled in a ``modules:`` mapping.
+
+    A module is enabled when its value is ``True`` or a mapping that is not
+    explicitly ``enabled: false`` (the unified community-script config form).
+    """
+    value = modules_block.get(module_id)
+    if value is True:
+        return True
+    if isinstance(value, dict):
+        return value.get("enabled", True) is not False
+    return False
+
+
+def incompatible_modules_enabled(yaml_data: dict) -> list[str]:
+    """Return the profile-incompatible modules currently enabled in *yaml_data*.
+
+    Reads the ``conversion_profile`` marker; if present and resolvable, returns the
+    ids from the profile's ``incompatible_modules`` that are enabled in the
+    ``modules:`` block. Empty when there is no profile, it is unknown, or none of
+    its incompatibilities are enabled.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping.
+
+    Returns:
+        The enabled-yet-incompatible module ids (empty if none/unknown).
+    """
+    profile_name = yaml_data.get("conversion_profile")
+    if not profile_name:
+        return []
+    try:
+        profile = load_profile(str(profile_name))
+    except FileNotFoundError:
+        return []
+    modules_block = yaml_data.get("modules") or {}
+    if not isinstance(modules_block, dict):
+        return []
+    return [m for m in profile.incompatible_modules if _module_enabled(modules_block, m)]

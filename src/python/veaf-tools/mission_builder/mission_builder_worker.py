@@ -29,6 +29,7 @@ from mission_tools import (
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import resolve_profile
+from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
@@ -352,6 +353,17 @@ class MissionBuilderWorker(BaseWorker):
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)
             validate_modules_semantics(self.mission_yaml)
             self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
+            # A conversion-profile mission must not enable a module the profile marks
+            # incompatible (e.g. CTLD on a Foothold mission) — fail fast, last rampart.
+            if bad := incompatible_modules_enabled(self.mission_yaml):
+                logger.error(
+                    t(
+                        "builder.incompatible_modules",
+                        modules=", ".join(bad),
+                        profile=self.mission_yaml.get("conversion_profile"),
+                    ),
+                    exception_type=ValueError,
+                )
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
 

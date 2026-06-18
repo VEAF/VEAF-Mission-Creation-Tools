@@ -41,7 +41,7 @@ Trois signes indiquent qu'une mission utilise VEAF :
 2. **Un sous-menu « VEAF »** apparaît dans **F10 → Autre**.
 3. **Des marqueurs** sur la carte indiquent les trajectoires des ravitailleurs, les orbites des AWACS ou la position des zones de combat.
 
-![Messages de démarrage VEAF dans le coin inférieur droit](../assets/img/pilot/startup-messages.png)
+> 📷 *Capture à venir : messages de démarrage VEAF dans le coin inférieur droit.*
 
 ---
 
@@ -62,7 +62,7 @@ graph TD
     Res --> Carrier[Porte-avions]
 ```
 
-![Sous-menu VEAF dans le menu radio F10](../assets/img/pilot/f10-veaf-submenu.png)
+> 📷 *Capture à venir : sous-menu VEAF dans le menu radio F10.*
 
 Le contenu exact dépend de ce que le créateur de la mission a activé : certaines missions n'auront pas toutes ces entrées.
 
@@ -81,7 +81,7 @@ En plus du menu radio, vous pouvez donner des ordres en écrivant une **commande
 
 VEAF détecte le marqueur, exécute la commande à l'emplacement du marqueur, puis le supprime automatiquement.
 
-![Saisie d'une commande dans un marqueur de la carte F10](../assets/img/pilot/map-marker-add.png)
+> 📷 *Capture à venir : saisie d'une commande dans un marqueur de la carte F10.*
 
 > Sur les serveurs multijoueurs, certaines commandes demandent un mot de passe. Voir [Sécurité et permissions](#sécurité-et-permissions).
 
@@ -115,7 +115,7 @@ Un **alias** est un raccourci préparé par le créateur de la mission. Il comme
 | `-mlrs` | Batterie de lance-roquettes MLRS |
 | `-attack_convoy_red` | Convoi d'attaque rouge |
 
-![Unités apparues après une commande alias, vues sur la carte](../assets/img/pilot/marker-units-spawned.png)
+> 📷 *Capture à venir : unités apparues après une commande alias, vues sur la carte.*
 
 > **Astuce :** chaque mission peut définir ses propres alias. Demandez la liste complète à l'administrateur de votre serveur.
 
@@ -171,7 +171,7 @@ _spawn bomb, power 500, shells 3
 
 Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et porte-avions. Vous les retrouvez sous **F10 → VEAF → Ressources**.
 
-![Sous-menus Ravitailleurs et AWACS](../assets/img/pilot/tanker-awacs-menu.png)
+> 📷 *Capture à venir : sous-menus Ravitailleurs et AWACS.*
 
 ### Ravitailleurs
 
@@ -198,7 +198,7 @@ Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** 
 | Arrêter les opérations et reprendre la route | CARRIER OPS → [camp] → [Nom] → End air operations |
 | Obtenir les infos (BRC, TACAN, ICLS, radio) | CARRIER OPS → [camp] → [Nom] → ATC - Request informations |
 
-![Sous-menu de récupération du porte-avions](../assets/img/pilot/carrier-recovery-menu.png)
+> 📷 *Capture à venir : sous-menu de récupération du porte-avions.*
 
 **Procédure d'appontage :**
 
@@ -254,7 +254,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 4. **Engager** — attaquez les cibles marquées.
 5. **Avancer** — la zone passe automatiquement à la suivante quand toutes les unités sont détruites, ou utilisez *Skip current objective*.
 
-![Fumée marquant une cible CAS](../assets/img/pilot/cas-smoke.png)
+> 📷 *Capture à venir : fumée marquant une cible CAS.*
 
 **Régler la difficulté** par marqueur : `_cas, size 3, defense 2, armor 3`
 

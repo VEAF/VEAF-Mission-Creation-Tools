@@ -41,7 +41,7 @@ Three signs tell you a mission uses VEAF:
 2. **A "VEAF" submenu** appears under **F10 → Other**.
 3. **Map markers** show tanker tracks, AWACS orbits or combat zone positions.
 
-![VEAF startup messages in the lower-right corner](../assets/img/pilot/startup-messages.png)
+> 📷 *Screenshot coming soon: VEAF startup messages in the lower-right corner.*
 
 ---
 
@@ -62,7 +62,7 @@ graph TD
     Res --> Carrier[Carriers]
 ```
 
-![VEAF submenu in the F10 radio menu](../assets/img/pilot/f10-veaf-submenu.png)
+> 📷 *Screenshot coming soon: VEAF submenu in the F10 radio menu.*
 
 The exact contents depend on what the mission maker has enabled: some missions will not have every entry.
 
@@ -81,7 +81,7 @@ In addition to the radio menu, you can give orders by writing a **command in a m
 
 VEAF detects the marker, runs the command at the marker's location, then removes it automatically.
 
-![Typing a command into an F10 map marker](../assets/img/pilot/map-marker-add.png)
+> 📷 *Screenshot coming soon: typing a command into an F10 map marker.*
 
 > On multiplayer servers, some commands require a password. See [Security and Permissions](#security-and-permissions).
 
@@ -115,7 +115,7 @@ An **alias** is a shortcut prepared by the mission maker. It starts with a hyphe
 | `-mlrs` | MLRS rocket battery |
 | `-attack_convoy_red` | Red attack convoy |
 
-![Units spawned by an alias command, shown on the map](../assets/img/pilot/marker-units-spawned.png)
+> 📷 *Screenshot coming soon: units spawned by an alias command, shown on the map.*
 
 > **Tip:** each mission can define its own aliases. Ask your server administrator for the full list.
 
@@ -171,7 +171,7 @@ _spawn bomb, power 500, shells 3
 
 **Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and carriers. You find them under **F10 → VEAF → Assets**.
 
-![Tankers and AWACS submenus](../assets/img/pilot/tanker-awacs-menu.png)
+> 📷 *Screenshot coming soon: tankers and AWACS submenus.*
 
 ### Tankers
 
@@ -198,7 +198,7 @@ Carrier air operations have their own **CARRIER OPS** menu (not under *Assets*),
 | Stop operations and resume the route | CARRIER OPS → [coalition] → [Name] → End air operations |
 | Get info (BRC, TACAN, ICLS, radio) | CARRIER OPS → [coalition] → [Name] → ATC - Request informations |
 
-![Carrier recovery submenu](../assets/img/pilot/carrier-recovery-menu.png)
+> 📷 *Screenshot coming soon: carrier recovery submenu.*
 
 **Recovery procedure:**
 
@@ -254,7 +254,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 4. **Engage** — attack the marked targets.
 5. **Advance** — the zone moves to the next one automatically when all units are destroyed, or use *Skip current objective*.
 
-![Smoke marking a CAS target](../assets/img/pilot/cas-smoke.png)
+> 📷 *Screenshot coming soon: smoke marking a CAS target.*
 
 **Set the difficulty** via marker: `_cas, size 3, defense 2, armor 3`
 

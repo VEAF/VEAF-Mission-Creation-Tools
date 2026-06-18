@@ -72,6 +72,20 @@ class TestDetectNativeScriptLoaders(unittest.TestCase):
     def test_empty_mission_yields_nothing(self) -> None:
         self.assertEqual(detect_native_script_loaders(DcsMission(file_path=Path("x.miz"))), [])
 
+    def test_mixed_action_key_types_do_not_raise(self) -> None:
+        # Defensive: a parser yielding mixed int/str keys must not crash sorting.
+        trigrules = {
+            1: {
+                "comment": "X",
+                "actions": {2: {"predicate": "a_do_script_file", "file": "K2"}, "a": {"predicate": "noop"}},
+            }
+        }
+        mapres = {"K2": "Second.lua"}
+
+        result = detect_native_script_loaders(_mission(trigrules, mapres))
+
+        self.assertEqual([d.script for d in result], ["Second.lua"])
+
     def test_handles_dict_form_actions_keyed_by_index(self) -> None:
         # DCS stores actions as a dict keyed by numeric index (the real .miz form),
         # the keys carrying the order — not as a list.

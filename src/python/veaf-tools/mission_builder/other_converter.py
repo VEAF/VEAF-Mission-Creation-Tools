@@ -30,6 +30,16 @@ from mission_builder.v5_converter import ConversionReport
 _LUA_SUFFIX = ".lua"
 
 
+def _dcs_index_sort_key(key: object) -> tuple[int, int, str]:
+    """Stable sort key for DCS table indices: numeric keys first (in numeric order),
+    then any non-numeric keys, so ``sorted`` never raises on mixed key types."""
+    text = str(key)
+    try:
+        return (0, int(text), "")
+    except ValueError:
+        return (1, 0, text)
+
+
 def _ordered_actions(trigrule: dict) -> list[dict]:
     """Return a trigrule's actions in order.
 
@@ -40,7 +50,9 @@ def _ordered_actions(trigrule: dict) -> list[dict]:
     if isinstance(actions, list):
         return [a for a in actions if isinstance(a, dict)]
     if isinstance(actions, dict):
-        return [actions[key] for key in sorted(actions.keys()) if isinstance(actions[key], dict)]
+        return [
+            actions[key] for key in sorted(actions.keys(), key=_dcs_index_sort_key) if isinstance(actions[key], dict)
+        ]
     return []
 
 
@@ -78,7 +90,7 @@ def detect_native_script_loaders(dcs_mission: DcsMission) -> list[DetectedLoader
     map_resource = dcs_mission.map_resource_content or {}
 
     loaders: list[DetectedLoader] = []
-    for index in sorted(trigrules.keys()):
+    for index in sorted(trigrules.keys(), key=_dcs_index_sort_key):
         trigrule = trigrules[index]
         if not isinstance(trigrule, dict):
             continue
@@ -126,7 +138,7 @@ def detect_native_loader_triggers(dcs_mission: DcsMission) -> list[tuple[int, st
     map_resource = dcs_mission.map_resource_content or {}
 
     result: list[tuple[int, str]] = []
-    for index in sorted(trigrules.keys()):
+    for index in sorted(trigrules.keys(), key=_dcs_index_sort_key):
         trigrule = trigrules[index]
         if isinstance(trigrule, dict) and _trigrule_loads_script(trigrule, map_resource):
             result.append((index, str(trigrule.get("comment", ""))))

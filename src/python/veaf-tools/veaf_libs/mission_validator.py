@@ -24,6 +24,7 @@ from pathlib import Path
 
 import yaml
 
+from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
 
@@ -68,6 +69,12 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     errors, warnings = collect_module_issues(yaml_data)
     issues += [ValidationIssue(ERROR, m) for m in errors]
     issues += [ValidationIssue(WARNING, m) for m in warnings]
+
+    # 2b. conversion-profile incompatibilities (e.g. CTLD on a Foothold mission)
+    issues += [
+        ValidationIssue(ERROR, t("validate.incompatible_module", module=m, profile=yaml_data.get("conversion_profile")))
+        for m in incompatible_modules_enabled(yaml_data)
+    ]
 
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)

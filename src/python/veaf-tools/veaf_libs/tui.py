@@ -160,6 +160,27 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="convert-other",
+        description=t("tui.cmd.convert_other.description"),
+        prompts=[
+            ArgPrompt(
+                "input_miz",
+                t("tui.arg.convert_other_miz"),
+                default="mission.miz",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt(
+                "output_folder",
+                t("tui.arg.convert_other_output"),
+                default=".",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt("profile", t("tui.arg.convert_other_profile"), default=""),
+        ],
+    ),
+    CommandSpec(
         cli_name="prepare",
         description=t("tui.cmd.prepare.description"),
         prompts=[

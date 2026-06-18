@@ -4,6 +4,7 @@ from . import (  # noqa: F401
     ask,
     build,
     config,
+    convert_other,
     convert_v5,
     extract,
     inject_presets,

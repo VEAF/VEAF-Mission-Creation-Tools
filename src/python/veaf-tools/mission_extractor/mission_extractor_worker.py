@@ -26,13 +26,27 @@ class MissionExtractorWorker(BaseWorker):
     Worker class that extracts a .miz mission file to a VEAF mission folder.
     """
 
-    def __init__(self, mission_folder: Path, input_mission_path: Path):
+    def __init__(
+        self,
+        mission_folder: Path,
+        input_mission_path: Path,
+        keep_community_scripts: bool = False,
+    ):
         """
         Initialize the worker with parameters for both use cases.
+
+        Args:
+            mission_folder: Destination VEAF mission folder.
+            input_mission_path: The ``.miz`` to extract.
+            keep_community_scripts: When True, do not strip the known community
+                scripts (CTLD, CSAR, AIEN, …) — used when adopting a third-party
+                mission whose own (possibly customized) copies must be preserved
+                iso-functionally. Defaults to False (VEAF re-injects them).
         """
 
         self.input_mission_path = input_mission_path
         self.mission_folder = mission_folder
+        self.keep_community_scripts = keep_community_scripts
 
         if not (self.input_mission_path and self.input_mission_path.is_file()):
             logger.error(
@@ -96,7 +110,8 @@ class MissionExtractorWorker(BaseWorker):
             # Remove the VEAF, community, and legacy VEAF
             # VEAF and legacy entries are (path, dest) tuples; community entries are dicts.
             script_files: list[tuple[str, str]] = list(get_veaf_script_files()) + list(get_legacy_script_files())
-            script_files += [(s["path"], s["dest"]) for s in get_community_script_files()]
+            if not self.keep_community_scripts:
+                script_files += [(s["path"], s["dest"]) for s in get_community_script_files()]
             for veaf_file_in_mission in [Path(dest) / Path(path).name for path, dest in script_files]:
                 file_in_temp: Path = temp_dir / veaf_file_in_mission
                 rm_file_or_dir(file_in_temp)

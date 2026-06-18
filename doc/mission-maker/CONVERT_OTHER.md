@@ -1,0 +1,75 @@
+# `convert-other` — adopter une mission tierce sur la v6
+
+`convert-other` adopte une mission `.miz` **tierce** (non-VEAF, p. ex. *Foothold*
+de Lekaa) sur la chaîne d'outils v6. C'est le pendant de
+[`convert-v5`](MIGRATION_GUIDE.md), qui migre une mission **VEAF v5** : ici la
+mission n'a jamais été construite avec les outils VEAF, on l'**adopte**.
+
+> Cette commande ne contient aucune connaissance propre à une mission donnée.
+> Le savoir spécifique à une famille de missions (ordre des scripts, triggers à
+> retirer, réglages à surcharger…) est porté par un *profil de conversion*
+> (à venir). Voir l'ADR 0007.
+
+## Usage
+
+```bash
+veaf-tools convert-other <mission.miz> <dossier-de-sortie>
+```
+
+Sans argument (dans un terminal interactif), la commande ouvre l'assistant TUI
+et demande le `.miz` source puis le dossier de sortie.
+
+| Argument / option | Rôle |
+|-------------------|------|
+| `INPUT_MIZ` | Chemin du `.miz` tiers à adopter |
+| `OUTPUT_FOLDER` | Dossier de mission v6 à créer / compléter |
+| `--force` | Écraser un `mission.yaml` existant (sinon il est laissé intact) |
+| `--report-file` | Chemin du rapport Markdown (défaut `<sortie>/convert-other-report.md`) |
+| `--profile` | Profil de conversion (nom fourni, p. ex. `foothold`, ou chemin vers un `.yaml`) |
+
+## Profils de conversion
+
+Sans `--profile`, le scaffold est générique (tier `minimal`). Avec un profil, la
+connaissance propre à une famille de missions est appliquée — **données, pas code**
+(voir [ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). Le profil
+`foothold` (livré) :
+
+- **active les modules VEAF** que Foothold utilise (RADIO, SPAWN, WEATHER,
+  SHORTCUTS, SECURITY, REMOTE) au lieu du tier `minimal` ;
+- **normalise les noms versionnés** (`Moose_2026-04-28.lua` → `Moose.lua`) pour que
+  les chemins `custom_scripts:` restent stables entre versions de Lekaa ;
+- **inscrit un marqueur** `conversion_profile: foothold` dans le `mission.yaml` ;
+- **pré-remplit un `config_override` commenté** ciblant `Foothold Config.lua` ;
+- **déclare les modules incompatibles** (`CTLD` : Foothold embarque sa propre CTLD).
+  Si un module incompatible est activé, **`veaf-tools validate` et le build
+  échouent** — y compris si vous l'activez à la main plus tard.
+
+```bash
+veaf-tools convert-other <mission.miz> <dossier-de-sortie> --profile foothold
+```
+
+## Ce que fait la commande
+
+1. **Extrait** le `.miz` dans le dossier de mission (les scripts atterrissent
+   dans `src/scripts/`). Les copies tierces des scripts communautaires connus
+   (CTLD, CSAR, AIEN…) sont **conservées** telles quelles (iso-fonctionnel), au
+   lieu d'être remplacées par les versions VEAF.
+2. **Détecte** les scripts chargés par les triggers natifs de la mission, dans
+   leur **ordre de chargement** (ordre des triggers × ordre des actions).
+3. **Génère** un `mission.yaml` *scaffold* :
+   - un bloc `custom_scripts:` **ordonné** (l'ordre de chargement d'origine) ;
+   - une liste `strip_native_triggers:` des triggers natifs de chargement
+     détectés (par commentaire ou motif glob) — le **build les supprime**
+     (trigrule + entrées `trig` + ressources `mapResource`) pour éviter un
+     double chargement avec les `custom_scripts` réinjectés ;
+   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra + MIST +
+     RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commenté) : une base VEAF
+     fonctionnelle d'emblée ; activez davantage au besoin.
+4. **Émet** un rapport Markdown récapitulant les actions et les points à revoir.
+
+## Après la conversion
+
+- Relisez le `mission.yaml` : activez les modules VEAF voulus, vérifiez l'ordre
+  des `custom_scripts` et leurs dépendances.
+- Construisez puis testez la mission dans DCS pour confirmer le comportement
+  iso-fonctionnel.

@@ -122,6 +122,21 @@ class TestMissionValidator(unittest.TestCase):
         issues = validate_mission_folder(folder)
         self.assertEqual(_levels(issues), [WARNING])
 
+    def test_conversion_profile_incompatible_module_is_error(self) -> None:
+        folder = _make_folder(
+            "conversion_profile: foothold\nmodules:\n  CTLD: true\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        issues = validate_mission_folder(folder)
+        self.assertTrue(any(i.level == ERROR and "CTLD" in i.message for i in issues))
+
+    def test_conversion_profile_compatible_modules_clear(self) -> None:
+        folder = _make_folder(
+            "conversion_profile: foothold\nmodules:\n  RADIO: true\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        self.assertFalse(any("incompatible" in i.message.lower() for i in validate_mission_folder(folder)))
+
 
 if __name__ == "__main__":
     unittest.main()

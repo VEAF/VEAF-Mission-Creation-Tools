@@ -15,6 +15,8 @@
 |-----|--------|
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ⬜ |
+| Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ⬜ |
+| Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ⬜ |
 | Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
@@ -113,6 +115,30 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-VEAF-MODULE-GATING-001 | Gate the ~16 community integration blocks on `veaf.isEnabled(<id>)`; emit the disabled-community enable flags into `veaf-config.lua` (Python); resolve the framework-init ordering so the flag is readable when each block runs; tests (Lua gating + Python flag emission). 🧑 **Gate (David)**: DCS re-test (runtime framework change). | `src/scripts/veaf/*.lua`, `veaf_libs/lua_config_generator.py`, `test/lua/`, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot FIX-DYNSLOT-RADIO-UNITS — radio frequencies mis-scaled for kHz/ADF radios
+
+**Goal**: The auto-generated `dynamic-slot-templates.yaml` stores radio channels for **kHz/ADF radios** (e.g. the Yak-52's **ARK-15M**) in **MHz** (`0.625`, `0.303`, …) instead of the **kHz** values DCS expects (`625`, `303`, …) — a ×1000 / 3-decimal-place discrepancy that makes the mission **fail to start** (reported by Tripack on Training-Chypres; editing the file `0.625 → 625` fixes it). Make the radio-channel handling **unit-aware/robust for every radio type** (kHz ADF vs MHz VHF/UHF), and **audit + harden the shipped/generated default frequencies** so no aircraft ships with a wrong-scaled value (David: "blinder nos fréqs par défaut", general — not just Yak-52). Determine the failing stage (extraction into the YAML vs injection back) during implementation.
+
+**Branch**: `fix/dynslot-radio-units` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-DYNSLOT-RADIO-UNITS-001 | Diagnose where the Yak-52 ARK-15M channels get the ×1000 error (aircraft-groups extraction that writes `dynamic-slot-templates.yaml` vs the injector that re-applies it), make radio-channel scaling unit-aware per radio type, and harden the default/generated frequencies so kHz/ADF radios are correct. Repro: build a mission with a Yak-52 dynamic-slot template; confirm it starts. | `aircrafts_injector/` (extraction + injection), default templates, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot FIX-MISSIONYAML-MISSION-SECTION — `mission:` block mislabeled + migrated-field provenance
+
+**Goal**: The generated `mission.yaml` puts `silence_atc_on_all_airbases` (a mission-wide **behaviour** toggle) under a section **labeled "Mission identity"** (comment: *"name, export path, and era"*), which is misleading (Tripack: "pourquoi dans le chapitre identité ?"). The field correctly lives in the `mission:` block — that's where the generator reads mission-level settings (`lua_config_generator.py:824` → `veaf.silenceAtcOnAllAirbases()`), alongside `era`/`language` which are also not pure identity. Decision (David): **keep `silence_atc` under `mission:`** (the `settings:` block emits `veaf.config.KEY = value`, not a function call, so it doesn't fit; moving it would fragment mission-level settings and churn the generator/defaults/doc for no gain) — the real defect is the **label**. **(1)** Broaden the `mission:` section label/comment so it reads as mission **settings** (identity **+** options), and add a short inline comment on `silence_atc_on_all_airbases`. **(2)** `convert-v5` annotates **provenance** on migrated fields — a `# migrated from veaf.silenceAtcOnAllAirbases()` comment — so makers understand "how it got there" (CONVERT-FIDELITY-003 emits it only when the v5 source had an active, non-commented call).
+
+**Branch**: `fix/missionyaml-mission-section` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-MISSIONYAML-MISSION-SECTION-001 | Broaden the `mission:` section header/comment (no longer just "identity"), add an inline comment on `silence_atc_on_all_airbases`, and have `convert-v5` annotate the provenance of migrated fields. Keep `silence_atc` under `mission:`. Lockstep: update `src/defaults/mission-folder/mission.yaml` and the doc. | `veaf_libs/lua_config_generator.py`, `veaf_libs/locales/*.json`, `mission_builder/v5_converter.py`, `src/defaults/mission-folder/mission.yaml`, `doc/`, `test/python/` | fix | ⬜ |
 
 ---
 

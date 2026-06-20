@@ -59,13 +59,16 @@ Three adjustments, all **config-only** (the upstream scripts are never touched):
 ### a. VEAF community scripts (already turned off by the profile)
 
 Foothold ships **its own** libraries (Moose, its own CTLD, AIEN, EWRS, Splash…)
-as `custom_scripts`. The VEAF community scripts must therefore stay OFF to avoid
-double-loading and conflicts. The `foothold` profile **already scaffolds** this
-block — nothing to do, just confirm it is present:
+as `custom_scripts`. The VEAF community scripts must therefore stay OFF — otherwise,
+for example, VEAF's AIEN clobbers Foothold's and the mission crashes. The `foothold`
+profile **already scaffolds** these disables **inside the `modules:` block** (not in
+a separate `community_scripts:` block, which is *ignored* once `modules:` exists) —
+nothing to do, just confirm they are present:
 
 ```yaml
-community_scripts:
-  mist: false
+modules:
+  # … VEAF modules …
+  # ── Community scripts OFF ──
   stts: false
   ctld: false
   aien: false
@@ -74,6 +77,8 @@ community_scripts:
   skynet: false
   tum: false
 ```
+
+> MiST is not in the list: it is a mandatory VEAF dependency (always loaded).
 
 ### b. Partial override of the Foothold config
 

@@ -34,10 +34,11 @@ class TestBundledFootholdProfile(unittest.TestCase):
 
     def test_disables_veaf_community_scripts(self) -> None:
         # Foothold ships its own community libs — VEAF's must be scaffolded OFF (FOOTHOLD-V6-009).
+        # MiST is excluded: it is a mandatory VEAF dependency and cannot be disabled.
         profile = load_profile("foothold")
         self.assertEqual(
             set(profile.disabled_community_scripts),
-            {"mist", "stts", "ctld", "aien", "csar", "hercules", "skynet", "tum"},
+            {"stts", "ctld", "aien", "csar", "hercules", "skynet", "tum"},
         )
 
     def test_normalizes_versioned_moose_name(self) -> None:

@@ -235,22 +235,23 @@ def _config_override_block(profile: ConversionProfile) -> list[str]:
     return lines
 
 
-def _community_scripts_block(profile: ConversionProfile) -> list[str]:
-    """Render a ``community_scripts:`` block turning off the profile's bundled scripts.
+def _disabled_community_lines(profile: ConversionProfile) -> list[str]:
+    """Render the profile's disabled community scripts as ``modules:`` body entries.
 
     Foothold-style missions ship their own community libraries as ``custom_scripts``,
-    so VEAF's bundled copies must stay off (FOOTHOLD-V6-009). Returns nothing when the
-    profile disables none.
+    so VEAF's bundled copies must stay off (FOOTHOLD-V6-009). The entries are emitted
+    **inside** the unified ``modules:`` block (indented), because a separate
+    ``community_scripts:`` block is the deprecated form and is silently ignored when
+    ``modules:`` is present. Returns nothing when the profile disables none.
     """
     if not profile.disabled_community_scripts:
         return []
     lines = [
-        f"# VEAF community scripts disabled by the '{profile.name}' conversion profile",
-        "# (this mission provides its own, or does not use them). Re-enable any you need.",
-        "community_scripts:",
+        "  # ── Community scripts OFF ──",
+        f"  # Disabled by the '{profile.name}' profile: this mission ships its own",
+        "  # (Moose, its own CTLD, AIEN, …); VEAF's bundled versions stay off.",
     ]
     lines += [f"  {script_id}: false" for script_id in profile.disabled_community_scripts]
-    lines.append("")
     return lines
 
 
@@ -325,7 +326,6 @@ def build_scaffold_yaml(
     lines.append("")
 
     lines.extend(_config_override_block(profile) if profile else [])
-    lines.extend(_community_scripts_block(profile) if profile else [])
 
     if profile is not None:
         enabled = set(profile.modules)
@@ -341,6 +341,8 @@ def build_scaffold_yaml(
             "modules:",
         ]
     lines.extend(render_modules_block(enabled))
+    # Disabled community scripts go inside the modules: block (see _disabled_community_lines).
+    lines.extend(_disabled_community_lines(profile) if profile else [])
     lines.append("")
 
     return "\n".join(lines)

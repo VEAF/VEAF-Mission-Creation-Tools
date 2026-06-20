@@ -195,16 +195,19 @@ class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
         self.assertIn("Foothold Config.lua", yaml)
         self.assertIn("CapDifficulty", yaml)
 
-    def test_community_scripts_disabled_block(self) -> None:
-        # Foothold ships its own community libs — the scaffold turns VEAF's off (FOOTHOLD-V6-009).
+    def test_community_scripts_disabled_inside_modules_block(self) -> None:
+        # FOOTHOLD-V6-009 fix: disables go INSIDE the unified modules: block — a separate
+        # community_scripts: block is the deprecated form and is ignored when modules: exists.
         yaml = build_scaffold_yaml([], [], self._profile())
-        self.assertIn("community_scripts:", yaml)
-        for sid in ("mist", "ctld", "aien", "csar", "skynet"):
-            self.assertIn(f"{sid}: false", yaml, f"{sid} must be scaffolded false")
+        self.assertNotIn("community_scripts:", yaml)  # no separate (deprecated, ignored) block
+        modules_body = yaml.split("modules:", 1)[1]
+        for sid in ("ctld", "aien", "csar", "skynet", "stts", "hercules", "tum"):
+            self.assertIn(f"{sid}: false", modules_body, f"{sid} must be disabled inside modules:")
 
-    def test_no_community_scripts_block_without_profile(self) -> None:
+    def test_no_disabled_community_lines_without_profile(self) -> None:
         yaml = build_scaffold_yaml([], [], None)
         self.assertNotIn("community_scripts:", yaml)
+        self.assertNotIn("aien: false", yaml)
 
 
 _REAL_MIZ = Path(r"D:\dev\_VEAF\tmp\test-foothold\test-caucasus\Foothold_CA_4.1.5_Multi_Language_Coldwar-Modern.miz")

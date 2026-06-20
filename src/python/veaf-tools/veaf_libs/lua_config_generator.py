@@ -156,6 +156,10 @@ _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in MODULE_CATEGO
 #: These are always active; specifying ``enable`` (true or false) for them is an error.
 MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
 
+#: Community scripts that are mandatory (always injected, never disabled): MiST is a
+#: hard VEAF dependency, so it is never emitted as a disabled ``enable=false`` flag.
+_MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset({"mist"})
+
 
 def yaml_module_entry(yaml_key: str, module_id: str, has_config: bool = False) -> list[str]:
     """Return the YAML lines for one enabled module entry in ``mission.yaml``.
@@ -948,7 +952,7 @@ def generate_config_lua(
     disabled_community = [
         s["id"]
         for s in get_community_script_files()
-        if s["id"] != "mist" and not _community_enabled(mission_yaml, s["id"])
+        if s["id"] not in _MANDATORY_COMMUNITY_SCRIPTS and not _community_enabled(mission_yaml, s["id"])
     ]
     if disabled_community:
         lines.append("-- ── Community scripts disabled (VEAF leaves their globals alone) ──────────────")

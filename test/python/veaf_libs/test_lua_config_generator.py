@@ -534,12 +534,12 @@ def test_disabled_community_scripts_emit_enable_false():
 
 
 def test_enabled_community_scripts_emit_no_enable_flag():
-    """Enabled (or default) community scripts emit no enable=false line."""
+    """Enabled (or default) community scripts emit no enable=false gate flag."""
     lua = generate_config_lua({"community_scripts": {"ctld": True}})
-    assert 'veaf.setConfig("ctld"' not in lua
+    assert 'veaf.setConfig("ctld", "enable", false)' not in lua
 
 
 def test_mandatory_mist_never_emitted_as_disabled():
     """MiST is a mandatory dependency — never scaffolded as disabled even if listed false."""
     lua = generate_config_lua({"community_scripts": {"mist": False}})
-    assert 'veaf.setConfig("mist"' not in lua
+    assert 'veaf.setConfig("mist", "enable", false)' not in lua

@@ -1,18 +1,6 @@
 import math
 import re
 
-try:
-    from lupa.lua51 import LuaRuntime, lua_type
-except ImportError:
-    try:
-        from lupa.lua54 import LuaRuntime, lua_type  # type: ignore[assignment]
-    except ImportError:
-        try:
-            from lupa import LuaRuntime, lua_type  # type: ignore[assignment]  # lupa 1.x
-        except ImportError:
-            LuaRuntime = None  # type: ignore[assignment,misc]
-            lua_type = None  # type: ignore[assignment]
-
 from veaf_libs.logger import logger
 
 #: First non-whitespace byte — used to fast-skip indentation/newlines in bulk.
@@ -400,37 +388,14 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
     return res[0]
 
 
-def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict | list:
-    # Check if a Lua table is a list
-    def is_lua_list(table):
-        keys = list(table.keys())
-        return keys and all(isinstance(key, int) for key in keys) and sorted(keys) == list(range(1, len(keys) + 1))
-
-    # Handle conversion
-    if not(all_is_dict) and is_lua_list(lua_table):
-        # Convert to Python list
-        return [lua_table[i] if lua_type(lua_table[i]) != "table" else _lua_table_to_dict(lua_table[i])  # type: ignore[misc]
-                for i in range(1, len(lua_table) + 1)]
-
-    # Convert to Python dict
-    py_dict = {}
-    for key, value in lua_table.items():
-        if lua_type(value) == "table":  # type: ignore[misc]
-            # Recursively convert nested Lua tables
-            value = _lua_table_to_dict(value, keep_as_dict=keep_as_dict, all_is_dict=True if (keep_as_dict and key in keep_as_dict) else all_is_dict)
-        py_dict[key] = value
-
-    return py_dict
-
-
 def _apply_dict_policy(value: object, keep_as_dict: list[str] | None, all_is_dict: bool) -> object:
     """Apply the ``keep_as_dict`` / ``all_is_dict`` policy to a parsed Lua value.
 
     The pure-Python ``_unserialize`` state machine collapses every table to a
     list when its keys form a contiguous ``1..n`` sequence (and to an empty list
     when the table is empty). This pass reproduces, byte for byte, the behaviour
-    of the former lupa-based ``_lua_table_to_dict`` so that rerouting ``.miz``
-    parsing away from ``lua.execute`` keeps identical output:
+    of the former lupa-based converter so that rerouting ``.miz`` parsing away
+    from ``lua.execute`` keeps identical output:
 
     - an empty table becomes ``{}`` (Lua ``{}`` is ambiguous; the historical
       behaviour treated it as a dict);

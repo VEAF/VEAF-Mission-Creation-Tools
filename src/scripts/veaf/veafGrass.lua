@@ -1000,7 +1000,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   if not name then
     name = farp.groupName
   end
-  if ctld then
+  if ctld and veaf.isEnabled("ctld") then
     if ctld.builtFOBS then
       table.insert(ctld.builtFOBS, name)
     end
@@ -1273,7 +1273,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
   farpNamedPoint.tower = "No Control"
 
-  if ctld then
+  if ctld and veaf.isEnabled("ctld") then
     -- spawn tacan
     mod = string.upper(mod)
     local tacanGroupName = string.format("TACAN %s - %s%s", tostring(code), tostring(freq), tostring(mod))

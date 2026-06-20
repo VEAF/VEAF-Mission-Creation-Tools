@@ -518,3 +518,28 @@ def test_emit_airwave_zone_delay_collapses_range_to_min():
     # an explicit zero delay is honoured (not skipped as falsy), for both keys
     assert ":setDelayBetweenWaves(0)" in "\n".join(_emit_airwave_zone({"name": "Z", "delay_between_waves": 0}))
     assert ":setDelayBetweenWaves(0)" in "\n".join(_emit_airwave_zone({"name": "Z", "min_seconds_between_waves": 0}))
+
+
+# ---------------------------------------------------------------------------
+# Community-script enable flags (FIX-VEAF-MODULE-GATING)
+# ---------------------------------------------------------------------------
+
+
+def test_disabled_community_scripts_emit_enable_false():
+    """A disabled community script gets `veaf.setConfig("<id>", "enable", false)` so the
+    framework's runtime gates (`if ctld and veaf.isEnabled("ctld")`) leave it alone."""
+    lua = generate_config_lua({"community_scripts": {"ctld": False, "stts": False}})
+    assert 'veaf.setConfig("ctld", "enable", false)' in lua
+    assert 'veaf.setConfig("stts", "enable", false)' in lua
+
+
+def test_enabled_community_scripts_emit_no_enable_flag():
+    """Enabled (or default) community scripts emit no enable=false line."""
+    lua = generate_config_lua({"community_scripts": {"ctld": True}})
+    assert 'veaf.setConfig("ctld"' not in lua
+
+
+def test_mandatory_mist_never_emitted_as_disabled():
+    """MiST is a mandatory dependency — never scaffolded as disabled even if listed false."""
+    lua = generate_config_lua({"community_scripts": {"mist": False}})
+    assert 'veaf.setConfig("mist"' not in lua

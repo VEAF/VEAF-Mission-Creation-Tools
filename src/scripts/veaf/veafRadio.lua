@@ -925,7 +925,7 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
         if file then
           file()
           veaf.loggers.get(veafRadio.Id):info("SRS configuration file loaded")
-          if STTS then
+          if STTS and veaf.isEnabled("stts") then
             STTS.MP3_FOLDER = l_lfs.writedir() .. "\\..\\..\\Music"
             veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
             veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))

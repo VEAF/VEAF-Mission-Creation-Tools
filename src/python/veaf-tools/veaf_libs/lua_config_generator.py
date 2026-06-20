@@ -938,6 +938,24 @@ def generate_config_lua(
             lines.append("end")
             lines.append("")
 
+    # ── Community-script enable flags (FIX-VEAF-MODULE-GATING) ────────────
+    # Tell the framework which community libs the mission disabled, so its runtime
+    # integration gates (`if ctld and veaf.isEnabled("ctld")`) leave that lib's
+    # global alone — e.g. when the mission ships its own version via custom_scripts.
+    # MiST is mandatory and never disabled.
+    from mission_tools.mission_constants import get_community_script_files
+
+    disabled_community = [
+        s["id"]
+        for s in get_community_script_files()
+        if s["id"] != "mist" and not _community_enabled(mission_yaml, s["id"])
+    ]
+    if disabled_community:
+        lines.append("-- ── Community scripts disabled (VEAF leaves their globals alone) ──────────────")
+        for sid in disabled_community:
+            lines.append(f'veaf.setConfig("{sid}", "enable", false)')
+        lines.append("")
+
     # ── External modules ──────────────────────────────────────────────────
     if skynet_cfg.get("enabled"):
         include_red = skynet_cfg.get("include_red_in_radio", False)

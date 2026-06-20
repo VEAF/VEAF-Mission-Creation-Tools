@@ -183,7 +183,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   _namedPoint.atc = true
   _namedPoint.runways = {}
 
-  if ctld then
+  if ctld and veaf.isEnabled("ctld") then
     --make it able to deploy crates and pickup troops
     if ctld.logisticUnits then
       table.insert(ctld.logisticUnits, _fobName)

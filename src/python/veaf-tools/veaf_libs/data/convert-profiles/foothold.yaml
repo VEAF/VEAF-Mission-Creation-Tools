@@ -29,9 +29,11 @@ incompatible_modules:
 # VEAF bundled community scripts to disable in the scaffold: Foothold ships its
 # own libraries (Moose, its own CTLD, AIEN, EWRS, Splash, …) as custom_scripts, so
 # VEAF's must stay OFF to avoid double-loading and conflicts. `convert-other`
-# scaffolds a `community_scripts:` block turning each of these off.
+# turns each of these off inside the unified `modules:` block (the current form;
+# a separate `community_scripts:` block is deprecated and ignored when `modules:`
+# is present). MiST is intentionally absent — it is a mandatory VEAF dependency
+# and cannot be disabled.
 disabled_community_scripts:
-  - mist
   - stts
   - ctld
   - aien

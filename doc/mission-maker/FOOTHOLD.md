@@ -60,13 +60,16 @@ Trois ajustements, tous **config-only** (on ne touche jamais aux scripts upstrea
 ### a. Community scripts VEAF (déjà coupés par le profil)
 
 Foothold embarque **ses propres** bibliothèques (Moose, sa CTLD, AIEN, EWRS,
-Splash…) en `custom_scripts`. Les community scripts VEAF doivent donc rester OFF
-pour éviter un double chargement et des conflits. Le profil `foothold` **scaffolde
-déjà** ce bloc — rien à faire, vérifiez juste qu'il est présent :
+Splash…) en `custom_scripts`. Les community scripts VEAF doivent donc rester OFF —
+sinon, par exemple, l'AIEN de VEAF écrase celui de Foothold et la mission plante.
+Le profil `foothold` **scaffolde déjà** ces désactivages **dans le bloc `modules:`**
+(et pas dans un bloc `community_scripts:` séparé, qui serait *ignoré* dès que
+`modules:` existe) — rien à faire, vérifiez juste leur présence :
 
 ```yaml
-community_scripts:
-  mist: false
+modules:
+  # … modules VEAF …
+  # ── Community scripts OFF ──
   stts: false
   ctld: false
   aien: false
@@ -75,6 +78,9 @@ community_scripts:
   skynet: false
   tum: false
 ```
+
+> MiST n'est pas dans la liste : c'est une dépendance VEAF obligatoire (toujours
+> chargée).
 
 ### b. Override partiel de la config Foothold
 

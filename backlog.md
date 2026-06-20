@@ -15,7 +15,7 @@
 |-----|--------|
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ⬜ |
-| Lot CLEANUP-LUPA — remove the dead `lupa` dependency (no longer imported since SECREV-001; still bundled by RC-002) | ⬜ |
+| Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
 | Lot DCS-UPDATE-VERIFY — post-DCS-update verification campaign: re-check every DCS-derived datum + runtime behaviour after a DCS World update | ✅ |
@@ -118,13 +118,13 @@
 
 ## Lot CLEANUP-LUPA — remove the dead `lupa` dependency
 
-**Goal**: `lupa` (Lua runtime) is no longer imported anywhere in `src/python/` — SECREV-001 routed all `.miz`/Lua parsing through the pure-Python `luadata` state machine to remove the RCE, and RC-002 then (needlessly, in hindsight) made `lupa` a non-optional dependency + `hiddenimports` in the `.spec` to bundle it in the exe. It is now pure dead weight in the dependency tree and the binary. Remove it. (Surfaced while planning FOOTHOLD-V6: the config-validation design deliberately avoids reintroducing lupa.)
+**Goal**: SECREV-001 routed all `.miz`/Lua parsing through the pure-Python `luadata` state machine to remove the RCE, but `lupa` was still bundled — a non-optional dependency + `hiddenimports` in the `.spec` (RC-002) — and still referenced in two dead spots: the unused `_lua_table_to_dict` path in the vendored `luadata` serializer, and the lupa-based reference oracle in `test_secrev_rce.py`. It is dead weight in the dependency tree and the binary. Remove it. (Surfaced while planning FOOTHOLD-V6: the config-validation design deliberately avoids reintroducing lupa.)
 
 **Branch**: `chore/cleanup-lupa` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| CLEANUP-LUPA-001 | Drop `lupa` from `pyproject.toml` dependencies, from the `hiddenimports` in `veaf-tools.spec`, and the `lupa.*` mypy override; verify no `import lupa` remains and the exe still builds. | `pyproject.toml`, `veaf-tools.spec`, `test/python/` | chore | ⬜ |
+| CLEANUP-LUPA-001 | Drop `lupa` from `pyproject.toml` dependencies + the `lupa.*` mypy override, from the `hiddenimports` in `veaf-tools.spec`; remove the dead lupa import + `_lua_table_to_dict` from the vendored `luadata` serializer and the lupa reference oracle from `test_secrev_rce.py` (re-pin the dict/list policy with direct expected-value assertions + a real-`.miz` parse smoke test). No `import lupa` remains. | `pyproject.toml`, `veaf-tools.spec`, `luadata/serializer/unserialize.py`, `test/python/` | chore | ✅ |
 
 ---
 

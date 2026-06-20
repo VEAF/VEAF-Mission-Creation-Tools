@@ -5,9 +5,12 @@ Two guarantees are tested:
 1. **No execution**: a malicious ``.miz`` payload that, under the former
    ``lua.execute`` path, would run side effects (here: writing a sentinel file)
    must NOT do so when parsed through ``luadata.unserialize``.
-2. **Equivalence**: rerouting parsing to the pure-Python state machine must
-   produce output identical to the historical lupa-based path for every real
-   ``.miz`` fixture shipped in the repository.
+2. **Real fixtures parse**: the pure-Python state machine parses every real
+   ``.miz`` fixture shipped in the repository into a structure without raising.
+
+Note: the historical lupa-based oracle that this suite once compared against was
+retired with the ``lupa`` dependency (CLEANUP-LUPA); the dict/list policy is now
+pinned by direct expected-value assertions below.
 """
 
 from __future__ import annotations
@@ -18,7 +21,6 @@ from pathlib import Path
 
 import luadata
 import pytest
-from luadata.serializer.unserialize import _lua_table_to_dict
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -36,22 +38,6 @@ _LUA_MEMBERS: dict[str, list[str] | None] = {
     "l10n/DEFAULT/dictionary": None,
     "l10n/DEFAULT/mapResource": None,
 }
-
-
-def _lua_reference(raw: str, keep_as_dict: list[str] | None) -> object:
-    """Reference parser using the original (unsafe) lupa path, for comparison."""
-    pytest.importorskip("lupa")
-    try:
-        from lupa.lua51 import LuaRuntime  # type: ignore[attr-defined]
-    except ImportError:  # pragma: no cover - depends on installed lupa flavour
-        try:
-            from lupa.lua54 import LuaRuntime  # type: ignore[attr-defined,no-redef]
-        except ImportError:  # pragma: no cover
-            from lupa import LuaRuntime  # type: ignore[no-redef]
-    lua = LuaRuntime(unpack_returned_tuples=False, encoding="utf-8", max_memory=0)
-    lua.execute(raw)
-    variable = raw.split("=")[0].strip()
-    return _lua_table_to_dict(lua.globals()[variable], keep_as_dict=keep_as_dict, all_is_dict=False)
 
 
 # ---------------------------------------------------------------------------
@@ -80,21 +66,19 @@ class TestNoCodeExecution:
 
 
 # ---------------------------------------------------------------------------
-# 2. Behavioural equivalence with the historical lupa path
+# 2. Dict/list policy + real-fixture parsing
 # ---------------------------------------------------------------------------
 
 
-class TestEquivalenceWithLua:
-    def test_empty_table_is_dict_like_lua(self) -> None:
-        # Regression: the state machine returns [] for {}, lupa returns {}.
-        assert luadata.unserialize("mission = {}") == _lua_reference("mission = {}", None)
+class TestDictListPolicy:
+    def test_empty_table_is_dict(self) -> None:
+        # Regression: the state machine returns [] for {}; the policy forces {}.
         assert luadata.unserialize("mission = {}") == {}
 
     def test_keep_as_dict_forces_dict_subtree(self) -> None:
         raw = 'mission = { ["trig"] = { [1] = "a", [2] = "b" } }'
         result = luadata.unserialize(raw, keep_as_dict=["trig", "trigrules"])
         assert result == {"trig": {1: "a", 2: "b"}}
-        assert result == _lua_reference(raw, ["trig", "trigrules"])
 
     def test_contiguous_int_keys_become_list_without_policy(self) -> None:
         raw = 'mission = { [1] = "a", [2] = "b" }'
@@ -102,7 +86,8 @@ class TestEquivalenceWithLua:
 
     @pytest.mark.skipif(not _MIZ_FIXTURES, reason="no .miz fixtures available")
     @pytest.mark.parametrize("miz_path", _MIZ_FIXTURES, ids=lambda p: p.name)
-    def test_real_miz_members_match_lua(self, miz_path: Path) -> None:
+    def test_real_miz_members_parse(self, miz_path: Path) -> None:
+        """Every pure-data member of every real .miz fixture parses into a structure."""
         with zipfile.ZipFile(miz_path) as zf:
             names = set(zf.namelist())
             for member, keep_as_dict in _LUA_MEMBERS.items():
@@ -111,6 +96,5 @@ class TestEquivalenceWithLua:
                 raw = zf.read(member).decode("utf-8")
                 if "=" not in raw:
                     continue
-                expected = _lua_reference(raw, keep_as_dict)
-                actual = luadata.unserialize(raw, keep_as_dict=keep_as_dict)
-                assert actual == expected, f"{miz_path.name}:{member} diverged from lupa output"
+                parsed = luadata.unserialize(raw, keep_as_dict=keep_as_dict)
+                assert isinstance(parsed, (dict, list)), f"{miz_path.name}:{member} did not parse"

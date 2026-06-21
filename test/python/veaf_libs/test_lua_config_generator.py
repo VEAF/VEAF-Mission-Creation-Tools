@@ -543,3 +543,29 @@ def test_mandatory_mist_never_emitted_as_disabled():
     """MiST is a mandatory dependency — never scaffolded as disabled even if listed false."""
     lua = generate_config_lua({"community_scripts": {"mist": False}})
     assert 'veaf.setConfig("mist", "enable", false)' not in lua
+
+
+# ---------------------------------------------------------------------------
+# COMBATZONE — activate zones at mission start (FEAT-COMBATZONE-ACTIVATE)
+# ---------------------------------------------------------------------------
+
+
+def test_combatzone_active_at_start_emits_activatezone_after_initialize():
+    """A combat zone flagged ``active_at_start`` is activated after ``initialize()``."""
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {
+            "COMBATZONE": {
+                "combat_zones": [
+                    {"zone_name": "OUTPOST_1", "active_at_start": True},
+                    {"zone_name": "OUTPOST_2"},
+                ]
+            }
+        },
+    }
+    lua = generate_config_lua(yaml_data)
+    # Flagged zone is activated (silent), non-flagged zone is not.
+    assert 'veafCombatZone.ActivateZone("OUTPOST_1", true)' in lua
+    assert 'veafCombatZone.ActivateZone("OUTPOST_2"' not in lua
+    # Activation must come AFTER initialize() (zones must be registered first).
+    assert lua.index("veafCombatZone.initialize()") < lua.index('veafCombatZone.ActivateZone("OUTPOST_1", true)')

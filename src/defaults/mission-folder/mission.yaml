@@ -126,6 +126,7 @@ modules:
   #         zone_name: CZ-Alpha
   #         friendly_name: Alpha Zone
   #         training: false
+  #         active_at_start: true   # activate this zone automatically at mission start
   #   QRA:
   #     enabled: true
   #     silence_all: false

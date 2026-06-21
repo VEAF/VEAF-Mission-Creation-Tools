@@ -493,6 +493,12 @@ def _emit_module_body(
 
         lines.append(f"    {var_name}.initialize()")
 
+        # Activate zones flagged active_at_start, after initialize() so they are
+        # already registered (FEAT-COMBATZONE-ACTIVATE).
+        for zone_def in cz_zones:
+            if zone_def.get("type", "zone") != "operation" and zone_def.get("active_at_start"):
+                lines.append(f'    {var_name}.ActivateZone("{zone_def.get("zone_name", "")}", true)')
+
     elif mod_id == "AIRWAVES":
         airwave_zones: list = mod_cfg.get("airwave_zones") or []
         for zone in airwave_zones:

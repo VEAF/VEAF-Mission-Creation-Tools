@@ -20,6 +20,7 @@
 | Lot FEAT-COMBATZONE-ACTIVATE — no declarative way in `mission.yaml` to activate combat zones at mission start; the generator emits zone definitions + `veafCombatZone.initialize()` but never `veafCombatZone.ActivateZone("<name>", true)` (previously hand-written in Lua). Add a YAML way to activate zones at start (Tripack) | ✅ |
 | Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ✅ |
 | Lot FIX-TEMPLATE-SLOTS-VISIBLE — injected aircraft templates (`skill: Client`, spawnable + dynamic-slot) appear in the multiplayer slot-selection table because the injector sets `hidden`/`lateActivation` but never `hiddenOnPlanner` (which removes a group from the briefing slot list) nor a slot password → players can pick a template slot (Tripack) | ✅ |
+| Lot ENRICH-DEFAULT-PRESETS — the shipped default `presets.yaml` only defines 3 radio preset collections (classic UHF/VHF/FM, inverted A-10, FM/UHF CH-47), so only those aircraft get a kneeboard out of the box; enrich it to cover more aircraft/coalitions — collaboration with Tripack (later) | ⬜ |
 | Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
@@ -194,6 +195,18 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-TEMPLATE-SLOTS-VISIBLE-001 | On injected aircraft templates (spawnable + dynamic-slot), emit both `hiddenOnPlanner: true` (+ `hiddenOnMFD: true`) and a slot password. Verify dynamic-slot spawning still works and the templates are gone from the briefing slot table. Lockstep defaults + doc; add an injector test asserting both the flags and the password are emitted on template groups. | `aircrafts_injector/aircrafts_injector_worker.py`, default templates, `doc/`, `test/python/` | fix | ✅ (#503) |
+
+---
+
+## Lot ENRICH-DEFAULT-PRESETS — broaden the shipped default radio presets (with Tripack)
+
+**Goal**: The shipped default `src/defaults/mission-folder/src/presets.yaml` defines only **3** preset collections — `Blue coalition - classic UHF/VHF/FM` (standard jets), `inverted VHF/UHF/FM (A-10)`, and `FM/UHF (CH-47)`. A kneeboard is generated only for a preset that is **actually used by an aircraft present in the mission** (`used_in_mission`, `presets_manager.py:821`), so a mission only ships kneeboards for those three airframes; any other aircraft gets no VEAF radio presets/kneeboard out of the box. Enrich the default presets to cover more aircraft (and the red coalition where relevant) with sensible default frequencies, **in collaboration with Tripack** — his real-mission usage drives which airframes and frequency plans matter. Lockstep: doc (`veafRadioPresets`/GUIDE) if the structure or coverage is documented. Not urgent; post-current-batch.
+
+**Branch**: `feat/enrich-default-presets` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| ENRICH-DEFAULT-PRESETS-001 | With Tripack, extend the default `presets.yaml` preset collections to cover more airframes/coalitions with default radio plans; keep the existing collections working. Validate that each added aircraft yields a correct kneeboard. | `src/defaults/mission-folder/src/presets.yaml`, `doc/` | feat | ⬜ |
 
 ---
 

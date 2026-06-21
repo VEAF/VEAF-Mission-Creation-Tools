@@ -229,6 +229,8 @@ flowchart TD
     P4 --> OUT
 ```
 
+> **Note — templates et slots multijoueur** : les groupes injectés depuis `spawnables.yaml` et `dynamic-slot-templates.yaml` sont des **modèles** réutilisables. Pour éviter qu'ils n'apparaissent comme slots sélectionnables dans le briefing multijoueur, le build les masque automatiquement de la liste des slots (`hiddenOnPlanner`/`hiddenOnMFD`) et les verrouille par un mot de passe. Le spawn dynamique (qui référence le template par son nom) reste pleinement fonctionnel.
+
 ---
 
 ## Configurer les modules

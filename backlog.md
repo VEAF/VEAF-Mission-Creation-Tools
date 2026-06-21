@@ -17,6 +17,7 @@
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ✅ |
 | Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ⬜ |
 | Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates are written under `helicopters:` in the generated `dynamic-slot-templates.yaml` (`airplanes:` stays empty), so DCS injects them as a **helicopter group** in the ME (group titled "GROUPE D'HÉLICOPTÈRES", aircraft type mismatched/highlighted); #478 (FIX-SPAWNABLES-CATEGORY) fixed the same symptom for the default CAP `spawnables.yaml` but not the dynamic-slot extraction pipeline (Tripack) | ⬜ |
+| Lot FEAT-COMBATZONE-ACTIVATE — no declarative way in `mission.yaml` to activate combat zones at mission start; the generator emits zone definitions + `veafCombatZone.initialize()` but never `veafCombatZone.ActivateZone("<name>", true)` (previously hand-written in Lua). Add a YAML way to activate zones at start (Tripack) | ⬜ |
 | Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ⬜ |
 | Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
@@ -140,6 +141,20 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-DYNSLOT-TEMPLATE-CATEGORY-001 | Make the aircraft-groups extraction categorize each group by DCS unit category (airplane vs helicopter) when emitting `dynamic-slot-templates.yaml`; airplanes must land under `airplanes:`, not `helicopters:`. Regenerate the shipped/test templates. Repro: extract a mission containing an A-10C II dynamic-slot template, confirm it appears under `airplanes:` and injects as an airplane group in the ME. | aircraft-groups extraction (`aircrafts_injector/` / `extract-aircraft-groups`), default templates, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot FEAT-COMBATZONE-ACTIVATE — declaratively activate combat zones at mission start
+
+**Goal**: There is no declarative way in `mission.yaml` to **activate** combat zones at mission start. The generator (`lua_config_generator.py`, `COMBATZONE` branch) emits zone definitions and `veafCombatZone.initialize()`, but never the `veafCombatZone.ActivateZone("<name>", true)` calls — those used to be hand-written in the mission Lua (Tripack's screenshot: a block of `ActivateZone("OUTPOST_1", true)` …). Add a YAML mechanism so the build generates one `veafCombatZone.ActivateZone("<name>", true)` per requested zone, **after** `veafCombatZone.initialize()` (zones must be defined/registered first). Lockstep: `src/defaults/mission-folder/mission.yaml` + `doc/` (MISSION_YAML reference) + `test/python/`.
+
+**Open design point (ask David)**: YAML shape — **(a)** a per-zone flag inside `combat_zones:` (e.g. `active_at_start: true`), collected and emitted after `initialize()`; or **(b)** a dedicated flat list (e.g. `combat_zone_settings.activate_at_start: [OUTPOST_1, OUTPOST_2, …]`) that mirrors the old hand-written block. Decide before implementing.
+
+**Branch**: `feat/combatzone-activate` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-COMBATZONE-ACTIVATE-001 | Add a `mission.yaml` way to activate combat zones at start; the build emits `veafCombatZone.ActivateZone("<name>", true)` per requested zone, after `veafCombatZone.initialize()`. Resolve the YAML-shape open point first. Lockstep defaults + doc; add a generator test asserting the `ActivateZone` calls are emitted in the right order. | `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml`, `doc/`, `test/python/` | feat | ⬜ |
 
 ---
 

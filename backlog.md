@@ -125,6 +125,8 @@
 
 **Goal**: The auto-generated `dynamic-slot-templates.yaml` stores radio channels for **kHz/ADF radios** (e.g. the Yak-52's **ARK-15M**) in **MHz** (`0.625`, `0.303`, …) instead of the **kHz** values DCS expects (`625`, `303`, …) — a ×1000 / 3-decimal-place discrepancy that makes the mission **fail to start** (reported by Tripack on Training-Chypres; editing the file `0.625 → 625` fixes it). Make the radio-channel handling **unit-aware/robust for every radio type** (kHz ADF vs MHz VHF/UHF), and **audit + harden the shipped/generated default frequencies** so no aircraft ships with a wrong-scaled value (David: "blinder nos fréqs par défaut", general — not just Yak-52). Determine the failing stage (extraction into the YAML vs injection back) during implementation.
 
+**Investigation note (needs a Yak-52 repro)**: domain localized — `presets_injector/data/dcs-radio-specs.yaml` defines `Yak-52 → ARK-15M` with a range `min_mhz: 0.1 / max_mhz: 1.795`, and the whole preset/validator pipeline works **in MHz** (`min_mhz`/`max_mhz`, `channel.freq` formatted `:.2f`). The ARK-15M is an **ADF stored in kHz** by DCS → unit-scale mismatch. There is **no explicit `÷1000`/`÷1e6` in the Python** (grep clean), so which stage writes `0.625` (extraction) vs re-applies it (injection) and **what scale DCS actually stores for the ARK-15M in the `.miz`** cannot be settled by reading. Need a repro: a `.miz` with a **Yak-52 dynamic slot**, ARK-15M set to a known freq (e.g. 625 kHz) → extract, compare to source, then fix the scale **unit-aware per radio type** with a test, and audit the shipped specs. **Status: data-blocked on a Yak-52 repro.**
+
 **Branch**: `fix/dynslot-radio-units` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Status |

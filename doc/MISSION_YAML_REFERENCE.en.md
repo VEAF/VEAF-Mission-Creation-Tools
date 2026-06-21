@@ -123,7 +123,7 @@ global_log_level: debug     # error | warning | info | debug | trace
 
 ### `mission:`
 
-Mission identity fields used in radio menus, log messages, and export paths.
+Mission identity (name, export path, era) **and** mission-wide options (e.g. `silence_atc_on_all_airbases`) — used in radio menus, log messages, and export paths. This block holds mission-level settings, not just identity.
 
 ```yaml
 mission:
@@ -131,6 +131,7 @@ mission:
   export_path: null           # null = default DCS Saved Games path
   era: MODERN                 # MODERN | COLD_WAR | WW2
   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
+  silence_atc_on_all_airbases: false  # mission-wide option: mute DCS ATC at every airbase
 ```
 
 | Field | Type | Default | Required | Description |
@@ -138,6 +139,7 @@ mission:
 | `name` | string | — | No | Mission name shown in menus and logs |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
 | `era` | string | `MODERN` | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups |
+| `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 
 ---

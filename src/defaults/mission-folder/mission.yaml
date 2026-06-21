@@ -30,7 +30,8 @@
 #
 # global_log_level: debug
 
-# ── Mission identity ─────────────────────────────────────────────────────────
+# ── Mission ──────────────────────────────────────────────────────────────────
+# Identity (name, export path, era) and mission-wide options (silence_atc…).
 # mission:
 #   name: My-Mission            # shown in radio menus and log messages
 #   export_path: null           # null = default DCS Saved Games path

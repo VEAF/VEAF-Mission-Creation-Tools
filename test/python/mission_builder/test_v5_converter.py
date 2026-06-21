@@ -271,6 +271,22 @@ class TestBuildMissionYamlDocLinks(unittest.TestCase):
         self.assertIn(t("converter.yaml.modules.desc2"), yaml)
 
 
+class TestBuildMissionYamlSilenceAtcProvenance(unittest.TestCase):
+    """FIX-MISSIONYAML-MISSION-SECTION: migrated silence_atc carries a provenance comment."""
+
+    def test_silence_atc_emits_provenance_comment(self) -> None:
+        from mission_builder.config_migrator import MigrationResult
+        from mission_builder.v5_converter import V5Converter
+
+        with tempfile.TemporaryDirectory() as td:
+            mr = MigrationResult(new_content="", silence_atc=True)
+            report = ConversionReport(mission_folder=Path(td), version="test", migration_result=mr)
+            yaml = V5Converter(version="test")._build_mission_yaml(report)
+        # The field is emitted under mission: with a provenance annotation.
+        assert "silence_atc_on_all_airbases: true" in yaml
+        assert "migrated from veaf.silenceAtcOnAllAirbases()" in yaml
+
+
 # ---------------------------------------------------------------------------
 # V5Converter.convert() — integration tests
 # ---------------------------------------------------------------------------

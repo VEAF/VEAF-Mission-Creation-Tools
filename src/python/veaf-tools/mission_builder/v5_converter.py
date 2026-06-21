@@ -1099,8 +1099,10 @@ class V5Converter:
                 ep_yaml = _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
             # CONVERT-FIDELITY-003: only emit when active (absent ≡ not silenced).
+            # FIX-MISSIONYAML-MISSION-SECTION: annotate provenance so the maker
+            # understands "how it got here" (a mission-wide option, not identity).
             if mr.silence_atc:
-                lines.append("  silence_atc_on_all_airbases: true")
+                lines.append("  silence_atc_on_all_airbases: true  # migrated from veaf.silenceAtcOnAllAirbases()")
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────

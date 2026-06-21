@@ -1062,6 +1062,7 @@ def generate_mission_yaml_template(
     lines.append("#   export_path: null             # null = default DCS Saved Games path")
     lines.append("#   era: MODERN                   # MODERN | COLD_WAR | WW2")
     lines.append(f"#   language: fr                  # {t('generated.mission_yaml.field.language')}")
+    lines.append("#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase")
     lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────

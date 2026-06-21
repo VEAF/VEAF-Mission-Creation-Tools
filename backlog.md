@@ -19,6 +19,7 @@
 | Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates are written under `helicopters:` in the generated `dynamic-slot-templates.yaml` (`airplanes:` stays empty), so DCS injects them as a **helicopter group** in the ME (group titled "GROUPE D'HÉLICOPTÈRES", aircraft type mismatched/highlighted); #478 (FIX-SPAWNABLES-CATEGORY) fixed the same symptom for the default CAP `spawnables.yaml` but not the dynamic-slot extraction pipeline. Possibly-related (unconfirmed) QRA symptom: an airplane dynamic-slot only triggers a QRA when `react_on_helicopters: true` — investigated in ticket 002 (Tripack) | ⬜ |
 | Lot FEAT-COMBATZONE-ACTIVATE — no declarative way in `mission.yaml` to activate combat zones at mission start; the generator emits zone definitions + `veafCombatZone.initialize()` but never `veafCombatZone.ActivateZone("<name>", true)` (previously hand-written in Lua). Add a YAML way to activate zones at start (Tripack) | ⬜ |
 | Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ⬜ |
+| Lot FIX-TEMPLATE-SLOTS-VISIBLE — injected aircraft templates (`skill: Client`, spawnable + dynamic-slot) appear in the multiplayer slot-selection table because the injector sets `hidden`/`lateActivation` but never `hiddenOnPlanner` (which removes a group from the briefing slot list) nor a slot password → players can pick a template slot (Tripack) | ⬜ |
 | Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
 | Lot CLI-TUI-BRIDGE — any command invoked without its required options (or with `--tui`) drops into the TUI, skipping the steps already given on the CLI; supersedes prepare's interim `no_args_is_help` | ✅ |
@@ -170,6 +171,20 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-MISSIONYAML-MISSION-SECTION-001 | Broaden the `mission:` section header/comment (no longer just "identity"), add an inline comment on `silence_atc_on_all_airbases`, and have `convert-v5` annotate the provenance of migrated fields. Keep `silence_atc` under `mission:`. Lockstep: update `src/defaults/mission-folder/mission.yaml` and the doc. | `veaf_libs/lua_config_generator.py`, `veaf_libs/locales/*.json`, `mission_builder/v5_converter.py`, `src/defaults/mission-folder/mission.yaml`, `doc/`, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot FIX-TEMPLATE-SLOTS-VISIBLE — injected aircraft templates pollute the multiplayer slot list
+
+**Goal**: Aircraft templates injected by the tool (both the `veafSpawn-` spawnable groups and the `dynSpawnTemplate` dynamic-slot templates) carry `skill: Client` units, so they show up as **selectable slots** in the multiplayer briefing slot table (Tripack's screenshot: a long list of "… Template" slots). The injector already emits `hidden: true` (map only) and `lateActivation: true`, but **neither `hiddenOnPlanner`** (the DCS group flag that removes a group from the briefing slot list — already used 474× on the mission's own groups in Tripack's `.miz`) **nor a slot password**. So players can pick a template slot by mistake. The injector (`aircrafts_injector_worker.py`) handles no such field today. Fix the injection so templates no longer appear as pickable slots; lockstep defaults + doc + `test/python/`.
+
+**Open design point (ask David)**: how to hide them — **(a)** set `hiddenOnPlanner: true` (and likely `hiddenOnMFD: true`) on injected template groups → they vanish from the slot list entirely (cleanest; must confirm it doesn't disturb dynamic-slot spawning, which references the template by name); or **(b)** give them a slot **password** (Tripack's suggestion) → they stay listed but locked. Decide before implementing.
+
+**Branch**: `fix/template-slots-visible` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-TEMPLATE-SLOTS-VISIBLE-001 | Stop injected aircraft templates (spawnable + dynamic-slot) from appearing as pickable multiplayer slots. Resolve the hide-mechanism open point first (likely `hiddenOnPlanner: true`). Verify dynamic-slot spawning still works and the templates are gone from the briefing slot table. Lockstep defaults + doc; add an injector test asserting the chosen flag/password is emitted on template groups. | `aircrafts_injector/aircrafts_injector_worker.py`, default templates, `doc/`, `test/python/` | fix | ⬜ |
 
 ---
 

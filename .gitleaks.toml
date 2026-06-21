@@ -8,3 +8,9 @@ title = "VEAF Mission Creation Tools — gitleaks config"
     # Dockerfile contains SHA256 checksums for binary integrity verification
     '''^\.devcontainer/Dockerfile$''',
   ]
+  regexes = [
+    # DCS slot-password hash (salt:hash) baked into injected aircraft templates to
+    # lock throwaway template slots (FIX-TEMPLATE-SLOTS-VISIBLE). Not a credential:
+    # it is a fixed, non-reversible DCS Mission Editor hash, not an access secret.
+    '''PmJhVFN21Er:LOlEElfvfTfCCEQAkDRvYhpPnZZAzp88mgo_m5Twv0I''',
+  ]

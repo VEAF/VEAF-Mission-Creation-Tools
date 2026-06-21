@@ -315,5 +315,36 @@ class TestCountryIdResolution(unittest.TestCase):
             worker._get_or_create_country(coalition, "Wakanda")
 
 
+class TestInjectedTemplateHiddenFromSlotList(unittest.TestCase):
+    """FIX-TEMPLATE-SLOTS-VISIBLE: injected templates must not appear as pickable MP slots."""
+
+    def test_added_group_is_hidden_from_planner(self) -> None:
+        """A newly injected template carries hiddenOnPlanner/hiddenOnMFD."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        worker.yaml_data = _yaml_data(["tmpl-a10"])
+
+        result = worker.inject_groups(mode="add", silent=True)
+
+        self.assertTrue(result.success)
+        injected = next(g for g in _get_groups(worker) if g["name"] == "tmpl-a10")
+        self.assertTrue(injected["hiddenOnPlanner"])
+        self.assertTrue(injected["hiddenOnMFD"])
+        self.assertTrue(injected["password"])  # locked slot password (b)
+
+    def test_replaced_group_is_hidden_from_planner(self) -> None:
+        """A replaced template is hardened too (both insertion paths)."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups(["tmpl-a10"])
+        worker.yaml_data = _yaml_data(["tmpl-a10"])
+
+        worker.inject_groups(mode="replace", silent=True)
+
+        injected = next(g for g in _get_groups(worker) if g["name"] == "tmpl-a10")
+        self.assertTrue(injected["hiddenOnPlanner"])
+        self.assertTrue(injected["hiddenOnMFD"])
+        self.assertTrue(injected["password"])  # locked slot password (b)
+
+
 if __name__ == "__main__":
     unittest.main()

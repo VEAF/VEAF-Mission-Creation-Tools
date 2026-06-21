@@ -433,6 +433,17 @@ class AircraftGroupsYAMLValidator:
         return report
 
 
+# FIX-TEMPLATE-SLOTS-VISIBLE: locked slot password applied to injected templates,
+# as defence-in-depth on top of hiddenOnPlanner/hiddenOnMFD. DCS stores the slot
+# password as a non-reversible salted `salt:hash` at group level (the hashing
+# algorithm is not public, so we cannot generate one from a plaintext at build —
+# this constant is a fixed hash captured from the DCS Mission Editor). The
+# plaintext is the deliberately-trivial, throwaway word "motdepasse" — this is
+# not an access secret, it just stops a template slot being taken by accident
+# (and templates are already hidden from the briefing slot list anyway).
+_TEMPLATE_SLOT_PASSWORD = "PmJhVFN21Er:LOlEElfvfTfCCEQAkDRvYhpPnZZAzp88mgo_m5Twv0I"
+
+
 class AircraftGroupsInjectorWorker(BaseWorker):
     """
     Worker class that injects aircraft groups from YAML into a DCS mission.
@@ -648,6 +659,27 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         """Implement BaseWorker: delegates to inject() with default parameters."""
         return self.inject()
 
+    def _prepare_injected_group(self, group: dict) -> dict:
+        """Return a deep copy of *group* hardened for injection as a reusable template.
+
+        Injected templates carry ``skill: Client`` units, so without this they
+        would show up as pickable slots in the multiplayer briefing slot table
+        (Tripack). Setting ``hiddenOnPlanner``/``hiddenOnMFD`` removes them from
+        that list while leaving the dynamic-slot spawning (which references the
+        template by name) intact (FIX-TEMPLATE-SLOTS-VISIBLE).
+
+        Args:
+            group: The group dict to inject.
+
+        Returns:
+            A hardened deep copy (the source dict is not mutated).
+        """
+        prepared = copy.deepcopy(group)
+        prepared["hiddenOnPlanner"] = True
+        prepared["hiddenOnMFD"] = True
+        prepared["password"] = _TEMPLATE_SLOT_PASSWORD
+        return prepared
+
     def inject_groups(self, mode: str = "add", silent: bool = False) -> InjectionResult:
         """
         Inject aircraft groups from YAML into the mission.
@@ -716,7 +748,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
                 if existing_idx is not None and mode == "replace":
                     # Replace existing group
-                    groups_list[existing_idx] = copy.deepcopy(group_data)
+                    groups_list[existing_idx] = self._prepare_injected_group(group_data)
                     log_msg = f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
                 elif existing_idx is not None:
                     # Skip: group already exists and mode is not replace
@@ -728,7 +760,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                     continue
                 else:
                     # Add new group
-                    groups_list.append(copy.deepcopy(group_data))
+                    groups_list.append(self._prepare_injected_group(group_data))
                     log_msg = f"Injected group {group_name} into {coalition_name}/{country_name}/{category}"
 
                 self.injection_log.append(log_msg)

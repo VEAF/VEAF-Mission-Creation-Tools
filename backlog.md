@@ -15,7 +15,7 @@
 |-----|--------|
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ✅ |
-| Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ⬜ |
+| Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ✅ |
 | Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates are written under `helicopters:` in the generated `dynamic-slot-templates.yaml` (`airplanes:` stays empty), so DCS injects them as a **helicopter group** in the ME (group titled "GROUPE D'HÉLICOPTÈRES", aircraft type mismatched/highlighted); #478 (FIX-SPAWNABLES-CATEGORY) fixed the same symptom for the default CAP `spawnables.yaml` but not the dynamic-slot extraction pipeline. Possibly-related (unconfirmed) QRA symptom: an airplane dynamic-slot only triggers a QRA when `react_on_helicopters: true` — investigated in ticket 002 (Tripack) | ⬜ |
 | Lot FEAT-COMBATZONE-ACTIVATE — no declarative way in `mission.yaml` to activate combat zones at mission start; the generator emits zone definitions + `veafCombatZone.initialize()` but never `veafCombatZone.ActivateZone("<name>", true)` (previously hand-written in Lua). Add a YAML way to activate zones at start (Tripack) | ✅ |
 | Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ✅ |
@@ -144,7 +144,7 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-DYNSLOT-RADIO-UNITS-001 | Diagnose where the Yak-52 ARK-15M channels get the ×1000 error (aircraft-groups extraction that writes `dynamic-slot-templates.yaml` vs the injector that re-applies it), make radio-channel scaling unit-aware per radio type, and harden the default/generated frequencies so kHz/ADF radios are correct. Repro: build a mission with a Yak-52 dynamic-slot template; confirm it starts. | `aircrafts_injector/` (extraction + injection), default templates, `test/python/` | fix | ⬜ |
+| FIX-DYNSLOT-RADIO-UNITS-001 | Diagnose where the Yak-52 ARK-15M channels get the ×1000 error (aircraft-groups extraction that writes `dynamic-slot-templates.yaml` vs the injector that re-applies it), make radio-channel scaling unit-aware per radio type, and harden the default/generated frequencies so kHz/ADF radios are correct. Repro: build a mission with a Yak-52 dynamic-slot template; confirm it starts. | `aircrafts_injector/` (extraction + injection), default templates, `test/python/` | fix | ✅ (#504) |
 
 ---
 

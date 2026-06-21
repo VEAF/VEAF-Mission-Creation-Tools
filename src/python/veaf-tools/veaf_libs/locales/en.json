@@ -566,6 +566,7 @@
   "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
   "presets_injector.skip_incompatible_radio": "Skipped preset injection for group '{group}' ({unit_type}): every preset frequency is out of range for this aircraft's radio — kept its original radio (DCS would reject the mission otherwise).",
   "presets_injector.injected": "injected presets into {count} aircraft(s)",
+  "presets_injector.invalid_primary_frequency": "Invalid primary radio frequency (below {min} MHz — ADF/HF cannot be a group's main radio; DCS would refuse to save the mission): {details}. Fix the frequency in the source mission / dynamic-slot template.",
   "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
   "presets_injector.spinner.processing_groups": "Processing groups...",
   "presets_injector.spinner.generating_images": "Generating preset images...",

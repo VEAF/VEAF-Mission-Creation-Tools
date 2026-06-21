@@ -195,6 +195,28 @@ class TestProcessUnits(unittest.TestCase):
         # FM frequency must not overwrite group.frequency (Gazelle/Ka-50 HumanRadio issue)
         self.assertEqual(group.group_dcs["frequency"], original_freq)
 
+    def test_process_units_adf_freq_does_not_update_group_frequency(self) -> None:
+        # FIX-DYNSLOT-RADIO-UNITS: a sub-VHF (ADF/kHz, e.g. Yak-52 ARK-15M 0.625 MHz)
+        # must not be promoted to the group's primary frequency — DCS rejects it
+        # ("Fréquence invalide 0.625 MHz"). The Yak-52 has the ARK-15M range so the
+        # 0.625 channel is kept (not dropped), exercising the guard.
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "Yak-52", "skill": "Client"}], "frequency": 132.0},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name="Yak-52 Template",
+            unit_type="Yak-52",
+        )
+        preset = PresetDefinition("ark_preset")
+        radio = RadioDefinition("radio_ark", radio_type="adf")
+        radio.channels = [Channel(1, freq=0.625)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertEqual(group.group_dcs["frequency"], 132.0)
+
 
 class TestProcessGroups(unittest.TestCase):
     def test_process_groups_with_matching_preset(self) -> None:
@@ -255,6 +277,41 @@ class TestProcessGroups(unittest.TestCase):
         worker.presets_manager = MagicMock()
         # Should not raise even when not silent
         worker.process_groups(silent=False)
+
+    def test_process_groups_stops_on_invalid_primary_frequency(self) -> None:
+        # FIX-DYNSLOT-RADIO-UNITS: a sub-VHF primary frequency (0.625 MHz) makes DCS
+        # refuse to save the mission — the build must stop, not ship a broken .miz.
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "Yak-52", "skill": "Client"}], "frequency": 0.625},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name="Yak-52 Template",
+            unit_type="Yak-52",
+        )
+        worker.groups = {"Yak-52 Template": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = None
+        with self.assertRaises(ValueError):
+            worker.process_groups(silent=True)
+
+    def test_process_groups_valid_primary_frequency_does_not_stop(self) -> None:
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "Yak-52", "skill": "Client"}], "frequency": 132.0},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name="Yak-52 OK",
+            unit_type="Yak-52",
+        )
+        worker.groups = {"Yak-52 OK": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = None
+        worker.process_groups(silent=True)  # must not raise
 
 
 class TestGenerateValidationReport(unittest.TestCase):

@@ -566,6 +566,7 @@
   "presets_injector.processing_groups": "Traitement de {count} groupe(s) d'aéronefs",
   "presets_injector.skip_incompatible_radio": "Injection de preset ignorée pour le groupe '{group}' ({unit_type}) : toutes les fréquences du preset sont hors de la plage de la radio de cet aéronef — radio d'origine conservée (sinon DCS refuserait la mission).",
   "presets_injector.injected": "Préréglages injectés dans {count} aéronef(s)",
+  "presets_injector.invalid_primary_frequency": "Fréquence radio principale invalide (sous {min} MHz — une radio ADF/HF ne peut pas être la radio principale d'un groupe ; DCS refuserait d'enregistrer la mission) : {details}. Corrigez la fréquence dans la mission source / le modèle de slot dynamique.",
   "presets_injector.kneeboard_pages": "{count} page(s) de kneeboard ajoutée(s) à la mission",
   "presets_injector.spinner.processing_groups": "Traitement des groupes...",
   "presets_injector.spinner.generating_images": "Génération des images de préréglages...",

@@ -48,6 +48,7 @@ modules:
         friendly_name: "Alpha Zone"        # label in radio menu
         briefing: "Destroy the armoured column."  # shown in mission info
         training: false                     # true = no security, verbose status
+        active_at_start: true               # automatically activate the zone at mission start
         chained_zones:                      # zones to trigger when this one completes
           - "CZ-Bravo"
         chained_delay: 60                   # seconds before chaining fires
@@ -80,6 +81,7 @@ modules:
 | `friendly_name` | string | — | No | Label shown in the F10 menu |
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
+| `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
 

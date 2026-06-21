@@ -47,6 +47,7 @@ modules:
         friendly_name: "Zone Alpha"        # libellé dans le menu radio
         briefing: "Détruire la colonne blindée."  # affiché dans les infos mission
         training: false                     # true = pas de sécurité, statut verbeux
+        active_at_start: true               # active automatiquement la zone au démarrage de la mission
         chained_zones:                      # zones à déclencher quand celle-ci se termine
           - "CZ-Bravo"
         chained_delay: 60                   # secondes avant le déclenchement des zones chaînées
@@ -79,6 +80,7 @@ modules:
 | `friendly_name` | string | — | Non | Libellé affiché dans le menu F10 |
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
+| `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
 

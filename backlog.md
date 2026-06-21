@@ -16,6 +16,7 @@
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ✅ |
 | Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ⬜ |
+| Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates are written under `helicopters:` in the generated `dynamic-slot-templates.yaml` (`airplanes:` stays empty), so DCS injects them as a **helicopter group** in the ME (group titled "GROUPE D'HÉLICOPTÈRES", aircraft type mismatched/highlighted); #478 (FIX-SPAWNABLES-CATEGORY) fixed the same symptom for the default CAP `spawnables.yaml` but not the dynamic-slot extraction pipeline (Tripack) | ⬜ |
 | Lot FIX-MISSIONYAML-MISSION-SECTION — generated `mission.yaml` labels the `mission:` block "Mission identity" but it also holds behaviour options (`silence_atc_on_all_airbases`); relabel + annotate migrated-field provenance (Tripack) | ⬜ |
 | Lot CLEANUP-LUPA — remove the dead `lupa` dependency (parsing moved to pure-Python by SECREV-001; lupa still bundled by RC-002 + two dead code spots) | ✅ |
 | Lot FIX-AIRWAVES-GENERATOR — `lua_config_generator.py` emits `AirWaveZone` setters that don't exist in `veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimum/MaximumSecondsBetweenWaves`) → generated AirWaves configs crash at mission start | ✅ |
@@ -127,6 +128,18 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-DYNSLOT-RADIO-UNITS-001 | Diagnose where the Yak-52 ARK-15M channels get the ×1000 error (aircraft-groups extraction that writes `dynamic-slot-templates.yaml` vs the injector that re-applies it), make radio-channel scaling unit-aware per radio type, and harden the default/generated frequencies so kHz/ADF radios are correct. Repro: build a mission with a Yak-52 dynamic-slot template; confirm it starts. | `aircrafts_injector/` (extraction + injection), default templates, `test/python/` | fix | ⬜ |
+
+---
+
+## Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates miscategorized as helicopters
+
+**Goal**: The auto-generated `dynamic-slot-templates.yaml` writes **every extracted air group under `helicopters:`** — `airplanes:` is emitted as `coalitions: {}` (empty) while airplanes like the **A-10C II** land under `helicopters:`. On injection, DCS therefore shows the template as a **helicopter group** in the Mission Editor (group panel titled "GROUPE D'HÉLICOPTÈRES" with the aircraft type highlighted/red), reported by Tripack. This is **distinct from #478** (`FIX-SPAWNABLES-CATEGORY`, commit `d40ae5f2`), which only re-categorized the **default CAP templates in `spawnables.yaml`** (data-only) and did **not** touch the dynamic-slot extraction pipeline. Fix: the `extract-aircraft-groups` extraction must classify each group by its **DCS unit category** (airplane vs helicopter) when writing `dynamic-slot-templates.yaml`, so airplanes go under `airplanes:` and rotary under `helicopters:`. Regenerate the test/default templates in lockstep; add a non-regression test asserting an airplane type lands under `airplanes:`.
+
+**Branch**: `fix/dynslot-template-category` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-DYNSLOT-TEMPLATE-CATEGORY-001 | Make the aircraft-groups extraction categorize each group by DCS unit category (airplane vs helicopter) when emitting `dynamic-slot-templates.yaml`; airplanes must land under `airplanes:`, not `helicopters:`. Regenerate the shipped/test templates. Repro: extract a mission containing an A-10C II dynamic-slot template, confirm it appears under `airplanes:` and injects as an airplane group in the ME. | aircraft-groups extraction (`aircrafts_injector/` / `extract-aircraft-groups`), default templates, `test/python/` | fix | ⬜ |
 
 ---
 

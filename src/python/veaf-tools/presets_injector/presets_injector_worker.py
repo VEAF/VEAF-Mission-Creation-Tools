@@ -32,6 +32,16 @@ from .radio_frequency_validator import (
 _MIN_PRIMARY_RADIO_MHZ = 30.0
 
 
+def _is_valid_primary_frequency(freq_mhz: float) -> bool:
+    """Whether *freq_mhz* may be a group's primary radio frequency.
+
+    A primary radio is VHF/UHF/FM; anything below ``_MIN_PRIMARY_RADIO_MHZ`` is an
+    ADF/HF (kHz-range) channel that DCS rejects as a primary frequency. Single
+    source of truth for both the promotion guard and the build-time safety net.
+    """
+    return freq_mhz >= _MIN_PRIMARY_RADIO_MHZ
+
+
 @dataclass
 class _PendingFreqWarning:
     """Aggregated data for a deferred radio-frequency warning keyed by unit_type."""
@@ -134,7 +144,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     # Likewise an ADF/HF channel (sub-VHF, e.g. ARK-15M 0.625 MHz) must
                     # not become the primary frequency — DCS rejects it (FIX-DYNSLOT-RADIO-UNITS).
                     first_radio_type = next(iter(inject_preset.radios.values())).radio_type
-                    if first_radio_type != "fm" and first_freq >= _MIN_PRIMARY_RADIO_MHZ:
+                    if first_radio_type != "fm" and _is_valid_primary_frequency(first_freq):
                         group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
@@ -242,7 +252,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             for g in self.groups.values()
             if g.human_pilot
             and isinstance((freq := g.group_dcs.get("frequency")), (int, float))
-            and freq < _MIN_PRIMARY_RADIO_MHZ
+            and not _is_valid_primary_frequency(freq)
         ]
         if invalid_primary:
             details = ", ".join(f"{name} ({freq} MHz)" for name, freq in invalid_primary)

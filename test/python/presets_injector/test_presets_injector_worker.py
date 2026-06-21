@@ -217,6 +217,42 @@ class TestProcessUnits(unittest.TestCase):
         worker.process_units(group, preset)
         self.assertEqual(group.group_dcs["frequency"], 132.0)
 
+    def _make_unknown_group(self) -> Group:
+        # Unknown unit_type → no dcs-radio-specs range → channels are never dropped,
+        # so the boundary value reaches the promotion guard verbatim.
+        return Group(
+            group_dcs={"units": [{"type": "Unknown-X", "skill": "Client"}], "frequency": 25.0},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name="BoundaryGroup",
+            unit_type="Unknown-X",
+        )
+
+    def test_process_units_primary_freq_at_floor_is_promoted(self) -> None:
+        # Exactly _MIN_PRIMARY_RADIO_MHZ (30.0), non-FM → promoted.
+        worker = _make_worker()
+        group = self._make_unknown_group()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf", radio_type="vhf")
+        radio.channels = [Channel(1, freq=30.0)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertAlmostEqual(group.group_dcs["frequency"], 30.0)
+
+    def test_process_units_primary_freq_below_floor_not_promoted(self) -> None:
+        # Just below the floor (29.9), non-FM → not promoted, original kept.
+        worker = _make_worker()
+        group = self._make_unknown_group()
+        original_freq = group.group_dcs["frequency"]
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf", radio_type="vhf")
+        radio.channels = [Channel(1, freq=29.9)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertEqual(group.group_dcs["frequency"], original_freq)
+
 
 class TestProcessGroups(unittest.TestCase):
     def test_process_groups_with_matching_preset(self) -> None:

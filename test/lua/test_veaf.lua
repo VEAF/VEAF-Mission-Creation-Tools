@@ -1536,6 +1536,35 @@ function TestVeafCoalition:test_opposite_defaults_neutral_to_red()
   luaunit.assertEquals(veaf.getOppositeCoalition(-1), coalition.side.RED)
 end
 
+-- ===========================================================================
+-- veaf.isEnabled — the gate behind the community-module integration guards
+-- (FIX-VEAF-MODULE-GATING: `if ctld and veaf.isEnabled("ctld") then …`)
+-- ===========================================================================
+TestVeafIsEnabled = {}
+
+function TestVeafIsEnabled:setUp()
+  veaf.config = {}
+end
+
+function TestVeafIsEnabled:test_unconfigured_module_is_enabled_by_default()
+  luaunit.assertTrue(veaf.isEnabled("ctld"))
+end
+
+function TestVeafIsEnabled:test_enable_false_disables()
+  veaf.setConfig("ctld", "enable", false)
+  luaunit.assertFalse(veaf.isEnabled("ctld"))
+end
+
+function TestVeafIsEnabled:test_enable_true_enables()
+  veaf.setConfig("stts", "enable", true)
+  luaunit.assertTrue(veaf.isEnabled("stts"))
+end
+
+function TestVeafIsEnabled:test_other_keys_do_not_affect_enabled()
+  veaf.setConfig("ctld", "logLevel", "debug")
+  luaunit.assertTrue(veaf.isEnabled("ctld"))
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

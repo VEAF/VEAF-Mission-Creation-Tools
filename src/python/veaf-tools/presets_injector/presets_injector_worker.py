@@ -24,6 +24,23 @@ from .radio_frequency_validator import (
     warn_invalid_channel_frequencies,
 )
 
+# FIX-DYNSLOT-RADIO-UNITS: a group's primary `frequency` is a VHF/UHF (or FM)
+# radio. Anything below this is an ADF/HF channel (kHz, e.g. the Yak-52 ARK-15M
+# at 0.625 MHz) that must never be promoted to the primary radio — DCS rejects
+# the mission with "Fréquence invalide 0.625 MHz". Lowest real primary radio is
+# FM at 30 MHz; ADF (≤ ~1.8 MHz) and HF sit well below.
+_MIN_PRIMARY_RADIO_MHZ = 30.0
+
+
+def _is_valid_primary_frequency(freq_mhz: float) -> bool:
+    """Whether *freq_mhz* may be a group's primary radio frequency.
+
+    A primary radio is VHF/UHF/FM; anything below ``_MIN_PRIMARY_RADIO_MHZ`` is an
+    ADF/HF (kHz-range) channel that DCS rejects as a primary frequency. Single
+    source of truth for both the promotion guard and the build-time safety net.
+    """
+    return freq_mhz >= _MIN_PRIMARY_RADIO_MHZ
+
 
 @dataclass
 class _PendingFreqWarning:
@@ -124,8 +141,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 elif first_freq := inject_preset.get_freq_of_first_channel_of_first_radio():
                     # FM-primary radios (Gazelle, Ka-50…) have HumanRadio in VHF/UHF range:
                     # injecting the FM channel freq would make the ME flag it as invalid.
+                    # Likewise an ADF/HF channel (sub-VHF, e.g. ARK-15M 0.625 MHz) must
+                    # not become the primary frequency — DCS rejects it (FIX-DYNSLOT-RADIO-UNITS).
                     first_radio_type = next(iter(inject_preset.radios.values())).radio_type
-                    if first_radio_type != "fm":
+                    if first_radio_type != "fm" and _is_valid_primary_frequency(first_freq):
                         group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
@@ -222,6 +241,25 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if not silent:
             logger.tech(t("presets_injector.injected", count=nb_units_processed))
+
+        # FIX-DYNSLOT-RADIO-UNITS: a primary `frequency` below the VHF floor
+        # (ADF/HF, e.g. an ARK-15M 0.625 MHz mistakenly set as the radio) makes
+        # DCS refuse to save the mission ("Fréquence invalide 0.625 MHz"). Fail
+        # the build now, with the offending groups, rather than shipping a .miz
+        # the Mission Editor rejects.
+        invalid_primary = [
+            (g.name, freq)
+            for g in self.groups.values()
+            if g.human_pilot
+            and isinstance((freq := g.group_dcs.get("frequency")), (int, float))
+            and not _is_valid_primary_frequency(freq)
+        ]
+        if invalid_primary:
+            details = ", ".join(f"{name} ({freq} MHz)" for name, freq in invalid_primary)
+            logger.error(
+                t("presets_injector.invalid_primary_frequency", min=_MIN_PRIMARY_RADIO_MHZ, details=details),
+                exception_type=ValueError,
+            )
 
         # Emit one warning per unit_type, listing all affected groups together.
         if self._pending_freq_warnings:

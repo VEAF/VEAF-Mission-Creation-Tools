@@ -653,6 +653,13 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         if "group" not in country[category]:
             country[category]["group"] = []
 
+        # An empty Lua `{}` (or a numerically-keyed table) is deserialized as a dict,
+        # not a list, so a freshly-extracted mission can carry the group container as a
+        # dict. Normalize it to a list (empty dict -> [], keyed dict -> its values) so
+        # the caller can .append() / index it. See FIX-AIRCRAFT-INJECT-DICT-GROUP.
+        if isinstance(country[category]["group"], dict):
+            country[category]["group"] = list(country[category]["group"].values())
+
         return country[category]["group"]
 
     def work(self) -> InjectionResult:

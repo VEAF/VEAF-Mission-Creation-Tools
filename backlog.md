@@ -13,7 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot FIX-CONVERT-V5-OPERATION-SUBZONES — `convert-v5` drops a combat operation's sub-zones: they are `local <var> = VeafCombatZone:new():setMissionEditorZoneName("subCombatZone_X")` (not `AddZone`-d) referenced via `addTaskingOrder(<var>)`. convert-v5 (a) doesn't extract them as `combat_zones` (regex requires `AddZone(`) and (b) keeps tasking_orders as `zone_var: <var>` unresolved → generator emits `GetZone("<var>")` → runtime can't find the zone (David, VEAF-Demo-Mission, "gori" → `subCombatZone_gori`). Needs DCS runtime validation | ⬜ |
+| Lot FIX-CONVERT-V5-OPERATION-SUBZONES — `convert-v5` drops a combat operation's sub-zones: they are `local <var> = VeafCombatZone:new():setMissionEditorZoneName("subCombatZone_X")` (not `AddZone`-d) referenced via `addTaskingOrder(<var>)`. convert-v5 (a) doesn't extract them as `combat_zones` (regex requires `AddZone(`) and (b) keeps tasking_orders as `zone_var: <var>` unresolved → generator emits `GetZone("<var>")` → runtime can't find the zone (David, VEAF-Demo-Mission, "gori" → `subCombatZone_gori`). Needs DCS runtime validation | 🧑 |
 | Lot FIX-CAP-MISSION-PREFIX — the build's group-existence validation warns on a `cap_missions` group that is actually present, because `addCapMission()` prefixes `OnDemand-` (v5 behaviour) so the real group is `OnDemand-<group_name>`; validate against the prefixed name (David, VEAF-Demo-Mission) | ✅ |
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ✅ |
@@ -112,7 +112,7 @@ veafCombatZone.AddZone(VeafCombatOperation:new():setMissionEditorZoneName("goriO
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-CONVERT-V5-OPERATION-SUBZONES-001 | Extract `local <var> = VeafCombatZone:new()` sub-zones as combat_zones + resolve operation tasking_orders `zone_var`/`dependencies_vars` to the real `missionEditorZoneName`. Characterization test on the gori operation. DCS runtime validation by David. | `mission_builder/config_migrator.py`, `test/python/` | fix | ⬜ |
+| FIX-CONVERT-V5-OPERATION-SUBZONES-001 | Extract `local <var> = VeafCombatZone:new()` sub-zones as combat_zones + resolve operation tasking_orders `zone_var`/`dependencies_vars` to the real `missionEditorZoneName`. Characterization test on the gori operation. DCS runtime validation by David. | `mission_builder/config_migrator.py`, `test/python/` | fix | 🧑 |
 
 ---
 

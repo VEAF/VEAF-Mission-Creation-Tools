@@ -43,7 +43,7 @@ modules:
 
 # ── CAP missions ──────────────────────────────────────────────────────────
 cap_missions:
-  - group_name: "CAP Group"       # REQUIRED — DCS group name to use for the CAP
+  - group_name: "CAP Group"       # REQUIRED — logical name; the DCS group must be named "OnDemand-CAP Group"
     menu_name: "CAP North"        # label in the F10 menu
     briefing: "Patrol the northern sector and engage threats."
     default: false                # true = starts active by default
@@ -70,7 +70,7 @@ combat_missions:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `group_name` | string | — | Yes | DCS group name for the CAP flight |
+| `group_name` | string | — | Yes | Logical CAP-flight name. **The DCS group placed in the editor must be named `OnDemand-<group_name>`**: the runtime prefixes `OnDemand-` (since v5). E.g. `group_name: CAP-Alpha` → DCS group `OnDemand-CAP-Alpha` |
 | `menu_name` | string | — | No | F10 menu label |
 | `briefing` | string | — | No | Briefing text shown to players |
 | `default` | boolean | `false` | No | Start as the default active mission |

@@ -99,7 +99,7 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-CAP-MISSION-PREFIX-001 | In `collect_declared_groups`, reference cap_missions groups as `OnDemand-<group_name>` so the existence check matches the real Mission-Editor group. Update the existing cap_missions test and add a behavioural test (present `OnDemand-X` → no warning; genuinely absent → still flagged). `combat_missions` untouched. | `mission_builder/group_validation.py`, `test/python/` | fix | ✅ (PR) |
+| FIX-CAP-MISSION-PREFIX-001 | In `collect_declared_groups`, reference cap_missions groups as `OnDemand-<group_name>` so the existence check matches the real Mission-Editor group. Update the existing cap_missions test and add a behavioural test (present `OnDemand-X` → no warning; genuinely absent → still flagged). `combat_missions` untouched. | `mission_builder/group_validation.py`, `test/python/` | fix | ✅ (#506) |
 
 ---
 

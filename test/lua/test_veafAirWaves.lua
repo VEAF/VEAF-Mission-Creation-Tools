@@ -301,6 +301,33 @@ function TestAirWaveZoneSetters:test_setZoneCenter()
   luaunit.assertEquals(z.zoneCenter, { x = 1, y = 2 })
 end
 
+function TestAirWaveZoneSetters:test_setTriggerZone_existing_sets_center_and_radius()
+  veaf.triggerZones["Z"] = { x = 10, y = 20, radius = 500 }
+  local z = AirWaveZone:new()
+  z:setTriggerZone("Z")
+  luaunit.assertEquals(z.triggerZoneName, "Z")
+  luaunit.assertEquals(z.zoneCenter, { x = 10, y = 20 })
+  luaunit.assertEquals(z.zoneRadius, 500)
+  veaf.triggerZones["Z"] = nil
+end
+
+function TestAirWaveZoneSetters:test_setTriggerZone_missing_keeps_existing_center()
+  local z = AirWaveZone:new()
+  z:setZoneCenter({ x = 1, y = 2 })
+  -- trigger zone does not exist, but a center is already configured:
+  -- the trigger zone is optional, the existing center must be preserved.
+  z:setTriggerZone("DoesNotExist")
+  luaunit.assertEquals(z.triggerZoneName, "DoesNotExist")
+  luaunit.assertEquals(z.zoneCenter, { x = 1, y = 2 })
+end
+
+function TestAirWaveZoneSetters:test_setTriggerZone_missing_without_center_leaves_center_nil()
+  local z = AirWaveZone:new()
+  z:setTriggerZone("DoesNotExist")
+  luaunit.assertEquals(z.triggerZoneName, "DoesNotExist")
+  luaunit.assertNil(z.zoneCenter)
+end
+
 function TestAirWaveZoneSetters:test_setDrawZone_true()
   local z = AirWaveZone:new()
   z:setDrawZone(true)

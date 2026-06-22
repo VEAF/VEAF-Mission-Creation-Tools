@@ -47,7 +47,6 @@ from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_f
 
 from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
-from mission_builder.group_validation import find_missing_declared_groups
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -995,16 +994,27 @@ class MissionBuilderWorker(BaseWorker):
             logger.error(t("builder.mission_read_error", path=self.output_mission))
             raise
 
-    def validate_declared_groups(self) -> None:
-        """Warn when a config-declared group (ASSETS, QRA, …) is absent from the mission.
+    def validate_references(self) -> None:
+        """Validate every ``mission.yaml`` reference to a Mission-Editor object (fail-at-end).
 
-        Such groups must be placed in the Mission Editor; a missing one makes the
-        feature fail silently at runtime (e.g. ``veafAssets.respawn`` → MiST error).
+        Surfaces missing trigger zones / groups / units / airfields and undeclared
+        COMBATZONE sub-zones at build time instead of letting them fail inside DCS.
+        Logs **all** warnings and errors, lets the build go to the end, then aborts
+        if any error was found — so a single run reports everything.
         """
         if not self.mission_yaml or not self.dcs_mission or not self.dcs_mission.mission_content:
             return
-        for section, group in find_missing_declared_groups(self.mission_yaml, self.dcs_mission.mission_content):
-            logger.warning(t("builder.declared_group_missing", group=group, section=section))
+        from veaf_libs.mission_validator import ERROR, validate_mission_content
+
+        errors = 0
+        for issue in validate_mission_content(self.mission_yaml, self.dcs_mission.mission_content):
+            if issue.level == ERROR:
+                errors += 1
+                logger.error(issue.message, exception_type=None)  # log only; defer abort to the end
+            else:
+                logger.warning(issue.message)
+        if errors:
+            logger.error(t("builder.validation_failed", count=errors))  # default typer.Abort → stop build
 
     def ensure_coalitions_populated(self) -> None:
         """Inject a hidden placeholder ground unit into any empty side coalition.
@@ -1730,7 +1740,7 @@ class MissionBuilderWorker(BaseWorker):
         self.ensure_coalitions_populated()
 
         # Warn about config-declared groups (ASSETS, QRA, …) absent from the mission
-        self.validate_declared_groups()
+        self.validate_references()
 
         # First, remove all the VEAF triggers
         with spinner_context(t("builder.clearing_triggers"), silent=silent):

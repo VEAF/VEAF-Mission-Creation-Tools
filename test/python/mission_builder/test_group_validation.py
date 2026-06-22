@@ -112,3 +112,162 @@ class TestFindMissingDeclaredGroups:
         missing = find_missing_declared_groups(my, _mission())
         # "Ghost" referenced twice (different sections) → reported once
         assert [g for _, g in missing].count("Ghost") == 1
+
+
+# ---------------------------------------------------------------------------
+# FEAT-BUILD-VALIDATE-REFS — trigger-zone / unit / airfield / sub-zone refs
+# ---------------------------------------------------------------------------
+from mission_builder.group_validation import (  # noqa: E402
+    LEVEL_ERROR,
+    LEVEL_WARNING,
+    collect_mission_unit_names,
+    collect_mission_zone_names,
+    find_missing_sanctuary_units,
+    find_missing_trigger_zone_refs,
+    find_undeclared_operation_subzones,
+    find_unknown_airport_links,
+)
+
+
+def _zones(*names: str) -> dict:
+    """Build a mission_content with the given trigger-zone names."""
+    return {"triggers": {"zones": [{"name": n} for n in names]}}
+
+
+def _units(*names: str) -> dict:
+    """Build a mission_content with the given unit names (one group, all units)."""
+    return {
+        "coalition": {
+            "blue": {"country": [{"name": "USA", "vehicle": {"group": [{"units": [{"name": n} for n in names]}]}}]}
+        }
+    }
+
+
+class TestCollectZoneAndUnitNames:
+    def test_zone_names_from_list(self) -> None:
+        assert collect_mission_zone_names(_zones("Z1", "Z2")) == {"Z1", "Z2"}
+
+    def test_zone_names_from_dict(self) -> None:
+        content = {"triggers": {"zones": {"1": {"name": "Za"}, "2": {"name": "Zb"}}}}
+        assert collect_mission_zone_names(content) == {"Za", "Zb"}
+
+    def test_zone_names_empty(self) -> None:
+        assert collect_mission_zone_names({}) == set()
+
+    def test_unit_names(self) -> None:
+        assert collect_mission_unit_names(_units("Tank-1", "Tank-2")) == {"Tank-1", "Tank-2"}
+
+
+class TestTriggerZoneRefs:
+    def test_airwave_missing_with_fallback_is_warning(self) -> None:
+        my = {
+            "modules": {
+                "AIRWAVES": {
+                    "airwave_zones": [
+                        {"name": "Z01", "trigger_zone_name": "AW-1", "zone_center_coordinates": "U37", "zone_radius": 9}
+                    ]
+                }
+            }
+        }
+        assert find_missing_trigger_zone_refs(my, _zones()) == [("AIRWAVES", "AW-1", LEVEL_WARNING)]
+
+    def test_airwave_missing_without_fallback_is_error(self) -> None:
+        my = {"modules": {"AIRWAVES": {"airwave_zones": [{"name": "Z01", "trigger_zone_name": "AW-1"}]}}}
+        assert find_missing_trigger_zone_refs(my, _zones()) == [("AIRWAVES", "AW-1", LEVEL_ERROR)]
+
+    def test_airwave_present_is_clear(self) -> None:
+        my = {"modules": {"AIRWAVES": {"airwave_zones": [{"trigger_zone_name": "AW-1"}]}}}
+        assert find_missing_trigger_zone_refs(my, _zones("AW-1")) == []
+
+    def test_qra_trigger_zone_missing_is_error(self) -> None:
+        my = {"modules": {"QRA": {"definitions": [{"trigger_zone": "QRA zone"}]}}}
+        assert find_missing_trigger_zone_refs(my, _zones()) == [("QRA", "QRA zone", LEVEL_ERROR)]
+
+    def test_combatzone_and_operation_missing_are_errors(self) -> None:
+        my = {
+            "modules": {
+                "COMBATZONE": {
+                    "combat_zones": [
+                        {"type": "zone", "zone_name": "subCombatZone_gori"},
+                        {"type": "operation", "zone_name": "goriOperation"},
+                    ]
+                }
+            }
+        }
+        issues = find_missing_trigger_zone_refs(my, _zones())
+        assert ("COMBATZONE", "subCombatZone_gori", LEVEL_ERROR) in issues
+        assert ("COMBATZONE.operation", "goriOperation", LEVEL_ERROR) in issues
+
+    def test_disabled_module_is_skipped(self) -> None:
+        my = {"modules": {"QRA": {"enabled": False, "definitions": [{"trigger_zone": "Z"}]}}}
+        assert find_missing_trigger_zone_refs(my, _zones()) == []
+
+
+class TestSanctuaryUnits:
+    def test_missing_polygon_unit_is_error(self) -> None:
+        my = {"modules": {"SANCTUARY": {"sanctuary_zones": [{"name": "S", "polygon_units": ["U1", "U2"]}]}}}
+        issues = find_missing_sanctuary_units(my, _units("U1"))
+        assert issues == [("SANCTUARY", "U2", LEVEL_ERROR)]
+
+    def test_all_present_is_clear(self) -> None:
+        my = {"modules": {"SANCTUARY": {"sanctuary_zones": [{"polygon_units": ["U1"]}]}}}
+        assert find_missing_sanctuary_units(my, _units("U1")) == []
+
+
+class TestAirportLinks:
+    def test_unknown_airfield_is_error(self, monkeypatch) -> None:
+        monkeypatch.setattr("veaf_libs.dcs_airdromes.airdromes_for_theatre", lambda t: {"batumi": 22})
+        my = {"modules": {"QRA": {"definitions": [{"airport_link": "Nowhere"}]}}}
+        assert find_unknown_airport_links(my, "Caucasus") == [("QRA.airport_link", "Nowhere", LEVEL_ERROR)]
+
+    def test_known_airfield_is_clear(self, monkeypatch) -> None:
+        monkeypatch.setattr("veaf_libs.dcs_airdromes.airdromes_for_theatre", lambda t: {"batumi": 22})
+        my = {"modules": {"QRA": {"definitions": [{"airport_link": "Batumi"}]}}}
+        assert find_unknown_airport_links(my, "Caucasus") == []
+
+    def test_uncovered_theatre_is_skipped(self, monkeypatch) -> None:
+        monkeypatch.setattr("veaf_libs.dcs_airdromes.airdromes_for_theatre", lambda t: {})
+        my = {"modules": {"QRA": {"definitions": [{"airport_link": "Anything"}]}}}
+        assert find_unknown_airport_links(my, "UnknownMap") == []
+
+    def test_no_theatre_is_skipped(self) -> None:
+        my = {"modules": {"QRA": {"definitions": [{"airport_link": "Batumi"}]}}}
+        assert find_unknown_airport_links(my, None) == []
+
+
+class TestOperationSubzones:
+    def test_undeclared_subzone_and_dependency_are_errors(self) -> None:
+        my = {
+            "modules": {
+                "COMBATZONE": {
+                    "combat_zones": [
+                        {"type": "zone", "zone_name": "subCombatZone_gori"},
+                        {
+                            "type": "operation",
+                            "zone_name": "goriOperation",
+                            "tasking_orders": [
+                                {"zone_name": "subCombatZone_gori", "dependencies": ["subCombatZone_ghost"]},
+                                {"zone_name": "subCombatZone_unknown"},
+                            ],
+                        },
+                    ]
+                }
+            }
+        }
+        refs = [r for _, r, _ in find_undeclared_operation_subzones(my)]
+        assert "subCombatZone_ghost" in refs
+        assert "subCombatZone_unknown" in refs
+        assert "subCombatZone_gori" not in refs  # declared → ok
+
+    def test_all_declared_is_clear(self) -> None:
+        my = {
+            "modules": {
+                "COMBATZONE": {
+                    "combat_zones": [
+                        {"type": "zone", "zone_name": "A"},
+                        {"type": "operation", "zone_name": "Op", "tasking_orders": [{"zone_name": "A"}]},
+                    ]
+                }
+            }
+        }
+        assert find_undeclared_operation_subzones(my) == []

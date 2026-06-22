@@ -13,7 +13,8 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE — an `AIRWAVES` zone defined by `zone_center_coordinates` + `zone_radius` also carrying a `trigger_zone_name` that doesn't exist in the `.miz` logs a runtime ERROR (`setTriggerZone(): trigger zone [X] does not exist`) even though the zone works fine via center/radius. The trigger zone is optional when a center is already configured; downgrade the ERROR to a WARN in that case (David, VEAF-Demo-Mission, "Airwaves-1"). Needs DCS runtime validation | ⬜ |
+| Lot FEAT-BUILD-VALIDATE-REFS — surface, **at build time** (fail-at-end), every `mission.yaml` reference to a Mission-Editor object that is missing: trigger zones (AIRWAVES `trigger_zone_name` → WARN if center/radius fallback, else ERROR; QRA `trigger_zone`, COMBATZONE zone/operation `zone_name` → ERROR), groups (ASSETS/QRA/cap/combat — harden existing WARNING → ERROR), SANCTUARY `polygon_units` (units), QRA `airport_link` (theatre airdrome), and COMBATZONE operation `tasking_orders`/`dependencies` cross-ref to declared `combat_zones`. Collect all issues, log everything, abort the build at the end if ≥1 ERROR (David) | ✅ |
+| Lot FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE — an `AIRWAVES` zone defined by `zone_center_coordinates` + `zone_radius` also carrying a `trigger_zone_name` that doesn't exist in the `.miz` logs a runtime ERROR (`setTriggerZone(): trigger zone [X] does not exist`) even though the zone works fine via center/radius. The trigger zone is optional when a center is already configured; downgrade the ERROR to a WARN in that case (David, VEAF-Demo-Mission, "Airwaves-1"). Needs DCS runtime validation | 🧑 |
 | Lot FIX-CONVERT-V5-OPERATION-SUBZONES — `convert-v5` drops a combat operation's sub-zones: they are `local <var> = VeafCombatZone:new():setMissionEditorZoneName("subCombatZone_X")` (not `AddZone`-d) referenced via `addTaskingOrder(<var>)`. convert-v5 (a) doesn't extract them as `combat_zones` (regex requires `AddZone(`) and (b) keeps tasking_orders as `zone_var: <var>` unresolved → generator emits `GetZone("<var>")` → runtime can't find the zone (David, VEAF-Demo-Mission, "gori" → `subCombatZone_gori`). Needs DCS runtime validation | ⬜ |
 | Lot FIX-CAP-MISSION-PREFIX — the build's group-existence validation warns on a `cap_missions` group that is actually present, because `addCapMission()` prefixes `OnDemand-` (v5 behaviour) so the real group is `OnDemand-<group_name>`; validate against the prefixed name (David, VEAF-Demo-Mission) | ✅ |
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
@@ -105,7 +106,38 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | ⬜ |
+| FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | 🧑 |
+
+---
+
+## Lot FEAT-BUILD-VALIDATE-REFS — build-time validation of mission.yaml references to Mission-Editor objects
+
+**Goal**: A `mission.yaml` references many objects the maker must have placed in the Mission Editor (trigger zones, groups, units, airfields). Today most missing references only fail at **runtime** inside DCS (an ERROR in `dcs.log`, or a silently broken feature). Surface them at **build time** instead, with a **fail-at-end** policy: run every check, log all warnings, collect all errors, let the build go to the end, then **abort** if ≥1 error — so a single run reports *everything*.
+
+Infra reuse: [mission_validator.py](src/python/veaf-tools/veaf_libs/mission_validator.py) already aggregates `ValidationIssue(ERROR/WARNING)` and reads trigger zones (`_zone_names`); [group_validation.py](src/python/veaf-tools/mission_builder/group_validation.py) already collects group references. Airfields: [dcs_airdromes.py](src/python/veaf-tools/veaf_libs/dcs_airdromes.py) (`airdromes_for_theatre`). The build aborts via `logger.error(..., exception_type=...)` (note: `logger.error` raises `typer.Abort` by default → log non-fatally with `exception_type=None`).
+
+**Validation rules** (the agreed list):
+
+| # | Section | Key | ME object | Source of truth | Level |
+|---|---------|-----|-----------|-----------------|-------|
+| 1 | AIRWAVES | `trigger_zone_name` | trigger zone | `.miz` `triggers.zones` | WARN if `zone_center_coordinates`+`zone_radius` present, else ERROR |
+| 2 | QRA | `trigger_zone` | trigger zone | `.miz` | ERROR |
+| 3 | COMBATZONE (zone) | `zone_name` | trigger zone | `.miz` | ERROR |
+| 4 | COMBATZONE (operation) | `zone_name` | trigger zone | `.miz` | ERROR |
+| 5 | ASSETS · QRA · `cap_missions` · `combat_missions` | groups | group | `.miz` coalitions | ERROR (hardened from WARNING) |
+| 6 | SANCTUARY | `polygon_units` | unit | `.miz` units | ERROR |
+| 7 | QRA | `airport_link` | airfield | theatre airdrome table | ERROR (skip when the theatre is absent from the table → avoid false positives) |
+| 8 | COMBATZONE (operation) | `tasking_orders.zone_name` + `dependencies` | declared `combat_zones` | `mission.yaml` (internal) | ERROR |
+
+Out of scope: AIRWAVES `waves.groups` (spawn pattern, not a named ME group — kept excluded); TUM `BLUFOR`/`REDFOR` zones stay WARNING (unchanged).
+
+**Branch**: `feature/build-validate-refs` → PR → `develop-v6` (build-time only, no DCS validation needed).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-BUILD-VALIDATE-REFS-001 | Collectors + finders for trigger-zone / unit / airfield / declared-combat-zone references (rules 1-4, 6-8) and harden the declared-group check to ERROR (rule 5). Aggregate into a reusable `validate_mission_content(yaml, mission, theatre)`; the build calls it fail-at-end (log all, abort at end if any ERROR); the `validate` command surfaces the same issues. luaunit/pytest TDD per rule, i18n FR/EN. | `mission_builder/group_validation.py`, `veaf_libs/mission_validator.py`, `mission_builder/mission_builder_worker.py`, `test/python/` | feat | ✅ (#509) |
+
+---
 
 ## Lot FIX-CONVERT-V5-OPERATION-SUBZONES — convert-v5 loses a combat operation's sub-zones
 

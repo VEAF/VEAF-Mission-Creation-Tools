@@ -155,5 +155,38 @@ class TestMissionValidator(unittest.TestCase):
         self.assertTrue(any(i.level == ERROR and "GhostSetting" in i.message for i in issues))
 
 
+class TestValidateMissionContent(unittest.TestCase):
+    """FEAT-BUILD-VALIDATE-REFS — Mission-Editor reference checks and their severity."""
+
+    def test_missing_declared_group_is_error(self) -> None:
+        from veaf_libs.mission_validator import validate_mission_content
+
+        yaml_data = {"cap_missions": [{"group_name": "Ghost"}]}
+        mission = {"coalition": {}}
+        issues = validate_mission_content(yaml_data, mission)
+        self.assertEqual(_levels(issues), [ERROR])
+
+    def test_airwave_missing_trigger_zone_with_fallback_is_warning(self) -> None:
+        from veaf_libs.mission_validator import validate_mission_content
+
+        yaml_data = {
+            "modules": {
+                "AIRWAVES": {
+                    "airwave_zones": [
+                        {"name": "Z01", "trigger_zone_name": "AW-1", "zone_center_coordinates": "U37", "zone_radius": 9}
+                    ]
+                }
+            }
+        }
+        issues = validate_mission_content(yaml_data, {"triggers": {"zones": []}})
+        self.assertEqual(_levels(issues), [WARNING])
+        self.assertIn("AW-1", issues[0].message)
+
+    def test_clean_content_has_no_issues(self) -> None:
+        from veaf_libs.mission_validator import validate_mission_content
+
+        self.assertEqual(validate_mission_content({}, {"coalition": {}, "triggers": {"zones": []}}), [])
+
+
 if __name__ == "__main__":
     unittest.main()

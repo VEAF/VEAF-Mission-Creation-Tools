@@ -113,3 +113,156 @@ def find_missing_declared_groups(
             seen.add(group)
             missing.append((section, group))
     return missing
+
+
+# ---------------------------------------------------------------------------
+# Mission-Editor reference validation (FEAT-BUILD-VALIDATE-REFS)
+#
+# A mission.yaml also references trigger zones, units and airfields that the
+# maker must have placed in the Mission Editor. Each finder returns
+# ``(section, reference, level)`` where ``level`` is "error" or "warning".
+# ---------------------------------------------------------------------------
+
+#: Severity levels carried by the reference finders below.
+LEVEL_ERROR = "error"
+LEVEL_WARNING = "warning"
+
+
+def collect_mission_zone_names(mission_content: dict[str, Any]) -> set[str]:
+    """Return every trigger-zone name defined in the mission (``triggers.zones``)."""
+    zones = (mission_content.get("triggers") or {}).get("zones") or []
+    if isinstance(zones, dict):
+        zones = list(zones.values())
+    names: set[str] = set()
+    for zone in zones if isinstance(zones, list) else []:
+        if isinstance(zone, dict) and (name := zone.get("name")):
+            names.add(str(name))
+    return names
+
+
+def collect_mission_unit_names(mission_content: dict[str, Any]) -> set[str]:
+    """Return every unit name present in the mission (all coalitions/countries/categories)."""
+    names: set[str] = set()
+    coalitions = mission_content.get("coalition") or {}
+    if not isinstance(coalitions, dict):
+        return names
+    for coalition in coalitions.values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in coalition.get("country") or []:
+            if not isinstance(country, dict):
+                continue
+            for category in _GROUP_CATEGORIES:
+                container = country.get(category) or {}
+                if not isinstance(container, dict):
+                    continue
+                for group in container.get("group") or []:
+                    if not isinstance(group, dict):
+                        continue
+                    for unit in group.get("units") or []:
+                        if isinstance(unit, dict) and (name := unit.get("name")):
+                            names.add(str(name))
+    return names
+
+
+def find_missing_trigger_zone_refs(
+    mission_yaml: dict[str, Any], mission_content: dict[str, Any]
+) -> list[tuple[str, str, str]]:
+    """Return ``(section, zone_name, level)`` for trigger-zone refs absent from the mission.
+
+    AIRWAVES ``trigger_zone_name`` is optional when the zone also carries an explicit
+    ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``
+    and COMBATZONE zone/operation ``zone_name`` are mandatory (level "error").
+    """
+    present = collect_mission_zone_names(mission_content)
+    modules = mission_yaml.get("modules") or {}
+    issues: list[tuple[str, str, str]] = []
+
+    for zone in _module_cfg(modules, "AIRWAVES").get("airwave_zones") or []:
+        if not isinstance(zone, dict):
+            continue
+        tz = zone.get("trigger_zone_name")
+        if not tz or str(tz) in present:
+            continue
+        has_fallback = bool(zone.get("zone_center_coordinates")) and bool(zone.get("zone_radius"))
+        issues.append(("AIRWAVES", str(tz), LEVEL_WARNING if has_fallback else LEVEL_ERROR))
+
+    for qra_def in _module_cfg(modules, "QRA").get("definitions") or []:
+        if isinstance(qra_def, dict) and (tz := qra_def.get("trigger_zone")) and str(tz) not in present:
+            issues.append(("QRA", str(tz), LEVEL_ERROR))
+
+    for zone_def in _module_cfg(modules, "COMBATZONE").get("combat_zones") or []:
+        if isinstance(zone_def, dict) and (zn := zone_def.get("zone_name")) and str(zn) not in present:
+            section = "COMBATZONE.operation" if zone_def.get("type") == "operation" else "COMBATZONE"
+            issues.append((section, str(zn), LEVEL_ERROR))
+
+    return issues
+
+
+def find_missing_sanctuary_units(
+    mission_yaml: dict[str, Any], mission_content: dict[str, Any]
+) -> list[tuple[str, str, str]]:
+    """Return ``(section, unit_name, "error")`` for SANCTUARY ``polygon_units`` absent from the mission."""
+    present = collect_mission_unit_names(mission_content)
+    modules = mission_yaml.get("modules") or {}
+    issues: list[tuple[str, str, str]] = []
+    for zone in _module_cfg(modules, "SANCTUARY").get("sanctuary_zones") or []:
+        if not isinstance(zone, dict):
+            continue
+        for unit in zone.get("polygon_units") or []:
+            if str(unit) not in present:
+                issues.append(("SANCTUARY", str(unit), LEVEL_ERROR))
+    return issues
+
+
+def find_unknown_airport_links(mission_yaml: dict[str, Any], theatre: str | None) -> list[tuple[str, str, str]]:
+    """Return ``(section, airfield, "error")`` for QRA ``airport_link`` values unknown on the theatre.
+
+    Skips entirely when the theatre has no airdrome table (the data is install-dependent),
+    to avoid flagging every airfield on an uncovered map.
+    """
+    from veaf_libs.dcs_airdromes import airdromes_for_theatre  # noqa: PLC0415 - avoid import cycle at module load
+
+    if not theatre:
+        return []
+    known = airdromes_for_theatre(theatre)
+    if not known:
+        return []
+    modules = mission_yaml.get("modules") or {}
+    issues: list[tuple[str, str, str]] = []
+    for qra_def in _module_cfg(modules, "QRA").get("definitions") or []:
+        if isinstance(qra_def, dict) and (al := qra_def.get("airport_link")) and str(al).strip().lower() not in known:
+            issues.append(("QRA.airport_link", str(al), LEVEL_ERROR))
+    return issues
+
+
+def find_undeclared_operation_subzones(mission_yaml: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """Return ``(section, subzone, "error")`` for tasking-order refs not declared as combat_zones.
+
+    A COMBATZONE operation's ``tasking_orders[].zone_name`` and ``dependencies[]`` must each
+    name a non-operation ``combat_zones[]`` entry declared in the same mission.yaml, else the
+    generated ``GetZone()`` resolves to ``nil`` at runtime.
+    """
+    modules = mission_yaml.get("modules") or {}
+    combat_zones = _module_cfg(modules, "COMBATZONE").get("combat_zones") or []
+    declared = {
+        str(z.get("zone_name"))
+        for z in combat_zones
+        if isinstance(z, dict) and z.get("type", "zone") != "operation" and z.get("zone_name")
+    }
+    issues: list[tuple[str, str, str]] = []
+    for z in combat_zones:
+        if not isinstance(z, dict) or z.get("type") != "operation":
+            continue
+        op_name = str(z.get("zone_name") or z.get("friendly_name") or "operation")
+        for order in z.get("tasking_orders") or []:
+            if not isinstance(order, dict):
+                continue
+            refs: list[str] = []
+            if zn := order.get("zone_name"):
+                refs.append(str(zn))
+            refs.extend(str(d) for d in order.get("dependencies") or [])
+            for ref in refs:
+                if ref not in declared:
+                    issues.append((f"COMBATZONE.operation[{op_name}]", ref, LEVEL_ERROR))
+    return issues

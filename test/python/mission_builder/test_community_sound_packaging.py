@@ -96,7 +96,9 @@ class TestShippedCommunitySounds(unittest.TestCase):
         # build time. Pin the contract so a mapped sound can't silently go missing.
         from mission_tools.mission_constants import get_community_sound_files
 
-        repo_root = Path(__file__).resolve().parents[3]
+        # Anchor on pyproject.toml instead of a fixed parents[] depth, so the test
+        # survives a directory-layout change (Sourcery #505).
+        repo_root = next(p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").is_file())
         sounds_dir = repo_root / "src" / "scripts" / "community" / "sounds"
         required = {name for names in get_community_sound_files().values() for name in names}
         missing = sorted(name for name in required if not (sounds_dir / name).is_file())

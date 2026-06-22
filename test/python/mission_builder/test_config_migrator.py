@@ -782,6 +782,48 @@ class TestExtractCombatZones(unittest.TestCase):
         self.assertEqual(result.combat_zones_extracted, [])
         self.assertEqual(new_content, content)
 
+    def test_operation_local_subzones_extracted_and_resolved(self) -> None:
+        # FIX-CONVERT-V5-OPERATION-SUBZONES: an operation's sub-zones are declared as
+        # locals (not AddZone-d) and referenced by variable in addTaskingOrder(). They
+        # must be extracted as combat_zones, and the tasking_orders resolved to the real
+        # missionEditorZoneName (so the generator's GetZone("subCombatZone_*") resolves).
+        content = (
+            "local gori = VeafCombatZone:new()\n"
+            '    :setMissionEditorZoneName("subCombatZone_gori")\n'
+            '    :setFriendlyName("Mission Gori")\n'
+            '    :setBriefing("Destroy the armored group")\n'
+            "    :initialize()\n"
+            "local otarasheni = VeafCombatZone:new()\n"
+            '    :setMissionEditorZoneName("subCombatZone_otarasheni")\n'
+            '    :setFriendlyName("Mission Otarasheni")\n'
+            "    :initialize()\n"
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatOperation:new()\n"
+            '        :setMissionEditorZoneName("goriOperation")\n'
+            "        :addTaskingOrder(gori)\n"
+            "        :addTaskingOrder(otarasheni, { gori:getMissionEditorZoneName() })\n"
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        new_content = self.m._extract_combat_zones(content, result)
+        by_name = {z["zone_name"]: z for z in result.combat_zones_extracted}
+        # sub-zones extracted as combat_zones (type zone), with their friendly_name
+        self.assertEqual(by_name["subCombatZone_gori"]["type"], "zone")
+        self.assertEqual(by_name["subCombatZone_gori"].get("friendly_name"), "Mission Gori")
+        self.assertIn("subCombatZone_otarasheni", by_name)
+        # sub-zones come before the operation (AddZone before GetZone)
+        zone_order = [z["zone_name"] for z in result.combat_zones_extracted]
+        self.assertLess(zone_order.index("subCombatZone_gori"), zone_order.index("goriOperation"))
+        # operation tasking_orders resolved to the real zone names + dependency resolved
+        op = by_name["goriOperation"]
+        orders = op["tasking_orders"]
+        self.assertEqual(orders[0]["zone_name"], "subCombatZone_gori")
+        self.assertEqual(orders[1]["zone_name"], "subCombatZone_otarasheni")
+        self.assertIn("subCombatZone_gori", orders[1].get("dependencies", []))
+        # the local sub-zone blocks are commented out
+        self.assertIn("[v6 extracted to mission.yaml]", new_content)
+
 
 class TestCombatZoneBriefingMultiline(unittest.TestCase):
     """setBriefing with Lua .. concatenation must produce a complete multiline string."""

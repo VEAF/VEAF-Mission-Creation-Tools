@@ -1366,6 +1366,30 @@ class ConfigMigrator:
 
     _CZ_ZONE_START_RE = re.compile(r"(?:local\s+(\w+)\s*=\s*)?veafCombatZone\.AddZone\s*\(\s*VeafCombatZone:new\(\)")
     _CZ_OP_START_RE = re.compile(r"veafCombatZone\.AddZone\s*\(\s*VeafCombatOperation:new\(\)")
+    # An operation's sub-zones are declared as locals (no AddZone) and referenced by
+    # variable in addTaskingOrder() — FIX-CONVERT-V5-OPERATION-SUBZONES.
+    _CZ_LOCAL_ZONE_START_RE = re.compile(r"local\s+(\w+)\s*=\s*VeafCombatZone:new\(\)")
+
+    @staticmethod
+    def _local_zone_chain_end(content: str, call_start: int) -> int:
+        """Return the index past a ``local x = VeafCombatZone:new()…`` builder chain.
+
+        The chain has no enclosing paren (unlike ``AddZone(...)``); it continues across
+        lines while each following line (stripped) starts with ``:``.
+        """
+        pos = content.find("\n", call_start)
+        if pos == -1:
+            return len(content)
+        while True:
+            nl = content.find("\n", pos + 1)
+            line_end = nl if nl != -1 else len(content)
+            if content[pos + 1 : line_end].lstrip().startswith(":"):
+                pos = line_end
+                if nl == -1:
+                    break
+            else:
+                break
+        return pos + 1 if pos < len(content) else len(content)
 
     def _extract_combat_zones(self, content: str, result: MigrationResult) -> str:
         """Extract VeafCombatZone and VeafCombatOperation definitions."""
@@ -1373,6 +1397,21 @@ class ConfigMigrator:
 
         # Anchor on a comment-masked copy so commented-out definitions are skipped.
         code = _strip_lua_comments(content)
+
+        # Extract operation sub-zones declared as locals (no AddZone), mapping
+        # var name → missionEditorZoneName so the operation's tasking_orders can be
+        # resolved below (FIX-CONVERT-V5-OPERATION-SUBZONES). They become combat_zones
+        # so the generated `GetZone("subCombatZone_…")` resolves at runtime.
+        var_to_zone: dict[str, str] = {}
+        for m in list(self._CZ_LOCAL_ZONE_START_RE.finditer(code)):
+            call_start = m.start()
+            chain_end = self._local_zone_chain_end(content, call_start)
+            zone_def = self._parse_combat_zone(content[call_start:chain_end])
+            if zone_def and zone_def.get("zone_name"):
+                var_to_zone[m.group(1)] = zone_def["zone_name"]
+                line_start = content.rfind("\n", 0, call_start) + 1
+                replacements.append((line_start, chain_end, zone_def))
+
         # Extract VeafCombatZone definitions
         for m in list(self._CZ_ZONE_START_RE.finditer(code)):
             call_start = m.start()
@@ -1399,12 +1438,14 @@ class ConfigMigrator:
             chain_end = line_end + 1 if line_end != -1 else len(content)
 
             chain_text = content[call_start:chain_end]
-            op_def = self._parse_combat_operation(chain_text)
+            op_def = self._parse_combat_operation(chain_text, var_to_zone)
             if op_def:
                 line_start = content.rfind("\n", 0, call_start) + 1
                 replacements.append((line_start, chain_end, op_def))
 
-        for start, end, zone_def in reversed(replacements):
+        # Process in reverse document order so earlier offsets stay valid; the
+        # insert(0) below then yields document order (sub-zones before their operation).
+        for start, end, zone_def in sorted(replacements, key=lambda r: r[0], reverse=True):
             result.combat_zones_extracted.insert(0, zone_def)
             chunk = content[start:end]
             has_callback = bool(re.search(r":setOnCompletedHook\s*\(", chunk))
@@ -1468,7 +1509,7 @@ class ConfigMigrator:
 
         return zone if "zone_name" in zone else None
 
-    def _parse_combat_operation(self, chain_text: str) -> dict | None:
+    def _parse_combat_operation(self, chain_text: str, var_to_zone: dict[str, str] | None = None) -> dict | None:
         """Parse a VeafCombatOperation builder chain into a dict."""
         op: dict = {"type": "operation"}
 
@@ -1485,12 +1526,17 @@ class ConfigMigrator:
         if briefing is not None:
             op["briefing"] = briefing.strip()
 
-        # addTaskingOrder(zoneVar, {deps}) — local var refs → extract as string names
+        # addTaskingOrder(zoneVar, {deps}) — local var refs. Resolve the var to the
+        # sub-zone's real missionEditorZoneName when known, so the generator emits
+        # GetZone("subCombatZone_…") (FIX-CONVERT-V5-OPERATION-SUBZONES).
+        var_to_zone = var_to_zone or {}
         tasking_orders = []
         for to_m in re.finditer(r":addTaskingOrder\s*\(\s*(\w+)(?:\s*,\s*\{([^}]*)\})?\s*\)", chain_text):
             zone_var = to_m.group(1)
             deps_text = to_m.group(2)
             order: dict = {"zone_var": zone_var}
+            if zone_var in var_to_zone:
+                order["zone_name"] = var_to_zone[zone_var]
             if deps_text:
                 deps = re.findall(r'"([^"]+)"', deps_text)
                 # Also handle getMissionEditorZoneName() pattern
@@ -1499,6 +1545,9 @@ class ConfigMigrator:
                     order["dependencies"] = deps
                 elif deps_vars:
                     order["dependencies_vars"] = deps_vars
+                    resolved_deps = [var_to_zone[v] for v in deps_vars if v in var_to_zone]
+                    if resolved_deps:
+                        order["dependencies"] = resolved_deps
             tasking_orders.append(order)
         if tasking_orders:
             op["tasking_orders"] = tasking_orders

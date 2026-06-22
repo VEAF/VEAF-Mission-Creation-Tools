@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FIX-TUI-MISSING-COMMANDS — 4 CLI commands have no `CommandSpec`, so they are absent from the interactive TUI menu (and `--tui`): `validate`, `migrate-config`, `generate-config`, `user-config`. The TUI must list **all** commands (double-clicking `veaf-tools.exe` should let you run e.g. `validate`). Add their `CommandSpec` + FR/EN labels; `required=True` only on `migrate-config.input_file` (the only mandatory arg → CLI→TUI bridge). Add a guard test asserting every registered Typer command has a `CommandSpec` (David) | ⬜ |
 | Lot FIX-BUILD-VALIDATE-NONBLOCKING — follow-up to FEAT-BUILD-VALIDATE-REFS: (1) a COMBATZONE **operation**'s `zone_name` is not a required trigger zone (`VeafCombatOperation:initialize()` never resolves it) → stop flagging it (false positive); (2) the build must **not block** on missing Mission-Editor references — blocking denies the maker the `.miz` to fix them — so it prints a **prominent end-of-build warning summary** and builds the `.miz` anyway (David) | ✅ |
 | Lot FEAT-BUILD-VALIDATE-REFS — surface, **at build time** (fail-at-end), every `mission.yaml` reference to a Mission-Editor object that is missing: trigger zones (AIRWAVES `trigger_zone_name` → WARN if center/radius fallback, else ERROR; QRA `trigger_zone`, COMBATZONE zone/operation `zone_name` → ERROR), groups (ASSETS/QRA/cap/combat — harden existing WARNING → ERROR), SANCTUARY `polygon_units` (units), QRA `airport_link` (theatre airdrome), and COMBATZONE operation `tasking_orders`/`dependencies` cross-ref to declared `combat_zones`. Collect all issues, log everything, abort the build at the end if ≥1 ERROR (David) — *superseded by FIX-BUILD-VALIDATE-NONBLOCKING (non-blocking)* | ✅ |
 | Lot FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE — an `AIRWAVES` zone defined by `zone_center_coordinates` + `zone_radius` also carrying a `trigger_zone_name` that doesn't exist in the `.miz` logs a runtime ERROR (`setTriggerZone(): trigger zone [X] does not exist`) even though the zone works fine via center/radius. The trigger zone is optional when a center is already configured; downgrade the ERROR to a WARN in that case (David, VEAF-Demo-Mission, "Airwaves-1") | ✅ |
@@ -108,6 +109,29 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | ✅ (#508) |
+
+---
+
+## Lot FIX-TUI-MISSING-COMMANDS — every CLI command must appear in the interactive TUI
+
+**Goal**: 4 of the 17 `veaf-tools` commands have **no `CommandSpec`** in [tui.py](src/python/veaf-tools/veaf_libs/tui.py) (`COMMANDS` list), so they are absent from the interactive wizard menu **and** from the CLI↔TUI bridge: `validate`, `migrate-config`, `generate-config`, `user-config`. A user who double-clicks `veaf-tools.exe` (TUI mode) cannot reach them — e.g. can't run `validate` interactively (reported by David). The TUI must expose **all** commands.
+
+Confirmed by audit (vs the 13 already covered). Clarifications from David:
+1. **All** commands belong in the TUI menu (even those without mandatory args — they're still launchable from the menu, like `about`).
+2. The **CLI→TUI bridge** (auto-drop into the wizard when an arg is missing) only concerns commands with a **mandatory** argument. Among the 4, only `migrate-config` has one (`input_file`, a `typer.Argument(...)` with no default) → its `ArgPrompt` gets `required=True`. `validate` (`mission_folder` default `.`), `generate-config` (options only), `user-config` (options only) get no `required=True`.
+
+Signatures (for the specs):
+- `validate`: positional `mission_folder` (default `.`) + `--strict` flag.
+- `migrate-config`: positional `input_file` (**required**) + `--output` / `--yaml-output` options.
+- `generate-config`: `--output` option (no positional).
+- `user-config`: `--set` / `--unset` / `--init` options (no positional).
+
+**Branch**: `fix/tui-missing-commands` → PR → `develop-v6` (Python TUI only).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-TUI-MISSING-COMMANDS-001 | Add a `CommandSpec` for `validate`, `migrate-config`, `generate-config`, `user-config` in `COMMANDS`, with their primary `ArgPrompt`s and `required=True` only on `migrate-config.input_file`. Add the FR/EN i18n labels (`tui.cmd.*.description`, new `tui.arg.*`). | `veaf_libs/tui.py`, `veaf_libs/locales/{en,fr}.json` | fix | ⬜ |
+| FIX-TUI-MISSING-COMMANDS-002 | Guard test: assert that **every** Typer command registered on `app` has a matching `CommandSpec` in `COMMANDS` (would have caught the missing 4). Extend `test_tui.py`. | `test/python/veaf_libs/test_tui.py` | test | ⬜ |
 
 ---
 

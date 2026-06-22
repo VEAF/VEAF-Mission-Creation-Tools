@@ -201,6 +201,36 @@ COMMANDS: list[CommandSpec] = [
             ),
         ],
     ),
+    # ── Config / validation utilities ───────────────────────────────────────
+    CommandSpec(
+        cli_name="validate",
+        description=t("tui.cmd.validate.description"),
+        prompts=[
+            ArgPrompt(
+                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+            ),
+            ArgPrompt("strict", t("tui.arg.validate_strict"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
+        cli_name="migrate-config",
+        description=t("tui.cmd.migrate_config.description"),
+        prompts=[
+            ArgPrompt("input_file", t("tui.arg.migrate_config_input"), default="", is_option=False, required=True),
+        ],
+    ),
+    CommandSpec(
+        cli_name="generate-config",
+        description=t("tui.cmd.generate_config.description"),
+        prompts=[
+            ArgPrompt("output", t("tui.arg.generate_config_output"), default="."),
+        ],
+    ),
+    CommandSpec(
+        cli_name="user-config",
+        description=t("tui.cmd.user_config.description"),
+        prompts=[],
+    ),
     CommandSpec(
         cli_name="ask",
         description=t("tui.cmd.ask.description"),

@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Every CLI command is now reachable from the interactive TUI** (FIX-TUI-MISSING-COMMANDS). Four commands had no `CommandSpec`, so they were absent from the wizard menu (and from the CLI↔TUI bridge) — a user launching the TUI (e.g. by double-clicking `veaf-tools.exe`) could not run `validate`, `migrate-config`, `generate-config` or `user-config` (David). They now appear in the command selector with their primary prompts; only `migrate-config`'s mandatory `input_file` is `required` (so the bridge drops into the wizard when it's missing). A guard test now asserts every Typer-registered command has a `CommandSpec`, preventing future omissions. FR/EN labels added.
 - **Aircraft-group injection no longer crashes when the target country's group container is a dict** (FIX-AIRCRAFT-INJECT-DICT-GROUP). On a freshly `extract`-ed mission, a country whose `plane`/`helicopter` `["group"]` was an empty Lua `{}` (or a numerically-keyed table) is deserialized as a **dict**, not a list — so `_ensure_aircraft_category` returned a dict and the dynamic-slot template injection failed for **every** template with `'dict' object has no attribute 'append'` (David, on `test-tripack` after `prepare --template standard` + `extract`; the spawnables, landing in a list container, were unaffected). The injector now normalizes the container to a list (empty dict → `[]`, keyed dict → its group values, preserving any existing groups) before appending.
 
 ## [6.6.0] — 2026-06-22

@@ -64,6 +64,20 @@ class TestCommandMap:
     def test_expected_commands_present(self, name: str) -> None:
         assert name in _COMMAND_MAP
 
+    def test_every_cli_command_has_a_commandspec(self) -> None:
+        """Guard: every Typer command registered on the app must be exposed in the TUI.
+
+        Catches a new command added to the CLI without a matching CommandSpec
+        (which would make it unreachable from the interactive wizard / double-click).
+        """
+        import veaf_tools.commands  # noqa: F401 — side effect: registers all commands
+        from veaf_tools.app import app
+
+        cli_names = {(ci.name or ci.callback.__name__).replace("_", "-") for ci in app.registered_commands}
+        spec_names = {cmd.cli_name for cmd in COMMANDS}
+        missing = cli_names - spec_names
+        assert not missing, f"CLI commands absent from the TUI (no CommandSpec): {sorted(missing)}"
+
 
 class TestMissionYamlDefaults:
     def test_returns_empty_when_no_mission_yaml(self, tmp_path: Path) -> None:

@@ -995,26 +995,37 @@ class MissionBuilderWorker(BaseWorker):
             raise
 
     def validate_references(self) -> None:
-        """Validate every ``mission.yaml`` reference to a Mission-Editor object (fail-at-end).
+        """Collect every ``mission.yaml`` reference to a Mission-Editor object that is missing.
 
-        Surfaces missing trigger zones / groups / units / airfields and undeclared
-        COMBATZONE sub-zones at build time instead of letting them fail inside DCS.
-        Logs **all** warnings and errors, lets the build go to the end, then aborts
-        if any error was found — so a single run reports everything.
+        Covers trigger zones / groups / units / airfields and undeclared COMBATZONE
+        sub-zones. **Non-blocking**: findings are stored and reported as a single
+        prominent warning summary at the very end of the build (see
+        :meth:`report_reference_issues`) — blocking the build would deny the maker the
+        `.miz` they need to fix the references in the Mission Editor and iterate.
         """
+        self._reference_issues = []
         if not self.mission_yaml or not self.dcs_mission or not self.dcs_mission.mission_content:
             return
-        from veaf_libs.mission_validator import ERROR, validate_mission_content
+        from veaf_libs.mission_validator import validate_mission_content
 
-        errors = 0
-        for issue in validate_mission_content(self.mission_yaml, self.dcs_mission.mission_content):
-            if issue.level == ERROR:
-                errors += 1
-                logger.error(issue.message, exception_type=None)  # log only; defer abort to the end
-            else:
-                logger.warning(issue.message)
-        if errors:
-            logger.error(t("builder.validation_failed", count=errors))  # default typer.Abort → stop build
+        self._reference_issues = validate_mission_content(self.mission_yaml, self.dcs_mission.mission_content)
+
+    def report_reference_issues(self) -> None:
+        """Print the end-of-build summary of missing Mission-Editor references (non-blocking).
+
+        The `.miz` is built regardless; this summary, framed so it stands out in the
+        build output, makes the missing references impossible to overlook so the maker
+        can fix them in the Mission Editor before the next run.
+        """
+        issues = getattr(self, "_reference_issues", None)
+        if not issues:
+            return
+        bar = "─" * 72
+        logger.warning(bar)
+        logger.warning(t("builder.reference_issues_header", count=len(issues)))
+        for issue in issues:
+            logger.warning(f"  • {issue.message}")
+        logger.warning(bar)
 
     def ensure_coalitions_populated(self) -> None:
         """Inject a hidden placeholder ground unit into any empty side coalition.
@@ -1739,7 +1750,8 @@ class MissionBuilderWorker(BaseWorker):
         # Ensure each side coalition owns at least one unit (hidden placeholder if not)
         self.ensure_coalitions_populated()
 
-        # Warn about config-declared groups (ASSETS, QRA, …) absent from the mission
+        # Collect missing Mission-Editor references (zones/groups/units/airfields) on the
+        # freshly-read source mission; reported as a summary at the end (non-blocking).
         self.validate_references()
 
         # First, remove all the VEAF triggers
@@ -1770,5 +1782,8 @@ class MissionBuilderWorker(BaseWorker):
 
         if not silent:
             logger.tech(t("builder.built", output=self.output_mission, folder=self.mission_folder))
+
+        # End-of-build summary of missing Mission-Editor references (non-blocking).
+        self.report_reference_issues()
 
         return self.output_mission

@@ -306,7 +306,7 @@ security:
 | Command | What it does |
 |---------|-------------|
 | `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them |
-| `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz`. Also validates every `mission.yaml` reference to the Mission Editor (trigger zones, groups, units, airfields): it logs warnings, collects all errors, runs to the end, then **fails** if any remain (a missing mandatory reference). An AIRWAVES zone whose `trigger_zone_name` is absent but with a configured center/radius is only a warning |
+| `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz`. Also validates the `mission.yaml` references to the Mission Editor (trigger zones, groups, units, airfields) and prints a **prominent end-of-build summary** of any that are missing — **without blocking** (the `.miz` is built anyway, so you can fix them in the Mission Editor and iterate). A COMBATZONE **operation**'s `zone_name` is not checked (it's only a label, not a required trigger zone) |
 | `validate` | Lints the mission folder **before** build — reports config errors and runtime risks without building (exit non-zero on error; `--strict` fails on warnings too) |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `inject-presets` | Injects radio frequency plans for all human cockpits |

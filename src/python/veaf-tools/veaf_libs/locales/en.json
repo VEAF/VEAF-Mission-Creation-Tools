@@ -719,7 +719,7 @@
   "builder.options_missing": "The 'options' file is missing from {path}; it's a useful item of your source tree!",
   "builder.coalition_country_unexpected": "A coalition 'country' is neither a list nor a table (got {type}); ignoring it and treating the side as empty.",
   "builder.declared_group_missing": "Group '{group}' declared in {section} is not present in the mission — it must be placed in the Mission Editor, otherwise the feature fails at runtime (e.g. veafAssets.respawn).",
-  "builder.validation_failed": "Build aborted: {count} mission.yaml reference error(s) above — fix them in the Mission Editor or mission.yaml and rebuild.",
+  "builder.reference_issues_header": "{count} mission.yaml reference(s) to a Mission-Editor object are missing (the .miz was still built) — fix them in the Mission Editor or mission.yaml:",
   "builder.coalition_placeholder_injected": "Coalition '{side}' had no unit — injected a hidden placeholder ground group so DCS registers it (no manual ground group needed).",
   "extractor.mission_not_found": "The input mission '{path}' does not exist or is not a file",
   "extractor.output_folder_not_found": "The output mission folder '{path}' does not exist or is not a folder",

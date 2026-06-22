@@ -107,7 +107,7 @@
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | 🧑 |
+| FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | ✅ (#508) |
 
 ---
 
@@ -175,7 +175,7 @@ veafCombatZone.AddZone(VeafCombatOperation:new():setMissionEditorZoneName("goriO
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FIX-CONVERT-V5-OPERATION-SUBZONES-001 | Extract `local <var> = VeafCombatZone:new()` sub-zones as combat_zones + resolve operation tasking_orders `zone_var`/`dependencies_vars` to the real `missionEditorZoneName`. Characterization test on the gori operation. DCS runtime validation by David. | `mission_builder/config_migrator.py`, `test/python/` | fix | 🧑 |
+| FIX-CONVERT-V5-OPERATION-SUBZONES-001 | Extract `local <var> = VeafCombatZone:new()` sub-zones as combat_zones + resolve operation tasking_orders `zone_var`/`dependencies_vars` to the real `missionEditorZoneName`. Characterization test on the gori operation. DCS runtime validation by David. | `mission_builder/config_migrator.py`, `test/python/` | fix | ✅ (#507) |
 
 ---
 

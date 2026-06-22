@@ -81,7 +81,10 @@ def collect_declared_groups(mission_yaml: dict[str, Any]) -> list[tuple[str, str
 
     for cap in mission_yaml.get("cap_missions") or []:
         if isinstance(cap, dict) and (g := cap.get("group_name")):
-            refs.append(("cap_missions", str(g)))
+            # veafCombatMission.addCapMission() prefixes "OnDemand-" to the name
+            # (since v5), so the maker's template group is named "OnDemand-<g>", not
+            # "<g>". Validate against the prefixed name to avoid a false warning.
+            refs.append(("cap_missions", f"OnDemand-{g}"))
 
     for cm in mission_yaml.get("combat_missions") or []:
         if not isinstance(cm, dict):

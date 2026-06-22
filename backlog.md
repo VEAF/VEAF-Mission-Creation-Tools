@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FIX-CAP-MISSION-PREFIX — the build's group-existence validation warns on a `cap_missions` group that is actually present, because `addCapMission()` prefixes `OnDemand-` (v5 behaviour) so the real group is `OnDemand-<group_name>`; validate against the prefixed name (David, VEAF-Demo-Mission) | ✅ |
 | Lot FOOTHOLD-V6 — adopt the third-party Foothold mission onto the v6 toolchain: generic `convert-other` + declarative profiles, native-trigger strip, partial config-override with lexical validation, `--update` refresh, Modern/Cold-War multi-variant build (pilot: Caucasus) | ✅ |
 | Lot FIX-VEAF-MODULE-GATING — VEAF framework integration blocks (`if AIEN then`, `if ctld then`, `if csar then`, `if STTS then`, `if SkynetIADS then`) fire on global existence alone, not on the module being enabled in `mission.yaml` → a maker who brings their own version of a community lib (custom_scripts) while disabling the VEAF module still gets VEAF's integration applied to the wrong version (the AIEN clobber seen in the 007 pilot, generalised) | ✅ |
 | Lot FIX-DYNSLOT-RADIO-UNITS — generated `dynamic-slot-templates.yaml` stores kHz/ADF radio channels (Yak-52 ARK-15M) in MHz (`0.625`) instead of kHz (`625`), making the mission fail to start (Tripack) | ✅ |
@@ -87,6 +88,18 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot FIX-CAP-MISSION-PREFIX — cap_missions group validation must account for the OnDemand- prefix
+
+**Goal**: The pre-build group-existence validation (`group_validation.py`) warns that a `cap_missions` group is missing even when the maker placed it. Root cause (David, VEAF-Demo-Mission): `veafCombatMission.addCapMission(name)` prefixes `"OnDemand-"` to the group name at runtime (`veafCombatMission.lua:1432`, v5 behaviour), so a `cap_missions: group_name: CAP-Maykop-1` is backed by a Mission-Editor group named `OnDemand-CAP-Maykop-1` (its unit is `CAP-Maykop-1-1`). The validation searched the raw `group_name` → false "missing group" warning. `combat_missions` uses `Group.getByName()` on the verbatim name (no prefix) and is correct. Fix: validate cap_missions against `"OnDemand-" + group_name`.
+
+**Branch**: `fix/cap-mission-ondemand-prefix` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-CAP-MISSION-PREFIX-001 | In `collect_declared_groups`, reference cap_missions groups as `OnDemand-<group_name>` so the existence check matches the real Mission-Editor group. Update the existing cap_missions test and add a behavioural test (present `OnDemand-X` → no warning; genuinely absent → still flagged). `combat_missions` untouched. | `mission_builder/group_validation.py`, `test/python/` | fix | ✅ (PR) |
 
 ---
 

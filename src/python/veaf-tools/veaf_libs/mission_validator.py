@@ -10,7 +10,9 @@ Checks:
   2. ``modules:`` semantics — unknown key, wrong type, removed section (error / warning)
   3. ``custom_scripts`` declared files exist on disk              (error)
   3b. ``config_override`` keys exist lexically in the injected corpus (error)
-  4. ASSETS/QRA groups declared in mission.yaml exist in the mission (warning)
+  4. Mission-Editor reference checks (:func:`validate_mission_content`): declared groups,
+     trigger zones, SANCTUARY units, QRA airfields, COMBATZONE operation sub-zones (error,
+     except an AIRWAVES trigger zone with a center/radius fallback → warning)
   5. presets / waypoints configured but no aircraft to apply them to (warning)
   6. ``TUM: true`` requires BLUFOR/REDFOR territory zones          (warning)
 
@@ -90,9 +92,55 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
         issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
         return issues
 
-    issues += _check_declared_groups(yaml_data, mission)
+    issues += validate_mission_content(yaml_data, mission)
     issues += _check_presets_waypoints(folder, yaml_data, mission)
     issues += _check_tum_zones(yaml_data, mission)
+    return issues
+
+
+def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Validate every ``mission.yaml`` reference to a Mission-Editor object (FEAT-BUILD-VALIDATE-REFS).
+
+    Covers declared groups (error), trigger zones (AIRWAVES optional → warning when a
+    center/radius fallback is configured, else error; QRA / COMBATZONE → error), SANCTUARY
+    ``polygon_units`` (error), QRA ``airport_link`` (error, skipped on an uncovered theatre),
+    and COMBATZONE operation tasking-order sub-zones (error). Shared by the ``validate``
+    command and the build (which runs it fail-at-end).
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping.
+        mission: The parsed DCS mission table (``triggers``, ``coalition``, ``theatre``…).
+
+    Returns:
+        Every :class:`ValidationIssue` found, in check order.
+    """
+    from mission_builder.group_validation import (
+        find_missing_declared_groups,
+        find_missing_sanctuary_units,
+        find_missing_trigger_zone_refs,
+        find_undeclared_operation_subzones,
+        find_unknown_airport_links,
+    )
+
+    theatre = mission.get("theatre") if isinstance(mission, dict) else None
+    issues: list[ValidationIssue] = []
+
+    for section, group in find_missing_declared_groups(yaml_data, mission):
+        issues.append(ValidationIssue(ERROR, t("validate.missing_group", group=group, section=section)))
+
+    for section, zone, level in find_missing_trigger_zone_refs(yaml_data, mission):
+        key = "validate.missing_trigger_zone_optional" if level == WARNING else "validate.missing_trigger_zone"
+        issues.append(ValidationIssue(level, t(key, zone=zone, section=section)))
+
+    for section, unit, level in find_missing_sanctuary_units(yaml_data, mission):
+        issues.append(ValidationIssue(level, t("validate.missing_unit", unit=unit, section=section)))
+
+    for section, airfield, level in find_unknown_airport_links(yaml_data, theatre):
+        issues.append(ValidationIssue(level, t("validate.unknown_airfield", airfield=airfield, section=section)))
+
+    for section, subzone, level in find_undeclared_operation_subzones(yaml_data):
+        issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
+
     return issues
 
 
@@ -146,16 +194,6 @@ def _read_source_mission(folder: Path) -> dict | None:
     except Exception:  # noqa: BLE001 - a parse failure just disables the mission-content checks
         return None
     return content if isinstance(content, dict) else None
-
-
-def _check_declared_groups(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
-    """ASSETS/QRA groups declared in mission.yaml that are absent from the mission (must be placed in the ME)."""
-    from mission_builder.group_validation import find_missing_declared_groups
-
-    return [
-        ValidationIssue(WARNING, t("validate.missing_group", group=group, section=section))
-        for section, group in find_missing_declared_groups(yaml_data, mission)
-    ]
 
 
 def _aircraft_counts(mission: dict) -> tuple[int, int]:

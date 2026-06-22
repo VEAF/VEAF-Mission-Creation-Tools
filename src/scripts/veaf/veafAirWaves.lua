@@ -217,6 +217,15 @@ function AirWaveZone:setTriggerZone(value)
   if triggerZone then
     self:setZoneCenter({ x = triggerZone.x, y = triggerZone.y })
     self:setZoneRadius(triggerZone.radius)
+  elseif self.zoneCenter then
+    -- The trigger zone is optional when a center (and radius) is already
+    -- configured (e.g. via setZoneCenterFromCoordinates): keep the existing
+    -- center/radius and only warn instead of erroring.
+    veaf.loggers.get(veafAirWaves.Id):warn(
+      "AirWaveZone[%s]:setTriggerZone(): trigger zone [%s] does not exist; keeping configured center/radius",
+      veaf.p(self.name),
+      veaf.p(value)
+    )
   else
     veaf.loggers
       .get(veafAirWaves.Id)

@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.6.1] — 2026-06-22
 
 ### Fixed
 - **Every CLI command is now reachable from the interactive TUI** (FIX-TUI-MISSING-COMMANDS). Four commands had no `CommandSpec`, so they were absent from the wizard menu (and from the CLI↔TUI bridge) — a user launching the TUI (e.g. by double-clicking `veaf-tools.exe`) could not run `validate`, `migrate-config`, `generate-config` or `user-config` (David). They now appear in the command selector with their primary prompts; only `migrate-config`'s mandatory `input_file` is `required` (so the bridge drops into the wizard when it's missing). A guard test now asserts every Typer-registered command has a `CommandSpec`, preventing future omissions. FR/EN labels added.

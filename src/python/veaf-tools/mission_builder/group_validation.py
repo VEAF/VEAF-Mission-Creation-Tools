@@ -172,7 +172,10 @@ def find_missing_trigger_zone_refs(
 
     AIRWAVES ``trigger_zone_name`` is optional when the zone also carries an explicit
     ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``
-    and COMBATZONE zone/operation ``zone_name`` are mandatory (level "error").
+    and a COMBATZONE *zone*'s ``zone_name`` are mandatory (level "error"). A COMBATZONE
+    *operation*'s ``zone_name`` is **not** checked: at runtime ``VeafCombatOperation:initialize()``
+    never resolves it as a trigger zone (it is only a label/radio-menu name), unlike a plain
+    ``VeafCombatZone`` whose ``initialize()`` errors without its trigger zone.
     """
     present = collect_mission_zone_names(mission_content)
     modules = mission_yaml.get("modules") or {}
@@ -192,9 +195,10 @@ def find_missing_trigger_zone_refs(
             issues.append(("QRA", str(tz), LEVEL_ERROR))
 
     for zone_def in _module_cfg(modules, "COMBATZONE").get("combat_zones") or []:
-        if isinstance(zone_def, dict) and (zn := zone_def.get("zone_name")) and str(zn) not in present:
-            section = "COMBATZONE.operation" if zone_def.get("type") == "operation" else "COMBATZONE"
-            issues.append((section, str(zn), LEVEL_ERROR))
+        if not isinstance(zone_def, dict) or zone_def.get("type") == "operation":
+            continue  # an operation's zone_name is a label, not a required trigger zone
+        if (zn := zone_def.get("zone_name")) and str(zn) not in present:
+            issues.append(("COMBATZONE", str(zn), LEVEL_ERROR))
 
     return issues
 

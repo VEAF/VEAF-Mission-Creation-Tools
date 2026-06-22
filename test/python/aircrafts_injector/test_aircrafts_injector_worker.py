@@ -346,5 +346,47 @@ class TestInjectedTemplateHiddenFromSlotList(unittest.TestCase):
         self.assertTrue(injected["password"])  # locked slot password (b)
 
 
+class TestInjectGroupsDictContainer(unittest.TestCase):
+    """FIX-AIRCRAFT-INJECT-DICT-GROUP — a country whose ["group"] is a dict (luadata turns an
+    empty `{}` or a keyed Lua table into a dict, not a list) must not crash inject_groups."""
+
+    @staticmethod
+    def _mission_with_plane_group(plane_group: object) -> DcsMission:
+        mission_content = {
+            "coalition": {
+                "blue": {
+                    "country": [
+                        {"name": "USA", "id": 2, "plane": {"group": plane_group}, "helicopter": {"group": []}}
+                    ]
+                }
+            }
+        }
+        return DcsMission(file_path=Path("/dev/null"), mission_content=mission_content)
+
+    def test_empty_dict_group_container(self) -> None:
+        """An empty `{}` group container (Lua `{}` → dict) is normalized to a list and injection works."""
+        worker = _worker()
+        worker.dcs_mission = self._mission_with_plane_group({})
+        worker.yaml_data = _yaml_data(["new-group"])
+
+        result = worker.inject_groups(mode="add", silent=True)
+
+        self.assertTrue(result.success)
+        self.assertEqual([g["name"] for g in _get_groups(worker)], ["new-group"])
+
+    def test_keyed_dict_group_container_preserves_existing(self) -> None:
+        """A keyed dict group container (e.g. {1: group}) keeps existing groups and appends the new one."""
+        worker = _worker()
+        worker.dcs_mission = self._mission_with_plane_group({1: {"name": "existing", "units": []}})
+        worker.yaml_data = _yaml_data(["new-group"])
+
+        result = worker.inject_groups(mode="add", silent=True)
+
+        self.assertTrue(result.success)
+        names = [g["name"] for g in _get_groups(worker)]
+        self.assertIn("existing", names)
+        self.assertIn("new-group", names)
+
+
 if __name__ == "__main__":
     unittest.main()

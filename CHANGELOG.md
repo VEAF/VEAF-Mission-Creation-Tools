@@ -7,6 +7,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Aircraft-group injection no longer crashes when the target country's group container is a dict** (FIX-AIRCRAFT-INJECT-DICT-GROUP). On a freshly `extract`-ed mission, a country whose `plane`/`helicopter` `["group"]` was an empty Lua `{}` (or a numerically-keyed table) is deserialized as a **dict**, not a list — so `_ensure_aircraft_category` returned a dict and the dynamic-slot template injection failed for **every** template with `'dict' object has no attribute 'append'` (David, on `test-tripack` after `prepare --template standard` + `extract`; the spawnables, landing in a list container, were unaffected). The injector now normalizes the container to a list (empty dict → `[]`, keyed dict → its group values, preserving any existing groups) before appending.
+
 ## [6.6.0] — 2026-06-22
 
 ### Added

@@ -13,7 +13,8 @@
 
 | Lot | Status |
 |-----|--------|
-| Lot FEAT-BUILD-VALIDATE-REFS — surface, **at build time** (fail-at-end), every `mission.yaml` reference to a Mission-Editor object that is missing: trigger zones (AIRWAVES `trigger_zone_name` → WARN if center/radius fallback, else ERROR; QRA `trigger_zone`, COMBATZONE zone/operation `zone_name` → ERROR), groups (ASSETS/QRA/cap/combat — harden existing WARNING → ERROR), SANCTUARY `polygon_units` (units), QRA `airport_link` (theatre airdrome), and COMBATZONE operation `tasking_orders`/`dependencies` cross-ref to declared `combat_zones`. Collect all issues, log everything, abort the build at the end if ≥1 ERROR (David) | ✅ |
+| Lot FIX-BUILD-VALIDATE-NONBLOCKING — follow-up to FEAT-BUILD-VALIDATE-REFS: (1) a COMBATZONE **operation**'s `zone_name` is not a required trigger zone (`VeafCombatOperation:initialize()` never resolves it) → stop flagging it (false positive); (2) the build must **not block** on missing Mission-Editor references — blocking denies the maker the `.miz` to fix them — so it prints a **prominent end-of-build warning summary** and builds the `.miz` anyway (David) | ✅ |
+| Lot FEAT-BUILD-VALIDATE-REFS — surface, **at build time** (fail-at-end), every `mission.yaml` reference to a Mission-Editor object that is missing: trigger zones (AIRWAVES `trigger_zone_name` → WARN if center/radius fallback, else ERROR; QRA `trigger_zone`, COMBATZONE zone/operation `zone_name` → ERROR), groups (ASSETS/QRA/cap/combat — harden existing WARNING → ERROR), SANCTUARY `polygon_units` (units), QRA `airport_link` (theatre airdrome), and COMBATZONE operation `tasking_orders`/`dependencies` cross-ref to declared `combat_zones`. Collect all issues, log everything, abort the build at the end if ≥1 ERROR (David) — *superseded by FIX-BUILD-VALIDATE-NONBLOCKING (non-blocking)* | ✅ |
 | Lot FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE — an `AIRWAVES` zone defined by `zone_center_coordinates` + `zone_radius` also carrying a `trigger_zone_name` that doesn't exist in the `.miz` logs a runtime ERROR (`setTriggerZone(): trigger zone [X] does not exist`) even though the zone works fine via center/radius. The trigger zone is optional when a center is already configured; downgrade the ERROR to a WARN in that case (David, VEAF-Demo-Mission, "Airwaves-1"). Needs DCS runtime validation | 🧑 |
 | Lot FIX-CONVERT-V5-OPERATION-SUBZONES — `convert-v5` drops a combat operation's sub-zones: they are `local <var> = VeafCombatZone:new():setMissionEditorZoneName("subCombatZone_X")` (not `AddZone`-d) referenced via `addTaskingOrder(<var>)`. convert-v5 (a) doesn't extract them as `combat_zones` (regex requires `AddZone(`) and (b) keeps tasking_orders as `zone_var: <var>` unresolved → generator emits `GetZone("<var>")` → runtime can't find the zone (David, VEAF-Demo-Mission, "gori" → `subCombatZone_gori`). Needs DCS runtime validation | ⬜ |
 | Lot FIX-CAP-MISSION-PREFIX — the build's group-existence validation warns on a `cap_missions` group that is actually present, because `addCapMission()` prefixes `OnDemand-` (v5 behaviour) so the real group is `OnDemand-<group_name>`; validate against the prefixed name (David, VEAF-Demo-Mission) | ✅ |
@@ -107,6 +108,21 @@
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE-001 | `setTriggerZone`: warn instead of error when the trigger zone is missing but a center is already set; preserve center/radius. luaunit tests (existing trigger zone → center/radius set; missing + center set → preserved, warn; missing + no center → center nil). DCS runtime validation by David. | `src/scripts/veaf/veafAirWaves.lua`, `test/lua/test_veafAirWaves.lua` | fix | 🧑 |
+
+---
+
+## Lot FIX-BUILD-VALIDATE-NONBLOCKING — build references summary is non-blocking; operation zone_name not checked
+
+**Goal**: Two follow-up corrections to FEAT-BUILD-VALIDATE-REFS (#509):
+
+1. **A COMBATZONE operation's `zone_name` is not a required trigger zone.** `VeafCombatOperation:initialize()` ([veafCombatZone.lua](src/scripts/veaf/veafCombatZone.lua)) does `if not self.missionEditorZoneName then return end` and **never** resolves it via `getTriggerZone`/`zoneToVec3` — the name is only a label/radio-menu name. Only a plain `VeafCombatZone:initialize()` errors without its trigger zone. So flagging an operation's `zone_name` as a missing trigger zone is a **false positive** (e.g. `goriOperation`); the operation is excluded from rule 4. (Rule 8 still validates the operation's tasking-order sub-zones against the declared `combat_zones`.)
+2. **The build must not block on missing references.** Blocking the build denies the maker the `.miz` they need to fix the references in the Mission Editor and iterate. The build now **collects** the missing references and prints a **prominent warning summary at the very end** (after the `.miz` is written), never aborting. The `validate` command keeps its own severities (it doesn't produce a `.miz`).
+
+**Branch**: `fix/build-validate-refs-nonblocking` → PR → `develop-v6` (build-time only).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FIX-BUILD-VALIDATE-NONBLOCKING-001 | Exclude COMBATZONE operations from `find_missing_trigger_zone_refs`; make the build collect issues (`validate_references`) and report them in a non-blocking end-of-build summary (`report_reference_issues`); drop the abort path + `builder.validation_failed` key (→ `builder.reference_issues_header`). pytest TDD (operation not flagged; build non-blocking). Docs FR/EN updated. | `mission_builder/group_validation.py`, `mission_builder/mission_builder_worker.py`, `veaf_libs/locales/*.json`, `doc/`, `test/python/` | fix | ✅ (#510) |
 
 ---
 

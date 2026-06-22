@@ -719,7 +719,7 @@
   "builder.options_missing": "Le fichier 'options' est absent de {path} ; c'est un élément utile de votre arborescence source !",
   "builder.coalition_country_unexpected": "Un 'country' de coalition n'est ni une liste ni une table (reçu {type}) ; il est ignoré et le camp est considéré comme vide.",
   "builder.declared_group_missing": "Le groupe '{group}' déclaré dans {section} est absent de la mission — il doit être placé dans le Mission Editor, sinon la fonctionnalité échoue au runtime (ex. veafAssets.respawn).",
-  "builder.validation_failed": "Build interrompu : {count} erreur(s) de référence dans mission.yaml ci-dessus — corrigez-les dans le Mission Editor ou mission.yaml puis relancez le build.",
+  "builder.reference_issues_header": "{count} référence(s) de mission.yaml vers un objet du Mission Editor sont absentes (le .miz a quand même été généré) — corrigez-les dans le Mission Editor ou mission.yaml :",
   "builder.coalition_placeholder_injected": "La coalition '{side}' n'avait aucune unité — un groupe sol placeholder caché a été injecté pour que DCS la reconnaisse (plus besoin de groupe sol manuel).",
   "extractor.mission_not_found": "La mission d'entrée '{path}' n'existe pas ou n'est pas un fichier",
   "extractor.output_folder_not_found": "Le dossier de mission de sortie '{path}' n'existe pas ou n'est pas un dossier",

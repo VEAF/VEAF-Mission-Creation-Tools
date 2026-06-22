@@ -183,7 +183,9 @@ class TestTriggerZoneRefs:
         my = {"modules": {"QRA": {"definitions": [{"trigger_zone": "QRA zone"}]}}}
         assert find_missing_trigger_zone_refs(my, _zones()) == [("QRA", "QRA zone", LEVEL_ERROR)]
 
-    def test_combatzone_and_operation_missing_are_errors(self) -> None:
+    def test_combatzone_missing_is_error_but_operation_is_not_checked(self) -> None:
+        # A plain combat zone needs its trigger zone (VeafCombatZone:initialize errors
+        # without it); an operation's zone_name is just a label — never validated.
         my = {
             "modules": {
                 "COMBATZONE": {
@@ -195,8 +197,8 @@ class TestTriggerZoneRefs:
             }
         }
         issues = find_missing_trigger_zone_refs(my, _zones())
-        assert ("COMBATZONE", "subCombatZone_gori", LEVEL_ERROR) in issues
-        assert ("COMBATZONE.operation", "goriOperation", LEVEL_ERROR) in issues
+        assert issues == [("COMBATZONE", "subCombatZone_gori", LEVEL_ERROR)]
+        assert all(ref != "goriOperation" for _, ref, _ in issues)
 
     def test_disabled_module_is_skipped(self) -> None:
         my = {"modules": {"QRA": {"enabled": False, "definitions": [{"trigger_zone": "Z"}]}}}

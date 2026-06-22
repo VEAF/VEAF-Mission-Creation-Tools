@@ -87,5 +87,23 @@ class TestCommunitySoundPackaging(unittest.TestCase):
         self.assertIs(first, worker.get_collected_community_sound_files())
 
 
+class TestShippedCommunitySounds(unittest.TestCase):
+    """Consistency guard: every sound the mapping requires must actually be shipped."""
+
+    def test_all_mapped_sounds_are_shipped(self) -> None:
+        # BUILD-COMMUNITY-SOUNDS-002: a required sound that is in the mapping but
+        # not on disk under src/scripts/community/sounds/ would only ever warn at
+        # build time. Pin the contract so a mapped sound can't silently go missing.
+        from mission_tools.mission_constants import get_community_sound_files
+
+        # Anchor on pyproject.toml instead of a fixed parents[] depth, so the test
+        # survives a directory-layout change (Sourcery #505).
+        repo_root = next(p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").is_file())
+        sounds_dir = repo_root / "src" / "scripts" / "community" / "sounds"
+        required = {name for names in get_community_sound_files().values() for name in names}
+        missing = sorted(name for name in required if not (sounds_dir / name).is_file())
+        self.assertEqual(missing, [], f"mapped community sounds not shipped: {missing}")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,10 @@ from typing import Any
 #: DCS unit-group categories carried under each country in the mission table.
 _GROUP_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
 
+#: veafCombatMission.addCapMission() prefixes this to the cap_missions group name
+#: at runtime (since v5), so the maker's DCS group is named "OnDemand-<group_name>".
+ONDEMAND_CAP_PREFIX = "OnDemand-"
+
 
 def collect_mission_group_names(mission_content: dict[str, Any]) -> set[str]:
     """Return every group name present in the mission (all coalitions/countries/categories)."""
@@ -81,10 +85,10 @@ def collect_declared_groups(mission_yaml: dict[str, Any]) -> list[tuple[str, str
 
     for cap in mission_yaml.get("cap_missions") or []:
         if isinstance(cap, dict) and (g := cap.get("group_name")):
-            # veafCombatMission.addCapMission() prefixes "OnDemand-" to the name
-            # (since v5), so the maker's template group is named "OnDemand-<g>", not
-            # "<g>". Validate against the prefixed name to avoid a false warning.
-            refs.append(("cap_missions", f"OnDemand-{g}"))
+            # addCapMission() prefixes ONDEMAND_CAP_PREFIX at runtime, so the maker's
+            # template group is named "OnDemand-<g>", not "<g>". Validate against the
+            # prefixed name to avoid a false warning. str() guards a non-string YAML value.
+            refs.append(("cap_missions", f"{ONDEMAND_CAP_PREFIX}{str(g)}"))
 
     for cm in mission_yaml.get("combat_missions") or []:
         if not isinstance(cm, dict):

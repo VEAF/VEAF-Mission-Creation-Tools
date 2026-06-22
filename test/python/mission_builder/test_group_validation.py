@@ -75,6 +75,8 @@ class TestCollectDeclaredGroups:
         decl = collect_declared_groups(my)
         # cap_missions: the Lua addCapMission prefixes "OnDemand-" to the group name.
         assert ("cap_missions", "OnDemand-CAP Group") in decl
+        # ...and the raw (unprefixed) name is NOT collected (no double-collection).
+        assert ("cap_missions", "CAP Group") not in decl
         # combat_missions: no prefix — groups referenced verbatim.
         assert ("combat_missions", "Strike-1") in decl
         assert ("combat_missions", "Strike-2") in decl

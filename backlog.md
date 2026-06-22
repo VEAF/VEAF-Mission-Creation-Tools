@@ -69,8 +69,8 @@
 | Lot TODO0609-SPAWN-EXTERNALIZE — externalize spawn group / veafUnits definitions from Lua to YAML (spike ✅ + impl) | ✅ |
 | Lot TODO0609-DYNLOAD-CLARIFY — clarify `veafDynamicConfig.lua` vs `VeafDynamicLoader.lua`, find obsolete one (spike) | ✅ |
 | Lot TODO0609-PRESETS-FIDELITY — iso-functional v5 presets conversion (fix) + presets data-structure/defaults analysis (spike) | ✅ |
-| Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | 🟡 |
-| Lot BUILD-COMMUNITY-SOUNDS — build packages CTLD/CSAR sound assets into l10n/DEFAULT when enabled (files-only) | 🟡 |
+| Lot TODO0609-TRIGGERS-VERIFY — verify DCS trigger migration behaviour for custom scripts (with Flogas) | ✅ |
+| Lot BUILD-COMMUNITY-SOUNDS — build packages CTLD/CSAR sound assets into l10n/DEFAULT when enabled (files-only) | ✅ |
 | Lot TODO0609-TUI-FOLDER-HINT — clarify the TUI mission-folder default (`.`) | ✅ |
 | Lot TODO0609-AIRCRAFT-INJECT — split aircraft-group injection into spawnable-aircraft vs dynamic-slot-template steps, flag/prefix sort | ✅ |
 | Lot TODO0609-DEFAULTS-AUDIT — audit `defaults/mission-folder` for genuinely-unused leftover files | ✅ |
@@ -1077,7 +1077,7 @@ was constrained to a working branch.
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
 | BUILD-COMMUNITY-SOUNDS-001 | Ship the CTLD/CSAR sound assets (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`) under `src/scripts/community/sounds/` and inject the ones a mission is missing into `l10n/DEFAULT/` when CTLD or CSAR is enabled (mission-provided sounds win; nothing when both off; warn on a required sound shipped by neither tool nor mission). Files-only — no `mapResource` entry, no `out_sound` trigger. | `mission_builder/mission_builder_worker.py`, `mission_tools/mission_constants.py`, `src/scripts/community/sounds/`, `test/python/` | feat | ✅ |
-| BUILD-COMMUNITY-SOUNDS-002 | Add `radiobeep.ogg` (JTAC fallback beep) to the shipped assets once a redistributable source is available (David to provide). | `src/scripts/community/sounds/` | feat | ⬜ |
+| BUILD-COMMUNITY-SOUNDS-002 | Add `radiobeep.ogg` (JTAC fallback beep) to the shipped assets. **Done**: David provided a redistributable `radio-beep.ogg`; shipped as `src/scripts/community/sounds/radiobeep.ogg`, auto-injected for CTLD (mapping already required it); consistency test added. | `src/scripts/community/sounds/`, `test/python/` | feat | ✅ (#505) |
 
 ---
 

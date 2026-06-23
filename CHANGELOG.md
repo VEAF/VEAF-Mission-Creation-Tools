@@ -7,7 +7,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [6.6.1] — 2026-06-22
+## [Unreleased]
+
+### Fixed
+- **Airplane dynamic-slot templates are no longer filed under `helicopters:`** (FIX-DYNSLOT-TEMPLATE-CATEGORY). DCS files dynamic-slot *template* groups under the **helicopter** table in the `.miz` regardless of the real aircraft, so the aircraft-groups extraction — which routed each group by its DCS location — filed **every** airplane template (A-10C II, F-16, MiGs…) under `airplanes`'s sibling `helicopters:`. They were then injected as a *helicopter group* in the Mission Editor (group titled "GROUPE D'HÉLICOPTÈRES", aircraft type mismatched). #478 fixed the same symptom for the default CAP `spawnables.yaml` but not the dynamic-slot pipeline (Tripack). The extraction now categorizes each group by its unit's **real DCS category** (`dcsUnits.yaml`: Plane → `airplanes`, Helicopter → `helicopters`), falling back to the DCS location only for types unknown to the database. The shipped default `dynamic-slot-templates.yaml` has been regenerated category-correct (78 airplane templates moved out of `helicopters:`), and a guard test pins both the helper and the shipped default.
 
 ### Fixed
 - **Every CLI command is now reachable from the interactive TUI** (FIX-TUI-MISSING-COMMANDS). Four commands had no `CommandSpec`, so they were absent from the wizard menu (and from the CLI↔TUI bridge) — a user launching the TUI (e.g. by double-clicking `veaf-tools.exe`) could not run `validate`, `migrate-config`, `generate-config` or `user-config` (David). They now appear in the command selector with their primary prompts; only `migrate-config`'s mandatory `input_file` is `required` (so the bridge drops into the wizard when it's missing). A guard test now asserts every Typer-registered command has a `CommandSpec`, preventing future omissions. FR/EN labels added.

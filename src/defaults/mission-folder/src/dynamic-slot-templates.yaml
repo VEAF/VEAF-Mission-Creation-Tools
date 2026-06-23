@@ -1,6 +1,4 @@
 airplanes:
-  coalitions: {}
-helicopters:
   coalitions:
     blue:
       CJTF Blue:
@@ -234,326 +232,6 @@ helicopters:
               speed: 138.88888888889
               type: A-10C_2
               unitId: 599
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        A-4E-C Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 254
-          groupId: 499
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: A-4E-C Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 2000
-                alt_type: BARO
-                formation_template: ''
-                name: A-4E-C Template
-                speed: 138.88888888889
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                Auto_Catapult_Power: false
-                CBU2ATPP: 0
-                CBU2BATPP: 0
-                CMS_BURSTS: 1
-                CMS_BURST_INTERVAL: 1
-                CMS_SALVOS: 1
-                CMS_SALVO_INTERVAL: 1
-                HideECMPanel: false
-                Night_Vision: false
-              alt: 2000
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 6
-                name: Chevy65
-                3: 5
-              heading: 2.1757446334553
-              livery_id: unmarked
-              name: 'A-4E-C Template #01'
-              onboard_num: '013'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 30
-                fuel: 2467.5454273299
-                gun: 100
-                pylons: {}
-              psi: -2.2499848619125
-              skill: Client
-              speed: 138.88888888889
-              type: A-4E-C
-              unitId: 583
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        AH-64D Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 225
-          groupId: 461
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: AH-64D Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 500
-                alt_type: BARO
-                formation_template: ''
-                name: AH-64D Template
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 2
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                AIDisabled: false
-                CpgNVG: true
-                FCR_RFI_removed: false
-                FlareBurstCount: 0
-                FlareBurstInterval: 0
-                FlareProgramDelay: 0
-                FlareSalvoCount: 0
-                FlareSalvoInterval: 0
-                HumanOrchestra: false
-                NetCrewControlPriority: 0
-                OverrideIFF: 0
-                OwnshipCallSign: G-1
-                PltNVG: true
-                TN_IDM_LB: '1'
-                TrackAirTargets: true
-              alt: 500
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy14
-                3: 4
-              datalinks:
-                IDM:
-                  network:
-                    presets:
-                      1:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      2:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      3:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      4:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      5:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      6:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      7:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      8:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      9:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                      10:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 9
-                  settings:
-                    presets:
-                      1:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 1
-                        presetName: PRESET 1
-                        primaryFreq: 1
-                      2:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 2
-                        presetName: PRESET 2
-                        primaryFreq: 2
-                      3:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 3
-                        presetName: PRESET 3
-                        primaryFreq: 3
-                      4:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 4
-                        presetName: PRESET 4
-                        primaryFreq: 4
-                      5:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 5
-                        presetName: PRESET 5
-                        primaryFreq: 0
-                      6:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 6
-                        presetName: PRESET 6
-                        primaryFreq: 0
-                      7:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 7
-                        presetName: PRESET 7
-                        primaryFreq: 0
-                      8:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 8
-                        presetName: PRESET 8
-                        primaryFreq: 0
-                      9:
-                        LB_Net: false
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 9
-                        presetName: PRESET 9
-                        primaryFreq: 0
-                      10:
-                        LB_Net: false
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE10
-                        presetName: PRESET10
-                        primaryFreq: 0
-              heading: -2.1935960373391
-              livery_id: default
-              name: 'AH-64D Template #01'
-              onboard_num: '014'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 60
-                fuel: 1140
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: M261_MK151
-                  2:
-                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
-                  3:
-                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
-                  4:
-                    CLSID: M261_MK151
-              psi: 2.1935960373391
-              skill: Client
-              speed: 55.555555555556
-              type: AH-64D_BLK_II
-              unitId: 542
               x: 0
               y: 0
           x: 0
@@ -889,72 +567,6 @@ helicopters:
               speed: 138.88888888889
               type: C-101CC
               unitId: 546
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        CH-47F Template-1:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 251
-          groupId: 460
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: CH-47F Template-1
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: CH-47F Template
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NetCrewControlPriority: 0
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy13
-                3: 3
-              heading: 0.68067840827779
-              livery_id: us army standard
-              name: 'CH-47F Template-1 #01'
-              onboard_num: '032'
-              payload:
-                chaff: 120
-                flare: 120
-                fuel: 3054.592
-                gun: 100
-                pylons: {}
-              psi: -0.68067840827779
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: CH-47Fbl1
-              unitId: 541
               x: 0
               y: 0
           x: 0
@@ -2322,140 +1934,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        Ka-50 Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 459
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Ka-50 Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 480
-                alt_type: BARO
-                formation_template: ''
-                name: Ka-50 Template
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 480
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy12
-                3: 2
-              heading: 2.2689280275926
-              livery_id: italy aeronautica militare
-              name: 'Ka-50 Template #01'
-              onboard_num: '010'
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: '1450'
-                gun: 100
-                pylons: {}
-              psi: -2.2689280275926
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: Ka-50
-              unitId: 540
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Ka-50III Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 456
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Ka-50III Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 430
-                alt_type: BARO
-                formation_template: ''
-                name: Ka-50III Template
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ExhaustScreen: true
-                Helmet-mounted device: 0
-                IMU alignment type: 1
-                Realistic INS: 0
-                modification: Ka-50_3
-              alt: 430
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 9
-                name: Ford97
-                3: 7
-              heading: 5.846852994181
-              livery_id: default
-              name: 'Ka-50III Template #01'
-              onboard_num: '024'
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: 1160
-                gun: 100
-                pylons: {}
-              psi: -5.846852994181
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: Ka-50_3
-              unitId: 537
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         L-39C Template:
           communication: true
           dynSpawnTemplate: true
@@ -2702,179 +2180,6 @@ helicopters:
               speed: 138.88888888889
               type: M-2000C
               unitId: 601
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Mi-24P Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 457
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Mi-24P Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 430
-                alt_type: BARO
-                formation_template: ''
-                name: Mi-24P Template
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                HideAngleBoxes: false
-                HumanOrchestra: false
-                LeftEngineResource: 90
-                NS430allow: true
-                NetCrewControlPriority: 0
-                OperatorNVG: true
-                OverrideIFF: 0
-                PilotNVG: true
-                R60equipment: false
-                RightEngineResource: 90
-                SimplifiedAI: false
-                TrackAirTargets: true
-              alt: 430
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 9
-                name: Ford98
-                3: 8
-              heading: 5.846852994181
-              livery_id: 99.735 coyotes - crocodile - veaf
-              name: 'Mi-24P Template #01'
-              onboard_num: '010'
-              payload:
-                ammo_type: 1
-                chaff: 0
-                flare: 192
-                fuel: 1191
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: '{2x9M120_Ataka_V}'
-                  2:
-                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
-                  3:
-                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
-                  4:
-                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
-                  5:
-                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
-                  6:
-                    CLSID: '{2x9M120_Ataka_V}'
-                restricted:
-                  2:
-                    1: '{APU-60-1_R_60M}'
-                    2: '{B0DBC591-0F52-4F7D-AD7B-51E67725FB81}'
-                  5:
-                    1: '{APU-60-1_R_60M}'
-                    2: '{275A2855-4A79-4B2D-B082-91EA2ADF4691}'
-              psi: -5.846852994181
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: Mi-24P
-              unitId: 538
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Mi-8MTV2 Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 454
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Mi-8MTV2 Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: Mi-8MTV2 Template
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Transport
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                AdditionalArmor: true
-                CargoHalfdoor: true
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                HumanOrchestra: false
-                LeftEngineResource: 90
-                NS430allow: true
-                NetCrewControlPriority: -2
-                RightEngineResource: 90
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 9
-                name: Ford95
-                3: 5
-              hardpoint_racks: true
-              heading: 0.93857425772792
-              livery_id: Russia_VVS_Standard
-              name: 'Mi-8MTV2 Template #01'
-              onboard_num: 019
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: 965
-                gun: 100
-                pylons: {}
-              psi: -2.6179938779915
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: Mi-8MT
-              unitId: 535
               x: 0
               y: 0
           x: 0
@@ -3719,177 +3024,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        OH-58 Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 116
-          groupId: 463
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OH-58 Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OH-58 Template
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 1
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ALQ144: false
-                AllowHidePDU: true
-                MMS removal: false
-                NetCrewControlPriority: 0
-                PDU: false
-                Rapid Deployment Gear: false
-                Remove doors: false
-                Rifles: true
-                importDrawings: true
-                tacNet: 1
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy16
-                3: 6
-              hardpoint_racks: true
-              heading: 5.8992128717408
-              livery_id: default
-              name: 'OH-58 Template #01'
-              onboard_num: '011'
-              payload:
-                chaff: 0
-                flare: 30
-                fuel: 333.69
-                gun: 100
-                pylons: {}
-              psi: -5.8992128717408
-              skill: Client
-              speed: 46.25
-              type: OH58D
-              unitId: 544
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        OV-10A Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 494
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OV-10A Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OV-10A Template
-                speed: 107.91666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 2
-                              value: true
-                      2:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 2
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 5
-                name: Chevy58
-                3: 8
-              heading: 5.4628805587423
-              livery_id: tass 19th usaf 67-14657
-              name: 'OV-10A Template #01'
-              onboard_num: 018
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 940
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 107.91666666667
-              type: Bronco-OV-10A
-              unitId: 578
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         P-47D Template:
           communication: true
           dynSpawnTemplate: true
@@ -4040,248 +3174,6 @@ helicopters:
               speed: 138.88888888889
               type: P-51D
               unitId: 579
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342L Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 462
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342L Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342L Template
-                speed: 44.444444444444
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 4
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-                SA342RemoveDoors: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy15
-                3: 5
-              heading: 5.9341194567807
-              livery_id: fr alat ce 1985
-              name: 'SA342L Template #01'
-              onboard_num: '022'
-              payload:
-                chaff: 0
-                flare: 32
-                fuel: 416.33
-                gun: 100
-                pylons: {}
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 44.444444444444
-              type: SA342L
-              unitId: 543
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342M Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 458
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342M Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342M Template
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 5
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 9
-                name: Ford99
-                3: 9
-              heading: 5.9341194567807
-              livery_id: fr alat ce 1985
-              name: 'SA342M Template #01'
-              onboard_num: 028
-              payload:
-                chaff: 0
-                flare: 32
-                fuel: 333
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: '{HOT3_R2_M}'
-                  2:
-                    CLSID: '{HOT3_L2_M}'
-                  4:
-                    CLSID: '{IR_Deflector}'
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: SA342M
-              unitId: 539
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342Minigun Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 464
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342Minigun Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342Minigun Template
-                speed: 44.444444444444
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 3
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 1
-                name: Chevy17
-                3: 7
-              heading: 5.9341194567807
-              livery_id: fr alat ce 1985
-              name: 'SA342Minigun Template #01'
-              onboard_num: '021'
-              payload:
-                ammo_type: 1
-                chaff: 0
-                flare: 32
-                fuel: 416.33
-                gun: 100
-                pylons: {}
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 44.444444444444
-              type: SA342Minigun
-              unitId: 545
               x: 0
               y: 0
           x: 0
@@ -4658,77 +3550,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        UH-1H Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 251
-          groupId: 455
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: UH-1H Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 500
-                alt_type: BARO
-                formation_template: ''
-                name: UH-1H Template
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                EngineResource: 90
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                NetCrewControlPriority: -2
-                SoloFlight: false
-              alt: 500
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 9
-                name: Ford96
-                3: 6
-              hardpoint_racks: true
-              heading: 0.94881750304937
-              livery_id: French Army
-              name: 'UH-1H Template #01'
-              onboard_num: '015'
-              payload:
-                chaff: 0
-                flare: 60
-                fuel: '631'
-                gun: 100
-                pylons: {}
-              psi: -0.94862592345254
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: UH-1H
-              unitId: 536
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         Yak-52 Template:
           communication: true
           dynSpawnTemplate: true
@@ -4929,326 +3750,6 @@ helicopters:
               speed: 138.88888888889
               type: A-10C_2
               unitId: 303
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        A-4E-C Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 254
-          groupId: 314
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: A-4E-C Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 2000
-                alt_type: BARO
-                formation_template: ''
-                name: A-4E-C Template Red
-                speed: 138.88888888889
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                Auto_Catapult_Power: false
-                CBU2ATPP: 0
-                CBU2BATPP: 0
-                CMS_BURSTS: 1
-                CMS_BURST_INTERVAL: 1
-                CMS_SALVOS: 1
-                CMS_SALVO_INTERVAL: 1
-                HideECMPanel: false
-                Night_Vision: false
-              alt: 2000
-              alt_type: BARO
-              callsign:
-                1: 4
-                2: 2
-                name: Colt25
-                3: 5
-              heading: 2.1757446334553
-              livery_id: community a-4e ii
-              name: 'A-4E-C Template Red #01'
-              onboard_num: '045'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 30
-                fuel: 2467.5454273299
-                gun: 100
-                pylons: {}
-              psi: -2.2499848619125
-              skill: Client
-              speed: 138.88888888889
-              type: A-4E-C
-              unitId: 216
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        AH-64D Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 225
-          groupId: 412
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: AH-64D Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 500
-                alt_type: BARO
-                formation_template: ''
-                name: AH-64D Template Red
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 7
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                AIDisabled: false
-                CpgNVG: true
-                FCR_RFI_removed: false
-                FlareBurstCount: 0
-                FlareBurstInterval: 0
-                FlareProgramDelay: 0
-                FlareSalvoCount: 0
-                FlareSalvoInterval: 0
-                HumanOrchestra: false
-                NetCrewControlPriority: 0
-                OverrideIFF: 0
-                OwnshipCallSign: G-2
-                PltNVG: true
-                TN_IDM_LB: '2'
-                TrackAirTargets: true
-              alt: 500
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 4
-                name: Ford49
-                3: 9
-              datalinks:
-                IDM:
-                  network:
-                    presets:
-                      1:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      2:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      3:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      4:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      5:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      6:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      7:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      8:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      9:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                      10:
-                        members:
-                          1:
-                            PRI_value: true
-                            TM_value: true
-                            missionUnitId: 80
-                  settings:
-                    presets:
-                      1:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 1
-                        presetName: PRESET 1
-                        primaryFreq: 1
-                      2:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 2
-                        presetName: PRESET 2
-                        primaryFreq: 2
-                      3:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 3
-                        presetName: PRESET 3
-                        primaryFreq: 3
-                      4:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 4
-                        presetName: PRESET 4
-                        primaryFreq: 4
-                      5:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 5
-                        presetName: PRESET 5
-                        primaryFreq: 0
-                      6:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 6
-                        presetName: PRESET 6
-                        primaryFreq: 0
-                      7:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 7
-                        presetName: PRESET 7
-                        primaryFreq: 0
-                      8:
-                        LB_Net: true
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 8
-                        presetName: PRESET 8
-                        primaryFreq: 0
-                      9:
-                        LB_Net: false
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE 9
-                        presetName: PRESET 9
-                        primaryFreq: 0
-                      10:
-                        LB_Net: false
-                        NoAcknowledgmentRetries: 2
-                        autoAcknowledgment: true
-                        callSign: PRE10
-                        presetName: PRESET10
-                        primaryFreq: 0
-              heading: -2.1935960373391
-              livery_id: default
-              name: 'AH-64D Template Red #01'
-              onboard_num: '047'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 60
-                fuel: 1140
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: M261_MK151
-                  2:
-                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
-                  3:
-                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
-                  4:
-                    CLSID: M261_MK151
-              psi: 2.1935960373391
-              skill: Client
-              speed: 55.555555555556
-              type: AH-64D_BLK_II
-              unitId: 420
               x: 0
               y: 0
           x: 0
@@ -5584,72 +4085,6 @@ helicopters:
               speed: 138.88888888889
               type: C-101CC
               unitId: 203
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        CH-47F Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 251
-          groupId: 419
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: CH-47F Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: CH-47F Template Red
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NetCrewControlPriority: 0
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford58
-                3: 8
-              heading: 0.68067840827779
-              livery_id: dark green
-              name: 'CH-47F Template Red #01'
-              onboard_num: 078
-              payload:
-                chaff: 120
-                flare: 120
-                fuel: 3054.592
-                gun: 100
-                pylons: {}
-              psi: -0.68067840827779
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: CH-47Fbl1
-              unitId: 427
               x: 0
               y: 0
           x: 0
@@ -6895,140 +5330,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        Ka-50 Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 417
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Ka-50 Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 480
-                alt_type: BARO
-                formation_template: ''
-                name: Ka-50 Template Red
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 480
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford56
-                3: 6
-              heading: 2.2689280275926
-              livery_id: italy aeronautica militare
-              name: 'Ka-50 Template Red #01'
-              onboard_num: 039
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: '1450'
-                gun: 100
-                pylons: {}
-              psi: -2.2689280275926
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: Ka-50
-              unitId: 425
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Ka-50III Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 414
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Ka-50III Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 430
-                alt_type: BARO
-                formation_template: ''
-                name: Ka-50III Template Red
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ExhaustScreen: true
-                Helmet-mounted device: 0
-                IMU alignment type: 1
-                Realistic INS: 0
-                modification: Ka-50_3
-              alt: 430
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford53
-                3: 3
-              heading: 5.846852994181
-              livery_id: default
-              name: 'Ka-50III Template Red #01'
-              onboard_num: '066'
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: 1160
-                gun: 100
-                pylons: {}
-              psi: -5.846852994181
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: Ka-50_3
-              unitId: 422
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         L-39C Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -7275,179 +5576,6 @@ helicopters:
               speed: 138.88888888889
               type: M-2000C
               unitId: 196
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Mi-24P Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 409
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Mi-24P Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 430
-                alt_type: BARO
-                formation_template: ''
-                name: Mi-24P Template Red
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                HideAngleBoxes: false
-                HumanOrchestra: false
-                LeftEngineResource: 90
-                NS430allow: true
-                NetCrewControlPriority: 0
-                OperatorNVG: true
-                OverrideIFF: 0
-                PilotNVG: true
-                R60equipment: false
-                RightEngineResource: 90
-                SimplifiedAI: false
-                TrackAirTargets: true
-              alt: 430
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 4
-                name: Ford46
-                3: 6
-              heading: 5.846852994181
-              livery_id: russian air force
-              name: 'Mi-24P Template Red #01'
-              onboard_num: '050'
-              payload:
-                ammo_type: 1
-                chaff: 0
-                flare: 192
-                fuel: 1191
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: '{2x9M120_Ataka_V}'
-                  2:
-                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
-                  3:
-                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
-                  4:
-                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
-                  5:
-                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
-                  6:
-                    CLSID: '{2x9M120_Ataka_V}'
-                restricted:
-                  2:
-                    1: '{APU-60-1_R_60M}'
-                    2: '{B0DBC591-0F52-4F7D-AD7B-51E67725FB81}'
-                  5:
-                    1: '{APU-60-1_R_60M}'
-                    2: '{275A2855-4A79-4B2D-B082-91EA2ADF4691}'
-              psi: -5.846852994181
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: Mi-24P
-              unitId: 416
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        Mi-8MTV2 Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 413
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: Mi-8MTV2 Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: Mi-8MTV2 Template Red
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Transport
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                AdditionalArmor: true
-                CargoHalfdoor: true
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                HumanOrchestra: false
-                LeftEngineResource: 90
-                NS430allow: true
-                NetCrewControlPriority: -2
-                RightEngineResource: 90
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford52
-                3: 2
-              hardpoint_racks: true
-              heading: 0.93857425772792
-              livery_id: russia_vvs_standard
-              name: 'Mi-8MTV2 Template Red #01'
-              onboard_num: 059
-              payload:
-                chaff: 0
-                flare: 128
-                fuel: 965
-                gun: 100
-                pylons: {}
-              psi: -2.6179938779915
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: Mi-8MT
-              unitId: 421
               x: 0
               y: 0
           x: 0
@@ -8292,177 +6420,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        OH-58 Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 116
-          groupId: 415
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OH-58 Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OH-58 Template Red
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 6
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                ALQ144: false
-                AllowHidePDU: true
-                MMS removal: false
-                NetCrewControlPriority: 0
-                PDU: false
-                Rapid Deployment Gear: false
-                Remove doors: false
-                Rifles: true
-                importDrawings: true
-                tacNet: 1
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford54
-                3: 4
-              hardpoint_racks: true
-              heading: 5.8992128717408
-              livery_id: ru army fictional
-              name: 'OH-58 Template Red #01'
-              onboard_num: '042'
-              payload:
-                chaff: 0
-                flare: 30
-                fuel: 333.69
-                gun: 100
-                pylons: {}
-              psi: -5.8992128717408
-              skill: Client
-              speed: 46.25
-              type: OH58D
-              unitId: 423
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        OV-10A Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 283
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OV-10A Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OV-10A Template Red
-                speed: 107.91666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 9
-                              value: true
-                      2:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 2
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 3
-                2: 6
-                name: Uzi69
-                3: 9
-              heading: 5.4628805587423
-              livery_id: tass 22nd usaf 67-14647wh
-              name: 'OV-10A Template Red #01'
-              onboard_num: '057'
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 940
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 107.91666666667
-              type: Bronco-OV-10A
-              unitId: 180
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         P-47D Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -8613,248 +6570,6 @@ helicopters:
               speed: 138.88888888889
               type: P-51D
               unitId: 206
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342L Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 416
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342L Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342L Template Red
-                speed: 44.444444444444
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 9
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-                SA342RemoveDoors: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford55
-                3: 5
-              heading: 5.9341194567807
-              livery_id: gen olive drab
-              name: 'SA342L Template Red #01'
-              onboard_num: '063'
-              payload:
-                chaff: 0
-                flare: 32
-                fuel: 416.33
-                gun: 100
-                pylons: {}
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 44.444444444444
-              type: SA342L
-              unitId: 424
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342M Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 418
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342M Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342M Template Red
-                speed: 46.25
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 10
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 5
-                name: Ford57
-                3: 7
-              heading: 5.9341194567807
-              livery_id: gen olive drab
-              name: 'SA342M Template Red #01'
-              onboard_num: '073'
-              payload:
-                chaff: 0
-                flare: 32
-                fuel: 333
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: '{HOT3_R2_M}'
-                  2:
-                    CLSID: '{HOT3_L2_M}'
-                  4:
-                    CLSID: '{IR_Deflector}'
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 46.25
-              type: SA342M
-              unitId: 426
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        SA342Minigun Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 124
-          groupId: 411
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: SA342Minigun Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: SA342Minigun Template Red
-                speed: 44.444444444444
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 8
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NS430allow: true
-                RemoveTablet: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 4
-                name: Ford48
-                3: 8
-              heading: 5.9341194567807
-              livery_id: gen olive drab
-              name: 'SA342Minigun Template Red #01'
-              onboard_num: '062'
-              payload:
-                ammo_type: 1
-                chaff: 0
-                flare: 32
-                fuel: 416.33
-                gun: 100
-                pylons: {}
-              psi: -5.9341194567807
-              ropeLength: 15
-              skill: Client
-              speed: 44.444444444444
-              type: SA342Minigun
-              unitId: 419
               x: 0
               y: 0
           x: 0
@@ -9231,77 +6946,6 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        UH-1H Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 251
-          groupId: 410
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: UH-1H Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 500
-                alt_type: BARO
-                formation_template: ''
-                name: UH-1H Template Red
-                speed: 55.555555555556
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks: {}
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                EngineResource: 90
-                ExhaustScreen: true
-                GunnersAISkill: 90
-                NetCrewControlPriority: -2
-                SoloFlight: false
-              alt: 500
-              alt_type: BARO
-              callsign:
-                1: 6
-                2: 4
-                name: Ford47
-                3: 7
-              hardpoint_racks: true
-              heading: 0.94881750304937
-              livery_id: Ukrainian Army
-              name: 'UH-1H Template Red #01'
-              onboard_num: 049
-              payload:
-                chaff: 0
-                flare: 60
-                fuel: '631'
-                gun: 100
-                pylons: {}
-              psi: -0.94862592345254
-              ropeLength: 15
-              skill: Client
-              speed: 55.555555555556
-              type: UH-1H
-              unitId: 418
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         Yak-52 Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -9494,6 +7138,2366 @@ helicopters:
               speed: 138.88888888889
               type: F-15ESE
               unitId: 482
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+helicopters:
+  coalitions:
+    blue:
+      CJTF Blue:
+        A-4E-C Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 254
+          groupId: 499
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: A-4E-C Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: A-4E-C Template
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: Option
+                            params:
+                              name: 35
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                Auto_Catapult_Power: false
+                CBU2ATPP: 0
+                CBU2BATPP: 0
+                CMS_BURSTS: 1
+                CMS_BURST_INTERVAL: 1
+                CMS_SALVOS: 1
+                CMS_SALVO_INTERVAL: 1
+                HideECMPanel: false
+                Night_Vision: false
+              alt: 2000
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 6
+                name: Chevy65
+                3: 5
+              heading: 2.1757446334553
+              livery_id: unmarked
+              name: 'A-4E-C Template #01'
+              onboard_num: '013'
+              payload:
+                ammo_type: 1
+                chaff: 30
+                flare: 30
+                fuel: 2467.5454273299
+                gun: 100
+                pylons: {}
+              psi: -2.2499848619125
+              skill: Client
+              speed: 138.88888888889
+              type: A-4E-C
+              unitId: 583
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        AH-64D Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 225
+          groupId: 461
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: AH-64D Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 500
+                alt_type: BARO
+                formation_template: ''
+                name: AH-64D Template
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 2
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AIDisabled: false
+                CpgNVG: true
+                FCR_RFI_removed: false
+                FlareBurstCount: 0
+                FlareBurstInterval: 0
+                FlareProgramDelay: 0
+                FlareSalvoCount: 0
+                FlareSalvoInterval: 0
+                HumanOrchestra: false
+                NetCrewControlPriority: 0
+                OverrideIFF: 0
+                OwnshipCallSign: G-1
+                PltNVG: true
+                TN_IDM_LB: '1'
+                TrackAirTargets: true
+              alt: 500
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy14
+                3: 4
+              datalinks:
+                IDM:
+                  network:
+                    presets:
+                      1:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      2:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      3:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      4:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      5:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      6:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      7:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      8:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      9:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                      10:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 9
+                  settings:
+                    presets:
+                      1:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 1
+                        presetName: PRESET 1
+                        primaryFreq: 1
+                      2:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 2
+                        presetName: PRESET 2
+                        primaryFreq: 2
+                      3:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 3
+                        presetName: PRESET 3
+                        primaryFreq: 3
+                      4:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 4
+                        presetName: PRESET 4
+                        primaryFreq: 4
+                      5:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 5
+                        presetName: PRESET 5
+                        primaryFreq: 0
+                      6:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 6
+                        presetName: PRESET 6
+                        primaryFreq: 0
+                      7:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 7
+                        presetName: PRESET 7
+                        primaryFreq: 0
+                      8:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 8
+                        presetName: PRESET 8
+                        primaryFreq: 0
+                      9:
+                        LB_Net: false
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 9
+                        presetName: PRESET 9
+                        primaryFreq: 0
+                      10:
+                        LB_Net: false
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE10
+                        presetName: PRESET10
+                        primaryFreq: 0
+              heading: -2.1935960373391
+              livery_id: default
+              name: 'AH-64D Template #01'
+              onboard_num: '014'
+              payload:
+                ammo_type: 1
+                chaff: 30
+                flare: 60
+                fuel: 1140
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: M261_MK151
+                  2:
+                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
+                  3:
+                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
+                  4:
+                    CLSID: M261_MK151
+              psi: 2.1935960373391
+              skill: Client
+              speed: 55.555555555556
+              type: AH-64D_BLK_II
+              unitId: 542
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        CH-47F Template-1:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 251
+          groupId: 460
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: CH-47F Template-1
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: CH-47F Template
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 0
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy13
+                3: 3
+              heading: 0.68067840827779
+              livery_id: us army standard
+              name: 'CH-47F Template-1 #01'
+              onboard_num: '032'
+              payload:
+                chaff: 120
+                flare: 120
+                fuel: 3054.592
+                gun: 100
+                pylons: {}
+              psi: -0.68067840827779
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: CH-47Fbl1
+              unitId: 541
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Ka-50 Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 459
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Ka-50 Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 480
+                alt_type: BARO
+                formation_template: ''
+                name: Ka-50 Template
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 480
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy12
+                3: 2
+              heading: 2.2689280275926
+              livery_id: italy aeronautica militare
+              name: 'Ka-50 Template #01'
+              onboard_num: '010'
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: '1450'
+                gun: 100
+                pylons: {}
+              psi: -2.2689280275926
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: Ka-50
+              unitId: 540
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Ka-50III Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 456
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Ka-50III Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 430
+                alt_type: BARO
+                formation_template: ''
+                name: Ka-50III Template
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ExhaustScreen: true
+                Helmet-mounted device: 0
+                IMU alignment type: 1
+                Realistic INS: 0
+                modification: Ka-50_3
+              alt: 430
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 9
+                name: Ford97
+                3: 7
+              heading: 5.846852994181
+              livery_id: default
+              name: 'Ka-50III Template #01'
+              onboard_num: '024'
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: 1160
+                gun: 100
+                pylons: {}
+              psi: -5.846852994181
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: Ka-50_3
+              unitId: 537
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mi-24P Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 457
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mi-24P Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 430
+                alt_type: BARO
+                formation_template: ''
+                name: Mi-24P Template
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                HideAngleBoxes: false
+                HumanOrchestra: false
+                LeftEngineResource: 90
+                NS430allow: true
+                NetCrewControlPriority: 0
+                OperatorNVG: true
+                OverrideIFF: 0
+                PilotNVG: true
+                R60equipment: false
+                RightEngineResource: 90
+                SimplifiedAI: false
+                TrackAirTargets: true
+              alt: 430
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 9
+                name: Ford98
+                3: 8
+              heading: 5.846852994181
+              livery_id: 99.735 coyotes - crocodile - veaf
+              name: 'Mi-24P Template #01'
+              onboard_num: '010'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 192
+                fuel: 1191
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{2x9M120_Ataka_V}'
+                  2:
+                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
+                  3:
+                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
+                  4:
+                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
+                  5:
+                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
+                  6:
+                    CLSID: '{2x9M120_Ataka_V}'
+                restricted:
+                  2:
+                    1: '{APU-60-1_R_60M}'
+                    2: '{B0DBC591-0F52-4F7D-AD7B-51E67725FB81}'
+                  5:
+                    1: '{APU-60-1_R_60M}'
+                    2: '{275A2855-4A79-4B2D-B082-91EA2ADF4691}'
+              psi: -5.846852994181
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: Mi-24P
+              unitId: 538
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mi-8MTV2 Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 454
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mi-8MTV2 Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: Mi-8MTV2 Template
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Transport
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AdditionalArmor: true
+                CargoHalfdoor: true
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                HumanOrchestra: false
+                LeftEngineResource: 90
+                NS430allow: true
+                NetCrewControlPriority: -2
+                RightEngineResource: 90
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 9
+                name: Ford95
+                3: 5
+              hardpoint_racks: true
+              heading: 0.93857425772792
+              livery_id: Russia_VVS_Standard
+              name: 'Mi-8MTV2 Template #01'
+              onboard_num: 019
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: 965
+                gun: 100
+                pylons: {}
+              psi: -2.6179938779915
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: Mi-8MT
+              unitId: 535
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        OH-58 Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 116
+          groupId: 463
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: OH-58 Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: OH-58 Template
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 1
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ALQ144: false
+                AllowHidePDU: true
+                MMS removal: false
+                NetCrewControlPriority: 0
+                PDU: false
+                Rapid Deployment Gear: false
+                Remove doors: false
+                Rifles: true
+                importDrawings: true
+                tacNet: 1
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy16
+                3: 6
+              hardpoint_racks: true
+              heading: 5.8992128717408
+              livery_id: default
+              name: 'OH-58 Template #01'
+              onboard_num: '011'
+              payload:
+                chaff: 0
+                flare: 30
+                fuel: 333.69
+                gun: 100
+                pylons: {}
+              psi: -5.8992128717408
+              skill: Client
+              speed: 46.25
+              type: OH58D
+              unitId: 544
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        OV-10A Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 494
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: OV-10A Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: OV-10A Template
+                speed: 107.91666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 2
+                              value: true
+                      2:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 2
+                        params:
+                          action:
+                            id: Option
+                            params:
+                              name: 35
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 5
+                name: Chevy58
+                3: 8
+              heading: 5.4628805587423
+              livery_id: tass 19th usaf 67-14657
+              name: 'OV-10A Template #01'
+              onboard_num: 018
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 940
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 107.91666666667
+              type: Bronco-OV-10A
+              unitId: 578
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342L Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 462
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342L Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342L Template
+                speed: 44.444444444444
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 4
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+                SA342RemoveDoors: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy15
+                3: 5
+              heading: 5.9341194567807
+              livery_id: fr alat ce 1985
+              name: 'SA342L Template #01'
+              onboard_num: '022'
+              payload:
+                chaff: 0
+                flare: 32
+                fuel: 416.33
+                gun: 100
+                pylons: {}
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 44.444444444444
+              type: SA342L
+              unitId: 543
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342M Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 458
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342M Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342M Template
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 5
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 9
+                name: Ford99
+                3: 9
+              heading: 5.9341194567807
+              livery_id: fr alat ce 1985
+              name: 'SA342M Template #01'
+              onboard_num: 028
+              payload:
+                chaff: 0
+                flare: 32
+                fuel: 333
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{HOT3_R2_M}'
+                  2:
+                    CLSID: '{HOT3_L2_M}'
+                  4:
+                    CLSID: '{IR_Deflector}'
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: SA342M
+              unitId: 539
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342Minigun Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 464
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342Minigun Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342Minigun Template
+                speed: 44.444444444444
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 3
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                name: Chevy17
+                3: 7
+              heading: 5.9341194567807
+              livery_id: fr alat ce 1985
+              name: 'SA342Minigun Template #01'
+              onboard_num: '021'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 32
+                fuel: 416.33
+                gun: 100
+                pylons: {}
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 44.444444444444
+              type: SA342Minigun
+              unitId: 545
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        UH-1H Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 251
+          groupId: 455
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: UH-1H Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 500
+                alt_type: BARO
+                formation_template: ''
+                name: UH-1H Template
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                EngineResource: 90
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                NetCrewControlPriority: -2
+                SoloFlight: false
+              alt: 500
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 9
+                name: Ford96
+                3: 6
+              hardpoint_racks: true
+              heading: 0.94881750304937
+              livery_id: French Army
+              name: 'UH-1H Template #01'
+              onboard_num: '015'
+              payload:
+                chaff: 0
+                flare: 60
+                fuel: '631'
+                gun: 100
+                pylons: {}
+              psi: -0.94862592345254
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: UH-1H
+              unitId: 536
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+    red:
+      CJTF Red:
+        A-4E-C Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 254
+          groupId: 314
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: A-4E-C Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: A-4E-C Template Red
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: Option
+                            params:
+                              name: 35
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                Auto_Catapult_Power: false
+                CBU2ATPP: 0
+                CBU2BATPP: 0
+                CMS_BURSTS: 1
+                CMS_BURST_INTERVAL: 1
+                CMS_SALVOS: 1
+                CMS_SALVO_INTERVAL: 1
+                HideECMPanel: false
+                Night_Vision: false
+              alt: 2000
+              alt_type: BARO
+              callsign:
+                1: 4
+                2: 2
+                name: Colt25
+                3: 5
+              heading: 2.1757446334553
+              livery_id: community a-4e ii
+              name: 'A-4E-C Template Red #01'
+              onboard_num: '045'
+              payload:
+                ammo_type: 1
+                chaff: 30
+                flare: 30
+                fuel: 2467.5454273299
+                gun: 100
+                pylons: {}
+              psi: -2.2499848619125
+              skill: Client
+              speed: 138.88888888889
+              type: A-4E-C
+              unitId: 216
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        AH-64D Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 225
+          groupId: 412
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: AH-64D Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 500
+                alt_type: BARO
+                formation_template: ''
+                name: AH-64D Template Red
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 7
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AIDisabled: false
+                CpgNVG: true
+                FCR_RFI_removed: false
+                FlareBurstCount: 0
+                FlareBurstInterval: 0
+                FlareProgramDelay: 0
+                FlareSalvoCount: 0
+                FlareSalvoInterval: 0
+                HumanOrchestra: false
+                NetCrewControlPriority: 0
+                OverrideIFF: 0
+                OwnshipCallSign: G-2
+                PltNVG: true
+                TN_IDM_LB: '2'
+                TrackAirTargets: true
+              alt: 500
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                name: Ford49
+                3: 9
+              datalinks:
+                IDM:
+                  network:
+                    presets:
+                      1:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      2:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      3:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      4:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      5:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      6:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      7:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      8:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      9:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                      10:
+                        members:
+                          1:
+                            PRI_value: true
+                            TM_value: true
+                            missionUnitId: 80
+                  settings:
+                    presets:
+                      1:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 1
+                        presetName: PRESET 1
+                        primaryFreq: 1
+                      2:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 2
+                        presetName: PRESET 2
+                        primaryFreq: 2
+                      3:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 3
+                        presetName: PRESET 3
+                        primaryFreq: 3
+                      4:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 4
+                        presetName: PRESET 4
+                        primaryFreq: 4
+                      5:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 5
+                        presetName: PRESET 5
+                        primaryFreq: 0
+                      6:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 6
+                        presetName: PRESET 6
+                        primaryFreq: 0
+                      7:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 7
+                        presetName: PRESET 7
+                        primaryFreq: 0
+                      8:
+                        LB_Net: true
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 8
+                        presetName: PRESET 8
+                        primaryFreq: 0
+                      9:
+                        LB_Net: false
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE 9
+                        presetName: PRESET 9
+                        primaryFreq: 0
+                      10:
+                        LB_Net: false
+                        NoAcknowledgmentRetries: 2
+                        autoAcknowledgment: true
+                        callSign: PRE10
+                        presetName: PRESET10
+                        primaryFreq: 0
+              heading: -2.1935960373391
+              livery_id: default
+              name: 'AH-64D Template Red #01'
+              onboard_num: '047'
+              payload:
+                ammo_type: 1
+                chaff: 30
+                flare: 60
+                fuel: 1140
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: M261_MK151
+                  2:
+                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
+                  3:
+                    CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'
+                  4:
+                    CLSID: M261_MK151
+              psi: 2.1935960373391
+              skill: Client
+              speed: 55.555555555556
+              type: AH-64D_BLK_II
+              unitId: 420
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        CH-47F Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 251
+          groupId: 419
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: CH-47F Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: CH-47F Template Red
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 0
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford58
+                3: 8
+              heading: 0.68067840827779
+              livery_id: dark green
+              name: 'CH-47F Template Red #01'
+              onboard_num: 078
+              payload:
+                chaff: 120
+                flare: 120
+                fuel: 3054.592
+                gun: 100
+                pylons: {}
+              psi: -0.68067840827779
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: CH-47Fbl1
+              unitId: 427
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Ka-50 Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 417
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Ka-50 Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 480
+                alt_type: BARO
+                formation_template: ''
+                name: Ka-50 Template Red
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 480
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford56
+                3: 6
+              heading: 2.2689280275926
+              livery_id: italy aeronautica militare
+              name: 'Ka-50 Template Red #01'
+              onboard_num: 039
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: '1450'
+                gun: 100
+                pylons: {}
+              psi: -2.2689280275926
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: Ka-50
+              unitId: 425
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Ka-50III Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 414
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Ka-50III Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 430
+                alt_type: BARO
+                formation_template: ''
+                name: Ka-50III Template Red
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ExhaustScreen: true
+                Helmet-mounted device: 0
+                IMU alignment type: 1
+                Realistic INS: 0
+                modification: Ka-50_3
+              alt: 430
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford53
+                3: 3
+              heading: 5.846852994181
+              livery_id: default
+              name: 'Ka-50III Template Red #01'
+              onboard_num: '066'
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: 1160
+                gun: 100
+                pylons: {}
+              psi: -5.846852994181
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: Ka-50_3
+              unitId: 422
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mi-24P Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 409
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mi-24P Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 430
+                alt_type: BARO
+                formation_template: ''
+                name: Mi-24P Template Red
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                HideAngleBoxes: false
+                HumanOrchestra: false
+                LeftEngineResource: 90
+                NS430allow: true
+                NetCrewControlPriority: 0
+                OperatorNVG: true
+                OverrideIFF: 0
+                PilotNVG: true
+                R60equipment: false
+                RightEngineResource: 90
+                SimplifiedAI: false
+                TrackAirTargets: true
+              alt: 430
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                name: Ford46
+                3: 6
+              heading: 5.846852994181
+              livery_id: russian air force
+              name: 'Mi-24P Template Red #01'
+              onboard_num: '050'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 192
+                fuel: 1191
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{2x9M120_Ataka_V}'
+                  2:
+                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
+                  3:
+                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
+                  4:
+                    CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'
+                  5:
+                    CLSID: '{2x9M120_Ataka_V_with_adapter}'
+                  6:
+                    CLSID: '{2x9M120_Ataka_V}'
+                restricted:
+                  2:
+                    1: '{APU-60-1_R_60M}'
+                    2: '{B0DBC591-0F52-4F7D-AD7B-51E67725FB81}'
+                  5:
+                    1: '{APU-60-1_R_60M}'
+                    2: '{275A2855-4A79-4B2D-B082-91EA2ADF4691}'
+              psi: -5.846852994181
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: Mi-24P
+              unitId: 416
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mi-8MTV2 Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 413
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mi-8MTV2 Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: Mi-8MTV2 Template Red
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Transport
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AdditionalArmor: true
+                CargoHalfdoor: true
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                HumanOrchestra: false
+                LeftEngineResource: 90
+                NS430allow: true
+                NetCrewControlPriority: -2
+                RightEngineResource: 90
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford52
+                3: 2
+              hardpoint_racks: true
+              heading: 0.93857425772792
+              livery_id: russia_vvs_standard
+              name: 'Mi-8MTV2 Template Red #01'
+              onboard_num: 059
+              payload:
+                chaff: 0
+                flare: 128
+                fuel: 965
+                gun: 100
+                pylons: {}
+              psi: -2.6179938779915
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: Mi-8MT
+              unitId: 421
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        OH-58 Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 116
+          groupId: 415
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: OH-58 Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: OH-58 Template Red
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 6
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ALQ144: false
+                AllowHidePDU: true
+                MMS removal: false
+                NetCrewControlPriority: 0
+                PDU: false
+                Rapid Deployment Gear: false
+                Remove doors: false
+                Rifles: true
+                importDrawings: true
+                tacNet: 1
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford54
+                3: 4
+              hardpoint_racks: true
+              heading: 5.8992128717408
+              livery_id: ru army fictional
+              name: 'OH-58 Template Red #01'
+              onboard_num: '042'
+              payload:
+                chaff: 0
+                flare: 30
+                fuel: 333.69
+                gun: 100
+                pylons: {}
+              psi: -5.8992128717408
+              skill: Client
+              speed: 46.25
+              type: OH58D
+              unitId: 423
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        OV-10A Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 283
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: OV-10A Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: OV-10A Template Red
+                speed: 107.91666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 9
+                              value: true
+                      2:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 2
+                        params:
+                          action:
+                            id: Option
+                            params:
+                              name: 35
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 3
+                2: 6
+                name: Uzi69
+                3: 9
+              heading: 5.4628805587423
+              livery_id: tass 22nd usaf 67-14647wh
+              name: 'OV-10A Template Red #01'
+              onboard_num: '057'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 940
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 107.91666666667
+              type: Bronco-OV-10A
+              unitId: 180
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342L Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 416
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342L Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342L Template Red
+                speed: 44.444444444444
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 9
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+                SA342RemoveDoors: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford55
+                3: 5
+              heading: 5.9341194567807
+              livery_id: gen olive drab
+              name: 'SA342L Template Red #01'
+              onboard_num: '063'
+              payload:
+                chaff: 0
+                flare: 32
+                fuel: 416.33
+                gun: 100
+                pylons: {}
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 44.444444444444
+              type: SA342L
+              unitId: 424
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342M Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 418
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342M Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342M Template Red
+                speed: 46.25
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 10
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 5
+                name: Ford57
+                3: 7
+              heading: 5.9341194567807
+              livery_id: gen olive drab
+              name: 'SA342M Template Red #01'
+              onboard_num: '073'
+              payload:
+                chaff: 0
+                flare: 32
+                fuel: 333
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{HOT3_R2_M}'
+                  2:
+                    CLSID: '{HOT3_L2_M}'
+                  4:
+                    CLSID: '{IR_Deflector}'
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 46.25
+              type: SA342M
+              unitId: 426
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        SA342Minigun Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 411
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: SA342Minigun Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: SA342Minigun Template Red
+                speed: 44.444444444444
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 8
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NS430allow: true
+                RemoveTablet: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                name: Ford48
+                3: 8
+              heading: 5.9341194567807
+              livery_id: gen olive drab
+              name: 'SA342Minigun Template Red #01'
+              onboard_num: '062'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 32
+                fuel: 416.33
+                gun: 100
+                pylons: {}
+              psi: -5.9341194567807
+              ropeLength: 15
+              skill: Client
+              speed: 44.444444444444
+              type: SA342Minigun
+              unitId: 419
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        UH-1H Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 251
+          groupId: 410
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: UH-1H Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 500
+                alt_type: BARO
+                formation_template: ''
+                name: UH-1H Template Red
+                speed: 55.555555555556
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks: {}
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                EngineResource: 90
+                ExhaustScreen: true
+                GunnersAISkill: 90
+                NetCrewControlPriority: -2
+                SoloFlight: false
+              alt: 500
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                name: Ford47
+                3: 7
+              hardpoint_racks: true
+              heading: 0.94881750304937
+              livery_id: Ukrainian Army
+              name: 'UH-1H Template Red #01'
+              onboard_num: 049
+              payload:
+                chaff: 0
+                flare: 60
+                fuel: '631'
+                gun: 100
+                pylons: {}
+              psi: -0.94862592345254
+              ropeLength: 15
+              skill: Client
+              speed: 55.555555555556
+              type: UH-1H
+              unitId: 418
               x: 0
               y: 0
           x: 0

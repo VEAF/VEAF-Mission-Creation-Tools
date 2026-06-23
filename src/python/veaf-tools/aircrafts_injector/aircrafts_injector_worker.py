@@ -4,6 +4,7 @@ Combines validation and injection of aircraft groups from YAML files into DCS mi
 """
 
 import copy
+import functools
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,11 +25,51 @@ from rich.panel import Panel
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_countries import country_id_for_name
+from veaf_libs.dcs_units_parser import parse_dcs_units
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 console = Console()
+
+#: Committed DCS units database (relative to this worker).
+_DCS_UNITS_YAML = Path(__file__).resolve().parent.parent / "veaf_libs" / "data" / "dcsUnits.yaml"
+
+#: DCS top-level category → extraction bucket (airplanes/helicopters).
+_CATEGORY_TO_BUCKET = {"plane": "airplanes", "helicopter": "helicopters"}
+
+
+@functools.lru_cache(maxsize=1)
+def _aircraft_family_by_type() -> dict[str, str]:
+    """Map a DCS aircraft type (lowercase) → ``airplanes``/``helicopters`` via the canonical units DB."""
+    mapping: dict[str, str] = {}
+    try:
+        for unit in parse_dcs_units(_DCS_UNITS_YAML):
+            bucket = _CATEGORY_TO_BUCKET.get(unit.category.lower())
+            if bucket:
+                mapping[unit.type_id.lower()] = bucket
+    except (OSError, ValueError):  # never break extraction on a units-DB read issue
+        return {}
+    return mapping
+
+
+def aircraft_category_for_group(group: dict, fallback: str) -> str:
+    """Return ``airplanes``/``helicopters`` from the group's first unit **type** (DCS units DB).
+
+    DCS files dynamic-slot template groups under the *helicopter* table regardless of the real
+    aircraft, so routing by the group's DCS location mis-categorizes airplanes. Categorize by the
+    unit's real DCS category instead; fall back to *fallback* (the DCS location) when the type is
+    unknown to the units DB. See FIX-DYNSLOT-TEMPLATE-CATEGORY.
+    """
+    units = group.get("units") or []
+    if isinstance(units, dict):  # a Lua/keyed table deserializes as a dict, not a list
+        units = list(units.values())
+    if units and isinstance(units[0], dict):
+        unit_type = str(units[0].get("type", "")).lower()
+        family = _aircraft_family_by_type().get(unit_type)
+        if family:
+            return family
+    return fallback
 
 
 # ============================================================================
@@ -1133,12 +1174,16 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                 kind = classify_aircraft_group(group)
                 if kind is None:
                     continue  # ordinary mission group — not a reusable spawn asset
+                # Route by the unit's real DCS category, not its location in the .miz: DCS files
+                # dynamic-slot templates under the helicopter table regardless of the real aircraft
+                # (FIX-DYNSLOT-TEMPLATE-CATEGORY). Fall back to the DCS location for unknown types.
+                resolved_category = aircraft_category_for_group(group, category)
                 nonlocal_count += 1
-                logger.debug(f"Matched {category} group: {group_name} → {kind}")
-                group_key = f"{coalition_name}/{country_name}/{category}/{group_name}"
+                logger.debug(f"Matched {category} group: {group_name} → {kind} ({resolved_category})")
+                group_key = f"{coalition_name}/{country_name}/{resolved_category}/{group_name}"
                 self.matched_groups[group_key] = {
                     "group": group,
-                    "aircraft_category": category,
+                    "aircraft_category": resolved_category,
                     "coalition_name": coalition_name,
                     "country_name": country_name,
                     "group_name": group_name,

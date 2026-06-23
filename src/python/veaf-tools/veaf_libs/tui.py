@@ -203,6 +203,16 @@ COMMANDS: list[CommandSpec] = [
     ),
     # ── Config / validation utilities ───────────────────────────────────────
     CommandSpec(
+        cli_name="export",
+        description=t("tui.cmd.export.description"),
+        prompts=[
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("format", t("tui.arg.export_format"), default="json", choices=["json", "yaml", "markdown"]),
+        ],
+    ),
+    CommandSpec(
         cli_name="validate",
         description=t("tui.cmd.validate.description"),
         prompts=[

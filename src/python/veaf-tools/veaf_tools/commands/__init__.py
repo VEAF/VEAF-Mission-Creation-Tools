@@ -6,6 +6,7 @@ from . import (  # noqa: F401
     config,
     convert_other,
     convert_v5,
+    export,
     extract,
     inject_presets,
     prepare,

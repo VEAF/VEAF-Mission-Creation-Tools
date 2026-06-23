@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import typer
-from mission_builder import PIPELINE_CANDIDATES, ConversionReport, V5Converter
+from mission_builder import PIPELINE_CANDIDATES, ConversionReport, V5Converter, promote_mission_to_v6
 from rich.table import Table
 from veaf_libs.paths import resolve_path
 
@@ -36,6 +36,11 @@ def convert_v5(
         False,
         "--no-convert-pipeline",
         help=t("cmd.convert_v5.opt.no_pipeline"),
+    ),
+    no_promote: bool = typer.Option(
+        False,
+        "--no-promote",
+        help=t("cmd.convert_v5.opt.no_promote"),
     ),
     report_file: str | None = typer.Option(
         None,
@@ -91,6 +96,22 @@ def convert_v5(
         convert_pipeline=not no_convert_pipeline,
         icao_callback=icao_cb if not no_convert_pipeline else None,
     )
+
+    # ── Promote src/mission/ to v6 on disk (default on; --no-promote to skip) ──
+    # Non-blocking: a build/extract failure leaves the converted configs intact and
+    # is surfaced as a warning. The outcome is folded into the report below.
+    if not no_promote:
+        console.print(f"\n[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
+        promotion = promote_mission_to_v6(p_folder, version=VERSION)
+        if promotion.promoted:
+            backup_rel = (
+                promotion.backup_path.relative_to(p_folder)
+                if promotion.backup_path
+                else Path("backup_v5") / "src" / "mission"
+            )
+            report.actions.append(t("convert_v5.promote.done", backup=backup_rel))
+        else:
+            report.warnings.append(promotion.reason)
 
     # ── Console output ────────────────────────────────────────────────────────
     console.print(f"\n[bold cyan]{t('convert_v5.command.folder_label')}[/bold cyan] {p_folder}")

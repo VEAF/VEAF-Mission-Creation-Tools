@@ -105,6 +105,7 @@ Cette commande unique gère tout en une seule passe :
 - **Migration de `missionConfig.lua`** — commente les appels `doFile()` qui chargent les scripts VEAF (le builder les injecte automatiquement), enveloppe les appels nus `veafXxx.initialize()` dans des gardes `if veafXxx then … end`.
 - **Conversion des configs pipeline** — convertit les fichiers de config v5 (préréglages radio, waypoints, météo, groupes d'aéronefs) du format Lua vers le YAML v6.
 - **Génération de `mission.yaml`** — crée `mission.yaml` avec les sections `modules:` et `pipeline:` correctes.
+- **Promotion de `src/mission/` en v6** — réécrit le `.miz` éclaté (`src/mission/`) au format v6 : un build de base migre les triggers v5 hérités **sur disque**, après avoir sauvegardé l'original dans `backup_v5/src/mission/`. Activé par défaut ; tout le contenu de l'éditeur (groupes, routes, unités) est préservé — seule la couche de triggers v5 hérités est purgée. Utilisez `--no-promote` pour l'ignorer.
 - **Rapport de conversion** — sauvegarde `convert-v5-report.md` avec toutes les actions effectuées et les éléments nécessitant une révision manuelle.
 
 Si votre pipeline contient des versions météo `realweather`, fournissez le code ICAO de l'aéroport via l'option `--icao` pour l'intégrer dans la config générée. Si vous l'omettez, l'outil affiche un avertissement et vous devrez éditer manuellement la config générée :
@@ -114,6 +115,8 @@ Si votre pipeline contient des versions météo `realweather`, fournissez le cod
 ```
 
 Les anciens triggers DCS `DO SCRIPT FILE` sont supprimés automatiquement par `veaf-tools build` à l'étape suivante — aucune action manuelle requise.
+
+> **Promotion `src/mission/` en v6 (activée par défaut)** : `convert-v5` termine en réécrivant `src/mission/` au format v6 (build de base + extraction), ce qui rend la bascule v6 définitive et évite de re-migrer les triggers v5 à chaque build. L'original est sauvegardé dans `backup_v5/src/mission/`. Si vous préférez d'abord vérifier les configs générées et builder vous-même, désactivez l'étape avec `--no-promote` ; vous pourrez relancer `convert-v5` plus tard pour promouvoir.
 
 > **Si vous n'avez besoin de migrer que `missionConfig.lua`** sans convertir les fichiers pipeline, utilisez `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directement.
 

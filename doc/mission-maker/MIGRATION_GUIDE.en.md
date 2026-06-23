@@ -106,6 +106,7 @@ This single command handles everything in one pass:
 - **`missionConfig.lua` migration** — comments out `doFile()` calls that load VEAF scripts (the builder injects them automatically), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
 - **Pipeline config conversion** — converts v5 config files (radio presets, waypoints, weather, aircraft groups) from Lua to v6 YAML format.
 - **`mission.yaml` generation** — creates `mission.yaml` with the correct `modules:` and `pipeline:` sections.
+- **`src/mission/` promotion to v6** — rewrites the exploded `.miz` (`src/mission/`) to v6: a base build migrates the legacy v5 triggers **on disk**, after backing up the original to `backup_v5/src/mission/`. On by default; all editor content (groups, routes, units) is preserved — only the legacy v5 trigger layer is purged. Use `--no-promote` to skip it.
 - **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
 If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the tool prints a warning and you edit the generated config manually:
@@ -115,6 +116,8 @@ If your pipeline contains `realweather` weather versions, supply the ICAO airpor
 ```
 
 Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools build` in the next step — no manual action needed.
+
+> **`src/mission/` promotion to v6 (on by default)**: `convert-v5` finishes by rewriting `src/mission/` to v6 (base build + extract), making the v6 switch definitive and avoiding a re-migration of the v5 triggers on every build. The original is backed up to `backup_v5/src/mission/`. If you'd rather review the generated configs and build yourself first, disable the step with `--no-promote`; you can re-run `convert-v5` later to promote.
 
 > **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directly.
 

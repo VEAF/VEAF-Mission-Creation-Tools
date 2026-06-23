@@ -13,6 +13,7 @@
 
 | Lot | Status |
 |-----|--------|
+| Lot FEAT-EXPORT-MISSION — new `veaf-tools export <miz>` command that reads a DCS `.miz` with our **pure-Python** parser (`luadata`, **zero Lua execution**) and exports it in interoperable formats: **JSON** (default, machine pivot), **YAML** (readable), **Markdown** (human-friendly mission summary). Goal: give the BFR `dcs-mission-tools` Claude plugin a safe alternative to its bundled `lua54.exe` (executing an untrusted `.miz` `mission` Lua = RCE risk, the SECREV-001 class of bug). Align the JSON schema with the plugin's "project object" (mission/dictionary/mapResource/l10n/scripts). Coordinate the schema with Dup (BFR) (David) | ⬜ |
 | Lot FIX-AIRCRAFT-INJECT-DICT-GROUP — injecting aircraft groups fails with `'dict' object has no attribute 'append'` for every dynamic-slot template when the target country's `["group"]` was deserialized as a **dict** (a Lua `{}`/keyed table → dict via luadata, not a list). `_ensure_aircraft_category` (aircrafts_injector_worker.py:634-656) guarantees the *existence* of `["group"]` but not its *type*, then `inject_groups` does `groups_list.append(...)` (line 763). Repro: David, `prepare` (standard) + `extract` of test-tripack → all 52 dynamic-slot templates fail (spawnables in another country/coalition with a list container are unaffected). Normalize the container to a list (David) | ✅ |
 | Lot FIX-TUI-MISSING-COMMANDS — 4 CLI commands have no `CommandSpec`, so they are absent from the interactive TUI menu (and `--tui`): `validate`, `migrate-config`, `generate-config`, `user-config`. The TUI must list **all** commands (double-clicking `veaf-tools.exe` should let you run e.g. `validate`). Add their `CommandSpec` + FR/EN labels; `required=True` only on `migrate-config.input_file` (the only mandatory arg → CLI→TUI bridge). Add a guard test asserting every registered Typer command has a `CommandSpec` (David) | ✅ |
 | Lot FIX-BUILD-VALIDATE-NONBLOCKING — follow-up to FEAT-BUILD-VALIDATE-REFS: (1) a COMBATZONE **operation**'s `zone_name` is not a required trigger zone (`VeafCombatOperation:initialize()` never resolves it) → stop flagging it (false positive); (2) the build must **not block** on missing Mission-Editor references — blocking denies the maker the `.miz` to fix them — so it prints a **prominent end-of-build warning summary** and builds the `.miz` anyway (David) | ✅ |
@@ -94,6 +95,25 @@
 | Lot FIX-WAYPOINTS-ETA-LOCKED — injected flight plans leave every waypoint unlocked, so DCS rejects the save ("Route has no waypoints with locked time!") | ✅ |
 | Lot FIX-PRESETS-RADIO-COMPAT — `inject-presets` overwrites an aircraft's radio with a preset whose frequencies are wholly out of range (e.g. UHF on a Yak-52), so DCS rejects the save ("Invalid frequency 243 MHz") | ✅ |
 | Lot TEST-PHASE-6.4.x — fixes from the manual v6.4.x test campaign (dynamic loading, warehouse templates, radio presets, spawn UX, coalition refactor) | ✅ |
+
+---
+
+## Lot FEAT-EXPORT-MISSION — safe `.miz` export (JSON / YAML / Markdown) for interop & the BFR plugin
+
+**Context**: Dup (Bullseye Francophone) built a Claude plugin — `dcs-mission-tools` ([bfr-claude-plugins](https://github.com/Bullseye-Francophone/bfr-claude-plugins)) — that lints/explains DCS missions built on the VEAF template. To read the `.miz` it **bundles and runs `lua54.exe`** (a Lua 5.4 interpreter) over the `mission` file. A `.miz` is an **unsigned ZIP**, and its `mission` file is *data* (`mission = {…}`) — but a forged `.miz` can embed arbitrary Lua (`os.execute`, `io`, `require`) that `lua54.exe` would **execute** → **RCE** when analyzing an untrusted mission. This is exactly the SECREV-001 class of bug we removed from veaf-tools (dropped `lupa`, switched to the pure-Python `luadata` state-machine parser — see `luadata/serializer/unserialize.py:433`, "replaces `lua.execute` which would run arbitrary code").
+
+**Goal**: A new `veaf-tools export` command that reads a `.miz` with our **pure-Python** parser (`miz_tools` already loads `mission` / `dictionary` / `mapResource` / `theatre` via `luadata.unserialize`, **never executing Lua**) and writes it in interoperable formats — giving the plugin (and anyone) a safe drop-in alternative to `lua54.exe`. Default **JSON** (machine pivot, Claude-native, faithful array/dict mapping); also **YAML** (readable); also **Markdown** (human-friendly summary). Align the JSON schema with the plugin's "project object" (`mission`, `dictionary`, `mapResource`, `l10nFiles`, `scriptFiles`/`scriptText`, `communityScripts`) so it's a drop-in. **Coordinate the schema with Dup before coding** (send him the risk write-up + proposed schema).
+
+**Security invariant (the whole point)**: the export path must **never** execute Lua — only `luadata` parsing. A test should assert no `lua`/`subprocess`/`exec` is involved.
+
+**Branch**: `feature/export-mission` → PR → `develop-v6`.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-EXPORT-MISSION-001 | `veaf-tools export <miz> [output] --format json` (default): parse the `.miz` with `luadata` (no Lua exec) and emit one JSON object `{mission, dictionary, mapResource, theatre, …}` aligned with the plugin's project schema. `--compact`/`--indent`. Add the command to the TUI (`CommandSpec`, per FIX-TUI-MISSING-COMMANDS guard). pytest on a small real `.miz`. | `veaf_tools/commands/export.py`, `mission_tools/`, `veaf_libs/tui.py`, `test/python/` | feat | ⬜ |
+| FEAT-EXPORT-MISSION-002 | `--format yaml`: same structured content emitted as YAML (PyYAML, already a dep). Round-trip/shape test. | `veaf_tools/commands/export.py`, `test/python/` | feat | ⬜ |
+| FEAT-EXPORT-MISSION-003 | `--format markdown`: a human-friendly mission summary (identity/weather/time, order of battle per coalition, trigger zones, user vs VEAF triggers, loaded scripts, kneeboards) — overlaps the plugin's `map-mission` view. Pure formatting over the parsed dict. | `veaf_tools/commands/export.py`, `test/python/` | feat | ⬜ |
+| FEAT-EXPORT-MISSION-004 | Security guard test: the export path performs **no** Lua execution (no `lua54`/`subprocess`/`exec`/`eval`), only `luadata` parsing. Document the safety guarantee in `doc/`. | `test/python/`, `doc/` | test | ⬜ |
 
 ---
 

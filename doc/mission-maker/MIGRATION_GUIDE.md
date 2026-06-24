@@ -116,7 +116,7 @@ Si votre pipeline contient des versions météo `realweather`, fournissez le cod
 
 Les anciens triggers DCS `DO SCRIPT FILE` sont supprimés automatiquement par `veaf-tools build` à l'étape suivante — aucune action manuelle requise.
 
-> **Promotion `src/mission/` en v6 (activée par défaut)** : `convert-v5` termine en réécrivant `src/mission/` au format v6 (build de base + extraction), ce qui rend la bascule v6 définitive et évite de re-migrer les triggers v5 à chaque build. L'original est sauvegardé dans `backup_v5/src/mission/`. Si vous préférez d'abord vérifier les configs générées et builder vous-même, désactivez l'étape avec `--no-promote` ; vous pourrez relancer `convert-v5` plus tard pour promouvoir.
+> **Promotion de `src/mission/` en v6 (activée par défaut)** : `convert-v5` termine en réécrivant `src/mission/` au format v6 (build de base + extraction), ce qui rend la bascule v6 définitive et évite de re-migrer les triggers v5 à chaque build. L'original est sauvegardé dans `backup_v5/src/mission/`. Si vous préférez d'abord vérifier les configs générées et builder vous-même, désactivez l'étape avec `--no-promote` ; vous pourrez relancer `convert-v5` plus tard pour promouvoir.
 
 > **Si vous n'avez besoin de migrer que `missionConfig.lua`** sans convertir les fichiers pipeline, utilisez `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directement.
 

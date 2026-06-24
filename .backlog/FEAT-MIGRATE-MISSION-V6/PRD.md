@@ -1,7 +1,7 @@
 # Lot FEAT-MIGRATE-MISSION-V6 — promote `src/mission/` (the exploded `.miz`) from v5 to v6 on disk
 
-Status: 🔄 in-progress
-Branch: feature/migrate-mission-v6 → PR → develop-v6
+Status: ✅ done
+Branch: feature/migrate-mission-v6 → PR #517 → merged into develop-v6
 
 ## Problem Statement
 

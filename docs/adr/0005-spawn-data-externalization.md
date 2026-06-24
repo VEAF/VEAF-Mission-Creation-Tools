@@ -65,6 +65,6 @@ reusing one of its aliases. Implemented in `spawn_data_injector.merge_spawn_data
 
 ## Implementation tickets
 
-See the SPAWN-EXTERNALIZE lot in `backlog.md` (002 extract framework YAML +
-parity; 003 mission-build render+inject + runtime; 004 per-mission overrides;
-005 spawn de-dup).
+See the SPAWN-EXTERNALIZE lot in `.backlog/archive/TODO0609-SPAWN-EXTERNALIZE.md`
+(002 extract framework YAML + parity; 003 mission-build render+inject + runtime;
+004 per-mission overrides; 005 spawn de-dup).

@@ -65,8 +65,8 @@ These are enforcement obligations on **every** lot, not a separate clean-up task
 
 ## 6. Backlog and Roadmap Maintenance
 
-- **Real-Time Updates**: `BACKLOG.md` and `ROADMAP.md` files must exactly reflect the progress status of tasks.
-- **Archiving**: Move closed tickets that have been completed for more than 3 days from `BACKLOG.md` to `BACKLOG-archive.md`.
+- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets); `.backlog/README.md` is the lot index, maintained by hand.
+- **Archiving**: move lots closed for more than 3 days from `.backlog/<LOT-ID>/` to a compact `.backlog/archive/<LOT-ID>.md`.
 
 ---
 
@@ -100,7 +100,7 @@ For every action requested by the user, execute these steps in order:
 0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop-v6` (or rebase your branch onto the latest `origin/develop-v6`). Never reason about "what's left to do" or start work from a stale local checkout.
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
-2. **Create a lot** in `BACKLOG.md`: add a new lot with a unique ID, description, tickets, and status `⬜`. Add it to the Summary table.
+2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add a row to `.backlog/README.md`.
 3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
@@ -138,3 +138,21 @@ After pushing a branch and creating a PR:
 
 - **Application Build**: `poetry run veaf-build build --version x.y.z`
 - **GitHub Publication**: `poetry run veaf-build publish --version x.y.z`
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Lots/PRDs/tickets live as markdown under `.backlog/<LOT-ID>/` (active) and
+`.backlog/archive/<LOT-ID>.md` (completed). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Single `Status:` vocabulary (⬜ ready · 🔄 in-progress · 🧑 waiting-human · ✅ done · 🚫 wontfix),
+mapped to Matt's triage roles. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.

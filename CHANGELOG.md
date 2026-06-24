@@ -77,7 +77,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Documentation
 - **Foothold adoption "moulinette" guide** (FOOTHOLD-V6-007). New `mission-maker/FOOTHOLD.{md,en.md}` documents the end-to-end reproducible procedure for adopting a Lekaa Foothold mission onto the v6 toolchain: init (`convert-other --profile foothold`), tuning `mission.yaml` (turn the VEAF community scripts off since Foothold ships its own, the partial `config_override`, and Modern/Cold-War **`build_variants:`** flipping Foothold's `Era` global config-only), `validate`, building **both** variants in one `build`, the DCS test, and re-importing a newer upstream with `--update`. The procedure was exercised end-to-end on the real Caucasus `.miz` (one `build` → `…_MODERN.miz` + `…_COLD_WAR.miz`, each carrying the right `Era`). `CONVERT_OTHER` and the new guide are now in the MkDocs nav (the former was missing). FR/EN
-- **Documented the `TUM` "no territory zones / no airfields" start-up error** (INVESTIGATE-REDFOR-ZONES spike). The runtime error `Coalition red has no territory zones and/or controls no airfields…` comes from the third-party **The Universal Mission (TUM)** community script, not from VEAF: it is an expected TUM mission-design prerequisite (`BLUFOR…`/`REDFOR…` trigger zones, each owning an airbase). `MISSION_YAML_REFERENCE` (FR/EN) now documents this next to the `TUM` module id. Full analysis journaled in `backlog.md`. No code change
+- **Documented the `TUM` "no territory zones / no airfields" start-up error** (INVESTIGATE-REDFOR-ZONES spike). The runtime error `Coalition red has no territory zones and/or controls no airfields…` comes from the third-party **The Universal Mission (TUM)** community script, not from VEAF: it is an expected TUM mission-design prerequisite (`BLUFOR…`/`REDFOR…` trigger zones, each owning an airbase). `MISSION_YAML_REFERENCE` (FR/EN) now documents this next to the `TUM` module id. Full analysis journaled in the project backlog. No code change
 - **Clarified `custom_scripts` loading semantics** (CUSTOM-SCRIPTS-TRIGGERS). `MISSION_YAML_REFERENCE` (FR/EN) now states that `generate_load_trigger` is a single flag governing **both** the static (embedded) and dynamic (from-disk) loading modes, documents the load order (`veaf-config.lua` → `mission-script.lua` → `custom_scripts`), and shows — with a worked FR/EN example — how to load a script in only one variant (e.g. a dynamic-only debug script) via a build **profile**, including the deep-merge pitfall (profile lists *replace*, so the profile must repeat the base scripts)
 
 ## [6.5.0] — 2026-06-13
@@ -358,7 +358,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veafCommands.lua` — central priority-ordered command dispatcher for F10 markers and interpreter path; exposes `registerCommandHandler(fn, priority)` and priority constants (`PRIORITY_SHORTCUTS`…`PRIORITY_REMOTE`)
 - `veafSpawnParser.lua` — spawn command text parser extracted from `veafSpawnCore.lua` (`convertLaserToFreq`, `markTextAnalysis`)
 - `veafRemote.registerRemoteModule(name, fn)` — registry for hook-server remote commands (replaces hardcoded if/elseif in `executeCommandFromRemote`)
-- `backlog.md` — operational backlog with ticket estimates
+- `.backlog/` — operational backlog (per-lot directories)
 - `doc/ROADMAP.md` — project roadmap
 - `CHANGELOG.md` — this file
 - `veaf.lp()` — lazy log argument proxy: arguments are only stringified when the active log level warrants it

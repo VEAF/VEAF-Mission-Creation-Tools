@@ -1,7 +1,7 @@
 # Roadmap — VEAF Mission Creation Tools v6
 
-Execution order for the open lots in [backlog.md](backlog.md). Source of truth for
-**sequencing**; `backlog.md` stays the source of truth for **scope and status**.
+Execution order for the open lots in [.backlog/README.md](.backlog/README.md). Source of truth for
+**sequencing**; `.backlog/` stays the source of truth for **scope and status**.
 
 > Generated 2026-06-10 from a dependency + priority analysis. Update the wave a lot
 > sits in whenever a dependency or priority changes.
@@ -108,7 +108,7 @@ release approval (#18). Everything else, Claude runs without blocking on you.
 
 > These are **prospective** initiatives — captured so they are not lost, but **not yet
 > scoped backlog**. None has a branch, tickets, or a committed plan. Each becomes a real
-> `backlog.md` lot (with a Summary row and detailed tickets) only the day we decide to
+> `.backlog/` lot (a directory with a PRD and detailed tickets) only the day we decide to
 > start it. Order below is thematic, not a commitment.
 
 | Theme | Initiative | One-line intent | Notes / dependencies |

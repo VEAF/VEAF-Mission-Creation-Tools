@@ -25,5 +25,5 @@
 - **Commit Messages**: Scrupulously respect the Conventional Commits specification in English (`type(scope): description`).
 
 ## 6. Backlog and Roadmap Maintenance
-- **Real-Time Updates**: `BACKLOG.md` and `ROADMAP.md` files must exactly reflect the progress status of tasks.
-- **Archiving**: Move closed tickets that have been completed for more than 3 days from `BACKLOG.md` to `BACKLOG-archive.md`.
+- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets); `.backlog/README.md` is the lot index, maintained by hand.
+- **Archiving**: move lots closed for more than 3 days from `.backlog/<LOT-ID>/` to a compact `.backlog/archive/<LOT-ID>.md`.

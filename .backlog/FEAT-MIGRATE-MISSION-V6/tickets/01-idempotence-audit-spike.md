@@ -1,20 +1,22 @@
-# FEAT-MIGRATE-MISSION-V6-001 — idempotence audit (spike)
+# FEAT-MIGRATE-MISSION-V6-001 — idempotence audit + regression tests
 
-Status: ⬜ ready
+Status: ✅ done
 Type: spike
-Files: `*_injector/`, `test/python/`
+Files: `test/python/`
 
 ## What to build
 
-Confirm the waypoints/presets/warehouses/weather injectors never duplicate when
-`src/mission/` already holds their output (the rebuild-after-promote scenario).
-Document the per-injector idempotence contract; add a regression test that builds →
-extracts → rebuilds and asserts stability (group/trigger counts unchanged).
+Audit done — all injectors are idempotent on rebuild-after-promote (see lot summary):
+aircrafts (skip/replace by name), spawn-data (Lua stripped on extract + trigger
+remove/reinject), waypoints (replace by name), presets (overwrite), warehouses
+(dict keyed by type), weather (scalar set + `update`). Add per-injector unit tests
+asserting a second apply over an already-injected mission produces no duplicate (lock
+the contract).
 
 ## Acceptance criteria
 
-- [ ] Per-injector idempotence contract documented (waypoints, presets, warehouses, weather)
-- [ ] Regression test: build → extract → rebuild asserts stable group/trigger counts
+- [x] Per-injector idempotence contract documented (aircrafts, spawn-data, waypoints, presets, warehouses, weather)
+- [x] Per-injector tests assert no duplicate on a second apply over an already-injected mission
 
 ## Blocked by
 

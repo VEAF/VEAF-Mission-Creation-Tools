@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import typer
-from mission_builder import PIPELINE_CANDIDATES, ConversionReport, V5Converter
+from mission_builder import PIPELINE_CANDIDATES, ConversionReport, V5Converter, promote_mission_to_v6
 from rich.table import Table
 from veaf_libs.paths import resolve_path
 
@@ -36,6 +36,11 @@ def convert_v5(
         False,
         "--no-convert-pipeline",
         help=t("cmd.convert_v5.opt.no_pipeline"),
+    ),
+    no_promote: bool = typer.Option(
+        False,
+        "--no-promote",
+        help=t("cmd.convert_v5.opt.no_promote"),
     ),
     report_file: str | None = typer.Option(
         None,
@@ -198,6 +203,28 @@ def convert_v5(
     if report.manual_review:
         console.print(f"  {step_num}. {t('convert_v5.console.next_steps.cleanup')}")
     console.print("")
+
+    # ── Promote src/mission/ to v6 on disk (default on; --no-promote to skip) ──
+    # Runs after the conversion summary so the output reads conversion → promotion.
+    # The internal base build + extract is silent; non-blocking — a failure leaves
+    # the converted configs intact and is surfaced here and in the saved report.
+    if not no_promote:
+        report.promotion_attempted = True
+        console.print(f"[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
+        promotion = promote_mission_to_v6(p_folder, version=VERSION, silent=True)
+        if promotion.promoted:
+            backup_rel = (
+                promotion.backup_path.relative_to(p_folder)
+                if promotion.backup_path
+                else Path("backup_v5") / "src" / "mission"
+            )
+            report.promotion_done = True
+            report.promotion_backup = str(backup_rel).replace("\\", "/")
+            console.print(f"  [green]✓[/green] {t('convert_v5.promote.done', backup=report.promotion_backup)}")
+        else:
+            report.promotion_reason = promotion.reason
+            console.print(f"  [yellow]⚠[/yellow] {promotion.reason}")
+        console.print("")
 
     # ── Save report file ──────────────────────────────────────────────────────
     if report_file is not None:

@@ -184,6 +184,16 @@ class ConversionReport:
     auto_resolved_deps: list[str] = field(default_factory=list)
     """Module IDs auto-enabled to satisfy dependencies (e.g. CASMISSION → GROUNDAI)."""
 
+    # ── src/mission promotion to v6 (FEAT-MIGRATE-MISSION-V6) ───────────────
+    promotion_attempted: bool = False
+    """True when the v6 promotion was run (i.e. ``--no-promote`` was not passed)."""
+    promotion_done: bool = False
+    """True when ``src/mission/`` was successfully promoted to v6 on disk."""
+    promotion_backup: str = ""
+    """Relative path of the ``src/mission/`` backup under ``backup_v5/``."""
+    promotion_reason: str = ""
+    """Skip/failure reason when the promotion did not complete."""
+
     # ── Summary lists ──────────────────────────────────────────────────────
     actions: list[str] = field(default_factory=list)
     """High-level descriptions of actions taken (shown in the summary)."""
@@ -289,6 +299,15 @@ class ConversionReport:
                     lines.append(f"| `{pf.relative}` | {t('report.scan.pipeline.found')} |")
             else:
                 lines.append(f"| `{candidates[0]}` | {t('report.scan.pipeline.not_found', step=step)} |")
+
+        # src/mission promotion to v6 (FEAT-MIGRATE-MISSION-V6)
+        if not self.promotion_attempted:
+            promo_scan = t("report.scan.promotion.skipped")
+        elif self.promotion_done:
+            promo_scan = t("report.scan.promotion.done")
+        else:
+            promo_scan = t("report.scan.promotion.failed")
+        lines.append(f"| `src/mission/` | {promo_scan} |")
         lines += ["", "---", ""]
 
         # ── Actions taken ─────────────────────────────────────────────────
@@ -405,11 +424,17 @@ class ConversionReport:
                 "",
             ]
 
-        # DCS triggers
+        # src/mission promotion to v6 (FEAT-MIGRATE-MISSION-V6)
+        if self.promotion_done:
+            promo_body = t("report.promotion.done", backup=self.promotion_backup or "backup_v5/src/mission")
+        elif not self.promotion_attempted:
+            promo_body = t("report.promotion.skipped")
+        else:
+            promo_body = t("report.promotion.failed", reason=self.promotion_reason or "?")
         lines += [
-            f"### 3. {t('report.section.triggers')}",
+            f"### 3. {t('report.section.promotion')}",
             "",
-            t("report.triggers.auto"),
+            promo_body,
             "",
             "---",
             "",

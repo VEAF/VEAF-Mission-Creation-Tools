@@ -1046,6 +1046,10 @@ class MissionBuilderWorker(BaseWorker):
         Clears all the VEAF triggers from the current mission
         """
 
+        # Legacy v5 trigger keys neutralised by migrate_from_v5, tracked so we can
+        # nudge the maker to promote src/mission/ to v6 on disk (FEAT-MIGRATE-MISSION-V6).
+        legacy_v5_keys: list[str] = []
+
         def _find_veaf_triggers() -> list[str]:
             veaf_dict_keys_to_remove = []
             # Find the VEAF triggers in the dictionary
@@ -1069,6 +1073,7 @@ class MissionBuilderWorker(BaseWorker):
                         # this is a legacy VEAF trigger, remove it
                         logger.debug(f"Removing legacy VEAF v5 dictionary key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)
+                        legacy_v5_keys.append(map_key)
 
             # Find the VEAF triggers in the mapResource
             if self.dcs_mission and self.dcs_mission.map_resource_content:
@@ -1141,6 +1146,12 @@ class MissionBuilderWorker(BaseWorker):
             for trigger_index in trigger_indexes_to_remove:
                 if self.dcs_mission.mission_content["trigrules"].get(trigger_index):
                     del self.dcs_mission.mission_content["trigrules"][trigger_index]
+
+        # DEPRECATION (FEAT-MIGRATE-MISSION-V6): migrate_from_v5 had to neutralise legacy
+        # v5 triggers in memory. Once src/mission/ is promoted to v6 on disk (convert-v5),
+        # this step becomes unnecessary — nudge the maker to promote and drop the debt.
+        if legacy_v5_keys:
+            logger.warning(t("builder.migrate_from_v5_deprecated", count=len(legacy_v5_keys)))
 
     def insert_all_veaf_triggers(self) -> None:
         """

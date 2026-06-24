@@ -46,5 +46,5 @@ DCS does **not** expose a reliable per-pilot UI language, so the active language
 
 ## Implementation tickets
 
-See the LUA-I18N lot in `backlog.md` (002 mechanism + wiring + tests;
+See the LUA-I18N lot in `.backlog/archive/LUA-I18N.md` (002 mechanism + wiring + tests;
 003 migrate the pilot-feedback messages; 004 incremental migration of the rest).

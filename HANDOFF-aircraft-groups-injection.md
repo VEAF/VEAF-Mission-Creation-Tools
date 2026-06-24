@@ -156,7 +156,7 @@ un schéma de groupe unifié A↔B/C.
 
 ## 8. Procédure projet (rappel)
 
-Respecter `CLAUDE.md` : branche `feature/<id>` depuis `develop-v6`, un lot dans
-`BACKLOG.md`, TDD, `poetry run pytest`, ruff + mypy, `CHANGELOG.md` (`[Unreleased]`),
+Respecter `CLAUDE.md` : branche `feature/<id>` depuis `develop-v6`, un lot sous
+`.backlog/<LOT-ID>/`, TDD, `poetry run pytest`, ruff + mypy, `CHANGELOG.md` (`[Unreleased]`),
 bump PATCH dans `pyproject.toml`, `poetry install`, PR vers `develop-v6` (review
 Sourcery, pas de review Copilot sauf si Sourcery échoue).

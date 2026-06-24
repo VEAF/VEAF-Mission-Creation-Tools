@@ -1,0 +1,15 @@
+# Lot DOC-CHATBOT — free RAG documentation chatbot embedded in the MkDocs site
+
+Status: ✅ done
+
+**Goal**: Add a free, bilingual (FR/EN) chatbot that guides users from within the VEAF v6 documentation site (MkDocs Material → GitHub Pages), modeled on the Solde chatbot but re-shaped for a static/public site. A Cloudflare Worker (free tier) holds the Gemini API key, enforces an Origin allow-list + per-IP rate-limit (KV), and answers via **RAG**: it embeds the question (`gemini-embedding-001`, 768d), retrieves the most relevant doc passages from a Cloudflare Vectorize index (filtered by language), and streams a grounded answer from `gemini-2.5-flash-lite`. RAG was adopted after a live test proved full-document injection (~100k tokens/request) hits the Gemini free-tier tokens-per-minute ceiling at ~2 questions/minute; context caching was ruled out (cached tokens still count against TPM and it requires billing). Implementation lives under `poc/doc-chatbot/` (Worker + index build script) and `doc/assets/chatbot/` (widget); deployed and validated live at `https://veaf-docs-chatbot.veaf.workers.dev`.
+
+**Branch**: `claude/cranky-heyrovsky-e6f193` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| DOC-CHATBOT-001 | Cloudflare Worker RAG proxy: Origin allow-list (anti-CSRF), per-IP KV rate-limit, query embedding → in-Worker cosine ranking over a KV-stored vector index (lang-scoped) → Gemini SSE streaming. No paid vector DB. | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/wrangler.toml` | feat | ✅ |
+| DOC-CHATBOT-002 | Index build script: walk `doc/`, chunk markdown (greedy merge, oversized-paragraph safe), embed in throttled batches, emit per-language binary Float32 blobs + text bulk files for KV. Unit tests for the chunker + Worker helpers. | `poc/doc-chatbot/worker/scripts/build-index.mjs`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |
+| DOC-CHATBOT-003 | MkDocs widget: vanilla-JS resizable sidebar (Solde-style), language auto-detection, SSE consume, sanitized DOM rendering (DOMPurify, no innerHTML), lazy CDN load; environment-aware endpoint config; wired via `mkdocs.yml`. | `doc/assets/chatbot/*.js`, `doc/assets/chatbot/*.css`, `mkdocs.yml` | feat | ✅ |
+| DOC-CHATBOT-004 | CI workflow to rebuild the index and upload it to KV whenever docs change (keeps answers fresh). | `.github/workflows/docs-chatbot-index.yml` | feat | ✅ |
+| DOC-CHATBOT-005 | Productionization prerequisites. **Done**: (1) repo secrets `GEMINI_API_KEY` / `CLOUDFLARE_API_TOKEN` (KV edit) / `CLOUDFLARE_ACCOUNT_ID` set by David; (2) the widget already ships to the versioned (mike) docs — it is wired in `mkdocs.yml` (`extra_javascript`/`extra_css`) and `docs.yml` deploys via `mike deploy`, which builds with that config, so every version includes it (no extra work); (3) a Gemini **429** now maps to the localized "too many requests" message instead of the generic "unavailable", on both the generation and embedding paths (`upstreamErrorMessage`). | `poc/doc-chatbot/worker/src/index.js`, `poc/doc-chatbot/worker/test/unit.test.mjs` | feat | ✅ |

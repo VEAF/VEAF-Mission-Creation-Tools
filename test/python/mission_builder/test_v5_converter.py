@@ -739,3 +739,37 @@ class TestSummaryHeader(unittest.TestCase):
         md = report.to_markdown()
         self.assertIn("3 item(s) need manual action", md)
         self.assertIn("lines: 12, 30", md)
+
+
+class TestConversionReportPromotionSection(unittest.TestCase):
+    """The report renders the src/mission v6 promotion (FEAT-MIGRATE-MISSION-V6)."""
+
+    def setUp(self) -> None:
+        self._prev_lang = current_language()
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language(self._prev_lang)
+
+    def _report(self, **kwargs: object) -> ConversionReport:
+        return ConversionReport(mission_folder=Path("."), timestamp="2024-01-01 12:00", version="1.0.0", **kwargs)  # type: ignore[arg-type]
+
+    def test_promoted_renders_section_and_scan_row(self) -> None:
+        md = self._report(
+            promotion_attempted=True, promotion_done=True, promotion_backup="backup_v5/src/mission"
+        ).to_markdown()
+        self.assertIn(t("report.section.promotion"), md)
+        self.assertIn(t("report.scan.promotion.done"), md)
+        self.assertIn("backup_v5/src/mission", md)
+        # the obsolete "DCS triggers — automatic" section is gone
+        self.assertNotIn(t("report.triggers.auto"), md)
+
+    def test_skipped_when_no_promote(self) -> None:
+        md = self._report(promotion_attempted=False).to_markdown()
+        self.assertIn(t("report.scan.promotion.skipped"), md)
+        self.assertIn(t("report.promotion.skipped"), md)
+
+    def test_failed_shows_reason(self) -> None:
+        md = self._report(promotion_attempted=True, promotion_done=False, promotion_reason="boom").to_markdown()
+        self.assertIn(t("report.scan.promotion.failed"), md)
+        self.assertIn("boom", md)

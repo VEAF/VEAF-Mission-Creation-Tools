@@ -209,6 +209,7 @@ def convert_v5(
     # The internal base build + extract is silent; non-blocking — a failure leaves
     # the converted configs intact and is surfaced here and in the saved report.
     if not no_promote:
+        report.promotion_attempted = True
         console.print(f"[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
         promotion = promote_mission_to_v6(p_folder, version=VERSION, silent=True)
         if promotion.promoted:
@@ -217,12 +218,12 @@ def convert_v5(
                 if promotion.backup_path
                 else Path("backup_v5") / "src" / "mission"
             )
-            done_msg = t("convert_v5.promote.done", backup=backup_rel)
-            console.print(f"  [green]✓[/green] {done_msg}")
-            report.actions.append(done_msg)
+            report.promotion_done = True
+            report.promotion_backup = str(backup_rel).replace("\\", "/")
+            console.print(f"  [green]✓[/green] {t('convert_v5.promote.done', backup=report.promotion_backup)}")
         else:
+            report.promotion_reason = promotion.reason
             console.print(f"  [yellow]⚠[/yellow] {promotion.reason}")
-            report.warnings.append(promotion.reason)
         console.print("")
 
     # ── Save report file ──────────────────────────────────────────────────────

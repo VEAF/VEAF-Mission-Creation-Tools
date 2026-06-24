@@ -74,47 +74,60 @@ def promote_mission_to_v6(
     if not src_mission.is_dir():
         return PromotionResult(promoted=False, reason=t("promote.no_src_mission", path=src_mission))
 
-    with tempfile.TemporaryDirectory() as tmp:
-        temp_miz = Path(tmp) / "promote-build.miz"
+    # The internal base build + extract are an implementation detail of the
+    # conversion. When silent, detach the console from the logger for their
+    # duration so their progress (file-copy notices, the missing-reference
+    # summary, the migrate_from_v5 deprecation nudge, …) does not clutter the
+    # convert-v5 output — file logging is kept, and the outcome is still returned
+    # via PromotionResult for the caller to surface.
+    saved_console = logger.console
+    if silent:
+        logger.console = None
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_miz = Path(tmp) / "promote-build.miz"
 
-        # 1. Base build to a throwaway .miz. Non-blocking: on failure src/mission
-        #    is left exactly as it was.
-        try:
-            MissionBuilderWorker(
-                mission_folder=mission_folder,
-                output_mission=temp_miz,
-                dynamic_mode=None,
-                scripts_path_override=scripts_path_override,
-                migrate_from_v5=True,
-            ).work(silent=silent)
-        except Exception as exc:  # noqa: BLE001 - promotion must never abort the caller
-            logger.warning(t("promote.build_failed", error=exc))
-            return PromotionResult(promoted=False, reason=t("promote.build_failed", error=exc))
+            # 1. Base build to a throwaway .miz. Non-blocking: on failure src/mission
+            #    is left exactly as it was.
+            try:
+                MissionBuilderWorker(
+                    mission_folder=mission_folder,
+                    output_mission=temp_miz,
+                    dynamic_mode=None,
+                    scripts_path_override=scripts_path_override,
+                    migrate_from_v5=True,
+                ).work(silent=silent)
+            except Exception as exc:  # noqa: BLE001 - promotion must never abort the caller
+                logger.warning(t("promote.build_failed", error=exc))
+                return PromotionResult(promoted=False, reason=t("promote.build_failed", error=exc))
 
-        # 2. Back up the current src/mission before overwriting it.
-        backup_dest = mission_folder / "backup_v5" / "src" / "mission"
-        if backup_dest.exists():
-            shutil.rmtree(backup_dest)
-        backup_dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_mission, backup_dest)
+            # 2. Back up the current src/mission before overwriting it.
+            backup_dest = mission_folder / "backup_v5" / "src" / "mission"
+            if backup_dest.exists():
+                shutil.rmtree(backup_dest)
+            backup_dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src_mission, backup_dest)
 
-        # 3. Replace src/mission with a clean extract of the freshly built .miz.
-        #    Remove the old tree first so the extract is a rewrite, not a merge.
-        shutil.rmtree(src_mission)
-        try:
-            MissionExtractorWorker(
-                mission_folder=mission_folder,
-                input_mission_path=temp_miz,
-                refresh=False,
-            ).work(silent=silent)
-        except Exception as exc:  # noqa: BLE001 - restore the backup, never leave src/mission missing
-            if src_mission.exists():
-                shutil.rmtree(src_mission)
-            shutil.copytree(backup_dest, src_mission)
-            logger.warning(t("promote.extract_failed", error=exc))
-            return PromotionResult(
-                promoted=False, backup_path=backup_dest, reason=t("promote.extract_failed", error=exc)
-            )
+            # 3. Replace src/mission with a clean extract of the freshly built .miz.
+            #    Remove the old tree first so the extract is a rewrite, not a merge.
+            shutil.rmtree(src_mission)
+            try:
+                MissionExtractorWorker(
+                    mission_folder=mission_folder,
+                    input_mission_path=temp_miz,
+                    refresh=False,
+                ).work(silent=silent)
+            except Exception as exc:  # noqa: BLE001 - restore the backup, never leave src/mission missing
+                if src_mission.exists():
+                    shutil.rmtree(src_mission)
+                shutil.copytree(backup_dest, src_mission)
+                logger.warning(t("promote.extract_failed", error=exc))
+                return PromotionResult(
+                    promoted=False, backup_path=backup_dest, reason=t("promote.extract_failed", error=exc)
+                )
 
-    logger.info(t("promote.done", backup=backup_dest))
+            logger.info(t("promote.done", backup=backup_dest))
+    finally:
+        logger.console = saved_console
+
     return PromotionResult(promoted=True, backup_path=backup_dest)

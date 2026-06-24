@@ -120,5 +120,38 @@ class TestPromoteMissionToV6(unittest.TestCase):
         self.assertIsNotNone(result.backup_path)
 
 
+class TestPromoteMissionSilent(unittest.TestCase):
+    """silent=True mutes the sub-workers' console and always restores it."""
+
+    def setUp(self) -> None:
+        self.folder = _make_mission_folder()
+        self.addCleanup(shutil.rmtree, self.folder, ignore_errors=True)
+
+    @patch("mission_extractor.MissionExtractorWorker", side_effect=_extractor_factory)
+    @patch("mission_builder.mission_promoter.MissionBuilderWorker", side_effect=_builder_factory)
+    def test_silent_restores_logger_console_on_success(
+        self, _mock_builder_cls: MagicMock, _mock_extractor_cls: MagicMock
+    ) -> None:
+        from veaf_libs.logger import logger
+
+        before = logger.console
+        result = promote_mission_to_v6(self.folder, silent=True)
+        self.assertTrue(result.promoted)
+        self.assertIs(logger.console, before)  # no console leak
+
+    @patch("mission_builder.mission_promoter.MissionBuilderWorker")
+    def test_silent_restores_logger_console_on_failure(self, mock_builder_cls: MagicMock) -> None:
+        from veaf_libs.logger import logger
+
+        failing = MagicMock()
+        failing.work.side_effect = RuntimeError("build boom")
+        mock_builder_cls.return_value = failing
+
+        before = logger.console
+        result = promote_mission_to_v6(self.folder, silent=True)
+        self.assertFalse(result.promoted)
+        self.assertIs(logger.console, before)  # restored even when the build fails
+
+
 if __name__ == "__main__":
     unittest.main()

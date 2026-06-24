@@ -97,22 +97,6 @@ def convert_v5(
         icao_callback=icao_cb if not no_convert_pipeline else None,
     )
 
-    # ── Promote src/mission/ to v6 on disk (default on; --no-promote to skip) ──
-    # Non-blocking: a build/extract failure leaves the converted configs intact and
-    # is surfaced as a warning. The outcome is folded into the report below.
-    if not no_promote:
-        console.print(f"\n[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
-        promotion = promote_mission_to_v6(p_folder, version=VERSION)
-        if promotion.promoted:
-            backup_rel = (
-                promotion.backup_path.relative_to(p_folder)
-                if promotion.backup_path
-                else Path("backup_v5") / "src" / "mission"
-            )
-            report.actions.append(t("convert_v5.promote.done", backup=backup_rel))
-        else:
-            report.warnings.append(promotion.reason)
-
     # ── Console output ────────────────────────────────────────────────────────
     console.print(f"\n[bold cyan]{t('convert_v5.command.folder_label')}[/bold cyan] {p_folder}")
     console.print("")
@@ -219,6 +203,27 @@ def convert_v5(
     if report.manual_review:
         console.print(f"  {step_num}. {t('convert_v5.console.next_steps.cleanup')}")
     console.print("")
+
+    # ── Promote src/mission/ to v6 on disk (default on; --no-promote to skip) ──
+    # Runs after the conversion summary so the output reads conversion → promotion.
+    # The internal base build + extract is silent; non-blocking — a failure leaves
+    # the converted configs intact and is surfaced here and in the saved report.
+    if not no_promote:
+        console.print(f"[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
+        promotion = promote_mission_to_v6(p_folder, version=VERSION, silent=True)
+        if promotion.promoted:
+            backup_rel = (
+                promotion.backup_path.relative_to(p_folder)
+                if promotion.backup_path
+                else Path("backup_v5") / "src" / "mission"
+            )
+            done_msg = t("convert_v5.promote.done", backup=backup_rel)
+            console.print(f"  [green]✓[/green] {done_msg}")
+            report.actions.append(done_msg)
+        else:
+            console.print(f"  [yellow]⚠[/yellow] {promotion.reason}")
+            report.warnings.append(promotion.reason)
+        console.print("")
 
     # ── Save report file ──────────────────────────────────────────────────────
     if report_file is not None:

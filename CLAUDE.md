@@ -138,3 +138,21 @@ After pushing a branch and creating a PR:
 
 - **Application Build**: `poetry run veaf-build build --version x.y.z`
 - **GitHub Publication**: `poetry run veaf-build publish --version x.y.z`
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Lots/PRDs/tickets live as markdown under `.backlog/<LOT-ID>/` (active) and
+`.backlog/archive/<LOT-ID>.md` (completed). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Single `Status:` vocabulary (⬜ ready · 🔄 in-progress · 🧑 waiting-human · ✅ done · 🚫 wontfix),
+mapped to Matt's triage roles. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.

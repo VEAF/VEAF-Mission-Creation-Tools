@@ -23,7 +23,16 @@ from .mission_constants import (
     get_veaf_script_files,
     is_community_script_enabled_by_default,
 )
-from .miz_tools import DcsMission, Group, create_miz, extract_miz, read_miz, write_miz
+from .miz_tools import (
+    DcsMission,
+    Group,
+    create_miz,
+    extract_miz,
+    extract_resources,
+    read_mission_folder,
+    read_miz,
+    write_miz,
+)
 
 __all__ = [
     "classify_aircraft_group",
@@ -31,9 +40,11 @@ __all__ = [
     "KIND_DYNAMIC_TEMPLATE",
     "SPAWNABLE_NAME_PREFIX",
     "read_miz",
+    "read_mission_folder",
     "write_miz",
     "create_miz",
     "extract_miz",
+    "extract_resources",
     "DcsMission",
     "Group",
     "DEFAULT_SCRIPTS_LOCATION",

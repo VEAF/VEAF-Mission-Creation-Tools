@@ -24,18 +24,95 @@ from mission_tools.miz_tools import DcsMission
 #: DCS unit-group categories carried under each country in the mission table.
 _GROUP_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
 
+#: Bumped on any breaking change to the export contract (``doc/developer/export-json-contract.md``).
+SCHEMA_VERSION: int = 2
+
+#: Reserved sentinel key marking a key-type-preserving Lua-table envelope in the JSON output.
+LUA_TABLE_SENTINEL: str = "__luaTable__"
+
+
+def _is_int_sequence(value: dict[Any, Any]) -> bool:
+    """Return ``True`` when *value*'s keys are exactly the contiguous integers ``1..n`` (n ≥ 1)."""
+    if not value:
+        return False
+    keys = value.keys()
+    if not all(isinstance(k, int) and not isinstance(k, bool) for k in keys):
+        return False
+    return set(keys) == set(range(1, len(keys) + 1))
+
+
+def _encode_lua_tables(value: Any) -> Any:
+    """Map a parsed Lua value to the JSON export contract, preserving key types losslessly.
+
+    See ``doc/developer/export-json-contract.md`` (schemaVersion 2). The hard problem is that JSON
+    object keys are always strings, so a plain object cannot distinguish a Lua **integer** key from a
+    Lua **string** key — and DCS missions carry both, sometimes in the same table (e.g. ``pylons``
+    are sparse integer keys, ``callsign`` mixes ``{[1],[2],[3],["name"]}``, ``failures`` uses
+    string-numeric keys ``["10"]``). This pass therefore emits, for each Lua table:
+
+    - a **JSON array** when keys are exactly the contiguous integers ``1..n`` (the plugin's ``#`` /
+      ``ipairs`` then work directly after decoding);
+    - a **JSON object** when all keys are strings (kept verbatim — never coerced, so ``failures``
+      stays string-keyed);
+    - otherwise (any integer key in a non-sequence: sparse-int or mixed) a key-type-preserving
+      **envelope** ``{"__luaTable__": [[key, value], ...]}`` where each pair key is a JSON **number**
+      for a Lua integer key and a JSON **string** for a Lua string key. JSON's own number/string
+      distinction carries the type, so the decoder reconstructs it without guessing.
+
+    Integer keys are emitted as JSON integers (``1``, never ``1.0``); each pair is a 2-element array
+    whose first element is a number or a string.
+
+    Args:
+        value: A value from a :class:`DcsMission` content table (dict, list, or scalar).
+
+    Returns:
+        The value transformed into the JSON contract shape, recursively.
+    """
+    if isinstance(value, dict):
+        if not value:
+            return {}
+        if _is_int_sequence(value):
+            return [_encode_lua_tables(value[i]) for i in range(1, len(value) + 1)]
+        if all(isinstance(key, str) for key in value):
+            return {key: _encode_lua_tables(item) for key, item in value.items()}
+        pairs = [[_encode_lua_key(key), _encode_lua_tables(item)] for key, item in value.items()]
+        return {LUA_TABLE_SENTINEL: pairs}
+    if isinstance(value, list):
+        return [_encode_lua_tables(item) for item in value]
+    return value
+
+
+def _encode_lua_key(key: Any) -> int | str:
+    """Render a Lua table key for an envelope pair: integer keys as ``int``, everything else as ``str``.
+
+    Integral values (including an integral ``float`` like ``1.0``) become a JSON integer so the
+    decoder rebuilds a Lua integer key, never a float; non-integer keys are stringified.
+    """
+    if isinstance(key, bool):
+        return str(key)
+    if isinstance(key, int):
+        return key
+    if isinstance(key, float) and key.is_integer():
+        return int(key)
+    return str(key)
+
 
 def build_export_object(mission: DcsMission) -> dict[str, Any]:
-    """Build the structured export object from a parsed mission.
+    """Build the structured export object (raw pivot) from a parsed mission.
+
+    The returned object keeps the parsed Lua structures **as-is** (integer keys stay integers): it is
+    the human-readable pivot used by the YAML export. The JSON export applies the key-type-preserving
+    contract on top (see :func:`_encode_lua_tables` / :func:`to_json`).
 
     Args:
         mission: A :class:`DcsMission` read with :func:`mission_tools.read_miz` (pure-Python parse).
 
     Returns:
-        ``{"theatre", "mission", "dictionary", "mapResource"}`` — aligned with the BFR plugin's
-        project object, so it is a drop-in alternative to its ``lua54.exe`` parsing.
+        ``{"schemaVersion", "theatre", "mission", "dictionary", "mapResource"}`` — the pivot the BFR
+        plugin consumes (via JSON) as a Lua-free alternative to its ``lua54.exe`` parsing.
     """
     return {
+        "schemaVersion": SCHEMA_VERSION,
         "theatre": mission.theatre_content or None,
         "mission": mission.mission_content or {},
         "dictionary": mission.dictionary_content or {},
@@ -44,10 +121,11 @@ def build_export_object(mission: DcsMission) -> dict[str, Any]:
 
 
 def to_json(obj: dict[str, Any], *, compact: bool = False) -> str:
-    """Serialize the export object to JSON (``indent=2`` unless *compact*)."""
+    """Serialize the export object to JSON under the key-type-preserving contract (schemaVersion 2)."""
+    encoded = _encode_lua_tables(obj)
     if compact:
-        return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-    return json.dumps(obj, ensure_ascii=False, indent=2)
+        return json.dumps(encoded, ensure_ascii=False, separators=(",", ":"))
+    return json.dumps(encoded, ensure_ascii=False, indent=2)
 
 
 def to_yaml(obj: dict[str, Any]) -> str:

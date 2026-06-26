@@ -96,3 +96,4 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 
 - [Guide développeur complet](GUIDE.md) — organisation du dépôt, conventions de code, pipeline de build, workflow de contribution
 - [Guide de test](../TESTING.md) — infrastructure de test Lua et Python en détail
+- [Contrat JSON `export`](export-json-contract.md) — format de sortie de `veaf-tools export` consommé par le plugin BFR `dcs-mission-tools`

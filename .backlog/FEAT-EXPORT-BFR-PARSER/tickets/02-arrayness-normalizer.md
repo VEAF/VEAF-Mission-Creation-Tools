@@ -1,6 +1,6 @@
 # FEAT-EXPORT-BFR-PARSER-002 — array-ness normalizer + schemaVersion
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `mission_tools/mission_exporter.py`, `test/python/`
 

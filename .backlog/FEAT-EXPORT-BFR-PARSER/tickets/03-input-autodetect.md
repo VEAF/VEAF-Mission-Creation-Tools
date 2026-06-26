@@ -1,6 +1,6 @@
 # FEAT-EXPORT-BFR-PARSER-003 — `export <input>` auto-detects `.miz` or folder
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/`
 

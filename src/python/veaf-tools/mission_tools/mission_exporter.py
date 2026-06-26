@@ -24,6 +24,47 @@ from mission_tools.miz_tools import DcsMission
 #: DCS unit-group categories carried under each country in the mission table.
 _GROUP_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
 
+#: Bumped on any breaking change to the export contract (``doc/developer/export-json-contract.md``).
+SCHEMA_VERSION: int = 1
+
+
+def _is_int_sequence(value: dict[Any, Any]) -> bool:
+    """Return ``True`` when *value*'s keys are exactly the contiguous integers ``1..n`` (n ≥ 1)."""
+    if not value:
+        return False
+    keys = value.keys()
+    if not all(isinstance(k, int) and not isinstance(k, bool) for k in keys):
+        return False
+    return set(keys) == set(range(1, len(keys) + 1))
+
+
+def _normalize_arrayness(value: Any) -> Any:
+    """Map a parsed Lua value to its JSON contract shape (export-json-contract.md §2).
+
+    ``read_miz`` parses ``mission`` with ``keep_as_dict=["trig", "trigrules"]``, which leaves those
+    numerically-indexed subtrees as int-keyed **dicts** (load-bearing for the trigger-injection
+    builder, which mutates them by 1-based index). This **export-only** pass turns any dict whose
+    keys are exactly the contiguous integers ``1..n`` into a list, so it serializes to a JSON
+    **array** and the BFR plugin's ``#t`` / ``ipairs`` work after decoding. Sparse, mixed and empty
+    tables stay objects (with string keys); the plugin's decoder coerces integer-string keys back.
+
+    The parser and the builder are not touched — this is a pure presentation transform on the export
+    object.
+
+    Args:
+        value: A value from a :class:`DcsMission` content table (dict, list, or scalar).
+
+    Returns:
+        The value with contiguous int-keyed dicts turned into lists, recursively.
+    """
+    if isinstance(value, dict):
+        if _is_int_sequence(value):
+            return [_normalize_arrayness(value[i]) for i in range(1, len(value) + 1)]
+        return {str(key): _normalize_arrayness(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalize_arrayness(item) for item in value]
+    return value
+
 
 def build_export_object(mission: DcsMission) -> dict[str, Any]:
     """Build the structured export object from a parsed mission.
@@ -32,14 +73,17 @@ def build_export_object(mission: DcsMission) -> dict[str, Any]:
         mission: A :class:`DcsMission` read with :func:`mission_tools.read_miz` (pure-Python parse).
 
     Returns:
-        ``{"theatre", "mission", "dictionary", "mapResource"}`` — aligned with the BFR plugin's
-        project object, so it is a drop-in alternative to its ``lua54.exe`` parsing.
+        ``{"schemaVersion", "theatre", "mission", "dictionary", "mapResource"}`` — the frozen
+        contract (``doc/developer/export-json-contract.md``) the BFR plugin consumes as a drop-in,
+        Lua-free alternative to its ``lua54.exe`` parsing. Numerically-indexed tables are emitted as
+        JSON arrays (see :func:`_normalize_arrayness`).
     """
     return {
+        "schemaVersion": SCHEMA_VERSION,
         "theatre": mission.theatre_content or None,
-        "mission": mission.mission_content or {},
-        "dictionary": mission.dictionary_content or {},
-        "mapResource": mission.map_resource_content or {},
+        "mission": _normalize_arrayness(mission.mission_content or {}),
+        "dictionary": _normalize_arrayness(mission.dictionary_content or {}),
+        "mapResource": _normalize_arrayness(mission.map_resource_content or {}),
     }
 
 

@@ -155,6 +155,66 @@ def read_miz(miz_file_path: Path) -> DcsMission:
     return result
 
 
+def _find_mission_root(folder_path: Path) -> Path | None:
+    """Locate the directory holding the loose ``mission`` file.
+
+    Accepts both an extracted ``.miz`` tree (``mission`` at the folder root) and a VEAF source
+    project (``src/mission/mission``).
+
+    Args:
+        folder_path: The folder to inspect.
+
+    Returns:
+        The directory containing the ``mission`` file, or ``None`` when none is found.
+    """
+    for candidate in (folder_path, folder_path / "src" / "mission"):
+        if (candidate / "mission").is_file():
+            return candidate
+    return None
+
+
+def read_mission_folder(folder_path: Path) -> DcsMission:
+    """Load a mission from an extracted folder (no zip, no Lua execution).
+
+    Reads the loose ``mission`` / ``options`` / ``warehouses`` / ``theatre`` /
+    ``l10n/DEFAULT/{dictionary,mapResource}`` files that an unzipped ``.miz`` — or a VEAF source
+    tree (``src/mission/``) — lays out on disk. It mirrors :func:`read_miz` but without a ZIP, using
+    the same pure-Python ``luadata`` parser, so Lua is never executed.
+
+    Args:
+        folder_path: A directory holding the loose mission files, either at its root or under
+            ``src/mission/``.
+
+    Returns:
+        The parsed :class:`DcsMission`.
+
+    Raises:
+        FileNotFoundError: when no ``mission`` file can be located under *folder_path*.
+    """
+    root = _find_mission_root(folder_path)
+    if root is None:
+        raise FileNotFoundError(f"No 'mission' file found under {folder_path} (looked in '.' and 'src/mission')")
+
+    result = DcsMission(file_path=folder_path)
+
+    def read_loose_file(rel_path: str, *, keep_as_dict: list[str] | None = None, not_lua: bool = False) -> Any:
+        path = root / rel_path
+        if not path.is_file():
+            result.missing_components.append(rel_path)
+            return None
+        text = path.read_text(encoding="utf-8")
+        return text if not_lua else luadata.unserialize(text, keep_as_dict=keep_as_dict)
+
+    result.mission_content = read_loose_file("mission", keep_as_dict=["trig", "trigrules"])
+    result.options_content = read_loose_file("options")
+    result.theatre_content = read_loose_file("theatre", not_lua=True)
+    result.warehouses_content = read_loose_file("warehouses")
+    result.dictionary_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/dictionary")
+    result.map_resource_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/mapResource")
+
+    return result
+
+
 def create_miz(miz_file_path: Path, files: dict[str, bytes]) -> Path:
     """Create an mission in a .miz file with new data (zip it)."""
 
@@ -286,3 +346,42 @@ def extract_miz(miz_file_path: Path, extracted_folder_path: Path):
     # Extract all files to a folder (validated against Zip Slip / zip bombs)
     with zipfile.ZipFile(miz_file_path, "r") as zip_ref:
         safe_extract_all(zip_ref, extracted_folder_path)
+
+
+#: Archive members already carried by the JSON export object; skipped by :func:`extract_resources`.
+_EXPORT_DATA_MEMBERS: frozenset[str] = frozenset(
+    {
+        "mission",
+        "options",
+        "warehouses",
+        "theatre",
+        f"{DEFAULT_SCRIPTS_LOCATION}/dictionary",
+        f"{DEFAULT_SCRIPTS_LOCATION}/mapResource",
+    }
+)
+
+
+def extract_resources(miz_file_path: Path, dest_path: Path) -> list[str]:
+    """Extract a ``.miz``'s embedded resources (scripts, l10n sounds/images) to *dest_path*.
+
+    The mission *data* files (``mission`` / ``dictionary`` / ``mapResource`` / …) are already
+    carried by the JSON export object, so they are skipped: only the files the plugin cannot get
+    from the JSON — Lua scripts and ``l10n/DEFAULT/*`` assets — are written, preserving the archive
+    layout. Extraction goes through :func:`safe_extract_all` (Zip Slip / zip-bomb hardened).
+
+    Args:
+        miz_file_path: The source ``.miz`` archive.
+        dest_path: Destination directory for the extracted resources.
+
+    Returns:
+        The list of extracted member names (archive-relative paths).
+    """
+    with zipfile.ZipFile(miz_file_path, "r") as zip_ref:
+        resources = [
+            info.filename
+            for info in zip_ref.infolist()
+            if not info.is_dir() and info.filename not in _EXPORT_DATA_MEMBERS
+        ]
+        if resources:
+            safe_extract_all(zip_ref, dest_path, members=set(resources))
+    return resources

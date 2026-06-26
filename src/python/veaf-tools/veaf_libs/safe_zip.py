@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import stat
 import zipfile
+from collections.abc import Container
 from pathlib import Path
 
 # Caps applied before extracting an untrusted archive.
@@ -31,6 +32,7 @@ def safe_extract_all(
     *,
     max_entries: int = MAX_ARCHIVE_ENTRIES,
     max_total_bytes: int = MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+    members: Container[str] | None = None,
 ) -> None:
     """Validate every member, then extract the archive to ``dest_path``.
 
@@ -41,6 +43,9 @@ def safe_extract_all(
         max_total_bytes: Maximum total uncompressed size allowed (checked on the
             declared sizes up front, and re-enforced on the actual decompressed
             bytes while extracting).
+        members: When provided, only members whose filename is in this container are
+            written to disk. The **whole** archive is still validated (caps, Zip Slip,
+            symlinks) regardless, so a selective extraction never weakens the hardening.
 
     Raises:
         ValueError: If the archive exceeds a cap or contains an unsafe entry.
@@ -68,6 +73,8 @@ def safe_extract_all(
     # (ZipInfo.file_size comes from the header and can be spoofed).
     written_total = 0
     for info in infos:
+        if members is not None and info.filename not in members:
+            continue
         target = (dest / info.filename).resolve()
         if info.is_dir():
             target.mkdir(parents=True, exist_ok=True)

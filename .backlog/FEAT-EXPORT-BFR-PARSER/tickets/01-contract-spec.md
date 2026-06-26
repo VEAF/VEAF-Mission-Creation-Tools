@@ -1,6 +1,6 @@
 # FEAT-EXPORT-BFR-PARSER-001 — JSON export contract spec (deliverable for Dup)
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: docs
 Files: `doc/developer/export-json-contract.md`, `doc/developer/export-json-contract.en.md`
 

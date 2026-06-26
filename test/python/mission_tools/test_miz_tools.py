@@ -5,7 +5,15 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from mission_tools.miz_tools import DcsMission, Group, create_miz, read_miz, write_miz
+from mission_tools.miz_tools import (
+    DcsMission,
+    Group,
+    create_miz,
+    extract_resources,
+    read_miz,
+    read_mission_folder,
+    write_miz,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -28,6 +36,93 @@ def _make_minimal_miz(tmp_path: Path, *, include_theatre: bool = True) -> Path:
         zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
         zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
     return miz_path
+
+
+def _make_mission_folder(tmp_path: Path, *, nested: bool = False) -> Path:
+    """Write a loose mission tree (extracted .miz, or VEAF ``src/mission`` when *nested*)."""
+    base = tmp_path / "proj"
+    root = base / "src" / "mission" if nested else base
+    (root / "l10n" / "DEFAULT").mkdir(parents=True, exist_ok=True)
+    (root / "mission").write_bytes(MINIMAL_MISSION_LUA)
+    (root / "options").write_bytes(MINIMAL_OPTIONS_LUA)
+    (root / "warehouses").write_bytes(MINIMAL_WAREHOUSES_LUA)
+    (root / "theatre").write_bytes(b"Caucasus")
+    (root / "l10n" / "DEFAULT" / "dictionary").write_bytes(b"dictionary = {\n}\n")
+    (root / "l10n" / "DEFAULT" / "mapResource").write_bytes(b"mapResource = {\n}\n")
+    return base
+
+
+def _make_miz_with_resources(tmp_path: Path) -> Path:
+    """A .miz carrying scripts and l10n assets alongside the data files."""
+    miz_path = tmp_path / "rich.miz"
+    with zipfile.ZipFile(miz_path, "w") as zf:
+        zf.writestr("mission", MINIMAL_MISSION_LUA)
+        zf.writestr("options", MINIMAL_OPTIONS_LUA)
+        zf.writestr("warehouses", MINIMAL_WAREHOUSES_LUA)
+        zf.writestr("theatre", b"Caucasus")
+        zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
+        zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
+        zf.writestr("l10n/DEFAULT/veaf-scripts.lua", b"-- script\n")
+        zf.writestr("l10n/DEFAULT/beacon.ogg", b"OGGDATA")
+        zf.writestr("l10n/DEFAULT/kneeboard.png", b"PNGDATA")
+    return miz_path
+
+
+# ---------------------------------------------------------------------------
+# extract_resources
+# ---------------------------------------------------------------------------
+
+
+class TestExtractResources:
+    def test_extracts_scripts_and_assets_only(self, tmp_path: Path) -> None:
+        dest = tmp_path / "out"
+        names = extract_resources(_make_miz_with_resources(tmp_path), dest)
+        # Resources are extracted, preserving the archive layout.
+        assert (dest / "l10n" / "DEFAULT" / "veaf-scripts.lua").is_file()
+        assert (dest / "l10n" / "DEFAULT" / "beacon.ogg").is_file()
+        assert (dest / "l10n" / "DEFAULT" / "kneeboard.png").is_file()
+        # Data files already carried by the JSON export are skipped.
+        assert not (dest / "mission").exists()
+        assert not (dest / "l10n" / "DEFAULT" / "dictionary").exists()
+        assert "mission" not in names
+        assert "l10n/DEFAULT/veaf-scripts.lua" in names
+
+    def test_returns_empty_when_no_resources(self, tmp_path: Path) -> None:
+        dest = tmp_path / "out2"
+        assert extract_resources(_make_minimal_miz(tmp_path), dest) == []
+
+
+# ---------------------------------------------------------------------------
+# read_mission_folder
+# ---------------------------------------------------------------------------
+
+
+class TestReadMissionFolder:
+    def test_reads_extracted_tree_at_root(self, tmp_path: Path) -> None:
+        result = read_mission_folder(_make_mission_folder(tmp_path))
+        assert isinstance(result, DcsMission)
+        assert result.mission_content == {"name": "TestMission"}
+        assert result.theatre_content == "Caucasus"
+        assert result.dictionary_content == {}
+        assert result.map_resource_content == {}
+        assert result.missing_components == []
+
+    def test_reads_veaf_src_mission_layout(self, tmp_path: Path) -> None:
+        result = read_mission_folder(_make_mission_folder(tmp_path, nested=True))
+        assert result.mission_content == {"name": "TestMission"}
+        assert result.theatre_content == "Caucasus"
+
+    def test_matches_read_miz_export_object(self, tmp_path: Path) -> None:
+        from mission_tools.mission_exporter import build_export_object
+
+        folder_obj = build_export_object(read_mission_folder(_make_mission_folder(tmp_path)))
+        miz_obj = build_export_object(read_miz(_make_minimal_miz(tmp_path)))
+        assert folder_obj == miz_obj
+
+    def test_raises_when_no_mission_file(self, tmp_path: Path) -> None:
+        (tmp_path / "empty").mkdir()
+        with pytest.raises(FileNotFoundError):
+            read_mission_folder(tmp_path / "empty")
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +255,7 @@ class TestWriteMiz:
 # ---------------------------------------------------------------------------
 # iter_groups (DEEP-001)
 # ---------------------------------------------------------------------------
+
 
 def _make_mission_with_groups(tmp_path: Path) -> Path:
     """Build a .miz with a realistic coalition/country/group structure."""

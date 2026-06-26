@@ -1,6 +1,6 @@
 # Lot FEAT-EXPORT-BFR-PARSER — `veaf-tools export` as the safe mission parser for the BFR plugin
 
-Status: 🧑 waiting-human
+Status: 🔄 in-progress
 
 Branch: `feature/export-bfr-parser` → PR → `develop-v6`
 
@@ -70,11 +70,11 @@ specified contract, not of this lot's code.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FEAT-EXPORT-BFR-PARSER-001 | **Contract spec** (deliverable for Dup): `doc/developer/export-json-contract.md` — top-level `{schemaVersion, theatre, mission, dictionary, mapResource}`, deterministic array/object rule, sparse/mixed-key handling, JSON→Lua decoder requirements (integer-string key coercion), parity guarantee, `schemaVersion` bump policy. `.en` mirror. | `doc/developer/`, `doc/developer/*.en.md` | docs | 🧑 |
-| FEAT-EXPORT-BFR-PARSER-002 | **Array-ness normalizer + `schemaVersion`**: export-only pass converting any contiguous-`1..n` int-keyed dict to a JSON array; add `schemaVersion` at top level. Builder/parser untouched. TDD: unit tests on contiguous, sparse, mixed, empty, nested. | `mission_tools/mission_exporter.py`, `test/python/` | feat | ⬜ |
-| FEAT-EXPORT-BFR-PARSER-003 | **`export <input>` auto-detects `.miz` or folder**: folder path reads loose `mission`, `l10n/DEFAULT/{dictionary,mapResource}` via `luadata` (no zip), aligned with the VEAF `src/mission/` layout. TDD on both inputs. | `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/` | feat | ⬜ |
-| FEAT-EXPORT-BFR-PARSER-004 | **Resource extraction** (`.miz` input): extract embedded `.lua` scripts and `l10n/DEFAULT/*` (sounds/images) to a sidecar output dir mirroring the archive layout, so the plugin runs checks without unzipping. TDD on a small real `.miz`. | `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/` | feat | ⬜ |
-| FEAT-EXPORT-BFR-PARSER-005 | **Parity gate**: round-trip test asserting the exported object reproduces, table-for-table (array-ness + key types), what the plugin's `load()` produces — incl. a **sparse** table case (deleted group/zone leaving `{[2]=,[5]=}`). | `test/python/` | test | ⬜ |
+| FEAT-EXPORT-BFR-PARSER-001 | **Contract spec** (deliverable for Dup): `doc/developer/export-json-contract.md` — top-level `{schemaVersion, theatre, mission, dictionary, mapResource}`, deterministic array/object rule, sparse/mixed-key handling, JSON→Lua decoder requirements (integer-string key coercion), parity guarantee, `schemaVersion` bump policy. `.en` mirror. | `doc/developer/`, `doc/developer/*.en.md` | docs | ✅ |
+| FEAT-EXPORT-BFR-PARSER-002 | **Array-ness normalizer + `schemaVersion`**: export-only pass converting any contiguous-`1..n` int-keyed dict to a JSON array; add `schemaVersion` at top level. Builder/parser untouched. TDD: unit tests on contiguous, sparse, mixed, empty, nested. | `mission_tools/mission_exporter.py`, `test/python/` | feat | ✅ |
+| FEAT-EXPORT-BFR-PARSER-003 | **`export <input>` auto-detects `.miz` or folder**: folder path reads loose `mission`, `l10n/DEFAULT/{dictionary,mapResource}` via `luadata` (no zip), aligned with the VEAF `src/mission/` layout. TDD on both inputs. | `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/` | feat | ✅ |
+| FEAT-EXPORT-BFR-PARSER-004 | **Resource extraction** (`.miz` input): extract embedded `.lua` scripts and `l10n/DEFAULT/*` (sounds/images) to a sidecar output dir mirroring the archive layout, so the plugin runs checks without unzipping. TDD on a small real `.miz`. | `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/` | feat | ✅ |
+| FEAT-EXPORT-BFR-PARSER-005 | **Parity gate**: round-trip test asserting the exported object reproduces, table-for-table (array-ness + key types), what the plugin's `load()` produces — incl. a **sparse** table case (deleted group/zone leaving `{[2]=,[5]=}`). | `test/python/` | test | ✅ |
 
 ## Out of Scope
 

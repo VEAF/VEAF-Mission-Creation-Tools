@@ -1,6 +1,6 @@
 # FEAT-EXPORT-BFR-PARSER-005 — parity gate (round-trip, sparse case)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: test
 Files: `test/python/`
 

@@ -27,9 +27,7 @@ def _mission() -> DcsMission:
             "descriptionText": "DictKey_desc_1",
             "coalition": {
                 "blue": {
-                    "country": [
-                        {"name": "USA", "plane": {"group": [{"name": "Uzi", "units": [{"type": "F-15C"}]}]}}
-                    ]
+                    "country": [{"name": "USA", "plane": {"group": [{"name": "Uzi", "units": [{"type": "F-15C"}]}]}}]
                 }
             },
             "triggers": {"zones": [{"name": "Zone-1"}, {"name": "Airwaves-1"}]},
@@ -41,12 +39,84 @@ def _mission() -> DcsMission:
     )
 
 
+def _mission_with_trig() -> DcsMission:
+    """A mission whose `trig`/`trigrules` are int-keyed dicts, as `keep_as_dict` leaves them."""
+    return DcsMission(
+        file_path=Path("/dev/null"),
+        mission_content={
+            "trigrules": {1: {"comment": "rule1"}, 2: {"comment": "rule2"}},
+            "trig": {
+                "actions": {1: "a_do_script(...)"},
+                "conditions": {1: "return true"},
+                "flag": {1: True},
+            },
+            "sparse": {2: "a", 5: "b"},  # group/zone deleted in the editor → gap
+            "mixed": {1: "a", "x": "b"},
+            "empty": {},
+        },
+    )
+
+
 class TestExportObject:
     def test_object_has_plugin_schema_keys(self) -> None:
         obj = build_export_object(_mission())
-        assert set(obj) == {"theatre", "mission", "dictionary", "mapResource"}
+        assert set(obj) == {"schemaVersion", "theatre", "mission", "dictionary", "mapResource"}
+        assert obj["schemaVersion"] == 1
         assert obj["theatre"] == "Caucasus"
         assert obj["mission"]["start_time"] == 43200
+
+
+class TestArrayness:
+    """FEAT-EXPORT-BFR-PARSER-002 — the JSON array/object contract (export-json-contract.md §2)."""
+
+    def test_contiguous_int_keyed_dict_becomes_array(self) -> None:
+        obj = build_export_object(_mission_with_trig())
+        mission = obj["mission"]
+        assert mission["trigrules"] == [{"comment": "rule1"}, {"comment": "rule2"}]
+        assert mission["trig"]["actions"] == ["a_do_script(...)"]
+        assert mission["trig"]["conditions"] == ["return true"]
+        assert mission["trig"]["flag"] == [True]
+
+    def test_sparse_dict_stays_object_with_string_keys(self) -> None:
+        mission = build_export_object(_mission_with_trig())["mission"]
+        assert mission["sparse"] == {"2": "a", "5": "b"}
+
+    def test_mixed_key_dict_stays_object(self) -> None:
+        mission = build_export_object(_mission_with_trig())["mission"]
+        assert mission["mixed"] == {"1": "a", "x": "b"}
+
+    def test_empty_dict_stays_object(self) -> None:
+        mission = build_export_object(_mission_with_trig())["mission"]
+        assert mission["empty"] == {}
+
+    def test_json_emits_arrays_for_sequences(self) -> None:
+        parsed = json.loads(to_json(build_export_object(_mission_with_trig())))
+        assert isinstance(parsed["mission"]["trigrules"], list)
+        assert isinstance(parsed["mission"]["sparse"], dict)
+
+
+class TestParityGate:
+    """FEAT-EXPORT-BFR-PARSER-005 — the exported object reproduces today's `load()` shape.
+
+    The plugin indexes some tables numerically (`#trigrules`, `ipairs(trig.actions)`): those must be
+    JSON arrays. A table left sparse by an editor deletion (`{[2]=,[5]=}`) cannot be an array and
+    ships as an object with string keys — the plugin's decoder coerces them back (contract §3).
+    """
+
+    def test_numerically_indexed_tables_are_arrays_sparse_is_object(self) -> None:
+        # `triggers.zones` after deleting zones #1, #3, #4 in the editor: a sparse int-keyed table.
+        mission = DcsMission(
+            file_path=Path("/dev/null"),
+            mission_content={
+                "trigrules": {1: {"comment": "VEAF init"}, 2: {"comment": "Player wins"}},
+                "triggers": {"zones": {2: {"name": "Zone-2"}, 5: {"name": "Zone-5"}}},
+            },
+        )
+        parsed = json.loads(to_json(build_export_object(mission)))
+        # contiguous → array (works with #/ipairs after decoding)
+        assert parsed["mission"]["trigrules"] == [{"comment": "VEAF init"}, {"comment": "Player wins"}]
+        # sparse → object with string keys (decoder coerces back to integer keys)
+        assert parsed["mission"]["triggers"]["zones"] == {"2": {"name": "Zone-2"}, "5": {"name": "Zone-5"}}
 
 
 class TestJsonYaml:

@@ -1,6 +1,6 @@
 # FEAT-EXPORT-BFR-PARSER-004 — resource extraction for `.miz` input
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `veaf_tools/commands/export.py`, `mission_tools/`, `test/python/`
 

@@ -10,8 +10,8 @@ from mission_tools.miz_tools import (
     Group,
     create_miz,
     extract_resources,
-    read_miz,
     read_mission_folder,
+    read_miz,
     write_miz,
 )
 

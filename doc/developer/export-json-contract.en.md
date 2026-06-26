@@ -4,6 +4,8 @@
 > ([bfr-claude-plugins](https://github.com/Bullseye-Francophone/bfr-claude-plugins)) who consume
 > `veaf-tools export --format json` instead of running mission files through `lua54`.
 > This document is the **frozen contract** between the two tools.
+>
+> **schemaVersion: 2.**
 
 ## Why this exists
 
@@ -12,21 +14,24 @@
 that parse as JSON lets the plugin read **any** mission (a `.miz` from a forum, a DM, an extracted
 folder) without running untrusted Lua. The plugin keeps `lua54` **only** to run its own `.lua` checks.
 
-The single hard problem is faithfully mapping **Lua tables** to **JSON** and back, because:
+The single hard problem is faithfully mapping **Lua tables** to **JSON** and back. JSON object keys
+are **always strings**, so a plain JSON object cannot tell a Lua **integer** key from a Lua **string**
+key — and DCS missions carry both, sometimes in the *same* table:
 
-- A Lua sequence `{[1]=,[2]=,…}` supports `#t` and `ipairs`. The plugin relies on this for
-  `trigrules`, `trig.actions/conditions/flag`, and the group/country/zone arrays.
-- JSON has **no integer keys**. A naive `{1:…}` → `{"1":…}` mapping yields **string** keys in Lua
-  (`#t == 0`, `ipairs` iterates nothing) → the checks silently break.
+- **sparse integer keys** — `payload.pylons = {[1]=,[2]=,[8]=,[11]=}` (pylon numbers skip gaps);
+- **mixed keys** — `callsign = {[1]=,[2]=,[3]=,["name"]="Colt11"}`;
+- **string-numeric keys** — `failures = {["10"]=,["11"]=}` (DCS failure ids are strings).
 
-The contract below makes the mapping deterministic on the veaf-tools side and pins the **two rules**
-the plugin's JSON→Lua decoder must follow to restore parity.
+A heuristic that "coerces numeric-string keys to integers" is therefore **impossible to get right**: it
+breaks `failures` (real strings) while a "keys are always strings" rule breaks `pylons` and the integer
+part of `callsign`. The contract below removes all guessing by **preserving the key type in the JSON
+itself**, using JSON's native number-vs-string distinction.
 
 ## 1. Top-level shape
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "theatre": "Caucasus",
   "mission": { "...": "the parsed `mission` table" },
   "dictionary": { "DictKey_...": "..." },
@@ -34,119 +39,101 @@ the plugin's JSON→Lua decoder must follow to restore parity.
 }
 ```
 
-- `schemaVersion` (integer) — **always present, first**. See §6.
+- `schemaVersion` (integer) — **always present, first**, currently **2**. See §5.
 - `theatre` — string (or `null` if absent).
-- `mission`, `dictionary`, `mapResource` — the parsed tables, mapped per §2.
+- `mission`, `dictionary`, `mapResource` — the parsed tables, mapped per §2. `dictionary` and
+  `mapResource` are string→string maps and always serialize as JSON **objects**.
 
-`dictionary` and `mapResource` are string→string maps and always serialize as JSON **objects**.
+## 2. Table mapping rule (deterministic, key-type-lossless)
 
-## 2. Array vs object rule (deterministic)
+For each Lua table, exactly one of these forms is emitted:
 
-A Lua table is emitted as a JSON **array** **iff its keys are exactly the contiguous integers
-`1..n`** (n ≥ 1). Every other table is a JSON **object** with string keys.
-
-| Lua table (as parsed) | JSON output | Rationale |
+| Lua table | JSON form | When |
 |---|---|---|
-| `{[1]=a,[2]=b,[3]=c}` (sequence) | `["a","b","c"]` (**array**) | `#t`, `ipairs` work directly after decoding |
-| `{[2]=a,[5]=b}` (**sparse**) | `{"2":"a","5":"b"}` (**object**) | not contiguous → can't be a JSON array; see §3 |
-| `{[1]=a,["x"]=b}` (**mixed**) | `{"1":"a","x":"b"}` (**object**) | mixed key types → object; see §3 |
-| `{["a"]=1,["b"]=2}` (record) | `{"a":1,"b":2}` (**object**) | natural object |
-| `{}` (empty) | `{}` (**object**) | parity-neutral; see §4 |
+| **Sequence** | JSON **array** | keys are exactly the contiguous integers `1..n` (n ≥ 1) |
+| **String record** | JSON **object** | every key is a string |
+| **Integer / mixed table** | **`__luaTable__` envelope** | at least one integer key, and not a pure sequence |
+| **Empty** | JSON `{}` | no keys (parity-neutral, see §3) |
 
-This covers the tables the plugin indexes numerically — `trigrules`, `trig.actions`,
-`trig.conditions`, `trig.flag`, and the `group` / `country` / `zones` arrays — which all come out as
-**arrays**.
-
-### Worked example — `trigrules` and `trig`
-
-Parsed mission (conceptually):
-
-```lua
-trigrules = { [1] = {...rule1...}, [2] = {...rule2...} }
-trig      = { actions    = { [1]="a_do_script(...)" },
-              conditions = { [1]="return true" },
-              flag       = { [1]=true } }
-```
-
-Exported JSON:
+The envelope is a single-key object whose value is an array of `[key, value]` pairs:
 
 ```json
-{
-  "trigrules": [ {"...rule1...": true}, {"...rule2...": true} ],
-  "trig": {
-    "actions":    [ "a_do_script(...)" ],
-    "conditions": [ "return true" ],
-    "flag":       [ true ]
-  }
-}
+{ "__luaTable__": [ [1, "..."], [2, "..."], [8, "..."], ["name", "..."] ] }
 ```
 
-`trig` itself is a record (string keys) → object; each of its sub-tables is a `1..n` sequence → array.
-After decoding, `#mission.trigrules`, `ipairs(mission.trig.actions)` behave as they do today.
+Each **pair key** is a JSON **number** for a Lua integer key, a JSON **string** for a Lua string key.
+JSON's own number/string distinction carries the type, so the decoder never guesses. Guarantees:
 
-## 3. Sparse and mixed tables — the decoder's job
+- Integer pair keys are JSON **integers** (`1`, never `1.0`) — a Lua integer key, not a float.
+- Each pair is a JSON array of **exactly two** elements; `pair[0]` is a **number or a string** only.
 
-A table that is **not** a contiguous `1..n` sequence cannot be a JSON array, so it ships as an object
-with **string** keys. This is the only case where JSON loses the integer-key nature.
+### Worked examples
 
-To restore parity, the plugin's JSON→Lua decoder **must coerce canonical integer-string keys back to
-Lua integer keys** when building a table from a JSON object:
+```json
+"trigrules": [ {"comment": "init"}, {"comment": "win"} ],
+"trig": { "actions": [ "a_do_script(...)" ], "flag": [ true ] },
+"pylons":   { "__luaTable__": [[1,"AIM-9"],[2,"AIM-120"],[8,"fuel"],[11,"AIM-9"]] },
+"callsign": { "__luaTable__": [[1,169],[2,1],[3,1],["name","Colt11"]] },
+"failures": { "10": {"enable": false}, "11": {"enable": true} }
+```
 
-- A key matching `^-?%d+$` with **no leading zeros** (except the single `"0"`) → use the integer as
-  the Lua key.
-- Any other key → keep the string key.
+Numerically-indexed sequences (`trigrules`, `trig.actions/conditions/flag`, groups/countries/zones)
+stay arrays, so `#t` / `ipairs` work after decoding. `failures` stays a string-keyed object — **never
+coerced**.
 
-So `{"2":a,"5":b}` decodes to the native Lua table `{[2]=a,[5]=b}`, identical to what `load()` produced.
+## 3. Empty tables
 
-> `#t` and `ipairs` on a sparse table are **undefined** in Lua anyway, so the contract guarantees
-> **value/key parity**, not sequence-length parity, for sparse tables — exactly matching `load()`.
+An empty Lua table `{}` exports as JSON `{}`. This is **parity-neutral**: a JSON `{}` and a JSON `[]`
+both decode to an empty Lua table where `#t == 0` and `next(t) == nil`. The decoder must yield an empty
+Lua table for **both**.
 
-## 4. Empty tables
+## 4. Scalars, strings, encoding
 
-An empty Lua table `{}` is ambiguous (array or record). It exports as JSON `{}`. This is
-**parity-neutral**: a JSON `{}` **and** a JSON `[]` both decode to an empty Lua table where
-`#t == 0` and `next(t) == nil`. The decoder must yield an empty Lua table for **both** `{}` and `[]`.
+- Lua numbers → JSON numbers; Lua booleans → JSON `true`/`false`.
+- Lua strings → JSON strings, **UTF-8, not ASCII-escaped** (`ensure_ascii=false`).
+- Absent / `nil` values are not present (`theatre` may be `null`).
+- **Key/pair order is not semantically significant**; decoders must not depend on it.
 
-## 5. Scalars, strings, encoding
+## 5. `schemaVersion` and compatibility
 
-- Lua numbers → JSON numbers (integers stay integral, e.g. coordinates as floats).
-- Lua booleans → JSON `true`/`false`.
-- Lua strings → JSON strings, **UTF-8, not ASCII-escaped** (`ensure_ascii=false`). Decoders must read UTF-8.
-- Absent / `nil` values are simply not present (no JSON `null` for table members; `theatre` may be `null`).
-- **Key order is not significant.** Decoders must not depend on member order.
+- `schemaVersion` is an integer, **bumped on any breaking change** to this contract. The plugin
+  **must** read it and refuse / warn on an unknown version rather than mis-reading silently.
+- Current version: **2** (v1 used a numeric-string-key coercion heuristic and is withdrawn).
 
-## 6. `schemaVersion` and compatibility
-
-- `schemaVersion` is an integer, **bumped on any breaking change** to this contract (shape, the
-  array/object rule, key semantics). Additive, backward-compatible changes do **not** bump it.
-- The plugin **must** read `schemaVersion` and refuse / warn on an unknown major version rather than
-  mis-reading silently.
-- Current version: **1**.
-
-## 7. Decoder requirements (summary, plugin side)
+## 6. Decoder requirements (summary, plugin side)
 
 A conforming JSON→Lua decoder:
 
 1. JSON **array** → Lua sequence with integer keys `1..n`.
-2. JSON **object** → Lua table; for each key, if it is a canonical integer string (§3) use the
-   **integer** Lua key, else the **string** key.
-3. Empty array **and** empty object → empty Lua table.
-4. Numbers/booleans/strings → their Lua equivalents; UTF-8 strings.
+2. JSON **object** *without* a sole `__luaTable__` key → Lua table with the keys **verbatim as
+   strings** (no numeric coercion — this is what keeps `failures` correct).
+3. JSON **object** whose *only* key is `__luaTable__` and whose value is an array of 2-element pairs →
+   Lua table built from the pairs: `pair[0]` of JSON type *number* → integer key, *string* → string
+   key; `pair[1]` decoded recursively. (Harden against the sentinel collision by requiring exactly this
+   shape; otherwise treat the object as a verbatim record.)
+4. Empty array **and** empty object → empty Lua table.
 
-With these rules, the decoded tables reproduce today's `load()` output **table-for-table** (array-ness
-and key types), so the plugin's existing checks return identical findings — the validation criterion #1.
+With these rules the decoded tables reproduce `load()`'s output **table-for-table** (array-ness *and*
+key types), so the plugin's checks return identical findings — and stay correct for *future* checks
+that read tables today's checks ignore.
+
+## 7. A note on the JSON shape
+
+With the envelope, `--format json` is a **Lua-faithful** representation: frequent tables like `pylons`
+and `callsign` become `__luaTable__` wrappers, which is less ergonomic for a generic JSON consumer
+(`jq` …). That is by design — this JSON is the plugin's parser contract. The human-friendly views are
+**`--format yaml`** (native integer keys via PyYAML) and **`--format markdown`**.
 
 ## 8. Resources (for `.miz` input)
 
-When the input is a `.miz`, `veaf-tools export` also **extracts** the archive's embedded resources —
-`.lua` scripts and `l10n/DEFAULT/*` (sounds/images) — to a sidecar directory mirroring the archive
-layout, so the plugin can run its `.lua` checks and resolve `mapResource` filenames without unzipping.
-The JSON object above stays the data pivot; `mapResource` maps resource keys to the extracted filenames.
-
-When the input is an already-extracted mission folder, resources are already loose and nothing is extracted.
+When the input is a `.miz`, `veaf-tools export --extract-dir <dir>` also **extracts** the archive's
+embedded resources — `.lua` scripts and `l10n/DEFAULT/*` (sounds/images) — to a sidecar directory
+mirroring the archive layout, so the plugin can run its `.lua` checks and resolve `mapResource`
+filenames without unzipping. Data files already carried by the JSON are skipped. For an already-extracted
+mission folder, nothing is extracted.
 
 ## Out of scope (plugin-owned)
 
 The JSON→Lua decoder, rerouting the plugin's `missionLoader.lua` away from `load()`, and bundling
-`veaf-tools` are implemented in the BFR plugin repo. This document only **specifies** what veaf-tools
-guarantees and what the decoder must do.
+`veaf-tools` live in the BFR plugin repo. This document only **specifies** what veaf-tools guarantees
+and what the decoder must do.

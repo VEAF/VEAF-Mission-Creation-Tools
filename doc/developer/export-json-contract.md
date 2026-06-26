@@ -5,7 +5,7 @@
 > `veaf-tools export --format json` au lieu d'exécuter les fichiers mission via `lua54`.
 > Ce document est le **contrat figé** entre les deux outils.
 >
-> 🇬🇧 English version: [`export-json-contract.en.md`](export-json-contract.en.md).
+> **schemaVersion : 2.** — 🇬🇧 [`export-json-contract.en.md`](export-json-contract.en.md).
 
 ## Pourquoi ce contrat
 
@@ -15,21 +15,25 @@ Exporter ce parse en JSON permet au plugin de lire **n'importe quelle** mission 
 forum, d'un DM, un dossier extrait) sans exécuter de Lua non fiable. Le plugin ne garde `lua54` **que**
 pour exécuter ses propres checks `.lua`.
 
-Le seul problème dur est de mapper fidèlement les **tables Lua** vers le **JSON** et retour, car :
+Le seul problème dur est de mapper fidèlement les **tables Lua** vers le **JSON** et retour. Les clés
+d'un object JSON sont **toujours des strings** : un object JSON ne peut donc pas distinguer une clé
+**entière** Lua d'une clé **string** Lua — or DCS a les deux, parfois dans la *même* table :
 
-- Une séquence Lua `{[1]=,[2]=,…}` supporte `#t` et `ipairs`. Le plugin s'appuie là-dessus pour
-  `trigrules`, `trig.actions/conditions/flag`, et les tableaux groupes/pays/zones.
-- Le JSON n'a **pas de clés entières**. Un mapping naïf `{1:…}` → `{"1":…}` produit des clés **string**
-  en Lua (`#t == 0`, `ipairs` ne boucle pas) → les checks cassent en silence.
+- **clés entières sparse** — `payload.pylons = {[1]=,[2]=,[8]=,[11]=}` (numéros de pylônes avec trous) ;
+- **clés mixtes** — `callsign = {[1]=,[2]=,[3]=,["name"]="Colt11"}` ;
+- **clés string-numériques** — `failures = {["10"]=,["11"]=}` (les ids de panne DCS sont des strings).
 
-Le contrat ci-dessous rend le mapping déterministe côté veaf-tools et fige les **deux règles** que le
-décodeur JSON→Lua du plugin doit suivre pour restaurer la parité.
+Une heuristique qui « coerce les clés string-numériques en entiers » est donc **impossible à rendre
+universellement correcte** : elle casse `failures` (vraies strings), tandis qu'une règle « clés
+toujours string » casse `pylons` et la partie entière de `callsign`. Le contrat ci-dessous supprime
+toute devinette en **préservant le type de clé dans le JSON lui-même**, via la distinction native
+nombre-vs-string du JSON.
 
 ## 1. Forme de premier niveau
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "theatre": "Caucasus",
   "mission": { "...": "la table `mission` parsée" },
   "dictionary": { "DictKey_...": "..." },
@@ -37,123 +41,103 @@ décodeur JSON→Lua du plugin doit suivre pour restaurer la parité.
 }
 ```
 
-- `schemaVersion` (entier) — **toujours présent, en tête**. Voir §6.
+- `schemaVersion` (entier) — **toujours présent, en tête**, actuellement **2**. Voir §5.
 - `theatre` — string (ou `null` si absent).
-- `mission`, `dictionary`, `mapResource` — les tables parsées, mappées selon §2.
+- `mission`, `dictionary`, `mapResource` — les tables parsées, mappées selon §2. `dictionary` et
+  `mapResource` sont des maps string→string et sérialisent toujours en **object** JSON.
 
-`dictionary` et `mapResource` sont des maps string→string et sérialisent toujours en **object** JSON.
+## 2. Règle de mapping des tables (déterministe, sans perte du type de clé)
 
-## 2. Règle array vs object (déterministe)
+Pour chaque table Lua, exactement une de ces formes est émise :
 
-Une table Lua est émise en **array** JSON **si et seulement si ses clés sont exactement les entiers
-contigus `1..n`** (n ≥ 1). Toute autre table est un **object** JSON à clés string.
-
-| Table Lua (telle que parsée) | Sortie JSON | Raison |
+| Table Lua | Forme JSON | Quand |
 |---|---|---|
-| `{[1]=a,[2]=b,[3]=c}` (séquence) | `["a","b","c"]` (**array**) | `#t`, `ipairs` marchent directement après décodage |
-| `{[2]=a,[5]=b}` (**sparse**) | `{"2":"a","5":"b"}` (**object**) | non contigu → impossible en array JSON ; voir §3 |
-| `{[1]=a,["x"]=b}` (**mixte**) | `{"1":"a","x":"b"}` (**object**) | clés mixtes → object ; voir §3 |
-| `{["a"]=1,["b"]=2}` (record) | `{"a":1,"b":2}` (**object**) | object naturel |
-| `{}` (vide) | `{}` (**object**) | neutre pour la parité ; voir §4 |
+| **Séquence** | **array** JSON | clés = entiers contigus `1..n` (n ≥ 1) |
+| **Record string** | **object** JSON | toutes les clés sont des strings |
+| **Table entière / mixte** | **enveloppe `__luaTable__`** | au moins une clé entière, et pas une séquence pure |
+| **Vide** | `{}` JSON | aucune clé (neutre pour la parité, voir §3) |
 
-Cela couvre les tables que le plugin indexe numériquement — `trigrules`, `trig.actions`,
-`trig.conditions`, `trig.flag`, et les tableaux `group` / `country` / `zones` — qui sortent toutes en
-**array**.
-
-### Exemple travaillé — `trigrules` et `trig`
-
-Mission parsée (conceptuellement) :
-
-```lua
-trigrules = { [1] = {...rule1...}, [2] = {...rule2...} }
-trig      = { actions    = { [1]="a_do_script(...)" },
-              conditions = { [1]="return true" },
-              flag       = { [1]=true } }
-```
-
-JSON exporté :
+L'enveloppe est un object à clé unique dont la valeur est une liste de paires `[clé, valeur]` :
 
 ```json
-{
-  "trigrules": [ {"...rule1...": true}, {"...rule2...": true} ],
-  "trig": {
-    "actions":    [ "a_do_script(...)" ],
-    "conditions": [ "return true" ],
-    "flag":       [ true ]
-  }
-}
+{ "__luaTable__": [ [1, "..."], [2, "..."], [8, "..."], ["name", "..."] ] }
 ```
 
-`trig` est un record (clés string) → object ; chacune de ses sous-tables est une séquence `1..n` →
-array. Après décodage, `#mission.trigrules`, `ipairs(mission.trig.actions)` se comportent comme
-aujourd'hui.
+Chaque **clé de paire** est un **nombre JSON** pour une clé entière Lua, une **string JSON** pour une
+clé string Lua. La distinction nombre/string propre au JSON porte le type : le décodeur ne devine
+jamais. Garanties :
 
-## 3. Tables sparse et mixtes — le travail du décodeur
+- Les clés de paire entières sont des **entiers JSON** (`1`, jamais `1.0`) — une clé entière Lua, pas
+  un float.
+- Chaque paire est un array JSON de **exactement deux** éléments ; `pair[0]` est **uniquement** un
+  nombre ou une string.
 
-Une table qui **n'est pas** une séquence contiguë `1..n` ne peut pas être un array JSON : elle part
-donc en object à clés **string**. C'est le seul cas où le JSON perd la nature entière des clés.
+### Exemples travaillés
 
-Pour restaurer la parité, le décodeur JSON→Lua du plugin **doit recoercer les clés string-entières
-canoniques en clés entières Lua** quand il construit une table à partir d'un object JSON :
+```json
+"trigrules": [ {"comment": "init"}, {"comment": "win"} ],
+"trig": { "actions": [ "a_do_script(...)" ], "flag": [ true ] },
+"pylons":   { "__luaTable__": [[1,"AIM-9"],[2,"AIM-120"],[8,"fuel"],[11,"AIM-9"]] },
+"callsign": { "__luaTable__": [[1,169],[2,1],[3,1],["name","Colt11"]] },
+"failures": { "10": {"enable": false}, "11": {"enable": true} }
+```
 
-- Une clé qui matche `^-?%d+$` **sans zéro initial** (sauf le seul `"0"`) → utiliser l'entier comme
-  clé Lua.
-- Toute autre clé → garder la clé string.
+Les séquences indexées numériquement (`trigrules`, `trig.actions/conditions/flag`, groupes/pays/zones)
+restent des arrays, donc `#t` / `ipairs` marchent après décodage. `failures` reste un object à clés
+string — **jamais coercé**.
 
-Ainsi `{"2":a,"5":b}` décode vers la table Lua native `{[2]=a,[5]=b}`, identique à ce que `load()`
-produisait.
+## 3. Tables vides
 
-> `#t` et `ipairs` sur une table sparse sont **indéfinis** en Lua de toute façon : le contrat garantit
-> la **parité valeurs/clés**, pas la parité de longueur de séquence, pour les tables sparse — ce qui
-> correspond exactement à `load()`.
+Une table Lua vide `{}` exporte en `{}` JSON. C'est **neutre pour la parité** : un `{}` JSON et un `[]`
+JSON décodent tous deux vers une table Lua vide où `#t == 0` et `next(t) == nil`. Le décodeur doit
+produire une table Lua vide pour **les deux**.
 
-## 4. Tables vides
+## 4. Scalaires, strings, encodage
 
-Une table Lua vide `{}` est ambiguë (array ou record). Elle exporte en `{}` JSON. C'est **neutre pour
-la parité** : un `{}` JSON **et** un `[]` JSON décodent tous deux vers une table Lua vide où
-`#t == 0` et `next(t) == nil`. Le décodeur doit produire une table Lua vide pour `{}` **comme** pour `[]`.
+- Nombres Lua → nombres JSON ; booléens Lua → `true`/`false` JSON.
+- Strings Lua → strings JSON, **UTF-8, non échappées en ASCII** (`ensure_ascii=false`).
+- Les valeurs absentes / `nil` ne sont pas présentes (`theatre` peut valoir `null`).
+- **L'ordre des clés / paires n'est pas significatif** ; les décodeurs ne doivent pas en dépendre.
 
-## 5. Scalaires, strings, encodage
+## 5. `schemaVersion` et compatibilité
 
-- Nombres Lua → nombres JSON (les entiers restent entiers, ex. les coordonnées en flottants).
-- Booléens Lua → `true`/`false` JSON.
-- Strings Lua → strings JSON, **UTF-8, non échappées en ASCII** (`ensure_ascii=false`). Les décodeurs
-  doivent lire de l'UTF-8.
-- Les valeurs absentes / `nil` ne sont simplement pas présentes (pas de `null` JSON pour un membre de
-  table ; `theatre` peut valoir `null`).
-- **L'ordre des clés n'est pas significatif.** Les décodeurs ne doivent pas en dépendre.
+- `schemaVersion` est un entier, **incrémenté à tout changement cassant** du contrat. Le plugin
+  **doit** le lire et refuser / avertir sur une version inconnue plutôt que de mal lire en silence.
+- Version actuelle : **2** (la v1 utilisait une heuristique de coercition des clés string-numériques,
+  retirée).
 
-## 6. `schemaVersion` et compatibilité
-
-- `schemaVersion` est un entier, **incrémenté à tout changement cassant** du contrat (forme, règle
-  array/object, sémantique des clés). Les ajouts rétro-compatibles ne l'incrémentent **pas**.
-- Le plugin **doit** lire `schemaVersion` et refuser / avertir sur une version majeure inconnue plutôt
-  que de mal lire en silence.
-- Version actuelle : **1**.
-
-## 7. Exigences du décodeur (résumé, côté plugin)
+## 6. Exigences du décodeur (résumé, côté plugin)
 
 Un décodeur JSON→Lua conforme :
 
 1. **array** JSON → séquence Lua à clés entières `1..n`.
-2. **object** JSON → table Lua ; pour chaque clé, si c'est une string-entière canonique (§3) utiliser
-   la clé **entière** Lua, sinon la clé **string**.
-3. array vide **et** object vide → table Lua vide.
-4. Nombres/booléens/strings → leurs équivalents Lua ; strings UTF-8.
+2. **object** JSON *sans* clé unique `__luaTable__` → table Lua avec les clés **verbatim en string**
+   (pas de coercition numérique — c'est ce qui garde `failures` correct).
+3. **object** JSON dont la *seule* clé est `__luaTable__` et dont la valeur est une liste de paires à
+   2 éléments → table Lua construite depuis les paires : `pair[0]` de type JSON *nombre* → clé entière,
+   *string* → clé string ; `pair[1]` décodé récursivement. (Durcir contre la collision de sentinelle en
+   exigeant exactement cette forme ; sinon, traiter l'object comme un record verbatim.)
+4. array vide **et** object vide → table Lua vide.
 
-Avec ces règles, les tables décodées reproduisent la sortie `load()` actuelle **table pour table**
-(array-ness et types de clés), donc les checks existants du plugin rendent des findings identiques —
-le critère de validation n°1.
+Avec ces règles, les tables décodées reproduisent la sortie `load()` **table pour table** (array-ness
+*et* types de clés), donc les checks du plugin rendent des findings identiques — et restent corrects
+pour les *futurs* checks qui liront des tables que les checks d'aujourd'hui ignorent.
+
+## 7. Note sur la forme JSON
+
+Avec l'enveloppe, `--format json` est une représentation **fidèle au Lua** : des tables fréquentes
+comme `pylons` et `callsign` deviennent des wrappers `__luaTable__`, moins ergonomiques pour un
+consommateur JSON générique (`jq`…). C'est voulu — ce JSON est le contrat de parsing du plugin. Les
+vues human-friendly sont **`--format yaml`** (clés entières natives via PyYAML) et **`--format
+markdown`**.
 
 ## 8. Ressources (entrée `.miz`)
 
-Quand l'entrée est un `.miz`, `veaf-tools export` **extrait** aussi les ressources embarquées de
-l'archive — scripts `.lua` et `l10n/DEFAULT/*` (sons/images) — vers un dossier annexe reproduisant le
-layout de l'archive, pour que le plugin exécute ses checks `.lua` et résolve les noms de fichiers de
-`mapResource` sans dézipper. L'object JSON ci-dessus reste le pivot de données ; `mapResource` mappe
-les clés de ressource vers les fichiers extraits.
-
-Quand l'entrée est un dossier mission déjà extrait, les ressources sont déjà lâches : rien n'est extrait.
+Quand l'entrée est un `.miz`, `veaf-tools export --extract-dir <dir>` **extrait** aussi les ressources
+embarquées de l'archive — scripts `.lua` et `l10n/DEFAULT/*` (sons/images) — vers un dossier annexe
+reproduisant le layout de l'archive, pour que le plugin exécute ses checks `.lua` et résolve les noms de
+fichiers de `mapResource` sans dézipper. Les fichiers data déjà portés par le JSON sont ignorés. Pour un
+dossier mission déjà extrait, rien n'est extrait.
 
 ## Hors périmètre (côté plugin)
 

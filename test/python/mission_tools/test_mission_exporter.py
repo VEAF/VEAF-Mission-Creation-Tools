@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from mission_tools.miz_tools import DcsMission
 from mission_tools.mission_exporter import (
     build_export_object,
     export_mission,
@@ -15,6 +14,7 @@ from mission_tools.mission_exporter import (
     to_markdown,
     to_yaml,
 )
+from mission_tools.miz_tools import DcsMission
 
 
 def _mission() -> DcsMission:
@@ -39,84 +39,80 @@ def _mission() -> DcsMission:
     )
 
 
-def _mission_with_trig() -> DcsMission:
-    """A mission whose `trig`/`trigrules` are int-keyed dicts, as `keep_as_dict` leaves them."""
+def _mission_with_lua_tables() -> DcsMission:
+    """A mission carrying the three real DCS key-type families (see export-json-contract.md §2)."""
     return DcsMission(
         file_path=Path("/dev/null"),
         mission_content={
+            # contiguous int → JSON array
             "trigrules": {1: {"comment": "rule1"}, 2: {"comment": "rule2"}},
-            "trig": {
-                "actions": {1: "a_do_script(...)"},
-                "conditions": {1: "return true"},
-                "flag": {1: True},
-            },
-            "sparse": {2: "a", 5: "b"},  # group/zone deleted in the editor → gap
-            "mixed": {1: "a", "x": "b"},
+            "trig": {"actions": {1: "a_do_script(...)"}, "flag": {1: True}},
+            # sparse int (e.g. weapon pylons 1,2,8,11) → envelope
+            "pylons": {1: "AIM-9", 2: "AIM-120", 8: "fuel", 11: "AIM-9"},
+            # mixed int + string (e.g. DCS callsign {1,2,3,name=...}) → envelope
+            "callsign": {1: 169, 2: 1, 3: 1, "name": "Colt11"},
+            # string-numeric (e.g. DCS failures keyed by string id) → object, NOT coerced
+            "failures": {"10": {"enable": False}, "11": {"enable": True}},
             "empty": {},
         },
     )
+
+
+def _json_mission() -> dict:
+    return json.loads(to_json(build_export_object(_mission_with_lua_tables())))["mission"]
 
 
 class TestExportObject:
     def test_object_has_plugin_schema_keys(self) -> None:
         obj = build_export_object(_mission())
         assert set(obj) == {"schemaVersion", "theatre", "mission", "dictionary", "mapResource"}
-        assert obj["schemaVersion"] == 1
+        assert obj["schemaVersion"] == 2
         assert obj["theatre"] == "Caucasus"
         assert obj["mission"]["start_time"] == 43200
 
+    def test_build_object_keeps_raw_integer_keys(self) -> None:
+        # The pivot stays raw (YAML consumer); the JSON contract is applied only in to_json.
+        obj = build_export_object(_mission_with_lua_tables())
+        assert obj["mission"]["pylons"] == {1: "AIM-9", 2: "AIM-120", 8: "fuel", 11: "AIM-9"}
 
-class TestArrayness:
-    """FEAT-EXPORT-BFR-PARSER-002 — the JSON array/object contract (export-json-contract.md §2)."""
 
-    def test_contiguous_int_keyed_dict_becomes_array(self) -> None:
-        obj = build_export_object(_mission_with_trig())
-        mission = obj["mission"]
+class TestJsonContract:
+    """FEAT-EXPORT-BFR-PARSER-002 — the v2 key-type-preserving JSON contract (export-json-contract.md §2)."""
+
+    def test_contiguous_int_keyed_table_becomes_array(self) -> None:
+        mission = _json_mission()
         assert mission["trigrules"] == [{"comment": "rule1"}, {"comment": "rule2"}]
         assert mission["trig"]["actions"] == ["a_do_script(...)"]
-        assert mission["trig"]["conditions"] == ["return true"]
         assert mission["trig"]["flag"] == [True]
 
-    def test_sparse_dict_stays_object_with_string_keys(self) -> None:
-        mission = build_export_object(_mission_with_trig())["mission"]
-        assert mission["sparse"] == {"2": "a", "5": "b"}
+    def test_sparse_int_table_uses_envelope_with_integer_keys(self) -> None:
+        pylons = _json_mission()["pylons"]
+        assert pylons == {"__luaTable__": [[1, "AIM-9"], [2, "AIM-120"], [8, "fuel"], [11, "AIM-9"]]}
+        # pair keys are JSON integers (not strings) so the decoder rebuilds Lua integer keys
+        assert all(isinstance(pair[0], int) for pair in pylons["__luaTable__"])
 
-    def test_mixed_key_dict_stays_object(self) -> None:
-        mission = build_export_object(_mission_with_trig())["mission"]
-        assert mission["mixed"] == {"1": "a", "x": "b"}
+    def test_mixed_key_table_uses_envelope_preserving_both_types(self) -> None:
+        callsign = _json_mission()["callsign"]
+        assert callsign == {"__luaTable__": [[1, 169], [2, 1], [3, 1], ["name", "Colt11"]]}
 
-    def test_empty_dict_stays_object(self) -> None:
-        mission = build_export_object(_mission_with_trig())["mission"]
-        assert mission["empty"] == {}
+    def test_string_numeric_table_stays_object_not_coerced(self) -> None:
+        # `failures` keyed by string ids must stay a string-keyed object — never an array/envelope.
+        failures = _json_mission()["failures"]
+        assert failures == {"10": {"enable": False}, "11": {"enable": True}}
 
-    def test_json_emits_arrays_for_sequences(self) -> None:
-        parsed = json.loads(to_json(build_export_object(_mission_with_trig())))
-        assert isinstance(parsed["mission"]["trigrules"], list)
-        assert isinstance(parsed["mission"]["sparse"], dict)
+    def test_empty_table_is_object(self) -> None:
+        assert _json_mission()["empty"] == {}
 
+    def test_integer_keys_emit_without_decimal(self) -> None:
+        # Contract precision: a pair key 1 must serialize as `1`, never `1.0` (decoder needs an int).
+        text = to_json(build_export_object(_mission_with_lua_tables()), compact=True)
+        assert '[1,"AIM-9"]' in text
+        assert "1.0" not in text
 
-class TestParityGate:
-    """FEAT-EXPORT-BFR-PARSER-005 — the exported object reproduces today's `load()` shape.
-
-    The plugin indexes some tables numerically (`#trigrules`, `ipairs(trig.actions)`): those must be
-    JSON arrays. A table left sparse by an editor deletion (`{[2]=,[5]=}`) cannot be an array and
-    ships as an object with string keys — the plugin's decoder coerces them back (contract §3).
-    """
-
-    def test_numerically_indexed_tables_are_arrays_sparse_is_object(self) -> None:
-        # `triggers.zones` after deleting zones #1, #3, #4 in the editor: a sparse int-keyed table.
-        mission = DcsMission(
-            file_path=Path("/dev/null"),
-            mission_content={
-                "trigrules": {1: {"comment": "VEAF init"}, 2: {"comment": "Player wins"}},
-                "triggers": {"zones": {2: {"name": "Zone-2"}, 5: {"name": "Zone-5"}}},
-            },
-        )
-        parsed = json.loads(to_json(build_export_object(mission)))
-        # contiguous → array (works with #/ipairs after decoding)
-        assert parsed["mission"]["trigrules"] == [{"comment": "VEAF init"}, {"comment": "Player wins"}]
-        # sparse → object with string keys (decoder coerces back to integer keys)
-        assert parsed["mission"]["triggers"]["zones"] == {"2": {"name": "Zone-2"}, "5": {"name": "Zone-5"}}
+    def test_envelope_pairs_are_two_element_arrays(self) -> None:
+        for pair in _json_mission()["pylons"]["__luaTable__"]:
+            assert isinstance(pair, list) and len(pair) == 2
+            assert isinstance(pair[0], (int, str))
 
 
 class TestJsonYaml:

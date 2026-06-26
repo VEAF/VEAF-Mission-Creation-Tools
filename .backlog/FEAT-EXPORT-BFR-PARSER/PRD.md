@@ -49,13 +49,19 @@ by N, inserting VEAF triggers at a rank, deleting by index
 (`mission_builder_worker.py:860,1639`) — and an int-keyed dict re-serializes to the explicit
 `[n]=…` Mission-Editor form. Doing that on a Python list is unsafe (0-based, no gaps).
 
-→ We **keep** `keep_as_dict` and the internal representation untouched. The array/object
-problem is confined to the **JSON serialization boundary**: an **export-only normalization
-pass** emits any dict whose keys are exactly the contiguous integers `1..n` as a **JSON array**.
-The builder is not touched (zero regression risk). For the rare **sparse** table
-(`{[2]=,[5]=}` after a deletion in the editor), parity is restored on the **plugin side** by a
-decoder that coerces integer-string JSON keys back to Lua integer keys — this is part of the
-specified contract, not of this lot's code.
+→ We **keep** `keep_as_dict` and the internal representation untouched. The whole mapping is
+confined to the **JSON serialization boundary** (`to_json`), so the builder/parser and the YAML
+export's native integer keys are untouched (zero regression risk).
+
+**schemaVersion 2 (key-type-lossless).** Dup's harness found that a numeric-string-key heuristic
+can't be correct: real missions carry, often in the same table, sparse-int keys (`payload.pylons`),
+mixed int+string keys (`callsign = {[1],[2],[3],["name"]}`), and string-numeric keys
+(`failures = {["10"]}`). Because JSON object keys are always strings, the type is lost. The contract
+therefore emits: contiguous `1..n` → **array**; all-string keys → **object** (verbatim, no coercion
+— fixes `failures`); any integer key in a non-sequence → a **`__luaTable__` envelope**
+`{"__luaTable__": [[key, value], …]}` whose pair keys are JSON numbers (Lua int) or JSON strings
+(Lua string). JSON's own number/string distinction carries the type, so the plugin decoder never
+guesses. (v1's coercion is withdrawn.)
 
 ## User Stories
 

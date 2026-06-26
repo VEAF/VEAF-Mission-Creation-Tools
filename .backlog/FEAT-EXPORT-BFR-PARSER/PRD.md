@@ -1,6 +1,6 @@
 # Lot FEAT-EXPORT-BFR-PARSER — `veaf-tools export` as the safe mission parser for the BFR plugin
 
-Status: 🔄 in-progress
+Status: ✅ done (merged #519)
 
 Branch: `feature/export-bfr-parser` → PR → `develop-v6`
 

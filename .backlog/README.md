@@ -15,7 +15,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FEAT-MIGRATE-MISSION-V6](FEAT-MIGRATE-MISSION-V6/PRD.md) — promote `src/mission/` from v5 to v6 on disk | ✅ |
 | [FIX-DYNSLOT-TEMPLATE-CATEGORY](FIX-DYNSLOT-TEMPLATE-CATEGORY/PRD.md) — airplane dynamic-slot templates miscategorized as helicopters | 🔄 |
 | [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) — broaden the shipped default radio presets | ⬜ |
-| [FEAT-EXPORT-BFR-PARSER](FEAT-EXPORT-BFR-PARSER/PRD.md) — `export` as the safe mission parser for the BFR plugin (`.miz`/folder, JSON array-ness contract) | 🔄 |
+| [FEAT-EXPORT-BFR-PARSER](FEAT-EXPORT-BFR-PARSER/PRD.md) — `export` as the safe mission parser for the BFR plugin (`.miz`/folder, JSON array-ness contract) | ✅ |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

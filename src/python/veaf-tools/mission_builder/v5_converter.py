@@ -936,6 +936,10 @@ class V5Converter:
                     continue
                 report.unrecognized_files.append(f"src/{name}/" if entry.is_dir() else f"src/{name}")
 
+        # Defensive: keep each reported path unique (order-preserving), so an accidental
+        # double call never repeats an entry in the report/console.
+        report.unrecognized_files = list(dict.fromkeys(report.unrecognized_files))
+
     def _convert_pipeline_files(
         self,
         report: ConversionReport,

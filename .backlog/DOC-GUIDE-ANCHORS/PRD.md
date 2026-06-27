@@ -1,6 +1,6 @@
 # DOC-GUIDE-ANCHORS
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

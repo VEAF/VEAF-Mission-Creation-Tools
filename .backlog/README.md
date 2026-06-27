@@ -25,6 +25,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FIX-BUILD-PROFILES](FIX-BUILD-PROFILES/PRD.md) — case-insensitive `--profile` (canonical name) + orphan warning gated on the base+profiles union | ✅ |
 | [CONVERT-V5-UX](CONVERT-V5-UX/PRD.md) — triage leftover v5 files (tooling→backup, regenerable→delete, unrecognized→inform) + drop the misleading annotated-missionConfig report block | ✅ |
 | [DOC-GUIDE-ANCHORS](DOC-GUIDE-ANCHORS/PRD.md) — fix the `mission.yaml` `# Doc:` deep links (trailing slash + stable explicit FR/EN anchors via `attr_list`) | ✅ |
+| [FIX-CONVERT-WEATHER-I18N](FIX-CONVERT-WEATHER-I18N/PRD.md) — route 3 hardcoded-English convert-v5 weather/waypoints warnings through `t()` (FR/EN) | 🔄 |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

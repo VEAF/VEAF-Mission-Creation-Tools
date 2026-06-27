@@ -443,7 +443,7 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
         output["settings"] = v6_settings
 
     if not output:
-        warnings.append(f"{v5_path.name}: no waypoints or settings data found — nothing written")
+        warnings.append(t("convert_v5.warn.waypoints_empty", filename=v5_path.name))
         return warnings
 
     _yaml_dump(output, v6_path)
@@ -506,7 +506,7 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
     """
     warnings: list[str] = []
     if not lua_path.exists():
-        warnings.append(f"Weather file not found: {lua_path.name}")
+        warnings.append(t("convert_v5.warn.weather_file_not_found", filename=lua_path.name))
         return {}, warnings
 
     try:
@@ -667,10 +667,7 @@ def convert_weather(
                 icao = icao_callback(ver["name"])
             ver["airport_icao"] = icao.strip().upper() if icao else "TODO"
             if not icao:
-                warnings.append(
-                    f"Version '{ver['name']}': realweather=true — "
-                    f"replace 'TODO' with the actual ICAO code in {v6_path.name}"
-                )
+                warnings.append(t("convert_v5.warn.realweather_todo", name=ver["name"], filename=v6_path.name))
             if target.get("clearsky"):
                 ver["clearsky"] = True
         elif weatherfile := target.get("weatherfile"):

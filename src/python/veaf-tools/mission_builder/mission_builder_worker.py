@@ -29,7 +29,7 @@ from mission_tools import (
 )
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
-from veaf_libs.build_profiles import resolve_profile
+from veaf_libs.build_profiles import pipeline_step_enabled_anywhere, resolve_profile
 from veaf_libs.config_override import (
     OVERRIDE_SCRIPT_NAME,
     find_unknown_segments,
@@ -403,11 +403,15 @@ class MissionBuilderWorker(BaseWorker):
         # Read mission.yaml, then apply build profile (deep-merge)
         self.mission_yaml: dict = {}
         self.pipeline_cfg: dict = {}
+        # Raw (pre-profile) mission.yaml — kept so the orphan-file check can reason
+        # about every build context (base + all profiles), not just the resolved one.
+        self._raw_yaml: dict = {}
         mission_yaml_path = mission_folder / "mission.yaml"
         if mission_yaml_path.exists():
             validate_yaml_file(mission_yaml_path)
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
+            self._raw_yaml = raw_yaml
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)
             validate_modules_semantics(self.mission_yaml)
             self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
@@ -921,7 +925,10 @@ class MissionBuilderWorker(BaseWorker):
                     if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
                         logger.debug(f"Skipping default '{f.name}': pipeline '{mapping['pipeline']}' is disabled")
                         dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
-                        if dest.exists():
+                        # Only warn for a genuine orphan: a file no build context uses. If the
+                        # step is disabled merely by the current profile but enabled by the base
+                        # or another profile, the file is legitimate — stay silent (FIX-BUILD-PROFILES).
+                        if dest.exists() and not pipeline_step_enabled_anywhere(self._raw_yaml, mapping["pipeline"]):
                             logger.warning(
                                 t(
                                     "builder.orphan_pipeline_file",

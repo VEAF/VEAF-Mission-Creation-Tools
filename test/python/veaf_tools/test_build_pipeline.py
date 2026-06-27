@@ -228,6 +228,20 @@ class TestBuildPlan(unittest.TestCase):
         plan = self._plan({"build_variants": ["MODERN", "COLD_WAR"]}, "MODERN")
         self.assertEqual(plan, [("MODERN", Path("/m/Foothold_20260618.miz"), "Foothold")])
 
+    def test_variant_name_is_canonicalized_from_profiles(self) -> None:
+        """A lower-case build_variants entry resolves to the profile's canonical name,
+        used for both the build and the .miz suffix (FIX-BUILD-PROFILES)."""
+        plan = self._plan(
+            {"build_variants": ["modern"], "profiles": {"MODERN": {"mission": {"era": "MODERN"}}}},
+            None,
+        )
+        self.assertEqual(plan, [("MODERN", Path("/m/Foothold_20260618_MODERN.miz"), "Foothold_MODERN")])
+
+    def test_unknown_variant_falls_back_to_declared_name(self) -> None:
+        """A variant with no matching profile keeps the declared name."""
+        plan = self._plan({"build_variants": ["CUSTOM"]}, None)
+        self.assertEqual(plan, [("CUSTOM", Path("/m/Foothold_20260618_CUSTOM.miz"), "Foothold_CUSTOM")])
+
 
 if __name__ == "__main__":
     unittest.main()

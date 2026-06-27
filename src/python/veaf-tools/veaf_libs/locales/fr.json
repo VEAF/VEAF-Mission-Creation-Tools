@@ -763,6 +763,7 @@
   "updater.config_load_failed": "Échec du chargement du fichier de configuration : {error}",
   "profiles.invalid_profiles_section": "Section 'profiles' invalide dans mission.yaml ignorée (dictionnaire attendu)",
   "profiles.profile_not_found": "Profil '{name}' introuvable dans mission.yaml — configuration de base utilisée",
+  "profiles.ambiguous_profile": "Profil '{name}' ambigu : plusieurs profils ne diffèrent que par la casse ({matches}) — configuration de base utilisée",
   "profiles.building_with_profile": "Construction avec le profil : {name}",
   "paths.no_path_provided": "path ou default_path doit être fourni",
   "paths.path_not_found": "Le chemin n'existe pas : {path}",

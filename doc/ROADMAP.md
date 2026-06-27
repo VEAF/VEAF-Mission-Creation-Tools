@@ -39,7 +39,8 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 - ✅ **Mission YAML → sélection de modules** — la section `lua_modules` dans `mission.yaml` pilote quels modules sont inclus et comment ils sont initialisés
 
 ### Release
-- ✅ **Releases v6.x** — publication continue depuis `develop-v6` (tags `published-vx.y.z`) ; version courante **6.6.1**. Le merge `develop-v6` → `master` est réservé aux jalons stables.
+- ✅ **Releases v6.x** — publication continue depuis `develop-v6` (tags `published-vx.y.z`) ; version courante **6.7.0**. Le merge `develop-v6` → `master` est réservé aux jalons stables.
+- ✅ **Release v6.7.0** — ouverture des missions à l'outillage externe : commande `export` (JSON/YAML/Markdown, sans exécution de Lua, FEAT-EXPORT-MISSION + FEAT-EXPORT-BFR-PARSER) ; `convert-v5` promeut désormais `src/mission/` en v6 sur disque (FEAT-MIGRATE-MISSION-V6) ; correctifs slots dynamiques (templates avions mal catégorisés, injection `dict`) et TUI (commandes manquantes).
 - ✅ **Release v6.6.1** — correctifs : toutes les commandes CLI accessibles depuis le TUI (FIX-TUI-MISSING-COMMANDS) ; injection des slots dynamiques réparée (`'dict' object has no attribute 'append'`, FIX-AIRCRAFT-INJECT-DICT-GROUP).
 - ✅ **Release v6.6.0** — consolidation et améliorations : adoption de missions tierces (`convert-other` + profils Foothold, `config_override:`, build multi-variant), outils mission-maker (`validate`, `prepare --template`, pont CLI↔TUI, validation des références au build), et un large lot de correctifs (`convert-v5` sous-zones d'opération, AirWaves, slots dynamiques, catégories de templates).
 - ✅ **Release v6.3.0** — corrections de bugs et améliorations UX (Lot 26 + FIX-SORT) : correction du crash convert-v5, auto-pause au double-clic, filtrage des smart defaults, vérification nil de veaf.initialize()

@@ -1,6 +1,6 @@
 # Lot TOOLING-DCS-MOCK-COVERAGE — audit DCS-mock coverage against a vendored API schema
 
-Status: 🔄 in-progress
+Status: ✅ done (merged in PR #522)
 Branch: `feature/dcs-mock-coverage` (one branch + one PR for the lot)
 
 ## Problem Statement

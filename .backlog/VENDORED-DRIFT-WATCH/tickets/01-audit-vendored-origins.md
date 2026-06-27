@@ -1,6 +1,6 @@
 # VDW-001 — audit each vendored artifact's real provenance (by content diff)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: chore (investigation)
 Files: — (produces the data for VDW-002)
 
@@ -23,9 +23,9 @@ then record:
 
 ## Acceptance criteria
 
-- [ ] Provenance table for all artifacts, each backed by a content comparison (not by fork existence)
-- [ ] Vendoring mode + source/upstream + pinned version recorded per artifact
-- [ ] `manual_steps` drafted for every non-`verbatim` artifact
+- [x] Provenance table for all artifacts, each backed by a content comparison (not by fork existence) — captured directly in `vendored.yaml`
+- [x] Vendoring mode + source/upstream + pinned version recorded per artifact
+- [x] `manual_steps` drafted for every non-`verbatim` artifact
 
 ## Blocked by
 

@@ -1,8 +1,8 @@
 # VDW-002 — `vendored.yaml` manifest (single source of truth for pins)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
-Files: `vendored.yaml` (repo root or `src/.../data/`)
+Files: `vendored.yaml` (repo root)
 
 ## What to build
 
@@ -26,9 +26,9 @@ automatable source and are only re-surfaced as reminders.
 
 ## Acceptance criteria
 
-- [ ] `vendored.yaml` covers every artifact from VDW-001
-- [ ] Each non-`verbatim` entry has `manual_steps`
-- [ ] Schema documented (a short header comment or a doc note)
+- [x] `vendored.yaml` covers every artifact from VDW-001 (11 entries)
+- [x] Each non-`verbatim` entry has `manual_steps`
+- [x] Schema documented (header comment in `vendored.yaml` + developer README, FR/EN)
 
 ## Blocked by
 

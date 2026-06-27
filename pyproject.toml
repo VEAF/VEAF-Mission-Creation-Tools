@@ -32,6 +32,7 @@ test-lua = "veaf_build.lua_tests:main"
 update-radio-specs = "veaf_build.radio_specs_updater:main"
 reindex-docs = "veaf_build.reindex_docs:main"
 audit-dcs-mocks = "veaf_build.dcs_mock_audit_cli:main"
+check-vendored = "veaf_build.vendored_check_cli:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

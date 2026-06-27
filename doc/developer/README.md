@@ -112,3 +112,10 @@ Une copie figée (release `v0.3.5`) est vendorée sous `src/python/veaf-tools/ve
 - **Aide IDE (optionnel)** — `.luarc.json` câble LuaLS sur l'annotation EmmyLua `dcs-world-api.lua` vendorée, pour l'autocomplétion et le diagnostic de signatures dans VSCode lors de l'écriture du Lua VEAF.
 
 Mettre à jour cette copie = un commit de bump explicite (re-télécharger les artefacts d'une release plus récente). La veille de dérive est gérée par le lot VENDORED-DRIFT-WATCH.
+
+## Artefacts tiers vendorés — veille de dérive
+
+On fige (commit d'une copie) plusieurs artefacts tiers : Lua communautaire (`mist`, `CTLD`, `CSAR`, `AIEN`, `TheUniversalMission`, `Skynet`, `Hercules_Cargo`, `DCS-SimpleTextToSpeech`), la lib Python `luadata`, des sons, et le schéma DCS ci-dessus. Le manifeste **`vendored.yaml`** (racine du repo) est la source de vérité unique des pins : par artefact il enregistre la `source` réelle (établie par **comparaison de contenu**, jamais en supposant qu'un fork VEAF est l'origine), l'`upstream`, le mode `vendoring` (`verbatim` / `adapted` / `fork` / `compiled`), et les `manual_steps` pour mettre à jour (re-copie vs rebase de fork / recompilation).
+
+- **`poetry run check-vendored`** compare chaque pin à l'upstream **via l'API GitHub uniquement** (aucun téléchargement d'artefact) — dernier tag de release ou dernier commit du fichier — et signale `drifted` / `up-to-date` / `manual` (sortie `--format table|json|markdown`, code de sortie ≠ 0 si quelque chose est actionnable).
+- Le workflow planifié **`vendored-drift-watch.yml`** (cron hebdomadaire + `workflow_dispatch`) le lance et **ouvre ou met à jour une seule issue récap** listant les dérives + les rappels de re-vérification manuelle, chacun avec ses `manual_steps`. **Notification seulement — jamais de mise à jour automatique** (c'est la vision COMMUNITY-AUTOUPDATE).

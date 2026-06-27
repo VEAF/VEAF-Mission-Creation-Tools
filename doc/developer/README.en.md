@@ -112,3 +112,10 @@ A frozen copy (release `v0.3.5`) is vendored under `src/python/veaf-tools/veaf_l
 - **IDE help (optional)** — `.luarc.json` wires LuaLS to the vendored `dcs-world-api.lua` EmmyLua annotations, for autocomplete and signature diagnostics in VSCode while writing VEAF Lua.
 
 Updating this copy is an explicit bump commit (re-download the artifacts from a newer release). Drift-watch is handled by the VENDORED-DRIFT-WATCH lot.
+
+## Vendored third-party artifacts — drift watch
+
+We freeze (commit a copy of) several third-party artifacts: community Lua (`mist`, `CTLD`, `CSAR`, `AIEN`, `TheUniversalMission`, `Skynet`, `Hercules_Cargo`, `DCS-SimpleTextToSpeech`), the Python `luadata` lib, sounds, and the DCS schema above. The **`vendored.yaml`** manifest (repo root) is the single source of truth for every pin: per artifact it records the real `source` (established by **content comparison**, never by assuming a VEAF fork is the origin), the `upstream`, the `vendoring` mode (`verbatim` / `adapted` / `fork` / `compiled`), and the `manual_steps` to update it (a plain re-copy vs a fork-rebase / recompile).
+
+- **`poetry run check-vendored`** compares each pin against upstream **via the GitHub API only** (no artifact download) — latest release tag or latest file commit — and reports `drifted` / `up-to-date` / `manual` (`--format table|json|markdown`, non-zero exit on anything actionable).
+- The scheduled **`vendored-drift-watch.yml`** workflow (weekly cron + `workflow_dispatch`) runs it and **opens or updates a single recap issue** listing the drifts + the manual re-check reminders, each with its `manual_steps`. **Notify only — never auto-update** (that is the COMMUNITY-AUTOUPDATE vision).

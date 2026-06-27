@@ -1,0 +1,62 @@
+name: Vendored Drift Watch
+
+# Scheduled drift-watch for vendored third-party artifacts (VENDORED-DRIFT-WATCH).
+# Runs `check-vendored` against `vendored.yaml` and, when anything is actionable
+# (an upstream moved past a pin, or a watch could not be resolved), opens OR updates
+# ONE recap issue listing the drifts + the manual re-check reminders, each with its
+# `manual_steps`.
+#
+# NOTIFY ONLY — nothing here auto-updates a pin (that is the COMMUNITY-AUTOUPDATE
+# vision). Idempotent: an already-open recap issue is edited in place, never duplicated.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch: # manual dry-run
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --without build --all-extras
+
+      - name: Check vendored artifacts for drift
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          poetry run check-vendored --format markdown > drift-body.md
+          echo "actionable=$?" >> "$GITHUB_OUTPUT"
+          cat drift-body.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the recap issue
+        if: steps.check.outputs.actionable != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="🔄 Vendored artifact drift"
+          # Ensure the label exists (idempotent).
+          gh label create vendored-drift --color FBCA04 --description "Vendored artifact drift watch" 2>/dev/null || true
+          EXISTING=$(gh issue list --label vendored-drift --state open --json number -q '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --body-file drift-body.md
+            echo "Updated recap issue #$EXISTING"
+          else
+            gh issue create --title "$TITLE" --label vendored-drift --body-file drift-body.md
+            echo "Opened a new recap issue"
+          fi

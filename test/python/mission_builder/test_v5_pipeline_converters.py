@@ -157,6 +157,8 @@ class TestConvertWeather(unittest.TestCase):
         data = yaml.safe_load(v6.read_text())
         self.assertEqual(data["versions"][0]["airport_icao"], "TODO")
         self.assertTrue(len(warnings) > 0)
+        # The warning names the version and the TODO to replace (language-agnostic).
+        self.assertTrue(any("Clear" in w and "TODO" in w for w in warnings), warnings)
 
     def test_realweather_icao_callback_used(self) -> None:
         v5 = self._write_json({"targets": [{"version": "Storm", "realweather": True}]})

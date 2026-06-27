@@ -1,6 +1,6 @@
 # CONVERT-V5-UX
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Two convert-v5 output/UX improvements (both in `v5_converter.py`).
 

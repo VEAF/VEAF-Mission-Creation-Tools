@@ -109,7 +109,7 @@ This single command handles everything in one pass:
 - **`src/mission/` promotion to v6** — rewrites the exploded `.miz` (`src/mission/`) to v6: a base build migrates the legacy v5 triggers **on disk**, after backing up the original to `backup_v5/src/mission/`. On by default; all editor content (groups, routes, units) is preserved — only the legacy v5 trigger layer is purged. Use `--no-promote` to skip it.
 - **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
-If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the tool prints a warning and you edit the generated config manually:
+If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the conversion still succeeds: the tool writes `airport_icao: TODO` into the generated config (`versions.yaml`) and prints a warning. Set it afterwards either by editing the `TODO` in `versions.yaml`, or by re-running `convert-v5 --icao UGGG --force`:
 
 ```powershell
 .\veaf-tools.exe convert-v5 . --icao UGGG

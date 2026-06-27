@@ -835,6 +835,13 @@ class TestCleanupLegacyV5Files(unittest.TestCase):
         self.assertIn("stray.bin", report.unrecognized_files)
         shutil.rmtree(tmp)
 
+    def test_toolchain_match_is_case_insensitive(self) -> None:
+        # A mixed-case binary (alone, to avoid a case-insensitive-FS collision) must also
+        # be skipped — the match is case-insensitive and platform-independent.
+        tmp, report = self._run({"VEAF-Tools.EXE": "u"})
+        self.assertNotIn("VEAF-Tools.EXE", report.unrecognized_files)
+        shutil.rmtree(tmp)
+
     def test_protected_entries_never_touched(self) -> None:
         tmp, report = self._run(
             {

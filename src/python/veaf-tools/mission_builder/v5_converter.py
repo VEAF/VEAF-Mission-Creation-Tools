@@ -24,7 +24,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from fnmatch import fnmatch
+from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
 from typing import Any
 
@@ -926,7 +926,10 @@ class V5Converter:
             if (
                 name.startswith(".")
                 or name in _CLEANUP_ROOT_KNOWN
-                or any(fnmatch(name, g) for g in _CLEANUP_TOOLCHAIN_GLOBS)
+                # Case-insensitive on every OS (fnmatchcase on the lowered name): the
+                # toolchain must be skipped whatever the casing, and matching must not
+                # depend on the platform (plain fnmatch differs Windows vs POSIX).
+                or any(fnmatchcase(name.lower(), g) for g in _CLEANUP_TOOLCHAIN_GLOBS)
             ):
                 continue
             if entry.is_dir() and name in _LEGACY_V5_REGENERABLE_DIRS:

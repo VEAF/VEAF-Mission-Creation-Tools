@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
-from veaf_libs.i18n import current_language, set_language, t
+from veaf_libs.i18n import current_language, language, set_language, t
 
 # ---------------------------------------------------------------------------
 # ConversionReport.to_markdown() — empty / minimal state
@@ -251,12 +251,8 @@ class TestBuildMissionYamlDocLinks(unittest.TestCase):
             return V5Converter(version="test")._build_mission_yaml(report)
 
     def test_header_doc_url_is_correct(self) -> None:
-        prev = current_language()
-        try:
-            set_language("fr")
+        with language("fr"):
             yaml = self._build_yaml()
-        finally:
-            set_language(prev)
         # Trailing slash before any fragment, language-aware base (DOC-GUIDE-ANCHORS).
         self.assertIn("veaf.github.io/documentation/dev/mission-maker/GUIDE/", yaml)
         self.assertNotIn("blob/master/doc", yaml)
@@ -874,15 +870,8 @@ class TestGuideDocLinks(unittest.TestCase):
         "#debug-logging",
     )
 
-    def setUp(self) -> None:
-        self._prev_lang = current_language()
-
-    def tearDown(self) -> None:
-        set_language(self._prev_lang)
-
     def _yaml(self, lang: str) -> str:
-        set_language(lang)
-        with tempfile.TemporaryDirectory() as td:
+        with language(lang), tempfile.TemporaryDirectory() as td:
             report = ConversionReport(mission_folder=Path(td), version="t")
             return V5Converter(version="t")._build_mission_yaml(report)
 
@@ -902,3 +891,9 @@ class TestGuideDocLinks(unittest.TestCase):
             text = (root / name).read_text(encoding="utf-8")
             for anchor in self._ANCHORS:
                 self.assertIn(f"{{{anchor}}}", text, f"{name} is missing the explicit anchor {anchor}")
+
+    def test_doc_lang_segment_maps_locale_to_path(self) -> None:
+        from mission_builder.v5_converter import _doc_lang_segment
+
+        self.assertEqual(_doc_lang_segment("en"), "en/")
+        self.assertEqual(_doc_lang_segment("fr"), "")

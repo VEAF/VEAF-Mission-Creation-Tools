@@ -1,6 +1,6 @@
 # FIX-CONVERT-WEATHER-I18N
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

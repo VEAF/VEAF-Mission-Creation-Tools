@@ -97,3 +97,9 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 - [Guide développeur complet](GUIDE.md) — organisation du dépôt, conventions de code, pipeline de build, workflow de contribution
 - [Guide de test](../TESTING.md) — infrastructure de test Lua et Python en détail
 - [Contrat JSON `export`](export-json-contract.md) — format de sortie de `veaf-tools export` consommé par le plugin BFR `dcs-mission-tools`
+
+---
+
+## Ressources externes — API DCS
+
+- **[DCS World Schema](https://github.com/YoloWingPixie/dcs-world-schema)** (YoloWingPixie, MIT) — schéma YAML complet de l'API de scripting de mission DCS World, exporté en JSON Schema, annotations EmmyLua (`dcs-world-api.lua`) et types TypeScript/Go/Python. Référence pour les signatures de l'API DCS ; utile pour le linting LuaLS et pour compléter nos stubs `test/lua/dcs_mocks.lua`.

@@ -29,6 +29,9 @@ def configure_stdio_encoding() -> None:
         try:
             reconfigure(encoding="utf-8", errors="replace")
         except (ValueError, OSError):
+            # Fail-soft: a stream that refuses to reconfigure (already detached, or an
+            # unusual platform) keeps its current encoding — a degraded glyph is
+            # acceptable, a crash at CLI startup is not.
             pass
 
 

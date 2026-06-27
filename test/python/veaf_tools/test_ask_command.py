@@ -32,6 +32,12 @@ class TestStreamAnswer(unittest.TestCase):
         out = ask_mod._stream_answer(_FakeWorker([]), "q", [])
         self.assertEqual(out, "")
 
+    def test_blank_only_stream_returns_empty_string(self) -> None:
+        # A stream of only-whitespace chunks must still resolve to an empty answer
+        # (and keep the empty-answer fallback), not a stray blank string.
+        out = ask_mod._stream_answer(_FakeWorker(["  ", " "]), "q", [])
+        self.assertEqual(out, "")
+
     def test_consumes_every_chunk(self) -> None:
         chunks = [f"chunk{i} " for i in range(20)]
         out = ask_mod._stream_answer(_FakeWorker(chunks), "q", [])

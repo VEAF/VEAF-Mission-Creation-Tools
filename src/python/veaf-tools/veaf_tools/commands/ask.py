@@ -23,10 +23,11 @@ def _stream_answer(worker: WorkerChatWorker, question: str, history: list[dict[s
     Returns:
         The complete answer text (rendered as Markdown, live, as it arrives).
     """
-    stream = worker.ask(question, history)
-    # Spin until the first chunk lands, then live-render the Markdown so the answer
-    # appears as it streams in (and a truncated stream is visible, not silent).
+    # Spin until the worker call AND the first chunk arrive, so any latency (network,
+    # auth, …) is covered by the same "thinking" indicator; then live-render the
+    # Markdown so the answer appears as it streams in (a cut stream is visible, not silent).
     with console.status(t("ask.thinking"), spinner="dots"):
+        stream = worker.ask(question, history)
         first = next(stream, None)
     if first is None:
         console.print(Markdown(t("ask.empty_answer")))
@@ -36,7 +37,11 @@ def _stream_answer(worker: WorkerChatWorker, question: str, history: list[dict[s
         for chunk in stream:
             parts.append(chunk)
             live.update(Markdown("".join(parts)))
-    return "".join(parts).strip()
+    answer = "".join(parts).strip()
+    if not answer:
+        # Stream yielded only blank chunks → keep the explicit empty-answer notice.
+        console.print(Markdown(t("ask.empty_answer")))
+    return answer
 
 
 @app.command(no_args_is_help=False, help=t("cmd.ask.help"))

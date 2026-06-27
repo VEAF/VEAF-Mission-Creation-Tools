@@ -1,6 +1,6 @@
 # Lot FIX-DCS-MOCKS-COMPLETION — fill the DCS-mock gaps surfaced by `audit-dcs-mocks`
 
-Status: 🔄 in-progress
+Status: ✅ done (merged in PR #523)
 Branch: `fix/dcs-mocks-completion` (one branch + one PR for the lot)
 
 ## Problem Statement

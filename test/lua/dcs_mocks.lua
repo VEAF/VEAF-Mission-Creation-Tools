@@ -57,7 +57,9 @@ trigger = {
     lineToAll = function(...) end,
     circleToAll = function(...) end,
     rectToAll = function(...) end,
+    quadToAll = function(...) end,
     textToAll = function(...) end,
+    radioTransmission = function(...) end,
     setMarkupColor = function(...) end,
     setUserFlag = function(flag, val) end,
     smoke = function(...) end,
@@ -118,6 +120,15 @@ world = {
   removeEventHandler = function(handler) end,
   getAirbases = function(coalition_id) return {} end,
   searchObjects = function(category, volume, fn) end,
+  getMarkPanels = function() return {} end,
+  removeJunk = function(searchVolume) return 0 end,
+  weather = {
+    getFogThickness = function() return 0 end,
+    getFogVisibilityDistance = function() return 0 end,
+    setFogAnimation = function(fogAnimationKeys) end,
+    setFogThickness = function(thickness) end,
+    setFogVisibilityDistance = function(visibility) end,
+  },
 }
 
 -- ---------------------------------------------------------------------------
@@ -173,6 +184,8 @@ Airbase = {
 land = {
   getHeight = function(vec2) return 0 end,
   getSurfaceType = function(vec2) return 1 end,
+  -- DCS returns the closest road point as two numbers (x, z); echo the query point.
+  getClosestPointOnRoads = function(roadType, x, z) return x, z end,
   SurfaceType = { LAND = 1, SHALLOW_WATER = 2, WATER = 3, ROAD = 4, RUNWAY = 5 },
 }
 coord = {

@@ -24,6 +24,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +81,36 @@ V5_PIPELINE_CANDIDATES: dict[str, list[str]] = {
 #: Per-step guidance on how to convert a v5 file to v6 format.
 #: Backward-compatible alias — exported public symbol.
 PIPELINE_CANDIDATES = V6_PIPELINE_CANDIDATES
+
+# ── Legacy v5 file cleanup (CONVERT-V5-CLEANUP-FILES) ───────────────────────────
+#: v5 tooling files at the mission root made obsolete by the v6 toolchain. Moved to
+#: backup_v5/ (reversible), like the converted pipeline configs.
+_LEGACY_V5_TOOLING_GLOBS: tuple[str, ...] = ("*.cmd", "*.cmd.sample", "*.ps1")
+_LEGACY_V5_TOOLING_NAMES: frozenset[str] = frozenset(
+    {"package.json", "package-lock.json", "yarn.lock", "configuration.json", "7za.exe"}
+)
+#: Regenerable v5 build artifacts (npm/build/cache, all gitignored) — deleted outright,
+#: never copied into backup_v5/ (pointless to archive 20 MB of node_modules).
+_LEGACY_V5_REGENERABLE_DIRS: frozenset[str] = frozenset({"node_modules", "build", "cache"})
+#: Tooling files known to carry secrets — flagged so a leaked key can be rotated/removed.
+_LEGACY_V5_SECRET_NAMES: frozenset[str] = frozenset({"configuration.json"})
+#: Root entries the cleanup scan never touches nor reports (VCS, its own backup, v6 artifacts).
+_CLEANUP_ROOT_KNOWN: frozenset[str] = frozenset({".git", "backup_v5", "mission.yaml", "src", "published", "missions"})
+#: src/ entries that belong to a v6 mission — excluded from the "unrecognized" listing.
+_CLEANUP_SRC_KNOWN: frozenset[str] = frozenset(
+    {
+        "presets.yaml",
+        "waypoints.yaml",
+        "spawnables.yaml",
+        "dynamic-slot-templates.yaml",
+        "warehouses.yaml",
+        "versions.yaml",
+        "spawn-groups.yaml",
+        "scripts",
+        "mission",
+        "options",
+    }
+)
 
 DOC_BASE = "https://veaf.github.io/documentation/dev"
 DOC_LINKS: dict[str, str] = {
@@ -203,8 +234,14 @@ class ConversionReport:
     """Items the user must review / clean up manually after testing."""
     backup_v5_sources: list[str] = field(default_factory=list)
     """Relative paths of v5 files/folders backed up under ``backup_v5/``."""
-    missionconfig_annotated_content: str = ""
-    """Annotated missionConfig.lua content (with [v6 ...] comments) — embedded in report."""
+    legacy_tooling_backed_up: list[str] = field(default_factory=list)
+    """Relative paths of obsolete v5 tooling files moved to ``backup_v5/`` (build*.cmd, package.json, …)."""
+    regenerable_deleted: list[str] = field(default_factory=list)
+    """Relative paths of regenerable v5 artifacts deleted outright (``node_modules/``, ``build/``, ``cache/``)."""
+    secret_tooling_files: list[str] = field(default_factory=list)
+    """Backed-up tooling files that may carry a secret (e.g. ``configuration.json``'s API key)."""
+    unrecognized_files: list[str] = field(default_factory=list)
+    """Relative paths of files the converter does not manage — listed for the maker to review/delete."""
     missionconfig_source: str = ""
     """Original (pre-migration) missionConfig.lua content — used to recover commented-out v5 elements."""
 
@@ -440,20 +477,11 @@ class ConversionReport:
             "",
         ]
 
-        # ── Annotated missionConfig.lua ───────────────────────────────────────
-        if self.missionconfig_annotated_content:
-            lines += [
-                f"## {t('report.section.annotated_config')}",
-                "",
-                t("report.annotated_config.intro"),
-                "",
-                "~~~~lua",
-                self.missionconfig_annotated_content,
-                "~~~~",
-                "",
-                "---",
-                "",
-            ]
+        # The missionConfig.lua migration is reported as the line→effect tables above
+        # (commented doFiles, wrapped/extracted init calls, enabled modules); the
+        # original file is preserved untouched under backup_v5/. We deliberately do not
+        # embed a pseudo "annotated missionConfig.lua" here — it was never an executed
+        # artifact and only obscured the actual outcome (CONVERT-V5-REPORT-ANNOTATION).
 
         # ── Manual review ─────────────────────────────────────────────────
         lines += [f"## {t('report.section.review')}", ""]
@@ -470,6 +498,26 @@ class ConversionReport:
                 f"*{t('report.warnings.none')}*",
                 "",
             ]
+
+        # ── Legacy v5 files triaged (CONVERT-V5-CLEANUP-FILES) ────────────────
+        if self.legacy_tooling_backed_up or self.regenerable_deleted or self.unrecognized_files:
+            lines += [f"### 🧹 {t('report.legacy_files.title')}", ""]
+            if self.legacy_tooling_backed_up:
+                lines.append(t("report.legacy_files.tooling", n=len(self.legacy_tooling_backed_up)))
+                lines += [f"- `{f}` → `backup_v5/{f}`" for f in self.legacy_tooling_backed_up]
+                lines.append("")
+            if self.secret_tooling_files:
+                secret = ", ".join(f"`{f}`" for f in self.secret_tooling_files)
+                lines += [f"> ⚠️ {t('report.legacy_files.secret', files=secret)}", ""]
+            if self.regenerable_deleted:
+                lines.append(t("report.legacy_files.deleted", n=len(self.regenerable_deleted)))
+                lines += [f"- `{f}`" for f in self.regenerable_deleted]
+                lines.append("")
+            if self.unrecognized_files:
+                lines.append(t("report.legacy_files.unrecognized", n=len(self.unrecognized_files)))
+                lines += [f"- `{f}`" for f in self.unrecognized_files]
+                lines.append("")
+            lines += ["---", ""]
 
         # Always include cleanup advice
         lines += [
@@ -768,6 +816,10 @@ class V5Converter:
         # Step 4 — Build manual-review list
         self._build_manual_review(report)
 
+        # Step 5 — Triage leftover v5 files (tooling → backup_v5/, regenerable → deleted,
+        # unrecognized → listed). Runs last, after the handled files have been moved out.
+        self._cleanup_legacy_v5_files(report)
+
         return report
 
     # ------------------------------------------------------------------
@@ -814,6 +866,79 @@ class V5Converter:
             report.actions.append(t("convert_v5.action.v5_backed_up", path=rel_str))
         except Exception as exc:
             report.warnings.append(t("convert_v5.action.backup_error", rel=rel, exc=exc))
+
+    def _archive_file_to_backup_v5(self, path: Path, report: ConversionReport) -> bool:
+        """Copy *path* under ``backup_v5/`` (mirroring its relative path) and delete it.
+
+        Returns ``True`` on success; on failure the file is left in place and a warning
+        is recorded.
+        """
+        mission_folder = report.mission_folder
+        try:
+            rel = path.relative_to(mission_folder)
+        except ValueError:
+            report.warnings.append(t("convert_v5.action.backup_path_error", source=path))
+            return False
+        dest = mission_folder / "backup_v5" / rel
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, dest)
+            path.unlink()
+            return True
+        except Exception as exc:
+            report.warnings.append(t("convert_v5.action.backup_error", rel=rel, exc=exc))
+            return False
+
+    def _cleanup_legacy_v5_files(self, report: ConversionReport) -> None:
+        """Triage v5 files made obsolete by the v6 toolchain (CONVERT-V5-CLEANUP-FILES).
+
+        Three outcomes:
+        - **Tooling files** at the root (``build*.cmd``, ``*.ps1``, ``package.json``,
+          ``yarn.lock``, ``configuration.json``, …) → moved to ``backup_v5/`` (reversible).
+        - **Regenerable artifacts** at the root (``node_modules/``, ``build/``, ``cache/``)
+          → deleted outright (gitignored, rebuilt on demand — not worth archiving).
+        - **Unrecognized files** (root + ``src/`` top level) → only listed in the report
+          for the maker to review; never touched.
+
+        Never touches ``.git/``, ``backup_v5/``, ``src/mission/``, generated v6 files, or
+        dotfiles. Safe to re-run: a second pass finds nothing left to clean.
+        """
+        folder = report.mission_folder
+
+        def _is_tooling(name: str) -> bool:
+            return name in _LEGACY_V5_TOOLING_NAMES or any(fnmatch(name, g) for g in _LEGACY_V5_TOOLING_GLOBS)
+
+        for entry in sorted(folder.iterdir(), key=lambda p: p.name):
+            name = entry.name
+            if name.startswith(".") or name in _CLEANUP_ROOT_KNOWN:
+                continue
+            if entry.is_dir() and name in _LEGACY_V5_REGENERABLE_DIRS:
+                try:
+                    shutil.rmtree(entry)
+                    report.regenerable_deleted.append(f"{name}/")
+                    report.actions.append(t("convert_v5.cleanup.deleted", path=f"{name}/"))
+                except Exception as exc:
+                    report.warnings.append(t("convert_v5.cleanup.delete_failed", path=name, exc=exc))
+            elif entry.is_file() and _is_tooling(name):
+                if self._archive_file_to_backup_v5(entry, report):
+                    report.legacy_tooling_backed_up.append(name)
+                    report.actions.append(t("convert_v5.cleanup.backed_up", path=name))
+                    if name in _LEGACY_V5_SECRET_NAMES:
+                        report.secret_tooling_files.append(name)
+            else:
+                report.unrecognized_files.append(f"{name}/" if entry.is_dir() else name)
+
+        src = folder / "src"
+        if src.is_dir():
+            for entry in sorted(src.iterdir(), key=lambda p: p.name):
+                name = entry.name
+                if name.startswith(".") or name in _CLEANUP_SRC_KNOWN:
+                    continue
+                report.unrecognized_files.append(f"src/{name}/" if entry.is_dir() else f"src/{name}")
+
+        # Defensive: keep each reported path unique (order-preserving), so an accidental
+        # double call never repeats an entry in the report/console.
+        report.unrecognized_files = list(dict.fromkeys(report.unrecognized_files))
 
     def _convert_pipeline_files(
         self,
@@ -908,11 +1033,10 @@ class V5Converter:
         result = self._migrator.migrate(original_content)
         report.migration_result = result
         report.missionconfig_source = original_content
-        annotated_content = result.new_content
 
         mission_folder = report.mission_folder
 
-        # Place original .bak and annotated version under backup_v5/
+        # Place the original .bak under backup_v5/ (the authoritative rollback reference).
         if backup:
             try:
                 rel = src.relative_to(mission_folder)
@@ -927,12 +1051,6 @@ class V5Converter:
                 report.missionconfig_backup = bak_path
                 report.actions.append(t("convert_v5.action.missionconfig_bak", path=f"{rel.parent}/{src.name}"))
 
-            # Store the annotated content in the report (embedded in the Markdown).
-            # We do NOT write it as a separate file in backup_v5/ to avoid confusion
-            # with the .bak file that is the authoritative rollback reference.
-            report.missionconfig_annotated_content = annotated_content
-            report.actions.append(t("convert_v5.action.missionconfig_annotated"))
-
             # Write a README.txt in backup_v5/ explaining its purpose
             readme_path = mission_folder / "backup_v5" / "README.txt"
             if not readme_path.exists():
@@ -946,8 +1064,8 @@ class V5Converter:
                     "Contents:\n"
                     "  src/scripts/missionConfig.lua  — original unmodified file (for rollback)\n"
                     "\n"
-                    "The annotated version of missionConfig.lua (with [v6 ...] comments showing\n"
-                    "what each line was migrated into) is embedded in the conversion report:\n"
+                    "What each line of the original was migrated into is summarised in the\n"
+                    "conversion report (commented doFiles, init calls, enabled modules):\n"
                     "  convert-v5-report.md\n"
                     "\n"
                     "Once you have verified that the mission builds and runs correctly:\n"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -603,8 +604,9 @@ class TestV5ConverterIntegration(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 
-class TestConversionReportAnnotatedContent(unittest.TestCase):
-    """to_markdown() embeds annotated content as a Lua code block (IMC-002)."""
+class TestConversionReportNoAnnotatedBlock(unittest.TestCase):
+    """The report no longer embeds a pseudo "annotated missionConfig.lua" Lua block
+    (CONVERT-V5-REPORT-ANNOTATION); the migration is reported as line→effect tables."""
 
     def setUp(self) -> None:
         self._prev_lang = current_language()
@@ -613,28 +615,23 @@ class TestConversionReportAnnotatedContent(unittest.TestCase):
     def tearDown(self) -> None:
         set_language(self._prev_lang)
 
-    def test_annotated_section_present_when_content_set(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
-            report.missionconfig_annotated_content = "-- [v6 migrated]\nlocal x = 1"
-            md = report.to_markdown()
-            self.assertIn("~~~~lua", md)
-            self.assertIn("-- [v6 migrated]", md)
-            self.assertIn("local x = 1", md)
+    def test_no_annotated_lua_block_and_mapping_tables_present(self) -> None:
+        from mission_builder.config_migrator import MigrationResult
 
-    def test_annotated_section_absent_when_empty(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
+            report.migration_result = MigrationResult(
+                new_content="",
+                enabled_modules=["RADIO"],
+                removed_dofiles=["line 3: doFile('x.lua')"],
+                wrapped_calls=["line 5: veafRadio.initialize()"],
+            )
             md = report.to_markdown()
-            # No annotated content → no tilde fenced code block
+            # No pseudo-annotated Lua block anymore …
             self.assertNotIn("~~~~lua", md)
-
-    def test_annotated_section_title_in_report(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
-            report.missionconfig_annotated_content = "-- [v6 foo]"
-            md = report.to_markdown()
-            self.assertIn(t("report.section.annotated_config"), md)
+            # … but the line→effect mapping is still there (as tables).
+            self.assertIn("line 3", md)
+            self.assertIn("line 5", md)
 
 
 # ---------------------------------------------------------------------------
@@ -773,3 +770,86 @@ class TestConversionReportPromotionSection(unittest.TestCase):
         md = self._report(promotion_attempted=True, promotion_done=False, promotion_reason="boom").to_markdown()
         self.assertIn(t("report.scan.promotion.failed"), md)
         self.assertIn("boom", md)
+
+
+class TestCleanupLegacyV5Files(unittest.TestCase):
+    """convert-v5 triages leftover v5 files (CONVERT-V5-CLEANUP-FILES)."""
+
+    def _run(self, layout: dict[str, str | None]) -> tuple[Path, ConversionReport]:
+        """Create the given files (str content) / dirs (None) under a temp mission
+        folder, run the cleanup, return the folder and report."""
+        tmp = Path(tempfile.mkdtemp())
+        for rel, content in layout.items():
+            p = tmp / rel
+            if content is None:
+                p.mkdir(parents=True, exist_ok=True)
+            else:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content, encoding="utf-8")
+        report = ConversionReport(mission_folder=tmp)
+        V5Converter(version="t")._cleanup_legacy_v5_files(report)
+        return tmp, report
+
+    def test_tooling_files_moved_to_backup(self) -> None:
+        tmp, report = self._run(
+            {"build.cmd": "x", "build-dev.cmd.sample": "s", "replace.ps1": "y", "package.json": "{}", "yarn.lock": "z"}
+        )
+        for name in ("build.cmd", "build-dev.cmd.sample", "replace.ps1", "package.json", "yarn.lock"):
+            self.assertFalse((tmp / name).exists(), name)
+            self.assertTrue((tmp / "backup_v5" / name).exists(), name)
+            self.assertIn(name, report.legacy_tooling_backed_up)
+        shutil.rmtree(tmp)
+
+    def test_configuration_json_flagged_as_secret(self) -> None:
+        tmp, report = self._run({"configuration.json": '{"checkwx_apikey": "abc"}'})
+        self.assertIn("configuration.json", report.secret_tooling_files)
+        self.assertTrue((tmp / "backup_v5" / "configuration.json").exists())
+        shutil.rmtree(tmp)
+
+    def test_regenerable_dirs_deleted_not_archived(self) -> None:
+        tmp, report = self._run({"node_modules/pkg/index.js": "x", "build/out.miz": "m", "cache/w.json": "{}"})
+        for d in ("node_modules", "build", "cache"):
+            self.assertFalse((tmp / d).exists(), d)
+            self.assertIn(f"{d}/", report.regenerable_deleted)
+        self.assertFalse((tmp / "backup_v5" / "node_modules").exists())
+        shutil.rmtree(tmp)
+
+    def test_unrecognized_files_listed_not_touched(self) -> None:
+        tmp, report = self._run({"todo.txt": "do", "readme.md": "hi"})
+        for name in ("todo.txt", "readme.md"):
+            self.assertTrue((tmp / name).exists(), name)
+            self.assertIn(name, report.unrecognized_files)
+        shutil.rmtree(tmp)
+
+    def test_protected_entries_never_touched(self) -> None:
+        tmp, report = self._run(
+            {
+                ".git/config": "x",
+                "mission.yaml": "modules:",
+                "src/mission/mission": "m",
+                "src/versions.yaml": "v",
+                ".gitignore": "ig",
+            }
+        )
+        self.assertTrue((tmp / ".git" / "config").exists())
+        self.assertTrue((tmp / "mission.yaml").exists())
+        self.assertTrue((tmp / "src" / "mission" / "mission").exists())
+        flat = report.unrecognized_files + report.legacy_tooling_backed_up + report.regenerable_deleted
+        for item in (".git", ".git/", "mission.yaml", "src/mission/", "src/versions.yaml", ".gitignore"):
+            self.assertNotIn(item, flat)
+        shutil.rmtree(tmp)
+
+    def test_unrecognized_src_file_listed_known_v6_excluded(self) -> None:
+        tmp, report = self._run({"src/leftover.txt": "x", "src/options": "o", "src/versions.yaml": "v"})
+        self.assertIn("src/leftover.txt", report.unrecognized_files)
+        self.assertNotIn("src/options", report.unrecognized_files)
+        self.assertNotIn("src/versions.yaml", report.unrecognized_files)
+        shutil.rmtree(tmp)
+
+    def test_idempotent_second_run_finds_nothing(self) -> None:
+        tmp, _ = self._run({"build.cmd": "x", "node_modules/p.js": "y"})
+        report2 = ConversionReport(mission_folder=tmp)
+        V5Converter(version="t")._cleanup_legacy_v5_files(report2)
+        self.assertEqual(report2.legacy_tooling_backed_up, [])
+        self.assertEqual(report2.regenerable_deleted, [])
+        shutil.rmtree(tmp)

@@ -2,7 +2,7 @@
 
 Status: 🔄 in-progress
 
-Reword the real-weather empty-ICAO console notice emitted by `convert-v5` so it:
+Reword the realweather empty-ICAO console notice emitted by `convert-v5` so it:
 
 1. states the conversion succeeded (`airport_icao: TODO` written to `versions.yaml`);
 2. offers the lightest recovery first (edit the `TODO`), then the re-run path.

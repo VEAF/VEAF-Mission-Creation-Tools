@@ -4,7 +4,7 @@ Status: 🔄 in-progress
 
 ## Problem
 
-When `convert-v5` runs without `--icao` on a mission that uses real-weather, it prints
+When `convert-v5` runs without `--icao` on a mission that uses realweather, it prints
 a notice that reads like a failure and only points at re-running the command:
 
 > La version météo 'night-real' utilise realweather.

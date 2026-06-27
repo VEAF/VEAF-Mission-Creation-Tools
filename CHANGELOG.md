@@ -10,7 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
-- **`convert-v5` empty-ICAO notice no longer reads like a failure** (FIX-CONVERTV5-ICAO-MESSAGE). When a real-weather mission is converted without `--icao`, the converter writes `airport_icao: TODO` into the generated `versions.yaml` and the conversion succeeds — but the console notice only stated the ICAO was "left empty" and pointed at re-running the command. It now states the conversion succeeded (with the `TODO` placeholder) and offers the lightest fix first — edit the `TODO` in `versions.yaml` — before the re-run path (`convert-v5 --icao UGGG --force`). Wording only (FR/EN); behaviour unchanged.
+- **`convert-v5` empty-ICAO notice no longer reads like a failure** (FIX-CONVERTV5-ICAO-MESSAGE). When a realweather mission is converted without `--icao`, the converter writes `airport_icao: TODO` into the generated `versions.yaml` and the conversion succeeds — but the console notice only stated the ICAO was "left empty" and pointed at re-running the command. It now states the conversion succeeded (with the `TODO` placeholder) and offers the lightest fix first — edit the `TODO` in `versions.yaml` — before the re-run path (`convert-v5 --icao UGGG --force`). Wording only (FR/EN); behaviour unchanged.
 
 ## [6.7.0] — 2026-06-27
 

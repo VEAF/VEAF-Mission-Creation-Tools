@@ -24,7 +24,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from fnmatch import fnmatch
+from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,9 @@ _LEGACY_V5_REGENERABLE_DIRS: frozenset[str] = frozenset({"node_modules", "build"
 _LEGACY_V5_SECRET_NAMES: frozenset[str] = frozenset({"configuration.json"})
 #: Root entries the cleanup scan never touches nor reports (VCS, its own backup, v6 artifacts).
 _CLEANUP_ROOT_KNOWN: frozenset[str] = frozenset({".git", "backup_v5", "mission.yaml", "src", "published", "missions"})
+#: The v6 toolchain binaries the mission-maker runs from the folder — never list these as
+#: "unrecognized": suggesting to delete your own tools is absurd (CONVERT-V5-CLEANUP-FILES).
+_CLEANUP_TOOLCHAIN_GLOBS: tuple[str, ...] = ("veaf-tools*.exe",)
 #: src/ entries that belong to a v6 mission — excluded from the "unrecognized" listing.
 _CLEANUP_SRC_KNOWN: frozenset[str] = frozenset(
     {
@@ -920,7 +923,14 @@ class V5Converter:
 
         for entry in sorted(folder.iterdir(), key=lambda p: p.name):
             name = entry.name
-            if name.startswith(".") or name in _CLEANUP_ROOT_KNOWN:
+            if (
+                name.startswith(".")
+                or name in _CLEANUP_ROOT_KNOWN
+                # Case-insensitive on every OS (fnmatchcase on the lowered name): the
+                # toolchain must be skipped whatever the casing, and matching must not
+                # depend on the platform (plain fnmatch differs Windows vs POSIX).
+                or any(fnmatchcase(name.lower(), g) for g in _CLEANUP_TOOLCHAIN_GLOBS)
+            ):
                 continue
             if entry.is_dir() and name in _LEGACY_V5_REGENERABLE_DIRS:
                 try:

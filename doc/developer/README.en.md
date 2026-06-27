@@ -103,3 +103,12 @@ These commands must pass without errors before committing. CI also runs them aut
 ## External references — DCS API
 
 - **[DCS World Schema](https://github.com/YoloWingPixie/dcs-world-schema)** (YoloWingPixie, MIT) — a complete YAML schema of the DCS World mission-scripting API, exported as JSON Schema, EmmyLua annotations (`dcs-world-api.lua`) and TypeScript/Go/Python types. A reference for DCS API signatures; useful for LuaLS linting and to extend our `test/lua/dcs_mocks.lua` stubs.
+
+### Vendored DCS schema
+
+A frozen copy (release `v0.3.5`) is vendored under `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (upstream MIT `LICENSE` + a `NOTICE` recording the tag, URL and fetch date). It serves two purposes:
+
+- **Mock-coverage audit** — `poetry run audit-dcs-mocks` cross-references the schema's DCS functions, the calls actually made by `src/scripts/veaf/*.lua` and the stubs in `test/lua/dcs_mocks.lua`, then lists the DCS calls used by VEAF but not mocked (the gap we find too late today, when a test fails). Use `--format json`/`markdown` for machine-readable output. A non-blocking CI job publishes the report to the run summary.
+- **IDE help (optional)** — `.luarc.json` wires LuaLS to the vendored `dcs-world-api.lua` EmmyLua annotations, for autocomplete and signature diagnostics in VSCode while writing VEAF Lua.
+
+Updating this copy is an explicit bump commit (re-download the artifacts from a newer release). Drift-watch is handled by the VENDORED-DRIFT-WATCH lot.

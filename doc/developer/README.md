@@ -103,3 +103,12 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 ## Ressources externes — API DCS
 
 - **[DCS World Schema](https://github.com/YoloWingPixie/dcs-world-schema)** (YoloWingPixie, MIT) — schéma YAML complet de l'API de scripting de mission DCS World, exporté en JSON Schema, annotations EmmyLua (`dcs-world-api.lua`) et types TypeScript/Go/Python. Référence pour les signatures de l'API DCS ; utile pour le linting LuaLS et pour compléter nos stubs `test/lua/dcs_mocks.lua`.
+
+### Schéma DCS vendoré
+
+Une copie figée (release `v0.3.5`) est vendorée sous `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (`LICENSE` MIT + `NOTICE` rappelant le tag, l'URL et la date de récupération). Elle sert à deux choses :
+
+- **Audit de couverture des mocks** — `poetry run audit-dcs-mocks` croise les fonctions DCS du schéma, les appels réellement faits par `src/scripts/veaf/*.lua` et les stubs de `test/lua/dcs_mocks.lua`, puis liste les appels DCS utilisés par VEAF mais non mockés (le trou qu'on découvre aujourd'hui trop tard, quand un test échoue). `--format json`/`markdown` pour la sortie machine. Un job CI non bloquant publie le rapport dans le résumé du run.
+- **Aide IDE (optionnel)** — `.luarc.json` câble LuaLS sur l'annotation EmmyLua `dcs-world-api.lua` vendorée, pour l'autocomplétion et le diagnostic de signatures dans VSCode lors de l'écriture du Lua VEAF.
+
+Mettre à jour cette copie = un commit de bump explicite (re-télécharger les artefacts d'une release plus récente). La veille de dérive est gérée par le lot VENDORED-DRIFT-WATCH.

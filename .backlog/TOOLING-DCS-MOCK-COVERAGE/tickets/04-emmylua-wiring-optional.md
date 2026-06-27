@@ -1,6 +1,6 @@
 # TDM-004 — (optional follow-up) EmmyLua/LuaLS wiring for contributors
 
-Status: ⬜ ready (optional — not required for the lot's Definition of Done)
+Status: ✅ done (delivered with the lot at David's request, though optional)
 Type: feature (DX)
 Files: vendored `dcs-world-api.lua` + `.luarc.json`
 
@@ -16,9 +16,9 @@ Not interesting for every maintainer (David: "pas pour moi, mais utile à d'autr
 
 ## Acceptance criteria
 
-- [ ] `dcs-world-api.lua` vendored (same pinned release as TDM-001)
-- [ ] `.luarc.json` wires LuaLS to it; documented in the developer README
-- [ ] No CI impact (IDE-only; luacheck/stylua unchanged)
+- [x] `dcs-world-api.lua` vendored (same pinned release v0.3.5 as TDM-001)
+- [x] `.luarc.json` wires LuaLS to it; documented in the developer README (FR/EN)
+- [x] No CI impact (IDE-only; luacheck/stylua unchanged)
 
 ## Blocked by
 

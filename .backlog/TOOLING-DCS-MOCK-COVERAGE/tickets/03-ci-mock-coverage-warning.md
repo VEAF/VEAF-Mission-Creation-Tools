@@ -1,6 +1,6 @@
 # TDM-003 — CI mock-coverage job (non-blocking warning)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature (CI)
 Files: `.github/workflows/` (Lua CI or a dedicated job)
 
@@ -12,9 +12,9 @@ not part of this ticket.
 
 ## Acceptance criteria
 
-- [ ] CI runs `audit-dcs-mocks` and publishes the gap report
-- [ ] Job is non-blocking (warning only)
-- [ ] Report is visible in the run summary
+- [x] CI runs `audit-dcs-mocks` and publishes the gap report (`.github/workflows/dcs-mock-coverage.yml`)
+- [x] Job is non-blocking (`continue-on-error: true`)
+- [x] Report is visible in the run summary (`--format markdown >> $GITHUB_STEP_SUMMARY`)
 
 ## Blocked by
 

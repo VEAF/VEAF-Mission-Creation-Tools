@@ -28,6 +28,8 @@ import json
 import locale
 import os
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -139,6 +141,23 @@ def set_language(lang: str) -> None:
 def current_language() -> str:
     """Return the currently active language code (e.g. ``"en"``, ``"fr"``)."""
     return _lang
+
+
+@contextmanager
+def language(lang: str) -> Iterator[None]:
+    """Temporarily switch the active language, restoring the previous one on exit.
+
+    Usage::
+
+        with language("fr"):
+            ...  # t() returns French here
+    """
+    previous = current_language()
+    set_language(lang)
+    try:
+        yield
+    finally:
+        set_language(previous)
 
 
 def t(key: str, **kwargs: object) -> str:

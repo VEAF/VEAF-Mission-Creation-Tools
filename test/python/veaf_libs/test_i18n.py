@@ -70,6 +70,22 @@ class TestSetLanguage(unittest.TestCase):
         set_language("xx")  # no xx.json — should not raise
         self.assertEqual(current_language(), "xx")
 
+    def test_language_context_manager_restores_previous(self) -> None:
+        from veaf_libs.i18n import language
+
+        set_language("en")
+        with language("fr"):
+            self.assertEqual(current_language(), "fr")
+        self.assertEqual(current_language(), "en")
+
+    def test_language_context_manager_restores_on_exception(self) -> None:
+        from veaf_libs.i18n import language
+
+        set_language("en")
+        with self.assertRaises(ValueError), language("fr"):
+            raise ValueError("boom")
+        self.assertEqual(current_language(), "en")
+
     def test_set_lang_uppercase_normalised(self) -> None:
         set_language("EN")
         self.assertEqual(current_language(), "en")

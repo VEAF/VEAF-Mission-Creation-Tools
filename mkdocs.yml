@@ -43,6 +43,10 @@ markdown_extensions:
         kwds:
           case: lower
       permalink: true
+  # Lets headings declare a stable explicit id — `## Title {#stable-anchor}` — so deep
+  # links (e.g. from generated mission.yaml comments) survive a heading reword and stay
+  # identical across the FR/EN versions of a page (DOC-GUIDE-ANCHORS).
+  - attr_list
   - admonition
   - pymdownx.superfences:
       custom_fences:

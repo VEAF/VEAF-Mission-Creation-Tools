@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
-from veaf_libs.i18n import current_language, set_language, t
+from veaf_libs.i18n import current_language, language, set_language, t
 
 # ---------------------------------------------------------------------------
 # ConversionReport.to_markdown() — empty / minimal state
@@ -251,8 +251,10 @@ class TestBuildMissionYamlDocLinks(unittest.TestCase):
             return V5Converter(version="test")._build_mission_yaml(report)
 
     def test_header_doc_url_is_correct(self) -> None:
-        yaml = self._build_yaml()
-        self.assertIn("veaf.github.io/documentation/dev/mission-maker/GUIDE", yaml)
+        with language("fr"):
+            yaml = self._build_yaml()
+        # Trailing slash before any fragment, language-aware base (DOC-GUIDE-ANCHORS).
+        self.assertIn("veaf.github.io/documentation/dev/mission-maker/GUIDE/", yaml)
         self.assertNotIn("blob/master/doc", yaml)
 
     def test_module_section_has_doc_link(self) -> None:
@@ -853,3 +855,45 @@ class TestCleanupLegacyV5Files(unittest.TestCase):
         self.assertEqual(report2.legacy_tooling_backed_up, [])
         self.assertEqual(report2.regenerable_deleted, [])
         shutil.rmtree(tmp)
+
+
+class TestGuideDocLinks(unittest.TestCase):
+    """mission.yaml `# Doc:` links use a trailing slash + language-aware path so deep
+    links resolve (DOC-GUIDE-ANCHORS)."""
+
+    #: Stable explicit anchors the generator points at — declared on both GUIDE versions.
+    _ANCHORS = (
+        "#build-profiles",
+        "#configuring-modules",
+        "#configuration-examples",
+        "#ctld-and-csar-integration",
+        "#debug-logging",
+    )
+
+    def _yaml(self, lang: str) -> str:
+        with language(lang), tempfile.TemporaryDirectory() as td:
+            report = ConversionReport(mission_folder=Path(td), version="t")
+            return V5Converter(version="t")._build_mission_yaml(report)
+
+    def test_fr_links_have_slash_before_anchor(self) -> None:
+        md = self._yaml("fr")
+        self.assertIn("/dev/mission-maker/GUIDE/#build-profiles", md)
+        self.assertNotIn("GUIDE#build-profiles", md)  # the old, broken form
+
+    def test_en_links_use_the_en_path(self) -> None:
+        md = self._yaml("en")
+        self.assertIn("/dev/en/mission-maker/GUIDE/#build-profiles", md)
+        self.assertNotIn("/dev/mission-maker/GUIDE/#build-profiles", md)
+
+    def test_guide_files_declare_every_generator_anchor(self) -> None:
+        root = Path(__file__).parents[3] / "doc" / "mission-maker"
+        for name in ("GUIDE.md", "GUIDE.en.md"):
+            text = (root / name).read_text(encoding="utf-8")
+            for anchor in self._ANCHORS:
+                self.assertIn(f"{{{anchor}}}", text, f"{name} is missing the explicit anchor {anchor}")
+
+    def test_doc_lang_segment_maps_locale_to_path(self) -> None:
+        from mission_builder.v5_converter import _doc_lang_segment
+
+        self.assertEqual(_doc_lang_segment("en"), "en/")
+        self.assertEqual(_doc_lang_segment("fr"), "")

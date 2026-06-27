@@ -233,7 +233,7 @@ flowchart TD
 
 ---
 
-## Configurer les modules
+## Configurer les modules {#configuring-modules}
 
 VEAF MCT a deux niveaux de configuration :
 
@@ -370,7 +370,7 @@ veaf-tools.exe extract ma-mission.miz
 
 ---
 
-## Profils de build
+## Profils de build {#build-profiles}
 
 Les profils de build permettent de basculer entre différentes configurations nommées sans modifier `mission.yaml`. Définissez une section `profiles:` une seule fois, puis sélectionnez un profil au moment du build :
 
@@ -428,7 +428,7 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 
 ---
 
-## Exemples de configuration
+## Exemples de configuration {#configuration-examples}
 
 ### Zone QRA
 
@@ -468,7 +468,7 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
-## Intégration CTLD et CSAR
+## Intégration CTLD et CSAR {#ctld-and-csar-integration}
 
 [CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) et [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) sont des scripts tiers que VEAF supporte nativement. VEAF monkey-patche leurs fonctions `initialize()` au démarrage, donc vous n'avez pas besoin de les charger ou de les initialiser séparément — configurez-les directement dans `mission.yaml` avec l'approche YAML-first ci-dessous.
 
@@ -609,7 +609,7 @@ Lorsque `dcs_bridge` est activé, le trigger est inséré en **position 1**, ava
 
 Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Le build produit désormais un **unique** chargeur `veaf-scripts.lua` ; la verbosité se contrôle via les niveaux de log dans `mission.yaml`, et non en chargeant un script différent.
 
-### Changer le niveau de log
+### Changer le niveau de log {#debug-logging}
 
 Définissez un défaut global avec `global_log_level`, ou surchargez-le par module avec `logLevel`, puis reconstruisez :
 

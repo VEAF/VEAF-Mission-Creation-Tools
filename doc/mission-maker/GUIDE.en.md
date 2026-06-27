@@ -234,7 +234,7 @@ flowchart TD
 
 ---
 
-## Configuring Modules
+## Configuring Modules {#configuring-modules}
 
 VEAF MCT has two configuration layers:
 
@@ -371,7 +371,7 @@ veaf-tools.exe extract my-mission.miz
 
 ---
 
-## Build Profiles
+## Build Profiles {#build-profiles}
 
 Build profiles let you switch between different named configurations without editing `mission.yaml`. Define a `profiles:` section once, then select a profile at build time:
 
@@ -429,7 +429,7 @@ All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scrip
 
 ---
 
-## Configuration Examples
+## Configuration Examples {#configuration-examples}
 
 ### QRA Zone
 
@@ -469,7 +469,7 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
-## CTLD and CSAR Integration
+## CTLD and CSAR Integration {#ctld-and-csar-integration}
 
 [CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just configure them via `mission.yaml` using the YAML-first approach below.
 
@@ -610,7 +610,7 @@ When `dcs_bridge` is enabled, the trigger is inserted at **position 1**, before 
 
 All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). The build now produces a **single** `veaf-scripts.lua` loader; verbosity is controlled by log levels in `mission.yaml`, not by loading a different script file.
 
-### Switching log levels
+### Switching log levels {#debug-logging}
 
 Set a global default with `global_log_level`, or override it per module with `logLevel`, then rebuild:
 

@@ -1,8 +1,8 @@
 # TDM-002 — `audit-dcs-mocks` coverage command
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
-Files: `src/python/veaf-tools/...` (+ `poetry run audit-dcs-mocks`), tests under `test/python/`
+Files: logic in `src/python/veaf-tools/veaf_libs/dcs_mock_audit.py` (typed + coverage-gated), thin CLI in `veaf_build/dcs_mock_audit_cli.py` (`poetry run audit-dcs-mocks`), tests under `test/python/`
 
 ## What to build
 
@@ -19,10 +19,10 @@ non-empty (CI decides whether to fail — see TDM-003).
 
 ## Acceptance criteria
 
-- [ ] Report lists DCS calls used by VEAF but not mocked
-- [ ] Calls filtered to schema-known DCS namespaces (no VEAF/mist false positives)
-- [ ] Presence only — no signature/arg comparison
-- [ ] Unit tests with fixtures (mini schema + mini mock + sample call site), no network
+- [x] Report lists DCS calls used by VEAF but not mocked
+- [x] Calls filtered to schema-known DCS namespaces (no VEAF/mist false positives)
+- [x] Presence only — no signature/arg comparison
+- [x] Unit tests with fixtures (mini schema + mini mock + sample call site), no network
 
 ## Blocked by
 

@@ -3,7 +3,8 @@
   "Lua.workspace.checkThirdParty": "Disable",
   "Lua.workspace.library": [
     ".lua-addons/dcs-world/library/mission",
-    ".lua-addons/dcs-world/library/server"
+    ".lua-addons/dcs-world/library/server",
+    "src/python/veaf-tools/veaf_libs/data/dcs-schema/dcs-world-api.lua"
   ],
   "Lua.diagnostics.workspaceDelay": 5000,
   "Lua.workspace.ignoreDir": [

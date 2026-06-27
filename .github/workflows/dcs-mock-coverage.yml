@@ -1,0 +1,51 @@
+name: DCS Mock Coverage
+
+# Non-blocking audit: report DCS scripting-API calls used by the VEAF Lua runtime
+# (src/scripts/veaf/*.lua) that are NOT defined in the test mocks
+# (test/lua/dcs_mocks.lua), cross-referenced against the vendored DCS API schema.
+#
+# This job informs, it does NOT fail the build (a ratchet on new gaps can come
+# later). The gap report is published to the run summary.
+
+on:
+  push:
+    branches: [develop-v6, main]
+    paths:
+      - "src/scripts/veaf/**"
+      - "test/lua/dcs_mocks.lua"
+      - "src/python/veaf-tools/veaf_libs/data/dcs-schema/**"
+      - "src/python/veaf-tools/veaf_libs/dcs_mock_audit.py"
+      - "veaf_build/dcs_mock_audit_cli.py"
+      - ".github/workflows/dcs-mock-coverage.yml"
+  pull_request:
+    paths:
+      - "src/scripts/veaf/**"
+      - "test/lua/dcs_mocks.lua"
+      - "src/python/veaf-tools/veaf_libs/data/dcs-schema/**"
+      - "src/python/veaf-tools/veaf_libs/dcs_mock_audit.py"
+      - "veaf_build/dcs_mock_audit_cli.py"
+      - ".github/workflows/dcs-mock-coverage.yml"
+
+jobs:
+  dcs-mock-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --without build --all-extras
+
+      - name: Audit DCS-mock coverage (non-blocking)
+        # Never fail the build: the audit only informs. The markdown report goes to
+        # the run summary; the console table is printed to the log for convenience.
+        continue-on-error: true
+        run: |
+          poetry run audit-dcs-mocks --format markdown >> "$GITHUB_STEP_SUMMARY"
+          poetry run audit-dcs-mocks || true

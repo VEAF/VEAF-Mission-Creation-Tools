@@ -1,0 +1,24 @@
+Vendored DCS World scripting-API schema
+========================================
+
+These files are a frozen, unmodified copy of the `dcs-world-schema` project,
+used by VEAF-Mission-Creation-Tools as the reference set of DCS scripting-API
+functions (see the `audit-dcs-mocks` command) and, optionally, as an IDE
+reference (EmmyLua/LuaLS) for contributors writing VEAF Lua.
+
+Source:      https://github.com/YoloWingPixie/dcs-world-schema
+Release tag: v0.3.5
+Fetch date:  2026-06-27
+License:     MIT (see the LICENSE file alongside)
+
+Vendored artifacts
+------------------
+- dcs-world-api-schema.json  -- machine-readable API description (audit reference)
+- dcs-world-api.lua          -- EmmyLua annotations for LuaLS autocomplete (.luarc.json)
+
+Updating
+--------
+Updating these files is an explicit bump commit: re-download the assets from a
+newer release tag, replace the files, and update the "Release tag" / "Fetch date"
+fields above. Drift detection of this vendored copy is handled by the
+VENDORED-DRIFT-WATCH lot.

@@ -823,6 +823,18 @@ class TestCleanupLegacyV5Files(unittest.TestCase):
             self.assertIn(name, report.unrecognized_files)
         shutil.rmtree(tmp)
 
+    def test_toolchain_binaries_are_not_listed_nor_touched(self) -> None:
+        # The veaf-tools executables the maker runs from the folder must never be
+        # flagged as "unrecognized" (suggesting to delete your own tools is absurd).
+        tmp, report = self._run({"veaf-tools.exe": "x", "veaf-tools-updater.exe": "y", "stray.bin": "z"})
+        for name in ("veaf-tools.exe", "veaf-tools-updater.exe"):
+            self.assertTrue((tmp / name).exists(), name)
+            self.assertNotIn(name, report.unrecognized_files)
+            self.assertNotIn(name, report.legacy_tooling_backed_up)
+        # An unrelated stray file is still listed.
+        self.assertIn("stray.bin", report.unrecognized_files)
+        shutil.rmtree(tmp)
+
     def test_protected_entries_never_touched(self) -> None:
         tmp, report = self._run(
             {

@@ -6,6 +6,8 @@ cache/
 # Claude Code settings (personal, not shared)
 .claude/settings.json
 .claude/settings.local.json
+# Claude Code git worktrees (local runtime, never committed)
+.claude/worktrees/
 
 # luacov coverage artefacts
 luacov.stats.out

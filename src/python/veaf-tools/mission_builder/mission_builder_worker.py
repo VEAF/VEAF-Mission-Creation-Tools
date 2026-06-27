@@ -1060,16 +1060,24 @@ class MissionBuilderWorker(BaseWorker):
                         # this is a VEAF trigger, remove it
                         logger.debug(f"Removing VEAF dictionary key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)
-                    if self.migrate_from_v5 and map_value in [
-                        "return false -- scripts",
-                        "return false -- config",
-                        "return true -- scripts",
-                        "return true -- config",
-                        "return VEAF_DYNAMIC_PATH~=nil",
-                        "return VEAF_DYNAMIC_PATH==nil",
-                        "return VEAF_DYNAMIC_MISSIONPATH~=nil",
-                        "return VEAF_DYNAMIC_MISSIONPATH==nil",
-                    ]:
+                    if (
+                        self.migrate_from_v5
+                        # A v6 trigger is never a legacy v5 one: the MISSIONPATH conditions
+                        # are regenerated verbatim by the v6 triggers (same dict keys), so
+                        # match on the key, not just the value (FIX-V5-NUDGE-FALSE-POSITIVE).
+                        and map_key not in _VEAF_TRIGGER_DICT_KEYS
+                        and map_value
+                        in [
+                            "return false -- scripts",
+                            "return false -- config",
+                            "return true -- scripts",
+                            "return true -- config",
+                            "return VEAF_DYNAMIC_PATH~=nil",
+                            "return VEAF_DYNAMIC_PATH==nil",
+                            "return VEAF_DYNAMIC_MISSIONPATH~=nil",
+                            "return VEAF_DYNAMIC_MISSIONPATH==nil",
+                        ]
+                    ):
                         # this is a legacy VEAF trigger, remove it
                         logger.debug(f"Removing legacy VEAF v5 dictionary key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)

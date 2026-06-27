@@ -1,40 +1,31 @@
-# VEAF Mission Creation Tools — 6.7.0
+# VEAF Mission Creation Tools — 6.7.1
 
-Version **mineure** centrée sur l'**ouverture des missions à l'outillage externe** : `veaf-tools` sait désormais lire un `.miz` et l'exporter **sans jamais exécuter de Lua** — en JSON pour les outils d'analyse (scripts, assistants IA), en Markdown pour une lecture humaine. Elle rend par ailleurs la **migration v6 définitive sur disque**, et corrige plusieurs bugs de slots dynamiques et de l'assistant interactif.
-
-> ⚠️ **À lire avant de relancer `convert-v5`** — voir la section *Changement de comportement* plus bas.
+Version centrée sur une **migration v5→v6 plus sûre et plus propre** : `convert-v5` fait désormais le ménage des fichiers v5 résiduels, ses messages et ses liens de documentation sont fiabilisés, et la sortie console sous Windows ne tronque plus les réponses.
 
 ## ✨ Nouveautés
 
-### Exporter une mission, sans risque, dans le format qu'il vous faut
+### `convert-v5` trie les fichiers v5 résiduels d'un dossier de mission
 
-La nouvelle commande `veaf-tools export <mission>` lit un `.miz` (ou un dossier de mission extrait) et le restitue dans trois formats :
+Une mission v5 traîne des fichiers que la chaîne v6 n'utilise plus, et `convert-v5` les ignorait. Il les trie maintenant en trois catégories :
 
-- **JSON** *(défaut)* — la structure complète de la mission, pensée pour l'**outillage** : scripts d'analyse et assistants IA. Le contrat JSON est **figé et versionné** (`schemaVersion 2`) et préserve fidèlement les tables Lua (tableaux, objets, clés mixtes) pour un décodage sans perte. `--compact` pour une sortie dense.
-- **Markdown** — un **briefing lisible** : vue d'ensemble, ordre de bataille par coalition, zones de déclenchement, logique de mission (triggers VEAF vs. triggers mission), scripts chargés. Idéal pour documenter ou relire une mission d'un coup d'œil.
-- **YAML** — le même objet structuré, en plus lisible.
+- **Outillage v5 obsolète** (`*.cmd`/`*.ps1`, `package.json`, `package-lock.json`, `yarn.lock`, `configuration.json`, `7za.exe`) → **déplacé dans `backup_v5/`** (réversible). `configuration.json` est en plus signalé comme **porteur de secret** (son ancienne clé `checkwx_apikey` — non migrée, la v6 récupère la vraie météo sans clé d'API).
+- **Artefacts régénérables** (`node_modules/`, `build/`, `cache/`, tous gitignorés) → **supprimés** et listés.
+- **Fichiers non reconnus** → seulement **listés** dans une section `🧹 Legacy v5 files` pour relecture, **jamais touchés**.
 
-Le point clé : **aucune exécution de Lua**. Un `.miz` est un ZIP dont le fichier `mission` est de la *donnée* ; l'interpréter avec un moteur Lua (comme le font certains outils tiers) exécuterait n'importe quel Lua piégé dans un `.miz` forgé — un risque d'exécution de code. `export` lit la mission avec notre parseur **100 % Python** (un test de garde vérifie qu'aucun `subprocess`/`lupa`/`eval`/`exec` n'est appelé sur ce chemin). Pour un `.miz`, l'option `--extract-dir` extrait en plus les ressources embarquées (scripts, sons, images) de façon durcie. La commande est aussi disponible depuis l'assistant interactif (TUI).
+Le scan ne touche jamais `.git/`, `backup_v5/`, `src/mission/`, les fichiers v6 générés ni les dotfiles, et il est idempotent.
 
 ## 🐛 Corrections
 
-- **Les templates d'avions de slots dynamiques ne sont plus rangés sous « hélicoptères »** — DCS stocke tous les groupes-templates de slots dynamiques dans la table hélicoptère du `.miz`, quel que soit l'appareil ; l'extraction classait donc **tous** les templates avions (A-10C II, F-16, MiG…) comme hélicoptères, et ils étaient ré-injectés dans l'éditeur en « GROUPE D'HÉLICOPTÈRES » avec le mauvais type. La catégorisation se fait désormais sur la **vraie catégorie DCS** de l'appareil. Le `dynamic-slot-templates.yaml` par défaut a été régénéré (78 templates avions déplacés).
-- **Toutes les commandes sont accessibles depuis l'assistant interactif (TUI)** — `validate`, `migrate-config`, `generate-config` et `user-config` manquaient au menu ; on ne pouvait pas les lancer en double-cliquant sur `veaf-tools.exe`. Elles y figurent désormais.
-- **Plus de plantage à l'injection des slots dynamiques** — sur une mission fraîchement extraite, l'injection échouait pour **tous** les templates (`'dict' object has no attribute 'append'`) quand le conteneur de groupes du pays cible était vide. Corrigé.
+- **`veaf-tools ask` ne tronque plus sa réponse sous Windows, et l'affiche en direct** — la réponse était coupée en plein milieu : la console héritait du code page hérité (cp1252) et le premier caractère hors table (flèche `→`, cadre d'un bloc de code, emoji) faisait planter l'affichage. La sortie est désormais forcée en **UTF-8** au démarrage (ce qui corrige aussi les emojis/flèches des rapports `convert-v5`), et `ask` rend sa réponse **en streaming**.
+- **`convert-v5` ne liste plus les exécutables `veaf-tools` comme « fichiers à supprimer »** — `veaf-tools.exe` / `veaf-tools-updater.exe` (l'outillage v6 lui-même) étaient signalés comme « non gérés, à supprimer ». Ils sont désormais ignorés par le triage.
+- **Trois avertissements météo/waypoints de `convert-v5` étaient figés en anglais** — la notice météo réelle (ICAO `TODO`), l'avertissement « fichier météo introuvable » et celui des waypoints vides passent maintenant par la traduction (FR/EN).
+- **Les liens `# Doc:` d'un `mission.yaml` généré résolvent enfin** — ils pointaient vers une ancre inexistante (slash final manquant + ancre anglaise sur la doc FR). Les titres de guide concernés ont désormais des **ancres stables FR/EN** et le générateur émet l'URL correcte (et adaptée à la langue).
+- **Le rapport `convert-v5` n'embarque plus un « `missionConfig.lua` annoté » trompeur** — ce pseudo-fichier n'était jamais exécuté et donnait l'impression qu'un fichier était édité. Supprimé ; la migration reste tracée par les tables ligne→effet déjà présentes.
+- **`--profile` est désormais insensible à la casse, et le faux avertissement « fichier orphelin » a disparu** — `--profile test` ne matchait pas un profil `TEST:` ; et un fichier utilisé par un autre profil était signalé orphelin à tort. Corrigé (le warning n'est levé que si l'étape est désactivée partout).
+- **Plus de faux rappel « triggers v5 à migrer » sur une mission déjà promue en v6** — après promotion, chaque `build` affichait encore « 2 trigger(s) v5… lancez `convert-v5` ». La détection des triggers v5 vérifie maintenant aussi la **clé** du dictionnaire, plus seulement la valeur.
+- **La notice ICAO vide ne ressemble plus à un échec** — quand on convertit une mission *realweather* sans `--icao`, la conversion **réussit** (avec un `TODO` dans `versions.yaml`) ; le message le dit clairement et propose d'abord le correctif le plus léger.
 
-## ⚠️ Changement de comportement — `convert-v5` promeut maintenant la mission en v6 sur disque
+## 🛠️ Pour les contributeurs / développeurs de scripts
 
-Jusqu'ici, `convert-v5` migrait la config v5→v6 mais laissait la mission éclatée (`src/mission/`) en v5 ; la migration des triggers était refaite **en mémoire à chaque build**. Désormais, `convert-v5` **termine par une étape de promotion** : il construit une base, migre les triggers v5, **sauvegarde `src/mission/` dans `backup_v5/`**, puis réécrit `src/mission/` à partir du `.miz` v6 fraîchement construit. Le passage en v6 devient **définitif**.
-
-Ce qu'il faut savoir :
-
-- Tout le contenu éditeur (groupes, routes, unités, données injectées) est **préservé** ; seule la couche de triggers v5 est purgée.
-- L'étape est **active par défaut**, **non bloquante** (en cas d'échec, vos configs converties restent intactes, avec restauration de `src/mission/` depuis la sauvegarde) et **désactivable** via `--no-promote`.
-- Une copie de l'ancienne mission v5 reste disponible sous `backup_v5/`.
-
-Une mission existante se reconstruit sans modification de votre part — mais si vous relancez `convert-v5`, attendez-vous à voir `src/mission/` réécrit en v6 et un dossier `backup_v5/` créé.
-
-## 🙏 Remerciements
-
-- **Dup** — pour la définition du contrat JSON d'export.
-- **Tripack** — pour les missions de test ayant permis de reproduire les bugs de slots dynamiques et d'injection.
+- **`audit-dcs-mocks`** — signale les appels à l'API DCS faits par le Lua VEAF mais non présents dans les mocks de test (avant qu'un test ne casse), à partir d'un schéma DCS vendoré. Job CI non bloquant.
+- **`check-vendored` + veille de dérive** — un manifeste `vendored.yaml` recense tous les artefacts tiers vendorés (mist, CTLD, CSAR, AIEN, TUM, Skynet…) ; `check-vendored` compare chaque version épinglée à l'upstream et un workflow hebdomadaire ouvre une issue récap en cas de dérive. **Notification seulement.**

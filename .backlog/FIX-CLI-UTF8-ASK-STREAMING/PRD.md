@@ -1,6 +1,6 @@
 # FIX-CLI-UTF8-ASK-STREAMING
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

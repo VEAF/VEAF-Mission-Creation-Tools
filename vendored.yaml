@@ -1,0 +1,150 @@
+# Vendored third-party artifacts — single source of truth for drift-watch.
+#
+# Consumed by `poetry run check-vendored` (VENDORED-DRIFT-WATCH) and the
+# `vendored-drift-watch` GitHub workflow. NOTIFY ONLY — nothing here auto-updates;
+# updating a pin is always a manual, per-artifact action (see `manual_steps`).
+#
+# Provenance was established by CONTENT COMPARISON, never by assuming a VEAF fork
+# is the source (a fork is often only a contribution fork — see TUM and Skynet).
+#
+# Entry schema
+# ------------
+#   id:           short identifier
+#   source:       repo we actually vendor FROM ("" when there is no canonical repo)
+#   upstream:     reference origin repo (== source when not forked)
+#   pinned:       human-readable shipped version (display only; per-watch baselines
+#                 live under `watch[].pinned`)
+#   vendoring:    verbatim | adapted | fork | compiled
+#   path:         repo-relative path of the vendored copy
+#   manual_steps: the real update work (required for every non-`verbatim` entry)
+#   watch:        list of drift checks, each:
+#     kind:   github-release | github-file | manual
+#     repo:   OWNER/NAME            (omit for `manual`)
+#     ref:    branch (github-file)  (omit for github-release / manual)
+#     file:   path inside `repo`    (github-file only; omit -> track branch HEAD)
+#     pinned: baseline to compare the live value against
+#             - github-release: the release tag we sit on
+#             - github-file:    the commit SHA we synced from (short SHA ok)
+#     role:   upstream-ref         (optional; marks the "did upstream move?" watch)
+#
+# Drift = the live value (latest release tag / latest file commit) differs from the
+# watch `pinned`. `manual` watches never auto-compare; they are re-surfaced as
+# reminders. Forks/adapted artifacts carry TWO watches: our `source` (did our own
+# copy fall behind our fork?) and the `upstream` (did the origin ship something to
+# port?). The first run intentionally flags any copy already behind upstream.
+
+artifacts:
+  - id: mist
+    source: https://github.com/VEAF/MissionScriptingTools
+    upstream: https://github.com/mrSkortch/MissionScriptingTools
+    pinned: "4.5 build 128-DYNSLOTS-02-VEAF"
+    vendoring: fork
+    path: src/scripts/community/mist.lua
+    manual_steps: "Rebase the VEAF fork onto the latest mrSkortch release, re-apply the DYNSLOTS patch + the '-VEAF' build suffix, then copy mist.lua in."
+    watch:
+      - { kind: github-file, repo: VEAF/MissionScriptingTools, ref: master, pinned: "89a579c0ddb4" }
+      - { kind: github-release, repo: mrSkortch/MissionScriptingTools, pinned: "4.5.126", role: upstream-ref }
+
+  - id: ctld
+    source: https://github.com/VEAF/DCS-CTLD
+    upstream: https://github.com/ciribob/DCS-CTLD
+    pinned: "VEAF concat (ctld.Version 202401.01)"
+    vendoring: adapted
+    path: src/scripts/community/CTLD.lua
+    manual_steps: "Re-fetch CTLD.lua + the i18n translations from the VEAF fork and re-concatenate them into the single vendored CTLD.lua (header documents the manual concat)."
+    watch:
+      - { kind: github-file, repo: VEAF/DCS-CTLD, ref: master, pinned: "7edb23f55536" }
+      - { kind: github-release, repo: ciribob/DCS-CTLD, pinned: "1.6.1", role: upstream-ref }
+
+  - id: csar
+    source: https://github.com/VEAF/DCS-CSAR
+    upstream: https://github.com/ciribob/DCS-CSAR
+    pinned: "2024.07.11.01-VEAF"
+    vendoring: adapted
+    path: src/scripts/community/CSAR.lua
+    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in."
+    watch:
+      - { kind: github-file, repo: VEAF/DCS-CSAR, ref: master, pinned: "dd9eaa3aa245" }
+      - { kind: github-release, repo: ciribob/DCS-CSAR, pinned: "1.9.1", role: upstream-ref }
+
+  - id: aien
+    source: https://github.com/VEAF/AIEN
+    upstream: https://github.com/Chromium18/AIEN
+    pinned: "1.0 build 0154-VEAF-2025.04.29"
+    vendoring: fork
+    path: src/scripts/community/AIEN.lua
+    manual_steps: "Rebase the VEAF/AIEN fork onto the latest Chromium18/AIEN release, re-apply the '-VEAF' build tag, then copy AIEN.lua in."
+    watch:
+      - { kind: github-file, repo: VEAF/AIEN, ref: stable, pinned: "f239b4bb7529" }
+      - { kind: github-release, repo: Chromium18/AIEN, pinned: "v1.4.0191", role: upstream-ref }
+
+  - id: tum
+    source: https://github.com/akaAgar/the-universal-mission-for-dcs-world
+    upstream: https://github.com/akaAgar/the-universal-mission-for-dcs-world
+    pinned: "0.1.250722"
+    vendoring: verbatim
+    path: src/scripts/community/TheUniversalMission.lua
+    manual_steps: "(verbatim) re-download TheUniversalMission.lua from the matching upstream release."
+    watch:
+      - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.1.250722" }
+
+  - id: skynet
+    source: https://github.com/regroupement-patrouille/Skynet-IADS
+    upstream: https://github.com/walder/Skynet-IADS
+    pinned: "3.4.0RP build 10.09.2025"
+    vendoring: compiled
+    path: src/scripts/community/skynet-iads-compiled.lua
+    manual_steps: "Recompile skynet-iads-compiled.lua from the regroupement-patrouille fork sources (build tools) and re-apply the 'RP' version label."
+    watch:
+      - { kind: github-file, repo: regroupement-patrouille/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "f18b919bd435" }
+      - { kind: github-release, repo: walder/Skynet-IADS, pinned: "3.3.0", role: upstream-ref }
+
+  - id: stts
+    source: https://github.com/ciribob/DCS-SimpleTextToSpeech
+    upstream: https://github.com/ciribob/DCS-SimpleTextToSpeech
+    pinned: "0.4.1"
+    vendoring: adapted
+    path: src/scripts/community/DCS-SimpleTextToSpeech.lua
+    manual_steps: "Re-fetch DCS-SimpleTextToSpeech.lua from ciribob HEAD and re-apply any VEAF tweaks (repo has no releases, so track the file on master)."
+    watch:
+      - { kind: github-file, repo: ciribob/DCS-SimpleTextToSpeech, ref: master, pinned: "aada1c312827" }
+
+  - id: luadata
+    source: https://github.com/leafvmaple/luadata
+    upstream: https://github.com/leafvmaple/luadata
+    pinned: "1.0.5 + VEAF patches (DCS key-sort + always_provide_keyname/sort)"
+    vendoring: adapted
+    path: src/python/veaf-tools/luadata
+    manual_steps: "Diff the vendored package against the target luadata release, re-apply the VEAF DCS key-priority sort block + the extra serialize() params, then re-vendor."
+    watch:
+      - { kind: github-release, repo: leafvmaple/luadata, pinned: "v1.0.5" }
+
+  - id: hercules
+    source: ""
+    upstream: ""
+    pinned: "unknown (Anubis C-130J Hercules mod bundle; no embedded version)"
+    vendoring: verbatim
+    path: src/scripts/community/Hercules_Cargo.lua
+    manual_steps: "No canonical repo. Re-download Hercules_Cargo.lua from the latest Anubis C-130J Hercules mod package and diff against the vendored copy."
+    watch:
+      - { kind: manual }
+
+  - id: sounds
+    source: ""
+    upstream: ""
+    pinned: "unknown (ciribob CSAR/CTLD .ogg assets; binary, no version)"
+    vendoring: verbatim
+    path: src/scripts/community/sounds
+    manual_steps: "Binary audio cues from the ciribob CSAR/CTLD ecosystem. Re-download the .ogg assets if the cues change; nothing to compare automatically."
+    watch:
+      - { kind: manual }
+
+  - id: dcs-schema
+    source: https://github.com/YoloWingPixie/dcs-world-schema
+    upstream: https://github.com/YoloWingPixie/dcs-world-schema
+    pinned: "v0.3.5"
+    vendoring: verbatim
+    path: src/python/veaf-tools/veaf_libs/data/dcs-schema
+    manual_steps: "(verbatim) re-download the schema artifacts from the matching upstream release (bump the TOOLING-DCS-MOCK-COVERAGE NOTICE)."
+    watch:
+      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.3.5" }

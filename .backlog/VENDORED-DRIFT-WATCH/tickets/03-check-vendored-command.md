@@ -1,8 +1,8 @@
 # VDW-003 — `check-vendored` command
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
-Files: `src/python/veaf-tools/...` (+ `poetry run check-vendored` entry), tests under `test/python/`
+Files: logic in `src/python/veaf-tools/veaf_libs/vendored_check.py` (typed + coverage-gated), thin CLI in `veaf_build/vendored_check_cli.py` (`poetry run check-vendored`), tests under `test/python/`
 
 ## What to build
 
@@ -17,10 +17,10 @@ workflow (machine-readable output, e.g. JSON, alongside the human table).
 
 ## Acceptance criteria
 
-- [ ] `poetry run check-vendored` reports drift / up-to-date / manual per artifact
-- [ ] Non-zero exit on any detected drift
-- [ ] Unit tests with a fixture manifest and **mocked** API responses (no network in tests)
-- [ ] No artifact is downloaded (tag/commit comparison only)
+- [x] `poetry run check-vendored` reports drift / up-to-date / manual per artifact
+- [x] Non-zero exit on any actionable finding (drift or unresolved watch)
+- [x] Unit tests with a fixture manifest and **mocked** API responses (no network in tests)
+- [x] No artifact is downloaded (tag/commit comparison only, via the GitHub API)
 
 ## Blocked by
 

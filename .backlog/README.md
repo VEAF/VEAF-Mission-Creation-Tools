@@ -20,6 +20,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FIX-DCS-MOCKS-COMPLETION](FIX-DCS-MOCKS-COMPLETION/PRD.md) — fill the 10 DCS-mock gaps surfaced by `audit-dcs-mocks` | ✅ |
 | [VENDORED-DRIFT-WATCH](VENDORED-DRIFT-WATCH/PRD.md) — scheduled drift-watch (manifest + check + cron→issue) for all vendored artifacts | ✅ |
 | [FIX-CONVERTV5-ICAO-MESSAGE](FIX-CONVERTV5-ICAO-MESSAGE/PRD.md) — reword the `convert-v5` empty-ICAO notice (conversion succeeded + lightest fix first) | ✅ |
+| [FIX-V5-NUDGE-FALSE-POSITIVE](FIX-V5-NUDGE-FALSE-POSITIVE/PRD.md) — stop the migrate_from_v5 nudge firing on already-promoted v6 missions (key discriminant) | ✅ |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

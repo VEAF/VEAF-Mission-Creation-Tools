@@ -2,6 +2,7 @@
 
 import typer
 from doc_chatbot import WorkerChatWorker
+from rich.live import Live
 from rich.markdown import Markdown
 from veaf_libs.i18n import current_language
 
@@ -20,19 +21,22 @@ def _stream_answer(worker: WorkerChatWorker, question: str, history: list[dict[s
         history: Prior turns (read-only here; the caller updates it).
 
     Returns:
-        The complete answer text (also rendered as Markdown once finished).
+        The complete answer text (rendered as Markdown, live, as it arrives).
     """
-    parts: list[str] = []
+    stream = worker.ask(question, history)
+    # Spin until the first chunk lands, then live-render the Markdown so the answer
+    # appears as it streams in (and a truncated stream is visible, not silent).
     with console.status(t("ask.thinking"), spinner="dots"):
-        stream = worker.ask(question, history)
         first = next(stream, None)
-    if first is not None:
-        parts.append(first)
+    if first is None:
+        console.print(Markdown(t("ask.empty_answer")))
+        return ""
+    parts: list[str] = [first]
+    with Live(Markdown(first), console=console, refresh_per_second=12, vertical_overflow="visible") as live:
         for chunk in stream:
             parts.append(chunk)
-    answer = "".join(parts).strip()
-    console.print(Markdown(answer or t("ask.empty_answer")))
-    return answer
+            live.update(Markdown("".join(parts)))
+    return "".join(parts).strip()
 
 
 @app.command(no_args_is_help=False, help=t("cmd.ask.help"))

@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from typing import Self
 
@@ -6,6 +7,29 @@ import typer
 from rich.console import Console
 
 from veaf_libs.console_status import StatusLine
+
+
+def configure_stdio_encoding() -> None:
+    """Force stdout/stderr to UTF-8 so console output never crashes or truncates.
+
+    Under a legacy Windows code page (cp1252), printing a glyph outside that page
+    — an arrow ``→``, box-drawing from a code block, an emoji — raises
+    ``UnicodeEncodeError`` mid-render, which silently truncates the output (e.g. a
+    chatbot answer cut off mid-sentence). Reconfiguring the standard streams to
+    UTF-8 with ``errors="replace"`` makes the encode total, so a render always
+    completes.
+
+    Idempotent and defensive: a stream without ``reconfigure`` (e.g. a captured
+    test stream) or a failure to reconfigure is silently ignored.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
 
 
 class Logger:

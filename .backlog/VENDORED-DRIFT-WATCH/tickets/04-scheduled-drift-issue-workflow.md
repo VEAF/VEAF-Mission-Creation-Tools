@@ -21,7 +21,19 @@ vision). Idempotent: update the existing open issue rather than spawning a new o
 - [x] Weekly cron + manual `workflow_dispatch` (`.github/workflows/vendored-drift-watch.yml`)
 - [x] One recap issue opened/updated on drift, listing drifts + `manual` reminders + `manual_steps`
 - [x] No new issue when one is already open (matched by the `vendored-drift` label, edited in place)
-- [x] Validated by a manual dispatch dry-run (see PR)
+- [ ] Validated by a manual dispatch dry-run — **blocked**: GitHub runs `schedule` /
+      `workflow_dispatch` only from the **default branch**, which here is `master`,
+      not `develop-v6`. The workflow (and its cron) activates once `develop-v6` is
+      released to `master`. Until then the underlying `check-vendored` is validated
+      directly (`poetry run check-vendored` flags the real TUM drift) and the
+      issue-body rendering is unit-tested; only the `gh issue` create/update glue
+      awaits the first run on `master`.
+
+## Note (GitHub default-branch caveat)
+
+This whole watch only fires once the workflow file reaches `master` (the repo's
+GitHub default branch). It does **not** run from `develop-v6`. No code change needed
+— it activates with the next v6 release to `master`.
 
 ## Blocked by
 

@@ -1,6 +1,6 @@
 # FIX-BUILD-PROFILES
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Two build-profile irritants, bundled (both touch profile resolution).
 

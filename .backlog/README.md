@@ -22,7 +22,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FIX-CONVERTV5-ICAO-MESSAGE](FIX-CONVERTV5-ICAO-MESSAGE/PRD.md) — reword the `convert-v5` empty-ICAO notice (conversion succeeded + lightest fix first) | ✅ |
 | [FIX-V5-NUDGE-FALSE-POSITIVE](FIX-V5-NUDGE-FALSE-POSITIVE/PRD.md) — stop the migrate_from_v5 nudge firing on already-promoted v6 missions (key discriminant) | ✅ |
 | [FIX-CLI-UTF8-ASK-STREAMING](FIX-CLI-UTF8-ASK-STREAMING/PRD.md) — UTF-8 stdout (stop truncating `ask`/reports on Windows) + live `ask` streaming | ✅ |
-| [FIX-BUILD-PROFILES](FIX-BUILD-PROFILES/PRD.md) — case-insensitive `--profile` (canonical name) + orphan warning gated on the base+profiles union | 🔄 |
+| [FIX-BUILD-PROFILES](FIX-BUILD-PROFILES/PRD.md) — case-insensitive `--profile` (canonical name) + orphan warning gated on the base+profiles union | ✅ |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

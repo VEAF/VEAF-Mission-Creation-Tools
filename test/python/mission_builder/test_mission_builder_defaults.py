@@ -25,6 +25,9 @@ def _make_worker(
     worker.scripts_path = None  # forces defaults_folder resolution via mission_folder/published/src
     worker.mission_yaml = mission_yaml
     worker.pipeline_cfg = mission_yaml.get("pipeline") or {}
+    # Raw (pre-profile) yaml: in these unit tests the same dict doubles as the raw
+    # config (it carries the pipeline + any profiles the orphan check reasons about).
+    worker._raw_yaml = mission_yaml
     worker.custom_scripts = custom_scripts or []
     worker.custom_scripts_generate_load_trigger = custom_scripts_generate_load_trigger
     return worker
@@ -187,6 +190,37 @@ class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
         shutil.rmtree(tmpdir)
         orphan_warnings = [w for w in warnings if "Orphan" in w or "orphan" in w.lower()]
         self.assertTrue(orphan_warnings, "Expected at least one orphan warning")
+
+    def _orphan_warnings_for(self, mission_yaml: dict) -> list[str]:
+        """Pre-create versions.yaml, run the completion, return the warnings emitted."""
+        from unittest.mock import patch
+
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
+            _seed_defaults(defaults_folder, "versions.yaml")
+            (tmpdir / "src").mkdir(parents=True, exist_ok=True)
+            (tmpdir / "src" / "versions.yaml").write_text("existing", encoding="utf-8")
+            worker = _make_worker(tmpdir, defaults_folder, mission_yaml)
+            with patch("mission_builder.mission_builder_worker.logger") as mock_logger:
+                worker.complete_src_folder_with_defaults()
+            return [str(c.args[0]) for c in mock_logger.warning.call_args_list if c.args]
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_no_orphan_warning_when_a_profile_still_enables_the_step(self) -> None:
+        """weather off in base but enabled by a profile → the file is used, no orphan warning."""
+        warnings = self._orphan_warnings_for(
+            {"pipeline": {"weather": False}, "profiles": {"SERVER": {"pipeline": {"weather": True}}}}
+        )
+        self.assertFalse(any("versions.yaml" in w for w in warnings), warnings)
+
+    def test_orphan_warning_when_disabled_in_every_context(self) -> None:
+        """weather off in base and every profile → genuine orphan, warning emitted."""
+        warnings = self._orphan_warnings_for(
+            {"pipeline": {"weather": False}, "profiles": {"TEST": {"pipeline": {"weather": False}}}}
+        )
+        self.assertTrue(any("versions.yaml" in w for w in warnings), warnings)
 
 
 class TestWeatherDefaultsCopy(unittest.TestCase):

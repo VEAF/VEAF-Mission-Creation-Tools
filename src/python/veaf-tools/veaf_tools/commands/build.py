@@ -9,6 +9,7 @@ from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from spawn_data_injector import SpawnDataInjectorWorker
+from veaf_libs.build_profiles import canonical_profile_name
 from veaf_libs.paths import resolve_path
 from veaf_libs.yaml_validator import validate_yaml_file
 from warehouses_injector import WarehousesInjectorWorker
@@ -149,7 +150,14 @@ def _build_plan(
     variants = _resolve_build_variants(yaml_data, explicit_profile)
     if not variants:
         return [(explicit_profile, base_output, base_name)]
-    return [(variant, *_variant_output_mission(base_output, base_name, variant)) for variant in variants]
+    # Use each profile's canonical (declared-case) name for both the build and the
+    # .miz suffix, so `build_variants: [test]` against a `TEST:` profile yields a
+    # `_TEST` suffix and a case-correct resolution (FIX-BUILD-PROFILES).
+    plan: list[tuple[str | None, Path, str]] = []
+    for variant in variants:
+        canonical = canonical_profile_name(yaml_data, variant) or variant
+        plan.append((canonical, *_variant_output_mission(base_output, base_name, canonical)))
+    return plan
 
 
 def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: str, *candidates: str) -> Path | None:

@@ -763,6 +763,7 @@
   "updater.config_load_failed": "Failed to load configuration file: {error}",
   "profiles.invalid_profiles_section": "Ignoring invalid 'profiles' section in mission.yaml (expected mapping)",
   "profiles.profile_not_found": "Profile '{name}' not found in mission.yaml — using base config",
+  "profiles.ambiguous_profile": "Profile '{name}' is ambiguous: several profiles differ only by case ({matches}) — using base config",
   "profiles.building_with_profile": "Building with profile: {name}",
   "paths.no_path_provided": "Either path or default_path must be provided",
   "paths.path_not_found": "Path does not exist: {path}",

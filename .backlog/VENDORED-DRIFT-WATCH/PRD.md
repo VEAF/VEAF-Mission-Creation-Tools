@@ -1,6 +1,6 @@
 # Lot VENDORED-DRIFT-WATCH — scheduled drift-watch for all vendored artifacts
 
-Status: 🔄 in-progress
+Status: ✅ done (merged in PR #524)
 Branch: `feature/vendored-drift-watch` (one branch + one PR for the lot)
 
 ## Problem Statement

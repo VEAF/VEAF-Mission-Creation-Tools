@@ -4,7 +4,7 @@ from importlib.metadata import version as _pkg_version
 
 import typer
 from veaf_libs.i18n import set_language, t
-from veaf_libs.logger import console, logger  # noqa: F401
+from veaf_libs.logger import configure_stdio_encoding, console, logger  # noqa: F401
 from veaf_libs.update_checker import check_for_updates
 
 try:
@@ -31,6 +31,9 @@ app = typer.Typer(no_args_is_help=True)
 def main_callback(
     lang: str | None = typer.Option(None, "--lang", help=t("help.lang")),
 ) -> None:
+    # Force UTF-8 stdout/stderr first so no command output (reports, the chatbot
+    # answer, …) is truncated by a UnicodeEncodeError under a legacy Windows code page.
+    configure_stdio_encoding()
     if lang:
         set_language(lang)
     from veaf_libs.user_config import get_check_updates

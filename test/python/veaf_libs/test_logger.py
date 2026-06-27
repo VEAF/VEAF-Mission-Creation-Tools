@@ -4,15 +4,35 @@ from __future__ import annotations
 
 import io
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from rich.console import Console
-from veaf_libs.logger import Logger
+from veaf_libs.logger import Logger, configure_stdio_encoding
 
 
 def _recording_console() -> Console:
     """Return a Console that records output for inspection in tests."""
     return Console(file=io.StringIO(), record=True, force_terminal=False, width=200)
+
+
+class TestConfigureStdioEncoding(unittest.TestCase):
+    def test_reconfigures_stdout_and_stderr_to_utf8(self) -> None:
+        out, err = MagicMock(), MagicMock()
+        with patch("sys.stdout", out), patch("sys.stderr", err):
+            configure_stdio_encoding()
+        out.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
+        err.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
+
+    def test_stream_without_reconfigure_is_skipped(self) -> None:
+        plain = io.StringIO()  # no reconfigure attribute
+        with patch("sys.stdout", plain), patch("sys.stderr", plain):
+            configure_stdio_encoding()  # must not raise
+
+    def test_reconfigure_failure_is_swallowed(self) -> None:
+        bad = MagicMock()
+        bad.reconfigure.side_effect = ValueError("cannot reconfigure")
+        with patch("sys.stdout", bad), patch("sys.stderr", bad):
+            configure_stdio_encoding()  # must not raise
 
 
 class TestLoggerInfoRouting(unittest.TestCase):

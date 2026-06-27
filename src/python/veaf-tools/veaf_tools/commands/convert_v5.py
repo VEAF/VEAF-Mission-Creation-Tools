@@ -183,6 +183,19 @@ def convert_v5(
             console.print(f"  [yellow]→[/yellow] {item}")
         console.print("")
 
+    # Legacy v5 files triaged (CONVERT-V5-CLEANUP-FILES)
+    if report.secret_tooling_files:
+        secret = ", ".join(report.secret_tooling_files)
+        console.print(f"  [yellow]⚠[/yellow] {t('report.legacy_files.secret', files=secret)}")
+        console.print("")
+    if report.unrecognized_files:
+        console.print(
+            f"[bold cyan]{t('report.legacy_files.unrecognized', n=len(report.unrecognized_files))}[/bold cyan]"
+        )
+        for item in report.unrecognized_files:
+            console.print(f"  [dim]•[/dim] {item}")
+        console.print("")
+
     # Next steps
     converted_files = [pf for pf in report.pipeline_files if pf.converted]
     needs_conversion = [pf for pf in report.pipeline_files if pf.needs_conversion]

@@ -23,6 +23,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FIX-V5-NUDGE-FALSE-POSITIVE](FIX-V5-NUDGE-FALSE-POSITIVE/PRD.md) — stop the migrate_from_v5 nudge firing on already-promoted v6 missions (key discriminant) | ✅ |
 | [FIX-CLI-UTF8-ASK-STREAMING](FIX-CLI-UTF8-ASK-STREAMING/PRD.md) — UTF-8 stdout (stop truncating `ask`/reports on Windows) + live `ask` streaming | ✅ |
 | [FIX-BUILD-PROFILES](FIX-BUILD-PROFILES/PRD.md) — case-insensitive `--profile` (canonical name) + orphan warning gated on the base+profiles union | ✅ |
+| [CONVERT-V5-UX](CONVERT-V5-UX/PRD.md) — triage leftover v5 files (tooling→backup, regenerable→delete, unrecognized→inform) + drop the misleading annotated-missionConfig report block | 🔄 |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

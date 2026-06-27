@@ -1,6 +1,6 @@
 # 01 — Reword the empty-ICAO notice
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Reword the realweather empty-ICAO console notice emitted by `convert-v5` so it:
 

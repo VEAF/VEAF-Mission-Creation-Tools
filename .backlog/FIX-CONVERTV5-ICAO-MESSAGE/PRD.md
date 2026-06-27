@@ -1,6 +1,6 @@
 # FIX-CONVERTV5-ICAO-MESSAGE
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

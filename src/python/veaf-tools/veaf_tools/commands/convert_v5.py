@@ -152,16 +152,10 @@ def convert_v5(
     # missionConfig detail
     if report.migration_result:
         mr = report.migration_result
-        if mr.removed_dofiles:
-            console.print(f"[yellow]{t('convert_v5.console.dofiles_commented', n=len(mr.removed_dofiles))}[/yellow]")
-            for item in mr.removed_dofiles:
-                console.print(f"  • {item}")
-            console.print("")
-        if mr.wrapped_calls:
-            console.print(f"[yellow]{t('convert_v5.console.init_wrapped', n=len(mr.wrapped_calls))}[/yellow]")
-            for item in mr.wrapped_calls:
-                console.print(f"  • {item}")
-            console.print("")
+        # The doFile / bare-initialize() edits apply to the migrated buffer convert-v5
+        # never writes (the original missionConfig.lua is deleted and replaced by the
+        # generated mission-script.lua), so they are not echoed here. Only the detected
+        # modules, which drive mission.yaml, are shown (CONVERT-V5-INIT-COMMENTED-NOISE).
         if mr.enabled_modules:
             console.print(
                 f"[bold cyan]{t('convert_v5.console.enabled_modules', n=len(mr.enabled_modules))}[/bold cyan] "

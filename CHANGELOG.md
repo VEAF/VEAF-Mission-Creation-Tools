@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`convert-v5` no longer reports edits to a `missionConfig.lua` it deletes** (CONVERT-V5-UX / CONVERT-V5-INIT-COMMENTED-NOISE). The converter described, across its console output, its `convert-v5-report.md`, and the "manual review" / "leftovers to clean up" sections, a series of edits to `missionConfig.lua` — *"line N: initialize() commented out"*, *"N doFile() call(s) commented out"*, *"N bare initialize() call(s) wrapped in guards"*, *"remove the commented-out doFile() lines"* — so a typical mission produced a dozen-plus duplicated lines. But `convert-v5` never writes that migrated buffer: the original `missionConfig.lua` is backed up untouched under `backup_v5/` and then deleted, and the live file is a freshly generated `mission-script.lua`. So those edits are never materialised on disk and there is nothing for the maker to review. All of these notices are now removed from `convert-v5` (same misleading-artifact class as the annotated-report block removed in 6.7.1). The genuinely useful outcome — the **detected modules** that drive `mission.yaml` — is kept. The *"mission-script.lua generated"* action is now shown **only when the file actually carries callback stubs to implement** (an empty skeleton needs no mention), and reworded to point the maker at it for custom Lua while noting `mission.yaml` does the rest. The standalone `migrate-config` command — which **does** write the migrated `*_v6.lua` file — still reports its `doFile`/`initialize()` edits, unchanged. The orphaned FR/EN catalog entries were removed.
+
 ## [6.7.1] — 2026-06-27
 
 ### Added

@@ -489,7 +489,8 @@ class ConfigMigrator:
                         f"-- [v6 migration] {raw_line.rstrip()}"
                         "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
                     )
-                    warnings.append(t("convert_v5.warning.init_commented", line=lineno, var=init_in_guard_m.group(2)))
+                    # No warning: convert-v5 deletes missionConfig.lua, so there is no
+                    # line to review (CONVERT-V5-INIT-COMMENTED-NOISE).
                     depth += self._net_depth(raw_line)
                     continue
 

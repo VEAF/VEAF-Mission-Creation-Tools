@@ -142,6 +142,20 @@ class TestGuardDetection(unittest.TestCase):
         self.assertIn("SPAWN", result.enabled_modules)
         self.assertIn("RADIO", result.enabled_modules)
 
+    def test_init_in_guard_commented_without_warning(self) -> None:
+        # The guarded initialize() is commented in new_content, but no warning is
+        # emitted: the original missionConfig.lua is backed up then deleted, so a
+        # "commented out at line N" notice pointed at a file that no longer exists
+        # (CONVERT-V5-INIT-COMMENTED-NOISE).
+        content = "if veafRadio then\n  veafRadio.initialize()\nend\n"
+        result = self.m.migrate(content)
+        self.assertIn("[v6 migration]", result.new_content)
+        # The initialize() call is actually commented out (no active line survives).
+        init_lines = [ln for ln in result.new_content.splitlines() if "veafRadio.initialize()" in ln]
+        self.assertTrue(init_lines)
+        self.assertTrue(all(ln.lstrip().startswith("--") for ln in init_lines))
+        self.assertEqual(result.warnings, [])
+
 
 class TestYamlSnippet(unittest.TestCase):
     """_build_yaml_snippet marks enabled modules without # and disabled with #."""

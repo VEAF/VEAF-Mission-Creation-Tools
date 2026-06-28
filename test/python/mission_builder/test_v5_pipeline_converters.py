@@ -747,6 +747,59 @@ settings = {
         warns = convert_aircraft_groups(p, self.tmp / "out.yaml")
         self.assertTrue(len(warns) >= 1)
 
+    # The other real v5 export layout (older editor generation): flat named
+    # collections, scalar coalition/country/category, groups keyed by numeric index
+    # with the name *inside* the group (FIX-CONVERT-SPAWNABLES-FLAT-FORMAT).
+    _SETTINGS_LUA_FLAT = """
+settings =
+{
+    ["red planes"] =
+    {
+        coalition = "red",
+        country = "russia",
+        category = "plane",
+        groups = {
+            [01] = { ["groupId"] = 100, ["name"] = "veafSpawn-Mig21-Fox1" },
+            [02] = { ["groupId"] = 101, ["name"] = "F-15 Template", ["dynSpawnTemplate"] = true },
+            [03] = { ["groupId"] = 102, ["name"] = "Ordinary CAP" },
+        },
+    },
+    ["blue helicopters"] =
+    {
+        coalition = "blue",
+        country = "usa",
+        category = "helicopter",
+        groups = {
+            [01] = { ["groupId"] = 200, ["name"] = "veafSpawn-SAR1" },
+        },
+    },
+}
+"""
+
+    def _convert_flat(self) -> tuple[dict, dict]:
+        p = self.tmp / "settings.lua"
+        p.write_text(self._SETTINGS_LUA_FLAT, encoding="utf-8")
+        spawnables = self.tmp / "spawnables.yaml"
+        convert_aircraft_groups(p, spawnables)
+        dynamic = self.tmp / "dynamic-slot-templates.yaml"
+        return yaml.safe_load(spawnables.read_text()), yaml.safe_load(dynamic.read_text())
+
+    def test_flat_spawnable_plane_extracted(self) -> None:
+        spawnables, _ = self._convert_flat()
+        planes = spawnables["airplanes"]["coalitions"]
+        self.assertIn("veafSpawn-Mig21-Fox1", planes["red"]["russia"])
+        self.assertNotIn("F-15 Template", planes["red"]["russia"])  # dynSpawnTemplate → other file
+        self.assertNotIn("Ordinary CAP", planes["red"]["russia"])  # ignored
+
+    def test_flat_spawnable_helicopter_routed(self) -> None:
+        spawnables, _ = self._convert_flat()
+        self.assertIn("veafSpawn-SAR1", spawnables["helicopters"]["coalitions"]["blue"]["usa"])
+
+    def test_flat_dynamic_template_split(self) -> None:
+        _, dynamic = self._convert_flat()
+        self.assertIn("F-15 Template", dynamic["airplanes"]["coalitions"]["red"]["russia"])
+        self.assertNotIn("veafSpawn-Mig21-Fox1", dynamic["airplanes"]["coalitions"]["red"]["russia"])
+
 
 class TestConvertPipelineFileDispatch(unittest.TestCase):
     def test_unknown_step_returns_warning(self) -> None:

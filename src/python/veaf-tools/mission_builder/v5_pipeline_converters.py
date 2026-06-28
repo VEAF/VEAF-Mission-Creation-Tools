@@ -1144,9 +1144,12 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
         warnings.append(t("convert_v5.warn.unexpected_parse", filename=v5_path.name))
         return warnings
 
-    # luadata.unserialize returns the inner value, so raw == contents of `settings`
-    categories = raw.get("categories") or {}
-
+    # luadata.unserialize returns the inner value, so raw == contents of `settings`.
+    # Two real v5 export layouts exist (two veafSpawnableAircraftsEditor generations);
+    # both must convert (FIX-CONVERT-SPAWNABLES-FLAT-FORMAT):
+    #   - nested: settings.categories.<cat>.coalitions.<coa>.countries.<cty>.groups[<name>]
+    #   - flat:   settings.<collection>.{coalition, country, category, groups[<idx>].name}
+    # The presence of the `categories` wrapper distinguishes them; both feed one output.
     _CATEGORY_MAP: dict[str, str] = {"plane": "airplanes", "helicopter": "helicopters"}
 
     def _empty() -> dict[str, Any]:
@@ -1154,25 +1157,51 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
 
     outputs: dict[str, dict[str, Any]] = {KIND_SPAWNABLE: _empty(), KIND_DYNAMIC_TEMPLATE: _empty()}
 
-    for v5_cat, v6_cat in _CATEGORY_MAP.items():
-        cat_data = categories.get(v5_cat) or {}
-        coalitions_data = cat_data.get("coalitions") or {}
-        for coalition, coalition_data in coalitions_data.items():
-            if not isinstance(coalition_data, dict):
-                continue
-            countries_data = coalition_data.get("countries") or {}
-            for country, country_data in countries_data.items():
-                if not isinstance(country_data, dict):
+    def _route(v6_cat: str, coalition: str, country: str, name: str, group: dict[str, Any]) -> None:
+        """Classify *group* and store it (unchanged) in the right output family."""
+        group_for_sort = dict(group)
+        group_for_sort.setdefault("name", name)
+        kind = classify_aircraft_group(group_for_sort)
+        if kind is None:
+            return
+        coalitions_out = outputs[kind][v6_cat]["coalitions"]
+        coalitions_out.setdefault(coalition, {}).setdefault(country, {})[name] = group
+
+    if "categories" in raw:
+        categories = raw.get("categories") or {}
+        for v5_cat, v6_cat in _CATEGORY_MAP.items():
+            cat_data = categories.get(v5_cat) or {}
+            coalitions_data = cat_data.get("coalitions") or {}
+            for coalition, coalition_data in coalitions_data.items():
+                if not isinstance(coalition_data, dict):
                     continue
-                for name, group in (country_data.get("groups") or {}).items():
-                    # Build a classifiable view (the group key is its name).
-                    group_for_sort = dict(group) if isinstance(group, dict) else {}
-                    group_for_sort.setdefault("name", name)
-                    kind = classify_aircraft_group(group_for_sort)
-                    if kind is None:
+                countries_data = coalition_data.get("countries") or {}
+                for country, country_data in countries_data.items():
+                    if not isinstance(country_data, dict):
                         continue
-                    coalitions_out = outputs[kind][v6_cat]["coalitions"]
-                    coalitions_out.setdefault(str(coalition), {}).setdefault(str(country), {})[str(name)] = group
+                    # The group key is its name.
+                    for name, group in (country_data.get("groups") or {}).items():
+                        if isinstance(group, dict):
+                            _route(v6_cat, str(coalition), str(country), str(name), group)
+    else:
+        # Flat layout: each top-level entry is a named collection with scalar metadata.
+        for collection in raw.values():
+            if not isinstance(collection, dict):
+                continue
+            v6_cat_flat = _CATEGORY_MAP.get(str(collection.get("category", "")).lower())
+            if v6_cat_flat is None:
+                continue
+            coalition = str(collection.get("coalition", ""))
+            country = str(collection.get("country", ""))
+            groups = collection.get("groups") or {}
+            # `groups` is keyed by numeric index; the name lives inside each group.
+            group_iter = groups.values() if isinstance(groups, dict) else groups
+            for group in group_iter:
+                if not isinstance(group, dict):
+                    continue
+                name = group.get("name")
+                if isinstance(name, str) and name:
+                    _route(v6_cat_flat, coalition, country, name, group)
 
     dynamic_path = v6_path.parent / _DYNAMIC_TEMPLATES_FILENAME
     _yaml_dump(outputs[KIND_SPAWNABLE], v6_path)

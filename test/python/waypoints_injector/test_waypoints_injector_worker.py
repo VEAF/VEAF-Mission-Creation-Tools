@@ -285,6 +285,20 @@ class TestProcessGroups(unittest.TestCase):
         # No route injected if no flight plan
         self.assertNotIn("route", worker.groups["Human Pilot"].group_dcs)
 
+    def test_process_groups_reports_groups_without_flight_plan(self) -> None:
+        from unittest.mock import patch
+
+        from veaf_libs.i18n import t
+
+        worker = self._worker_with_human_group()
+        mock_manager = MagicMock()
+        mock_manager.get_flight_plan_for.return_value = None
+        worker.waypoints_manager = mock_manager
+        with patch("waypoints_injector.waypoints_injector_worker.logger") as mock_logger:
+            worker.process_groups(silent=False)
+        tech_msgs = [call.args[0] for call in mock_logger.tech.call_args_list]
+        self.assertIn(t("waypoints_injector.no_flight_plan", count=1), tech_msgs)
+
     def test_process_groups_no_waypoints_manager(self) -> None:
         worker = self._worker_with_human_group()
         worker.waypoints_manager = None

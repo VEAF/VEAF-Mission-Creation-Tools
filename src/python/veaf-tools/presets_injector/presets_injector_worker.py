@@ -216,6 +216,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
 
         nb_units_processed = 0
+        nb_groups_without_preset = 0
         for group in [g for g in self.groups.values() if g.human_pilot]:
             if preset_definition := self.presets_manager.get_radios_for(
                 coalition=group.coalition,
@@ -238,9 +239,15 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 group.group_dcs["radioSet"] = preset_definition != PresetDefinition.EMPTY
                 group.group_dcs["communication"] = False
                 nb_units_processed += self.process_units(group, preset_definition)
+            else:
+                nb_groups_without_preset += 1
 
         if not silent:
             logger.tech(t("presets_injector.injected", count=nb_units_processed))
+            # A bare "0 injected" reads like a failure; say how many human groups had no
+            # matching preset in presets.yaml so the outcome is unambiguous.
+            if nb_groups_without_preset:
+                logger.tech(t("presets_injector.no_preset", count=nb_groups_without_preset))
 
         # FIX-DYNSLOT-RADIO-UNITS: a primary `frequency` below the VHF floor
         # (ADF/HF, e.g. an ARK-15M 0.625 MHz mistakenly set as the radio) makes

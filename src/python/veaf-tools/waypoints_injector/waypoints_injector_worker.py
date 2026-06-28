@@ -86,6 +86,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
 
         nb_groups_processed = 0
+        nb_groups_without_plan = 0
         if not self.waypoints_manager:
             logger.warning(t("waypoints_injector.no_manager"))
             return
@@ -103,12 +104,17 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 self._inject_waypoints_into_group(group, flight_plan.waypoints)
                 nb_groups_processed += 1
             else:
+                nb_groups_without_plan += 1
                 logger.debugwarn(
                     f"No flight plan found for group '{group.name}' (coalition={group.coalition}, category={group.aircraft_type}, type={group.unit_type}, country={group.country})"
                 )
 
         if not silent:
             logger.tech(t("waypoints_injector.injected", count=nb_groups_processed))
+            # A bare "0 injected" reads like a failure; say how many human groups had no
+            # flight plan assigned in waypoints.yaml so the outcome is unambiguous.
+            if nb_groups_without_plan:
+                logger.tech(t("waypoints_injector.no_flight_plan", count=nb_groups_without_plan))
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a group's route, preserving its existing route.

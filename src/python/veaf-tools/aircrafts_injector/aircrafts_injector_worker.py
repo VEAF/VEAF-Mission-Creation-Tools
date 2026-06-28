@@ -116,6 +116,9 @@ class InjectionResult:
     groups_injected: int
     message: str
     details: dict[str, Any] | None = None
+    #: Groups present in the YAML but skipped because a same-named group already
+    #: exists in the mission (only meaningful in ``add`` mode).
+    groups_skipped: int = 0
 
     def __post_init__(self):
         if self.details is None:
@@ -750,6 +753,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             )
 
         total_injected = 0
+        total_skipped = 0
         injection_errors = []
 
         # Flatten the category → coalition → country → group hierarchy into a
@@ -800,6 +804,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                     log_msg = f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
                 elif existing_idx is not None:
                     # Skip: group already exists and mode is not replace
+                    total_skipped += 1
                     log_msg = (
                         f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
                     )
@@ -829,18 +834,25 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             if injection_errors:
                 message += f" with {len(injection_errors)} error(s)"
                 return InjectionResult(
-                    success=False, groups_injected=total_injected, message=message, details={"errors": injection_errors}
+                    success=False,
+                    groups_injected=total_injected,
+                    message=message,
+                    details={"errors": injection_errors},
+                    groups_skipped=total_skipped,
                 )
             else:
                 if not silent:
                     logger.info(message)
-                return InjectionResult(success=True, groups_injected=total_injected, message=message)
+                return InjectionResult(
+                    success=True, groups_injected=total_injected, message=message, groups_skipped=total_skipped
+                )
         else:
             return InjectionResult(
                 success=False,
                 groups_injected=0,
                 message="No groups were injected",
                 details={"errors": injection_errors} if injection_errors else {},
+                groups_skipped=total_skipped,
             )
 
     def write_mission(self, silent: bool = False) -> bool:

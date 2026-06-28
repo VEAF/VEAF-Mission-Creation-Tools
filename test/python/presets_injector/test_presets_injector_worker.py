@@ -290,6 +290,29 @@ class TestProcessGroups(unittest.TestCase):
         worker.presets_manager.get_radios_for.return_value = None
         worker.process_groups(silent=True)
 
+    def test_process_groups_reports_groups_without_preset(self) -> None:
+        from unittest.mock import patch
+
+        from veaf_libs.i18n import t
+
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "F-16C_50", "skill": "Client"}]},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name="Human Group",
+            unit_type="F-16C_50",
+        )
+        worker.groups = {"Human Group": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = None
+        with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
+            worker.process_groups(silent=False)
+        tech_msgs = [call.args[0] for call in mock_logger.tech.call_args_list]
+        self.assertIn(t("presets_injector.no_preset", count=1), tech_msgs)
+
     def test_process_groups_no_human_pilots_skipped(self) -> None:
         worker = _make_worker()
         group = Group(

@@ -336,6 +336,8 @@ def build(
                     output_mission=variant_output,
                 ).inject(mode=mode, silent=False)
                 logger.tech(t("pipeline.console.aircraft_done", count=result.groups_injected))
+                if result.groups_skipped:
+                    logger.tech(t("pipeline.console.aircraft_skipped", count=result.groups_skipped))
             else:
                 logger.warning(t("cmd.build.aircraft_validation_failed", path=path))
                 console.print(t("pipeline.console.aircraft_invalid"))
@@ -378,7 +380,10 @@ def build(
         )
         if not spawn_disabled:
             spawn_data_path = _step_file("spawn_data", "src/spawn-groups.yaml")
-            logger.step(t("pipeline.console.spawn_data"))
+            # Name the merged file in the header (like every other step); the step
+            # still runs on the shipped framework data even when the file is absent.
+            spawn_file_suffix = f" ({spawn_data_path.name})" if spawn_data_path else ""
+            logger.step(t("pipeline.console.spawn_data", file=spawn_file_suffix))
             spawn_result = SpawnDataInjectorWorker(
                 input_mission=variant_output,
                 output_mission=variant_output,

@@ -36,23 +36,29 @@ like a file was being edited. Removed. The migration is already reported as the
 line→effect tables (commented doFiles, wrapped/extracted init calls, enabled modules),
 which stay. Console wording unchanged (decided).
 
-## 3 — Drop the leftover "init commented out" noise (CONVERT-V5-INIT-COMMENTED-NOISE)
+## 3 — Drop the "missionConfig.lua edits" report noise (CONVERT-V5-INIT-COMMENTED-NOISE)
 
-The 6.7.1 fix (section 2) removed the annotated-`missionConfig.lua` block from the
-report, but the migrator still emitted, for every guarded `veafXxx.initialize()`, a
-`convert_v5.warning.init_commented` warning that `v5_converter` propagated to **both**
-`report.warnings` (⚠ section) **and** `report.manual_review` (🛠 section) — a dozen-plus
-duplicated lines on a real mission. They describe a file that is deleted (`src.unlink()`
-after backup): the migrated `new_content` with `-- [v6 migration]` comments is never
-written to disk (the live file is the generated `mission-script.lua`), so there is no
-line N to review. The warning emission is removed (the internal commenting of
-`new_content` is unchanged), and the orphaned FR/EN `init_commented` catalog entries
-are dropped. Module detection and the genuine notices (commented `doFile`s, wrapped
-bare `initialize()`) stay.
+The 6.7.1 fix (section 2) removed only the annotated-`missionConfig.lua` block. `convert-v5`
+still described a whole family of edits to a file it deletes — across the console,
+`convert-v5-report.md`, and the manual-review / leftovers sections:
+
+- `init_commented` warning (per guarded `initialize()`) → `report.warnings` + `report.manual_review`;
+- `dofiles_commented` / `init_wrapped` actions + console blocks + report `.md` tables;
+- `review.remove_dofiles` + `cleanup.remove_dofiles`.
+
+All point at the migrated buffer `convert-v5` never writes (original backed up then deleted;
+live file is the generated `mission-script.lua`), so there is nothing on disk to review. All
+removed from `convert-v5`. The detected modules (which drive `mission.yaml`) stay. The
+`mission-script.lua generated` action is now shown **only when the file carries callback
+stubs** (empty skeleton → no message) and reworded as an edit invitation + `mission.yaml`
+reminder. The standalone `migrate-config` command, which **does** write the migrated
+`*_v6.lua`, keeps its messages. Orphaned FR/EN catalog keys dropped.
 
 ## Decisions (validated by David)
 
 - Init-commented noise: **delete** the warning outright (not reformulate), reopen this lot.
+- Extend to the doFiles + wrapped-init families for consistency; `migrate-config` untouched.
+- `mission-script.lua` action: conditional on callbacks present; empty skeleton → no message.
 
 - Cleanup: a+b. (a) tooling → backup_v5; (a) regenerable → delete + signal;
   (b) unrecognized → inform only. Secret signalled.

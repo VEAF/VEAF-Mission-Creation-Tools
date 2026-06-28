@@ -373,46 +373,11 @@ class ConversionReport:
                 lines.append(f"### 1. {t('report.missionconfig.migrated_no_bak')}")
             lines.append("")
 
-            if mr.removed_dofiles:
-                lines += [
-                    f"#### {t('report.missionconfig.dofiles_counted', n=len(mr.removed_dofiles))}",
-                    "",
-                    t("report.missionconfig.dofiles_intro"),
-                    "",
-                    f"| {t('report.missionconfig.dofiles_col.location')} | {t('report.missionconfig.dofiles_col.expression')} |",
-                    "|----------|-----------|",
-                ]
-                for item in mr.removed_dofiles:
-                    lines.append(f"| {item.split(':', 1)[0]} | `{item.split(':', 1)[1].strip()}` |")
-                lines.append("")
-            else:
-                lines += [
-                    f"#### {t('report.missionconfig.dofiles_none_title')}",
-                    "",
-                    f"*{t('report.missionconfig.dofiles_none_msg')}*",
-                    "",
-                ]
-
-            if mr.wrapped_calls:
-                lines += [
-                    f"#### {t('report.missionconfig.wrapped_counted', n=len(mr.wrapped_calls))}",
-                    "",
-                    t("report.missionconfig.wrapped_intro"),
-                    "",
-                    f"| {t('report.missionconfig.dofiles_col.location')} | {t('report.missionconfig.dofiles_col.expression')} |",
-                    "|----------|-----------|",
-                ]
-                for item in mr.wrapped_calls:
-                    lines.append(f"| {item.split(':', 1)[0]} | `{item.split(':', 1)[1].strip()}` |")
-                lines.append("")
-            else:
-                lines += [
-                    f"#### {t('report.missionconfig.init_title')}",
-                    "",
-                    f"*{t('report.missionconfig.init_none')}*",
-                    "",
-                ]
-
+            # The doFile / bare-initialize() edits describe the migrated buffer that
+            # convert-v5 never writes (the original missionConfig.lua is deleted and
+            # replaced by the generated mission-script.lua), so they are not reported
+            # here. Only the genuinely useful outcome — the detected modules, which
+            # drive mission.yaml — is kept (CONVERT-V5-INIT-COMMENTED-NOISE).
             if mr.enabled_modules:
                 lines += [
                     f"#### {t('report.missionconfig.modules_counted', n=len(mr.enabled_modules))}",
@@ -543,8 +508,9 @@ class ConversionReport:
         if self.missionconfig_backup:
             rel_bak = self.missionconfig_backup.relative_to(self.mission_folder)
             cleanup_items.append(t("report.cleanup.delete_bak", path=rel_bak))
-        if self.migration_result and self.migration_result.removed_dofiles:
-            cleanup_items.append(t("report.cleanup.remove_dofiles"))
+        # No "remove the commented doFile() lines" item: those lines exist only in the
+        # migrated buffer convert-v5 discards (the original missionConfig.lua is deleted),
+        # so there is nothing on disk to clean up (CONVERT-V5-INIT-COMMENTED-NOISE).
         if self.backup_v5_sources:
             backed = ", ".join(f"`backup_v5/{s}`" for s in self.backup_v5_sources)
             cleanup_items.append(t("report.cleanup.delete_backup_v5", files=backed))
@@ -1105,14 +1071,18 @@ class V5Converter:
 
         # Remove the original missionConfig.lua (replaced by mission-script.lua)
         src.unlink()
-        report.actions.append(t("convert_v5.action.mission_script_generated"))
+
+        # Only mention mission-script.lua when it actually carries callbacks to
+        # implement; an empty skeleton (header only) needs no mention. The doFile /
+        # bare-initialize() edits describe the migrated buffer that convert-v5 never
+        # writes to disk (the original is deleted), so they are no longer reported
+        # here — only the standalone `migrate-config` command, which DOES write that
+        # buffer, still reports them (CONVERT-V5-INIT-COMMENTED-NOISE).
+        if result.callback_hints:
+            report.actions.append(t("convert_v5.action.mission_script_generated"))
 
         if not result.removed_dofiles and not result.wrapped_calls:
             report.actions.append(t("convert_v5.action.already_v6"))
-        if result.removed_dofiles:
-            report.actions.append(t("convert_v5.action.dofiles_commented", n=len(result.removed_dofiles)))
-        if result.wrapped_calls:
-            report.actions.append(t("convert_v5.action.init_wrapped", n=len(result.wrapped_calls)))
         if result.enabled_modules:
             report.actions.append(
                 t(
@@ -1524,8 +1494,9 @@ class V5Converter:
         if report.missionconfig_backup:
             rel = report.missionconfig_backup.relative_to(report.mission_folder)
             report.manual_review.append(t("convert_v5.review.delete_backup", path=rel))
-        if report.migration_result and report.migration_result.removed_dofiles:
-            report.manual_review.append(t("convert_v5.review.remove_dofiles"))
+        # No "remove the commented doFile() lines" item: those lines live only in the
+        # migrated buffer convert-v5 discards (the original missionConfig.lua is
+        # deleted), so there is nothing on disk to edit (CONVERT-V5-INIT-COMMENTED-NOISE).
         if report.migration_result and report.migration_result.warnings:
             for w in report.migration_result.warnings:
                 report.manual_review.append(f"missionConfig.lua — {w}")

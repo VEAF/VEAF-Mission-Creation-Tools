@@ -132,15 +132,18 @@ class TestConversionReportToMarkdownWithMigration(unittest.TestCase):
             # Converted pipeline file shows localized status in scan table
             self.assertIn(t("report.scan.pipeline.converted"), md)
 
-    def test_removed_dofiles_listed(self) -> None:
+    def test_removed_dofiles_not_listed(self) -> None:
+        # The commented doFile() lines live only in the migrated buffer convert-v5
+        # discards, so they are no longer reported (CONVERT-V5-INIT-COMMENTED-NOISE).
         with tempfile.TemporaryDirectory() as td:
             md = self._rich_report(Path(td)).to_markdown()
-            self.assertIn("doFile", md)
+            self.assertNotIn("doFile", md)
 
-    def test_wrapped_calls_listed(self) -> None:
+    def test_wrapped_calls_not_listed(self) -> None:
+        # Same for the bare initialize() calls wrapped in guards.
         with tempfile.TemporaryDirectory() as td:
             md = self._rich_report(Path(td)).to_markdown()
-            self.assertIn("initialize()", md)
+            self.assertNotIn("veafRadio.initialize()", md)
 
     def test_enabled_modules_listed(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -329,6 +332,38 @@ class TestV5ConverterIntegration(unittest.TestCase):
             assert report.migration_result is not None
             self.assertGreater(len(report.migration_result.wrapped_calls), 0)
 
+    def test_convert_does_not_report_dofile_or_wrap_edits(self) -> None:
+        # The doFile / bare-initialize() edits apply to the discarded migrated buffer,
+        # so convert-v5 must not surface them in actions or manual review
+        # (CONVERT-V5-INIT-COMMENTED-NOISE).
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, 'doFile("veaf-scripts.lua")\nveafRadio.initialize()\n')
+            report = V5Converter().convert(folder, backup=False)
+            joined = " ".join(report.actions + report.manual_review)
+            self.assertNotIn("doFile", joined)
+
+    def test_convert_omits_mission_script_action_when_empty(self) -> None:
+        # No callbacks detected → mission-script.lua is an empty skeleton → no mention.
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "veafRadio.initialize()\n")
+            report = V5Converter().convert(folder, backup=False)
+            self.assertNotIn("mission-script.lua", " ".join(report.actions))
+
+    def test_convert_reports_mission_script_action_when_callbacks(self) -> None:
+        # A detected callback is stubbed into mission-script.lua → it is worth mentioning.
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(
+                folder,
+                'AirWaveZone:new()\n    :setName("CB-Zone")\n    :setOnDeploy(myDeployFn)\n    :start()\n',
+            )
+            report = V5Converter().convert(folder, backup=False)
+            assert report.migration_result is not None
+            self.assertGreater(len(report.migration_result.callback_hints), 0)
+            self.assertIn("mission-script.lua", " ".join(report.actions))
+
     def test_convert_renames_missionconfig_to_mission_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)
@@ -395,13 +430,14 @@ class TestV5ConverterIntegration(unittest.TestCase):
             report = V5Converter().convert(folder, backup=False)
             self.assertGreater(len(report.actions), 0)
 
-    def test_build_manual_review_dofiles(self) -> None:
+    def test_build_manual_review_omits_dofiles(self) -> None:
+        # The "remove the commented doFile() lines" item is gone: those lines live only
+        # in the discarded migrated buffer (CONVERT-V5-INIT-COMMENTED-NOISE).
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)
-            # Must contain "veaf" in path for _DOFILE_RE to match
             self._make_missionconfig(folder, 'doFile("veaf-scripts.lua")\nveafRadio.initialize()\n')
             report = V5Converter().convert(folder, backup=False)
-            self.assertTrue(any("doFile" in item for item in report.manual_review))
+            self.assertFalse(any("doFile" in item for item in report.manual_review))
 
     def test_convert_mission_yaml_contains_lua_modules(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -631,9 +667,12 @@ class TestConversionReportNoAnnotatedBlock(unittest.TestCase):
             md = report.to_markdown()
             # No pseudo-annotated Lua block anymore …
             self.assertNotIn("~~~~lua", md)
-            # … but the line→effect mapping is still there (as tables).
-            self.assertIn("line 3", md)
-            self.assertIn("line 5", md)
+            # … and the doFile / bare-initialize() line→effect tables are gone too:
+            # they described the migrated buffer convert-v5 discards
+            # (CONVERT-V5-INIT-COMMENTED-NOISE). The detected modules stay.
+            self.assertNotIn("line 3", md)
+            self.assertNotIn("line 5", md)
+            self.assertIn("RADIO", md)
 
 
 # ---------------------------------------------------------------------------

@@ -12,6 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
+| [FIX-CONVERT-SPAWNABLES-FLAT-FORMAT](FIX-CONVERT-SPAWNABLES-FLAT-FORMAT/PRD.md) — `convert-v5` converts spawnable aircraft from the flat `settings.lua` layout (was: empty `spawnables.yaml`) | ✅ |
 | [FEAT-MIGRATE-MISSION-V6](FEAT-MIGRATE-MISSION-V6/PRD.md) — promote `src/mission/` from v5 to v6 on disk | ✅ |
 | [FIX-DYNSLOT-TEMPLATE-CATEGORY](FIX-DYNSLOT-TEMPLATE-CATEGORY/PRD.md) — airplane dynamic-slot templates miscategorized as helicopters | 🔄 |
 | [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) — broaden the shipped default radio presets | ⬜ |

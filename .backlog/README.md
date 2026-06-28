@@ -12,7 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
-| [FIX-CTLD-REPACK-NIL-GROUP](FIX-CTLD-REPACK-NIL-GROUP/PRD.md) — CTLD F10 menu duplicated on dynamic-slot helo on a runtime FARP (`getUnitsInRepackRadius` nil `getGroup`) + analysis doc for the CTLD rewrite | 🔄 |
+| [FIX-CTLD-REPACK-NIL-GROUP](FIX-CTLD-REPACK-NIL-GROUP/PRD.md) — CTLD F10 menu duplicated on dynamic-slot helo on a runtime FARP (`getUnitsInRepackRadius` nil `getGroup`) + analysis doc for the CTLD rewrite | ✅ |
 | [FIX-QRA-DYNSLOT-CATEGORY](FIX-QRA-DYNSLOT-CATEGORY/PRD.md) — QRA triggers on dynamic-slot airplanes regardless of `react_on_helicopters` (#299: `getCategory`→`getCategoryEx`) | ✅ |
 | [UX-PLURAL-SWEEP](UX-PLURAL-SWEEP/PRD.md) — natural singular/plural (`tn`) across all ~40 count-bearing CLI messages (FR/EN) | ✅ |
 | [UX-PIPELINE-OUTPUT-POLISH](UX-PIPELINE-OUTPUT-POLISH/PRD.md) — `build` pipeline output: indent detail lines under each step + natural singular/plural (`tn`) | ✅ |

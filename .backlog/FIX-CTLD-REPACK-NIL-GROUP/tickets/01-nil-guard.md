@@ -1,6 +1,6 @@
 # 01 — Nil-guard CTLD repack-radius scan + handoff analysis doc
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Tasks
 
@@ -9,8 +9,8 @@ Status: 🔄 in-progress
 - [x] Analysis doc for the CTLD rewrite (Fulgas):
       `docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md` (mechanism, code excerpts,
       runtime log evidence, what to verify in the new version).
-- [ ] CHANGELOG; PATCH bump.
-- [ ] Produce a corrected `.miz` for Tripack (fix instead of the diagnostic wrapper).
+- [x] CHANGELOG; PATCH bump (6.7.8).
+- [x] Produce a corrected `.miz` for Tripack (fix instead of the diagnostic wrapper).
 
 ## Definition of Done
 

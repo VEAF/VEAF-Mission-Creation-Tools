@@ -1,6 +1,6 @@
 # FIX-CTLD-REPACK-NIL-GROUP
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Reported by Tripack. Full technical analysis (for the CTLD rewrite by Fulgas):
 [docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md](../../docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md).

@@ -1,10 +1,10 @@
 # CONVERT-V5-UX
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 > Reopened (2026-06-28): the 6.7.1 fix removed only the annotated-`missionConfig.lua`
-> block from the report. The same misleading "init commented out" message was still
-> emitted through two other channels (warnings + manual-review). See section 3.
+> block from the report. The same misleading "missionConfig.lua edits" messages were
+> still emitted through other channels. Fixed in 6.7.2 (#533). See section 3.
 
 Two convert-v5 output/UX improvements (both in `v5_converter.py`).
 

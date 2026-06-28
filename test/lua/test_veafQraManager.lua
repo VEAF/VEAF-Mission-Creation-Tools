@@ -653,4 +653,79 @@ function TestVeafQraLogisticsSetters:test_onQRADestroyed_decrements_count()
   luaunit.assertEquals(lg:getQRAcount(), 2)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafQraCoreReactOnHelicopters — setter honors its argument
+-- ---------------------------------------------------------------------------
+TestVeafQraCoreReactOnHelicopters = {}
+
+function TestVeafQraCoreReactOnHelicopters:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafQraCoreReactOnHelicopters:test_default_is_false()
+  luaunit.assertFalse(VeafQRA:new().reactOnHelicopters)
+end
+
+function TestVeafQraCoreReactOnHelicopters:test_no_arg_enables_legacy()
+  local q = VeafQRA:new():setReactOnHelicopters()
+  luaunit.assertTrue(q.reactOnHelicopters)
+end
+
+function TestVeafQraCoreReactOnHelicopters:test_explicit_false_is_honored()
+  -- Regression: the setter used to ignore its argument and always set true (#299).
+  local q = VeafQRA:new():setReactOnHelicopters(false)
+  luaunit.assertFalse(q.reactOnHelicopters)
+end
+
+function TestVeafQraCoreReactOnHelicopters:test_explicit_true_is_honored()
+  local q = VeafQRA:new():setReactOnHelicopters(true)
+  luaunit.assertTrue(q.reactOnHelicopters)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafQraCoreHumanBornEvent — dynamic-slot category detection (#299)
+-- ---------------------------------------------------------------------------
+TestVeafQraCoreHumanBornEvent = {}
+
+function TestVeafQraCoreHumanBornEvent:setUp()
+  dcs_mocks.reset()
+end
+
+-- Build a dynamic-slot intruder: a DCS object (no mist unitCategory/unitName fields),
+-- exposing the API getters humanBornEvent relies on.
+local function _dynSlotUnit(name, categoryEx)
+  return {
+    getCoalition = function() return coalition.side.RED end,
+    getCategoryEx = function() return categoryEx end,
+    getName = function() return name end,
+  }
+end
+
+local function _qraForRed(reactOnHelicopters)
+  local q = VeafQRA:new():setName("Q")
+  q:addEnnemyCoalition(coalition.side.RED)
+  q.reactOnHelicopters = reactOnHelicopters
+  q._enemyHumanUnits = {}
+  return q
+end
+
+function TestVeafQraCoreHumanBornEvent:test_airplane_slot_triggers_even_without_reactOnHelicopters()
+  -- The core of #299: a dynamic-slot AIRPLANE must register regardless of reactOnHelicopters.
+  local q = _qraForRed(false)
+  q:humanBornEvent(_dynSlotUnit("Intruder1", Unit.Category.AIRPLANE))
+  luaunit.assertEquals(q._enemyHumanUnits, { "Intruder1" })
+end
+
+function TestVeafQraCoreHumanBornEvent:test_helicopter_slot_ignored_when_reactOnHelicopters_false()
+  local q = _qraForRed(false)
+  q:humanBornEvent(_dynSlotUnit("Heli1", Unit.Category.HELICOPTER))
+  luaunit.assertEquals(q._enemyHumanUnits, {})
+end
+
+function TestVeafQraCoreHumanBornEvent:test_helicopter_slot_triggers_when_reactOnHelicopters_true()
+  local q = _qraForRed(true)
+  q:humanBornEvent(_dynSlotUnit("Heli1", Unit.Category.HELICOPTER))
+  luaunit.assertEquals(q._enemyHumanUnits, { "Heli1" })
+end
+
 os.exit(luaunit.LuaUnit.run())

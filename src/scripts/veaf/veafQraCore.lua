@@ -484,9 +484,14 @@ function VeafQRACore:setAirportMinLifePercent(value)
   return self
 end
 
-function VeafQRACore:setReactOnHelicopters()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setReactOnHelicopters()", veaf.lp(self.name))
-  self.reactOnHelicopters = true
+function VeafQRACore:setReactOnHelicopters(value)
+  -- Honor the argument: a bare legacy call (no arg) keeps the historical "enable" meaning,
+  -- but an explicit value (e.g. :setReactOnHelicopters(false)) is respected.
+  if value == nil then
+    value = true
+  end
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setReactOnHelicopters(%s)", veaf.lp(self.name), value)
+  self.reactOnHelicopters = value
   return self
 end
 
@@ -624,9 +629,17 @@ function VeafQRACore:humanBornEvent(unit)
       .get(veafQraManager.Id)
       :trace("VeafQRACore[%s]:humanBornEvent() - unit being born is an enemy (coalition %s)", self.name, coalitionId)
     local unitCategory = unit.unitCategory
-    if unitCategory == nil and unit.getCategory then
-      -- dynamic slot: unit is a DCS object, use API
-      unitCategory = unit:getCategory()
+    if unitCategory == nil then
+      -- Dynamic slot: the unit is a DCS object, query the API. We MUST use getCategoryEx()
+      -- (returns a Unit.Category: AIRPLANE=0 / HELICOPTER=1 / …) and NOT getCategory(),
+      -- which returns an Object.Category whose UNIT value (1) collides with
+      -- Unit.Category.HELICOPTER (1) — that made every dynamic slot look like a helicopter,
+      -- so airplane slots only triggered the QRA when reactOnHelicopters was true (#299).
+      if unit.getCategoryEx then
+        unitCategory = unit:getCategoryEx()
+      elseif unit.getDesc then
+        unitCategory = unit:getDesc().category
+      end
     end
     if unitCategory then
       if (unitCategory == Unit.Category.AIRPLANE) or (unitCategory == Unit.Category.HELICOPTER and self.reactOnHelicopters) then

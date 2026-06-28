@@ -4,7 +4,7 @@ from pathlib import Path
 import typer
 from veaf_libs.paths import resolve_path
 
-from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger, t
+from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger, t, tn
 from veaf_tools.helpers import _ask_replace
 
 
@@ -232,7 +232,7 @@ def prepare(
             from veaf_libs.mission_template import generate_mission_yaml
 
             (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")
-            console.print(t("cmd.prepare.template_applied", template=template, count=len(enabled_modules)))
+            console.print(tn("cmd.prepare.template_applied", len(enabled_modules), template=template))
 
         # Print summary
         console.print(t("cmd.prepare.done"))

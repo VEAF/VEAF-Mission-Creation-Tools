@@ -20,6 +20,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 
@@ -197,7 +198,7 @@ def inject_aircraft_groups(
     injector.display_results(result, verbose=verbose)
 
     if result.success:
-        console.print(t("cmd.inject_aircraft.injected", count=result.groups_injected))
+        console.print(tn("cmd.inject_aircraft.injected", result.groups_injected))
     else:
         console.print(t("cmd.inject_aircraft.partial", message=result.message))
 

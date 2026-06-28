@@ -13,6 +13,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 
@@ -66,7 +67,7 @@ def inject_weather(
     # Call the worker class
     worker = WeatherInjectorWorker(config_file=p_config_file, mission_file=p_mission_file)
     if created_files := worker.work():
-        console.print(t("cmd.inject_weather.done", count=len(created_files)))
+        console.print(tn("cmd.inject_weather.done", len(created_files)))
         for file_path in created_files:
             console.print(f"  - {file_path.name}")
 

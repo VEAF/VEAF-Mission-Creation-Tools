@@ -23,7 +23,7 @@ import yaml
 from mission_tools import DEFAULT_SCRIPTS_LOCATION, read_miz, write_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
 from spawn_data_injector.spawn_data_emitter import load_framework_spawn_data, render_spawn_data_lua
@@ -162,5 +162,11 @@ class SpawnDataInjectorWorker(BaseWorker):
         write_miz(mission=mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
         result = SpawnDataResult(units=len(data["units"]), groups=len(data["groups"]))
-        logger.info(t("spawn_data.done", units=result.units, groups=result.groups))
+        logger.info(
+            t(
+                "spawn_data.done",
+                units=tn("pipeline.console.spawn_data_units", result.units),
+                groups=tn("pipeline.console.spawn_data_groups", result.groups),
+            )
+        )
         return result

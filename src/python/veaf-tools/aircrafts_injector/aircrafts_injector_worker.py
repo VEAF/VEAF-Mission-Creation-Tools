@@ -26,7 +26,7 @@ from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_countries import country_id_for_name
 from veaf_libs.dcs_units_parser import parse_dcs_units
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -1220,7 +1220,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                     matched_count += _collect("helicopters", "helicopter", coalition_name, country_name, country_dict)
 
         if not silent:
-            logger.info(t("aircraft_injector.groups_matched", count=matched_count))
+            logger.info(tn("aircraft_injector.groups_matched", matched_count))
 
     def select_groups_interactively(self) -> int:
         """
@@ -1272,11 +1272,11 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             # Aircraft type and units
             aircraft_emoji = "✈️ " if aircraft_type == "airplanes" else "🚁 "
             console.print(
-                t(
+                tn(
                     "aircraft_injector.selector_type_units",
+                    units_count,
                     emoji=aircraft_emoji,
                     aircraft_type=aircraft_type,
-                    n=units_count,
                 )
             )
 

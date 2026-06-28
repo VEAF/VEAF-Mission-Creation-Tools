@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from mission_tools import DcsMission, read_miz, write_miz
 from veaf_libs.base_worker import BaseWorker
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import progress_context
 
@@ -77,7 +77,7 @@ class WeatherInjectorWorker(BaseWorker):
             logger.error(t("weather.error.load_config"))
             return []
 
-        logger.info(t("weather.config_loaded", count=len(self.config.versions)))
+        logger.info(tn("weather.config_loaded", len(self.config.versions)))
 
         # Calculate solar times if position specified
         if self.config.position:
@@ -99,7 +99,7 @@ class WeatherInjectorWorker(BaseWorker):
                     logger.error(t("weather.error.version_failed", name=version.name, error=str(e)))
                     continue
 
-        logger.info(t("weather.done", count=len(created_files)))
+        logger.info(tn("weather.done", len(created_files)))
         return created_files
 
     def _load_configuration(self) -> MissionConfig | None:

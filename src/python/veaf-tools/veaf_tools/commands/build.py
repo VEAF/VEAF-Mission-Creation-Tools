@@ -425,7 +425,7 @@ def build(
     plan = _build_plan(peek_yaml, profile, p_output_mission, mission_base_name)
 
     if len(plan) > 1:
-        logger.info(t("cmd.build.multivariant", count=len(plan), variants=", ".join(str(p) for p, _, _ in plan)))
+        logger.info(tn("cmd.build.multivariant", len(plan), variants=", ".join(str(p) for p, _, _ in plan)))
     for variant_profile, v_output, v_base in plan:
         _run_variant(variant_profile, v_output, v_base)
 

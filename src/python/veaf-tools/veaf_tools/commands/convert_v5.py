@@ -13,6 +13,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 
@@ -198,10 +199,10 @@ def convert_v5(
     console.print(f"  {step_num}. {t('convert_v5.console.next_steps.review_yaml')}")
     step_num += 1
     if converted_files:
-        console.print(f"  {step_num}. {t('convert_v5.console.next_steps.review_converted', n=len(converted_files))}")
+        console.print(f"  {step_num}. {tn('convert_v5.console.next_steps.review_converted', len(converted_files))}")
         step_num += 1
     if needs_conversion:
-        console.print(f"  {step_num}. {t('convert_v5.console.next_steps.convert_manual', n=len(needs_conversion))}")
+        console.print(f"  {step_num}. {tn('convert_v5.console.next_steps.convert_manual', len(needs_conversion))}")
         step_num += 1
     console.print(f"  {step_num}. {t('convert_v5.console.next_steps.build')}")
     step_num += 1

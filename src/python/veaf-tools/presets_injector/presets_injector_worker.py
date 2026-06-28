@@ -213,7 +213,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
     def process_groups(self, silent: bool = False) -> None:
         """Inject presets into all human-piloted groups."""
         if not silent:
-            logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
+            logger.info(tn("presets_injector.processing_groups", len(self.groups)))
 
         nb_units_processed = 0
         nb_groups_without_preset = 0
@@ -383,7 +383,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             lines += [
                 t("presets_injector.report.section_critical"),
                 "",
-                t("presets_injector.report.affected_count", count=len(strict_issues)),
+                tn("presets_injector.report.affected_count", len(strict_issues)),
                 "",
             ]
             for issue in strict_issues:
@@ -393,7 +393,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             lines += [
                 t("presets_injector.report.section_info"),
                 "",
-                t("presets_injector.report.affected_count", count=len(info_issues)),
+                tn("presets_injector.report.affected_count", len(info_issues)),
                 "",
             ]
             for issue in info_issues:
@@ -403,7 +403,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             lines += [t("presets_injector.report.all_valid"), ""]
 
         output_path.write_text("\n".join(lines), encoding="utf-8")
-        logger.info(t("presets_injector.validation_report.written", path=output_path, count=len(issues)))
+        logger.info(tn("presets_injector.validation_report.written", len(issues), path=output_path))
         return len(issues)
 
     def write_mission(self, silent: bool = False) -> None:
@@ -416,7 +416,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             for preset_name, image in self.presets_manager.presets_images.items():
                 additional_files[f"KNEEBOARD/IMAGES/presets-{preset_name}.png"] = image.getvalue()
             if not silent:
-                logger.info(t("presets_injector.kneeboard_pages", count=len(self.presets_manager.presets_images)))
+                logger.info(tn("presets_injector.kneeboard_pages", len(self.presets_manager.presets_images)))
 
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)

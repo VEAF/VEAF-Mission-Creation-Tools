@@ -1807,7 +1807,7 @@ class MissionBuilderWorker(BaseWorker):
             self.write_mission()
 
         if not silent:
-            logger.tech(t("builder.built", output=self.output_mission, folder=self.mission_folder))
+            logger.detail(t("builder.built", output=self.output_mission, folder=self.mission_folder))
 
         # End-of-build summary of missing Mission-Editor references (non-blocking).
         self.report_reference_issues()

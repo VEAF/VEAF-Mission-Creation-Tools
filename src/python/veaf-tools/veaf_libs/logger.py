@@ -135,6 +135,18 @@ class Logger:
             self.console.print(message, style="cyan")
         return self
 
+    def detail(self, message: str, no_console: bool = False) -> Self:
+        """Log and display a permanent detail line, indented under its pipeline step.
+
+        Same as :meth:`tech` but the console line is prefixed with two spaces, so a
+        step's details read as an indented sub-list under its :meth:`step` header.
+        The log file keeps the un-indented message.
+        """
+        self.logger.info(message)
+        if self.console and not no_console:
+            self.console.print(f"  {message}", style="cyan")
+        return self
+
     def step(self, message: str, no_console: bool = False) -> Self:
         """Log and display a permanent chapter header for a major stage.
 

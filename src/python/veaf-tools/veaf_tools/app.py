@@ -3,7 +3,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
 import typer
-from veaf_libs.i18n import set_language, t
+from veaf_libs.i18n import set_language, t, tn  # noqa: F401  (tn re-exported for commands)
 from veaf_libs.logger import configure_stdio_encoding, console, logger  # noqa: F401
 from veaf_libs.update_checker import check_for_updates
 

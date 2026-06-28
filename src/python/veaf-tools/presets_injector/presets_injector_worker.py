@@ -9,7 +9,7 @@ from typing import Any
 
 from mission_tools import Group, write_miz
 from veaf_libs.group_injector_worker import GroupInjectorWorker
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -243,11 +243,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 nb_groups_without_preset += 1
 
         if not silent:
-            logger.tech(t("presets_injector.injected", count=nb_units_processed))
+            logger.detail(tn("presets_injector.injected", nb_units_processed))
             # A bare "0 injected" reads like a failure; say how many human groups had no
             # matching preset in presets.yaml so the outcome is unambiguous.
             if nb_groups_without_preset:
-                logger.tech(t("presets_injector.no_preset", count=nb_groups_without_preset))
+                logger.detail(tn("presets_injector.no_preset", nb_groups_without_preset))
 
         # FIX-DYNSLOT-RADIO-UNITS: a primary `frequency` below the VHF floor
         # (ADF/HF, e.g. an ARK-15M 0.625 MHz mistakenly set as the radio) makes

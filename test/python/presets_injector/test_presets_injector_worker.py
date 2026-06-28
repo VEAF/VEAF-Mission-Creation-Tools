@@ -293,7 +293,7 @@ class TestProcessGroups(unittest.TestCase):
     def test_process_groups_reports_groups_without_preset(self) -> None:
         from unittest.mock import patch
 
-        from veaf_libs.i18n import t
+        from veaf_libs.i18n import tn
 
         worker = _make_worker()
         group = Group(
@@ -310,8 +310,8 @@ class TestProcessGroups(unittest.TestCase):
         worker.presets_manager.get_radios_for.return_value = None
         with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
             worker.process_groups(silent=False)
-        tech_msgs = [call.args[0] for call in mock_logger.tech.call_args_list]
-        self.assertIn(t("presets_injector.no_preset", count=1), tech_msgs)
+        detail_msgs = [call.args[0] for call in mock_logger.detail.call_args_list]
+        self.assertIn(tn("presets_injector.no_preset", 1), detail_msgs)
 
     def test_process_groups_no_human_pilots_skipped(self) -> None:
         worker = _make_worker()

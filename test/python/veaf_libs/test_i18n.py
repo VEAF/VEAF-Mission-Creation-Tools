@@ -285,6 +285,41 @@ class TestDetectLangLocaleRaises(unittest.TestCase):
         self.assertEqual(lang, "fr")
 
 
+class TestPluralTranslation(unittest.TestCase):
+    """tn() — natural singular/plural selection from a ``singular|plural`` value."""
+
+    def setUp(self) -> None:
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language("en")
+
+    def test_singular_form_for_count_one(self) -> None:
+        from veaf_libs.i18n import tn
+
+        # "injected {count} aircraft group|injected {count} aircraft groups"
+        self.assertEqual(tn("pipeline.console.aircraft_done", 1), "injected 1 aircraft group")
+
+    def test_plural_form_for_count_other(self) -> None:
+        from veaf_libs.i18n import tn
+
+        self.assertEqual(tn("pipeline.console.aircraft_done", 2), "injected 2 aircraft groups")
+        self.assertEqual(tn("pipeline.console.aircraft_done", 0), "injected 0 aircraft groups")
+
+    def test_single_form_value_used_for_any_count(self) -> None:
+        from veaf_libs.i18n import tn
+
+        # A value without a "|" separator is used verbatim for both singular and plural.
+        self.assertEqual(tn("this.key.does.not.exist", 3), "this.key.does.not.exist")
+
+    def test_french_plural_agreement(self) -> None:
+        from veaf_libs.i18n import tn
+
+        set_language("fr")
+        self.assertEqual(tn("pipeline.console.aircraft_done", 1), "1 groupe aérien injecté")
+        self.assertEqual(tn("pipeline.console.aircraft_done", 3), "3 groupes aériens injectés")
+
+
 class TestI18nKeyCoverage(unittest.TestCase):
     """COV-001: every t("key") call in src/python references a key in en.json."""
 

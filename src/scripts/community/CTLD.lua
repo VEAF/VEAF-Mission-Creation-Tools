@@ -2838,9 +2838,17 @@ function ctld.getUnitsInRepackRadius(_PlayerTransportUnitName, _radius)
     for i = 1, #unitsNamesList do
         local unitObject     = Unit.getByName(unitsNamesList[i])
         local repackableUnit = ctld.isRepackableUnit(unitsNamesList[i])
-        if repackableUnit then
-            repackableUnit["repackableUnitGroupID"] = unitObject:getGroup():getID()
-            table.insert(repackableUnits, mist.utils.deepCopy(repackableUnit))
+        -- Guard against a stale/transient name (no live unit, or a unit without a
+        -- group): with dynamic slots / runtime-spawned FARPs, mist.DBs can hold a
+        -- name whose Unit.getByName() is nil, which crashed `:getGroup()` here and
+        -- aborted addTransportF10MenuOptions before its addedTo guard was set,
+        -- duplicating the CTLD F10 menu on the next birth event.
+        if repackableUnit and unitObject then
+            local _group = unitObject:getGroup()
+            if _group then
+                repackableUnit["repackableUnitGroupID"] = _group:getID()
+                table.insert(repackableUnits, mist.utils.deepCopy(repackableUnit))
+            end
         end
     end
     return repackableUnits
@@ -2880,6 +2888,9 @@ end
 -- ***************************************************************
 function ctld.isRepackableUnit(_unitName)
     local unitObject = Unit.getByName(_unitName)
+    if not unitObject then
+        return nil  -- stale/transient name with no live unit (dynamic slots / spawned FARPs)
+    end
     local unitType   = unitObject:getTypeName()
     for k, v in pairs(ctld.spawnableCrates) do
         for i = 1, #ctld.spawnableCrates[k] do

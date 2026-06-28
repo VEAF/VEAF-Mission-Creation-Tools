@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.7.2] — 2026-06-28
+
 ### Changed
 - **Natural singular/plural across all CLI count messages** (UX-PLURAL-SWEEP). The catch-all `injected 1 group(s)` form is gone everywhere: ~40 count-bearing messages — across `convert-v5`, `convert-other`, `build`, `validate`, `prepare`, `export`, `migrate-config`, the inject commands, the conversion-report summary, and the presets/waypoints/warehouses/spawn-data/aircraft workers — now read `1 asset extracted` / `5 assets extracted`, `Validation: 1 error, 0 warnings`, etc., with correct agreement in FR and EN. The `tn()` helper resolves the catalog's existing `(s)` markers by count (multi-count messages compose one `tn` fragment per noun so each agrees independently); the `test_all_used_keys_exist_in_en` guard now also covers `tn()` call sites. `(s)` markers tied to a *list* (e.g. `module(s) {modules}`) are left as-is — there is no count to resolve against.
 - **`build` pipeline output is now indented** (UX-PIPELINE-OUTPUT-POLISH). Each pipeline step still prints its `Pipeline: …` header, but every detail line below it (`built mission file`, `injected N …`, `created N …`, etc.) is now **indented by two spaces** so it reads as a sub-list under its step (new `logger.detail()`; the log file stays un-indented). Display only.

@@ -1,31 +1,25 @@
-# VEAF Mission Creation Tools — 6.7.1
+# VEAF Mission Creation Tools — 6.7.2
 
-Version centrée sur une **migration v5→v6 plus sûre et plus propre** : `convert-v5` fait désormais le ménage des fichiers v5 résiduels, ses messages et ses liens de documentation sont fiabilisés, et la sortie console sous Windows ne tronque plus les réponses.
-
-## ✨ Nouveautés
-
-### `convert-v5` trie les fichiers v5 résiduels d'un dossier de mission
-
-Une mission v5 traîne des fichiers que la chaîne v6 n'utilise plus, et `convert-v5` les ignorait. Il les trie maintenant en trois catégories :
-
-- **Outillage v5 obsolète** (`*.cmd`/`*.ps1`, `package.json`, `package-lock.json`, `yarn.lock`, `configuration.json`, `7za.exe`) → **déplacé dans `backup_v5/`** (réversible). `configuration.json` est en plus signalé comme **porteur de secret** (son ancienne clé `checkwx_apikey` — non migrée, la v6 récupère la vraie météo sans clé d'API).
-- **Artefacts régénérables** (`node_modules/`, `build/`, `cache/`, tous gitignorés) → **supprimés** et listés.
-- **Fichiers non reconnus** → seulement **listés** dans une section `🧹 Legacy v5 files` pour relecture, **jamais touchés**.
-
-Le scan ne touche jamais `.git/`, `backup_v5/`, `src/mission/`, les fichiers v6 générés ni les dotfiles, et il est idempotent.
+Version de **corrections ciblées remontées du terrain** (autour des **slots dynamiques DCS**) et de **lisibilité de la sortie console**. Aucune nouvelle configuration : les missions existantes n'ont rien à changer.
 
 ## 🐛 Corrections
 
-- **`veaf-tools ask` ne tronque plus sa réponse sous Windows, et l'affiche en direct** — la réponse était coupée en plein milieu : la console héritait du code page hérité (cp1252) et le premier caractère hors table (flèche `→`, cadre d'un bloc de code, emoji) faisait planter l'affichage. La sortie est désormais forcée en **UTF-8** au démarrage (ce qui corrige aussi les emojis/flèches des rapports `convert-v5`), et `ask` rend sa réponse **en streaming**.
-- **`convert-v5` ne liste plus les exécutables `veaf-tools` comme « fichiers à supprimer »** — `veaf-tools.exe` / `veaf-tools-updater.exe` (l'outillage v6 lui-même) étaient signalés comme « non gérés, à supprimer ». Ils sont désormais ignorés par le triage.
-- **Trois avertissements météo/waypoints de `convert-v5` étaient figés en anglais** — la notice météo réelle (ICAO `TODO`), l'avertissement « fichier météo introuvable » et celui des waypoints vides passent maintenant par la traduction (FR/EN).
-- **Les liens `# Doc:` d'un `mission.yaml` généré résolvent enfin** — ils pointaient vers une ancre inexistante (slash final manquant + ancre anglaise sur la doc FR). Les titres de guide concernés ont désormais des **ancres stables FR/EN** et le générateur émet l'URL correcte (et adaptée à la langue).
-- **Le rapport `convert-v5` n'embarque plus un « `missionConfig.lua` annoté » trompeur** — ce pseudo-fichier n'était jamais exécuté et donnait l'impression qu'un fichier était édité. Supprimé ; la migration reste tracée par les tables ligne→effet déjà présentes.
-- **`--profile` est désormais insensible à la casse, et le faux avertissement « fichier orphelin » a disparu** — `--profile test` ne matchait pas un profil `TEST:` ; et un fichier utilisé par un autre profil était signalé orphelin à tort. Corrigé (le warning n'est levé que si l'étape est désactivée partout).
-- **Plus de faux rappel « triggers v5 à migrer » sur une mission déjà promue en v6** — après promotion, chaque `build` affichait encore « 2 trigger(s) v5… lancez `convert-v5` ». La détection des triggers v5 vérifie maintenant aussi la **clé** du dictionnaire, plus seulement la valeur.
-- **La notice ICAO vide ne ressemble plus à un échec** — quand on convertit une mission *realweather* sans `--icao`, la conversion **réussit** (avec un `TODO` dans `versions.yaml`) ; le message le dit clairement et propose d'abord le correctif le plus léger.
+### Slots dynamiques
 
-## 🛠️ Pour les contributeurs / développeurs de scripts
+- **La QRA réagit de nouveau aux avions en slot dynamique** ([#299](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/299)) — un avion pris en slot dynamique ne déclenchait la QRA que si `react_on_helicopters` valait `true`. En cause : la catégorie de l'intrus était mal lue (tout slot dynamique passait pour un hélicoptère). Désormais un avion slot-dyn déclenche la QRA quel que soit `react_on_helicopters`. Au passage, `:setReactOnHelicopters(false)` est enfin respecté (il forçait `true`).
+- **Plus de menu radio CTLD en double sur un hélico en slot dynamique posé sur une FARP spawnée** — prendre un slot dynamique sur une FARP créée en jeu dupliquait tout le menu CTLD (chaque entrée en double, clics sans effet), à cause d'un plantage Lua interne. Le menu est maintenant construit une seule fois et fonctionne.
+- **`convert-v5` convertit enfin les avions spawnables au format « à plat »** — selon la génération de l'éditeur d'avions spawnables v5, le `settings.lua` pouvait être dans un format que `convert-v5` ne lisait pas → `spawnables.yaml` vide, tous les avions perdus. Les deux formats sont désormais gérés (vérifié : 41 groupes récupérés là où il y en avait 0).
 
-- **`audit-dcs-mocks`** — signale les appels à l'API DCS faits par le Lua VEAF mais non présents dans les mocks de test (avant qu'un test ne casse), à partir d'un schéma DCS vendoré. Job CI non bloquant.
-- **`check-vendored` + veille de dérive** — un manifeste `vendored.yaml` recense tous les artefacts tiers vendorés (mist, CTLD, CSAR, AIEN, TUM, Skynet…) ; `check-vendored` compare chaque version épinglée à l'upstream et un workflow hebdomadaire ouvre une issue récap en cas de dérive. **Notification seulement.**
+### Conversion v5 → v6
+
+- **`convert-v5` ne décrit plus des éditions d'un `missionConfig.lua` qu'il supprime** — le rapport et la console listaient une dizaine de lignes « ligne N : … mis en commentaire / encapsulé » sur un fichier en réalité sauvegardé puis remplacé par `mission-script.lua`. Ce bruit trompeur est retiré ; seuls les éléments réellement utiles (modules détectés) restent.
+
+## 🎨 Sortie console plus lisible
+
+- **Pluriels naturels partout** — fini les `1 truc injecté(s)` : la sortie affiche `1 avion injecté` / `5 avions injectés`, en français comme en anglais.
+- **Étapes de build indentées** — chaque étape garde son en-tête `Pipeline : …` et son détail est désormais indenté en dessous.
+- **Les comptes « 0 » ne ressemblent plus à des erreurs** — l'étape « données de spawn » nomme son fichier (`spawn-groups.yaml`) comme les autres ; les avions déjà présents sont signalés `N déjà présent(s) (ignoré(s))` au lieu d'un `0 injecté` sec ; idem préréglages/waypoints sans correspondance.
+
+## 🙏 Remerciements
+
+Merci à **Tripack** pour ses signalements précis et reproductibles (QRA, CTLD, conversion des avions spawnables sur slots dynamiques).

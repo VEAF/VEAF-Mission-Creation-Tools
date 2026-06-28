@@ -176,6 +176,27 @@ def t(key: str, **kwargs: object) -> str:
     return text
 
 
+def tn(key: str, count: int, **kwargs: object) -> str:
+    """Look up a count-sensitive translation with a natural singular/plural.
+
+    The catalog value holds two ``|``-separated forms — singular then plural::
+
+        "{count} aircraft group injected|{count} aircraft groups injected"
+
+    The singular form is used when ``count == 1``, the plural otherwise (covering
+    the common ``0``/``2+`` cases). ``count`` is available to both forms; any extra
+    *kwargs* are passed through to ``str.format_map``. Falls back to the EN catalog,
+    then the key itself; a formatting error returns the raw chosen form.
+    """
+    text = _catalog.get(key) or _en_catalog.get(key, key)
+    forms = text.split("|")
+    chosen = forms[0] if count == 1 else forms[-1]
+    try:
+        return chosen.format_map({"count": count, **kwargs})
+    except (KeyError, ValueError):
+        return chosen
+
+
 # Initialise at import time so that module-level ``t()`` calls (e.g. inside
 # ``help=`` strings) get the correct language immediately.
 _init()

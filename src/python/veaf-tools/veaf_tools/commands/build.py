@@ -26,6 +26,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 from veaf_tools.helpers import _update_build_config_in_yaml
 
@@ -335,9 +336,9 @@ def build(
                     target_mission=variant_output,
                     output_mission=variant_output,
                 ).inject(mode=mode, silent=False)
-                logger.tech(t("pipeline.console.aircraft_done", count=result.groups_injected))
+                logger.detail(tn("pipeline.console.aircraft_done", result.groups_injected))
                 if result.groups_skipped:
-                    logger.tech(t("pipeline.console.aircraft_skipped", count=result.groups_skipped))
+                    logger.detail(tn("pipeline.console.aircraft_skipped", result.groups_skipped))
             else:
                 logger.warning(t("cmd.build.aircraft_validation_failed", path=path))
                 console.print(t("pipeline.console.aircraft_invalid"))
@@ -362,11 +363,11 @@ def build(
                 input_mission=variant_output,
                 output_mission=variant_output,
             ).work()
-            logger.tech(
+            logger.detail(
                 t(
                     "pipeline.console.warehouses_done",
-                    airports=wh_result.airports_configured,
-                    templates=wh_result.templates_linked,
+                    airports=tn("pipeline.console.warehouses_airports", wh_result.airports_configured),
+                    templates=tn("pipeline.console.warehouses_templates", wh_result.templates_linked),
                 )
             )
 
@@ -391,7 +392,13 @@ def build(
             ).work()
             if spawn_data_path:
                 logger.info(t("pipeline.injecting_spawn_data", path=spawn_data_path))
-            logger.tech(t("pipeline.console.spawn_data_done", units=spawn_result.units, groups=spawn_result.groups))
+            logger.detail(
+                t(
+                    "pipeline.console.spawn_data_done",
+                    units=tn("pipeline.console.spawn_data_units", spawn_result.units),
+                    groups=tn("pipeline.console.spawn_data_groups", spawn_result.groups),
+                )
+            )
 
         weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
         if weather_path:
@@ -404,7 +411,7 @@ def build(
                 mission_base_name=variant_base_name,
             )
             if created_files := weather_worker.work():
-                logger.tech(t("pipeline.console.weather_done", count=len(created_files)))
+                logger.detail(tn("pipeline.console.weather_done", len(created_files)))
 
         logger.tech(t("msg.work_done"))
 

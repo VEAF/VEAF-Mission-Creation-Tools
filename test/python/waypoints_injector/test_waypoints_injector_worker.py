@@ -288,7 +288,7 @@ class TestProcessGroups(unittest.TestCase):
     def test_process_groups_reports_groups_without_flight_plan(self) -> None:
         from unittest.mock import patch
 
-        from veaf_libs.i18n import t
+        from veaf_libs.i18n import tn
 
         worker = self._worker_with_human_group()
         mock_manager = MagicMock()
@@ -296,8 +296,8 @@ class TestProcessGroups(unittest.TestCase):
         worker.waypoints_manager = mock_manager
         with patch("waypoints_injector.waypoints_injector_worker.logger") as mock_logger:
             worker.process_groups(silent=False)
-        tech_msgs = [call.args[0] for call in mock_logger.tech.call_args_list]
-        self.assertIn(t("waypoints_injector.no_flight_plan", count=1), tech_msgs)
+        detail_msgs = [call.args[0] for call in mock_logger.detail.call_args_list]
+        self.assertIn(tn("waypoints_injector.no_flight_plan", 1), detail_msgs)
 
     def test_process_groups_no_waypoints_manager(self) -> None:
         worker = self._worker_with_human_group()

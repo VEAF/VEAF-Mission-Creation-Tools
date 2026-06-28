@@ -12,6 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
+| [UX-PIPELINE-OUTPUT-POLISH](UX-PIPELINE-OUTPUT-POLISH/PRD.md) — `build` pipeline output: indent detail lines under each step + natural singular/plural (`tn`) | ✅ |
 | [UX-AIRCRAFT-SKIPPED-REPORT](UX-AIRCRAFT-SKIPPED-REPORT/PRD.md) — `build` names the spawn-data file + reports aircraft skipped because already present | ✅ |
 | [FIX-CONVERT-SPAWNABLES-FLAT-FORMAT](FIX-CONVERT-SPAWNABLES-FLAT-FORMAT/PRD.md) — `convert-v5` converts spawnable aircraft from the flat `settings.lua` layout (was: empty `spawnables.yaml`) | ✅ |
 | [FEAT-MIGRATE-MISSION-V6](FEAT-MIGRATE-MISSION-V6/PRD.md) — promote `src/mission/` from v5 to v6 on disk | ✅ |

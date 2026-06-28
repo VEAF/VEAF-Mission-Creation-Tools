@@ -17,7 +17,7 @@ from rich.table import Table
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.group_injector_worker import GroupInjectorWorker
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -110,11 +110,11 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 )
 
         if not silent:
-            logger.tech(t("waypoints_injector.injected", count=nb_groups_processed))
+            logger.detail(tn("waypoints_injector.injected", nb_groups_processed))
             # A bare "0 injected" reads like a failure; say how many human groups had no
             # flight plan assigned in waypoints.yaml so the outcome is unambiguous.
             if nb_groups_without_plan:
-                logger.tech(t("waypoints_injector.no_flight_plan", count=nb_groups_without_plan))
+                logger.detail(tn("waypoints_injector.no_flight_plan", nb_groups_without_plan))
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a group's route, preserving its existing route.

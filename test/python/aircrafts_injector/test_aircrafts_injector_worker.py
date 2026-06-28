@@ -175,23 +175,39 @@ class TestInjectGroupsAddMode(unittest.TestCase):
         worker.dcs_mission = _mission_with_groups(["alpha", "bravo"])
         worker.yaml_data = _yaml_data(["alpha", "charlie"])  # alpha exists, charlie is new
 
-        worker.inject_groups(mode="add", silent=True)
+        result = worker.inject_groups(mode="add", silent=True)
 
         names = [g["name"] for g in _get_groups(worker)]
         self.assertEqual(names.count("alpha"), 1, "alpha must not be duplicated")
         self.assertIn("bravo", names)
         self.assertIn("charlie", names)
         self.assertEqual(len(names), 3)
+        # charlie injected, alpha skipped (already present).
+        self.assertEqual(result.groups_injected, 1)
+        self.assertEqual(result.groups_skipped, 1)
 
     def test_no_groups_injected_when_all_exist(self) -> None:
-        """When every YAML group already exists, nothing is added."""
+        """When every YAML group already exists, nothing is added but all are reported skipped."""
         worker = _worker()
         worker.dcs_mission = _mission_with_groups(["g1", "g2", "g3"])
         worker.yaml_data = _yaml_data(["g1", "g2", "g3"])
 
-        worker.inject_groups(mode="add", silent=True)
+        result = worker.inject_groups(mode="add", silent=True)
 
         self.assertEqual(len(_get_groups(worker)), 3)
+        self.assertEqual(result.groups_injected, 0)
+        self.assertEqual(result.groups_skipped, 3)
+
+    def test_new_group_reports_zero_skipped(self) -> None:
+        """A purely additive injection reports no skips."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups(["existing"])
+        worker.yaml_data = _yaml_data(["brand-new"])
+
+        result = worker.inject_groups(mode="add", silent=True)
+
+        self.assertEqual(result.groups_injected, 1)
+        self.assertEqual(result.groups_skipped, 0)
 
 
 # ---------------------------------------------------------------------------

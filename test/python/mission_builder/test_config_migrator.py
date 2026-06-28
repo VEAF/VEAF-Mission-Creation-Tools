@@ -150,6 +150,10 @@ class TestGuardDetection(unittest.TestCase):
         content = "if veafRadio then\n  veafRadio.initialize()\nend\n"
         result = self.m.migrate(content)
         self.assertIn("[v6 migration]", result.new_content)
+        # The initialize() call is actually commented out (no active line survives).
+        init_lines = [ln for ln in result.new_content.splitlines() if "veafRadio.initialize()" in ln]
+        self.assertTrue(init_lines)
+        self.assertTrue(all(ln.lstrip().startswith("--") for ln in init_lines))
         self.assertEqual(result.warnings, [])
 
 

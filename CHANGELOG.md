@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`convert-v5` no longer floods its report with "initialize() commented out" notices for a file it deletes** (CONVERT-V5-UX / CONVERT-V5-INIT-COMMENTED-NOISE). For every guarded `veafXxx.initialize()` call, the converter emitted a warning *and* a "manual review required" entry — *"line N: veafXxx.initialize() commented out (veaf-config.lua handles init)"* — so a typical mission produced a dozen-plus duplicated lines. But these pointed at a file that no longer exists: the original `missionConfig.lua` is backed up untouched under `backup_v5/` and then deleted (the live file is the generated `mission-script.lua`, callback stubs only), so the "commented out" content is never materialised and there is nothing for the maker to review. This is the same misleading-artifact class as the annotated-report block already removed in 6.7.1 — its remaining warning/manual-review channels are now gone too. The enabled-modules detection and the genuine actionable notices (commented `doFile`s, wrapped bare `initialize()` calls) are unchanged. The orphaned FR/EN `init_commented` catalog entries were removed.
+
 ## [6.7.1] — 2026-06-27
 
 ### Added

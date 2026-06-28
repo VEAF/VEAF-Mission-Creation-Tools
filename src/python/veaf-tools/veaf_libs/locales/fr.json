@@ -337,7 +337,6 @@
   "convert_v5.action.yaml_generated": "mission.yaml : généré — {enabled}/{total} modules activés, {pipeline}",
   "convert_v5.action.pipeline_steps_ready": "{n} étape(s) de pipeline prête(s)",
   "convert_v5.action.pipeline_steps_v5": "{n} étape(s) détectée(s) au format v5 (conversion nécessaire)",
-  "convert_v5.warning.init_commented": "ligne {line} : {var}.initialize() mis en commentaire (veaf-config.lua gère l'initialisation)",
   "convert_v5.warning.no_converter": "Aucun convertisseur implémenté pour l'étape de pipeline '{step}'",
   "convert_v5.warn.warbird_preset": "Préréglage warbird '{preset}' créé pour la coalition '{coalition}'. Les assignations d'aéronefs (types exacts et regex typePattern) ont été générées automatiquement dans presets_assignments — vérifiez et ajustez si nécessaire.",
   "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}) : fréquences codées en dur — aucune assignation de préréglage générée, à vérifier manuellement.",

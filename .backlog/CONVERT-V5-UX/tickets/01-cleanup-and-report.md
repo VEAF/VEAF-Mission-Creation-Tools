@@ -1,6 +1,6 @@
 # 01 — Leftover-file triage + report annotation removal
 
-Status: 🔄 in-progress
+Status: ✅ done (shipped in 6.7.1, #528)
 
 ## Tasks
 

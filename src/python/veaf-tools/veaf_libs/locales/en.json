@@ -334,7 +334,6 @@
   "convert_v5.action.yaml_generated": "mission.yaml: generated — {enabled}/{total} modules enabled, {pipeline}",
   "convert_v5.action.pipeline_steps_ready": "{n} pipeline step(s) ready",
   "convert_v5.action.pipeline_steps_v5": "{n} step(s) detected in v5 format (need conversion)",
-  "convert_v5.warning.init_commented": "line {line}: {var}.initialize() commented out (veaf-config.lua handles init)",
   "convert_v5.warning.no_converter": "No converter implemented for pipeline step '{step}'",
   "convert_v5.warn.warbird_preset": "Warbird preset '{preset}' created for coalition '{coalition}'. Aircraft assignments (exact types and typePattern regex) have been auto-generated in presets_assignments — review and adjust if needed.",
   "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}): uses hardcoded frequencies — no preset assignment generated, review manually.",

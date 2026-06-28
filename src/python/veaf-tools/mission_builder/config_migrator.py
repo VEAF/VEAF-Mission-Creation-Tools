@@ -489,7 +489,11 @@ class ConfigMigrator:
                         f"-- [v6 migration] {raw_line.rstrip()}"
                         "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
                     )
-                    warnings.append(t("convert_v5.warning.init_commented", line=lineno, var=init_in_guard_m.group(2)))
+                    # No warning is emitted: the original missionConfig.lua is backed up
+                    # untouched and then deleted (the live file is the generated
+                    # mission-script.lua), so reporting these as "commented out" lines the
+                    # maker should review pointed at a file that no longer exists
+                    # (CONVERT-V5-INIT-COMMENTED-NOISE).
                     depth += self._net_depth(raw_line)
                     continue
 

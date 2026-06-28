@@ -43,9 +43,9 @@ type lands under `airplanes:`.
 
 ## Further Notes
 
-**Possibly-related symptom — link UNCONFIRMED (Tripack)**: a QRA only triggers on an
-airplane dynamic-slot when `react_on_helicopters: true`; with it `false`/absent the QRA
-ignores the airplane. The QRA reads the intruder category by **two different paths** in
+**Possibly-related symptom — NOW CONFIRMED & FIXED separately (lot FIX-QRA-DYNSLOT-CATEGORY,
+#299)**: a QRA only triggers on an airplane dynamic-slot when `react_on_helicopters: true`;
+with it `false`/absent the QRA ignores the airplane. The QRA reads the intruder category by **two different paths** in
 `veafQraCore.lua`: (1) `humanBornEvent` (line 608) — the **dynamic-slot path** — uses
 `unit:getCategory()`, the real DCS unit type (robust to the `.miz` section); (2)
 `_getEnemyHumanUnits` (line 651) uses `unit.category` (mist string, reflects the

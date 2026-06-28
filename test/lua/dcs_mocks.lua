@@ -325,6 +325,9 @@ Object.getCategory = function(obj) return Object.Category.UNIT end
 -- ---------------------------------------------------------------------------
 Unit.getGroup = function(unit) return nil end
 Unit.destroy  = function(unit) end
+-- getCategoryEx() returns a Unit.Category (AIRPLANE/HELICOPTER/…); unlike getCategory()
+-- which returns an Object.Category. Default to AIRPLANE; tests override per unit.
+Unit.getCategoryEx = function(unit) return (unit and unit._categoryEx) or Unit.Category.AIRPLANE end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end
 
@@ -389,6 +392,7 @@ function dcs_mocks.addUnit(name, data)
   u.getCoalition = u.getCoalition or function() return coalition.side.BLUE end
   u.getName  = u.getName  or function() return name end
   u.getGroup = u.getGroup or function() return nil  end
+  u.getCategoryEx = u.getCategoryEx or function(self) return self._categoryEx or Unit.Category.AIRPLANE end
   u.destroy  = u.destroy  or function() end
   _unit_registry[name] = u
 end

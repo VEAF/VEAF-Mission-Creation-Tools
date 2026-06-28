@@ -12,6 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
+| [FIX-QRA-DYNSLOT-CATEGORY](FIX-QRA-DYNSLOT-CATEGORY/PRD.md) — QRA triggers on dynamic-slot airplanes regardless of `react_on_helicopters` (#299: `getCategory`→`getCategoryEx`) | ✅ |
 | [UX-PLURAL-SWEEP](UX-PLURAL-SWEEP/PRD.md) — natural singular/plural (`tn`) across all ~40 count-bearing CLI messages (FR/EN) | ✅ |
 | [UX-PIPELINE-OUTPUT-POLISH](UX-PIPELINE-OUTPUT-POLISH/PRD.md) — `build` pipeline output: indent detail lines under each step + natural singular/plural (`tn`) | ✅ |
 | [UX-AIRCRAFT-SKIPPED-REPORT](UX-AIRCRAFT-SKIPPED-REPORT/PRD.md) — `build` names the spawn-data file + reports aircraft skipped because already present | ✅ |

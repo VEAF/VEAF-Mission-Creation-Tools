@@ -14,6 +14,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 #: Supported export formats.
@@ -66,7 +67,7 @@ def export(
     if extract_dir and p_input.is_file():
         res_dir = Path(resolve_path(path=extract_dir))
         extracted = extract_resources(p_input, res_dir)
-        console.print(t("cmd.export.resources_extracted", count=len(extracted), path=res_dir))
+        console.print(tn("cmd.export.resources_extracted", len(extracted), path=res_dir))
 
     if output:
         out_path = Path(resolve_path(path=output))

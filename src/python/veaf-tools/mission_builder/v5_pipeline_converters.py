@@ -26,7 +26,7 @@ from typing import Any
 import luadata
 import yaml
 from mission_tools import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
 # ---------------------------------------------------------------------------
@@ -907,11 +907,11 @@ def _emit_dedicated_preset(
 
     if dropped:
         warnings.append(
-            t(
+            tn(
                 "convert_v5.warn.radio_channels_dropped",
+                dropped,
                 aircraft=entry.aircraft,
                 coalition=coalition,
-                count=dropped,
             )
         )
 

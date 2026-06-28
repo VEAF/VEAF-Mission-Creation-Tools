@@ -83,7 +83,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def process_groups(self, silent: bool = False) -> None:
         """Process all aircraft groups and inject waypoints."""
         if not silent:
-            logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
+            logger.info(tn("presets_injector.processing_groups", len(self.groups)))
 
         nb_groups_processed = 0
         nb_groups_without_plan = 0
@@ -382,7 +382,7 @@ class WaypointsExtractorWorker(BaseWorker):
                 yaml.dump(output_data, f, default_flow_style=False, allow_unicode=True)
 
             if not silent:
-                logger.info(t("waypoints_injector.waypoints_saved", count=len(output_data["waypoints"])))
+                logger.info(tn("waypoints_injector.waypoints_saved", len(output_data["waypoints"])))
 
         except Exception as e:
             logger.error(t("waypoints_injector.save_failed", error=str(e)), exception_type=type(e))

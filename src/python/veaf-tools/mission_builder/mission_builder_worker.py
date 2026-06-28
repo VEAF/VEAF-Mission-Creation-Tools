@@ -37,7 +37,7 @@ from veaf_libs.config_override import (
     render_override_lua,
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.lua_module_scanner import get_modules
@@ -226,7 +226,7 @@ def strip_native_load_triggers(dcs_mission: "DcsMission", labels: list[str]) -> 
     if dcs_mission.map_resource_content:
         for key in map_keys_to_remove:
             dcs_mission.map_resource_content.pop(key, None)
-    logger.info(t("builder.stripped_native_triggers", count=len(indices_to_remove)))
+    logger.info(tn("builder.stripped_native_triggers", len(indices_to_remove)))
 
 
 #: Community scripts that are hard dependencies of the VEAF scripts and are always
@@ -500,10 +500,10 @@ class MissionBuilderWorker(BaseWorker):
                         lua_modules[mod_id] = {}
                     lua_modules[mod_id].setdefault("logLevel", "error")
             logger.info(
-                t(
+                tn(
                     "builder.log_modules_detail",
+                    len(all_module_ids) - len(keep_modules),
                     module=sorted(keep_modules) or "none",
-                    count=len(all_module_ids) - len(keep_modules),
                 )
             )
 
@@ -1029,7 +1029,7 @@ class MissionBuilderWorker(BaseWorker):
             return
         bar = "─" * 72
         logger.warning(bar)
-        logger.warning(t("builder.reference_issues_header", count=len(issues)))
+        logger.warning(tn("builder.reference_issues_header", len(issues)))
         for issue in issues:
             logger.warning(f"  • {issue.message}")
         logger.warning(bar)
@@ -1166,7 +1166,7 @@ class MissionBuilderWorker(BaseWorker):
         # v5 triggers in memory. Once src/mission/ is promoted to v6 on disk (convert-v5),
         # this step becomes unnecessary — nudge the maker to promote and drop the debt.
         if legacy_v5_keys:
-            logger.warning(t("builder.migrate_from_v5_deprecated", count=len(legacy_v5_keys)))
+            logger.warning(tn("builder.migrate_from_v5_deprecated", len(legacy_v5_keys)))
 
     def insert_all_veaf_triggers(self) -> None:
         """
@@ -1345,7 +1345,7 @@ class MissionBuilderWorker(BaseWorker):
         scripts_dir.mkdir(parents=True, exist_ok=True)
         override_file = scripts_dir / OVERRIDE_SCRIPT_NAME
         override_file.write_text(render_override_lua(self.config_override_values), encoding="utf-8")
-        logger.info(t("builder.config_override_generated", file=override_file, count=len(self.config_override_values)))
+        logger.info(tn("builder.config_override_generated", len(self.config_override_values), file=override_file))
 
     def _ordered_mission_script_names(self) -> list[str]:
         """Ordered basenames of the mission scripts — see :meth:`_ordered_mission_script_files`."""

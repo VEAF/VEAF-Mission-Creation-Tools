@@ -763,7 +763,7 @@ class TestSummaryHeader(unittest.TestCase):
     def test_module_count_reported(self) -> None:
         mr = MigrationResult(new_content="", enabled_modules=["SPAWN", "RADIO", "MOVE"])
         md = self._report(migration_result=mr).to_markdown()
-        self.assertIn("3 module(s) migrated", md)
+        self.assertIn("3 modules migrated", md)
 
     def test_no_manual_action_when_clean(self) -> None:
         md = self._report().to_markdown()
@@ -775,7 +775,7 @@ class TestSummaryHeader(unittest.TestCase):
             warnings=["a generic warning with no line"],
         )
         md = report.to_markdown()
-        self.assertIn("3 item(s) need manual action", md)
+        self.assertIn("3 items need manual action", md)
         self.assertIn("lines: 12, 30", md)
 
 

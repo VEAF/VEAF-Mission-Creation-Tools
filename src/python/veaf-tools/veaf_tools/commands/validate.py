@@ -11,6 +11,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 
@@ -44,7 +45,13 @@ def validate(
     if not issues:
         console.print(t("cmd.validate.ok"))
     else:
-        console.print(t("cmd.validate.summary", errors=len(errors), warnings=len(warnings)))
+        console.print(
+            t(
+                "cmd.validate.summary",
+                errors=tn("cmd.validate.errors_frag", len(errors)),
+                warnings=tn("cmd.validate.warnings_frag", len(warnings)),
+            )
+        )
 
     if pause:
         input(t("help.pause_msg"))

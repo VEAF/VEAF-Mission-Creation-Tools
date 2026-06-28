@@ -179,22 +179,25 @@ def t(key: str, **kwargs: object) -> str:
 def tn(key: str, count: int, **kwargs: object) -> str:
     """Look up a count-sensitive translation with a natural singular/plural.
 
-    The catalog value holds two ``|``-separated forms — singular then plural::
+    The catalog value uses the ``(s)`` optional-plural convention: each ``word(s)``
+    marker becomes ``word`` when ``count == 1`` and ``words`` otherwise (covering the
+    ``0``/``2+`` cases)::
 
-        "{count} aircraft group injected|{count} aircraft groups injected"
+        "{n} asset(s) extracted"   # -> "1 asset extracted" / "3 assets extracted"
 
-    The singular form is used when ``count == 1``, the plural otherwise (covering
-    the common ``0``/``2+`` cases). ``count`` is available to both forms; any extra
-    *kwargs* are passed through to ``str.format_map``. Falls back to the EN catalog,
-    then the key itself; a formatting error returns the raw chosen form.
+    (Invariant nouns simply carry no marker — e.g. ``"{count} aircraft"``.)
+
+    ``count`` is exposed to the template as ``{count}``; any extra *kwargs* are passed
+    through to ``str.format_map`` (so a message using ``{n}`` is called as
+    ``tn(key, value, n=value)``). Falls back to the EN catalog, then the key itself;
+    a formatting error returns the resolved-but-unformatted text.
     """
     text = _catalog.get(key) or _en_catalog.get(key, key)
-    forms = text.split("|")
-    chosen = forms[0] if count == 1 else forms[-1]
+    resolved = text.replace("(s)", "" if count == 1 else "s")
     try:
-        return chosen.format_map({"count": count, **kwargs})
+        return resolved.format_map({"count": count, **kwargs})
     except (KeyError, ValueError):
-        return chosen
+        return resolved
 
 
 # Initialise at import time so that module-level ``t()`` calls (e.g. inside

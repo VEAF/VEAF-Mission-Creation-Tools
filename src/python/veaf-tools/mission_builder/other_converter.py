@@ -21,7 +21,7 @@ from mission_extractor import MissionExtractorWorker
 from mission_tools import read_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.conversion_profile import ConversionProfile, load_profile
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.mission_template import render_modules_block, tier_modules
 
 from mission_builder.mission_builder_worker import lua_loads_other_scripts
@@ -447,7 +447,11 @@ class OtherMissionConverter:
             report.mission_yaml_generated = True
             report.mission_yaml_path = dest
             report.actions.append(
-                t("convert_other.action.yaml_generated", scripts=len(loaders), triggers=len(strip_triggers))
+                t(
+                    "convert_other.action.yaml_generated",
+                    scripts=tn("convert_other.scripts_frag", len(loaders)),
+                    triggers=tn("convert_other.triggers_frag", len(strip_triggers)),
+                )
             )
 
     @staticmethod
@@ -468,14 +472,12 @@ class OtherMissionConverter:
         if diff.is_empty():
             report.actions.append(t("convert_other.update.no_changes"))
         if diff.added:
-            report.actions.append(t("convert_other.update.added", count=len(diff.added), names=", ".join(diff.added)))
+            report.actions.append(tn("convert_other.update.added", len(diff.added), names=", ".join(diff.added)))
         if diff.updated:
-            report.actions.append(
-                t("convert_other.update.updated", count=len(diff.updated), names=", ".join(diff.updated))
-            )
+            report.actions.append(tn("convert_other.update.updated", len(diff.updated), names=", ".join(diff.updated)))
         if diff.removed:
             report.manual_review.append(
-                t("convert_other.update.removed", count=len(diff.removed), names=", ".join(diff.removed))
+                tn("convert_other.update.removed", len(diff.removed), names=", ".join(diff.removed))
             )
 
     @staticmethod

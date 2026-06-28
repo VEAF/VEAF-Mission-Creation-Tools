@@ -319,9 +319,25 @@ class TestPluralTranslation(unittest.TestCase):
         self.assertEqual(tn("pipeline.console.aircraft_done", 1), "1 groupe aérien injecté")
         self.assertEqual(tn("pipeline.console.aircraft_done", 3), "3 groupes aériens injectés")
 
+    def test_optional_s_marker_resolved_by_count(self) -> None:
+        from veaf_libs.i18n import tn
+
+        # "{count} asset(s) extracted" — the "(s)" marker resolves by count.
+        self.assertEqual(tn("convert_v5.action.assets_extracted", 1), "mission.yaml: 1 asset extracted")
+        self.assertEqual(tn("convert_v5.action.assets_extracted", 4), "mission.yaml: 4 assets extracted")
+
+    def test_optional_s_marker_with_extra_kwarg(self) -> None:
+        from veaf_libs.i18n import tn
+
+        # A message using {n} is called as tn(key, value, n=value); the count drives
+        # the "(s)" while {n} is filled from kwargs.
+        msg = tn("aircraft_injector.selector_type_units", 1, emoji="", aircraft_type="F-16")
+        self.assertIn("1 unit", msg)
+        self.assertNotIn("unit(s)", msg)
+
 
 class TestI18nKeyCoverage(unittest.TestCase):
-    """COV-001: every t("key") call in src/python references a key in en.json."""
+    """COV-001: every t("key")/tn("key", …) call in src/python references a key in en.json."""
 
     def test_all_used_keys_exist_in_en(self) -> None:
         import ast
@@ -342,10 +358,10 @@ class TestI18nKeyCoverage(unittest.TestCase):
                 if not isinstance(node, ast.Call):
                     continue
                 func = node.func
-                is_t = (isinstance(func, ast.Name) and func.id == "t") or (
-                    isinstance(func, ast.Attribute) and func.attr == "t"
-                )
-                if is_t and node.args and isinstance(node.args[0], ast.Constant):
+                # Both t() (plain) and tn() (count-sensitive) look up a catalog key
+                # as their first positional argument.
+                name = getattr(func, "id", None) or getattr(func, "attr", None)
+                if name in ("t", "tn") and node.args and isinstance(node.args[0], ast.Constant):
                     used_keys.add(node.args[0].value)
 
         missing = sorted(used_keys - en_keys)

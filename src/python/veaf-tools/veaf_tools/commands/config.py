@@ -11,6 +11,7 @@ from veaf_tools.app import (
     console,
     logger,
     t,
+    tn,
 )
 
 
@@ -83,12 +84,12 @@ def migrate_config(
 
     # Report changes.
     if result.removed_dofiles:
-        console.print(t("cmd.migrate_config.dofiles_count", count=len(result.removed_dofiles)))
+        console.print(tn("cmd.migrate_config.dofiles_count", len(result.removed_dofiles)))
         for item in result.removed_dofiles:
             console.print(f"  • {item}")
 
     if result.wrapped_calls:
-        console.print(t("cmd.migrate_config.wrapped_count", count=len(result.wrapped_calls)))
+        console.print(tn("cmd.migrate_config.wrapped_count", len(result.wrapped_calls)))
         for item in result.wrapped_calls:
             console.print(f"  • {item}")
 

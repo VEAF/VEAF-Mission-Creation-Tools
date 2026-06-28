@@ -30,7 +30,7 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 from mission_tools.mission_constants import get_community_script_files, get_optin_community_script_ids
-from veaf_libs.i18n import current_language, t
+from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
     MODULE_CATEGORIES,
@@ -282,10 +282,10 @@ class ConversionReport:
         lines = [
             f"## {t('report.section.summary')}",
             "",
-            f"- {t('report.summary.modules', n=n_modules)}",
+            f"- {tn('report.summary.modules', n_modules)}",
         ]
         if manual_items:
-            entry = t("report.summary.manual", m=len(manual_items))
+            entry = tn("report.summary.manual", len(manual_items))
             if line_nums:
                 entry += t("report.summary.manual_lines", lines=", ".join(str(num) for num in line_nums))
             lines.append(f"- {entry}")
@@ -406,7 +406,7 @@ class ConversionReport:
                 "",
                 t("report.mission_yaml.created_with"),
                 f"- `global_log_level: debug` \u2014 {t('report.mission_yaml.log_level_warn')}",
-                f"- `lua_modules:` \u2014 {t('report.mission_yaml.modules_count', enabled=enabled_count, disabled=disabled_count)}",
+                f"- `lua_modules:` \u2014 {t('report.mission_yaml.modules_count', enabled=tn('report.mission_yaml.enabled_frag', enabled_count), disabled=tn('report.mission_yaml.disabled_frag', disabled_count))}",
             ]
             if self.auto_resolved_deps:
                 lines.append(f"- {t('report.mission_yaml.deps_resolved', list=', '.join(self.auto_resolved_deps))}")
@@ -1085,9 +1085,9 @@ class V5Converter:
             report.actions.append(t("convert_v5.action.already_v6"))
         if result.enabled_modules:
             report.actions.append(
-                t(
+                tn(
                     "convert_v5.action.modules_detected",
-                    n=len(result.enabled_modules),
+                    len(result.enabled_modules),
                     list=", ".join(result.enabled_modules),
                 )
             )
@@ -1099,13 +1099,13 @@ class V5Converter:
         if mr.mission_name or mr.mission_era or mr.mission_export_path is not None:
             report.actions.append(t("convert_v5.action.identity_extracted"))
         if mr.assets_extracted:
-            report.actions.append(t("convert_v5.action.assets_extracted", n=len(mr.assets_extracted)))
+            report.actions.append(tn("convert_v5.action.assets_extracted", len(mr.assets_extracted)))
         if mr.qra_definitions:
-            report.actions.append(t("convert_v5.action.qra_extracted", n=len(mr.qra_definitions)))
+            report.actions.append(tn("convert_v5.action.qra_extracted", len(mr.qra_definitions)))
         if mr.cap_missions_extracted:
-            report.actions.append(t("convert_v5.action.cap_extracted", n=len(mr.cap_missions_extracted)))
+            report.actions.append(tn("convert_v5.action.cap_extracted", len(mr.cap_missions_extracted)))
         if mr.combat_missions_extracted:
-            report.actions.append(t("convert_v5.action.combat_extracted", n=len(mr.combat_missions_extracted)))
+            report.actions.append(tn("convert_v5.action.combat_extracted", len(mr.combat_missions_extracted)))
 
     def _generate_mission_yaml(self, report: ConversionReport, overwrite: bool) -> None:
         """Build and write mission.yaml."""
@@ -1126,9 +1126,9 @@ class V5Converter:
         all_count = len(get_modules())
         v6_ready = sum(1 for pf in report.pipeline_files if not pf.needs_conversion)
         v5_detected = sum(1 for pf in report.pipeline_files if pf.needs_conversion)
-        pipeline_note = t("convert_v5.action.pipeline_steps_ready", n=v6_ready)
+        pipeline_note = tn("convert_v5.action.pipeline_steps_ready", v6_ready)
         if v5_detected:
-            pipeline_note += f", {t('convert_v5.action.pipeline_steps_v5', n=v5_detected)}"
+            pipeline_note += f", {tn('convert_v5.action.pipeline_steps_v5', v5_detected)}"
         report.actions.append(
             t("convert_v5.action.yaml_generated", enabled=enabled_count, total=all_count, pipeline=pipeline_note)
         )

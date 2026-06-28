@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
 
@@ -139,7 +139,13 @@ class WaypointsManager:
             if "settings" in data:
                 self._load_flight_plan_settings(data["settings"])
 
-            logger.info(t("waypoints_manager.loaded", count=len(self.waypoints), plans=len(self.flight_plans)))
+            logger.info(
+                t(
+                    "waypoints_manager.loaded",
+                    waypoints=tn("waypoints_manager.waypoints_frag", len(self.waypoints)),
+                    plans=tn("waypoints_manager.plans_frag", len(self.flight_plans)),
+                )
+            )
 
         except Exception as e:
             logger.error(t("waypoints.yaml_load_failed", path=yaml_file, error=str(e)), exception_type=type(e))

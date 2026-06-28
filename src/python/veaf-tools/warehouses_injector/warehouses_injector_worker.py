@@ -33,7 +33,7 @@ from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_units_parser import parse_dcs_units
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
 #: Config coalition keys mapped to the warehouses ``coalition`` field values.
@@ -298,5 +298,11 @@ class WarehousesInjectorWorker(BaseWorker):
         mission = read_miz(self.input_mission)
         result = apply_warehouses(mission, config)
         write_miz(mission=mission, miz_file_path=self.output_mission)
-        logger.info(t("warehouses.done", airports=result.airports_configured, templates=result.templates_linked))
+        logger.info(
+            t(
+                "warehouses.done",
+                airports=tn("pipeline.console.warehouses_airports", result.airports_configured),
+                templates=tn("pipeline.console.warehouses_templates", result.templates_linked),
+            )
+        )
         return result

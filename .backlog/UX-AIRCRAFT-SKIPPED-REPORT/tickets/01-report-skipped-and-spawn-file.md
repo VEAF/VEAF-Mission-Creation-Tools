@@ -8,7 +8,10 @@ Status: ✅ done
       when `src/spawn-groups.yaml` exists.
 - [x] `InjectionResult.groups_skipped` + count in `inject_groups`; `build` prints the
       skipped count when non-zero (new `pipeline.console.aircraft_skipped`, FR/EN).
-- [x] Tests: skipped count for mixed / all-exist / purely-additive injections.
+- [x] Presets + waypoints steps: report human-piloted groups examined without a matching
+      preset / flight plan (`presets_injector.no_preset`, `waypoints_injector.no_flight_plan`).
+- [x] Tests: skipped count for mixed / all-exist / purely-additive injections; presets +
+      waypoints "no match" reporting.
 - [x] CHANGELOG `[Unreleased]`; PATCH bump (6.7.3 → 6.7.4); `poetry install`.
 
 ## Definition of Done

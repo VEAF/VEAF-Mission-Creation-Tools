@@ -23,6 +23,11 @@ Two small `build` console-output issues, surfaced while diagnosing Tripack's mis
 2. `InjectionResult` gains `groups_skipped`; `inject_groups` counts the already-present
    skips; `build` prints `N already present in the mission (skipped)` after the injected
    count when non-zero. Verified on Tripack: `injected: 0 | skipped: 41`.
+3. Same spirit for the **presets** and **waypoints** steps (audit of all `0`-counts):
+   when human-piloted groups are examined but none match, they now add
+   `N group(s) had no matching preset` / `no flight plan in <file> (left unchanged)`
+   instead of a bare `injected into 0`. Warehouses already warned (`no_airports`);
+   spawn-data/weather rarely hit 0 — left as-is.
 
 ## Out of scope
 

@@ -2,8 +2,8 @@
 
 Status: ✅ done
 
-Reported by Tripack. Full technical analysis (for the CTLD rewrite by Fulgas):
-[docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md](../../docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md).
+Reported by Tripack. A standalone technical analysis was produced as a deliverable for
+the in-progress CTLD rewrite (handed off directly, not committed to the repo).
 
 ## Problem
 

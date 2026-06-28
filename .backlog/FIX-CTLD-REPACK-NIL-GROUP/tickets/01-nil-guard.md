@@ -6,10 +6,8 @@ Status: ✅ done
 
 - [x] `ctld.getUnitsInRepackRadius`: guard `unitObject` / its group nil before `:getGroup():getID()`.
 - [x] `ctld.isRepackableUnit`: return `nil` when `Unit.getByName` is nil.
-- [x] Analysis doc for the CTLD rewrite (Fulgas):
-      `docs/analysis/ctld-dynamic-slot-farp-menu-duplication.md` (mechanism, code excerpts,
-      runtime log evidence, what to verify in the new version).
-- [x] CHANGELOG; PATCH bump (6.7.8).
+- [x] Standalone analysis delivered for the CTLD rewrite (handed off, not committed).
+- [x] CHANGELOG; PATCH bump.
 - [x] Produce a corrected `.miz` for Tripack (fix instead of the diagnostic wrapper).
 
 ## Definition of Done

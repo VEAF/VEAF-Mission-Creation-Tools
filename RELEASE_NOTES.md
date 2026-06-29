@@ -14,7 +14,7 @@ Version **multi-plateforme et fiabilité**. `veaf-tools` tourne désormais nativ
 
 ## 🔍 Diagnostic facilité
 
-- **Une seule version « de build » dans les logs DCS** — au lieu d'une trentaine de numéros de version par module (qui ne correspondaient à aucune release et n'étaient pas fiables), le log affiche désormais un **stamp unique** `6.7.5+<identifiant git>` indiquant exactement quelle version de `veaf-tools` a généré la mission. En cas de souci, on sait immédiatement quel code tourne réellement.
+- **Une seule version « de build » dans les logs DCS** — au lieu d'une trentaine de numéros de version par module (qui ne correspondaient à aucune release et n'étaient pas fiables), le log affiche désormais un **stamp unique** `6.7.5+<sha git>` indiquant exactement quelle version de `veaf-tools` a généré la mission. En cas de souci, on sait immédiatement quel code tourne réellement.
 
 ## 🙏 Remerciements
 

@@ -525,33 +525,44 @@ exit /b 0
             logger.warning(t("updater.warn.unix_no_binary_in_zip"))
             return
 
-        targets = [
-            (platform_assets.veaf_tools_asset_name(), platform_assets.veaf_tools_binary_name()),
-            (platform_assets.updater_asset_name(), platform_assets.updater_binary_name()),
-        ]
+        tools_asset = platform_assets.veaf_tools_asset_name()
+        updater_asset = platform_assets.updater_asset_name()
+        if not tools_asset or not updater_asset:  # unsupported platform/arch — no asset applies
+            logger.warning(t("updater.warn.unix_unsupported"))
+            return
+
+        # Attempt both binaries independently: a missing/failed one must not skip the other.
         with spinner_context(t("updater.installing")):
-            for asset_name, binary_name in targets:
-                if not asset_name:  # unsupported platform/arch — no asset to fetch
-                    logger.warning(t("updater.warn.unix_no_binary_in_zip"))
-                    return
-                self._download_binary_asset(release_assets, asset_name, Path.cwd() / binary_name)
+            self._download_binary_asset(
+                release_assets, tools_asset, Path.cwd() / platform_assets.veaf_tools_binary_name()
+            )
+            self._download_binary_asset(
+                release_assets, updater_asset, Path.cwd() / platform_assets.updater_binary_name()
+            )
 
     def _download_binary_asset(self, release_assets: list[dict], asset_name: str, dest: Path) -> bool:
         """Download a named release asset to ``dest`` and mark it executable.
 
         Writes to a temporary sibling then atomically replaces ``dest`` (so a partial
         download never leaves a half-written binary), and sets the executable bit.
+
+        Returns:
+            ``True`` on success; ``False`` if the asset is absent from the release or the
+            download failed (both are logged as errors so the failure is surfaced).
         """
         import os
 
+        # exception_type=None: log at error level but do NOT raise — a failure on one
+        # binary must surface yet still let the other be attempted (and not roll back
+        # the common content already installed from the zip).
         asset = next((a for a in release_assets if a.get("name") == asset_name), None)
         if not asset:
-            logger.warning(t("updater.err.no_asset", name=asset_name))
+            logger.error(t("updater.err.no_asset", name=asset_name), exception_type=None)
             return False
 
         content = self.download_asset(asset.get("browser_download_url"), asset_name)
         if not content:
-            logger.warning(t("updater.err.no_asset", name=asset_name))
+            logger.error(t("updater.err.binary_download_failed", name=asset_name), exception_type=None)
             return False
 
         tmp = dest.with_name(f"{dest.name}.new")

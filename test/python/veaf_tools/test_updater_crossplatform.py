@@ -91,6 +91,33 @@ def test_download_binary_asset_missing_returns_false(updater_mod: types.ModuleTy
     assert not (tmp_path / "veaf-tools").exists()
 
 
+def test_download_binary_asset_download_failure_returns_false(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    worker = _worker(updater_mod)
+    monkeypatch.setattr(worker, "download_asset", lambda url, name: None)  # network/download failure
+    dest = tmp_path / "veaf-tools"
+    assets = [{"name": "veaf-tools-linux-x86_64", "browser_download_url": "http://x"}]
+    ok = worker._download_binary_asset(assets, "veaf-tools-linux-x86_64", dest)
+    assert ok is False
+    assert not dest.exists()
+
+
+def test_install_unix_binaries_unsupported_platform_skips(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pa = updater_mod.platform_assets
+    monkeypatch.setattr(pa, "veaf_tools_asset_name", lambda *a, **k: None)
+    monkeypatch.setattr(pa, "updater_asset_name", lambda *a, **k: None)
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+
+    # Non-empty assets, but no prebuilt binary applies to this platform/arch.
+    worker._install_unix_binaries([{"name": "something-else"}])
+    assert not (tmp_path / "veaf-tools").exists()
+    assert not (tmp_path / "veaf-tools-updater").exists()
+
+
 def test_extract_and_install_routes_unix(
     updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

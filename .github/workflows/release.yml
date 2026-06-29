@@ -73,6 +73,13 @@ jobs:
     name: Standalone ${{ matrix.asset }}
     needs: release
     runs-on: ${{ matrix.runner }}
+    # Intel macOS (macos-13) is a shrinking, scarce runner pool that can sit queued for
+    # a long time. Mark only that variant best-effort: continue-on-error keeps a slow or
+    # failed Intel job from turning the release red or blocking it. Linux/arm64 stay
+    # blocking (must be reliable). timeout-minutes caps execution time once a runner is
+    # assigned — it does NOT bound the queue wait, which GitHub alone controls.
+    continue-on-error: ${{ matrix.optional || false }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -83,9 +90,10 @@ jobs:
           - runner: macos-latest   # Apple Silicon
             asset: veaf-tools-macos-arm64
             updater_asset: veaf-tools-updater-macos-arm64
-          - runner: macos-13       # Intel
+          - runner: macos-13       # Intel — best-effort (scarce runner pool)
             asset: veaf-tools-macos-x86_64
             updater_asset: veaf-tools-updater-macos-x86_64
+            optional: true
 
     permissions:
       contents: write  # needed to upload assets to the release

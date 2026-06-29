@@ -15,11 +15,6 @@ function TestVeafAssetsConstants:test_id()
   luaunit.assertEquals(veafAssets.Id, "ASSETS")
 end
 
-function TestVeafAssetsConstants:test_version()
-  luaunit.assertIsString(veafAssets.Version)
-  luaunit.assertTrue(#veafAssets.Version > 0)
-end
-
 function TestVeafAssetsConstants:test_radioMenuName()
   luaunit.assertIsString(veafAssets.RadioMenuName)
   luaunit.assertTrue(#veafAssets.RadioMenuName > 0)

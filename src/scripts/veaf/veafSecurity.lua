@@ -18,9 +18,6 @@ veafSecurity = {}
 --- Identifier. All output in DCS.log will start with this.
 veafSecurity.Id = "SECURITY"
 
---- Version.
-veafSecurity.Version = "1.3.4"
-
 -- trace level, specific to this module
 --veafSecurity.LogLevel = "trace"
 
@@ -664,6 +661,6 @@ function veafSecurity.initialize()
   veafSecurity.authenticated = veaf.SecurityDisabled
 end
 
-veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo(veafSecurity.Version))
+veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo())
 
 veaf.registerModule(veafSecurity.Id, veafSecurity.initialize, { enable = true }, 20)

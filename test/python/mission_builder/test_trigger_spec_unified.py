@@ -17,7 +17,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+from mission_builder import mission_builder_worker
 from mission_builder.mission_builder_worker import (
     _VEAF_TRIGGER_DICT_KEYS,
     FileAction,
@@ -26,6 +28,9 @@ from mission_builder.mission_builder_worker import (
     _emit_trig_action_string,
     _emit_trigrule_actions,
 )
+
+#: Deterministic build stamp for the golden tests (the real one varies by version/sha).
+_STAMP = "9.9.9+testsha"
 
 #: Dictionary key of the static-mission trigger (#6) — a stable identifier, unlike the
 #: human-facing ``comment``.
@@ -93,7 +98,8 @@ class TestTriggerGoldenBytes(unittest.TestCase):
     def _specs(self):
         worker = _make_worker()
         worker._active_community_scripts = lambda: [{"path": "src/scripts/community/mist.lua"}]  # type: ignore[method-assign]
-        return worker._build_veaf_trigger_specs(_SCRIPT_FILES, _MISSION_FILES)
+        with mock.patch.object(mission_builder_worker, "get_build_stamp", return_value=_STAMP):
+            return worker._build_veaf_trigger_specs(_SCRIPT_FILES, _MISSION_FILES)
 
     def test_trig_action_strings_golden(self) -> None:
         specs = self._specs()
@@ -101,16 +107,18 @@ class TestTriggerGoldenBytes(unittest.TestCase):
         self.assertEqual(_emit_trig_action_string(specs[0].actions), f'a_do_script("{specs[0].actions[0].lua}");')
         self.assertTrue(specs[0].actions[0].lua.startswith("VEAF_DYNAMIC_SCRIPTSPATH = [["))
         self.assertEqual(_emit_trig_action_string(specs[1].actions), f'a_do_script("{specs[1].actions[0].lua}");')
-        # #3 — VEAF scripts dynamic (escaped quotes, community + dev framework loader)
+        # #3 — VEAF scripts dynamic (build stamp first, then escaped community + dev loader)
         self.assertEqual(
             _emit_trig_action_string(specs[2].actions),
+            f'a_do_script("VEAF_BUILD_VERSION = \\"{_STAMP}\\"");'
             'a_do_script("env.info(\\"DYNAMIC VEAF scripts loading from \\"..VEAF_DYNAMIC_SCRIPTSPATH)");'
             'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"src/scripts/community/mist.lua\\"))()");'
             'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"/src/scripts/VeafDynamicLoader.lua\\"))()");',
         )
-        # #4 — VEAF scripts static (mapResource file loads)
+        # #4 — VEAF scripts static (build stamp first, then mapResource file loads)
         self.assertEqual(
             _emit_trig_action_string(specs[3].actions),
+            f'a_do_script("VEAF_BUILD_VERSION = \\"{_STAMP}\\"");'
             'a_do_script("env.info(\\"STATIC VEAF scripts loading\\")");'
             'a_do_script_file(getValueResourceByKey("VEAF_MapKey_ActionText_10000"));',
         )
@@ -162,6 +170,22 @@ class TestTriggerGoldenBytes(unittest.TestCase):
         self.assertIsInstance(specs[0].actions[0], LuaAction)
         self.assertIsInstance(specs[1].actions[0], LuaAction)
         self.assertTrue(specs[1].actions[0].lua.startswith("VEAF_DYNAMIC_MISSIONPATH = [["))
+
+
+class TestBuildStampInjection(unittest.TestCase):
+    """The build stamp is set as the first action of both framework-load triggers."""
+
+    def _specs(self):
+        worker = _make_worker()
+        with mock.patch.object(mission_builder_worker, "get_build_stamp", return_value=_STAMP):
+            return worker._build_veaf_trigger_specs(_SCRIPT_FILES, _MISSION_FILES)
+
+    def test_stamp_is_first_action_of_dynamic_and_static_framework_triggers(self) -> None:
+        specs = self._specs()
+        for idx in (2, 3):  # #3 dynamic, #4 static framework loading
+            first = specs[idx].actions[0]
+            self.assertIsInstance(first, LuaAction)
+            self.assertEqual(first.lua, f'VEAF_BUILD_VERSION = "{_STAMP}"')
 
 
 if __name__ == "__main__":

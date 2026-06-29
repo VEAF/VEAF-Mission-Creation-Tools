@@ -22,9 +22,6 @@ veafInterpreter = {}
 --- Identifier. All output in DCS.log will start with this.
 veafInterpreter.Id = "INTERPRETER"
 
---- Version.
-veafInterpreter.Version = "1.6.3"
-
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
 
@@ -137,6 +134,6 @@ function veafInterpreter._initialize()
   end
 end
 
-veaf.loggers.get(veafInterpreter.Id):info(veaf.loggers.get(veafInterpreter.Id):getVersionInfo(veafInterpreter.Version))
+veaf.loggers.get(veafInterpreter.Id):info(veaf.loggers.get(veafInterpreter.Id):getVersionInfo())
 
 veaf.registerModule(veafInterpreter.Id, veafInterpreter.initialize, { enable = true }, 170)

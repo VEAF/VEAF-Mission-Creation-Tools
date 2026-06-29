@@ -19,10 +19,6 @@ function TestVeafCasMissionConstants:test_id()
   luaunit.assertEquals(veafCasMission.Id, "CASMISSION")
 end
 
-function TestVeafCasMissionConstants:test_version()
-  luaunit.assertIsString(veafCasMission.Version)
-end
-
 function TestVeafCasMissionConstants:test_secondsBetweenWatchdogChecks()
   luaunit.assertEquals(veafCasMission.SecondsBetweenWatchdogChecks, 15)
 end

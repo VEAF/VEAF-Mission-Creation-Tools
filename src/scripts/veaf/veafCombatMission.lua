@@ -20,9 +20,6 @@ veafCombatMission = {}
 --- Identifier. All output in DCS.log will start with this.
 veafCombatMission.Id = "COMBATMISSION"
 
---- Version.
-veafCombatMission.Version = "2.2.1"
-
 -- trace level, specific to this module
 --veafCombatMission.LogLevel = "trace"
 
@@ -1580,6 +1577,6 @@ function veafCombatMission.initialize()
   veafRemote.registerRemoteModule("air", veafCombatMission.executeCommandFromRemote)
 end
 
-veaf.loggers.get(veafCombatMission.Id):info(veaf.loggers.get(veafCombatMission.Id):getVersionInfo(veafCombatMission.Version))
+veaf.loggers.get(veafCombatMission.Id):info(veaf.loggers.get(veafCombatMission.Id):getVersionInfo())
 
 veaf.registerModule(veafCombatMission.Id, veafCombatMission.initialize, { enable = true }, 100)

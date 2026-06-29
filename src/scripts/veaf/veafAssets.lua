@@ -18,9 +18,6 @@ veafAssets = {}
 --- Identifier. All output in DCS.log will start with this.
 veafAssets.Id = "ASSETS"
 
---- Version.
-veafAssets.Version = "1.8.3"
-
 -- trace level, specific to this module
 --veafAssets.LogLevel = "trace"
 
@@ -209,7 +206,7 @@ function veafAssets.initialize()
   end
 end
 
-veaf.loggers.get(veafAssets.Id):info(veaf.loggers.get(veafAssets.Id):getVersionInfo(veafAssets.Version))
+veaf.loggers.get(veafAssets.Id):info(veaf.loggers.get(veafAssets.Id):getVersionInfo())
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

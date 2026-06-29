@@ -12,6 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
+| [FEAT-LUA-BUILD-STAMP](FEAT-LUA-BUILD-STAMP/PRD.md) — single build stamp (`6.7.x+<sha>`) in the DCS log instead of 33 unreliable per-module versions; retires the hand-maintained `.Version` constants | 🔄 |
 | [FIX-CTLD-REPACK-NIL-GROUP](FIX-CTLD-REPACK-NIL-GROUP/PRD.md) — CTLD F10 menu duplicated on dynamic-slot helo on a runtime FARP (`getUnitsInRepackRadius` nil `getGroup`) + analysis doc for the CTLD rewrite | ✅ |
 | [FIX-QRA-DYNSLOT-CATEGORY](FIX-QRA-DYNSLOT-CATEGORY/PRD.md) — QRA triggers on dynamic-slot airplanes regardless of `react_on_helicopters` (#299: `getCategory`→`getCategoryEx`) | ✅ |
 | [UX-PLURAL-SWEEP](UX-PLURAL-SWEEP/PRD.md) — natural singular/plural (`tn`) across all ~40 count-bearing CLI messages (FR/EN) | ✅ |

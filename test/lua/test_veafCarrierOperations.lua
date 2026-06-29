@@ -87,10 +87,6 @@ end
 -- ---------------------------------------------------------------------------
 TestVeafCarrierConstants = {}
 
-function TestVeafCarrierConstants:test_version()
-  luaunit.assertIsString(veafCarrierOperations.Version)
-end
-
 function TestVeafCarrierConstants:test_alt_for_measuring_wind()
   luaunit.assertEquals(veafCarrierOperations.ALT_FOR_MEASURING_WIND, 30)
 end

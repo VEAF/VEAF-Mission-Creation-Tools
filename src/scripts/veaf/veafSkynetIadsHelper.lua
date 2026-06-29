@@ -18,9 +18,6 @@ veafSkynet = {}
 --- Identifier. All output in DCS.log will start with this.
 veafSkynet.Id = "SKYNET"
 
---- Version.
-veafSkynet.Version = "3.1.2"
-
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
 
@@ -1204,7 +1201,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Load module
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veaf.loggers.get(veafSkynet.Id):info(veaf.loggers.get(veafSkynet.Id):getVersionInfo(veafSkynet.Version))
+veaf.loggers.get(veafSkynet.Id):info(veaf.loggers.get(veafSkynet.Id):getVersionInfo())
 
 veaf.registerModule(veafSkynet.Id, function()
   local cfg = veaf.getConfig(veafSkynet.Id)

@@ -80,7 +80,7 @@ globals = {
   -- Mission / config globals
   "base", "db", "radioSettings", "SERVER_CONFIG", "settings",
   "Sim", "socket", "waypoints", "logError", "inheritsFrom",
-  "_VEAF_SCRIPT_DIR", "VEAF_DYNAMIC_MISSIONPATH",
+  "_VEAF_SCRIPT_DIR", "VEAF_DYNAMIC_MISSIONPATH", "VEAF_BUILD_VERSION",
   -- Test infrastructure
   "luaunit", "dcs_mocks",
   "TestVeafCacheManager", "TestVeafInterpreter",

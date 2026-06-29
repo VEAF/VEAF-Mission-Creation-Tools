@@ -15,10 +15,6 @@ function TestVeafEventHandlerConstants:test_id()
   luaunit.assertIsString(veafEventHandler.Id)
 end
 
-function TestVeafEventHandlerConstants:test_version()
-  luaunit.assertIsString(veafEventHandler.Version)
-end
-
 function TestVeafEventHandlerConstants:test_events_table_exists()
   luaunit.assertIsTable(veafEventHandler.EVENTS)
 end

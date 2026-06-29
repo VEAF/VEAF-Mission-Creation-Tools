@@ -16,9 +16,6 @@ veafWeather = {}
 --- Identifier. All output in DCS.log will start with this.
 veafWeather.Id = "WEATHER"
 
---- Version.
-veafWeather.Version = "1.5.2"
-
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
@@ -1825,7 +1822,7 @@ function veafWeather.initialize()
   veafRemote.registerRemoteModule("weather", veafWeather.executeCommandFromRemote)
 end
 
-veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo(veafWeather.Version))
+veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo())
 
 veaf.registerModule(veafWeather.Id, veafWeather.initialize, { enable = true }, 210)
 

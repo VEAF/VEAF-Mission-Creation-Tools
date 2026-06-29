@@ -20,9 +20,6 @@ veafMissileGuardian = {}
 --- Identifier. All output in DCS.log will start with this.
 veafMissileGuardian.Id = "MISSILEGUARDIAN"
 
---- Version.
-veafMissileGuardian.Version = "0.0.2"
-
 -- trace level, specific to this module
 --veafMissileGuardian.LogLevel = "trace"
 
@@ -623,6 +620,6 @@ function veafMissileGuardian.initialize()
   veafMissileGuardian.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
 end
 
-veaf.loggers.get(veafMissileGuardian.Id):info(veaf.loggers.get(veafMissileGuardian.Id):getVersionInfo(veafMissileGuardian.Version))
+veaf.loggers.get(veafMissileGuardian.Id):info(veaf.loggers.get(veafMissileGuardian.Id):getVersionInfo())
 
 veaf.registerModule(veafMissileGuardian.Id, veafMissileGuardian.initialize, { enable = true }, 180)

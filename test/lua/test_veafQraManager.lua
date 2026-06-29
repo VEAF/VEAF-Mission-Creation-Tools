@@ -15,10 +15,6 @@ function TestVeafQraManagerConstants:test_id()
   luaunit.assertEquals(veafQraManager.Id, "QRA")
 end
 
-function TestVeafQraManagerConstants:test_version()
-  luaunit.assertIsString(veafQraManager.Version)
-end
-
 function TestVeafQraManagerConstants:test_status_willrearm()
   luaunit.assertEquals(veafQraManager.STATUS_WILLREARM, 0)
 end

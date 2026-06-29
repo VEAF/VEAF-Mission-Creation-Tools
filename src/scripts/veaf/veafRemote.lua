@@ -18,9 +18,6 @@ veafRemote = {}
 --- Identifier. All output in DCS.log will start with this.
 veafRemote.Id = "REMOTE"
 
---- Version.
-veafRemote.Version = "2.3.1"
-
 -- trace level, specific to this module
 --veafRemote.LogLevel = "trace"
 
@@ -371,6 +368,6 @@ function veafRemote.initialize()
   end, veafCommands.PRIORITY_REMOTE)
 end
 
-veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo(veafRemote.Version))
+veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo())
 
 veaf.registerModule(veafRemote.Id, veafRemote.initialize, { enable = true }, 230)

@@ -18,9 +18,6 @@ veafMarkers = {}
 --- Identifier. All output in DCS.log will start with this.
 veafMarkers.Id = "MARKERS"
 
---- Version.
-veafMarkers.Version = "1.1.1"
-
 --- DCS bug regarding wrong marker vector components was fixed. If so, set to true!
 veafMarkers.DCSbugfixed = true
 
@@ -198,4 +195,4 @@ world.addEventHandler(veafMarkers.eventHandler)
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.loggers.get(veafMarkers.Id):info(veaf.loggers.get(veafMarkers.Id):getVersionInfo(veafMarkers.Version))
+veaf.loggers.get(veafMarkers.Id):info(veaf.loggers.get(veafMarkers.Id):getVersionInfo())

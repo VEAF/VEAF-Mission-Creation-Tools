@@ -18,9 +18,6 @@ veafShortcuts = {}
 --- Identifier. All output in DCS.log will start with this.
 veafShortcuts.Id = "SHORTCUTS"
 
---- Version.
-veafShortcuts.Version = "1.41.1"
-
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
 
@@ -1730,6 +1727,6 @@ function veafShortcuts.initialize()
   veafShortcuts.dumpAliasesList()
 end
 
-veaf.loggers.get(veafShortcuts.Id):info(veaf.loggers.get(veafShortcuts.Id):getVersionInfo(veafShortcuts.Version))
+veaf.loggers.get(veafShortcuts.Id):info(veaf.loggers.get(veafShortcuts.Id):getVersionInfo())
 
 veaf.registerModule(veafShortcuts.Id, veafShortcuts.initialize, { enable = true }, 40)

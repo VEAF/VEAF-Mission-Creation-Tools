@@ -18,9 +18,6 @@ veafNamedPoints = {}
 --- Identifier. All output in DCS.log will start with this.
 veafNamedPoints.Id = "NAMEDPOINTS"
 
---- Version.
-veafNamedPoints.Version = "1.16.2"
-
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
 veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)
@@ -5686,7 +5683,7 @@ veafNamedPoints._citiesFalklands = {
 ---  Module loading log
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
-veaf.loggers.get(veafNamedPoints.Id):info(veaf.loggers.get(veafNamedPoints.Id):getVersionInfo(veafNamedPoints.Version))
+veaf.loggers.get(veafNamedPoints.Id):info(veaf.loggers.get(veafNamedPoints.Id):getVersionInfo())
 
 veaf.registerModule(veafNamedPoints.Id, function()
   local cfg = veaf.getConfig(veafNamedPoints.Id)

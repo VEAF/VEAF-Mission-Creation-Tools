@@ -16,10 +16,6 @@ function TestVeafSkynetMonitorConstants:test_id()
   luaunit.assertIsString(veafSkynetMonitor.Id)
 end
 
-function TestVeafSkynetMonitorConstants:test_version()
-  luaunit.assertIsString(veafSkynetMonitor.Version)
-end
-
 function TestVeafSkynetMonitorConstants:test_interval_is_number()
   luaunit.assertIsNumber(veafSkynetMonitor._interval)
 end

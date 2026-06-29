@@ -35,10 +35,6 @@ function TestVeafMarkersConstants:test_id()
   luaunit.assertIsString(veafMarkers.Id)
 end
 
-function TestVeafMarkersConstants:test_version()
-  luaunit.assertIsString(veafMarkers.Version)
-end
-
 function TestVeafMarkersConstants:test_eventHandlerId_is_number()
   luaunit.assertIsNumber(veafMarkers.eventHandlerId)
 end

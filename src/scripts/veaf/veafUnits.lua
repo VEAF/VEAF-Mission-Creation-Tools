@@ -18,9 +18,6 @@ veafUnits = {}
 --- Identifier. All output in DCS.log will start with this.
 veafUnits.Id = "UNITS"
 
---- Version.
-veafUnits.Version = "1.15.0"
-
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
 
@@ -814,7 +811,7 @@ function veafUnits.initialize()
   veaf.loggers.get(veafUnits.Id):info("Initializing module")
 end
 
-veaf.loggers.get(veafUnits.Id):info(string.format("Loading version %s", veafUnits.Version))
+veaf.loggers.get(veafUnits.Id):info(veaf.loggers.get(veafUnits.Id):getVersionInfo())
 
 if veafUnits.OutputListsForDocumentation then
   veafUnits.logGroupsListInMarkdown()

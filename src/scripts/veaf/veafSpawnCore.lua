@@ -22,9 +22,6 @@ veafSpawn = {}
 --- Identifier. All output in DCS.log will start with this.
 veafSpawn.Id = "SPAWN"
 
---- Version.
-veafSpawn.Version = "1.59.3"
-
 -- trace level, specific to this module (uncomment for debugging)
 --veafSpawn.LogLevel = "trace"
 
@@ -944,6 +941,6 @@ function veafSpawn.initialize()
   veafSpawn.dumpSpawnablePlanesList()
 end
 
-veaf.loggers.get(veafSpawn.Id):info(veaf.loggers.get(veafSpawn.Id):getVersionInfo(veafSpawn.Version))
+veaf.loggers.get(veafSpawn.Id):info(veaf.loggers.get(veafSpawn.Id):getVersionInfo())
 
 veaf.registerModule(veafSpawn.Id, veafSpawn.initialize, { enable = true }, 70)

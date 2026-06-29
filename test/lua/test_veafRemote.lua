@@ -29,10 +29,6 @@ function TestVeafRemoteConstants:test_id()
   luaunit.assertIsString(veafRemote.Id)
 end
 
-function TestVeafRemoteConstants:test_version()
-  luaunit.assertIsString(veafRemote.Version)
-end
-
 function TestVeafRemoteConstants:test_remoteUsers_table_exists()
   luaunit.assertIsTable(veafRemote.remoteUsers)
 end

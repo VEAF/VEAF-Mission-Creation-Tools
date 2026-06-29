@@ -15,10 +15,6 @@ function TestVeafRadioConstants:test_id()
   luaunit.assertEquals(veafRadio.Id, "RADIO")
 end
 
-function TestVeafRadioConstants:test_version()
-  luaunit.assertIsString(veafRadio.Version)
-end
-
 function TestVeafRadioConstants:test_usage_for_all()
   luaunit.assertEquals(veafRadio.USAGE_ForAll, 0)
 end

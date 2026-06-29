@@ -15,10 +15,6 @@ function TestVeafSpawnConstants:test_id()
   luaunit.assertEquals(veafSpawn.Id, "SPAWN")
 end
 
-function TestVeafSpawnConstants:test_version()
-  luaunit.assertIsString(veafSpawn.Version)
-end
-
 function TestVeafSpawnConstants:test_spawnKeyphrase()
   luaunit.assertEquals(veafSpawn.SpawnKeyphrase, "_spawn")
 end

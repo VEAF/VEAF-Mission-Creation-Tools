@@ -15,10 +15,6 @@ function TestVeafGroundAIModule:test_id()
   luaunit.assertIsString(veafGroundAI.Id)
 end
 
-function TestVeafGroundAIModule:test_version()
-  luaunit.assertIsString(veafGroundAI.Version)
-end
-
 function TestVeafGroundAIModule:test_markerKeyphrase()
   luaunit.assertIsString(veafGroundAI.MarkerKeyphrase)
 end

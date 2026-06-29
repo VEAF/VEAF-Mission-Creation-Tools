@@ -20,11 +20,6 @@ function TestCombatZoneModuleConstants:test_id()
   luaunit.assertEquals(veafCombatZone.Id, "COMBATZONE")
 end
 
-function TestCombatZoneModuleConstants:test_version_string()
-  luaunit.assertIsString(veafCombatZone.Version)
-  luaunit.assertTrue(veafCombatZone.Version:find("^%d+%.%d+") ~= nil)
-end
-
 function TestCombatZoneModuleConstants:test_radioMenuName()
   luaunit.assertEquals(veafCombatZone.RadioMenuName, "COMBAT ZONES")
 end

@@ -92,7 +92,6 @@ veafModuleName = veafModuleName or {}
 
 -- Module metadata
 veafModuleName.Id = "MODULE_ID"
-veafModuleName.Version = "X.Y.Z"
 veafModuleName.LogLevel = "info"  -- or "debug", "trace"
 
 -- Logger initialization
@@ -142,7 +141,7 @@ veaf.loggers.setBaseLevel("info")  -- Global default
 #### Constants
 
 ```lua
-veaf.Version = "1.57.0"
+veaf.BuildVersion = "6.7.x+<sha>"  -- build stamp (package version + git sha) injected at build time; "dev" when unbuilt
 veaf.Development = false  -- Enable development features
 veaf.HideNamesFromSpawnedGroups = false
 veaf.BaseLogLevel = 3  -- Default log level (info); acts as a cap for module log levels

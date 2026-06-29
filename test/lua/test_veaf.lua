@@ -1272,6 +1272,21 @@ function TestVeafLogger:test_getVersionInfo()
   luaunit.assertStrContains(info, "INFO")
 end
 
+function TestVeafLogger:test_getVersionInfo_noArg_isNumberless()
+  -- with no version, modules log a numberless "loaded" line (per-module versions retired)
+  local log = veaf.Logger:new("TL", "info")
+  local info = log:getVersionInfo()
+  luaunit.assertStrContains(info, "loaded")
+  luaunit.assertStrContains(info, "INFO")
+  luaunit.assertNil(info:find("version"))
+end
+
+function TestVeafLogger:test_buildVersion_fallsBackToDev()
+  -- unbuilt scripts (hand-copied, or the Lua tests) have no VEAF_BUILD_VERSION global
+  luaunit.assertIsString(veaf.BuildVersion)
+  luaunit.assertEquals(veaf.BuildVersion, "dev")
+end
+
 function TestVeafLogger:test_splitTextShort()
   local tbl = veaf.Logger.splitText("short text")
   luaunit.assertEquals(#tbl, 1)

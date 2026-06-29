@@ -17,9 +17,6 @@ veafCacheManager = {}
 --- Identifier. All output in the log will start with this.
 veafCacheManager.Id = "CACHE"
 
---- Version.
-veafCacheManager.Version = "0.0.2"
-
 -- trace level, specific to this module (uncomment for debugging)
 --veafCacheManager.LogLevel = "trace"
 
@@ -129,4 +126,4 @@ function veafCacheManager.initialize()
   veaf.loggers.get(veafCacheManager.Id):info("Initializing module")
 end
 
-veaf.loggers.get(veafCacheManager.Id):info(veaf.loggers.get(veafCacheManager.Id):getVersionInfo(veafCacheManager.Version))
+veaf.loggers.get(veafCacheManager.Id):info(veaf.loggers.get(veafCacheManager.Id):getVersionInfo())

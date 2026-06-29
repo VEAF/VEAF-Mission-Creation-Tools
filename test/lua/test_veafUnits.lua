@@ -53,10 +53,6 @@ function TestVeafUnitsConstants:test_id()
   luaunit.assertEquals(veafUnits.Id, "UNITS")
 end
 
-function TestVeafUnitsConstants:test_version()
-  luaunit.assertIsString(veafUnits.Version)
-end
-
 function TestVeafUnitsConstants:test_defaultCellWidth()
   luaunit.assertEquals(veafUnits.DefaultCellWidth, 10)
 end

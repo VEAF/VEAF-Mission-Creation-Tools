@@ -19,9 +19,6 @@ veafGroundAI = {}
 --- Identifier. All output in the log will start with this.
 veafGroundAI.Id = "GROUNDAI"
 
---- Version.
-veafGroundAI.Version = "1.0.1"
-
 -- trace level, specific to this module
 --veafGroundAI.LogLevel = "trace"
 
@@ -811,7 +808,7 @@ function veafGroundAI.get(handlerName)
 end
 
 function veafGroundAI.initialize()
-  veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo(veafGroundAI.Version))
+  veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo())
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     if not fromMarker then

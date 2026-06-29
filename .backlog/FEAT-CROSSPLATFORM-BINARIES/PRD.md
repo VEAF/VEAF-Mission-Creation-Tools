@@ -33,6 +33,9 @@ Targets (per David):
 - `.github/workflows/release.yml`: three new jobs (`release-linux`, `release-macos-arm64`,
   `release-macos-x86_64`), `needs: release`, each builds the standalone binary, renames it
   per OS/arch and uploads it to the existing GitHub Release via `gh release upload`.
+- `veaf_build/github.py`: also upload `veaf-tools.exe` (Windows) as a **direct** release
+  asset (versioned + latest), not only inside `published.zip` — symmetric with the
+  Linux/macOS binaries so every platform's `veaf-tools` is a one-click download.
 - Tests: standalone builds only `veaf-tools`; full build still builds both; extra-data
   bundles locales.
 - Docs/CHANGELOG: `[Unreleased]` entry; mention Linux/macOS binaries in release notes.

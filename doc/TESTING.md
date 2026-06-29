@@ -203,10 +203,6 @@ function TestVeafMyModuleConstants:test_Id()
   luaunit.assertEquals(veafMyModule.Id, "MYMODULE")
 end
 
-function TestVeafMyModuleConstants:test_Version()
-  luaunit.assertNotNil(veafMyModule.Version)
-end
-
 TestVeafMyModuleLogic = {}
 
 function TestVeafMyModuleLogic:test_someFunction()

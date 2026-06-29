@@ -19,10 +19,6 @@ function TestVeafMoveConstants:test_id()
   luaunit.assertEquals(veafMove.Id, "MOVE")
 end
 
-function TestVeafMoveConstants:test_version()
-  luaunit.assertIsString(veafMove.Version)
-end
-
 -- ---------------------------------------------------------------------------
 -- TestVeafMoveTankerParameters
 -- ---------------------------------------------------------------------------

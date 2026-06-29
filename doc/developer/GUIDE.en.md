@@ -229,7 +229,6 @@ Every Lua module follows this pattern:
 moduleName = {}
 
 moduleName.Id = "MODULE_ID"
-moduleName.Version = "1.x.y"
 -- moduleName.LogLevel = "trace"  -- uncomment to increase verbosity
 
 veaf.loggers.new(moduleName.Id, moduleName.LogLevel)

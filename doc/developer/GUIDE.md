@@ -228,7 +228,6 @@ Chaque module Lua suit ce modèle :
 moduleName = {}
 
 moduleName.Id = "MODULE_ID"
-moduleName.Version = "1.x.y"
 -- moduleName.LogLevel = "trace"  -- décommenter pour augmenter la verbosité
 
 veaf.loggers.new(moduleName.Id, moduleName.LogLevel)

@@ -22,9 +22,6 @@ veafI18n = {}
 --- Identifier. All output in DCS.log will start with this.
 veafI18n.Id = "I18N"
 
---- Version.
-veafI18n.Version = "1.2.0"
-
 -- trace level, specific to this module
 --veafI18n.LogLevel = "trace"
 
@@ -1145,4 +1142,4 @@ veaf.i18nCatalog = {
   },
 }
 
-veaf.loggers.get(veafI18n.Id):info(string.format("Loading version %s", veafI18n.Version))
+veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

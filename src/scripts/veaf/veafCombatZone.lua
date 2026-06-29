@@ -19,9 +19,6 @@ veafCombatZone = {}
 --- Identifier. All output in DCS.log will start with this.
 veafCombatZone.Id = "COMBATZONE"
 
---- Version.
-veafCombatZone.Version = "1.22.1"
-
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
 
@@ -2125,6 +2122,6 @@ function veafCombatZone.initialize()
   veafCombatZone.buildRadioMenu()
 end
 
-veaf.loggers.get(veafCombatZone.Id):info(veaf.loggers.get(veafCombatZone.Id):getVersionInfo(veafCombatZone.Version))
+veaf.loggers.get(veafCombatZone.Id):info(veaf.loggers.get(veafCombatZone.Id):getVersionInfo())
 
 veaf.registerModule(veafCombatZone.Id, veafCombatZone.initialize, { enable = true }, 110)

@@ -18,9 +18,6 @@ veafCarrierOperations = {}
 --- Identifier. All output in DCS.log will start with this.
 veafCarrierOperations.Id = "CARRIER"
 
---- Version.
-veafCarrierOperations.Version = "1.12.3"
-
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
 
@@ -1163,7 +1160,7 @@ function veafCarrierOperations.initialize()
   veafRemote.registerRemoteModule("carrier", veafCarrierOperations.executeCommandFromRemote)
 end
 
-veaf.loggers.get(veafCarrierOperations.Id):info(veaf.loggers.get(veafCarrierOperations.Id):getVersionInfo(veafCarrierOperations.Version))
+veaf.loggers.get(veafCarrierOperations.Id):info(veaf.loggers.get(veafCarrierOperations.Id):getVersionInfo())
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

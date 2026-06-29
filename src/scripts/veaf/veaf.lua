@@ -18,8 +18,11 @@ veaf = {}
 --- Identifier. All output in DCS.log will start with this.
 veaf.Id = "VEAF"
 
---- Version.
-veaf.Version = "1.57.0"
+--- Build stamp (veaf-tools package version + git sha) injected by the build pipeline via
+--- the VEAF_BUILD_VERSION global, set before any framework file loads. Falls back to "dev"
+--- when the scripts run unbuilt (hand-copied into a mission, or the Lua unit tests). This
+--- is the single source of truth for "which code is running", logged once below.
+veaf.BuildVersion = VEAF_BUILD_VERSION or "dev"
 
 --- Development version ?
 veaf.Development = false
@@ -3602,9 +3605,16 @@ function veaf.Logger:wouldLogTrace()
   return self:getEffectiveLevel() >= 5
 end
 
---- Format version info with logging levels
+--- Format a module load line, with its logging level.
+--- With a version (the framework build stamp), reports "Loading version <v> /<level>".
+--- With no version, reports a numberless "loaded /<level>" line: per-module versions were
+--- retired in favour of the single veaf.BuildVersion stamp, but the per-module load lines
+--- are kept so the load order stays visible for runtime debugging.
 function veaf.Logger:getVersionInfo(version)
   local moduleLevel = veaf.Logger.levelToString(self:getLevel())
+  if version == nil then
+    return string.format("loaded /%s", moduleLevel)
+  end
   return string.format("Loading version %s /%s", version, moduleLevel)
 end
 
@@ -4398,7 +4408,7 @@ end
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.loggers.get(veaf.Id):info(veaf.loggers.get(veaf.Id):getVersionInfo(veaf.Version))
+veaf.loggers.get(veaf.Id):info(veaf.loggers.get(veaf.Id):getVersionInfo(veaf.BuildVersion))
 veaf.loggers.get(veaf.Id):info("veaf.Development=%s", veaf.Development)
 veaf.loggers.get(veaf.Id):info("veaf.SecurityDisabled=%s", veaf.SecurityDisabled)
 veaf.loggers.get(veaf.Id):info("veaf.LogLevel=%s", veaf.LogLevel)

@@ -20,10 +20,6 @@ function TestVeafSanctuaryConstants:test_id()
   luaunit.assertEquals(veafSanctuary.Id, "SANCTUARY")
 end
 
-function TestVeafSanctuaryConstants:test_version()
-  luaunit.assertIsString(veafSanctuary.Version)
-end
-
 function TestVeafSanctuaryConstants:test_default_delay_warning()
   luaunit.assertEquals(veafSanctuary.DEFAULT_DELAY_WARNING, 0)
 end

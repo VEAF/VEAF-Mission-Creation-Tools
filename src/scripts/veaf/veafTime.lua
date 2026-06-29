@@ -18,9 +18,6 @@ veafTime = {}
 --- Identifier. All output in DCS.log will start with this.
 veafTime.Id = "TIME"
 
---- Version.
-veafTime.Version = "1.1.4"
-
 -- trace level, specific to this module
 --veafTime.LogLevel = "trace"
 veaf.loggers.new(veafTime.Id, veafTime.LogLevel)
@@ -727,4 +724,4 @@ function veafTime.initialize()
   veaf.loggers.get(veafTime.Id):info("Initializing module")
 end
 
-veaf.loggers.get(veafTime.Id):info(veaf.loggers.get(veafTime.Id):getVersionInfo(veafTime.Version))
+veaf.loggers.get(veafTime.Id):info(veaf.loggers.get(veafTime.Id):getVersionInfo())

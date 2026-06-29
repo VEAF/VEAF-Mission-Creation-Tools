@@ -15,10 +15,6 @@ function TestVeafGrassConstants:test_id()
   luaunit.assertEquals(veafGrass.Id, "GRASS")
 end
 
-function TestVeafGrassConstants:test_version()
-  luaunit.assertIsString(veafGrass.Version)
-end
-
 function TestVeafGrassConstants:test_radius_around_farp()
   luaunit.assertEquals(veafGrass.RadiusAroundFarp, 2000)
 end

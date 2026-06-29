@@ -20,9 +20,6 @@ veafTransportMission = {}
 --- Identifier. All output in DCS.log will start with this.
 veafTransportMission.Id = "TRANSPORTMISSION"
 
---- Version.
-veafTransportMission.Version = "1.8.1"
-
 -- trace level, specific to this module
 --veafTransportMission.LogLevel = "trace"
 
@@ -732,7 +729,7 @@ function veafTransportMission.initialize()
   veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafTransportMission.onEventMarkChange)
 end
 
-veaf.loggers.get(veafTransportMission.Id):info(veaf.loggers.get(veafTransportMission.Id):getVersionInfo(veafTransportMission.Version))
+veaf.loggers.get(veafTransportMission.Id):info(veaf.loggers.get(veafTransportMission.Id):getVersionInfo())
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

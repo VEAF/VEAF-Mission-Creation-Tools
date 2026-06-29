@@ -30,6 +30,7 @@ from mission_tools import (
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import pipeline_step_enabled_anywhere, resolve_profile
+from veaf_libs.build_stamp import get_build_stamp
 from veaf_libs.config_override import (
     OVERRIDE_SCRIPT_NAME,
     find_unknown_segments,
@@ -1455,8 +1456,14 @@ class MissionBuilderWorker(BaseWorker):
         scripts_path, mission_path = self._veaf_dynamic_paths()
         keys = _VEAF_TRIGGER_DICT_KEYS
 
+        # Build-traceability stamp (package version + git sha) set as a plain global
+        # BEFORE any framework file loads, so veaf.lua can read it into veaf.BuildVersion
+        # and log it. Set in both load paths (dynamic and static) so it is always present.
+        build_stamp_action = LuaAction(f'VEAF_BUILD_VERSION = "{get_build_stamp()}"')
+
         dynamic_scripts: list[LuaAction | FileAction] = [
-            LuaAction('env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)')
+            build_stamp_action,
+            LuaAction('env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)'),
         ]
         dynamic_scripts += [
             LuaAction(f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{file["path"]}"))()')
@@ -1470,7 +1477,10 @@ class MissionBuilderWorker(BaseWorker):
         # for the first, _ordered_mission_script_files() for the second), and dicts
         # preserve insertion order, so iterating them keeps the scripts in load order
         # (e.g. veaf-config.lua before mission-script.lua).
-        static_scripts: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC VEAF scripts loading")')]
+        static_scripts: list[LuaAction | FileAction] = [
+            build_stamp_action,
+            LuaAction('env.info("STATIC VEAF scripts loading")'),
+        ]
         static_scripts += [FileAction(key) for key in new_map_resource_script_files]
 
         static_mission: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC Mission scripts loading")')]

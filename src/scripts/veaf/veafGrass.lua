@@ -18,9 +18,6 @@ veafGrass = {}
 --- Identifier. All output in DCS.log will start with this.
 veafGrass.Id = "GRASS"
 
---- Version.
-veafGrass.Version = "2.9.1"
-
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
 
@@ -1404,6 +1401,6 @@ function veafGrass.initialize()
   veafEventHandler.addCallback("veafGrass.OnBirth", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafGrass.onBirth)
 end
 
-veaf.loggers.get(veafGrass.Id):info(veaf.loggers.get(veafGrass.Id):getVersionInfo(veafGrass.Version))
+veaf.loggers.get(veafGrass.Id):info(veaf.loggers.get(veafGrass.Id):getVersionInfo())
 
 veaf.registerModule(veafGrass.Id, veafGrass.initialize, { enable = true }, 150)

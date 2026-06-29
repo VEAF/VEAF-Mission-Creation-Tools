@@ -30,9 +30,6 @@ veafCommands = {}
 --- Identifier. All output in DCS.log will start with this.
 veafCommands.Id = "COMMANDS"
 
---- Version.
-veafCommands.Version = "1.0.0"
-
 -- trace level, specific to this module (uncomment for debugging)
 --veafCommands.LogLevel = "trace"
 
@@ -126,7 +123,7 @@ function veafCommands.initialize()
   end)
 end
 
-veaf.loggers.get(veafCommands.Id):info(veaf.loggers.get(veafCommands.Id):getVersionInfo(veafCommands.Version))
+veaf.loggers.get(veafCommands.Id):info(veaf.loggers.get(veafCommands.Id):getVersionInfo())
 
 -- Priority 15: after veafEventHandler (10) and veafMarkers (no explicit order, loads early),
 -- before all command modules so they can call registerCommandHandler in their own initialize().

@@ -20,9 +20,6 @@ veafEventHandler = {}
 --- Identifier. All output in the log will start with this.
 veafEventHandler.Id = "EVENTS"
 
---- Version.
-veafEventHandler.Version = "1.5.3"
-
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
 
@@ -586,7 +583,7 @@ end
 
 function veafEventHandler.initialize()
   veaf.loggers.get(veafEventHandler.Id):debug("veafEventHandler.initialize()")
-  veaf.loggers.get(veafEventHandler.Id):info(veaf.loggers.get(veafEventHandler.Id):getVersionInfo(veafEventHandler.Version))
+  veaf.loggers.get(veafEventHandler.Id):info(veaf.loggers.get(veafEventHandler.Id):getVersionInfo())
 
   -- copy the events maps (add events by name) and add the events by id to the veafEventHandler.knownEventsNames table
   veafEventHandler.knownEventsNames = {}

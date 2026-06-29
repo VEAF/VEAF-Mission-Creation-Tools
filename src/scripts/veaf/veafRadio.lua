@@ -19,9 +19,6 @@ veafRadio = {}
 --- Identifier. All output in DCS.log will start with this.
 veafRadio.Id = "RADIO"
 
---- Version.
-veafRadio.Version = "1.4.1"
-
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
 
@@ -962,7 +959,7 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   veafRadio._runBeacons()
 end
 
-veaf.loggers.get(veafRadio.Id):info(veaf.loggers.get(veafRadio.Id):getVersionInfo(veafRadio.Version))
+veaf.loggers.get(veafRadio.Id):info(veaf.loggers.get(veafRadio.Id):getVersionInfo())
 
 veaf.registerModule(veafRadio.Id, function()
   local cfg = veaf.getConfig(veafRadio.Id)

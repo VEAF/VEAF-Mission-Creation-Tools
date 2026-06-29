@@ -22,9 +22,6 @@ veafMove = {}
 --- Identifier. All output in DCS.log will start with this.
 veafMove.Id = "MOVE"
 
---- Version.
-veafMove.Version = "1.10.1"
-
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
 
@@ -1003,6 +1000,6 @@ function veafMove.initialize()
   end, veafCommands.PRIORITY_MOVE)
 end
 
-veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo(veafMove.Version))
+veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo())
 
 veaf.registerModule(veafMove.Id, veafMove.initialize, { enable = true }, 60)

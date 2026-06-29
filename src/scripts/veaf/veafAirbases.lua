@@ -15,9 +15,6 @@ veafAirbases = {}
 --- Identifier. All output in DCS.log will start with this.
 veafAirbases.Id = "AIRBASES"
 
---- Version.
-veafAirbases.Version = "1.1.1"
-
 -- trace level, specific to this module
 --veafAirbases.LogLevel = "trace"
 veaf.loggers.new(veafAirbases.Id, veafAirbases.LogLevel)
@@ -78,7 +75,7 @@ function veafAirbases.initialize(bReset)
     end
   end
   veaf.loggers.get(veafAirbases.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
-  veaf.loggers.get(veafAirbases.Id):info(veaf.loggers.get(veafAirbases.Id):getVersionInfo(veafAirbases.Version))
+  veaf.loggers.get(veafAirbases.Id):info(veaf.loggers.get(veafAirbases.Id):getVersionInfo())
 end
 
 function veafAirbases.getAirbaseByName(sAirbaseName)

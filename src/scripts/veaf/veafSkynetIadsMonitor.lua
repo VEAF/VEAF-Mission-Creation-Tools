@@ -18,9 +18,6 @@ veafSkynetMonitor = {}
 --- Identifier. All output in DCS.log will start with this.
 veafSkynetMonitor.Id = "SKYNET_MONITOR"
 
---- Version.
-veafSkynetMonitor.Version = "1.1.2"
-
 -- trace level, specific to this module
 --veafSkynetMonitor.LogLevel = "trace"
 veaf.loggers.new(veafSkynetMonitor.Id, veafSkynetMonitor.LogLevel)
@@ -654,4 +651,4 @@ function veafSkynetMonitor.initialize()
   veaf.loggers.get(veafSkynetMonitor.Id):info("Initializing module")
 end
 
-veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo(veafSkynetMonitor.Version))
+veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo())

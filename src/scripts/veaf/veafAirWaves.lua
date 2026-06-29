@@ -19,9 +19,6 @@ veafAirWaves = {}
 --- Identifier. All output in the log will start with this.
 veafAirWaves.Id = "AIRWAVES"
 
---- Version.
-veafAirWaves.Version = "1.8.0"
-
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
 
@@ -1494,4 +1491,4 @@ function veafAirWaves.get(aNameString)
   return veafAirWaves.zones[aNameString]
 end
 
-veaf.loggers.get(veafAirWaves.Id):info(veaf.loggers.get(veafAirWaves.Id):getVersionInfo(veafAirWaves.Version))
+veaf.loggers.get(veafAirWaves.Id):info(veaf.loggers.get(veafAirWaves.Id):getVersionInfo())

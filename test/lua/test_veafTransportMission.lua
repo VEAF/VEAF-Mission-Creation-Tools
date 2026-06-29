@@ -19,10 +19,6 @@ function TestVeafTransportConstants:test_id()
   luaunit.assertEquals(veafTransportMission.Id, "TRANSPORTMISSION")
 end
 
-function TestVeafTransportConstants:test_version()
-  luaunit.assertIsString(veafTransportMission.Version)
-end
-
 function TestVeafTransportConstants:test_minimum_route_distance()
   luaunit.assertEquals(veafTransportMission.MinimumRouteDistance, 15000)
 end

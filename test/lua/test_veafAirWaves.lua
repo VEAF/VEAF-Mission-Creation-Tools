@@ -15,10 +15,6 @@ function TestVeafAirWavesConstants:test_id()
   luaunit.assertIsString(veafAirWaves.Id)
 end
 
-function TestVeafAirWavesConstants:test_version()
-  luaunit.assertIsString(veafAirWaves.Version)
-end
-
 function TestVeafAirWavesConstants:test_status_stop()
   luaunit.assertEquals(veafAirWaves.STATUS_STOP, 0)
 end

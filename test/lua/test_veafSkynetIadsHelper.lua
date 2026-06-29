@@ -15,10 +15,6 @@ function TestVeafSkynetConstants:test_id()
   luaunit.assertEquals(veafSkynet.Id, "SKYNET")
 end
 
-function TestVeafSkynetConstants:test_version()
-  luaunit.assertIsString(veafSkynet.Version)
-end
-
 function TestVeafSkynetConstants:test_groupIntegrationModes_strict()
   luaunit.assertEquals(veafSkynet.GroupIntegrationModes.Strict, 0)
 end

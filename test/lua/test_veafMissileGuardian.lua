@@ -15,10 +15,6 @@ function TestVeafMGConstants:test_id()
   luaunit.assertEquals(veafMissileGuardian.Id, "MISSILEGUARDIAN")
 end
 
-function TestVeafMGConstants:test_version()
-  luaunit.assertIsString(veafMissileGuardian.Version)
-end
-
 -- ---------------------------------------------------------------------------
 -- TestVeafMGWeapon
 -- ---------------------------------------------------------------------------

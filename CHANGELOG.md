@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.7.5] — 2026-06-29
+
 ### Fixed
 - **Dynamic-slot airplane still ignored by the QRA unless `react_on_helicopters` was true** (FIX-EVENTHANDLER-UNITCATEGORY, reported by Tripack — the #299 symptom reproduced in-game *after* #299 shipped). #299 fixed `veafQraCore:humanBornEvent` to read the intruder category via `getCategoryEx()`, but only on its `unit.unitCategory == nil` branch — which the real event flow never reaches: `veafEventHandler.completeUnitFromName` pre-populated `event.initiator.unitCategory` with `unit:getCategory()`, an `Object.Category` whose `UNIT` value (1) collides with `Unit.Category.HELICOPTER` (1). Every event-born unit therefore reached the QRA already mislabelled as a helicopter, so a dynamic-slot airplane (detected via the event path, unlike normal slots which go through the mist `plane`-category path) only triggered the QRA when `react_on_helicopters` was true. `completeUnitFromName` now reads `getCategoryEx()` (a `Unit.Category`: AIRPLANE=0 / HELICOPTER=1 / …), falling back to `getCategory()` only when unavailable. The QRA is the sole consumer of this field and already compares it against `Unit.Category.*`.
 

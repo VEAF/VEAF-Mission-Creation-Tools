@@ -14,11 +14,15 @@ import pytest
 
 from veaf_build.worker import BuildAndReleaseWorker
 
+# Arbitrary version: these tests assert build orchestration, not the version string,
+# so any non-empty value works (kept decoupled from the project's actual version).
+_TEST_VERSION = "0.0.0"
+
 
 def _isolated_worker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[BuildAndReleaseWorker, list[str]]:
     """Return a worker whose side-effecting steps are stubbed and the PyInstaller
     call recorded by executable name."""
-    worker = BuildAndReleaseWorker(version="6.7.3", output_path=tmp_path)
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     monkeypatch.setattr(worker, "_prepare_dist", lambda: None)
     monkeypatch.setattr(worker, "_scan_lua_modules", lambda: None)
     monkeypatch.setattr(worker, "_write_version_py", lambda path: None)
@@ -51,6 +55,6 @@ def test_full_build_builds_both_executables(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_veaf_tools_extra_data_bundles_locales(tmp_path: Path) -> None:
-    worker = BuildAndReleaseWorker(version="6.7.3", output_path=tmp_path)
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     dests = [dest for _src, dest in worker._veaf_tools_extra_data(None)]
     assert "veaf_libs/locales" in dests

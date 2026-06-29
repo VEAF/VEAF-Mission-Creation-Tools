@@ -422,8 +422,9 @@ class BuildAndReleaseWorker:
     def _scan_lua_modules(self) -> Path | None:
         """Generate the Lua modules list JSON bundled into veaf-tools; return its path."""
         with spinner_context("Scanning Lua modules..."):
+            veaf_tools_path = str(self.src_dir / "python" / "veaf-tools")
+            sys.path.insert(0, veaf_tools_path)
             try:
-                sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
                 from veaf_libs.lua_module_scanner import generate_modules_json  # type: ignore[import-not-found]
 
                 lua_dir = self.src_dir / "scripts" / "veaf"
@@ -434,6 +435,13 @@ class BuildAndReleaseWorker:
             except Exception as e:
                 logger.warning(f"Could not generate Lua modules list: {e}")
                 return None
+            finally:
+                # Restore sys.path: leaving the injected entry would duplicate it on
+                # repeated builds and alter import resolution for the rest of the process.
+                try:
+                    sys.path.remove(veaf_tools_path)
+                except ValueError:
+                    pass
 
     def _veaf_tools_extra_data(self, modules_json_path: Path | None) -> list[tuple[Path, str]]:
         """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable."""

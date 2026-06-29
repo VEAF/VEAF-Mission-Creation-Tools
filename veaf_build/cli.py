@@ -142,9 +142,10 @@ def build_standalone(
     console.print("[bold green]VEAF Tools Standalone Build[/bold green]")
     config = load_config()
 
+    # No skip_lua flag here: run_standalone never runs the Lua-bundle step, so the
+    # flag would be dead/misleading. _scan_lua_modules (the exe's modules JSON) still runs.
     worker = BuildAndReleaseWorker(
         version=version,
-        skip_lua=True,
         output_path=Path(output),
         verbose=verbose,
         config=config,

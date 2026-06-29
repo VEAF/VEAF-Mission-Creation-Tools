@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Standalone `veaf-tools` binaries for Linux and macOS** (FEAT-CROSSPLATFORM-BINARIES). PyInstaller cannot cross-compile, so the release workflow now builds the main CLI on its own per-OS runner and attaches the binary to the GitHub Release: `veaf-tools-linux-x86_64` (built on `ubuntu-22.04` for broad glibc compatibility), `veaf-tools-macos-arm64` (Apple Silicon, `macos-latest`) and `veaf-tools-macos-x86_64` (Intel, `macos-13`). A new `veaf-build build-standalone` command builds just `veaf-tools` (no updater, no `published.zip`) into `dist/`. The Windows flow (exe + updater + `published.zip`) is unchanged. The updater stays Windows-only.
+
 ## [6.7.2] — 2026-06-28
 
 ### Changed

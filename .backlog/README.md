@@ -33,6 +33,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [DOC-GUIDE-ANCHORS](DOC-GUIDE-ANCHORS/PRD.md) — fix the `mission.yaml` `# Doc:` deep links (trailing slash + stable explicit FR/EN anchors via `attr_list`) | ✅ |
 | [FIX-CONVERT-WEATHER-I18N](FIX-CONVERT-WEATHER-I18N/PRD.md) — route 3 hardcoded-English convert-v5 weather/waypoints warnings through `t()` (FR/EN) | ✅ |
 | [FIX-CLEANUP-EXCLUDE-TOOLCHAIN](FIX-CLEANUP-EXCLUDE-TOOLCHAIN/PRD.md) — stop the convert-v5 cleanup from listing `veaf-tools*.exe` as deletable "unrecognized" files | 🔄 |
+| [FEAT-CROSSPLATFORM-BINARIES](FEAT-CROSSPLATFORM-BINARIES/PRD.md) — ship standalone `veaf-tools` Linux/macOS binaries as extra release assets (per-OS CI jobs; Windows flow unchanged) | 🔄 |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 
 ## Archived lots

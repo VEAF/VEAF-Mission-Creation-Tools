@@ -406,17 +406,21 @@ class BuildAndReleaseWorker:
             except Exception as e:
                 logger.warning(f"Could not generate DCS units reference: {e}")
 
-    def build_python_executables(self) -> None:
-        """Build Python executables using PyInstaller."""
-        # Clean dist directory
+    @property
+    def _version_py_path(self) -> Path:
+        """Path to the generated `_version.py` stamped at build time."""
+        return self.src_dir / "python" / "veaf-tools" / "veaf_tools" / "_version.py"
+
+    def _prepare_dist(self) -> None:
+        """Clean and recreate the dist directory."""
         with spinner_context("Preparing build environment..."):
             if self.dist_dir.exists():
                 logger.debug("Removing previous dist directory...")
                 shutil.rmtree(self.dist_dir)
             self.dist_dir.mkdir(exist_ok=True)
 
-        # Generate Lua modules list JSON (bundled with the exe via --add-data)
-        modules_json_path: Path | None = None
+    def _scan_lua_modules(self) -> Path | None:
+        """Generate the Lua modules list JSON bundled into veaf-tools; return its path."""
         with spinner_context("Scanning Lua modules..."):
             try:
                 sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
@@ -425,55 +429,79 @@ class BuildAndReleaseWorker:
                 lua_dir = self.src_dir / "scripts" / "veaf"
                 candidate = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
                 count = generate_modules_json(candidate, lua_dir)
-                modules_json_path = candidate
-                logger.debug(f"Generated modules list: {count} modules → {modules_json_path}")
+                logger.debug(f"Generated modules list: {count} modules → {candidate}")
+                return candidate
             except Exception as e:
                 logger.warning(f"Could not generate Lua modules list: {e}")
+                return None
 
-        version_py_path = self.src_dir / "python" / "veaf-tools" / "veaf_tools" / "_version.py"
+    def _veaf_tools_extra_data(self, modules_json_path: Path | None) -> list[tuple[Path, str]]:
+        """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable."""
+        locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
+        extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
+        if modules_json_path:
+            extra.append((modules_json_path, "."))
+        radio_specs_yaml = self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-specs.yaml"
+        if radio_specs_yaml.exists():
+            extra.append((radio_specs_yaml, "presets_injector/data"))
+        veaf_tools_dir = self.src_dir / "python" / "veaf-tools"
+        bundled_data = [
+            # DCS country name->id table, read by the aircraft injector at runtime.
+            (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
+            # DCS airdrome name->id table (per theatre), read by the warehouse wiring.
+            (veaf_tools_dir / "veaf_libs" / "data" / "airdromes.yaml", "veaf_libs/data"),
+            # VEAF framework spawn data, rendered to Lua and injected at mission build.
+            (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
+            # Hidden placeholder ground groups, injected into empty coalitions at build.
+            (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
+        ]
+        extra.extend((path, dest) for path, dest in bundled_data if path.exists())
+        return extra
 
+    def _build_veaf_tools_exe(self, modules_json_path: Path | None) -> None:
+        """Build the main veaf-tools executable with its bundled data."""
+        with spinner_context("Building veaf-tools executable..."):
+            self._build_pyinstaller_executable(
+                "veaf-tools",
+                self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                extra_data=self._veaf_tools_extra_data(modules_json_path),
+            )
+
+    def _build_updater_exe(self) -> None:
+        """Build the Windows-centric veaf-tools-updater executable."""
+        locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
+        with spinner_context("Building veaf-tools-updater executable..."):
+            self._build_pyinstaller_executable(
+                "veaf-tools-updater",
+                self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                extra_data=[(locales_dir, "veaf_libs/locales")],
+                hidden_imports=["veaf_tools._version"],
+            )
+
+    def build_python_executables(self) -> None:
+        """Build both Python executables (veaf-tools + updater) using PyInstaller."""
+        self._prepare_dist()
+        modules_json_path = self._scan_lua_modules()
+        version_py_path = self._version_py_path
         try:
             self._write_version_py(version_py_path)
+            self._build_veaf_tools_exe(modules_json_path)
+            self._build_updater_exe()
+        finally:
+            self._restore_version_py(version_py_path)
 
-            locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
+    def build_veaf_tools_standalone(self) -> None:
+        """Build only the ``veaf-tools`` executable — no updater, no release package.
 
-            # Build veaf-tools executable
-            with spinner_context("Building veaf-tools executable..."):
-                extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
-                if modules_json_path:
-                    extra.append((modules_json_path, "."))
-                radio_specs_yaml = (
-                    self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-specs.yaml"
-                )
-                if radio_specs_yaml.exists():
-                    extra.append((radio_specs_yaml, "presets_injector/data"))
-                veaf_tools_dir = self.src_dir / "python" / "veaf-tools"
-                bundled_data = [
-                    # DCS country name->id table, read by the aircraft injector at runtime.
-                    (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
-                    # DCS airdrome name->id table (per theatre), read by the warehouse wiring.
-                    (veaf_tools_dir / "veaf_libs" / "data" / "airdromes.yaml", "veaf_libs/data"),
-                    # VEAF framework spawn data, rendered to Lua and injected at mission build.
-                    (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
-                    # Hidden placeholder ground groups, injected into empty coalitions at build.
-                    (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
-                ]
-                extra.extend((path, dest) for path, dest in bundled_data if path.exists())
-                self._build_pyinstaller_executable(
-                    "veaf-tools",
-                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
-                    extra_data=extra,
-                )
-
-            # Build veaf-tools-updater executable
-            with spinner_context("Building veaf-tools-updater executable..."):
-                updater_extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
-                self._build_pyinstaller_executable(
-                    "veaf-tools-updater",
-                    self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
-                    extra_data=updater_extra,
-                    hidden_imports=["veaf_tools._version"],
-                )
+        Used by the cross-platform CI jobs that publish a standalone Linux/macOS
+        binary alongside the Windows release.
+        """
+        self._prepare_dist()
+        modules_json_path = self._scan_lua_modules()
+        version_py_path = self._version_py_path
+        try:
+            self._write_version_py(version_py_path)
+            self._build_veaf_tools_exe(modules_json_path)
         finally:
             self._restore_version_py(version_py_path)
 
@@ -893,6 +921,27 @@ See git history for detailed changes.
     # ========================================================================
     # Main Process
     # ========================================================================
+
+    def run_standalone(self) -> Path:
+        """Build only the standalone ``veaf-tools`` binary for the current platform.
+
+        Resolves the version, validates the toolchain (Python/Git/PyInstaller), then
+        builds ``veaf-tools`` with no updater and no release package. Used by the
+        per-OS CI jobs publishing Linux/macOS binaries.
+
+        Returns:
+            Path to the produced executable in ``dist/`` (``veaf-tools.exe`` on Windows,
+            ``veaf-tools`` elsewhere).
+        """
+        if not self.version:
+            self.version = self.resolve_auto_version()
+            logger.info(f"Version not specified, auto-computed: {self.version}")
+
+        self.validate_prerequisites()
+        self.build_veaf_tools_standalone()
+
+        exe_name = "veaf-tools.exe" if sys.platform == "win32" else "veaf-tools"
+        return self.dist_dir / exe_name
 
     def run(self) -> None:  # sourcery skip: extract-method, extract-duplicate-method
         """Execute the build and release process."""

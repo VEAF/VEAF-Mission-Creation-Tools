@@ -30,6 +30,7 @@ from typing import Any
 import requests
 import typer
 import yaml
+from veaf_libs import platform_assets
 from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
@@ -391,8 +392,24 @@ exit /b 0
             logger.warning(t("updater.err.deferred_failed", error=str(e)))
             logger.warning(t("updater.err.deferred_next_run"))
 
-    def extract_and_install(self, zip_content: bytes, release_version: str, mission_folder: Path) -> bool:
-        """Extract the published.zip file and install it to the mission folder."""
+    def extract_and_install(
+        self,
+        zip_content: bytes,
+        release_version: str,
+        mission_folder: Path,
+        release_assets: list[dict] | None = None,
+    ) -> bool:
+        """Extract the published.zip file and install it to the mission folder.
+
+        Args:
+            zip_content: Raw bytes of the downloaded ``published.zip``.
+            release_version: Version label of the release being installed.
+            mission_folder: Target VEAF mission folder.
+            release_assets: The release's asset list (from the GitHub payload). Used on
+                Unix to download the standalone binaries, which are not in the zip.
+                ``None`` for an offline ``--zip-file`` install (Unix then skips the
+                binary with a warning).
+        """
         try:
             # Check if the updater exe is currently running (in current directory)
             current_exe = Path.cwd() / VEAF_TOOLS_EXE
@@ -436,41 +453,14 @@ exit /b 0
 
             logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 
-            # Step 2: Move key files from published folder to current directory.
-            # README.md is intentionally NOT moved (IMC2-002): its relative links
-            # are dead in the mission folder and it would overwrite the user's own
-            # README — it stays under /published/; the online docs are the source.
-            with spinner_context(t("updater.installing")):
-                files_to_move = ["veaf-tools.exe"]
-
-                for filename in files_to_move:
-                    source_file = published_dir / filename
-                    if source_file.exists():
-                        dest_file = Path.cwd() / filename
-                        shutil.move(str(source_file), str(dest_file))
-                        logger.info(t("updater.moved", name=filename))
-                    else:
-                        logger.warning(t("updater.err.file_not_found", name=filename))
-
-                # Handle veaf-tools-updater.exe with deferred update mechanism
-                updater_exe = published_dir / "veaf-tools-updater.exe"
-                if updater_exe.exists():
-                    if has_locked_exe:
-                        # Use deferred update mechanism to avoid file locking
-                        pending_dir = Path.cwd() / UPDATE_PENDING_DIR
-                        pending_dir.mkdir(exist_ok=True)
-
-                        pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
-                        shutil.move(str(updater_exe), str(pending_exe))
-                        logger.info(t("updater.deferred_prepared", name=VEAF_TOOLS_EXE))
-
-                        # Launch the deferred update script
-                        self._launch_deferred_update(pending_dir, pending_exe)
-                    else:
-                        # No file locking issue, move directly
-                        dest_updater = Path.cwd() / VEAF_TOOLS_EXE
-                        shutil.move(str(updater_exe), str(dest_updater))
-                        logger.info(t("updater.moved", name=VEAF_TOOLS_EXE))
+            # Step 2: Install the platform binaries. On Windows they ship inside
+            # published.zip (moved out here, with the deferred self-update dance to
+            # dodge the running-exe lock). On Unix they ship as separate release
+            # assets, downloaded and made executable by _install_unix_binaries.
+            if platform_assets.is_windows():
+                self._install_windows_binaries(published_dir, has_locked_exe)
+            else:
+                self._install_unix_binaries(release_assets)
 
             # Step 3: Display first-install guidance
             self._install_defaults(mission_folder, is_first_install)
@@ -482,6 +472,105 @@ exit /b 0
         except OSError as e:
             logger.error(t("updater.err.install", error=str(e)))
             return False
+
+    def _install_windows_binaries(self, published_dir: Path, has_locked_exe: bool) -> None:
+        """Move the Windows binaries out of published/ into the mission folder.
+
+        README.md is intentionally NOT moved (IMC2-002): its relative links are dead in
+        the mission folder and it would overwrite the user's own README — it stays under
+        /published/; the online docs are the source. The updater replaces itself through
+        a deferred .cmd script to dodge the Windows lock on the running exe.
+        """
+        with spinner_context(t("updater.installing")):
+            for filename in ["veaf-tools.exe"]:
+                source_file = published_dir / filename
+                if source_file.exists():
+                    shutil.move(str(source_file), str(Path.cwd() / filename))
+                    logger.info(t("updater.moved", name=filename))
+                else:
+                    logger.warning(t("updater.err.file_not_found", name=filename))
+
+            # Handle veaf-tools-updater.exe with deferred update mechanism
+            updater_exe = published_dir / "veaf-tools-updater.exe"
+            if updater_exe.exists():
+                if has_locked_exe:
+                    # Use deferred update mechanism to avoid file locking
+                    pending_dir = Path.cwd() / UPDATE_PENDING_DIR
+                    pending_dir.mkdir(exist_ok=True)
+
+                    pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
+                    shutil.move(str(updater_exe), str(pending_exe))
+                    logger.info(t("updater.deferred_prepared", name=VEAF_TOOLS_EXE))
+
+                    # Launch the deferred update script
+                    self._launch_deferred_update(pending_dir, pending_exe)
+                else:
+                    # No file locking issue, move directly
+                    shutil.move(str(updater_exe), str(Path.cwd() / VEAF_TOOLS_EXE))
+                    logger.info(t("updater.moved", name=VEAF_TOOLS_EXE))
+
+    def _install_unix_binaries(self, release_assets: list[dict] | None) -> None:
+        """Install the Linux/macOS binaries from the release's standalone assets.
+
+        On Unix the binaries are not bundled in published.zip; they are downloaded from
+        the per-OS release assets (``veaf-tools-<os>-<arch>``), placed in the mission
+        folder, and made executable. Replacing the running updater's own file is safe on
+        Unix — the live process keeps the old inode — so no deferred dance is needed.
+
+        Args:
+            release_assets: The release asset list, or ``None`` for an offline
+                ``--zip-file`` install (the binary is then not available; warn and skip).
+        """
+        if not release_assets:
+            logger.warning(t("updater.warn.unix_no_binary_in_zip"))
+            return
+
+        tools_asset = platform_assets.veaf_tools_asset_name()
+        updater_asset = platform_assets.updater_asset_name()
+        if not tools_asset or not updater_asset:  # unsupported platform/arch — no asset applies
+            logger.warning(t("updater.warn.unix_unsupported"))
+            return
+
+        # Attempt both binaries independently: a missing/failed one must not skip the other.
+        with spinner_context(t("updater.installing")):
+            self._download_binary_asset(
+                release_assets, tools_asset, Path.cwd() / platform_assets.veaf_tools_binary_name()
+            )
+            self._download_binary_asset(
+                release_assets, updater_asset, Path.cwd() / platform_assets.updater_binary_name()
+            )
+
+    def _download_binary_asset(self, release_assets: list[dict], asset_name: str, dest: Path) -> bool:
+        """Download a named release asset to ``dest`` and mark it executable.
+
+        Writes to a temporary sibling then atomically replaces ``dest`` (so a partial
+        download never leaves a half-written binary), and sets the executable bit.
+
+        Returns:
+            ``True`` on success; ``False`` if the asset is absent from the release or the
+            download failed (both are logged as errors so the failure is surfaced).
+        """
+        import os
+
+        # exception_type=None: log at error level but do NOT raise — a failure on one
+        # binary must surface yet still let the other be attempted (and not roll back
+        # the common content already installed from the zip).
+        asset = next((a for a in release_assets if a.get("name") == asset_name), None)
+        if not asset:
+            logger.error(t("updater.err.no_asset", name=asset_name), exception_type=None)
+            return False
+
+        content = self.download_asset(asset.get("browser_download_url"), asset_name)
+        if not content:
+            logger.error(t("updater.err.binary_download_failed", name=asset_name), exception_type=None)
+            return False
+
+        tmp = dest.with_name(f"{dest.name}.new")
+        tmp.write_bytes(content)
+        tmp.chmod(0o755)
+        os.replace(str(tmp), str(dest))
+        logger.info(t("updater.moved", name=dest.name))
+        return True
 
     def _install_defaults(self, mission_folder: Path, is_first_install: bool) -> None:
         """Display first-install guidance after a fresh install."""
@@ -623,8 +712,10 @@ exit /b 0
                 else:
                     logger.warning(t("updater.warn.no_metadata"))
 
-        # Extract and install
-        if self.extract_and_install(zip_content, release_version, p_mission_folder):
+        # Extract and install (pass the asset list so Unix can fetch its binaries)
+        if self.extract_and_install(
+            zip_content, release_version, p_mission_folder, release_assets=release_payload.get("assets", [])
+        ):
             logger.tech(t("updater.success", version=release_version))
             console.print(WORK_DONE_MESSAGE)
             return True

@@ -930,15 +930,20 @@ See git history for detailed changes.
     # Main Process
     # ========================================================================
 
-    def run_standalone(self) -> Path:
-        """Build only the standalone ``veaf-tools`` binary for the current platform.
+    def run_standalone(self, with_updater: bool = False) -> Path:
+        """Build the standalone binary/binaries for the current platform.
 
         Resolves the version, validates the toolchain (Python/Git/PyInstaller), then
-        builds ``veaf-tools`` with no updater and no release package. Used by the
-        per-OS CI jobs publishing Linux/macOS binaries.
+        builds ``veaf-tools`` — and, when ``with_updater`` is set, ``veaf-tools-updater``
+        too — with no release package. Used by the per-OS CI jobs publishing Linux/macOS
+        binaries.
+
+        Args:
+            with_updater: Also build the ``veaf-tools-updater`` binary (cross-platform
+                updater). Defaults to ``False`` (veaf-tools only).
 
         Returns:
-            Path to the produced executable in ``dist/`` (``veaf-tools.exe`` on Windows,
+            Path to the main executable in ``dist/`` (``veaf-tools.exe`` on Windows,
             ``veaf-tools`` elsewhere).
         """
         if not self.version:
@@ -946,7 +951,11 @@ See git history for detailed changes.
             logger.info(f"Version not specified, auto-computed: {self.version}")
 
         self.validate_prerequisites()
-        self.build_veaf_tools_standalone()
+        if with_updater:
+            # Reuses the full executable build (veaf-tools + updater) without packaging.
+            self.build_python_executables()
+        else:
+            self.build_veaf_tools_standalone()
 
         exe_name = "veaf-tools.exe" if sys.platform == "win32" else "veaf-tools"
         return self.dist_dir / exe_name

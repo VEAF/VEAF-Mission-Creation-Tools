@@ -65,8 +65,8 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Cross-platform standalone binaries.
-  # PyInstaller cannot cross-compile, so each OS/arch builds on its own runner
-  # and uploads a single `veaf-tools` binary to the Release created above.
+  # PyInstaller cannot cross-compile, so each OS/arch builds on its own runner and
+  # uploads its `veaf-tools` + `veaf-tools-updater` binaries to the Release above.
   # The Windows flow (exe + updater + published.zip) is unchanged.
   # ---------------------------------------------------------------------------
   standalone:
@@ -79,10 +79,13 @@ jobs:
         include:
           - runner: ubuntu-22.04   # lower glibc → broad distro compatibility
             asset: veaf-tools-linux-x86_64
+            updater_asset: veaf-tools-updater-linux-x86_64
           - runner: macos-latest   # Apple Silicon
             asset: veaf-tools-macos-arm64
+            updater_asset: veaf-tools-updater-macos-arm64
           - runner: macos-13       # Intel
             asset: veaf-tools-macos-x86_64
+            updater_asset: veaf-tools-updater-macos-x86_64
 
     permissions:
       contents: write  # needed to upload assets to the release
@@ -113,15 +116,19 @@ jobs:
       - name: Install dependencies (including PyInstaller)
         run: poetry install --with build --all-extras
 
-      - name: Build standalone veaf-tools binary
-        run: poetry run veaf-build build-standalone --version ${{ steps.version.outputs.version }}
+      - name: Build standalone veaf-tools + updater binaries
+        run: poetry run veaf-build build-standalone --with-updater --version ${{ steps.version.outputs.version }}
 
-      - name: Rename binary for the asset
+      - name: Rename binaries for the assets
         shell: bash
-        run: mv dist/veaf-tools "dist/${{ matrix.asset }}"
+        run: |
+          mv dist/veaf-tools "dist/${{ matrix.asset }}"
+          mv dist/veaf-tools-updater "dist/${{ matrix.updater_asset }}"
 
-      - name: Upload binary to the release
+      - name: Upload binaries to the release
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ steps.version.outputs.tag }}" "dist/${{ matrix.asset }}" --clobber
+        run: |
+          gh release upload "${{ steps.version.outputs.tag }}" \
+            "dist/${{ matrix.asset }}" "dist/${{ matrix.updater_asset }}" --clobber

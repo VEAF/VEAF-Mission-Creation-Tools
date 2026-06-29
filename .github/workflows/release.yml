@@ -140,3 +140,12 @@ jobs:
         run: |
           gh release upload "${{ steps.version.outputs.tag }}" \
             "dist/${{ matrix.asset }}" "dist/${{ matrix.updater_asset }}" --clobber
+          # Mirror onto the floating published-latest release too: it is the user-facing
+          # "Latest" and the tag the Unix updater queries by default, so the binaries must
+          # be there as well (the Windows release job uploads its own assets to both, but
+          # these standalone jobs run after it and must mirror their own). Skip if it does
+          # not exist — e.g. a prerelease, where published-latest is left untouched.
+          if gh release view published-latest >/dev/null 2>&1; then
+            gh release upload published-latest \
+              "dist/${{ matrix.asset }}" "dist/${{ matrix.updater_asset }}" --clobber
+          fi

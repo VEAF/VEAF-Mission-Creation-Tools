@@ -70,7 +70,15 @@ function veafEventHandler.completeUnitFromName(unitName)
       if unitLife0 > 0 then
         unitLifePercent = 100 * unitLife / unitLife0
       end
-      if unit.getCategory then
+      -- Use getCategoryEx() (a Unit.Category: AIRPLANE=0 / HELICOPTER=1 / …), NOT
+      -- getCategory() (an Object.Category whose UNIT value 1 collides with
+      -- Unit.Category.HELICOPTER). The QRA, the sole consumer of unitCategory, compares
+      -- it against Unit.Category.*; getCategory() made every event-born unit look like a
+      -- helicopter, so dynamic-slot airplanes only triggered the QRA when
+      -- reactOnHelicopters was true (#299 symptom, root cause here).
+      if unit.getCategoryEx then
+        unitCategory = unit:getCategoryEx()
+      elseif unit.getCategory then
         unitCategory = unit:getCategory()
       end
       if unit.getGroup then

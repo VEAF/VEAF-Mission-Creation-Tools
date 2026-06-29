@@ -152,4 +152,34 @@ function TestVeafEventHandlerAddCallback:test_event_by_name_string()
   luaunit.assertTrue(ok)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafEventHandlerCompleteUnit — unitCategory must be a Unit.Category
+-- ---------------------------------------------------------------------------
+-- The QRA (the sole consumer of event.initiator.unitCategory) compares it against
+-- Unit.Category.AIRPLANE/HELICOPTER. completeUnitFromName must therefore expose a
+-- Unit.Category (via getCategoryEx), NOT an Object.Category (getCategory), whose UNIT
+-- value (1) collides with HELICOPTER (1) and made dynamic-slot airplanes look like
+-- helicopters to the QRA (#299 symptom reproduced by Tripack after the #299 fix).
+TestVeafEventHandlerCompleteUnit = {}
+
+function TestVeafEventHandlerCompleteUnit:setUp()
+  -- completeUnitFromName resolves the pilot via veafRemote, not loaded in this suite.
+  veafRemote = { getRemoteUserFromUnit = function() return nil end }
+end
+
+function TestVeafEventHandlerCompleteUnit:tearDown()
+  dcs_mocks.clearUnitsAndGroups()
+  veafRemote = nil
+end
+
+function TestVeafEventHandlerCompleteUnit:test_unitCategory_is_unit_category_not_object_category()
+  dcs_mocks.addUnit("Intruder", {
+    _categoryEx = Unit.Category.AIRPLANE,
+    getCategory = function() return Object.Category.UNIT end, -- real DCS units expose this
+  })
+  local data = veafEventHandler.completeUnitFromName("Intruder")
+  luaunit.assertEquals(data.unitCategory, Unit.Category.AIRPLANE)
+  luaunit.assertNotEquals(data.unitCategory, Unit.Category.HELICOPTER)
+end
+
 os.exit(luaunit.LuaUnit.run())

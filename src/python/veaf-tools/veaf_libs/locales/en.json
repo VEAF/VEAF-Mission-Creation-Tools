@@ -487,6 +487,7 @@
   "updater.warn.metadata_parse": "Could not parse metadata file, skipping checksum verification",
   "updater.warn.no_metadata": "No metadata asset found, skipping checksum verification",
   "updater.warn.compare_versions": "Could not compare versions: {v1} vs {v2}",
+  "updater.warn.unix_no_binary_in_zip": "Local ZIP install on this platform: the veaf-tools binary is not bundled in the ZIP. Download it from the release assets (veaf-tools-<os>-<arch>) and make it executable.",
   "updater.err.request_failed": "{action} failed: {reason} ({code})",
   "updater.err.no_release": "No release found for tag '{tag}'",
   "updater.err.checksum_mismatch": "Checksum mismatch for {name}",

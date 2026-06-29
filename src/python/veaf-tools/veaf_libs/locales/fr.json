@@ -487,6 +487,7 @@
   "updater.warn.metadata_parse": "Impossible de lire le fichier de métadonnées, vérification du checksum ignorée",
   "updater.warn.no_metadata": "Aucun asset de métadonnées trouvé, vérification du checksum ignorée",
   "updater.warn.compare_versions": "Impossible de comparer les versions : {v1} vs {v2}",
+  "updater.warn.unix_no_binary_in_zip": "Installation depuis un ZIP local sur cette plateforme : le binaire veaf-tools n'est pas inclus dans le ZIP. Téléchargez-le depuis les assets de la release (veaf-tools-<os>-<arch>) et rendez-le exécutable.",
   "updater.err.request_failed": "Échec de {action} : {reason} ({code})",
   "updater.err.no_release": "Aucune release trouvée pour le tag '{tag}'",
   "updater.err.checksum_mismatch": "Checksum incorrect pour {name}",

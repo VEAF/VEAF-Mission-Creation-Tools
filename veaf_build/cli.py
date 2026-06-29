@@ -130,13 +130,17 @@ def build_standalone(
     output: str = typer.Option(
         ".", help="Output directory used to auto-resolve the version (the binary lands in dist/)"
     ),
+    with_updater: bool = typer.Option(
+        False, "--with-updater", help="Also build the veaf-tools-updater binary (cross-platform updater)"
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help="Pause when finished"),
 ) -> None:
-    """Build only the standalone `veaf-tools` executable for the current platform.
+    """Build the standalone `veaf-tools` executable(s) for the current platform.
 
-    Produces `dist/veaf-tools` (`veaf-tools.exe` on Windows) with no updater and no
-    release package. Used by the Linux/macOS CI jobs to publish a per-OS binary.
+    Produces `dist/veaf-tools` (`veaf-tools.exe` on Windows) with no release package.
+    With `--with-updater`, also builds `dist/veaf-tools-updater`. Used by the Linux/macOS
+    CI jobs to publish per-OS binaries.
     """
     logger.set_verbose(verbose)
     console.print("[bold green]VEAF Tools Standalone Build[/bold green]")
@@ -150,7 +154,7 @@ def build_standalone(
         verbose=verbose,
         config=config,
     )
-    exe_path = worker.run_standalone()
+    exe_path = worker.run_standalone(with_updater=with_updater)
     console.print(f"[bold green]✓[/bold green] Built standalone executable: {exe_path}")
 
     if pause:

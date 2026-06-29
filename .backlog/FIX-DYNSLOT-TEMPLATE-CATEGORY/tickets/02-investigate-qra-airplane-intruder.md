@@ -1,8 +1,20 @@
 # FIX-DYNSLOT-TEMPLATE-CATEGORY-002 — investigate the QRA airplane-intruder symptom
 
-Status: 🧑 waiting-human
+Status: ✅ done — root cause found & fixed in lot FIX-EVENTHANDLER-UNITCATEGORY (PR #544)
 Type: fix
 Files: `veafQraCore.lua`, `test/lua/`, DCS manual test (Tripack)
+
+## Resolution (2026-06-29)
+
+Tripack reproduced the symptom in-game after #299 (dynamic Hornet, Sukhumi → airborne in
+the Gudauta QRA zone: no activation with `react_on_helicopters` false, activates when set
+true). Root cause was **not** in the QRA: `veafEventHandler.completeUnitFromName` populated
+`event.initiator.unitCategory` with `unit:getCategory()` (an `Object.Category` whose UNIT=1
+collides with `Unit.Category.HELICOPTER`), so `humanBornEvent` never reached #299's
+`getCategoryEx` branch (it only runs when `unitCategory == nil`). Fixed in
+**FIX-EVENTHANDLER-UNITCATEGORY** (PR #544): `completeUnitFromName` now reads
+`getCategoryEx()`. Regression test added in `test_veafEventHandler.lua`. Final closure of
+the lot still benefits from Tripack's in-game re-test on a `6.7.5+<sha>` build.
 
 ## What to build
 

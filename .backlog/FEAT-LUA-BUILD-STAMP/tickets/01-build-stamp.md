@@ -1,6 +1,6 @@
 # FEAT-LUA-BUILD-STAMP-001 — emit a single build stamp, retire per-module versions
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feat
 Files: `veaf_build/worker.py`, `veaf_libs/build_stamp.py`, `mission_builder_worker.py`,
 `src/scripts/veaf/*.lua` (veaf.lua + 32 modules), tests, docs, CHANGELOG

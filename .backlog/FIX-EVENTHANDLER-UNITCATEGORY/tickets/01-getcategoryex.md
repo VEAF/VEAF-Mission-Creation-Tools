@@ -1,6 +1,6 @@
 # FIX-EVENTHANDLER-UNITCATEGORY-001 — populate event unitCategory via getCategoryEx
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafEventHandler.lua`, `test/lua/test_veafEventHandler.lua`
 

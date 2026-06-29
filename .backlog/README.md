@@ -12,7 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
-| [FIX-EVENTHANDLER-UNITCATEGORY](FIX-EVENTHANDLER-UNITCATEGORY/PRD.md) — dynamic-slot airplane still ignored by the QRA unless `react_on_helicopters` true: `completeUnitFromName` populated `unitCategory` with `getCategory()` (Object.Category UNIT=1 collides with HELICOPTER), bypassing the #299 fix | 🔄 |
+| [FIX-EVENTHANDLER-UNITCATEGORY](FIX-EVENTHANDLER-UNITCATEGORY/PRD.md) — dynamic-slot airplane still ignored by the QRA unless `react_on_helicopters` true: `completeUnitFromName` populated `unitCategory` with `getCategory()` (Object.Category UNIT=1 collides with HELICOPTER), bypassing the #299 fix | ✅ |
 | [FEAT-LUA-BUILD-STAMP](FEAT-LUA-BUILD-STAMP/PRD.md) — single build stamp (`6.7.x+<sha>`) in the DCS log instead of 33 unreliable per-module versions; retires the hand-maintained `.Version` constants | ✅ |
 | [FIX-CTLD-REPACK-NIL-GROUP](FIX-CTLD-REPACK-NIL-GROUP/PRD.md) — CTLD F10 menu duplicated on dynamic-slot helo on a runtime FARP (`getUnitsInRepackRadius` nil `getGroup`) + analysis doc for the CTLD rewrite | ✅ |
 | [FIX-QRA-DYNSLOT-CATEGORY](FIX-QRA-DYNSLOT-CATEGORY/PRD.md) — QRA triggers on dynamic-slot airplanes regardless of `react_on_helicopters` (#299: `getCategory`→`getCategoryEx`) | ✅ |

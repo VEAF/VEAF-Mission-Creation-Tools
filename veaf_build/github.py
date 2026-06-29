@@ -185,8 +185,12 @@ class GitHubPublisher:
                 logger.error(f"GitHub release creation failed: {result.stderr}")
                 return
 
-            # Upload release assets: updater first, then main zip
+            # Upload release assets: both executables as direct downloads, then main zip.
+            # veaf-tools.exe is also bundled inside published.zip, but is exposed as a
+            # direct asset too so every platform's binary is downloadable in one click
+            # (symmetric with the Linux/macOS standalone binaries).
             updater_exe = self.dist_dir / "veaf-tools-updater.exe"
+            veaf_tools_exe = self.dist_dir / "veaf-tools.exe"
             if updater_exe.exists():
                 result = subprocess.run(
                     ["gh", "release", "upload", tag_name, str(updater_exe)],
@@ -199,6 +203,19 @@ class GitHubPublisher:
                     logger.warning(f"Failed to upload updater executable: {result.stderr}")
                 else:
                     logger.debug("Uploaded veaf-tools-updater.exe to release")
+
+            if veaf_tools_exe.exists():
+                result = subprocess.run(
+                    ["gh", "release", "upload", tag_name, str(veaf_tools_exe)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    logger.warning(f"Failed to upload veaf-tools executable: {result.stderr}")
+                else:
+                    logger.debug("Uploaded veaf-tools.exe to release")
 
             result = subprocess.run(
                 ["gh", "release", "upload", tag_name, str(package_path)],
@@ -275,6 +292,15 @@ class GitHubPublisher:
             if updater_exe.exists():
                 subprocess.run(
                     ["gh", "release", "upload", latest_tag_name, str(updater_exe)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+
+            if veaf_tools_exe.exists():
+                subprocess.run(
+                    ["gh", "release", "upload", latest_tag_name, str(veaf_tools_exe)],
                     cwd=str(self.script_root),
                     env=env,
                     capture_output=True,

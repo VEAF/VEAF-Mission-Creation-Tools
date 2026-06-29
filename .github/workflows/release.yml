@@ -62,3 +62,66 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           git tag -f published-latest "$TAG"
           git push origin -f published-latest
+
+  # ---------------------------------------------------------------------------
+  # Cross-platform standalone binaries.
+  # PyInstaller cannot cross-compile, so each OS/arch builds on its own runner
+  # and uploads a single `veaf-tools` binary to the Release created above.
+  # The Windows flow (exe + updater + published.zip) is unchanged.
+  # ---------------------------------------------------------------------------
+  standalone:
+    name: Standalone ${{ matrix.asset }}
+    needs: release
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04   # lower glibc → broad distro compatibility
+            asset: veaf-tools-linux-x86_64
+          - runner: macos-latest   # Apple Silicon
+            asset: veaf-tools-macos-arm64
+          - runner: macos-13       # Intel
+            asset: veaf-tools-macos-x86_64
+
+    permissions:
+      contents: write  # needed to upload assets to the release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. published-v6.0.6
+          VERSION="${TAG#published-v}"      # e.g. 6.0.6
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (including PyInstaller)
+        run: poetry install --with build --all-extras
+
+      - name: Build standalone veaf-tools binary
+        run: poetry run veaf-build build-standalone --version ${{ steps.version.outputs.version }}
+
+      - name: Rename binary for the asset
+        shell: bash
+        run: mv dist/veaf-tools "dist/${{ matrix.asset }}"
+
+      - name: Upload binary to the release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ steps.version.outputs.tag }}" "dist/${{ matrix.asset }}" --clobber

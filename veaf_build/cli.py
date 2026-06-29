@@ -121,6 +121,42 @@ def build(
         input(PAUSE_MESSAGE)
 
 
+@app.command(name="build-standalone")
+def build_standalone(
+    version: str | None = typer.Option(
+        None,
+        help="Semantic version for the build (e.g., '6.0.2'). If not specified, reads from package.json",
+    ),
+    output: str = typer.Option(
+        ".", help="Output directory used to auto-resolve the version (the binary lands in dist/)"
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    pause: bool = typer.Option(False, help="Pause when finished"),
+) -> None:
+    """Build only the standalone `veaf-tools` executable for the current platform.
+
+    Produces `dist/veaf-tools` (`veaf-tools.exe` on Windows) with no updater and no
+    release package. Used by the Linux/macOS CI jobs to publish a per-OS binary.
+    """
+    logger.set_verbose(verbose)
+    console.print("[bold green]VEAF Tools Standalone Build[/bold green]")
+    config = load_config()
+
+    # No skip_lua flag here: run_standalone never runs the Lua-bundle step, so the
+    # flag would be dead/misleading. _scan_lua_modules (the exe's modules JSON) still runs.
+    worker = BuildAndReleaseWorker(
+        version=version,
+        output_path=Path(output),
+        verbose=verbose,
+        config=config,
+    )
+    exe_path = worker.run_standalone()
+    console.print(f"[bold green]✓[/bold green] Built standalone executable: {exe_path}")
+
+    if pause:
+        input(PAUSE_MESSAGE)
+
+
 @app.command()
 def publish(
     version: str | None = typer.Option(

@@ -1,6 +1,6 @@
 # 01 — Standalone veaf-tools build + cross-platform CI jobs
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Goal
 

@@ -1,6 +1,6 @@
 # 01 — Cross-platform updater (Linux/macOS)
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Tasks
 

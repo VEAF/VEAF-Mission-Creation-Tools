@@ -1,6 +1,6 @@
 # FEAT-CROSSPLATFORM-BINARIES
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

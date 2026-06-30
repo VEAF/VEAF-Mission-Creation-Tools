@@ -12,7 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
-| [FIX-MIG15-PRIMARY-FREQ](FIX-MIG15-PRIMARY-FREQ/PRD.md) — build wrongly rejects the MiG-15bis HF primary frequency (RSI-6K 3.75 MHz, below the 30 MHz floor); the safety net is now spec-aware (`is_strict` + in-spec) while still catching ADF promotion (Yak-52 0.625 MHz). Reported by Tripack | 🔄 |
+| [FIX-MIG15-PRIMARY-FREQ](FIX-MIG15-PRIMARY-FREQ/PRD.md) — build wrongly rejects the MiG-15bis HF primary frequency (RSI-6K 3.75 MHz, below the 30 MHz floor); the safety net is now spec-aware (`is_strict` + in-spec) while still catching ADF promotion (Yak-52 0.625 MHz). Reported by Tripack | ✅ |
 | [FIX-EVENTHANDLER-UNITCATEGORY](FIX-EVENTHANDLER-UNITCATEGORY/PRD.md) — dynamic-slot airplane still ignored by the QRA unless `react_on_helicopters` true: `completeUnitFromName` populated `unitCategory` with `getCategory()` (Object.Category UNIT=1 collides with HELICOPTER), bypassing the #299 fix | ✅ |
 | [FEAT-LUA-BUILD-STAMP](FEAT-LUA-BUILD-STAMP/PRD.md) — single build stamp (`6.7.x+<sha>`) in the DCS log instead of 33 unreliable per-module versions; retires the hand-maintained `.Version` constants | ✅ |
 | [FIX-CTLD-REPACK-NIL-GROUP](FIX-CTLD-REPACK-NIL-GROUP/PRD.md) — CTLD F10 menu duplicated on dynamic-slot helo on a runtime FARP (`getUnitsInRepackRadius` nil `getGroup`) + analysis doc for the CTLD rewrite | ✅ |

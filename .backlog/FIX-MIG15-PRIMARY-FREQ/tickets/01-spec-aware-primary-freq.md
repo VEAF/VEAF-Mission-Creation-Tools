@@ -1,6 +1,6 @@
 # 01 — Spec-aware build-time primary-frequency check
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Goal
 

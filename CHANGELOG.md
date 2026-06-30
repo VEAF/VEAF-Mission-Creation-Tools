@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.7.7] — 2026-06-30
+
 ### Changed
 - **`prepare --template` now generates the same rich `mission.yaml` preamble as `convert-v5`** (ENRICH-PREPARE-TEMPLATE, reported by Tripack). A `mission.yaml` scaffolded by `prepare` (any tier) previously carried only a two-line header, `mission: name:` and the `modules:` block — it lacked the YAML syntax guide, `global_log_level:`, the full `mission:` identity block, `security:` and `pipeline:` that a `convert-v5` output (and the shipped default `mission.yaml`) provide. Those tier-independent sections are now factored into shared helpers in `lua_config_generator` and emitted by both `prepare` and `generate-config`, so the two scaffolds stay in lockstep instead of drifting. Only the tier-driven `modules:` block remains specific to `prepare`; `generate-config` / `convert-v5` output is byte-for-byte unchanged.
 

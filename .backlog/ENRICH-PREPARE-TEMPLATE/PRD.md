@@ -1,7 +1,7 @@
 # Lot ENRICH-PREPARE-TEMPLATE — `prepare` generates the same rich mission.yaml preamble as convert-v5
 
-Status: 🔄 in-progress
-Branch: feature/enrich-prepare-template → PR (targeting develop-v6)
+Status: ✅ done
+Branch: feature/enrich-prepare-template → PR #547 → merged into develop-v6
 
 ## Problem Statement
 

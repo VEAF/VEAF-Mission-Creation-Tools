@@ -1,6 +1,6 @@
 # 01 — Share the rich mission.yaml preamble between prepare and generate-config
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Goal
 

@@ -86,5 +86,44 @@ class TestMissionTemplate(unittest.TestCase):
         self.assertEqual(module_lowest_tier("MISSILEGUARDIAN"), "full")
 
 
+class TestMissionTemplatePreamble(unittest.TestCase):
+    """The prepare template carries the same rich preamble as generate-config / convert-v5."""
+
+    def test_preamble_sections_present_in_every_tier(self) -> None:
+        # Tripack's gap: prepare lacked the guide / global_log_level / security / pipeline
+        # sections that convert-v5 emits. They must now appear regardless of the tier.
+        from veaf_libs.i18n import language
+
+        with language("en"):  # deterministic comment text for substring assertions
+            for enabled in (tier_modules("minimal"), tier_modules("standard"), tier_modules("full"), {"RADIO"}):
+                text = generate_mission_yaml(enabled)
+                self.assertIn("YAML syntax", text)  # syntax quick-reference guide
+                self.assertIn("# global_log_level: debug", text)
+                self.assertIn("# security:", text)
+                self.assertIn("# pipeline:", text)
+                self.assertIn("#   era: MODERN", text)  # enriched mission: identity hints
+
+    def test_preamble_sections_are_commented_not_active(self) -> None:
+        # The preamble must stay inert: only mission.name is live, everything else is a
+        # commented example so a fresh build is not silently reconfigured.
+        data = yaml.safe_load(generate_mission_yaml(tier_modules("full")))
+        self.assertEqual(data["mission"]["name"], "My-Mission")
+        self.assertIsNone(data.get("security"))
+        self.assertIsNone(data.get("pipeline"))
+        self.assertIsNone(data.get("global_log_level"))
+
+    def test_preamble_shared_with_generate_config(self) -> None:
+        # Same source of truth: the prepare output reuses the generate-config helpers verbatim.
+        from veaf_libs.lua_config_generator import (
+            global_log_level_section,
+            pipeline_section,
+            security_section,
+        )
+
+        text = generate_mission_yaml(tier_modules("standard"))
+        for section in (global_log_level_section(), security_section(), pipeline_section()):
+            self.assertIn("\n".join(section), text)
+
+
 if __name__ == "__main__":
     unittest.main()

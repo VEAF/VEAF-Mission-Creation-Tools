@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Build wrongly rejected the MiG-15bis's HF primary radio frequency** (FIX-MIG15-PRIMARY-FREQ, reported by Tripack). After editing a MiG-15bis mission in the DCS Mission Editor and re-extracting, the build failed the radio-presets phase with *"Invalid primary radio frequency (below 30.0 MHz …): MiG-15 Template (3.75 MHz)"*. The build-time safety net applied a blanket 30 MHz floor — added (FIX-DYNSLOT-RADIO-UNITS) to stop an ADF channel (e.g. Yak-52 ARK-15M 0.625 MHz) being promoted to the primary radio — but the MiG-15bis legitimately has an HF primary: its only radio, the RSI-6K, operates at 3.75–5.0 MHz, and DCS itself writes and accepts `frequency: 3.75`. The safety net is now spec-aware: a sub-floor primary is accepted only when DCS strictly validates the aircraft (`dcs_rejects_on_load`) **and** the frequency is within its documented radio range — i.e. only the MiG-15bis-like case where DCS produced the value. The Yak-52 ADF-promotion guard (and the promotion guard in `process_units`) is unchanged.
+
 ## [6.7.5] — 2026-06-29
 
 ### Fixed

@@ -21,6 +21,7 @@ from .radio_frequency_validator import (
     get_valid_ranges,
     is_strict,
     validate_frequencies,
+    validate_frequency,
     warn_invalid_channel_frequencies,
 )
 
@@ -36,10 +37,27 @@ def _is_valid_primary_frequency(freq_mhz: float) -> bool:
     """Whether *freq_mhz* may be a group's primary radio frequency.
 
     A primary radio is VHF/UHF/FM; anything below ``_MIN_PRIMARY_RADIO_MHZ`` is an
-    ADF/HF (kHz-range) channel that DCS rejects as a primary frequency. Single
-    source of truth for both the promotion guard and the build-time safety net.
+    ADF/HF (kHz-range) channel that DCS rejects as a primary frequency. Used by the
+    promotion guard, which has no per-aircraft context.
     """
     return freq_mhz >= _MIN_PRIMARY_RADIO_MHZ
+
+
+def _is_valid_primary_frequency_for_unit(unit_type: str | None, freq_mhz: float) -> bool:
+    """Whether *freq_mhz* may be *unit_type*'s primary radio frequency (build-time safety net).
+
+    Like ``_is_valid_primary_frequency`` but spec-aware: a sub-VHF frequency is still
+    valid when the aircraft's genuine primary radio is HF and DCS strictly validates it
+    (e.g. the MiG-15bis RSI-6K at 3.75–5.0 MHz). DCS itself writes and accepts that
+    frequency on extract, so the blanket floor would be a false positive. Aircraft DCS
+    does not strictly validate (Yak-52 ARK-15M, Ka-50 ARK-22…) keep the floor, so an ADF
+    channel mistakenly promoted to the primary is still caught.
+    """
+    if _is_valid_primary_frequency(freq_mhz):
+        return True
+    if unit_type is None:
+        return False
+    return is_strict(unit_type) and bool(validate_frequency(unit_type, freq_mhz))
 
 
 @dataclass
@@ -259,7 +277,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             for g in self.groups.values()
             if g.human_pilot
             and isinstance((freq := g.group_dcs.get("frequency")), (int, float))
-            and not _is_valid_primary_frequency(freq)
+            and not _is_valid_primary_frequency_for_unit(g.unit_type, freq)
         ]
         if invalid_primary:
             details = ", ".join(f"{name} ({freq} MHz)" for name, freq in invalid_primary)

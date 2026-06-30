@@ -372,6 +372,25 @@ class TestProcessGroups(unittest.TestCase):
         worker.presets_manager.get_radios_for.return_value = None
         worker.process_groups(silent=True)  # must not raise
 
+    def test_process_groups_hf_primary_on_strict_aircraft_does_not_stop(self) -> None:
+        # An aircraft whose genuine primary radio is HF (MiG-15bis RSI-6K, 3.75–5.0 MHz)
+        # has a sub-VHF primary frequency that DCS itself writes and accepts. The build
+        # must not flag it as invalid (FIX-MIG15-PRIMARY-FREQ false positive).
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "MiG-15bis", "skill": "Client"}], "frequency": 3.75},
+            aircraft_type="plane",
+            country="USSR",
+            coalition="red",
+            human_pilot=True,
+            name="MiG-15 Template",
+            unit_type="MiG-15bis",
+        )
+        worker.groups = {"MiG-15 Template": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = None
+        worker.process_groups(silent=True)  # must not raise
+
 
 class TestGenerateValidationReport(unittest.TestCase):
     """Tests for collect_freq_issues() and generate_validation_report()."""
@@ -484,45 +503,33 @@ class TestPresetRadioCompatibility(unittest.TestCase):
 
     @staticmethod
     def _group(unit_type: str) -> Group:
-        return Group(
-            group_dcs={}, aircraft_type="plane", country="USA", coalition="blue", unit_type=unit_type
-        )
+        return Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue", unit_type=unit_type)
 
     def test_incompatible_preset_skipped(self) -> None:
         """A UHF preset is wholly incompatible with the Yak-52 (sub-MHz ARK-15M)."""
         worker = _make_worker()
-        self.assertFalse(
-            worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(243.0, 225.0))
-        )
+        self.assertFalse(worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(243.0, 225.0)))
 
     def test_compatible_preset_kept(self) -> None:
         """The same UHF preset fits an FA-18C, which has a UHF radio."""
         worker = _make_worker()
-        self.assertTrue(
-            worker._preset_radio_compatible(self._group("FA-18C_hornet"), self._uhf_preset(243.0, 225.0))
-        )
+        self.assertTrue(worker._preset_radio_compatible(self._group("FA-18C_hornet"), self._uhf_preset(243.0, 225.0)))
 
     def test_unknown_aircraft_treated_compatible(self) -> None:
         """An aircraft absent from the radio specs is not second-guessed."""
         worker = _make_worker()
-        self.assertTrue(
-            worker._preset_radio_compatible(self._group("NoSuchJet"), self._uhf_preset(243.0))
-        )
+        self.assertTrue(worker._preset_radio_compatible(self._group("NoSuchJet"), self._uhf_preset(243.0)))
 
     def test_mig15bis_uhf_preset_skipped(self) -> None:
         """MiG-15bis (HF RSI-6K, 3.75-5 MHz) is wholly incompatible with a UHF preset (C9 follow-up)."""
         worker = _make_worker()
-        self.assertFalse(
-            worker._preset_radio_compatible(self._group("MiG-15bis"), self._uhf_preset(243.0, 251.0))
-        )
+        self.assertFalse(worker._preset_radio_compatible(self._group("MiG-15bis"), self._uhf_preset(243.0, 251.0)))
 
     def test_partially_valid_preset_kept(self) -> None:
         """If at least one frequency is in range, the preset is kept."""
         worker = _make_worker()
         # Yak-52 ARK-15M range ~0.1-1.795 MHz: one in-range, one out-of-range.
-        self.assertTrue(
-            worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(0.5, 243.0))
-        )
+        self.assertTrue(worker._preset_radio_compatible(self._group("Yak-52"), self._uhf_preset(0.5, 243.0)))
 
 
 class TestDropOutOfRangeChannels(unittest.TestCase):

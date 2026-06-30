@@ -122,6 +122,85 @@ def yaml_syntax_header() -> list[str]:
     ]
 
 
+# ---------------------------------------------------------------------------
+# Shared mission.yaml preamble sections
+#
+# Single source of truth for the invariant (tier-independent) sections of a
+# generated mission.yaml. Used by both the rich generator
+# (``generate_mission_yaml_template`` / ``generate-config``) and the
+# data-driven ``prepare`` template (``mission_template.generate_mission_yaml``),
+# so the two scaffolds stay in lockstep instead of drifting copy by copy.
+# ---------------------------------------------------------------------------
+
+
+def global_log_level_section() -> list[str]:
+    """Return the commented ``global_log_level:`` section (localized comment + example)."""
+    return [
+        *_yaml_comment("generated.mission_yaml.section.global_log_level"),
+        "#",
+        "# global_log_level: debug",
+    ]
+
+
+def mission_identity_section(live_name: str | None = None) -> list[str]:
+    """Return the ``mission:`` identity section.
+
+    Args:
+        live_name: When given, ``name`` is emitted uncommented so the file is a
+            ready-to-build scaffold (used by ``prepare``). When ``None``, the whole
+            block is commented (used by ``generate-config``). The optional-field
+            hints below ``name`` are always commented.
+
+    Returns:
+        The section's comment + body lines (no trailing blank line).
+    """
+    lines = list(_yaml_comment("generated.mission_yaml.section.mission"))
+    if live_name is None:
+        lines += [
+            "# mission:",
+            "#   name: My-Mission              # shown in radio menus and log messages",
+        ]
+    else:
+        lines += [
+            "mission:",
+            f'  name: "{live_name}"',
+        ]
+    lines += [
+        "#   export_path: null             # null = default DCS Saved Games path",
+        "#   era: MODERN                   # MODERN | COLD_WAR | WW2",
+        f"#   language: fr                  # {t('generated.mission_yaml.field.language')}",
+        "#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase",
+    ]
+    return lines
+
+
+def security_section() -> list[str]:
+    """Return the commented ``security:`` section (localized comment + example)."""
+    return [
+        *_yaml_comment("generated.mission_yaml.section.security"),
+        "# security:",
+        "#   disabled: true                # true = no password required (default)",
+        "#   password_hashes:              # add SHA-256 hashes to restrict access",
+        '#     - "<SHA-256 hash>"',
+    ]
+
+
+def pipeline_section() -> list[str]:
+    """Return the commented build ``pipeline:`` section (localized comment + example)."""
+    return [
+        *_yaml_comment("generated.mission_yaml.section.pipeline"),
+        "#",
+        "# pipeline:",
+        "#   presets: true                 # src/presets.yaml",
+        "#   waypoints: true               # src/waypoints.yaml",
+        "#   spawnable_aircrafts: true     # src/spawnables.yaml",
+        "#   dynamic_slot_templates: true  # src/dynamic-slot-templates.yaml",
+        "#   warehouses: true              # src/warehouses.yaml (Dynamic-Slot warehouses)",
+        "#   spawn_data: true              # always on; src/spawn-groups.yaml extends the spawn DB",
+        "#   weather: true                 # src/versions.yaml",
+    ]
+
+
 #: Cosmetic category groupings for YAML template and generated Lua output.
 MODULE_CATEGORIES: dict[str, list[str]] = {
     "Infrastructure": ["UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"],
@@ -1050,27 +1129,15 @@ def generate_mission_yaml_template(
     lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────
-    lines.extend(_yaml_comment("generated.mission_yaml.section.global_log_level"))
-    lines.append("#")
-    lines.append("# global_log_level: debug")
+    lines.extend(global_log_level_section())
     lines.append("")
 
     # ── Mission identity ──────────────────────────────────────────────────
-    lines.extend(_yaml_comment("generated.mission_yaml.section.mission"))
-    lines.append("# mission:")
-    lines.append("#   name: My-Mission              # shown in radio menus and log messages")
-    lines.append("#   export_path: null             # null = default DCS Saved Games path")
-    lines.append("#   era: MODERN                   # MODERN | COLD_WAR | WW2")
-    lines.append(f"#   language: fr                  # {t('generated.mission_yaml.field.language')}")
-    lines.append("#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase")
+    lines.extend(mission_identity_section())
     lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────
-    lines.extend(_yaml_comment("generated.mission_yaml.section.security"))
-    lines.append("# security:")
-    lines.append("#   disabled: true                # true = no password required (default)")
-    lines.append("#   password_hashes:              # add SHA-256 hashes to restrict access")
-    lines.append('#     - "<SHA-256 hash>"')
+    lines.extend(security_section())
     lines.append("")
 
     # ── Generic settings ──────────────────────────────────────────────────
@@ -1202,17 +1269,6 @@ def generate_mission_yaml_template(
 
     # ── Build pipeline ─────────────────────────────────────────────────────
     lines.append("")
-    lines.extend(_yaml_comment("generated.mission_yaml.section.pipeline"))
-    lines += [
-        "#",
-        "# pipeline:",
-        "#   presets: true                 # src/presets.yaml",
-        "#   waypoints: true               # src/waypoints.yaml",
-        "#   spawnable_aircrafts: true     # src/spawnables.yaml",
-        "#   dynamic_slot_templates: true  # src/dynamic-slot-templates.yaml",
-        "#   warehouses: true              # src/warehouses.yaml (Dynamic-Slot warehouses)",
-        "#   spawn_data: true              # always on; src/spawn-groups.yaml extends the spawn DB",
-        "#   weather: true                 # src/versions.yaml",
-    ]
+    lines.extend(pipeline_section())
 
     return "\n".join(lines) + "\n"

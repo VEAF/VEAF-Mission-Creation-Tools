@@ -12,6 +12,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 | Lot | Status |
 |-----|--------|
+| [FIX-MISSILEGUARDIAN-INIT-CRASH](FIX-MISSILEGUARDIAN-INIT-CRASH/PRD.md) — `MISSILEGUARDIAN: true` crashed VEAF start-up (`veafMissileGuardian.initialize()` called the never-defined `dumpMissionsList`), aborting `veaf-config.lua` and silently disabling the central F10 marker dispatcher (dead `_spawn`/shortcut aliases despite `SHORTCUTS: true`), plus CTLD/CSAR init. Also stopped auto-enabling the module (2021 WIP relic): removed from the `full` tier → opt-in only. Reported by Tripack | ✅ |
 | [ENRICH-PREPARE-TEMPLATE](ENRICH-PREPARE-TEMPLATE/PRD.md) — `prepare --template` now emits the same rich `mission.yaml` preamble as `convert-v5` (YAML guide, `global_log_level`, `mission:`, `security:`, `pipeline:`) via shared helpers; `generate-config` output unchanged. Reported by Tripack | ✅ |
 | [FIX-MIG15-PRIMARY-FREQ](FIX-MIG15-PRIMARY-FREQ/PRD.md) — build wrongly rejects the MiG-15bis HF primary frequency (RSI-6K 3.75 MHz, below the 30 MHz floor); the safety net is now spec-aware (`is_strict` + in-spec) while still catching ADF promotion (Yak-52 0.625 MHz). Reported by Tripack | ✅ |
 | [FIX-EVENTHANDLER-UNITCATEGORY](FIX-EVENTHANDLER-UNITCATEGORY/PRD.md) — dynamic-slot airplane still ignored by the QRA unless `react_on_helicopters` true: `completeUnitFromName` populated `unitCategory` with `getCategory()` (Object.Category UNIT=1 collides with HELICOPTER), bypassing the #299 fix | ✅ |

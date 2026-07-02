@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **`prepare` no longer auto-enables `MISSILEGUARDIAN` in the `full` tier** (FIX-MISSILEGUARDIAN-INIT-CRASH). `veafMissileGuardian` is a 2021 work-in-progress training-tools relic that never left `0.0.2`; it was nonetheless tagged in the `full` tier, so `prepare --tier full` (and `convert-v5`) turned it on by default — which is how it landed, crashing, in a mission that did not use it. The module now belongs to **no named tier**: it stays available as an explicit opt-in in the `custom` picker (tagged `opt-in`) but is never auto-enabled. The shipped default `mission.yaml` already listed it commented-out (unchanged).
+
+### Fixed
+- **`MISSILEGUARDIAN: true` crashed VEAF start-up, silently disabling F10 marker spawns, CTLD and CSAR** (FIX-MISSILEGUARDIAN-INIT-CRASH, reported by Tripack). `veafMissileGuardian.initialize()` called `veafMissileGuardian.dumpMissionsList(...)` — a function never defined in the module (a leftover from copy-pasting `veafCombatMission`). The `attempt to call field 'dumpMissionsList' (a nil value)` runtime error aborted the whole generated `veaf-config.lua` chunk mid-initialization, so every module wired up *after* MissileGuardian never initialized: most visibly `veafCommands.initialize()` — which registers the single central F10 marker dispatcher, so without it `_spawn` and all shortcut aliases are dead even with `SHORTCUTS: true` — plus `ctld.initialize()` and `csar.initialize()`. Removed the stray call (MissileGuardian does not export a missions list); guarded by a new regression test asserting `initialize()` does not raise.
+
 ## [6.7.7] — 2026-06-30
 
 ### Changed

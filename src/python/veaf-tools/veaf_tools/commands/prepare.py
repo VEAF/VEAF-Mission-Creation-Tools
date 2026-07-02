@@ -120,7 +120,7 @@ def _select_custom_modules() -> set[str] | None:
         if category != current_category:
             choices.append(Separator(f"── {category} ──"))
             current_category = category
-        tier = module_lowest_tier(mod) or ""
+        tier = module_lowest_tier(mod) or "opt-in"
         choices.append(Choice(value=mod, name=f"{mod}  · {tier}", enabled=mod in preselected))
     _touch_prompt_shown()
     selected = inquirer.checkbox(

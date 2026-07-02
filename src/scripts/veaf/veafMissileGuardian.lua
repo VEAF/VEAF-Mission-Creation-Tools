@@ -617,7 +617,6 @@ end
 function veafMissileGuardian.initialize()
   veaf.loggers.get(veafMissileGuardian.Id):info("Initializing module")
   veafMissileGuardian.buildRadioMenu()
-  veafMissileGuardian.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
 end
 
 veaf.loggers.get(veafMissileGuardian.Id):info(veaf.loggers.get(veafMissileGuardian.Id):getVersionInfo())

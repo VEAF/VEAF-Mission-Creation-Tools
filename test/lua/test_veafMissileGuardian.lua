@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafRadio.lua")
 dofile(src .. "/veafMissileGuardian.lua")
 
 -- ---------------------------------------------------------------------------
@@ -228,6 +229,19 @@ function TestVeafMGProtector:test_start_stop_no_crash()
   p:start()
   p:stop()
   luaunit.assertTrue(true)
+end
+
+-- ============================================================================
+-- TestVeafMGInitialize
+-- ============================================================================
+TestVeafMGInitialize = {}
+
+-- Regression guard: initialize() used to call the non-existent
+-- veafMissileGuardian.dumpMissionsList, which raised a runtime error and
+-- aborted the whole veaf-config.lua chunk (breaking marker dispatch, CTLD, …).
+function TestVeafMGInitialize:test_initialize_no_crash()
+  local ok, err = pcall(veafMissileGuardian.initialize)
+  luaunit.assertTrue(ok, tostring(err))
 end
 
 os.exit(luaunit.LuaUnit.run())

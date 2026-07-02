@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.7.8] — 2026-07-02
+
 ### Changed
 - **`prepare` no longer auto-enables `MISSILEGUARDIAN` in the `full` tier** (FIX-MISSILEGUARDIAN-INIT-CRASH). `veafMissileGuardian` is a 2021 work-in-progress training-tools relic that never left `0.0.2`; it was nonetheless tagged in the `full` tier, so `prepare --tier full` (and `convert-v5`) turned it on by default — which is how it landed, crashing, in a mission that did not use it. The module now belongs to **no named tier**: it stays available as an explicit opt-in in the `custom` picker (tagged `opt-in`) but is never auto-enabled. The shipped default `mission.yaml` already listed it commented-out (unchanged).
 

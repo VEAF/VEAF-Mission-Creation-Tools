@@ -1,15 +1,15 @@
-# VEAF Mission Creation Tools — 6.7.7
+# VEAF Mission Creation Tools — 6.7.8
 
-Version **de fiabilité**, centrée sur deux retours de **Tripack**. Le build accepte désormais les avions dont la radio principale est en HF (comme le MiG-15bis), et la commande `prepare` génère un `mission.yaml` aussi complet que celui d'une conversion `convert-v5`. Aucun changement de configuration : les missions existantes n'ont rien à modifier.
+Version **de fiabilité**, à nouveau sur un retour de **Tripack**. Elle corrige un plantage au démarrage qui, dès qu'un module bien précis était activé, désactivait silencieusement les spawns par marqueur sur la carte F10 (alias `_spawn`, `-shilka`, `-sa2`…) ainsi que CTLD et CSAR — **même avec `SHORTCUTS: true`**. Aucune modification de configuration requise pour les missions existantes.
 
 ## 🐛 Corrections
 
-- **Le build ne rejette plus à tort le MiG-15bis** — après édition d'une mission contenant un MiG-15bis dans l'éditeur DCS puis ré-extraction, le build échouait avec *« Fréquence radio principale invalide (sous 30.0 MHz) »*. Le garde-fou interdisait toute fréquence principale sous 30 MHz (pour empêcher qu'un canal ADF, type Yak-52 ARK-15M à 0.625 MHz, ne devienne la radio principale). Mais le MiG-15bis a légitimement une radio HF (la RSI-6K, 3.75–5.0 MHz) que DCS écrit et accepte lui-même. La validation tient désormais compte des caractéristiques réelles de chaque avion : la fréquence HF du MiG-15bis passe, la protection contre les canaux ADF reste en place.
+- **Les spawns par marqueur F10 (et CTLD/CSAR) ne sont plus cassés par le module MissileGuardian** — quand `MISSILEGUARDIAN` était activé, l'initialisation VEAF plantait sur une fonction inexistante (`dumpMissionsList`), ce qui interrompait tout le reste de la séquence de démarrage. Conséquence : le dispatcher central des marqueurs F10 n'était jamais branché — donc `_spawn` et **tous** les alias de raccourcis restaient inertes malgré `SHORTCUTS: true` — et CTLD comme CSAR ne s'initialisaient pas non plus. Le démarrage se déroule désormais entièrement.
 
-## 🛠️ Outillage mission-maker
+## ⚙️ Changement de comportement à noter
 
-- **`prepare` génère un `mission.yaml` complet** — quel que soit le template choisi (`minimal` / `standard` / `full` / `custom`), le fichier produit inclut maintenant le même préambule documenté qu'une conversion `convert-v5` : guide de syntaxe YAML, `global_log_level`, bloc `mission:` complet, `security:` et `pipeline:`. Plus besoin de partir d'une conversion v5 pour récupérer ces sections. Le bloc `modules:`, lui, reste adapté au template choisi.
+- **`MISSILEGUARDIAN` n'est plus activé automatiquement** — ce module (un outil de training expérimental, resté inachevé depuis 2021) était classé dans le template `full` et se retrouvait donc à `true` d'office sur un `prepare --tier full` ou un `convert-v5`. Il est désormais **opt-in** : proposé uniquement si vous le cochez explicitement dans le picker `custom`, jamais activé par défaut. Les missions qui l'utilisent volontairement (avec `MISSILEGUARDIAN: true` déjà écrit) ne sont pas affectées.
 
 ## 🙏 Remerciements
 
-Merci à **Tripack** pour le signalement des deux sujets et la fourniture des dossiers de mission qui ont permis de reproduire et corriger précisément chaque cas.
+Merci à **Tripack** pour le signalement et le dossier de mission qui a permis de reproduire et corriger le cas précisément.

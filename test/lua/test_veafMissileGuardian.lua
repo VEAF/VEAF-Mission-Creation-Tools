@@ -236,12 +236,36 @@ end
 -- ============================================================================
 TestVeafMGInitialize = {}
 
+function TestVeafMGInitialize:setUp()
+  -- Start each case from a clean radio state so buildRadioMenu takes the
+  -- "create" branch (rootPath == nil) deterministically.
+  veafMissileGuardian.rootPath = nil
+end
+
 -- Regression guard: initialize() used to call the non-existent
 -- veafMissileGuardian.dumpMissionsList, which raised a runtime error and
 -- aborted the whole veaf-config.lua chunk (breaking marker dispatch, CTLD, …).
 function TestVeafMGInitialize:test_initialize_no_crash()
   local ok, err = pcall(veafMissileGuardian.initialize)
   luaunit.assertTrue(ok, tostring(err))
+end
+
+-- Beyond "does not raise": assert the intended side effect actually happened —
+-- initialize() builds the module's radio menu, so rootPath must be populated.
+-- This catches a future silent regression that returns without wiring the menu.
+function TestVeafMGInitialize:test_initialize_creates_radio_menu()
+  veafMissileGuardian.initialize()
+  luaunit.assertNotNil(veafMissileGuardian.rootPath)
+end
+
+-- initialize() must be safe to call twice: the second call takes the
+-- clearSubmenu branch (rootPath already set) instead of re-creating the menu.
+function TestVeafMGInitialize:test_initialize_idempotent()
+  veafMissileGuardian.initialize()
+  local firstRootPath = veafMissileGuardian.rootPath
+  local ok, err = pcall(veafMissileGuardian.initialize)
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(veafMissileGuardian.rootPath, firstRootPath)
 end
 
 os.exit(luaunit.LuaUnit.run())

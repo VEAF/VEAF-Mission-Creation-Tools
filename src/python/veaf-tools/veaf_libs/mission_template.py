@@ -145,7 +145,9 @@ _CATALOG: tuple[Module, ...] = (
     Module("WEATHER", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
     Module("REMOTE", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
     Module("AIRBASES", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
-    Module("MISSILEGUARDIAN", FEATURE, "Features", tiers=frozenset({"full"})),
+    # Opt-in only (no tier): a 2021 WIP training-tools relic, not part of any named tier.
+    # Still selectable in the `custom` picker for whoever explicitly wants it.
+    Module("MISSILEGUARDIAN", FEATURE, "Features", tiers=frozenset()),
     # ── Combat ──
     # GROUNDAI sits in exactly CASMISSION's tiers: CASMISSION depends on it, so the build
     # would silently auto-enable it otherwise — keep the dependency declared, not implicit.
@@ -210,7 +212,8 @@ def module_lowest_tier(module_id: str) -> str | None:
     """Return the lowest named tier a module belongs to (tiers are cumulative), or ``None``.
 
     e.g. ``RADIO`` → ``"minimal"`` (also in standard/full), ``WEATHER`` → ``"standard"``,
-    ``MISSILEGUARDIAN`` → ``"full"``. Used to tag modules in the ``custom`` picker.
+    ``COMBATMISSION`` → ``"full"``. Returns ``None`` for opt-in modules that belong to no
+    tier (e.g. ``MISSILEGUARDIAN``). Used to tag modules in the ``custom`` picker.
     """
     tiers = CATALOG[module_id].tiers
     return next((name for name in TIER_NAMES if name in tiers), None)

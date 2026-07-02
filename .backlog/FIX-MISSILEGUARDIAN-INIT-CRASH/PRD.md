@@ -34,14 +34,21 @@ missions did not enable it.
 
 ## Fix
 
-Remove the stray `dumpMissionsList` call from `veafMissileGuardian.initialize()`
-(the module has no missions list to export). Add a regression test asserting
-`initialize()` does not raise.
+1. Remove the stray `dumpMissionsList` call from `veafMissileGuardian.initialize()`
+   (the module has no missions list to export). Add a regression test asserting
+   `initialize()` does not raise.
+2. Stop auto-enabling the module: `MISSILEGUARDIAN` is a 2021 WIP relic (never
+   past `0.0.2`) that sat in the `full` tier, so `prepare --tier full` / `convert-v5`
+   turned it on by default — the reason it reached Tripack's mission at all. Move it
+   to **no tier** (opt-in only, still in the `custom` picker).
 
 ## Definition of Done
 
 - [x] `veafMissileGuardian.initialize()` no longer references `dumpMissionsList`.
 - [x] Regression test `TestVeafMGInitialize:test_initialize_no_crash`.
-- [x] `poetry run test-lua` green.
+- [x] `MISSILEGUARDIAN` removed from the `full` tier (`tiers=frozenset()`), still
+      selectable in `custom`; tests updated (`test_missileguardian_is_opt_in_only`,
+      `module_lowest_tier` → `None`).
+- [x] `poetry run test-lua` + `poetry run pytest` green; ruff/mypy clean.
 - [x] `stylua --check src/scripts/veaf/` clean (CI-enforced).
-- [x] CHANGELOG + PATCH bump (6.7.8).
+- [x] CHANGELOG (Fixed + Changed) + PATCH bump (6.7.8).

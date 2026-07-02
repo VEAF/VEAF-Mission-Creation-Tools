@@ -61,10 +61,17 @@ class TestMissionTemplate(unittest.TestCase):
     def test_full_has_everything_with_tum_commented(self) -> None:
         text = generate_mission_yaml(tier_modules("full"))
         active = _modules(text)
-        self.assertIn("MISSILEGUARDIAN", active)
         self.assertIn("SKYNET", text)
         self.assertNotIn("TUM", active)  # commented (would abort without zones)
         self.assertIn("TUM", text)
+
+    def test_missileguardian_is_opt_in_only(self) -> None:
+        # MISSILEGUARDIAN belongs to no named tier (2021 WIP relic): never auto-enabled,
+        # not even by `full`, but still selectable in the `custom` picker.
+        self.assertNotIn("MISSILEGUARDIAN", tier_modules("full"))
+        self.assertNotIn("MISSILEGUARDIAN", _modules(generate_mission_yaml(tier_modules("full"))))
+        self.assertIn("MISSILEGUARDIAN", SELECTABLE_MODULES)
+        self.assertIn("MISSILEGUARDIAN", _modules(generate_mission_yaml({"MISSILEGUARDIAN"})))
 
     def test_custom_set_is_honoured(self) -> None:
         active = _modules(generate_mission_yaml({"RADIO", "WEATHER"}))
@@ -83,7 +90,7 @@ class TestMissionTemplate(unittest.TestCase):
         self.assertEqual(module_lowest_tier("RADIO"), "minimal")
         self.assertEqual(module_lowest_tier("WEATHER"), "standard")
         self.assertEqual(module_lowest_tier("QRA"), "standard")
-        self.assertEqual(module_lowest_tier("MISSILEGUARDIAN"), "full")
+        self.assertIsNone(module_lowest_tier("MISSILEGUARDIAN"))  # opt-in: no tier
 
 
 class TestMissionTemplatePreamble(unittest.TestCase):

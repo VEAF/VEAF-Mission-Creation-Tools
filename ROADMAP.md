@@ -3,7 +3,7 @@
 Execution order for the open lots in [.backlog/README.md](.backlog/README.md). Source of truth for
 **sequencing**; `.backlog/` stays the source of truth for **scope and status**.
 
-> Refreshed 2026-06-27 after the **6.7.0** release. The original 2026-06-10 sequencing
+> Refreshed 2026-07-04 after **6.7.8**. The original 2026-06-10 sequencing
 > (CI-NODE24 → SECREV → MODULES-UNIFY → conversion cluster → spawn axis → RELEASE) is
 > **fully delivered** and has been retired from this file; see `.backlog/archive/` for the
 > closed lots.
@@ -18,7 +18,7 @@ cluster (`convert-v5`/`convert-other`, fidelity, presets), the spawn/aircraft-in
 axis, the mission-maker tooling (`validate`, `prepare --template`, CLI↔TUI bridge,
 build-time reference validation), Foothold-on-v6, and the safe Lua-free `export` — has
 shipped. Continuous dev releases are published from `develop-v6` (`published-vx.y.z`);
-the current version is **6.7.0**.
+the current version is **6.7.8**.
 
 ---
 
@@ -26,7 +26,6 @@ the current version is **6.7.0**.
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| `FIX-DYNSLOT-TEMPLATE-CATEGORY` | 🔄 | Code shipped in 6.7.0. Ticket 02 (QRA airplane intruder) needs 🧑 **David's in-game check**. |
 | `ENRICH-DEFAULT-PRESETS` | ⬜ | Needs a 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
 
 There is **no Claude-actionable technical lot left** without external input (a David

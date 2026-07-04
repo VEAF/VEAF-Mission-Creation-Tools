@@ -1,6 +1,6 @@
 # FIX-CLEANUP-EXCLUDE-TOOLCHAIN
 
-Status: 🔄 in-progress
+Status: ✅ done — implemented in commit `0f109b66`
 
 ## Problem
 

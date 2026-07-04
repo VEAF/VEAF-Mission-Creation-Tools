@@ -1,6 +1,6 @@
 # Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates miscategorized as helicopters
 
-Status: 🔄 in-progress
+Status: ✅ done
 Branch: fix/dynslot-template-category → PR → develop-v6
 
 ## Problem Statement
@@ -52,11 +52,7 @@ with it `false`/absent the QRA ignores the airplane. The QRA reads the intruder 
 section), and `group:getCategory()` (line 774) likewise depends on the section. The
 link is plausible but **not provable by static reading**. **Do NOT assume 001 fixes it.**
 
-**Investigation note (BLOCKED — needs Tripack's SOURCE mission)**: the extraction is
-**faithful** to the source mission's structure — `_collect`
-(`aircrafts_injector_worker.py:1120`) reads `country.plane.group` → `airplanes` and
-`country.helicopter.group` → `helicopters`. Evidence is contradictory: `tmp/test` has
-`airplanes: {}` empty with the A-10C under `helicopters`, but Tripack's built `.miz`
-appears to file the A-10C `dynSpawnTemplate` under `plane` (correct). Root cause cannot
-be confirmed from the built `.miz` alone — need Tripack's **source** mission (pre-build)
-or a clean repro. **Do not implement 002 until the source mission is available.**
+**Investigation note (RESOLVED)**: the QRA airplane-intruder symptom (ticket 002) was
+traced to `veafEventHandler.completeUnitFromName` (see lot FIX-EVENTHANDLER-UNITCATEGORY,
+PR #544), not to the extraction path. Tripack confirmed both fixes in-game on a
+`6.7.8+<sha>` build.

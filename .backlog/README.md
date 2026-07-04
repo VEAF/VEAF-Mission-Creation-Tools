@@ -24,7 +24,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [UX-AIRCRAFT-SKIPPED-REPORT](UX-AIRCRAFT-SKIPPED-REPORT/PRD.md) — `build` names the spawn-data file + reports aircraft skipped because already present | ✅ |
 | [FIX-CONVERT-SPAWNABLES-FLAT-FORMAT](FIX-CONVERT-SPAWNABLES-FLAT-FORMAT/PRD.md) — `convert-v5` converts spawnable aircraft from the flat `settings.lua` layout (was: empty `spawnables.yaml`) | ✅ |
 | [FEAT-MIGRATE-MISSION-V6](FEAT-MIGRATE-MISSION-V6/PRD.md) — promote `src/mission/` from v5 to v6 on disk | ✅ |
-| [FIX-DYNSLOT-TEMPLATE-CATEGORY](FIX-DYNSLOT-TEMPLATE-CATEGORY/PRD.md) — airplane dynamic-slot templates miscategorized as helicopters | 🔄 |
+| [FIX-DYNSLOT-TEMPLATE-CATEGORY](FIX-DYNSLOT-TEMPLATE-CATEGORY/PRD.md) — airplane dynamic-slot templates miscategorized as helicopters | ✅ |
 | [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) — broaden the shipped default radio presets | ⬜ |
 | [FEAT-EXPORT-BFR-PARSER](FEAT-EXPORT-BFR-PARSER/PRD.md) — `export` as the safe mission parser for the BFR plugin (`.miz`/folder, JSON array-ness contract) | ✅ |
 | [TOOLING-DCS-MOCK-COVERAGE](TOOLING-DCS-MOCK-COVERAGE/PRD.md) — audit DCS-mock coverage against a vendored API schema | ✅ |

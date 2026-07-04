@@ -27,10 +27,10 @@ QRA intruder detection so an airplane is recognised by real DCS unit type
 
 ## Acceptance criteria
 
-- [ ] Repro tested before/after 001 to settle whether the category fix resolves it
-- [ ] If it persists, QRA recognises an airplane intruder by real DCS unit type
-- [ ] QRA test added for the airplane-intruder case
+- [x] Repro tested before/after 001 to settle whether the category fix resolves it
+- [x] If it persists, QRA recognises an airplane intruder by real DCS unit type
+- [x] QRA test added for the airplane-intruder case
 
 ## Blocked by
 
-Waiting on in-game confirmation by Tripack after #515 (needs Tripack's source mission / a clean repro).
+None — Tripack confirmed in-game on a `6.7.8+<sha>` build.

@@ -93,10 +93,10 @@ channels_collection:
 # ── Listes de canaux par rôle radio ─────────────────────────────────────────
 channel_lists:
   <coalition>:                          # blue | red
-    primary_1:                          # 1er radio V/UHF (bande uhf)
+    primary_1:                          # 1re radio V/UHF (bande uhf)
       01: Guard
       02: Batumi
-    primary_2:                          # 2e radio V/UHF (bande vhf) ; aussi le radio unique des warbirds
+    primary_2:                          # 2e radio V/UHF (bande vhf) ; aussi la radio unique des warbirds
       01: Guard
       02: Batumi
     fm_supplement:                      # FM en 3e radio, en plus de deux radios primaires (ex: A-10C)
@@ -111,7 +111,7 @@ channel_lists:
 
 | Rôle | Bande | Usage |
 | --- | --- | --- |
-| `primary_1` | uhf | 1er radio V/UHF |
+| `primary_1` | uhf | 1re radio V/UHF |
 | `primary_2` | vhf | 2e radio V/UHF ; radio unique des warbirds |
 | `fm_substitute` | fm | FM à la place d'un 2e radio primaire (hélicoptères à un seul radio primaire) |
 | `fm_supplement` | fm | FM en plus de deux radios primaires (appareils d'attaque, ex: A-10C) |

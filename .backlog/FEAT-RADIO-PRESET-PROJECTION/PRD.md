@@ -149,10 +149,16 @@ physical slot — not the packer's internal steps.
 
 ## Further Notes
 
-- Two-phase delivery. **Phase 1** (tickets 01–05): the core — roles + channel
-  lists, layout file + parser, the packer, layout populated for every type in the
-  reference Tripack `radioSettings.lua`, shipped-default `presets.yaml` migration.
-  **Phase 2** (ticket 06): `convert-v5` plan generation. Likely one PR per phase.
+- **Vertical slices (tracer bullets).** The tickets are thin end-to-end slices —
+  each makes one aircraft (or behaviour) work through the whole chain — not
+  horizontal layers. **Phase 1**: `01` standard aircraft end-to-end (founding
+  bullet), then `02` Mi-24P rotation, `03` OH-58D reserved slots + `fm_secondary`,
+  `04` AJS-37 fusion + specials + modulation, `05` warbirds + out-of-band drop
+  (these four are independent once `01` lands — parallelisable), `06` populate the
+  full layout + capacity, `07` shipped-default migration + docs. **Phase 2**: `08`
+  convert-v5 plan generation. Likely one PR per phase. All slices are AFK (the
+  architecture is settled in ADR 0010); the warbird in-game band check is a
+  separate follow-up, not a blocker.
 - Relation to **ENRICH-DEFAULT-PRESETS**: migrating the shipped `presets.yaml` to
   `channel_lists` (ticket 05) is the natural home for broadening the default
   channels; that lot should be folded into or sequenced right after phase 1.

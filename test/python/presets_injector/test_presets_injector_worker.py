@@ -617,7 +617,8 @@ class TestWarbirdPrimary2BandDropReporting(unittest.TestCase):
             channel_collections={},
         )
         preset = pack_preset_for_type(channel_lists, "blue", self.UNIT_TYPE)
-        assert preset is not None, f"expected a packed preset for {self.UNIT_TYPE}"
+        self.assertIsNotNone(preset, f"expected a packed preset for {self.UNIT_TYPE}")
+        assert preset is not None  # for mypy narrowing after the assertion above
         return preset
 
     def _group(self) -> Group:
@@ -666,12 +667,20 @@ class TestWarbirdPrimary2BandDropReporting(unittest.TestCase):
             content = report_path.read_text(encoding="utf-8")
             self.assertIn(self.UNIT_TYPE, content)
             self.assertIn(str(self.OUT_OF_BAND_FREQ), content)
+            # The report must also explain *why* — the aircraft's actual valid
+            # range — not just name the offending frequency.
+            self.assertIn("38.0", content)
+            self.assertIn("156.0", content)
 
     def test_drop_is_not_logged_at_warning_level_during_build(self) -> None:
         """`build`-style verbosity: Bf-109K-4 is not `dcs_rejects_on_load` (not in the
         strict list), so warn_invalid_channel_frequencies logs at debug level, not
         warning — a normal build's console output (which shows info/warning, not
-        debug) stays silent about this drop, matching the ADR's "silent under build"."""
+        debug) stays silent about this drop, matching the ADR's "silent under build".
+
+        The strict/non-strict split itself lives in
+        radio_frequency_validator.warn_invalid_channel_frequencies, so its own
+        `logger` (not the worker module's) is patched here."""
         from unittest.mock import patch
 
         worker = _make_worker()
@@ -680,10 +689,13 @@ class TestWarbirdPrimary2BandDropReporting(unittest.TestCase):
         worker.presets_manager = MagicMock()
         worker.presets_manager.get_radios_for.return_value = self._packed_preset()
 
-        with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
+        with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
             worker.process_groups(silent=True)
 
         mock_logger.warning.assert_not_called()
         self.assertTrue(mock_logger.debug.called)
         debug_messages = [call.args[0] for call in mock_logger.debug.call_args_list]
+        # The debug log must actually explain the drop — not just mention the
+        # aircraft — so it is a real (if quiet) audit trail, not a placeholder.
         self.assertTrue(any(self.UNIT_TYPE in msg for msg in debug_messages))
+        self.assertTrue(any(str(self.OUT_OF_BAND_FREQ) in msg for msg in debug_messages))

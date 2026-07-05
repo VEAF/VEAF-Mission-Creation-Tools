@@ -51,12 +51,18 @@
 #         all, so it always wins over this primitive with no extra code needed.
 #       - `reserved_head_slots: [<list index>, ...]` — reserved head slot(s).
 #         Each entry is a **1-based index into the channel list** that fills one
-#         leading DCS channel slot, in the declared order; the rest of the list
-#         then follows in its original order into the remaining slots. Two
+#         leading DCS channel slot, in the declared order. Only the index that
+#         matches the list's actual **last** entry is removed from its original
+#         tail position (rotation semantics, same convention as
+#         `rotate_last_to_head`); any other reserved index is a leading
+#         **duplicate** that also stays in its original tail position. Two
 #         shapes seen so far: `[20]` — a single "M" (manual) slot fed by the
-#         list's last entry (OH-58D UHF/VHF) — and `[1, 20]` — a "C" slot fed by
-#         the list's first entry, then an "M" slot fed by its last entry
-#         (OH-58D FM1/FM2). Mutually exclusive with `rotate_last_to_head` on the
+#         list's last entry, removed from the tail, so a 20-entry list still
+#         produces 20 slots total (OH-58D UHF/VHF) — and `[1, 20]` — a "C" slot
+#         duplicating the list's first entry (which stays in the tail too),
+#         then an "M" slot fed by its last entry (removed from the tail), so a
+#         20-entry list produces 21 slots total (OH-58D FM1/FM2). Mutually
+#         exclusive with `rotate_last_to_head` on the
 #         same radio (both express "reserve the head of the channel map" —
 #         declaring both on one radio is rejected by the parser as an authoring
 #         error).

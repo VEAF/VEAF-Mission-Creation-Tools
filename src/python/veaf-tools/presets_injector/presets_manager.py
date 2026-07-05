@@ -796,7 +796,9 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 )
                 continue
             rotate_last_to_head = bool(radio_data.get("rotate_last_to_head", False))
-            reserved_head_slots = [int(slot) for slot in (radio_data.get("reserved_head_slots") or [])]
+            reserved_head_slots = _parse_reserved_head_slots(
+                radio_data.get("reserved_head_slots"), index, unit_type_key
+            )
             if rotate_last_to_head and reserved_head_slots:
                 logger.error(
                     message=f"radio {index} in radio layout '{unit_type_key}' declares both "
@@ -828,6 +830,30 @@ def _parse_hardcoded_channels(data: list[dict[str, Any]] | None) -> list[Hardcod
     if data is None:
         return None
     return [HardcodedChannel(freq=float(item["freq"]), mod=item.get("mod")) for item in data if item is not None]
+
+
+def _parse_reserved_head_slots(data: list[Any] | None, radio_index: int | str, unit_type_key: str) -> list[int]:
+    """Parse the ``reserved_head_slots`` list, skipping non-integer entries with a warning.
+
+    A single malformed entry (e.g. a non-numeric string in the YAML) must not
+    abort parsing the whole layout file — it is logged and skipped instead,
+    same authoring-error-tolerance level as the out-of-range-index handling in
+    :func:`_prepend_reserved_slots`.
+    """
+    result: list[int] = []
+    for slot in data or []:
+        try:
+            result.append(int(slot))
+        except (TypeError, ValueError):
+            logger.warning(
+                t(
+                    "presets_injector.radio_layout.invalid_reserved_head_slot",
+                    radio_index=radio_index,
+                    unit_type_key=unit_type_key,
+                    slot=slot,
+                )
+            )
+    return result
 
 
 _RADIO_LAYOUTS: dict[str, RadioLayoutEntry] | None = None
@@ -918,25 +944,41 @@ def _prepend_reserved_slots(source: RadioDefinition, reserved_head_slots: list[i
 
     Each entry in *reserved_head_slots* is a 1-based index into *source*'s
     channel list; it fills one leading DCS channel slot, in the declared order
-    (e.g. ``[20]`` for a single "M" slot, or ``[1, 20]`` for "C" then "M" on the
-    OH-58D's FM radios). The rest of the list follows in its original order into
-    the remaining slots, renumbered starting after the reserved ones.
+    (e.g. ``[20]`` for a single "M" slot fed by the list's last entry, or
+    ``[1, 20]`` for "C" then "M" on the OH-58D's FM radios).
+
+    Only the index matching the list's actual **last** entry is a rotation — it
+    is removed from its original position, the same convention as
+    :func:`_rotate_last_to_head` (ADR 0010: "the list's last entry, by
+    convention"), so a single reserved slot leaves the radio with exactly N
+    slots for an N-entry list (e.g. OH-58D UHF/VHF: slot 1 = #20, slots 2..N =
+    #1..#(N-1)). Any other reserved index (e.g. the OH-58D FM's "C" = #01) is a
+    leading **duplicate** — it stays in its original tail position too (e.g.
+    OH-58D FM: slot 1 = #01 ["C"], slot 2 = #20 ["M"], slots 3..N+1 = #1..#(N-1),
+    where #01 reappears at slot 3 — matching the exploration doc's documented
+    21-slot shape for a 20-entry list).
 
     Args:
         source: The role's channel list (channels in list order, not necessarily
             already numbered 1..N).
         reserved_head_slots: 1-based list-index(es) filling the leading slot(s),
-            in order. An index beyond the list's actual length is skipped
-            (safe degradation for a shorter-than-expected maker list, mirroring
-            :func:`pack_preset_for_type`'s HF-radio fallback) rather than
-            raising.
+            in order. An index that is not a valid 1-based position in the list
+            (<= 0, or beyond the list's actual length) is skipped rather than
+            raising (safe degradation for a shorter-than-expected maker list,
+            mirroring :func:`pack_preset_for_type`'s HF-radio fallback).
 
     Returns:
         A new RadioDefinition with the same radio_type/title, channels renumbered.
     """
     result = RadioDefinition(name=source.name, radio_type=source.radio_type, title=source.title)
-    reserved = [source.channels[index - 1] for index in reserved_head_slots if index <= len(source.channels)]
-    ordered = [*reserved, *source.channels]
+    last_position = len(source.channels) - 1
+    valid_indices = [index for index in reserved_head_slots if 1 <= index <= len(source.channels)]
+    reserved = [source.channels[index - 1] for index in valid_indices]
+    # Only the last entry is removed from the tail (rotation semantics); any
+    # other reserved index is a duplicate that stays in the tail too.
+    rotated_positions = {index - 1 for index in valid_indices if index - 1 == last_position}
+    tail = [channel for position, channel in enumerate(source.channels) if position not in rotated_positions]
+    ordered = [*reserved, *tail]
     for slot, channel in enumerate(ordered, start=1):
         result.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
     return result

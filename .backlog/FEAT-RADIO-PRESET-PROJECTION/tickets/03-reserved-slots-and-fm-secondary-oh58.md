@@ -1,6 +1,6 @@
 # FEAT-RADIO-PRESET-PROJECTION-03 — reserved head slots + fm_secondary (OH-58D)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat · Phase: 1 · AFK
 
 ## Parent
@@ -20,10 +20,10 @@ Verifiable end-to-end: the OH-58D's "no channel 1" layout is reproduced.
 
 ## Acceptance criteria
 
-- [ ] Reserved head slot primitive (count + fill entry) implemented.
-- [ ] `fm_secondary` role; absent → copy of `fm_supplement`.
-- [ ] OH-58D reproduced: M/C head slots on the right radios.
-- [ ] Tests (prior art `test_presets_fidelity.py`).
+- [x] Reserved head slot primitive (count + fill entry) implemented.
+- [x] `fm_secondary` role; absent → copy of `fm_supplement`.
+- [x] OH-58D reproduced: M/C head slots on the right radios.
+- [x] Tests (prior art `test_presets_fidelity.py`).
 
 ## Blocked by
 
@@ -37,3 +37,45 @@ Verifiable end-to-end: the OH-58D's "no channel 1" layout is reproduced.
 ticket 01 (it fell out naturally from the role-assignment pass). This ticket's
 remaining scope is the **reserved head slot** primitive and the OH-58D layout
 entry.
+
+## Implementation notes
+
+- Schema: `dcs-radio-layouts.yaml` radios gain a second, optional primitive key,
+  `reserved_head_slots: [<list index>, ...]`, alongside ticket 02's
+  `rotate_last_to_head`. Each entry is a **1-based index into the channel
+  list** that fills one leading DCS channel slot, in the declared order; the
+  rest of the list then follows in its original order into the remaining
+  slots. Two shapes populated so far: `[20]` (a single "M" slot fed by the
+  list's last entry — OH-58D UHF/VHF) and `[1, 20]` (a "C" slot fed by the
+  list's first entry, then an "M" slot fed by its last entry — OH-58D
+  FM1/FM2). The two primitives are mutually exclusive per radio: declaring
+  both on the same radio entry is a rejected authoring error (`parse_radio_layouts`
+  raises `ValueError`), since both express "reserve the head of the channel
+  map" and combining them would be ambiguous. The file's header comment
+  documents the schema in full for ticket 06 to extend.
+- `RadioLayoutRadio` gains a `reserved_head_slots: list[int]` field (default
+  `[]`). New `_prepend_reserved_slots` function (parallel to
+  `_rotate_last_to_head`): produces a renumbered `RadioDefinition` copy with
+  the reserved entries first, then the rest of the list. An index beyond the
+  channel list's actual length is skipped rather than raising — safe
+  degradation for a shorter-than-expected maker list, consistent with
+  `pack_preset_for_type`'s existing HF-radio fallback philosophy.
+- `_resolved_slots_for_type`'s returned tuples grew a 4th element
+  (`reserved_head_slots`, threaded alongside `rotate_last_to_head`);
+  `pack_preset_for_type` dispatches on which primitive (if any) is declared
+  for that physical radio — `reserved_head_slots` takes priority in the
+  dispatch order (the parser already prevents both being set together, so the
+  ordering is only a tie-breaker on the type signature, never exercised in
+  practice).
+- OH-58D layout entry (4 physical radios, verified against the real
+  `dcs-radio-specs.yaml` — unit_type is `OH58D`, no hyphen): radio 1 (UHF)
+  `primary_1` + `reserved_head_slots: [20]`; radio 2 (VHF) `primary_2` +
+  `reserved_head_slots: [20]`; radio 3 (FM1) `fm_supplement` +
+  `reserved_head_slots: [1, 20]`; radio 4 (FM2) `fm_secondary` +
+  `reserved_head_slots: [1, 20]` (content defaults to `fm_supplement`'s list
+  via ticket 01's `_channel_list_for_role`, independent of the primitive
+  declared on the radio). Note: the raw Tripack fixture
+  (`tripack_radioSettings.lua`, `["blue OH-58D"]`) itself has a stale/buggy
+  head-slot fill (duplicates entry #01 instead of reserving #01 then #20) —
+  implemented per ADR 0010's resolved decision and the exploration doc's §8
+  analysis instead of literally reproducing that fixture bug.

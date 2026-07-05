@@ -19,7 +19,7 @@ This module provides classes to manage radio presets.
 
 import io
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, cast
 
@@ -742,6 +742,13 @@ class RadioLayoutRadio:
             not sourced from any channel_lists role. Overridable by the maker
             via the existing ``presets_assignments`` bespoke-preset mechanism,
             which is checked before the packer runs at all and always wins.
+        reserved_head_slots: Reserved head slot(s) primitive (ADR 0010): each
+            entry is a 1-based index into the channel list that fills one
+            leading DCS channel slot, in the declared order (e.g. ``[20]`` for a
+            single "M" (manual) slot fed by the list's last entry, or ``[1, 20]``
+            for the OH-58D FM radios' "C" then "M" slots). The rest of the list
+            follows in its original order into the remaining slots. Mutually
+            exclusive with ``rotate_last_to_head`` on the same radio.
     """
 
     role: str
@@ -749,6 +756,7 @@ class RadioLayoutRadio:
     fuse: list[str] | None = None
     leading_dummy: HardcodedChannel | None = None
     trailing_specials: list[HardcodedChannel] | None = None
+    reserved_head_slots: list[int] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -787,12 +795,22 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                     exception_type=ValueError,
                 )
                 continue
+            rotate_last_to_head = bool(radio_data.get("rotate_last_to_head", False))
+            reserved_head_slots = [int(slot) for slot in (radio_data.get("reserved_head_slots") or [])]
+            if rotate_last_to_head and reserved_head_slots:
+                logger.error(
+                    message=f"radio {index} in radio layout '{unit_type_key}' declares both "
+                    "'rotate_last_to_head' and 'reserved_head_slots' — these primitives are mutually exclusive",
+                    exception_type=ValueError,
+                )
+                continue
             radios[int(index)] = RadioLayoutRadio(
                 role=role,
-                rotate_last_to_head=bool(radio_data.get("rotate_last_to_head", False)),
+                rotate_last_to_head=rotate_last_to_head,
                 fuse=radio_data.get("fuse"),
                 leading_dummy=_parse_hardcoded_channel(radio_data.get("leading_dummy")),
                 trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
+                reserved_head_slots=reserved_head_slots,
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
@@ -895,6 +913,35 @@ def _rotate_last_to_head(source: RadioDefinition) -> RadioDefinition:
     return rotated
 
 
+def _prepend_reserved_slots(source: RadioDefinition, reserved_head_slots: list[int]) -> RadioDefinition:
+    """Return a copy of *source* with reserved head slot(s) prepended (ADR 0010).
+
+    Each entry in *reserved_head_slots* is a 1-based index into *source*'s
+    channel list; it fills one leading DCS channel slot, in the declared order
+    (e.g. ``[20]`` for a single "M" slot, or ``[1, 20]`` for "C" then "M" on the
+    OH-58D's FM radios). The rest of the list follows in its original order into
+    the remaining slots, renumbered starting after the reserved ones.
+
+    Args:
+        source: The role's channel list (channels in list order, not necessarily
+            already numbered 1..N).
+        reserved_head_slots: 1-based list-index(es) filling the leading slot(s),
+            in order. An index beyond the list's actual length is skipped
+            (safe degradation for a shorter-than-expected maker list, mirroring
+            :func:`pack_preset_for_type`'s HF-radio fallback) rather than
+            raising.
+
+    Returns:
+        A new RadioDefinition with the same radio_type/title, channels renumbered.
+    """
+    result = RadioDefinition(name=source.name, radio_type=source.radio_type, title=source.title)
+    reserved = [source.channels[index - 1] for index in reserved_head_slots if index <= len(source.channels)]
+    ordered = [*reserved, *source.channels]
+    for slot, channel in enumerate(ordered, start=1):
+        result.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
+    return result
+
+
 def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) -> RadioDefinition | None:
     """Look up *role*'s channel list, defaulting fm_secondary to fm_supplement (ADR 0010)."""
     source = role_lists.get(role)
@@ -950,10 +997,12 @@ def _content_for_radio(
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
     Composition order (ADR 0010): fusion (or the plain role list) provides the
-    base content, then channel-0 rotation, then the leading dummy is inserted
-    at slot 1 (shifting the rest), then trailing hardcoded specials are
-    appended — the AJS-37 needs the dummy + fusion + specials primitives
-    together; the Mi-24P only needs rotation.
+    base content, then channel-0 rotation or reserved head slot(s) — mutually
+    exclusive with each other, see ``RadioLayoutRadio`` — then the leading
+    dummy is inserted at slot 1 (shifting the rest), then trailing hardcoded
+    specials are appended — the AJS-37 needs the dummy + fusion + specials
+    primitives together; the Mi-24P only needs rotation; the OH-58D only needs
+    reserved head slots.
 
     Args:
         layout_radio: This radio's Radio layout entry, or None under the
@@ -978,6 +1027,8 @@ def _content_for_radio(
 
     if layout_radio is not None and layout_radio.rotate_last_to_head:
         content = _rotate_last_to_head(content)
+    elif layout_radio is not None and layout_radio.reserved_head_slots:
+        content = _prepend_reserved_slots(content, layout_radio.reserved_head_slots)
 
     channels = list(content.channels)
     if layout_radio is not None and layout_radio.leading_dummy is not None:
@@ -1073,10 +1124,11 @@ def pack_preset_for_type(
     (`dcs-radio-layouts.yaml`) when one exists, or otherwise by
     :func:`_assign_roles_by_position`'s band-based default (both resolved by
     :func:`_resolved_slots_for_type`), then filled with that role's channel
-    list — applying the layout's primitives when declared: channel-0 rotation,
-    radio fusion (concatenating several roles into one physical radio), a
-    leading hardcoded dummy slot, and trailing hardcoded specials with their
-    own modulations (see :func:`_content_for_radio`). An aircraft with no
+    list — applying the layout's primitives when declared: channel-0 rotation
+    or reserved head slot(s) (mutually exclusive with each other), radio fusion
+    (concatenating several roles into one physical radio), a leading hardcoded
+    dummy slot, and trailing hardcoded specials with their own modulations
+    (see :func:`_content_for_radio`). An aircraft with no
     primary radio at all (single-radio HF/ADF sets, e.g. the MiG-15bis or
     Yak-52) still gets an ``fm_substitute`` guess on its only radio; since that
     content will not be in range, the existing frequency validator drops it and

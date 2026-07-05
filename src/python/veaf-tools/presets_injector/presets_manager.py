@@ -575,12 +575,7 @@ def parse_channel_lists(
                     exception_type=ValueError,
                 )
                 continue
-            band = ROLE_BANDS[role]
-            radio = RadioDefinition(name=f"channel_list_{coalition}_{role}", radio_type=band, title=role)
-            skipped: list[str] = []
-            for channel_name, channel_data in (channels_data or {}).items():
-                if not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False):
-                    skipped.append(str(channel_name))
+            radio, skipped = _build_role_list(coalition, role, channels_data, channel_collections)
             role_lists[role] = radio
             if skipped:
                 role_dropped[role] = skipped
@@ -588,6 +583,30 @@ def parse_channel_lists(
         if role_dropped:
             dropped[coalition] = role_dropped
     return channel_lists, dropped
+
+
+def _build_role_list(
+    coalition: str, role: str, channels_data: dict[str, Any] | None, channel_collections: dict[str, ChannelCollection]
+) -> tuple[RadioDefinition, list[str]]:
+    """Resolve one role's channels into a RadioDefinition, tracking dropped ones.
+
+    Args:
+        coalition: "blue" or "red" (only used to name the resulting RadioDefinition).
+        role: One of the ``ROLE_BANDS`` keys.
+        channels_data: The role's channel mapping from ``channel_lists.yaml``.
+        channel_collections: Used to resolve channel aliases.
+
+    Returns:
+        The role's RadioDefinition, and the list of channel names skipped
+        because they lacked a frequency for the role's band.
+    """
+    band = ROLE_BANDS[role]
+    radio = RadioDefinition(name=f"channel_list_{coalition}_{role}", radio_type=band, title=role)
+    skipped: list[str] = []
+    for channel_name, channel_data in (channels_data or {}).items():
+        if not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False):
+            skipped.append(str(channel_name))
+    return radio, skipped
 
 
 # Per-radio classification thresholds (MHz). Deliberately coarse: many modern
@@ -640,25 +659,28 @@ def _assign_roles_by_position(radios: list[RadioSpec]) -> dict[int, str]:
     second such radio (e.g. the OH-58D's two FM sets) gets ``fm_secondary``.
     """
     bands = [_classify_radio(radio.ranges) for radio in radios]
+    uhf_indices = [index for index, band in enumerate(bands) if band == "uhf"]
+    vhf_indices = [index for index, band in enumerate(bands) if band == "vhf"]
+    ambiguous_indices = [index for index, band in enumerate(bands) if band == "ambiguous"]
+    fm_indices = [index for index, band in enumerate(bands) if band is None]
+
     role_by_index: dict[int, str] = {}
 
-    for index, band in enumerate(bands):
-        if band == "uhf" and ROLE_PRIMARY_1 not in role_by_index.values():
-            role_by_index[index] = ROLE_PRIMARY_1
-        elif band == "vhf" and ROLE_PRIMARY_2 not in role_by_index.values():
-            role_by_index[index] = ROLE_PRIMARY_2
+    # Radios unambiguously dedicated to one sub-band claim that role directly.
+    if uhf_indices:
+        role_by_index[uhf_indices[0]] = ROLE_PRIMARY_1
+    if vhf_indices:
+        role_by_index[vhf_indices[0]] = ROLE_PRIMARY_2
 
-    for index, band in enumerate(bands):
-        if band != "ambiguous" or index in role_by_index:
-            continue
+    # Ambiguous combo radios fill whichever primary slot remains, in physical order.
+    for index in ambiguous_indices:
         if ROLE_PRIMARY_1 not in role_by_index.values():
             role_by_index[index] = ROLE_PRIMARY_1
         elif ROLE_PRIMARY_2 not in role_by_index.values():
             role_by_index[index] = ROLE_PRIMARY_2
 
-    fm_role = ROLE_FM_SUPPLEMENT if len(role_by_index) >= 2 else ROLE_FM_SUBSTITUTE
-    fm_indices = [index for index, band in enumerate(bands) if band is None and index not in role_by_index]
     if fm_indices:
+        fm_role = ROLE_FM_SUPPLEMENT if len(role_by_index) >= 2 else ROLE_FM_SUBSTITUTE
         role_by_index[fm_indices[0]] = fm_role
         if len(fm_indices) >= 2:
             role_by_index[fm_indices[1]] = ROLE_FM_SECONDARY
@@ -674,30 +696,21 @@ def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) ->
     return source
 
 
-def pack_preset_for_type(
+def _resolved_slots_for_type(
     channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
-) -> "PresetDefinition | None":
-    """Project a mission-maker's Channel lists onto one aircraft type's physical radios.
+) -> list[tuple[int, RadioDefinition]] | None:
+    """Resolve which physical radio index gets which channel list (ADR 0010).
 
-    This is the packer's default projection (ADR 0010), used when no explicit
-    per-type _Radio layout_ entry exists (added by a later lot): each physical
-    radio is assigned a role by :func:`_assign_roles_by_position`, then filled
-    with that role's channel list. An aircraft with no primary radio at all
-    (single-radio HF/ADF sets, e.g. the MiG-15bis or Yak-52) still gets an
-    ``fm_substitute`` guess on its only radio; since that content will not be in
-    range, the existing frequency validator drops it and reports the mismatch —
-    a safe, actionable degradation rather than a crash, pending an explicit
-    layout entry for that type.
-
-    Args:
-        channel_lists: Parsed Channel lists, coalition -> role -> RadioDefinition
-            (from :func:`parse_channel_lists`).
-        coalition: "blue" or "red".
-        unit_type: DCS unit type string.
+    Localizes the packer's resolution policy — role assignment, content lookup,
+    and the "gap before the last usable radio" safety check — separately from
+    :func:`pack_preset_for_type`'s materialization into a `PresetDefinition`.
 
     Returns:
-        A :class:`PresetDefinition` with one radio per resolvable physical slot,
-        or None if the aircraft is unknown or no role list has any content for it.
+        Ordered (physical_index, source) pairs (0-based physical_index), or None
+        if the aircraft is unknown, no role list has content for it, or a gap
+        before the last usable radio makes the mapping ambiguous — packing it
+        would silently renumber a later radio to the wrong physical slot, so
+        it is left to an explicit layout entry rather than guessed.
     """
     role_lists = channel_lists.get(coalition)
     if not role_lists:
@@ -720,15 +733,44 @@ def pack_preset_for_type(
         return None
     last_usable = max(index for index, source in enumerate(resolved) if source is not None)
     if any(source is None for source in resolved[:last_usable]):
-        # A gap before the last usable radio is ambiguous — packing it would
-        # silently renumber a later radio to the wrong physical slot. Leave it
-        # to an explicit layout entry rather than guess.
+        return None
+
+    return [(index, source) for index, source in enumerate(resolved[: last_usable + 1]) if source is not None]
+
+
+def pack_preset_for_type(
+    channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
+) -> "PresetDefinition | None":
+    """Project a mission-maker's Channel lists onto one aircraft type's physical radios.
+
+    This is the packer's default projection (ADR 0010), used when no explicit
+    per-type _Radio layout_ entry exists (added by a later lot): each physical
+    radio is assigned a role by :func:`_assign_roles_by_position` (resolved by
+    :func:`_resolved_slots_for_type`), then filled with that role's channel
+    list. An aircraft with no primary radio at all (single-radio HF/ADF sets,
+    e.g. the MiG-15bis or Yak-52) still gets an ``fm_substitute`` guess on its
+    only radio; since that content will not be in range, the existing frequency
+    validator drops it and reports the mismatch — a safe, actionable
+    degradation rather than a crash, pending an explicit layout entry for that
+    type.
+
+    Args:
+        channel_lists: Parsed Channel lists, coalition -> role -> RadioDefinition
+            (from :func:`parse_channel_lists`).
+        coalition: "blue" or "red".
+        unit_type: DCS unit type string.
+
+    Returns:
+        A :class:`PresetDefinition` with one radio per resolvable physical slot,
+        or None if the aircraft is unknown or no role list has any content for it.
+    """
+    slots = _resolved_slots_for_type(channel_lists, coalition, unit_type)
+    if not slots:
         return None
 
     preset = PresetDefinition(name=f"packed_{coalition}_{unit_type}")
-    for index, source in enumerate(resolved[: last_usable + 1], start=1):
-        assert source is not None
-        radio = RadioDefinition(name=f"radio_{index}", radio_type=source.radio_type, title=source.title)
+    for physical_index, source in slots:
+        radio = RadioDefinition(name=f"radio_{physical_index + 1}", radio_type=source.radio_type, title=source.title)
         for channel in source.channels:
             radio.add_channel(
                 Channel(name_or_number=channel.number, freq=channel.freq, title=channel.title, mod=channel.mod)

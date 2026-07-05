@@ -1,10 +1,94 @@
-radios_collection: # Lists all the radios definitions
+channel_lists: # Role-based preset plan (ADR 0010): declare each Radio role's Channel list
+  # once per coalition; the build projects it onto every aircraft's physical
+  # radios automatically (see doc/PIPELINE_REFERENCE.md, "Radio presets").
+  blue:
+    primary_1: # first V/UHF radio
+      01:
+        title: Guard/UHF
+        channel: Guard
+      02: Archer
+      03: Arctic
+      04: Ninja
+      05: Pinder
+      06: Bengal
+      07: Blade
+      10: Stennis
+      11: Tarawa
+      12: Roosevelt
+      13: Forrestal
+      14: Magic
+      17: Texaco-1
+      18: Shell-1
+      19: Shell-2
+      20: Arco-1
+
+    primary_2: # second V/UHF radio; also the warbirds' single radio
+      01:
+        channel: Guard
+        title: Guard/VHF
+      02: Batumi
+      03: Beslan
+      04: Gudauta
+      05: Kutaisi
+      06: Sochi
+      07: Sukhumi
+      08: Tbilisi-Lochini
+      09: Vaziani
+
+    fm_supplement: # FM atop two V/UHF radios (attack aircraft, e.g. A-10C)
+      01: 30
+      02: 31
+      03: 32
+      04: 33
+      05: 34
+      06: 35
+      07: 36
+      08: 37
+      09: 38
+      10: 39
+      11: 40
+      12: 41
+      13: 42
+      14: 43
+      15: 44
+      16: 45
+      17: 46
+      18: 47
+      19: 48
+      20: 49
+      21: 50
+      22: 51
+      23: 52
+      24: 53
+      25: 54
+      26: 55
+      27: 56
+      28: 57
+      29: 58
+      30: 59
+
+presets_assignments: # manual override: an explicit assignment for a type always wins over
+  # the channel_lists projection above (ADR 0010). Kept here only for cases the
+  # packer cannot express automatically.
+  blue:
+    helicopter:
+      Mi-8MT: none # no radio injection at all: keep the source mission group's radios untouched
+      CH-47Fbl1: modern_blue_fm_uhf # the CH-47's 3rd radio (ARC-201D) reads as VHF to the packer's
+      # default band classification, which would add an unwanted 3rd (VHF) radio;
+      # this override keeps the intended 2-radio FM/UHF layout.
+  red:
+    plane:
+      all: none
+    helicopter:
+      all: none
+
+radios_collection: # Lists all the radios definitions (legacy format, used by presets_assignments overrides above)
   blue_radios:
     radio_uhf_30: # defines a specific radio configuration
       title: UHF # name of the radio; used in the exported kneeboard PNG
       type: uhf # will condition the frequency picked up in the channels directory
       channels: # the list of channels defined on this radio
-        01: 
+        01:
           title: Guard/UHF
           channel: Guard
         02: Archer
@@ -13,69 +97,18 @@ radios_collection: # Lists all the radios definitions
         05: Pinder
         06: Bengal
         07: Blade
-        08: 
-        09: 
         10: Stennis
         11: Tarawa
         12: Roosevelt
         13: Forrestal
         14: Magic
-        15: 
-        16: 
         17: Texaco-1
         18: Shell-1
         19: Shell-2
         20: Arco-1
-        21:
-        22:
-        23:
-        24:
-        25:
-        26:
-        27:
-        28:
-        29:
-        30:
-
-    radio_vhf_30:
-      title: VHF 
-      type: vhf
-      channels:
-        01:
-          channel: Guard
-          title: Guard/VHF
-        02: Batumi
-        03: Beslan
-        04: Gudauta
-        05: Kutaisi
-        06: Sochi
-        07: Sukhumi
-        08: Tbilisi-Lochini
-        09: Vaziani
-        10: 
-        11: 
-        12: 
-        13: 
-        14: 
-        15: 
-        16: 
-        17: 
-        18: 
-        19: 
-        20: 
-        21:
-        22:
-        23:
-        24:
-        25:
-        26:
-        27:
-        28:
-        29:
-        30:
 
     radio_fm_30:
-      title: FM 
+      title: FM
       type: fm
       channels:
         01: 30
@@ -109,47 +142,14 @@ radios_collection: # Lists all the radios definitions
         29: 58
         30: 59
 
-presets_collection: # Lists all the presets collections
+presets_collection: # Lists all the presets collections (legacy format, used by presets_assignments overrides above)
   blue_presets: # one of the presets collections
-    modern_blue_uhf_vhf_fm: 
-      title: Blue coalition - classic UHF/VHF/FM # name of the presets collection; used in the exported kneeboard PNG
-      radios:
-        radio_1: radio_uhf_30
-
-        radio_2: radio_vhf_30
-
-        radio_3: radio_fm_30
-
-    modern_blue_vhf_uhf_fm:
-      title: Blue coalition - inverted VHF/UHF/FM (A-10) # e.g., for the A10C
-      radios:
-        radio_1: radio_vhf_30
-
-        radio_2: radio_uhf_30
-
-        radio_3: radio_fm_30
-
     modern_blue_fm_uhf:
       title: Blue coalition - FM/UHF (CH-47) # e.g., for the CH47F
       radios:
         radio_1: radio_fm_30
 
         radio_2: radio_uhf_30
-
-presets_assignments: # defines which presets collection to use for each coalition
-  blue:
-    plane: 
-      all: modern_blue_uhf_vhf_fm
-      A-10C_2: modern_blue_vhf_uhf_fm
-    helicopter:
-      Mi-8MT: none
-      all: modern_blue_uhf_vhf_fm
-      CH-47Fbl1: modern_blue_fm_uhf
-  red:
-    plane: 
-      all: none
-    helicopter:
-      all: none
 
 channels_collection: # Lists all the radio channels available on the map
 

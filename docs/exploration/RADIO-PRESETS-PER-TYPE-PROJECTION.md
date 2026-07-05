@@ -1,9 +1,11 @@
 # Radio presets — per-type layout projection (analysis)
 
-> **Status:** exploration / pre-design. No lot, branch or code yet.
-> Captured so the design of an automatic *per-type channel-layout projection*
-> starts from a shared, verified picture. Requested by David; source material is
-> Tripack's v5 `radioSettings.lua` and the current v6 presets subsystem.
+> **Status:** pre-design analysis. Decisions are finalised in
+> [ADR 0010](../adr/0010-per-type-radio-preset-projection.md) — this document is
+> the analysis behind them (a grilling session refined a few points: the
+> `fm_secondary` role, warbirds packed on `primary_2`, and convert-v5 generating
+> a preset plan by default). Requested by David; source material is Tripack's v5
+> `radioSettings.lua` and the current v6 presets subsystem.
 
 ## 1. Goal
 

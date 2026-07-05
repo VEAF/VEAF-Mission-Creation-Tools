@@ -63,6 +63,43 @@ enters a zone. Configured as a Module.
 The period of a mission (`MODERN`, `COLD_WAR`, `WW2`) that constrains available
 spawn content. A manual `mission.yaml` value always wins over any detection.
 
+## Radio presets
+
+**Radio preset**:
+The set of radio channels injected into a human-piloted aircraft's `Radio` table
+(one entry per physical radio, each a list of channel → frequency, with optional
+names and modulations). The mission-maker's radio configuration lives in
+`presets.yaml`. Not to be confused with a _Conversion profile_.
+
+**Radio role**:
+The functional slot a _Channel list_ plays across all aircraft, independent of
+the physical radio hardware: `primary_1` (first V/UHF), `primary_2` (second
+V/UHF; also the warbirds' single radio), `fm_substitute` (FM standing in for a
+missing second V/UHF, on helicopters), `fm_supplement` (FM added on top of two
+V/UHF, on attack aircraft), `fm_secondary` (a second supplemental FM, e.g. the
+OH-58D; defaults to a copy of `fm_supplement`).
+
+**Channel list**:
+An ordered list of channels the mission-maker declares once for a given _Radio
+role_ (e.g. the `primary_1`/UHF list). Author-facing content, projected onto
+every aircraft that has that role. Distinct from a _Radio preset_, which is the
+per-aircraft, per-physical-radio result.
+
+**Preset plan**:
+The mission-maker's full set of _Channel lists_ for a mission (by role and
+coalition) — the new author-facing radio configuration, as opposed to the
+per-aircraft _Radio presets_ it ultimately produces. `convert-v5` generates a
+preset plan by default, falling back to a faithful per-aircraft v5 copy when the
+mission cannot be factored into one.
+
+**Radio layout**:
+The VEAF-maintained description, per aircraft type, of how its physical radios
+are arranged: which _Radio role_ each physical radio carries, plus that type's
+quirks (channel-0 rotation, reserved head slots, hardcoded special channels,
+radio fusion, slot capacity, per-channel modulation). Hand-maintained data, kept
+separate from the auto-generated radio specs. A type with no layout entry falls
+back to band-based defaults.
+
 ## Spawning
 
 **Spawn group definition**:

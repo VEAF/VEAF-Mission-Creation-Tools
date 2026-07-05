@@ -809,7 +809,7 @@ def _parse_hardcoded_channels(data: list[dict[str, Any]] | None) -> list[Hardcod
     """Parse a list of ``{freq, mod}`` mappings into HardcodedChannel objects, or None."""
     if data is None:
         return None
-    return [_parse_hardcoded_channel(item) for item in data if item is not None]  # type: ignore[misc]
+    return [HardcodedChannel(freq=float(item["freq"]), mod=item.get("mod")) for item in data if item is not None]
 
 
 _RADIO_LAYOUTS: dict[str, RadioLayoutEntry] | None = None
@@ -903,7 +903,9 @@ def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) ->
     return source
 
 
-def _fuse_role_lists(role_lists: dict[str, RadioDefinition], roles: list[str]) -> RadioDefinition | None:
+def _fuse_role_lists(
+    role_lists: dict[str, RadioDefinition], declared_role: str, roles: list[str]
+) -> RadioDefinition | None:
     """Radio fusion primitive (ADR 0010): concatenate several roles' channel lists into one.
 
     Each source list's own numbering is discarded; the fused result is
@@ -912,18 +914,23 @@ def _fuse_role_lists(role_lists: dict[str, RadioDefinition], roles: list[str]) -
 
     Args:
         role_lists: This coalition's parsed Channel lists, role -> RadioDefinition.
+        declared_role: The layout's declared ``role`` for this radio — used for
+            the fused result's ``radio_type``/title, independently of which of
+            *roles* actually has content for a given coalition (so the result
+            is deterministic across coalitions, per ``RadioLayoutRadio.role``'s
+            documented contract).
         roles: The roles to concatenate, in fusion order.
 
     Returns:
-        A new RadioDefinition (radio_type/title taken from the first role found)
-        with channels renumbered 1..N, or None if none of *roles* has content.
+        A new RadioDefinition (radio_type from ``ROLE_BANDS[declared_role]``,
+        title the declared role's name) with channels renumbered 1..N, or None
+        if none of *roles* has content.
     """
     sources = [source for role in roles if (source := _channel_list_for_role(role_lists, role)) is not None]
     channels = [channel for source in sources for channel in source.channels]
-    if not sources or not channels:
+    if not channels:
         return None
-    first_source = sources[0]
-    fused = RadioDefinition(name=first_source.name, radio_type=first_source.radio_type, title=first_source.title)
+    fused = RadioDefinition(name=f"fused_{'_'.join(roles)}", radio_type=ROLE_BANDS[declared_role], title=declared_role)
     for slot, channel in enumerate(channels, start=1):
         fused.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
     return fused
@@ -961,7 +968,7 @@ def _content_for_radio(
         no fused role had any content.
     """
     if layout_radio is not None and layout_radio.fuse:
-        content = _fuse_role_lists(role_lists, layout_radio.fuse)
+        content = _fuse_role_lists(role_lists, layout_radio.role, layout_radio.fuse)
         if content is None:
             return None
     else:

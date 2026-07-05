@@ -127,6 +127,46 @@ class TestLeadingDummyPrimitive(unittest.TestCase):
         self.assertEqual(result[1]["modulations"][1], 0)
 
 
+class TestPrimitiveComposition(unittest.TestCase):
+    """fuse + rotate_last_to_head + leading_dummy together, exercising the full
+    composition order (ADR 0010: fusion/plain list -> rotation -> leading dummy
+    -> trailing specials) on one radio, not just each primitive in isolation.
+    """
+
+    @patch("presets_injector.presets_manager.get_radio_layout")
+    @patch("presets_injector.presets_manager.get_radios")
+    def test_fuse_then_rotate_then_dummy_in_declared_order(self, mock_get_radios, mock_get_layout):
+        mock_get_radios.return_value = _specs(AJS37_RANGE)
+        mock_get_layout.return_value = RadioLayoutEntry(
+            radios={
+                1: RadioLayoutRadio(
+                    role="primary_1",
+                    fuse=["primary_1", "primary_2"],
+                    rotate_last_to_head=True,
+                    leading_dummy=HardcodedChannel(freq=0, mod=0),
+                )
+            }
+        )
+        primary_1_freqs = [200.0, 201.0, 202.0]
+        primary_2_freqs = [130.0, 131.0]
+        channel_lists = _channel_lists(primary_1=primary_1_freqs, primary_2=primary_2_freqs)
+        preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
+        result = preset.to_dict()
+        channels = result[1]["channels"]
+        modulations = result[1]["modulations"]
+
+        # fuse: [200, 201, 202, 130, 131] -> rotate: last (131) to head, rest follow
+        # -> dummy inserted at slot 1, rotated content shifts to slots 2..6.
+        self.assertEqual(channels[1], 0)  # leading dummy
+        self.assertEqual(channels[2], 131.0)  # rotated: fused list's last entry
+        self.assertEqual(channels[3], 200.0)
+        self.assertEqual(channels[4], 201.0)
+        self.assertEqual(channels[5], 202.0)
+        self.assertEqual(channels[6], 130.0)
+        self.assertEqual(len(channels), 6)
+        self.assertEqual(modulations[1], 0)
+
+
 class TestTrailingSpecialsPrimitive(unittest.TestCase):
     """`trailing_specials`: fixed (freq, mod) pairs appended after the content."""
 

@@ -784,8 +784,8 @@ def get_radio_layout(layouts: dict[str, RadioLayoutEntry], unit_type: str) -> Ra
         try:
             if re.fullmatch(key, unit_type):
                 return entry
-        except re.error:
-            pass
+        except re.error as exc:
+            logger.warning(t("presets_injector.radio_layout.invalid_regex_key", regex_key=key, error=str(exc)))
     return None
 
 

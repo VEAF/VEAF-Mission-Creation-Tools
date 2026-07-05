@@ -628,6 +628,7 @@
   "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})",
   "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection.",
   "presets_injector.radio_layout.count_mismatch": "Radio layout for '{unit_type}' declares {declared_count} radio(s), but dcs-radio-specs.yaml reports {actual_count} — the layout and the specs are out of sync (check dcs-radio-layouts.yaml after a DCS patch).",
+  "presets_injector.radio_layout.invalid_regex_key": "Invalid regex key '{regex_key}' in dcs-radio-layouts.yaml: {error}",
   "builder.lua_modules_found": "Found lua_modules section in {path}; will generate veaf-config.lua",
   "builder.modules_deprecated": "Deprecated: 'lua_modules:' and 'community_scripts:' are replaced by 'modules:' — please update your mission.yaml",
   "builder.log_level_found": "Found global_log_level={level} in {path}",

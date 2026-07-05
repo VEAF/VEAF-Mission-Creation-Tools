@@ -81,6 +81,24 @@ class TestGetRadioLayout(unittest.TestCase):
     def test_no_match_returns_none(self):
         self.assertIsNone(get_radio_layout(self.layouts, "F-16C_50"))
 
+    @patch("presets_injector.presets_manager.logger")
+    def test_invalid_regex_key_is_skipped_and_logged(self, mock_logger):
+        # A malformed regex key must not raise, must not shadow a later key's
+        # match (looked up by a unit_type that isn't an exact key, so the
+        # regex path is actually exercised), and must be logged so the typo
+        # does not go unnoticed.
+        layouts = parse_radio_layouts(
+            {
+                "AJS37[": {"radios": {1: {"role": "primary_2"}}},  # unbalanced bracket -> re.error
+                "Mi-24.*": {"radios": {1: {"role": "primary_1"}}},
+            }
+        )
+        entry = get_radio_layout(layouts, "Mi-24P")
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.radios[1].role, "primary_1")
+        mock_logger.warning.assert_called_once()
+        self.assertIn("AJS37[", mock_logger.warning.call_args[0][0])
+
 
 class TestLayoutOverridesDefaultProjection(unittest.TestCase):
     """A layout entry, once present, must override the band-based default entirely."""

@@ -29,4 +29,6 @@ modulations is reproduced.
 
 ## Blocked by
 
-- FEAT-RADIO-PRESET-PROJECTION-01
+- FEAT-RADIO-PRESET-PROJECTION-02 (needs its `dcs-radio-layouts.yaml` file + parser
+  + packer-override wiring — corrected from the original "01 only" dependency,
+  which assumed that plumbing already existed)

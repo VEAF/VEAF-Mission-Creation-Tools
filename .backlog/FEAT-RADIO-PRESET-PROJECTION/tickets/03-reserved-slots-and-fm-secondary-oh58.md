@@ -27,4 +27,13 @@ Verifiable end-to-end: the OH-58D's "no channel 1" layout is reproduced.
 
 ## Blocked by
 
-- FEAT-RADIO-PRESET-PROJECTION-01
+- FEAT-RADIO-PRESET-PROJECTION-02 (needs its `dcs-radio-layouts.yaml` file + parser
+  + packer-override wiring — corrected from the original "01 only" dependency,
+  which assumed that plumbing already existed)
+
+## Note
+
+`fm_secondary` defaulting to a copy of `fm_supplement` was already implemented in
+ticket 01 (it fell out naturally from the role-assignment pass). This ticket's
+remaining scope is the **reserved head slot** primitive and the OH-58D layout
+entry.

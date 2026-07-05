@@ -29,4 +29,15 @@ tooling behaviour, in-game confirmation is a separate follow-up.
 
 ## Blocked by
 
-- FEAT-RADIO-PRESET-PROJECTION-01
+- FEAT-RADIO-PRESET-PROJECTION-01 only — does NOT need ticket 02's layout file:
+  warbirds already pack onto `primary_2` by default under ticket 01's
+  band-classification (a single-range radio spanning both the FM ceiling and the
+  UHF floor resolves to "vhf", see `_classify_radio` and
+  `test_warbird_single_radio_resolves_to_primary_2`). No layout entry needed.
+
+## Note
+
+The "pack on primary_2" acceptance criterion is already satisfied by ticket 01.
+This ticket's real remaining scope is the **out-of-band drop reporting split**
+(verbose under `validate`, silent under `build`) — check whether that mode
+distinction already exists in the `validate`/`build` commands or needs adding.

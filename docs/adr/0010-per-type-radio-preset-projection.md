@@ -69,6 +69,22 @@ migration, tests). **Phase 2**: convert-v5 plan generation.
 - convert-v5 no longer guarantees iso-functionality by default; the faithful
   copy stays available as the fallback.
 
+## Implementation note (ticket 01)
+
+The "band-based default" is **not** a flat positional rule (radio 1 -> primary_1,
+2 -> primary_2, 3 -> FM). Verified against the real `dcs-radio-specs.yaml`: only
+19 of 87 aircraft have radios that are cleanly single-band throughout — most
+modern radios (ARC-210, ARC-222…) report the union of every mode they support,
+and some 2-radio helicopters mean "1 primary + 1 FM", not "UHF + VHF". The
+implemented default classifies each physical radio from its frequency ranges,
+assigns radios unambiguously dedicated to one sub-band directly (so a
+deliberately inverted order, e.g. the A-10's VHF-first radio 1, resolves without
+an explicit layout entry), and falls back to physical order only for genuinely
+ambiguous combo radios (e.g. the F/A-18's two identical ARC-210s). See
+`_assign_roles_by_position` in `presets_manager.py`. This does not change the
+decision — a simple default for the common case, explicit `Radio layout`
+override for the rest — only the mechanism.
+
 ## Alternatives rejected
 
 - **Replace the old layers** — breaks existing missions and convert-v5.

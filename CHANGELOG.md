@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Radio preset plan model — standard-aircraft projection** (FEAT-RADIO-PRESET-PROJECTION-01, ADR 0010). Mission-makers can now declare a `channel_lists` block in `presets.yaml`: a handful of channel lists by _Radio role_ (`primary_1`, `primary_2`, `fm_substitute`, `fm_supplement`, `fm_secondary`) and coalition, instead of a per-aircraft `radios_collection`/`presets_collection` pair. A new packer projects these lists onto each aircraft's physical radios automatically — including aircraft with a deliberately inverted radio order (e.g. the A-10's VHF-first layout) or identical combo radios (e.g. the F/A-18's two ARC-210s) — with no per-type configuration needed for the common case. An explicit assignment in the legacy `presets_assignments` format (including an explicit `none`) always takes priority over the packer. This is the first of several lots building the full preset-plan model; special airframes (Mi-24P, OH-58D, AJS-37…) still use their existing bespoke presets until later lots add the matching `Radio layout` primitives.
+
 ## [6.7.8] — 2026-07-02
 
 ### Changed

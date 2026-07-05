@@ -62,6 +62,43 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
     return ranges
 
 
+@dataclass(frozen=True)
+class RadioSpec:
+    """One physical radio's frequency ranges, in the aircraft's `.miz` order."""
+
+    name: str
+    ranges: list[FrequencyRange]
+
+
+def get_radios(unit_type: str) -> list[RadioSpec] | None:
+    """Return the ordered list of physical radios for a DCS unit type, or None if unknown.
+
+    Used by the radio-preset packer (ADR 0010) to determine each physical radio's
+    role. Order matches the specs / `.miz` order.
+
+    Args:
+        unit_type: DCS unit type string (e.g. "F-16C_50").
+
+    Returns:
+        List of RadioSpec in physical order, or None if the unit type is not in
+        the specs database.
+    """
+    specs = _load_specs()
+    entry = specs.get(unit_type)
+    if not entry:
+        return None
+    return [
+        RadioSpec(
+            name=radio.get("name", ""),
+            ranges=[
+                FrequencyRange(min_mhz=r["min_mhz"], max_mhz=r["max_mhz"], modulation=r.get("modulation", "AM/FM"))
+                for r in radio.get("ranges", [])
+            ],
+        )
+        for radio in entry.get("radios", [])
+    ]
+
+
 def is_strict(unit_type: str) -> bool:
     """Return True if out-of-range preset frequencies cause DCS to reject the mission at load.
 

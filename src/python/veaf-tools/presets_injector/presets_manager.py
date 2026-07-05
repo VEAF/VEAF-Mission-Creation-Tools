@@ -26,6 +26,8 @@ from typing import Any, ClassVar, cast
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
+from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 from .radio_frequency_validator import FrequencyRange, RadioSpec, get_radios
@@ -688,6 +690,153 @@ def _assign_roles_by_position(radios: list[RadioSpec]) -> dict[int, str]:
     return role_by_index
 
 
+# ── Radio layout (ADR 0010: hand-maintained per-type override) ──────────────
+# See data/dcs-radio-layouts.yaml's header comment for the full schema
+# description. Kept separate from the auto-generated dcs-radio-specs.yaml.
+
+
+@dataclass(frozen=True)
+class RadioLayoutRadio:
+    """One physical radio's entry in a type's Radio layout.
+
+    Attributes:
+        role: The Radio role this physical radio carries (one of ROLE_BANDS).
+        rotate_last_to_head: Channel-0 rotation primitive (ADR 0010): when True,
+            the channel list's last entry is moved to the head (DCS channel slot
+            1, the aircraft's "channel 0"), and the rest of the list follows in
+            order into the remaining slots.
+    """
+
+    role: str
+    rotate_last_to_head: bool = False
+
+
+@dataclass(frozen=True)
+class RadioLayoutEntry:
+    """A type's full Radio layout: physical radio index (1-based) -> RadioLayoutRadio."""
+
+    radios: dict[int, RadioLayoutRadio]
+
+
+def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
+    """Parse the ``dcs-radio-layouts.yaml`` mapping into RadioLayoutEntry objects.
+
+    Args:
+        data: The parsed YAML mapping: unit_type (exact string or regex) -> {"radios": {index: {...}}}.
+
+    Returns:
+        Mapping of unit_type key -> RadioLayoutEntry, in the same key order as *data*
+        (used for exact-then-regex resolution by :func:`get_radio_layout`).
+    """
+    layouts: dict[str, RadioLayoutEntry] = {}
+    for unit_type_key, entry_data in data.items():
+        radios_data = (entry_data or {}).get("radios") or {}
+        radios: dict[int, RadioLayoutRadio] = {}
+        for index, radio_data in radios_data.items():
+            role = (radio_data or {}).get("role")
+            if not role:
+                logger.error(
+                    message=f"'role' is mandatory for radio {index} in radio layout '{unit_type_key}'",
+                    exception_type=ValueError,
+                )
+                continue
+            if role not in ROLE_BANDS:
+                logger.error(
+                    message=f"Unknown radio role '{role}' for radio {index} in radio layout "
+                    f"'{unit_type_key}' (expected one of {sorted(ROLE_BANDS)})",
+                    exception_type=ValueError,
+                )
+                continue
+            radios[int(index)] = RadioLayoutRadio(
+                role=role, rotate_last_to_head=bool(radio_data.get("rotate_last_to_head", False))
+            )
+        layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
+    return layouts
+
+
+_RADIO_LAYOUTS: dict[str, RadioLayoutEntry] | None = None
+
+
+def _load_radio_layouts() -> dict[str, RadioLayoutEntry]:
+    """Load and cache the bundled ``dcs-radio-layouts.yaml``."""
+    global _RADIO_LAYOUTS
+    if _RADIO_LAYOUTS is None:
+        raw = read_bundled_text("presets_injector", "data", "dcs-radio-layouts.yaml")
+        _RADIO_LAYOUTS = parse_radio_layouts(yaml.safe_load(raw) or {})
+    return _RADIO_LAYOUTS
+
+
+def get_radio_layout(layouts: dict[str, RadioLayoutEntry], unit_type: str) -> RadioLayoutEntry | None:
+    """Resolve *unit_type* to its Radio layout entry: exact match, then regex fallback.
+
+    Mirrors ``PresetAssignmentCollection._match_unit_type``'s resolution order.
+
+    Args:
+        layouts: Mapping of unit_type key (exact or regex) -> RadioLayoutEntry.
+        unit_type: DCS aircraft type string to look up.
+
+    Returns:
+        The matching RadioLayoutEntry, or None if no key matches.
+    """
+    if unit_type in layouts:
+        return layouts[unit_type]
+    for key, entry in layouts.items():
+        try:
+            if re.fullmatch(key, unit_type):
+                return entry
+        except re.error as exc:
+            logger.warning(t("presets_injector.radio_layout.invalid_regex_key", regex_key=key, error=str(exc)))
+    return None
+
+
+def _check_layout_radio_count(unit_type: str, layout: RadioLayoutEntry, radios: list[RadioSpec]) -> None:
+    """Warn when the layout's declared radio indices disagree with the specs' actual count.
+
+    A DCS patch changing an aircraft's radio count would silently desync a hand
+    -maintained layout from the specs; this surfaces the drift instead (ADR 0010).
+
+    Args:
+        unit_type: DCS unit type string (for the warning message).
+        layout: The type's parsed Radio layout entry.
+        radios: The type's physical radios, from ``get_radios(unit_type)``.
+    """
+    declared_count = max(layout.radios) if layout.radios else 0
+    if declared_count != len(radios):
+        logger.warning(
+            t(
+                "presets_injector.radio_layout.count_mismatch",
+                unit_type=unit_type,
+                declared_count=declared_count,
+                actual_count=len(radios),
+            )
+        )
+
+
+def _role_by_index_from_layout(layout: RadioLayoutEntry) -> dict[int, str]:
+    """Convert a RadioLayoutEntry's 1-based radio indices into a 0-based role_by_index mapping."""
+    return {index - 1: radio.role for index, radio in layout.radios.items()}
+
+
+def _rotate_last_to_head(source: RadioDefinition) -> RadioDefinition:
+    """Return a copy of *source* with its channels renumbered by the channel-0 rotation primitive.
+
+    The channel list's last entry moves to slot 1 (the aircraft's "channel 0"),
+    then the rest of the list follows in order into slots 2..N (ADR 0010).
+
+    Args:
+        source: The role's channel list (channels in list order, not necessarily
+            already numbered 1..N).
+
+    Returns:
+        A new RadioDefinition with the same radio_type/title, channels renumbered.
+    """
+    rotated = RadioDefinition(name=source.name, radio_type=source.radio_type, title=source.title)
+    ordered = [*source.channels[-1:], *source.channels[:-1]]
+    for slot, channel in enumerate(ordered, start=1):
+        rotated.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
+    return rotated
+
+
 def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) -> RadioDefinition | None:
     """Look up *role*'s channel list, defaulting fm_secondary to fm_supplement (ADR 0010)."""
     source = role_lists.get(role)
@@ -698,19 +847,22 @@ def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) ->
 
 def _resolved_slots_for_type(
     channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
-) -> list[tuple[int, RadioDefinition]] | None:
+) -> list[tuple[int, RadioDefinition, bool]] | None:
     """Resolve which physical radio index gets which channel list (ADR 0010).
 
-    Localizes the packer's resolution policy — role assignment, content lookup,
-    and the "gap before the last usable radio" safety check — separately from
-    :func:`pack_preset_for_type`'s materialization into a `PresetDefinition`.
+    Localizes the packer's resolution policy — role assignment (an explicit
+    _Radio layout_ entry if one exists, else the band-based default), content
+    lookup, and the "gap before the last usable radio" safety check —
+    separately from :func:`pack_preset_for_type`'s materialization into a
+    `PresetDefinition`.
 
     Returns:
-        Ordered (physical_index, source) pairs (0-based physical_index), or None
-        if the aircraft is unknown, no role list has content for it, or a gap
-        before the last usable radio makes the mapping ambiguous — packing it
-        would silently renumber a later radio to the wrong physical slot, so
-        it is left to an explicit layout entry rather than guessed.
+        Ordered (physical_index, source, rotate_last_to_head) triples (0-based
+        physical_index), or None if the aircraft is unknown, no role list has
+        content for it, or a gap before the last usable radio makes the mapping
+        ambiguous — packing it would silently renumber a later radio to the
+        wrong physical slot, so it is left to an explicit layout entry rather
+        than guessed.
     """
     role_lists = channel_lists.get(coalition)
     if not role_lists:
@@ -719,7 +871,14 @@ def _resolved_slots_for_type(
     if not radios:
         return None
 
-    role_by_index = _assign_roles_by_position(radios)
+    layout = get_radio_layout(_load_radio_layouts(), unit_type)
+    if layout is not None:
+        _check_layout_radio_count(unit_type, layout, radios)
+        role_by_index = _role_by_index_from_layout(layout)
+        rotate_by_index = {index - 1: radio.rotate_last_to_head for index, radio in layout.radios.items()}
+    else:
+        role_by_index = _assign_roles_by_position(radios)
+        rotate_by_index = {}
     if not role_by_index:
         return None
 
@@ -735,7 +894,11 @@ def _resolved_slots_for_type(
     if any(source is None for source in resolved[:last_usable]):
         return None
 
-    return [(index, source) for index, source in enumerate(resolved[: last_usable + 1]) if source is not None]
+    return [
+        (index, source, rotate_by_index.get(index, False))
+        for index, source in enumerate(resolved[: last_usable + 1])
+        if source is not None
+    ]
 
 
 def pack_preset_for_type(
@@ -743,13 +906,15 @@ def pack_preset_for_type(
 ) -> "PresetDefinition | None":
     """Project a mission-maker's Channel lists onto one aircraft type's physical radios.
 
-    This is the packer's default projection (ADR 0010), used when no explicit
-    per-type _Radio layout_ entry exists (added by a later lot): each physical
-    radio is assigned a role by :func:`_assign_roles_by_position` (resolved by
+    This is the packer's projection (ADR 0010): each physical radio is assigned
+    a role, either from an explicit per-type _Radio layout_ entry
+    (`dcs-radio-layouts.yaml`) when one exists, or otherwise by
+    :func:`_assign_roles_by_position`'s band-based default (both resolved by
     :func:`_resolved_slots_for_type`), then filled with that role's channel
-    list. An aircraft with no primary radio at all (single-radio HF/ADF sets,
-    e.g. the MiG-15bis or Yak-52) still gets an ``fm_substitute`` guess on its
-    only radio; since that content will not be in range, the existing frequency
+    list — applying the layout's channel-0 rotation primitive when declared. An
+    aircraft with no primary radio at all (single-radio HF/ADF sets, e.g. the
+    MiG-15bis or Yak-52) still gets an ``fm_substitute`` guess on its only
+    radio; since that content will not be in range, the existing frequency
     validator drops it and reports the mismatch — a safe, actionable
     degradation rather than a crash, pending an explicit layout entry for that
     type.
@@ -769,9 +934,10 @@ def pack_preset_for_type(
         return None
 
     preset = PresetDefinition(name=f"packed_{coalition}_{unit_type}")
-    for physical_index, source in slots:
-        radio = RadioDefinition(name=f"radio_{physical_index + 1}", radio_type=source.radio_type, title=source.title)
-        for channel in source.channels:
+    for physical_index, source, rotate in slots:
+        content = _rotate_last_to_head(source) if rotate else source
+        radio = RadioDefinition(name=f"radio_{physical_index + 1}", radio_type=content.radio_type, title=content.title)
+        for channel in content.channels:
             radio.add_channel(
                 Channel(name_or_number=channel.number, freq=channel.freq, title=channel.title, mod=channel.mod)
             )

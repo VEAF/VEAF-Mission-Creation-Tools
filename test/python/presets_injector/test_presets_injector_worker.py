@@ -583,3 +583,119 @@ class TestDropOutOfRangeChannels(unittest.TestCase):
         channels = group.group_dcs["units"][0]["Radio"][1]["channels"]
         self.assertIn(124.0, channels.values())
         self.assertNotIn(243.0, channels.values())
+
+
+class TestWarbirdPrimary2BandDropReporting(unittest.TestCase):
+    """Ticket 05: a warbird's packed primary_2 list drops out-of-band channels,
+    and the drop is reported verbosely under `validate` (the always-buildable
+    Markdown report / --validate-report), silent under `build` (logger.debug,
+    not printed to the console) — per ADR 0010's role-carries-the-band rule.
+
+    "Pack on primary_2" itself is ticket 01's job (see
+    test_radio_preset_packer.test_warbird_single_radio_resolves_to_primary_2);
+    this class pins the drop + reporting split end-to-end for a real warbird,
+    using the packer's actual output (no mocked specs).
+    """
+
+    UNIT_TYPE = "Bf-109K-4"  # single radio, FuG 16 ZY, 38-156 MHz (VHF-classified, see ticket 01)
+    IN_BAND_FREQ = 131.0  # inside 38-156 MHz
+    OUT_OF_BAND_FREQ = 280.0  # pure UHF, outside the FuG 16 ZY's band
+
+    def _packed_preset(self) -> PresetDefinition:
+        """Pack a primary_2 channel list mixing an in-band and an out-of-band channel."""
+        from presets_injector.presets_manager import pack_preset_for_type, parse_channel_lists
+
+        channel_lists, _dropped = parse_channel_lists(
+            {
+                "blue": {
+                    "primary_2": {
+                        "01": {"freq": self.IN_BAND_FREQ},
+                        "02": {"freq": self.OUT_OF_BAND_FREQ},
+                    }
+                }
+            },
+            channel_collections={},
+        )
+        preset = pack_preset_for_type(channel_lists, "blue", self.UNIT_TYPE)
+        self.assertIsNotNone(preset, f"expected a packed preset for {self.UNIT_TYPE}")
+        assert preset is not None  # for mypy narrowing after the assertion above
+        return preset
+
+    def _group(self) -> Group:
+        return Group(
+            group_dcs={"units": [{"skill": "Client"}]},
+            aircraft_type="plane",
+            country="Germany",
+            coalition="blue",
+            human_pilot=True,
+            name="Warbird Flight",
+            unit_type=self.UNIT_TYPE,
+        )
+
+    def test_packed_preset_carries_both_channels_before_injection(self) -> None:
+        """Sanity check: the packer itself does not drop anything — dropping is the injector's job."""
+        preset = self._packed_preset()
+        freqs = [ch.freq for radio in preset.radios.values() for ch in radio.channels]
+        self.assertIn(self.IN_BAND_FREQ, freqs)
+        self.assertIn(self.OUT_OF_BAND_FREQ, freqs)
+
+    def test_injected_radio_table_drops_out_of_band_channel_keeps_in_band(self) -> None:
+        """The .miz Radio table only ever gets the in-band channel — DCS would refuse the other."""
+        worker = _make_worker()
+        group = self._group()
+        worker.process_units(group, self._packed_preset())
+        channels = group.group_dcs["units"][0]["Radio"][1]["channels"]
+        self.assertIn(self.IN_BAND_FREQ, channels.values())
+        self.assertNotIn(self.OUT_OF_BAND_FREQ, channels.values())
+
+    def test_drop_is_reported_in_validation_report(self) -> None:
+        """`validate`-style verbosity: the always-available Markdown report explains the drop
+        with the exact channel, frequency, and the aircraft's valid ranges — this is the
+        "verbose" side of the split (available via --validate-report on `inject_presets`,
+        and always generated — then discarded if clean — during `build`)."""
+        worker = _make_worker()
+        group = self._group()
+        worker.groups = {"Warbird Flight": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = self._packed_preset()
+        worker.process_groups(silent=True)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            self.assertGreater(count, 0)
+            content = report_path.read_text(encoding="utf-8")
+            self.assertIn(self.UNIT_TYPE, content)
+            self.assertIn(str(self.OUT_OF_BAND_FREQ), content)
+            # The report must also explain *why* — the aircraft's actual valid
+            # range — not just name the offending frequency.
+            self.assertIn("38.0", content)
+            self.assertIn("156.0", content)
+
+    def test_drop_is_not_logged_at_warning_level_during_build(self) -> None:
+        """`build`-style verbosity: Bf-109K-4 is not `dcs_rejects_on_load` (not in the
+        strict list), so warn_invalid_channel_frequencies logs at debug level, not
+        warning — a normal build's console output (which shows info/warning, not
+        debug) stays silent about this drop, matching the ADR's "silent under build".
+
+        The strict/non-strict split itself lives in
+        radio_frequency_validator.warn_invalid_channel_frequencies, so its own
+        `logger` (not the worker module's) is patched here."""
+        from unittest.mock import patch
+
+        worker = _make_worker()
+        group = self._group()
+        worker.groups = {"Warbird Flight": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = self._packed_preset()
+
+        with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
+            worker.process_groups(silent=True)
+
+        mock_logger.warning.assert_not_called()
+        self.assertTrue(mock_logger.debug.called)
+        debug_messages = [call.args[0] for call in mock_logger.debug.call_args_list]
+        # The debug log must actually explain the drop — not just mention the
+        # aircraft — so it is a real (if quiet) audit trail, not a placeholder.
+        self.assertTrue(any(self.UNIT_TYPE in msg for msg in debug_messages))
+        self.assertTrue(any(str(self.OUT_OF_BAND_FREQ) in msg for msg in debug_messages))

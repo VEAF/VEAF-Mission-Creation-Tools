@@ -696,19 +696,59 @@ def _assign_roles_by_position(radios: list[RadioSpec]) -> dict[int, str]:
 
 
 @dataclass(frozen=True)
+class HardcodedChannel:
+    """A fixed, airframe-constant channel: no source Channel-list entry at all.
+
+    Used by the ``leading_dummy`` and ``trailing_specials`` primitives (ADR
+    0010): both place a channel whose frequency (and optional modulation) is a
+    property of the airframe itself, not sourced from any role's channel list.
+
+    Attributes:
+        freq: The fixed frequency, in MHz.
+        mod: Optional modulation (0=AM, 1=FM), same convention as ``Channel.mod``.
+    """
+
+    freq: float
+    mod: int | None = None
+
+
+@dataclass(frozen=True)
 class RadioLayoutRadio:
     """One physical radio's entry in a type's Radio layout.
 
     Attributes:
         role: The Radio role this physical radio carries (one of ROLE_BANDS).
+            When ``fuse`` is set, ``role`` is still used for the resulting
+            radio's ``radio_type``/title (see :func:`_content_for_radio`).
         rotate_last_to_head: Channel-0 rotation primitive (ADR 0010): when True,
             the channel list's last entry is moved to the head (DCS channel slot
             1, the aircraft's "channel 0"), and the rest of the list follows in
             order into the remaining slots.
+        fuse: Radio fusion primitive (ADR 0010): when set, names two or more
+            Radio roles whose channel lists are concatenated, in this declared
+            order, into ONE physical radio's channel map — each source list's
+            own numbering is discarded and renumbered sequentially into the
+            fused radio's slots. Replaces the single-role lookup entirely for
+            this radio (the AJS-37's one V/UHF radio fusing primary_1 + primary_2).
+        leading_dummy: Leading-dummy primitive (ADR 0010): a reserved slot 1
+            with a fixed, hardcoded frequency (and optional modulation) and no
+            channel-list content at all — distinct from a channel-list-sourced
+            reserved head slot. The rest of the radio's content (rotated/fused)
+            follows from slot 2 onwards.
+        trailing_specials: Trailing hardcoded specials primitive (ADR 0010): a
+            declared, ordered list of fixed (frequency, modulation) pairs
+            appended after the radio's other content (rotation/fusion/dummy) —
+            airframe constants such as the AJS-37's FR22/FR24 special channels,
+            not sourced from any channel_lists role. Overridable by the maker
+            via the existing ``presets_assignments`` bespoke-preset mechanism,
+            which is checked before the packer runs at all and always wins.
     """
 
     role: str
     rotate_last_to_head: bool = False
+    fuse: list[str] | None = None
+    leading_dummy: HardcodedChannel | None = None
+    trailing_specials: list[HardcodedChannel] | None = None
 
 
 @dataclass(frozen=True)
@@ -748,10 +788,28 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 )
                 continue
             radios[int(index)] = RadioLayoutRadio(
-                role=role, rotate_last_to_head=bool(radio_data.get("rotate_last_to_head", False))
+                role=role,
+                rotate_last_to_head=bool(radio_data.get("rotate_last_to_head", False)),
+                fuse=radio_data.get("fuse"),
+                leading_dummy=_parse_hardcoded_channel(radio_data.get("leading_dummy")),
+                trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
+
+
+def _parse_hardcoded_channel(data: dict[str, Any] | None) -> HardcodedChannel | None:
+    """Parse one ``{freq, mod}`` mapping into a :class:`HardcodedChannel`, or None."""
+    if data is None:
+        return None
+    return HardcodedChannel(freq=float(data["freq"]), mod=data.get("mod"))
+
+
+def _parse_hardcoded_channels(data: list[dict[str, Any]] | None) -> list[HardcodedChannel] | None:
+    """Parse a list of ``{freq, mod}`` mappings into HardcodedChannel objects, or None."""
+    if data is None:
+        return None
+    return [_parse_hardcoded_channel(item) for item in data if item is not None]  # type: ignore[misc]
 
 
 _RADIO_LAYOUTS: dict[str, RadioLayoutEntry] | None = None
@@ -845,24 +903,126 @@ def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) ->
     return source
 
 
+def _fuse_role_lists(role_lists: dict[str, RadioDefinition], roles: list[str]) -> RadioDefinition | None:
+    """Radio fusion primitive (ADR 0010): concatenate several roles' channel lists into one.
+
+    Each source list's own numbering is discarded; the fused result is
+    renumbered sequentially in the declared order (e.g. the AJS-37's single
+    V/UHF radio: ``primary_1``'s 20 entries then ``primary_2``'s 19 entries).
+
+    Args:
+        role_lists: This coalition's parsed Channel lists, role -> RadioDefinition.
+        roles: The roles to concatenate, in fusion order.
+
+    Returns:
+        A new RadioDefinition (radio_type/title taken from the first role found)
+        with channels renumbered 1..N, or None if none of *roles* has content.
+    """
+    sources = [source for role in roles if (source := _channel_list_for_role(role_lists, role)) is not None]
+    channels = [channel for source in sources for channel in source.channels]
+    if not sources or not channels:
+        return None
+    first_source = sources[0]
+    fused = RadioDefinition(name=first_source.name, radio_type=first_source.radio_type, title=first_source.title)
+    for slot, channel in enumerate(channels, start=1):
+        fused.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
+    return fused
+
+
+def _renumber_from(source: RadioDefinition, start: int) -> list[Channel]:
+    """Return *source*'s channels as new Channel objects numbered start..start+N-1."""
+    return [
+        Channel(name_or_number=start + offset, freq=channel.freq, title=channel.title, mod=channel.mod)
+        for offset, channel in enumerate(source.channels)
+    ]
+
+
+def _content_for_radio(
+    layout_radio: RadioLayoutRadio | None, role_lists: dict[str, RadioDefinition], base_source: RadioDefinition | None
+) -> RadioDefinition | None:
+    """Materialize one physical radio's final channel map, applying all declared primitives.
+
+    Composition order (ADR 0010): fusion (or the plain role list) provides the
+    base content, then channel-0 rotation, then the leading dummy is inserted
+    at slot 1 (shifting the rest), then trailing hardcoded specials are
+    appended — the AJS-37 needs the dummy + fusion + specials primitives
+    together; the Mi-24P only needs rotation.
+
+    Args:
+        layout_radio: This radio's Radio layout entry, or None under the
+            band-based default (no primitives apply).
+        role_lists: This coalition's parsed Channel lists, role -> RadioDefinition
+            (used to resolve a ``fuse`` primitive).
+        base_source: The single role's channel list already resolved by the
+            caller (used when ``fuse`` is not declared; None when it is).
+
+    Returns:
+        The radio's final RadioDefinition, or None if fusion was declared but
+        no fused role had any content.
+    """
+    if layout_radio is not None and layout_radio.fuse:
+        content = _fuse_role_lists(role_lists, layout_radio.fuse)
+        if content is None:
+            return None
+    else:
+        if base_source is None:
+            return None
+        content = base_source
+
+    if layout_radio is not None and layout_radio.rotate_last_to_head:
+        content = _rotate_last_to_head(content)
+
+    channels = list(content.channels)
+    if layout_radio is not None and layout_radio.leading_dummy is not None:
+        dummy = layout_radio.leading_dummy
+        channels = [Channel(name_or_number=1, freq=dummy.freq, mod=dummy.mod), *_renumber_from(content, start=2)]
+    if layout_radio is not None and layout_radio.trailing_specials:
+        next_slot = len(channels) + 1
+        channels = channels + [
+            Channel(name_or_number=next_slot + offset, freq=special.freq, mod=special.mod)
+            for offset, special in enumerate(layout_radio.trailing_specials)
+        ]
+
+    result = RadioDefinition(name=content.name, radio_type=content.radio_type, title=content.title)
+    for channel in channels:
+        result.add_channel(channel)
+    return result
+
+
+def _resolve_one_radio(
+    role: str | None, layout_radio: RadioLayoutRadio | None, role_lists: dict[str, RadioDefinition]
+) -> RadioDefinition | None:
+    """Resolve one physical radio's final content, or None if it has nothing to carry.
+
+    A radio has content either from its assigned role's plain channel list, or
+    (when the layout declares ``fuse``) from concatenating several roles —
+    fusion does not need a single ``role``-matched list of its own, since its
+    content comes from the named roles instead.
+    """
+    base_source = _channel_list_for_role(role_lists, role) if role else None
+    has_fuse = bool(layout_radio and layout_radio.fuse)
+    if not has_fuse and (base_source is None or not base_source.channels):
+        return None
+    return _content_for_radio(layout_radio, role_lists, base_source)
+
+
 def _resolved_slots_for_type(
     channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
-) -> list[tuple[int, RadioDefinition, bool]] | None:
-    """Resolve which physical radio index gets which channel list (ADR 0010).
+) -> list[tuple[int, RadioDefinition]] | None:
+    """Resolve which physical radio index gets which final channel map (ADR 0010).
 
     Localizes the packer's resolution policy — role assignment (an explicit
     _Radio layout_ entry if one exists, else the band-based default), content
-    lookup, and the "gap before the last usable radio" safety check —
-    separately from :func:`pack_preset_for_type`'s materialization into a
-    `PresetDefinition`.
+    lookup and primitive application (:func:`_content_for_radio`), and the "gap
+    before the last usable radio" safety check — separately from
+    :func:`pack_preset_for_type`'s materialization into a `PresetDefinition`.
 
     Returns:
-        Ordered (physical_index, source, rotate_last_to_head) triples (0-based
-        physical_index), or None if the aircraft is unknown, no role list has
-        content for it, or a gap before the last usable radio makes the mapping
-        ambiguous — packing it would silently renumber a later radio to the
-        wrong physical slot, so it is left to an explicit layout entry rather
-        than guessed.
+        Ordered (physical_index, content) pairs (0-based physical_index), or
+        None if the aircraft is unknown, no role list has content for it, or a
+        gap before the last usable radio makes the mapping ambiguous — packing
+        it would silently renumber a later radio to the wrong physical slot, so
+        it is left to an explicit layout entry rather than guessed.
     """
     role_lists = channel_lists.get(coalition)
     if not role_lists:
@@ -875,18 +1035,17 @@ def _resolved_slots_for_type(
     if layout is not None:
         _check_layout_radio_count(unit_type, layout, radios)
         role_by_index = _role_by_index_from_layout(layout)
-        rotate_by_index = {index - 1: radio.rotate_last_to_head for index, radio in layout.radios.items()}
+        layout_radio_by_index = {index - 1: radio for index, radio in layout.radios.items()}
     else:
         role_by_index = _assign_roles_by_position(radios)
-        rotate_by_index = {}
+        layout_radio_by_index = {}
     if not role_by_index:
         return None
 
-    resolved: list[RadioDefinition | None] = []
-    for index in range(len(radios)):
-        role = role_by_index.get(index)
-        source = _channel_list_for_role(role_lists, role) if role else None
-        resolved.append(source if source and source.channels else None)
+    resolved: list[RadioDefinition | None] = [
+        _resolve_one_radio(role_by_index.get(index), layout_radio_by_index.get(index), role_lists)
+        for index in range(len(radios))
+    ]
 
     if all(source is None for source in resolved):
         return None
@@ -894,11 +1053,7 @@ def _resolved_slots_for_type(
     if any(source is None for source in resolved[:last_usable]):
         return None
 
-    return [
-        (index, source, rotate_by_index.get(index, False))
-        for index, source in enumerate(resolved[: last_usable + 1])
-        if source is not None
-    ]
+    return [(index, source) for index, source in enumerate(resolved[: last_usable + 1]) if source is not None]
 
 
 def pack_preset_for_type(
@@ -911,13 +1066,15 @@ def pack_preset_for_type(
     (`dcs-radio-layouts.yaml`) when one exists, or otherwise by
     :func:`_assign_roles_by_position`'s band-based default (both resolved by
     :func:`_resolved_slots_for_type`), then filled with that role's channel
-    list — applying the layout's channel-0 rotation primitive when declared. An
-    aircraft with no primary radio at all (single-radio HF/ADF sets, e.g. the
-    MiG-15bis or Yak-52) still gets an ``fm_substitute`` guess on its only
-    radio; since that content will not be in range, the existing frequency
-    validator drops it and reports the mismatch — a safe, actionable
-    degradation rather than a crash, pending an explicit layout entry for that
-    type.
+    list — applying the layout's primitives when declared: channel-0 rotation,
+    radio fusion (concatenating several roles into one physical radio), a
+    leading hardcoded dummy slot, and trailing hardcoded specials with their
+    own modulations (see :func:`_content_for_radio`). An aircraft with no
+    primary radio at all (single-radio HF/ADF sets, e.g. the MiG-15bis or
+    Yak-52) still gets an ``fm_substitute`` guess on its only radio; since that
+    content will not be in range, the existing frequency validator drops it and
+    reports the mismatch — a safe, actionable degradation rather than a crash,
+    pending an explicit layout entry for that type.
 
     Args:
         channel_lists: Parsed Channel lists, coalition -> role -> RadioDefinition
@@ -934,8 +1091,7 @@ def pack_preset_for_type(
         return None
 
     preset = PresetDefinition(name=f"packed_{coalition}_{unit_type}")
-    for physical_index, source, rotate in slots:
-        content = _rotate_last_to_head(source) if rotate else source
+    for physical_index, content in slots:
         radio = RadioDefinition(name=f"radio_{physical_index + 1}", radio_type=content.radio_type, title=content.title)
         for channel in content.channels:
             radio.add_channel(

@@ -18,7 +18,8 @@
 # matching the order in dcs-radio-specs.yaml / the .miz file. Each radio entry
 # has:
 #   - `role`: one of the fixed Radio roles (primary_1, primary_2, fm_substitute,
-#     fm_supplement, fm_secondary). Mandatory.
+#     fm_supplement, fm_secondary). Mandatory. When `fuse` is also set, `role`
+#     still names the radio_type/title the resulting fused radio is given.
 #   - primitives (optional), one key per quirk this radio needs. So far:
 #       - `rotate_last_to_head: true` — channel-0 rotation. The channel list's
 #         last entry is moved to the head of this radio's channel map (DCS
@@ -26,6 +27,33 @@
 #         list follows in order, wrapping into slots 2..N. Airframe property:
 #         applies uniformly regardless of coalition (confirmed against the real
 #         Tripack fixture, both blue and red Mi-24P).
+#       - `fuse: [role_a, role_b, ...]` — radio fusion. Concatenates two or more
+#         Radio roles' channel lists, in the declared order, into this ONE
+#         physical radio's channel map. Each source list's own numbering is
+#         discarded; the fused result is renumbered sequentially starting at
+#         slot 1 (before any `leading_dummy`/`trailing_specials` shift it — see
+#         composition order below). Replaces the plain single-role lookup
+#         entirely for this radio (the AJS-37's one V/UHF radio fuses
+#         `primary_1` + `primary_2`).
+#       - `leading_dummy: {freq: <float>, mod: <0|1>}` — a reserved slot 1 with
+#         a fixed, hardcoded frequency and no source Channel-list entry at all
+#         (distinct from a channel-list-sourced reserved head slot: this one is
+#         a pure airframe constant, e.g. the AJS-37's "channel 100" dummy at
+#         frequency 0). The rest of the radio's content (rotated/fused) is
+#         shifted to start at slot 2.
+#       - `trailing_specials: [{freq: <float>, mod: <0|1>}, ...]` — a declared,
+#         ordered list of fixed (frequency, modulation) pairs appended after
+#         the radio's other content, at the trailing slots. Airframe constants,
+#         not sourced from any channel_lists role (e.g. the AJS-37's 7
+#         FR22/FR24 special channels, including GUARD). Overridable by the
+#         maker via the existing `presets_assignments` bespoke-preset mechanism
+#         — that manual-override path is checked before the packer runs at
+#         all, so it always wins over this primitive with no extra code needed.
+#
+#     Composition order when several primitives are declared on the same radio
+#     (ADR 0010): fusion (or the plain role list) provides the base content,
+#     then channel-0 rotation, then the leading dummy is inserted at slot 1
+#     (shifting the rest), then trailing hardcoded specials are appended last.
 #
 # A comment above each radio index should identify the real DCS radio it is
 # (name + band), for readability against dcs-radio-specs.yaml.
@@ -51,3 +79,31 @@ Mi-24P:
     # radio 2: R-828, plain FM radio, no rotation.
     2:
       role: fm_substitute
+
+AJS37:
+  radios:
+    # radio 1: the Viggen's single V/UHF set (103-400 MHz, one range -> the
+    # band classifier alone would call it "ambiguous" and default it to
+    # primary_1; listed explicitly here since this radio also needs all three
+    # of ticket 04's primitives together — the most complex layout entry in
+    # this lot (ADR 0010's own analysis).
+    #
+    # Real shape (Tripack fixture, ADR 0003's `red AJS37` ground truth):
+    # slot 1 = leading dummy ("channel 100", freq 0, AM); slots 2-21 = the 20
+    # primary_1 (UHF) entries; slots 22-40 = the 19 primary_2 (VHF) entries;
+    # slots 41-47 = 7 hardcoded FR22/FR24 specials (41-45 FM, 46-47 AM, 47 =
+    # GUARD 243.0).
+    1:
+      role: primary_1
+      fuse: [primary_1, primary_2]
+      leading_dummy:
+        freq: 0
+        mod: 0
+      trailing_specials:
+        - { freq: 30, mod: 1 } # FR22 Special 1
+        - { freq: 31, mod: 1 } # FR22 Special 2
+        - { freq: 32, mod: 1 } # FR22 Special 3
+        - { freq: 33, mod: 1 } # FR24 E
+        - { freq: 34, mod: 1 } # FR24 F
+        - { freq: 127.5, mod: 0 } # FR24 G
+        - { freq: 243, mod: 0 } # FR24 H (LARM/GUARD)

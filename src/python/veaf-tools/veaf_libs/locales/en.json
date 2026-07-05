@@ -629,6 +629,7 @@
   "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection.",
   "presets_injector.radio_layout.capacity_truncated": "Radio {radio_index} for '{unit_type}' exceeds its declared capacity of {capacity} slot(s): {dropped_count} trailing channel(s) dropped.",
   "presets_injector.radio_layout.count_mismatch": "Radio layout for '{unit_type}' declares {declared_count} radio(s), but dcs-radio-specs.yaml reports {actual_count} — the layout and the specs are out of sync (check dcs-radio-layouts.yaml after a DCS patch).",
+  "presets_injector.radio_layout.invalid_capacity": "radio {radio_index} in radio layout '{unit_type_key}' has an invalid 'capacity' value '{capacity}' (not a positive integer) — ignored, no capacity limit applied",
   "presets_injector.radio_layout.invalid_regex_key": "Invalid regex key '{regex_key}' in dcs-radio-layouts.yaml: {error}",
   "presets_injector.radio_layout.invalid_reserved_head_slot": "radio {radio_index} in radio layout '{unit_type_key}' has an invalid 'reserved_head_slots' entry '{slot}' (not an integer) — skipped",
   "builder.lua_modules_found": "Found lua_modules section in {path}; will generate veaf-config.lua",

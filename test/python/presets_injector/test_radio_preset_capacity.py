@@ -44,6 +44,29 @@ class TestParseCapacity(unittest.TestCase):
         layouts = parse_radio_layouts(data)
         self.assertIsNone(layouts["SomeType"].radios[1].capacity)
 
+    def test_non_integer_capacity_is_ignored_with_a_warning_not_a_crash(self):
+        # A malformed 'capacity' (e.g. a typo'd string) must not abort parsing
+        # the whole layout file — same authoring-error-tolerance level as
+        # reserved_head_slots' invalid-entry handling.
+        data = {"SomeType": {"radios": {1: {"role": "primary_1", "capacity": "not-a-number"}}}}
+        layouts = parse_radio_layouts(data)
+        self.assertIsNone(layouts["SomeType"].radios[1].capacity)
+
+    def test_zero_or_negative_capacity_is_ignored_with_a_warning(self):
+        data = {"SomeType": {"radios": {1: {"role": "primary_1", "capacity": 0}}}}
+        layouts = parse_radio_layouts(data)
+        self.assertIsNone(layouts["SomeType"].radios[1].capacity)
+
+        data_negative = {"SomeType": {"radios": {1: {"role": "primary_1", "capacity": -5}}}}
+        layouts_negative = parse_radio_layouts(data_negative)
+        self.assertIsNone(layouts_negative["SomeType"].radios[1].capacity)
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_invalid_capacity_logs_a_warning(self, mock_logger):
+        data = {"SomeType": {"radios": {1: {"role": "primary_1", "capacity": "bogus"}}}}
+        parse_radio_layouts(data)
+        mock_logger.warning.assert_called_once()
+
 
 class TestCapacityTruncation(unittest.TestCase):
     @patch("presets_injector.presets_manager.get_radio_layout")

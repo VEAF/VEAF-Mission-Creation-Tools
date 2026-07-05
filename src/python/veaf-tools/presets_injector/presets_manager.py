@@ -815,7 +815,6 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                     exception_type=ValueError,
                 )
                 continue
-            capacity = radio_data.get("capacity")
             radios[int(index)] = RadioLayoutRadio(
                 role=role,
                 rotate_last_to_head=rotate_last_to_head,
@@ -823,7 +822,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 leading_dummy=_parse_hardcoded_channel(radio_data.get("leading_dummy")),
                 trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
                 reserved_head_slots=reserved_head_slots,
-                capacity=int(capacity) if capacity is not None else None,
+                capacity=_parse_capacity(radio_data.get("capacity"), index, unit_type_key),
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
@@ -865,6 +864,41 @@ def _parse_reserved_head_slots(data: list[Any] | None, radio_index: int | str, u
                 )
             )
     return result
+
+
+def _parse_capacity(data: Any, radio_index: int | str, unit_type_key: str) -> int | None:
+    """Parse the ``capacity`` value, ignoring a non-integer or non-positive value with a warning.
+
+    Same authoring-error-tolerance level as :func:`_parse_reserved_head_slots`:
+    a malformed ``capacity`` (e.g. a non-numeric string, or a zero/negative
+    value that could never hold any channel) must not abort parsing the whole
+    layout file — it is logged and treated as "no capacity limit" instead.
+    """
+    if data is None:
+        return None
+    try:
+        capacity = int(data)
+    except (TypeError, ValueError):
+        logger.warning(
+            t(
+                "presets_injector.radio_layout.invalid_capacity",
+                radio_index=radio_index,
+                unit_type_key=unit_type_key,
+                capacity=data,
+            )
+        )
+        return None
+    if capacity <= 0:
+        logger.warning(
+            t(
+                "presets_injector.radio_layout.invalid_capacity",
+                radio_index=radio_index,
+                unit_type_key=unit_type_key,
+                capacity=data,
+            )
+        )
+        return None
+    return capacity
 
 
 _RADIO_LAYOUTS: dict[str, RadioLayoutEntry] | None = None
@@ -1088,8 +1122,8 @@ def _content_for_radio(
     layout_radio: RadioLayoutRadio | None,
     role_lists: dict[str, RadioDefinition],
     base_source: RadioDefinition | None,
-    unit_type: str = "",
-    radio_index: int = 0,
+    unit_type: str,
+    radio_index: int,
 ) -> RadioDefinition | None:
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
@@ -1154,8 +1188,8 @@ def _resolve_one_radio(
     role: str | None,
     layout_radio: RadioLayoutRadio | None,
     role_lists: dict[str, RadioDefinition],
-    unit_type: str = "",
-    radio_index: int = 0,
+    unit_type: str,
+    radio_index: int,
 ) -> RadioDefinition | None:
     """Resolve one physical radio's final content, or None if it has nothing to carry.
 

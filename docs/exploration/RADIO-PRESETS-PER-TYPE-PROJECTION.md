@@ -132,7 +132,7 @@ The maker declares a **small set of logical channel lists, by radio *role***
 - **V/UHF #1** and **V/UHF #2** — the two primary radios.
 - **FM (substitute)** — when FM stands in for a *missing* 2nd V/UHF, typical on
   helicopters carrying one V/UHF + one FM; it complements the single V/UHF.
-  Content: general tactical + civil / airbase channels.
+  Content: **mostly the radio-2 list** (airbases, tactical), plus a few extras.
 - **FM (supplement)** — when FM is added *on top of* two V/UHF radios (attack
   aircraft like the A-10, to talk to the ground). Content: ground-tactical only,
   distinct from and in addition to the substitute list.
@@ -161,10 +161,11 @@ The packer is driven by a per-type *layout* built from these primitives:
   for band-ambiguous radios (A-10C_2 ARC-210) or non-natural orderings (the
   A-10 wants VHF on radio 1). Band-based deduction is only the default for
   trivial single-band airframes.
-- **Reserved leading slot(s)** — count + which list entry fills them. Tripack's
-  convention: the reserved head slot takes the **list's last entry (#20, the
-  guard)** — `RADIO*_20` = GARDE MILITAIRE/CIVILE, *not* a hardcoded value. The
-  OH-58D FM adds a second head slot "C" = **#01**.
+- **Reserved leading slot(s)** — count + which list entry fills them. The rule is
+  **positional**: the reserved head slot takes the **list's last entry (#20)**,
+  not a fixed frequency (in Tripack's file that #20 happens to be the guard,
+  `RADIO*_20` = GARDE MILITAIRE/CIVILE). The OH-58D FM adds a second head slot
+  "C" = **#01**.
 - **Channel-0 rotation** (Mi-24P channel 0, OH-58D "M") — same operation: the
   list's last entry rotates to the head, `1..19` follow.
 - **Trailing fixed specials** (AJS-37 FR22/FR24, incl. GUARD 243) — a block of
@@ -197,8 +198,9 @@ The packer is driven by a per-type *layout* built from these primitives:
 
 1. **Mi-24P channel-0 rotation is an airframe property** → apply to *both*
    coalitions (fix Tripack's blue-only inconsistency).
-2. **Reserved head slot = the list's last entry (#20 / the guard)**, not a
-   hardcoded value; OH-58D FM additionally puts #01 in the "C" slot.
+2. **Reserved head slot = the list's last entry (#20)** — a positional rule, not
+   a fixed frequency (in Tripack's file #20 is the guard); OH-58D FM additionally
+   puts #01 in the "C" slot.
 3. Everything is **overridable**, but the default is **automatic packing** of the
    maker's desired lists onto each airframe.
 

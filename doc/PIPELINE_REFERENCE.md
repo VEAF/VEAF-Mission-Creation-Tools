@@ -68,10 +68,19 @@ Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs co
 <dossier-mission>/src/presets.yaml
 ```
 
-### Schéma
+### Deux formats d'auteur
+
+Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepte deux couches, qui coexistent :
+
+- **`channel_lists`** (recommandé) : le mission-maker déclare une seule fois par coalition ses listes de canaux, par **rôle radio** fonctionnel (UHF principal, VHF principal, FM…), et le build projette automatiquement chaque liste sur les radios physiques de chaque type d'aéronef, en tenant compte de ses particularités matérielles. Une seule modification de fréquence se propage à toute la flotte.
+- **`radios_collection` / `presets_collection` / `presets_assignments`** (historique) : le mission-maker définit lui-même, radio par radio, le contenu de chaque préréglage puis l'assigne explicitement par type d'appareil. Ce format reste entièrement supporté et sert désormais de **mécanisme de surcharge manuelle** : une affectation explicite dans `presets_assignments` pour un type donné l'emporte toujours sur la projection automatique de `channel_lists` — y compris la valeur spéciale `none` (aucune injection).
+
+Dans tous les cas, `channels_collection` (les fréquences) reste la source commune aux deux formats.
+
+### Schéma — `channel_lists` (modèle recommandé)
 
 ```yaml
-# ── Définitions de canaux ──────────────────────────────────────────────────
+# ── Définitions de canaux (commun aux deux formats) ────────────────────────
 channels_collection:
   <nom-ensemble>:                       # groupe logique de canaux (ex: airports-caucasus)
     <nom-canal>:                        # identifiant du canal
@@ -81,6 +90,38 @@ channels_collection:
         vhf: 131                        # fréquence VHF-AM (MHz)
         fm: 40.4                        # fréquence FM (MHz)
 
+# ── Listes de canaux par rôle radio ─────────────────────────────────────────
+channel_lists:
+  <coalition>:                          # blue | red
+    primary_1:                          # 1re radio V/UHF (bande uhf)
+      01: Guard
+      02: Batumi
+    primary_2:                          # 2e radio V/UHF (bande vhf) ; aussi la radio unique des warbirds
+      01: Guard
+      02: Batumi
+    fm_supplement:                      # FM en 3e radio, en plus de deux radios primaires (ex: A-10C)
+      01: 30
+    fm_substitute:                      # FM en 2e radio, à la place d'un 2e radio primaire (ex: hélicoptères)
+      01: 30
+    fm_secondary:                       # 2e radio FM supplémentaire (ex: OH-58D) ; par défaut, copie de fm_supplement
+      01: 31
+```
+
+**Rôles radio** (vocabulaire fixe) :
+
+| Rôle | Bande | Usage |
+| --- | --- | --- |
+| `primary_1` | uhf | 1re radio V/UHF |
+| `primary_2` | vhf | 2e radio V/UHF ; radio unique des warbirds |
+| `fm_substitute` | fm | FM à la place d'un 2e radio primaire (hélicoptères à un seul radio primaire) |
+| `fm_supplement` | fm | FM en plus de deux radios primaires (appareils d'attaque, ex: A-10C) |
+| `fm_secondary` | fm | 2e radio FM supplémentaire (ex: OH-58D) ; par défaut, copie de `fm_supplement` si non déclaré |
+
+Le build assigne automatiquement chaque radio physique de chaque type d'aéronef au rôle qui lui correspond (déduit de ses plages de fréquences matérielles), puis y projette la liste de canaux déclarée pour ce rôle. Un canal qui n'a pas de fréquence pour la bande du rôle est ignoré silencieusement (signalé par `validate`).
+
+### Schéma — format historique (surcharge manuelle)
+
+```yaml
 # ── Définitions de radios ──────────────────────────────────────────────────
 radios_collection:
   <nom-ensemble>:                       # groupe logique de radios (ex: blue_radios)
@@ -102,12 +143,13 @@ presets_collection:
         radio_2: <nom-radio>
         radio_3: <nom-radio>
 
-# ── Règles d'affectation ──────────────────────────────────────────────────
+# ── Règles d'affectation (surcharge manuelle des channel_lists) ────────────
 presets_assignments:
   <coalition>:                          # blue | red
     <catégorie>:                        # plane | helicopter
       all: <nom-préréglage>            # préréglage par défaut pour tous les aéronefs de ce type
       <type-aéronef>: <nom-préréglage> # surcharge pour un type DCS exact (ex: A-10C_2) ou un pattern regex (ex: A[-]10C.*)
+      <type-aéronef>: none              # désactive toute injection pour ce type (aucun équivalent en channel_lists)
 ```
 
 ### Exemple minimal
@@ -121,32 +163,15 @@ channels_collection:
         uhf: 243.0
         vhf: 121.5
 
-radios_collection:
-  blue_radios:
-    radio_uhf:
-      title: UHF
-      type: uhf
-      channels:
-        01: Guard
-
-presets_collection:
-  blue_presets:
-    blue_default:
-      title: Bleu par défaut
-      radios:
-        radio_1: radio_uhf
-
-presets_assignments:
+channel_lists:
   blue:
-    plane:
-      all: blue_default
-    helicopter:
-      all: blue_default
+    primary_1:
+      01: Guard
 ```
 
 ### Valeur d'un canal
 
-Un canal peut être défini de trois façons :
+Un canal peut être défini de trois façons, dans `channel_lists` comme dans `radios_collection` :
 
 - un **nom de canal** (alias résolu depuis `channels_collection`) : `01: Guard` ;
 - une **fréquence** directe (MHz) : `01: 243.0` ;

@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from presets_injector.presets_manager import (
     ROLE_BANDS,
@@ -8,8 +9,14 @@ from presets_injector.presets_manager import (
     ROLE_PRIMARY_1,
     ROLE_PRIMARY_2,
     ChannelCollection,
+    PresetsManager,
     RadioDefinition,
     parse_channel_lists,
+)
+
+# repo root = .../<root>/test/python/presets_injector/this_file → parents[3]
+_SHIPPED_DEFAULT_PRESETS = (
+    Path(__file__).resolve().parents[3] / "src" / "defaults" / "mission-folder" / "src" / "presets.yaml"
 )
 
 
@@ -97,6 +104,62 @@ class TestParseChannelLists(unittest.TestCase):
         data = {"blue": {"fm_supplement": {"01": "Overlord"}}}
         channel_lists, _ = parse_channel_lists(data, self.channel_collections)
         self.assertNotIn(ROLE_FM_SECONDARY, channel_lists["blue"])
+
+
+class TestShippedDefaultMigration(unittest.TestCase):
+    """FEAT-RADIO-PRESET-PROJECTION-07: the shipped default's channel_lists must
+    project the same effective radios as the legacy radios_collection/
+    presets_collection/presets_assignments layers it replaced.
+    """
+
+    def setUp(self):
+        self.manager = PresetsManager()
+        self.manager.read_yaml(_SHIPPED_DEFAULT_PRESETS)
+
+    def test_f16_gets_the_same_uhf_and_vhf_lists_as_the_legacy_preset(self):
+        # F-16C_50 had no explicit override under the legacy format (it fell
+        # under blue.plane.all: modern_blue_uhf_vhf_fm, radio_uhf_30/radio_vhf_30).
+        preset = self.manager.get_radios_for("blue", "plane", "F-16C_50")
+        self.assertIsNotNone(preset)
+        result = preset.to_dict()
+        self.assertEqual(result[1]["channels"][1], 243.0)  # Guard/UHF
+        self.assertEqual(result[1]["channels"][2], 390.0)  # Archer
+        self.assertEqual(result[2]["channels"][1], 121.5)  # Guard/VHF
+        self.assertEqual(result[2]["channels"][2], 131.0)  # Batumi
+        self.assertNotIn(3, result)  # F-16 has no 3rd (FM) radio
+
+    def test_a10c2_is_resolved_by_the_packer_default_without_an_override(self):
+        # Legacy format needed an explicit `A-10C_2: modern_blue_vhf_uhf_fm`
+        # override to invert UHF/VHF; the packer's default band classification
+        # now resolves this by itself (ticket 01), so the override was dropped.
+        preset = self.manager.get_radios_for("blue", "plane", "A-10C_2")
+        self.assertIsNotNone(preset)
+        result = preset.to_dict()
+        self.assertEqual(result[1]["channels"][2], 131.0)  # VHF (Batumi) on radio 1
+        self.assertEqual(result[2]["channels"][2], 390.0)  # UHF (Archer) on radio 2
+        self.assertEqual(result[3]["channels"][1], 30)  # FM on radio 3
+
+    def test_ch47_keeps_its_explicit_fm_uhf_override(self):
+        # The packer's default classifies the CH-47's 3rd radio (ARC-201D) as
+        # VHF-capable, which would add an unwanted 3rd radio; the explicit
+        # override preserves the legacy 2-radio FM/UHF layout.
+        preset = self.manager.get_radios_for("blue", "helicopter", "CH-47Fbl1")
+        self.assertIsNotNone(preset)
+        result = preset.to_dict()
+        self.assertEqual(result[1]["channels"][1], 30)  # FM
+        self.assertEqual(result[2]["channels"][1], 243.0)  # UHF (Guard)
+        self.assertNotIn(3, result)
+
+    def test_mi8mt_keeps_its_explicit_none_override(self):
+        # "none" (disable injection) has no channel_lists equivalent: the
+        # explicit override must be preserved (ADR 0010's manual-override path).
+        preset = self.manager.get_radios_for("blue", "helicopter", "Mi-8MT")
+        self.assertIsNone(preset)
+
+    def test_red_coalition_still_gets_no_injection(self):
+        # This ticket migrates the mechanism only: red stays "none" as before.
+        self.assertIsNone(self.manager.get_radios_for("red", "plane", "F-16C_50"))
+        self.assertIsNone(self.manager.get_radios_for("red", "helicopter", "Mi-8MT"))
 
 
 if __name__ == "__main__":

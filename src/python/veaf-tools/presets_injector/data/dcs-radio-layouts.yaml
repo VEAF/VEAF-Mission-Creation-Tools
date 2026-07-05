@@ -49,10 +49,28 @@
 #         maker via the existing `presets_assignments` bespoke-preset mechanism
 #         — that manual-override path is checked before the packer runs at
 #         all, so it always wins over this primitive with no extra code needed.
+#       - `reserved_head_slots: [<list index>, ...]` — reserved head slot(s).
+#         Each entry is a **1-based index into the channel list** that fills one
+#         leading DCS channel slot, in the declared order. Only the index that
+#         matches the list's actual **last** entry is removed from its original
+#         tail position (rotation semantics, same convention as
+#         `rotate_last_to_head`); any other reserved index is a leading
+#         **duplicate** that also stays in its original tail position. Two
+#         shapes seen so far: `[20]` — a single "M" (manual) slot fed by the
+#         list's last entry, removed from the tail, so a 20-entry list still
+#         produces 20 slots total (OH-58D UHF/VHF) — and `[1, 20]` — a "C" slot
+#         duplicating the list's first entry (which stays in the tail too),
+#         then an "M" slot fed by its last entry (removed from the tail), so a
+#         20-entry list produces 21 slots total (OH-58D FM1/FM2). Mutually
+#         exclusive with `rotate_last_to_head` on the
+#         same radio (both express "reserve the head of the channel map" —
+#         declaring both on one radio is rejected by the parser as an authoring
+#         error).
 #
 #     Composition order when several primitives are declared on the same radio
 #     (ADR 0010): fusion (or the plain role list) provides the base content,
-#     then channel-0 rotation, then the leading dummy is inserted at slot 1
+#     then channel-0 rotation OR reserved head slot(s) (mutually exclusive with
+#     each other — see above), then the leading dummy is inserted at slot 1
 #     (shifting the rest), then trailing hardcoded specials are appended last.
 #
 # A comment above each radio index should identify the real DCS radio it is
@@ -107,3 +125,26 @@ AJS37:
         - { freq: 34, mod: 1 } # FR24 F
         - { freq: 127.5, mod: 0 } # FR24 G
         - { freq: 243, mod: 0 } # FR24 H (LARM/GUARD)
+
+OH58D:
+  radios:
+    # radio 1: UHF AM. Reserved "M" (manual) head slot fed by the list's last
+    # entry (#20); slots [2..20] hold entries #1..#19.
+    1:
+      role: primary_1
+      reserved_head_slots: [20]
+    # radio 2: VHF AM. Same "M" pattern as radio 1.
+    2:
+      role: primary_2
+      reserved_head_slots: [20]
+    # radio 3: VHF FM1. Reserved "C" head slot fed by entry #01, then "M" fed
+    # by entry #20; slots [3..21] hold entries #1..#19.
+    3:
+      role: fm_supplement
+      reserved_head_slots: [1, 20]
+    # radio 4: VHF FM2. Same "C"+"M" pattern as radio 3; content defaults to
+    # fm_supplement's list when the maker does not declare fm_secondary
+    # (see _channel_list_for_role in presets_manager.py).
+    4:
+      role: fm_secondary
+      reserved_head_slots: [1, 20]

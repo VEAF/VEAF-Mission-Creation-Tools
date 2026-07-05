@@ -749,6 +749,14 @@ class RadioLayoutRadio:
             for the OH-58D FM radios' "C" then "M" slots). The rest of the list
             follows in its original order into the remaining slots. Mutually
             exclusive with ``rotate_last_to_head`` on the same radio.
+        capacity: Slot capacity primitive (ADR 0010): the maximum number of
+            channel slots this radio physically holds. When the radio's final
+            composed channel count (after every other primitive has run,
+            including ``trailing_specials``) exceeds ``capacity``, the excess is
+            truncated from the END of the list (e.g. the AJS-37's 47-slot radio
+            is already an exact fit; Tripack itself truncated its VHF list to
+            fit 47 slots — see the exploration doc §7/§8.4). ``None`` (the
+            default) means unbounded.
     """
 
     role: str
@@ -757,6 +765,7 @@ class RadioLayoutRadio:
     leading_dummy: HardcodedChannel | None = None
     trailing_specials: list[HardcodedChannel] | None = None
     reserved_head_slots: list[int] = field(default_factory=list)
+    capacity: int | None = None
 
 
 @dataclass(frozen=True)
@@ -806,6 +815,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                     exception_type=ValueError,
                 )
                 continue
+            capacity = radio_data.get("capacity")
             radios[int(index)] = RadioLayoutRadio(
                 role=role,
                 rotate_last_to_head=rotate_last_to_head,
@@ -813,6 +823,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 leading_dummy=_parse_hardcoded_channel(radio_data.get("leading_dummy")),
                 trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
                 reserved_head_slots=reserved_head_slots,
+                capacity=int(capacity) if capacity is not None else None,
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
@@ -1033,8 +1044,52 @@ def _renumber_from(source: RadioDefinition, start: int) -> list[Channel]:
     ]
 
 
+def _truncate_to_capacity(
+    channels: list[Channel], capacity: int | None, unit_type: str, radio_index: int
+) -> list[Channel]:
+    """Slot capacity primitive (ADR 0010): drop excess channels from the END of the list.
+
+    Applied as the LAST composition step, after every other primitive, since
+    capacity is a property of the radio's total final slot count (e.g. the
+    AJS-37's fused+dummy+specials radio is exactly 47 slots). Truncation is
+    silent by design (exploration doc §8.4: verbose under `validate`, quiet
+    under a normal `build`) — only a debug-level log line records it, no
+    warning-level noise.
+
+    Args:
+        channels: The radio's fully composed channels, already numbered.
+        capacity: The radio's declared maximum slot count, or None (unbounded).
+        unit_type: DCS unit type string (for the debug log message).
+        radio_index: 1-based physical radio index (for the debug log message).
+
+    Returns:
+        *channels* unchanged if within capacity (or capacity is None), else the
+        first *capacity* entries, renumbered 1..capacity.
+    """
+    if capacity is None or len(channels) <= capacity:
+        return channels
+    dropped = channels[capacity:]
+    logger.debug(
+        t(
+            "presets_injector.radio_layout.capacity_truncated",
+            unit_type=unit_type,
+            radio_index=radio_index,
+            capacity=capacity,
+            dropped_count=len(dropped),
+        )
+    )
+    return [
+        Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod)
+        for slot, channel in enumerate(channels[:capacity], start=1)
+    ]
+
+
 def _content_for_radio(
-    layout_radio: RadioLayoutRadio | None, role_lists: dict[str, RadioDefinition], base_source: RadioDefinition | None
+    layout_radio: RadioLayoutRadio | None,
+    role_lists: dict[str, RadioDefinition],
+    base_source: RadioDefinition | None,
+    unit_type: str = "",
+    radio_index: int = 0,
 ) -> RadioDefinition | None:
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
@@ -1042,9 +1097,10 @@ def _content_for_radio(
     base content, then channel-0 rotation or reserved head slot(s) — mutually
     exclusive with each other, see ``RadioLayoutRadio`` — then the leading
     dummy is inserted at slot 1 (shifting the rest), then trailing hardcoded
-    specials are appended — the AJS-37 needs the dummy + fusion + specials
-    primitives together; the Mi-24P only needs rotation; the OH-58D only needs
-    reserved head slots.
+    specials are appended, then slot capacity truncates the result if it
+    exceeds the radio's declared limit — the AJS-37 needs the dummy + fusion +
+    specials primitives together; the Mi-24P only needs rotation; the OH-58D
+    only needs reserved head slots; capacity applies to any of these shapes.
 
     Args:
         layout_radio: This radio's Radio layout entry, or None under the
@@ -1053,6 +1109,9 @@ def _content_for_radio(
             (used to resolve a ``fuse`` primitive).
         base_source: The single role's channel list already resolved by the
             caller (used when ``fuse`` is not declared; None when it is).
+        unit_type: DCS unit type string (for the capacity truncation debug log).
+        radio_index: 1-based physical radio index (for the capacity truncation
+            debug log).
 
     Returns:
         The radio's final RadioDefinition, or None if fusion was declared but
@@ -1082,6 +1141,8 @@ def _content_for_radio(
             Channel(name_or_number=next_slot + offset, freq=special.freq, mod=special.mod)
             for offset, special in enumerate(layout_radio.trailing_specials)
         ]
+    if layout_radio is not None:
+        channels = _truncate_to_capacity(channels, layout_radio.capacity, unit_type, radio_index)
 
     result = RadioDefinition(name=content.name, radio_type=content.radio_type, title=content.title)
     for channel in channels:
@@ -1090,7 +1151,11 @@ def _content_for_radio(
 
 
 def _resolve_one_radio(
-    role: str | None, layout_radio: RadioLayoutRadio | None, role_lists: dict[str, RadioDefinition]
+    role: str | None,
+    layout_radio: RadioLayoutRadio | None,
+    role_lists: dict[str, RadioDefinition],
+    unit_type: str = "",
+    radio_index: int = 0,
 ) -> RadioDefinition | None:
     """Resolve one physical radio's final content, or None if it has nothing to carry.
 
@@ -1098,12 +1163,20 @@ def _resolve_one_radio(
     (when the layout declares ``fuse``) from concatenating several roles —
     fusion does not need a single ``role``-matched list of its own, since its
     content comes from the named roles instead.
+
+    Args:
+        role: This radio's assigned Radio role, or None.
+        layout_radio: This radio's Radio layout entry, or None.
+        role_lists: This coalition's parsed Channel lists, role -> RadioDefinition.
+        unit_type: DCS unit type string (for the capacity truncation debug log).
+        radio_index: 1-based physical radio index (for the capacity truncation
+            debug log).
     """
     base_source = _channel_list_for_role(role_lists, role) if role else None
     has_fuse = bool(layout_radio and layout_radio.fuse)
     if not has_fuse and (base_source is None or not base_source.channels):
         return None
-    return _content_for_radio(layout_radio, role_lists, base_source)
+    return _content_for_radio(layout_radio, role_lists, base_source, unit_type, radio_index)
 
 
 def _resolved_slots_for_type(
@@ -1143,7 +1216,7 @@ def _resolved_slots_for_type(
         return None
 
     resolved: list[RadioDefinition | None] = [
-        _resolve_one_radio(role_by_index.get(index), layout_radio_by_index.get(index), role_lists)
+        _resolve_one_radio(role_by_index.get(index), layout_radio_by_index.get(index), role_lists, unit_type, index + 1)
         for index in range(len(radios))
     ]
 

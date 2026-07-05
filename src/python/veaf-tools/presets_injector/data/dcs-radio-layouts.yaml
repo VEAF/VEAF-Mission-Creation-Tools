@@ -66,12 +66,23 @@
 #         same radio (both express "reserve the head of the channel map" —
 #         declaring both on one radio is rejected by the parser as an authoring
 #         error).
+#       - `capacity: <int>` — slot capacity. The maximum number of channel
+#         slots this radio physically holds. When the radio's final composed
+#         channel count (after every other primitive above has run) exceeds
+#         `capacity`, the excess is truncated from the END of the list (e.g.
+#         Tripack itself truncated the AJS-37's VHF list to fit its 47-slot
+#         radio). Truncation is silent by design: a debug-level log line
+#         records it, no build-time warning noise (exploration doc §8.4:
+#         `validate` is the verbose path for this). Omit when the radio's
+#         capacity is not a practical concern (e.g. AJS-37: 47 slots exactly
+#         filled by design, never exceeded — no entry needed).
 #
 #     Composition order when several primitives are declared on the same radio
 #     (ADR 0010): fusion (or the plain role list) provides the base content,
 #     then channel-0 rotation OR reserved head slot(s) (mutually exclusive with
 #     each other — see above), then the leading dummy is inserted at slot 1
-#     (shifting the rest), then trailing hardcoded specials are appended last.
+#     (shifting the rest), then trailing hardcoded specials are appended, then
+#     slot capacity truncates the result if it exceeds the declared limit.
 #
 # A comment above each radio index should identify the real DCS radio it is
 # (name + band), for readability against dcs-radio-specs.yaml.
@@ -83,7 +94,12 @@
 #
 # A type with no entry here falls back to the band-based default
 # (`_assign_roles_by_position`); this file only needs entries for aircraft that
-# require an explicit override or a primitive.
+# require an explicit override or a primitive. Notably, A-10C and A-10C_2 are
+# deliberately absent: their VHF-first radio ordering and (for A-10C_2) the
+# ARC-210's wide-band ambiguity are BOTH already resolved correctly by the
+# default projection (verified end-to-end in
+# test_radio_preset_packer.py::TestPackPresetRealSpecsEndToEnd and
+# test_channel_lists.py::TestShippedDefaultMigration) — no entry needed here.
 
 Mi-24P:
   radios:
@@ -125,6 +141,31 @@ AJS37:
         - { freq: 34, mod: 1 } # FR24 F
         - { freq: 127.5, mod: 0 } # FR24 G
         - { freq: 243, mod: 0 } # FR24 H (LARM/GUARD)
+
+CH-47Fbl1:
+  radios:
+    # radio 1: "VHF FM: ARC-186". Real role is FM (Tripack fixture rotates it
+    # like the Mi-24P), but its ranges include a secondary 108-152 MHz AM band
+    # alongside its primary 30-88 MHz FM band, which makes the band-only
+    # default classifier (_classify_radio) see it as "vhf"-capable and assign
+    # it primary_2 instead — an explicit entry is required to fix this.
+    1:
+      role: fm_substitute
+      rotate_last_to_head: true
+    # radio 2: "UHF AM: ARC-164", 225-400 MHz, unambiguously UHF. Also rotates
+    # (Tripack fixture's radio 2 = RADIO1_20 at slot 1, same channel-0 pattern
+    # as radio 1 and as the Mi-24P).
+    2:
+      role: primary_1
+      rotate_last_to_head: true
+    # radio 3: "VHF FM: ARC-201D", a clean second 30-88 MHz FM set. Declared so
+    # the radio-count guard matches the specs' real 3-radio count; gets no
+    # content unless the maker declares a distinct fm_secondary list (defaults
+    # to fm_supplement — see _channel_list_for_role — which the shipped
+    # default does not declare for this role, matching the legacy Tripack
+    # preset's 2-radio-only FM+UHF layout).
+    3:
+      role: fm_secondary
 
 OH58D:
   radios:

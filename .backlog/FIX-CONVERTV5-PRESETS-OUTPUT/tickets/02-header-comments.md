@@ -16,4 +16,4 @@ Type: fix
 
 ## Definition of Done
 
-- Both generated files carry a clear header; markdown/YAML still parses; tests green.
+- Both generated files carry a clear header; Markdown and YAML still parse; tests green.

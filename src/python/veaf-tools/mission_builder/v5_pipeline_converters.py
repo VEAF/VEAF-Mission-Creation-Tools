@@ -1013,7 +1013,7 @@ def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str
     roles: dict[str, Any] = {}
     for radio_num, roles_for_radio in _ROLES_BY_RADIO_NUM.items():
         channels_data = radios_data.get(radio_num, {})
-        role_channels: dict[int, Any] = {}
+        role_channels: dict[int, float] = {}
         for ch_num in sorted(channels_data.keys()):
             freq = channels_data[ch_num].get("freq")
             if freq is None:

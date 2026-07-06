@@ -8,8 +8,7 @@ a = Analysis(
     datas=[
         ('src\\python\\veaf-tools\\veaf_libs\\locales', 'veaf_libs\\locales'),
         ('src\\python\\veaf-tools\\veaf_libs\\veaf_modules_list.json', '.'),
-        ('src\\python\\veaf-tools\\presets_injector\\data\\dcs-radio-specs.yaml', 'presets_injector\\data'),
-        ('src\\python\\veaf-tools\\presets_injector\\data\\dcs-radio-layouts.yaml', 'presets_injector\\data'),
+        ('src\\python\\veaf-tools\\presets_injector\\data', 'presets_injector\\data'),
         ('src\\python\\veaf-tools\\veaf_libs\\data\\convert-profiles', 'veaf_libs\\data\\convert-profiles'),
     ],
     hiddenimports=[],

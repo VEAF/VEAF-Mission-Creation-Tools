@@ -19,11 +19,12 @@ copied it into the packaged app.
 
 ## Fix
 
-Add the missing `datas` entry to `veaf-tools.spec`, mirroring the existing
-`dcs-radio-specs.yaml` entry:
+Replace the per-file `datas` entries in `veaf-tools.spec` with a single directory-level
+entry bundling the whole `presets_injector/data` folder, so future additions there can't
+be missed the same way again:
 
 ```python
-('src\\python\\veaf-tools\\presets_injector\\data\\dcs-radio-layouts.yaml', 'presets_injector\\data'),
+('src\\python\\veaf-tools\\presets_injector\\data', 'presets_injector\\data'),
 ```
 
 ## Out of scope

@@ -5,7 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from mission_tools import Group
 from presets_injector.presets_injector_worker import PresetsInjectorWorker
@@ -699,3 +699,35 @@ class TestWarbirdPrimary2BandDropReporting(unittest.TestCase):
         # aircraft — so it is a real (if quiet) audit trail, not a placeholder.
         self.assertTrue(any(self.UNIT_TYPE in msg for msg in debug_messages))
         self.assertTrue(any(str(self.OUT_OF_BAND_FREQ) in msg for msg in debug_messages))
+
+
+class TestKneeboardsToggle(unittest.TestCase):
+    """FEAT-PRESETS-KNEEBOARD-TOGGLE — generate_kneeboards flag."""
+
+    def _new(self, **kw) -> PresetsInjectorWorker:
+        return PresetsInjectorWorker(presets_file=None, input_mission=None, output_mission=None, **kw)
+
+    def test_generate_kneeboards_defaults_true(self) -> None:
+        self.assertTrue(self._new().generate_kneeboards)
+
+    def test_generate_kneeboards_stored_false(self) -> None:
+        self.assertFalse(self._new(generate_kneeboards=False).generate_kneeboards)
+
+    def _run_work(self, generate_kneeboards: bool):
+        worker = self._new(generate_kneeboards=generate_kneeboards)
+        worker.dcs_mission = MagicMock()
+        worker.dcs_mission.iter_groups.return_value = []
+        with (
+            patch.object(worker, "read_mission"),
+            patch.object(worker, "process_groups"),
+            patch.object(worker, "write_mission"),
+            patch.object(worker.presets_manager, "generate_presets_images") as gen,
+        ):
+            worker.work(silent=True)
+        return gen
+
+    def test_work_skips_image_generation_when_disabled(self) -> None:
+        self._run_work(False).assert_not_called()
+
+    def test_work_generates_images_when_enabled(self) -> None:
+        self._run_work(True).assert_called_once()

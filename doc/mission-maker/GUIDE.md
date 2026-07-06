@@ -13,15 +13,16 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 5. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
 6. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
 7. [Configurer les modules](#configurer-les-modules)
-8. [Outils de conception](#outils-de-conception)
-9. [Workflow de build typique](#workflow-de-build-typique)
-10. [Profils de build](#profils-de-build)
-11. [Référence des scripts](#référence-des-scripts)
-12. [Exemples de configuration](#exemples-de-configuration)
-13. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
-14. [DCS Bridge](#dcs-bridge)
-15. [Journalisation de débogage](#journalisation-de-débogage)
-16. [Ressources](#ressources)
+8. [Configurer le pipeline de build](#configuring-pipeline)
+9. [Outils de conception](#outils-de-conception)
+10. [Workflow de build typique](#workflow-de-build-typique)
+11. [Profils de build](#profils-de-build)
+12. [Référence des scripts](#référence-des-scripts)
+13. [Exemples de configuration](#exemples-de-configuration)
+14. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+15. [DCS Bridge](#dcs-bridge)
+16. [Journalisation de débogage](#journalisation-de-débogage)
+17. [Ressources](#ressources)
 
 > **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
@@ -295,6 +296,30 @@ security:
   password_hashes:
     - "<hachage SHA-256 de votre mot de passe>"
 ```
+
+---
+
+## Configurer le pipeline de build {#configuring-pipeline}
+
+Au-delà des modules Lua exécutés dans DCS, `veaf-tools build` peut enchaîner des **étapes de pipeline** au moment du build : elles injectent des données dans le `.miz` (préréglages radio, points de cheminement, groupes d'aéronefs, variantes météo) à partir de fichiers YAML séparés placés dans `src/`. Chaque étape est **auto-détectée** (elle s'exécute si son fichier de config existe) et se pilote depuis la section `pipeline:` de `mission.yaml`.
+
+| Étape | Rôle | Schéma détaillé |
+|-------|------|-----------------|
+| `presets` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains et génère les planchettes (kneeboards) PNG associées | [presets.yaml](../PIPELINE_REFERENCE.md#étape-1--préréglages-radio-presetsyaml) |
+| `waypoints` | Injecte des modèles de points de cheminement (bullseye, navigation) dans les groupes d'avions humains | [waypoints.yaml](../PIPELINE_REFERENCE.md#étape-2--points-de-cheminement-waypointsyaml) |
+| `spawnable_aircrafts` / `dynamic_slot_templates` | Injecte les groupes d'aéronefs spawnables et les modèles de slot dynamique | [groupes d'aéronefs](../PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c) |
+| `weather` | Crée plusieurs variantes de mission avec différentes météos et heures | [versions.yaml](../PIPELINE_REFERENCE.md#étape-6--variantes-météo--horaire-versionsyaml) |
+
+Chaque étape accepte la forme **scalaire** (`true`/`false` pour activer ou ignorer) ou la forme **mapping** (options détaillées). Par exemple, l'étape `presets` peut conserver l'injection radio tout en supprimant les planchettes PNG globalement :
+
+```yaml
+pipeline:
+  presets:
+    enabled: true       # défaut true — injecte les préréglages radio
+    kneeboards: false   # défaut true — si false, aucune planchette PNG n'est générée
+```
+
+Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet de chaque étape et la [Référence mission.yaml](../MISSION_YAML_REFERENCE.md#pipeline) pour tous les champs de `pipeline:`.
 
 ---
 

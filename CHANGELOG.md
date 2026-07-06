@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`pipeline.presets` can disable kneeboard generation while keeping radio injection** (FEAT-PRESETS-KNEEBOARD-TOGGLE). `pipeline.presets` now accepts a mapping in addition to the scalar bool: `presets: {enabled: true, kneeboards: false}` injects radio presets into every human-piloted aircraft but generates **no** `KNEEBOARD/IMAGES/presets-*.png`. The scalar form is unchanged (`presets: true` = inject + kneeboards, `presets: false` = whole step off). Reported by Tripack.
+
 ### Changed
 - **`convert-v5` now emits a simplified preset plan by default, plus a faithful copy** (FEAT-CONVERTV5-PLAN-PRESETS, ADR 0010). Previously the converter kept a dedicated per-aircraft override for every aircraft whose exact v5 layout the packer could not reproduce, so a real mission (Tripack) barely exploited the `channel_lists` crystallisation (2900+ lines, ~21 dedicated overrides). `convert-v5` now writes **two** files: `presets.yaml` — the build-loaded **plan** (`channel_lists` plus only the overrides the packer cannot project at all), where the packer projects the crystallisation onto every aircraft automatically (warbirds included — their VHF/FM-capable radios receive the coalition channels with out-of-band drop); and `presets.v5.yaml` — the **faithful** iso-functional copy (every dedicated override preserved), for reference/rollback and NOT loaded by the build. The maker is warned that the plan may make some frequencies diverge from the original v5 (warbirds, and jets' fused/modulated radios projected at best effort until a per-type `dcs-radio-layouts.yaml` entry exists), and which aircraft are projected at best effort. `presets.v5.yaml` is recognised by the cleanup scan (never listed as deletable). A v5 file with no shared `radioPresets*` table still produces a single legacy `presets.yaml`, unchanged.
 

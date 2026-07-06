@@ -9,6 +9,7 @@ from veaf_libs.build_profiles import (
     _deep_merge,
     canonical_profile_name,
     pipeline_step_enabled_anywhere,
+    pipeline_step_subflag,
     resolve_profile,
 )
 
@@ -205,6 +206,26 @@ class TestPipelineStepEnabledAnywhere(unittest.TestCase):
     def test_enabled_dict_form_counts_as_enabled(self) -> None:
         yaml_data = {"pipeline": {"weather": False}, "profiles": {"M": {"pipeline": {"weather": {"enabled": True}}}}}
         self.assertTrue(pipeline_step_enabled_anywhere(yaml_data, "weather"))
+
+
+class TestPipelineStepSubflag(unittest.TestCase):
+    """pipeline_step_subflag — pipeline.presets.kneeboards (FEAT-PRESETS-KNEEBOARD-TOGGLE)."""
+
+    def test_scalar_true_returns_default(self) -> None:
+        # Scalar form carries no sub-flags → default applies.
+        self.assertTrue(pipeline_step_subflag({"presets": True}, "presets", "kneeboards", True))
+
+    def test_absent_step_returns_default(self) -> None:
+        self.assertTrue(pipeline_step_subflag({}, "presets", "kneeboards", True))
+
+    def test_mapping_without_subkey_returns_default(self) -> None:
+        self.assertTrue(pipeline_step_subflag({"presets": {"enabled": True}}, "presets", "kneeboards", True))
+
+    def test_mapping_subkey_false_overrides(self) -> None:
+        self.assertFalse(pipeline_step_subflag({"presets": {"kneeboards": False}}, "presets", "kneeboards", True))
+
+    def test_mapping_subkey_true(self) -> None:
+        self.assertTrue(pipeline_step_subflag({"presets": {"kneeboards": True}}, "presets", "kneeboards", True))
 
 
 if __name__ == "__main__":

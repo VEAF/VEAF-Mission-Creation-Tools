@@ -80,6 +80,28 @@ def _step_not_disabled(step_cfg: object) -> bool:
     return not (step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False))
 
 
+def pipeline_step_subflag(pipeline_cfg: dict, step: str, subkey: str, default: bool = True) -> bool:
+    """Return a boolean sub-flag of a pipeline step's mapping form, else *default*.
+
+    The scalar form (``step: true|false``) carries no sub-flags, so *default* is
+    returned; only the mapping form (``step: {..., <subkey>: ...}``) can override it.
+    Used for ``pipeline.presets.kneeboards`` (FEAT-PRESETS-KNEEBOARD-TOGGLE).
+
+    Args:
+        pipeline_cfg: The ``pipeline:`` mapping from mission.yaml.
+        step: The pipeline step key (e.g. ``"presets"``).
+        subkey: The sub-flag name (e.g. ``"kneeboards"``).
+        default: Value returned when the sub-flag is absent.
+
+    Returns:
+        The sub-flag as a bool, or *default* when it is not set.
+    """
+    step_cfg = pipeline_cfg.get(step)
+    if isinstance(step_cfg, dict) and subkey in step_cfg:
+        return bool(step_cfg[subkey])
+    return default
+
+
 def pipeline_step_enabled_anywhere(yaml_data: dict, step: str) -> bool:
     """Return True when *step* is enabled in at least one build context.
 

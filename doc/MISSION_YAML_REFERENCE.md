@@ -438,6 +438,8 @@ Buildez la variante dev avec `veaf-tools build --profile DEV` (elle charge `FgMi
 
 Contrôle les étapes optionnelles du pipeline de build. Voir la [Référence Pipeline](PIPELINE_REFERENCE.md) pour le schéma complet des fichiers de configuration de chaque étape.
 
+Chaque étape accepte soit une valeur **scalaire** (`true`/`false` pour activer ou ignorer l'étape), soit un **mapping** d'options détaillées.
+
 ```yaml
 pipeline:
   presets: false
@@ -447,6 +449,15 @@ pipeline:
     mode: replace
   dynamic_slot_templates: false
   weather: false
+```
+
+L'étape `presets` accepte, en plus de la forme scalaire, un mapping permettant de conserver l'injection radio tout en supprimant les planchettes (kneeboards) PNG globalement :
+
+```yaml
+pipeline:
+  presets:
+    enabled: true       # défaut true — injecte les préréglages radio ; false = désactive toute l'étape
+    kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/IMAGES/presets-*.png) n'est générée
 ```
 
 ---

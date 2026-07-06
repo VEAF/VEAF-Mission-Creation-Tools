@@ -221,7 +221,10 @@ modules:
 
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # pipeline:
-#   presets: false
+#   presets: false                  # scalar; or the mapping form below:
+#   presets:
+#     enabled: true                 # inject radio presets (default true)
+#     kneeboards: false             # skip kneeboard PNG generation, keep radio injection (default true)
 #   waypoints: true
 #   spawnable_aircrafts:            # src/spawnables.yaml (veafSpawn- groups)
 #     file: src/spawnables.yaml

@@ -438,6 +438,8 @@ Build the dev variant with `veaf-tools build --profile DEV` (it loads `FgMission
 
 Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELINE_REFERENCE.md) for the full schema of each step's config file.
 
+Each step accepts either a **scalar** value (`true`/`false` to enable or skip the step) or a **mapping** of detailed options.
+
 ```yaml
 pipeline:
   presets: false
@@ -447,6 +449,15 @@ pipeline:
     mode: replace
   dynamic_slot_templates: false
   weather: false
+```
+
+On top of the scalar form, the `presets` step accepts a mapping that keeps the radio injection while suppressing the PNG kneeboard plates globally:
+
+```yaml
+pipeline:
+  presets:
+    enabled: true       # default true — inject radio presets; false = disable the whole step
+    kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/IMAGES/presets-*.png) is generated
 ```
 
 ---

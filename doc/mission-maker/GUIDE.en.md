@@ -14,15 +14,16 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 5. [Creating a New Mission](#creating-a-new-mission)
 6. [How Scripts Are Loaded](#how-scripts-are-loaded)
 7. [Configuring Modules](#configuring-modules)
-8. [Design-Time Tools](#design-time-tools)
-9. [Typical Build Workflow](#typical-build-workflow)
-10. [Build Profiles](#build-profiles)
-11. [Scripts Reference](#scripts-reference)
-12. [Configuration Examples](#configuration-examples)
-13. [CTLD and CSAR Integration](#ctld-and-csar-integration)
-14. [DCS Bridge](#dcs-bridge)
-15. [Debug Logging](#debug-logging)
-16. [Resources](#resources)
+8. [Configuring the build pipeline](#configuring-pipeline)
+9. [Design-Time Tools](#design-time-tools)
+10. [Typical Build Workflow](#typical-build-workflow)
+11. [Build Profiles](#build-profiles)
+12. [Scripts Reference](#scripts-reference)
+13. [Configuration Examples](#configuration-examples)
+14. [CTLD and CSAR Integration](#ctld-and-csar-integration)
+15. [DCS Bridge](#dcs-bridge)
+16. [Debug Logging](#debug-logging)
+17. [Resources](#resources)
 
 > **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
@@ -296,6 +297,30 @@ security:
   password_hashes:
     - "<SHA-256 hash of your password>"
 ```
+
+---
+
+## Configuring the build pipeline {#configuring-pipeline}
+
+Beyond the Lua modules that run inside DCS, `veaf-tools build` can chain **pipeline steps** at build time: they inject data into the `.miz` (radio presets, waypoints, aircraft groups, weather variants) from separate YAML files placed in `src/`. Each step is **auto-detected** (it runs when its config file exists) and is controlled from the `pipeline:` section of `mission.yaml`.
+
+| Step | Role | Detailed schema |
+|------|------|-----------------|
+| `presets` | Injects radio frequency presets into human-piloted aircraft groups and generates the associated kneeboard PNG plates | [presets.yaml](../PIPELINE_REFERENCE.en.md#step-1--radio-presets-presetsyaml) |
+| `waypoints` | Injects waypoint templates (bullseye, navigation) into human aircraft groups | [waypoints.yaml](../PIPELINE_REFERENCE.en.md#step-2--waypoints-waypointsyaml) |
+| `spawnable_aircrafts` / `dynamic_slot_templates` | Injects spawnable aircraft groups and dynamic-slot templates | [aircraft groups](../PIPELINE_REFERENCE.en.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
+| `weather` | Creates several mission variants with different weather and time settings | [versions.yaml](../PIPELINE_REFERENCE.en.md#step-6--weather--time-versions-versionsyaml) |
+
+Each step accepts the **scalar** form (`true`/`false` to enable or skip) or the **mapping** form (detailed options). For example, the `presets` step can keep the radio injection while suppressing the PNG plates globally:
+
+```yaml
+pipeline:
+  presets:
+    enabled: true       # default true — inject radio presets
+    kneeboards: false   # default true — when false, no kneeboard PNG is generated
+```
+
+See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of each step and the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md#pipeline) for all `pipeline:` fields.
 
 ---
 

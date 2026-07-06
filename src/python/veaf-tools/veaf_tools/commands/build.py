@@ -9,7 +9,7 @@ from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from spawn_data_injector import SpawnDataInjectorWorker
-from veaf_libs.build_profiles import canonical_profile_name
+from veaf_libs.build_profiles import canonical_profile_name, pipeline_step_subflag
 from veaf_libs.paths import resolve_path
 from veaf_libs.yaml_validator import validate_yaml_file
 from warehouses_injector import WarehousesInjectorWorker
@@ -296,10 +296,12 @@ def build(
         if presets_path:
             logger.info(t("pipeline.injecting_presets", path=presets_path))
             logger.step(t("pipeline.console.presets", file=presets_path.name))
+            generate_kneeboards = pipeline_step_subflag(worker.pipeline_cfg, "presets", "kneeboards", True)
             presets_worker = PresetsInjectorWorker(
                 presets_file=presets_path,
                 input_mission=variant_output,
                 output_mission=variant_output,
+                generate_kneeboards=generate_kneeboards,
             )
             presets_worker.work()
             report_path = p_mission_folder / "presets-validation-report.md"

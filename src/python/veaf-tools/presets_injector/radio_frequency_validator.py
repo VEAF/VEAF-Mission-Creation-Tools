@@ -28,6 +28,21 @@ def _load_specs() -> dict[str, Any]:
     return _SPECS
 
 
+# Some missions use a DCS type name that differs from the specs key (e.g. the
+# mission carries "AH-64D" while the datamined specs key is "AH-64D_BLK_II").
+# Normalise before the exact specs lookup so the packer projects the aircraft
+# instead of leaving a residual override (FEAT-CONVERTV5-FREQ-ALIASING). A regex
+# layout key cannot help — get_radios() gates before layouts are consulted.
+_TYPE_ALIASES: dict[str, str] = {
+    "AH-64D": "AH-64D_BLK_II",
+}
+
+
+def _canonical_type(unit_type: str) -> str:
+    """Resolve a mission type name to its specs key via the alias table (identity if none)."""
+    return _TYPE_ALIASES.get(unit_type, unit_type)
+
+
 @dataclass(frozen=True)
 class FrequencyRange:
     min_mhz: float
@@ -49,7 +64,7 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
         or None if the unit type is not in the specs database.
     """
     specs = _load_specs()
-    entry = specs.get(unit_type)
+    entry = specs.get(_canonical_type(unit_type))
     if not entry:
         return None
 
@@ -84,7 +99,7 @@ def get_radios(unit_type: str) -> list[RadioSpec] | None:
         the specs database.
     """
     specs = _load_specs()
-    entry = specs.get(unit_type)
+    entry = specs.get(_canonical_type(unit_type))
     if not entry:
         return None
     return [
@@ -113,7 +128,7 @@ def is_strict(unit_type: str) -> bool:
         True if the aircraft is known to crash DCS on invalid preset frequencies.
     """
     specs = _load_specs()
-    entry = specs.get(unit_type)
+    entry = specs.get(_canonical_type(unit_type))
     return bool(entry and entry.get("dcs_rejects_on_load", False))
 
 

@@ -1,6 +1,6 @@
 # Lot FEAT-CONVERTV5-FREQ-ALIASING — replace hardcoded preset freqs with readable aliases
 
-Status: ⬜ ready
+Status: ✅ done
 Branch: feat/convertv5-freq-aliasing → PR → develop-v6
 ADR: extends [0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
@@ -19,7 +19,11 @@ Archer, Texaco-1…) by **VEAF conventions absent from DCS**.
 ## Solution
 
 At conversion, insert a channel catalog and replace matched raw frequencies with named
-aliases in **both** output files (`presets.yaml` and `presets.v5.yaml`):
+aliases in the **build-loaded plan** (`presets.yaml`). **Revised decision**: the
+faithful copy (`presets.v5.yaml`) is left **byte-identical / raw** — its whole point is
+to be an iso-functional rollback reference (ADR 0003), so aliasing only the plan (the
+file makers actually read/load) keeps that invariant intact. The legacy no-plan case
+(single file, no `channel_lists`) is also left unchanged.
 
 - Detect the theatre from the `.miz` (`theatre`).
 - Load the **generic VEAF catalog** (tactical/flights: Guard/Magic/Archer/Texaco… —

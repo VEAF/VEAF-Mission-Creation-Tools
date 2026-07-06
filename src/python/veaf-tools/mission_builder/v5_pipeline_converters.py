@@ -14,6 +14,7 @@ convert_pipeline_file(step, v5_path, v6_path, *, icao_callback=None)
 
 from __future__ import annotations
 
+import copy
 import importlib.resources
 import json
 import re
@@ -26,6 +27,7 @@ from typing import Any
 import luadata
 import yaml
 from mission_tools import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
+from presets_injector.freq_alias import apply_aliasing
 from presets_injector.presets_manager import PresetDefinition, pack_preset_for_type, parse_channel_lists
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
@@ -1108,6 +1110,24 @@ def _add_plan_overrides(
                 ] = preset_name
 
 
+def _detect_theatre(v6_path: Path) -> str | None:
+    """Best-effort read of the mission theatre for airfield aliasing.
+
+    Reads the unpacked source mission table (``<mission>/src/mission/mission``,
+    sibling of the presets file) and extracts its ``theatre``. Returns ``None`` when
+    the file is absent/unreadable — aliasing then uses the generic VEAF catalog only.
+    """
+    mission_file = v6_path.parent / "mission" / "mission"
+    if not mission_file.is_file():
+        return None
+    try:
+        text = mission_file.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    m = re.search(r'\["theatre"\]\s*=\s*"([^"]+)"', text)
+    return m.group(1) if m else None
+
+
 def _emit_preset_files(
     v5_path: Path,
     v6_path: Path,
@@ -1149,7 +1169,8 @@ def _emit_preset_files(
         faithful["channel_lists"] = channel_lists_yaml
 
     if not channel_lists_yaml:
-        # No shared channel_lists → no plan; keep the single faithful file.
+        # No shared channel_lists → no plan; keep the single faithful file (legacy
+        # behaviour unchanged, incl. hardcoded frequencies).
         _yaml_dump(faithful, v6_path)
         logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
         warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
@@ -1159,6 +1180,13 @@ def _emit_preset_files(
     # only the irreducible overrides the packer cannot reproduce at all.
     plan: dict[str, Any] = {"channel_lists": channel_lists_yaml}
     _add_plan_overrides(plan, faithful, plan_irreducible)
+    # FEAT-CONVERTV5-FREQ-ALIASING: replace the plan's hardcoded frequencies with
+    # readable aliases (this theatre's airfields + generic VEAF channels) and embed
+    # the channels_collection so they resolve at build time. Deep-copy first so the
+    # faithful copy (presets.v5.yaml) stays byte-identical — its whole point is to be
+    # a raw, iso-functional rollback reference (ADR 0003).
+    plan = copy.deepcopy(plan)
+    apply_aliasing(plan, _detect_theatre(v6_path))
 
     faithful_path = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
     _yaml_dump(faithful, faithful_path)

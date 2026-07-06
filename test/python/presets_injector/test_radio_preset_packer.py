@@ -186,6 +186,15 @@ class TestPackPresetRealSpecsEndToEnd(unittest.TestCase):
         self.assertEqual(result[2]["channels"], {1: 280.0})
         self.assertEqual(result[3]["channels"], {1: 31.0})
 
+    def test_ah64d_alias_projects_instead_of_override(self):
+        # The mission type "AH-64D" is aliased to the specs key "AH-64D_BLK_II"
+        # (FEAT-CONVERTV5-FREQ-ALIASING ticket 03), so the packer now projects it
+        # (non-empty preset) instead of leaving it as a manual override.
+        result = self._pack(
+            "AH-64D", primary_1={"01": "Overlord"}, primary_2={"01": "Batumi"}, fm_supplement={"01": "JTAC"}
+        )
+        self.assertTrue(result)
+
     def test_uh1h_single_radio_gets_primary_1_only(self):
         result = self._pack("UH-1H", primary_1={"01": "Overlord"})
         self.assertEqual(result[1]["channels"], {1: 280.0})

@@ -1,6 +1,6 @@
 # 01 — Generic VEAF alias catalog (tactical / flights)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Context

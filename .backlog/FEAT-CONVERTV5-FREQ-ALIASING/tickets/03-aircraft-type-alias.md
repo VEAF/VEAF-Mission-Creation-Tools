@@ -1,6 +1,6 @@
 # 03 — Aircraft type-alias table (packer name-mismatch resolution)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Context

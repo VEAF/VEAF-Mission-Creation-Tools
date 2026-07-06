@@ -1,6 +1,6 @@
 # 02 — Theatre-aware freq→alias replacement in convert-v5 output
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Context

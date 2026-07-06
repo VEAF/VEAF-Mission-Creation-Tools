@@ -25,6 +25,8 @@ veafCarrierOperations.initialize()
 
 Il n'existe pas d'API d'enregistrement par porte-avions. À l'`initialize()`, le module parcourt tous les groupes de la mission et enregistre automatiquement tout groupe contenant un type d'unité porte-avions connu (voir [Types de porte-avions supportés](#types-de-porte-avions-supportés)). Sa route initiale, son camp et ses données ATC (TACAN/ICLS/LINK4/ACLS/tour, lues dans les tâches programmées du porte-avions) sont capturés à ce moment-là. Il suffit de placer un groupe porte-avions dans l'éditeur de mission — aucun appel de script n'est nécessaire.
 
+> Le module gère aussi deux groupes de soutien optionnels (hélicoptère de sauvetage et ravitailleur de récupération), eux aussi détectés par leur nom — voir [Pedro et ravitailleur S3B](#pedro-et-ravitailleur-s3b).
+
 ---
 
 ## Configuration (`mission.yaml`)
@@ -77,6 +79,27 @@ Le module connaît l'offset de pont incliné pour tous les porte-avions DCS stan
 | `Stennis`, `CVN_71/72/73/75`, `Forrestal` | 9,05° | 25 nœuds |
 | `KUZNECOW`, `CV_1143_5` | 9° | 25 nœuds |
 | `LHA_Tarawa` | −1° (pont droit) | 20 nœuds |
+
+---
+
+## Pedro et ravitailleur S3B
+
+En plus du porte-avions lui-même, le module gère automatiquement deux groupes de soutien, détectés **par leur nom** — aucun appel de script, aucune entrée `mission.yaml`. Il suffit de les placer dans l'éditeur de mission en respectant la convention de nommage.
+
+| Groupe | Nom attendu | Rôle | Positionnement automatique |
+|--------|-------------|------|----------------------------|
+| Pedro | `<nom unité porte-avions> Pedro` | Hélicoptère de sauvetage (SH-60B) | 250 ft, 1 nm sur tribord, accompagne le porte-avions à la même vitesse et au même cap |
+| Ravitailleur S3B | `<nom unité porte-avions> S3B-Tanker` | Ravitailleur de récupération d'urgence (S-3B Tanker) | 8000 ft, 10 nm en arrière et 4 nm sur tribord, ravitaillement sur le BRC |
+
+`<nom unité porte-avions>` est le nom de l'**unité** porte-avions (identique au nom du groupe pour un porte-avions seul dans son groupe, le cas courant). Exemple : pour une unité porte-avions nommée `CVN-73`, placez les groupes `CVN-73 Pedro` et `CVN-73 S3B-Tanker`.
+
+Une fois nommés correctement, les deux groupes sont, à chaque cycle d'opérations :
+
+- **détectés automatiquement** ;
+- **respawnés** lorsqu'ils sont détruits ;
+- **routés** automatiquement, leur trajectoire étant (re)calculée pour rester en formation avec le porte-avions.
+
+Si un groupe est absent, le module l'ignore et journalise un avertissement — `No Pedro group named <nom>` ou `No Tanker group named <nom>` — sans bloquer les opérations.
 
 ---
 

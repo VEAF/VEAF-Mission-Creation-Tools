@@ -26,6 +26,8 @@ veafCarrierOperations.initialize()
 
 There is no per-carrier registration API. On `initialize()`, the module scans every group in the mission and automatically registers any group containing a known carrier unit type (see [Supported Carrier Types](#supported-carrier-types)). Its initial route, side and ATC data (TACAN/ICLS/LINK4/ACLS/tower, read from the carrier's programmed tasks) are captured at that point. Simply place a carrier group in the mission editor — no script call is needed.
 
+> The module also manages two optional support groups (a rescue helicopter and a recovery tanker), likewise detected by name — see [Pedro and S3B recovery tanker](#pedro-and-s3b-recovery-tanker).
+
 ---
 
 ## Configuration (`mission.yaml`)
@@ -78,6 +80,27 @@ The module knows the angled-deck offset for all stock DCS carriers:
 | `Stennis`, `CVN_71/72/73/75`, `Forrestal` | 9.05° | 25 kts |
 | `KUZNECOW`, `CV_1143_5` | 9° | 25 kts |
 | `LHA_Tarawa` | −1° (straight deck) | 20 kts |
+
+---
+
+## Pedro and S3B recovery tanker
+
+Beyond the carrier itself, the module automatically manages two support groups, detected **by name** — no script call, no `mission.yaml` entry. Just place them in the mission editor following the naming convention.
+
+| Group | Expected name | Role | Automatic positioning |
+|-------|---------------|------|-----------------------|
+| Pedro | `<carrier unit name> Pedro` | Rescue helicopter (SH-60B) | 250 ft, 1 nm to starboard, riding along with the carrier at the same speed and heading |
+| S3B tanker | `<carrier unit name> S3B-Tanker` | Emergency recovery tanker (S-3B Tanker) | 8000 ft, 10 nm aft and 4 nm to starboard, refueling on the BRC |
+
+`<carrier unit name>` is the name of the carrier **unit** (identical to the group name for a carrier alone in its group, the common case). Example: for a carrier unit named `CVN-73`, place the groups `CVN-73 Pedro` and `CVN-73 S3B-Tanker`.
+
+Once named correctly, both groups are, on every operations cycle:
+
+- **auto-detected**;
+- **respawned** when destroyed;
+- **routed** automatically, their path (re)computed to stay in formation with the carrier.
+
+If a group is missing, the module ignores it and logs a warning — `No Pedro group named <name>` or `No Tanker group named <name>` — without blocking operations.
 
 ---
 

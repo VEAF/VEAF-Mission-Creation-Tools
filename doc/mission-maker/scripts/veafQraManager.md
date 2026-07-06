@@ -246,7 +246,24 @@ STOP ──start()──► READY ──(intrus entre)──► ACTIVE ──(QR
 
 1. **Créez une trigger zone** — dessinez l'espace aérien à protéger. Donnez-lui un nom mémorable, par exemple `ZONE-QRA-NORTH`.
 2. **Placez le groupe QRA** — créez le groupe d'aéronefs qui décollera. Mettez-le en **Activation différée** (*Late Activation*) pour qu'il n'apparaisse pas au démarrage (VEAF gère l'activation). Donnez au groupe un nom distinctif, par exemple `MiG-29 QRA North`.
-3. **Reliez le tout dans `mission-script.lua`** (ou via `mission.yaml` → `qra:` pour l'approche YAML recommandée) :
+3. **Reliez le tout** — l'approche recommandée est `mission.yaml` (aucun Lua requis) ; l'équivalent `mission-script.lua` est donné ensuite.
+
+**Via `mission.yaml`** (recommandé) — ajoutez la définition sous `modules.QRA` :
+
+```yaml
+modules:
+  QRA:
+    definitions:
+      - name: "QRA-North"
+        coalition: RED
+        trigger_zone: "ZONE-QRA-NORTH"
+        simple_groups:
+          - "MiG-29 QRA North"
+```
+
+> Il n'y a pas d'équivalent YAML de `:start()` : toute définition listée sous `definitions:` est démarrée automatiquement au chargement de la mission. Pour retarder sa mise en ligne, utilisez `delay_before_activating` ; pour ne pas la démarrer, retirez-la (ou commentez-la) de `definitions:`.
+
+**Via `mission-script.lua`** — appelez le builder après `veafQraManager.initialize()`, puis `:start()` explicitement :
 
 ```lua
 VeafQRA:new()

@@ -6,6 +6,8 @@ from unittest.mock import patch
 from presets_injector.radio_frequency_validator import (
     ChannelFrequency,
     FrequencyRange,
+    _canonical_type,
+    get_radios,
     get_valid_ranges,
     validate_frequencies,
     validate_frequency,
@@ -236,3 +238,24 @@ class TestWarnInvalidChannelFrequencies(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAircraftTypeAlias(unittest.TestCase):
+    """FEAT-CONVERTV5-FREQ-ALIASING ticket 03 — name-mismatch resolution against the specs."""
+
+    def test_canonical_type_maps_known_alias(self):
+        self.assertEqual(_canonical_type("AH-64D"), "AH-64D_BLK_II")
+
+    def test_canonical_type_identity_for_unaliased(self):
+        self.assertEqual(_canonical_type("F-16C_50"), "F-16C_50")
+
+    def test_get_radios_resolves_alias(self):
+        # AH-64D is not a specs key (AH-64D_BLK_II is); the alias makes it resolve.
+        self.assertIsNotNone(get_radios("AH-64D"))
+        self.assertEqual(get_radios("AH-64D"), get_radios("AH-64D_BLK_II"))
+
+    def test_get_valid_ranges_resolves_alias(self):
+        self.assertEqual(get_valid_ranges("AH-64D"), get_valid_ranges("AH-64D_BLK_II"))
+
+    def test_unknown_type_still_none(self):
+        self.assertIsNone(get_radios("NoSuchJet"))

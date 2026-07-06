@@ -322,3 +322,34 @@ class TestRadioDefinitionFromDictMod(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlanFrequencyAliasing(unittest.TestCase):
+    """FEAT-CONVERTV5-FREQ-ALIASING: the build-loaded plan (presets.yaml) uses
+    readable aliases; the faithful copy (presets.v5.yaml) stays byte-identical/raw."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._tmp = tempfile.TemporaryDirectory()
+        out = Path(cls._tmp.name) / "presets.yaml"
+        convert_presets(_FIXTURE, out)
+        cls.plan = yaml.safe_load(out.read_text(encoding="utf-8"))
+        cls.faithful = _load_faithful(out)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tmp.cleanup()
+
+    def test_plan_channel_lists_use_alias(self) -> None:
+        # 243.0 (##RADIO1_20##) is the generic VEAF "Guard" channel.
+        primary_1 = self.plan["channel_lists"]["blue"]["primary_1"]
+        self.assertIn("Guard", primary_1.values())
+
+    def test_plan_embeds_channels_collection(self) -> None:
+        aliases = self.plan["channels_collection"]["aliases"]
+        self.assertEqual(aliases["Guard"]["freqs"]["uhf"], 243.0)
+
+    def test_faithful_copy_keeps_raw_frequency(self) -> None:
+        radio = self.faithful["radios_collection"]["blue_radios"]["radio_blue_mi_24p_1"]
+        self.assertEqual(radio["channels"][1], 243.0)
+        self.assertNotIn("channels_collection", self.faithful)

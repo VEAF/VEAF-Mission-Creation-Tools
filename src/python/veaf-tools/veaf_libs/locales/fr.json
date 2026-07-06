@@ -332,6 +332,7 @@
   "convert_v5.warn.warbird_preset": "Préréglage warbird '{preset}' créé pour la coalition '{coalition}'. Les assignations d'aéronefs (types exacts et regex typePattern) ont été générées automatiquement dans presets_assignments — vérifiez et ajustez si nécessaire.",
   "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}) : fréquences codées en dur — aucune assignation de préréglage générée, à vérifier manuellement.",
   "convert_v5.warn.radio_channels_dropped": "'{aircraft}' ({coalition}) : {count} canal/canaux radio n'ont pas pu être convertis (jeton de préréglage non résolu ou expression non numérique) et ont été ignorés — à vérifier manuellement.",
+  "convert_v5.warn.preset_plan_fallback": "'{aircraft}' ({coalition}) : sa disposition radio v5 spécifique n'est pas reproduite exactement par le générateur de plan de préréglages — conservée comme préréglage dédié par aéronef en substitution (aucune perte de données).",
   "convert_v5.warn.no_preset_tables": "Aucune table de préréglages standard (radioPresetsBlue/Red) trouvée dans {filename}",
   "convert_v5.warn.review_presets": "Vérifiez {filename} : seuls les préréglages UHF/VHF/FM standard ont été générés. Les warbirds et autres aéronefs spéciaux peuvent nécessiter des entrées manuelles dans presets_assignments.",
   "convert_v5.warn.parse_failed": "Impossible d'analyser {filename} : {exc}",

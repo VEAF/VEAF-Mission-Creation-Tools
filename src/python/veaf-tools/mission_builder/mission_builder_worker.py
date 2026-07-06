@@ -40,7 +40,7 @@ from veaf_libs.config_override import (
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
-from veaf_libs.lua_config_generator import generate_config_lua
+from veaf_libs.lua_config_generator import find_undefined_lua_functions, generate_config_lua
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
@@ -1744,6 +1744,17 @@ class MissionBuilderWorker(BaseWorker):
 
         scripts_dir = self.mission_folder / "src" / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
+
+        # FEAT-RADIO-YAML-MENUS (ADR 0011): a radio-menu `action: lua` references a
+        # maker function that must be defined in the mission scripts; abort the build
+        # if it is missing rather than emit a menu that errors at runtime.
+        missing_fns = find_undefined_lua_functions(yaml_dict, read_corpus(scripts_dir))
+        if missing_fns:
+            logger.error(
+                t("builder.radio_lua_functions_missing", functions=", ".join(missing_fns)),
+                exception_type=RuntimeError,
+            )
+
         config_file = scripts_dir / "veaf-config.lua"
         content = generate_config_lua(yaml_dict)
         config_file.write_text(content, encoding="utf-8")

@@ -583,4 +583,38 @@ function TestVeafRadioCreateUserMenu:test_with_groupId_uses_ForGroup_calls()
   luaunit.assertTrue(true)
 end
 
+function TestVeafRadioCreateUserMenu:test_with_group_name_resolves_to_id()
+  dcs_mocks.clearUnitsAndGroups()
+  dcs_mocks.addGroup("MM Ctrl", { _id = 42 })
+  local captured = nil
+  local original = missionCommands.addCommandForGroup
+  missionCommands.addCommandForGroup = function(groupId)
+    captured = groupId
+    return {}
+  end
+  veafRadio.createUserMenu({ veafRadio.command("GCmd", function() end, nil) }, "MM Ctrl")
+  missionCommands.addCommandForGroup = original
+  luaunit.assertEquals(captured, 42)
+end
+
+function TestVeafRadioCreateUserMenu:test_with_unknown_group_name_falls_back_global()
+  dcs_mocks.clearUnitsAndGroups()
+  local usedForGroup, usedGlobal = false, false
+  local origFor = missionCommands.addCommandForGroup
+  local origGlobal = missionCommands.addCommand
+  missionCommands.addCommandForGroup = function()
+    usedForGroup = true
+    return {}
+  end
+  missionCommands.addCommand = function()
+    usedGlobal = true
+    return {}
+  end
+  veafRadio.createUserMenu({ veafRadio.command("GCmd", function() end, nil) }, "Nope")
+  missionCommands.addCommandForGroup = origFor
+  missionCommands.addCommand = origGlobal
+  luaunit.assertFalse(usedForGroup)
+  luaunit.assertTrue(usedGlobal)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -188,5 +188,47 @@ class TestValidateMissionContent(unittest.TestCase):
         self.assertEqual(validate_mission_content({}, {"coalition": {}, "triggers": {"zones": []}}), [])
 
 
+class TestRadioMenuSchema(unittest.TestCase):
+    """Schema validation of modules.RADIO.user_menus (FEAT-RADIO-YAML-MENUS)."""
+
+    def _check(self, user_menus: dict) -> list:
+        from veaf_libs.mission_validator import _check_radio_menus
+
+        return _check_radio_menus({"modules": {"RADIO": {"user_menus": user_menus}}})
+
+    def test_valid_tree_has_no_issues(self) -> None:
+        issues = self._check(
+            {
+                "tree": [
+                    {
+                        "menu": "Drapeaux",
+                        "items": [
+                            {"command": "ON", "action": "flag.on", "flag": "a"},
+                            {"command": "QRA", "action": "qra.start", "qra": "N"},
+                            {"command": "Lua", "action": "lua", "function": "m.f"},
+                        ],
+                    }
+                ]
+            }
+        )
+        self.assertEqual(issues, [])
+
+    def test_unknown_action_is_error(self) -> None:
+        issues = self._check({"tree": [{"command": "X", "action": "bogus.verb"}]})
+        self.assertEqual(_levels(issues), [ERROR])
+        self.assertIn("bogus.verb", issues[0].message)
+
+    def test_missing_target_is_error(self) -> None:
+        issues = self._check({"tree": [{"command": "Set", "action": "flag.set", "flag": "a"}]})  # no value
+        self.assertEqual(_levels(issues), [ERROR])
+        self.assertIn("value", issues[0].message)
+
+    def test_no_user_menus_is_noop(self) -> None:
+        from veaf_libs.mission_validator import _check_radio_menus
+
+        self.assertEqual(_check_radio_menus({"modules": {"RADIO": {}}}), [])
+        self.assertEqual(_check_radio_menus({}), [])
+
+
 if __name__ == "__main__":
     unittest.main()

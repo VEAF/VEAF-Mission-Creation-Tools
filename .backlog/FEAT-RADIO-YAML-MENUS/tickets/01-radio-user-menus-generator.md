@@ -1,6 +1,6 @@
 # 01 — Action dispatch + `modules.RADIO.user_menus` generator
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

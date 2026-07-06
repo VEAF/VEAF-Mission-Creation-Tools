@@ -100,6 +100,27 @@ modules:
 | `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
 | `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
 | `airport_link` | string | — | Non | Nom de base aérienne DCS liée — QRA hors ligne si détruite |
+| `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette QRA (voir ci-dessous) |
+| `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |
+
+### Menu radio de contrôle (raccourci)
+
+Les commandes de démarrage/arrêt d'une QRA **n'existent pas** dans le menu radio VEAF standard (contrairement à CombatZone ou Carrier). Pour donner au Mission Master un contrôle F10 sur une QRA, ajoutez `radio_menu: true` à sa définition : le framework génère automatiquement un sous-menu nommé d'après la QRA, avec les commandes « Démarrer &lt;nom&gt; » et « Arrêter &lt;nom&gt; ».
+
+```yaml
+modules:
+  QRA:
+    definitions:
+      - name: "QRA-Nord"
+        coalition: RED
+        trigger_zone: "ZONE-QRA-NORD"
+        simple_groups:
+          - "MiG-29 QRA Nord"
+        radio_menu: true                         # génère le sous-menu de contrôle
+        radio_menu_restrict_to_group: "MM Ctrl"  # optionnel : réserver le sous-menu à ce groupe DCS
+```
+
+C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (QRA, AirWaves, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#menus-radio-en-yaml).
 
 ### Exemple minimal
 

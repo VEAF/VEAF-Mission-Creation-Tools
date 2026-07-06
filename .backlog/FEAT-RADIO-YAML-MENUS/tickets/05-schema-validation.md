@@ -1,6 +1,6 @@
 # 05 — Schema validation for the new YAML keys
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

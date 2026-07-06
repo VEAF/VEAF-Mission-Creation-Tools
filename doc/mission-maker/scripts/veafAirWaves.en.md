@@ -115,6 +115,31 @@ modules:
 | `number` | string \| integer | — | How many groups to pick: `2` or `"1-3"` range |
 | `bias` | integer | `0` | Shift random start index toward harder entries |
 
+### Control radio menu (shortcut)
+
+AirWave zone start/stop/reset commands **do not exist** in the standard VEAF radio menu (unlike CombatZone or Carrier). To give the Mission Master F10 control over a zone, add `radio_menu: true` to its definition: the framework automatically generates a submenu named after the zone, with "Start &lt;name&gt;", "Stop &lt;name&gt;" and "Reset &lt;name&gt;" commands.
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `radio_menu` | boolean | `false` | No | Automatically generate an F10 radio submenu to control this zone |
+| `radio_menu_restrict_to_group` | string | — | No | Name of a DCS group; the generated submenu only appears for that group |
+
+```yaml
+modules:
+  AIRWAVES:
+    airwave_zones:
+      - name: "BVR Zone"
+        start: true
+        player_coalitions: [BLUE]
+        trigger_zone_name: "ZONE-BVR"
+        waves:
+          - groups: "su27-flight"
+        radio_menu: true                         # generates the control submenu
+        radio_menu_restrict_to_group: "MM Ctrl"  # optional: restrict the submenu to this DCS group
+```
+
+This is **mechanism 1** (per-module shortcut). For a custom MM menu that is structured or combines several actions (AirWaves, QRA, flags, messages, Lua), use **mechanism 2** described in [veafRadio → Radio menus in YAML](veafRadio.en.md#radio-menus-in-yaml).
+
 ### Minimal example
 
 ```yaml

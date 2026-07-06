@@ -108,6 +108,21 @@ context it always means these injector-generated pages, not any other image a
 mission may drop into its `KNEEBOARD/` folder.
 _Avoid_: plate, radio page
 
+**Mission Master (MM)**:
+A trusted mission operator who drives the running mission from the F10 radio menu or
+map markers — flipping flags, spawning, running maker code. VEAF exposes MM helpers
+(`veafSpawn.missionMaster*`). A _user radio menu_ can be reserved to the MM by
+restricting it to their DCS group (`restrict_to_group` / `radio_menu_restrict_to_group`,
+a group **name** resolved to a group id at runtime).
+
+**User radio menu**:
+An F10 radio menu the mission-maker adds outside the standard VEAF tree — to
+start/stop a QRA or AirWave, flip a flag, show a message, or call a maker Lua
+function. Declared in YAML (`modules.RADIO.user_menus`, or the per-module
+`radio_menu` shortcut on a QRA/AirWave zone) and compiled to
+`veafRadio.createUserMenu`. See [ADR 0011](docs/adr/0011-radio-yaml-menus.md).
+_Avoid_: custom menu (ambiguous)
+
 ## Spawning
 
 **Spawn group definition**:

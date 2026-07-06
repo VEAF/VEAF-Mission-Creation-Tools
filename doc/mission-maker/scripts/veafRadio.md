@@ -104,6 +104,64 @@ veafRadio.createUserMenu(
 )
 ```
 
+> **Lua vs YAML.** `veafRadio.createUserMenu(configuration, groupId)` est du **Lua** : il se place dans `mission-script.lua`. Depuis ADR 0011, la même chose se déclare directement en YAML sous `modules.RADIO.user_menus` (voir [Menus radio en YAML](#menus-radio-en-yaml)), sans écrire de Lua. L'action YAML `lua` reste le pont pour rattacher une fonction Lua écrite par le créateur de mission à un menu déclaré en YAML.
+
+---
+
+## Menus radio en YAML
+
+Depuis ADR 0011, un créateur de mission peut déclarer un menu radio F10 personnalisé **entièrement en YAML**, sans écrire de Lua, sous `modules.RADIO.user_menus`. C'est le pendant déclaratif de `veafRadio.createUserMenu()` (voir l'encart ci-dessus), destiné notamment aux menus de contrôle du Mission Master (MM).
+
+```yaml
+modules:
+  RADIO:
+    user_menus:
+      restrict_to_group: "MM Ctrl"   # optionnel : nom d'un groupe DCS ; le menu n'apparaît que pour ce groupe. Absent = menu global.
+      tree:
+        - menu: "Contrôle QRA"
+          items:
+            - { command: "Démarrer QRA Nord", action: qra.start, qra: "QRA-Nord" }
+            - { command: "Arrêter QRA Nord",  action: qra.stop,  qra: "QRA-Nord" }
+        - menu: "Phases"
+          items:
+            - { command: "Activer Phase 2",   action: flag.on,  flag: "PHASE2" }
+            - { command: "Régler compteur",   action: flag.set, flag: "SCORE", value: 100 }
+        - { command: "Message global", action: message, text: "La mission commence !" }
+        - { command: "Fonction custom", action: lua, function: "maMission.demarrerTout", args: ["alpha", 3] }
+```
+
+### Structure de `tree`
+
+Chaque nœud de `tree` est **soit un sous-menu, soit une commande** :
+
+- **Sous-menu** — `{ menu: "Titre", items: [ ... ] }`. Le champ `items` contient à son tour des sous-menus ou des commandes ; l'imbrication est récursive.
+- **Commande** — `{ command: "Libellé", action: <verbe>, <clés cibles> }`. Placée directement dans `tree` (premier niveau) ou dans les `items` d'un sous-menu.
+
+### `restrict_to_group`
+
+`restrict_to_group` est **optionnel**. S'il est présent, le menu n'apparaît que pour le groupe DCS nommé (par exemple un groupe de contrôle « MM Ctrl »). Absent, le menu est global et visible par tous les joueurs.
+
+### Vocabulaire d'actions
+
+Le vocabulaire d'actions est **fermé** (v1). Chaque `action` requiert les clés indiquées :
+
+| `action` | Clés requises | Effet |
+|----------|---------------|-------|
+| `qra.start` | `qra: "<nom de la QRA>"` | Met en ligne la QRA nommée |
+| `qra.stop` | `qra: "<nom de la QRA>"` | Met hors ligne la QRA nommée |
+| `airwave.start` | `airwave: "<nom de la zone AirWave>"` | Démarre la zone AirWave nommée |
+| `airwave.stop` | `airwave: "<nom de la zone AirWave>"` | Arrête la zone AirWave nommée |
+| `airwave.reset` | `airwave: "<nom de la zone AirWave>"` | Réinitialise la zone AirWave nommée |
+| `flag.on` | `flag: "<nom ou numéro de flag>"` | Met le flag à `1` |
+| `flag.off` | `flag: "<nom ou numéro de flag>"` | Met le flag à `0` |
+| `flag.set` | `flag`, `value` (entier) | Met le flag à la valeur entière donnée |
+| `flag.increment` | `flag` | Incrémente le flag de `1` |
+| `flag.decrement` | `flag` | Décrémente le flag de `1` |
+| `message` | `text: "<texte affiché>"` | Affiche le texte à l'écran |
+| `lua` | `function: "<nom.de.fonction>"`, `args: [ ... ]` (optionnel) | Appelle une fonction Lua du créateur de mission |
+
+> **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
+
 ---
 
 ## Constantes d'utilisation

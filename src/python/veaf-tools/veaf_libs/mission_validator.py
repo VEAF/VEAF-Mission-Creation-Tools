@@ -80,11 +80,17 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
         for m in incompatible_modules_enabled(yaml_data)
     ]
 
+    # 2c. radio user-menu schema (FEAT-RADIO-YAML-MENUS): closed action vocabulary
+    issues += _check_radio_menus(yaml_data)
+
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
 
     # 3b. config_override keys exist lexically in the injected Foothold corpus
     issues += _check_config_override(folder, yaml_data)
+
+    # 3c. radio-menu `action: lua` references resolve to a defined maker function
+    issues += _check_radio_lua_functions(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
     mission = _read_source_mission(folder)
@@ -142,6 +148,86 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
 
     return issues
+
+
+def _check_radio_menus(yaml_data: dict) -> list[ValidationIssue]:
+    """Validate ``modules.RADIO.user_menus`` against the closed action vocabulary.
+
+    Walks the menu tree and, for every command leaf, checks that its ``action`` is a
+    known verb (:data:`~veaf_libs.lua_config_generator.RADIO_MENU_ACTIONS`) and that the
+    action's required target key(s) are present. Sub-menus (nodes carrying ``menu``) are
+    recursed into. Unknown actions or missing targets are reported as errors so the
+    mistake surfaces here rather than as a broken F10 menu (or a build crash).
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping.
+
+    Returns:
+        Every :class:`ValidationIssue` found, in tree order.
+    """
+    from veaf_libs.lua_config_generator import RADIO_MENU_ACTIONS
+
+    # Accept both `modules` and the legacy `lua_modules` key, mirroring
+    # collect_radio_lua_functions so validation and build see the same config.
+    modules = yaml_data.get("lua_modules") or yaml_data.get("modules")
+    radio = modules.get("RADIO") if isinstance(modules, dict) else None
+    user_menus = radio.get("user_menus") if isinstance(radio, dict) else None
+    if not isinstance(user_menus, dict):
+        return []
+
+    issues: list[ValidationIssue] = []
+
+    def _walk(nodes: object) -> None:
+        if not isinstance(nodes, list):
+            return
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if "menu" in node:
+                _walk(node.get("items"))
+                continue
+            label = node.get("command", "?")
+            action = node.get("action")
+            if action not in RADIO_MENU_ACTIONS:
+                issues.append(
+                    ValidationIssue(ERROR, t("validate.radio_menu_unknown_action", action=action, command=label))
+                )
+                continue
+            for key in RADIO_MENU_ACTIONS[action]:
+                if node.get(key) is None:
+                    issues.append(
+                        ValidationIssue(
+                            ERROR, t("validate.radio_menu_missing_target", action=action, param=key, command=label)
+                        )
+                    )
+
+    _walk(user_menus.get("tree"))
+    return issues
+
+
+def _check_radio_lua_functions(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Each radio-menu ``action: lua`` must reference a function defined in the mission scripts.
+
+    Mirrors the build's abort (FEAT-RADIO-YAML-MENUS): a reference with no matching
+    definition in the concatenated ``src/scripts`` corpus is an error, so the maker
+    catches the typo (or forgotten definition) before the F10 menu breaks at runtime.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml`` mapping.
+
+    Returns:
+        One error per undefined referenced function.
+    """
+    from veaf_libs.lua_config_generator import collect_radio_lua_functions, find_undefined_lua_functions
+
+    if not collect_radio_lua_functions(yaml_data):
+        return []
+    corpus = read_corpus(folder / "src" / "scripts")
+    return [
+        ValidationIssue(ERROR, t("validate.radio_lua_function_missing", function=fn))
+        for fn in find_undefined_lua_functions(yaml_data, corpus)
+    ]
 
 
 def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue]:

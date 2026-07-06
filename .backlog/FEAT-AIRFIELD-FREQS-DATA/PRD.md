@@ -1,6 +1,6 @@
 # Lot FEAT-AIRFIELD-FREQS-DATA — bundle DCS airfield ATC frequencies per theatre
 
-Status: ⬜ ready
+Status: ✅ done
 Branch: feat/airfield-freqs-data → PR → develop-v6
 
 > Lot 2/3 of the convert-v5 preset-aliasing plan. Prerequisite for

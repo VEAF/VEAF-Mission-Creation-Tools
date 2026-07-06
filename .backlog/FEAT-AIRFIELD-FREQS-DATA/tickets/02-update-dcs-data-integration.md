@@ -1,6 +1,6 @@
 # 02 — Integrate into `update-dcs-data` + bundle the artifact
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Context

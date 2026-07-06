@@ -58,3 +58,12 @@ def test_veaf_tools_extra_data_bundles_locales(tmp_path: Path) -> None:
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     dests = [dest for _src, dest in worker._veaf_tools_extra_data(None)]
     assert "veaf_libs/locales" in dests
+
+
+def test_veaf_tools_extra_data_bundles_both_radio_yaml_files(tmp_path: Path) -> None:
+    """Regression guard: dcs-radio-layouts.yaml was missing here (FIX-VEAF-BUILD-RADIO-LAYOUT-DATA),
+    breaking convert-v5's radio preset conversion in the packaged executable only."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    sources = [src.name for src, _dest in worker._veaf_tools_extra_data(None)]
+    assert "dcs-radio-specs.yaml" in sources
+    assert "dcs-radio-layouts.yaml" in sources

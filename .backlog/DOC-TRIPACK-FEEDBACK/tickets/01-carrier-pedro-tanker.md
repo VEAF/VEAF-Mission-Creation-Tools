@@ -1,6 +1,6 @@
 # 01 — Document auto-generated Pedro & S3B-Tanker (carrier ops)
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 
@@ -18,13 +18,13 @@ group is absent, the module logs a warning (`No Pedro group named …` /
 
 ## Tasks
 
-- [ ] Add a section (e.g. "Pedro et ravitailleur S3B" / "Pedro and S3B recovery tanker")
+- [x] Add a section (e.g. "Pedro et ravitailleur S3B" / "Pedro and S3B recovery tanker")
       to `doc/mission-maker/scripts/veafCarrierOperations.md` and `.en.md` explaining:
-      the exact naming convention (`<carrier group name> Pedro`,
-      `<carrier group name> S3B-Tanker`), that groups are auto-detected, respawned and
+      the exact naming convention (`<carrier unit name> Pedro`,
+      `<carrier unit name> S3B-Tanker`), that groups are auto-detected, respawned and
       routed, the placement expectations (helo type / tanker), and the warning logged
       when a group is missing.
-- [ ] Cross-link from the module's "Activation" / "Voir aussi" as appropriate.
+- [x] Cross-link from the module's "Activation" / "Voir aussi" as appropriate.
 
 ## Definition of Done
 

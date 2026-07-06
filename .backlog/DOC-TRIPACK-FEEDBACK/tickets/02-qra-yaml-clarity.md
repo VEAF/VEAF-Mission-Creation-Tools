@@ -1,6 +1,6 @@
 # 02 — QRA-in-YAML: fix stale reference + reinforce YAML-first
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 
@@ -16,11 +16,12 @@ defect is a leftover reference to the removed top-level `qra:` block:
 
 ## Tasks
 
-- [ ] Replace the stale `mission.yaml → qra:` renvoi with `modules.QRA` in
+- [x] Replace the stale `mission.yaml → qra:` renvoi with `modules.QRA` in
       `veafQraManager.md` (l.249) and its `.en.md` equivalent.
-- [ ] Sweep both files for any other `qra:` top-level mention outside the correct
-      `modules:\n  QRA:` YAML blocks (l.55/108 are correct — do not touch).
-- [ ] Optionally tighten the "YAML-first recommandé" wording so it is unambiguous that
+- [x] Sweep both files for any other `qra:` top-level mention outside the correct
+      `modules:\n  QRA:` YAML blocks (l.55/108 are correct — do not touch). Only the
+      l.249/250 renvoi matched; now fixed.
+- [x] Optionally tighten the "YAML-first recommandé" wording so it is unambiguous that
       no Lua is required for a QRA.
 
 ## Definition of Done

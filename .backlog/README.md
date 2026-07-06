@@ -42,6 +42,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FEAT-CROSSPLATFORM-BINARIES](FEAT-CROSSPLATFORM-BINARIES/PRD.md) — ship standalone `veaf-tools` Linux/macOS binaries as extra release assets (per-OS CI jobs; Windows flow unchanged) + expose `veaf-tools.exe` as a direct asset | ✅ |
 | [UPDATER-CROSSPLATFORM](UPDATER-CROSSPLATFORM/PRD.md) — port `veaf-tools-updater` to Linux/macOS (download per-OS binary assets, `chmod +x`, direct self-update; Windows path unchanged) | ✅ |
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
+| [FIX-PYINSTALLER-RADIO-LAYOUT-DATA](FIX-PYINSTALLER-RADIO-LAYOUT-DATA/PRD.md) — `veaf-tools.spec` was missing `dcs-radio-layouts.yaml` in `datas`, breaking `convert-v5` radio-preset conversion in the packaged `.exe` only. Reported by David | ✅ |
 
 ## Archived lots
 

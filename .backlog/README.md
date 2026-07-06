@@ -46,6 +46,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [RELEASE](RELEASE/PRD.md) — v6.1.0 release | ⬜ |
 | [FIX-PYINSTALLER-RADIO-LAYOUT-DATA](FIX-PYINSTALLER-RADIO-LAYOUT-DATA/PRD.md) — `veaf-tools.spec` was missing `dcs-radio-layouts.yaml` in `datas`, breaking `convert-v5` radio-preset conversion in the packaged `.exe` only. Reported by David | ✅ |
 | [FIX-VEAF-BUILD-RADIO-LAYOUT-DATA](FIX-VEAF-BUILD-RADIO-LAYOUT-DATA/PRD.md) — the real fix: `veaf-tools.spec` is dead code, the actual build pipeline (`veaf_build/worker.py`) had the same missing `dcs-radio-layouts.yaml` entry. Reported by David | ✅ |
+| [FEAT-CONVERTV5-PLAN-PRESETS](FEAT-CONVERTV5-PLAN-PRESETS/PRD.md) — convert-v5 emits two preset files: `presets.yaml` (simplified plan exploiting `channel_lists`, default/loaded) + `presets.v5.yaml` (faithful iso-functional copy, reference). Lets the maker actually use the crystallisation. Reported by David (ADR 0010) | ✅ |
 
 ## Archived lots
 

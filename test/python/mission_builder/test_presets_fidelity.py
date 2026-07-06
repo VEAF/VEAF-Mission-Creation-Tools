@@ -29,9 +29,23 @@ from presets_injector.presets_manager import (
 _FIXTURE = Path(__file__).parent / "fixtures" / "tripack_radioSettings.lua"
 
 
+def _load_faithful(v6_path: Path) -> dict[str, Any]:
+    """Load the faithful, iso-functional presets file.
+
+    FEAT-CONVERTV5-PLAN-PRESETS: ``convert_presets`` now writes two files when a
+    shared channel list exists — a lean plan (``presets.yaml``) and the faithful
+    copy (``presets.v5.yaml``). Fidelity assertions target the faithful copy;
+    when no channel list exists (single-file legacy output) ``presets.yaml`` is
+    itself the faithful file.
+    """
+    faithful = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
+    target = faithful if faithful.exists() else v6_path
+    return yaml.safe_load(target.read_text(encoding="utf-8"))
+
+
 def _assignment_for(data: dict[str, Any], coalition: str, aircraft: str) -> str | None:
     """Return the preset assigned to *aircraft* in either category, or ``None``."""
-    coalition_asg = data["presets_assignments"][coalition]
+    coalition_asg = data.get("presets_assignments", {}).get(coalition, {})
     for category in ("plane", "helicopter"):
         if aircraft in coalition_asg.get(category, {}):
             return coalition_asg[category][aircraft]
@@ -46,7 +60,7 @@ class TestTripackPresetsFidelity(unittest.TestCase):
         cls._tmp = tempfile.TemporaryDirectory()
         out = Path(cls._tmp.name) / "presets.yaml"
         cls.warnings = convert_presets(_FIXTURE, out)
-        cls.data = yaml.safe_load(out.read_text(encoding="utf-8"))
+        cls.data = _load_faithful(out)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -154,7 +168,9 @@ class TestTripackPresetPlanGeneration(unittest.TestCase):
         cls._tmp = tempfile.TemporaryDirectory()
         out = Path(cls._tmp.name) / "presets.yaml"
         cls.warnings = convert_presets(_FIXTURE, out)
+        # presets.yaml is the lean plan (build-loaded); presets.v5.yaml the faithful copy.
         cls.data = yaml.safe_load(out.read_text(encoding="utf-8"))
+        cls.faithful = _load_faithful(out)
         cls.manager = PresetsManager()
         cls.manager.read_yaml(out)
 
@@ -181,52 +197,67 @@ class TestTripackPresetPlanGeneration(unittest.TestCase):
         preset = self.manager.get_radios_for(coalition="blue", aircraft_type="plane", unit_type="F-86F Sabre")
         self.assertIsNotNone(preset)
 
-    # ── Bespoke aircraft: none factor exactly for THIS fixture, all fall back ──
+    def test_warbird_projected_onto_vhf_from_plan(self) -> None:
+        # The whole point of the plan (FEAT-CONVERTV5-PLAN-PRESETS): a warbird
+        # with no override is projected by the packer onto its VHF-capable radio
+        # straight from the crystallisation — not left on its old FuG16 freqs.
+        preset = self.manager.get_radios_for(coalition="blue", aircraft_type="plane", unit_type="Bf-109K-4")
+        self.assertIsNotNone(preset)
+        self.assertTrue(preset.radios, msg="packer must project at least one radio onto the warbird")
+        projected = {ch.freq for radio in preset.radios.values() for ch in radio.channels}
+        plan_vhf = set(self.data["channel_lists"]["blue"]["primary_2"].values())
+        self.assertTrue(
+            projected & plan_vhf,
+            msg="warbird radio must carry the plan's VHF (primary_2) crystallisation channels",
+        )
+
+    # ── Bespoke aircraft: kept iso-functionally in presets.v5.yaml, delegated ──
+    # to the packer (best effort) in the lean presets.yaml plan.
     #
-    # (Verified empirically per-aircraft below; the mechanism that WOULD drop
-    # the override on an exact match is covered on a minimal fixture in
-    # test_v5_pipeline_converters.py, since no Tripack aircraft exercises it.)
+    # (FEAT-CONVERTV5-PLAN-PRESETS: the four quirky Tripack aircraft do not
+    # factor exactly, so the faithful copy keeps their dedicated override, while
+    # the plan drops it — the packer projects them from the crystallisation,
+    # possibly at best effort, and the maker is warned.)
 
-    def test_mi24p_keeps_its_dedicated_preset(self) -> None:
-        # The packer's rotation primitive reproduces the UHF radio's 20
-        # channels exactly, but the mission-wide FM list has 30 entries while
-        # the real Mi-24P entry only ever used 10 — the packer would add 20
-        # channels the v5 aircraft never had, so the safe fallback is kept.
-        self.assertEqual(_assignment_for(self.data, "blue", "Mi-24P"), "blue_mi_24p")
-        self.assertEqual(_assignment_for(self.data, "red", "Mi-24P"), "red_mi_24p")
+    def test_mi24p_keeps_its_dedicated_preset_in_faithful(self) -> None:
+        self.assertEqual(_assignment_for(self.faithful, "blue", "Mi-24P"), "blue_mi_24p")
+        self.assertEqual(_assignment_for(self.faithful, "red", "Mi-24P"), "red_mi_24p")
 
-    def test_ajs37_keeps_its_dedicated_preset(self) -> None:
-        # The fused radio needs exactly 47 slots (1 dummy + 20 UHF + 19 VHF +
-        # 7 specials), but the mission's primary_2 list has 20 entries, one
-        # more than this airframe's real layout consumes — the packer's fused
-        # radio overflows to 48 slots and shifts every trailing special.
-        self.assertEqual(_assignment_for(self.data, "red", "AJS37"), "red_ajs37")
+    def test_ajs37_keeps_its_dedicated_preset_in_faithful(self) -> None:
+        self.assertEqual(_assignment_for(self.faithful, "red", "AJS37"), "red_ajs37")
 
-    def test_oh58d_keeps_its_dedicated_preset(self) -> None:
-        # The real fixture's OH-58D head-slot fill (duplicate #01) differs from the
-        # packer's ADR-0010-compliant reserved_head_slots primitive (ticket 03's
-        # implementation notes already flag the fixture as stale/buggy on this
-        # point) — the plan alone would silently change the aircraft's channels,
-        # so the safe fallback keeps the exact v5 layout.
-        self.assertEqual(_assignment_for(self.data, "blue", "OH58D"), "blue_oh58d")
+    def test_oh58d_keeps_its_dedicated_preset_in_faithful(self) -> None:
+        self.assertEqual(_assignment_for(self.faithful, "blue", "OH58D"), "blue_oh58d")
 
-    def test_ch47f_keeps_its_dedicated_preset(self) -> None:
-        # The fixture's CH-47F feeds RADIO2_* (VHF-band) content into what the
-        # Radio layout declares as the fm_substitute (FM-band) role — a band
-        # mismatch the packer cannot resolve from channel_lists alone.
-        self.assertEqual(_assignment_for(self.data, "blue", "CH-47Fbl1"), "blue_ch_47fbl1")
+    def test_ch47f_keeps_its_dedicated_preset_in_faithful(self) -> None:
+        self.assertEqual(_assignment_for(self.faithful, "blue", "CH-47Fbl1"), "blue_ch_47fbl1")
+
+    def test_plan_drops_reducible_bespoke_overrides(self) -> None:
+        # The lean plan file no longer carries a dedicated override for the
+        # packer-projectable bespoke aircraft — the packer handles them.
+        for coalition, aircraft in (
+            ("blue", "Mi-24P"),
+            ("red", "AJS37"),
+            ("blue", "OH58D"),
+            ("blue", "CH-47Fbl1"),
+        ):
+            self.assertIsNone(_assignment_for(self.data, coalition, aircraft))
+
+    def test_plan_warns_about_best_effort_projection(self) -> None:
+        # The maker is told (once) which aircraft the plan projects at best effort.
+        self.assertTrue(
+            any("Mi-24P" in w and "AJS37" in w for w in self.warnings),
+            msg="expected a best-effort summary warning naming the projected aircraft",
+        )
 
     def test_fallback_aircraft_frequencies_unchanged_from_legacy_only_conversion(self) -> None:
         # No-data-loss guarantee (ADR 0003): every kept-fallback aircraft's
-        # channels are byte-identical to what a legacy-only (pre-ticket-08)
-        # conversion produces — TestTripackPresetsFidelity above already locks
-        # this exact output for Mi-24P/AJS37; this covers the OH-58D/CH-47F
-        # fallback the same way, confirming ticket 08 added channel_lists
-        # without touching a single legacy frequency.
-        oh58d = self.data["radios_collection"]["blue_radios"]["radio_blue_oh58d_1"]
+        # channels in the faithful copy are byte-identical to the legacy-only
+        # conversion — confirming the plan work touched no legacy frequency.
+        oh58d = self.faithful["radios_collection"]["blue_radios"]["radio_blue_oh58d_1"]
         self.assertEqual(oh58d["channels"][1], 284.000)  # ##RADIO1_01## duplicated "M" channel
         self.assertEqual(oh58d["channels"][2], 284.000)
-        ch47f = self.data["radios_collection"]["blue_radios"]["radio_blue_ch_47fbl1_2"]
+        ch47f = self.faithful["radios_collection"]["blue_radios"]["radio_blue_ch_47fbl1_2"]
         self.assertEqual(ch47f["channels"][1], 243.000)  # ##RADIO1_20## rotated to head
         self.assertEqual(ch47f["channels"][2], 284.000)  # ##RADIO1_01##
 

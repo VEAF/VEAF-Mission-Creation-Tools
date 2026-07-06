@@ -103,6 +103,7 @@ _CLEANUP_TOOLCHAIN_GLOBS: tuple[str, ...] = ("veaf-tools*.exe",)
 _CLEANUP_SRC_KNOWN: frozenset[str] = frozenset(
     {
         "presets.yaml",
+        "presets.v5.yaml",
         "waypoints.yaml",
         "spawnables.yaml",
         "dynamic-slot-templates.yaml",

@@ -906,13 +906,19 @@ def _emit_dedicated_preset(
     presets_assignments: dict[str, Any],
     helicopter_types: set[str],
     warnings: list[str],
-) -> None:
+) -> str | None:
     """Emit a per-aircraft preset that reproduces a bespoke v5 ``["Radio"]`` table.
 
     Each radio slot becomes a dedicated radio whose channels carry the exact
     frequencies from the v5 table (resolving preset tokens, keeping hardcoded
     literals). When a slot defines a ``modulations`` table, every channel also
     carries its ``mod`` flag so the AM/FM selection round-trips.
+
+    Returns:
+        The name of the dedicated preset emitted (e.g. ``"blue_f_14b"``), or
+        ``None`` when nothing usable was parsed and no preset/assignment was
+        written. The name lets the caller reconstruct this aircraft's override
+        subset for the plan file when it is irreducible (see ``convert_presets``).
     """
     coalition = entry.coalition
     cap = coalition.capitalize()
@@ -947,7 +953,7 @@ def _emit_dedicated_preset(
 
     # Nothing usable was parsed — do not emit an empty preset or assignment.
     if not preset_radios:
-        return
+        return None
 
     presets_collection.setdefault(presets_key, {})[preset_name] = {
         "title": f"{cap} coalition - {entry.aircraft} (iso-functional)",
@@ -956,6 +962,8 @@ def _emit_dedicated_preset(
 
     for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):
         presets_assignments[coalition].setdefault(cat, {})[entry.aircraft] = preset_name
+
+    return preset_name
 
 
 # ---------------------------------------------------------------------------
@@ -1059,6 +1067,45 @@ def _dedicated_matches_packed(
             if packed_by_number.get(ch_idx) != _normalize_channel(value):
                 return False
     return True
+
+
+def _add_plan_overrides(
+    plan: dict[str, Any], faithful: dict[str, Any], irreducible: dict[tuple[str, str], str]
+) -> None:
+    """Copy the *irreducible* per-aircraft overrides from *faithful* into *plan*.
+
+    The plan file trusts the packer for everything the crystallisation can
+    project; only aircraft the packer projects to nothing (``irreducible``) keep
+    their dedicated override. This copies just those aircraft's assignment, their
+    preset definition, and every radio that preset references — nothing else of
+    the faithful copy's standard scaffolding leaks into the plan.
+
+    Args:
+        plan: The plan output dict, mutated in place (already holds
+            ``channel_lists``).
+        faithful: The complete faithful output dict to copy subsets from.
+        irreducible: ``{(coalition, aircraft): preset_name}`` of overrides to keep.
+    """
+    for (coalition, aircraft), preset_name in irreducible.items():
+        presets_key = f"{coalition}_presets"
+        radios_key = f"{coalition}_radios"
+        preset_def = faithful.get("presets_collection", {}).get(presets_key, {}).get(preset_name)
+        if preset_def is None:
+            continue
+        plan.setdefault("presets_collection", {}).setdefault(presets_key, {})[preset_name] = preset_def
+        # Carry over every radio the preset references.
+        faithful_radios = faithful.get("radios_collection", {}).get(radios_key, {})
+        for radio_name in preset_def.get("radios", {}).values():
+            if radio_name in faithful_radios:
+                plan.setdefault("radios_collection", {}).setdefault(radios_key, {})[radio_name] = faithful_radios[
+                    radio_name
+                ]
+        # Carry over the assignment (in whichever category it was written).
+        for category, assigned in faithful.get("presets_assignments", {}).get(coalition, {}).items():
+            if assigned.get(aircraft) == preset_name:
+                plan.setdefault("presets_assignments", {}).setdefault(coalition, {}).setdefault(category, {})[
+                    aircraft
+                ] = preset_name
 
 
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
@@ -1186,8 +1233,19 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     # aircraft's exact v5 channel map is already reproduced by the plan.
     channel_lists, _ = parse_channel_lists(channel_lists_yaml, channel_collections={})
 
-    # Per-aircraft assignments extracted from radioSettings
+    # Per-aircraft assignments extracted from radioSettings.
+    #
+    # Dual output (FEAT-CONVERTV5-PLAN-PRESETS): the faithful, iso-functional
+    # copy assembled here goes to ``presets.v5.yaml``; the build-loaded
+    # ``presets.yaml`` is a leaner *plan* that keeps only ``channel_lists`` plus
+    # the overrides the packer cannot reproduce at all. ``plan_irreducible``
+    # collects the (coalition, aircraft) -> dedicated preset name of those
+    # keep-in-plan overrides; ``plan_best_effort`` collects the aircraft whose
+    # faithful override is dropped from the plan (the packer projects them from
+    # the crystallisation, possibly at best effort — frequencies may differ).
     token_resolver = _build_token_resolver(content)
+    plan_irreducible: dict[tuple[str, str], str] = {}
+    plan_best_effort: list[str] = []
     for entry in _parse_radio_settings_entries(content):
         if not entry.radio_sources or entry.coalition not in presets_assignments:
             continue
@@ -1202,14 +1260,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
             packed = pack_preset_for_type(channel_lists, entry.coalition, entry.aircraft)
             if _dedicated_matches_packed(dedicated_slots, packed):
                 continue
-            warnings.append(
-                t(
-                    "convert_v5.warn.preset_plan_fallback",
-                    aircraft=entry.aircraft,
-                    coalition=entry.coalition,
-                )
-            )
-            _emit_dedicated_preset(
+            dedicated_name = _emit_dedicated_preset(
                 entry,
                 token_resolver,
                 radios_collection,
@@ -1218,6 +1269,16 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
                 helicopter_types,
                 warnings,
             )
+            if dedicated_name is not None:
+                key = (entry.coalition, entry.aircraft)
+                if packed is None or not packed.radios:
+                    # The packer projects nothing for this aircraft — keep its
+                    # faithful override in the plan too (zero-loss guard).
+                    plan_irreducible[key] = dedicated_name
+                else:
+                    # The packer projects it from the crystallisation; the plan
+                    # trusts the packer and drops this override (option (a)).
+                    plan_best_effort.append(f"{entry.aircraft} ({entry.coalition})")
             continue
 
         radio1_source = entry.radio_sources.get(1)
@@ -1262,15 +1323,43 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         if warbird_preset_name in presets_collection.get(f"{coalition}_presets", {}):
             warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
-    output: dict[str, Any] = {
+    # Faithful, iso-functional copy (reference / rollback) — written to
+    # presets.v5.yaml, NOT loaded by the build.
+    faithful: dict[str, Any] = {
         "radios_collection": radios_collection,
         "presets_collection": presets_collection,
         "presets_assignments": presets_assignments,
     }
     if channel_lists_yaml:
-        output["channel_lists"] = channel_lists_yaml
-    _yaml_dump(output, v6_path)
-    logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
+        faithful["channel_lists"] = channel_lists_yaml
+
+    # Plan (default, build-loaded) — channel_lists projected by the packer, plus
+    # only the irreducible overrides the packer cannot reproduce at all.
+    plan: dict[str, Any] = {}
+    if channel_lists_yaml:
+        plan["channel_lists"] = channel_lists_yaml
+    _add_plan_overrides(plan, faithful, plan_irreducible)
+
+    if channel_lists_yaml:
+        # Plan is the primary output; faithful copy is its sibling.
+        faithful_path = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
+        _yaml_dump(faithful, faithful_path)
+        _yaml_dump(plan, v6_path)
+        logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
+        warnings.append(t("convert_v5.warn.preset_plan_default", plan=v6_path.name, faithful=faithful_path.name))
+        if plan_best_effort:
+            warnings.append(
+                tn(
+                    "convert_v5.warn.preset_plan_best_effort",
+                    len(plan_best_effort),
+                    aircraft=", ".join(sorted(plan_best_effort)),
+                    faithful=faithful_path.name,
+                )
+            )
+    else:
+        # No shared channel_lists → no plan; keep the single faithful file.
+        _yaml_dump(faithful, v6_path)
+        logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
     warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
     return warnings
 

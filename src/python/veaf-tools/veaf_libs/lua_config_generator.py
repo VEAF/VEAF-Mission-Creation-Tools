@@ -855,6 +855,8 @@ def _emit_action_call(item: dict) -> str:
         args = item.get("args")
         if not args:
             return fn
+        if not isinstance(args, list):
+            raise ValueError(f"radio-menu action 'lua' args must be a list, got {type(args).__name__}")
         args_lua = ", ".join(_to_lua_scalar(a) for a in args)
         ref = f"{fn}, {{{args_lua}}}"
         return ref
@@ -887,10 +889,11 @@ def _emit_action_call(item: dict) -> str:
 def _emit_menu_node(node: dict, indent: str) -> list[str]:
     """Recursively emit one ``menu`` or ``command`` node as Lua lines (no trailing comma)."""
     if "menu" in node:
+        name = _emit_lua_string(str(node["menu"]))
         items = node.get("items") or []
         if not items:
-            return [f'{indent}veafRadio.menu("{node["menu"]}")']
-        lines = [f'{indent}veafRadio.menu("{node["menu"]}",']
+            return [f"{indent}veafRadio.menu({name})"]
+        lines = [f"{indent}veafRadio.menu({name},"]
         for i, child in enumerate(items):
             child_lines = _emit_menu_node(child, indent + "    ")
             if i < len(items) - 1:
@@ -899,7 +902,8 @@ def _emit_menu_node(node: dict, indent: str) -> list[str]:
         lines.append(f"{indent})")
         return lines
     call = _emit_action_call(node)
-    return [f'{indent}veafRadio.command("{node.get("command", "")}", {call})']
+    label = _emit_lua_string(str(node.get("command", "")))
+    return [f"{indent}veafRadio.command({label}, {call})"]
 
 
 def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:

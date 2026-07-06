@@ -167,7 +167,9 @@ def _check_radio_menus(yaml_data: dict) -> list[ValidationIssue]:
     """
     from veaf_libs.lua_config_generator import RADIO_MENU_ACTIONS
 
-    modules = yaml_data.get("modules")
+    # Accept both `modules` and the legacy `lua_modules` key, mirroring
+    # collect_radio_lua_functions so validation and build see the same config.
+    modules = yaml_data.get("lua_modules") or yaml_data.get("modules")
     radio = modules.get("RADIO") if isinstance(modules, dict) else None
     user_menus = radio.get("user_menus") if isinstance(radio, dict) else None
     if not isinstance(user_menus, dict):

@@ -12,6 +12,7 @@ from veaf_libs.lua_config_generator import (
     _emit_action_call,
     _emit_airwave_zone,
     _emit_lua_string,
+    _emit_menu_node,
     _emit_module_radio_menu,
     _emit_user_menus,
     _resolve_deps,
@@ -780,3 +781,22 @@ def test_find_undefined_lua_functions_deduplicates():
         }
     }
     assert find_undefined_lua_functions(yaml_data, "-- none") == ["m.f"]
+
+
+# ---------------------------------------------------------------------------
+# Sourcery follow-ups: args type-check + label escaping
+# ---------------------------------------------------------------------------
+
+
+def test_action_lua_args_must_be_a_list():
+    with pytest.raises(ValueError):
+        _emit_action_call({"action": "lua", "function": "m.f", "args": "oops"})
+
+
+def test_menu_and_command_labels_are_escaped():
+    node = {"menu": 'Say "hi"', "items": [{"command": 'quote " here', "action": "flag.on", "flag": "a"}]}
+    lua = "\n".join(_emit_menu_node(node, ""))
+    # A double quote in a label must go through a Lua long-string, not a broken "..." literal
+    assert 'veafRadio.menu("Say "hi""' not in lua
+    assert '[[Say "hi"]]' in lua
+    assert '[[quote " here]]' in lua

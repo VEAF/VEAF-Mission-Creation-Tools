@@ -432,7 +432,6 @@ class TestPresetAssignmentCollectionPatternMatching(unittest.TestCase):
     def _make_collection(self, assignments: dict) -> PresetAssignmentCollection:
         """Build a minimal PresetAssignmentCollection from a nested dict of preset names."""
         preset_def = PresetDefinition(name="std", title="Standard")
-        preset_collection = PresetCollection(name="col")
 
         result = PresetAssignmentCollection()
         for coalition, ctypes in assignments.items():
@@ -472,8 +471,12 @@ class TestPresetAssignmentCollectionPatternMatching(unittest.TestCase):
         col = PresetAssignmentCollection()
         col.preset_assignments_dict["blue"] = {
             "plane": {
-                "F-16C_50": PresetAssignment(coalition="blue", aircraft_type="plane", unit_type="F-16C_50", preset_definition=exact_def),
-                "F[-]16.*": PresetAssignment(coalition="blue", aircraft_type="plane", unit_type="F[-]16.*", preset_definition=pattern_def),
+                "F-16C_50": PresetAssignment(
+                    coalition="blue", aircraft_type="plane", unit_type="F-16C_50", preset_definition=exact_def
+                ),
+                "F[-]16.*": PresetAssignment(
+                    coalition="blue", aircraft_type="plane", unit_type="F[-]16.*", preset_definition=pattern_def
+                ),
             }
         }
         result = col.get_preset_for("blue", "plane", "F-16C_50")

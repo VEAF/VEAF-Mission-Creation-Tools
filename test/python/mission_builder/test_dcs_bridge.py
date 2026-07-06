@@ -109,7 +109,7 @@ class TestInjectDcsBridgeTrigger(unittest.TestCase):
         worker.dcs_mission.map_resource_content = {}
         worker.dcs_mission.mission_content = {
             "trig": {
-                "actions": {1: "a_do_script(\"existing\");"},
+                "actions": {1: 'a_do_script("existing");'},
                 "conditions": {1: "return true"},
                 "custom": {},
                 "customStartup": {},

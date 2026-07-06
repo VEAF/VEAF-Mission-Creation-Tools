@@ -11,7 +11,6 @@ landed at the `definitions:` sequence level (indent 6) instead of inside the
 from __future__ import annotations
 
 import yaml
-
 from mission_builder.v5_converter import _emit_qra_definitions
 
 

@@ -60,7 +60,7 @@ class TestParseCountryFile(unittest.TestCase):
 
     def test_missing_required_field_returns_none(self) -> None:
         """A file without a top-level Name/WorldID is not a country file."""
-        self.assertIsNone(parse_country_file("\tShortName = \"X\"\n"))
+        self.assertIsNone(parse_country_file('\tShortName = "X"\n'))
 
 
 class TestExtractAllCountries(unittest.TestCase):

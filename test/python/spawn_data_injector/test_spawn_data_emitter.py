@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Any
 
 import luadata
-
 from spawn_data_injector.spawn_data_emitter import load_framework_spawn_data, render_spawn_data_lua
 
 
@@ -140,7 +139,9 @@ def test_render_collapses_integral_floats() -> None:
 def test_render_escapes_special_chars() -> None:
     """Quotes and backslashes in strings round-trip safely."""
     data = {
-        "units": [{"aliases": [r'a"b\c']}, ],
+        "units": [
+            {"aliases": [r'a"b\c']},
+        ],
         "groups": [],
     }
     data["units"][0]["unitType"] = r'Weird "Name" \ thing'

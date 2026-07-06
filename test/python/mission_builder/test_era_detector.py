@@ -52,9 +52,7 @@ class TestDetectEra:
         # DCS 1-based tables sometimes decode to dicts — must still scan.
         content = {
             "date": {"Year": 2011},
-            "coalition": {
-                "blue": {"country": {1: {"plane": {"group": {1: {"units": {1: {"type": "P-51D"}}}}}}}}
-            },
+            "coalition": {"blue": {"country": {1: {"plane": {"group": {1: {"units": {1: {"type": "P-51D"}}}}}}}}},
         }
         assert detect_era(content) == ERA_WW2
 

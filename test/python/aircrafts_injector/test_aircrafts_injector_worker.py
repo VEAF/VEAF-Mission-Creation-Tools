@@ -44,6 +44,7 @@ from mission_tools.miz_tools import DcsMission
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _worker() -> AircraftGroupsInjectorWorker:
     """Return a worker with dummy paths (no I/O used in unit tests)."""
     dummy = Path("/dev/null")
@@ -75,12 +76,7 @@ def _yaml_data(group_names: list[str]) -> dict:
     return {
         "airplanes": {
             "coalitions": {
-                "blue": {
-                    "USA": {
-                        name: {"name": name, "units": [{"type": "FA-18C_hornet"}]}
-                        for name in group_names
-                    }
-                }
+                "blue": {"USA": {name: {"name": name, "units": [{"type": "FA-18C_hornet"}]} for name in group_names}}
             }
         }
     }
@@ -90,14 +86,13 @@ def _get_groups(worker: AircraftGroupsInjectorWorker) -> list[dict]:
     """Return the blue/USA/plane group list from the worker's mission."""
     assert worker.dcs_mission is not None
     assert worker.dcs_mission.mission_content is not None
-    return (
-        worker.dcs_mission.mission_content["coalition"]["blue"]["country"][0]["plane"]["group"]
-    )
+    return worker.dcs_mission.mission_content["coalition"]["blue"]["country"][0]["plane"]["group"]
 
 
 # ---------------------------------------------------------------------------
 # Tests — mode "add"
 # ---------------------------------------------------------------------------
+
 
 class TestInjectGroupsAddMode(unittest.TestCase):
     """inject_groups(mode='add') must not create duplicate groups."""
@@ -214,6 +209,7 @@ class TestInjectGroupsAddMode(unittest.TestCase):
 # Tests — mode "replace"
 # ---------------------------------------------------------------------------
 
+
 class TestInjectGroupsReplaceMode(unittest.TestCase):
     """inject_groups(mode='replace') must replace existing groups and add new ones."""
 
@@ -257,6 +253,7 @@ class TestInjectGroupsReplaceMode(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Tests — error / edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestInjectGroupsEdgeCases(unittest.TestCase):
     def test_returns_failure_when_mission_not_loaded(self) -> None:
@@ -371,9 +368,7 @@ class TestInjectGroupsDictContainer(unittest.TestCase):
         mission_content = {
             "coalition": {
                 "blue": {
-                    "country": [
-                        {"name": "USA", "id": 2, "plane": {"group": plane_group}, "helicopter": {"group": []}}
-                    ]
+                    "country": [{"name": "USA", "id": 2, "plane": {"group": plane_group}, "helicopter": {"group": []}}]
                 }
             }
         }

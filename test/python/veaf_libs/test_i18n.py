@@ -404,7 +404,7 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
     # Prose detection thresholds — tune here without touching AST logic.
     _PROSE_MIN_LEN: int = 15
     _PROSE_REQUIRES_SPACE: bool = True
-    _RICH_TAG_RE: re.Pattern[str] = re.compile(r'\[/?[a-zA-Z][^\]]*\]')
+    _RICH_TAG_RE: re.Pattern[str] = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 
     # TODO: fix hardcoded strings in these files and remove them from this list.
     _TODO_EXEMPTIONS: frozenset[str] = frozenset()
@@ -419,11 +419,7 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
             s = self._RICH_TAG_RE.sub("", node.value).strip()
             return len(s) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in s)
         if isinstance(node, ast.JoinedStr):
-            lit = "".join(
-                v.value
-                for v in node.values
-                if isinstance(v, ast.Constant) and isinstance(v.value, str)
-            )
+            lit = "".join(v.value for v in node.values if isinstance(v, ast.Constant) and isinstance(v.value, str))
             s = self._RICH_TAG_RE.sub("", lit).strip()
             return len(s) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in s)
         return False

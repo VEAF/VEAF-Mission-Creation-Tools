@@ -22,7 +22,9 @@ class TestHintKey(unittest.TestCase):
         self.assertEqual(_hint_key("could not find expected ':'"), "yaml.error.hint.colon")
 
     def test_block_mapping(self) -> None:
-        self.assertEqual(_hint_key("expected <block end>, but found '<block mapping start>'"), "yaml.error.hint.indentation")
+        self.assertEqual(
+            _hint_key("expected <block end>, but found '<block mapping start>'"), "yaml.error.hint.indentation"
+        )
 
     def test_block_end(self) -> None:
         self.assertEqual(_hint_key("expected <block end>"), "yaml.error.hint.indentation")
@@ -42,9 +44,7 @@ class TestValidateYamlFile(unittest.TestCase):
         self._tmp.cleanup()
 
     def _write(self, content: str) -> Path:
-        f = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8", dir=self._tmp.name
-        )
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False, encoding="utf-8", dir=self._tmp.name)
         f.write(content)
         f.close()
         return Path(f.name)

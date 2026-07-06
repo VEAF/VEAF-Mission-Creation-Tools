@@ -139,11 +139,7 @@ def test_assets_plain_information_uses_quoted_string():
 
 
 def test_ctld_enabled_generates_guard_and_initialize():
-    yaml_data: dict = {
-        "external_modules": {
-            "ctld": {"enabled": True, "hoverPickup": False, "slingLoad": True}
-        }
-    }
+    yaml_data: dict = {"external_modules": {"ctld": {"enabled": True, "hoverPickup": False, "slingLoad": True}}}
     lua = generate_config_lua(yaml_data)
     assert "if ctld then" in lua
     assert "ctld.hoverPickup = false" in lua
@@ -176,11 +172,7 @@ def test_ctld_missing_emits_nothing():
 
 
 def test_csar_enabled_generates_guard_and_initialize():
-    yaml_data: dict = {
-        "external_modules": {
-            "csar": {"enabled": True, "enableAllslots": True, "useprefix": True}
-        }
-    }
+    yaml_data: dict = {"external_modules": {"csar": {"enabled": True, "enableAllslots": True, "useprefix": True}}}
     lua = generate_config_lua(yaml_data)
     assert "if csar then" in lua
     assert "csar.enableAllslots = true" in lua
@@ -291,14 +283,14 @@ def test_mandatory_module_no_enable_in_yaml_template():
         assert uncommented, f"{mandatory} must appear uncommented in the template"
         assert not any("enable:" in ln for ln in uncommented), f"{mandatory} must not have 'enable:'"
         # Mandatory modules must be emitted as bare null: "  KEY:" with nothing after the colon
-        assert any(
-            ln.strip() == f"{mandatory}:" for ln in uncommented
-        ), f"{mandatory} must be emitted as bare null 'key:'"
+        assert any(ln.strip() == f"{mandatory}:" for ln in uncommented), (
+            f"{mandatory} must be emitted as bare null 'key:'"
+        )
 
     # Non-mandatory enabled module (no extra config) must use shorthand `: true`
-    assert any(
-        ln.strip() == "RADIO: true" and not ln.startswith("#") for ln in lines
-    ), "RADIO (non-mandatory) must produce a 'RADIO: true' shorthand line"
+    assert any(ln.strip() == "RADIO: true" and not ln.startswith("#") for ln in lines), (
+        "RADIO (non-mandatory) must produce a 'RADIO: true' shorthand line"
+    )
 
 
 def test_non_mandatory_disabled_no_error(caplog):

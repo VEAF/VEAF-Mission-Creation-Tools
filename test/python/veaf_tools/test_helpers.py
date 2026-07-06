@@ -79,8 +79,10 @@ class TestIsDoubleClicked(unittest.TestCase):
                 raise ImportError
             return real_import(name, *args, **kwargs)
 
-        with patch.object(sys.stdout, "isatty", return_value=True), patch("sys.platform", "win32"), patch(
-            "builtins.__import__", side_effect=mock_import
+        with (
+            patch.object(sys.stdout, "isatty", return_value=True),
+            patch("sys.platform", "win32"),
+            patch("builtins.__import__", side_effect=mock_import),
         ):
             # Should not raise; result doesn't matter (ctypes unavailable)
             try:

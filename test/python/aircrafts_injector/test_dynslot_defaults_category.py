@@ -27,7 +27,11 @@ _CATEGORY_TO_BUCKET = {"Plane": "airplanes", "Helicopter": "helicopters"}
 
 
 def _type_to_bucket() -> dict[str, str]:
-    return {u.type_id: _CATEGORY_TO_BUCKET[u.category] for u in parse_dcs_units(_DCS_UNITS) if u.category in _CATEGORY_TO_BUCKET}
+    return {
+        u.type_id: _CATEGORY_TO_BUCKET[u.category]
+        for u in parse_dcs_units(_DCS_UNITS)
+        if u.category in _CATEGORY_TO_BUCKET
+    }
 
 
 def _iter_groups(data: dict):

@@ -72,17 +72,13 @@ class TestPromoteMissionToV6(unittest.TestCase):
         backup = self.folder / "backup_v5" / "src" / "mission" / "mission"
         self.assertTrue(backup.exists())
         self.assertEqual(backup.read_text(encoding="utf-8"), "v5 content")
-        self.assertEqual(
-            (self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v6 content"
-        )
+        self.assertEqual((self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v6 content")
         mock_builder_cls.assert_called_once()
         mock_extractor_cls.assert_called_once()
 
     @patch("mission_extractor.MissionExtractorWorker")
     @patch("mission_builder.mission_promoter.MissionBuilderWorker")
-    def test_build_failure_is_non_blocking(
-        self, mock_builder_cls: MagicMock, mock_extractor_cls: MagicMock
-    ) -> None:
+    def test_build_failure_is_non_blocking(self, mock_builder_cls: MagicMock, mock_extractor_cls: MagicMock) -> None:
         """A base-build failure leaves src/mission untouched and never extracts."""
         failing = MagicMock()
         failing.work.side_effect = RuntimeError("build boom")
@@ -93,17 +89,13 @@ class TestPromoteMissionToV6(unittest.TestCase):
         self.assertFalse(result.promoted)
         self.assertTrue(result.reason)
         # src/mission is untouched and no backup was taken.
-        self.assertEqual(
-            (self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v5 content"
-        )
+        self.assertEqual((self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v5 content")
         self.assertFalse((self.folder / "backup_v5").exists())
         mock_extractor_cls.assert_not_called()
 
     @patch("mission_extractor.MissionExtractorWorker")
     @patch("mission_builder.mission_promoter.MissionBuilderWorker", side_effect=_builder_factory)
-    def test_extract_failure_restores_backup(
-        self, mock_builder_cls: MagicMock, mock_extractor_cls: MagicMock
-    ) -> None:
+    def test_extract_failure_restores_backup(self, mock_builder_cls: MagicMock, mock_extractor_cls: MagicMock) -> None:
         """An extract failure restores src/mission from the backup."""
         failing = MagicMock()
         failing.work.side_effect = RuntimeError("extract boom")
@@ -114,9 +106,7 @@ class TestPromoteMissionToV6(unittest.TestCase):
         self.assertFalse(result.promoted)
         self.assertTrue(result.reason)
         # src/mission restored to its original v5 content from backup_v5/.
-        self.assertEqual(
-            (self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v5 content"
-        )
+        self.assertEqual((self.folder / "src" / "mission" / "mission").read_text(encoding="utf-8"), "v5 content")
         self.assertIsNotNone(result.backup_path)
 
 

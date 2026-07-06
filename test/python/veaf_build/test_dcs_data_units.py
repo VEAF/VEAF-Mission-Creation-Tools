@@ -12,7 +12,9 @@ from veaf_build.dcs_data import units_lua as L
 # A minimal datamine unit file (top-level fields are single-tab indented).
 _PLANE = '\t["#Index"] = {\n\ttype = "A-10A",\n\tDisplayName = "A-10A Warthog",\n\tattribute = { "Redacted", "Air", "Planes" },\n}\n'
 _SHIP = '\ttype = "ALBATROS",\n\tDisplayName = "Albatros",\n\tattribute = { "Naval", "Ships" },\n'
-_INFANTRY = '\ttype = "Soldier M4",\n\tDisplayName = "Soldier M4",\n\tcategory = "Infantry",\n\tattribute = { "Infantry" },\n'
+_INFANTRY = (
+    '\ttype = "Soldier M4",\n\tDisplayName = "Soldier M4",\n\tcategory = "Infantry",\n\tattribute = { "Infantry" },\n'
+)
 _TANK = '\ttype = "M-1 Abrams",\n\tName = "M1A2 Abrams",\n\tcategory = "Armor",\n\tattribute = { "Vehicles", "Ground vehicles" },\n'
 _TRAIN = '\ttype = "Locomotive",\n\tDisplayName = "Loco",\n\tcategory = "Locomotive",\n\tattribute = { "RailwayUnits", "GroundUnits" },\n'
 _FORT = '\ttype = "Oil platform",\n\tDisplayName = "Oil platform",\n\tcategory = "Fortification",\n\tattribute = { },\n'
@@ -71,7 +73,7 @@ class TestParseUnitFile:
         assert e is not None and e.kind == "static"
 
     def test_no_type_returns_none(self) -> None:
-        assert U.parse_unit_file("\tDisplayName = \"x\"\n", "Planes") is None
+        assert U.parse_unit_file('\tDisplayName = "x"\n', "Planes") is None
 
 
 class TestCarriedUnits:

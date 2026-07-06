@@ -139,7 +139,11 @@ class TestPerAirportOverride:
         a24 = m.warehouses_content["airports"][24]["aircrafts"]
         assert a24["helicopters"]["UH-1H"]["unlimited"] is True  # from defaults
         assert a24["planes"]["Yak-52"]["initialAmount"] == 5  # from override
-        assert 23 not in [k for k in m.warehouses_content["airports"] if m.warehouses_content["airports"][k]["dynamicSpawn"] and k == 23]
+        assert 23 not in [
+            k
+            for k in m.warehouses_content["airports"]
+            if m.warehouses_content["airports"][k]["dynamicSpawn"] and k == 23
+        ]
 
 
 class TestCategoryNesting:

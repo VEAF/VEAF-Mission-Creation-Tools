@@ -10,7 +10,7 @@ class TestExtractCtldCsar:
         self.m = ConfigMigrator()
 
     def test_ctld_scalar_settings_extracted(self) -> None:
-        content = "ctld.hoverPickup = true\nctld.maximumDistanceLimit = 200\nctld.unitLoadList = \"foo\"\n"
+        content = 'ctld.hoverPickup = true\nctld.maximumDistanceLimit = 200\nctld.unitLoadList = "foo"\n'
         result = MigrationResult(new_content="")
         self.m._extract_ctld_csar(content, result)
         assert result.ctld_config == {

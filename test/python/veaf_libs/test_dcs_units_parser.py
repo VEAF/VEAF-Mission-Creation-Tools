@@ -93,9 +93,7 @@ def test_generate_doc_writes_file(tmp_path: Path) -> None:
 
 def test_committed_yaml_parses() -> None:
     """The real committed dcsUnits.yaml parses into a substantial unit list."""
-    yaml_path = (
-        Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "data" / "dcsUnits.yaml"
-    )
+    yaml_path = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "data" / "dcsUnits.yaml"
     units = parse_dcs_units(yaml_path)
     assert len(units) > 600
     assert all(u.type_id for u in units)

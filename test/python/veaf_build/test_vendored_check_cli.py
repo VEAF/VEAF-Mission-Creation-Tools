@@ -6,8 +6,9 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from veaf_build import vendored_check_cli as cli
 from veaf_libs.vendored_check import Artifact, CheckReport, Watch, WatchResult
+
+from veaf_build import vendored_check_cli as cli
 
 _ARTIFACTS = (
     Artifact(

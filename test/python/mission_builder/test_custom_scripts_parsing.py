@@ -26,9 +26,7 @@ def _make_worker_from_yaml(yaml_dict: dict) -> MissionBuilderWorker:
             else:
                 path = str(script_item)
                 per_script_trigger = None
-            worker.custom_scripts.append(
-                CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger)
-            )
+            worker.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
     return worker
 
 
@@ -102,7 +100,6 @@ class TestCustomScriptsParsing(unittest.TestCase):
         self.assertTrue(worker.custom_scripts_generate_load_trigger)
 
 
-
 class TestCustomScriptsParsingIntegration(unittest.TestCase):
     """Integration tests: parse custom_scripts via the real MissionBuilderWorker.__init__."""
 
@@ -119,9 +116,7 @@ class TestCustomScriptsParsingIntegration(unittest.TestCase):
 
     def test_init_parses_global_trigger_false(self) -> None:
         """__init__ correctly sets custom_scripts_generate_load_trigger to False."""
-        worker = self._make_real_worker(
-            "custom_scripts:\n  generate_load_trigger: false\n  scripts: []\n"
-        )
+        worker = self._make_real_worker("custom_scripts:\n  generate_load_trigger: false\n  scripts: []\n")
         self.assertFalse(worker.custom_scripts_generate_load_trigger)
 
     def test_init_parses_scripts_basenames_and_per_script_override(self) -> None:

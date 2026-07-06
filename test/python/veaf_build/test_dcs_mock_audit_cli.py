@@ -6,8 +6,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from veaf_build import dcs_mock_audit_cli as cli
 from veaf_libs.dcs_mock_audit import AuditResult
+
+from veaf_build import dcs_mock_audit_cli as cli
 
 _GAP = AuditResult(missing=("coalition.addGroup",), unknown=("trigger.action.x",), unused=("land.getHeight",))
 _CLEAN = AuditResult(missing=(), unknown=(), unused=())

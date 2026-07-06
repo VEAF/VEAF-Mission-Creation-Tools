@@ -8,7 +8,6 @@ and the Windows fallback (no Unix asset; `.exe` binary names).
 from __future__ import annotations
 
 import pytest
-
 from veaf_libs import platform_assets as pa
 
 

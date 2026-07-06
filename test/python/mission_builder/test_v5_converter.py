@@ -553,7 +553,6 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertIn("NorthQRA", yaml_content)
             # Output round-trips through the unified-schema normalizer
             import yaml as _yaml
-
             from mission_builder.mission_builder_worker import _normalize_mission_yaml
 
             normalized = _normalize_mission_yaml(_yaml.safe_load(yaml_content))
@@ -575,7 +574,6 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertIn("hoverPickup: true", yaml_content)
 
             import yaml as _yaml
-
             from mission_builder.mission_builder_worker import _normalize_mission_yaml
 
             normalized = _normalize_mission_yaml(_yaml.safe_load(yaml_content))
@@ -621,10 +619,12 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertIn("modules:", yaml_content)
             # All community script IDs must appear with ": false" (no community folder → none detected)
             from mission_tools.mission_constants import get_community_script_files
+
             for script in get_community_script_files():
                 sid = script["id"].upper()
                 self.assertIn(f"  {sid}: false", yaml_content)
                 self.assertNotIn(f"  {sid}: true", yaml_content)
+
     def test_mission_yaml_global_log_level_defaults_to_info(self) -> None:
         """When no global_log_level is found in missionConfig, generated yaml uses 'info' not 'debug'."""
         with tempfile.TemporaryDirectory() as td:
@@ -632,7 +632,14 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, "-- no log level here\n")
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            log_line = next((l for l in yaml_content.splitlines() if "global_log_level" in l and not l.strip().startswith("#")), None)
+            log_line = next(
+                (
+                    line
+                    for line in yaml_content.splitlines()
+                    if "global_log_level" in line and not line.strip().startswith("#")
+                ),
+                None,
+            )
             self.assertIsNotNone(log_line)
             self.assertEqual(log_line.strip(), "global_log_level: info")
 

@@ -19,8 +19,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from mission_tools import DcsMission
-from mission_tools import Group
+from mission_tools import DcsMission, Group
 from warehouses_injector.warehouses_injector_worker import apply_warehouses
 from waypoints_injector.waypoints_injector_worker import WaypointsInjectorWorker
 from waypoints_injector.waypoints_manager import WaypointDefinition

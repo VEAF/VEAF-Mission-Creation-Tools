@@ -6,7 +6,6 @@ import zipfile
 from pathlib import Path
 
 from mission_tools.miz_tools import DcsMission, read_miz
-
 from spawn_data_injector import SpawnDataInjectorWorker, inject_spawn_data, merge_spawn_data
 from spawn_data_injector.spawn_data_injector_worker import _MAP_KEY, _RESOURCE_FILENAME
 
@@ -149,12 +148,8 @@ class TestWorkerEndToEnd:
     def test_per_mission_override(self, tmp_path: Path) -> None:
         miz = _make_miz(tmp_path)
         mission_yaml = tmp_path / "spawn-groups.yaml"
-        mission_yaml.write_text(
-            "units:\n  - {aliases: [shilka], unitType: CUSTOM_SHILKA}\n", encoding="utf-8"
-        )
-        SpawnDataInjectorWorker(
-            input_mission=miz, output_mission=miz, mission_data_file=mission_yaml
-        ).work()
+        mission_yaml.write_text("units:\n  - {aliases: [shilka], unitType: CUSTOM_SHILKA}\n", encoding="utf-8")
+        SpawnDataInjectorWorker(input_mission=miz, output_mission=miz, mission_data_file=mission_yaml).work()
         with zipfile.ZipFile(miz) as zf:
             lua = zf.read(_RESOURCE_ARCNAME).decode("utf-8")
         assert "CUSTOM_SHILKA" in lua

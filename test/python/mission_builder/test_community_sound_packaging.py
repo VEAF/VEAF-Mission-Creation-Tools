@@ -54,7 +54,9 @@ class TestCommunitySoundPackaging(unittest.TestCase):
         """CTLD off, CSAR on → CSAR's sounds (beacon.ogg + CSAR.ogg) collected, CTLD-only beaconsilent excluded."""
         self._write_sounds("beacon.ogg", "beaconsilent.ogg", "CSAR.ogg")
         worker = self._worker("community_scripts:\n  ctld: {enabled: false}\n")
-        self.assertEqual({Path(k).name for k in worker.get_collected_community_sound_files()}, {"beacon.ogg", "CSAR.ogg"})
+        self.assertEqual(
+            {Path(k).name for k in worker.get_collected_community_sound_files()}, {"beacon.ogg", "CSAR.ogg"}
+        )
 
     def test_ctld_only_excludes_csar_sound(self) -> None:
         """CSAR off, CTLD on → CTLD's available sounds collected, CSAR.ogg excluded."""

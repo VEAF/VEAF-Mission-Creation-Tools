@@ -412,7 +412,12 @@ def update_dcs_data(
     airdromes: bool = typer.Option(
         False, "--airdromes", help="Regenerate the airdrome name->id table (needs --dcs-path)."
     ),
-    dcs_path: str | None = typer.Option(None, "--dcs-path", help="Path to a DCS World install (for --airdromes)."),
+    airfield_freqs: bool = typer.Option(
+        False, "--airfield-freqs", help="Regenerate the airfield ATC-frequency table (needs --dcs-path)."
+    ),
+    dcs_path: str | None = typer.Option(
+        None, "--dcs-path", help="Path to a DCS World install (for --airdromes / --airfield-freqs)."
+    ),
     all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
 ) -> None:
     """Regenerate the DCS reference data committed in this repository.
@@ -421,15 +426,15 @@ def update_dcs_data(
     dump at the pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the
     output is reproducible and CI fails if a committed artifact drifts. With no
     flag, every pure datamine artifact (countries, units) is regenerated; radio
-    (manual overlays) and airdromes (install-dependent) are excluded from --all
-    and must be requested explicitly.
+    (manual overlays) and airdromes / airfield-freqs (install-dependent) are
+    excluded from --all and must be requested explicitly.
     """
     from veaf_build.dcs_data import countries as countries_provider
     from veaf_build.dcs_data import units as units_provider
     from veaf_build.dcs_data import units_lua
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
-    run_all = all_data or not (countries or units or radio or airdromes)
+    run_all = all_data or not (countries or units or radio or airdromes or airfield_freqs)
     ref_short = DATAMINE_REF[:8]
 
     if airdromes:
@@ -442,6 +447,18 @@ def update_dcs_data(
 
         console.print(f"[cyan]Generating airdrome table from {dcs_path}...[/cyan]")
         count = airdromes_provider.generate(Path(dcs_path))
+        console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
+
+    if airfield_freqs:
+        if not dcs_path:
+            console.print("[red]--airfield-freqs requires --dcs-path <DCS World install>[/red]")
+            raise typer.Exit(code=1)
+        from pathlib import Path
+
+        from veaf_build.dcs_data import airfield_freqs as airfield_freqs_provider
+
+        console.print(f"[cyan]Generating airfield ATC-frequency table from {dcs_path}...[/cyan]")
+        count = airfield_freqs_provider.generate(Path(dcs_path))
         console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
 
     if run_all or countries:

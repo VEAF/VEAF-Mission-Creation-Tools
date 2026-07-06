@@ -1,6 +1,6 @@
 # 01 — Radio.lua parser → airfield-frequencies.yaml
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Context

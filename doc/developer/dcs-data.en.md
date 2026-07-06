@@ -32,8 +32,9 @@ veaf-build update-dcs-data --radio
 veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
 ```
 
-`--radio` and `--airdromes` are excluded from the no-flag / `--all` run: radio has
-manual overlays, and airdromes need a local DCS install path.
+`--radio`, `--airdromes` and `--airfield-freqs` are excluded from the no-flag /
+`--all` run: radio has manual overlays, and airdromes / airfield-freqs need a local
+DCS install path.
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -174,3 +175,19 @@ veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynami
 `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Caveats:
 the table only covers **installed** theatres, and beacon-less maps (e.g. Normandy,
 WW2) yield no entries — callers fall back to ids. Resolution is case-insensitive.
+
+## The airfield-frequency table
+
+`src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml` maps, **per theatre**,
+an airfield name to its **ATC frequencies** (`uhf`, `vhf`, `fm`, in MHz). It lets
+`convert-v5` replace hardcoded preset frequencies with readable aliases (e.g. `Gudauta`).
+
+Like the airdrome table it is **install-dependent** (source:
+`Mods/terrains/<Theatre>/Radio.lua`, the `frequency` block — `UHF`→`uhf`,
+`VHF_HI`→`vhf`, `VHF_LOW`→`fm`, HF dropped) and **not CI-guarded**:
+
+```bash
+veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+It only covers **installed** theatres.

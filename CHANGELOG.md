@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **DCS airfield ATC frequencies datamined per theatre** (FEAT-AIRFIELD-FREQS-DATA, lot 2/3 of the convert-v5 preset-aliasing plan). `veaf-build update-dcs-data --airfield-freqs --dcs-path <DCS>` parses each installed `Mods/terrains/<Theatre>/Radio.lua` into a bundled, versioned `veaf_libs/data/airfield-frequencies.yaml` (`theatre → airfield → {uhf, vhf, fm}` in MHz; `UHF→uhf`, `VHF_HI→vhf`, `VHF_LOW→fm`, HF dropped). Data source for the upcoming freq→airfield alias reverse-lookup (FEAT-CONVERTV5-FREQ-ALIASING); no user-facing behaviour change yet. Install-dependent, so excluded from `--all` and not CI-guarded.
 - **`pipeline.presets` can disable kneeboard generation while keeping radio injection** (FEAT-PRESETS-KNEEBOARD-TOGGLE). `pipeline.presets` now accepts a mapping in addition to the scalar bool: `presets: {enabled: true, kneeboards: false}` injects radio presets into every human-piloted aircraft but generates **no** `KNEEBOARD/IMAGES/presets-*.png`. The scalar form is unchanged (`presets: true` = inject + kneeboards, `presets: false` = whole step off). Reported by Tripack.
 
 ### Changed

@@ -405,6 +405,7 @@ function dcs_mocks.addGroup(name, data)
   g.name = name
   g.isExist   = g.isExist   ~= nil and g.isExist   or function() return true  end
   g.getName   = g.getName   or function() return name end
+  g.getID     = g.getID     or function() return g._id or 1 end
   g.getUnits  = g.getUnits  or function() return {}   end
   g.destroy   = g.destroy   or function() end
   _group_registry[name] = g

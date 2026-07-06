@@ -485,6 +485,15 @@ def _emit_module_body(
                 lines.append(f"    VeafQRA.ToggleAllSilence({'true' if silence_all else 'false'})")
             for qra_def in qra_section.get("definitions") or []:
                 lines.extend(_emit_qra_definition(qra_def, indent="    "))
+                if qra_def.get("radio_menu"):
+                    lines.extend(
+                        _emit_module_radio_menu(
+                            qra_def.get("name", ""),
+                            "qra",
+                            ["start", "stop"],
+                            qra_def.get("radio_menu_restrict_to_group"),
+                        )
+                    )
 
     elif mod_id == "COMBATMISSION":
         lines.append(f"    {var_name}.initialize()")
@@ -582,11 +591,27 @@ def _emit_module_body(
         airwave_zones: list = mod_cfg.get("airwave_zones") or []
         for zone in airwave_zones:
             lines.extend(_emit_airwave_zone(zone, indent="    "))
+            if zone.get("radio_menu"):
+                lines.extend(
+                    _emit_module_radio_menu(
+                        zone.get("name", ""),
+                        "airwave",
+                        ["start", "stop", "reset"],
+                        zone.get("radio_menu_restrict_to_group"),
+                    )
+                )
         # No global initialize() — AirWaves is "use by construction"
 
     else:
         if mod_id not in _NO_INIT_MODULES:
             lines.append(f"    {var_name}.initialize()")
+
+    # Mechanism 2 (FEAT-RADIO-YAML-MENUS): RADIO user menus, appended after the
+    # module's own initialize() so veafRadio is ready.
+    if mod_id == "RADIO":
+        user_menus = mod_cfg.get("user_menus")
+        if user_menus:
+            lines.extend(_emit_user_menus(user_menus))
 
 
 def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -> list[str]:
@@ -771,6 +796,161 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
 
     lines.append(f"{indent}    :start()")
     return lines
+
+
+# ---------------------------------------------------------------------------
+# YAML-declared radio menus (FEAT-RADIO-YAML-MENUS, ADR 0011)
+# ---------------------------------------------------------------------------
+
+#: Closed action vocabulary for YAML-declared radio-menu commands. Maps an action
+#: name to the tuple of item keys it requires. ``lua`` references a maker function
+#: (verified at build time elsewhere). Consumed by both the generator and the
+#: schema validator so the two never drift.
+RADIO_MENU_ACTIONS: dict[str, tuple[str, ...]] = {
+    "qra.start": ("qra",),
+    "qra.stop": ("qra",),
+    "airwave.start": ("airwave",),
+    "airwave.stop": ("airwave",),
+    "airwave.reset": ("airwave",),
+    "flag.on": ("flag",),
+    "flag.off": ("flag",),
+    "flag.set": ("flag", "value"),
+    "flag.increment": ("flag",),
+    "flag.decrement": ("flag",),
+    "message": ("text",),
+    "lua": ("function",),
+}
+
+
+def _emit_action_call(item: dict) -> str:
+    """Return the Lua for a command's function argument (plus optional params).
+
+    This is everything after the label inside ``veafRadio.command("label", …)``:
+    a self-contained closure for the vocabulary actions, or a maker function
+    reference followed by its parameters for the ``lua`` action.
+
+    Args:
+        item: A command node, e.g. ``{"command": "…", "action": "flag.on", "flag": "a"}``.
+
+    Returns:
+        A Lua expression string.
+
+    Raises:
+        ValueError: If the action is unknown or a required target key is missing.
+    """
+    action = item.get("action")
+    if action not in RADIO_MENU_ACTIONS:
+        raise ValueError(f"unknown radio-menu action: {action!r}")
+    for key in RADIO_MENU_ACTIONS[action]:
+        if item.get(key) is None:
+            raise ValueError(f"radio-menu action {action!r} requires '{key}'")
+
+    if action == "lua":
+        fn = str(item["function"])
+        args = item.get("args")
+        if not args:
+            return fn
+        args_lua = ", ".join(_to_lua_scalar(a) for a in args)
+        return f"{fn}, {{{args_lua}}}"
+
+    if action in ("qra.start", "qra.stop"):
+        method = action.split(".", 1)[1]
+        name = _to_lua_scalar(item["qra"])
+        return f"function() local o = veafQraManager.get({name}); if o then o:{method}() end end"
+
+    if action in ("airwave.start", "airwave.stop", "airwave.reset"):
+        method = action.split(".", 1)[1]
+        name = _to_lua_scalar(item["airwave"])
+        return f"function() local o = veafAirWaves.get({name}); if o then o:{method}() end end"
+
+    if action in ("flag.on", "flag.off", "flag.set"):
+        value = {"flag.on": 1, "flag.off": 0}[action] if action != "flag.set" else item["value"]
+        flag = _to_lua_scalar(item["flag"])
+        return f"function() veafSpawn.missionMasterSetFlag({flag}, {_to_lua_scalar(value)}) end"
+
+    if action in ("flag.increment", "flag.decrement"):
+        inc = 1 if action == "flag.increment" else -1
+        flag = _to_lua_scalar(item["flag"])
+        return f"function() veafSpawn.missionMasterAddValueToFlag({flag}, {inc}) end"
+
+    # message
+    text = _emit_lua_string(str(item["text"]))
+    return f"function() trigger.action.outText({text}, 15) end"
+
+
+def _emit_menu_node(node: dict, indent: str) -> list[str]:
+    """Recursively emit one ``menu`` or ``command`` node as Lua lines (no trailing comma)."""
+    if "menu" in node:
+        items = node.get("items") or []
+        if not items:
+            return [f'{indent}veafRadio.menu("{node["menu"]}")']
+        lines = [f'{indent}veafRadio.menu("{node["menu"]}",']
+        for i, child in enumerate(items):
+            child_lines = _emit_menu_node(child, indent + "    ")
+            if i < len(items) - 1:
+                child_lines[-1] += ","
+            lines.extend(child_lines)
+        lines.append(f"{indent})")
+        return lines
+    call = _emit_action_call(node)
+    return [f'{indent}veafRadio.command("{node.get("command", "")}", {call})']
+
+
+def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
+    """Emit a ``veafRadio.createUserMenu(...)`` call from a ``user_menus`` block.
+
+    Args:
+        user_menus: A ``{tree: [...], restrict_to_group?: "<name>"}`` mapping.
+        indent: Leading indentation for the top-level call.
+
+    Returns:
+        The generated Lua lines. When ``restrict_to_group`` is set, its DCS group
+        name is passed as the second argument (resolved to a group id at runtime).
+    """
+    tree = user_menus.get("tree") or []
+    group = user_menus.get("restrict_to_group")
+    lines = [f"{indent}veafRadio.createUserMenu(", f"{indent}    veafRadio.mainmenu("]
+    for i, node in enumerate(tree):
+        node_lines = _emit_menu_node(node, indent + "        ")
+        if i < len(tree) - 1:
+            node_lines[-1] += ","
+        lines.extend(node_lines)
+    if group:
+        lines.append(f"{indent}    ),")
+        lines.append(f'{indent}    "{group}"')
+    else:
+        lines.append(f"{indent}    )")
+    lines.append(f"{indent})")
+    return lines
+
+
+def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group: str | None) -> list[str]:
+    """Emit the per-module ``radio_menu`` shortcut (mechanism 1) for QRA / AirWaves.
+
+    Builds a single submenu named after the object, holding one command per verb
+    (``start``/``stop``/``reset``), then delegates to :func:`_emit_user_menus`.
+
+    Args:
+        name: The object name (QRA / AirWave), used as submenu title and action target.
+        target_key: The action target key — ``"qra"`` or ``"airwave"``.
+        verbs: The verbs to expose, e.g. ``["start", "stop"]``.
+        group: Optional DCS group name the menu is restricted to.
+
+    Returns:
+        The generated Lua lines.
+    """
+    items = [
+        {
+            "command": t(f"generated.radio_menu.{verb}", name=name),
+            "action": f"{target_key}.{verb}",
+            target_key: name,
+        }
+        for verb in verbs
+    ]
+    user_menus: dict = {"tree": [{"menu": name, "items": items}]}
+    if group:
+        user_menus["restrict_to_group"] = group
+    return _emit_user_menus(user_menus, indent="    ")
 
 
 def _emit_combat_mission(cm: dict, var_name: str, indent: str = "    ") -> list[str]:

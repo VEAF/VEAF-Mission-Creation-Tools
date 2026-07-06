@@ -823,6 +823,19 @@ end
 function veafRadio.createUserMenu(configuration, groupId)
   veaf.loggers.get(veafRadio.Id):debug("veafRadio.createUserMenu(groupId=%s, configuration=%s)", veaf.lp(groupId), veaf.lp(configuration))
 
+  -- Accept a DCS group NAME (string) as well as a numeric group id. YAML-declared
+  -- menus reference the Mission Master group by name (ADR 0011); resolve it to an
+  -- id here. An unknown name falls back to a global menu (logged, not fatal).
+  if type(groupId) == "string" then
+    local group = Group.getByName(groupId)
+    if group then
+      groupId = group:getID()
+    else
+      veaf.loggers.get(veafRadio.Id):warn("createUserMenu: no group named %s, menu will be global", veaf.p(groupId))
+      groupId = nil
+    end
+  end
+
   local function _recursivelyCreateMenu(configuration, parentMenu)
     veaf.loggers
       .get(veafRadio.Id)

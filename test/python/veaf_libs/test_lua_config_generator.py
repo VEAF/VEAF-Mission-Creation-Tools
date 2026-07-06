@@ -8,8 +8,12 @@ import pytest
 import typer
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
+    RADIO_MENU_ACTIONS,
+    _emit_action_call,
     _emit_airwave_zone,
     _emit_lua_string,
+    _emit_module_radio_menu,
+    _emit_user_menus,
     _resolve_deps,
     generate_config_lua,
     generate_mission_yaml_template,
@@ -561,3 +565,155 @@ def test_combatzone_active_at_start_emits_activatezone_after_initialize():
     assert 'veafCombatZone.ActivateZone("OUTPOST_2"' not in lua
     # Activation must come AFTER initialize() (zones must be registered first).
     assert lua.index("veafCombatZone.initialize()") < lua.index('veafCombatZone.ActivateZone("OUTPOST_1", true)')
+
+
+# ---------------------------------------------------------------------------
+# YAML-declared radio menus (FEAT-RADIO-YAML-MENUS, ADR 0011)
+# ---------------------------------------------------------------------------
+
+
+def test_action_flag_on_off_set():
+    assert 'veafSpawn.missionMasterSetFlag("alpha", 1)' in _emit_action_call({"action": "flag.on", "flag": "alpha"})
+    assert 'veafSpawn.missionMasterSetFlag("alpha", 0)' in _emit_action_call({"action": "flag.off", "flag": "alpha"})
+    assert 'veafSpawn.missionMasterSetFlag("alpha", 5)' in _emit_action_call(
+        {"action": "flag.set", "flag": "alpha", "value": 5}
+    )
+
+
+def test_action_flag_increment_decrement():
+    assert 'veafSpawn.missionMasterAddValueToFlag("score", 1)' in _emit_action_call(
+        {"action": "flag.increment", "flag": "score"}
+    )
+    assert 'veafSpawn.missionMasterAddValueToFlag("score", -1)' in _emit_action_call(
+        {"action": "flag.decrement", "flag": "score"}
+    )
+
+
+def test_action_flag_numeric_name_stays_number():
+    # A numeric flag id must not be quoted.
+    assert "veafSpawn.missionMasterSetFlag(10, 1)" in _emit_action_call({"action": "flag.on", "flag": 10})
+
+
+def test_action_message_uses_outtext():
+    call = _emit_action_call({"action": "message", "text": "Go!"})
+    assert "trigger.action.outText(" in call
+    assert "Go!" in call
+
+
+def test_action_qra_start_stop_guarded():
+    start = _emit_action_call({"action": "qra.start", "qra": "QRA-Nord"})
+    assert 'veafQraManager.get("QRA-Nord")' in start
+    assert "if o then o:start() end" in start
+    stop = _emit_action_call({"action": "qra.stop", "qra": "QRA-Nord"})
+    assert "o:stop()" in stop
+
+
+def test_action_airwave_verbs_guarded():
+    for verb in ("start", "stop", "reset"):
+        call = _emit_action_call({"action": f"airwave.{verb}", "airwave": "Wave-Est"})
+        assert 'veafAirWaves.get("Wave-Est")' in call
+        assert f"o:{verb}()" in call
+
+
+def test_action_lua_reference_without_args():
+    assert _emit_action_call({"action": "lua", "function": "maMission.doStuff"}) == "maMission.doStuff"
+
+
+def test_action_lua_reference_with_args():
+    call = _emit_action_call({"action": "lua", "function": "maMission.doStuff", "args": [1, "x"]})
+    assert call == 'maMission.doStuff, {1, "x"}'
+
+
+def test_action_unknown_raises():
+    with pytest.raises(ValueError):
+        _emit_action_call({"action": "does.not.exist"})
+
+
+def test_action_missing_target_raises():
+    with pytest.raises(ValueError):
+        _emit_action_call({"action": "flag.set", "flag": "a"})  # missing value
+    with pytest.raises(ValueError):
+        _emit_action_call({"action": "qra.start"})  # missing qra
+
+
+def test_vocabulary_is_closed():
+    # Guardrail: the documented v1 vocabulary, nothing more.
+    assert set(RADIO_MENU_ACTIONS) == {
+        "qra.start",
+        "qra.stop",
+        "airwave.start",
+        "airwave.stop",
+        "airwave.reset",
+        "flag.on",
+        "flag.off",
+        "flag.set",
+        "flag.increment",
+        "flag.decrement",
+        "message",
+        "lua",
+    }
+
+
+def test_user_menus_basic_structure():
+    user_menus = {
+        "tree": [
+            {
+                "menu": "Drapeaux",
+                "items": [{"command": "Activer ALPHA", "action": "flag.on", "flag": "alpha"}],
+            }
+        ]
+    }
+    lua = "\n".join(_emit_user_menus(user_menus))
+    assert "veafRadio.createUserMenu(" in lua
+    assert "veafRadio.mainmenu(" in lua
+    assert 'veafRadio.menu("Drapeaux",' in lua
+    assert 'veafRadio.command("Activer ALPHA",' in lua
+
+
+def test_user_menus_restrict_to_group_passes_name():
+    user_menus = {
+        "restrict_to_group": "MM Ctrl",
+        "tree": [{"command": "Ping", "action": "message", "text": "hi"}],
+    }
+    lua = "\n".join(_emit_user_menus(user_menus))
+    # The group name is passed as createUserMenu's second argument.
+    assert '"MM Ctrl"' in lua
+    assert lua.rstrip().endswith(")")
+
+
+def test_module_radio_menu_shortcut_qra():
+    lua = "\n".join(_emit_module_radio_menu("QRA-Nord", "qra", ["start", "stop"], None))
+    assert 'veafRadio.menu("QRA-Nord",' in lua
+    assert 'veafQraManager.get("QRA-Nord")' in lua
+    assert "o:start()" in lua
+    assert "o:stop()" in lua
+
+
+def test_generate_qra_radio_menu_shortcut():
+    yaml_data: dict = {
+        "lua_modules": {"QRA": {}},
+        "qra": {"definitions": [{"name": "QRA-Nord", "coalition": "RED", "radio_menu": True}]},
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafRadio.createUserMenu(" in lua
+    assert 'veafQraManager.get("QRA-Nord")' in lua
+
+
+def test_generate_qra_without_radio_menu_emits_no_usermenu():
+    yaml_data: dict = {
+        "lua_modules": {"QRA": {}},
+        "qra": {"definitions": [{"name": "QRA-Nord", "coalition": "RED"}]},
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafRadio.createUserMenu(" not in lua
+
+
+def test_generate_radio_user_menus():
+    yaml_data: dict = {
+        "lua_modules": {
+            "RADIO": {"user_menus": {"tree": [{"command": "Activer ALPHA", "action": "flag.on", "flag": "alpha"}]}}
+        },
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafRadio.createUserMenu(" in lua
+    assert 'veafSpawn.missionMasterSetFlag("alpha", 1)' in lua

@@ -44,7 +44,9 @@ def _yaml_dump(data: Any, path: Path, header: str | None = None) -> None:
         data: The object to serialise.
         path: Destination file.
         header: Optional comment block written before the YAML body. Each line is
-            prefixed with ``# `` (blank lines become a bare ``#``).
+            prefixed with ``# `` (blank lines become a bare ``#``); the text itself
+            must **not** already start lines with ``#`` (they would be double-prefixed).
+            Callers pass localized, ``#``-free strings.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -997,7 +999,9 @@ _ROLES_BY_RADIO_NUM: dict[int, list[str]] = {
 }
 
 
-def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str, Any]]]) -> dict[str, Any]:
+def _build_channel_lists_for_coalition(
+    radios_data: dict[int, dict[int, dict[str, Any]]],
+) -> dict[str, dict[int, float]]:
     """Build one coalition's ``channel_lists`` role -> channels mapping (ADR 0010).
 
     Args:
@@ -1010,7 +1014,7 @@ def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str
         ``RadioDefinition`` plain-float shortcut), ready to nest under
         ``channel_lists.<coalition>`` in the output YAML.
     """
-    roles: dict[str, Any] = {}
+    roles: dict[str, dict[int, float]] = {}
     for radio_num, roles_for_radio in _ROLES_BY_RADIO_NUM.items():
         channels_data = radios_data.get(radio_num, {})
         role_channels: dict[int, float] = {}

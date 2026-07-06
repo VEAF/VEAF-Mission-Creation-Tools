@@ -75,8 +75,17 @@ class PresetsInjectorWorker(GroupInjectorWorker):
     Worker class that provides presets injection features.
     """
 
-    def __init__(self, presets_file: Path | None, input_mission: Path | None, output_mission: Path | None):
+    def __init__(
+        self,
+        presets_file: Path | None,
+        input_mission: Path | None,
+        output_mission: Path | None,
+        generate_kneeboards: bool = True,
+    ):
         self.presets_file = presets_file
+        # When False, radio presets are still injected but no kneeboard PNG is
+        # generated (FEAT-PRESETS-KNEEBOARD-TOGGLE / pipeline.presets.kneeboards).
+        self.generate_kneeboards = generate_kneeboards
         self.groups: dict[str, Group] = {}
         self.presets_manager: PresetsManager = PresetsManager()
         # Pending frequency warnings keyed by unit_type; aggregated before emission.
@@ -451,8 +460,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         with spinner_context(t("presets_injector.spinner.processing_groups"), silent=silent):
             self.process_groups(silent)
 
-        with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
-            self.presets_manager.generate_presets_images(width=1200, height=None)
+        if self.generate_kneeboards:
+            with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
+                self.presets_manager.generate_presets_images(width=1200, height=None)
 
         with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)

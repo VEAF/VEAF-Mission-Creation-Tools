@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.8.0] — 2026-07-06
+
 ### Added
 - **`convert-v5` writes readable channel aliases instead of hardcoded frequencies** (FEAT-CONVERTV5-FREQ-ALIASING, lot 3/3, extends ADR 0010). The build-loaded `presets.yaml` now shows named channels — airfields (`Gudauta`, from the theatre's datamined ATC frequencies) and generic VEAF conventions (`Guard`, `Archer`, `Texaco-1`…) — instead of raw MHz, via a `freq+band → alias` reverse-lookup, with the resolved `channels_collection` embedded so it builds identically. A frequency with no catalog match stays raw. The faithful copy `presets.v5.yaml` is left byte-identical (raw rollback reference). Also aliases DCS aircraft type names that differ from the specs key (`AH-64D` → `AH-64D_BLK_II`), so those aircraft are projected by the packer instead of remaining a manual override.
 - **DCS airfield ATC frequencies datamined per theatre** (FEAT-AIRFIELD-FREQS-DATA, lot 2/3 of the convert-v5 preset-aliasing plan). `veaf-build update-dcs-data --airfield-freqs --dcs-path <DCS>` parses each installed `Mods/terrains/<Theatre>/Radio.lua` into a bundled, versioned `veaf_libs/data/airfield-frequencies.yaml` (`theatre → airfield → {uhf, vhf, fm}` in MHz; `UHF→uhf`, `VHF_HI→vhf`, `VHF_LOW→fm`, HF dropped). Data source for the upcoming freq→airfield alias reverse-lookup (FEAT-CONVERTV5-FREQ-ALIASING); no user-facing behaviour change yet. Install-dependent, so excluded from `--all` and not CI-guarded.

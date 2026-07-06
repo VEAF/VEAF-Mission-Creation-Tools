@@ -52,6 +52,8 @@
   "validate.no_mission_yaml": "Aucun mission.yaml trouvé dans '{folder}'.",
   "validate.no_source_mission": "Table de mission source (src/mission/mission) introuvable — checks groupes / presets / waypoints / TUM ignorés.",
   "validate.custom_script_missing": "custom_scripts : le script déclaré '{path}' n'existe pas.",
+  "validate.radio_menu_unknown_action": "Menu radio : action inconnue '{action}' pour la commande '{command}'.",
+  "validate.radio_menu_missing_target": "Menu radio : l'action '{action}' de la commande '{command}' requiert le paramètre '{param}'.",
   "validate.incompatible_module": "modules : « {module} » est incompatible avec le profil de conversion « {profile} » et doit rester désactivé.",
   "builder.incompatible_modules": "Build impossible : le(s) module(s) {modules} sont incompatibles avec le profil de conversion « {profile} ». Désactivez-les dans mission.yaml.",
   "builder.stripped_native_triggers": "{count} trigger(s) natif(s) de chargement supprimé(s) (déclarés dans strip_native_triggers).",

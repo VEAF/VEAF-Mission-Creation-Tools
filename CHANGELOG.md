@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`convert-v5` still failed to convert radio presets in the real build** (FIX-VEAF-BUILD-RADIO-LAYOUT-DATA). FIX-PYINSTALLER-RADIO-LAYOUT-DATA fixed the wrong file: the root `veaf-tools.spec` isn't used by the actual build pipeline. `veaf_build/worker.py`'s `_veaf_tools_extra_data()` (which the `veaf-build` CLI actually calls) had the same gap — it bundled `dcs-radio-specs.yaml` but not `dcs-radio-layouts.yaml`. Added the missing entry, with a regression test on the extra-data list itself.
 - **`convert-v5` failed to convert radio presets in the built executable** (FIX-PYINSTALLER-RADIO-LAYOUT-DATA). `veaf-tools.spec` was missing `dcs-radio-layouts.yaml` from its PyInstaller `datas` — now the whole `presets_injector/data` folder is bundled, so future additions there won't be missed either.
 
 ### Added

@@ -452,6 +452,11 @@ class BuildAndReleaseWorker:
         radio_specs_yaml = self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-specs.yaml"
         if radio_specs_yaml.exists():
             extra.append((radio_specs_yaml, "presets_injector/data"))
+        radio_layouts_yaml = (
+            self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-layouts.yaml"
+        )
+        if radio_layouts_yaml.exists():
+            extra.append((radio_layouts_yaml, "presets_injector/data"))
         veaf_tools_dir = self.src_dir / "python" / "veaf-tools"
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.

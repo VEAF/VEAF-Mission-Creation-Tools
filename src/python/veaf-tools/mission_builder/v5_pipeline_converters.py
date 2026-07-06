@@ -37,10 +37,21 @@ from veaf_libs.logger import logger
 # ---------------------------------------------------------------------------
 
 
-def _yaml_dump(data: Any, path: Path) -> None:
-    """Write *data* as YAML to *path*, creating parent directories if needed."""
+def _yaml_dump(data: Any, path: Path, header: str | None = None) -> None:
+    """Write *data* as YAML to *path*, creating parent directories if needed.
+
+    Args:
+        data: The object to serialise.
+        path: Destination file.
+        header: Optional comment block written before the YAML body. Each line is
+            prefixed with ``# `` (blank lines become a bare ``#``).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
+        if header:
+            for line in header.splitlines():
+                fh.write(f"# {line}\n" if line.strip() else "#\n")
+            fh.write("\n")
         yaml.dump(data, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
 
@@ -995,19 +1006,19 @@ def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str
             {"freq":, "title":}}}``).
 
     Returns:
-        A ``{role: {channel_name: freq}}`` mapping (``RadioDefinition.
-        add_channel_from_dict``'s plain-float shortcut), ready to nest under
+        A ``{role: {channel_number: freq}}`` mapping (int channel keys,
+        ``RadioDefinition`` plain-float shortcut), ready to nest under
         ``channel_lists.<coalition>`` in the output YAML.
     """
     roles: dict[str, Any] = {}
     for radio_num, roles_for_radio in _ROLES_BY_RADIO_NUM.items():
         channels_data = radios_data.get(radio_num, {})
-        role_channels: dict[str, Any] = {}
+        role_channels: dict[int, Any] = {}
         for ch_num in sorted(channels_data.keys()):
             freq = channels_data[ch_num].get("freq")
             if freq is None:
                 continue
-            role_channels[f"{ch_num:02d}"] = float(freq)
+            role_channels[ch_num] = float(freq)
         if not role_channels:
             continue
         # Each role gets its own dict copy (not the same shared instance) so a
@@ -1171,7 +1182,7 @@ def _emit_preset_files(
     if not channel_lists_yaml:
         # No shared channel_lists → no plan; keep the single faithful file (legacy
         # behaviour unchanged, incl. hardcoded frequencies).
-        _yaml_dump(faithful, v6_path)
+        _yaml_dump(faithful, v6_path, header=t("v5convert.presets.legacy_header"))
         logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
         warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
         return
@@ -1189,8 +1200,8 @@ def _emit_preset_files(
     apply_aliasing(plan, _detect_theatre(v6_path))
 
     faithful_path = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
-    _yaml_dump(faithful, faithful_path)
-    _yaml_dump(plan, v6_path)
+    _yaml_dump(faithful, faithful_path, header=t("v5convert.presets.faithful_header"))
+    _yaml_dump(plan, v6_path, header=t("v5convert.presets.plan_header", faithful=faithful_path.name))
     logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
     warnings.append(t("convert_v5.warn.preset_plan_default", plan=v6_path.name, faithful=faithful_path.name))
     if plan_best_effort:

@@ -79,6 +79,8 @@ Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develo
 
 In both cases, `channels_collection` (the frequencies) stays the shared source for both formats.
 
+> **`convert-v5` names frequencies automatically.** When converting a v5 mission, hardcoded frequencies are replaced with **names** in `presets.yaml` — the theatre's airfields (`Gudauta`, `Batumi`…) and VEAF call-signs (`Guard`, `Archer`, `Texaco-1`…) — and the matching `channels_collection` is inserted to resolve them. A frequency with no known name is left as a raw number. The faithful copy `presets.v5.yaml` keeps the raw frequencies.
+
 ### Schema — `channel_lists` (recommended model)
 
 ```yaml

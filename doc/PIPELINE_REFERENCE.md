@@ -79,6 +79,8 @@ Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/devel
 
 Dans tous les cas, `channels_collection` (les fréquences) reste la source commune aux deux formats.
 
+> **`convert-v5` nomme les fréquences automatiquement.** À la conversion d'une mission v5, les fréquences en dur sont remplacées par des **noms** dans `presets.yaml` — aérodromes du théâtre (`Gudauta`, `Batumi`…) et indicatifs VEAF (`Guard`, `Archer`, `Texaco-1`…) — et le `channels_collection` correspondant est inséré pour les résoudre. Une fréquence sans nom connu reste en clair. La copie fidèle `presets.v5.yaml` conserve, elle, les fréquences brutes.
+
 ### Schéma — `channel_lists` (modèle recommandé)
 
 ```yaml

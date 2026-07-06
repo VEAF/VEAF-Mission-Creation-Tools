@@ -707,8 +707,8 @@ class TestConvertPresetsPlanGeneration(unittest.TestCase):
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
         self.assertIn("channel_lists", data)
-        self.assertEqual(data["channel_lists"]["blue"]["primary_1"]["01"], 251.0)
-        self.assertEqual(data["channel_lists"]["blue"]["primary_2"]["01"], 131.0)
+        self.assertEqual(data["channel_lists"]["blue"]["primary_1"][1], 251.0)
+        self.assertEqual(data["channel_lists"]["blue"]["primary_2"][1], 131.0)
 
     def test_radio3_maps_to_fm_supplement_role(self) -> None:
         lua = 'radioPresetsBlue = { ["##RADIO3_01##"] = 30.5 }'
@@ -716,7 +716,7 @@ class TestConvertPresetsPlanGeneration(unittest.TestCase):
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        self.assertEqual(data["channel_lists"]["blue"]["fm_supplement"]["01"], 30.5)
+        self.assertEqual(data["channel_lists"]["blue"]["fm_supplement"][1], 30.5)
 
     def test_fm_substitute_and_fm_supplement_are_independent_dicts(self) -> None:
         # RADIO3_* is exposed under both FM roles from the same source data, but
@@ -730,8 +730,8 @@ class TestConvertPresetsPlanGeneration(unittest.TestCase):
         data = yaml.safe_load(v6.read_text())
         blue = data["channel_lists"]["blue"]
         self.assertIsNot(blue["fm_substitute"], blue["fm_supplement"])
-        blue["fm_substitute"]["01"] = 999.0
-        self.assertEqual(blue["fm_supplement"]["01"], 30.5)
+        blue["fm_substitute"][1] = 999.0
+        self.assertEqual(blue["fm_supplement"][1], 30.5)
 
     def test_channel_names_are_not_included_in_the_plan_literal_values(self) -> None:
         # ##RADIOx_NAME_yy## title entries must not leak into the plan as channels.
@@ -740,7 +740,23 @@ class TestConvertPresetsPlanGeneration(unittest.TestCase):
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        self.assertEqual(data["channel_lists"]["blue"]["primary_1"], {"01": 251.0})
+        self.assertEqual(data["channel_lists"]["blue"]["primary_1"], {1: 251.0})
+
+    def test_channel_keys_are_integers(self) -> None:
+        # FIX-CONVERTV5-PRESETS-OUTPUT: uniform int keys (was '01' strings, with
+        # PyYAML quoting '01' but not the octal-invalid 08 → mixed types).
+        lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0, ["##RADIO1_08##"] = 252.0 }'
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(self._write_lua(lua), v6)
+        keys = list(yaml.safe_load(v6.read_text())["channel_lists"]["blue"]["primary_1"])
+        self.assertTrue(all(isinstance(k, int) for k in keys), keys)
+
+    def test_generated_plan_has_header_comment(self) -> None:
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(self._write_lua('radioPresetsBlue = { ["##RADIO1_01##"] = 251.0 }'), v6)
+        text = v6.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("#"))
+        self.assertIn("channel_lists", text.split("\n\n", 1)[0])  # explained in the header block
 
     def test_standard_aircraft_covered_by_plan_gets_no_override(self) -> None:
         # A clean 1:1 layout is already reproduced by the packer's band-based

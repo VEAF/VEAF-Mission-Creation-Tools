@@ -985,8 +985,9 @@ def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str
             {"freq":, "title":}}}``).
 
     Returns:
-        A ``{role: {channel_name: {"freq": float}}}`` mapping, ready to nest
-        under ``channel_lists.<coalition>`` in the output YAML.
+        A ``{role: {channel_name: freq}}`` mapping (``RadioDefinition.
+        add_channel_from_dict``'s plain-float shortcut), ready to nest under
+        ``channel_lists.<coalition>`` in the output YAML.
     """
     roles: dict[str, Any] = {}
     for radio_num, roles_for_radio in _ROLES_BY_RADIO_NUM.items():
@@ -999,8 +1000,11 @@ def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str
             role_channels[f"{ch_num:02d}"] = float(freq)
         if not role_channels:
             continue
+        # Each role gets its own dict copy (not the same shared instance) so a
+        # future caller mutating one role's channels (e.g. an override merge)
+        # cannot silently leak into the other FM role sharing this content.
         for role in roles_for_radio:
-            roles[role] = role_channels
+            roles[role] = dict(role_channels)
     return roles
 
 
@@ -1039,11 +1043,16 @@ def _dedicated_matches_packed(
     """
     if packed_preset is None:
         return False
-    packed_radios = list(packed_preset.radios.values())
-    if len(packed_radios) != len(dedicated_slots):
+    if len(packed_preset.radios) != len(dedicated_slots):
         return False
-    for (_, v6_channels), packed_radio in zip(sorted(dedicated_slots.items()), packed_radios, strict=True):
-        if len(packed_radio.channels) != len(v6_channels):
+    for slot_idx, v6_channels in dedicated_slots.items():
+        # pack_preset_for_type names each radio "radio_{physical_index + 1}"
+        # (a 1-based physical slot index) — the same convention _RadioEntry's
+        # v5 ["Radio"][N] slot numbering already uses, so this is a stable key
+        # rather than relying on both sequences happening to iterate in the
+        # same order.
+        packed_radio = packed_preset.radios.get(f"radio_{slot_idx}")
+        if packed_radio is None or len(packed_radio.channels) != len(v6_channels):
             return False
         packed_by_number = {channel.number: (channel.freq, channel.mod or 0) for channel in packed_radio.channels}
         for ch_idx, value in v6_channels.items():

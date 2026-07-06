@@ -18,6 +18,7 @@ from pathlib import Path
 import luadata
 import yaml
 from mission_builder.v5_pipeline_converters import (
+    _dedicated_matches_packed,
     _detect_radio_block_source,
     _extract_lua_table_text,
     _normalize_date,
@@ -30,6 +31,7 @@ from mission_builder.v5_pipeline_converters import (
     convert_waypoints,
     convert_weather,
 )
+from presets_injector.presets_manager import Channel, PresetDefinition, RadioDefinition
 from veaf_libs.i18n import t
 
 
@@ -703,6 +705,21 @@ class TestConvertPresetsPlanGeneration(unittest.TestCase):
         data = yaml.safe_load(v6.read_text())
         self.assertEqual(data["channel_lists"]["blue"]["fm_supplement"]["01"], 30.5)
 
+    def test_fm_substitute_and_fm_supplement_are_independent_dicts(self) -> None:
+        # RADIO3_* is exposed under both FM roles from the same source data, but
+        # each role must get its own dict copy — mutating one must not silently
+        # corrupt the other (Sourcery review: aliasing risk if a future caller
+        # mutates one role's channel mapping, e.g. an override merge).
+        lua = 'radioPresetsBlue = { ["##RADIO3_01##"] = 30.5 }'
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        blue = data["channel_lists"]["blue"]
+        self.assertIsNot(blue["fm_substitute"], blue["fm_supplement"])
+        blue["fm_substitute"]["01"] = 999.0
+        self.assertEqual(blue["fm_supplement"]["01"], 30.5)
+
     def test_channel_names_are_not_included_in_the_plan_literal_values(self) -> None:
         # ##RADIOx_NAME_yy## title entries must not leak into the plan as channels.
         lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0, ["##RADIO1_NAME_01##"] = "Overlord" }'
@@ -812,6 +829,45 @@ radioSettings = {
     @staticmethod
     def _lua_with_settings(settings: str, radios: str = "") -> str:
         return f'radioPresetsBlue = {{ ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0, {radios} }}\n' + settings
+
+
+class TestDedicatedMatchesPackedStableKey(unittest.TestCase):
+    """FEAT-RADIO-PRESET-PROJECTION-08 (Sourcery review): _dedicated_matches_packed
+    must compare radios by a stable key (physical slot index), not by relying on
+    ``packed_preset.radios.values()`` and ``sorted(dedicated_slots.items())``
+    happening to iterate in the same order.
+    """
+
+    @staticmethod
+    def _radio(name: str, number_freq_pairs: list[tuple[int, float]]) -> RadioDefinition:
+        radio = RadioDefinition(name=name, radio_type="uhf")
+        for number, freq in number_freq_pairs:
+            radio.add_channel(Channel(name_or_number=number, freq=freq))
+        return radio
+
+    def test_matches_when_packed_radios_are_out_of_slot_order(self) -> None:
+        # Two dedicated slots (1 and 2) with distinct content each. The packed
+        # preset's internal dict inserts them in the OPPOSITE order (slot 2's
+        # radio_2 first, slot 1's radio_1 second) -- a positional zip against
+        # sorted(dedicated_slots.items()) would compare radio_1's content
+        # against radio_2 and vice versa, and wrongly report a mismatch.
+        dedicated_slots = {1: {1: 100.0}, 2: {1: 200.0}}
+        packed = PresetDefinition(name="packed")
+        packed.add_radio(self._radio("radio_2", [(1, 200.0)]))  # inserted first
+        packed.add_radio(self._radio("radio_1", [(1, 100.0)]))  # inserted second
+        self.assertTrue(_dedicated_matches_packed(dedicated_slots, packed))
+
+    def test_mismatch_when_named_slot_missing(self) -> None:
+        # Same radio COUNT as dedicated_slots (a pure positional zip would only
+        # ever catch a COUNT mismatch), but the packed preset's radios are named
+        # radio_1/radio_3 instead of radio_1/radio_2 -- slot 2 has no matching
+        # named radio, so this must be reported as a mismatch, not silently
+        # compared against whatever happens to be in the wrong position.
+        dedicated_slots = {1: {1: 100.0}, 2: {1: 200.0}}
+        packed = PresetDefinition(name="packed")
+        packed.add_radio(self._radio("radio_1", [(1, 100.0)]))
+        packed.add_radio(self._radio("radio_3", [(1, 999.0)]))
+        self.assertFalse(_dedicated_matches_packed(dedicated_slots, packed))
 
 
 class TestConvertAircraftGroups(unittest.TestCase):

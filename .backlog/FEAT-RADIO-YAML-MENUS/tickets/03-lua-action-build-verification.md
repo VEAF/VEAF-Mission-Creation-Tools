@@ -1,6 +1,6 @@
 # 03 — `lua` action (named-function reference) + build-time verification
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

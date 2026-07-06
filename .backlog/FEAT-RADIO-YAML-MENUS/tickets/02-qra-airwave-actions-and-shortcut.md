@@ -1,6 +1,6 @@
 # 02 — `qra.*` / `airwave.*` actions + per-module `radio_menu` shortcut
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

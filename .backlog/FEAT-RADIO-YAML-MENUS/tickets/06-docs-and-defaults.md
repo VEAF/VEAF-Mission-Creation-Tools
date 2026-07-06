@@ -1,6 +1,6 @@
 # 06 — Docs + defaults lockstep + glossary
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

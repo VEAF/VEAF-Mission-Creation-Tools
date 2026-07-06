@@ -1,6 +1,6 @@
 # 04 — Group restriction (DCS group name → group id at runtime)
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

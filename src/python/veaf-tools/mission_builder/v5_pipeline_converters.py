@@ -1108,6 +1108,75 @@ def _add_plan_overrides(
                 ] = preset_name
 
 
+def _emit_preset_files(
+    v5_path: Path,
+    v6_path: Path,
+    radios_collection: dict[str, Any],
+    presets_collection: dict[str, Any],
+    presets_assignments: dict[str, Any],
+    channel_lists_yaml: dict[str, Any],
+    plan_irreducible: dict[tuple[str, str], str],
+    plan_best_effort: list[str],
+    warnings: list[str],
+) -> None:
+    """Write the faithful and (when applicable) plan preset files, appending warnings.
+
+    FEAT-CONVERTV5-PLAN-PRESETS: when a shared channel list exists, ``v6_path``
+    (``presets.yaml``) is the build-loaded **plan** — ``channel_lists`` plus only
+    the irreducible overrides — and its ``presets.v5.yaml`` sibling is the
+    **faithful** iso-functional copy. With no channel list there is nothing to
+    project, so a single legacy ``presets.yaml`` (the faithful dict) is written.
+
+    Args:
+        v5_path: Source ``radioSettings.lua`` (for the "done" log line).
+        v6_path: Target ``presets.yaml`` path (the plan, or the sole file).
+        radios_collection / presets_collection / presets_assignments: The faithful
+            per-aircraft output assembled by :func:`convert_presets`.
+        channel_lists_yaml: The generated ``channel_lists`` block (may be empty).
+        plan_irreducible: ``{(coalition, aircraft): preset_name}`` overrides the
+            packer cannot project, kept in the plan too.
+        plan_best_effort: Aircraft the packer projects at best effort (for the
+            summary warning).
+        warnings: Warning list, mutated in place.
+    """
+    # Faithful, iso-functional copy (reference / rollback).
+    faithful: dict[str, Any] = {
+        "radios_collection": radios_collection,
+        "presets_collection": presets_collection,
+        "presets_assignments": presets_assignments,
+    }
+    if channel_lists_yaml:
+        faithful["channel_lists"] = channel_lists_yaml
+
+    if not channel_lists_yaml:
+        # No shared channel_lists → no plan; keep the single faithful file.
+        _yaml_dump(faithful, v6_path)
+        logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
+        warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
+        return
+
+    # Plan (default, build-loaded) — channel_lists projected by the packer, plus
+    # only the irreducible overrides the packer cannot reproduce at all.
+    plan: dict[str, Any] = {"channel_lists": channel_lists_yaml}
+    _add_plan_overrides(plan, faithful, plan_irreducible)
+
+    faithful_path = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
+    _yaml_dump(faithful, faithful_path)
+    _yaml_dump(plan, v6_path)
+    logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
+    warnings.append(t("convert_v5.warn.preset_plan_default", plan=v6_path.name, faithful=faithful_path.name))
+    if plan_best_effort:
+        warnings.append(
+            tn(
+                "convert_v5.warn.preset_plan_best_effort",
+                len(plan_best_effort),
+                aircraft=", ".join(sorted(plan_best_effort)),
+                faithful=faithful_path.name,
+            )
+        )
+    warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
+
+
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """Convert v5 ``radioSettings.lua`` → v6 ``presets.yaml``.
 
@@ -1323,44 +1392,17 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         if warbird_preset_name in presets_collection.get(f"{coalition}_presets", {}):
             warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
-    # Faithful, iso-functional copy (reference / rollback) — written to
-    # presets.v5.yaml, NOT loaded by the build.
-    faithful: dict[str, Any] = {
-        "radios_collection": radios_collection,
-        "presets_collection": presets_collection,
-        "presets_assignments": presets_assignments,
-    }
-    if channel_lists_yaml:
-        faithful["channel_lists"] = channel_lists_yaml
-
-    # Plan (default, build-loaded) — channel_lists projected by the packer, plus
-    # only the irreducible overrides the packer cannot reproduce at all.
-    plan: dict[str, Any] = {}
-    if channel_lists_yaml:
-        plan["channel_lists"] = channel_lists_yaml
-    _add_plan_overrides(plan, faithful, plan_irreducible)
-
-    if channel_lists_yaml:
-        # Plan is the primary output; faithful copy is its sibling.
-        faithful_path = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
-        _yaml_dump(faithful, faithful_path)
-        _yaml_dump(plan, v6_path)
-        logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
-        warnings.append(t("convert_v5.warn.preset_plan_default", plan=v6_path.name, faithful=faithful_path.name))
-        if plan_best_effort:
-            warnings.append(
-                tn(
-                    "convert_v5.warn.preset_plan_best_effort",
-                    len(plan_best_effort),
-                    aircraft=", ".join(sorted(plan_best_effort)),
-                    faithful=faithful_path.name,
-                )
-            )
-    else:
-        # No shared channel_lists → no plan; keep the single faithful file.
-        _yaml_dump(faithful, v6_path)
-        logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
-    warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
+    _emit_preset_files(
+        v5_path,
+        v6_path,
+        radios_collection,
+        presets_collection,
+        presets_assignments,
+        channel_lists_yaml,
+        plan_irreducible,
+        plan_best_effort,
+        warnings,
+    )
     return warnings
 
 

@@ -25,7 +25,7 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 | [FIX-CONVERT-SPAWNABLES-FLAT-FORMAT](FIX-CONVERT-SPAWNABLES-FLAT-FORMAT/PRD.md) — `convert-v5` converts spawnable aircraft from the flat `settings.lua` layout (was: empty `spawnables.yaml`) | ✅ |
 | [FEAT-MIGRATE-MISSION-V6](FEAT-MIGRATE-MISSION-V6/PRD.md) — promote `src/mission/` from v5 to v6 on disk | ✅ |
 | [FIX-DYNSLOT-TEMPLATE-CATEGORY](FIX-DYNSLOT-TEMPLATE-CATEGORY/PRD.md) — airplane dynamic-slot templates miscategorized as helicopters | ✅ |
-| [FEAT-RADIO-PRESET-PROJECTION](FEAT-RADIO-PRESET-PROJECTION/PRD.md) — per-type radio-preset projection (preset plan model): role-based `channel_lists` + VEAF `dcs-radio-layouts.yaml` + generator-overlay packer; convert-v5 generates a plan by default (ADR 0010). Phase 1 core + phase 2 convert-v5 | 🔄 |
+| [FEAT-RADIO-PRESET-PROJECTION](FEAT-RADIO-PRESET-PROJECTION/PRD.md) — per-type radio-preset projection (preset plan model): role-based `channel_lists` + VEAF `dcs-radio-layouts.yaml` + generator-overlay packer; convert-v5 generates a plan by default (ADR 0010). Phase 1 core + phase 2 convert-v5 | ✅ |
 | [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) — broaden the shipped default radio presets (fold into / sequence after FEAT-RADIO-PRESET-PROJECTION phase 1) | ⬜ |
 | [FEAT-EXPORT-BFR-PARSER](FEAT-EXPORT-BFR-PARSER/PRD.md) — `export` as the safe mission parser for the BFR plugin (`.miz`/folder, JSON array-ness contract) | ✅ |
 | [TOOLING-DCS-MOCK-COVERAGE](TOOLING-DCS-MOCK-COVERAGE/PRD.md) — audit DCS-mock coverage against a vendored API schema | ✅ |

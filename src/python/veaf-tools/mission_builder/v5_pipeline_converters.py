@@ -26,6 +26,7 @@ from typing import Any
 import luadata
 import yaml
 from mission_tools import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
+from presets_injector.presets_manager import PresetDefinition, pack_preset_for_type, parse_channel_lists
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
@@ -849,6 +850,54 @@ _DEDICATED_TYPE_BY_SOURCE: dict[str | None, str] = {
 }
 
 
+def _resolve_dedicated_channels(
+    entry: _RadioEntry, resolver: dict[str, dict[str, float]]
+) -> tuple[dict[int, dict[int, Any]], int]:
+    """Resolve *entry*'s exact v5 ``["Radio"]`` table into v6 channel maps, per slot.
+
+    Pure resolution step shared by :func:`_emit_dedicated_preset` (writes the
+    result into the legacy per-aircraft preset) and the preset-plan
+    factorability check (ticket 08: compares this exact map against the
+    packer's projection to decide whether an aircraft needs the legacy
+    fallback).
+
+    Args:
+        entry: The aircraft's parsed ``radioSettings`` entry.
+        resolver: ``{table_var: {token: frequency}}`` built by
+            :func:`_build_token_resolver`.
+
+    Returns:
+        A ``(slots, dropped)`` tuple: *slots* maps radio slot index -> v6
+        channel map (``{ch_idx: freq}`` or ``{ch_idx: {"freq":, "mod":}}`` when
+        the slot has modulations), empty slots omitted; *dropped* counts
+        channels that could not be converted (unresolved token or unparsed
+        expression).
+    """
+    slots: dict[int, dict[int, Any]] = {}
+    dropped = 0
+    for slot_idx in sorted(entry.radio_slots.keys()):
+        slot = entry.radio_slots[slot_idx]
+        has_mods = bool(slot.modulations)
+        dropped += slot.unparsed
+
+        v6_channels: dict[int, Any] = {}
+        for ch_idx, value in slot.channels:
+            freq = _resolve_channel_value(value, resolver)
+            if freq is None:
+                dropped += 1
+                continue
+            if has_mods:
+                v6_channels[ch_idx] = {"freq": freq, "mod": int(slot.modulations.get(ch_idx, 0))}
+            else:
+                v6_channels[ch_idx] = freq
+
+        # Skip empty radios so a slot that yielded no usable channel never produces
+        # a hollow radio definition.
+        if v6_channels:
+            slots[slot_idx] = v6_channels
+    return slots, dropped
+
+
 def _emit_dedicated_preset(
     entry: _RadioEntry,
     resolver: dict[str, dict[str, float]],
@@ -874,30 +923,11 @@ def _emit_dedicated_preset(
 
     coalition_radios = radios_collection.setdefault(radios_key, {})
     preset_radios: dict[str, str] = {}
-    dropped = 0  # channels that could not be converted (unresolved token or unparsed)
 
-    for slot_idx in sorted(entry.radio_slots.keys()):
-        slot = entry.radio_slots[slot_idx]
-        has_mods = bool(slot.modulations)
+    resolved_slots, dropped = _resolve_dedicated_channels(entry, resolver)
+    for slot_idx, v6_channels in resolved_slots.items():
         radio_name = f"radio_{coalition}_{slug}_{slot_idx}"
-        rtype = _DEDICATED_TYPE_BY_SOURCE[slot.source]
-        dropped += slot.unparsed
-
-        v6_channels: dict[int, Any] = {}
-        for ch_idx, value in slot.channels:
-            freq = _resolve_channel_value(value, resolver)
-            if freq is None:
-                dropped += 1
-                continue
-            if has_mods:
-                v6_channels[ch_idx] = {"freq": freq, "mod": int(slot.modulations.get(ch_idx, 0))}
-            else:
-                v6_channels[ch_idx] = freq
-
-        # Skip empty radios so a slot that yielded no usable channel never produces
-        # a hollow radio definition.
-        if not v6_channels:
-            continue
+        rtype = _DEDICATED_TYPE_BY_SOURCE[entry.radio_slots[slot_idx].source]
         coalition_radios[radio_name] = {
             "title": f"{entry.aircraft} radio {slot_idx}",
             "type": rtype,
@@ -928,6 +958,109 @@ def _emit_dedicated_preset(
         presets_assignments[coalition].setdefault(cat, {})[entry.aircraft] = preset_name
 
 
+# ---------------------------------------------------------------------------
+# Preset plan generation (ADR 0010 ticket 08: convert-v5 generates a preset
+# plan by default, falling back to the ADR 0003 per-aircraft copy when a
+# bespoke aircraft's exact v5 channel map cannot be reproduced by the packer).
+# ---------------------------------------------------------------------------
+
+#: Maps a v5 physical radio number to the Channel-list role(s) (ADR 0010) fed
+#: by its preset table. RADIO3 (FM) is exposed under both FM roles so the
+#: packer resolves regardless of whether a given airframe's layout assigns it
+#: `fm_substitute` (helicopters) or `fm_supplement` (attack aircraft) — the
+#: mission only declares one FM channel list, not one per airframe shape.
+_ROLES_BY_RADIO_NUM: dict[int, list[str]] = {
+    1: ["primary_1"],
+    2: ["primary_2"],
+    3: ["fm_substitute", "fm_supplement"],
+}
+
+
+def _build_channel_lists_for_coalition(radios_data: dict[int, dict[int, dict[str, Any]]]) -> dict[str, Any]:
+    """Build one coalition's ``channel_lists`` role -> channels mapping (ADR 0010).
+
+    Args:
+        radios_data: This coalition's parsed ``radioPresets*`` table, as
+            returned by :func:`_parse_preset_table` (``{radio_num: {ch_num:
+            {"freq":, "title":}}}``).
+
+    Returns:
+        A ``{role: {channel_name: freq}}`` mapping (``RadioDefinition.
+        add_channel_from_dict``'s plain-float shortcut), ready to nest under
+        ``channel_lists.<coalition>`` in the output YAML.
+    """
+    roles: dict[str, Any] = {}
+    for radio_num, roles_for_radio in _ROLES_BY_RADIO_NUM.items():
+        channels_data = radios_data.get(radio_num, {})
+        role_channels: dict[str, Any] = {}
+        for ch_num in sorted(channels_data.keys()):
+            freq = channels_data[ch_num].get("freq")
+            if freq is None:
+                continue
+            role_channels[f"{ch_num:02d}"] = float(freq)
+        if not role_channels:
+            continue
+        # Each role gets its own dict copy (not the same shared instance) so a
+        # future caller mutating one role's channels (e.g. an override merge)
+        # cannot silently leak into the other FM role sharing this content.
+        for role in roles_for_radio:
+            roles[role] = dict(role_channels)
+    return roles
+
+
+def _normalize_channel(value: Any) -> tuple[float, int]:
+    """Normalize a v6 channel value (a plain freq or a ``{"freq":, "mod":}`` dict) to ``(freq, mod)``."""
+    if isinstance(value, dict):
+        return float(value["freq"]), int(value.get("mod", 0))
+    return float(value), 0
+
+
+def _dedicated_matches_packed(
+    dedicated_slots: dict[int, dict[int, Any]], packed_preset: PresetDefinition | None
+) -> bool:
+    """Compare the exact legacy v5 channel map against the packer's projection (ticket 08).
+
+    An aircraft "factors" into the preset plan when the packer, fed the
+    mission's shared Channel lists, reproduces *exactly* the same physical
+    radios and channels the legacy per-aircraft conversion would have
+    emitted — same radio count, same channel count and order per radio, same
+    frequency and modulation per channel. Any divergence (a quirk the phase-1
+    `Radio layout` primitives don't happen to encode for this exact mission,
+    e.g. a maker channel list longer than the airframe's physical slot count)
+    means the packed preset is not provably faithful, so the caller must keep
+    the legacy per-aircraft override (ADR 0003's "no data loss" prime
+    directive: prefer the safe fallback over a guess).
+
+    Args:
+        dedicated_slots: This aircraft's exact v5 channel maps, per radio slot
+            (from :func:`_resolve_dedicated_channels`).
+        packed_preset: The packer's projection for this aircraft/coalition
+            (from :func:`presets_manager.pack_preset_for_type`), or ``None``.
+
+    Returns:
+        True if every dedicated radio slot has an exact packed counterpart
+        (same channels, in order, same frequency/modulation), False otherwise.
+    """
+    if packed_preset is None:
+        return False
+    if len(packed_preset.radios) != len(dedicated_slots):
+        return False
+    for slot_idx, v6_channels in dedicated_slots.items():
+        # pack_preset_for_type names each radio "radio_{physical_index + 1}"
+        # (a 1-based physical slot index) — the same convention _RadioEntry's
+        # v5 ["Radio"][N] slot numbering already uses, so this is a stable key
+        # rather than relying on both sequences happening to iterate in the
+        # same order.
+        packed_radio = packed_preset.radios.get(f"radio_{slot_idx}")
+        if packed_radio is None or len(packed_radio.channels) != len(v6_channels):
+            return False
+        packed_by_number = {channel.number: (channel.freq, channel.mod or 0) for channel in packed_radio.channels}
+        for ch_idx, value in v6_channels.items():
+            if packed_by_number.get(ch_idx) != _normalize_channel(value):
+                return False
+    return True
+
+
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """Convert v5 ``radioSettings.lua`` → v6 ``presets.yaml``.
 
@@ -951,6 +1084,20 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
       active modulations, or extra radios) get a dedicated per-aircraft preset
       that reproduces the exact channel→frequency map plus modulations, making
       the conversion iso-functional with the v5 mission (see ADR 0003).
+
+    **Preset plan (ADR 0010, ticket 08)**: when a coalition has a
+    ``radioPresets*`` table, its ``RADIO1_*``/``RADIO2_*``/``RADIO3_*``
+    channels are also emitted as a ``channel_lists`` block (``primary_1`` /
+    ``primary_2`` / ``fm_substitute``+``fm_supplement``) — the new preset-plan
+    format that the phase-1 packer (``presets_injector.presets_manager``)
+    projects onto every aircraft's physical radios by default. A bespoke
+    aircraft's dedicated preset (above) is only kept when the packer's
+    projection, fed this mission's Channel lists, does **not** reproduce its
+    exact v5 channel map (mismatched primitive, capacity, or genuinely
+    divergent per-aircraft frequencies) — the override then wins over the
+    packer (ADR 0010), so both formats coexist in the same file. A mission
+    with no ``radioPresets*`` table at all gets no ``channel_lists`` — 100%
+    legacy behaviour, unchanged.
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
@@ -959,6 +1106,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     radios_collection: dict[str, Any] = {}
     presets_collection: dict[str, Any] = {}
     presets_assignments: dict[str, Any] = {}
+    channel_lists_yaml: dict[str, Any] = {}
 
     for coalition in ("blue", "red"):
         cap = coalition.capitalize()
@@ -966,6 +1114,10 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         radios_data = _parse_preset_table(content, table_name)
         if not radios_data:
             continue
+
+        coalition_channel_lists = _build_channel_lists_for_coalition(radios_data)
+        if coalition_channel_lists:
+            channel_lists_yaml[coalition] = coalition_channel_lists
 
         coalition_radios: dict[str, Any] = {}
         coalition_radio_names: dict[int, str] = {}
@@ -1029,6 +1181,11 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         warnings.append(t("convert_v5.warn.no_preset_tables", filename=v5_path.name))
         return warnings
 
+    # Preset plan (ADR 0010): parse the channel_lists YAML into the packer's
+    # internal representation once, used below to check whether each bespoke
+    # aircraft's exact v5 channel map is already reproduced by the plan.
+    channel_lists, _ = parse_channel_lists(channel_lists_yaml, channel_collections={})
+
     # Per-aircraft assignments extracted from radioSettings
     token_resolver = _build_token_resolver(content)
     for entry in _parse_radio_settings_entries(content):
@@ -1037,8 +1194,21 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
 
         # Bespoke radio layouts (rotations, offsets, hardcoded specials, active
         # modulations, extra radios) cannot be expressed by a shared preset —
-        # emit a dedicated per-aircraft preset that reproduces the exact map.
+        # emit a dedicated per-aircraft preset that reproduces the exact map,
+        # UNLESS the preset-plan packer already reproduces it exactly (ticket
+        # 08), in which case the plan alone covers this aircraft.
         if not _entry_is_standard(entry):
+            dedicated_slots, _dropped = _resolve_dedicated_channels(entry, token_resolver)
+            packed = pack_preset_for_type(channel_lists, entry.coalition, entry.aircraft)
+            if _dedicated_matches_packed(dedicated_slots, packed):
+                continue
+            warnings.append(
+                t(
+                    "convert_v5.warn.preset_plan_fallback",
+                    aircraft=entry.aircraft,
+                    coalition=entry.coalition,
+                )
+            )
             _emit_dedicated_preset(
                 entry,
                 token_resolver,
@@ -1097,6 +1267,8 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         "presets_collection": presets_collection,
         "presets_assignments": presets_assignments,
     }
+    if channel_lists_yaml:
+        output["channel_lists"] = channel_lists_yaml
     _yaml_dump(output, v6_path)
     logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
     warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))

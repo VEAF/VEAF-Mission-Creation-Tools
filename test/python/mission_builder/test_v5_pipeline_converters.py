@@ -18,6 +18,7 @@ from pathlib import Path
 import luadata
 import yaml
 from mission_builder.v5_pipeline_converters import (
+    _dedicated_matches_packed,
     _detect_radio_block_source,
     _extract_lua_table_text,
     _normalize_date,
@@ -30,6 +31,7 @@ from mission_builder.v5_pipeline_converters import (
     convert_waypoints,
     convert_weather,
 )
+from presets_injector.presets_manager import Channel, PresetDefinition, RadioDefinition
 from veaf_libs.i18n import t
 
 
@@ -658,6 +660,214 @@ radioSettings = {
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
         self.assertEqual(data["presets_assignments"]["red"]["plane"].get("Bf-109K-4"), "red_warbird")
+
+
+class TestConvertPresetsPlanGeneration(unittest.TestCase):
+    """FEAT-RADIO-PRESET-PROJECTION-08 (ADR 0010): convert_presets emits a
+    ``channel_lists`` preset plan by default from the v5 ``radioPresets*`` tables.
+    """
+
+    def setUp(self) -> None:
+        self._tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp_dir.name)
+
+    def tearDown(self) -> None:
+        self._tmp_dir.cleanup()
+
+    def _write_lua(self, content: str) -> Path:
+        p = self.tmp / "radioSettings.lua"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def test_no_shared_preset_table_yields_no_channel_lists(self) -> None:
+        # No radioPresets{Blue,Red} table at all → nothing to factor; the output
+        # must stay 100% legacy (pre-ticket-08 status quo), zero channel_lists.
+        v5 = self._write_lua("x = 1")
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        self.assertFalse(v6.exists())
+
+    def test_shared_table_yields_channel_lists_by_default(self) -> None:
+        lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0, ["##RADIO2_01##"] = 131.0 }'
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertIn("channel_lists", data)
+        self.assertEqual(data["channel_lists"]["blue"]["primary_1"]["01"], 251.0)
+        self.assertEqual(data["channel_lists"]["blue"]["primary_2"]["01"], 131.0)
+
+    def test_radio3_maps_to_fm_supplement_role(self) -> None:
+        lua = 'radioPresetsBlue = { ["##RADIO3_01##"] = 30.5 }'
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["channel_lists"]["blue"]["fm_supplement"]["01"], 30.5)
+
+    def test_fm_substitute_and_fm_supplement_are_independent_dicts(self) -> None:
+        # RADIO3_* is exposed under both FM roles from the same source data, but
+        # each role must get its own dict copy — mutating one must not silently
+        # corrupt the other (Sourcery review: aliasing risk if a future caller
+        # mutates one role's channel mapping, e.g. an override merge).
+        lua = 'radioPresetsBlue = { ["##RADIO3_01##"] = 30.5 }'
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        blue = data["channel_lists"]["blue"]
+        self.assertIsNot(blue["fm_substitute"], blue["fm_supplement"])
+        blue["fm_substitute"]["01"] = 999.0
+        self.assertEqual(blue["fm_supplement"]["01"], 30.5)
+
+    def test_channel_names_are_not_included_in_the_plan_literal_values(self) -> None:
+        # ##RADIOx_NAME_yy## title entries must not leak into the plan as channels.
+        lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0, ["##RADIO1_NAME_01##"] = "Overlord" }'
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["channel_lists"]["blue"]["primary_1"], {"01": 251.0})
+
+    def test_standard_aircraft_covered_by_plan_gets_no_override(self) -> None:
+        # A clean 1:1 layout is already reproduced by the packer's band-based
+        # default from channel_lists alone — same "no duplicate assignment"
+        # guarantee the legacy-only path already gave "all"-fallback aircraft.
+        lua = self._lua_with_settings(
+            """
+radioSettings = {
+    ["blue F16"] = { type = "F-16C_50", coalition = "blue", country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO1_01##"] } },
+            [2] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } },
+        }
+    },
+}
+"""
+        )
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertNotIn("F-16C_50", data["presets_assignments"]["blue"].get("plane", {}))
+        self.assertIn("channel_lists", data)
+
+    def test_bespoke_aircraft_reproduced_by_packer_gets_no_override(self) -> None:
+        # Mi-24P's real Radio layout entry (rotate_last_to_head) reproduces this
+        # aircraft's rotation exactly from the plan alone -> no dedicated preset.
+        lua = self._lua_with_settings(
+            """
+radioSettings = {
+    ["blue Mi24"] = { type = "Mi-24P", coalition = "blue", country = nil,
+        ["Radio"] = {
+            [1] = {
+                ["channels"] = {
+                    [1] = radioPresetsBlue["##RADIO1_20##"],
+                    [2] = radioPresetsBlue["##RADIO1_01##"],
+                    [3] = radioPresetsBlue["##RADIO1_02##"],
+                    [4] = radioPresetsBlue["##RADIO1_03##"],
+                    [5] = radioPresetsBlue["##RADIO1_04##"],
+                    [6] = radioPresetsBlue["##RADIO1_05##"],
+                    [7] = radioPresetsBlue["##RADIO1_06##"],
+                    [8] = radioPresetsBlue["##RADIO1_07##"],
+                    [9] = radioPresetsBlue["##RADIO1_08##"],
+                    [10] = radioPresetsBlue["##RADIO1_09##"],
+                    [11] = radioPresetsBlue["##RADIO1_10##"],
+                    [12] = radioPresetsBlue["##RADIO1_11##"],
+                    [13] = radioPresetsBlue["##RADIO1_12##"],
+                    [14] = radioPresetsBlue["##RADIO1_13##"],
+                    [15] = radioPresetsBlue["##RADIO1_14##"],
+                    [16] = radioPresetsBlue["##RADIO1_15##"],
+                    [17] = radioPresetsBlue["##RADIO1_16##"],
+                    [18] = radioPresetsBlue["##RADIO1_17##"],
+                    [19] = radioPresetsBlue["##RADIO1_18##"],
+                    [20] = radioPresetsBlue["##RADIO1_19##"],
+                }
+            },
+        }
+    },
+}
+""",
+            radios="".join(f'["##RADIO1_{i:02d}##"] = {280.0 + i},\n' for i in range(1, 21)),
+        )
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertNotIn("Mi-24P", data["presets_assignments"]["blue"].get("helicopter", {}))
+
+    def test_divergent_aircraft_falls_back_with_warning(self) -> None:
+        # A bespoke layout the packer's Radio layout does not reproduce
+        # (OH58D's real-world head-slot fill diverges from the populated
+        # `reserved_head_slots` primitive, see test_presets_fidelity.py) must
+        # fall back to the legacy dedicated preset, with a warning naming it.
+        lua = self._lua_with_settings(
+            """
+radioSettings = {
+    ["blue OH58"] = { type = "OH58D", coalition = "blue", country = nil,
+        ["Radio"] = {
+            [1] = {
+                ["channels"] = {
+                    [1] = radioPresetsBlue["##RADIO1_01##"],
+                    [2] = radioPresetsBlue["##RADIO1_01##"],
+                    [3] = radioPresetsBlue["##RADIO1_02##"],
+                }
+            },
+        }
+    },
+}
+""",
+            radios='["##RADIO1_01##"] = 300.0, ["##RADIO1_02##"] = 301.0,\n',
+        )
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        warnings = convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("OH58D"), "blue_oh58d")
+        self.assertTrue(any("OH58D" in w for w in warnings))
+
+    @staticmethod
+    def _lua_with_settings(settings: str, radios: str = "") -> str:
+        return f'radioPresetsBlue = {{ ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0, {radios} }}\n' + settings
+
+
+class TestDedicatedMatchesPackedStableKey(unittest.TestCase):
+    """FEAT-RADIO-PRESET-PROJECTION-08 (Sourcery review): _dedicated_matches_packed
+    must compare radios by a stable key (physical slot index), not by relying on
+    ``packed_preset.radios.values()`` and ``sorted(dedicated_slots.items())``
+    happening to iterate in the same order.
+    """
+
+    @staticmethod
+    def _radio(name: str, number_freq_pairs: list[tuple[int, float]]) -> RadioDefinition:
+        radio = RadioDefinition(name=name, radio_type="uhf")
+        for number, freq in number_freq_pairs:
+            radio.add_channel(Channel(name_or_number=number, freq=freq))
+        return radio
+
+    def test_matches_when_packed_radios_are_out_of_slot_order(self) -> None:
+        # Two dedicated slots (1 and 2) with distinct content each. The packed
+        # preset's internal dict inserts them in the OPPOSITE order (slot 2's
+        # radio_2 first, slot 1's radio_1 second) -- a positional zip against
+        # sorted(dedicated_slots.items()) would compare radio_1's content
+        # against radio_2 and vice versa, and wrongly report a mismatch.
+        dedicated_slots = {1: {1: 100.0}, 2: {1: 200.0}}
+        packed = PresetDefinition(name="packed")
+        packed.add_radio(self._radio("radio_2", [(1, 200.0)]))  # inserted first
+        packed.add_radio(self._radio("radio_1", [(1, 100.0)]))  # inserted second
+        self.assertTrue(_dedicated_matches_packed(dedicated_slots, packed))
+
+    def test_mismatch_when_named_slot_missing(self) -> None:
+        # Same radio COUNT as dedicated_slots (a pure positional zip would only
+        # ever catch a COUNT mismatch), but the packed preset's radios are named
+        # radio_1/radio_3 instead of radio_1/radio_2 -- slot 2 has no matching
+        # named radio, so this must be reported as a mismatch, not silently
+        # compared against whatever happens to be in the wrong position.
+        dedicated_slots = {1: {1: 100.0}, 2: {1: 200.0}}
+        packed = PresetDefinition(name="packed")
+        packed.add_radio(self._radio("radio_1", [(1, 100.0)]))
+        packed.add_radio(self._radio("radio_3", [(1, 999.0)]))
+        self.assertFalse(_dedicated_matches_packed(dedicated_slots, packed))
 
 
 class TestConvertAircraftGroups(unittest.TestCase):

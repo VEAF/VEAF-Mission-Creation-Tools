@@ -62,6 +62,8 @@ When set to an object, the following sub-fields apply:
 
 Injects radio frequency presets into every aircraft group that has at least one human pilot (Client/Player skill). Also generates kneeboard PNG images for each preset.
 
+> **Disabling kneeboards**: the step's mapping form accepts a `kneeboards` sub-flag (default `true`). Setting `pipeline: { presets: { enabled: true, kneeboards: false } }` keeps the radio frequency injection but generates no kneeboard PNG plates (`KNEEBOARD/IMAGES/presets-*.png`).
+
 ### Default file location
 
 ```

@@ -1,6 +1,6 @@
 # 02 — GUIDE-MM "Configurer le pipeline" section + reference updates
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

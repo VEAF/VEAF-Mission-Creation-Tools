@@ -62,6 +62,8 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
 Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs contenant au moins un pilote humain (compétence Client/Player). Génère également des images de kneeboard PNG pour chaque préréglage.
 
+> **Désactiver les planchettes (kneeboards)** : la forme mapping de l'étape accepte un sous-champ `kneeboards` (défaut `true`). Passer `pipeline: { presets: { enabled: true, kneeboards: false } }` conserve l'injection des fréquences radio mais ne génère aucune planchette PNG (`KNEEBOARD/IMAGES/presets-*.png`).
+
 ### Emplacement par défaut
 
 ```

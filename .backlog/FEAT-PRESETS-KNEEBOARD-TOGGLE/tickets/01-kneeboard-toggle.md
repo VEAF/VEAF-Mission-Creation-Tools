@@ -1,6 +1,6 @@
 # 01 — Polymorphic pipeline.presets + kneeboards toggle
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

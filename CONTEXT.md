@@ -100,6 +100,14 @@ radio fusion, slot capacity, per-channel modulation). Hand-maintained data, kept
 separate from the auto-generated radio specs. A type with no layout entry falls
 back to band-based defaults.
 
+**Preset kneeboard** (FR: _planchette_):
+The PNG page the presets pipeline step generates for each _Radio preset_
+(`KNEEBOARD/IMAGES/presets-<name>.png`), summarising that preset's channels for
+the pilot. "Planchette" is simply the French for kneeboard; in the presets
+context it always means these injector-generated pages, not any other image a
+mission may drop into its `KNEEBOARD/` folder.
+_Avoid_: plate, radio page
+
 ## Spawning
 
 **Spawn group definition**:

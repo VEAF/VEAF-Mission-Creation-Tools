@@ -328,6 +328,8 @@
   "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}): uses hardcoded frequencies — no preset assignment generated, review manually.",
   "convert_v5.warn.radio_channels_dropped": "'{aircraft}' ({coalition}): {count} radio channel(s) could not be converted (unresolved preset token or non-numeric expression) and were dropped — review manually.",
   "convert_v5.warn.preset_plan_fallback": "'{aircraft}' ({coalition}): its bespoke v5 radio layout is not reproduced exactly by the preset plan packer — kept as a dedicated per-aircraft preset override instead (no data loss).",
+  "convert_v5.warn.preset_plan_default": "{plan} is a simplified preset plan exploiting the channel lists: the packer projects the crystallisation onto each aircraft. Some aircraft frequencies may differ from the original v5 — review and edit {plan} as needed. The exact iso-functional v5 reproduction is preserved in {faithful} (not loaded by the build).",
+  "convert_v5.warn.preset_plan_best_effort": "{count} aircraft projected at best effort from the crystallisation (fused or special radios — frequencies may differ from v5): {aircraft}. The faithful reproduction is available in {faithful}.",
   "convert_v5.warn.no_preset_tables": "No standard preset tables (radioPresetsBlue/Red) found in {filename}",
   "convert_v5.warn.review_presets": "Review {filename}: only standard UHF/VHF/FM presets generated. Warbirds and other special aircraft may need manual presets_assignments entries.",
   "convert_v5.warn.parse_failed": "Could not parse {filename}: {exc}",

@@ -177,9 +177,14 @@ A channel can be defined in three ways, in `channel_lists` as well as `radios_co
 - a direct **frequency** (MHz): `01: 243.0`;
 - an **object**: `01: { freq: 243.0, mod: 1 }`, where `mod` is the modulation (`0` = AM, `1` = FM). The `mod` field is optional; when absent, DCS uses its default.
 
-### Iso-functional v5 conversion (`convert-v5`)
+### v5 conversion: two files (`convert-v5`)
 
-For **standard** radio layouts (channels that are a 1:1 image of a preset table), `convert-v5` produces a lightweight shared assignment. For **bespoke** layouts — channel rotation (Mi-24P channel 0 → preset #20), leading dummy channel / hardcoded frequencies / per-channel AM-FM modulations (AJS37), or extra radios — it emits a **dedicated `{coalition}_{aircraft}` preset** that reproduces the exact channel → frequency map (including `mod`), keeping the conversion iso-functional with the v5 mission (see ADR 0003).
+Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` emits **two** preset files:
+
+- **`presets.yaml` — simplified plan (default, loaded by the build)**: `channel_lists` alone (plus the rare overrides the packer cannot project at all). The build projects the crystallisation onto every aircraft automatically — warbirds included (VHF/FM-capable radios), dropping out-of-band channels. This is the file that fully exploits the preset-plan model.
+- **`presets.v5.yaml` — faithful copy (reference / rollback, NOT loaded by the build)**: the complete iso-functional conversion (`channel_lists` + a dedicated `{coalition}_{aircraft}` preset per bespoke layout, reproducing the exact channel → frequency map and `mod`, see ADR 0003).
+
+**Caution**: the plan may make some frequencies **diverge** from the original v5 mission — warbirds move to the coalition channels, and jets' fused/modulated radios (F-14, AV8B…) are projected at best effort (partially) until a dedicated `dcs-radio-layouts.yaml` entry exists for their type. `convert-v5` warns which aircraft are projected at best effort. **Review and edit `presets.yaml`**; when in doubt, the exact v5 reproduction stays in `presets.v5.yaml` (copy it over `presets.yaml` to restore iso-functional behaviour).
 
 ### Frequency validation
 

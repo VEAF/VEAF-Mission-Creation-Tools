@@ -177,9 +177,14 @@ Un canal peut être défini de trois façons, dans `channel_lists` comme dans `r
 - une **fréquence** directe (MHz) : `01: 243.0` ;
 - un **objet** : `01: { freq: 243.0, mod: 1 }`, où `mod` est la modulation (`0` = AM, `1` = FM). Le champ `mod` est optionnel ; absent, DCS utilise sa valeur par défaut.
 
-### Conversion v5 iso-fonctionnelle (`convert-v5`)
+### Conversion v5 : deux fichiers (`convert-v5`)
 
-Pour les agencements radio **standards** (canaux 1:1 d'une table de préréglages), `convert-v5` génère une affectation partagée légère. Pour les agencements **sur mesure** — rotation de canaux (Mi-24P canal 0 → préréglage #20), canal factice initial / fréquences en dur / modulations AM-FM par canal (AJS37), ou radios supplémentaires — il génère un **préréglage dédié `{coalition}_{aéronef}`** reproduisant exactement la carte canal → fréquence (y compris les `mod`), pour rester iso-fonctionnel avec la mission v5 (voir ADR 0003).
+Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` produit **deux** fichiers de préréglages :
+
+- **`presets.yaml` — plan simplifié (par défaut, chargé par le build)** : `channel_lists` seul (plus, le cas échéant, les rares surcharges que le packer ne peut pas projeter du tout). Le build projette automatiquement la cristallisation sur chaque aéronef, warbirds compris (radios compatibles VHF/FM), en droppant les canaux hors bande. C'est le fichier qui exploite pleinement le modèle preset-plan.
+- **`presets.v5.yaml` — copie fidèle (référence / repli, non chargée par le build)** : la conversion iso-fonctionnelle complète (`channel_lists` + un préréglage dédié `{coalition}_{aéronef}` par agencement sur mesure, reproduisant exactement la carte canal → fréquence et les `mod`, voir ADR 0003).
+
+**Attention** : le plan peut faire **diverger** certaines fréquences de la mission v5 d'origine — les warbirds passent sur les canaux de la coalition, et les radios fusionnées/à modulations des jets (F-14, AV8B…) sont projetées au mieux (partiellement) tant qu'aucune entrée `dcs-radio-layouts.yaml` dédiée n'existe pour leur type. `convert-v5` avertit quels aéronefs sont projetés au mieux. **Vérifiez et éditez `presets.yaml`** ; en cas de doute, la reproduction exacte du v5 reste dans `presets.v5.yaml` (à copier dans `presets.yaml` pour revenir au comportement iso-fonctionnel).
 
 ### Validation des fréquences
 

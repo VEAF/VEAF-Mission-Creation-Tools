@@ -35,6 +35,19 @@ from presets_injector.presets_manager import Channel, PresetDefinition, RadioDef
 from veaf_libs.i18n import t
 
 
+def _load_faithful(v6_path: Path) -> dict:
+    """Load the faithful presets file (``presets.v5.yaml`` when it exists, else ``presets.yaml``).
+
+    FEAT-CONVERTV5-PLAN-PRESETS: ``convert_presets`` writes a lean plan
+    (``presets.yaml``) plus a faithful copy (``presets.v5.yaml``) whenever a
+    shared channel list exists. Assertions on the full per-aircraft output
+    target the faithful copy.
+    """
+    faithful = v6_path.with_name(f"{v6_path.stem}.v5{v6_path.suffix}")
+    target = faithful if faithful.exists() else v6_path
+    return yaml.safe_load(target.read_text())
+
+
 class TestExtractLuaTableText(unittest.TestCase):
     """_extract_lua_table_text must correctly extract named tables from Lua source."""
 
@@ -301,7 +314,7 @@ class TestConvertPresets(unittest.TestCase):
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         self.assertTrue(v6.exists())
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertIn("radios_collection", data)
         self.assertIn("blue_radios", data["radios_collection"])
 
@@ -310,7 +323,7 @@ class TestConvertPresets(unittest.TestCase):
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertIn("blue_radios", data["radios_collection"])
         self.assertIn("red_radios", data["radios_collection"])
 
@@ -501,7 +514,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("Bf-109K-4"), "blue_warbird")
         self.assertNotIn("Bf-109K-4", data["presets_assignments"]["blue"]["helicopter"])
 
@@ -516,7 +529,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         assignments = data["presets_assignments"]["blue"]["plane"]
         self.assertEqual(assignments.get("I-16"), "blue_vhf_primary")
         # Preset must also be created
@@ -533,7 +546,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         preset = data["presets_collection"]["blue_presets"]["blue_vhf_primary"]
         self.assertEqual(preset["radios"]["radio_1"], "radio_vhf_blue")
 
@@ -551,7 +564,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         assignments = data["presets_assignments"]["blue"]["plane"]
         # F-16C_50 starts with UHF radio → covered by "all", no explicit entry needed
         self.assertNotIn("F-16C_50", assignments)
@@ -567,7 +580,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         assignments = data["presets_assignments"]["blue"]["plane"]
         self.assertEqual(assignments.get("FW[-]190.*"), "blue_warbird")
         self.assertNotIn("FW[-]190.*", data["presets_assignments"]["blue"]["helicopter"])
@@ -585,7 +598,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("Mi-8MT"), "blue_vhf_primary")
         self.assertNotIn("Mi-8MT", data["presets_assignments"]["blue"]["plane"])
 
@@ -601,7 +614,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("AJS37"), "blue_ajs37")
         radio = data["radios_collection"]["blue_radios"]["radio_blue_ajs37_1"]
         self.assertEqual(radio["channels"][1], 284.0)
@@ -617,7 +630,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("F16.*"), "blue_vhf_primary")
         self.assertIn("blue_vhf_primary", data["presets_collection"]["blue_presets"])
 
@@ -636,7 +649,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         heli = data["presets_assignments"]["blue"]["helicopter"]
         self.assertEqual(heli.get("SA342.+"), "blue_fm_primary")
         self.assertIn("blue_fm_primary", data["presets_collection"]["blue_presets"])
@@ -658,7 +671,7 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["red"]["plane"].get("Bf-109K-4"), "red_warbird")
 
 
@@ -749,7 +762,7 @@ radioSettings = {
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        self.assertNotIn("F-16C_50", data["presets_assignments"]["blue"].get("plane", {}))
+        self.assertNotIn("F-16C_50", data.get("presets_assignments", {}).get("blue", {}).get("plane", {}))
         self.assertIn("channel_lists", data)
 
     def test_bespoke_aircraft_reproduced_by_packer_gets_no_override(self) -> None:
@@ -794,7 +807,7 @@ radioSettings = {
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        self.assertNotIn("Mi-24P", data["presets_assignments"]["blue"].get("helicopter", {}))
+        self.assertNotIn("Mi-24P", data.get("presets_assignments", {}).get("blue", {}).get("helicopter", {}))
 
     def test_divergent_aircraft_falls_back_with_warning(self) -> None:
         # A bespoke layout the packer's Radio layout does not reproduce
@@ -822,7 +835,8 @@ radioSettings = {
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         warnings = convert_presets(v5, v6)
-        data = yaml.safe_load(v6.read_text())
+        # OH58D is projectable at best effort → dropped from the plan, kept in the faithful copy.
+        data = _load_faithful(v6)
         self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("OH58D"), "blue_oh58d")
         self.assertTrue(any("OH58D" in w for w in warnings))
 

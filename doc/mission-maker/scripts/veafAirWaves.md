@@ -114,6 +114,31 @@ modules:
 | `number` | string \| entier | — | Groupes à choisir : `2` ou plage `"1-3"` |
 | `bias` | entier | `0` | Décaler l'index de début aléatoire vers les entrées plus difficiles |
 
+### Menu radio de contrôle (raccourci)
+
+Les commandes de démarrage/arrêt/réinitialisation d'une zone AirWave **n'existent pas** dans le menu radio VEAF standard (contrairement à CombatZone ou Carrier). Pour donner au Mission Master un contrôle F10 sur une zone, ajoutez `radio_menu: true` à sa définition : le framework génère automatiquement un sous-menu nommé d'après la zone, avec les commandes « Démarrer &lt;nom&gt; », « Arrêter &lt;nom&gt; » et « Réinitialiser &lt;nom&gt; ».
+
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette zone |
+| `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |
+
+```yaml
+modules:
+  AIRWAVES:
+    airwave_zones:
+      - name: "Zone BVR"
+        start: true
+        player_coalitions: [BLUE]
+        trigger_zone_name: "ZONE-BVR"
+        waves:
+          - groups: "su27-flight"
+        radio_menu: true                         # génère le sous-menu de contrôle
+        radio_menu_restrict_to_group: "MM Ctrl"  # optionnel : réserver le sous-menu à ce groupe DCS
+```
+
+C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (AirWaves, QRA, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#menus-radio-en-yaml).
+
 ### Exemple minimal
 
 ```yaml

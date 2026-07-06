@@ -71,6 +71,13 @@ modules:
   #     enabled: true
   #     init:
   #       help_menus: true
+  #     user_menus:            # Mission-Master F10 menus in YAML (FEAT-RADIO-YAML-MENUS)
+  #       restrict_to_group: "MM Ctrl"   # optional: DCS group name; absent = global menu
+  #       tree:
+  #         - menu: "Flags"
+  #           items:
+  #             - { command: "Enable ALPHA", action: flag.on, flag: "alpha" }
+  #             - { command: "Start QRA North", action: qra.start, qra: "QRA-North" }
   GROUNDAI: true
   SPAWN: true
   NAMEDPOINTS: true

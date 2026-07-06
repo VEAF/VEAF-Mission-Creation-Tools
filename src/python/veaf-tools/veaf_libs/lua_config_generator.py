@@ -822,6 +822,11 @@ RADIO_MENU_ACTIONS: dict[str, tuple[str, ...]] = {
 }
 
 
+def _lua_closure(body: str) -> str:
+    """Wrap a Lua statement in a no-argument closure: ``function() <body> end``."""
+    return f"function() {body} end"
+
+
 def _emit_action_call(item: dict) -> str:
     """Return the Lua for a command's function argument (plus optional params).
 
@@ -851,31 +856,32 @@ def _emit_action_call(item: dict) -> str:
         if not args:
             return fn
         args_lua = ", ".join(_to_lua_scalar(a) for a in args)
-        return f"{fn}, {{{args_lua}}}"
+        ref = f"{fn}, {{{args_lua}}}"
+        return ref
 
     if action in ("qra.start", "qra.stop"):
         method = action.split(".", 1)[1]
         name = _to_lua_scalar(item["qra"])
-        return f"function() local o = veafQraManager.get({name}); if o then o:{method}() end end"
+        return _lua_closure(f"local o = veafQraManager.get({name}); if o then o:{method}() end")
 
     if action in ("airwave.start", "airwave.stop", "airwave.reset"):
         method = action.split(".", 1)[1]
         name = _to_lua_scalar(item["airwave"])
-        return f"function() local o = veafAirWaves.get({name}); if o then o:{method}() end end"
+        return _lua_closure(f"local o = veafAirWaves.get({name}); if o then o:{method}() end")
 
     if action in ("flag.on", "flag.off", "flag.set"):
         value = {"flag.on": 1, "flag.off": 0}[action] if action != "flag.set" else item["value"]
         flag = _to_lua_scalar(item["flag"])
-        return f"function() veafSpawn.missionMasterSetFlag({flag}, {_to_lua_scalar(value)}) end"
+        return _lua_closure(f"veafSpawn.missionMasterSetFlag({flag}, {_to_lua_scalar(value)})")
 
     if action in ("flag.increment", "flag.decrement"):
         inc = 1 if action == "flag.increment" else -1
         flag = _to_lua_scalar(item["flag"])
-        return f"function() veafSpawn.missionMasterAddValueToFlag({flag}, {inc}) end"
+        return _lua_closure(f"veafSpawn.missionMasterAddValueToFlag({flag}, {inc})")
 
     # message
     text = _emit_lua_string(str(item["text"]))
-    return f"function() trigger.action.outText({text}, 15) end"
+    return _lua_closure(f"trigger.action.outText({text}, 15)")
 
 
 def _emit_menu_node(node: dict, indent: str) -> list[str]:
@@ -1418,6 +1424,16 @@ def generate_mission_yaml_template(
                 for yaml_k, default in _MODULE_INIT_PARAMS[mid]:
                     lines.append(f"    #   {yaml_k}: {_to_lua_scalar(default)}")
             # Show data subsections for special modules
+            if mid == "RADIO":
+                lines += [
+                    "    # user_menus:            # Mission-Master F10 menus in YAML (FEAT-RADIO-YAML-MENUS)",
+                    '    #   restrict_to_group: "MM Ctrl"   # optional: DCS group name; absent = global menu',
+                    "    #   tree:",
+                    '    #     - menu: "Flags"',
+                    "    #       items:",
+                    '    #         - { command: "Enable ALPHA", action: flag.on, flag: "alpha" }',
+                    '    #         - { command: "Start QRA North", action: qra.start, qra: "QRA-North" }',
+                ]
             if mid == "ASSETS":
                 lines.append("    # assets:  # list of asset entries")
                 lines.append("    #   - sort: 1")

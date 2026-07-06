@@ -340,6 +340,30 @@ modules:
 
 ---
 
+### `modules.RADIO.user_menus` — F10 radio menus in YAML
+
+Since ADR 0011, a mission maker can declare a custom F10 radio menu (in particular for the Mission Master) **entirely in YAML**, with no Lua, under `modules.RADIO.user_menus`.
+
+```yaml
+modules:
+  RADIO:
+    user_menus:
+      restrict_to_group: "MM Ctrl"   # optional: name of a DCS group; menu restricted to that group. Omitted = global.
+      tree:
+        - menu: "QRA Control"
+          items:
+            - { command: "Start QRA North", action: qra.start, qra: "QRA-North" }
+            - { command: "Stop QRA North",  action: qra.stop,  qra: "QRA-North" }
+        - { command: "Global message", action: message, text: "The mission is starting!" }
+        - { command: "Custom function", action: lua, function: "myMission.startEverything", args: ["alpha", 3] }
+```
+
+Each node of `tree` is either a submenu (`{ menu: "...", items: [...] }`, recursive) or a command (`{ command: "...", action: <verb>, <keys> }`). The action vocabulary is closed (`qra.start`/`qra.stop`, `airwave.start`/`airwave.stop`/`airwave.reset`, `flag.on`/`flag.off`/`flag.set`/`flag.increment`/`flag.decrement`, `message`, `lua`). A `lua` action references a function defined in `mission-script.lua`: if the function is missing, the build fails.
+
+See the full schema, the action table and a detailed example in [veafRadio → Radio menus in YAML](mission-maker/scripts/veafRadio.en.md#radio-menus-in-yaml).
+
+---
+
 ### `modules.QRA`, `cap_missions:`, `combat_missions:`
 
 QRA definitions live under `modules.QRA` (`silence_all` + `definitions:`). The `cap_missions:` / `combat_missions:` sections remain top-level. All require the corresponding modules enabled under `modules:`.
@@ -347,6 +371,8 @@ QRA definitions live under `modules.QRA` (`silence_all` + `definitions:`). The `
 See the respective module pages for full schema:
 - [`modules.QRA`](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) — Quick Reaction Alert definitions
 - [`cap_missions:` and `combat_missions:`](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) — CAP and combat mission definitions
+
+> **Radio menu shortcut (QRA / AirWaves).** A QRA definition (`modules.QRA.definitions[]`) or an AirWave zone (`modules.AIRWAVES.airwave_zones[]`) accepts `radio_menu: true` (and the optional `radio_menu_restrict_to_group: "<DCS group>"`) to automatically generate an F10 control submenu (start/stop, plus reset for AirWaves). See [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) and [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml).
 
 ---
 
@@ -584,6 +610,7 @@ veaf-tools.exe build --profile MODERN   # produces only the MODERN variant (unsu
 | `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
 | `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
 | `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
+| [`modules.RADIO.user_menus`](#modulesradiouser_menus--f10-radio-menus-in-yaml) | F10 radio menus declared in YAML |
 | `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
 
 ### Build Pipeline

@@ -953,6 +953,70 @@ def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group:
     return _emit_user_menus(user_menus, indent="    ")
 
 
+def collect_radio_lua_functions(mission_yaml: dict) -> list[str]:
+    """Return the maker function names referenced by ``action: lua`` radio-menu items.
+
+    Reads ``modules.RADIO.user_menus`` (accepting the ``modules`` or the legacy
+    ``lua_modules`` key) and walks the menu tree.
+
+    Args:
+        mission_yaml: The parsed ``mission.yaml`` mapping.
+
+    Returns:
+        The referenced function symbols, in tree order (may contain duplicates).
+    """
+    modules = mission_yaml.get("lua_modules") or mission_yaml.get("modules") or {}
+    radio = modules.get("RADIO") if isinstance(modules, dict) else None
+    user_menus = radio.get("user_menus") if isinstance(radio, dict) else None
+    if not isinstance(user_menus, dict):
+        return []
+    found: list[str] = []
+
+    def _walk(nodes: object) -> None:
+        if not isinstance(nodes, list):
+            return
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if "menu" in node:
+                _walk(node.get("items"))
+            elif node.get("action") == "lua" and node.get("function"):
+                found.append(str(node["function"]))
+
+    _walk(user_menus.get("tree"))
+    return found
+
+
+def _lua_defines_function(corpus: str, symbol: str) -> bool:
+    """True if the Lua *corpus* defines *symbol* as a function.
+
+    Recognises ``function <symbol>(`` / ``function <symbol>:`` and
+    ``<symbol> = function`` for both plain and dotted (``table.fn``) names.
+    """
+    esc = re.escape(symbol)
+    return re.search(rf"(function\s+{esc}\s*[(:])|({esc}\s*=\s*function)", corpus) is not None
+
+
+def find_undefined_lua_functions(mission_yaml: dict, corpus: str) -> list[str]:
+    """Return referenced ``action: lua`` functions **not** defined in the Lua *corpus*.
+
+    Used at build time (abort) and by the ``validate`` command (error). The order of
+    first appearance is preserved and duplicates are collapsed.
+
+    Args:
+        mission_yaml: The parsed ``mission.yaml`` mapping.
+        corpus: The concatenated Lua source of the mission's scripts.
+
+    Returns:
+        The undefined function symbols, de-duplicated.
+    """
+    missing: list[str] = []
+    for fn in collect_radio_lua_functions(mission_yaml):
+        if fn not in missing and not _lua_defines_function(corpus, fn):
+            missing.append(fn)
+    return missing
+
+
 def _emit_combat_mission(cm: dict, var_name: str, indent: str = "    ") -> list[str]:
     """Emit a ``veafCombatMission.AddMissionsWithSkillAndScale(...)`` call."""
     lines: list[str] = []

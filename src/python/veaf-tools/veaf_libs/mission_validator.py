@@ -89,6 +89,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 3b. config_override keys exist lexically in the injected Foothold corpus
     issues += _check_config_override(folder, yaml_data)
 
+    # 3c. radio-menu `action: lua` references resolve to a defined maker function
+    issues += _check_radio_lua_functions(folder, yaml_data)
+
     # 4-6. checks that need the source mission table
     mission = _read_source_mission(folder)
     if mission is None:
@@ -198,6 +201,31 @@ def _check_radio_menus(yaml_data: dict) -> list[ValidationIssue]:
 
     _walk(user_menus.get("tree"))
     return issues
+
+
+def _check_radio_lua_functions(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Each radio-menu ``action: lua`` must reference a function defined in the mission scripts.
+
+    Mirrors the build's abort (FEAT-RADIO-YAML-MENUS): a reference with no matching
+    definition in the concatenated ``src/scripts`` corpus is an error, so the maker
+    catches the typo (or forgotten definition) before the F10 menu breaks at runtime.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml`` mapping.
+
+    Returns:
+        One error per undefined referenced function.
+    """
+    from veaf_libs.lua_config_generator import collect_radio_lua_functions, find_undefined_lua_functions
+
+    if not collect_radio_lua_functions(yaml_data):
+        return []
+    corpus = read_corpus(folder / "src" / "scripts")
+    return [
+        ValidationIssue(ERROR, t("validate.radio_lua_function_missing", function=fn))
+        for fn in find_undefined_lua_functions(yaml_data, corpus)
+    ]
 
 
 def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue]:

@@ -15,6 +15,8 @@ from veaf_libs.lua_config_generator import (
     _emit_module_radio_menu,
     _emit_user_menus,
     _resolve_deps,
+    collect_radio_lua_functions,
+    find_undefined_lua_functions,
     generate_config_lua,
     generate_mission_yaml_template,
     resolve_module_dependencies,
@@ -717,3 +719,64 @@ def test_generate_radio_user_menus():
     lua = generate_config_lua(yaml_data)
     assert "veafRadio.createUserMenu(" in lua
     assert 'veafSpawn.missionMasterSetFlag("alpha", 1)' in lua
+
+
+# ---------------------------------------------------------------------------
+# lua action: build-time function verification (ticket 03)
+# ---------------------------------------------------------------------------
+
+_YAML_WITH_LUA_REF: dict = {
+    "modules": {
+        "RADIO": {
+            "user_menus": {
+                "tree": [
+                    {
+                        "menu": "Custom",
+                        "items": [
+                            {"command": "Run", "action": "lua", "function": "maMission.doStuff"},
+                            {"command": "Flag", "action": "flag.on", "flag": "a"},
+                        ],
+                    }
+                ]
+            }
+        }
+    }
+}
+
+
+def test_collect_radio_lua_functions():
+    assert collect_radio_lua_functions(_YAML_WITH_LUA_REF) == ["maMission.doStuff"]
+
+
+def test_collect_radio_lua_functions_none():
+    assert collect_radio_lua_functions({"modules": {"RADIO": {}}}) == []
+
+
+def test_find_undefined_lua_functions_reports_missing():
+    assert find_undefined_lua_functions(_YAML_WITH_LUA_REF, "-- empty corpus") == ["maMission.doStuff"]
+
+
+def test_find_undefined_lua_functions_ok_when_defined_dotted():
+    corpus = "function maMission.doStuff()\n  return 1\nend"
+    assert find_undefined_lua_functions(_YAML_WITH_LUA_REF, corpus) == []
+
+
+def test_find_undefined_lua_functions_ok_when_assigned():
+    corpus = "maMission.doStuff = function() end"
+    assert find_undefined_lua_functions(_YAML_WITH_LUA_REF, corpus) == []
+
+
+def test_find_undefined_lua_functions_deduplicates():
+    yaml_data = {
+        "modules": {
+            "RADIO": {
+                "user_menus": {
+                    "tree": [
+                        {"command": "A", "action": "lua", "function": "m.f"},
+                        {"command": "B", "action": "lua", "function": "m.f"},
+                    ]
+                }
+            }
+        }
+    }
+    assert find_undefined_lua_functions(yaml_data, "-- none") == ["m.f"]

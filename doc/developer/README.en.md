@@ -97,6 +97,7 @@ These commands must pass without errors before committing. CI also runs them aut
 - [Complete Developer Guide](GUIDE.md) — repository layout, coding conventions, build pipeline, contributing workflow
 - [Testing Guide](../TESTING.md) — Lua and Python test infrastructure in detail
 - [`export` JSON contract](export-json-contract.en.md) — `veaf-tools export` output format consumed by the BFR `dcs-mission-tools` plugin
+- [Per-type radio-preset projection](radio-preset-projection.en.md) — how the build projects `channel_lists` onto each aircraft's radios (channel 0, reserved slots, fusion — AJS-37, OH-58D, Mi-24P…)
 
 ---
 

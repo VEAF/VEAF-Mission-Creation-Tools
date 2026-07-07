@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+- **Per-type radio-preset projection now has a dedicated developer page** (extends ADR 0010). New `doc/developer/radio-preset-projection.md` (FR + EN) consolidates how the build projects `channel_lists` onto each aircraft type's physical radios — radio roles, band-based default, quirk primitives (`rotate_last_to_head`, `fuse`, `leading_dummy`, `trailing_specials`, `reserved_head_slots`, `capacity`) and their composition order, plus the per-type quirk table (Mi-24P, CH-47Fbl1, OH-58D, AJS-37) — with pointers to the source files (`dcs-radio-layouts.yaml`, `presets_manager.py`, `dcs-radio-specs.yaml`). Linked from the developer README, the `channel_lists` section of `PIPELINE_REFERENCE`, and a new simplified mission-maker note in `doc/mission-maker/dcs-radio-specs.md`.
+
 ## [6.8.0] — 2026-07-06
 
 ### Added

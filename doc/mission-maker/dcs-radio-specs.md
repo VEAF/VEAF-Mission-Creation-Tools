@@ -9,6 +9,24 @@ par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquenc
 
 ---
 
+## Particularités par type — gérées automatiquement
+
+Avec le format recommandé `channel_lists` (voir
+[format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur)), vous
+déclarez vos listes de canaux **une seule fois par coalition**, par rôle radio
+(UHF principal, VHF principal, FM…). Le build les projette ensuite sur les
+radios physiques de **chaque** appareil, en gérant tout seul ses particularités
+matérielles : le canal 0 du Mi-24P et du CH-47, les slots réservés « M »/« C »
+de l'OH-58D, la radio unique du Viggen (AJS-37) avec ses canaux spéciaux
+FR22/FR24 en dur, etc. Vous n'avez **rien** à configurer pour ces appareils :
+une modification de fréquence se propage à toute la flotte.
+
+> Le détail des règles de projection par type (quel appareil a quelle
+> particularité, et comment elles sont encodées) est documenté côté
+> développeur : [Projection des presets radio par type](../developer/radio-preset-projection.md).
+
+---
+
 ## Appareils critiques (`dcs_rejects_on_load`)
 
 Certains appareils provoquent une erreur DCS bloquante au chargement de la mission si une fréquence

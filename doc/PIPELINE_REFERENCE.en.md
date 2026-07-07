@@ -74,7 +74,7 @@ Injects radio frequency presets into every aircraft group that has at least one 
 
 Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepts two layers, which coexist:
 
-- **`channel_lists`** (recommended): the mission-maker declares their channel lists once per coalition, by functional **Radio role** (primary UHF, primary VHF, FM…), and the build automatically projects each list onto every aircraft type's physical radios, honouring that type's hardware quirks. One frequency change propagates to the whole fleet.
+- **`channel_lists`** (recommended): the mission-maker declares their channel lists once per coalition, by functional **Radio role** (primary UHF, primary VHF, FM…), and the build automatically projects each list onto every aircraft type's physical radios, honouring that type's hardware quirks (channel 0, reserved slots, hardcoded special channels, radio fusion — AJS-37, OH-58D, Mi-24P…). One frequency change propagates to the whole fleet. These per-type projection rules are documented on the developer side: [Per-type radio-preset projection](developer/radio-preset-projection.en.md).
 - **`radios_collection` / `presets_collection` / `presets_assignments`** (legacy): the mission-maker defines each preset's content radio by radio, then explicitly assigns it per aircraft type. This format remains fully supported and now serves as the **manual override mechanism**: an explicit assignment in `presets_assignments` for a given type always wins over the `channel_lists` automatic projection — including the special value `none` (no injection at all).
 
 In both cases, `channels_collection` (the frequencies) stays the shared source for both formats.

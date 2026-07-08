@@ -27,28 +27,28 @@
 #         list follows in order, wrapping into slots 2..N. Airframe property:
 #         applies uniformly regardless of coalition (confirmed against the real
 #         Tripack fixture, both blue and red Mi-24P).
-#       - `fuse: [role_a, role_b, ...]` — radio fusion. Concatenates two or more
-#         Radio roles' channel lists, in the declared order, into this ONE
-#         physical radio's channel map. Each source list's own numbering is
-#         discarded; the fused result is renumbered sequentially starting at
-#         slot 1 (before any `leading_dummy`/`trailing_specials` shift it — see
-#         composition order below). Replaces the plain single-role lookup
-#         entirely for this radio (the AJS-37's one V/UHF radio fuses
-#         `primary_1` + `primary_2`).
-#       - `leading_dummy: {freq: <float>, mod: <0|1>}` — a reserved slot 1 with
-#         a fixed, hardcoded frequency and no source Channel-list entry at all
-#         (distinct from a channel-list-sourced reserved head slot: this one is
-#         a pure airframe constant, e.g. the AJS-37's "channel 100" dummy at
-#         frequency 0). The rest of the radio's content (rotated/fused) is
-#         shifted to start at slot 2.
-#       - `trailing_specials: [{freq: <float>, mod: <0|1>}, ...]` — a declared,
-#         ordered list of fixed (frequency, modulation) pairs appended after
-#         the radio's other content, at the trailing slots. Airframe constants,
-#         not sourced from any channel_lists role (e.g. the AJS-37's 7
-#         FR22/FR24 special channels, including GUARD). Overridable by the
+#       - `keyed_groups: {block_size: <int>, bases: {<role>: <group>, ...}}` —
+#         key-based multi-role mapping (ADR 0012). Several Radio roles share this
+#         ONE physical radio; each channel is placed at a DCS slot derived from
+#         its declared key (NOT renumbered): for a role with Group base `B` and a
+#         channel of key `K`, Group = `B + K` and slot =
+#         `((B + K - min_group) mod block_size) + 1` (min_group = lowest base).
+#         Preserves key gaps and wraps the block's overflow back to slot 1 (the
+#         AJS-37's Group 100 recycles primary_2's 20th channel). A key beyond its
+#         role's share of the block (`block_size // number_of_roles`) is dropped
+#         with a warning. Replaces the plain single-role lookup for this radio.
+#       - `trailing_specials: [{...}, ...]` — a declared, ordered list of special
+#         slots appended after the radio's other content, at the trailing slots.
+#         Each entry is either an airframe constant `{freq: <float>, mod: <0|1>}`
+#         (e.g. the AJS-37's FR24 E/F/G emergency channels) or plan-sourced
+#         `{priority: <int>}` — its frequency comes from the preset plan's
+#         channel tagged with that priority (ADR 0012; always AM), leaving the
+#         slot empty if no such channel exists. An optional `label` names the
+#         slot on the kneeboard (e.g. `Sp1`, `H`). With `keyed_groups`, specials
+#         start at the fixed block boundary (`block_size + 1`) so they keep their
+#         absolute slots even when the data block has gaps. Overridable by the
 #         maker via the existing `presets_assignments` bespoke-preset mechanism
-#         — that manual-override path is checked before the packer runs at
-#         all, so it always wins over this primitive with no extra code needed.
+#         — that manual-override path is checked before the packer runs at all.
 #       - `reserved_head_slots: [<list index>, ...]` — reserved head slot(s).
 #         Each entry is a **1-based index into the channel list** that fills one
 #         leading DCS channel slot, in the declared order. Only the index that
@@ -78,11 +78,12 @@
 #         filled by design, never exceeded — no entry needed).
 #
 #     Composition order when several primitives are declared on the same radio
-#     (ADR 0010): fusion (or the plain role list) provides the base content,
-#     then channel-0 rotation OR reserved head slot(s) (mutually exclusive with
-#     each other — see above), then the leading dummy is inserted at slot 1
-#     (shifting the rest), then trailing hardcoded specials are appended, then
-#     slot capacity truncates the result if it exceeds the declared limit.
+#     (ADR 0010/0012): the base content comes from either `keyed_groups` (its
+#     own key-based placement) or the plain role list; for the plain-list path,
+#     channel-0 rotation OR reserved head slot(s) (mutually exclusive with each
+#     other — see above) then apply; then trailing specials are appended (at the
+#     block boundary for `keyed_groups`, else right after the content); then slot
+#     capacity truncates the result if it exceeds the declared limit.
 #
 # A comment above each radio index should identify the real DCS radio it is
 # (name + band), for readability against dcs-radio-specs.yaml.
@@ -116,31 +117,31 @@ Mi-24P:
 
 AJS37:
   radios:
-    # radio 1: the Viggen's single V/UHF set (103-400 MHz, one range -> the
-    # band classifier alone would call it "ambiguous" and default it to
-    # primary_1; listed explicitly here since this radio also needs all three
-    # of ticket 04's primitives together — the most complex layout entry in
-    # this lot (ADR 0010's own analysis).
-    #
-    # Real shape (Tripack fixture, ADR 0003's `red AJS37` ground truth):
-    # slot 1 = leading dummy ("channel 100", freq 0, AM); slots 2-21 = the 20
-    # primary_1 (UHF) entries; slots 22-40 = the 19 primary_2 (VHF) entries;
-    # slots 41-47 = 7 hardcoded FR22/FR24 specials (41-45 FM, 46-47 AM, 47 =
-    # GUARD 243.0).
+    # radio 1: the Viggen's single V/UHF set (103-400 MHz), stored by DCS as one
+    # 47-slot Radio table (ADR 0012). The 40 data channels use the pilot
+    # convention "channel N = Group 10N": primary_1 keys 1..20 -> Groups 101-120
+    # (DCS slots 2-21), primary_2 keys 1..19 -> Groups 121-139 (slots 22-40), and
+    # primary_2 key 20 -> Group 100 (slot 1), recycling the otherwise-unused first
+    # slot (`keyed_groups` block_size 40, bases primary_1=100 / primary_2=120).
+    # Then 7 trailing specials at absolute slots 41-47: FR22 Special 1/2/3 and
+    # FR24 H are plan-sourced (priorities 1-4, always AM); FR24 E/F/G are fixed
+    # airframe emergency constants. Breaks ADR 0003 iso-functionality on purpose
+    # (slot 1 is now primary_2[20], not a dummy).
     1:
       role: primary_1
-      fuse: [primary_1, primary_2]
-      leading_dummy:
-        freq: 0
-        mod: 0
+      keyed_groups:
+        block_size: 40
+        bases:
+          primary_1: 100
+          primary_2: 120
       trailing_specials:
-        - { freq: 30, mod: 1 } # FR22 Special 1
-        - { freq: 31, mod: 1 } # FR22 Special 2
-        - { freq: 32, mod: 1 } # FR22 Special 3
-        - { freq: 33, mod: 1 } # FR24 E
-        - { freq: 34, mod: 1 } # FR24 F
-        - { freq: 127.5, mod: 0 } # FR24 G
-        - { freq: 243, mod: 0 } # FR24 H (LARM/GUARD)
+        - { priority: 1, label: Sp1 } # FR22 Special 1 <- plan priority 1
+        - { priority: 2, label: Sp2 } # FR22 Special 2 <- plan priority 2
+        - { priority: 3, label: Sp3 } # FR22 Special 3 <- plan priority 3
+        - { freq: 33, mod: 1, label: E } # FR24 E (fixed emergency channel)
+        - { freq: 34, mod: 1, label: F } # FR24 F (fixed)
+        - { freq: 127.5, mod: 0, label: G } # FR24 G (fixed)
+        - { priority: 4, label: H } # FR24 H (LARM/GUARD) <- plan priority 4
 
 CH-47Fbl1:
   radios:

@@ -3,7 +3,8 @@
 > **Audience: developers.** How the build projects the channel lists
 > (`channel_lists`, the "plan mode" of `presets.yaml`) onto each aircraft type's
 > physical radios, honouring its hardware quirks (channel 0, reserved slots,
-> hardcoded special channels, radio fusion…).
+> hardcoded special channels, key-based mapping…), plus channel priority/colour
+> and per-type kneeboards ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)).
 >
 > Architecture decision: [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md)
 > (extends [ADR 0003](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0003-presets-fidelity.md)).
@@ -76,15 +77,15 @@ Declared per physical radio (1-based index, specs / `.miz` order) in
 | Primitive | Effect |
 |---|---|
 | `rotate_last_to_head: true` | **Channel-0 rotation**: the list's last entry moves to the head (slot 1), the rest follows in 2..N. |
-| `fuse: [role_a, role_b, …]` | **Radio fusion**: concatenates several roles' lists into one physical radio, renumbered from slot 1. |
-| `leading_dummy: {freq, mod}` | **Hardcoded reserved slot 1** (airframe constant, no channel-list entry); the rest shifts to slot 2. |
-| `trailing_specials: [{freq, mod}, …]` | **Hardcoded special channels** appended at the tail (airframe constants, maker-overridable). |
+| `keyed_groups: {block_size, bases}` | **Key-based mapping** (ADR 0012): several roles share one radio, each channel placed by its **key** (Group = `base + key`, slot = `((Group − min_base) mod block_size) + 1`). Gaps preserved, overflow wraps to slot 1 (the Viggen's Group 100 recycles `primary_2`'s 20th channel). A key beyond the role's share (`block_size / number_of_roles`) is dropped + `WARNING`. |
+| `trailing_specials: [{…}, …]` | **Special channels at the tail.** Each entry is either an **airframe constant** `{freq, mod}` (e.g. the Viggen's E/F/G) or **plan-sourced** `{priority: N}` — the frequency comes from the channel tagged `priority: N` (always AM; slot left empty if absent). Optional `label` = pilot name (Sp1, H…). Maker-overridable via `presets_assignments`. |
 | `reserved_head_slots: [idx, …]` | **Reserved head slot(s)** fed by a list index ("M" / "C" slot). `[20]` = last entry moved to the head; `[1, 20]` = first duplicated at the head then last moved. Mutually exclusive with `rotate_last_to_head`. |
 | `capacity: <int>` | Radio's **physical capacity**: the excess is truncated at the tail (silent, debug log). |
 
-**Composition order** when several primitives coexist on one radio: fusion (or
-the plain role list) → rotation *or* reserved head slots (mutually exclusive) →
-`leading_dummy` inserted at slot 1 → `trailing_specials` appended → `capacity`
+**Composition order** when several primitives coexist on one radio: base content
+(`keyed_groups` *or* the plain role list) → (plain-list path only) rotation *or*
+reserved head slots (mutually exclusive) → `trailing_specials` appended (at the
+block boundary for `keyed_groups`, else right after the content) → `capacity`
 truncation.
 
 The packer also checks the declared radio count against the real specs and logs
@@ -101,11 +102,35 @@ through the band-based default.
 | **Mi-24P** | 2 (R-863 V/UHF + R-828 FM) | Radio 1 `primary_1` with **channel-0 rotation**; radio 2 `fm_substitute`, standard. |
 | **CH-47Fbl1** | 3 (ARC-186 + ARC-164 + ARC-201D) | Radio 1 `fm_substitute` **with rotation** (a secondary AM band fools the band classifier → explicit entry required); radio 2 `primary_1` with rotation; radio 3 `fm_secondary`. |
 | **OH58D** | 4 (UHF, VHF, FM1, FM2) | Radios 1-2: reserved "M" slot (`reserved_head_slots: [20]`). Radios 3-4: "C" + "M" slots (`[1, 20]`). |
-| **AJS37** (Viggen) | 1 (V/UHF, 47 slots) | The most complex entry: **fusion** `primary_1`+`primary_2` + **`leading_dummy`** ("channel 100" at 0) + **7 `trailing_specials`** FR22/FR24 (incl. GUARD 243). |
+| **AJS37** (Viggen) | 1 (V/UHF, 47 slots) | **`keyed_groups`** (Groups 100-139 block: `primary_1` keys 1-20 → 101-120, `primary_2` keys 1-20 → 121-139 + the Group-100 recycle) + **7 `trailing_specials`** at slots 41-47: Sp1/Sp2/Sp3 + H **plan-sourced** (`priority` 1-4), E/F/G **hardcoded**. Deliberately breaks ADR 0003 iso-functionality (slot 1 = `primary_2`'s 20th, not a dummy). |
 
 The slot-by-slot detail of each type (with comments explaining every choice)
 lives directly in
 [`dcs-radio-layouts.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/data/dcs-radio-layouts.yaml).
+
+## Channel priority and colour (ADR 0012)
+
+Two optional attributes the mission-maker sets on a plan entry (`channel_lists`):
+
+- **`priority: N`** — importance rank. **Universal**: the channel is highlighted
+  on every kneeboard (`Pn` marker + orange Name/Freq cells). **Viggen routing**:
+  priorities 1-4 fill FR22 Special 1/2/3 + FR24 H (band from the role:
+  `primary_1`→UHF, `primary_2`→VHF; always AM). One entry per value; `priority`
+  is **not** read from `channels_collection`.
+- **`color: <name|#RRGGBBAA>`** — visually groups channels by filling the **CH**
+  cell (text auto-contrasted). Accepted in `channel_lists` **and**
+  `channels_collection` (the plan entry overrides the definition). An unknown
+  name → `WARNING` + uncoloured channel. Presentation only; no effect on packing.
+
+## Per-type kneeboards (ADR 0012)
+
+The build renders **one kneeboard per injected `(coalition, type)`**, dropped in
+that type's DCS folder: `KNEEBOARD/<type>/IMAGES/presets.png` (coalition-suffixed
+only when the same type flies for both sides). This replaces the old generic
+`KNEEBOARD/IMAGES/` folder. The title is the concrete type. Radio header bars are
+**grey** (the old red/green/orange coding is gone). For the AJS-37, the CH column
+shows **pilot labels** (`100`-`139` then `Sp1/Sp2/Sp3/E/F/G/H`) and its 47-slot
+radio is **split across two columns**.
 
 ## Adding or fixing a type
 

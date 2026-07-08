@@ -181,6 +181,33 @@ Un canal peut être défini de trois façons, dans `channel_lists` comme dans `r
 - une **fréquence** directe (MHz) : `01: 243.0` ;
 - un **objet** : `01: { freq: 243.0, mod: 1 }`, où `mod` est la modulation (`0` = AM, `1` = FM). Le champ `mod` est optionnel ; absent, DCS utilise sa valeur par défaut.
 
+### Priorité et couleur d'un canal (planchettes)
+
+Sur une entrée du plan (forme objet), deux attributs facultatifs enrichissent la
+planchette ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)) :
+
+- **`priority: <n>`** — met le canal en évidence sur **toute** planchette
+  (marqueur `Pn` + cellules Name/Freq stabilotées en orange). Sur l'**AJS-37
+  (Viggen)** uniquement, les priorités 1 à 4 alimentent en plus les raccourcis
+  FR22 Special 1/2/3 et FR24 H. À déclarer **dans `channel_lists`** (une seule
+  entrée par valeur de priorité).
+- **`color: <couleur>`** — colorise la cellule **CH** pour regrouper visuellement
+  des canaux. Valeur : un nom de couleur (`green`, `blue`…) ou `#RRGGBBAA`.
+  Accepté dans `channel_lists` **et** dans `channels_collection` (l'entrée du
+  plan l'emporte sur la définition du canal).
+
+```yaml
+channel_lists:
+  blue:
+    primary_1:
+      01: { channel: Guard, priority: 4, color: red }   # Pn + stabilo ; sur Viggen → FR24 H
+      02: { channel: Texaco-1, priority: 1 }             # sur Viggen → FR22 Special 1
+      03: { channel: Batumi, color: "#2E7D32" }          # regroupement visuel (cellule CH)
+```
+
+Les planchettes sont générées **une par type d'aéronef** injecté, dans le dossier
+DCS du type (`KNEEBOARD/<type>/IMAGES/`).
+
 ### Conversion v5 : deux fichiers (`convert-v5`)
 
 Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` produit **deux** fichiers de préréglages :

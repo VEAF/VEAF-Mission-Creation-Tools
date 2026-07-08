@@ -1,6 +1,10 @@
 channel_lists: # Role-based preset plan (ADR 0010): declare each Radio role's Channel list
   # once per coalition; the build projects it onto every aircraft's physical
   # radios automatically (see doc/PIPELINE_REFERENCE.md, "Radio presets").
+  # A channel entry may also carry (ADR 0012): `priority: <n>` to highlight it on
+  # every kneeboard (and, on the AJS-37, fill FR22 Special 1/2/3 + FR24 H from
+  # priorities 1-4), and `color: <name|#RRGGBBAA>` to group channels visually —
+  # e.g. `02: { channel: Archer, priority: 1, color: green }`.
   blue:
     primary_1: # first V/UHF radio
       01:

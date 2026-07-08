@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.8.0"
+version = "6.8.1"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -123,7 +123,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=74",
+    "--cov-fail-under=75",
 ]
 
 # ---------------------------------------------------------------------------

@@ -162,5 +162,57 @@ class TestShippedDefaultMigration(unittest.TestCase):
         self.assertIsNone(self.manager.get_radios_for("red", "helicopter", "Mi-8MT"))
 
 
+class TestChannelPriorityAndColor(unittest.TestCase):
+    """FEAT-PRESETS-PRIORITY-COLOR ticket 01: `priority` (plan-only) and `color`
+    (plan entry overriding the channels_collection definition) parse onto Channel.
+    """
+
+    def setUp(self):
+        self.channel_collections = {
+            "common": ChannelCollection.from_dict(
+                name="common",
+                data={
+                    # A definition carrying its own colour (intrinsic grouping)…
+                    "Overlord": {"title": "Overlord", "freqs": {"uhf": 280.0}, "color": "green"},
+                    # …and one that also (illegally) sets priority, which must be ignored.
+                    "Garde": {"title": "Garde", "freqs": {"uhf": 243.0}, "priority": 9},
+                },
+            )
+        }
+
+    def test_priority_and_color_parsed_from_a_plan_entry(self):
+        data = {"blue": {"primary_1": {"01": {"channel": "Overlord", "priority": 2, "color": "blue"}}}}
+        channel_lists, _ = parse_channel_lists(data, self.channel_collections)
+        channel = channel_lists["blue"]["primary_1"].channels[0]
+        self.assertEqual(channel.priority, 2)
+        self.assertEqual(channel.color, "blue")
+
+    def test_color_falls_back_to_the_channel_definition(self):
+        # String-alias shortcut, no per-entry colour → the definition's colour applies.
+        data = {"blue": {"primary_1": {"01": "Overlord"}}}
+        channel_lists, _ = parse_channel_lists(data, self.channel_collections)
+        channel = channel_lists["blue"]["primary_1"].channels[0]
+        self.assertEqual(channel.color, "green")
+        self.assertIsNone(channel.priority)
+
+    def test_plan_entry_color_overrides_the_definition_color(self):
+        data = {"blue": {"primary_1": {"01": {"channel": "Overlord", "color": "red"}}}}
+        channel_lists, _ = parse_channel_lists(data, self.channel_collections)
+        self.assertEqual(channel_lists["blue"]["primary_1"].channels[0].color, "red")
+
+    def test_priority_on_a_channels_collection_definition_is_ignored(self):
+        # "Garde" declares priority 9 in the collection; the plan entry sets none.
+        data = {"blue": {"primary_1": {"01": "Garde"}}}
+        channel_lists, _ = parse_channel_lists(data, self.channel_collections)
+        self.assertIsNone(channel_lists["blue"]["primary_1"].channels[0].priority)
+
+    def test_absent_priority_and_color_default_to_none(self):
+        data = {"blue": {"primary_1": {"01": {"freq": 305.0}}}}
+        channel_lists, _ = parse_channel_lists(data, self.channel_collections)
+        channel = channel_lists["blue"]["primary_1"].channels[0]
+        self.assertIsNone(channel.priority)
+        self.assertIsNone(channel.color)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -88,6 +88,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self.generate_kneeboards = generate_kneeboards
         self.groups: dict[str, Group] = {}
         self.presets_manager: PresetsManager = PresetsManager()
+        # ADR 0012: presets actually injected, keyed by (coalition, concrete
+        # unit_type) — drives one kneeboard PNG per aircraft type.
+        self._injected_presets: dict[tuple[str, str], PresetDefinition] = {}
         # Pending frequency warnings keyed by unit_type; aggregated before emission.
         self._pending_freq_warnings: dict[str, _PendingFreqWarning] = {}
         # Resolved frequency issues populated after process_groups(); used by generate_validation_report().
@@ -260,6 +263,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     )
                     continue
                 preset_definition.used_in_mission = True
+                # ADR 0012: record the injected preset per (coalition, concrete
+                # unit_type) so the kneeboard step renders one page per type.
+                if group.unit_type:
+                    self._injected_presets[(group.coalition, group.unit_type)] = preset_definition
                 logger.debug(
                     f"Injecting preset '{preset_definition}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})"
                 )
@@ -440,8 +447,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         additional_files = {}
         if self.presets_manager.presets_images:
-            for preset_name, image in self.presets_manager.presets_images.items():
-                additional_files[f"KNEEBOARD/IMAGES/presets-{preset_name}.png"] = image.getvalue()
+            # ADR 0012: keys are full per-type kneeboard paths
+            # (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png).
+            for kneeboard_path, image in self.presets_manager.presets_images.items():
+                additional_files[kneeboard_path] = image.getvalue()
             if not silent:
                 logger.info(tn("presets_injector.kneeboard_pages", len(self.presets_manager.presets_images)))
 
@@ -462,7 +471,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
-                self.presets_manager.generate_presets_images(width=1200, height=None)
+                self.presets_manager.generate_type_images(self._injected_presets, width=1200, height=None)
 
         with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)

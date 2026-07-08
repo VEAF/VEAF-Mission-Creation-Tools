@@ -92,6 +92,22 @@ per-aircraft _Radio presets_ it ultimately produces. `convert-v5` generates a
 preset plan by default, falling back to a faithful per-aircraft v5 copy when the
 mission cannot be factored into one.
 
+**Channel priority**:
+An optional importance rank (`priority: 1, 2, …`) a mission-maker attaches to a
+channel entry **in the preset plan** (a _Channel list_ — never in
+`channels_collection`). Universal meaning: the channel is highlighted on every
+_Preset kneeboard_ (a `Pn` marker + emphasised cell). A _Radio layout_ may
+additionally consume it as a routing directive — the only current case is the
+AJS-37, whose FR22/FR24 shortcut buttons are filled from the plan's priorities
+1–4, the band taken from the tagged entry's _Radio role_ (primary_1 → UHF,
+primary_2 → VHF). One entry per priority value across the plan. Independent of
+the channel's ordinal position in its list.
+
+**Channel colour**:
+An optional colour (`color:` — a named colour or `#RRGGBBAA`) a mission-maker
+attaches to a _Channel_ to visually group related channels on the _Preset
+kneeboard_. Presentation only; never affects packing.
+
 **Radio layout**:
 The VEAF-maintained description, per aircraft type, of how its physical radios
 are arranged: which _Radio role_ each physical radio carries, plus that type's
@@ -101,9 +117,10 @@ separate from the auto-generated radio specs. A type with no layout entry falls
 back to band-based defaults.
 
 **Preset kneeboard** (FR: _planchette_):
-The PNG page the presets pipeline step generates for each _Radio preset_
-(`KNEEBOARD/IMAGES/presets-<name>.png`), summarising that preset's channels for
-the pilot. "Planchette" is simply the French for kneeboard; in the presets
+The PNG page the presets pipeline step generates **per aircraft type** that
+receives an injected _Radio preset_, dropped in that type's own kneeboard folder
+(`KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`), summarising its channels
+for the pilot. "Planchette" is simply the French for kneeboard; in the presets
 context it always means these injector-generated pages, not any other image a
 mission may drop into its `KNEEBOARD/` folder.
 _Avoid_: plate, radio page

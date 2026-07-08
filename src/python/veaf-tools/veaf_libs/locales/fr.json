@@ -646,6 +646,7 @@
   "presets_injector.radio_layout.invalid_capacity": "la radio {radio_index} de la disposition radio '{unit_type_key}' a une valeur 'capacity' invalide '{capacity}' (pas un entier positif) — ignorée, aucune limite de capacité appliquée",
   "presets_injector.radio_layout.invalid_regex_key": "Clé regex invalide '{regex_key}' dans dcs-radio-layouts.yaml : {error}",
   "presets_injector.radio_layout.invalid_reserved_head_slot": "la radio {radio_index} de la disposition radio '{unit_type_key}' a une entrée 'reserved_head_slots' invalide '{slot}' (pas un entier) — ignorée",
+  "presets_injector.radio_layout.invalid_special": "Entrée trailing_specials invalide {special} : exactement un de 'freq' ou 'priority' est attendu.",
   "presets_injector.radio_layout.keyed_group_key_out_of_range": "'{unit_type}' keyed_groups : la clé de canal {channel_key} du rôle '{role}' est hors plage (attendu 1..{max_key}) — ignorée.",
   "presets_injector.radio_layout.priority_special_duplicate": "Plusieurs canaux ({count}) déclarent la priority {priority} dans le plan de presets — le premier (dans l'ordre des rôles) remplit le canal spécial correspondant.",
   "builder.lua_modules_found": "Section lua_modules trouvée dans {path} ; veaf-config.lua sera généré",

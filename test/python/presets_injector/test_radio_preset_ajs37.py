@@ -87,6 +87,21 @@ class TestParseAjs37Primitives(unittest.TestCase):
         self.assertIsNone(radio.keyed_groups)
         self.assertIsNone(radio.trailing_specials)
 
+    @patch("presets_injector.presets_manager.logger")
+    def test_special_with_neither_freq_nor_priority_is_dropped_with_warning(self, mock_logger):
+        data = {"T": {"radios": {1: {"role": "primary_1", "trailing_specials": [{"label": "oops"}]}}}}
+        specials = parse_radio_layouts(data)["T"].radios[1].trailing_specials
+        self.assertEqual(specials, [])
+        mock_logger.warning.assert_called()
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_special_with_both_freq_and_priority_keeps_priority_and_warns(self, mock_logger):
+        data = {"T": {"radios": {1: {"role": "primary_1", "trailing_specials": [{"freq": 30, "priority": 2}]}}}}
+        special = parse_radio_layouts(data)["T"].radios[1].trailing_specials[0]
+        self.assertIsNone(special.freq)
+        self.assertEqual(special.priority, 2)
+        mock_logger.warning.assert_called()
+
 
 class TestKeyedGroupsPacking(unittest.TestCase):
     """`keyed_groups`: key-based placement into Groups 100-139 with the Group-100 wrap."""

@@ -908,21 +908,34 @@ def _parse_keyed_groups(data: dict[str, Any] | None) -> KeyedGroups | None:
 def _parse_hardcoded_channels(data: list[dict[str, Any]] | None) -> list[HardcodedChannel] | None:
     """Parse the ``trailing_specials`` list into HardcodedChannel objects, or None (ADR 0010/0012).
 
-    Each entry is either an airframe constant (``{freq, mod}``) or plan-sourced
-    (``{priority}``); an optional ``label`` names the slot for the kneeboard.
+    Each entry must be **exactly one of** an airframe constant (``{freq, mod}``)
+    or plan-sourced (``{priority}``); an optional ``label`` names the slot for the
+    kneeboard. An entry with neither is a layout authoring error — logged and
+    skipped rather than silently producing a frequency-less channel. An entry with
+    both keeps ``priority`` (which wins at pack time) and warns.
     """
     if data is None:
         return None
-    return [
-        HardcodedChannel(
-            freq=float(item["freq"]) if item.get("freq") is not None else None,
-            mod=item.get("mod"),
-            priority=item.get("priority"),
-            label=item.get("label"),
+    specials: list[HardcodedChannel] = []
+    for item in data:
+        if item is None:
+            continue
+        freq = item.get("freq")
+        priority = item.get("priority")
+        if (freq is None) == (priority is None):  # neither, or both
+            logger.warning(t("presets_injector.radio_layout.invalid_special", special=str(item)))
+            if freq is None and priority is None:
+                continue
+            freq = None  # both set → plan-sourced priority wins
+        specials.append(
+            HardcodedChannel(
+                freq=float(freq) if freq is not None else None,
+                mod=item.get("mod"),
+                priority=priority,
+                label=item.get("label"),
+            )
         )
-        for item in data
-        if item is not None
-    ]
+    return specials
 
 
 def _parse_reserved_head_slots(data: list[Any] | None, radio_index: int | str, unit_type_key: str) -> list[int]:
@@ -1363,8 +1376,9 @@ def _build_special_channels(
             if resolved is None:
                 continue  # missing priority → empty slot
             result.append(Channel(name_or_number=number, freq=resolved.freq, title=resolved.title, mod=0))
-        else:
-            result.append(Channel(name_or_number=number, freq=special.freq, mod=special.mod))  # type: ignore[arg-type]
+        elif special.freq is not None:
+            result.append(Channel(name_or_number=number, freq=special.freq, mod=special.mod))
+        # else: malformed special (no freq, no priority) — already warned at parse; skip.
     return result
 
 

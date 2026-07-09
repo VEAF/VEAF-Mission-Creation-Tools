@@ -1,38 +1,63 @@
-# VEAF Mission Creation Tools — 6.8.0
+# VEAF Mission Creation Tools — 6.9.0
 
-Version centrée sur les **presets radio**. Vous déclarez vos listes de canaux **une seule fois** et l'outil les projette automatiquement sur les radios de chaque appareil — avec des fréquences enfin **lisibles** (noms d'aérodromes et d'indicatifs au lieu de MHz bruts). Cette version ajoute aussi la possibilité de créer des **menus radio F10 sur mesure directement en YAML**, sans écrire de Lua. Encore une fois, largement nourrie par les retours de **Tripack**.
+Version centrée sur les **planchettes radio (kneeboards)**. Deux nouveautés
+d'auteur, valables sur **tous les appareils** : vous pouvez désormais **mettre en
+évidence les canaux importants** (priorité) et **regrouper vos canaux par couleur**
+directement sur la planchette. Et chaque type d'appareil reçoit sa **propre
+planchette** dédiée. L'**AJS-37 Viggen** en est la vitrine : ses radios enfin
+pilotées de bout en bout par votre plan de fréquences. Encore nourrie par les
+retours de **Tripack**.
 
-## 🎛️ Presets radio — le nouveau modèle « plan »
+## 🖍️ Priorité des canaux — mettez en avant l'essentiel
 
-- **Déclarez vos canaux une fois, l'outil s'occupe du reste.** Un bloc `channel_lists` (par rôle radio et coalition) dans `presets.yaml` est projeté automatiquement sur les radios physiques de chaque avion — y compris les cas retors : A-10 (VHF en radio 1), F/A-18 (deux radios identiques), Mi-24P (canal 0), OH-58D (pas de canal 1), AJS-37, CH-47F, et les warbirds. Plus besoin d'un préréglage par appareil pour le cas courant.
-- **Fréquences lisibles.** `convert-v5` remplace les fréquences en dur par des **noms** : aérodromes du théâtre (`Gudauta`, `Batumi`…) et indicatifs VEAF (`Guard`, `Archer`, `Texaco-1`…). Une fréquence sans nom connu reste en clair.
-- **`convert-v5` génère un plan simplifié par défaut**, plus une copie fidèle `presets.v5.yaml` (référence / repli, non chargée par le build).
+Ajoutez `priority: <n>` à un canal de votre plan : il est **surligné en orange**
+sur la planchette, avec un marqueur `Pn` — un coup de stabilo pour repérer d'un
+coup d'œil vos fréquences clés (Guard, tanker, AWACS…). Valable sur tous les
+appareils.
 
-📖 Doc : [Pipeline Reference — presets radio](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/PIPELINE_REFERENCE.md)
+Sur l'**AJS-37**, la priorité a un **effet supplémentaire** : les priorités 1 à 4
+alimentent automatiquement les raccourcis matériels **FR22 Special 1/2/3** et
+**FR24 H** — un même attribut sert donc à la fois à baliser la planchette (partout)
+et à câbler les boutons du Viggen (voir la vitrine plus bas).
 
-## 📻 Menus radio F10 en YAML (sans Lua)
+## 🎨 Couleur des canaux — regroupez visuellement
 
-Créez des menus F10 sur mesure directement dans `mission.yaml` : démarrer / arrêter une QRA ou une AirWave, basculer un drapeau, afficher un message, ou appeler votre propre fonction Lua — via `modules.RADIO.user_menus` ou le raccourci `radio_menu: true` sur une QRA / AirWave. Menus réservables à un groupe précis (Mission Master).
+`color: green` (ou `#RRGGBBAA`) colorise la case du numéro de canal, pour
+regrouper d'un coup d'œil des familles de canaux (aérodromes, flights, tankers…).
+Le texte s'adapte automatiquement pour rester lisible.
 
-📖 Doc : [veafRadio — Menus radio en YAML](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/mission-maker/scripts/veafRadio.md#menus-radio-en-yaml) · [MISSION_YAML_REFERENCE](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/MISSION_YAML_REFERENCE.md)
+## 📄 Une planchette par type d'appareil
 
-## 🎚️ Désactiver les planchettes (kneeboards)
+Chaque modèle qui reçoit des presets a désormais **sa propre planchette**, rangée
+dans le dossier DCS du type (`KNEEBOARD/<type>/IMAGES/`) — fini la page générique
+partagée. Présentation épurée : entêtes de radio en **gris** (plus de codage
+rouge/vert/orange).
 
-`pipeline.presets` accepte désormais `{enabled: true, kneeboards: false}` : garder l'injection des fréquences radio **sans** générer les images de kneeboard.
+📖 Doc : [Pipeline Reference — priorité & couleur des canaux](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/PIPELINE_REFERENCE.md)
 
-📖 Doc : [GUIDE — Configurer le pipeline de build](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/mission-maker/GUIDE.md#configuring-pipeline)
+## ✈️ Vitrine : l'AJS-37 Viggen
 
-## 🐛 Corrections
+L'avion le plus retors côté radio sert d'exemple à tout ça :
 
-- **`convert-v5` convertit à nouveau les presets radio dans l'exécutable** — un fichier de données radio n'était pas embarqué dans l'`.exe`.
-- **Sortie `presets.yaml` nettoyée** — numéros de canaux cohérents (entiers) et en-tête explicatif en tête de fichier.
-- **CH-47F** — sa radio FM n'est plus prise pour une VHF.
+- Les **priorités 1 à 4** remplissent automatiquement les raccourcis **FR22
+  Special 1/2/3 et FR24 H** — vous ne gérez que votre plan de fréquences.
+- Ses 40 canaux FR22 (Groups **100-139**) sont enfin projetés depuis le plan, avec
+  la convention pilote « canal N = Group 10N ».
+- Sa planchette affiche les **vrais libellés cockpit** (100-139 puis
+  Sp1/Sp2/Sp3/E/F/G/H) et tient sur **deux colonnes** pour rester lisible.
 
 ## ⚠️ À vérifier (mission makers)
 
-- Les anciens formats de presets restent **entièrement supportés** — aucune migration forcée. Mais `convert-v5` produit maintenant un plan simplifié par défaut : pour quelques appareils (warbirds, jets à radios fusionnées), les fréquences projetées peuvent diverger « au mieux » de votre v5 d'origine — un avertissement le signale, et `presets.v5.yaml` conserve la version fidèle en repli.
-- La forme de `presets.yaml` change (noms au lieu de MHz, clés numériques) — à revérifier si un script externe le lisait.
+- Les formats de presets existants restent **entièrement supportés**.
+- **Planchettes déplacées** : plus de pages dans `KNEEBOARD/IMAGES/presets-*.png` ;
+  désormais une page par type dans `KNEEBOARD/<type>/IMAGES/`. À savoir si vous
+  référenciez les anciens chemins.
+- **AJS-37 via le plan `channel_lists`** : la carte de canaux packée change (canal
+  100 = 20ᵉ de primary_2, raccourcis remplis par `priority`). La conversion
+  `convert-v5`, elle, reste fidèle (`presets.v5.yaml`).
+- Aspect planchette : entêtes de radio en gris.
 
 ## 🙏 Remerciements
 
-Merci à **Tripack**, dont les retours et les missions réelles sont à l'origine de la plupart de ces améliorations (presets radio, menus F10, kneeboards).
+Merci à **Tripack**, dont le travail sur l'AJS-37 et les retours de missions
+réelles sont à l'origine de cette version.

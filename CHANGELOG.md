@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.9.0] — 2026-07-09
+
 ### Added
 - **Channel `priority` and `color` attributes** (FEAT-PRESETS-PRIORITY-COLOR, [ADR 0012](docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)). A `channel_lists` entry may now carry `priority: <n>` — highlighting the channel on **every** kneeboard (a right-aligned `Pn` marker + orange Name/Freq cells) — and `color: <name|#RRGGBBAA>` — colouring the CH cell to group channels visually (text auto-contrasted; accepted in `channel_lists` and `channels_collection`, the plan entry winning). Both are optional and presentation-facing; existing plans are unaffected.
 - **AJS-37 (Viggen) FR22/FR24 shortcut buttons filled from the plan.** On the AJS-37 only, priorities 1–4 fill FR22 Special 1/2/3 and FR24 H (band from the tagged entry's role, always AM), so the mission-maker drives the shortcuts from the frequency plan instead of hardcoded constants; FR24 E/F/G stay fixed airframe constants.

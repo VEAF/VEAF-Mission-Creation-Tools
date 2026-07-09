@@ -9,6 +9,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Channel `priority` and `color` attributes** (FEAT-PRESETS-PRIORITY-COLOR, [ADR 0012](docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)). A `channel_lists` entry may now carry `priority: <n>` — highlighting the channel on **every** kneeboard (a right-aligned `Pn` marker + orange Name/Freq cells) — and `color: <name|#RRGGBBAA>` — colouring the CH cell to group channels visually (text auto-contrasted; accepted in `channel_lists` and `channels_collection`, the plan entry winning). Both are optional and presentation-facing; existing plans are unaffected.
+- **AJS-37 (Viggen) FR22/FR24 shortcut buttons filled from the plan.** On the AJS-37 only, priorities 1–4 fill FR22 Special 1/2/3 and FR24 H (band from the tagged entry's role, always AM), so the mission-maker drives the shortcuts from the frequency plan instead of hardcoded constants; FR24 E/F/G stay fixed airframe constants.
+- **One kneeboard per aircraft type.** The presets step now renders one PNG per injected `(coalition, unit_type)` into that type's own DCS folder `KNEEBOARD/<type>/IMAGES/presets.png` (coalition-suffixed only when the same type flies for both sides), replacing the shared `KNEEBOARD/IMAGES/presets-*.png` pages. The AJS-37 page shows pilot-facing labels (Group `100`–`139` then `Sp1/Sp2/Sp3/E/F/G/H`) and splits its 47-slot radio across two columns.
+
+### Changed
+- **AJS-37 packing rewritten to a key-based Group 100–139 mapping** (ADR 0012, extends ADR 0010; **deliberately drops ADR 0003 iso-functionality for the AJS-37**). The Viggen's single 47-slot radio is now packed by the new `keyed_groups` layout primitive: `primary_1` keys 1–20 → Groups 101–120, `primary_2` keys 1–20 → Groups 121–139 with the 20th recycling the otherwise-unused Group 100 (the pilot "channel N = Group 10N" convention), gaps preserved, keys beyond the role's share dropped with a warning. The old `fuse` + `leading_dummy` primitives (only ever used by the AJS-37) are removed; `trailing_specials` gains a `{priority: N}` variant. **convert-v5 is unchanged** — the AJS-37 still round-trips via its faithful `presets.v5.yaml` copy.
+- **Kneeboard radio headers are now grey.** The former red/green/orange per-radio colour coding is dropped in favour of a uniform grey header bar.
+
 ### Documentation
 - **Per-type radio-preset projection now has a dedicated developer page** (extends ADR 0010). New `doc/developer/radio-preset-projection.md` (FR + EN) consolidates how the build projects `channel_lists` onto each aircraft type's physical radios — radio roles, band-based default, quirk primitives (`rotate_last_to_head`, `fuse`, `leading_dummy`, `trailing_specials`, `reserved_head_slots`, `capacity`) and their composition order, plus the per-type quirk table (Mi-24P, CH-47Fbl1, OH-58D, AJS-37) — with pointers to the source files (`dcs-radio-layouts.yaml`, `presets_manager.py`, `dcs-radio-specs.yaml`). Linked from the developer README, the `channel_lists` section of `PIPELINE_REFERENCE`, and a new simplified mission-maker note in `doc/mission-maker/dcs-radio-specs.md`.
 

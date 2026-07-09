@@ -18,13 +18,14 @@ This module provides classes to manage radio presets.
 # TODO add modulation
 
 import io
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, cast
 
 import yaml
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.i18n import t
@@ -57,10 +58,23 @@ class Channel:
     Can be either created from a RadioDefinition channel (when data is directly set on a radio channel) or read from a ChannelDefinition object in a ChannelCollection (when the RadioDefinition channel references an alias), or both (RadioDefinition channel sets an alias and overrides values for specific attributes)
     """
 
-    def __init__(self, name_or_number: int | str, freq: float, title: str | None = None, mod: int | None = None):
+    def __init__(
+        self,
+        name_or_number: int | str,
+        freq: float,
+        title: str | None = None,
+        mod: int | None = None,
+        priority: int | None = None,
+        color: str | None = None,
+    ):
         self.freq: float = freq
         self.title: str | None = title
         self.mod: int | None = mod
+        # ADR 0012: `priority` is a universal kneeboard-highlight rank (and the
+        # AJS-37 layout's shortcut-routing key); `color` groups channels visually
+        # on the kneeboard CH cell. Both optional, presentation-facing.
+        self.priority: int | None = priority
+        self.color: str | None = color
 
         self.number: int
         if isinstance(name_or_number, str):
@@ -78,13 +92,21 @@ class ChannelDefinition:
     """
 
     def __init__(
-        self, name: str, title: str | None = None, misc_data: str | None = None, collection_name: str | None = None
+        self,
+        name: str,
+        title: str | None = None,
+        misc_data: str | None = None,
+        collection_name: str | None = None,
+        color: str | None = None,
     ):
         self.name: str = name
         self.title: str | None = title
         self.misc_data: str | None = misc_data
         self.collection_name: str | None = collection_name
         self.frequencies: dict[str, float] = {}
+        # ADR 0012: a channel may carry an intrinsic `color` (grouping hint) here;
+        # `priority` is deliberately NOT read from a channel definition (plan-only).
+        self.color: str | None = color
 
     def add_freq(self, mode: str, freq: float | str):
         if not mode:
@@ -109,11 +131,12 @@ class ChannelDefinition:
         """
         title = data.get("title")
         misc_data = data.get("data")
+        color = data.get("color")
         freqs = data.get("freqs")
         if not freqs:
             logger.error(message=f"'freqs' is mandatory for ChannelDefinition {name}", exception_type=ValueError)
-            return ChannelDefinition(name=name, title=title, misc_data=misc_data)
-        result = ChannelDefinition(name=name, title=title, misc_data=misc_data)
+            return ChannelDefinition(name=name, title=title, misc_data=misc_data, color=color)
+        result = ChannelDefinition(name=name, title=title, misc_data=misc_data, color=color)
         for freq_mode, freq_value in freqs.items():
             if freq_value is not None:  # skip intentionally undefined frequencies
                 result.add_freq(mode=freq_mode, freq=freq_value)
@@ -167,6 +190,10 @@ class RadioDefinition:
         self.title: str | None = title
         self.channels: list[Channel] = []
         self.collection_name: str | None = None
+        # ADR 0012: optional per-slot pilot-facing CH labels for the kneeboard
+        # (the AJS-37's Group 100-139 + Sp1/Sp2/Sp3/E/F/G/H); empty for types
+        # whose CH column is just the channel number.
+        self.display_labels: dict[int, str] = {}
 
     def add_channel(self, channel: Channel):
         if not channel:
@@ -230,6 +257,11 @@ class RadioDefinition:
         channel_alias = None
         channel_title = None
         channel_mod: int | None = None
+        # ADR 0012: `priority`/`color` are read from the plan entry only. `color`
+        # additionally falls back to the channel definition below; `priority`
+        # never does (plan-only).
+        channel_priority: int | None = None
+        channel_color: str | None = None
         if isinstance(channel_data, str):
             # shortcut to only set the channel alias
             channel_alias = channel_data
@@ -240,12 +272,16 @@ class RadioDefinition:
             channel_alias = channel_data.get("channel")
             channel_freq = channel_data.get("freq")
             channel_mod = channel_data.get("mod")
+            channel_priority = channel_data.get("priority")
+            channel_color = channel_data.get("color")
         channel_definition = None
         if channel_alias:
             for channel_collection in channel_collections.values():
                 if channel_alias in channel_collection.channel_definitions:
                     channel_definition = channel_collection.channel_definitions[channel_alias]
                     channel_title = channel_definition.title
+                    if channel_color is None:
+                        channel_color = channel_definition.color
                     if self.radio_type not in channel_definition.frequencies:
                         if not strict:
                             return False
@@ -263,7 +299,16 @@ class RadioDefinition:
                 )
         if channel_freq is None:
             logger.error(message=f"'freq' is mandatory for RadioDefinition {self.name}", exception_type=ValueError)
-        self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title, mod=channel_mod))  # type: ignore[arg-type]
+        self.add_channel(
+            Channel(
+                name_or_number=channel_name,
+                freq=channel_freq,  # type: ignore[arg-type]
+                title=channel_title,
+                mod=channel_mod,
+                priority=channel_priority,
+                color=channel_color,
+            )
+        )
         return True
 
     @classmethod
@@ -697,19 +742,51 @@ def _assign_roles_by_position(radios: list[RadioSpec]) -> dict[int, str]:
 
 @dataclass(frozen=True)
 class HardcodedChannel:
-    """A fixed, airframe-constant channel: no source Channel-list entry at all.
+    """One entry of the ``trailing_specials`` primitive (ADR 0010/0012).
 
-    Used by the ``leading_dummy`` and ``trailing_specials`` primitives (ADR
-    0010): both place a channel whose frequency (and optional modulation) is a
-    property of the airframe itself, not sourced from any role's channel list.
+    A special slot is either **airframe-constant** (``freq`` set, e.g. the
+    AJS-37's FR24 E/F/G emergency channels) or **plan-sourced** (``priority``
+    set: its frequency comes from the preset plan's channel tagged with that
+    priority — ADR 0012, the AJS-37's FR22 Special 1/2/3 + FR24 H). Exactly one
+    of ``freq`` / ``priority`` is expected.
 
     Attributes:
-        freq: The fixed frequency, in MHz.
+        freq: The fixed frequency in MHz (airframe constant), or None when the
+            slot is plan-sourced via ``priority``.
         mod: Optional modulation (0=AM, 1=FM), same convention as ``Channel.mod``.
+        priority: The plan priority whose channel fills this slot (ADR 0012), or
+            None for an airframe constant. Plan-sourced specials are always AM.
+        label: The pilot-facing name of this special slot (e.g. "Sp1", "H"),
+            shown on the kneeboard CH column (consumed by the kneeboard renderer).
     """
 
-    freq: float
+    freq: float | None = None
     mod: int | None = None
+    priority: int | None = None
+    label: str | None = None
+
+
+@dataclass(frozen=True)
+class KeyedGroups:
+    """Key-based multi-role mapping into one physical radio's Group block (ADR 0012).
+
+    Several Radio roles share ONE physical radio, each channel placed at a DCS
+    slot derived from its **declared key** (not renumbered): for a role with
+    Group base ``B`` and a channel of key ``K``, its DCS Group is ``B + K`` and
+    its slot is ``((B + K - min_group) mod block_size) + 1`` (``min_group`` being
+    the lowest base). This reproduces the AJS-37's "channel N = Group 10N" pilot
+    convention, including the wrap that recycles the otherwise-unused first slot
+    (Group 100) for ``primary_2``'s 20th channel. Gaps in the keys are preserved;
+    a key beyond its role's share of the block is dropped with a warning.
+
+    Attributes:
+        block_size: The number of data slots the block holds (the AJS-37's 40:
+            Groups 100–139 → DCS slots 1–40).
+        bases: Each role's first Group number, in placement order.
+    """
+
+    block_size: int
+    bases: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -718,30 +795,22 @@ class RadioLayoutRadio:
 
     Attributes:
         role: The Radio role this physical radio carries (one of ROLE_BANDS).
-            When ``fuse`` is set, ``role`` is still used for the resulting
+            When ``keyed_groups`` is set, ``role`` still names the resulting
             radio's ``radio_type``/title (see :func:`_content_for_radio`).
         rotate_last_to_head: Channel-0 rotation primitive (ADR 0010): when True,
             the channel list's last entry is moved to the head (DCS channel slot
             1, the aircraft's "channel 0"), and the rest of the list follows in
             order into the remaining slots.
-        fuse: Radio fusion primitive (ADR 0010): when set, names two or more
-            Radio roles whose channel lists are concatenated, in this declared
-            order, into ONE physical radio's channel map — each source list's
-            own numbering is discarded and renumbered sequentially into the
-            fused radio's slots. Replaces the single-role lookup entirely for
-            this radio (the AJS-37's one V/UHF radio fusing primary_1 + primary_2).
-        leading_dummy: Leading-dummy primitive (ADR 0010): a reserved slot 1
-            with a fixed, hardcoded frequency (and optional modulation) and no
-            channel-list content at all — distinct from a channel-list-sourced
-            reserved head slot. The rest of the radio's content (rotated/fused)
-            follows from slot 2 onwards.
-        trailing_specials: Trailing hardcoded specials primitive (ADR 0010): a
-            declared, ordered list of fixed (frequency, modulation) pairs
-            appended after the radio's other content (rotation/fusion/dummy) —
-            airframe constants such as the AJS-37's FR22/FR24 special channels,
-            not sourced from any channel_lists role. Overridable by the maker
-            via the existing ``presets_assignments`` bespoke-preset mechanism,
-            which is checked before the packer runs at all and always wins.
+        keyed_groups: Key-based multi-role mapping (ADR 0012): when set, several
+            Radio roles share this ONE physical radio, each channel placed at a
+            DCS slot derived from its declared key (the AJS-37's Group 100–139
+            block). Replaces the single-role lookup entirely for this radio.
+        trailing_specials: Trailing specials primitive (ADR 0010/0012): a
+            declared, ordered list of special slots appended after the radio's
+            other content — each either an airframe constant (``freq``) or
+            plan-sourced (``priority``), e.g. the AJS-37's FR22/FR24 specials.
+            Overridable by the maker via the existing ``presets_assignments``
+            bespoke-preset mechanism, checked before the packer runs at all.
         reserved_head_slots: Reserved head slot(s) primitive (ADR 0010): each
             entry is a 1-based index into the channel list that fills one
             leading DCS channel slot, in the declared order (e.g. ``[20]`` for a
@@ -761,8 +830,7 @@ class RadioLayoutRadio:
 
     role: str
     rotate_last_to_head: bool = False
-    fuse: list[str] | None = None
-    leading_dummy: HardcodedChannel | None = None
+    keyed_groups: KeyedGroups | None = None
     trailing_specials: list[HardcodedChannel] | None = None
     reserved_head_slots: list[int] = field(default_factory=list)
     capacity: int | None = None
@@ -818,8 +886,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
             radios[int(index)] = RadioLayoutRadio(
                 role=role,
                 rotate_last_to_head=rotate_last_to_head,
-                fuse=radio_data.get("fuse"),
-                leading_dummy=_parse_hardcoded_channel(radio_data.get("leading_dummy")),
+                keyed_groups=_parse_keyed_groups(radio_data.get("keyed_groups")),
                 trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
                 reserved_head_slots=reserved_head_slots,
                 capacity=_parse_capacity(radio_data.get("capacity"), index, unit_type_key),
@@ -828,18 +895,47 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
     return layouts
 
 
-def _parse_hardcoded_channel(data: dict[str, Any] | None) -> HardcodedChannel | None:
-    """Parse one ``{freq, mod}`` mapping into a :class:`HardcodedChannel`, or None."""
+def _parse_keyed_groups(data: dict[str, Any] | None) -> KeyedGroups | None:
+    """Parse the ``keyed_groups`` mapping into a :class:`KeyedGroups`, or None (ADR 0012)."""
     if data is None:
         return None
-    return HardcodedChannel(freq=float(data["freq"]), mod=data.get("mod"))
+    return KeyedGroups(
+        block_size=int(data["block_size"]),
+        bases={role: int(base) for role, base in (data.get("bases") or {}).items()},
+    )
 
 
 def _parse_hardcoded_channels(data: list[dict[str, Any]] | None) -> list[HardcodedChannel] | None:
-    """Parse a list of ``{freq, mod}`` mappings into HardcodedChannel objects, or None."""
+    """Parse the ``trailing_specials`` list into HardcodedChannel objects, or None (ADR 0010/0012).
+
+    Each entry must be **exactly one of** an airframe constant (``{freq, mod}``)
+    or plan-sourced (``{priority}``); an optional ``label`` names the slot for the
+    kneeboard. An entry with neither is a layout authoring error — logged and
+    skipped rather than silently producing a frequency-less channel. An entry with
+    both keeps ``priority`` (which wins at pack time) and warns.
+    """
     if data is None:
         return None
-    return [HardcodedChannel(freq=float(item["freq"]), mod=item.get("mod")) for item in data if item is not None]
+    specials: list[HardcodedChannel] = []
+    for item in data:
+        if item is None:
+            continue
+        freq = item.get("freq")
+        priority = item.get("priority")
+        if (freq is None) == (priority is None):  # neither, or both
+            logger.warning(t("presets_injector.radio_layout.invalid_special", special=str(item)))
+            if freq is None and priority is None:
+                continue
+            freq = None  # both set → plan-sourced priority wins
+        specials.append(
+            HardcodedChannel(
+                freq=float(freq) if freq is not None else None,
+                mod=item.get("mod"),
+                priority=priority,
+                label=item.get("label"),
+            )
+        )
+    return specials
 
 
 def _parse_reserved_head_slots(data: list[Any] | None, radio_index: int | str, unit_type_key: str) -> list[int]:
@@ -980,7 +1076,7 @@ def _rotate_last_to_head(source: RadioDefinition) -> RadioDefinition:
     rotated = RadioDefinition(name=source.name, radio_type=source.radio_type, title=source.title)
     ordered = [*source.channels[-1:], *source.channels[:-1]]
     for slot, channel in enumerate(ordered, start=1):
-        rotated.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
+        rotated.add_channel(_clone_channel(channel, slot))
     return rotated
 
 
@@ -1025,7 +1121,7 @@ def _prepend_reserved_slots(source: RadioDefinition, reserved_head_slots: list[i
     tail = [channel for position, channel in enumerate(source.channels) if position not in rotated_positions]
     ordered = [*reserved, *tail]
     for slot, channel in enumerate(ordered, start=1):
-        result.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
+        result.add_channel(_clone_channel(channel, slot))
     return result
 
 
@@ -1037,45 +1133,107 @@ def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) ->
     return source
 
 
-def _fuse_role_lists(
-    role_lists: dict[str, RadioDefinition], declared_role: str, roles: list[str]
+def _clone_channel(channel: Channel, number: int) -> Channel:
+    """Copy *channel* with a new slot *number*, preserving every attribute.
+
+    The packer's primitives reslot channels; this keeps ``priority``/``color``
+    (ADR 0012, presentation-facing) intact so they reach the kneeboard renderer.
+    """
+    return Channel(
+        name_or_number=number,
+        freq=channel.freq,
+        title=channel.title,
+        mod=channel.mod,
+        priority=channel.priority,
+        color=channel.color,
+    )
+
+
+# Deterministic role order for resolving a plan `priority` to a channel (ADR
+# 0012): primary roles first so the UHF/VHF band preference wins on ties.
+_PRIORITY_SEARCH_ORDER = (
+    ROLE_PRIMARY_1,
+    ROLE_PRIMARY_2,
+    ROLE_FM_SUPPLEMENT,
+    ROLE_FM_SUBSTITUTE,
+    ROLE_FM_SECONDARY,
+)
+
+
+def _resolve_priority_channel(role_lists: dict[str, RadioDefinition], priority: int) -> Channel | None:
+    """Return the plan channel tagged with *priority*, or None (ADR 0012).
+
+    Scans the coalition's role lists in :data:`_PRIORITY_SEARCH_ORDER`; the
+    channel's frequency is already band-resolved by its role (primary_1 → UHF,
+    primary_2 → VHF). One channel per priority is expected — a duplicate warns
+    and the first match (by role order) wins.
+    """
+    matches = [
+        channel
+        for role in _PRIORITY_SEARCH_ORDER
+        for channel in (role_lists[role].channels if role in role_lists else [])
+        if channel.priority == priority
+    ]
+    if not matches:
+        return None
+    if len(matches) > 1:
+        logger.warning(
+            t("presets_injector.radio_layout.priority_special_duplicate", priority=priority, count=len(matches))
+        )
+    return matches[0]
+
+
+def _pack_keyed_groups(
+    role_lists: dict[str, RadioDefinition],
+    layout_radio: RadioLayoutRadio,
+    unit_type: str,
+    radio_index: int,
 ) -> RadioDefinition | None:
-    """Radio fusion primitive (ADR 0010): concatenate several roles' channel lists into one.
+    """Key-based multi-role mapping into one radio's Group block (ADR 0012).
 
-    Each source list's own numbering is discarded; the fused result is
-    renumbered sequentially in the declared order (e.g. the AJS-37's single
-    V/UHF radio: ``primary_1``'s 20 entries then ``primary_2``'s 19 entries).
-
-    Args:
-        role_lists: This coalition's parsed Channel lists, role -> RadioDefinition.
-        declared_role: The layout's declared ``role`` for this radio — used for
-            the fused result's ``radio_type``/title, independently of which of
-            *roles* actually has content for a given coalition (so the result
-            is deterministic across coalitions, per ``RadioLayoutRadio.role``'s
-            documented contract).
-        roles: The roles to concatenate, in fusion order.
+    Each role's channel is placed at ``slot = ((base + key - min_group) mod
+    block_size) + 1`` (see :class:`KeyedGroups`), preserving key gaps and the
+    Group-100 wrap. A key beyond its role's share of the block
+    (``block_size // number_of_roles``) is dropped with a warning.
 
     Returns:
-        A new RadioDefinition (radio_type from ``ROLE_BANDS[declared_role]``,
-        title the declared role's name) with channels renumbered 1..N, or None
-        if none of *roles* has content.
+        The radio's RadioDefinition (sparse, channels numbered by slot), or None
+        if no role had any placeable content.
     """
-    sources = [source for role in roles if (source := _channel_list_for_role(role_lists, role)) is not None]
-    channels = [channel for source in sources for channel in source.channels]
-    if not channels:
+    keyed = layout_radio.keyed_groups
+    assert keyed is not None  # only called when keyed_groups is set
+    if not keyed.bases:
         return None
-    fused = RadioDefinition(name=f"fused_{'_'.join(roles)}", radio_type=ROLE_BANDS[declared_role], title=declared_role)
-    for slot, channel in enumerate(channels, start=1):
-        fused.add_channel(Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod))
-    return fused
-
-
-def _renumber_from(source: RadioDefinition, start: int) -> list[Channel]:
-    """Return *source*'s channels as new Channel objects numbered start..start+N-1."""
-    return [
-        Channel(name_or_number=start + offset, freq=channel.freq, title=channel.title, mod=channel.mod)
-        for offset, channel in enumerate(source.channels)
-    ]
+    min_group = min(keyed.bases.values())
+    max_key = keyed.block_size // len(keyed.bases)
+    slot_by: dict[int, Channel] = {}
+    for role, base in keyed.bases.items():
+        source = _channel_list_for_role(role_lists, role)
+        if source is None:
+            continue
+        for channel in source.channels:
+            key = channel.number
+            if not 1 <= key <= max_key:
+                logger.warning(
+                    t(
+                        "presets_injector.radio_layout.keyed_group_key_out_of_range",
+                        unit_type=unit_type,
+                        role=role,
+                        channel_key=key,
+                        max_key=max_key,
+                    )
+                )
+                continue
+            slot = ((base + key - min_group) % keyed.block_size) + 1
+            slot_by[slot] = _clone_channel(channel, slot)
+    if not slot_by:
+        return None
+    result = RadioDefinition(
+        name=f"keyed_{unit_type}_{radio_index}", radio_type=ROLE_BANDS[layout_radio.role], title=layout_radio.role
+    )
+    for slot in sorted(slot_by):
+        result.add_channel(slot_by[slot])
+    return result
 
 
 def _truncate_to_capacity(
@@ -1112,10 +1270,7 @@ def _truncate_to_capacity(
             dropped_count=len(dropped),
         )
     )
-    return [
-        Channel(name_or_number=slot, freq=channel.freq, title=channel.title, mod=channel.mod)
-        for slot, channel in enumerate(channels[:capacity], start=1)
-    ]
+    return [_clone_channel(channel, slot) for slot, channel in enumerate(channels[:capacity], start=1)]
 
 
 def _content_for_radio(
@@ -1127,60 +1282,103 @@ def _content_for_radio(
 ) -> RadioDefinition | None:
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
-    Composition order (ADR 0010): fusion (or the plain role list) provides the
-    base content, then channel-0 rotation or reserved head slot(s) — mutually
-    exclusive with each other, see ``RadioLayoutRadio`` — then the leading
-    dummy is inserted at slot 1 (shifting the rest), then trailing hardcoded
-    specials are appended, then slot capacity truncates the result if it
-    exceeds the radio's declared limit — the AJS-37 needs the dummy + fusion +
-    specials primitives together; the Mi-24P only needs rotation; the OH-58D
-    only needs reserved head slots; capacity applies to any of these shapes.
+    Composition order (ADR 0010/0012): the base content comes from either the
+    ``keyed_groups`` key-based multi-role mapping (AJS-37) or the plain role
+    list; then, for the plain-list path only, channel-0 rotation OR reserved head
+    slot(s) (mutually exclusive, see ``RadioLayoutRadio``); then trailing
+    specials are appended — at the block's fixed boundary for ``keyed_groups``
+    (so E/F/G/H keep their absolute slots even if the data block has gaps), else
+    right after the content; then slot capacity truncates the result. Each
+    special is an airframe constant (``freq``) or plan-sourced (``priority``,
+    resolved against *role_lists*, always AM; an unresolved priority leaves its
+    slot empty). The Mi-24P needs only rotation; the OH-58D only reserved head
+    slots; the AJS-37 keyed_groups + priority specials.
 
     Args:
         layout_radio: This radio's Radio layout entry, or None under the
             band-based default (no primitives apply).
         role_lists: This coalition's parsed Channel lists, role -> RadioDefinition
-            (used to resolve a ``fuse`` primitive).
+            (used to resolve ``keyed_groups`` and priority specials).
         base_source: The single role's channel list already resolved by the
-            caller (used when ``fuse`` is not declared; None when it is).
+            caller (used when ``keyed_groups`` is not declared; None when it is).
         unit_type: DCS unit type string (for the capacity truncation debug log).
         radio_index: 1-based physical radio index (for the capacity truncation
             debug log).
 
     Returns:
-        The radio's final RadioDefinition, or None if fusion was declared but
-        no fused role had any content.
+        The radio's final RadioDefinition, or None if it has no content at all.
     """
-    if layout_radio is not None and layout_radio.fuse:
-        content = _fuse_role_lists(role_lists, layout_radio.role, layout_radio.fuse)
+    if layout_radio is not None and layout_radio.keyed_groups is not None:
+        content = _pack_keyed_groups(role_lists, layout_radio, unit_type, radio_index)
         if content is None:
             return None
+        # keyed_groups already places channels at their final (possibly sparse)
+        # slots; specials follow the block boundary, not the last used slot.
+        channels = list(content.channels)
+        specials_base = layout_radio.keyed_groups.block_size + 1
     else:
         if base_source is None:
             return None
         content = base_source
+        if layout_radio is not None and layout_radio.rotate_last_to_head:
+            content = _rotate_last_to_head(content)
+        elif layout_radio is not None and layout_radio.reserved_head_slots:
+            content = _prepend_reserved_slots(content, layout_radio.reserved_head_slots)
+        channels = list(content.channels)
+        specials_base = len(channels) + 1
 
-    if layout_radio is not None and layout_radio.rotate_last_to_head:
-        content = _rotate_last_to_head(content)
-    elif layout_radio is not None and layout_radio.reserved_head_slots:
-        content = _prepend_reserved_slots(content, layout_radio.reserved_head_slots)
-
-    channels = list(content.channels)
-    if layout_radio is not None and layout_radio.leading_dummy is not None:
-        dummy = layout_radio.leading_dummy
-        channels = [Channel(name_or_number=1, freq=dummy.freq, mod=dummy.mod), *_renumber_from(content, start=2)]
     if layout_radio is not None and layout_radio.trailing_specials:
-        next_slot = len(channels) + 1
-        channels = channels + [
-            Channel(name_or_number=next_slot + offset, freq=special.freq, mod=special.mod)
-            for offset, special in enumerate(layout_radio.trailing_specials)
-        ]
+        channels = channels + _build_special_channels(layout_radio.trailing_specials, specials_base, role_lists)
     if layout_radio is not None:
         channels = _truncate_to_capacity(channels, layout_radio.capacity, unit_type, radio_index)
 
     result = RadioDefinition(name=content.name, radio_type=content.radio_type, title=content.title)
     for channel in channels:
         result.add_channel(channel)
+    if layout_radio is not None:
+        result.display_labels = _keyed_groups_display_labels(layout_radio, specials_base)
+    return result
+
+
+def _keyed_groups_display_labels(layout_radio: RadioLayoutRadio, specials_base: int) -> dict[int, str]:
+    """Pilot-facing CH labels for a keyed_groups radio (ADR 0012): Group numbers + special names.
+
+    Data slot ``i`` shows its DCS Group (``min_group + i - 1``, e.g. 100-139 for
+    the AJS-37); each trailing special shows its declared ``label`` (Sp1/E/H…).
+    Empty for a radio without ``keyed_groups`` (its CH column stays the number).
+    """
+    keyed = layout_radio.keyed_groups
+    if keyed is None:
+        return {}
+    min_group = min(keyed.bases.values()) if keyed.bases else 100
+    labels = {slot: str(min_group + slot - 1) for slot in range(1, keyed.block_size + 1)}
+    for offset, special in enumerate(layout_radio.trailing_specials or []):
+        if special.label:
+            labels[specials_base + offset] = special.label
+    return labels
+
+
+def _build_special_channels(
+    specials: list[HardcodedChannel], base_slot: int, role_lists: dict[str, RadioDefinition]
+) -> list[Channel]:
+    """Resolve the ``trailing_specials`` list into positioned Channels (ADR 0010/0012).
+
+    Each special keeps its fixed absolute slot (``base_slot + offset``) so
+    airframe constants (E/F/G) stay put even when a neighbouring plan-sourced
+    slot is empty. A plan-sourced special whose priority resolves to no channel
+    is skipped, leaving that slot empty; airframe constants always emit.
+    """
+    result: list[Channel] = []
+    for offset, special in enumerate(specials):
+        number = base_slot + offset
+        if special.priority is not None:
+            resolved = _resolve_priority_channel(role_lists, special.priority)
+            if resolved is None:
+                continue  # missing priority → empty slot
+            result.append(Channel(name_or_number=number, freq=resolved.freq, title=resolved.title, mod=0))
+        elif special.freq is not None:
+            result.append(Channel(name_or_number=number, freq=special.freq, mod=special.mod))
+        # else: malformed special (no freq, no priority) — already warned at parse; skip.
     return result
 
 
@@ -1194,9 +1392,9 @@ def _resolve_one_radio(
     """Resolve one physical radio's final content, or None if it has nothing to carry.
 
     A radio has content either from its assigned role's plain channel list, or
-    (when the layout declares ``fuse``) from concatenating several roles —
-    fusion does not need a single ``role``-matched list of its own, since its
-    content comes from the named roles instead.
+    (when the layout declares ``keyed_groups``) from the key-based multi-role
+    mapping — which does not need a single ``role``-matched list of its own,
+    since its content comes from the named roles instead.
 
     Args:
         role: This radio's assigned Radio role, or None.
@@ -1207,8 +1405,8 @@ def _resolve_one_radio(
             debug log).
     """
     base_source = _channel_list_for_role(role_lists, role) if role else None
-    has_fuse = bool(layout_radio and layout_radio.fuse)
-    if not has_fuse and (base_source is None or not base_source.channels):
+    has_keyed_groups = bool(layout_radio and layout_radio.keyed_groups)
+    if not has_keyed_groups and (base_source is None or not base_source.channels):
         return None
     return _content_for_radio(layout_radio, role_lists, base_source, unit_type, radio_index)
 
@@ -1302,9 +1500,8 @@ def pack_preset_for_type(
     for physical_index, content in slots:
         radio = RadioDefinition(name=f"radio_{physical_index + 1}", radio_type=content.radio_type, title=content.title)
         for channel in content.channels:
-            radio.add_channel(
-                Channel(name_or_number=channel.number, freq=channel.freq, title=channel.title, mod=channel.mod)
-            )
+            radio.add_channel(_clone_channel(channel, channel.number))  # keeps priority/color (ADR 0012)
+        radio.display_labels = dict(content.display_labels)  # pilot-facing CH labels (ADR 0012)
         preset.add_radio(radio)
     return preset
 
@@ -1388,9 +1585,80 @@ class PresetsManager:
             return preset_assignment.preset_definition
         return pack_preset_for_type(self.channel_lists, coalition, unit_type)
 
-    def generate_presets_images(self, width: int = 1200, height: int | None = None):
+    def generate_type_images(
+        self, injected: dict[tuple[str, str], "PresetDefinition"], width: int = 1200, height: int | None = None
+    ):
+        """Render per-type kneeboard images for the injected presets (ADR 0012)."""
         generator = RadioPresetsImageGenerator(self.preset_collections, width=width, height=height)
-        self.presets_images = generator.generate_presets_images()
+        self.presets_images = generator.generate_type_images(injected)
+
+
+# ── Kneeboard rendering constants (ADR 0012) ────────────────────────────────
+# All radio title bars are neutral grey (the red/green/orange per-radio coding
+# is dropped); a channel's `priority` highlights its Name/Freq cells in orange
+# (a "P<n>" marker in the Name cell); its `color` fills the CH cell.
+_RADIO_TITLE_BG = (128, 128, 128)
+_PRIORITY_HIGHLIGHT = (255, 165, 0)  # orange "highlighter"
+# A single-radio preset taller than this many slots is split across columns so
+# the page stays legible (the AJS-37's 47-slot radio → two columns).
+_COLUMN_SPLIT_THRESHOLD = 25
+
+
+def _radio_max_slot(radio: RadioDefinition) -> int:
+    """Highest slot a radio occupies, counting labelled-but-empty slots (ADR 0012)."""
+    slots = [channel.number for channel in radio.channels if channel.number]
+    slots += list(radio.display_labels.keys())
+    return max(slots, default=0)
+
+
+def _split_radio_into_columns(radio: RadioDefinition, num_columns: int) -> list[RadioDefinition]:
+    """Split one tall radio into *num_columns* side-by-side columns (ADR 0012).
+
+    Each column is a RadioDefinition covering a contiguous slot range, its
+    channels renumbered to column-local slots 1..N with ``display_labels`` carrying
+    the real pilot label (Group number / special name), so gaps and labels render
+    correctly. Reuses the normal multi-radio rendering path.
+    """
+    max_slot = _radio_max_slot(radio)
+    rows_per_column = math.ceil(max_slot / num_columns)
+    channel_by_slot = {channel.number: channel for channel in radio.channels}
+    columns: list[RadioDefinition] = []
+    for column_index in range(num_columns):
+        first_slot = column_index * rows_per_column + 1
+        last_slot = min(max_slot, (column_index + 1) * rows_per_column)
+        if first_slot > last_slot:
+            break
+        column = RadioDefinition(
+            name=f"{radio.name}_col{column_index + 1}", radio_type=radio.radio_type, title=radio.title
+        )
+        for real_slot in range(first_slot, last_slot + 1):
+            local_slot = real_slot - first_slot + 1
+            column.display_labels[local_slot] = radio.display_labels.get(real_slot, f"{real_slot:02d}")
+            if real_slot in channel_by_slot:
+                column.add_channel(_clone_channel(channel_by_slot[real_slot], local_slot))
+        columns.append(column)
+    return columns
+
+
+def _resolve_kneeboard_color(color: str) -> tuple[int, int, int] | None:
+    """Resolve a channel ``color`` (Pillow name or ``#RRGGBB[AA]``) to an RGB triple.
+
+    Returns None (and warns) for an unrecognised value, so the CH cell simply
+    keeps its default background — a soft degradation, not a build failure.
+    """
+    try:
+        rgb = ImageColor.getrgb(color)
+    except ValueError:
+        logger.warning(t("presets_injector.kneeboard.unknown_color", color=color))
+        return None
+    return rgb[:3]
+
+
+def _contrast_text_color(background: tuple[int, int, int]) -> str:
+    """Return "white" or "black", whichever reads best on *background* (ITU-R BT.601 luma)."""
+    red, green, blue = background
+    luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+    return "black" if luminance >= 128 else "white"
 
 
 class RadioPresetsImageGenerator:
@@ -1444,17 +1712,35 @@ class RadioPresetsImageGenerator:
                 channel_index += 1
                 if not channel or channel.number == j + 1:
                     break
-            channel_number = f"{j + 1:02d}"
+            # ADR 0012: the CH cell shows the type's pilot label when one exists
+            # (the AJS-37's Group 100-139 / Sp1-H), else the plain slot number.
+            channel_number = radio_definition.display_labels.get(j + 1, f"{j + 1:02d}")
             channel_name = channel.title if channel is not None else ""
             channel_frequency = f"{channel.freq:.2f}" if channel is not None else ""
+            priority = channel.priority if channel is not None else None
+            color = channel.color if channel is not None else None
 
             row_y = self.header_y + self.row_height + j * self.row_height
+            ch_col_x = self.table_x + self.column_width_channel
+            name_col_x = ch_col_x + self.column_width_name
 
             # Alternate background colors (light gray and white)
             bg_color = (240, 240, 240) if j % 2 == 0 else (255, 255, 255)  # Light gray and white
             self.draw.rectangle(
                 [self.table_x, row_y, self.table_x + self.table_width, row_y + self.row_height], fill=bg_color
             )
+
+            # ADR 0012: `color` fills the CH cell (channel-number text auto-contrasted);
+            # `priority` highlights the Name & Freq cells orange (a "P<n>" marker below).
+            number_text_color = "black"
+            if color and (rgb := _resolve_kneeboard_color(color)) is not None:
+                self.draw.rectangle([self.table_x, row_y, ch_col_x, row_y + self.row_height], fill=rgb)
+                number_text_color = _contrast_text_color(rgb)
+            if priority is not None:
+                self.draw.rectangle(
+                    [ch_col_x, row_y, self.table_x + self.table_width, row_y + self.row_height],
+                    fill=_PRIORITY_HIGHLIGHT,
+                )
 
             # Draw vertical lines between columns
             self.draw.line(
@@ -1477,7 +1763,9 @@ class RadioPresetsImageGenerator:
             )
 
             # Draw channel number
-            self.draw.text((self.table_x + 10, row_y + 5), channel_number, fill="black", font=self.get_preset_font())
+            self.draw.text(
+                (self.table_x + 10, row_y + 5), channel_number, fill=number_text_color, font=self.get_preset_font()
+            )
 
             # Draw channel name
             self.draw.text(
@@ -1486,6 +1774,14 @@ class RadioPresetsImageGenerator:
                 fill="black",
                 font=self.get_preset_font(),
             )
+
+            # ADR 0012: priority marker "P<n>", right-aligned in the Name cell.
+            if priority is not None:
+                marker = f"P{priority}"
+                marker_width = self.draw.textlength(marker, font=self.get_preset_font())
+                self.draw.text(
+                    (name_col_x - marker_width - 10, row_y + 5), marker, fill="black", font=self.get_preset_font()
+                )
 
             # Draw frequency
             self.draw.text(
@@ -1522,10 +1818,11 @@ class RadioPresetsImageGenerator:
                 [self.table_x, table_y, self.table_x + self.table_width, table_y + table_height], outline="black"
             )
 
-            # Draw title row with specific background color
-            title_color = self.radio_colors[i] if i < len(self.radio_colors) else (200, 200, 200)  # Default gray
+            # Draw title row (grey for every radio — ADR 0012 drops the old
+            # red/green/orange per-radio colour coding).
             self.draw.rectangle(
-                [self.table_x, table_y, self.table_x + self.table_width, table_y + self.header_height], fill=title_color
+                [self.table_x, table_y, self.table_x + self.table_width, table_y + self.header_height],
+                fill=_RADIO_TITLE_BG,
             )
 
             # Draw radio title (merged columns)
@@ -1587,9 +1884,6 @@ class RadioPresetsImageGenerator:
             self.draw_channels_in_preset_image(radio_definition=radio)
 
     def draw_preset_image(self, preset_definition: PresetDefinition):
-        # Define background colors for each radio table
-        self.radio_colors = [(255, 0, 0), (0, 128, 0), (255, 165, 0)]  # Red, Green, Orange
-
         # Calculate dimensions based on content
         self.row_height = 30
         self.header_height = 55
@@ -1598,12 +1892,14 @@ class RadioPresetsImageGenerator:
         self.top_margin = 80  # Space for collection title
         bottom_margin = 50  # Margin at bottom
 
-        # Compute the highest channel across all radios
+        # Compute the highest slot across all radios — including labelled-but-empty
+        # slots (ADR 0012: the AJS-37 shows its full Group range even where a
+        # channel is unset), so every labelled row is rendered.
         self.max_channels = 0
         for radio in preset_definition.radios.values():
-            for channel in radio.channels:
-                if channel.number and channel.number > self.max_channels:
-                    self.max_channels = channel.number
+            slots = [channel.number for channel in radio.channels if channel.number]
+            slots += list(radio.display_labels.keys())
+            self.max_channels = max([self.max_channels, *slots])
 
         # Find the radio with the most channels to determine image height
         image_height = self.top_margin + self.header_height + self.max_channels * self.row_height + bottom_margin
@@ -1625,35 +1921,55 @@ class RadioPresetsImageGenerator:
         title_x = (image_width - title_width) // 2
         self.draw.text((title_x, 20), preset_definition.title, fill="black", font=self.get_collection_title_font())
 
-    def generate_presets_images(self) -> dict[str, io.BytesIO]:
-        """
-        Generate a PNG image showing the radio presets in the preset_manager as three arrays
-        displayed side by side, with the name and frequency columns in each, and the radio
-        name as the title of each.
+    def generate_type_images(self, injected: dict[tuple[str, str], PresetDefinition]) -> dict[str, io.BytesIO]:
+        """Render one kneeboard PNG per injected (coalition, aircraft type) (ADR 0012).
+
+        Each image is keyed by its DCS kneeboard path
+        ``KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`` — coalition-suffixed
+        only when the same type is injected for both coalitions (so the two pages
+        do not collide in the shared per-type folder). A single-radio preset with
+        many channels (the AJS-37's 47) is split across columns for legibility.
 
         Args:
-            width: Width of the generated image in pixels (default: 1200)
-            height: Height of the generated image in pixels (default: automatically calculated)
+            injected: The presets actually injected, keyed by (coalition, concrete
+                unit_type). Built by the worker during ``process_groups``.
+
+        Returns:
+            Mapping of kneeboard-relative path -> PNG buffer.
         """
+        coalitions_by_type: dict[str, set[str]] = {}
+        for coalition, unit_type in injected:
+            coalitions_by_type.setdefault(unit_type, set()).add(coalition)
 
-        presets_images = {}
+        images: dict[str, io.BytesIO] = {}
+        for (coalition, unit_type), preset in injected.items():
+            if not preset.radios:
+                continue
+            render_preset = self._prepare_render_preset(preset, title=f"{unit_type} ({coalition})")
+            self.radio_count = len(render_preset.radios)
+            self.draw_preset_image(render_preset)
+            self.draw_radios_in_preset_image(render_preset)
+            img_buffer = io.BytesIO()
+            self.image.save(img_buffer, format="PNG", optimize=True)
+            img_buffer.seek(0)
+            safe_type = unit_type.replace("/", "_").replace("\\", "_")
+            suffix = f"-{coalition}" if len(coalitions_by_type[unit_type]) > 1 else ""
+            images[f"KNEEBOARD/{safe_type}/IMAGES/presets{suffix}.png"] = img_buffer
+        return images
 
-        # Browse the preset collection and generate an image for each
-        for preset_collection in self.preset_collections.values():
-            for preset_name, preset_definition in preset_collection.preset_definitions.items():
-                self.radio_count = len(preset_definition.radios)
+    def _prepare_render_preset(self, preset: PresetDefinition, title: str) -> PresetDefinition:
+        """Return a render-ready copy of *preset* with the given *title*.
 
-                if self.radio_count > 0 and preset_definition.used_in_mission:
-                    self.draw_preset_image(preset_definition)
-
-                    self.draw_radios_in_preset_image(preset_definition)
-
-                    # Store the image in the dictionary with the preset collection name as key
-                    img_buffer = io.BytesIO()
-                    self.image.save(
-                        img_buffer, format="PNG", optimize=True
-                    )  # Use PNG with optimization for line art/text
-                    img_buffer.seek(0)
-                    presets_images[preset_name] = img_buffer
-
-        return presets_images
+        A single-radio preset taller than :data:`_COLUMN_SPLIT_THRESHOLD` slots is
+        split into side-by-side columns (the AJS-37's 47-slot radio); everything
+        else keeps its radios as the columns.
+        """
+        render = PresetDefinition(name=preset.name, title=title)
+        radios = list(preset.radios.values())
+        if len(radios) == 1 and _radio_max_slot(radios[0]) > _COLUMN_SPLIT_THRESHOLD:
+            for column in _split_radio_into_columns(radios[0], num_columns=2):
+                render.add_radio(column)
+        else:
+            for radio in radios:
+                render.add_radio(radio)
+        return render

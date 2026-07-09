@@ -37,17 +37,21 @@ class TestFullLayoutFidelity(unittest.TestCase):
         self.assertEqual(result[1]["channels"][1], freqs[19])  # channel-0 rotation
         self.assertEqual(result[2]["channels"], {1: 31.0})
 
-    def test_ajs37_fusion_dummy_specials_modulation(self):
-        primary_1 = [100.0 + i for i in range(20)]
-        primary_2 = [150.0 + i for i in range(19)]
+    def test_ajs37_keyed_groups_wrap_and_specials(self):
+        # ADR 0012: key-based Group 100-139 mapping (primary_2's 20th wraps to
+        # Group 100 / slot 1) + fixed E/F/G specials at absolute slots 44-46.
+        primary_1 = [100.0 + i for i in range(20)]  # keys 1..20
+        primary_2 = [150.0 + i for i in range(20)]  # keys 1..20
         preset = pack_preset_for_type(_channel_lists(primary_1=primary_1, primary_2=primary_2), "blue", "AJS37")
         result = preset.to_dict()
         channels = result[1]["channels"]
-        self.assertEqual(channels[1], 0)  # leading dummy
-        self.assertEqual(channels[2], primary_1[0])
-        self.assertEqual(channels[22], primary_2[0])
-        self.assertEqual(channels[47], 243)  # GUARD special
-        self.assertEqual(len(channels), 47)  # exact capacity fit, no truncation needed
+        self.assertEqual(channels[1], primary_2[19])  # primary_2 key 20 recycled into Group 100
+        self.assertEqual(channels[2], primary_1[0])  # primary_1 key 1 -> Group 101
+        self.assertEqual(channels[22], primary_2[0])  # primary_2 key 1 -> Group 121
+        self.assertEqual(channels[46], 127.5)  # G (fixed airframe constant)
+        # 40 data slots + 3 fixed specials (E/F/G); the 4 priority specials are
+        # empty (this plan tags no priorities), so they leave their slots unset.
+        self.assertEqual(len(channels), 43)
 
     def test_oh58d_reserved_head_slots(self):
         primary_1 = [100.0 + i for i in range(20)]

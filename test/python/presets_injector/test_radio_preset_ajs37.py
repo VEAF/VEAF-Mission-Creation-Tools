@@ -1,15 +1,12 @@
-"""Tests for the fusion, leading-dummy and trailing-specials primitives (ADR 0010).
+"""Tests for the AJS-37 key-based packer and priority-sourced specials (ADR 0012).
 
-These are the three primitives ticket 04 adds on top of ticket 02's Radio layout
-mechanism (`rotate_last_to_head`), needed together to reproduce the AJS-37's
-single V/UHF radio: a leading dummy (frequency 0), a fusion of two channel-list
-roles into one physical radio, and 7 trailing hardcoded special channels with
-their own modulations.
-
-Ground truth for the real AJS-37 values: the Tripack `radioSettings.lua` fixture
-(`red AJS37`) and `test/python/mission_builder/test_presets_fidelity.py`'s
-`TestTripackPresetsFidelity` (the ADR 0003 legacy bespoke-preset path), which pin
-the exact frequencies and modulations reproduced here via the new packer path.
+The Viggen's single 47-slot V/UHF radio is packed by the `keyed_groups` primitive
+(Groups 100-139 by channel key, with the Group-100 recycle) plus 7 trailing
+specials at absolute slots 41-47 — FR22 Special 1/2/3 and FR24 H plan-sourced from
+priorities 1-4 (always AM), FR24 E/F/G fixed airframe constants. This replaces the
+old fuse + leading_dummy shape and deliberately drops ADR 0003 iso-functionality
+for the AJS-37 (slot 1 is now primary_2's 20th channel, not a dummy). The faithful
+convert-v5 copy (`presets.v5.yaml`) is a separate, unchanged path.
 """
 
 import unittest
@@ -18,6 +15,7 @@ from unittest.mock import patch
 from presets_injector.presets_manager import (
     Channel,
     HardcodedChannel,
+    KeyedGroups,
     RadioDefinition,
     RadioLayoutEntry,
     RadioLayoutRadio,
@@ -27,15 +25,15 @@ from presets_injector.presets_manager import (
 from presets_injector.radio_frequency_validator import FrequencyRange, RadioSpec
 
 
-def _radio_list(freqs: list[float]) -> RadioDefinition:
+def _radio(*channels: Channel) -> RadioDefinition:
     radio = RadioDefinition(name="r", radio_type="uhf")
-    for i, freq in enumerate(freqs, start=1):
-        radio.add_channel(Channel(name_or_number=i, freq=freq))
+    for channel in channels:
+        radio.add_channel(channel)
     return radio
 
 
-def _channel_lists(**roles: list[float]) -> dict[str, dict[str, RadioDefinition]]:
-    return {"blue": {role: _radio_list(freqs) for role, freqs in roles.items()}}
+def _channel_lists(**roles: RadioDefinition) -> dict[str, dict[str, RadioDefinition]]:
+    return {"blue": dict(roles)}
 
 
 def _specs(*range_lists: list[FrequencyRange]) -> list[RadioSpec]:
@@ -45,206 +43,191 @@ def _specs(*range_lists: list[FrequencyRange]) -> list[RadioSpec]:
 # A single ambiguous V/UHF range, matching the AJS-37's real 103-400 MHz radio.
 AJS37_RANGE = [FrequencyRange(min_mhz=103.0, max_mhz=400.0, modulation="AM/FM")]
 
+# The real AJS-37 keyed_groups shape (bases primary_1=100, primary_2=120).
+_AJS37_KEYED = KeyedGroups(block_size=40, bases={"primary_1": 100, "primary_2": 120})
 
-class TestParseRadioLayoutsNewPrimitives(unittest.TestCase):
-    """parse_radio_layouts must read the new fuse/leading_dummy/trailing_specials keys."""
 
-    def test_parses_fuse_leading_dummy_and_trailing_specials(self):
+class TestParseAjs37Primitives(unittest.TestCase):
+    """parse_radio_layouts reads keyed_groups and the trailing_specials {priority}/label variant."""
+
+    def test_parses_keyed_groups(self):
         data = {
             "AJS37": {
                 "radios": {
                     1: {
-                        "role": "primary_2",
-                        "fuse": ["primary_1", "primary_2"],
-                        "leading_dummy": {"freq": 0, "mod": 0},
+                        "role": "primary_1",
+                        "keyed_groups": {"block_size": 40, "bases": {"primary_1": 100, "primary_2": 120}},
+                    }
+                }
+            }
+        }
+        radio = parse_radio_layouts(data)["AJS37"].radios[1]
+        self.assertEqual(radio.keyed_groups, KeyedGroups(block_size=40, bases={"primary_1": 100, "primary_2": 120}))
+
+    def test_parses_priority_and_hardcoded_specials_with_labels(self):
+        data = {
+            "AJS37": {
+                "radios": {
+                    1: {
+                        "role": "primary_1",
                         "trailing_specials": [
-                            {"freq": 30, "mod": 1},
-                            {"freq": 243, "mod": 0},
+                            {"priority": 1, "label": "Sp1"},
+                            {"freq": 127.5, "mod": 0, "label": "G"},
                         ],
                     }
                 }
             }
         }
-        layouts = parse_radio_layouts(data)
-        radio = layouts["AJS37"].radios[1]
-        self.assertEqual(radio.fuse, ["primary_1", "primary_2"])
-        self.assertEqual(radio.leading_dummy, HardcodedChannel(freq=0, mod=0))
-        self.assertEqual(
-            radio.trailing_specials,
-            [HardcodedChannel(freq=30, mod=1), HardcodedChannel(freq=243, mod=0)],
-        )
+        specials = parse_radio_layouts(data)["AJS37"].radios[1].trailing_specials
+        self.assertEqual(specials[0], HardcodedChannel(priority=1, label="Sp1"))
+        self.assertEqual(specials[1], HardcodedChannel(freq=127.5, mod=0, label="G"))
 
     def test_primitives_default_to_none_when_absent(self):
-        data = {"SomeType": {"radios": {1: {"role": "primary_1"}}}}
-        layouts = parse_radio_layouts(data)
-        radio = layouts["SomeType"].radios[1]
-        self.assertIsNone(radio.fuse)
-        self.assertIsNone(radio.leading_dummy)
+        radio = parse_radio_layouts({"SomeType": {"radios": {1: {"role": "primary_1"}}}})["SomeType"].radios[1]
+        self.assertIsNone(radio.keyed_groups)
         self.assertIsNone(radio.trailing_specials)
 
+    @patch("presets_injector.presets_manager.logger")
+    def test_special_with_neither_freq_nor_priority_is_dropped_with_warning(self, mock_logger):
+        data = {"T": {"radios": {1: {"role": "primary_1", "trailing_specials": [{"label": "oops"}]}}}}
+        specials = parse_radio_layouts(data)["T"].radios[1].trailing_specials
+        self.assertEqual(specials, [])
+        mock_logger.warning.assert_called()
 
-class TestRadioFusionPrimitive(unittest.TestCase):
-    """`fuse`: concatenate several role lists into one physical radio, renumbered."""
-
-    @patch("presets_injector.presets_manager.get_radio_layout")
-    @patch("presets_injector.presets_manager.get_radios")
-    def test_two_lists_fused_in_declared_order(self, mock_get_radios, mock_get_layout):
-        mock_get_radios.return_value = _specs(AJS37_RANGE)
-        mock_get_layout.return_value = RadioLayoutEntry(
-            radios={1: RadioLayoutRadio(role="primary_2", fuse=["primary_1", "primary_2"])}
-        )
-        primary_1_freqs = [200.0 + i for i in range(3)]
-        primary_2_freqs = [130.0 + i for i in range(2)]
-        channel_lists = _channel_lists(primary_1=primary_1_freqs, primary_2=primary_2_freqs)
-        preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
-        result = preset.to_dict()
-        channels = result[1]["channels"]
-        # primary_1's 3 entries first, renumbered 1..3
-        self.assertEqual([channels[1], channels[2], channels[3]], primary_1_freqs)
-        # then primary_2's 2 entries, renumbered 4..5
-        self.assertEqual([channels[4], channels[5]], primary_2_freqs)
-        self.assertEqual(len(channels), 5)
+    @patch("presets_injector.presets_manager.logger")
+    def test_special_with_both_freq_and_priority_keeps_priority_and_warns(self, mock_logger):
+        data = {"T": {"radios": {1: {"role": "primary_1", "trailing_specials": [{"freq": 30, "priority": 2}]}}}}
+        special = parse_radio_layouts(data)["T"].radios[1].trailing_specials[0]
+        self.assertIsNone(special.freq)
+        self.assertEqual(special.priority, 2)
+        mock_logger.warning.assert_called()
 
 
-class TestLeadingDummyPrimitive(unittest.TestCase):
-    """`leading_dummy`: a fixed, source-less channel at slot 1, rest shifted."""
+class TestKeyedGroupsPacking(unittest.TestCase):
+    """`keyed_groups`: key-based placement into Groups 100-139 with the Group-100 wrap."""
 
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")
-    def test_dummy_occupies_slot_one_content_shifts(self, mock_get_radios, mock_get_layout):
+    def _pack(self, primary_1, primary_2, mock_get_radios, mock_get_layout):
         mock_get_radios.return_value = _specs(AJS37_RANGE)
         mock_get_layout.return_value = RadioLayoutEntry(
-            radios={1: RadioLayoutRadio(role="primary_1", leading_dummy=HardcodedChannel(freq=0, mod=0))}
+            radios={1: RadioLayoutRadio(role="primary_1", keyed_groups=_AJS37_KEYED)}
         )
-        freqs = [200.0, 201.0]
-        channel_lists = _channel_lists(primary_1=freqs)
-        preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
-        result = preset.to_dict()
-        channels = result[1]["channels"]
-        self.assertEqual(channels[1], 0)
-        self.assertEqual(channels[2], 200.0)
-        self.assertEqual(channels[3], 201.0)
-        self.assertEqual(result[1]["modulations"][1], 0)
+        channel_lists = _channel_lists(primary_1=_radio(*primary_1), primary_2=_radio(*primary_2))
+        return pack_preset_for_type(channel_lists, "blue", "AJS37").to_dict()[1]["channels"]
+
+    def test_primary_1_key_maps_to_group_100_plus_key(self):
+        channels = self._pack([Channel(4, 204.0)], [])
+        self.assertEqual(channels, {5: 204.0})  # key 4 -> Group 104 -> slot 5
+
+    def test_primary_2_key_maps_to_group_120_plus_key(self):
+        channels = self._pack([], [Channel(1, 131.0)])
+        self.assertEqual(channels, {22: 131.0})  # key 1 -> Group 121 -> slot 22
+
+    def test_primary_2_key_20_wraps_to_slot_1(self):
+        channels = self._pack([], [Channel(20, 140.0)])
+        self.assertEqual(channels, {1: 140.0})  # key 20 -> Group 140 -> wraps to Group 100 -> slot 1
+
+    def test_gaps_are_preserved(self):
+        channels = self._pack([Channel(1, 201.0), Channel(3, 203.0)], [])
+        self.assertEqual(channels, {2: 201.0, 4: 203.0})  # Group 102 (key 2) left empty
+
+    @patch("presets_injector.presets_manager.logger")
+    @patch("presets_injector.presets_manager.get_radio_layout")
+    @patch("presets_injector.presets_manager.get_radios")
+    def test_key_beyond_role_share_is_dropped_with_warning(self, mock_get_radios, mock_get_layout, mock_logger):
+        mock_get_radios.return_value = _specs(AJS37_RANGE)
+        mock_get_layout.return_value = RadioLayoutEntry(
+            radios={1: RadioLayoutRadio(role="primary_1", keyed_groups=_AJS37_KEYED)}
+        )
+        channel_lists = _channel_lists(primary_1=_radio(Channel(21, 221.0)), primary_2=_radio())
+        preset = pack_preset_for_type(channel_lists, "blue", "AJS37")
+        self.assertIsNone(preset)  # the only channel was out of range -> nothing left
+        mock_logger.warning.assert_called()
 
 
-class TestPrimitiveComposition(unittest.TestCase):
-    """fuse + rotate_last_to_head + leading_dummy together, exercising the full
-    composition order (ADR 0010: fusion/plain list -> rotation -> leading dummy
-    -> trailing specials) on one radio, not just each primitive in isolation.
-    """
+class TestPrioritySpecials(unittest.TestCase):
+    """`trailing_specials` with {priority}: plan-sourced (AM), plus fixed airframe constants."""
 
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")
-    def test_fuse_then_rotate_then_dummy_in_declared_order(self, mock_get_radios, mock_get_layout):
+    def _pack(self, specials, primary_1, mock_get_radios, mock_get_layout, primary_2=None):
         mock_get_radios.return_value = _specs(AJS37_RANGE)
         mock_get_layout.return_value = RadioLayoutEntry(
-            radios={
-                1: RadioLayoutRadio(
-                    role="primary_1",
-                    fuse=["primary_1", "primary_2"],
-                    rotate_last_to_head=True,
-                    leading_dummy=HardcodedChannel(freq=0, mod=0),
-                )
-            }
+            radios={1: RadioLayoutRadio(role="primary_1", keyed_groups=_AJS37_KEYED, trailing_specials=specials)}
         )
-        primary_1_freqs = [200.0, 201.0, 202.0]
-        primary_2_freqs = [130.0, 131.0]
-        channel_lists = _channel_lists(primary_1=primary_1_freqs, primary_2=primary_2_freqs)
-        preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
-        result = preset.to_dict()
-        channels = result[1]["channels"]
-        modulations = result[1]["modulations"]
+        channel_lists = _channel_lists(primary_1=_radio(*primary_1), primary_2=_radio(*(primary_2 or [])))
+        return pack_preset_for_type(channel_lists, "blue", "AJS37").to_dict()[1]
 
-        # fuse: [200, 201, 202, 130, 131] -> rotate: last (131) to head, rest follow
-        # -> dummy inserted at slot 1, rotated content shifts to slots 2..6.
-        self.assertEqual(channels[1], 0)  # leading dummy
-        self.assertEqual(channels[2], 131.0)  # rotated: fused list's last entry
-        self.assertEqual(channels[3], 200.0)
-        self.assertEqual(channels[4], 201.0)
-        self.assertEqual(channels[5], 202.0)
-        self.assertEqual(channels[6], 130.0)
-        self.assertEqual(len(channels), 6)
-        self.assertEqual(modulations[1], 0)
-
-
-class TestTrailingSpecialsPrimitive(unittest.TestCase):
-    """`trailing_specials`: fixed (freq, mod) pairs appended after the content."""
-
-    @patch("presets_injector.presets_manager.get_radio_layout")
-    @patch("presets_injector.presets_manager.get_radios")
-    def test_specials_appended_after_content_with_their_own_modulations(self, mock_get_radios, mock_get_layout):
-        mock_get_radios.return_value = _specs(AJS37_RANGE)
-        mock_get_layout.return_value = RadioLayoutEntry(
-            radios={
-                1: RadioLayoutRadio(
-                    role="primary_1",
-                    trailing_specials=[
-                        HardcodedChannel(freq=30.0, mod=1),
-                        HardcodedChannel(freq=243.0, mod=0),
-                    ],
-                )
-            }
+    def test_priority_special_takes_plan_freq_at_absolute_slot_am(self):
+        radio = self._pack(
+            [HardcodedChannel(priority=1, label="Sp1")],
+            [Channel(1, 300.0, priority=1)],
         )
-        freqs = [200.0, 201.0]
-        channel_lists = _channel_lists(primary_1=freqs)
-        preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
-        result = preset.to_dict()
-        channels = result[1]["channels"]
-        modulations = result[1]["modulations"]
-        self.assertEqual(channels[3], 30.0)
-        self.assertEqual(channels[4], 243.0)
-        self.assertEqual(modulations[1], 0)  # untouched content defaults to AM
-        self.assertEqual(modulations[3], 1)
-        self.assertEqual(modulations[4], 0)
+        self.assertEqual(radio["channels"][41], 300.0)  # slot 41 = block_size (40) + 1
+        self.assertEqual(radio["modulations"][41], 0)  # plan-sourced specials are AM
+
+    def test_hardcoded_and_priority_specials_keep_absolute_slots(self):
+        # A missing priority (no priority-2 channel) leaves slot 42 empty, but the
+        # hardcoded E at offset 2 must still land on slot 43, not shift up to 42.
+        radio = self._pack(
+            [
+                HardcodedChannel(priority=1),
+                HardcodedChannel(priority=2),  # unresolved -> empty
+                HardcodedChannel(freq=33.0, mod=1),  # E
+            ],
+            [Channel(1, 300.0, priority=1)],
+        )
+        channels = radio["channels"]
+        self.assertEqual(channels[41], 300.0)
+        self.assertNotIn(42, channels)  # missing priority -> empty slot
+        self.assertEqual(channels[43], 33.0)  # E keeps its absolute slot
+        self.assertEqual(radio["modulations"][43], 1)  # hardcoded E is FM
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_duplicate_priority_warns_and_first_wins(self, mock_logger):
+        radio = self._pack(
+            [HardcodedChannel(priority=1)],
+            [Channel(1, 300.0, priority=1), Channel(2, 301.0, priority=1)],
+        )
+        self.assertEqual(radio["channels"][41], 300.0)  # first (by role order) wins
+        mock_logger.warning.assert_called()
 
 
 class TestAjs37EndToEnd(unittest.TestCase):
-    """Ticket 04 acceptance: the real AJS-37 layout entry, dummy + fusion + specials + mod."""
+    """The real bundled AJS-37 layout: full 47-slot map, no mocks."""
 
-    def test_ajs37_reproduces_dummy_fused_lists_specials_and_modulations(self):
-        primary_1_freqs = [100.0 + i for i in range(20)]  # 20 UHF entries
-        primary_2_freqs = [150.0 + i for i in range(19)]  # 19 VHF entries
-        channel_lists = _channel_lists(primary_1=primary_1_freqs, primary_2=primary_2_freqs)
-        preset = pack_preset_for_type(channel_lists, "blue", "AJS37")
+    def test_ajs37_full_map_with_wrap_and_specials(self):
+        primary_1 = _radio(*(Channel(k, 300.0 + k, priority={5: 1, 6: 2, 10: 4}.get(k)) for k in range(1, 21)))
+        primary_2 = _radio(*(Channel(k, 130.0 + k, priority=(3 if k == 3 else None)) for k in range(1, 21)))
+        preset = pack_preset_for_type(_channel_lists(primary_1=primary_1, primary_2=primary_2), "blue", "AJS37")
         self.assertIsNotNone(preset)
-        result = preset.to_dict()
-        channels = result[1]["channels"]
-        modulations = result[1]["modulations"]
+        result = preset.to_dict()[1]
+        channels = result["channels"]
 
-        # slot 1: leading dummy, freq 0, AM
-        self.assertEqual(channels[1], 0)
-        self.assertEqual(modulations[1], 0)
+        self.assertEqual(channels[1], 150.0)  # primary_2 key 20 wrapped to Group 100
+        self.assertEqual(channels[2], 301.0)  # primary_1 key 1 -> Group 101
+        self.assertEqual(channels[21], 320.0)  # primary_1 key 20 -> Group 120
+        self.assertEqual(channels[22], 131.0)  # primary_2 key 1 -> Group 121
+        self.assertEqual(channels[40], 149.0)  # primary_2 key 19 -> Group 139
 
-        # slots 2-21: primary_1's 20 entries in order
-        for i, freq in enumerate(primary_1_freqs):
-            self.assertEqual(channels[2 + i], freq)
-
-        # slots 22-40: primary_2's 19 entries in order
-        for i, freq in enumerate(primary_2_freqs):
-            self.assertEqual(channels[22 + i], freq)
-
-        # slots 41-47: hardcoded FR22/FR24 specials (real Tripack values)
-        self.assertEqual(channels[41], 30)  # Special 1 - FR22
-        self.assertEqual(channels[42], 31)  # Special 2 - FR22
-        self.assertEqual(channels[43], 32)  # Special 3 - FR22
-        self.assertEqual(channels[44], 33)  # E - FR24
-        self.assertEqual(channels[45], 34)  # F - FR24
-        self.assertEqual(channels[46], 127.5)  # G - FR24
-        self.assertEqual(channels[47], 243)  # H (LARM/GUARD) - FR24
-
-        # modulations: 1-40 AM, 41-45 FM, 46-47 AM
-        for slot in list(range(1, 41)) + [46, 47]:
-            self.assertEqual(modulations[slot], 0, f"slot {slot} should be AM")
-        for slot in range(41, 46):
-            self.assertEqual(modulations[slot], 1, f"slot {slot} should be FM")
-
+        self.assertEqual(channels[41], 305.0)  # Sp1 <- priority 1 (primary_1 key 5)
+        self.assertEqual(channels[42], 306.0)  # Sp2 <- priority 2
+        self.assertEqual(channels[43], 133.0)  # Sp3 <- priority 3 (primary_2 key 3)
+        self.assertEqual(channels[44], 33)  # E (fixed)
+        self.assertEqual(channels[45], 34)  # F (fixed)
+        self.assertEqual(channels[46], 127.5)  # G (fixed)
+        self.assertEqual(channels[47], 310.0)  # H <- priority 4 (primary_1 key 10)
         self.assertEqual(len(channels), 47)
+
+        # modulations: data + priority specials AM (0); fixed E/F FM (1), G AM (0).
+        self.assertEqual(result["modulations"][41], 0)
+        self.assertEqual(result["modulations"][44], 1)
+        self.assertEqual(result["modulations"][46], 0)
 
 
 class TestBespokeOverrideStillWinsOverAjs37Packer(unittest.TestCase):
-    """A maker's explicit `presets_assignments` entry still bypasses the packer entirely
-    (ADR 0010's manual-override path; no new code needed, this only guards the wiring).
-    """
+    """A maker's explicit presets_assignments entry still bypasses the packer entirely."""
 
     def test_get_radios_for_returns_explicit_assignment_not_packed_ajs37(self):
         from presets_injector.presets_manager import (
@@ -276,8 +259,7 @@ class TestBespokeOverrideStillWinsOverAjs37Packer(unittest.TestCase):
                 }
             }
         }
-        preset = manager.get_radios_for("blue", "plane", "AJS37")
-        self.assertIs(preset, bespoke)
+        self.assertIs(manager.get_radios_for("blue", "plane", "AJS37"), bespoke)
 
 
 if __name__ == "__main__":

@@ -181,6 +181,32 @@ A channel can be defined in three ways, in `channel_lists` as well as `radios_co
 - a direct **frequency** (MHz): `01: 243.0`;
 - an **object**: `01: { freq: 243.0, mod: 1 }`, where `mod` is the modulation (`0` = AM, `1` = FM). The `mod` field is optional; when absent, DCS uses its default.
 
+### Channel priority and colour (kneeboards)
+
+On a plan entry (object form), two optional attributes enrich the kneeboard
+([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)):
+
+- **`priority: <n>`** — highlights the channel on **every** kneeboard (a `Pn`
+  marker + orange Name/Freq cells). On the **AJS-37 (Viggen)** only, priorities
+  1 to 4 additionally fill the FR22 Special 1/2/3 and FR24 H shortcut buttons.
+  Declare it **in `channel_lists`** (one entry per priority value).
+- **`color: <colour>`** — colours the **CH** cell to group channels visually.
+  Value: a colour name (`green`, `blue`…) or `#RRGGBBAA`. Accepted in
+  `channel_lists` **and** in `channels_collection` (the plan entry wins over the
+  channel definition).
+
+```yaml
+channel_lists:
+  blue:
+    primary_1:
+      01: { channel: Guard, priority: 4, color: red }   # Pn + highlight; on the Viggen → FR24 H
+      02: { channel: Texaco-1, priority: 1 }             # on the Viggen → FR22 Special 1
+      03: { channel: Batumi, color: "#2E7D32" }          # visual grouping (CH cell)
+```
+
+Kneeboards are generated **one per injected aircraft type**, in that type's DCS
+folder (`KNEEBOARD/<type>/IMAGES/`).
+
 ### v5 conversion: two files (`convert-v5`)
 
 Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` emits **two** preset files:

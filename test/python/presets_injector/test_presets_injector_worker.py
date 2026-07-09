@@ -721,7 +721,7 @@ class TestKneeboardsToggle(unittest.TestCase):
             patch.object(worker, "read_mission"),
             patch.object(worker, "process_groups"),
             patch.object(worker, "write_mission"),
-            patch.object(worker.presets_manager, "generate_presets_images") as gen,
+            patch.object(worker.presets_manager, "generate_type_images") as gen,
         ):
             worker.work(silent=True)
         return gen

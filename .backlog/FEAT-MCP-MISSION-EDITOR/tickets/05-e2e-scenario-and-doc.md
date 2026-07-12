@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-005 — End-to-end scenario + doc
 
-Status: ⬜ ready
+Status: ✅ done
 Type: test+docs
 Files: `test/python/`, `doc/developer/`
 
@@ -17,8 +17,8 @@ Files: `test/python/`, `doc/developer/`
 
 ## Acceptance criteria
 
-- [ ] Integration test passes against a real (not mocked) test `.miz`.
-- [ ] Doc page merged, FR + EN, linked from the developer doc index.
+- [x] Integration test passes against a real (not mocked) test `.miz`.
+- [x] Doc page merged, FR + EN, linked from the developer doc index.
 
 ## Blocked by
 

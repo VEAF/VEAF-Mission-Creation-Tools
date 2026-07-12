@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-004 — Write action `add_group`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `mission_builder/coalition_placeholder.py` (or extracted), `src/python/veaf-tools/veaf_mission_mcp/`, `test/python/`
 
@@ -26,16 +26,28 @@ No deduplication: calling this twice with identical parameters creates two disti
 
 ## Acceptance criteria
 
-- [ ] Adds a ground group with units + a patrol route to a real test `.miz`, and DCS/the
+- [x] Adds a ground group with units + a patrol route to a real test `.miz`, and DCS/the
       Mission Editor would open the result without complaint (validated at minimum via
       `luadata` round-trip + `mission_content` shape checks; a manual DCS open is a bonus,
       not a gate).
-- [ ] Fresh `groupId`/`unitId` never collide with existing ones, including on a mission
+- [x] Fresh `groupId`/`unitId` never collide with existing ones, including on a mission
       already containing gaps (sparse ids).
-- [ ] Backup helper (002) runs before the write, every time.
-- [ ] Calling the action twice with the same input produces two groups, not one (explicit
+- [x] Backup helper (002) runs before the write, every time.
+- [x] Calling the action twice with the same input produces two groups, not one (explicit
       non-dedup test).
-- [ ] TDD incl. patrol-route shape; ruff + mypy clean.
+- [x] TDD incl. patrol-route shape; ruff + mypy clean.
+
+## Note
+
+Ticket 002's backup collision handling was changed from *raise* to *disambiguate* (`-2`,
+`-3`, ... suffix): calling `add_group` twice in a row can land in the same second, and every
+call must still produce a backup — see the updated `miz_backup.backup_before_write`
+docstring and `.backlog/FEAT-MCP-MISSION-EDITOR/tickets/02-backup-before-write.md`.
+
+Also generalized `coalition_placeholder.py`'s `_max_ids`/`_find_or_add_country`/
+`_coerce_country_list` into public `mission_tools.group_insertion` helpers (single source
+of truth for id bookkeeping), refactoring `coalition_placeholder.py` to use them —
+existing `test_coalition_placeholder.py` suite still green.
 
 ## Blocked by
 

@@ -3,7 +3,6 @@
 from datetime import datetime
 from pathlib import Path
 
-import pytest
 from mission_tools.miz_backup import backup_before_write
 
 
@@ -36,13 +35,28 @@ class TestBackupBeforeWrite:
 
         assert miz_path.read_bytes() == b"original"
 
-    def test_backup_raises_on_a_same_second_collision(self, tmp_path: Path) -> None:
+    def test_a_same_second_collision_is_disambiguated_not_overwritten(self, tmp_path: Path) -> None:
+        miz_path = _make_miz(tmp_path, b"first")
+        same_second = datetime(2026, 7, 12, 14, 30, 12)
+
+        first = backup_before_write(miz_path, now=same_second)
+        miz_path.write_bytes(b"second")
+        second = backup_before_write(miz_path, now=same_second)
+
+        assert first != second
+        assert first.read_bytes() == b"first"
+        assert second.read_bytes() == b"second"
+        assert second.name == "mission.20260712-143012-2.miz"
+
+    def test_a_third_same_second_collision_keeps_disambiguating(self, tmp_path: Path) -> None:
         miz_path = _make_miz(tmp_path)
         same_second = datetime(2026, 7, 12, 14, 30, 12)
-        backup_before_write(miz_path, now=same_second)
 
-        with pytest.raises(FileExistsError):
-            backup_before_write(miz_path, now=same_second)
+        backup_before_write(miz_path, now=same_second)
+        backup_before_write(miz_path, now=same_second)
+        third = backup_before_write(miz_path, now=same_second)
+
+        assert third.name == "mission.20260712-143012-3.miz"
 
     def test_different_seconds_produce_distinct_backups(self, tmp_path: Path) -> None:
         miz_path = _make_miz(tmp_path)

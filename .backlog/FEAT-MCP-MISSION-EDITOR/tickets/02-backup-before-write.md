@@ -13,8 +13,10 @@ policy, no configuration; git remains the actual long-term undo.
 
 ## Acceptance criteria
 
-- [ ] Backup file is byte-identical to the pre-write `.miz`.
-- [ ] Timestamp format is sortable and collision-safe within the same second (or the helper
-      errors clearly rather than silently overwriting a same-second backup).
-- [ ] Backup happens even if the subsequent write fails (helper runs first, unconditionally).
-- [ ] TDD; ruff + mypy clean.
+- [x] Backup file is byte-identical to the pre-write `.miz`.
+- [x] Timestamp format is sortable and collision-safe within the same second: a `-2`, `-3`, ...
+      suffix disambiguates rather than raising — an LLM driving several editor-parity actions
+      in a row (FEAT-MCP-MISSION-EDITOR-004) can call this twice within the same second, and
+      every call must still produce a backup.
+- [x] Backup happens even if the subsequent write fails (helper runs first, unconditionally).
+- [x] TDD; ruff + mypy clean.

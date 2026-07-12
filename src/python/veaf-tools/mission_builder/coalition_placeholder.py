@@ -22,16 +22,14 @@ import copy
 import functools
 import json
 
+from mission_tools.group_insertion import GROUP_CATEGORIES, coerce_country_list, find_or_add_country, max_ids
 from veaf_libs.bundled_data import read_bundled_text
-from veaf_libs.i18n import t
-from veaf_libs.logger import logger
 
 _SIDES = ("blue", "red")
-# Every category that can hold a group with units. Used both to decide whether a
+# Every category that can hold a group with units. Used to decide whether a
 # coalition already has a unit (any unit keeps its DCS country alive — aircraft,
-# ships and statics all count) and to scan the global group/unit id space so the
-# injected placeholder never reuses an existing id.
-_UNIT_CATEGORIES = ("vehicle", "plane", "helicopter", "ship", "static")
+# ships and statics all count).
+_UNIT_CATEGORIES = GROUP_CATEGORIES
 
 
 @functools.lru_cache(maxsize=1)
@@ -48,54 +46,6 @@ def _coalition_unit_count(coalition: dict) -> int:
             for group in country.get(category, {}).get("group", []):
                 total += len(group.get("units", []))
     return total
-
-
-def _max_ids(mission_content: dict) -> tuple[int, int]:
-    """Return the highest groupId and unitId currently used in the mission."""
-    max_group_id = 0
-    max_unit_id = 0
-    for coalition in mission_content.get("coalition", {}).values():
-        if not isinstance(coalition, dict):
-            continue
-        for country in coalition.get("country", []):
-            for category in _UNIT_CATEGORIES:
-                for group in country.get(category, {}).get("group", []):
-                    max_group_id = max(max_group_id, int(group.get("groupId", 0) or 0))
-                    for unit in group.get("units", []):
-                        max_unit_id = max(max_unit_id, int(unit.get("unitId", 0) or 0))
-    return max_group_id, max_unit_id
-
-
-def _coerce_country_list(coalition: dict) -> list:
-    """Normalize a coalition's ``country`` field to a list (in place).
-
-    An empty DCS ``country = {}`` table deserializes to a dict (all_is_dict), not
-    a list, which breaks the unit-count / id scans and the placeholder append.
-    A dict is coerced keeping its values; anything else (malformed) is replaced
-    by an empty list with a warning rather than silently iterated/discarded.
-    """
-    countries = coalition.get("country")
-    if isinstance(countries, list):
-        return countries
-    if isinstance(countries, dict):
-        countries = list(countries.values())
-    else:
-        if countries is not None:
-            logger.warning(t("builder.coalition_country_unexpected", type=type(countries).__name__))
-        countries = []
-    coalition["country"] = countries
-    return countries
-
-
-def _find_or_add_country(coalition: dict, country_id: int, country_name: str) -> dict:
-    """Return the coalition country with *country_id*, creating it if absent."""
-    countries = _coerce_country_list(coalition)
-    for country in countries:
-        if country.get("id") == country_id:
-            return country
-    country = {"id": country_id, "name": country_name}
-    countries.append(country)
-    return country
 
 
 def _build_placeholder(template_group: dict, side: str, group_id: int, unit_id: int, bullseye: dict) -> dict:
@@ -142,10 +92,10 @@ def ensure_coalitions_populated(mission_content: dict) -> list[str]:
     # id/unit scans below never trip over an empty `{}` (dict) or a malformed value.
     for coalition in coalitions.values():
         if isinstance(coalition, dict):
-            _coerce_country_list(coalition)
+            coerce_country_list(coalition)
 
     templates = _templates()
-    next_group_id, next_unit_id = (n + 1 for n in _max_ids(mission_content))
+    next_group_id, next_unit_id = (n + 1 for n in max_ids(mission_content))
 
     injected: list[str] = []
     for side in _SIDES:
@@ -157,7 +107,7 @@ def ensure_coalitions_populated(mission_content: dict) -> list[str]:
         group = _build_placeholder(template["group"], side, next_group_id, next_unit_id, bullseye)
         next_group_id += 1
         next_unit_id += 1
-        country = _find_or_add_country(coalition, template["country_id"], template["country_name"])
+        country = find_or_add_country(coalition, template["country_id"], template["country_name"])
         country.setdefault("vehicle", {}).setdefault("group", []).append(group)
         injected.append(side)
     return injected

@@ -3,8 +3,7 @@
 Exposes a fixed discovery surface — ``capabilities``, ``list_catalog``,
 ``describe_action``, ``run_action`` — instead of one MCP tool per mission-editing
 action, mirroring the existing ``dcs-bridge`` MCP tool's shape. Concrete actions are
-registered into ``CATALOG`` by later tickets in ``FEAT-MCP-MISSION-EDITOR``; this
-module ships with an empty catalog.
+registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 """
 
 from typing import Any
@@ -13,11 +12,13 @@ from mcp.server.fastmcp import FastMCP
 from veaf_libs.logger import logger
 from veaf_tools.app import VERSION
 
+from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog
 
 SERVER_NAME = "veaf-mission-mcp"
 
 CATALOG = ActionCatalog()
+register_default_actions(CATALOG)
 
 mcp = FastMCP(SERVER_NAME)
 

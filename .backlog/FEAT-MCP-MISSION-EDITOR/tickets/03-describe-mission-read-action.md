@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-003 — Read action `describe_mission`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/`, `test/python/`
 

@@ -211,6 +211,23 @@ override layered on top of the untouched upstream Foothold config — it restate
 only what changes, never the whole config.
 _Avoid_: foothold settings, config patch
 
+## LLM-assisted mission editing
+
+**Editor-parity action**:
+An action that reproduces, on the mission's raw source `.miz`, exactly what a
+Mission Maker could do by hand in the DCS Mission Editor — add a trigger, a
+zone, a group — mutating `mission.lua` tables directly. Not deduplicated or
+made idempotent by the tool: calling it twice creates two triggers, same as two
+clicks in the editor. Distinct from a _VMCT action_, which goes through
+`mission.yaml` and the existing workers.
+_Avoid_: vanilla action, low-level action
+
+**VMCT action**:
+An action that edits a mission through the declarative `mission.yaml` config
+and its workers (e.g. `inject_presets`, `aircraft_groups`), as opposed to an
+_Editor-parity action_ which bypasses that pipeline to mutate the `.miz`
+directly.
+
 ## Script loading
 
 **Static loading**:

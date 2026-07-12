@@ -16,6 +16,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - The opt-in pagination helpers `veafRadio.addPaginatedRadioElements` / `addPaginatedRadioMenu` no longer paginate themselves (they sort and insert their elements); pagination is now done once, at render time, for every menu.
 
+### Added
+- **Mission-editing MCP server skeleton** (`veaf-mission-mcp`, FEAT-MCP-MISSION-EDITOR-001, first phase of NL-MISSION-GEN, [ADR 0013](docs/adr/0013-mission-editor-mcp-editor-parity-layer.md)). New `veaf_mission_mcp` package exposing a `capabilities`/`list_catalog`/`describe_action`/`run_action` MCP surface, empty for now — concrete editor-parity actions (add a group, read the mission state) land in follow-up tickets.
+
 ## [6.9.1] — 2026-07-13
 
 ### Added

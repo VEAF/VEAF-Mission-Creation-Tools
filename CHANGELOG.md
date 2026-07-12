@@ -18,6 +18,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **Mission-editing MCP server skeleton** (`veaf-mission-mcp`, FEAT-MCP-MISSION-EDITOR-001, first phase of NL-MISSION-GEN, [ADR 0013](docs/adr/0013-mission-editor-mcp-editor-parity-layer.md)). New `veaf_mission_mcp` package exposing a `capabilities`/`list_catalog`/`describe_action`/`run_action` MCP surface, empty for now — concrete editor-parity actions (add a group, read the mission state) land in follow-up tickets.
+- **Backup-before-write helper** (FEAT-MCP-MISSION-EDITOR-002): `mission_tools.miz_backup.backup_before_write` copies a `.miz` to a timestamped sibling (`mission.miz` → `mission.20260712-143012.miz`) before an editor-parity action overwrites it — pure safety net, git remains the actual undo. Raises clearly on a same-second collision instead of silently overwriting a prior backup.
 
 ## [6.9.1] — 2026-07-13
 

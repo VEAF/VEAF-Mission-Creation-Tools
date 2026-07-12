@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-001 — MCP server skeleton
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `pyproject.toml`, `src/python/veaf-tools/veaf_mission_mcp/`, `test/python/`
 

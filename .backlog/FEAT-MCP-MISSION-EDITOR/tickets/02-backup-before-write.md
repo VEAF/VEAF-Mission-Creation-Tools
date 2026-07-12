@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-002 — Backup-before-write helper
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `mission_tools/miz_tools.py` (or a new sibling module), `test/python/`
 

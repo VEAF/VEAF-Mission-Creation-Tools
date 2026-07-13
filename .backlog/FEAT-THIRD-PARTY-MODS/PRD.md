@@ -1,6 +1,6 @@
 # Lot FEAT-THIRD-PARTY-MODS — strip third-party mod requirements at build
 
-Status: 🔄 in-progress (all 3 tickets done, PR not yet opened)
+Status: ✅ done (merged #571, released in 6.9.1)
 
 Branch: `feature/third-party-mods` → PR → `develop-v6`
 

@@ -132,6 +132,7 @@ mission:
   era: MODERN                 # MODERN | COLD_WAR | WW2
   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
   silence_atc_on_all_airbases: false  # mission-wide option: mute DCS ATC at every airbase
+  third_party_mods: []        # third-party DCS mods to make non-blocking (see below)
 ```
 
 | Field | Type | Default | Required | Description |
@@ -141,6 +142,7 @@ mission:
 | `era` | string | `MODERN` | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
+| `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
 
 ---
 

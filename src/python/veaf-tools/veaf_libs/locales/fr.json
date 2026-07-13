@@ -166,6 +166,7 @@
   "builder.generating_dynamic_config": "Génération de veafDynamicConfig.lua (scripts de mission dynamiques)...",
   "builder.creating_mission": "Création de la mission {output}...",
   "builder.reading_mission": "Lecture de la mission {output}...",
+  "builder.stripped_third_party_mods": "Mods tiers rendus non bloquants (retirés de requiredModules) : {mods}",
   "builder.writing_mission": "Écriture de la mission finale {output}...",
   "builder.clearing_triggers": "Suppression des triggers VEAF existants...",
   "builder.injecting_scripts": "Injection des scripts VEAF...",

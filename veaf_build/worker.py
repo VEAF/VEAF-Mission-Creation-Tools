@@ -469,6 +469,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.
             (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
+            # Default third-party aircraft mods stripped from requiredModules at build.
+            (veaf_tools_dir / "mission_builder" / "data" / "third_party_mods.json", "mission_builder/data"),
         ]
         extra.extend((path, dest) for path, dest in bundled_data if path.exists())
         return extra

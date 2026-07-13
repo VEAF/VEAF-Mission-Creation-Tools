@@ -1,63 +1,44 @@
-# VEAF Mission Creation Tools — 6.9.0
+# VEAF Mission Creation Tools — 6.9.1
 
-Version centrée sur les **planchettes radio (kneeboards)**. Deux nouveautés
-d'auteur, valables sur **tous les appareils** : vous pouvez désormais **mettre en
-évidence les canaux importants** (priorité) et **regrouper vos canaux par couleur**
-directement sur la planchette. Et chaque type d'appareil reçoit sa **propre
-planchette** dédiée. L'**AJS-37 Viggen** en est la vitrine : ses radios enfin
-pilotées de bout en bout par votre plan de fréquences. Encore nourrie par les
-retours de **Tripack**.
+Version ciblée : les **mods tiers ne bloquent plus le chargement d'une mission**.
+Si votre mission utilise un avion tiers (payant ou communautaire), un pilote qui
+ne le possède **pas** peut malgré tout **charger et jouer** la mission — le slot
+concerné lui est simplement indisponible, au lieu de bloquer tout le monde à
+l'écran de chargement. C'est le retour dans l'outillage v6 d'un comportement que
+beaucoup connaissaient en v5. Sur un **retour de Reaper**.
 
-## 🖍️ Priorité des canaux — mettez en avant l'essentiel
+## ✈️ Les mods tiers ne bloquent plus la mission
 
-Ajoutez `priority: <n>` à un canal de votre plan : il est **surligné en orange**
-sur la planchette, avec un marqueur `Pn` — un coup de stabilo pour repérer d'un
-coup d'œil vos fréquences clés (Guard, tanker, AWACS…). Valable sur tous les
-appareils.
+Auparavant (en v6), si un seul appareil tiers était présent dans la mission, DCS
+**refusait de la charger** à quiconque ne possédait pas le mod correspondant.
+Désormais, au build, VEAF **lève cette contrainte** pour une liste de mods tiers
+courants — la mission s'ouvre pour tout le monde.
 
-Sur l'**AJS-37**, la priorité a un **effet supplémentaire** : les priorités 1 à 4
-alimentent automatiquement les raccourcis matériels **FR22 Special 1/2/3** et
-**FR24 H** — un même attribut sert donc à la fois à baliser la planchette (partout)
-et à câbler les boutons du Viggen (voir la vitrine plus bas).
+**Liste par défaut** (prise en charge automatiquement, rien à configurer) :
+Hercules (C-130), UH-60L, A-4E-C, T-45, AM2, SU-30 (FlankerEx), Bronco OV-10A.
 
-## 🎨 Couleur des canaux — regroupez visuellement
+**Vous utilisez un autre avion tiers ?** Ajoutez-le dans `mission.yaml` :
 
-`color: green` (ou `#RRGGBBAA`) colorise la case du numéro de canal, pour
-regrouper d'un coup d'œil des familles de canaux (aérodromes, flights, tankers…).
-Le texte s'adapte automatiquement pour rester lisible.
+```yaml
+mission:
+  third_party_mods: [MonAvionTiers]
+```
 
-## 📄 Une planchette par type d'appareil
+Votre liste s'**ajoute** à celle de VEAF (elle ne la remplace pas). Au build, VEAF
+indique quels mods ont été rendus non bloquants.
 
-Chaque modèle qui reçoit des presets a désormais **sa propre planchette**, rangée
-dans le dossier DCS du type (`KNEEBOARD/<type>/IMAGES/`) — fini la page générique
-partagée. Présentation épurée : entêtes de radio en **gris** (plus de codage
-rouge/vert/orange).
-
-📖 Doc : [Pipeline Reference — priorité & couleur des canaux](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/PIPELINE_REFERENCE.md)
-
-## ✈️ Vitrine : l'AJS-37 Viggen
-
-L'avion le plus retors côté radio sert d'exemple à tout ça :
-
-- Les **priorités 1 à 4** remplissent automatiquement les raccourcis **FR22
-  Special 1/2/3 et FR24 H** — vous ne gérez que votre plan de fréquences.
-- Ses 40 canaux FR22 (Groups **100-139**) sont enfin projetés depuis le plan, avec
-  la convention pilote « canal N = Group 10N ».
-- Sa planchette affiche les **vrais libellés cockpit** (100-139 puis
-  Sp1/Sp2/Sp3/E/F/G/H) et tient sur **deux colonnes** pour rester lisible.
+📖 Doc : [Référence mission.yaml — `third_party_mods`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/MISSION_YAML_REFERENCE.md)
 
 ## ⚠️ À vérifier (mission makers)
 
-- Les formats de presets existants restent **entièrement supportés**.
-- **Planchettes déplacées** : plus de pages dans `KNEEBOARD/IMAGES/presets-*.png` ;
-  désormais une page par type dans `KNEEBOARD/<type>/IMAGES/`. À savoir si vous
-  référenciez les anciens chemins.
-- **AJS-37 via le plan `channel_lists`** : la carte de canaux packée change (canal
-  100 = 20ᵉ de primary_2, raccourcis remplis par `priority`). La conversion
-  `convert-v5`, elle, reste fidèle (`presets.v5.yaml`).
-- Aspect planchette : entêtes de radio en gris.
+- Changement **purement additif** : les missions existantes ne perdent rien, aucune
+  reconfiguration nécessaire.
+- La levée de contrainte est **automatique** pour les 7 mods de la liste par défaut.
+  Si (cas très rare) vous vouliez au contraire **imposer** la possession d'un de ces
+  mods, ce n'est plus le comportement par défaut.
+- Les avions eux-mêmes restent dans la mission : seul le **verrou de chargement** est
+  retiré.
 
 ## 🙏 Remerciements
 
-Merci à **Tripack**, dont le travail sur l'AJS-37 et les retours de missions
-réelles sont à l'origine de cette version.
+Merci à **Reaper** d'avoir remonté ce besoin.

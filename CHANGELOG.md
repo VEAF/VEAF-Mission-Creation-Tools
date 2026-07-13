@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.9.1] — 2026-07-13
+
 ### Added
 - **Third-party mods made non-blocking at build** (FEAT-THIRD-PARTY-MODS). The build now strips selected third-party aircraft mods from the `.miz`'s `requiredModules` table, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable) — porting the old v5 per-mission `build.cmd` hack into the toolkit as a data-driven step. A bundled VEAF default list covers the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A); a new optional `mission.third_party_mods` field in `mission.yaml` adds to it (union, per mission). Removed mods are logged during the build.
 

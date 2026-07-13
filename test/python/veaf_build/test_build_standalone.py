@@ -75,3 +75,11 @@ def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> N
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     sources = [src.name for src, _dest in worker._veaf_tools_extra_data(None)]
     assert "airfield-frequencies.yaml" in sources
+
+
+def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
+    """Regression guard: third_party_mods.json must ship so the build's requiredModules
+    stripping works in the packaged executable (FEAT-THIRD-PARTY-MODS)."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = [(src.name, dest) for src, dest in worker._veaf_tools_extra_data(None)]
+    assert ("third_party_mods.json", "mission_builder/data") in bundled

@@ -1,0 +1,12 @@
+{
+  "_comment": "VEAF default list of third-party DCS aircraft mod ids stripped from the .miz's requiredModules table at build, so a pilot who does not own the mod can still load the mission (the slot is simply unavailable). Extendable per mission via mission.third_party_mods in mission.yaml (unioned with this list). Ported from the v5 per-mission build.cmd hack.",
+  "mods": [
+    "Hercules",
+    "UH-60L",
+    "A-4E-C",
+    "T-45",
+    "AM2",
+    "FlankerEx by Codename Flanker",
+    "Bronco-OV-10A"
+  ]
+}

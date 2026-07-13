@@ -38,6 +38,11 @@
 #   era: MODERN                 # MODERN | COLD_WAR | WW2
 #   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
 #   silence_atc_on_all_airbases: true   # mute DCS ATC at every airdrome
+#   third_party_mods: [MyAircraftMod]   # extra DCS third-party aircraft mods to make
+#                               # non-blocking (unioned with the VEAF default list): the
+#                               # mission loads even for pilots who lack the mod — that
+#                               # slot is simply unavailable. Common mods are covered by
+#                               # default; list here only ones not already handled.
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:

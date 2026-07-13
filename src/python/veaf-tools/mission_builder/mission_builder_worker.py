@@ -48,6 +48,7 @@ from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_f
 
 from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
+from mission_builder.third_party_mods import strip_third_party_mods
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -1049,6 +1050,24 @@ class MissionBuilderWorker(BaseWorker):
         for side in ensure_coalitions_populated(self.dcs_mission.mission_content):
             logger.info(t("builder.coalition_placeholder_injected", side=side))
 
+    def strip_third_party_mod_requirements(self, silent: bool = False) -> None:
+        """Make third-party aircraft mods non-blocking in the built mission.
+
+        Strips the VEAF default third-party mods — unioned with the per-mission
+        ``mission.third_party_mods`` list — from the mission's ``requiredModules``,
+        so a pilot who lacks a mod can still load the mission (that slot is just
+        unavailable). See :func:`third_party_mods.strip_third_party_mods`.
+
+        Args:
+            silent: When true, do not log the stripped mods.
+        """
+        if not self.dcs_mission or not self.dcs_mission.mission_content:
+            return
+        extra_mods = (self.mission_yaml.get("mission") or {}).get("third_party_mods") or []
+        removed_mods = strip_third_party_mods(self.dcs_mission.mission_content, extra_mods)
+        if removed_mods and not silent:
+            logger.detail(t("builder.stripped_third_party_mods", mods=", ".join(removed_mods)))
+
     def clear_veaf_triggers(self) -> None:
         """
         Clears all the VEAF triggers from the current mission
@@ -1809,6 +1828,10 @@ class MissionBuilderWorker(BaseWorker):
         # scripts re-injected as custom_scripts are not loaded twice).
         if self.dcs_mission is not None:
             strip_native_load_triggers(self.dcs_mission, self.mission_yaml.get("strip_native_triggers") or [])
+
+        # Make third-party aircraft mods non-blocking: strip them from requiredModules so a
+        # pilot without the mod can still load the mission (the slot is just unavailable).
+        self.strip_third_party_mod_requirements(silent=silent)
 
         # Then, add all the VEAF triggers we need
         if not self.no_veaf_triggers:

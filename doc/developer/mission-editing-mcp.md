@@ -91,9 +91,54 @@ collision sur la même seconde est désambiguïsée (`-2`, `-3`, ...), jamais si
 - Les `groupId`/`unitId` sont toujours frais (`mission_tools.group_insertion.max_ids`), y compris
   sur une mission aux plages d'ids déjà trouées.
 
-## Prochaines vagues (hors périmètre v1)
+### `add_trigger_zone` (vague 2)
 
-- Actions editor-parity zones et triggers/trigrules.
+Écriture. Insère une **zone de déclenchement circulaire** nommée dans `mission.triggers.zones`,
+avec un `zoneId` frais, en place et sauvegardée d'abord. C'est la zone qu'une combat zone VEAF
+référence : combinée à `add_group`, elle permet de poser une combat zone complète (la trigger
+zone que `group_validation` exige + les groupes à l'intérieur). Pas de déduplication.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "name": "combatZone_North",
+  "position": {"x": 1000.0, "y": 2000.0},
+  "radius": 3000,
+  "hidden": false
+}
+```
+
+### `add_startup_script_trigger` (vague 2)
+
+Écriture. Ajoute un trigger **« au démarrage de la mission »** qui exécute un script — pour
+outiller une mission **vanilla ou CTLD** avec du scripting sans passer par l'onglet Triggers de
+l'éditeur DCS. Généralise `inject_dcs_bridge_trigger` et le chargement static/dynamic VEAF
+([ADR 0004](../adr/0004-dynamic-script-loading.md)). Contrairement à ce helper (qui insère en
+position 1 et renumérote tout), cette action **ajoute à la fin** (index libre suivant) — aucun
+trigger existant n'est renuméroté. Trois modes :
+
+- **`inline`** — exécute du Lua fourni (`inline_lua`) via `a_do_script`.
+- **`file_static`** — embarque un fichier `.lua` (`source_path`) dans le `.miz`
+  (`l10n/DEFAULT/<nom>.lua` + entrée `mapResource`) et le charge via `a_do_script_file`.
+- **`file_dynamic`** — charge un `.lua` depuis un chemin disque à l'exécution (`runtime_path`)
+  via `loadfile`, sans rien embarquer.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "mode": "file_static",
+  "comment": "load my script",
+  "source_path": "C:/scripts/myscript.lua"
+}
+```
+
+Sauvegarde horodatée avant écriture ; pas de déduplication.
+
+## Prochaines vagues (hors périmètre)
+
+- Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
+- Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
+  se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
 - Toute action VMCT (ex. écrire une entrée `modules.COMBATZONE` dans `mission.yaml`).
 - Catalogue/curation de types d'unités.
 - Actions composites (ex. un seul appel `create_combat_zone`).

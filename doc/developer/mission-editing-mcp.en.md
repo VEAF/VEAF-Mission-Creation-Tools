@@ -88,9 +88,54 @@ silently overwritten.
 - `groupId`/`unitId`s are always fresh (`mission_tools.group_insertion.max_ids`), even on a
   mission with gaps in its existing id ranges.
 
-## Next waves (out of scope for v1)
+### `add_trigger_zone` (wave 2)
 
-- Zone and trigger/trigrule editor-parity actions.
+Write. Inserts a named **circular** trigger zone into `mission.triggers.zones`, with a fresh
+`zoneId`, in place and backed up first. This is the zone a VEAF combat zone references: combined
+with `add_group`, it lets you lay down a full combat zone (the trigger zone `group_validation`
+requires + the groups inside it). No deduplication.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "name": "combatZone_North",
+  "position": {"x": 1000.0, "y": 2000.0},
+  "radius": 3000,
+  "hidden": false
+}
+```
+
+### `add_startup_script_trigger` (wave 2)
+
+Write. Adds a **"mission start"** trigger that runs a script — for outfitting a **vanilla or
+CTLD** mission with scripting without the DCS editor's Triggers tab. Generalizes
+`inject_dcs_bridge_trigger` and the VEAF static/dynamic loading mechanism
+([ADR 0004](../adr/0004-dynamic-script-loading.md)). Unlike that helper (which inserts at index 1
+and renumbers everything), this **appends** at the next free index — no existing trigger is
+renumbered. Three modes:
+
+- **`inline`** — run supplied Lua (`inline_lua`) via `a_do_script`.
+- **`file_static`** — embed a `.lua` file (`source_path`) into the `.miz`
+  (`l10n/DEFAULT/<name>.lua` + `mapResource` entry) and load it via `a_do_script_file`.
+- **`file_dynamic`** — load a `.lua` from a runtime disk path (`runtime_path`) via `loadfile`,
+  nothing embedded.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "mode": "file_static",
+  "comment": "load my script",
+  "source_path": "C:/scripts/myscript.lua"
+}
+```
+
+Timestamped backup before the write; no deduplication.
+
+## Next waves (out of scope)
+
+- Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
+- A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
+  startup script-loading / Lua-execution triggers.
 - Any VMCT action (e.g. writing a `modules.COMBATZONE` entry into `mission.yaml`).
 - Unit-type catalog/curation.
 - Composite actions (e.g. a single `create_combat_zone` call).

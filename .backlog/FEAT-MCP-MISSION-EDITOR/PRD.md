@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (all 5 tickets done, PR not yet opened)
+Status: 🔄 in-progress (v1 + wave 2 done — 8 tickets, PR not yet opened)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -67,9 +67,18 @@ scope, left to a follow-up wave.
 | FEAT-MCP-MISSION-EDITOR-004 | **Write action `add_group`**: generalize the group-insertion logic already in `ensure_coalitions_populated`/`_find_or_add_country`/`_max_ids` (`mission_builder_worker.py`, `coalition_placeholder.py`) into a reusable public function — units list, route/waypoints (patrol support), coalition + country, fresh `groupId`/`unitId` allocation — exposed as an MCP action going through the 002 backup helper. No deduplication: two calls make two groups. TDD incl. patrol route + id-collision safety. | `mission_builder/coalition_placeholder.py` (or extracted), `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-005 | **End-to-end scenario + doc**: integration test driving `describe_mission` → `add_group` (two ground sections with a patrol route) against a real test `.miz`; a `doc/developer/` page describing the v1 action catalog and the editor-parity/VMCT-action split. | `test/python/`, `doc/developer/` | test+docs | ✅ |
 
+### Wave 2 — zones + script triggers
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-006 | **Write action `add_trigger_zone`**: insert a named **circular** trigger zone (`name`, `position`, `radius`, optional `hidden`/`color`) into `mission.triggers.zones` with a fresh `zoneId`, through the 002 backup helper. Handles the list-or-id-keyed-dict shape. Unblocks the full combat-zone scenario (the trigger zone `group_validation` requires + `add_group` units inside it). No dedup. TDD incl. fresh-zoneId safety. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-007 | **Write action `add_startup_script_trigger`**: add a "mission start" trigger that either runs **inline Lua** (`DO SCRIPT`) or loads a **`.lua` file** (`DO SCRIPT FILE`) — the file either **static** (embedded into the `.miz` as an `l10n/DEFAULT` resource + `mapResource` entry) or **dynamic** (a disk path loaded at runtime). Generalizes the existing `inject_dcs_bridge_trigger` + static/dynamic loading ([ADR 0004](../../docs/adr/0004-dynamic-script-loading.md)) as a reusable MCP action, for outfitting a **vanilla or CTLD** mission with scripting without the DCS editor. Through the 002 backup helper. TDD on trig/trigrules shape + resource embedding. | `veaf_mission_mcp/`, `mission_tools/` or `mission_builder/`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-008 | **Doc update**: extend `doc/developer/mission-editing-mcp.md` (FR/EN) with the wave-2 actions (`add_trigger_zone`, `add_startup_script_trigger`); CHANGELOG entries; version bump. | `doc/developer/`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
+
 ## Out of Scope
 
-- Zone and trigger/trigrule editor-parity actions (next wave).
+- Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
+- A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2's trigger action is scoped to script-loading / Lua-execution startup triggers only, per David's stated need.
 - Any VMCT action (e.g. writing a `modules.COMBATZONE` entry in `mission.yaml`) — stays the
   existing CLI/config path, untouched by this lot.
 - Unit-type catalog or curation: picking concrete DCS unit types stays the calling LLM's

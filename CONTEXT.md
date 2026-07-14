@@ -140,6 +140,21 @@ function. Declared in YAML (`modules.RADIO.user_menus`, or the per-module
 `veafRadio.createUserMenu`. See [ADR 0011](docs/adr/0011-radio-yaml-menus.md).
 _Avoid_: custom menu (ambiguous)
 
+## Combat zones
+
+**Combat zone radio group**:
+An optional label (`radio_group_name`) a mission-maker attaches to a combat zone.
+Every zone sharing the same label is gathered under one intermediate submenu of
+that name inside the Combat Zone F10 menu; a zone with no label sits directly at
+the Combat Zone menu root. The group is not a first-class object — the submenu is
+born from the first zone that names it. Purely a menu-organisation device.
+_Avoid_: radio menu group, zone group
+
+**Combat zone menu prefix**:
+An optional string (`radio_menu_prefix`) prepended to a combat zone's **label** in
+the F10 menu (e.g. `BLUE * Alpha`). Cosmetic only — unlike a _Combat zone radio
+group_, it structures nothing; it just annotates the entry text.
+
 ## Spawning
 
 **Spawn group definition**:

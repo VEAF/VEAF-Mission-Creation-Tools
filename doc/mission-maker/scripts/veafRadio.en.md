@@ -211,22 +211,27 @@ veafRadio.addSecuredCommandToSubmenu(
 veafRadio.refreshRadioMenu()
 ```
 
-### Paginated menus
+### Automatic pagination
 
-When a submenu has more than ~9 entries (DCS limit), use paginated helpers:
+DCS truncates a submenu past **10 entries**. You don't have to do anything: any
+radio menu that exceeds the limit is **paginated automatically at render time**.
+The overflow is spread across "Next page" submenus created on demand — no
+pagination helper call needed. A menu that fits in 10 entries gets no "Next page"
+(no wasted slot).
+
+To **opt a specific menu out** of pagination:
 
 ```lua
-veafRadio.addPaginatedRadioMenu(
-  "All Zones",          -- menu title
-  parentMenu,           -- parent menu node
-  veafRadio.addCommandToSubmenu,
-  myZonesList,          -- table of elements
-  "name",               -- attribute used as the entry title
-  "sortKey"             -- attribute used for sorting (optional)
-)
+veafRadio.doNotPaginate(myMenu)
 ```
 
-Pages of 10 are created automatically with a "Next page" submenu.
+Special case: a menu holding a `USAGE_ForUnit` command (one entry per aircraft in
+the group) disables its own pagination automatically, with a log warning — a
+global split cannot guarantee the per-group limit.
+
+> Page size is fixed at the DCS limit (`veafRadio.MENU_PAGE_SIZE = 10`). The
+> `addPaginatedRadioElements` / `addPaginatedRadioMenu` helpers still exist (they
+> sort and insert elements) but no longer paginate themselves: the render does.
 
 ---
 

@@ -31,6 +31,10 @@ veafRadio.USAGE_ForAll = 0
 veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit = 2
 
+-- DCS truncates an F10 submenu past this many items; menus over it are paginated
+-- automatically at render time (ADR 0013), a "Next page" submenu taking one slot.
+veafRadio.MENU_PAGE_SIZE = 10
+
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1
 
@@ -320,7 +324,70 @@ function veafRadio.RadioMenuBuilder:build()
   self:_buildSubtree(nil, self._root)
 end
 
+--- (internal) True if the node carries a USAGE_ForUnit command.
+--- ForUnit is the only usage that multiplies a single logical command into
+--- several DCS entries (one per callsign), so a global page split cannot bound
+--- a group's item count — such a node opts out of pagination (see _buildSubtree).
+function veafRadio.RadioMenuBuilder:_hasForUnit(node)
+  for _, command in ipairs(node.commands) do
+    if command.usage == veafRadio.USAGE_ForUnit then
+      return true
+    end
+  end
+  return false
+end
+
+--- (internal) Places a single logical command onto the given DCS menu, handling
+--- the ForAll (global) and per-group / per-unit dispatch. Extracted from
+--- _buildSubtree so pagination can target a specific page's DCS menu.
+function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu)
+  veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
+  if not command.usage then
+    command.usage = veafRadio.USAGE_ForAll
+  end
+  if command.usage ~= veafRadio.USAGE_ForAll then
+    local alreadyDoneGroups = {}
+    for groupId, groupData in pairs(veafRadio.humanGroups) do
+      veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
+      for _, callsign in pairs(groupData.callsigns) do
+        veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
+        local unitData = groupData.units[callsign]
+        local unitName = unitData.name
+        veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
+        local humanUnit = veafRadio.humanUnits[unitName]
+        veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
+        if humanUnit and humanUnit.spawned then
+          veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+          local parameters = command.parameters
+          if parameters == nil then
+            parameters = unitName
+          else
+            parameters = { command.parameters }
+            table.insert(parameters, unitName)
+          end
+          local _title = command.title
+          if command.usage == veafRadio.USAGE_ForUnit then
+            _title = callsign .. " - " .. command.title
+          end
+          if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+            self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters)
+          end
+          alreadyDoneGroups[groupId] = true
+        end
+      end
+    end
+  else
+    self:_addDcsCommand(nil, command.title, dcsMenu, command, command.parameters)
+  end
+end
+
 --- (internal) Recursively builds DCS submenus and commands for a node.
+--- Menus with more than veafRadio.MENU_PAGE_SIZE children are paginated at
+--- render time: the overflow is distributed across "Next page" submenus created
+--- on the fly in the DCS projection only — the logical tree is untouched, so the
+--- references modules hold stay valid (ADR 0013). Opt out with
+--- veafRadio.doNotPaginate(menu); a node with a ForUnit command opts out
+--- automatically (see _hasForUnit).
 function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   veaf.loggers.get(veafRadio.Id):debug("RadioMenuBuilder:_buildSubtree %s", veaf.lp(veaf.ifnn(node, "title")))
 
@@ -334,63 +401,49 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     node.dcsRadioMenu = missionCommands.addSubMenu(node.title)
   end
 
-  table.sort(node.commands, function(a, b)
+  local function compareByTitle(a, b)
     if a.title and b.title then
       return a.title < b.title
     else
       return false
     end
-  end)
-  for _, command in ipairs(node.commands) do
-    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
-    if not command.usage then
-      command.usage = veafRadio.USAGE_ForAll
-    end
-    if command.usage ~= veafRadio.USAGE_ForAll then
-      local alreadyDoneGroups = {}
-      for groupId, groupData in pairs(veafRadio.humanGroups) do
-        veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
-        for _, callsign in pairs(groupData.callsigns) do
-          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
-          local unitData = groupData.units[callsign]
-          local unitName = unitData.name
-          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-          local humanUnit = veafRadio.humanUnits[unitName]
-          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-          if humanUnit and humanUnit.spawned then
-            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
-            local parameters = command.parameters
-            if parameters == nil then
-              parameters = unitName
-            else
-              parameters = { command.parameters }
-              table.insert(parameters, unitName)
-            end
-            local _title = command.title
-            if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. command.title
-            end
-            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-              self:_addDcsCommand(groupId, _title, node.dcsRadioMenu, command, parameters)
-            end
-            alreadyDoneGroups[groupId] = true
-          end
-        end
-      end
-    else
-      self:_addDcsCommand(nil, command.title, node.dcsRadioMenu, command, command.parameters)
+  end
+  table.sort(node.commands, compareByTitle)
+  table.sort(node.subMenus, compareByTitle)
+
+  -- Pagination decision (ADR 0013): each command / submenu counts as one item.
+  local total = #node.commands + #node.subMenus
+  local paginate = total > veafRadio.MENU_PAGE_SIZE and not node.noPagination
+  if paginate and self:_hasForUnit(node) then
+    veaf.loggers.get(veafRadio.Id):warn(
+      "radio menu '%s' has ForUnit commands and more than %d items; pagination disabled (would overflow per group)",
+      node.title,
+      veafRadio.MENU_PAGE_SIZE
+    )
+    paginate = false
+  end
+
+  -- Place children on the current page, spilling into "Next page" submenus.
+  -- A full page holds (MENU_PAGE_SIZE - 1) items plus the "Next page" entry.
+  local currentDcsMenu = node.dcsRadioMenu
+  local placedOnPage = 0
+  local function advancePageIfFull()
+    if paginate and placedOnPage >= veafRadio.MENU_PAGE_SIZE - 1 then
+      currentDcsMenu = missionCommands.addSubMenu(veaf.t("radio.next_page"), currentDcsMenu)
+      placedOnPage = 0
     end
   end
 
-  table.sort(node.subMenus, function(a, b)
-    if a.title and b.title then
-      return a.title < b.title
-    else
-      return false
-    end
-  end)
+  for _, command in ipairs(node.commands) do
+    advancePageIfFull()
+    self:_placeCommandOnMenu(command, currentDcsMenu)
+    placedOnPage = placedOnPage + 1
+  end
+
   for _, subMenu in ipairs(node.subMenus) do
-    self:_buildSubtree(node, subMenu)
+    advancePageIfFull()
+    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu }, subMenu)
+    placedOnPage = placedOnPage + 1
   end
 end
 
@@ -499,6 +552,17 @@ function veafRadio.addSubMenu(title, radioMenu)
   return veafRadio._builder:addMenu(title, radioMenu)
 end
 
+--- Opt a menu out of automatic render-time pagination (ADR 0013).
+--- The menu then renders all its children directly, even past MENU_PAGE_SIZE.
+function veafRadio.doNotPaginate(radioMenu)
+  if not radioMenu then
+    veaf.loggers.get(veafRadio.Id):error("veafRadio.doNotPaginate() radioMenu parameter is nil !")
+    return
+  end
+  radioMenu.noPagination = true
+  return radioMenu
+end
+
 function veafRadio.clearSubmenu(subMenu)
   if not subMenu then
     veaf.loggers.get(veafRadio.Id):error("veafRadio.clearSubmenu() subMenu parameter is nil !")
@@ -533,40 +597,10 @@ function veafRadio.delSubmenu(subMenu, radioMenu)
   end)
 end
 
--- build a paginated submenu (internal paginating method)
-local function _buildRadioMenuPage(menu, titles, elementsByTitle, addCommandToSubmenuMethod, pageSize, startIndex)
-  veaf.loggers
-    .get(veafRadio.Id)
-    :trace(string.format("_buildRadioMenuPage(pageSize=%s, startIndex=%s)", tostring(pageSize), tostring(startIndex)))
-
-  local titlesCount = #titles
-  veaf.loggers.get(veafRadio.Id):trace(string.format("titlesCount = %d", titlesCount))
-
-  local pageSize = pageSize
-  if not pageSize then
-    pageSize = 10
-  end
-
-  local endIndex = titlesCount
-  if endIndex - startIndex >= pageSize then
-    endIndex = startIndex + pageSize - 2
-  end
-  veaf.loggers.get(veafRadio.Id):trace(string.format("endIndex = %d", endIndex))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("adding commands from %d to %d", startIndex, endIndex))
-  for index = startIndex, endIndex do
-    local title = titles[index]
-    veaf.loggers.get(veafRadio.Id):trace(string.format("titles[%d] = %s", index, title))
-    local element = elementsByTitle[title]
-    addCommandToSubmenuMethod(menu, title, element)
-  end
-  if endIndex < titlesCount then
-    veaf.loggers.get(veafRadio.Id):trace("adding next page menu")
-    local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
-    _buildRadioMenuPage(nextPageMenu, titles, elementsByTitle, addCommandToSubmenuMethod, 10, endIndex + 1)
-  end
-end
-
--- build a paginated submenu (main method)
+-- Sort the elements by their sort attribute and add each one to the menu via the
+-- caller's build method. Pagination is NOT done here: the render step
+-- (RadioMenuBuilder:_buildSubtree) paginates every menu automatically (ADR 0013).
+-- The name is kept for API stability (callers: veafAssets, veafCombatMission).
 function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
   veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s", veaf.p(elements)))
 
@@ -574,8 +608,6 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
     veaf.loggers.get(veafRadio.Id):error("veafRadio.addPaginatedRadioMenu : addCommandToSubmenuMethod is mandatory !")
     return
   end
-
-  local pageSize = 10 - #radioMenu.commands
 
   local sortedElements = {}
   local sortAttribute = sortAttribute or "sort"
@@ -617,8 +649,9 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
   end
   veaf.loggers.get(veafRadio.Id):trace("sortedTitles=%s", veaf.lp(sortedTitles))
 
-  _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
-  --veafRadio.refreshRadioMenu()
+  for _, title in ipairs(sortedTitles) do
+    addCommandToSubmenuMethod(radioMenu, title, elementsByTitle[title])
+  end
 end
 
 -- build a paginated submenu (main method)

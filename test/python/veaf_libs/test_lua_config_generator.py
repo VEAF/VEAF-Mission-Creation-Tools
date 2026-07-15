@@ -570,6 +570,32 @@ def test_combatzone_active_at_start_emits_activatezone_after_initialize():
     assert lua.index("veafCombatZone.initialize()") < lua.index('veafCombatZone.ActivateZone("OUTPOST_1", true)')
 
 
+def test_combatzone_radio_group_and_prefix_emitted():
+    """``radio_group_name`` / ``radio_menu_prefix`` map to the runtime setters."""
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {
+            "COMBATZONE": {
+                "combat_zones": [
+                    {
+                        "zone_name": "CZ-Alpha",
+                        "friendly_name": "Alpha",
+                        "radio_group_name": "North",
+                        "radio_menu_prefix": "BLUE",
+                    },
+                    {"zone_name": "CZ-Bravo"},
+                ]
+            }
+        },
+    }
+    lua = generate_config_lua(yaml_data)
+    # The flagged zone gets both setters; the bare zone gets neither.
+    assert ':setRadioGroupName("North")' in lua
+    assert ':setRadioMenuPrefix("BLUE")' in lua
+    assert lua.count(":setRadioGroupName(") == 1
+    assert lua.count(":setRadioMenuPrefix(") == 1
+
+
 # ---------------------------------------------------------------------------
 # YAML-declared radio menus (FEAT-RADIO-YAML-MENUS, ADR 0011)
 # ---------------------------------------------------------------------------

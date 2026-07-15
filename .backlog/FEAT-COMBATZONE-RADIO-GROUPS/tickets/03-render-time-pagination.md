@@ -1,6 +1,6 @@
 # 03 — Render-time radio menu pagination (opt-out) — ADR 0013
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

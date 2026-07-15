@@ -1,6 +1,6 @@
 # Lot FEAT-COMBATZONE-RADIO-GROUPS — combat-zone radio grouping + global menu pagination
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Branch: claude/combat-zone-radio-config-e13993 → PR → develop-v6
 ADR: [0013](../../docs/adr/0013-radio-menu-pagination.md)
 
@@ -64,6 +64,10 @@ the exact-count argument, and the `ForUnit` guard are in ADR 0013.
   internal pagination (`_buildRadioMenuPage`) is removed to avoid double pagination.
 - ADR required (render-time pagination changes the behaviour of every radio menu)
   → ADR 0013.
+- **No ad-hoc schema validation** for the two keys (ticket 01): combat-zone
+  attributes have no type/unknown-key validation today; a bespoke check for these
+  two only would be an inconsistent new pattern for optional strings emitted
+  verbatim. Left out of scope.
 
 ## Scope
 

@@ -623,6 +623,10 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     lines.append(f'{indent}    :setMissionEditorZoneName("{zone_name}")')
     if fn := zone_def.get("friendly_name"):
         lines.append(f'{indent}    :setFriendlyName("{fn}")')
+    if rgn := zone_def.get("radio_group_name"):
+        lines.append(f'{indent}    :setRadioGroupName("{rgn}")')
+    if rmp := zone_def.get("radio_menu_prefix"):
+        lines.append(f'{indent}    :setRadioMenuPrefix("{rmp}")')
     if br := zone_def.get("briefing"):
         br_lua = _lua_long_string(br.strip())
         lines.append(f"{indent}    :setBriefing({br_lua})")

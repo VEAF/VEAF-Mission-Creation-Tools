@@ -46,6 +46,8 @@ modules:
       - type: zone                          # zone | operation
         zone_name: "CZ-Alpha"              # DCS trigger zone name
         friendly_name: "Alpha Zone"        # label in radio menu
+        radio_group_name: "North"          # gather same-named zones under one shared submenu
+        radio_menu_prefix: "BLUE"          # prefix shown before the zone label
         briefing: "Destroy the armoured column."  # shown in mission info
         training: false                     # true = no security, verbose status
         active_at_start: true               # automatically activate the zone at mission start
@@ -79,6 +81,8 @@ modules:
 | `type` | string | `zone` | No | `zone` or `operation` |
 | `zone_name` | string | — | Yes | DCS trigger zone name |
 | `friendly_name` | string | — | No | Label shown in the F10 menu |
+| `radio_group_name` | string | — | No | Gather this zone (and every zone sharing the same name) under one shared radio submenu |
+| `radio_menu_prefix` | string | — | No | Prefix shown before the zone label in the menu |
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
@@ -227,7 +231,7 @@ strikeZone:addZoneElement(element)
 | `:setTraining(bool)` | Training mode |
 | `:setCompletable(bool)` | Whether the zone can be marked as completed |
 | `:enableUserActivation()` / `:disableUserActivation()` | Allow/forbid player activation |
-| `:setRadioGroupName(name)` | Restrict the zone radio menu to a group of players |
+| `:setRadioGroupName(name)` | Gather this zone (and every zone sharing the same name) under one shared radio submenu |
 | `:setRadioMenuPrefix(text)` | Prefix displayed before the zone name in the menu |
 
 ### VeafCombatZoneElement Builder Methods
@@ -265,7 +269,7 @@ strikeZone:addZoneElement(element)
 |--------|-------------|
 | `:disableRadioMenu()` | Disable the radio menu entirely for this zone |
 | `:setRadioMenuPrefix(text)` | Prefix displayed before the zone name in the menu |
-| `:setRadioGroupName(name)` | Restrict the zone radio menu to a group of players |
+| `:setRadioGroupName(name)` | Gather this zone (and every zone sharing the same name) under one shared radio submenu |
 | `:setEnableSmokeAndFlare(bool)` | Enable/disable smoke and flare requests (default: `true`) |
 | `:setShowUnitsList(bool)` | Include remaining unit list in the info message (default: `true`) |
 | `:setShowZonePositionInfo(bool)` | Include zone coordinates and weather in the info message (default: `true`) |

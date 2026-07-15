@@ -9,6 +9,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Combat-zone radio grouping from config** (FEAT-COMBATZONE-RADIO-GROUPS). A combat zone may now carry two optional keys in `mission.yaml`: `radio_group_name` gathers every zone sharing the same value under one intermediate F10 submenu, and `radio_menu_prefix` prepends a prefix to the zone's menu label. Both map 1:1 onto the runtime setters (`setRadioGroupName` / `setRadioMenuPrefix`) and are round-tripped by `convert-v5`, so a v5 mission that grouped or prefixed its zones converts iso-functionally.
+- **Automatic radio menu pagination** (FEAT-COMBATZONE-RADIO-GROUPS, [ADR 0013](docs/adr/0013-radio-menu-pagination.md)). Any F10 radio menu that exceeds the DCS 10-item limit is now paginated automatically at render time, spilling the overflow into "Next page" submenus — no per-module code, and no "Next page" when a menu fits. Opt a menu out with `veafRadio.doNotPaginate(menu)`; a menu holding a `USAGE_ForUnit` command opts out automatically (with a warning). The Combat Zone menu (and its radio groups) benefits for free.
+
+### Changed
+- The opt-in pagination helpers `veafRadio.addPaginatedRadioElements` / `addPaginatedRadioMenu` no longer paginate themselves (they sort and insert their elements); pagination is now done once, at render time, for every menu.
+
 ## [6.9.1] — 2026-07-13
 
 ### Added

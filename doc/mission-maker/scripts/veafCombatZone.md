@@ -45,6 +45,8 @@ modules:
       - type: zone                          # zone | operation
         zone_name: "CZ-Alpha"              # nom de la zone de trigger DCS
         friendly_name: "Zone Alpha"        # libellé dans le menu radio
+        radio_group_name: "Nord"           # regroupe les zones de même nom sous un sous-menu commun
+        radio_menu_prefix: "BLEU"          # préfixe affiché devant le libellé de la zone
         briefing: "Détruire la colonne blindée."  # affiché dans les infos mission
         training: false                     # true = pas de sécurité, statut verbeux
         active_at_start: true               # active automatiquement la zone au démarrage de la mission
@@ -78,6 +80,8 @@ modules:
 | `type` | string | `zone` | Non | `zone` ou `operation` |
 | `zone_name` | string | — | Oui | Nom de la zone de trigger DCS |
 | `friendly_name` | string | — | Non | Libellé affiché dans le menu F10 |
+| `radio_group_name` | string | — | Non | Regroupe cette zone (et toutes celles portant le même nom) sous un sous-menu radio commun |
+| `radio_menu_prefix` | string | — | Non | Préfixe affiché devant le libellé de la zone dans le menu |
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
@@ -226,7 +230,7 @@ strikeZone:addZoneElement(element)
 | `:setTraining(bool)` | Mode entraînement |
 | `:setCompletable(bool)` | La zone peut être marquée comme terminée |
 | `:enableUserActivation()` / `:disableUserActivation()` | Autoriser/interdire l'activation par les joueurs |
-| `:setRadioGroupName(name)` | Restreindre le menu radio de la zone à un groupe de joueurs |
+| `:setRadioGroupName(name)` | Regrouper cette zone (et toutes celles portant le même nom) sous un sous-menu radio commun |
 | `:setRadioMenuPrefix(text)` | Préfixe affiché devant le nom de la zone dans le menu |
 
 ### Méthodes du builder VeafCombatZoneElement
@@ -264,7 +268,7 @@ strikeZone:addZoneElement(element)
 |---------|-------------|
 | `:disableRadioMenu()` | Désactiver complètement le menu radio pour cette zone |
 | `:setRadioMenuPrefix(text)` | Préfixe affiché devant le nom de la zone dans le menu |
-| `:setRadioGroupName(name)` | Restreindre le menu radio de la zone à un groupe de joueurs |
+| `:setRadioGroupName(name)` | Regrouper cette zone (et toutes celles portant le même nom) sous un sous-menu radio commun |
 | `:setEnableSmokeAndFlare(bool)` | Activer/désactiver les demandes de fumée et fusée (défaut : `true`) |
 | `:setShowUnitsList(bool)` | Inclure la liste des unités restantes dans le message info (défaut : `true`) |
 | `:setShowZonePositionInfo(bool)` | Inclure les coordonnées et la météo dans le message info (défaut : `true`) |

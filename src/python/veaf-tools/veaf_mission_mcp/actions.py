@@ -8,7 +8,14 @@ from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigg
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.describe_mission import describe_mission
+from veaf_mission_mcp.edit_veaf_config import (
+    set_log_level,
+    set_module_enabled,
+    set_security_disabled,
+    set_veaf_config,
+)
 from veaf_mission_mcp.models import ActionSpec
+from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -166,6 +173,104 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_add_startup_script_trigger,
+    )
+    catalog.register(
+        ActionSpec(
+            name="replace_in_mission_files",
+            description=(
+                "Generic text/regex search-replace across a mission's embedded Lua files "
+                "(restricted to l10n/DEFAULT/**/*.lua — never the raw mission/options tables or "
+                "binaries). Edits the built .miz in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "search": {"type": "string", "description": "Text (or regex if `regex`) to find."},
+                    "replace": {"type": "string", "description": "Replacement (regex backrefs allowed if `regex`)."},
+                    "files": {
+                        "type": "string",
+                        "default": "*.lua",
+                        "description": "Glob against each .lua's path relative to l10n/DEFAULT/ (e.g. 'veaf-*.lua').",
+                    },
+                    "regex": {"type": "boolean", "default": False},
+                },
+                "required": ["miz_path", "search", "replace"],
+            },
+        ),
+        handler=_handle_replace_in_mission_files,
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_log_level",
+            description="Set the global VEAF log level (veaf.ForcedLogLevel) in a built mission, without a rebuild.",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "level": {"type": "string", "enum": ["error", "warning", "info", "debug", "trace"]},
+                },
+                "required": ["miz_path", "level"],
+            },
+        ),
+        handler=lambda p: set_log_level(Path(p["miz_path"]), p["level"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_module_enabled",
+            description="Enable/disable a VEAF module (veaf.setConfig(<MOD>, 'enable', <bool>)) in a built mission.",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "module_id": {"type": "string", "description": "Module id, e.g. 'QRA', 'COMBATZONE'."},
+                    "enabled": {"type": "boolean"},
+                },
+                "required": ["miz_path", "module_id", "enabled"],
+            },
+        ),
+        handler=lambda p: set_module_enabled(Path(p["miz_path"]), p["module_id"], p["enabled"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_security_disabled",
+            description="Set the VEAF security flag (veaf.SecurityDisabled) in a built mission.",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "disabled": {"type": "boolean", "description": "true = no password required."},
+                },
+                "required": ["miz_path", "disabled"],
+            },
+        ),
+        handler=lambda p: set_security_disabled(Path(p["miz_path"]), p["disabled"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_veaf_config",
+            description="Set an arbitrary veaf.config.<key> scalar value in a built mission.",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "key": {"type": "string", "description": "The config key (bare Lua identifier)."},
+                    "value": {"description": "A scalar (bool/int/float/string)."},
+                },
+                "required": ["miz_path", "key", "value"],
+            },
+        ),
+        handler=lambda p: set_veaf_config(Path(p["miz_path"]), p["key"], p["value"]),
+    )
+
+
+def _handle_replace_in_mission_files(params: dict[str, Any]) -> dict[str, Any]:
+    return replace_in_mission_files(
+        Path(params["miz_path"]),
+        search=params["search"],
+        replace=params["replace"],
+        files=params.get("files", "*.lua"),
+        regex=params.get("regex", False),
     )
 
 

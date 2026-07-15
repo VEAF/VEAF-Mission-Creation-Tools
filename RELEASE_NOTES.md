@@ -1,44 +1,53 @@
-# VEAF Mission Creation Tools — 6.9.1
+# VEAF Mission Creation Tools — 6.9.2
 
-Version ciblée : les **mods tiers ne bloquent plus le chargement d'une mission**.
-Si votre mission utilise un avion tiers (payant ou communautaire), un pilote qui
-ne le possède **pas** peut malgré tout **charger et jouer** la mission — le slot
-concerné lui est simplement indisponible, au lieu de bloquer tout le monde à
-l'écran de chargement. C'est le retour dans l'outillage v6 d'un comportement que
-beaucoup connaissaient en v5. Sur un **retour de Reaper**.
+Version ciblée : le **confort des menus radio F10**. Deux irritants disparaissent —
+les menus trop longs ne sont plus tronqués par DCS, et les combat zones peuvent
+enfin être **rangées** proprement dans le menu radio. Sur un **retour de Reaper**.
 
-## ✈️ Les mods tiers ne bloquent plus la mission
+## 📻 Fini les menus radio tronqués (pagination automatique)
 
-Auparavant (en v6), si un seul appareil tiers était présent dans la mission, DCS
-**refusait de la charger** à quiconque ne possédait pas le mod correspondant.
-Désormais, au build, VEAF **lève cette contrainte** pour une liste de mods tiers
-courants — la mission s'ouvre pour tout le monde.
+DCS n'affiche que **10 entrées** par menu radio : au-delà, le reste était
+silencieusement **coupé**. Désormais, tout menu VEAF qui dépasse cette limite se
+**pagine tout seul** — les entrées en trop passent dans un sous-menu **« Page
+suivante »**, autant de fois que nécessaire.
 
-**Liste par défaut** (prise en charge automatiquement, rien à configurer) :
-Hercules (C-130), UH-60L, A-4E-C, T-45, AM2, SU-30 (FlankerEx), Bronco OV-10A.
+- **Rien à configurer** : ça s'applique à tous les menus radio VEAF.
+- **Pas de gaspillage** : un menu qui tient en 10 entrées n'affiche **pas** de
+  « Page suivante ».
+- Le menu **Combat Zones** en profite directement : une mission à 20 zones n'en
+  masque plus la moitié.
 
-**Vous utilisez un autre avion tiers ?** Ajoutez-le dans `mission.yaml` :
+## 🗂️ Ranger les combat zones dans le menu radio
+
+Deux nouvelles clés optionnelles par zone dans `mission.yaml` :
 
 ```yaml
-mission:
-  third_party_mods: [MonAvionTiers]
+modules:
+  COMBATZONE:
+    combat_zones:
+      - zone_name: "CZ-Alpha"
+        friendly_name: "Alpha"
+        radio_group_name: "Nord"     # regroupe les zones de même nom sous un sous-menu commun
+        radio_menu_prefix: "BLEU"     # préfixe affiché devant le libellé de la zone
 ```
 
-Votre liste s'**ajoute** à celle de VEAF (elle ne la remplace pas). Au build, VEAF
-indique quels mods ont été rendus non bloquants.
+- `radio_group_name` : toutes les zones portant le **même nom** sont réunies sous un
+  **sous-menu** de ce nom. Absent → la zone reste à la racine du menu Combat Zones.
+- `radio_menu_prefix` : ajoute un **préfixe** au libellé de la zone (ex. `BLEU * Alpha`).
 
-📖 Doc : [Référence mission.yaml — `third_party_mods`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/doc/MISSION_YAML_REFERENCE.md)
+Ces réglages sont **repris automatiquement par `convert-v5`** : une mission v5 qui
+groupait déjà ses zones les retrouve à l'identique en v6.
 
-## ⚠️ À vérifier (mission makers)
+## ⚠️ À vérifier
 
-- Changement **purement additif** : les missions existantes ne perdent rien, aucune
-  reconfiguration nécessaire.
-- La levée de contrainte est **automatique** pour les 7 mods de la liste par défaut.
-  Si (cas très rare) vous vouliez au contraire **imposer** la possession d'un de ces
-  mods, ce n'est plus le comportement par défaut.
-- Les avions eux-mêmes restent dans la mission : seul le **verrou de chargement** est
-  retiré.
+- **Mission makers** : changement transparent, aucune reconfiguration nécessaire.
+  Vos menus existants s'affichent comme avant (et ne se tronquent plus).
+- **Développeurs de scripts** : si vous utilisiez `veafRadio.addPaginatedRadioElements`
+  / `addPaginatedRadioMenu`, sachez qu'ils ne paginent **plus eux-mêmes** (le rendu
+  s'en charge désormais pour tous les menus) — le résultat final est identique, les
+  appels existants restent valides. Besoin de désactiver la pagination sur un menu
+  précis : `veafRadio.doNotPaginate(monMenu)`.
 
 ## 🙏 Remerciements
 
-Merci à **Reaper** d'avoir remonté ce besoin.
+Merci à **Reaper** d'avoir remonté ces besoins.

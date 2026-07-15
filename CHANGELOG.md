@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.9.2] — 2026-07-15
 
 ### Added
 - **Combat-zone radio grouping from config** (FEAT-COMBATZONE-RADIO-GROUPS). A combat zone may now carry two optional keys in `mission.yaml`: `radio_group_name` gathers every zone sharing the same value under one intermediate F10 submenu, and `radio_menu_prefix` prepends a prefix to the zone's menu label. Both map 1:1 onto the runtime setters (`setRadioGroupName` / `setRadioMenuPrefix`) and are round-tripped by `convert-v5`, so a v5 mission that grouped or prefixed its zones converts iso-functionally.

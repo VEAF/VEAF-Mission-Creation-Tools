@@ -538,16 +538,21 @@ function TestVeafRadioPaginated:test_uses_title_attribute()
   luaunit.assertEquals(called[2], "Beta")
 end
 
-function TestVeafRadioPaginated:test_pagination_creates_next_page_submenu()
-  -- pageSize = 10 - 0 = 10; with 11 items: endIndex = 9, a "Next page" submenu is created
+function TestVeafRadioPaginated:test_helper_no_longer_paginates()
+  -- ADR 0013: the helper only sorts + inserts; pagination is done at render time.
+  -- With 11 elements, all 11 are handed to the build method and NO "Next page"
+  -- submenu is created by the helper itself.
   local menu = { subMenus = {}, commands = {} }
   local elements = {}
   for i = 1, 11 do
     elements["e" .. i] = { sort = i }
   end
-  veafRadio.addPaginatedRadioElements(menu, function() end, elements)
-  luaunit.assertEquals(#menu.subMenus, 1)
-  luaunit.assertEquals(menu.subMenus[1].title, "Next page")
+  local count = 0
+  veafRadio.addPaginatedRadioElements(menu, function()
+    count = count + 1
+  end, elements)
+  luaunit.assertEquals(count, 11)
+  luaunit.assertEquals(#menu.subMenus, 0)
 end
 
 function TestVeafRadioPaginated:test_addPaginatedRadioMenu_returns_submenu()
@@ -555,6 +560,122 @@ function TestVeafRadioPaginated:test_addPaginatedRadioMenu_returns_submenu()
   local result = veafRadio.addPaginatedRadioMenu("Paged", parent, function() end, { a = { sort = 1 } })
   luaunit.assertNotNil(result)
   luaunit.assertEquals(result.title, "Paged")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioRenderPagination — automatic render-time pagination (ADR 0013)
+-- ---------------------------------------------------------------------------
+TestVeafRadioRenderPagination = {}
+
+function TestVeafRadioRenderPagination:setUp()
+  self._origAddSubMenu = missionCommands.addSubMenu
+  self._origAddCommand = missionCommands.addCommand
+  self._origHumanGroups = veafRadio.humanGroups
+  veafRadio.humanGroups = {}
+  self.subMenuCalls = {}
+  self.commandCalls = {}
+  local this = self
+  missionCommands.addSubMenu = function(title, parent)
+    local m = { title = title, parent = parent }
+    table.insert(this.subMenuCalls, m)
+    return m
+  end
+  missionCommands.addCommand = function(title, parent)
+    local c = { title = title, parent = parent }
+    table.insert(this.commandCalls, c)
+    return c
+  end
+end
+
+function TestVeafRadioRenderPagination:tearDown()
+  missionCommands.addSubMenu = self._origAddSubMenu
+  missionCommands.addCommand = self._origAddCommand
+  veafRadio.humanGroups = self._origHumanGroups
+end
+
+-- Build a single root node holding `commandCount` ForAll commands, optionally
+-- opted out of pagination or seeded with a ForUnit command, then render it.
+function TestVeafRadioRenderPagination:_buildRoot(commandCount, opts)
+  opts = opts or {}
+  local node = { title = "Root", subMenus = {}, commands = {}, dcsRadioMenu = nil }
+  for i = 1, commandCount do
+    table.insert(node.commands, {
+      title = string.format("cmd%02d", i),
+      method = function() end,
+      usage = veafRadio.USAGE_ForAll,
+    })
+  end
+  if opts.forUnit then
+    table.insert(node.commands, { title = "unitCmd", method = function() end, usage = veafRadio.USAGE_ForUnit })
+  end
+  if opts.noPagination then
+    node.noPagination = true
+  end
+  veafRadio.RadioMenuBuilder:new(node):build()
+  return node
+end
+
+function TestVeafRadioRenderPagination:_countNextPages()
+  local n = 0
+  local label = veaf.t("radio.next_page")
+  for _, m in ipairs(self.subMenuCalls) do
+    if m.title == label then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+-- Largest number of DCS children (commands + submenus) under any single parent
+-- menu. The DCS limit is MENU_PAGE_SIZE; the root node's own menu (parent nil)
+-- is not a child and is excluded.
+function TestVeafRadioRenderPagination:_maxChildrenPerParent()
+  local counts = {}
+  for _, m in ipairs(self.subMenuCalls) do
+    if m.parent ~= nil then
+      counts[m.parent] = (counts[m.parent] or 0) + 1
+    end
+  end
+  for _, c in ipairs(self.commandCalls) do
+    counts[c.parent] = (counts[c.parent] or 0) + 1
+  end
+  local max = 0
+  for _, v in pairs(counts) do
+    if v > max then
+      max = v
+    end
+  end
+  return max
+end
+
+function TestVeafRadioRenderPagination:test_exactly_page_size_not_paginated()
+  self:_buildRoot(veafRadio.MENU_PAGE_SIZE)
+  luaunit.assertEquals(self:_countNextPages(), 0)
+  luaunit.assertEquals(self:_maxChildrenPerParent(), veafRadio.MENU_PAGE_SIZE)
+end
+
+function TestVeafRadioRenderPagination:test_over_page_size_paginates()
+  self:_buildRoot(veafRadio.MENU_PAGE_SIZE + 1)
+  luaunit.assertEquals(self:_countNextPages(), 1)
+  luaunit.assertTrue(self:_maxChildrenPerParent() <= veafRadio.MENU_PAGE_SIZE)
+end
+
+function TestVeafRadioRenderPagination:test_deep_overflow_recurses()
+  -- 20 items → page1(9)+next, page2(9)+next, page3(2) → two "Next page" menus.
+  self:_buildRoot(20)
+  luaunit.assertEquals(self:_countNextPages(), 2)
+  luaunit.assertTrue(self:_maxChildrenPerParent() <= veafRadio.MENU_PAGE_SIZE)
+end
+
+function TestVeafRadioRenderPagination:test_doNotPaginate_opt_out()
+  self:_buildRoot(15, { noPagination = true })
+  luaunit.assertEquals(self:_countNextPages(), 0)
+end
+
+function TestVeafRadioRenderPagination:test_forUnit_disables_pagination()
+  -- 10 ForAll + 1 ForUnit = 11 items, but the ForUnit guard suppresses paging.
+  self:_buildRoot(10, { forUnit = true })
+  luaunit.assertEquals(self:_countNextPages(), 0)
 end
 
 -- ---------------------------------------------------------------------------

@@ -754,6 +754,59 @@ class TestExtractCombatZones(unittest.TestCase):
         self.m._extract_combat_zones(content, result)
         self.assertEqual(result.combat_zones_extracted[0].get("friendly_name"), "Friendly Name")
 
+    def test_radio_group_and_prefix_extracted(self) -> None:
+        content = (
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatZone:new()\n"
+            '        :setMissionEditorZoneName("z")\n'
+            '        :setRadioGroupName("North")\n'
+            '        :setRadioMenuPrefix("BLUE")\n'
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        zone = result.combat_zones_extracted[0]
+        self.assertEqual(zone.get("radio_group_name"), "North")
+        self.assertEqual(zone.get("radio_menu_prefix"), "BLUE")
+
+    def test_radio_group_absent_not_extracted(self) -> None:
+        content = (
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatZone:new()\n"
+            '        :setMissionEditorZoneName("z")\n'
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        zone = result.combat_zones_extracted[0]
+        self.assertNotIn("radio_group_name", zone)
+        self.assertNotIn("radio_menu_prefix", zone)
+
+    def test_radio_group_roundtrip_to_lua(self) -> None:
+        """v5 grouping/prefix survives the full extract → generate cycle unchanged."""
+        from veaf_libs.lua_config_generator import generate_config_lua
+
+        content = (
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatZone:new()\n"
+            '        :setMissionEditorZoneName("z")\n'
+            '        :setRadioGroupName("North")\n'
+            '        :setRadioMenuPrefix("BLUE")\n'
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        yaml_data = {
+            "mission": {"name": "T"},
+            "lua_modules": {"COMBATZONE": {"combat_zones": result.combat_zones_extracted}},
+        }
+        lua = generate_config_lua(yaml_data)
+        self.assertIn(':setRadioGroupName("North")', lua)
+        self.assertIn(':setRadioMenuPrefix("BLUE")', lua)
+
     def test_block_commented_out(self) -> None:
         content = 'veafCombatZone.AddZone(\n    VeafCombatZone:new():setMissionEditorZoneName("z"):initialize()\n)\n'
         result = MigrationResult(new_content="")

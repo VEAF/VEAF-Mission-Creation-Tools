@@ -211,22 +211,28 @@ veafRadio.addSecuredCommandToSubmenu(
 veafRadio.refreshRadioMenu()
 ```
 
-### Menus paginés
+### Pagination automatique
 
-Quand un sous-menu compte plus d'environ 9 entrées (limite DCS), utilisez les helpers paginés :
+DCS tronque un sous-menu au-delà de **10 entrées**. Vous n'avez rien à faire :
+tout menu radio dépassant cette limite est **paginé automatiquement au rendu**.
+Les entrées en trop sont réparties dans des sous-menus « Page suivante » créés à la
+demande — inutile d'appeler un helper de pagination. Un menu qui tient en 10 entrées
+n'a pas de « Page suivante » (aucun slot gaspillé).
+
+Pour **désactiver** la pagination sur un menu précis :
 
 ```lua
-veafRadio.addPaginatedRadioMenu(
-  "All Zones",          -- titre du menu
-  parentMenu,           -- nœud du menu parent
-  veafRadio.addCommandToSubmenu,
-  myZonesList,          -- table d'éléments
-  "name",               -- attribut utilisé comme titre d'entrée
-  "sortKey"             -- attribut utilisé pour le tri (optionnel)
-)
+veafRadio.doNotPaginate(monMenu)
 ```
 
-Des pages de 10 sont créées automatiquement avec un sous-menu « Page suivante ».
+Cas particulier : un menu contenant une commande `USAGE_ForUnit` (une entrée par
+appareil du groupe) désactive sa pagination automatiquement, avec un avertissement
+dans le log — le découpage global ne pourrait pas garantir la limite par groupe.
+
+> La taille de page est fixée à la limite DCS (`veafRadio.MENU_PAGE_SIZE = 10`).
+> Les helpers `addPaginatedRadioElements` / `addPaginatedRadioMenu` existent toujours
+> (ils trient et insèrent les éléments) mais ne paginent plus eux-mêmes : le rendu
+> s'en charge.
 
 ---
 

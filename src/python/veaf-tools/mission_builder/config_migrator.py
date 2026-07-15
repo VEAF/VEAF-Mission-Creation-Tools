@@ -1482,6 +1482,14 @@ class ConfigMigrator:
         if m:
             zone["friendly_name"] = m.group(1)
 
+        m = re.search(r':setRadioGroupName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["radio_group_name"] = m.group(1)
+
+        m = re.search(r':setRadioMenuPrefix\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["radio_menu_prefix"] = m.group(1)
+
         # Briefing: handles [[...]], "..." and "..." .. "..." concatenation
         briefing = _lua_extract_string(chain_text, "setBriefing")
         if briefing is not None:

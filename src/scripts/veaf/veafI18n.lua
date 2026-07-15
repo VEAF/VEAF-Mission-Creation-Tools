@@ -57,6 +57,10 @@ veaf.i18nCatalog = {
     fr = "%s (%s) : diffusion de %s",
     en = "%s (%s) : playing %s",
   },
+  ["radio.next_page"] = {
+    fr = "Page suivante",
+    en = "Next page",
+  },
 
   -- veafRemote
   ["remote.bad_password"] = {

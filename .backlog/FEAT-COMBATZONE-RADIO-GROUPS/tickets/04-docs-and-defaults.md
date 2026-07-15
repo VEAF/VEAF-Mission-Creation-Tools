@@ -1,6 +1,6 @@
 # 04 — Docs + defaults lockstep
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

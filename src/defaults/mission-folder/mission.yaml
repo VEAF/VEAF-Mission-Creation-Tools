@@ -138,6 +138,8 @@ modules:
   #       - type: zone
   #         zone_name: CZ-Alpha
   #         friendly_name: Alpha Zone
+  #         radio_group_name: North   # gather same-named zones under one shared radio submenu
+  #         radio_menu_prefix: BLUE   # prefix shown before the zone label in the menu
   #         training: false
   #         active_at_start: true   # activate this zone automatically at mission start
   #   QRA:

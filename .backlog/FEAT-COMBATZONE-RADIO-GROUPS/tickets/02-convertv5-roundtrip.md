@@ -1,6 +1,6 @@
 # 02 — convert-v5 round-trip of `radio_group_name` + `radio_menu_prefix`
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 

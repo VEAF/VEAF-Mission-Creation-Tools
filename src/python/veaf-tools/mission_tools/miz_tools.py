@@ -348,6 +348,58 @@ def extract_miz(miz_file_path: Path, extracted_folder_path: Path):
         safe_extract_all(zip_ref, extracted_folder_path)
 
 
+def list_members(miz_file_path: Path) -> list[str]:
+    """Return the archive-member names of a ``.miz`` (without extracting)."""
+    with zipfile.ZipFile(miz_file_path, "r") as zip_read:
+        return zip_read.namelist()
+
+
+def read_member(miz_file_path: Path, arcname: str) -> bytes:
+    """Return the raw bytes of one ``.miz`` archive member."""
+    with zipfile.ZipFile(miz_file_path, "r") as zip_read:
+        return zip_read.read(arcname)
+
+
+def rewrite_miz_members(miz_file_path: Path, replacements: dict[str, bytes]) -> None:
+    """Rewrite specific ``.miz`` members verbatim, copying every other member unchanged.
+
+    Unlike :func:`write_miz`, this does NOT re-serialize the ``mission`` / ``options`` /
+    ``dictionary`` Lua tables — it copies the whole archive through byte-for-byte and only
+    swaps the members named in *replacements*. Use it to edit an embedded text file (e.g.
+    ``l10n/DEFAULT/veaf-config.lua``) without normalising the rest of the mission. The write
+    is atomic (temp file + ``os.replace``).
+
+    Args:
+        miz_file_path: The ``.miz`` to rewrite in place.
+        replacements: ``arcname -> new bytes`` for the members to overwrite. Members that
+            don't already exist in the archive are added.
+    """
+    temp_zip_path: str | None = None
+    with tempfile.NamedTemporaryFile(
+        suffix=".miz", prefix="veaf_mission_", delete=False, dir=miz_file_path.parent
+    ) as temp_file:
+        temp_zip_path = temp_file.name
+        try:
+            with zipfile.ZipFile(miz_file_path, "r") as zip_read:
+                existing = zip_read.namelist()
+                with zipfile.ZipFile(temp_zip_path, "w", zipfile.ZIP_DEFLATED) as zip_write:
+                    for name in existing:
+                        if name in replacements:
+                            zip_write.writestr(name, replacements[name])
+                        else:
+                            zip_write.writestr(name, zip_read.read(name))
+                    for name, content in replacements.items():
+                        if name not in existing:
+                            zip_write.writestr(name, content)
+        except Exception as e:
+            with contextlib.suppress(OSError):
+                os.unlink(temp_zip_path)
+            logger.exception(e)
+            temp_zip_path = None
+    if temp_zip_path:
+        os.replace(temp_zip_path, miz_file_path)
+
+
 #: Archive members already carried by the JSON export object; skipped by :func:`extract_resources`.
 _EXPORT_DATA_MEMBERS: frozenset[str] = frozenset(
     {

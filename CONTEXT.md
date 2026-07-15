@@ -228,6 +228,16 @@ and its workers (e.g. `inject_presets`, `aircraft_groups`), as opposed to an
 _Editor-parity action_ which bypasses that pipeline to mutate the `.miz`
 directly.
 
+**Embedded-Lua edit action**:
+The third mission-editing MCP family: edits the **text** of the `.lua` files
+embedded in the `.miz` (`l10n/DEFAULT/**/*.lua`) directly, without a rebuild —
+neither the raw `mission.lua` tables (that's an _Editor-parity action_) nor the
+`mission.yaml` pipeline (that's a _VMCT action_). Two flavours: a **generic**
+text/regex search-replace, and **VMCT-vocabulary** edits that know the semantics
+of the generated `veaf-config.lua` (log level, module enable, security flag,
+`veaf.config.*`). Underpinned by `rewrite_miz_members`, which swaps archive
+members verbatim without re-serialising the Lua tables.
+
 ## Script loading
 
 **Static loading**:

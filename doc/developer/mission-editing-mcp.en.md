@@ -131,6 +131,46 @@ renumbered. Three modes:
 
 Timestamped backup before the write; no deduplication.
 
+## Editing embedded Lua files (wave 3)
+
+Third action family: edit the **text** of the `.lua` files embedded in the `.miz`
+(`l10n/DEFAULT/**/*.lua`), **without a rebuild** — neither the raw `mission.lua` tables
+(editor-parity) nor the `mission.yaml` pipeline (VMCT action). Shared brick:
+`mission_tools.rewrite_miz_members` copies the archive through verbatim and swaps only the
+targeted members (no Lua-table re-serialization). Timestamped backup before each write.
+
+### `replace_in_mission_files` — generic search-replace
+
+Text or regex replacement, **restricted to `l10n/DEFAULT/**/*.lua`** (never `mission`/
+`options` or binaries). `files` is a glob matched against each `.lua`'s path relative to
+`l10n/DEFAULT/`.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "search": "debug",
+  "replace": "info",
+  "files": "veaf-*.lua",
+  "regex": false
+}
+```
+
+Returns `{files_changed, total_replacements}`.
+
+### VMCT settings (`veaf-config.lua`)
+
+Semantic actions editing `l10n/DEFAULT/veaf-config.lua` (the build-generated VEAF config).
+Each **replaces the line if present, else inserts** it at the top (before the modules
+initialise):
+
+- `set_log_level(level)` → `veaf.ForcedLogLevel = "<level>"` (error/warning/info/debug/trace).
+- `set_module_enabled(module_id, enabled)` → `veaf.setConfig("<MOD>", "enable", <bool>)`.
+- `set_security_disabled(disabled)` → `veaf.SecurityDisabled = <bool>`.
+- `set_veaf_config(key, value)` → `veaf.config.<key> = <Lua scalar>`.
+
+> Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
+> case — are not covered yet: only the `SecurityDisabled` flag is.
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.

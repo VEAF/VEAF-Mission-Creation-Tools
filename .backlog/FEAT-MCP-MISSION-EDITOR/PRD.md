@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (v1 + wave 2 done — 8 tickets, PR not yet opened)
+Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, PR not yet opened)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -74,6 +74,19 @@ scope, left to a follow-up wave.
 | FEAT-MCP-MISSION-EDITOR-006 | **Write action `add_trigger_zone`**: insert a named **circular** trigger zone (`name`, `position`, `radius`, optional `hidden`/`color`) into `mission.triggers.zones` with a fresh `zoneId`, through the 002 backup helper. Handles the list-or-id-keyed-dict shape. Unblocks the full combat-zone scenario (the trigger zone `group_validation` requires + `add_group` units inside it). No dedup. TDD incl. fresh-zoneId safety. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-007 | **Write action `add_startup_script_trigger`**: add a "mission start" trigger that either runs **inline Lua** (`DO SCRIPT`) or loads a **`.lua` file** (`DO SCRIPT FILE`) — the file either **static** (embedded into the `.miz` as an `l10n/DEFAULT` resource + `mapResource` entry) or **dynamic** (a disk path loaded at runtime). Generalizes the existing `inject_dcs_bridge_trigger` + static/dynamic loading ([ADR 0004](../../docs/adr/0004-dynamic-script-loading.md)) as a reusable MCP action, for outfitting a **vanilla or CTLD** mission with scripting without the DCS editor. Through the 002 backup helper. TDD on trig/trigrules shape + resource embedding. | `veaf_mission_mcp/`, `mission_tools/` or `mission_builder/`, `test/python/` | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-008 | **Doc update**: extend `doc/developer/mission-editing-mcp.md` (FR/EN) with the wave-2 actions (`add_trigger_zone`, `add_startup_script_trigger`); CHANGELOG entries; version bump. | `doc/developer/`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
+
+### Wave 3 — editing embedded Lua files (config/scripts, no rebuild)
+
+Third action family: edit the **text** of the Lua files embedded in the `.miz`
+(`l10n/DEFAULT/**/*.lua`), neither the raw `mission.lua` tables (editor-parity) nor the
+`mission.yaml` pipeline (VMCT action). Brick: `mission_tools.rewrite_miz_members` copies the
+archive verbatim and swaps only the named members (no Lua-table re-serialization).
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-009 | **Brick + generic action**: `rewrite_miz_members`/`list_members`/`read_member` in `miz_tools.py`, and `replace_in_mission_files` (text or regex search-replace) **restricted to `l10n/DEFAULT/**/*.lua`** (never `mission`/`options`/binaries), backed up first. TDD incl. verbatim-preservation of untouched members. | `mission_tools/miz_tools.py`, `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-010 | **VMCT config edits** on `l10n/DEFAULT/veaf-config.lua`: `set_log_level` (`veaf.ForcedLogLevel`), `set_module_enabled` (`veaf.setConfig(<MOD>,"enable",<bool>)`), `set_security_disabled` (`veaf.SecurityDisabled`), `set_veaf_config` (`veaf.config.<key>`). Each **replaces the line if present, else inserts** it near the top (before module init). Backed up first. TDD. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-011 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with the wave-3 actions + the third action family; CONTEXT.md glossary entry; CHANGELOG; version bump. | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
 
 ## Out of Scope
 

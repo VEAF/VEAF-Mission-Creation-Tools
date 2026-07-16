@@ -35,18 +35,27 @@ def _asset_download_url(tag: str, asset_name: str) -> str:
 
 
 def _download_updater(url: str, dest: Path, token: str | None) -> None:
-    """Download the updater binary at ``url`` into ``dest`` (executable bit set on Unix)."""
+    """Download the updater binary at ``url`` into ``dest`` (executable bit set on Unix).
+
+    Streamed to disk in chunks so the ~20-25 MB binary never sits fully in memory.
+    """
     headers = {"Authorization": f"token {token}"} if token else {}
-    response = requests.get(url, headers=headers, timeout=_DOWNLOAD_TIMEOUT)
-    response.raise_for_status()
-    dest.write_bytes(response.content)
+    with requests.get(url, headers=headers, timeout=_DOWNLOAD_TIMEOUT, stream=True) as response:
+        response.raise_for_status()
+        with dest.open("wb") as handle:
+            for chunk in response.iter_content(chunk_size=65536):
+                handle.write(chunk)
     if not platform_assets.is_windows():
         os.chmod(dest, 0o755)
 
 
 def _run(cmd: list[str], cwd: Path, step: str) -> None:
     """Run ``cmd`` in ``cwd``; raise ``RuntimeError`` naming ``step`` on a non-zero exit."""
-    result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+    # Not a shell command (shell=False): `cmd` is built here from binary paths we just installed
+    # and fixed flags, so there is no shell to inject into and nothing external drives the argv.
+    result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+        cmd, cwd=str(cwd), capture_output=True, text=True
+    )
     if result.returncode != 0:
         raise RuntimeError(f"{step} failed (exit {result.returncode}): {result.stderr or result.stdout}".strip())
 
@@ -119,7 +128,10 @@ def scaffold_mission(
 
     veaf_tools = folder / platform_assets.veaf_tools_binary_name()
     if not veaf_tools.exists() or not (folder / "published").is_dir():
-        raise RuntimeError("The updater did not install veaf-tools / published/ into the folder.")
+        raise RuntimeError(
+            f"The updater did not install veaf-tools / published/ into {folder} — "
+            "check the updater output or the release tag."
+        )
 
     # 3. Lay down the default scaffold for the chosen template.
     _run([str(veaf_tools), "prepare", "--template", template, "--force"], cwd=folder, step="prepare")

@@ -16,11 +16,22 @@ from veaf_mission_mcp import scaffold
 
 
 class _FakeResponse:
+    """Minimal stand-in for a streamed `requests` response (context manager + iter_content)."""
+
     def __init__(self, content: bytes = b"MZ-fake-binary") -> None:
-        self.content = content
+        self._content = content
 
     def raise_for_status(self) -> None:  # pragma: no cover - trivial
         return None
+
+    def iter_content(self, chunk_size: int = 65536) -> "list[bytes]":
+        return [self._content]
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *exc: object) -> bool:
+        return False
 
 
 @pytest.fixture

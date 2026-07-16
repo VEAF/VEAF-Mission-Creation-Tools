@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-021 — Wave-6 documentation
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (FR/EN), `CHANGELOG.md`, `pyproject.toml`
 
@@ -15,9 +15,10 @@ Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASS
 
 ## Acceptance criteria
 
-- [ ] Both language docs describe the intents and validation consistently.
-- [ ] Catalogue updated; anchors resolve.
-- [ ] CHANGELOG + version bump landed.
+- [x] Both language docs describe the intents and validation consistently.
+- [x] Catalogue updated (in 019/020); anchors resolve.
+- [x] CHANGELOG + version bump (6.9.6) landed. `veaf-mission-authoring` skill updated to point at
+      the intents + `validate_group_name`.
 
 ## Blocked by
 

@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; **wave 6 (convention-aware add_group, tickets 19-21) open on sub-branch `feature/mcp-add-group-conventions`**; waves 7-8 planned, tickets 22-28)
+Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; **wave 6 (convention-aware add_group, tickets 19-21) done on sub-branch `feature/mcp-add-group-conventions` (PR #577)**; waves 7-8 planned, tickets 22-28)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -152,9 +152,9 @@ intent, not names).
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-019 | **Naming intents**: `add_group` accepts `for_combat_zone: <zone>` (auto zone-name prefix), `late_activation` (QRA groups), `as_spawn_template` (`veafSpawn-` prefix), and supports `#command="-<alias> …"` fake-unit groups. Generates convention-correct names. | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-020 | **Validation & warnings**: `validate_group_name` action + warnings surfaced in `add_group`'s return (reserved-pattern collision, combat-zone capture trap, etc.) for the calling LLM to relay to the user. | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-021 | **Doc + catalogue** update. | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-019 | **Naming intents**: `add_group` accepts `for_combat_zone: <zone>` (auto zone-name prefix), `late_activation` (QRA groups), `as_spawn_template` (`veafSpawn-` prefix). Generates convention-correct names via `group_naming.resolve_group_name`. | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-020 | **Validation & warnings**: `validate_group_name` action + warnings surfaced in `add_group`'s return (reserved-pattern collision, combat-zone capture trap) for the calling LLM to relay to the user. | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-021 | **Doc + catalogue** update (dev doc FR/EN, catalogue, skill, CHANGELOG, bump 6.9.6). | docs | ✅ |
 
 ### Wave 7 — Target symmetry (point 1)
 

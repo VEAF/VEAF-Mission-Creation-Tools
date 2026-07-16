@@ -95,6 +95,30 @@ collision sur la même seconde est désambiguïsée (`-2`, `-3`, ...), jamais si
 - Les `groupId`/`unitId` sont toujours frais (`mission_tools.group_insertion.max_ids`), y compris
   sur une mission aux plages d'ids déjà trouées.
 
+**Intentions de nommage (vague 6).** L'appelant exprime l'*intention* et `add_group` produit un
+nom conforme aux conventions VEAF lui-même (`veaf_mission_mcp.group_naming.resolve_group_name`) :
+
+- `for_combat_zone: <zone>` — préfixe le nom par le nom de la trigger-zone (règle d'appartenance
+  combat zone), idempotent et insensible à la casse ;
+- `late_activation: true` — pose le drapeau DCS `lateActivation` (intercepteurs QRA, templates CAP) ;
+- `as_spawn_template: true` — préfixe `veafSpawn-` (template d'avion spawnable).
+
+`add_group` renvoie aussi un champ `warnings` (voir `validate_group_name` ci-dessous) : il **écrit
+quand même**, mais signale toute collision de convention pour que l'appelant la relaie.
+
+### `validate_group_name` (vague 6)
+
+Lecture seule. Contrôle un nom proposé contre les motifs réservés (préfixes
+`veafSpawn-`/`OnDemand-`/`VEAF-placeholder-`, marqueurs `#veafInterpreter[...]`/`#command=`,
+syntaxe de déploiement QRA, noms CAS fixes) et, avec `miz_path`, le **piège de capture combat
+zone** (nom commençant par une trigger-zone existante). `expected_combat_zone` supprime
+l'avertissement pour la zone intentionnellement visée. Partage le module
+`veaf_mission_mcp.group_naming` avec `add_group`.
+
+```json
+{"name": "combatZone_North-tanks", "miz_path": "chemin/vers/mission.miz"}
+```
+
 ### `add_trigger_zone` (vague 2)
 
 Écriture. Insère une **zone de déclenchement circulaire** nommée dans `mission.triggers.zones`,

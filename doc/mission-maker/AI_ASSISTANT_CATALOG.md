@@ -60,6 +60,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 17 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
 | 18 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
 | 19 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
+| 20 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
 
 ---
 
@@ -108,6 +109,26 @@ groupe et te relaie tout avertissement.
 > 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
 
 ---
+
+## 🏗️ Démarrer une mission de zéro
+
+*Avant tout le reste : partir d'un **dossier vide** et obtenir un dossier de mission VEAF prêt à
+l'emploi. L'IA télécharge les outils VEAF depuis GitHub, les installe dans le dossier, et pose les
+fichiers par défaut du template choisi.*
+
+### Créer un dossier de mission depuis zéro {#creer-dossier-mission}
+
+*Dossier · ⭐* — En un appel, sur un **dossier vide** : l'IA récupère la dernière version des outils
+VEAF (updater + `veaf-tools`) depuis la release GitHub, les installe, puis prépare le dossier avec
+le template choisi. C'est l'**étape 0** avant d'ajouter des combat zones, QRA, etc. L'IA te
+**demande d'abord quel template** tu veux :
+
+- `minimal` — infrastructure + modules de base ;
+- `standard` — le jeu quotidien (recommandé) ;
+- `full` — tout, config avancée en exemples commentés.
+
+> 💬 *« Crée-moi une nouvelle mission VEAF dans ce dossier. »* (l'IA demande le template puis
+> installe tout)
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 

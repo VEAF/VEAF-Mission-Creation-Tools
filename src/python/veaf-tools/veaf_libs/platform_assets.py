@@ -75,3 +75,23 @@ def updater_asset_name(system: str | None = None, machine: str | None = None) ->
     """Release asset name for the updater binary, or ``None`` if none applies."""
     suffix = asset_suffix(system or platform.system(), machine or platform.machine())
     return f"veaf-tools-updater-{suffix}" if suffix else None
+
+
+def release_updater_asset_name(system: str | None = None, machine: str | None = None) -> str | None:
+    """Name of the updater asset to download from a release, **including Windows**.
+
+    Unlike :func:`updater_asset_name` (which only maps the per-OS Unix assets and returns
+    ``None`` on Windows), this returns the name a fresh scaffolding install fetches for the
+    running machine: the fixed-name Windows asset ``veaf-tools-updater.exe`` on Windows, or the
+    ``veaf-tools-updater-<os>-<arch>`` asset on a supported Unix platform.
+
+    Args:
+        system: OS name (default: current). ``machine``: architecture (default: current).
+
+    Returns:
+        The release asset name, or ``None`` on an unsupported Unix platform/arch.
+    """
+    system = system or platform.system()
+    if is_windows(system):
+        return updater_binary_name(system)
+    return updater_asset_name(system, machine)

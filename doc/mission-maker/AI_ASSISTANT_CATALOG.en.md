@@ -59,6 +59,7 @@ The AI can act in two places, and it changes what "survives":
 | 17 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
 | 18 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
 | 19 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
+| 20 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
 
 ---
 
@@ -106,6 +107,26 @@ and relays any warning to you.
 > 💬 *"Could this group name cause a problem?"*
 
 ---
+
+## 🏗️ Getting started — a mission from scratch
+
+*Before anything else: start from an **empty folder** and get a ready-to-use VEAF mission folder.
+The AI downloads the VEAF tools from GitHub, installs them into the folder, and lays down the
+default files for the chosen template.*
+
+### Create a mission folder from scratch {#create-mission-folder}
+
+*Folder · ⭐* — In one call, on an **empty folder**: the AI fetches the latest VEAF tools (updater +
+`veaf-tools`) from the GitHub release, installs them, then prepares the folder with the chosen
+template. This is **step 0** before adding combat zones, QRAs, etc. The AI **asks which template**
+first:
+
+- `minimal` — infrastructure + core modules;
+- `standard` — the everyday set (recommended);
+- `full` — everything, advanced config as commented examples.
+
+> 💬 *"Create a new VEAF mission in this folder."* (the AI asks for the template, then installs
+> everything)
 
 ## 🏗️ Composites — create a full feature (one pass)
 

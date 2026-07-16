@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done (PR #578, merged); **wave 8 (composite builders: 024-028) done and merged into the integration branch**. All 28 tickets complete; every wave merged into `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6` ready to finalise)
+Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, tickets 29-30) and wave 10 (map reading + human coordinates, tickets 31-34) are ⬜ ready** — the "upstream" of NL-MISSION-GEN: create the mission folder itself, then let a maker place things by lat/long / MGRS, not only DCS x/y. The coordinate-projection question is **resolved**: port the existing `projection.lua` (Transverse Mercator WGS84 + per-theatre tables, MIT) from `bfr-claude-plugins` — no in-house derivation, no heavy dependency.)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -179,6 +179,53 @@ mission, not authored into the file.
 | FEAT-MCP-MISSION-EDITOR-026 | **`create_qra`**: trigger zone + Late-Activation interceptor groups (coalition-significant, named to match) + `QRA` definition — one call. | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-027 | **`create_cap_mission`**: `OnDemand-<name>` Late-Activation templates + `combat_missions` yaml block. | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-028 | **Doc + catalogue** update (composite section, the recipe-vs-built + one-pass model). | docs | ✅ |
+
+### Wave 9 — Scaffolding a fresh mission folder from GitHub 🏗️
+
+The **upstream** piece: everything before wave 8 assumes a mission folder already exists. Wave 9
+lets the LLM create one from an **empty folder**, driving the real VEAF bootstrap the way a human
+would — download the updater, run it (fetches + installs the VEAF tools into the folder), then
+`veaf-tools prepare` to lay down the default scaffold. **Decision (with David)**: a single MCP
+action **driving the real binaries** (not re-implementing the updater/prepare logic in-process),
+faithful to a user's own first-run experience. The release exposes fixed-name Windows assets
+(`veaf-tools-updater.exe`, `veaf-tools.exe`) and per-OS Unix assets, so the updater is fetched by
+its stable release-download URL (no GitHub API, no rate limit); the updater itself handles the
+`published.zip` fetch and its optional token.
+
+The `custom` template is **not** supported here (it opens an interactive TUI picker with no TTY
+under a subprocess); the action accepts `minimal`/`standard`/`full`. The template *question* is
+the calling LLM's job (surfaced in the skill), passed as a required action parameter.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-029 | **`scaffold_mission` action**: on an empty target folder — (1) resolve the updater asset for the current OS and download it from the stable release URL, (2) run it (`cwd=folder`, optional `--token`/`--tag`) and verify `veaf-tools[.exe]` + `published/` appeared, (3) run `veaf-tools[.exe] prepare --template <minimal\|standard\|full> --force`. Refuses a non-empty folder. Small cross-OS updater-asset-name helper in `platform_assets.py`. TDD mocks the download + `subprocess.run` (sequence, args, cwd, non-empty-folder guard, invalid template, updater/prepare failure surfaced). | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-030 | **Doc + catalogue + skill**: developer doc (FR/EN) "Scaffolding (wave 9)" section, `AI_ASSISTANT_CATALOG` entry (step 0 of a from-scratch mission), `veaf-mission-authoring` skill step 0 + the template question, CHANGELOG, bump 6.9.9. | docs | ⬜ |
+
+### Wave 10 — Map reading + human coordinate input (lat/long, MGRS) 🗺️
+
+Every placement action so far takes **DCS local coordinates** (`x`/`y`, metres in the theatre's
+own projection). A Mission Maker rarely thinks in x/y — they think lat/long or MGRS off a map.
+Wave 10 lets a maker (via the LLM) place things by human coordinates and read the map for
+bearings.
+
+**Coordinate projection — resolved by reuse.** The DCS `coord.*` conversions
+(`LLtoLO`/`LOtoLL`/`LLtoMGRS`/`MGRStoLL`) live in the **in-game Lua runtime** and are unavailable
+design-time; the repo has no Python projection. Rather than derive one, we **port an existing,
+tested implementation**: `bfr-claude-plugins/plugins/dcs-mission-tools/tools/src/lib/projection.lua`
+(MIT) — a Transverse Mercator WGS84 forward/inverse plus per-theatre tables (`lon0`/`x0`/`y0`) for
+**caucasus, syria, persiangulf, marianaislands**, with 5 reference test cases we reuse as Python
+fixtures. This is the recommended "knowledge as data" path (ADR 0007), now with zero in-house
+derivation risk and no heavy dependency. We **copy the code into Python** outright (short
+attribution header, MIT-compatible with our Apache-2.0) — no shared upstream, no drift-tracking.
+MGRS is not in the source and is a minor, deferrable extra (theatre-independent) — done at its
+simplest if/when needed, never a blocker.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-031 | **Coordinate projection foundation (port) + ADR 0015**: copy `projection.lua` (MIT, `bfr-claude-plugins`) into pure-Python `veaf_libs/coordinates.py` — TM WGS84 forward/inverse + the 4-theatre tables; reuse its 5 reference cases as tests. Short attribution header. ADR 0015 records the copy + provenance. MGRS deferred (not needed now). TDD against the reference pairs. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-032 | **`describe_map` + `resolve_coordinates` actions**: `describe_map` (read — theatre name, bullseye(s), existing trigger zones/groups as reference points, so the LLM can orient without DCS running); `resolve_coordinates` (convert freely between `{x,y}`, `{lat,lon}`, `{mgrs}` for the mission's theatre, using 031). | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-033 | **Human-coordinate input on placement actions**: `add_group`, `add_trigger_zone` and the wave-8 composites accept a `position` given as `{lat,lon}` or `{mgrs}` in addition to `{x,y}`, converting via 031 before insertion. Backward compatible (x/y unchanged). TDD on each accepted form + theatre-mismatch handling. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-034 | **Doc + catalogue + skill**: developer doc (FR/EN) map/coordinates section, `AI_ASSISTANT_CATALOG` entries, skill guidance (prefer human coords, ask which system), CONTEXT glossary (theatre projection), CHANGELOG, bump. | docs | ⬜ |
 
 ## Out of Scope
 

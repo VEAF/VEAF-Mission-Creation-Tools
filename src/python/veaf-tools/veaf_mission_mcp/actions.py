@@ -31,6 +31,7 @@ from veaf_mission_mcp.oracle import (
     list_unit_types,
 )
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
+from veaf_mission_mcp.scaffold import scaffold_mission
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -443,6 +444,44 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="scaffold_mission",
+            description=(
+                "Scaffold a fresh VEAF mission FOLDER from an empty folder, driving the real VEAF "
+                "bootstrap: download the updater from the release, run it (installs the tools and "
+                "published/ into the folder), then 'veaf-tools prepare' for the chosen template. "
+                "Step 0 of a from-scratch mission, before the create_* composites. Refuses a "
+                "non-empty folder. Ask the maker which template first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target_folder": {"type": "string", "description": "Empty folder to initialize."},
+                    "template": {
+                        "type": "string",
+                        "enum": ["minimal", "standard", "full"],
+                        "description": "Coverage tier (custom is not supported here).",
+                    },
+                    "github_token": {
+                        "type": "string",
+                        "description": "Optional GitHub token, relayed to the updater to bypass the API rate limit.",
+                    },
+                    "tag": {
+                        "type": "string",
+                        "description": "Release tag to install from (default 'published-latest').",
+                    },
+                },
+                "required": ["target_folder", "template"],
+            },
+        ),
+        handler=lambda p: scaffold_mission(
+            p["target_folder"],
+            template=p["template"],
+            github_token=p.get("github_token"),
+            tag=p.get("tag"),
+        ),
     )
     catalog.register(
         ActionSpec(

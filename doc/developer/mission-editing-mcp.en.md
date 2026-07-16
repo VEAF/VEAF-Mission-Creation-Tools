@@ -319,6 +319,41 @@ Coalition is lower-cased for placement, upper-cased in the YAML definition.
 A **Late-Activation** template group named `OnDemand-<name>` + a `cap_missions[]` entry
 (`group_name: <name>`, un-prefixed — the build resolves it to the `OnDemand-` group).
 
+## Scaffolding a mission folder (wave 9)
+
+Every action above assumes a mission folder **already exists**. Wave 9 provides the upstream piece:
+create that folder from an **empty** one, driving the real VEAF binaries the way a Mission Maker
+would on first install.
+
+### `scaffold_mission`
+
+Write. On an **empty** target folder:
+
+1. Resolve the current OS's updater asset (`veaf-tools-updater.exe` on Windows,
+   `veaf-tools-updater-<os>-<arch>` on Unix) and download it from the **stable release-download
+   URL** (`…/releases/download/<tag>/<asset>` — no GitHub API, no rate limit).
+2. Run the updater in the folder (it fetches and installs the VEAF tools + `published/`).
+3. Run `veaf-tools prepare --template <tier> --force` in the folder.
+
+```json
+{
+  "target_folder": "path/to/empty-folder",
+  "template": "standard",
+  "github_token": "…",
+  "tag": "published-latest"
+}
+```
+
+- **Refuses a non-empty folder** — scaffolding only initializes an empty one.
+- `template` — `minimal` / `standard` / `full`. The interactive `custom` tier is **not** supported
+  here (its TUI picker has no TTY under a subprocess); the calling LLM must **ask the Mission Maker
+  which template** and pass it as a parameter.
+- `github_token` — optional, relayed to the updater (`--token`) to bypass the API rate limit.
+- A non-zero exit from the updater or `prepare`, or a missing `veaf-tools`/`published/` after the
+  updater, surfaces as an explicit error.
+
+This is **step 0** of a from-scratch mission, before the wave-8 composites.
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.

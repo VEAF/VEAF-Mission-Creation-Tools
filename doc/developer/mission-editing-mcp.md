@@ -301,13 +301,37 @@ est fourni — son état activé. Les clés de config de chaque module vivent da
 {"module_id": "QRA", "mission_yaml_path": "chemin/vers/mission.yaml"}
 ```
 
+## Composites — une passe, deux mondes (vague 8)
+
+Actions haut niveau qui posent une **fonctionnalité complète** en un appel, sur un **dossier de
+mission** : elles éditent la **source durable** (le `src/mission/` exploité — zones/groupes — via
+`mission_folder`, **et** `mission.yaml`), sans déclencher de build (un `veaf-tools build` ultérieur
+produit le `.miz`). Elles orchestrent les primitives des vagues 1-7 (`insert_trigger_zone`,
+`insert_group_into_content`, l'éditeur `mission.yaml`). Implémentation : `veaf_mission_mcp/composites.py`.
+
+### `create_combat_zone`
+
+Zone de déclenchement + groupes placés dedans (noms auto-préfixés par la zone → capturés au
+runtime, coalition indifférente) + bloc `modules.COMBATZONE.combat_zones[]` **ajouté** au yaml.
+
+### `create_qra`
+
+Zone + intercepteurs **Late Activation** (coalition significative) + entrée
+`modules.QRA.definitions[]` référençant les groupes **par nom exact** (`simple_groups`). La
+coalition est passée en minuscule pour le placement, majuscule dans la définition YAML.
+
+### `create_cap_mission`
+
+Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missions[]`
+(`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`).
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
   se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
 - Un validateur de schéma par module pour `set_mission_module` (la vague 4 reste générique).
-- `add_group` conscient des conventions (vague 6), symétrie des cibles (vague 7), actions
-  composites `create_combat_zone`/`create_qra`/`create_cap_mission` (vague 8).
+- Composites CAS (pur runtime, pas d'écriture), zones non-circulaires, et génération end-to-end
+  depuis un prompt (l'objectif NL-MISSION-GEN au-delà de ce lot).
 
 Voir `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` pour le détail.

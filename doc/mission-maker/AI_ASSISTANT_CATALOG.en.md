@@ -57,6 +57,8 @@ The AI can act in two places, and it changes what "survives":
 | 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
 | 16 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
 | 17 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 18 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 19 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
 
 ---
 
@@ -118,6 +120,21 @@ the zone captures them) **and** the `COMBATZONE` block in `mission.yaml`. You de
 assembles.
 
 > 💬 *"Create a “North” combat zone with two enemy armor groups."*
+
+### Create a full QRA {#create-qra}
+
+*Recipe (folder) · 🔥* — In one call: the protected zone, the **Late-Activation** interceptors (on
+the right coalition) **and** the `QRA` definition in `mission.yaml` (referencing the groups by
+exact name). You name the aircraft, the AI picks the type and assembles.
+
+> 💬 *"Create a red QRA in Mirage 2000s over the North zone."*
+
+### Create an on-demand CAP mission {#create-cap}
+
+*Recipe (folder) · ⭐* — In one call: the `OnDemand-<name>` **Late-Activation** template group
+**and** the `cap_missions` entry in `mission.yaml`.
+
+> 💬 *"Create an on-demand CAP “Escort” with two F-15s."*
 
 ---
 

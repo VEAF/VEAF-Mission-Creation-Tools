@@ -295,13 +295,37 @@ given — its enabled state. Each module's config keys live in its doc page.
 {"module_id": "QRA", "mission_yaml_path": "path/to/mission.yaml"}
 ```
 
+## Composites — one pass, both worlds (wave 8)
+
+High-level actions that lay down a **complete feature** in one call, on a **mission folder**: they
+edit the **durable source** (the exploded `src/mission/` — zones/groups — via `mission_folder`,
+**and** `mission.yaml`), without triggering a build (a later `veaf-tools build` produces the
+`.miz`). They orchestrate the wave-1..7 primitives (`insert_trigger_zone`,
+`insert_group_into_content`, the `mission.yaml` editor). Implementation: `veaf_mission_mcp/composites.py`.
+
+### `create_combat_zone`
+
+Trigger zone + groups placed inside (names auto-prefixed with the zone → captured at runtime,
+coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block.
+
+### `create_qra`
+
+Trigger zone + **Late-Activation** interceptors (coalition-significant) + a
+`modules.QRA.definitions[]` entry referencing the groups **by exact name** (`simple_groups`).
+Coalition is lower-cased for placement, upper-cased in the YAML definition.
+
+### `create_cap_mission`
+
+A **Late-Activation** template group named `OnDemand-<name>` + a `cap_missions[]` entry
+(`group_name: <name>`, un-prefixed — the build resolves it to the `OnDemand-` group).
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
 - A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
   startup script-loading / Lua-execution triggers.
 - A per-module schema validator for `set_mission_module` (wave 4 stays generic).
-- Convention-aware `add_group` (wave 6), target symmetry (wave 7), composite
-  `create_combat_zone`/`create_qra`/`create_cap_mission` actions (wave 8).
+- CAS composites (pure runtime, no authoring), non-circular zones, and end-to-end generation from
+  a prompt (the NL-MISSION-GEN goal beyond this lot).
 
 See `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` for details.

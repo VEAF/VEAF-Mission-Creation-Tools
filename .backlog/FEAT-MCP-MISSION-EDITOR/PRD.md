@@ -127,6 +127,18 @@ Expose all the DCS + VEAF knowledge the LLM needs to author correctly, **hybrid*
 facts via MCP read actions generated from the *canonical sources* (no duplication/drift) + a
 concise Claude skill for the "how to reason" part.
 
+**Knowledge sources (reuse, never reinvent)** — the oracle draws on data VEAF already generates
+and publishes, so it can't drift from reality:
+
+- **Generated DCS data** (`update-dcs-data`): unit types, countries, airfield frequencies —
+  shipped as `veaf_libs/data/dcs-*.yaml`, published on the VEAF GitHub.
+- **VEAF unit aliases / shortcuts** (`veafUnits`, veafShortcuts) — the `-armor`/`-sa2`… vocabulary.
+- **Vendored third-party artifacts** (`vendored.yaml`, `check-vendored` drift-watch): pinned
+  community scripts (CTLD/CSAR/…) and their provenance.
+- **Upstream datamining repos** referenced as provenance for the DCS data above.
+
+The oracle actions read these existing lists rather than duplicating them.
+
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
 | FEAT-MCP-MISSION-EDITOR-016 | **Introspection actions**: `list_unit_types` (from `veafUnits`/DCS data, filterable by category/coalition/era), `list_shortcuts` (veafShortcuts aliases, e.g. `-armor`, `-sa2`), `describe_naming_conventions` (the 8 reserved patterns + when each applies), `describe_module` (required/optional keys + semantics, sourced from `lua_config_generator`/`MISSION_YAML_REFERENCE`). | feat | ⬜ |

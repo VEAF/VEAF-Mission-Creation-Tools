@@ -215,6 +215,37 @@ def read_mission_folder(folder_path: Path) -> DcsMission:
     return result
 
 
+def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
+    """Serialize ``mission_content`` back to a folder's loose ``mission`` file.
+
+    The write-side counterpart of :func:`read_mission_folder`. Rewrites only the ``mission`` file
+    (the tables the composite builders edit), leaving the rest of ``src/mission/`` and the folder
+    untouched. Uses the same ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
+
+    Args:
+        mission: The mission whose ``mission_content`` to write.
+        folder_path: A folder holding the loose mission files (root or ``src/mission/``).
+
+    Returns:
+        The path of the ``mission`` file written.
+
+    Raises:
+        FileNotFoundError: when no ``mission`` file can be located under *folder_path*.
+        ValueError: when `mission.mission_content` is ``None``.
+    """
+    root = _find_mission_root(folder_path)
+    if root is None:
+        raise FileNotFoundError(f"No 'mission' file found under {folder_path} (looked in '.' and 'src/mission')")
+    if mission.mission_content is None:
+        raise ValueError("mission_content is None — nothing to write")
+    lua_content = luadata.serialize(
+        mission.mission_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+    )
+    mission_file = root / "mission"
+    mission_file.write_text(f"mission = \n{lua_content}", encoding="utf-8")
+    return mission_file
+
+
 def create_miz(miz_file_path: Path, files: dict[str, bytes]) -> Path:
     """Create an mission in a .miz file with new data (zip it)."""
 

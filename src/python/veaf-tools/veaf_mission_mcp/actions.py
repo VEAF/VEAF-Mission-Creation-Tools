@@ -7,6 +7,7 @@ from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.catalog import ActionCatalog
+from veaf_mission_mcp.composites import create_combat_zone
 from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
@@ -445,6 +446,66 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="create_combat_zone",
+            description=(
+                "Lay down a complete VEAF combat zone in a mission FOLDER, in one pass, editing "
+                "both worlds durably (no build): a circular trigger zone + groups placed inside it "
+                "(names auto-prefixed with the zone so it captures them) in src/mission, and a "
+                "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (mission.yaml + src/mission/).",
+                    },
+                    "zone_name": {"type": "string", "description": "The combat zone's trigger-zone name."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "The zone centre.",
+                    },
+                    "radius": {"type": "number", "description": "The zone radius, in metres."},
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "units": {"type": "array", "items": {"type": "object"}},
+                                "position": {
+                                    "type": "object",
+                                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                },
+                            },
+                            "required": ["name", "units"],
+                        },
+                        "description": "Groups placed inside the zone; names are auto-prefixed with zone_name.",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "category": {"type": "string", "default": "vehicle"},
+                    "combat_zone": {"type": "object", "description": "Optional extra combat_zones[] keys."},
+                },
+                "required": [
+                    "folder_path",
+                    "zone_name",
+                    "position",
+                    "radius",
+                    "groups",
+                    "coalition",
+                    "country_id",
+                    "country_name",
+                ],
+            },
+        ),
+        handler=_handle_create_combat_zone,
+    )
+    catalog.register(
+        ActionSpec(
             name="list_unit_types",
             description=(
                 "List DCS unit types from the canonical generated database (the same the build "
@@ -540,6 +601,21 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         for_combat_zone=params.get("for_combat_zone"),
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
+    )
+
+
+def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
+    return create_combat_zone(
+        Path(params["folder_path"]),
+        zone_name=params["zone_name"],
+        position=params["position"],
+        radius=params["radius"],
+        groups=params["groups"],
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        category=params.get("category", "vehicle"),
+        combat_zone=params.get("combat_zone"),
     )
 
 

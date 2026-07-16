@@ -47,7 +47,42 @@ def add_trigger_zone(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
-    zones = _zones_list(mission.mission_content)
+    zone_id = insert_trigger_zone(
+        mission.mission_content, name=name, position=position, radius=radius, hidden=hidden, color=color
+    )
+
+    backup_before_write(miz_path)
+    write_miz(mission, miz_path)
+
+    return {"zone_id": zone_id, "name": name}
+
+
+def insert_trigger_zone(
+    mission_content: dict[str, Any],
+    *,
+    name: str,
+    position: dict[str, float],
+    radius: float,
+    hidden: bool = False,
+    color: list[float] | None = None,
+) -> int:
+    """Append a circular trigger zone to `mission_content` in place; return its fresh `zoneId`.
+
+    The content-level core shared by the `.miz` action :func:`add_trigger_zone` and the wave-8
+    composite builders (which mutate a mission folder's exploded content). Does no I/O.
+
+    Args:
+        mission_content: The parsed ``mission`` table to mutate.
+        name: The zone's name.
+        position: The zone centre, `{"x": ..., "y": ...}`.
+        radius: The zone radius, in metres.
+        hidden: Whether the zone is hidden in the editor.
+        color: RGBA fill `[r, g, b, a]` (0..1); defaults to translucent white.
+
+    Returns:
+        The fresh ``zoneId`` assigned to the inserted zone.
+    """
+    zones = _zones_list(mission_content)
     zone_id = _max_zone_id(zones) + 1
     zones.append(
         {
@@ -62,11 +97,7 @@ def add_trigger_zone(
             "properties": {},
         }
     )
-
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
-
-    return {"zone_id": zone_id, "name": name}
+    return zone_id
 
 
 def _zones_list(mission_content: dict[str, Any]) -> list[dict[str, Any]]:

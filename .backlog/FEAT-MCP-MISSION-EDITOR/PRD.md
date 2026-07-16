@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done on sub-branch `feature/mcp-target-symmetry` (PR #578); **wave 8 (composite builders, tickets 24-28) next** — the endgame)
+Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done (PR #578, merged); **wave 8 (composite builders, tickets 24-28) open on sub-branch `feature/mcp-composite-builders`** — the endgame: folder-aware one-pass `create_combat_zone`/`create_qra`/`create_cap_mission`)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 

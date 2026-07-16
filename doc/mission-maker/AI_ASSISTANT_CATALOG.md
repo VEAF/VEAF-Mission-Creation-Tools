@@ -52,6 +52,47 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 9 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
 | 10 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
 | 11 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
+| 12 | [Lister les types d'unités DCS](#lister-unites-dcs) | Connaissance métier | — | ⭐ |
+| 13 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
+| 14 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
+| 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
+
+---
+
+## 🧠 Connaissance métier (l'IA sait DCS + VEAF)
+
+*L'IA s'appuie sur ces sources pour choisir les bons types d'unités, nommer correctement les
+groupes et configurer les modules — sans que tu aies à connaître les détails techniques. Elles
+sont lues depuis les données canoniques VEAF (générées / vendorisées), donc toujours à jour. Tu
+peux aussi les interroger directement.*
+
+### Lister les types d'unités DCS {#lister-unites-dcs}
+
+*Connaissance · ⭐* — Types d'unités DCS (filtrables par catégorie ou par nom), depuis la base
+générée par `update-dcs-data`.
+
+> 💬 *« Quels chasseurs russes sont dispo ? »* · *« Montre-moi les SAM DCS. »*
+
+### Lister les alias / raccourcis VEAF {#lister-alias-veaf}
+
+*Connaissance · ⭐* — Le vocabulaire d'alias VEAF (`shilka`, `sa8`, …) pour le spawn d'unités et
+de groupes composites (SAM sites, convois).
+
+> 💬 *« C'est quoi l'alias pour une Shilka ? »* · *« Liste les groupes SAM tout faits. »*
+
+### Expliquer les conventions de nommage {#conventions-nommage}
+
+*Connaissance · ◽* — Les motifs de nommage réservés (combat zone, `veafSpawn-`, `#command`,
+interpréteur…) que l'IA doit respecter pour ne pas casser une mission.
+
+> 💬 *« Pourquoi mon groupe disparaît au démarrage ? »* (l'IA vérifie les conventions)
+
+### Renseigner sur un module VEAF {#decrire-module}
+
+*Connaissance · ◽* — Vérifie qu'un module existe, pointe vers sa page de doc, et dit s'il est
+activé dans une mission donnée.
+
+> 💬 *« Le module QRA, ça se configure comment ? »*
 
 ---
 

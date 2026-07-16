@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-4 done — 15 tickets, in PR #575 draft; waves 5-8 planned — domain oracle → convention-aware add_group → target symmetry → composite feature builders, tickets 16-28)
+Status: 🔄 in-progress (waves 1-4 done — 15 tickets, on integration branch `feature/mcp-mission-editor`, umbrella PR #575 draft; **wave 5 (domain oracle, tickets 16-18) done on sub-branch `feature/mcp-knowledge-oracle` (PR #576 → integration branch)**; waves 6-8 planned, tickets 19-28)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -141,9 +141,9 @@ The oracle actions read these existing lists rather than duplicating them.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-016 | **Introspection actions**: `list_unit_types` (from `veafUnits`/DCS data, filterable by category/coalition/era), `list_shortcuts` (veafShortcuts aliases, e.g. `-armor`, `-sa2`), `describe_naming_conventions` (the 8 reserved patterns + when each applies), `describe_module` (required/optional keys + semantics, sourced from `lua_config_generator`/`MISSION_YAML_REFERENCE`). | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-017 | **Authoring skill** (Claude plugin): a `veaf-mission-authoring` skill teaching the reasoning — naming rules, combat-zone-vs-QRA group models, when to use `#command`/aliases, Late Activation — pointing at the wave-16 actions as the source of truth. | docs | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-018 | **Doc + catalogue**: developer doc + mission-maker catalogue updated with the oracle actions. | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-016 | **Introspection actions**: `list_unit_types` (from generated `dcsUnits.yaml`, filterable), `list_shortcuts` (veaf-units.yaml aliases + composite groups), `describe_naming_conventions` (the 8 reserved patterns), `describe_module` (**locator** over `lua_module_scanner` → doc page + enabled state, not a schema validator). | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-017 | **Authoring skill** (Claude plugin): `plugin/skills/veaf-mission-authoring/SKILL.md` teaching the reasoning — naming rules, combat-zone-vs-QRA group models, `#command`/aliases, Late Activation, intent-not-names — pointing at the 016 actions as the source of truth. Versioned in veaf-tools, bundled by `bfr-claude-plugins`. | docs | ✅ |
+| FEAT-MCP-MISSION-EDITOR-018 | **Doc + catalogue**: developer doc (FR/EN) + CONTEXT glossary + mission-maker catalogue + CHANGELOG + bump 6.9.5. | docs | ✅ |
 
 ### Wave 6 — Convention-aware `add_group` (point 2)
 

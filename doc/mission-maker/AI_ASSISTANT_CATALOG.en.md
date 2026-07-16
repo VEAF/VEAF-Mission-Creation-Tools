@@ -51,6 +51,46 @@ The AI can act in two places, and it changes what "survives":
 | 9 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
 | 10 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
 | 11 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
+| 12 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
+| 13 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
+| 14 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
+| 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+
+---
+
+## 🧠 Domain knowledge (the AI knows DCS + VEAF)
+
+*The AI leans on these to pick the right unit types, name groups correctly and configure modules
+— so you don't have to know the technical details. They read from VEAF's canonical
+(generated / vendored) data, so they're always current. You can also query them directly.*
+
+### List DCS unit types {#list-dcs-units}
+
+*Knowledge · ⭐* — DCS unit types (filter by category or name), from the `update-dcs-data`
+generated database.
+
+> 💬 *"Which Russian fighters are available?"* · *"Show me the DCS SAMs."*
+
+### List VEAF aliases / shortcuts {#list-veaf-aliases}
+
+*Knowledge · ⭐* — The VEAF alias vocabulary (`shilka`, `sa8`, …) for spawning units and composite
+groups (SAM sites, convoys).
+
+> 💬 *"What's the alias for a Shilka?"* · *"List the ready-made SAM groups."*
+
+### Explain the naming conventions {#naming-conventions}
+
+*Knowledge · ◽* — The reserved naming patterns (combat zone, `veafSpawn-`, `#command`,
+interpreter…) the AI must respect so it doesn't break a mission.
+
+> 💬 *"Why does my group vanish at start?"* (the AI checks the conventions)
+
+### Look up a VEAF module {#describe-module}
+
+*Knowledge · ◽* — Confirms a module exists, points to its doc page, and says whether it's enabled
+in a given mission.
+
+> 💬 *"How is the QRA module configured?"*
 
 ---
 

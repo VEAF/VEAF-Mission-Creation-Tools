@@ -16,6 +16,12 @@ from veaf_mission_mcp.edit_veaf_config import (
     set_veaf_config,
 )
 from veaf_mission_mcp.models import ActionSpec
+from veaf_mission_mcp.oracle import (
+    describe_module,
+    describe_naming_conventions,
+    list_shortcuts,
+    list_unit_types,
+)
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 
 
@@ -311,6 +317,76 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_module(Path(p["mission_yaml_path"]), p["module_id"], p["value"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_unit_types",
+            description=(
+                "List DCS unit types from the canonical generated database (the same the build "
+                "ships). Filter by category and/or a name substring. Read-only knowledge for the "
+                "LLM to pick concrete unit types."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "description": "Exact category, e.g. 'Plane', 'Armor'."},
+                    "name_contains": {"type": "string", "description": "Case-insensitive substring on id+name."},
+                },
+            },
+        ),
+        handler=lambda p: list_unit_types(category=p.get("category"), name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_shortcuts",
+            description=(
+                "List the VEAF spawn aliases (the '-shilka'/'-sa8'… vocabulary) from the "
+                "canonical veaf-units.yaml: unit aliases and composite group aliases. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "name_contains": {"type": "string", "description": "Case-insensitive substring on aliases+target."},
+                },
+            },
+        ),
+        handler=lambda p: list_shortcuts(name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_naming_conventions",
+            description=(
+                "Return the reserved VEAF group/unit naming conventions (combat-zone membership, "
+                "veafSpawn-/OnDemand- prefixes, #veafInterpreter/#command markers, QRA deploy "
+                "entries, …). Check a proposed group name against these before add_group."
+            ),
+            parameters_schema={"type": "object", "properties": {}},
+        ),
+        handler=lambda _p: describe_naming_conventions(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_module",
+            description=(
+                "Look a VEAF module up in the canonical module list and point to its doc page; "
+                "optionally report whether it is enabled in a given mission.yaml. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "module_id": {"type": "string", "description": "Module id, e.g. 'QRA', 'COMBATZONE'."},
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Optional mission.yaml to report the enabled state from.",
+                    },
+                },
+                "required": ["module_id"],
+            },
+        ),
+        handler=lambda p: describe_module(
+            p["module_id"],
+            mission_yaml_path=Path(p["mission_yaml_path"]) if p.get("mission_yaml_path") else None,
+        ),
     )
 
 

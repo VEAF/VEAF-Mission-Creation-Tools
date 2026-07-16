@@ -215,13 +215,62 @@ est **remplacée si présente, insérée sinon**. Pas de déduplication.
 > schéma par module : la forme du bloc de config passé reste la responsabilité de l'appelant
 > (LLM), comme les types d'unités pour `add_group`.
 
+## Oracle de connaissance métier (vague 5)
+
+Les actions ci-dessus sont les **mains** (écriture) et les **yeux** (`describe_*`) du LLM. La
+vague 5 lui donne un **cerveau** : des actions de **lecture seule** exposant la connaissance
+DCS + VEAF nécessaire pour éditer correctement. Toutes lisent depuis les **sources canoniques**
+que le build utilise déjà, donc **sans dérive possible** :
+
+- Données DCS générées (`update-dcs-data` → `veaf_libs/data/dcsUnits.yaml`, publiées sur le
+  GitHub VEAF) ;
+- alias VEAF (`veaf_libs/data/veaf-units.yaml`) ;
+- artefacts vendorisés (`vendored.yaml`, `check-vendored`) ;
+- repos de datamining en amont (provenance).
+
+Implémentation : `veaf_mission_mcp/oracle.py`. Le pendant « prose / comment raisonner » vit dans
+le skill Claude `veaf-mission-authoring` (`plugin/skills/veaf-mission-authoring/SKILL.md`, bundlé
+par `bfr-claude-plugins`) — le plugin = mains MCP + cerveau skill.
+
+### `list_unit_types`
+
+Lecture seule. Types d'unités DCS depuis la base générée, filtrables par `category` et/ou
+`name_contains`. Pour que le LLM choisisse des types concrets.
+
+```json
+{"category": "Plane", "name_contains": "su-27"}
+```
+
+### `list_shortcuts`
+
+Lecture seule. Le vocabulaire d'alias VEAF (`shilka`, `sa8`…) — alias d'unités
+(`_spawn unit <alias>`) et de groupes composites (`_spawn group <alias>` : sites SAM, convois).
+Filtrable par `name_contains`.
+
+### `describe_naming_conventions`
+
+Lecture seule. Les **8 motifs de nommage réservés** (appartenance combat zone, préfixes
+`veafSpawn-`/`OnDemand-`, marqueurs `#veafInterpreter[…]`/`#command=`, entrées de déploiement
+QRA, noms CAS fixes…) avec, pour chacun, la règle et le module qui la consomme. À vérifier avant
+un `add_group`.
+
+### `describe_module`
+
+Lecture seule. **Localisateur** (pas un validateur de schéma) : vérifie qu'un module VEAF existe
+(via la liste canonique `lua_module_scanner`), renvoie sa page de doc, et — si `mission_yaml_path`
+est fourni — son état activé. Les clés de config de chaque module vivent dans sa page de doc.
+
+```json
+{"module_id": "QRA", "mission_yaml_path": "chemin/vers/mission.yaml"}
+```
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
   se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
 - Un validateur de schéma par module pour `set_mission_module` (la vague 4 reste générique).
-- Catalogue/curation de types d'unités.
-- Actions composites (ex. un seul appel `create_combat_zone`).
+- `add_group` conscient des conventions (vague 6), symétrie des cibles (vague 7), actions
+  composites `create_combat_zone`/`create_qra`/`create_cap_mission` (vague 8).
 
 Voir `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` pour le détail.

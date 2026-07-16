@@ -1,6 +1,6 @@
 # FEAT-BLANK-MISSION-THEATRE-003 — `scaffold_mission(theatre=...)`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/scaffold.py`, `veaf_mission_mcp/actions.py`, `test/python/veaf_mission_mcp/test_scaffold.py`
 

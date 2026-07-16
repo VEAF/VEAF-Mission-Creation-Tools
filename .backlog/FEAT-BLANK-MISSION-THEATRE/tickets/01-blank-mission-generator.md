@@ -1,6 +1,6 @@
 # FEAT-BLANK-MISSION-THEATRE-001 — Blank-mission generator
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/blank_mission.py`, `src/python/veaf-tools/veaf_libs/data/theatre-defaults.yaml`, `test/python/veaf_libs/test_blank_mission.py`
 

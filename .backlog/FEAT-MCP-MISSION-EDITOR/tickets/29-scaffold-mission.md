@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-029 — `scaffold_mission` (bootstrap an empty folder from GitHub)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/scaffold.py`, `veaf_mission_mcp/actions.py`, `veaf_libs/platform_assets.py`, `test/python/veaf_mission_mcp/test_scaffold.py`
 

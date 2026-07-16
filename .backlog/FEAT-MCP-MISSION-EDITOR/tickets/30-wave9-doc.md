@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-030 — Wave 9 doc + catalogue + skill
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md`, `doc/developer/mission-editing-mcp.en.md`, `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (+ `.en.md`), `plugin/skills/veaf-mission-authoring/SKILL.md`, `CHANGELOG.md`, `pyproject.toml`
 

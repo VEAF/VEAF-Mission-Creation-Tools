@@ -1,6 +1,6 @@
 # FEAT-BLANK-MISSION-THEATRE-002 — `prepare --theatre` + `--list-theatres`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_tools/commands/prepare.py`, `veaf_libs/locales/{en,fr}.json`, `test/python/`
 

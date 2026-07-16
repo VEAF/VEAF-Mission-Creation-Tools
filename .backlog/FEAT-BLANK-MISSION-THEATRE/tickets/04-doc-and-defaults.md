@@ -1,6 +1,6 @@
 # FEAT-BLANK-MISSION-THEATRE-004 — Doc + CHANGELOG + bump
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/mission-maker/`, `doc/developer/mission-editing-mcp.md` (+ `.en.md`), `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (+ `.en.md`), `plugin/skills/veaf-mission-authoring/SKILL.md`, `CHANGELOG.md`, `pyproject.toml`
 

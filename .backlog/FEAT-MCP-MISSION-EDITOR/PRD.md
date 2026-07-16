@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, tickets 29-30) and wave 10 (map reading + human coordinates, tickets 31-34) are ⬜ ready** — the "upstream" of NL-MISSION-GEN: create the mission folder itself, then let a maker place things by lat/long / MGRS, not only DCS x/y. The coordinate-projection question is **resolved**: port the existing `projection.lua` (Transverse Mercator WGS84 + per-theatre tables, MIT) from `bfr-claude-plugins` — no in-house derivation, no heavy dependency.)
+Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, tickets 29-30) is ✅ done (PR #581, merged). Wave 10 (map reading + human coordinates, tickets 31-34) is ⬜ ready.** — the "upstream" of NL-MISSION-GEN: create the mission folder itself, then let a maker place things by lat/long / MGRS, not only DCS x/y. The coordinate-projection question is **resolved**: port the existing `projection.lua` (Transverse Mercator WGS84 + per-theatre tables, MIT) from `bfr-claude-plugins` — no in-house derivation, no heavy dependency.)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 

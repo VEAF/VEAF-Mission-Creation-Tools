@@ -235,6 +235,19 @@ inserted otherwise**. No deduplication.
 > of the config block passed stays the caller's (LLM's) responsibility, like unit types for
 > `add_group`.
 
+### Recipe / built parity (wave 7)
+
+Every setting editable on the built `veaf-config.lua` (wave 3) gets its **source** `mission.yaml`
+counterpart, so both targets are reachable. Separate actions (consistent with `set_mission_module`),
+on the `mission_yaml_editor` brick:
+
+| Setting | Recipe (`mission.yaml`) | Built (`veaf-config.lua`) |
+|---------|-------------------------|---------------------------|
+| Log level | `set_mission_log_level` → `global_log_level` | `set_log_level` |
+| Security | `set_mission_security` → `security:` block (**+ password hashes**) | `set_security_disabled` |
+| Arbitrary setting | `set_mission_setting` → `settings.<key>` | `set_veaf_config` → `veaf.config.<key>` |
+| Module enable | `set_mission_module` (wave 4) | `set_module_enabled` |
+
 ## Domain-knowledge oracle (wave 5)
 
 The actions above are the LLM's **hands** (writes) and **eyes** (`describe_*`). Wave 5 gives it a

@@ -15,6 +15,16 @@ from typing import Any
 
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 
+_LOG_LEVELS = ("error", "warning", "info", "debug", "trace")
+
+
+def _load_document(path: Path) -> Any:
+    """Load `path` as a round-trip mapping, or raise if it is not a mapping."""
+    data = load_yaml(path)
+    if not hasattr(data, "__setitem__"):
+        raise ValueError(f"Mission config is not a mapping: {path}")
+    return data
+
 
 def _modules_block(path: Path) -> tuple[Any, Any]:
     """Return the loaded document and its ``modules:`` mapping, or raise if malformed.
@@ -107,3 +117,93 @@ def set_mission_module(
     modules[module_id] = value
     backup = save_yaml(mission_yaml_path, data)
     return {"module": module_id, "shape": shape, "inserted": inserted, "backup": str(backup)}
+
+
+def set_mission_log_level(mission_yaml_path: Path, level: str) -> dict[str, Any]:
+    """Set the global VEAF log level in the source ``mission.yaml`` (`global_log_level:`).
+
+    Source-side counterpart of the built-side ``set_log_level`` (which edits ``veaf-config.lua``).
+
+    Args:
+        mission_yaml_path: Path to the mission's source ``mission.yaml``.
+        level: One of ``error``, ``warning``, ``info``, ``debug``, ``trace``.
+
+    Returns:
+        `{"global_log_level": <level>, "backup": <backup path as str>}`.
+
+    Raises:
+        ValueError: If `level` is unknown or the document is not a mapping.
+    """
+    if level not in _LOG_LEVELS:
+        raise ValueError(f"Unknown log level: {level!r} (expected one of {_LOG_LEVELS})")
+    data = _load_document(mission_yaml_path)
+    data["global_log_level"] = level
+    backup = save_yaml(mission_yaml_path, data)
+    return {"global_log_level": level, "backup": str(backup)}
+
+
+def set_mission_security(
+    mission_yaml_path: Path,
+    disabled: bool,
+    password_hashes: list[str] | None = None,
+    password_mm_hashes: list[str] | None = None,
+) -> dict[str, Any]:
+    """Set the ``security:`` block in the source ``mission.yaml``.
+
+    Source-side counterpart of the built-side ``set_security_disabled`` — and, unlike it, also
+    covers the JTF/Mission-Master password hash lists. Only the fields given are written; existing
+    ``security:`` keys are otherwise preserved.
+
+    Args:
+        mission_yaml_path: Path to the mission's source ``mission.yaml``.
+        disabled: ``True`` = no password required.
+        password_hashes: Optional SHA-256 hashes restricting JTF/admin access.
+        password_mm_hashes: Optional SHA-256 hashes restricting Mission Master access.
+
+    Returns:
+        `{"security": {...}, "backup": <backup path as str>}`.
+
+    Raises:
+        ValueError: If the document is not a mapping.
+    """
+    data = _load_document(mission_yaml_path)
+    security = data.get("security")
+    if not hasattr(security, "__setitem__"):
+        security = {}
+        data["security"] = security
+    security["disabled"] = disabled
+    if password_hashes is not None:
+        security["password_hashes"] = password_hashes
+    if password_mm_hashes is not None:
+        security["password_mm_hashes"] = password_mm_hashes
+    backup = save_yaml(mission_yaml_path, data)
+    return {"security": {key: security[key] for key in security}, "backup": str(backup)}
+
+
+def set_mission_setting(mission_yaml_path: Path, key: str, value: Any) -> dict[str, Any]:
+    """Set an arbitrary ``settings.<key>`` in the source ``mission.yaml``.
+
+    Source-side counterpart of the built-side ``set_veaf_config`` (which sets
+    ``veaf.config.<key>``): the build renders ``settings.<key>`` to ``veaf.config.<key>``. Creates
+    the ``settings:`` block if absent; inserts the key if absent, replaces it otherwise.
+
+    Args:
+        mission_yaml_path: Path to the mission's source ``mission.yaml``.
+        key: The setting key.
+        value: The value (scalar or structure).
+
+    Returns:
+        `{"key": <key>, "inserted": <bool>, "backup": <backup path as str>}`.
+
+    Raises:
+        ValueError: If the document is not a mapping.
+    """
+    data = _load_document(mission_yaml_path)
+    settings = data.get("settings")
+    if not hasattr(settings, "__setitem__"):
+        settings = {}
+        data["settings"] = settings
+    inserted = key not in settings
+    settings[key] = value
+    backup = save_yaml(mission_yaml_path, data)
+    return {"key": key, "inserted": inserted, "backup": str(backup)}

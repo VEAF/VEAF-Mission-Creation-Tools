@@ -239,6 +239,19 @@ est **remplacée si présente, insérée sinon**. Pas de déduplication.
 > schéma par module : la forme du bloc de config passé reste la responsabilité de l'appelant
 > (LLM), comme les types d'unités pour `add_group`.
 
+### Parité recette / construit (vague 7)
+
+Chaque réglage éditable sur le `veaf-config.lua` construit (vague 3) a son pendant **source**
+`mission.yaml`, pour que les deux cibles soient joignables. Actions séparées (cohérent avec
+`set_mission_module`), sur la brique `mission_yaml_editor` :
+
+| Réglage | Recette (`mission.yaml`) | Construit (`veaf-config.lua`) |
+|---------|--------------------------|-------------------------------|
+| Niveau de log | `set_mission_log_level` → `global_log_level` | `set_log_level` |
+| Sécurité | `set_mission_security` → bloc `security:` (**+ hash de mots de passe**) | `set_security_disabled` |
+| Paramètre arbitraire | `set_mission_setting` → `settings.<clé>` | `set_veaf_config` → `veaf.config.<clé>` |
+| Activation de module | `set_mission_module` (vague 4) | `set_module_enabled` |
+
 ## Oracle de connaissance métier (vague 5)
 
 Les actions ci-dessus sont les **mains** (écriture) et les **yeux** (`describe_*`) du LLM. La

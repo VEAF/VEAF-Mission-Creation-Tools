@@ -164,6 +164,19 @@ with care.
 
 ## What's next?
 
-New actions are coming (non-circular zones, a richer trigger editor, composite actions such as
-"build me a full combat zone in one go"…). This page will be updated as they land. For the
-technical detail, see the [developer doc](../developer/mission-editing-mcp.en.md).
+The roadmap aims to let the AI build **complete** VEAF features **in a single pass**, across both
+worlds (the `.miz` and the `mission.yaml` recipe):
+
+- 🧠 **The AI gains a "domain brain"** — access to DCS unit types, VEAF aliases/shortcuts, naming
+  conventions and each module's config. It names and configures things **itself** (you give the
+  intent, not the details).
+- ⭐ **Context-aware group creation** — *"create a CZ with two armor groups"* or *"a QRA in
+  Mirage 2000s"*: the AI picks the types, names the groups per the conventions, handles Late
+  Activation, etc.
+- 🔁 **Target symmetry** — every setting applicable to both the recipe and the built mission will
+  work on both.
+- 🏗️ **One-shot actions** — `create_combat_zone`, `create_qra`, `create_cap_mission`: zone +
+  groups + config in a single call.
+
+This page grows with each new capability. For the technical detail, see the
+[developer doc](../developer/mission-editing-mcp.en.md).

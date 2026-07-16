@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, in PR #575 draft; wave 4 — VMCT actions on the source `mission.yaml` — done, tickets 12-15)
+Status: 🔄 in-progress (waves 1-4 done — 15 tickets, in PR #575 draft; waves 5-8 planned — domain oracle → convention-aware add_group → target symmetry → composite feature builders, tickets 16-28)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -111,6 +111,62 @@ respects the CLAUDE.md _defaults-lockstep_ rule. Backed up first, like every wri
 | FEAT-MCP-MISSION-EDITOR-013 | **MCP actions on `mission.yaml`**: `describe_mission_config` (read — list the `modules:` block and each module's enabled/config state) and `set_mission_module` (write — enable/disable a module scalar **or** set its extended config mapping, e.g. a `COMBATZONE`/`CTLD` block, preserving comments). Registered in the catalog next to the wave-3 `set_*` actions. No dedup. TDD on scalar toggle + extended-mapping insert + unknown-module handling. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-014 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with wave-4 + the fourth (VMCT) action family; CONTEXT.md glossary (`_VMCT action_` now has a concrete implementation); CHANGELOG; version bump. Amend this PRD's _Out of Scope_ (VMCT actions no longer excluded). | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
 | FEAT-MCP-MISSION-EDITOR-015 | **Mission-maker action catalogue** (user-facing): `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (FR/EN) listing every action in plain language, grouped by theme, ordered by estimated frequency, with a complete index + frequency legend and the recipe-vs-built-mission distinction. A **living doc** — future action-adding lots must extend it. Added to the `mkdocs.yml` nav; cross-linked from the developer doc. | `doc/mission-maker/`, `mkdocs.yml`, `doc/developer/`, `CHANGELOG.md` | docs | ✅ |
+
+## Roadmap — waves 5-8 (planned)
+
+Endgame: an LLM builds VEAF combat features **end-to-end, in one pass**, across both worlds
+(the `.miz` and the source `mission.yaml`). Three pillars were identified with David: the LLM
+already has **hands** (write actions) and **eyes** (`describe_*`); it lacks a **domain brain**.
+The waves below add that brain, make group creation convention-aware, restore target symmetry,
+and finally ship composite feature builders. Delivery vehicle: a **Claude plugin** = MCP server
+(hands/eyes) + skill (brain).
+
+### Wave 5 — Domain knowledge oracle (the "brain") 🧠
+
+Expose all the DCS + VEAF knowledge the LLM needs to author correctly, **hybrid**: structured
+facts via MCP read actions generated from the *canonical sources* (no duplication/drift) + a
+concise Claude skill for the "how to reason" part.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-016 | **Introspection actions**: `list_unit_types` (from `veafUnits`/DCS data, filterable by category/coalition/era), `list_shortcuts` (veafShortcuts aliases, e.g. `-armor`, `-sa2`), `describe_naming_conventions` (the 8 reserved patterns + when each applies), `describe_module` (required/optional keys + semantics, sourced from `lua_config_generator`/`MISSION_YAML_REFERENCE`). | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-017 | **Authoring skill** (Claude plugin): a `veaf-mission-authoring` skill teaching the reasoning — naming rules, combat-zone-vs-QRA group models, when to use `#command`/aliases, Late Activation — pointing at the wave-16 actions as the source of truth. | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-018 | **Doc + catalogue**: developer doc + mission-maker catalogue updated with the oracle actions. | docs | ⬜ |
+
+### Wave 6 — Convention-aware `add_group` (point 2)
+
+Group creation driven by the oracle: the LLM names groups correctly **itself** (the user gives
+intent, not names).
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-019 | **Naming intents**: `add_group` accepts `for_combat_zone: <zone>` (auto zone-name prefix), `late_activation` (QRA groups), `as_spawn_template` (`veafSpawn-` prefix), and supports `#command="-<alias> …"` fake-unit groups. Generates convention-correct names. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-020 | **Validation & warnings**: `validate_group_name` action + warnings surfaced in `add_group`'s return (reserved-pattern collision, combat-zone capture trap, etc.) for the calling LLM to relay to the user. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-021 | **Doc + catalogue** update. | docs | ⬜ |
+
+### Wave 7 — Target symmetry (point 1)
+
+Every dual-target setting works on **both** the source `mission.yaml` and the built
+`veaf-config.lua`.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-022 | **Source-side config edits**: `global_log_level`, the `security:` block (incl. password hashes — not covered built-side), per-module `logLevel`, on `mission.yaml`. Unify via a `target: "source" \| "built"` parameter on the config actions. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-023 | **Doc + catalogue** update (parity noted, `target` param documented). | docs | ⬜ |
+
+### Wave 8 — Composite feature builders, one pass, both worlds (point 3 — the goal)
+
+The MCP becomes **mission-folder-aware** (extract `.miz` → `src/mission/`, edit both worlds,
+build back) and ships high-level builders. CAS is **excluded** — it is a pure runtime on-demand
+mission, not authored into the file.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-024 | **Folder-awareness**: operate on a mission folder; extract/build round-trip helper (reuse `mission_promoter`/`extract`/`build`). | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-025 | **`create_combat_zone`**: trigger zone + groups placed inside (geometry-based, coalition-agnostic) + `COMBATZONE` yaml block — one call. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-026 | **`create_qra`**: trigger zone + Late-Activation interceptor groups (coalition-significant, named to match) + `QRA` definition — one call. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-027 | **`create_cap_mission`**: `OnDemand-<name>` Late-Activation templates + `combat_missions` yaml block. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-028 | **Doc + catalogue** update (composite section, the recipe-vs-built + one-pass model). | docs | ⬜ |
 
 ## Out of Scope
 

@@ -168,7 +168,19 @@ de dépannage — à manier avec précaution.
 
 ## Et après ?
 
-De nouvelles actions arriveront (zones non circulaires, éditeur de déclencheurs plus riche,
-actions composites comme « crée-moi une combat zone complète en un coup »…). Cette page sera
-mise à jour au fur et à mesure. Pour le détail technique, voir la
+La feuille de route vise à ce que l'IA construise des fonctionnalités VEAF **complètes, en une
+seule passe**, sur les deux mondes (le `.miz` et la recette `mission.yaml`) :
+
+- 🧠 **L'IA gagne un « cerveau métier »** — accès aux types d'unités DCS, aux alias/raccourcis
+  VEAF, aux conventions de nommage et à la config de chaque module. Elle nomme et configure
+  correctement **elle-même** (tu donnes l'intention, pas les détails).
+- ⭐ **Création de groupes contextuelle** — *« crée une CZ avec deux groupes de blindés »* ou
+  *« une QRA en Mirage 2000 »* : l'IA choisit les types, nomme les groupes selon les conventions,
+  gère la Late Activation, etc.
+- 🔁 **Symétrie des cibles** — chaque réglage applicable à la recette **et** à la mission
+  construite le sera sur les deux.
+- 🏗️ **Actions « tout-en-un »** — `create_combat_zone`, `create_qra`, `create_cap_mission` :
+  zone + groupes + config, d'un seul coup.
+
+Cette page sera enrichie à chaque nouvelle capacité. Pour le détail technique, voir la
 [doc développeur](../developer/mission-editing-mcp.md).

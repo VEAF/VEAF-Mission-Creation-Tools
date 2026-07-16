@@ -348,6 +348,9 @@ Write. On an **empty** target folder:
 - `template` — `minimal` / `standard` / `full`. The interactive `custom` tier is **not** supported
   here (its TUI picker has no TTY under a subprocess); the calling LLM must **ask the Mission Maker
   which template** and pass it as a parameter.
+- `theatre` — optional; relayed to `prepare --theatre` to lay down a **synthetic blank mission**
+  for that DCS map into `src/mission/` (no DCS round-trip). Omitted → `src/mission/` stays empty
+  (the maker supplies their own `.miz`).
 - `github_token` — optional, relayed to the updater (`--token`) to bypass the API rate limit.
 - A non-zero exit from the updater or `prepare`, or a missing `veaf-tools`/`published/` after the
   updater, surfaces as an explicit error.

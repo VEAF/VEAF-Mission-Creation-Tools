@@ -1,8 +1,8 @@
 # Lot FEAT-BLANK-MISSION-THEATRE — synthesize a blank mission per theatre
 
-Status: ⬜ ready
+Status: 🔄 in-progress (001-004 implemented; generator + `prepare --theatre`/`--list-theatres` + `scaffold_mission(theatre=)` + docs done. **Caucasus seeded and DCS-load-verified by David.** Other theatres pending their reference constants — added as pure data, no code. Pending PR.)
 
-Branch: `feature/blank-mission-theatre` → PR → `develop-v6`
+Branch: `feature/blank-mission-theatre` → PR → `feature/mcp-mission-editor` (stacked on wave 9; reaches `develop-v6` via the umbrella PR #575)
 
 ## Context
 

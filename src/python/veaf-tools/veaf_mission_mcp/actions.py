@@ -464,6 +464,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "enum": ["minimal", "standard", "full"],
                         "description": "Coverage tier (custom is not supported here).",
                     },
+                    "theatre": {
+                        "type": "string",
+                        "description": "Optional DCS theatre — lays down a synthetic blank mission for that map in "
+                        "src/mission (no DCS round-trip). Omit to leave src/mission empty.",
+                    },
                     "github_token": {
                         "type": "string",
                         "description": "Optional GitHub token, relayed to the updater to bypass the API rate limit.",
@@ -479,6 +484,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: scaffold_mission(
             p["target_folder"],
             template=p["template"],
+            theatre=p.get("theatre"),
             github_token=p.get("github_token"),
             tag=p.get("tag"),
         ),

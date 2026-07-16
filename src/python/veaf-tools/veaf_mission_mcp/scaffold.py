@@ -75,6 +75,7 @@ def scaffold_mission(
     target_folder: str,
     *,
     template: str,
+    theatre: str | None = None,
     github_token: str | None = None,
     tag: str | None = None,
 ) -> dict[str, Any]:
@@ -88,6 +89,9 @@ def scaffold_mission(
         target_folder: The folder to initialize. Created if missing; **must be empty**.
         template: Coverage tier — one of ``minimal`` / ``standard`` / ``full`` (``custom`` is not
             supported: its interactive picker has no TTY under a subprocess).
+        theatre: Optional DCS theatre — when given, forwarded to ``prepare --theatre`` so a
+            synthetic blank mission for that map is laid down in ``src/mission/`` (no DCS
+            round-trip). Omitted → ``src/mission/`` is left empty (the maker supplies their own).
         github_token: Optional GitHub token, relayed to the updater (``--token``) to bypass the
             API rate limit on its own ``published.zip`` fetch.
         tag: Release tag to install from (default ``published-latest``); relayed to the updater
@@ -133,8 +137,11 @@ def scaffold_mission(
             "check the updater output or the release tag."
         )
 
-    # 3. Lay down the default scaffold for the chosen template.
-    _run([str(veaf_tools), "prepare", "--template", template, "--force"], cwd=folder, step="prepare")
+    # 3. Lay down the default scaffold for the chosen template (+ theatre blank if requested).
+    prepare_cmd = [str(veaf_tools), "prepare", "--template", template, "--force"]
+    if theatre:
+        prepare_cmd += ["--theatre", theatre]
+    _run(prepare_cmd, cwd=folder, step="prepare")
 
     return {
         "folder": str(folder),

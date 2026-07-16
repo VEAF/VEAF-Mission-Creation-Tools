@@ -1,0 +1,19 @@
+# Per-theatre constants for synthesizing a blank mission (FEAT-BLANK-MISSION-THEATRE).
+#
+# `generate_blank_mission` composes a generic, theatre-agnostic mission skeleton with these
+# per-theatre values (DCS theatre name, map centre/zoom, and a default per-coalition bullseye) to
+# produce a minimal loadable blank for a given map — no DCS round-trip.
+#
+# Seeded from a real Caucasus mission. Extend with more theatres by capturing their reference
+# values from a real mission on that map (do NOT invent coordinates). Keys are lowercased.
+
+caucasus:
+  name: Caucasus
+  map:
+    centerX: -323317.27719342
+    centerY: 642314.78215233
+    zoom: 120000.74115022
+  bullseye:
+    blue: { x: -327185.79676896, y: 607093.66320678 }
+    red: { x: 11557.0, y: 371700.0 }
+    neutrals: { x: 100.0, y: 100.0 }

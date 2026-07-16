@@ -165,12 +165,12 @@ def prepare(
         return
 
     # Validate the theatre up front (before copying anything) so an unknown one fails cleanly.
+    # Reuse the library's case-insensitive check — the single source of truth for supported maps.
     if theatre is not None:
-        from veaf_libs.blank_mission import supported_theatres
+        from veaf_libs.blank_mission import is_theatre_supported, supported_theatres
 
-        supported = supported_theatres()
-        if theatre.lower() not in {name.lower() for name in supported}:
-            logger.error(t("cmd.prepare.unknown_theatre", theatre=theatre, valid=", ".join(supported)))
+        if not is_theatre_supported(theatre):
+            logger.error(t("cmd.prepare.unknown_theatre", theatre=theatre, valid=", ".join(supported_theatres())))
             raise typer.Exit(code=1)
 
     if readme:

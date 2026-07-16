@@ -21,6 +21,10 @@ class TestSupportedTheatres:
     def test_caucasus_is_supported(self) -> None:
         assert "Caucasus" in blank_mission.supported_theatres()
 
+    def test_is_theatre_supported_case_insensitive(self) -> None:
+        assert blank_mission.is_theatre_supported("CAUCASUS")
+        assert not blank_mission.is_theatre_supported("nevada")
+
 
 class TestGenerateBlankMission:
     def test_returns_the_exploded_file_set(self) -> None:

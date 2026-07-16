@@ -10,6 +10,7 @@ The output is the exploded ``src/mission/`` file set a VEAF mission folder expec
 — or the composites (`add_group` populates coalitions/countries on demand) — fills them in.
 """
 
+from functools import lru_cache
 from typing import Any
 
 import luadata  # type: ignore[import-untyped]
@@ -24,8 +25,9 @@ _DICTIONARY_PATH = "l10n/DEFAULT/dictionary"
 _MAP_RESOURCE_PATH = "l10n/DEFAULT/mapResource"
 
 
+@lru_cache(maxsize=1)
 def _theatre_table() -> dict[str, dict[str, Any]]:
-    """Load the per-theatre constants table (lowercased keys)."""
+    """Load the per-theatre constants table (lowercased keys). Cached — the data is static."""
     raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "theatre-defaults.yaml")) or {}
     return {str(k).lower(): v for k, v in raw.items()}
 
@@ -33,6 +35,11 @@ def _theatre_table() -> dict[str, dict[str, Any]]:
 def supported_theatres() -> list[str]:
     """Return the theatre names for which a blank can be synthesized (as declared, sorted)."""
     return sorted(entry["name"] for entry in _theatre_table().values())
+
+
+def is_theatre_supported(theatre: str) -> bool:
+    """Return whether a blank can be generated for `theatre` (case-insensitive)."""
+    return theatre.lower() in _theatre_table()
 
 
 def _resolve_theatre(theatre: str) -> dict[str, Any]:
@@ -124,6 +131,8 @@ def _mission_skeleton(theatre: dict[str, Any]) -> dict[str, Any]:
                 5: {"name": "Author", "objects": {}, "visible": True},
             },
             "options": {
+                # Role keys are DCS's own literal spellings — "Spectrator" is DCS's (misspelled)
+                # key, kept verbatim so the mission format matches what the ME reads/writes.
                 "hiddenOnF10Map": {
                     role: {"Blue": False, "Neutral": False, "Red": False}
                     for role in (

@@ -70,6 +70,14 @@ name in the QRA definition.
   a Late-Activation group (coherent name, correct coalition), a trigger zone, and a `QRA`
   definition referencing the group name verbatim. The user did not give names — you did.
 
+## Prefer composites for whole features
+
+When the user asks for a **whole feature** ("create a combat zone / a QRA / a CAP mission"), reach
+for the one-pass composite (`create_combat_zone` / `create_qra` / `create_cap_mission`) on a
+**mission folder** — it edits both worlds (source `src/mission/` + `mission.yaml`) durably in one
+call. Drop to the primitives (`add_trigger_zone`, `add_group`, `set_mission_module`) only for
+partial or one-off edits, or when there's no folder (a lone `.miz`).
+
 ## Report back clearly
 
 Tell the user which world you edited, the names/types you chose and why, and surface any

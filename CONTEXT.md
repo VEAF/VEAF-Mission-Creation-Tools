@@ -250,6 +250,12 @@ fact is read from the **canonical sources** the build already uses (generated
 drift. Complements the write actions ("hands") and `describe_*` ("eyes"); paired with
 the `veaf-mission-authoring` Claude skill ("how to reason").
 
+**Composite action** (a.k.a. one-pass builder):
+A high-level mission-editing MCP action that lays down a **complete** VEAF feature in a single
+call, across **both worlds** of a mission folder — the exploded `src/mission/` (zones/groups) and
+`mission.yaml` (module config) — by orchestrating the lower-level primitives (`create_combat_zone`,
+`create_qra`, `create_cap_mission`). Edits the durable source; no build is triggered.
+
 ## Script loading
 
 **Static loading**:

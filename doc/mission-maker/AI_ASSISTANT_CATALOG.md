@@ -58,6 +58,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
 | 16 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
 | 17 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 18 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 19 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
 
 ---
 
@@ -120,6 +122,21 @@ groupe et te relaie tout avertissement.
 `mission.yaml`. Tu décris, l'IA assemble.
 
 > 💬 *« Crée une combat zone “North” avec deux groupes de blindés ennemis. »*
+
+### Créer une QRA complète {#creer-qra}
+
+*Recette (dossier) · 🔥* — En un appel : la zone protégée, les intercepteurs en **Late
+Activation** (sur la bonne coalition) **et** la définition `QRA` dans `mission.yaml` (référençant
+les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble.
+
+> 💬 *« Crée une QRA rouge en Mirage 2000 sur la zone Nord. »*
+
+### Créer une mission CAP à la demande {#creer-cap}
+
+*Recette (dossier) · ⭐* — En un appel : le groupe template `OnDemand-<nom>` en **Late
+Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
+
+> 💬 *« Crée une CAP à la demande “Escort” avec deux F-15. »*
 
 ---
 

@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-028 — Wave-8 documentation
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (FR/EN), `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml`, `plugin/skills/veaf-mission-authoring/SKILL.md`
 
@@ -18,9 +18,9 @@ Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASS
 
 ## Acceptance criteria
 
-- [ ] Both language docs and the catalogue describe the composites and the both-worlds model.
-- [ ] Skill updated to reach for composites first.
-- [ ] CHANGELOG + version bump landed.
+- [x] Both language docs and the catalogue describe the composites and the both-worlds model.
+- [x] Skill updated to reach for composites first.
+- [x] CHANGELOG + version bump landed.
 
 ## Blocked by
 

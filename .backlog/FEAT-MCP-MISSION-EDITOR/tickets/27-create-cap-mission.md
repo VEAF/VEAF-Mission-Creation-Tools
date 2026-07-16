@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-027 — `create_cap_mission` (one pass, both worlds)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -19,11 +19,11 @@ Confirm the exact `mission.yaml` shape (`cap_missions:` vs `combat_missions:`) a
 
 ## Acceptance criteria
 
-- [ ] One call produces: the `OnDemand-<name>` Late-Activation template group and the matching
+- [x] One call produces: the `OnDemand-<name>` Late-Activation template group and the matching
       `cap_missions`/`combat_missions` yaml entry.
-- [ ] The yaml reference resolves to the `OnDemand-`-prefixed group (matches `group_validation`).
-- [ ] TDD against a real mission folder fixture; ruff + mypy clean.
-- [ ] Mission-maker catalogue updated.
+- [x] The yaml reference resolves to the `OnDemand-`-prefixed group (matches `group_validation`).
+- [x] TDD against a real mission folder fixture; ruff + mypy clean.
+- [x] Mission-maker catalogue updated.
 
 ## Blocked by
 

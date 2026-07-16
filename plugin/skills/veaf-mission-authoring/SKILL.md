@@ -81,7 +81,10 @@ never guess it:
 - `standard` — the everyday set (a good default);
 - `full` — everything, advanced config as commented examples.
 
-(`custom` is not available through the MCP.) Once the folder exists, use the composites below to
+(`custom` is not available through the MCP.) Also **ask which theatre** (map) the mission is on and
+pass it as `theatre`: `scaffold_mission` then lays down a synthetic blank mission for that map in
+`src/mission/`, so the folder is ready for the composites with no DCS round-trip. Omit `theatre`
+only if the user will supply their own `.miz`. Once the folder exists, use the composites below to
 fill it.
 
 ## Prefer composites for whole features

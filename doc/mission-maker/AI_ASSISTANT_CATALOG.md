@@ -127,8 +127,11 @@ le template choisi. C'est l'**étape 0** avant d'ajouter des combat zones, QRA, 
 - `standard` — le jeu quotidien (recommandé) ;
 - `full` — tout, config avancée en exemples commentés.
 
-> 💬 *« Crée-moi une nouvelle mission VEAF dans ce dossier. »* (l'IA demande le template puis
-> installe tout)
+Tu peux aussi préciser le **théâtre** (Caucasus, …) : l'IA génère alors une mission vierge de cette
+carte directement, prête à recevoir des combat zones / QRA — **sans passer par DCS**.
+
+> 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
+> template + le théâtre, puis installe et génère tout)
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 

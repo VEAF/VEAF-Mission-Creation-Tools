@@ -141,6 +141,8 @@ def prepare(
     mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
     template: str | None = typer.Option(None, "--template", "-t", help=t("cmd.prepare.opt.template")),
     list_templates: bool = typer.Option(False, "--list-templates", help=t("cmd.prepare.opt.list_templates")),
+    theatre: str | None = typer.Option(None, "--theatre", help=t("cmd.prepare.opt.theatre")),
+    list_theatres: bool = typer.Option(False, "--list-theatres", help=t("cmd.prepare.opt.list_theatres")),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help=t("cmd.prepare.opt.force")),
@@ -155,6 +157,21 @@ def prepare(
     if list_templates:
         console.print(t("cmd.prepare.templates_list", templates=", ".join((*TIER_NAMES, "custom"))))
         return
+
+    if list_theatres:
+        from veaf_libs.blank_mission import supported_theatres
+
+        console.print(t("cmd.prepare.theatres_list", theatres=", ".join(supported_theatres())))
+        return
+
+    # Validate the theatre up front (before copying anything) so an unknown one fails cleanly.
+    # Reuse the library's case-insensitive check — the single source of truth for supported maps.
+    if theatre is not None:
+        from veaf_libs.blank_mission import is_theatre_supported, supported_theatres
+
+        if not is_theatre_supported(theatre):
+            logger.error(t("cmd.prepare.unknown_theatre", theatre=theatre, valid=", ".join(supported_theatres())))
+            raise typer.Exit(code=1)
 
     if readme:
         console.print(t("cmd.prepare.subtitle"))
@@ -233,6 +250,21 @@ def prepare(
 
             (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")
             console.print(tn("cmd.prepare.template_applied", len(enabled_modules), template=template))
+
+        # Lay down a synthetic blank mission for the chosen theatre into src/mission/, so the folder
+        # builds without a DCS round-trip. Never clobber an existing mission unless --force.
+        if theatre is not None:
+            from veaf_libs.blank_mission import generate_blank_mission
+
+            mission_dir = p_mission_folder / "src" / "mission"
+            if (mission_dir / "mission").exists() and not force:
+                console.print(t("cmd.prepare.theatre_skipped", path=mission_dir))
+            else:
+                for member_path, content in generate_blank_mission(theatre).items():
+                    dest = mission_dir / member_path
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_bytes(content)
+                console.print(t("cmd.prepare.theatre_applied", theatre=theatre))
 
         # Print summary
         console.print(t("cmd.prepare.done"))

@@ -354,6 +354,9 @@ ferait un Mission Maker à sa première installation.
 - `template` — `minimal` / `standard` / `full`. Le tier interactif `custom` n'est **pas** supporté
   ici (son sélecteur TUI n'a pas de TTY sous un sous-processus) ; c'est au LLM appelant de **poser
   la question du template** au Mission Maker et de le passer en paramètre.
+- `theatre` — optionnel ; relayé à `prepare --theatre` pour déposer une **mission vierge
+  synthétique** de cette carte DCS dans `src/mission/` (sans passer par DCS). Omis → `src/mission/`
+  reste vide (le maker fournit son propre `.miz`).
 - `github_token` — optionnel, relayé à l'updater (`--token`) pour contourner la limite de débit de l'API.
 - Un code retour non nul de l'updater ou de `prepare`, ou l'absence de `veaf-tools`/`published/`
   après l'updater, remonte comme une erreur explicite.

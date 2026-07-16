@@ -125,8 +125,11 @@ first:
 - `standard` — the everyday set (recommended);
 - `full` — everything, advanced config as commented examples.
 
-> 💬 *"Create a new VEAF mission in this folder."* (the AI asks for the template, then installs
-> everything)
+You can also name the **theatre** (Caucasus, …): the AI then generates a blank mission for that map
+directly, ready for combat zones / QRAs — **with no DCS round-trip**.
+
+> 💬 *"Create a new VEAF mission on Caucasus in this folder."* (the AI asks for the template +
+> theatre, then installs and generates everything)
 
 ## 🏗️ Composites — create a full feature (one pass)
 

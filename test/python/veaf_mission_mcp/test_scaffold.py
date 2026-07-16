@@ -86,6 +86,16 @@ class TestScaffoldMission:
         assert result["template"] == "standard"
         assert result["veaf_tools_version"] == "6.9.9"
 
+    def test_theatre_forwarded_to_prepare(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", theatre="caucasus")
+        prepare_cmd = recorder["runs"][1]["cmd"]
+        assert prepare_cmd[1:] == ["prepare", "--template", "standard", "--force", "--theatre", "caucasus"]
+
+    def test_theatre_omitted_no_flag(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        prepare_cmd = recorder["runs"][1]["cmd"]
+        assert "--theatre" not in prepare_cmd
+
     def test_token_and_tag_relayed_to_updater(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         scaffold.scaffold_mission(str(tmp_path / "m"), template="minimal", github_token="ghp_x", tag="published-v6.9.9")
         updater_cmd = recorder["runs"][0]["cmd"]

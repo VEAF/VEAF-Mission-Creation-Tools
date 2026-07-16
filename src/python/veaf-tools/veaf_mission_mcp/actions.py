@@ -15,6 +15,7 @@ from veaf_mission_mcp.edit_veaf_config import (
     set_security_disabled,
     set_veaf_config,
 )
+from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     describe_module,
@@ -305,6 +306,37 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: describe_mission_config(Path(p["mission_yaml_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="validate_group_name",
+            description=(
+                "Check a proposed group name against the reserved VEAF naming conventions "
+                "(veafSpawn-/OnDemand-/VEAF-placeholder- prefixes, #veafInterpreter/#command "
+                "markers, QRA deploy syntax, fixed CAS names). With a miz_path, also flags the "
+                "combat-zone capture trap. Read-only; call before add_group."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "The proposed group name."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": "Optional .miz to check the combat-zone capture trap against.",
+                    },
+                    "expected_combat_zone": {
+                        "type": "string",
+                        "description": "A combat zone the group is intentionally attached to (suppresses its capture warning).",
+                    },
+                },
+                "required": ["name"],
+            },
+        ),
+        handler=lambda p: validate_group_name(
+            p["name"],
+            miz_path=Path(p["miz_path"]) if p.get("miz_path") else None,
+            expected_combat_zone=p.get("expected_combat_zone"),
+        ),
     )
     catalog.register(
         ActionSpec(

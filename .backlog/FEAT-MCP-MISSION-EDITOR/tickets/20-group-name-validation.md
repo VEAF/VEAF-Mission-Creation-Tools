@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-020 — Group-name validation & warnings
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/group_naming.py`, `veaf_mission_mcp/add_group.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -21,12 +21,19 @@ Encodes the same 8 conventions the wave-5 `describe_naming_conventions` reports 
 
 ## Acceptance criteria
 
-- [ ] `validate_group_name` flags each reserved pattern with a clear reason.
-- [ ] With a `.miz`, it detects the combat-zone prefix-capture trap against real trigger zones.
-- [ ] `add_group` returns non-empty `warnings` for a colliding name, and still writes.
-- [ ] A clean name yields no warnings.
-- [ ] TDD; ruff + mypy clean. Coverage gate per the ratchet.
-- [ ] Mission-maker catalogue updated.
+- [x] `validate_group_name` flags each reserved pattern with a clear reason.
+- [x] With a `.miz`, it detects the combat-zone prefix-capture trap against real trigger zones
+      (and suppresses the caller's intended zone via `expected_combat_zone`).
+- [x] `add_group` returns non-empty `warnings` for a colliding name, and still writes.
+- [x] A clean name yields no warnings.
+- [x] TDD (12 tests); ruff + mypy clean.
+- [ ] Coverage gate bump — deferred (not measurable locally; bump vs CI %).
+- [x] Mission-maker catalogue updated (FR/EN).
+
+## Note
+
+`resolve_group_name` (from ticket 019) was moved into the new `group_naming.py` alongside
+`validate_group_name` for cohesion; `add_group` re-exports it, so nothing downstream broke.
 
 ## Blocked by
 

@@ -55,6 +55,7 @@ The AI can act in two places, and it changes what "survives":
 | 13 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
 | 14 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
 | 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+| 16 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
 
 ---
 
@@ -91,6 +92,15 @@ interpreter…) the AI must respect so it doesn't break a mission.
 in a given mission.
 
 > 💬 *"How is the QRA module configured?"*
+
+### Check a group name {#check-group-name}
+
+*Knowledge · ◽* — Checks that a group name doesn't fall into a reserved pattern
+(`veafSpawn-`/`OnDemand-` prefixes, `#command`/interpreter markers, QRA syntax…) and, against a
+given mission, warns about the **combat-zone capture trap**. The AI uses it before adding a group
+and relays any warning to you.
+
+> 💬 *"Could this group name cause a problem?"*
 
 ---
 

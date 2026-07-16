@@ -56,6 +56,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 13 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
 | 14 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
 | 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
+| 16 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
 
 ---
 
@@ -93,6 +94,15 @@ interpréteur…) que l'IA doit respecter pour ne pas casser une mission.
 activé dans une mission donnée.
 
 > 💬 *« Le module QRA, ça se configure comment ? »*
+
+### Vérifier un nom de groupe {#verifier-nom-groupe}
+
+*Connaissance · ◽* — Contrôle qu'un nom de groupe ne tombe pas dans un motif réservé
+(préfixe `veafSpawn-`/`OnDemand-`, marqueurs `#command`/interpréteur, syntaxe QRA…) et, sur une
+mission donnée, prévient du **piège de capture combat-zone**. L'IA s'en sert avant d'ajouter un
+groupe et te relaie tout avertissement.
+
+> 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
 
 ---
 

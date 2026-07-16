@@ -15,39 +15,10 @@ from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
+from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
+
 _UNIT_SPACING_METERS = 20
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
-_SPAWN_TEMPLATE_PREFIX = "veafSpawn-"
-
-
-def resolve_group_name(
-    name: str,
-    *,
-    for_combat_zone: str | None = None,
-    as_spawn_template: bool = False,
-) -> str:
-    """Derive a convention-correct group name from the caller's intent.
-
-    Encodes two VEAF naming conventions (see the wave-5 oracle
-    ``describe_naming_conventions``): a combat-zone member's name must start with the
-    zone's name, and a spawnable-aircraft template's name must start with ``veafSpawn-``.
-    Both checks are idempotent — an already-correct name is returned unchanged.
-
-    Args:
-        name: The base name the caller proposes.
-        for_combat_zone: If set, ensure the name starts with this combat-zone trigger-zone
-            name (case-insensitive check, matching the runtime membership rule).
-        as_spawn_template: If true, ensure the name starts with ``veafSpawn-``.
-
-    Returns:
-        The resolved name.
-    """
-    resolved = name
-    if as_spawn_template and not resolved.startswith(_SPAWN_TEMPLATE_PREFIX):
-        resolved = f"{_SPAWN_TEMPLATE_PREFIX}{resolved}"
-    if for_combat_zone and not resolved.lower().startswith(for_combat_zone.lower()):
-        resolved = f"{for_combat_zone}-{resolved}"
-    return resolved
 
 
 def add_group(
@@ -91,7 +62,8 @@ def add_group(
             spawnable-aircraft template).
 
     Returns:
-        `{"group_id": <int>, "name": <resolved name>}`.
+        `{"group_id": <int>, "name": <resolved name>, "warnings": [...]}` — `warnings` flags any
+        reserved-naming-convention collision for the caller to relay (the write still happens).
 
     Raises:
         ValueError: If the archive is not a valid mission, or `units` yields no units.
@@ -114,10 +86,12 @@ def add_group(
         group=group,
     )
 
+    warnings = validate_group_name(name, miz_path=miz_path, expected_combat_zone=for_combat_zone)["warnings"]
+
     backup_before_write(miz_path)
     write_miz(mission, miz_path)
 
-    return {"group_id": group_id, "name": name}
+    return {"group_id": group_id, "name": name, "warnings": warnings}
 
 
 def _build_group(

@@ -46,9 +46,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 3 | [Ajouter un groupe terrestre / véhicules](#ajouter-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
 | 4 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
 | 5 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
-| 6 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Mission construite | ◽ |
-| 7 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Mission construite | ◽ |
-| 8 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Mission construite | ◽ |
+| 6 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Recette + construite | ◽ |
+| 7 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Recette + construite | ◽ |
+| 8 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Recette + construite | ◽ |
 | 9 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
 | 10 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
 | 11 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
@@ -167,21 +167,25 @@ reconstruction depuis la recette).
 
 ### Changer le niveau de logs {#niveau-de-logs}
 
-*Mission construite · ◽* — Règle le niveau de journalisation VEAF (erreur / avertissement / info
-/ debug / trace).
+*Recette + construite · ◽* — Règle le niveau de journalisation VEAF (erreur / avertissement /
+info / debug / trace). Faisable sur la **recette** (durable) ou sur la **mission construite**
+(rapide, écrasé au rebuild).
 
-> 💬 *« Passe les logs VEAF en debug. »*
+> 💬 *« Passe les logs VEAF en debug (dans la recette). »*
 
 ### Activer / désactiver la sécurité par mot de passe {#securite-mot-de-passe}
 
-*Mission construite · ◽* — Active ou coupe le drapeau de sécurité VEAF (le mot de passe requis
-pour les commandes protégées).
+*Recette + construite · ◽* — Active ou coupe le drapeau de sécurité VEAF (mot de passe requis
+pour les commandes protégées). Côté **recette**, gère aussi les **hash de mots de passe**
+(JTF / Mission Master) — ce que la mission construite ne fait pas.
 
 > 💬 *« Coupe la sécurité mot de passe sur cette mission de test. »*
 
 ### Régler un paramètre VEAF précis {#parametre-veaf}
 
-*Mission construite · ◽* — Positionne un paramètre de configuration VEAF donné à une valeur.
+*Recette + construite · ◽* — Positionne un paramètre de configuration VEAF donné à une valeur
+(côté recette : bloc `settings:` → `veaf.config.<clé>` ; côté construit : directement dans
+`veaf-config.lua`).
 
 > 💬 *« Mets tel paramètre VEAF à cette valeur. »*
 

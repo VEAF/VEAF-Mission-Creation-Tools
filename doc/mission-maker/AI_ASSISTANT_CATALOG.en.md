@@ -45,9 +45,9 @@ The AI can act in two places, and it changes what "survives":
 | 3 | [Add a ground / vehicle group](#add-a-group) | Order of battle | Built mission | ⭐ |
 | 4 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
 | 5 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
-| 6 | [Change the log level](#log-level) | Modules & settings | Built mission | ◽ |
-| 7 | [Enable / disable password security](#password-security) | Modules & settings | Built mission | ◽ |
-| 8 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Built mission | ◽ |
+| 6 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
+| 7 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
+| 8 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
 | 9 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
 | 10 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
 | 11 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
@@ -163,20 +163,23 @@ without a rebuild. Handy for a quick test (⚠️ overwritten on the next rebuil
 
 ### Change the log level {#log-level}
 
-*Built mission · ◽* — Sets the VEAF logging level (error / warning / info / debug / trace).
+*Recipe + built · ◽* — Sets the VEAF logging level (error / warning / info / debug / trace). On
+the **recipe** (durable) or the **built mission** (fast, overwritten on rebuild).
 
-> 💬 *"Put the VEAF logs in debug."*
+> 💬 *"Put the VEAF logs in debug (in the recipe)."*
 
 ### Enable / disable password security {#password-security}
 
-*Built mission · ◽* — Enables or disables the VEAF security flag (the password required for
-protected commands).
+*Recipe + built · ◽* — Enables or disables the VEAF security flag (the password required for
+protected commands). On the **recipe** it also handles the **password hashes** (JTF / Mission
+Master) — which the built mission does not.
 
 > 💬 *"Turn off password security on this test mission."*
 
 ### Set a specific VEAF parameter {#veaf-parameter}
 
-*Built mission · ◽* — Sets a given VEAF configuration parameter to a value.
+*Recipe + built · ◽* — Sets a given VEAF configuration parameter to a value (recipe: the
+`settings:` block → `veaf.config.<key>`; built: directly in `veaf-config.lua`).
 
 > 💬 *"Set such-and-such VEAF parameter to this value."*
 

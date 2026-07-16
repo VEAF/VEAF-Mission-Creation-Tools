@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-022 — Source-side config parity (`mission.yaml`)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/edit_mission_yaml.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -30,12 +30,12 @@ coverage, achieved either way.
 
 ## Acceptance criteria
 
-- [ ] Each setter edits the correct `mission.yaml` key/block, comments preserved, backed up first.
-- [ ] `set_mission_log_level` validates the level against the 5 levels.
-- [ ] `set_mission_security` sets `disabled` and, when given, the hash lists; leaves other keys intact.
-- [ ] `set_mission_setting` inserts/updates `settings.<key>` (creates `settings:` if absent).
-- [ ] All registered as actions; `run_action` dispatches them. TDD; ruff + mypy clean.
-- [ ] Mission-maker catalogue updated (living-doc rule).
+- [x] Each setter edits the correct `mission.yaml` key/block, comments preserved, backed up first.
+- [x] `set_mission_log_level` validates the level against the 5 levels.
+- [x] `set_mission_security` sets `disabled` and, when given, the hash lists; leaves other keys intact.
+- [x] `set_mission_setting` inserts/updates `settings.<key>` (creates `settings:` if absent).
+- [x] All registered as actions; `run_action` dispatches them. TDD (5 tests); ruff + mypy clean.
+- [x] Mission-maker catalogue updated (FR/EN) — "Modules & settings" now "Recipe + built".
 
 ## Blocked by
 

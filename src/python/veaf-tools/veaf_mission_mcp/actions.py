@@ -8,7 +8,13 @@ from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigg
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.describe_mission import describe_mission
-from veaf_mission_mcp.edit_mission_yaml import describe_mission_config, set_mission_module
+from veaf_mission_mcp.edit_mission_yaml import (
+    describe_mission_config,
+    set_mission_log_level,
+    set_mission_module,
+    set_mission_security,
+    set_mission_setting,
+)
 from veaf_mission_mcp.edit_veaf_config import (
     set_log_level,
     set_module_enabled,
@@ -364,6 +370,69 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_module(Path(p["mission_yaml_path"]), p["module_id"], p["value"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_mission_log_level",
+            description=(
+                "Set the global VEAF log level in the source mission.yaml (global_log_level). "
+                "Source/recipe counterpart of set_log_level (which edits the built veaf-config.lua)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "level": {"type": "string", "enum": ["error", "warning", "info", "debug", "trace"]},
+                },
+                "required": ["mission_yaml_path", "level"],
+            },
+        ),
+        handler=lambda p: set_mission_log_level(Path(p["mission_yaml_path"]), p["level"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_mission_security",
+            description=(
+                "Set the security: block in the source mission.yaml (disabled flag + optional "
+                "JTF/Mission-Master password hashes). Source counterpart of set_security_disabled, "
+                "and covers the hashes the built-side action does not."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "disabled": {"type": "boolean", "description": "true = no password required."},
+                    "password_hashes": {"type": "array", "items": {"type": "string"}},
+                    "password_mm_hashes": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["mission_yaml_path", "disabled"],
+            },
+        ),
+        handler=lambda p: set_mission_security(
+            Path(p["mission_yaml_path"]),
+            p["disabled"],
+            password_hashes=p.get("password_hashes"),
+            password_mm_hashes=p.get("password_mm_hashes"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_mission_setting",
+            description=(
+                "Set an arbitrary settings.<key> in the source mission.yaml (rendered to "
+                "veaf.config.<key> at build). Source counterpart of set_veaf_config."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "key": {"type": "string", "description": "The setting key."},
+                    "value": {"description": "The value (scalar or structure)."},
+                },
+                "required": ["mission_yaml_path", "key", "value"],
+            },
+        ),
+        handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
     )
     catalog.register(
         ActionSpec(

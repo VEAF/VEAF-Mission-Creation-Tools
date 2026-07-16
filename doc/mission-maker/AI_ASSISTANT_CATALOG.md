@@ -1,0 +1,174 @@
+# Assistant IA d'édition de mission — catalogue des actions
+
+> **Public visé** : les Mission Makers qui pilotent l'édition de leur mission avec une IA
+> (Claude) branchée sur le serveur MCP `veaf-mission-mcp`.
+>
+> 🇬🇧 [`AI_ASSISTANT_CATALOG.en.md`](AI_ASSISTANT_CATALOG.en.md)
+>
+> 📓 Doc technique (développeurs/intégrateurs) : [`developer/mission-editing-mcp.md`](../developer/mission-editing-mcp.md).
+
+Cette page liste **tout ce que tu peux demander à l'IA** aujourd'hui, en langage naturel. Tu
+n'as pas besoin de connaître les noms techniques : tu formules ta demande, l'IA choisit l'action.
+
+> 🌱 **Doc vivante** — ce catalogue s'étoffe à chaque nouvelle capacité ajoutée au MCP. La
+> colonne « fréquence » est une **estimation** d'usage, amenée à être ajustée avec le retour
+> terrain.
+
+## Deux niveaux d'édition (à garder en tête)
+
+L'IA peut agir à deux endroits, et ça change ce qui « survit » :
+
+- **La recette (le `mission.yaml` source)** — le fichier de configuration à partir duquel l'outil
+  VEAF *fabrique* ta mission. Modifier la recette est **durable** : la prochaine reconstruction
+  repart de la config à jour. C'est le niveau à privilégier pour tout ce qui est configuration.
+- **La mission déjà construite (le `.miz`)** — retouches directes sur le fichier de mission
+  final, **sans reconstruction**. Rapide et pratique pour un ajustement ponctuel, mais une
+  reconstruction depuis la recette **écrasera** ces retouches.
+
+> 🛟 **Filet de sécurité** : avant *chaque* modification, l'IA fait une **sauvegarde horodatée**
+> du fichier concerné. Rien n'est écrasé sans copie.
+
+## Légende des fréquences
+
+| Icône | Fréquence estimée |
+|-------|-------------------|
+| 🔥 | Très fréquent (à chaque session d'édition) |
+| ⭐ | Fréquent |
+| ◽ | Occasionnel |
+| 🔧 | Avancé / rare |
+
+## Index complet
+
+| # | Action (en langage courant) | Thème | Niveau | Fréq. |
+|---|------------------------------|-------|--------|-------|
+| 1 | [Lister les groupes et zones déjà présents](#lister-les-groupes-et-zones) | État de la mission | Mission construite | 🔥 |
+| 2 | [Lister les modules VEAF et leur réglage](#lister-les-modules-veaf) | État de la mission | Recette | 🔥 |
+| 3 | [Ajouter un groupe terrestre / véhicules](#ajouter-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
+| 4 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
+| 5 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
+| 6 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Mission construite | ◽ |
+| 7 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Mission construite | ◽ |
+| 8 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Mission construite | ◽ |
+| 9 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
+| 10 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
+| 11 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
+
+---
+
+## 🔥 État de la mission
+
+*L'IA regarde ce qui existe avant d'agir — comme toi qui ouvres l'arborescence de l'éditeur DCS
+avant d'ajouter quelque chose.*
+
+### Lister les groupes et zones {#lister-les-groupes-et-zones}
+
+*Mission construite · 🔥* — L'IA te liste les groupes (nom, coalition, pays, catégorie) et les
+zones de déclenchement (nom, position, rayon) présents dans la mission.
+
+> 💬 *« Qu'est-ce qu'il y a comme groupes dans ma mission ? »*
+> 💬 *« Liste-moi les zones de déclenchement. »*
+
+### Lister les modules VEAF {#lister-les-modules-veaf}
+
+*Recette · 🔥* — L'IA lit la config source et te dit quels modules VEAF sont activés, désactivés,
+ou configurés (avec leurs réglages).
+
+> 💬 *« Qu'est-ce qui est activé dans ma mission ? »*
+> 💬 *« Est-ce que CTLD est actif ? Avec quels réglages ? »*
+
+---
+
+## ⭐ Ordre de bataille
+
+### Ajouter un groupe {#ajouter-un-groupe}
+
+*Mission construite · ⭐* — L'IA insère un groupe terrestre / de véhicules : les unités (tu dis
+quoi et combien), une position, et éventuellement un itinéraire (avec patrouille en boucle).
+Ajouter deux fois crée deux groupes — comme deux placements dans l'éditeur.
+
+> 💬 *« Ajoute une section de 3 T-72 en patrouille autour de ce point. »*
+> 💬 *« Place un groupe de reconnaissance bleu ici. »*
+
+---
+
+## ⭐ Modules & réglages VEAF
+
+### Activer / désactiver / configurer un module — recette {#configurer-un-module-recette}
+
+*Recette · ⭐* — L'IA modifie la config source : elle active ou coupe un module (interrupteur
+simple), ou pose un bloc de réglages complet (par ex. une combat zone avec ses zones, ses
+messages…). **Durable** : survit à une reconstruction. Tes commentaires dans le fichier sont
+préservés.
+
+> 💬 *« Active CTLD dans ma mission. »*
+> 💬 *« Ajoute une combat zone “Alpha” avec ces réglages… »*
+
+### Activer / désactiver un module — mission construite {#activer-un-module-construite}
+
+*Mission construite · ⭐* — Bascule l'activation d'un module directement dans la mission déjà
+bâtie, sans reconstruction. Pratique pour un test rapide (⚠️ écrasé à la prochaine
+reconstruction depuis la recette).
+
+> 💬 *« Désactive vite le module SPAWN dans le .miz pour tester. »*
+
+### Changer le niveau de logs {#niveau-de-logs}
+
+*Mission construite · ◽* — Règle le niveau de journalisation VEAF (erreur / avertissement / info
+/ debug / trace).
+
+> 💬 *« Passe les logs VEAF en debug. »*
+
+### Activer / désactiver la sécurité par mot de passe {#securite-mot-de-passe}
+
+*Mission construite · ◽* — Active ou coupe le drapeau de sécurité VEAF (le mot de passe requis
+pour les commandes protégées).
+
+> 💬 *« Coupe la sécurité mot de passe sur cette mission de test. »*
+
+### Régler un paramètre VEAF précis {#parametre-veaf}
+
+*Mission construite · ◽* — Positionne un paramètre de configuration VEAF donné à une valeur.
+
+> 💬 *« Mets tel paramètre VEAF à cette valeur. »*
+
+---
+
+## ◽ Zones & déclencheurs
+
+### Ajouter une zone de déclenchement circulaire {#ajouter-une-zone}
+
+*Mission construite · ◽* — Insère une zone de déclenchement **circulaire** nommée (centre,
+rayon). C'est la zone qu'une combat zone VEAF référence — combinée à l'ajout de groupes, elle
+permet de poser une combat zone complète.
+
+> 💬 *« Crée une zone de déclenchement “North” de 3 km ici. »*
+
+### Ajouter un script au démarrage de la mission {#script-au-demarrage}
+
+*Mission construite · ◽* — Ajoute un déclencheur « au démarrage » qui exécute un script — utile
+pour outiller une mission **vanilla ou CTLD** avec du scripting sans passer par l'onglet Triggers
+de l'éditeur DCS (Lua en ligne, ou un fichier `.lua` embarqué / chargé depuis le disque).
+
+> 💬 *« Fais tourner ce bout de Lua au démarrage de la mission. »*
+> 💬 *« Embarque et charge ce script .lua au lancement. »*
+
+---
+
+## 🔧 Retouches avancées
+
+### Rechercher-remplacer du texte dans les scripts {#rechercher-remplacer}
+
+*Mission construite · 🔧* — Remplacement texte ou expression régulière dans les fichiers Lua
+embarqués de la mission (restreint aux scripts, jamais les tables brutes ni les binaires). Outil
+de dépannage — à manier avec précaution.
+
+> 💬 *« Remplace “debug” par “info” dans les scripts veaf-*. »*
+
+---
+
+## Et après ?
+
+De nouvelles actions arriveront (zones non circulaires, éditeur de déclencheurs plus riche,
+actions composites comme « crée-moi une combat zone complète en un coup »…). Cette page sera
+mise à jour au fur et à mesure. Pour le détail technique, voir la
+[doc développeur](../developer/mission-editing-mcp.md).

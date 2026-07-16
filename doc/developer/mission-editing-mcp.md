@@ -4,6 +4,9 @@
 > qui branchent un client MCP (Claude Code, un agent) dessus.
 >
 > 🇬🇧 [`mission-editing-mcp.en.md`](mission-editing-mcp.en.md).
+>
+> 🎯 Côté Mission Maker (catalogue en langage courant) :
+> [`mission-maker/AI_ASSISTANT_CATALOG.md`](../mission-maker/AI_ASSISTANT_CATALOG.md).
 
 ## Pourquoi ce serveur
 

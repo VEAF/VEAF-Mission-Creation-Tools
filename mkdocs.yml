@@ -105,6 +105,7 @@ nav:
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
+    - AI assistant — action catalogue: mission-maker/AI_ASSISTANT_CATALOG.md
     - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md

@@ -4,6 +4,9 @@
 > (Claude Code, an agent) to it.
 >
 > 🇫🇷 [`mission-editing-mcp.md`](mission-editing-mcp.md).
+>
+> 🎯 Mission-Maker side (plain-language catalogue):
+> [`mission-maker/AI_ASSISTANT_CATALOG.en.md`](../mission-maker/AI_ASSISTANT_CATALOG.en.md).
 
 ## Why this server
 

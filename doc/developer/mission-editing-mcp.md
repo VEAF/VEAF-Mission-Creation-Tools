@@ -325,6 +325,41 @@ coalition est passée en minuscule pour le placement, majuscule dans la définit
 Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missions[]`
 (`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`).
 
+## Scaffolding d'un dossier de mission (vague 9)
+
+Toutes les actions ci-dessus supposent qu'un dossier de mission **existe déjà**. La vague 9 fournit
+l'amont : créer ce dossier depuis un **dossier vide**, en pilotant les vrais binaires VEAF comme le
+ferait un Mission Maker à sa première installation.
+
+### `scaffold_mission`
+
+Écriture. Sur un dossier cible **vide** :
+
+1. Résout l'asset updater de l'OS courant (`veaf-tools-updater.exe` sous Windows,
+   `veaf-tools-updater-<os>-<arch>` sous Unix) et le télécharge depuis l'**URL de release stable**
+   (`…/releases/download/<tag>/<asset>` — pas d'API GitHub, donc pas de rate-limit).
+2. Lance l'updater dans le dossier (il télécharge et installe les outils VEAF + `published/`).
+3. Lance `veaf-tools prepare --template <tier> --force` dans le dossier.
+
+```json
+{
+  "target_folder": "chemin/vers/dossier-vide",
+  "template": "standard",
+  "github_token": "…",
+  "tag": "published-latest"
+}
+```
+
+- **Refuse un dossier non vide** — le scaffolding n'initialise qu'un dossier vide.
+- `template` — `minimal` / `standard` / `full`. Le tier interactif `custom` n'est **pas** supporté
+  ici (son sélecteur TUI n'a pas de TTY sous un sous-processus) ; c'est au LLM appelant de **poser
+  la question du template** au Mission Maker et de le passer en paramètre.
+- `github_token` — optionnel, relayé à l'updater (`--token`) pour contourner le rate-limit de l'API.
+- Un code retour non nul de l'updater ou de `prepare`, ou l'absence de `veaf-tools`/`published/`
+  après l'updater, remonte comme une erreur explicite.
+
+C'est l'**étape 0** d'une mission créée de zéro, avant les composites de la vague 8.
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.

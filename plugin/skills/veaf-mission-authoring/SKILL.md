@@ -70,6 +70,20 @@ name in the QRA definition.
   a Late-Activation group (coherent name, correct coalition), a trigger zone, and a `QRA`
   definition referencing the group name verbatim. The user did not give names — you did.
 
+## Step 0 — scaffold the folder when there's nothing yet
+
+If the user wants a mission but has only an **empty folder** (no `mission.yaml`, no `src/mission/`),
+start with `scaffold_mission` — it downloads the VEAF tools from GitHub, installs them into the
+folder, and runs `prepare`. **Ask which template first** and pass it as the `template` parameter —
+never guess it:
+
+- `minimal` — infrastructure + core modules;
+- `standard` — the everyday set (a good default);
+- `full` — everything, advanced config as commented examples.
+
+(`custom` is not available through the MCP.) Once the folder exists, use the composites below to
+fill it.
+
 ## Prefer composites for whole features
 
 When the user asks for a **whole feature** ("create a combat zone / a QRA / a CAP mission"), reach

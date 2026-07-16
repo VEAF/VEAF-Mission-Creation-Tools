@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); **wave 7 (target symmetry, tickets 22-23) open on sub-branch `feature/mcp-target-symmetry`**; wave 8 planned, tickets 24-28)
+Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done on sub-branch `feature/mcp-target-symmetry` (PR #578); **wave 8 (composite builders, tickets 24-28) next** — the endgame)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -163,8 +163,8 @@ Every dual-target setting works on **both** the source `mission.yaml` and the bu
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-022 | **Source-side config parity**: `set_mission_log_level` (`global_log_level`), `set_mission_security` (`security:` block incl. password hashes — not covered built-side), `set_mission_setting` (`settings.<key>` → `veaf.config.<key>`) on `mission.yaml`. Shipped as **separate source-side actions** (consistent with wave-4 `set_mission_module`), not a `target` param. | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-023 | **Doc + catalogue** update (source-side setters + recipe/built parity noted). | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-022 | **Source-side config parity**: `set_mission_log_level` (`global_log_level`), `set_mission_security` (`security:` block incl. password hashes — not covered built-side), `set_mission_setting` (`settings.<key>` → `veaf.config.<key>`) on `mission.yaml`. Shipped as **separate source-side actions** (consistent with wave-4 `set_mission_module`), not a `target` param. | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-023 | **Doc + catalogue** update (source-side setters + recipe/built parity noted). | docs | ✅ |
 
 ### Wave 8 — Composite feature builders, one pass, both worlds (point 3 — the goal)
 

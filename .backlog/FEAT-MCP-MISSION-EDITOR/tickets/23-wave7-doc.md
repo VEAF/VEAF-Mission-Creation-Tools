@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-023 — Wave-7 documentation
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (FR/EN), `CHANGELOG.md`, `pyproject.toml`
 
@@ -14,9 +14,9 @@ Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASS
 
 ## Acceptance criteria
 
-- [ ] Both language docs describe the source-side setters and the parity.
-- [ ] Catalogue updated; anchors resolve.
-- [ ] CHANGELOG + version bump landed.
+- [x] Both language docs describe the source-side setters and the parity (recipe/built table).
+- [x] Catalogue updated (in 022); anchors resolve.
+- [x] CHANGELOG + version bump (6.9.7) landed.
 
 ## Blocked by
 

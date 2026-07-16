@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, PR not yet opened)
+Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, in PR #575 draft; wave 4 — VMCT actions on the source `mission.yaml` — opened, tickets 12-14)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -88,12 +88,34 @@ archive verbatim and swaps only the named members (no Lua-table re-serialization
 | FEAT-MCP-MISSION-EDITOR-010 | **VMCT config edits** on `l10n/DEFAULT/veaf-config.lua`: `set_log_level` (`veaf.ForcedLogLevel`), `set_module_enabled` (`veaf.setConfig(<MOD>,"enable",<bool>)`), `set_security_disabled` (`veaf.SecurityDisabled`), `set_veaf_config` (`veaf.config.<key>`). Each **replaces the line if present, else inserts** it near the top (before module init). Backed up first. TDD. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-011 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with the wave-3 actions + the third action family; CONTEXT.md glossary entry; CHANGELOG; version bump. | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
 
+### Wave 4 — VMCT actions on the source `mission.yaml`
+
+The **fourth** (and first genuinely *VMCT*) action family: edit the declarative **design-time
+source** `mission.yaml` — the file the build consumes to *generate* the `.miz` — instead of
+patching a built artifact. This closes the gap flagged in the original _Out of Scope_: the LLM
+can now drive the same declarative pipeline a human uses (`convert-v5`/`veaf-build`), not only
+the editor-parity `.miz` surgery.
+
+**Design decision — comment-preserving edits.** `mission.yaml` is a heavily-commented file that
+Mission Makers edit by hand, and the shipped default (`src/defaults/mission-folder/mission.yaml`)
+is kept in lockstep with generated output. The rest of the codebase loads it with PyYAML
+`yaml.safe_load`, which **discards all comments and formatting** on a round-trip — unacceptable
+for a source file. These actions therefore use **`ruamel.yaml` round-trip mode** (new dependency)
+so comments, key order and layout survive; a scalar-only edit still stays surgical. This mirrors
+the wave-3 precedent (`edit_veaf_config` preserves the file, editing only the relevant line) and
+respects the CLAUDE.md _defaults-lockstep_ rule. Backed up first, like every write action.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-012 | **Brick — comment-preserving `mission.yaml` editor**: `mission_tools/mission_yaml_editor.py` with `load_yaml`/`save_yaml` on `ruamel.yaml` round-trip mode + a `backup_before_write`-style backup for the `.yaml`. Adds the `ruamel.yaml` dependency. TDD proving comments, key order and formatting survive a load→save round-trip, and that a scalar edit changes only its own line. | `pyproject.toml`, `mission_tools/mission_yaml_editor.py`, `test/python/` | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-013 | **MCP actions on `mission.yaml`**: `describe_mission_config` (read — list the `modules:` block and each module's enabled/config state) and `set_mission_module` (write — enable/disable a module scalar **or** set its extended config mapping, e.g. a `COMBATZONE`/`CTLD` block, preserving comments). Registered in the catalog next to the wave-3 `set_*` actions. No dedup. TDD on scalar toggle + extended-mapping insert + unknown-module handling. | `veaf_mission_mcp/`, `test/python/` | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-014 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with wave-4 + the fourth (VMCT) action family; CONTEXT.md glossary (`_VMCT action_` now has a concrete implementation); CHANGELOG; version bump. Amend this PRD's _Out of Scope_ (VMCT actions no longer excluded). | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ⬜ |
+
 ## Out of Scope
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
 - A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2's trigger action is scoped to script-loading / Lua-execution startup triggers only, per David's stated need.
-- Any VMCT action (e.g. writing a `modules.COMBATZONE` entry in `mission.yaml`) — stays the
-  existing CLI/config path, untouched by this lot.
+- ~~Any VMCT action (e.g. writing a `modules.COMBATZONE` entry in `mission.yaml`)~~ — **now in scope** (wave 4). What stays out: a *full* schema-aware editor for every module's config (wave 4 ships a generic module-toggle + config-mapping setter, not per-module validators).
 - Unit-type catalog or curation: picking concrete DCS unit types stays the calling LLM's
   job (`dcs-reference` agent, `veafUnits` data) — this server only accepts an already-decided
   `{type, count}` list.

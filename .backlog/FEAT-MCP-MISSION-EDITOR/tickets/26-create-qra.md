@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-026 — `create_qra` (one pass, both worlds)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -19,11 +19,11 @@ zone: QRA groups are referenced **by exact name**, coalition **matters**, and in
 
 ## Acceptance criteria
 
-- [ ] One call produces: the trigger zone, the Late-Activation interceptor group(s) on the right
+- [x] One call produces: the trigger zone, the Late-Activation interceptor group(s) on the right
       coalition, and the `modules.QRA.definitions[]` entry referencing the group name(s) verbatim.
-- [ ] The group name in the `.miz` and the name listed in the QRA definition match exactly.
-- [ ] TDD against a real mission folder fixture; ruff + mypy clean.
-- [ ] Mission-maker catalogue updated.
+- [x] The group name in the `.miz` and the name listed in the QRA definition match exactly.
+- [x] TDD against a real mission folder fixture; ruff + mypy clean.
+- [x] Mission-maker catalogue updated.
 
 ## Blocked by
 

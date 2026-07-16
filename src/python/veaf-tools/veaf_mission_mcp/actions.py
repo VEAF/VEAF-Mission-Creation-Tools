@@ -7,7 +7,7 @@ from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.catalog import ActionCatalog
-from veaf_mission_mcp.composites import create_combat_zone
+from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
@@ -506,6 +506,105 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="create_qra",
+            description=(
+                "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
+                "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
+                "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
+                "referencing the group names verbatim."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "Path to the mission folder."},
+                    "name": {"type": "string", "description": "QRA identifier (radio prefix)."},
+                    "coalition": {"type": "string", "enum": ["blue", "red"], "description": "Defending coalition."},
+                    "trigger_zone": {
+                        "type": "string",
+                        "description": "Protected-airspace trigger-zone name (created).",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                    },
+                    "radius": {"type": "number", "description": "Zone radius in metres."},
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "units": {"type": "array", "items": {"type": "object"}},
+                            },
+                            "required": ["name", "units"],
+                        },
+                        "description": "Interceptor group(s); placed Late-Activation and referenced by exact name.",
+                    },
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "category": {"type": "string", "default": "plane"},
+                    "enemy_coalitions": {"type": "array", "items": {"type": "string"}},
+                    "qra": {"type": "object", "description": "Optional extra definitions[] keys."},
+                },
+                "required": [
+                    "folder_path",
+                    "name",
+                    "coalition",
+                    "trigger_zone",
+                    "position",
+                    "radius",
+                    "groups",
+                    "country_id",
+                    "country_name",
+                ],
+            },
+        ),
+        handler=_handle_create_qra,
+    )
+    catalog.register(
+        ActionSpec(
+            name="create_cap_mission",
+            description=(
+                "Create an on-demand CAP mission in a mission FOLDER, one pass, both worlds (no build): "
+                "a Late-Activation template group named OnDemand-<mission_name> in src/mission, and an "
+                "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "Path to the mission folder."},
+                    "mission_name": {
+                        "type": "string",
+                        "description": "CAP mission name (the un-prefixed YAML group_name).",
+                    },
+                    "units": {"type": "array", "items": {"type": "object"}, "description": "Template group's units."},
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                    },
+                    "category": {"type": "string", "default": "plane"},
+                    "cap": {"type": "object", "description": "Optional extra cap_missions[] keys."},
+                },
+                "required": [
+                    "folder_path",
+                    "mission_name",
+                    "units",
+                    "coalition",
+                    "country_id",
+                    "country_name",
+                    "position",
+                ],
+            },
+        ),
+        handler=_handle_create_cap_mission,
+    )
+    catalog.register(
+        ActionSpec(
             name="list_unit_types",
             description=(
                 "List DCS unit types from the canonical generated database (the same the build "
@@ -616,6 +715,37 @@ def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
         country_name=params["country_name"],
         category=params.get("category", "vehicle"),
         combat_zone=params.get("combat_zone"),
+    )
+
+
+def _handle_create_qra(params: dict[str, Any]) -> dict[str, Any]:
+    return create_qra(
+        Path(params["folder_path"]),
+        name=params["name"],
+        coalition=params["coalition"],
+        trigger_zone=params["trigger_zone"],
+        position=params["position"],
+        radius=params["radius"],
+        groups=params["groups"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        category=params.get("category", "plane"),
+        enemy_coalitions=params.get("enemy_coalitions"),
+        qra=params.get("qra"),
+    )
+
+
+def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
+    return create_cap_mission(
+        Path(params["folder_path"]),
+        mission_name=params["mission_name"],
+        units=params["units"],
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        position=params["position"],
+        category=params.get("category", "plane"),
+        cap=params.get("cap"),
     )
 
 

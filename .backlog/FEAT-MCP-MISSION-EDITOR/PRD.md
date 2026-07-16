@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done (PR #578, merged); **wave 8 (composite builders, tickets 24-28) open on sub-branch `feature/mcp-composite-builders`** — the endgame: folder-aware one-pass `create_combat_zone`/`create_qra`/`create_cap_mission`)
+Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; wave 6 (convention-aware add_group, tickets 19-21) done (PR #577, merged); wave 7 (target symmetry, tickets 22-23) done (PR #578, merged); **wave 8 (composite builders) in progress — 024 (folder-awareness) + 025 (`create_combat_zone`) merged into the integration branch; 026 (`create_qra`), 027 (`create_cap_mission`), 028 (doc) pending**)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -174,8 +174,8 @@ mission, not authored into the file.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-024 | **Folder-awareness**: operate on a mission folder; extract/build round-trip helper (reuse `mission_promoter`/`extract`/`build`). | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-025 | **`create_combat_zone`**: trigger zone + groups placed inside (geometry-based, coalition-agnostic) + `COMBATZONE` yaml block — one call. | feat | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-024 | **Folder-awareness**: operate on a mission folder; extract/build round-trip helper (reuse `mission_promoter`/`extract`/`build`). | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-025 | **`create_combat_zone`**: trigger zone + groups placed inside (geometry-based, coalition-agnostic) + `COMBATZONE` yaml block — one call. | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-026 | **`create_qra`**: trigger zone + Late-Activation interceptor groups (coalition-significant, named to match) + `QRA` definition — one call. | feat | ⬜ |
 | FEAT-MCP-MISSION-EDITOR-027 | **`create_cap_mission`**: `OnDemand-<name>` Late-Activation templates + `combat_missions` yaml block. | feat | ⬜ |
 | FEAT-MCP-MISSION-EDITOR-028 | **Doc + catalogue** update (composite section, the recipe-vs-built + one-pass model). | docs | ⬜ |

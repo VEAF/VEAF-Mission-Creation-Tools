@@ -241,6 +241,15 @@ of the generated `veaf-config.lua` (log level, module enable, security flag,
 `veaf.config.*`). Underpinned by `rewrite_miz_members`, which swaps archive
 members verbatim without re-serialising the Lua tables.
 
+**Domain oracle**:
+The read-only "brain" of the mission-editing MCP (`veaf_mission_mcp.oracle`): actions
+exposing the DCS + VEAF knowledge the LLM needs to author correctly — unit types,
+VEAF spawn aliases, the reserved group/unit naming conventions, module lookup. Every
+fact is read from the **canonical sources** the build already uses (generated
+`dcsUnits.yaml`, `veaf-units.yaml`, `lua_module_scanner`, vendored data) so it cannot
+drift. Complements the write actions ("hands") and `describe_*` ("eyes"); paired with
+the `veaf-mission-authoring` Claude skill ("how to reason").
+
 ## Script loading
 
 **Static loading**:

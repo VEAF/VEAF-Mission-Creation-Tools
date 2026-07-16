@@ -212,13 +212,59 @@ inserted otherwise**. No deduplication.
 > of the config block passed stays the caller's (LLM's) responsibility, like unit types for
 > `add_group`.
 
+## Domain-knowledge oracle (wave 5)
+
+The actions above are the LLM's **hands** (writes) and **eyes** (`describe_*`). Wave 5 gives it a
+**brain**: **read-only** actions exposing the DCS + VEAF knowledge needed to author correctly. All
+read from the **canonical sources** the build already uses, so they **cannot drift**:
+
+- generated DCS data (`update-dcs-data` → `veaf_libs/data/dcsUnits.yaml`, published on the VEAF
+  GitHub);
+- VEAF aliases (`veaf_libs/data/veaf-units.yaml`);
+- vendored artifacts (`vendored.yaml`, `check-vendored`);
+- upstream datamining repos (provenance).
+
+Implementation: `veaf_mission_mcp/oracle.py`. The "prose / how to reason" half lives in the
+`veaf-mission-authoring` Claude skill (the plugin = MCP hands + skill brain).
+
+### `list_unit_types`
+
+Read-only. DCS unit types from the generated database, filterable by `category` and/or
+`name_contains`, so the LLM can pick concrete types.
+
+```json
+{"category": "Plane", "name_contains": "su-27"}
+```
+
+### `list_shortcuts`
+
+Read-only. The VEAF alias vocabulary (`shilka`, `sa8`…) — unit aliases (`_spawn unit <alias>`)
+and composite group aliases (`_spawn group <alias>`: SAM sites, convoys). Filterable by
+`name_contains`.
+
+### `describe_naming_conventions`
+
+Read-only. The **8 reserved naming patterns** (combat-zone membership, `veafSpawn-`/`OnDemand-`
+prefixes, `#veafInterpreter[…]`/`#command=` markers, QRA deploy entries, fixed CAS names…), each
+with its rule and the consuming module. Check a proposed name against these before `add_group`.
+
+### `describe_module`
+
+Read-only. A **locator** (not a schema validator): confirms a VEAF module exists (via the
+canonical `lua_module_scanner` list), returns its doc page, and — when `mission_yaml_path` is
+given — its enabled state. Each module's config keys live in its doc page.
+
+```json
+{"module_id": "QRA", "mission_yaml_path": "path/to/mission.yaml"}
+```
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
 - A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
   startup script-loading / Lua-execution triggers.
 - A per-module schema validator for `set_mission_module` (wave 4 stays generic).
-- Unit-type catalog/curation.
-- Composite actions (e.g. a single `create_combat_zone` call).
+- Convention-aware `add_group` (wave 6), target symmetry (wave 7), composite
+  `create_combat_zone`/`create_qra`/`create_cap_mission` actions (wave 8).
 
 See `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` for details.

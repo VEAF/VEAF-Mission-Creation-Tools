@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-018 — Wave-5 documentation
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (FR/EN), `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml`
 
@@ -16,9 +16,9 @@ Files: `doc/developer/mission-editing-mcp.md` (FR/EN), `doc/mission-maker/AI_ASS
 
 ## Acceptance criteria
 
-- [ ] Both language docs describe the oracle actions and knowledge sources consistently.
-- [ ] Catalogue index + section updated; anchors resolve.
-- [ ] CHANGELOG + version bump landed; markdown-lint clean.
+- [x] Both language docs describe the oracle actions and knowledge sources consistently.
+- [x] Catalogue index + section updated; anchors resolve (done in 016, verified here).
+- [x] CHANGELOG + version bump (6.9.5) landed; markdown-lint deferred to the CI docs job.
 
 ## Blocked by
 

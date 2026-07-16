@@ -9,7 +9,7 @@
 
 First phase of **NL-MISSION-GEN** (see `ROADMAP.md` §4): let an LLM edit a DCS mission on a
 Mission Maker's behalf — and, eventually, generate one end-to-end from a detailed prompt. See
-[ADR 0013](../adr/0013-mission-editor-mcp-editor-parity-layer.md) for the architecture decision,
+[ADR 0014](../adr/0014-mission-editor-mcp-editor-parity-layer.md) for the architecture decision,
 and `CONTEXT.md` (section "LLM-assisted mission editing") for the vocabulary.
 
 Two action families, deliberately kept apart:

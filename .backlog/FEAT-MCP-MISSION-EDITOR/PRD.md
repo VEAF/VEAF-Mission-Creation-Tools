@@ -8,7 +8,7 @@ Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
 First concrete phase of **NL-MISSION-GEN** (`ROADMAP.md` §4): a natural-language mission
 generator, decided to run as a Claude plugin for the mission maker's own AI tooling. Design
-reached via a `grill-with-docs` session (see [ADR 0013](../../docs/adr/0013-mission-editor-mcp-editor-parity-layer.md)
+reached via a `grill-with-docs` session (see [ADR 0014](../../docs/adr/0014-mission-editor-mcp-editor-parity-layer.md)
 and the new `CONTEXT.md` § "LLM-assisted mission editing").
 
 Goal: an LLM assists a Mission Maker editing their `.miz` directly — and, eventually,

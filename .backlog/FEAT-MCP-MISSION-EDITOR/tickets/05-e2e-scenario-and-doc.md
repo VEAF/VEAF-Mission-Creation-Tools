@@ -12,7 +12,7 @@ Files: `test/python/`, `doc/developer/`
   exists.
 - A `doc/developer/` page (`.en` mirror) documenting the v1 action catalog
   (`describe_mission`, `add_group`), the editor-parity/VMCT-action split (link
-  [ADR 0013](../../docs/adr/0013-mission-editor-mcp-editor-parity-layer.md) and the
+  [ADR 0014](../../docs/adr/0014-mission-editor-mcp-editor-parity-layer.md) and the
   `CONTEXT.md` glossary entries), and how to run the server locally.
 
 ## Acceptance criteria

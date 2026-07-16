@@ -15,6 +15,7 @@ from veaf_mission_mcp.edit_veaf_config import (
     set_security_disabled,
     set_veaf_config,
 )
+from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     describe_module,
@@ -99,6 +100,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "default": False,
                         "description": "Loop the route's last waypoint back to the first.",
+                    },
+                    "for_combat_zone": {
+                        "type": "string",
+                        "description": "Combat-zone trigger-zone name to prefix the group name with "
+                        "(so the zone picks it up). Idempotent.",
+                    },
+                    "late_activation": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Mark the group late-activation (QRA interceptors, CAP templates).",
+                    },
+                    "as_spawn_template": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Prefix the name with 'veafSpawn-' (spawnable-aircraft template).",
                     },
                 },
                 "required": [
@@ -293,6 +309,37 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="validate_group_name",
+            description=(
+                "Check a proposed group name against the reserved VEAF naming conventions "
+                "(veafSpawn-/OnDemand-/VEAF-placeholder- prefixes, #veafInterpreter/#command "
+                "markers, QRA deploy syntax, fixed CAS names). With a miz_path, also flags the "
+                "combat-zone capture trap. Read-only; call before add_group."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "The proposed group name."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": "Optional .miz to check the combat-zone capture trap against.",
+                    },
+                    "expected_combat_zone": {
+                        "type": "string",
+                        "description": "A combat zone the group is intentionally attached to (suppresses its capture warning).",
+                    },
+                },
+                "required": ["name"],
+            },
+        ),
+        handler=lambda p: validate_group_name(
+            p["name"],
+            miz_path=Path(p["miz_path"]) if p.get("miz_path") else None,
+            expected_combat_zone=p.get("expected_combat_zone"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="set_mission_module",
             description=(
                 "Enable/disable a VEAF module or set its extended config block in a mission's "
@@ -412,6 +459,9 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         units=params["units"],
         route=params.get("route"),
         patrol=params.get("patrol", False),
+        for_combat_zone=params.get("for_combat_zone"),
+        late_activation=params.get("late_activation", False),
+        as_spawn_template=params.get("as_spawn_template", False),
     )
 
 

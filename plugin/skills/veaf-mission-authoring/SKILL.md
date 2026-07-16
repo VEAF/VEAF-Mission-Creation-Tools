@@ -32,7 +32,10 @@ Every write is backed up first. State which world you are editing when you repor
 
 ## Reserved naming conventions (the traps)
 
-Check any group/unit name you invent against `describe_naming_conventions`. The dangerous ones:
+Prefer to express intent and let `add_group` name the group for you (`for_combat_zone`,
+`late_activation`, `as_spawn_template`) — it applies these rules and returns `warnings`. To check a
+name yourself, call `validate_group_name` (or `describe_naming_conventions` for the full list).
+The dangerous ones:
 
 - **Combat-zone membership** — a group whose name *starts with a combat-zone trigger-zone name*
   and sits inside that zone is captured and despawned at start. This is how you *attach* groups to

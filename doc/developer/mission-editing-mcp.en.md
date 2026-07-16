@@ -92,6 +92,29 @@ silently overwritten.
 - `groupId`/`unitId`s are always fresh (`mission_tools.group_insertion.max_ids`), even on a
   mission with gaps in its existing id ranges.
 
+**Naming intents (wave 6).** The caller expresses *intent* and `add_group` produces a
+convention-correct name itself (`veaf_mission_mcp.group_naming.resolve_group_name`):
+
+- `for_combat_zone: <zone>` — prefix the name with the trigger-zone name (combat-zone membership
+  rule), idempotent and case-insensitive;
+- `late_activation: true` — set the DCS `lateActivation` flag (QRA interceptors, CAP templates);
+- `as_spawn_template: true` — `veafSpawn-` prefix (spawnable-aircraft template).
+
+`add_group` also returns a `warnings` field (see `validate_group_name`): it **still writes**, but
+flags any convention collision for the caller to relay.
+
+### `validate_group_name` (wave 6)
+
+Read-only. Checks a proposed name against the reserved patterns (`veafSpawn-`/`OnDemand-`/
+`VEAF-placeholder-` prefixes, `#veafInterpreter[...]`/`#command=` markers, QRA deploy syntax, fixed
+CAS names) and, with `miz_path`, the **combat-zone capture trap** (name starting with an existing
+trigger-zone). `expected_combat_zone` suppresses the warning for the intended zone. Shares the
+`veaf_mission_mcp.group_naming` module with `add_group`.
+
+```json
+{"name": "combatZone_North-tanks", "miz_path": "path/to/mission.miz"}
+```
+
 ### `add_trigger_zone` (wave 2)
 
 Write. Inserts a named **circular** trigger zone into `mission.triggers.zones`, with a fresh

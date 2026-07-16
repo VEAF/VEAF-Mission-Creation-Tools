@@ -15,6 +15,8 @@ from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
+from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
+
 _UNIT_SPACING_METERS = 20
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
 
@@ -31,6 +33,9 @@ def add_group(
     units: list[dict[str, Any]],
     route: list[dict[str, float]] | None = None,
     patrol: bool = False,
+    for_combat_zone: str | None = None,
+    late_activation: bool = False,
+    as_spawn_template: bool = False,
 ) -> dict[str, Any]:
     """Add a group to a mission's source `.miz`, in place, backed up first.
 
@@ -41,7 +46,7 @@ def add_group(
         country_name: The DCS country name (e.g. `"Russia"`), used only if the
             country does not exist yet in this coalition.
         category: One of `"vehicle"`, `"plane"`, `"helicopter"`, `"ship"`, `"static"`.
-        name: The group's name.
+        name: The group's base name (before any naming-intent prefixing).
         position: The group's anchor position, `{"x": ..., "y": ...}`.
         units: `[{"type": <DCS unit type>, "count": <int>}, ...]` — concrete unit
             types are the calling LLM's decision, not this action's.
@@ -49,9 +54,16 @@ def add_group(
             stationary waypoint at `position`.
         patrol: If true (and `route` has at least 2 points), the last waypoint loops
             back to the first — a DCS ground-unit patrol.
+        for_combat_zone: If set, prefix the name with this combat-zone trigger-zone name
+            so the group is picked up by that zone (idempotent).
+        late_activation: If true, mark the group late-activation (QRA interceptors,
+            CAP/on-demand templates).
+        as_spawn_template: If true, prefix the name with `veafSpawn-` (registers it as a
+            spawnable-aircraft template).
 
     Returns:
-        `{"group_id": <int>, "name": <str>}`.
+        `{"group_id": <int>, "name": <resolved name>, "warnings": [...]}` — `warnings` flags any
+        reserved-naming-convention collision for the caller to relay (the write still happens).
 
     Raises:
         ValueError: If the archive is not a valid mission, or `units` yields no units.
@@ -60,7 +72,10 @@ def add_group(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
-    group = _build_group(name=name, position=position, units=units, route=route, patrol=patrol)
+    name = resolve_group_name(name, for_combat_zone=for_combat_zone, as_spawn_template=as_spawn_template)
+    group = _build_group(
+        name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+    )
 
     group_id = insert_group(
         mission.mission_content,
@@ -71,10 +86,12 @@ def add_group(
         group=group,
     )
 
+    warnings = validate_group_name(name, miz_path=miz_path, expected_combat_zone=for_combat_zone)["warnings"]
+
     backup_before_write(miz_path)
     write_miz(mission, miz_path)
 
-    return {"group_id": group_id, "name": name}
+    return {"group_id": group_id, "name": name, "warnings": warnings}
 
 
 def _build_group(
@@ -84,6 +101,7 @@ def _build_group(
     units: list[dict[str, Any]],
     route: list[dict[str, float]] | None,
     patrol: bool,
+    late_activation: bool = False,
 ) -> dict[str, Any]:
     """Build a DCS group dict ready for `mission_tools.group_insertion.add_group`."""
     built_units = _build_units(units, position=position, group_name=name)
@@ -98,6 +116,7 @@ def _build_group(
         "units": built_units,
         "visible": False,
         "hidden": False,
+        "lateActivation": late_activation,
         "taskSelected": True,
         "uncontrollable": False,
         "start_time": 0,

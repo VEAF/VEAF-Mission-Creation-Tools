@@ -55,6 +55,7 @@ The AI can act in two places, and it changes what "survives":
 | 13 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
 | 14 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
 | 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+| 16 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
 
 ---
 
@@ -92,6 +93,15 @@ in a given mission.
 
 > 💬 *"How is the QRA module configured?"*
 
+### Check a group name {#check-group-name}
+
+*Knowledge · ◽* — Checks that a group name doesn't fall into a reserved pattern
+(`veafSpawn-`/`OnDemand-` prefixes, `#command`/interpreter markers, QRA syntax…) and, against a
+given mission, warns about the **combat-zone capture trap**. The AI uses it before adding a group
+and relays any warning to you.
+
+> 💬 *"Could this group name cause a problem?"*
+
 ---
 
 ## 🔥 Mission state
@@ -123,10 +133,13 @@ disabled, or configured (with their settings).
 
 *Built mission · ⭐* — The AI inserts a ground / vehicle group: the units (you say what and how
 many), a position, and optionally a route (with a looping patrol). Adding twice creates two
-groups — like two placements in the editor.
+groups — like two placements in the editor. The AI **names the group correctly itself** from your
+intent: attached to a combat zone (zone-name prefix), **Late Activation** for a QRA, or a spawn
+template (`veafSpawn-`).
 
 > 💬 *"Add a section of 3 T-72s patrolling around this point."*
-> 💬 *"Place a blue recon group here."*
+> 💬 *"Put two armor groups in the North combat zone."*
+> 💬 *"Place Su-27 interceptors in Late Activation for the QRA."*
 
 ---
 

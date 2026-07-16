@@ -56,6 +56,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 13 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
 | 14 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
 | 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
+| 16 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
 
 ---
 
@@ -94,6 +95,15 @@ activé dans une mission donnée.
 
 > 💬 *« Le module QRA, ça se configure comment ? »*
 
+### Vérifier un nom de groupe {#verifier-nom-groupe}
+
+*Connaissance · ◽* — Contrôle qu'un nom de groupe ne tombe pas dans un motif réservé
+(préfixe `veafSpawn-`/`OnDemand-`, marqueurs `#command`/interpréteur, syntaxe QRA…) et, sur une
+mission donnée, prévient du **piège de capture combat-zone**. L'IA s'en sert avant d'ajouter un
+groupe et te relaie tout avertissement.
+
+> 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
+
 ---
 
 ## 🔥 État de la mission
@@ -125,10 +135,13 @@ ou configurés (avec leurs réglages).
 
 *Mission construite · ⭐* — L'IA insère un groupe terrestre / de véhicules : les unités (tu dis
 quoi et combien), une position, et éventuellement un itinéraire (avec patrouille en boucle).
-Ajouter deux fois crée deux groupes — comme deux placements dans l'éditeur.
+Ajouter deux fois crée deux groupes — comme deux placements dans l'éditeur. L'IA **nomme le
+groupe correctement elle-même** selon ton intention : rattaché à une combat zone (préfixe de la
+zone), en **Late Activation** pour une QRA, ou template de spawn (`veafSpawn-`).
 
 > 💬 *« Ajoute une section de 3 T-72 en patrouille autour de ce point. »*
-> 💬 *« Place un groupe de reconnaissance bleu ici. »*
+> 💬 *« Mets deux groupes de blindés dans la combat zone North. »*
+> 💬 *« Place des intercepteurs Su-27 en Late Activation pour la QRA. »*
 
 ---
 

@@ -100,6 +100,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": False,
                         "description": "Loop the route's last waypoint back to the first.",
                     },
+                    "for_combat_zone": {
+                        "type": "string",
+                        "description": "Combat-zone trigger-zone name to prefix the group name with "
+                        "(so the zone picks it up). Idempotent.",
+                    },
+                    "late_activation": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Mark the group late-activation (QRA interceptors, CAP templates).",
+                    },
+                    "as_spawn_template": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Prefix the name with 'veafSpawn-' (spawnable-aircraft template).",
+                    },
                 },
                 "required": [
                     "miz_path",
@@ -412,6 +427,9 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         units=params["units"],
         route=params.get("route"),
         patrol=params.get("patrol", False),
+        for_combat_zone=params.get("for_combat_zone"),
+        late_activation=params.get("late_activation", False),
+        as_spawn_template=params.get("as_spawn_template", False),
     )
 
 

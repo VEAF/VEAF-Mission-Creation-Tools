@@ -123,10 +123,13 @@ disabled, or configured (with their settings).
 
 *Built mission · ⭐* — The AI inserts a ground / vehicle group: the units (you say what and how
 many), a position, and optionally a route (with a looping patrol). Adding twice creates two
-groups — like two placements in the editor.
+groups — like two placements in the editor. The AI **names the group correctly itself** from your
+intent: attached to a combat zone (zone-name prefix), **Late Activation** for a QRA, or a spawn
+template (`veafSpawn-`).
 
 > 💬 *"Add a section of 3 T-72s patrolling around this point."*
-> 💬 *"Place a blue recon group here."*
+> 💬 *"Put two armor groups in the North combat zone."*
+> 💬 *"Place Su-27 interceptors in Late Activation for the QRA."*
 
 ---
 

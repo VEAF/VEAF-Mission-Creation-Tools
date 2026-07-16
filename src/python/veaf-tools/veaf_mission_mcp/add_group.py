@@ -17,6 +17,37 @@ from mission_tools.miz_tools import read_miz, write_miz
 
 _UNIT_SPACING_METERS = 20
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
+_SPAWN_TEMPLATE_PREFIX = "veafSpawn-"
+
+
+def resolve_group_name(
+    name: str,
+    *,
+    for_combat_zone: str | None = None,
+    as_spawn_template: bool = False,
+) -> str:
+    """Derive a convention-correct group name from the caller's intent.
+
+    Encodes two VEAF naming conventions (see the wave-5 oracle
+    ``describe_naming_conventions``): a combat-zone member's name must start with the
+    zone's name, and a spawnable-aircraft template's name must start with ``veafSpawn-``.
+    Both checks are idempotent — an already-correct name is returned unchanged.
+
+    Args:
+        name: The base name the caller proposes.
+        for_combat_zone: If set, ensure the name starts with this combat-zone trigger-zone
+            name (case-insensitive check, matching the runtime membership rule).
+        as_spawn_template: If true, ensure the name starts with ``veafSpawn-``.
+
+    Returns:
+        The resolved name.
+    """
+    resolved = name
+    if as_spawn_template and not resolved.startswith(_SPAWN_TEMPLATE_PREFIX):
+        resolved = f"{_SPAWN_TEMPLATE_PREFIX}{resolved}"
+    if for_combat_zone and not resolved.lower().startswith(for_combat_zone.lower()):
+        resolved = f"{for_combat_zone}-{resolved}"
+    return resolved
 
 
 def add_group(
@@ -31,6 +62,9 @@ def add_group(
     units: list[dict[str, Any]],
     route: list[dict[str, float]] | None = None,
     patrol: bool = False,
+    for_combat_zone: str | None = None,
+    late_activation: bool = False,
+    as_spawn_template: bool = False,
 ) -> dict[str, Any]:
     """Add a group to a mission's source `.miz`, in place, backed up first.
 
@@ -41,7 +75,7 @@ def add_group(
         country_name: The DCS country name (e.g. `"Russia"`), used only if the
             country does not exist yet in this coalition.
         category: One of `"vehicle"`, `"plane"`, `"helicopter"`, `"ship"`, `"static"`.
-        name: The group's name.
+        name: The group's base name (before any naming-intent prefixing).
         position: The group's anchor position, `{"x": ..., "y": ...}`.
         units: `[{"type": <DCS unit type>, "count": <int>}, ...]` — concrete unit
             types are the calling LLM's decision, not this action's.
@@ -49,9 +83,15 @@ def add_group(
             stationary waypoint at `position`.
         patrol: If true (and `route` has at least 2 points), the last waypoint loops
             back to the first — a DCS ground-unit patrol.
+        for_combat_zone: If set, prefix the name with this combat-zone trigger-zone name
+            so the group is picked up by that zone (idempotent).
+        late_activation: If true, mark the group late-activation (QRA interceptors,
+            CAP/on-demand templates).
+        as_spawn_template: If true, prefix the name with `veafSpawn-` (registers it as a
+            spawnable-aircraft template).
 
     Returns:
-        `{"group_id": <int>, "name": <str>}`.
+        `{"group_id": <int>, "name": <resolved name>}`.
 
     Raises:
         ValueError: If the archive is not a valid mission, or `units` yields no units.
@@ -60,7 +100,10 @@ def add_group(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
-    group = _build_group(name=name, position=position, units=units, route=route, patrol=patrol)
+    name = resolve_group_name(name, for_combat_zone=for_combat_zone, as_spawn_template=as_spawn_template)
+    group = _build_group(
+        name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+    )
 
     group_id = insert_group(
         mission.mission_content,
@@ -84,6 +127,7 @@ def _build_group(
     units: list[dict[str, Any]],
     route: list[dict[str, float]] | None,
     patrol: bool,
+    late_activation: bool = False,
 ) -> dict[str, Any]:
     """Build a DCS group dict ready for `mission_tools.group_insertion.add_group`."""
     built_units = _build_units(units, position=position, group_name=name)
@@ -98,6 +142,7 @@ def _build_group(
         "units": built_units,
         "visible": False,
         "hidden": False,
+        "lateActivation": late_activation,
         "taskSelected": True,
         "uncontrollable": False,
         "start_time": 0,

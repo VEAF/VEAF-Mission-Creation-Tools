@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-019 — `add_group` naming intents
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_group.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -23,13 +23,14 @@ These compose with the existing `name`/`units`/`route`/`patrol`. The oracle
 
 ## Acceptance criteria
 
-- [ ] `for_combat_zone` yields a name starting with the exact zone name (idempotent if the
-      caller already prefixed it — no double prefix).
-- [ ] `late_activation` sets the DCS late-activation flag on the inserted group.
-- [ ] `as_spawn_template` yields a `veafSpawn-` prefixed name.
-- [ ] Intents compose; the base `add_group` behaviour is unchanged when none are given.
-- [ ] TDD; ruff + mypy clean. Coverage gate per the ratchet.
-- [ ] Mission-maker catalogue updated (living-doc rule).
+- [x] `for_combat_zone` yields a name starting with the exact zone name (idempotent,
+      case-insensitive — no double prefix).
+- [x] `late_activation` sets the DCS `lateActivation` flag on the inserted group.
+- [x] `as_spawn_template` yields a `veafSpawn-` prefixed name.
+- [x] Intents compose; base `add_group` behaviour unchanged when none given (default not late-activation).
+- [x] TDD (10 tests); ruff + mypy clean.
+- [ ] Coverage gate bump — deferred (full-suite coverage not measurable locally; bump vs CI %).
+- [x] Mission-maker catalogue updated (living-doc rule) — "Add a group" section, FR/EN.
 
 ## Blocked by
 

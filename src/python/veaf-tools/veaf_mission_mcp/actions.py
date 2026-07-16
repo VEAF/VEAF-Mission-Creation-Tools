@@ -381,7 +381,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
                     "level": {"type": "string", "enum": ["error", "warning", "info", "debug", "trace"]},
                 },
                 "required": ["mission_yaml_path", "level"],
@@ -400,7 +403,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
                     "disabled": {"type": "boolean", "description": "true = no password required."},
                     "password_hashes": {"type": "array", "items": {"type": "string"}},
                     "password_mm_hashes": {"type": "array", "items": {"type": "string"}},
@@ -425,7 +431,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "mission_yaml_path": {"type": "string", "description": "Path to the mission's source mission.yaml."},
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
                     "key": {"type": "string", "description": "The setting key."},
                     "value": {"description": "The value (scalar or structure)."},
                 },

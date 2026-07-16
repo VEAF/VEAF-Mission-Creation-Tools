@@ -1,8 +1,8 @@
 # FEAT-MCP-MISSION-EDITOR-017 — `veaf-mission-authoring` Claude skill (the "how to reason")
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
-Files: Claude plugin skill (location TBC — alongside the MCP plugin packaging), `doc/`
+Files: `plugin/skills/veaf-mission-authoring/SKILL.md`, `plugin/README.md`, `doc/developer/`
 
 ## What to build
 
@@ -18,16 +18,16 @@ authoring a VEAF mission — the judgement the structured oracle actions (ticket
 
 ## Acceptance criteria
 
-- [ ] Skill loads and references the ticket-016 actions as the authoritative data source.
-- [ ] Covers the combat-zone-vs-QRA distinction and the "intent not names" principle with
-      worked examples (e.g. "create a CZ with two armor groups" → correct naming).
-- [ ] No duplication of the volatile DCS/VEAF lists (those stay in the oracle actions).
+- [x] Skill loads and references the ticket-016 actions as the authoritative data source.
+- [x] Covers the combat-zone-vs-QRA distinction and the "intent not names" principle with
+      worked examples ("create a CZ with two armor groups", "a QRA with Mirage 2000s").
+- [x] No duplication of the volatile DCS/VEAF lists (those stay in the oracle actions).
 
 ## Note
 
-Delivery vehicle is the **Claude plugin** (MCP server = hands/eyes + this skill = brain). Exact
-packaging location depends on the plugin structure — coordinate with the eventual
-`bfr-claude-plugins` packaging (currently out of scope of the lot, tracked separately).
+Delivery vehicle is the **Claude plugin** (MCP server = hands/eyes + this skill = brain). Placement
+decided (David): the skill is **versioned in veaf-tools** under `plugin/skills/`, next to the MCP
+server, and bundled/referenced by the separate `bfr-claude-plugins` packaging (out of scope here).
 
 ## Blocked by
 

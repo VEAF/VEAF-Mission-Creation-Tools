@@ -229,7 +229,8 @@ que le build utilise déjà, donc **sans dérive possible** :
 - repos de datamining en amont (provenance).
 
 Implémentation : `veaf_mission_mcp/oracle.py`. Le pendant « prose / comment raisonner » vit dans
-le skill Claude `veaf-mission-authoring` (le plugin = mains MCP + cerveau skill).
+le skill Claude `veaf-mission-authoring` (`plugin/skills/veaf-mission-authoring/SKILL.md`, bundlé
+par `bfr-claude-plugins`) — le plugin = mains MCP + cerveau skill.
 
 ### `list_unit_types`
 

@@ -225,7 +225,8 @@ read from the **canonical sources** the build already uses, so they **cannot dri
 - upstream datamining repos (provenance).
 
 Implementation: `veaf_mission_mcp/oracle.py`. The "prose / how to reason" half lives in the
-`veaf-mission-authoring` Claude skill (the plugin = MCP hands + skill brain).
+`veaf-mission-authoring` Claude skill (`plugin/skills/veaf-mission-authoring/SKILL.md`, bundled by
+`bfr-claude-plugins`) — the plugin = MCP hands + skill brain.
 
 ### `list_unit_types`
 

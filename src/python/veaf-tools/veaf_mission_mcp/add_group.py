@@ -73,17 +73,18 @@ def add_group(
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
     name = resolve_group_name(name, for_combat_zone=for_combat_zone, as_spawn_template=as_spawn_template)
-    group = _build_group(
-        name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
-    )
-
-    group_id = insert_group(
+    group_id = insert_group_into_content(
         mission.mission_content,
         coalition=coalition,
         country_id=country_id,
         country_name=country_name,
         category=category,
-        group=group,
+        name=name,
+        position=position,
+        units=units,
+        route=route,
+        patrol=patrol,
+        late_activation=late_activation,
     )
 
     warnings = validate_group_name(name, miz_path=miz_path, expected_combat_zone=for_combat_zone)["warnings"]
@@ -92,6 +93,58 @@ def add_group(
     write_miz(mission, miz_path)
 
     return {"group_id": group_id, "name": name, "warnings": warnings}
+
+
+def insert_group_into_content(
+    mission_content: dict[str, Any],
+    *,
+    coalition: str,
+    country_id: int,
+    country_name: str,
+    category: str,
+    name: str,
+    position: dict[str, float],
+    units: list[dict[str, Any]],
+    route: list[dict[str, float]] | None = None,
+    patrol: bool = False,
+    late_activation: bool = False,
+) -> int:
+    """Build a group and insert it into `mission_content` in place; return its fresh `groupId`.
+
+    The content-level core shared by the `.miz` action :func:`add_group` and the wave-8 composite
+    builders (which mutate a mission folder's exploded content). Does no I/O and no name
+    resolution — the caller passes the final `name`.
+
+    Args:
+        mission_content: The parsed ``mission`` table to mutate.
+        coalition: `"blue"`, `"red"` or `"neutral"`.
+        country_id: DCS numeric country id.
+        country_name: DCS country name (used only if the country is absent in this coalition).
+        category: One of `"vehicle"`, `"plane"`, `"helicopter"`, `"ship"`, `"static"`.
+        name: The group's final name.
+        position: The group's anchor position.
+        units: `[{"type", "count"}, ...]`.
+        route: Optional waypoints; defaults to a stationary point at `position`.
+        patrol: Loop the route back to its start.
+        late_activation: Mark the group late-activation.
+
+    Returns:
+        The fresh ``groupId`` assigned to the inserted group.
+
+    Raises:
+        ValueError: If `units` yields no units.
+    """
+    group = _build_group(
+        name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+    )
+    return insert_group(
+        mission_content,
+        coalition=coalition,
+        country_id=country_id,
+        country_name=country_name,
+        category=category,
+        group=group,
+    )
 
 
 def _build_group(

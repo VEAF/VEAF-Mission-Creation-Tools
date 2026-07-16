@@ -56,6 +56,7 @@ The AI can act in two places, and it changes what "survives":
 | 14 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
 | 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
 | 16 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
+| 17 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
 
 ---
 
@@ -101,6 +102,22 @@ given mission, warns about the **combat-zone capture trap**. The AI uses it befo
 and relays any warning to you.
 
 > 💬 *"Could this group name cause a problem?"*
+
+---
+
+## 🏗️ Composites — create a full feature (one pass)
+
+*The core goal: from a single request, the AI lays down a whole VEAF feature across **both worlds**
+(source `src/mission` + `mission.yaml`) of a **mission folder**. Durable: a later `veaf-tools build`
+produces the `.miz`.*
+
+### Create a full combat zone {#create-combat-zone}
+
+*Recipe (folder) · 🔥* — In one call: the trigger zone, the groups placed inside it (auto-named so
+the zone captures them) **and** the `COMBATZONE` block in `mission.yaml`. You describe, the AI
+assembles.
+
+> 💬 *"Create a “North” combat zone with two enemy armor groups."*
 
 ---
 

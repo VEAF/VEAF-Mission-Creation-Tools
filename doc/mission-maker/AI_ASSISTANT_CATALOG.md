@@ -57,6 +57,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 14 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
 | 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
 | 16 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
+| 17 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
 
 ---
 
@@ -103,6 +104,22 @@ mission donnée, prévient du **piège de capture combat-zone**. L'IA s'en sert 
 groupe et te relaie tout avertissement.
 
 > 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
+
+---
+
+## 🏗️ Composites — créer une fonctionnalité complète (une passe)
+
+*Le cœur de l'objectif : d'une seule demande, l'IA pose une fonctionnalité VEAF entière sur les
+**deux mondes** (source `src/mission` + `mission.yaml`) d'un **dossier de mission**. Durable : un
+`veaf-tools build` ultérieur produit le `.miz`.*
+
+### Créer une combat zone complète {#creer-combat-zone}
+
+*Recette (dossier) · 🔥* — En un appel : la zone de déclenchement, les groupes placés dedans
+(nommés automatiquement pour être capturés par la zone) **et** le bloc `COMBATZONE` dans
+`mission.yaml`. Tu décris, l'IA assemble.
+
+> 💬 *« Crée une combat zone “North” avec deux groupes de blindés ennemis. »*
 
 ---
 

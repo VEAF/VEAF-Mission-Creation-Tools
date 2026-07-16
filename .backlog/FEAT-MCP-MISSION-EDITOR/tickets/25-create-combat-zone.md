@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-025 — `create_combat_zone` (one pass, both worlds)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -20,12 +20,18 @@ Then (optionally) build. Not deduplicated. Returns a summary of what it created 
 
 ## Acceptance criteria
 
-- [ ] One call produces: the trigger zone, ≥1 correctly-named group inside it, and the
-      `modules.COMBATZONE.combat_zones[]` entry — verifiable by re-reading the folder.
-- [ ] Group names satisfy the combat-zone membership rule (zone-name prefix).
-- [ ] Idempotency/dedup: documented (calling twice = two zones), matching the primitives.
-- [ ] TDD against a real mission folder fixture; ruff + mypy clean.
-- [ ] Mission-maker catalogue updated (living-doc rule).
+- [x] One call produces: the trigger zone, ≥1 correctly-named group inside it, and the
+      `modules.COMBATZONE.combat_zones[]` entry — verified by re-reading the folder.
+- [x] Group names satisfy the combat-zone membership rule (zone-name prefix, via `resolve_group_name`).
+- [x] Appends to existing `combat_zones` (second call = two zones), doesn't clobber.
+- [x] TDD (2 tests) against a real mission folder fixture; ruff + mypy clean (full-tree).
+- [x] Mission-maker catalogue updated — new "🏗️ Composites" headline theme, FR/EN.
+
+## Note
+
+Extracted content-level cores `insert_trigger_zone` / `insert_group_into_content` (from
+`add_trigger_zone` / `add_group`) so the composite reuses them on the folder's exploded mission —
+the `.miz` actions now delegate to the same cores (behavior-preserving).
 
 ## Blocked by
 

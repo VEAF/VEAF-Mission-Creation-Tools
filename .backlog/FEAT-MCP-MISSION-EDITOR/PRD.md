@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-4 done — 15 tickets, on integration branch `feature/mcp-mission-editor`, umbrella PR #575 draft; **wave 5 (domain oracle, tickets 16-18) done on sub-branch `feature/mcp-knowledge-oracle` (PR #576 → integration branch)**; waves 6-8 planned, tickets 19-28)
+Status: 🔄 in-progress (waves 1-5 done — 18 tickets, merged into integration branch `feature/mcp-mission-editor` (wave 5 = PR #576, merged); umbrella PR #575 → `develop-v6` draft; **wave 6 (convention-aware add_group, tickets 19-21) open on sub-branch `feature/mcp-add-group-conventions`**; waves 7-8 planned, tickets 22-28)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 

@@ -19,7 +19,8 @@ Deux familles d'actions, volontairement séparées :
   comme un Mission Maker le ferait à la main dans l'éditeur DCS (ajouter un groupe, un trigger,
   une zone). Ne passe jamais par `mission.yaml`. C'est tout le périmètre de ce serveur en v1.
 - **Action VMCT** — passe par le pipeline déclaratif `mission.yaml` existant (`inject_presets`,
-  `aircraft_groups`...). Hors périmètre de ce serveur, inchangée.
+  `aircraft_groups`...). Depuis la **vague 4**, le serveur en expose une première brique : éditer
+  le `mission.yaml` source (voir plus bas), en plus du pipeline CLI/config habituel.
 
 ## Lancer le serveur localement
 
@@ -174,12 +175,49 @@ modules) :
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.
 
+## Actions VMCT sur `mission.yaml` (vague 4)
+
+Quatrième famille — la première vraiment **VMCT** : éditer le **source déclaratif**
+`mission.yaml` (ce que le build consomme pour *générer* le `.miz`), au lieu de patcher un
+artefact déjà construit. Brique commune : `mission_tools.mission_yaml_editor` (mode round-trip
+`ruamel.yaml`) qui **préserve commentaires, ordre des clés et mise en forme** — indispensable
+pour un fichier source très commenté, édité à la main et tenu en lockstep avec le défaut livré.
+Sauvegarde horodatée avant chaque écriture.
+
+### `describe_mission_config`
+
+Lecture seule. Liste le bloc `modules:` et, par module, son état : `mandatory` (clé nue),
+`scalar` (booléen `MODULE: true/false`) ou `extended` (bloc de config imbriqué type
+`COMBATZONE`/`CTLD`). Le pendant VMCT de `describe_mission`.
+
+```json
+{"mission_yaml_path": "chemin/vers/mission.yaml"}
+```
+
+### `set_mission_module`
+
+Écriture. Active/désactive un module ou pose son bloc de config étendu, en préservant les
+commentaires. `value` est soit un booléen (forme scalaire), soit un objet (bloc étendu). La clé
+est **remplacée si présente, insérée sinon**. Pas de déduplication.
+
+```json
+{
+  "mission_yaml_path": "chemin/vers/mission.yaml",
+  "module_id": "COMBATZONE",
+  "value": {"enabled": true, "combat_zones": [{"type": "zone", "zone_name": "CZ-Alpha"}]}
+}
+```
+
+> Périmètre volontairement **générique** (toggle + pose de mapping) — pas de validateur de
+> schéma par module : la forme du bloc de config passé reste la responsabilité de l'appelant
+> (LLM), comme les types d'unités pour `add_group`.
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
   se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
-- Toute action VMCT (ex. écrire une entrée `modules.COMBATZONE` dans `mission.yaml`).
+- Un validateur de schéma par module pour `set_mission_module` (la vague 4 reste générique).
 - Catalogue/curation de types d'unités.
 - Actions composites (ex. un seul appel `create_combat_zone`).
 

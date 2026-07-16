@@ -8,6 +8,7 @@ from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigg
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.describe_mission import describe_mission
+from veaf_mission_mcp.edit_mission_yaml import describe_mission_config, set_mission_module
 from veaf_mission_mcp.edit_veaf_config import (
     set_log_level,
     set_module_enabled,
@@ -261,6 +262,55 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_veaf_config(Path(p["miz_path"]), p["key"], p["value"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_mission_config",
+            description=(
+                "List the modules block of a mission's source mission.yaml (the declarative "
+                "VMCT config the build consumes), and each module's state (mandatory / "
+                "enabled scalar / extended config mapping). Read-only; the VMCT counterpart "
+                "of describe_mission."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
+                },
+                "required": ["mission_yaml_path"],
+            },
+        ),
+        handler=lambda p: describe_mission_config(Path(p["mission_yaml_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_mission_module",
+            description=(
+                "Enable/disable a VEAF module or set its extended config block in a mission's "
+                "source mission.yaml, comments preserved, backed up first. Pass `value` as a "
+                "boolean for the scalar form (MODULE: true/false) or as an object for the "
+                "extended block (e.g. a COMBATZONE/CTLD config). Inserts the key if absent."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
+                    "module_id": {"type": "string", "description": "Module key, e.g. 'CTLD', 'COMBATZONE'."},
+                    "value": {
+                        "type": ["boolean", "object"],
+                        "description": "Boolean toggle, or an object for the extended config block.",
+                    },
+                },
+                "required": ["mission_yaml_path", "module_id", "value"],
+            },
+        ),
+        handler=lambda p: set_mission_module(Path(p["mission_yaml_path"]), p["module_id"], p["value"]),
     )
 
 

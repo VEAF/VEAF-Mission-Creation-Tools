@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-012 — Comment-preserving `mission.yaml` editor (brick)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `pyproject.toml`, `mission_tools/mission_yaml_editor.py`, `test/python/`
 
@@ -23,11 +23,11 @@ round-trip is unacceptable. Use **`ruamel.yaml` in round-trip mode** instead.
 
 ## Acceptance criteria
 
-- [ ] A `load_yaml` → `save_yaml` round-trip with no mutation leaves the file **byte-stable**
+- [x] A `load_yaml` → `save_yaml` round-trip with no mutation leaves the file **byte-stable**
       (comments, blank lines, key order, indentation all preserved).
-- [ ] Editing a single scalar value changes only that value's rendering, not unrelated lines.
-- [ ] The `.yaml` is backed up (timestamped sibling) before every save.
-- [ ] TDD; ruff + mypy clean. Coverage gate bumped per the ratchet policy.
+- [x] Editing a single scalar value changes only that value's rendering, not unrelated lines.
+- [x] The `.yaml` is backed up (timestamped sibling) before every save.
+- [x] TDD; ruff + mypy clean. Coverage gate bumped per the ratchet policy.
 
 ## Note
 

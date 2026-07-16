@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-014 — Wave-4 documentation
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/developer/mission-editing-mcp.md`, `doc/developer/mission-editing-mcp.en.md`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml`
 
@@ -19,9 +19,9 @@ Files: `doc/developer/mission-editing-mcp.md`, `doc/developer/mission-editing-mc
 
 ## Acceptance criteria
 
-- [ ] Both language docs describe the two new actions and the four-family model consistently.
-- [ ] CONTEXT.md `_VMCT action_` entry updated.
-- [ ] CHANGELOG + version bump landed; markdown-lint clean.
+- [x] Both language docs describe the two new actions and the four-family model consistently.
+- [x] CONTEXT.md `_VMCT action_` entry updated.
+- [x] CHANGELOG + version bump landed; markdown-lint clean.
 
 ## Blocked by
 

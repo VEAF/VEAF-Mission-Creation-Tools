@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, in PR #575 draft; wave 4 — VMCT actions on the source `mission.yaml` — opened, tickets 12-14)
+Status: 🔄 in-progress (v1 + waves 2 & 3 done — 11 tickets, in PR #575 draft; wave 4 — VMCT actions on the source `mission.yaml` — done, tickets 12-14)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -107,9 +107,9 @@ respects the CLAUDE.md _defaults-lockstep_ rule. Backed up first, like every wri
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-012 | **Brick — comment-preserving `mission.yaml` editor**: `mission_tools/mission_yaml_editor.py` with `load_yaml`/`save_yaml` on `ruamel.yaml` round-trip mode + a `backup_before_write`-style backup for the `.yaml`. Adds the `ruamel.yaml` dependency. TDD proving comments, key order and formatting survive a load→save round-trip, and that a scalar edit changes only its own line. | `pyproject.toml`, `mission_tools/mission_yaml_editor.py`, `test/python/` | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-013 | **MCP actions on `mission.yaml`**: `describe_mission_config` (read — list the `modules:` block and each module's enabled/config state) and `set_mission_module` (write — enable/disable a module scalar **or** set its extended config mapping, e.g. a `COMBATZONE`/`CTLD` block, preserving comments). Registered in the catalog next to the wave-3 `set_*` actions. No dedup. TDD on scalar toggle + extended-mapping insert + unknown-module handling. | `veaf_mission_mcp/`, `test/python/` | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-014 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with wave-4 + the fourth (VMCT) action family; CONTEXT.md glossary (`_VMCT action_` now has a concrete implementation); CHANGELOG; version bump. Amend this PRD's _Out of Scope_ (VMCT actions no longer excluded). | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-012 | **Brick — comment-preserving `mission.yaml` editor**: `mission_tools/mission_yaml_editor.py` with `load_yaml`/`save_yaml` on `ruamel.yaml` round-trip mode + a `backup_before_write`-style backup for the `.yaml`. Adds the `ruamel.yaml` dependency. TDD proving comments, key order and formatting survive a load→save round-trip, and that a scalar edit changes only its own line. | `pyproject.toml`, `mission_tools/mission_yaml_editor.py`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-013 | **MCP actions on `mission.yaml`**: `describe_mission_config` (read — list the `modules:` block and each module's enabled/config state) and `set_mission_module` (write — enable/disable a module scalar **or** set its extended config mapping, e.g. a `COMBATZONE`/`CTLD` block, preserving comments). Registered in the catalog next to the wave-3 `set_*` actions. No dedup. TDD on scalar toggle + extended-mapping insert + unknown-module handling. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-014 | **Doc update**: extend `mission-editing-mcp.md` (FR/EN) with wave-4 + the fourth (VMCT) action family; CONTEXT.md glossary (`_VMCT action_` now has a concrete implementation); CHANGELOG; version bump. Amend this PRD's _Out of Scope_ (VMCT actions no longer excluded). | `doc/developer/`, `CONTEXT.md`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
 
 ## Out of Scope
 

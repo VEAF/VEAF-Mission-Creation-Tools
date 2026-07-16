@@ -226,7 +226,10 @@ _Avoid_: vanilla action, low-level action
 An action that edits a mission through the declarative `mission.yaml` config
 and its workers (e.g. `inject_presets`, `aircraft_groups`), as opposed to an
 _Editor-parity action_ which bypasses that pipeline to mutate the `.miz`
-directly.
+directly. Since wave 4 the mission-editing MCP exposes a first concrete VMCT
+action on the source itself: `set_mission_module`/`describe_mission_config`
+edit the `mission.yaml` `modules:` block through a comment-preserving
+`ruamel.yaml` round-trip (`mission_tools.mission_yaml_editor`).
 
 **Embedded-Lua edit action**:
 The third mission-editing MCP family: edits the **text** of the `.lua` files

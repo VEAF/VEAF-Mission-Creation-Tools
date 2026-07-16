@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-013 — MCP actions on `mission.yaml`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `veaf_mission_mcp/edit_mission_yaml.py`, `veaf_mission_mcp/actions.py`, `test/python/`
 
@@ -22,14 +22,14 @@ the wave-3 `set_*` actions.
 
 ## Acceptance criteria
 
-- [ ] `describe_mission_config` reports the three module shapes (mandatory / scalar / extended)
+- [x] `describe_mission_config` reports the three module shapes (mandatory / scalar / extended)
       correctly against a representative `mission.yaml`.
-- [ ] `set_mission_module` scalar toggle flips only the targeted module's value, comments intact.
-- [ ] `set_mission_module` mapping form writes a well-formed extended block that survives a
+- [x] `set_mission_module` scalar toggle flips only the targeted module's value, comments intact.
+- [x] `set_mission_module` mapping form writes a well-formed extended block that survives a
       re-load (and would be accepted by the existing `mission_builder` YAML consumer).
-- [ ] Clear error for a malformed `mission.yaml` path / non-mapping `modules:` block.
-- [ ] Both actions registered with a JSON-Schema `ActionSpec`; `run_action` dispatches them.
-- [ ] TDD; ruff + mypy clean. Coverage gate bumped per the ratchet policy.
+- [x] Clear error for a malformed `mission.yaml` path / non-mapping `modules:` block.
+- [x] Both actions registered with a JSON-Schema `ActionSpec`; `run_action` dispatches them.
+- [x] TDD; ruff + mypy clean. Coverage gate bumped per the ratchet policy.
 
 ## Note
 

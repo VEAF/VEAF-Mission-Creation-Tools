@@ -18,7 +18,8 @@ Two action families, deliberately kept apart:
   way a Mission Maker would by hand in the DCS Mission Editor (add a group, a trigger, a zone).
   Never goes through `mission.yaml`. This is the entire scope of this server in v1.
 - **VMCT action** — goes through the existing declarative `mission.yaml` pipeline
-  (`inject_presets`, `aircraft_groups`...). Out of scope for this server, unchanged.
+  (`inject_presets`, `aircraft_groups`...). As of **wave 4** the server exposes a first brick of
+  this family: editing the source `mission.yaml` (see below), alongside the usual CLI/config path.
 
 ## Running the server locally
 
@@ -171,12 +172,49 @@ initialise):
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.
 
+## VMCT actions on `mission.yaml` (wave 4)
+
+The fourth family — the first genuinely **VMCT** one: edit the **declarative source**
+`mission.yaml` (what the build consumes to *generate* the `.miz`), rather than patching a built
+artifact. Shared brick: `mission_tools.mission_yaml_editor` (`ruamel.yaml` round-trip mode)
+which **preserves comments, key order and formatting** — essential for a heavily-commented source
+file edited by hand and kept in lockstep with the shipped default. Timestamped backup before
+every write.
+
+### `describe_mission_config`
+
+Read-only. Lists the `modules:` block and, per module, its state: `mandatory` (bare key),
+`scalar` (boolean `MODULE: true/false`) or `extended` (nested config block such as
+`COMBATZONE`/`CTLD`). The VMCT counterpart of `describe_mission`.
+
+```json
+{"mission_yaml_path": "path/to/mission.yaml"}
+```
+
+### `set_mission_module`
+
+Write. Enable/disable a module or set its extended config block, comments preserved. `value` is
+either a boolean (scalar form) or an object (extended block). The key is **replaced if present,
+inserted otherwise**. No deduplication.
+
+```json
+{
+  "mission_yaml_path": "path/to/mission.yaml",
+  "module_id": "COMBATZONE",
+  "value": {"enabled": true, "combat_zones": [{"type": "zone", "zone_name": "CZ-Alpha"}]}
+}
+```
+
+> Deliberately **generic** (toggle + mapping setter) — no per-module schema validator: the shape
+> of the config block passed stays the caller's (LLM's) responsibility, like unit types for
+> `add_group`.
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
 - A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
   startup script-loading / Lua-execution triggers.
-- Any VMCT action (e.g. writing a `modules.COMBATZONE` entry into `mission.yaml`).
+- A per-module schema validator for `set_mission_module` (wave 4 stays generic).
 - Unit-type catalog/curation.
 - Composite actions (e.g. a single `create_combat_zone` call).
 

@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-4 done — 15 tickets, in PR #575 draft; waves 5-8 planned — domain oracle → convention-aware add_group → target symmetry → composite feature builders, tickets 16-28)
+Status: 🔄 in-progress (waves 1-4 done — 15 tickets, on integration branch `feature/mcp-mission-editor`, umbrella PR #575 draft; **wave 5 (domain oracle, tickets 16-18) open on sub-branch `feature/mcp-knowledge-oracle`**; waves 6-8 planned, tickets 19-28)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 

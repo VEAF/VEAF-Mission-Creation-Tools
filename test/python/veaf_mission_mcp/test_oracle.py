@@ -46,9 +46,30 @@ def test_list_shortcuts_filters_by_substring() -> None:
     filtered = list_shortcuts(name_contains="shilka")
     assert any("shilka" in e["aliases"] for e in filtered["units"])
     assert all(
-        "shilka" in " ".join(e["aliases"]).lower() or "shilka" in e["unitType"].lower()
-        for e in filtered["units"]
+        "shilka" in " ".join(e["aliases"]).lower() or "shilka" in e["unitType"].lower() for e in filtered["units"]
     )
+
+
+def test_list_shortcuts_includes_command_aliases() -> None:
+    # The #command shortcuts from veafShortcuts.buildDefaultList() (regression: the LLM
+    # invented `-lrsam` because the real `-samLR` was invisible to the oracle).
+    names = [alias for entry in list_shortcuts()["commands"] for alias in entry["aliases"]]
+    assert "-samLR" in names
+    assert "-samSR" in names
+
+
+def test_list_shortcuts_commands_filtered_by_substring() -> None:
+    filtered = list_shortcuts(name_contains="samLR")
+    names = [alias for entry in filtered["commands"] for alias in entry["aliases"]]
+    assert "-samLR" in names
+    assert "-samSR" not in names  # filtered out
+
+
+def test_list_shortcuts_command_entries_have_shape() -> None:
+    commands = list_shortcuts()["commands"]
+    assert commands
+    entry = commands[0]
+    assert "aliases" in entry and "description" in entry and "veafCommand" in entry
 
 
 def test_describe_naming_conventions_lists_the_reserved_patterns() -> None:

@@ -1,6 +1,6 @@
 # FEAT-GEO-PLACEMENT-002 — Geodesic offset helper
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/coordinates.py`, `test/python/veaf_libs/test_coordinates.py`
 

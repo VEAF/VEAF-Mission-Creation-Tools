@@ -1,6 +1,6 @@
 # FEAT-GEO-PLACEMENT-004 — Theatre bounding boxes (data)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/data/theatre-bounds.yaml`, `src/python/veaf-tools/veaf_libs/`, `test/python/`
 

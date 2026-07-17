@@ -1,6 +1,6 @@
 # Lot FEAT-GEO-PLACEMENT — place things by real-world geography
 
-Status: ⬜ ready
+Status: ✅ done (001-005 implemented; geocode action + pluggable geocoder OSM/Google + offset + theatre bounds + doc. Pending PR.)
 
 Branch: `feature/geo-placement` → PR → `feature/mcp-mission-editor` (builds on wave-10 `coordinates.py`)
 
@@ -37,11 +37,11 @@ An LLM (or CLI user) can turn a real-world description into DCS coordinates: `ge
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|
-| FEAT-GEO-PLACEMENT-001 | **Pluggable geocoder** — `veaf_libs/geocoding.py`: a `Geocoder` abstraction with an **OSM Nominatim** backend (HTTP, honouring the usage policy: descriptive User-Agent, timeout; optional per-theatre bounding box to disambiguate) and a **Google Maps** backend used when an API key is configured. Returns `{lat, lon, display_name}`. Network isolated behind one seam; TDD mocks HTTP. | `veaf_libs/geocoding.py`, `pyproject.toml` (if a dep is added), `test/python/` | feat | ⬜ |
-| FEAT-GEO-PLACEMENT-002 | **Geodesic offset helper** — in `veaf_libs/coordinates.py` (or a sibling): `offset_latlon(lat, lon, bearing_deg, distance_m)` (direct geodesic / great-circle destination) so "10 km north of X" resolves. TDD against known bearings/distances. | `veaf_libs/coordinates.py`, `test/python/` | feat | ⬜ |
-| FEAT-GEO-PLACEMENT-003 | **`geocode` MCP action** — name (+ mission path for the theatre, optional `bearing`/`distance_km`) → `{lat, lon, xy: {x, y}, display_name, in_theatre_bounds?}`. Composes geocoder + `coordinates` + offset. Warns (does not fail) when the hit falls outside the theatre's rough bounds. Read-only. | `veaf_mission_mcp/`, `test/python/` | feat | ⬜ |
-| FEAT-GEO-PLACEMENT-004 | **Theatre bounding boxes (data)** — per-theatre lat/lon bounds under `veaf_libs/data/` to bias/validate geocoder results (avoid the wrong "Batumi" worldwide) and power the `in_theatre_bounds` warning. Seed the supported theatres. | `veaf_libs/data/theatre-bounds.yaml`, `veaf_libs/`, `test/python/` | feat | ⬜ |
-| FEAT-GEO-PLACEMENT-005 | **Doc + catalogue + skill + config** — document the geocoder (backends, OSM policy/attribution, how to set a Google key), the `geocode` action, the approximate/confirm-visually caveat and the vague-terrain limit; CHANGELOG; bump. | `doc/`, `plugin/skills/`, `CHANGELOG.md`, `pyproject.toml` | docs | ⬜ |
+| FEAT-GEO-PLACEMENT-001 | **Pluggable geocoder** — `veaf_libs/geocoding.py`: a `Geocoder` abstraction with an **OSM Nominatim** backend (HTTP, honouring the usage policy: descriptive User-Agent, timeout; optional per-theatre bounding box to disambiguate) and a **Google Maps** backend used when an API key is configured. Returns `{lat, lon, display_name}`. Network isolated behind one seam; TDD mocks HTTP. | `veaf_libs/geocoding.py`, `pyproject.toml` (if a dep is added), `test/python/` | feat | ✅ |
+| FEAT-GEO-PLACEMENT-002 | **Geodesic offset helper** — in `veaf_libs/coordinates.py` (or a sibling): `offset_latlon(lat, lon, bearing_deg, distance_m)` (direct geodesic / great-circle destination) so "10 km north of X" resolves. TDD against known bearings/distances. | `veaf_libs/coordinates.py`, `test/python/` | feat | ✅ |
+| FEAT-GEO-PLACEMENT-003 | **`geocode` MCP action** — name (+ mission path for the theatre, optional `bearing`/`distance_km`) → `{lat, lon, xy: {x, y}, display_name, in_theatre_bounds?}`. Composes geocoder + `coordinates` + offset. Warns (does not fail) when the hit falls outside the theatre's rough bounds. Read-only. | `veaf_mission_mcp/`, `test/python/` | feat | ✅ |
+| FEAT-GEO-PLACEMENT-004 | **Theatre bounding boxes (data)** — per-theatre lat/lon bounds under `veaf_libs/data/` to bias/validate geocoder results (avoid the wrong "Batumi" worldwide) and power the `in_theatre_bounds` warning. Seed the supported theatres. | `veaf_libs/data/theatre-bounds.yaml`, `veaf_libs/`, `test/python/` | feat | ✅ |
+| FEAT-GEO-PLACEMENT-005 | **Doc + catalogue + skill + config** — document the geocoder (backends, OSM policy/attribution, how to set a Google key), the `geocode` action, the approximate/confirm-visually caveat and the vague-terrain limit; CHANGELOG; bump. | `doc/`, `plugin/skills/`, `CHANGELOG.md`, `pyproject.toml` | docs | ✅ |
 
 ## Out of Scope
 

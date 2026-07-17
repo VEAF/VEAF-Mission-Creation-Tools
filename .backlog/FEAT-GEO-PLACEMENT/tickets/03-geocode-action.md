@@ -1,6 +1,6 @@
 # FEAT-GEO-PLACEMENT-003 — `geocode` MCP action
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/`, `test/python/veaf_mission_mcp/`
 

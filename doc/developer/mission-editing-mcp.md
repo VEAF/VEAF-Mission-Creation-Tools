@@ -394,8 +394,18 @@ projection).
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
 ```
 
-> Placement par **nom de lieu réel** (« Batumi », « au nord de Kobuleti ») : hors périmètre de cette
-> vague — voir le lot `FEAT-GEO-PLACEMENT` (géocodeur enfichable → lat/lon → `x/y` via ce socle).
+### `geocode`
+
+Lecture seule (lot `FEAT-GEO-PLACEMENT`). Résout un **nom de lieu réel** en coordonnées DCS pour le
+théâtre de la mission — les cartes DCS étant le monde réel projeté. Géocodeur **enfichable** :
+OpenStreetMap Nominatim par défaut (gratuit, sans clé ; attribution © OpenStreetMap requise), Google
+Maps si `GOOGLE_MAPS_API_KEY` est défini. `bearing`+`distance_km` optionnels (« à 10 km au nord de
+X »). Renvoie `{found, display_name, latlon, xy, in_theatre_bounds, warnings}` — approximatif, à
+confirmer visuellement ; les lieux nommés marchent, le terrain vague non.
+
+```json
+{"mission_path": "…", "query": "Kobuleti", "bearing": 0, "distance_km": 10}
+```
 
 ## Prochaines vagues (hors périmètre)
 

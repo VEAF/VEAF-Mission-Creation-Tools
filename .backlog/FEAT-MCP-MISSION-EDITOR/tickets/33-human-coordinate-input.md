@@ -1,6 +1,12 @@
 # FEAT-MCP-MISSION-EDITOR-033 — Human-coordinate input on placement actions
 
-Status: ⬜ ready
+Status: 🚫 wontfix (deferred — superseded by `resolve_coordinates` + FEAT-GEO-PLACEMENT)
+
+> **Decision (with David).** Once `resolve_coordinates` (ticket 032) exists, embedding `{lat,lon}`
+> into every placement action is marginal: the caller converts to `x/y` first, then uses the actions
+> unchanged. Real-world *named* placement (the actual need) is handled by the geocoder in
+> `FEAT-GEO-PLACEMENT`, which also returns `x/y`. So this ticket is dropped rather than built.
+
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_group.py`, `add_trigger_zone.py`, `composites.py`, `veaf_mission_mcp/` (shared position parser), `test/python/`
 

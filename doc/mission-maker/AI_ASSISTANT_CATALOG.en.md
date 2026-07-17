@@ -60,6 +60,8 @@ The AI can act in two places, and it changes what "survives":
 | 18 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
 | 19 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
 | 20 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
+| 21 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
+| 22 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
 
 ---
 
@@ -130,6 +132,28 @@ directly, ready for combat zones / QRAs — **with no DCS round-trip**.
 
 > 💬 *"Create a new VEAF mission on Caucasus in this folder."* (the AI asks for the template +
 > theatre, then installs and generates everything)
+
+## 🗺️ Map & coordinates
+
+*Orient and convert without launching DCS. DCS theatres are the real world projected: the AI can
+convert between DCS local coordinates (x/y) and lat/long.*
+
+### Read the map {#read-the-map}
+
+*Orientation · ⭐* — The AI reads the **theatre**, per-coalition **bullseyes**, and existing
+zones/groups as reference points, to place things relative to known anchors.
+
+> 💬 *"Which theatre is this? Show me the bullseyes and existing zones."*
+
+### Convert coordinates {#convert-coordinates}
+
+*Conversion · ◽* — Converts a position between **DCS x/y** and **lat/long** for the mission's
+theatre (the AI reads the theatre; you supply nothing else).
+
+> 💬 *"What's x=-291000 y=617000 in lat/long?"*
+
+*(Placement by real place name — "near Batumi", "north of Kobuleti" — comes with the geo lot: a
+geocoder resolves the name to coordinates.)*
 
 ## 🏗️ Composites — create a full feature (one pass)
 

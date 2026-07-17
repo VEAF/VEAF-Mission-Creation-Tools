@@ -357,6 +357,38 @@ Write. On an **empty** target folder:
 
 This is **step 0** of a from-scratch mission, before the wave-8 composites.
 
+## Map & coordinates (wave 10)
+
+Placement actions take **DCS local coordinates** (`x`/`y`, metres in the theatre's own projection);
+a Mission Maker thinks in lat/long off a map. Wave 10 gives the LLM map awareness and conversion,
+design-time (no running DCS).
+
+Foundation: `veaf_libs.coordinates` — a pure-Python port (Transverse Mercator WGS84) of
+`projection.lua` (MIT, `bfr-claude-plugins`, see [ADR 0015](../adr/0015-coordinate-projection-port.md))
+with the per-theatre tables (Caucasus, Syria, PersianGulf, MarianaIslands). Since DCS theatres **are
+the real world projected**, this bridges `DCS x/y ↔ real-world lat/lon`.
+
+### `describe_map`
+
+Read-only. From a `.miz` **or** a mission folder: returns the **theatre**, per-coalition
+**bullseyes**, and existing zones/groups as **reference points** — so the LLM can orient without DCS.
+
+```json
+{"mission_path": "path/to/mission.miz-or-folder"}
+```
+
+### `resolve_coordinates`
+
+Utility. Converts a position between `{x, y}` (DCS local) and `{lat, lon}` (decimal degrees) for the
+mission's theatre (read from the mission — the caller never supplies projection parameters).
+
+```json
+{"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
+```
+
+> Placement by **real place name** ("Batumi", "north of Kobuleti") is out of scope for this wave —
+> see the `FEAT-GEO-PLACEMENT` lot (a pluggable geocoder → lat/lon → `x/y` via this foundation).
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.

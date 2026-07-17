@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-032 — `describe_map` + `resolve_coordinates` actions
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/map_tools.py`, `veaf_mission_mcp/actions.py`, `test/python/veaf_mission_mcp/test_map_tools.py`
 

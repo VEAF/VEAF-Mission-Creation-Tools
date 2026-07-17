@@ -23,6 +23,7 @@ from veaf_mission_mcp.edit_veaf_config import (
     set_veaf_config,
 )
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     describe_module,
@@ -647,6 +648,58 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_create_cap_mission,
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_map",
+            description=(
+                "Summarize a mission's map for orientation (theatre, per-coalition bullseyes, and "
+                "existing trigger zones/groups as reference points), from a .miz or a mission "
+                "folder. Read-only; helps place things relative to known anchors without DCS."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "Path to the mission's .miz or exploded mission folder.",
+                    },
+                },
+                "required": ["mission_path"],
+            },
+        ),
+        handler=lambda p: describe_map(Path(p["mission_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="resolve_coordinates",
+            description=(
+                "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
+                "theatre (read from the mission, so no projection parameters needed). Pass a "
+                "position as {x, y} or {lat, lon}; returns both representations."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
+                    },
+                    "position": {
+                        "type": "object",
+                        "description": "Either {x, y} (DCS local metres) or {lat, lon} (decimal degrees).",
+                        "properties": {
+                            "x": {"type": "number"},
+                            "y": {"type": "number"},
+                            "lat": {"type": "number"},
+                            "lon": {"type": "number"},
+                        },
+                    },
+                },
+                "required": ["mission_path", "position"],
+            },
+        ),
+        handler=lambda p: resolve_coordinates(Path(p["mission_path"]), p["position"]),
     )
     catalog.register(
         ActionSpec(

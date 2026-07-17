@@ -61,6 +61,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 18 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
 | 19 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
 | 20 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 21 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 22 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
 
 ---
 
@@ -132,6 +134,28 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 
 > 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
 > template + le théâtre, puis installe et génère tout)
+
+## 🗺️ Carte & coordonnées
+
+*Pour se repérer et convertir sans lancer DCS. Les cartes DCS sont le monde réel projeté : l'IA
+sait convertir entre les coordonnées locales DCS (x/y) et la lat/long.*
+
+### Lire la carte {#lire-la-carte}
+
+*Repérage · ⭐* — L'IA lit le **théâtre**, les **bullseyes** par coalition et les zones/groupes déjà
+présents comme points de repère, pour placer les choses les unes par rapport aux autres.
+
+> 💬 *« C'est quel théâtre ? Montre-moi les bullseyes et les zones existantes. »*
+
+### Convertir des coordonnées {#convertir-coordonnees}
+
+*Conversion · ◽* — Convertit une position entre **x/y DCS** et **lat/long** pour le théâtre de la
+mission (l'IA lit le théâtre, tu n'as aucun paramètre à fournir).
+
+> 💬 *« Ça fait quoi en lat/long, la position x=-291000 y=617000 ? »*
+
+*(Placement par nom de lieu réel — « près de Batumi », « au nord de Kobuleti » — arrive avec le lot
+géo : un géocodeur résout le nom en coordonnées.)*
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 

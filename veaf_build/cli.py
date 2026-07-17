@@ -29,6 +29,7 @@ import yaml
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 
+from veaf_build.github import version_is_prerelease
 from veaf_build.worker import PAUSE_MESSAGE, VERBOSE_HELP, BuildAndReleaseWorker
 
 CONFIG_FILE: str = "veaf-tools-config.yaml"
@@ -211,7 +212,7 @@ def publish(
     # '-' in the version to decide whether to move published-latest, so --prerelease on a plain
     # version (e.g. 6.9.20) would publish a "pre-release" locally yet still let CI advance
     # published-latest — the exact trap that shipped dev to production once.
-    if prerelease and "-" not in version:
+    if prerelease and not version_is_prerelease(version):
         logger.error(
             f"--prerelease needs a semver pre-release version (got '{version}'). "
             f"Re-run with e.g. --version {version}-rc1, so the release workflow leaves "

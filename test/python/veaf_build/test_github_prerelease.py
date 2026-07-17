@@ -15,7 +15,7 @@ import pytest
 from typer.testing import CliRunner
 
 from veaf_build.cli import app
-from veaf_build.github import GitHubPublisher
+from veaf_build.github import GitHubPublisher, version_is_prerelease
 
 
 def _publisher(version: str, *, prerelease: bool = False) -> GitHubPublisher:
@@ -29,6 +29,14 @@ def _publisher(version: str, *, prerelease: bool = False) -> GitHubPublisher:
         output_path=Path("."),
         prerelease=prerelease,
     )
+
+
+def test_version_is_prerelease_helper() -> None:
+    # The single Python-side rule shared by _is_prerelease and the CLI guard.
+    assert version_is_prerelease("6.9.21") is False
+    assert version_is_prerelease("6.9.21-rc1") is True
+    assert version_is_prerelease("6.9.21-pre") is True
+    assert version_is_prerelease(None) is False
 
 
 def test_stable_version_is_not_prerelease() -> None:
@@ -57,17 +65,13 @@ def test_publish_rejects_prerelease_without_semver_suffix() -> None:
     assert "semver pre-release version" in result.output
 
 
-def test_publish_allows_prerelease_with_semver_suffix(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_publish_allows_prerelease_with_semver_suffix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # A suffixed version passes the guard. Run in a temp cwd with a dummy published.zip and
     # mock the real GitHub publish, so the command proceeds past the guard without touching
     # git or the network — and assert the publish was actually reached.
     monkeypatch.chdir(tmp_path)
     (tmp_path / "published.zip").write_bytes(b"zip")
     with mock.patch("veaf_build.worker.BuildAndReleaseWorker._do_publish_to_github") as publish_mock:
-        result = CliRunner().invoke(
-            app, ["publish", "--version", "6.9.20-rc1", "--prerelease", "--token", "x", "--ci"]
-        )
+        result = CliRunner().invoke(app, ["publish", "--version", "6.9.20-rc1", "--prerelease", "--token", "x", "--ci"])
     assert "semver pre-release version" not in result.output
     publish_mock.assert_called_once()

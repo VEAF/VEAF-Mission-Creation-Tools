@@ -63,6 +63,8 @@ The AI can act in two places, and it changes what "survives":
 | 21 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
 | 22 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
 | 23 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
+| 24 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
+| 25 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
 
 ---
 
@@ -162,6 +164,24 @@ approximates reality): the AI always shows the resolved point for you to confirm
 work; vague terrain ("the woods") does not.
 
 > 💬 *"Put a SAM 15 km south-east of Batumi airport."* (the AI geocodes, offsets, then places)
+
+## 🏁 Validate & build
+
+*The last step: from recipe to a playable `.miz`, without leaving the assistant.*
+
+### Validate a mission {#validate-mission}
+
+*Folder · ⭐* — Checks the folder before build (config, modules, references) and lists errors and
+warnings. Do this before building.
+
+> 💬 *"Check my mission is OK before building it."*
+
+### Build the playable .miz {#build-mission}
+
+*Folder · 🔥* — Builds the folder into a `.miz` ready to play in DCS (runs `veaf-tools build`). The
+payoff: empty folder → content → **playable mission**.
+
+> 💬 *"Build the mission."*
 
 ## 🏗️ Composites — create a full feature (one pass)
 

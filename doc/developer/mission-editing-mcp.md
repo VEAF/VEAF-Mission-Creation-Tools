@@ -407,6 +407,33 @@ confirmer visuellement ; les lieux nommés marchent, le terrain vague non.
 {"mission_path": "…", "query": "Kobuleti", "bearing": 0, "distance_km": 10}
 ```
 
+## Build & validation (vague 11)
+
+Les actions précédentes créent, orientent et éditent un **dossier de mission**, mais rien ne
+produisait le `.miz` jouable — le maker lançait `veaf-tools build` à la main. La vague 11 rend le
+serveur **autonome de bout en bout** : dossier vide → scaffold → blank théâtre → composites/placement
+→ **validation → build → `.miz` jouable**, sans quitter l'assistant.
+
+### `validate_mission`
+
+Lecture seule. Lint d'un **dossier** avant build : réutilise `veaf_libs.mission_validator` en
+process. Renvoie `{ok, errors[], warnings[]}` (`ok = false` dès qu'une erreur). À lancer avant
+`build_mission`.
+
+```json
+{"folder_path": "chemin/vers/dossier-mission"}
+```
+
+### `build_mission`
+
+Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools build`** dans le dossier
+(le binaire installé par `scaffold_mission`, ou `veaf-tools` du PATH). L'orchestration du build vit
+dans la commande CLI, on la réexécute telle quelle. Un échec de build est remonté (`RuntimeError`).
+
+```json
+{"folder_path": "chemin/vers/dossier-mission"}
+```
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.

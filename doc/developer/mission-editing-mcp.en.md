@@ -399,6 +399,32 @@ named places work, vague terrain does not.
 {"mission_path": "…", "query": "Kobuleti", "bearing": 0, "distance_km": 10}
 ```
 
+## Build & validate (wave 11)
+
+The earlier actions create, orient and edit a **mission folder**, but nothing produced the playable
+`.miz` — the maker still ran `veaf-tools build` by hand. Wave 11 makes the server **self-sufficient
+end-to-end**: empty folder → scaffold → theatre blank → composites/placement → **validate → build →
+playable `.miz`**, without leaving the assistant.
+
+### `validate_mission`
+
+Read-only. Lints a **folder** before build: reuses `veaf_libs.mission_validator` in-process. Returns
+`{ok, errors[], warnings[]}` (`ok = false` on any error). Run it before `build_mission`.
+
+```json
+{"folder_path": "path/to/mission-folder"}
+```
+
+### `build_mission`
+
+Write. Builds the folder into a playable `.miz` by driving **`veaf-tools build`** in the folder (the
+binary `scaffold_mission` installed, or `veaf-tools` on PATH). The build pipeline lives in the CLI
+command and is re-run as-is. A build failure is surfaced (`RuntimeError`).
+
+```json
+{"folder_path": "path/to/mission-folder"}
+```
+
 ## Next waves (out of scope)
 
 - Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.

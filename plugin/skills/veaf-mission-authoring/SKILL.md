@@ -103,6 +103,13 @@ the `x/y` for the mission's theatre, then place. Real place names ("near Batumi"
 Kobuleti") resolve through the geocoder (`geocode` action) when available — always surface the
 resolved point so the user can sanity-check it (DCS terrain approximates the real world).
 
+## Finish: validate, then build
+
+When the mission is authored, close the loop without leaving the tools: run `validate_mission` on
+the folder first (fix any error it reports), then `build_mission` to produce the playable `.miz`.
+Surface build errors to the user rather than claiming success. This completes the empty-folder →
+scaffold → edit → validate → build → play flow.
+
 ## Report back clearly
 
 Tell the user which world you edited, the names/types you chose and why, and surface any

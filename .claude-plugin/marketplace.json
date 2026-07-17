@@ -1,0 +1,16 @@
+{
+  "name": "veaf",
+  "description": "VEAF plugins for DCS World mission making",
+  "owner": {
+    "name": "VEAF",
+    "url": "https://www.veaf.org"
+  },
+  "plugins": [
+    {
+      "name": "veaf-mission-editor",
+      "source": "./plugin",
+      "description": "Author VEAF DCS missions from Claude Code (veaf-mission-mcp server + authoring skill)",
+      "tags": ["dcs", "dcs-world", "mission", "veaf", "mcp"]
+    }
+  ]
+}

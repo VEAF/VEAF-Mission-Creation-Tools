@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "veaf-mission-editor": {
+      "command": "${CLAUDE_PLUGIN_DATA}/veaf-tools.exe",
+      "args": ["mcp"]
+    }
+  }
+}

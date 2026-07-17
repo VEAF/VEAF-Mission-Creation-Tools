@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-ORACLE-COMMANDS — expose VEAF `#command` aliases in the oracle + fix binary bundling
 
-Status: 🔄 in-progress
+Status: ✅ done (PR #592, merged into `feature/mcp-mission-editor`)
 
 Branch: `feat/mcp-oracle-shortcut-commands` → PR → `feature/mcp-mission-editor`
 

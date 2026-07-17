@@ -195,7 +195,8 @@ build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable*
 
 *Recette (dossier) · 🔥* — En un appel : la zone de déclenchement, les groupes placés dedans
 (nommés automatiquement pour être capturés par la zone) **et** le bloc `COMBATZONE` dans
-`mission.yaml`. Tu décris, l'IA assemble.
+`mission.yaml`. Tu décris, l'IA assemble. L'IA peut aussi faire **spawner des groupes VEAF
+prédéfinis** à l'activation de la zone (SAM, convois…) plutôt que de figer des unités.
 
 > 💬 *« Crée une combat zone “North” avec deux groupes de blindés ennemis. »*
 

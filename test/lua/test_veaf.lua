@@ -1581,6 +1581,54 @@ function TestVeafIsEnabled:test_other_keys_do_not_affect_enabled()
 end
 
 -- ---------------------------------------------------------------------------
+-- Logger DCSServerBot forwarding
+-- Regression: veaf.Logger:print used Sim.getMissionName(), but Sim is a
+-- GameGUI/hook global absent from the mission env, so every :error() crashed
+-- on servers wired to DCSServerBot. It must use veaf.config.MISSION_NAME.
+-- ---------------------------------------------------------------------------
+TestVeafLoggerDcsServerBot = {}
+
+function TestVeafLoggerDcsServerBot:setUp()
+  self._sent = {}
+  dcsbot = {
+    sendBotMessage = function(msg, channel)
+      table.insert(self._sent, { msg = msg, channel = channel })
+    end,
+  }
+  self._saved = {
+    channel = veaf.config.DCS_SERVER_BOT_CHANNEL,
+    server = veaf.config.SERVER_NAME,
+    mission = veaf.config.MISSION_NAME,
+  }
+  veaf.config.DCS_SERVER_BOT_CHANNEL = "veaf-channel"
+  veaf.config.SERVER_NAME = "TestServer"
+end
+
+function TestVeafLoggerDcsServerBot:tearDown()
+  dcsbot = nil
+  veaf.config.DCS_SERVER_BOT_CHANNEL = self._saved.channel
+  veaf.config.SERVER_NAME = self._saved.server
+  veaf.config.MISSION_NAME = self._saved.mission
+end
+
+function TestVeafLoggerDcsServerBot:test_error_forwards_without_crashing()
+  veaf.config.MISSION_NAME = "MyMission"
+  local logger = veaf.Logger:new("TEST", "error")
+  logger:error("boom") -- must not raise (Sim is nil in the mission env)
+  luaunit.assertTrue(#self._sent >= 1)
+  luaunit.assertStrContains(self._sent[1].msg, "MyMission")
+  luaunit.assertEquals(self._sent[1].channel, "veaf-channel")
+end
+
+function TestVeafLoggerDcsServerBot:test_error_uses_unknown_when_mission_name_nil()
+  veaf.config.MISSION_NAME = nil
+  local logger = veaf.Logger:new("TEST", "error")
+  logger:error("boom")
+  luaunit.assertTrue(#self._sent >= 1)
+  luaunit.assertStrContains(self._sent[1].msg, "unknown")
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

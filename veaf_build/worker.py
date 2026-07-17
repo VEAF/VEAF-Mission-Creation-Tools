@@ -495,6 +495,12 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
             # DCS unit-type database, read by the MCP oracle (list_unit_types) at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcsUnits.yaml", "veaf_libs/data"),
+            # Per-theatre blank-mission constants, read by prepare --theatre / scaffold_mission.
+            (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
+            # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.
+            (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
+            # Per-theatre bounding boxes, read by the MCP geocode action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "theatre-bounds.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.
             (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
             # Default third-party aircraft mods stripped from requiredModules at build.

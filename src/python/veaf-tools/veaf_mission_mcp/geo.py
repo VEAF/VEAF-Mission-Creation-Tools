@@ -46,11 +46,23 @@ def geocode(
     theatre = mission.theatre_content
     if not theatre:
         raise ValueError(f"Mission has no theatre, cannot geocode: {mission_path}")
+    if (bearing is None) != (distance_km is None):
+        raise ValueError("bearing and distance_km must be given together (or neither).")
 
     bounds = geocoding.theatre_bounds(theatre)
     hit = geocoding.get_geocoder(api_key).geocode(query, bounds=bounds)
     if hit is None:
-        return {"query": query, "found": False, "theatre": theatre, "warnings": ["no geocoding result"]}
+        # Stable shape: same keys as a hit, nulled — callers never special-case the fields.
+        return {
+            "query": query,
+            "found": False,
+            "display_name": None,
+            "theatre": theatre,
+            "latlon": None,
+            "xy": None,
+            "in_theatre_bounds": None,
+            "warnings": ["no geocoding result"],
+        }
 
     lat, lon = hit.lat, hit.lon
     if bearing is not None and distance_km is not None:

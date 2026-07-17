@@ -52,10 +52,29 @@ class TestGeocode:
         north = geo.geocode(sample_miz, "X", bearing=0.0, distance_km=10.0)
         assert north["latlon"]["lat"] > base["latlon"]["lat"]  # moved north
 
-    def test_miss_returns_found_false(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_miss_returns_stable_shape(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(None))
         result = geo.geocode(sample_miz, "Nowhereville")
         assert result["found"] is False
+        # Same keys as a hit, nulled — callers never special-case.
+        assert set(result) == {
+            "query",
+            "found",
+            "display_name",
+            "theatre",
+            "latlon",
+            "xy",
+            "in_theatre_bounds",
+            "warnings",
+        }
+        assert result["latlon"] is None and result["xy"] is None and result["in_theatre_bounds"] is None
+
+    def test_partial_bearing_distance_raises(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(GeocodeResult(42.0, 41.0, "x"))
+        )
+        with pytest.raises(ValueError, match="together"):
+            geo.geocode(sample_miz, "X", bearing=90.0)  # distance_km missing
 
     def test_out_of_bounds_warns_not_fails(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         # A hit far outside Caucasus (e.g. Paris) → still returned, but flagged.

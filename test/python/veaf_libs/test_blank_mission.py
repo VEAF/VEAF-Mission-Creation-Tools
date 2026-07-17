@@ -57,8 +57,16 @@ class TestGenerateBlankMission:
         assert mission.theatre_content == "Caucasus"
         assert mission.mission_content is not None
         assert mission.mission_content["theatre"] == "Caucasus"
+        # Bullseye comes from the vendored dcs-maps data — assert it is wired with numeric coords,
+        # not a hardcoded literal (the value tracks the upstream calibration mission).
         blue_bullseye = mission.mission_content["coalition"]["blue"]["bullseye"]
-        assert (blue_bullseye["x"], blue_bullseye["y"]) == (-327185.79676896, 607093.66320678)
+        assert isinstance(blue_bullseye["x"], (int, float)) and isinstance(blue_bullseye["y"], (int, float))
+
+    def test_generates_for_another_theatre(self, tmp_path: Path) -> None:
+        folder = _write_folder(tmp_path, blank_mission.generate_blank_mission("Normandy"))
+        mission = read_mission_folder(folder)
+        assert mission.theatre_content == "Normandy"
+        assert list(mission.iter_groups()) == []
 
     def test_generated_mission_has_no_groups(self, tmp_path: Path) -> None:
         folder = _write_folder(tmp_path, blank_mission.generate_blank_mission("caucasus"))

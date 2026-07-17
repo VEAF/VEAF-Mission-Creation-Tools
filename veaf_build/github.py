@@ -36,7 +36,11 @@ class GitHubPublisher:
 
     @property
     def _is_prerelease(self) -> bool:
-        return self.prerelease
+        # A pre-release is either explicitly flagged, or signalled by a semver pre-release
+        # suffix in the version (e.g. 6.9.21-rc1). The version is the single source of truth
+        # the release workflow also keys off, so the CLI and CI never disagree on whether to
+        # move the floating `published-latest` tag.
+        return self.prerelease or "-" in (self.version or "")
 
     def publish(self, package_path: Path, package_hash: str, force: bool = False) -> None:
         """Publish release to GitHub using git tags and gh CLI."""

@@ -73,9 +73,13 @@ class TestCommandMap:
         import veaf_tools.commands  # noqa: F401 — side effect: registers all commands
         from veaf_tools.app import app
 
+        # Machine-facing commands invoked by tooling, not from the human wizard/double-click.
+        # `mcp` starts the MCP server on stdio (driven by the Claude plugin's .mcp.json) — it would
+        # block if picked from a menu, so it is intentionally not a TUI CommandSpec.
+        machine_only = {"mcp"}
         cli_names = {(ci.name or ci.callback.__name__).replace("_", "-") for ci in app.registered_commands}
         spec_names = {cmd.cli_name for cmd in COMMANDS}
-        missing = cli_names - spec_names
+        missing = cli_names - spec_names - machine_only
         assert not missing, f"CLI commands absent from the TUI (no CommandSpec): {sorted(missing)}"
 
 

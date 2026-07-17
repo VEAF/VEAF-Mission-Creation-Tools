@@ -64,6 +64,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 21 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
 | 22 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
 | 23 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 24 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
+| 25 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
 
 ---
 
@@ -164,6 +166,24 @@ approximatif** (le terrain DCS approxime le réel) : l'IA te montre toujours le 
 tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois ») non.
 
 > 💬 *« Mets un SAM à 15 km au sud-est de l'aéroport de Batumi. »* (l'IA géocode, décale, puis place)
+
+## 🏁 Valider & construire
+
+*La dernière étape : de la recette au `.miz` jouable, sans quitter l'assistant.*
+
+### Valider une mission {#valider-mission}
+
+*Dossier · ⭐* — Vérifie le dossier avant build (config, modules, références) et te liste erreurs et
+avertissements. À faire avant de construire.
+
+> 💬 *« Vérifie que ma mission est bonne avant de la construire. »*
+
+### Construire le .miz jouable {#construire-mission}
+
+*Dossier · 🔥* — Construit le dossier en fichier `.miz` prêt à jouer dans DCS (lance `veaf-tools
+build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable**.
+
+> 💬 *« Construis-moi la mission. »*
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 

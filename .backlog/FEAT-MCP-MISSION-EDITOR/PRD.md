@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, 29-30) ✅ done (PR #581). Wave 10 (map + coordinates) ✅ implemented: 031 projection port (ADR 0015) + 032 `describe_map`/`resolve_coordinates` + 034 doc done; 033 (lat/lon in every placement action) 🚫 dropped — superseded by `resolve_coordinates` + the new `FEAT-GEO-PLACEMENT` lot (real place-name geocoding → x/y). Wave 10 pending its PR.** MGRS was dropped earlier; the projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`).)
+Status: 🔄 in-progress (waves 1-8 done, all merged into integration branch `feature/mcp-mission-editor`. **Wave 9** folder scaffolding ✅ (PR #581). **Wave 10** map + coordinates ✅ (PR #583; 033 lat/lon-in-placement 🚫 dropped → superseded by `resolve_coordinates` + the `FEAT-GEO-PLACEMENT` lot, PR #584 ✅). **Wave 11** build + validate ✅ (035/036 — closes the create→edit→validate→build→play loop; 28 MCP actions). **Umbrella PR #575 → `develop-v6` is held OPEN on purpose until the MCP is complete** (David). Remaining before landing: distribution as a Claude plugin (`bfr-claude-plugins`, deferred) and more-theatre data. MGRS dropped; projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`).)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -226,6 +226,24 @@ simplest if/when needed, never a blocker.
 | FEAT-MCP-MISSION-EDITOR-032 | **`describe_map` + `resolve_coordinates` actions**: `describe_map` (read — theatre name, bullseye(s), existing trigger zones/groups as reference points, so the LLM can orient without DCS running); `resolve_coordinates` (convert freely between `{x,y}`, `{lat,lon}`, `{mgrs}` for the mission's theatre, using 031). | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-033 | **Human-coordinate input on placement actions**: `add_group`, `add_trigger_zone` and the wave-8 composites accept a `position` given as `{lat,lon}` or `{mgrs}` in addition to `{x,y}`, converting via 031 before insertion. Backward compatible (x/y unchanged). TDD on each accepted form + theatre-mismatch handling. | feat | 🚫 |
 | FEAT-MCP-MISSION-EDITOR-034 | **Doc + catalogue + skill**: developer doc (FR/EN) map/coordinates section, `AI_ASSISTANT_CATALOG` entries, skill guidance (prefer human coords, ask which system), CONTEXT glossary (theatre projection), CHANGELOG, bump. | docs | ✅ |
+
+### Wave 11 — close the loop: build + validate 🏁
+
+The MCP can create, orient and edit a mission folder, but nothing produces the playable `.miz` —
+the maker still runs `veaf-tools build` by hand. Wave 11 makes the server **self-sufficient A→Z**:
+scaffold → theatre blank → composites/placement → **validate → build → playable `.miz`**, without
+leaving the assistant.
+
+**Design decision.** `validate_mission` calls the existing `veaf_libs.mission_validator.validate_mission_folder`
+**in-process** (clean, testable, no binary needed). `build_mission` **drives the real
+`veaf-tools build`** via subprocess (`cwd=folder`) — the build orchestration lives in the CLI
+command (many workers + config resolution), so re-invoking it is faithful and avoids duplication;
+`scaffold_mission` has already installed `veaf-tools[.exe]` in the folder (fall back to PATH).
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-035 | **`validate_mission` + `build_mission` actions**: `validate_mission` (in-process `validate_mission_folder` → `{ok, errors, warnings}`); `build_mission` (subprocess `veaf-tools build`, `cwd=folder`, resolve the folder's binary else PATH → `{ok, message}`, non-zero exit surfaced). Registered in the catalog. TDD: validate on a real folder fixture; build with `subprocess.run` mocked (command, cwd, failure path). | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-036 | **Doc + catalogue + skill**: developer doc (FR/EN) "Build & validate (wave 11)" section, `AI_ASSISTANT_CATALOG` entries (the create→edit→build→play loop), skill (validate before build; build to get the playable `.miz`), CHANGELOG, bump. | docs | ✅ |
 
 ## Out of Scope
 

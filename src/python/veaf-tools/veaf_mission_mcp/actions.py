@@ -6,6 +6,7 @@ from typing import Any
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
+from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
@@ -490,6 +491,41 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             github_token=p.get("github_token"),
             tag=p.get("tag"),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="validate_mission",
+            description=(
+                "Lint a mission FOLDER before building: reports config/runtime issues as errors and "
+                "warnings (ok=false when any error). In-process; run before build_mission."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "Path to the mission folder."},
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: validate_mission(Path(p["folder_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="build_mission",
+            description=(
+                "Build a mission FOLDER into a playable .miz by running 'veaf-tools build' in it "
+                "(the binary scaffold_mission installed, or veaf-tools on PATH). The final step of "
+                "the create -> edit -> validate -> build -> play loop. A build failure is surfaced."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "Path to the mission folder to build."},
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: build_mission(Path(p["folder_path"])),
     )
     catalog.register(
         ActionSpec(

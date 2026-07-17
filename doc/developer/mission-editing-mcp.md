@@ -363,6 +363,40 @@ ferait un Mission Maker à sa première installation.
 
 C'est l'**étape 0** d'une mission créée de zéro, avant les composites de la vague 8.
 
+## Carte & coordonnées (vague 10)
+
+Les actions de placement prennent des **coordonnées locales DCS** (`x`/`y`, en mètres dans la
+projection propre au théâtre) ; un Mission Maker raisonne plutôt en lat/long sur une carte. La vague
+10 donne au LLM de quoi se repérer et convertir, en design-time (sans DCS lancé).
+
+Socle : `veaf_libs.coordinates` — port pur-Python (Transverse Mercator WGS84) de `projection.lua`
+(MIT, `bfr-claude-plugins`, voir [ADR 0015](../adr/0015-coordinate-projection-port.md)) avec les
+tables par théâtre (Caucasus, Syria, PersianGulf, MarianaIslands). Comme les cartes DCS **sont le
+monde réel projeté**, ce socle relie `x/y DCS ↔ lat/lon réel`.
+
+### `describe_map`
+
+Lecture seule. Depuis un `.miz` **ou** un dossier de mission : renvoie le **théâtre**, les
+**bullseyes** par coalition, et les zones/groupes existants comme **points de repère** — pour que le
+LLM s'oriente sans DCS.
+
+```json
+{"mission_path": "chemin/vers/mission.miz-ou-dossier"}
+```
+
+### `resolve_coordinates`
+
+Utilitaire. Convertit une position entre `{x, y}` (local DCS) et `{lat, lon}` (degrés décimaux) pour
+le théâtre de la mission (lu depuis la mission — l'appelant ne fournit jamais de paramètres de
+projection).
+
+```json
+{"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
+```
+
+> Placement par **nom de lieu réel** (« Batumi », « au nord de Kobuleti ») : hors périmètre de cette
+> vague — voir le lot `FEAT-GEO-PLACEMENT` (géocodeur enfichable → lat/lon → `x/y` via ce socle).
+
 ## Prochaines vagues (hors périmètre)
 
 - Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.

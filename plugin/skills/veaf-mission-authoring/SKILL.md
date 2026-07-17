@@ -95,6 +95,14 @@ for the one-pass composite (`create_combat_zone` / `create_qra` / `create_cap_mi
 call. Drop to the primitives (`add_trigger_zone`, `add_group`, `set_mission_module`) only for
 partial or one-off edits, or when there's no folder (a lone `.miz`).
 
+## Coordinates and the map
+
+Placement actions take DCS local `x/y`. To orient, call `describe_map` (theatre, bullseyes,
+existing zones/groups as anchors). If the user gives a **lat/long**, use `resolve_coordinates` to get
+the `x/y` for the mission's theatre, then place. Real place names ("near Batumi", "north of
+Kobuleti") resolve through the geocoder (`geocode` action) when available — always surface the
+resolved point so the user can sanity-check it (DCS terrain approximates the real world).
+
 ## Report back clearly
 
 Tell the user which world you edited, the names/types you chose and why, and surface any

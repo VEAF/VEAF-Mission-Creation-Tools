@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-EDITOR-031 — Coordinate projection foundation (port) + ADR 0015
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `docs/adr/0015-coordinate-projection-port.md`, `src/python/veaf-tools/veaf_libs/coordinates.py`, `test/python/veaf_libs/test_coordinates.py`
 

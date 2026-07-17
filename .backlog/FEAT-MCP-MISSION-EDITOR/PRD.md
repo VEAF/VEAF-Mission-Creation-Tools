@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, tickets 29-30) is ✅ done (PR #581, merged). Wave 10 (map reading + human coordinates, tickets 31-34) is ⬜ ready.** — the "upstream" of NL-MISSION-GEN: create the mission folder itself, then let a maker place things by lat/long / MGRS, not only DCS x/y. The coordinate-projection question is **resolved**: port the existing `projection.lua` (Transverse Mercator WGS84 + per-theatre tables, MIT) from `bfr-claude-plugins` — no in-house derivation, no heavy dependency.)
+Status: 🔄 in-progress (waves 1-8 done — 28 tickets, all merged into integration branch `feature/mcp-mission-editor`; umbrella PR #575 → `develop-v6`. **Wave 9 (folder scaffolding, 29-30) ✅ done (PR #581). Wave 10 (map + coordinates) ✅ implemented: 031 projection port (ADR 0015) + 032 `describe_map`/`resolve_coordinates` + 034 doc done; 033 (lat/lon in every placement action) 🚫 dropped — superseded by `resolve_coordinates` + the new `FEAT-GEO-PLACEMENT` lot (real place-name geocoding → x/y). Wave 10 pending its PR.** MGRS was dropped earlier; the projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`).)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -222,10 +222,10 @@ simplest if/when needed, never a blocker.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| FEAT-MCP-MISSION-EDITOR-031 | **Coordinate projection foundation (port) + ADR 0015**: copy `projection.lua` (MIT, `bfr-claude-plugins`) into pure-Python `veaf_libs/coordinates.py` — TM WGS84 forward/inverse + the 4-theatre tables; reuse its 5 reference cases as tests. Short attribution header. ADR 0015 records the copy + provenance. MGRS deferred (not needed now). TDD against the reference pairs. | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-032 | **`describe_map` + `resolve_coordinates` actions**: `describe_map` (read — theatre name, bullseye(s), existing trigger zones/groups as reference points, so the LLM can orient without DCS running); `resolve_coordinates` (convert freely between `{x,y}`, `{lat,lon}`, `{mgrs}` for the mission's theatre, using 031). | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-033 | **Human-coordinate input on placement actions**: `add_group`, `add_trigger_zone` and the wave-8 composites accept a `position` given as `{lat,lon}` or `{mgrs}` in addition to `{x,y}`, converting via 031 before insertion. Backward compatible (x/y unchanged). TDD on each accepted form + theatre-mismatch handling. | feat | ⬜ |
-| FEAT-MCP-MISSION-EDITOR-034 | **Doc + catalogue + skill**: developer doc (FR/EN) map/coordinates section, `AI_ASSISTANT_CATALOG` entries, skill guidance (prefer human coords, ask which system), CONTEXT glossary (theatre projection), CHANGELOG, bump. | docs | ⬜ |
+| FEAT-MCP-MISSION-EDITOR-031 | **Coordinate projection foundation (port) + ADR 0015**: copy `projection.lua` (MIT, `bfr-claude-plugins`) into pure-Python `veaf_libs/coordinates.py` — TM WGS84 forward/inverse + the 4-theatre tables; reuse its 5 reference cases as tests. Short attribution header. ADR 0015 records the copy + provenance. MGRS deferred (not needed now). TDD against the reference pairs. | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-032 | **`describe_map` + `resolve_coordinates` actions**: `describe_map` (read — theatre name, bullseye(s), existing trigger zones/groups as reference points, so the LLM can orient without DCS running); `resolve_coordinates` (convert freely between `{x,y}`, `{lat,lon}`, `{mgrs}` for the mission's theatre, using 031). | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-033 | **Human-coordinate input on placement actions**: `add_group`, `add_trigger_zone` and the wave-8 composites accept a `position` given as `{lat,lon}` or `{mgrs}` in addition to `{x,y}`, converting via 031 before insertion. Backward compatible (x/y unchanged). TDD on each accepted form + theatre-mismatch handling. | feat | 🚫 |
+| FEAT-MCP-MISSION-EDITOR-034 | **Doc + catalogue + skill**: developer doc (FR/EN) map/coordinates section, `AI_ASSISTANT_CATALOG` entries, skill guidance (prefer human coords, ask which system), CONTEXT glossary (theatre projection), CHANGELOG, bump. | docs | ✅ |
 
 ## Out of Scope
 

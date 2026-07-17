@@ -69,4 +69,6 @@ See the [full scripts catalog](scripts/README.md) for all 17+ modules.
 | [Full Guide](GUIDE.md) | Detailed setup, configuration, and build workflow |
 | [Migration Guide](MIGRATION_GUIDE.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
 | [Scripts Reference](scripts/README.md) | Per-module documentation with commands and config examples |
+| [AI assistant — install](AI_ASSISTANT_INSTALL.en.md) | Install the Claude Code plugin to create/edit a mission in natural language |
+| [AI assistant — catalogue](AI_ASSISTANT_CATALOG.en.md) | What you can ask the AI assistant, in plain language |
 

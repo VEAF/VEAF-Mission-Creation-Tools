@@ -25,11 +25,22 @@ _DICTIONARY_PATH = "l10n/DEFAULT/dictionary"
 _MAP_RESOURCE_PATH = "l10n/DEFAULT/mapResource"
 
 
+#: Alternate theatre spellings some tooling emits → the canonical `dcs-maps` key (lowercased).
+#: Mirrors ``veaf_libs.coordinates._THEATRE_ALIASES``.
+_THEATRE_ALIASES: dict[str, str] = {"sinai": "sinaimap", "germanycoldwar": "germanycw"}
+
+
 @lru_cache(maxsize=1)
 def _theatre_table() -> dict[str, dict[str, Any]]:
     """Load the per-theatre constants table (lowercased keys). Cached — the data is static."""
     raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "theatre-defaults.yaml")) or {}
     return {str(k).lower(): v for k, v in raw.items()}
+
+
+def _resolve_key(theatre: str) -> str:
+    """Lowercase + alias-resolve a theatre name to its canonical key."""
+    key = theatre.lower()
+    return _THEATRE_ALIASES.get(key, key)
 
 
 def supported_theatres() -> list[str]:
@@ -38,14 +49,14 @@ def supported_theatres() -> list[str]:
 
 
 def is_theatre_supported(theatre: str) -> bool:
-    """Return whether a blank can be generated for `theatre` (case-insensitive)."""
-    return theatre.lower() in _theatre_table()
+    """Return whether a blank can be generated for `theatre` (case-insensitive, alias-aware)."""
+    return _resolve_key(theatre) in _theatre_table()
 
 
 def _resolve_theatre(theatre: str) -> dict[str, Any]:
-    """Return the constants for ``theatre`` (case-insensitive), or raise ``ValueError``."""
+    """Return the constants for ``theatre`` (case-insensitive, alias-aware), or raise ``ValueError``."""
     table = _theatre_table()
-    entry = table.get(theatre.lower())
+    entry = table.get(_resolve_key(theatre))
     if entry is None:
         supported = ", ".join(sorted(e["name"] for e in table.values()))
         raise ValueError(f"Unsupported theatre '{theatre}' (supported: {supported}).")

@@ -27,4 +27,4 @@ Mitch adds them (coordinate conversion already covers all 14 via the projection 
 ## Note
 
 Values extracted once from the calibration missions; the `.miz` themselves are **not** vendored —
-only the numeric constants. Re-generate by re-parsing updated dcs-maps missions.
+only the numeric constants. Regenerate by re-parsing updated dcs-maps missions.

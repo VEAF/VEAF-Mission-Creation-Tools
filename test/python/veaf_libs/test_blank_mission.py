@@ -67,6 +67,16 @@ class TestGenerateBlankMission:
         mission = read_mission_folder(folder)
         assert mission.theatre_content == "Normandy"
         assert list(mission.iter_groups()) == []
+        # Same wiring as Caucasus: each coalition carries a numeric bullseye.
+        assert mission.mission_content is not None
+        for side in ("blue", "red", "neutrals"):
+            bullseye = mission.mission_content["coalition"][side]["bullseye"]
+            assert isinstance(bullseye["x"], (int, float)) and isinstance(bullseye["y"], (int, float))
+
+    def test_alias_resolves_for_blank(self) -> None:
+        # SinaiMap is the canonical key; the airdromes.yaml-style "Sinai" alias resolves to it.
+        assert blank_mission.is_theatre_supported("Sinai")
+        assert blank_mission.generate_blank_mission("Sinai")["theatre"] == b"SinaiMap"
 
     def test_generated_mission_has_no_groups(self, tmp_path: Path) -> None:
         folder = _write_folder(tmp_path, blank_mission.generate_blank_mission("caucasus"))

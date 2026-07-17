@@ -104,15 +104,26 @@ class TestScaffoldMission:
         # The tag is also used to build the download URL.
         assert "published-v6.9.9" in recorder["downloads"][0]["url"]
 
-    def test_rejects_non_empty_folder_before_any_work(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+    def test_rejects_folder_with_non_hidden_content(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         target = tmp_path / "busy"
         target.mkdir()
         (target / "leftover.txt").write_text("x", encoding="utf-8")
 
-        with pytest.raises(ValueError, match="not empty"):
+        with pytest.raises(ValueError, match="already has content"):
             scaffold.scaffold_mission(str(target), template="standard")
 
         assert recorder["downloads"] == [] and recorder["runs"] == []
+
+    def test_hidden_only_folder_is_accepted(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        # Under Claude Code the working folder always has a .claude/ (often .git/): must not block.
+        target = tmp_path / "syria-mezzeh"
+        (target / ".claude").mkdir(parents=True)
+        (target / ".gitignore").write_text("x", encoding="utf-8")
+
+        result = scaffold.scaffold_mission(str(target), template="standard")
+
+        assert result["folder"] == str(target)
+        assert len(recorder["runs"]) == 2  # proceeded: updater + prepare ran
 
     def test_rejects_invalid_template_before_any_work(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         with pytest.raises(ValueError, match="template"):

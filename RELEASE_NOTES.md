@@ -1,53 +1,35 @@
-# VEAF Mission Creation Tools — 6.9.2
+# VEAF Mission Creation Tools — 6.9.21-rc1 (pré-release de test)
 
-Version ciblée : le **confort des menus radio F10**. Deux irritants disparaissent —
-les menus trop longs ne sont plus tronqués par DCS, et les combat zones peuvent
-enfin être **rangées** proprement dans le menu radio. Sur un **retour de Reaper**.
+> ⚠️ **Version de test, pas pour la production.** Elle ne remplace pas la version
+> stable : `published-latest` reste en 6.9.2. Pour l'essayer, il faut la **cibler
+> explicitement** — `veaf-tools-updater update --tag published-v6.9.21-rc1`. But :
+> éprouver le nouvel **assistant IA de création de missions** avant sa sortie officielle.
 
-## 📻 Fini les menus radio tronqués (pagination automatique)
+## 🤖 Créer et éditer une mission VEAF avec un assistant IA
 
-DCS n'affiche que **10 entrées** par menu radio : au-delà, le reste était
-silencieusement **coupé**. Désormais, tout menu VEAF qui dépasse cette limite se
-**pagine tout seul** — les entrées en trop passent dans un sous-menu **« Page
-suivante »**, autant de fois que nécessaire.
+Cette pré-release ouvre le **serveur MCP** : un assistant IA (Claude) peut construire
+une mission VEAF **de bout en bout**, du dossier vide à la mission jouable, en langage
+naturel.
 
-- **Rien à configurer** : ça s'applique à tous les menus radio VEAF.
-- **Pas de gaspillage** : un menu qui tient en 10 entrées n'affiche **pas** de
-  « Page suivante ».
-- Le menu **Combat Zones** en profite directement : une mission à 20 zones n'en
-  masque plus la moitié.
+- **Partir de zéro** — l'assistant initialise le dossier et pose une **carte blanche**
+  prête à remplir pour le théâtre choisi (Caucasus, Syria, Persian Gulf, Normandy,
+  Marianas, Sinaï, Germany CW, Afghanistan).
+- **Placer par la géographie réelle** — « à 10 km au nord de Kobuleti », « près de
+  Batumi » : les lieux réels sont convertis en coordonnées DCS.
+- **Poser des éléments VEAF** — combat zones, QRA, CAP… l'assistant connaît les
+  conventions de nommage, les types d'unités DCS et les **raccourcis de spawn**
+  (`#command`, ex. `-samLR` pour une batterie SAM longue portée).
+- **Valider et construire** — l'assistant enchaîne `validate` puis `build` et produit
+  le `.miz` jouable sans que vous quittiez la conversation.
 
-## 🗂️ Ranger les combat zones dans le menu radio
+## 🔧 Sous le capot
 
-Deux nouvelles clés optionnelles par zone dans `mission.yaml` :
+De nombreux correctifs pour que l'assistant fonctionne de façon fiable une fois livré
+en binaire (données de cartes/unités embarquées, robustesse du scaffold).
 
-```yaml
-modules:
-  COMBATZONE:
-    combat_zones:
-      - zone_name: "CZ-Alpha"
-        friendly_name: "Alpha"
-        radio_group_name: "Nord"     # regroupe les zones de même nom sous un sous-menu commun
-        radio_menu_prefix: "BLEU"     # préfixe affiché devant le libellé de la zone
-```
+## 🧪 Comment tester
 
-- `radio_group_name` : toutes les zones portant le **même nom** sont réunies sous un
-  **sous-menu** de ce nom. Absent → la zone reste à la racine du menu Combat Zones.
-- `radio_menu_prefix` : ajoute un **préfixe** au libellé de la zone (ex. `BLEU * Alpha`).
-
-Ces réglages sont **repris automatiquement par `convert-v5`** : une mission v5 qui
-groupait déjà ses zones les retrouve à l'identique en v6.
-
-## ⚠️ À vérifier
-
-- **Mission makers** : changement transparent, aucune reconfiguration nécessaire.
-  Vos menus existants s'affichent comme avant (et ne se tronquent plus).
-- **Développeurs de scripts** : si vous utilisiez `veafRadio.addPaginatedRadioElements`
-  / `addPaginatedRadioMenu`, sachez qu'ils ne paginent **plus eux-mêmes** (le rendu
-  s'en charge désormais pour tous les menus) — le résultat final est identique, les
-  appels existants restent valides. Besoin de désactiver la pagination sur un menu
-  précis : `veafRadio.doNotPaginate(monMenu)`.
-
-## 🙏 Remerciements
-
-Merci à **Reaper** d'avoir remonté ces besoins.
+1. `veaf-tools-updater update --tag published-v6.9.21-rc1` dans un dossier de mission (ou
+   laissez l'assistant scaffolder avec `tag="published-v6.9.21-rc1"`).
+2. Demandez une mission à l'assistant en précisant le théâtre.
+3. Remontez tout accroc — c'est le but de cette pré-release.

@@ -14,6 +14,7 @@ import yaml
 from mission_tools.mission_yaml_editor import load_yaml
 from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.veaf_shortcuts_scanner import get_shortcuts
 
 _DOC_SCRIPTS_DIR = "doc/mission-maker/scripts"
 
@@ -62,16 +63,20 @@ def list_unit_types(
 def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
     """List the VEAF spawn aliases (the `-shilka`/`-sa8`… vocabulary).
 
-    Reads the canonical `veaf_libs/data/veaf-units.yaml` — the source of truth for
-    `veafUnits`/`veafShortcuts`: unit aliases (``_spawn unit <alias>``) and composite group
-    aliases (``_spawn group <alias>``).
+    Three families, all part of the VEAF spawn vocabulary:
+
+    - ``units`` / ``groups``: `veafUnits` aliases from the canonical `veaf_libs/data/veaf-units.yaml`
+      (``_spawn unit <alias>`` / ``_spawn group <alias>``).
+    - ``commands``: the high-level ``#command`` shortcuts declared in
+      `veafShortcuts.buildDefaultList()` (``-samLR``, ``-armor``, random convoys…), scanned from the
+      Lua source. These are what a combat-zone fake-unit carries as ``#command="-<alias> …"``.
 
     Args:
         name_contains: Optional case-insensitive substring matched against aliases + target.
 
     Returns:
         `{"units": [{"aliases", "unitType"}, ...], "groups": [{"aliases", "groupName",
-        "description"}, ...]}`.
+        "description"}, ...], "commands": [{"aliases", "description", "veafCommand"}, ...]}`.
     """
     data = _load_bundled_data_yaml("veaf-units.yaml")
     needle = name_contains.lower() if name_contains else None
@@ -95,7 +100,16 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
         for e in (data.get("groups") or [])
         if _matches(list(e.get("aliases") or []), e.get("groupName", ""))
     ]
-    return {"units": units, "groups": groups}
+    commands = [
+        {
+            "aliases": list(e.get("aliases") or []),
+            "description": e.get("description", ""),
+            "veafCommand": e.get("veafCommand", ""),
+        }
+        for e in get_shortcuts()
+        if _matches(list(e.get("aliases") or []), f"{e.get('description', '')} {e.get('veafCommand', '')}")
+    ]
+    return {"units": units, "groups": groups, "commands": commands}
 
 
 _NAMING_CONVENTIONS: list[dict[str, Any]] = [

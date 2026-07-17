@@ -17,7 +17,10 @@ actions. They read VEAF's canonical, always-current data — your training memor
 VEAF conventions may be stale or wrong.
 
 - `list_unit_types` — real DCS unit type ids (filter by category / name).
-- `list_shortcuts` — VEAF spawn aliases (`shilka`, `sa8`, composite SAM/convoy groups).
+- `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
+  (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samLR`, `-samSR`,
+  `-armor`, random convoys, …). **This is the authoritative source for the `-<alias>` you put in a
+  combat-zone `#command`** — never guess an alias from memory (there is no `-lrsam`; it is `-samLR`).
 - `describe_naming_conventions` — the reserved naming patterns (below).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 

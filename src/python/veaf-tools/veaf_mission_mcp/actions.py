@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Any
 
+from veaf_libs.blank_mission import supported_theatres
+
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
@@ -463,9 +465,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "published/ into the folder), then 'veaf-tools prepare' for the chosen template. "
                 "Step 0 of a from-scratch mission, before the create_* composites. Refuses a "
                 "non-empty folder. Ask the maker which template first. If the mission targets a "
-                "known DCS map (Syria, Caucasus, PersianGulf, …), ALSO pass 'theatre' so a "
-                "loadable blank mission for that map is laid down in src/mission — omit it and "
-                "src/mission stays empty, leaving nothing for validate/build to work on."
+                "supported DCS map (see the 'theatre' enum), ALSO pass 'theatre' so a loadable "
+                "blank mission for that map is laid down in src/mission — omit it and src/mission "
+                "stays empty, leaving nothing for validate/build to work on."
             ),
             parameters_schema={
                 "type": "object",
@@ -478,10 +480,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "theatre": {
                         "type": "string",
+                        "enum": supported_theatres(),
                         "description": "DCS theatre for the mission — lays down a loadable synthetic blank mission "
-                        "for that map in src/mission (no DCS round-trip). Pass it whenever the mission targets a "
-                        "known map (Syria, Caucasus, PersianGulf, …); omit ONLY if the maker will supply their own "
-                        ".miz, since otherwise src/mission is left empty. Use list_theatres-supported names.",
+                        "for that map in src/mission (no DCS round-trip). Pass it whenever the mission targets one "
+                        "of the supported maps (the enum values); omit ONLY if the maker will supply their own "
+                        ".miz, since otherwise src/mission is left empty.",
                     },
                     "github_token": {
                         "type": "string",

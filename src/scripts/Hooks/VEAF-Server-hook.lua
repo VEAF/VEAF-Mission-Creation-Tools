@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.5.0"
+veafServerHook.Version = "2.6.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -253,12 +253,16 @@ function veafServerHook.onPlayerDisconnect(id, err_code)
     veafServerHook.stopMissionIfNeeded()
 end
 
-function veafServerHook.onChatMessage(message, from)
-    veafServerHook.logDebug(string.format("veafServerHook.onChatMessage([%s], [%s])",veafServerHook.p(from), veafServerHook.p(message)))
+-- DCS delivers chat to the server through the onPlayerTrySendChat(playerID, msg, all)
+-- callback; returning nil lets DCS broadcast the message, returning "" drops it.
+-- There is no onChatMessage GameGUI callback, so a hook listening on that name never
+-- receives chat and no server command ever runs.
+function veafServerHook.onPlayerTrySendChat(playerID, message, all)
+    veafServerHook.logDebug(string.format("veafServerHook.onPlayerTrySendChat([%s], [%s])",veafServerHook.p(playerID), veafServerHook.p(message)))
 
     -- try and recognize a command
     if message ~= nil and message:lower():sub(1, #veafServerHook.CommandStarter) == veafServerHook.CommandStarter then
-        local _playerDetails = net.get_player_info( from )
+        local _playerDetails = net.get_player_info( playerID )
         if _playerDetails ~=nil then
             local playerName = _playerDetails.name
             local ucid = _playerDetails.ucid
@@ -279,7 +283,7 @@ function veafServerHook.onChatMessage(message, from)
             veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
             -- parse the message
             local pilot = veafServerHook.pilots[ucid]
-            if from == 1 then
+            if playerID == 1 then
                 -- this is the server administrator
                 pilot = veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID]
             end
@@ -290,8 +294,11 @@ function veafServerHook.onChatMessage(message, from)
                 veafServerHook.logWarning(string.format("Player %s was denied running command %s", playerName, message))
             end
         end
+        -- a VEAF command was recognised: consume it so it is not broadcast to players
+        return ""
     end
-    return false
+    -- not a VEAF command: let DCS broadcast the message normally
+    return nil
 end
 
 function veafServerHook.onSimulationFrame()

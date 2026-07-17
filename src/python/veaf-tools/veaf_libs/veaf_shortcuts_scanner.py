@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 from typing import TypedDict
 
@@ -116,11 +117,13 @@ def _parse_aliases(content: str) -> list[ShortcutAlias]:
 # ---------------------------------------------------------------------------
 
 
+@lru_cache(maxsize=1)
 def get_shortcuts() -> list[ShortcutAlias]:
     """Return the list of VEAF spawn shortcuts (the ``#command`` aliases).
 
     Sources tried in order: bundled JSON (PyInstaller) → pre-generated JSON → live
-    scan of ``veafShortcuts.lua``.
+    scan of ``veafShortcuts.lua``. Cached: the source is immutable for a process run,
+    so the file is read/parsed once (the oracle calls this on every ``list_shortcuts``).
     """
     path = _bundled_json_path() or _pregenerated_json_path()
     if path:

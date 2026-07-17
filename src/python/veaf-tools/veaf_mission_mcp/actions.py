@@ -462,7 +462,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "bootstrap: download the updater from the release, run it (installs the tools and "
                 "published/ into the folder), then 'veaf-tools prepare' for the chosen template. "
                 "Step 0 of a from-scratch mission, before the create_* composites. Refuses a "
-                "non-empty folder. Ask the maker which template first."
+                "non-empty folder. Ask the maker which template first. If the mission targets a "
+                "known DCS map (Syria, Caucasus, PersianGulf, …), ALSO pass 'theatre' so a "
+                "loadable blank mission for that map is laid down in src/mission — omit it and "
+                "src/mission stays empty, leaving nothing for validate/build to work on."
             ),
             parameters_schema={
                 "type": "object",
@@ -475,8 +478,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "theatre": {
                         "type": "string",
-                        "description": "Optional DCS theatre — lays down a synthetic blank mission for that map in "
-                        "src/mission (no DCS round-trip). Omit to leave src/mission empty.",
+                        "description": "DCS theatre for the mission — lays down a loadable synthetic blank mission "
+                        "for that map in src/mission (no DCS round-trip). Pass it whenever the mission targets a "
+                        "known map (Syria, Caucasus, PersianGulf, …); omit ONLY if the maker will supply their own "
+                        ".miz, since otherwise src/mission is left empty. Use list_theatres-supported names.",
                     },
                     "github_token": {
                         "type": "string",

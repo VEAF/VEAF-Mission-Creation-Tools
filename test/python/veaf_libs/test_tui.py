@@ -71,11 +71,13 @@ class TestCommandMap:
         (which would make it unreachable from the interactive wizard / double-click).
         """
         import veaf_tools.commands  # noqa: F401 — side effect: registers all commands
-        from veaf_tools.app import app
+        from veaf_tools.app import MACHINE_ONLY_COMMANDS, app
 
+        # `MACHINE_ONLY_COMMANDS` (single source of truth in veaf_tools.app) are driven by tooling,
+        # not the human wizard — e.g. `mcp` blocks on stdio for the Claude plugin. They are exempt.
         cli_names = {(ci.name or ci.callback.__name__).replace("_", "-") for ci in app.registered_commands}
         spec_names = {cmd.cli_name for cmd in COMMANDS}
-        missing = cli_names - spec_names
+        missing = cli_names - spec_names - MACHINE_ONLY_COMMANDS
         assert not missing, f"CLI commands absent from the TUI (no CommandSpec): {sorted(missing)}"
 
 

@@ -128,6 +128,7 @@
   "cmd.extract_aircraft.help": "Extrait les modèles de groupes aériens d'une mission .miz vers un fichier YAML.",
   "cmd.validate_aircraft.help": "Valide un fichier YAML de modèles aériens sans effectuer d'injection.",
   "cmd.about.help": "Affiche les informations sur VEAF Mission Creation Tools.",
+  "cmd.mcp.help": "Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor.",
   "cmd.about.tool_version": "[bold cyan]veaf-tools v{version}[/bold cyan]",
   "cmd.ask.help": "Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive.",
   "cmd.ask.opt.question": "La question à poser. Omettez-la pour démarrer une session interactive.",

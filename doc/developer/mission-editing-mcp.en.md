@@ -28,11 +28,15 @@ Two action families, deliberately kept apart:
 
 ```bash
 poetry install
-poetry run veaf-mission-mcp
+poetry run veaf-mission-mcp   # in dev
+# or, from the shipped binary (what the Claude plugin invokes):
+veaf-tools mcp
 ```
 
 Starts an MCP server over `stdio` (the `mcp` SDK's default transport). No configuration: every
-action receives the `.miz` path to edit as a parameter.
+action receives the `.miz` path to edit as a parameter. The `veaf-tools mcp` subcommand embeds the
+server in the already-shipped `veaf-tools` binary (no separate binary to build) — this is what the
+Claude plugin declares in its `.mcp.json`.
 
 ## Action catalog (v1)
 

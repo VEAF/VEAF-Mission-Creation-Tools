@@ -128,6 +128,7 @@
   "cmd.extract_aircraft.help": "Extract aircraft group templates from a .miz mission to a YAML file.",
   "cmd.validate_aircraft.help": "Validate an aircraft templates YAML file without injecting.",
   "cmd.about.help": "Show information about VEAF Mission Creation Tools.",
+  "cmd.mcp.help": "Start the LLM-assisted mission-editing MCP server (stdio). Used by the veaf-mission-editor Claude plugin.",
   "cmd.about.tool_version": "[bold cyan]veaf-tools v{version}[/bold cyan]",
   "cmd.ask.help": "Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session.",
   "cmd.ask.opt.question": "The question to ask. Omit to start an interactive session.",

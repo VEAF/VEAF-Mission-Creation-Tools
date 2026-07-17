@@ -26,6 +26,10 @@ DEFAULT_PRESETS_FILE = "./src/presets.yaml"
 
 app = typer.Typer(no_args_is_help=True)
 
+#: CLI commands driven by tooling, not the interactive TUI wizard/double-click (they would block or
+#: make no sense from a menu). The TUI-completeness guard excludes these. Single source of truth.
+MACHINE_ONLY_COMMANDS: set[str] = {"mcp"}
+
 
 @app.callback(help=t("app.description"))
 def main_callback(

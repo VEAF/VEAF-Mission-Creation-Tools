@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: 🔄 in-progress (waves 1-8 done, all merged into integration branch `feature/mcp-mission-editor`. **Wave 9** folder scaffolding ✅ (PR #581). **Wave 10** map + coordinates ✅ (PR #583; 033 lat/lon-in-placement 🚫 dropped → superseded by `resolve_coordinates` + the `FEAT-GEO-PLACEMENT` lot, PR #584 ✅). **Wave 11** build + validate ✅ (035/036 — closes the create→edit→validate→build→play loop; 28 MCP actions). **Umbrella PR #575 → `develop-v6` is held OPEN on purpose until the MCP is complete** (David). Remaining before landing: distribution as a Claude plugin (`bfr-claude-plugins`, deferred) and more-theatre data. MGRS dropped; projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`).)
+Status: 🔄 in-progress (waves 1-8 done, all merged into integration branch `feature/mcp-mission-editor`. **Wave 9** folder scaffolding ✅ (PR #581). **Wave 10** map + coordinates ✅ (PR #583; 033 lat/lon-in-placement 🚫 dropped → superseded by `resolve_coordinates` + the `FEAT-GEO-PLACEMENT` lot, PR #584 ✅). **Wave 11** build + validate ✅ (035/036 — closes the create→edit→validate→build→play loop; 28 MCP actions). **Wave 12** unit-name markers ✅ (037/038 — units accept an optional `name`, enabling the combat-zone `#command`/`#spawn*` fake-unit idiom the skill already teaches; gap found in David's testing). **Umbrella PR #575 → `develop-v6` is held OPEN on purpose until the MCP is complete** (David). Remaining before landing: distribution as a Claude plugin (`bfr-claude-plugins`, deferred) and more-theatre data. MGRS dropped; projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`).)
 
 Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
 
@@ -244,6 +244,24 @@ command (many workers + config resolution), so re-invoking it is faithful and av
 |---|--------|------|--------|
 | FEAT-MCP-MISSION-EDITOR-035 | **`validate_mission` + `build_mission` actions**: `validate_mission` (in-process `validate_mission_folder` → `{ok, errors, warnings}`); `build_mission` (subprocess `veaf-tools build`, `cwd=folder`, resolve the folder's binary else PATH → `{ok, message}`, non-zero exit surfaced). Registered in the catalog. TDD: validate on a real folder fixture; build with `subprocess.run` mocked (command, cwd, failure path). | feat | ✅ |
 | FEAT-MCP-MISSION-EDITOR-036 | **Doc + catalogue + skill**: developer doc (FR/EN) "Build & validate (wave 11)" section, `AI_ASSISTANT_CATALOG` entries (the create→edit→build→play loop), skill (validate before build; build to get the playable `.miz`), CHANGELOG, bump. | docs | ✅ |
+
+### Wave 12 — unit-name markers (`#command`, `#spawn*`) 🏷️
+
+**Gap found in testing (David).** The oracle and skill both teach the combat-zone idiom of a
+**fake-unit group whose unit name carries `#command="-<alias> ..."`** (parsed by
+`veafCombatZone.lua`: `#command=`/`#spawngroup=`/`#spawnradius=`/`#spawncount=`/`#spawnchance=`/
+`#spawndelay=` live in the **unit name**). But `add_group`/`create_combat_zone` build units from
+`{type, count}` and **auto-name** every unit — there was no way to emit a unit name carrying a
+marker, so the recommended idiom was unbuildable through the MCP. That is why the LLM didn't use
+`#command` when creating a combat zone: the tool gave it no path to.
+
+Fix: let a unit carry an optional explicit `name`, honoured by `_build_units` (else the auto-name),
+exposed in the `add_group` schema; the composites already pass units through, so they inherit it.
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| FEAT-MCP-MISSION-EDITOR-037 | **Optional unit name**: `_build_units` honours a unit's `name` (verbatim for count 1; suffixed for count>1 to keep DCS unit-name uniqueness), else the current auto-name. Add `name` to the `add_group` units schema (composites inherit it via pass-through). Enables the `#command="-armor ..."` fake-unit combat-zone idiom the skill already recommends. TDD: explicit name honoured, count>1 uniqueness, auto-name unchanged, `#command` round-trips through the `.miz`/folder. | feat | ✅ |
+| FEAT-MCP-MISSION-EDITOR-038 | **Doc + catalogue + skill**: developer doc (FR/EN) + catalogue note that a unit can carry a name (the `#command`/`#spawn*` combat-zone markers), with a worked `create_combat_zone` example using a `#command` fake-unit; reinforce it in the authoring skill; CHANGELOG; bump. | docs | ✅ |
 
 ## Out of Scope
 

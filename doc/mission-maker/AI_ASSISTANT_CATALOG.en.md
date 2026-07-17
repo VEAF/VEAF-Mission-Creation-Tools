@@ -193,7 +193,8 @@ produces the `.miz`.*
 
 *Recipe (folder) · 🔥* — In one call: the trigger zone, the groups placed inside it (auto-named so
 the zone captures them) **and** the `COMBATZONE` block in `mission.yaml`. You describe, the AI
-assembles.
+assembles. The AI can also make the zone **spawn predefined VEAF groups** on activation (SAM sites,
+convoys…) instead of hard-placing units.
 
 > 💬 *"Create a “North” combat zone with two enemy armor groups."*
 

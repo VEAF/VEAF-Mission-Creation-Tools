@@ -48,8 +48,10 @@ def add_group(
         category: One of `"vehicle"`, `"plane"`, `"helicopter"`, `"ship"`, `"static"`.
         name: The group's base name (before any naming-intent prefixing).
         position: The group's anchor position, `{"x": ..., "y": ...}`.
-        units: `[{"type": <DCS unit type>, "count": <int>}, ...]` — concrete unit
-            types are the calling LLM's decision, not this action's.
+        units: `[{"type": <DCS unit type>, "count": <int>, "name"?: <str>}, ...]` — concrete unit
+            types are the calling LLM's decision, not this action's. An optional `name` sets the
+            unit name (else auto-named); carry a combat-zone marker there, e.g.
+            `#command="-armor ..."`.
         route: Optional waypoints (`{"x": ..., "y": ...}`, ...). Defaults to a single
             stationary waypoint at `position`.
         patrol: If true (and `route` has at least 2 points), the last waypoint loops
@@ -177,13 +179,24 @@ def _build_group(
 
 
 def _build_units(units: list[dict[str, Any]], *, position: dict[str, float], group_name: str) -> list[dict[str, Any]]:
-    """Expand `[{"type", "count"}, ...]` into individual, spaced-out unit dicts."""
+    """Expand `[{"type", "count", "name"?}, ...]` into individual, spaced-out unit dicts.
+
+    An explicit ``name`` is honoured verbatim (for ``count == 1``) or suffixed ``"<name> #NN"``
+    (for ``count > 1``, to keep DCS unit names unique) — this is how a combat-zone marker such as
+    ``#command="-armor ..."`` is carried on the unit name. Without ``name``, units are auto-named.
+    """
     built: list[dict[str, Any]] = []
     for spec in units:
-        for _ in range(spec.get("count", 1)):
+        count = spec.get("count", 1)
+        explicit_name = spec.get("name")
+        for index in range(count):
+            if explicit_name:
+                unit_name = explicit_name if count == 1 else f"{explicit_name} #{index + 1:02d}"
+            else:
+                unit_name = f"{group_name} Unit #{len(built) + 1:03d}"
             built.append(
                 {
-                    "name": f"{group_name} Unit #{len(built) + 1:03d}",
+                    "name": unit_name,
                     "type": spec["type"],
                     "x": position["x"] + len(built) * _UNIT_SPACING_METERS,
                     "y": position["y"],

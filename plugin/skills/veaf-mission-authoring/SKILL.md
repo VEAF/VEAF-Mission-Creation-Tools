@@ -53,7 +53,9 @@ The dangerous ones:
 ignored (VEAF despawns then respawns them), and membership also keys off the **zone-name prefix**.
 So: create the trigger zone, then create groups named `<ZoneName>-...` placed inside it. To have
 the zone spawn VEAF assets rather than hand-placed units, use a fake unit carrying
-`#command="-<alias> ..."` (an alias from `list_shortcuts`).
+`#command="-<alias> ..."` (an alias from `list_shortcuts`) — set it as that unit's **`name`** (the
+`units` entry takes an optional `name`; the runtime reads `#command`/`#spawn*` off the unit name).
+**Prefer this `#command` fake-unit** for combat-zone content over hand-placing literal units.
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

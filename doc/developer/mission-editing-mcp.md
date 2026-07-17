@@ -87,6 +87,12 @@ collision sur la même seconde est désambiguïsée (`-2`, `-3`, ...), jamais si
 
 - `units` — le serveur ne fait **aucune** curation de catalogue d'unités : les types DCS
   concrets (`T-72B`, `BTR-80`...) sont la décision de l'appelant (LLM), pas de cette action.
+  Chaque unité peut porter un `name` explicite (sinon auto-nommée). C'est **là** qu'on pose un
+  marqueur de combat zone (le runtime les lit sur le **nom d'unité**) : `#command`, `#spawngroup`,
+  `#spawnradius`, `#spawncount`, `#spawnchance`, `#spawndelay`. L'idiome classique = un groupe
+  « fausse unité » dont le nom est `#command="-armor ..."` (alias `list_shortcuts`) : à
+  l'activation de la zone, il spawne le groupe décrit. Ex. `units: [{"type": "Soldier M4",
+  "name": "#command=\"-armor, spawnRadius 300\""}]`.
 - `route` — optionnelle ; par défaut un unique point stationnaire à `position`. Avec
   `patrol: true` (et au moins 2 points), le dernier point boucle sur le premier via une tâche
   `GoToWaypoint` — une patrouille terrestre DCS classique.

@@ -21,7 +21,7 @@ separate binary to build), which the plugin's `.mcp.json` invokes.
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
 | FEAT-MCP-PLUGIN-001 | **`veaf-tools mcp` subcommand**: thin CLI command launching `veaf_mission_mcp.server:main` on stdio, so the MCP server ships inside the veaf-tools binary. Localized help; test asserts it delegates to the server. | feat | ✅ |
-| FEAT-MCP-PLUGIN-002 | **Plugin manifest + MCP wiring**: turn `plugin/` into a valid Claude plugin — `plugin/.claude-plugin/plugin.json` + a `.mcp.json` declaring the `veaf-mission-editor` server (`veaf-tools mcp`) + the existing `veaf-mission-authoring` skill. **Open decision: binary delivery** — how `.mcp.json` finds the `veaf-tools` binary (bundle per-OS in the plugin à la dcs-mission-tools / fetch on first run like the updater / assume on PATH). | feat | ⬜ |
+| FEAT-MCP-PLUGIN-002 | **Plugin manifest + MCP wiring**: turn `plugin/` into a valid Claude plugin — `plugin/.claude-plugin/plugin.json` + a `.mcp.json` declaring the `veaf-mission-editor` server (`veaf-tools mcp`) + the existing `veaf-mission-authoring` skill. **Binary delivery = the existing updater**: a bootstrap downloads `veaf-tools-updater[.exe]` into the plugin dir and runs it (exactly like `scaffold_mission`), which installs `veaf-tools` and keeps it current. It runs at first launch, then **at most once per 4 h** (throttled) — same update mechanism as a mission folder, no new one. | feat | ⬜ |
 | FEAT-MCP-PLUGIN-003 | **Install doc + (optional) marketplace**: how a maker installs the plugin (from this repo); optionally a `marketplace.json` so `claude plugin marketplace add VEAF/VEAF-Mission-Creation-Tools` works, and/or ask BFR to list it. CHANGELOG. | docs | ⬜ |
 
 ## Out of Scope
@@ -29,9 +29,18 @@ separate binary to build), which the plugin's `.mcp.json` invokes.
 - Contributing the plugin into `bfr-claude-plugins` (they can reference it externally instead).
 - Building a separate `veaf-mission-mcp` binary (the `veaf-tools mcp` subcommand reuses the shipped one).
 
-## Open points
+## Binary delivery + updates (decided)
 
-- **Binary delivery (ticket 002)**: dcs-mission-tools commits per-OS binaries into its plugin repo; we
-  don't want ~25 MB binaries in veaf-tools. **Decided: (a) fetch-on-first-run** (reuse the updater's download logic) — pulls the `veaf-tools`
-  binary from the release into the plugin; robust, no committed binaries. (b `veaf-tools` on PATH / c
-  wrapper considered and set aside.)
+We do **not** commit binaries (à la dcs-mission-tools) nor invent a new update mechanism. We reuse
+**`veaf-tools-updater[.exe]`** — the same tool that manages veaf-tools inside a mission folder:
+
+- The plugin bootstrap fetches the fixed-name updater asset from the release and runs it (exactly
+  as `scaffold_mission` does), which installs `veaf-tools` into the plugin dir and, on each run,
+  version-checks `published-latest` and updates if newer.
+- Cadence: run at first launch, then **throttled to at most once per 4 h** (a small on-disk
+  timestamp guard) — avoids a GitHub check on every MCP start while staying current.
+- This is a **separate copy** from any per-mission-folder veaf-tools (different purpose); both are
+  updater-managed, no conflict.
+
+(Rejected: committing per-OS binaries; assuming `veaf-tools` on PATH; a plugin-version-pinned fetch
+— overkill, the updater already does install + update.)

@@ -45,6 +45,8 @@ def _load() -> tuple[dict[str, dict[str, float]], dict[str, str]]:
             key = str(name).lower()
             params[key] = {"lon0": float(entry["lon_0"]), "x0": float(entry["x_0"]), "y0": float(entry["y_0"])}
             names[key] = str(name)
+    if not params:
+        raise RuntimeError("No theatre projection data in data/dcs-maps.yaml — vendored file missing or malformed.")
     return params, names
 
 
@@ -64,7 +66,7 @@ def _theatre_params(theatre: str) -> dict[str, float]:
     params = _load()[0].get(_resolve_key(theatre))
     if params is None:
         raise ValueError(f"Unsupported theatre '{theatre}' (supported: {', '.join(supported_theatres())}).")
-    return params
+    return dict(params)  # defensive copy — never hand out the cached mapping
 
 
 def _meridional_arc(phi: float) -> float:

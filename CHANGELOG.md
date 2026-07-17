@@ -42,6 +42,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Blank missions for 9 theatres** (FEAT-BLANK-MISSION-THEATRE-005): `theatre-defaults.yaml` (the per-theatre map-centre + bullseye the blank generator uses) is now extracted from the calibration missions in [VEAF/dcs-maps](https://github.com/VEAF/dcs-maps) `data/maps/*.miz` (MIT), parsed with our own `read_miz` — real values, not fabricated. `prepare --theatre` / `scaffold_mission(theatre=)` now cover Caucasus, Afghanistan, GermanyCW, MarianaIslands(+WWII), Normandy, PersianGulf, SinaiMap, Syria (the maps dcs-maps ships); the generator itself is unchanged.
 - **`veaf-tools mcp` subcommand** (FEAT-MCP-PLUGIN-001): launches the mission-editing MCP server on stdio from inside the shipped `veaf-tools` binary (no separate binary). First step toward packaging `veaf-mission-mcp` + the `veaf-mission-authoring` skill as a self-hosted Claude plugin.
 
+### Fixed
+- **`scaffold_mission` no longer refuses a folder that only holds hidden tooling entries** (found in real use): under Claude Code the working folder always has a `.claude/` (and often `.git/`), so the "must be empty" guard made in-place scaffolding impossible. It now ignores hidden entries (`.git`, `.claude`, `.gitignore`, …) and only blocks on non-hidden content (a likely-existing mission).
+
+### Added
+
 ## [6.9.1] — 2026-07-13
 
 ### Added

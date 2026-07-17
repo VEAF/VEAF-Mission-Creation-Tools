@@ -101,8 +101,9 @@ def scaffold_mission(
         ``{"folder", "template", "veaf_tools_version", "updater_asset"}``.
 
     Raises:
-        ValueError: when ``template`` is invalid, the folder is not empty, or the platform has no
-            updater asset.
+        ValueError: when ``template`` is invalid, the folder already has non-hidden content (a
+            likely-existing mission — hidden entries like ``.git``/``.claude`` are ignored), or the
+            platform has no updater asset.
         RuntimeError: when the updater or ``prepare`` exits non-zero, or the updater did not install
             ``veaf-tools`` / ``published/``.
     """
@@ -112,8 +113,15 @@ def scaffold_mission(
     tag = tag or _DEFAULT_TAG
     folder = Path(target_folder)
     folder.mkdir(parents=True, exist_ok=True)
-    if any(folder.iterdir()):
-        raise ValueError(f"Target folder is not empty: {folder} — scaffolding only initializes an empty folder.")
+    # Refuse to scaffold over existing content, but ignore hidden tooling entries — under Claude
+    # Code the working folder always has a `.claude/` (and often `.git/`), so "literally empty" is
+    # never true; blocking on those would make scaffolding unusable in-place.
+    non_hidden = [entry.name for entry in folder.iterdir() if not entry.name.startswith(".")]
+    if non_hidden:
+        raise ValueError(
+            f"Target folder already has content ({', '.join(sorted(non_hidden))}): {folder} — "
+            "scaffolding only initializes an otherwise-empty folder (hidden entries like .git/.claude are OK)."
+        )
 
     asset_name = platform_assets.release_updater_asset_name()
     if asset_name is None:

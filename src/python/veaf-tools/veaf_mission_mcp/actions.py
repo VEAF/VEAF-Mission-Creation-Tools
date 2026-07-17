@@ -22,6 +22,7 @@ from veaf_mission_mcp.edit_veaf_config import (
     set_security_disabled,
     set_veaf_config,
 )
+from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
 from veaf_mission_mcp.models import ActionSpec
@@ -687,7 +688,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "position": {
                         "type": "object",
-                        "description": "Either {x, y} (DCS local metres) or {lat, lon} (decimal degrees).",
+                        "description": "Either {x, y} (DCS local metres) or {lat, lon} (decimal degrees). "
+                        "If both are given, {x, y} takes precedence.",
                         "properties": {
                             "x": {"type": "number"},
                             "y": {"type": "number"},
@@ -700,6 +702,42 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: resolve_coordinates(Path(p["mission_path"]), p["position"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="geocode",
+            description=(
+                "Resolve a real-world place name (optionally offset by a bearing + distance) to DCS "
+                "coordinates for the mission's theatre — DCS maps are the real world projected. "
+                "Returns lat/lon + x/y; results are approximate (confirm visually). Read-only. "
+                "Uses OSM Nominatim by default (or Google if a key is configured)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
+                    },
+                    "query": {"type": "string", "description": "Real place name, e.g. 'Batumi', 'Kobuleti airport'."},
+                    "bearing": {
+                        "type": "number",
+                        "description": "Optional bearing (degrees clockwise from north) for a relative offset.",
+                    },
+                    "distance_km": {
+                        "type": "number",
+                        "description": "Optional distance (km) along `bearing`, e.g. '10 km north of X'.",
+                    },
+                },
+                "required": ["mission_path", "query"],
+            },
+        ),
+        handler=lambda p: geocode(
+            Path(p["mission_path"]),
+            p["query"],
+            bearing=p.get("bearing"),
+            distance_km=p.get("distance_km"),
+        ),
     )
     catalog.register(
         ActionSpec(

@@ -1,6 +1,6 @@
 # FEAT-GEO-PLACEMENT-001 — Pluggable geocoder (OSM default, Google optional)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/geocoding.py`, `pyproject.toml` (only if a dep is needed), `test/python/veaf_libs/test_geocoding.py`
 

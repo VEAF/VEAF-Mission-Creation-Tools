@@ -158,9 +158,41 @@ def is_theatre_supported(theatre: str) -> bool:
     return theatre.lower() in _THEATRES
 
 
+#: Mean Earth radius (metres), for the great-circle offset.
+_EARTH_RADIUS_M = 6371008.8
+
+
+def offset_latlon(lat: float, lon: float, bearing_deg: float, distance_m: float) -> tuple[float, float]:
+    """Return the point ``distance_m`` metres from ``(lat, lon)`` along ``bearing_deg``.
+
+    Great-circle (spherical) destination — accurate to well within DCS placement needs at the
+    ranges a Mission Maker uses (e.g. "10 km north of X"). Bearing is degrees clockwise from north.
+
+    Args:
+        lat: Start latitude in decimal degrees. ``lon``: start longitude in decimal degrees.
+        bearing_deg: Bearing in degrees, clockwise from true north.
+        distance_m: Distance in metres.
+
+    Returns:
+        ``(latitude, longitude)`` of the destination, in decimal degrees.
+    """
+    delta = distance_m / _EARTH_RADIUS_M
+    theta = math.radians(bearing_deg)
+    phi1 = math.radians(lat)
+    lambda1 = math.radians(lon)
+
+    phi2 = math.asin(math.sin(phi1) * math.cos(delta) + math.cos(phi1) * math.sin(delta) * math.cos(theta))
+    lambda2 = lambda1 + math.atan2(
+        math.sin(theta) * math.sin(delta) * math.cos(phi1),
+        math.cos(delta) - math.sin(phi1) * math.sin(phi2),
+    )
+    return math.degrees(phi2), math.degrees(lambda2)
+
+
 __all__ = [
     "supported_theatres",
     "is_theatre_supported",
     "xy_to_latlon",
     "latlon_to_xy",
+    "offset_latlon",
 ]

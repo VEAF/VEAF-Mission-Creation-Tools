@@ -1,0 +1,11 @@
+# Approximate lat/lon bounding boxes per DCS theatre (FEAT-GEO-PLACEMENT).
+#
+# Used only to (1) bias/disambiguate geocoder results (Nominatim viewbox) so "Batumi" resolves in
+# the theatre's region rather than a namesake elsewhere, and (2) power the `in_theatre_bounds`
+# warning. These are GENEROUS region filters, not precise map borders — approximate by design.
+# Keys are lowercased theatre names.
+
+caucasus: { min_lat: 39.0, max_lat: 48.0, min_lon: 27.0, max_lon: 48.0 }
+syria: { min_lat: 31.0, max_lat: 38.0, min_lon: 31.0, max_lon: 43.0 }
+persiangulf: { min_lat: 21.0, max_lat: 33.0, min_lon: 49.0, max_lon: 65.0 }
+marianaislands: { min_lat: 10.0, max_lat: 22.0, min_lon: 141.0, max_lon: 150.0 }

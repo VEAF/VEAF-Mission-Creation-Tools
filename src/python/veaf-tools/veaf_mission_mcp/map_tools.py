@@ -62,7 +62,8 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
 
     Args:
         mission_path: A `.miz` file or mission folder (its theatre drives the projection).
-        position: Either ``{"x", "y"}`` (DCS local) or ``{"lat", "lon"}`` (decimal degrees).
+        position: Either ``{"x", "y"}`` (DCS local) or ``{"lat", "lon"}`` (decimal degrees). If both
+            are present, ``{x, y}`` takes precedence.
 
     Returns:
         ``{theatre, xy: {x, y}, latlon: {lat, lon}}`` — both representations of the same point.
@@ -76,6 +77,7 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
     if not theatre:
         raise ValueError(f"Mission has no theatre, cannot convert coordinates: {mission_path}")
 
+    # {x, y} takes precedence when both forms are present (mirrored in the action schema doc).
     if position.get("x") is not None and position.get("y") is not None:
         x, y = float(position["x"]), float(position["y"])
         lat, lon = coordinates.xy_to_latlon(theatre, x, y)
@@ -83,6 +85,7 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
         lat, lon = float(position["lat"]), float(position["lon"])
         x, y = coordinates.latlon_to_xy(theatre, lat, lon)
     else:
-        raise ValueError("position must be a complete {x, y} or {lat, lon}.")
+        got = ", ".join(sorted(position)) or "none"
+        raise ValueError(f"position must be a complete {{x, y}} or {{lat, lon}}; got keys: {got}.")
 
     return {"theatre": theatre, "xy": {"x": x, "y": y}, "latlon": {"lat": lat, "lon": lon}}

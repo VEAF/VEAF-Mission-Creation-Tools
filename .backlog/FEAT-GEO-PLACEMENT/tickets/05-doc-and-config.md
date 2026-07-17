@@ -1,6 +1,6 @@
 # FEAT-GEO-PLACEMENT-005 — Doc + catalogue + skill + config
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 Files: `doc/`, `plugin/skills/veaf-mission-authoring/SKILL.md`, `doc/mission-maker/AI_ASSISTANT_CATALOG.md` (+ `.en.md`), `CHANGELOG.md`, `pyproject.toml`
 

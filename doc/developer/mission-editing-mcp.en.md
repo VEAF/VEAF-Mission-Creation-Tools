@@ -386,8 +386,18 @@ mission's theatre (read from the mission — the caller never supplies projectio
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
 ```
 
-> Placement by **real place name** ("Batumi", "north of Kobuleti") is out of scope for this wave —
-> see the `FEAT-GEO-PLACEMENT` lot (a pluggable geocoder → lat/lon → `x/y` via this foundation).
+### `geocode`
+
+Read-only (`FEAT-GEO-PLACEMENT` lot). Resolves a **real place name** to DCS coordinates for the
+mission's theatre — DCS theatres being the real world projected. **Pluggable** geocoder: OpenStreetMap
+Nominatim by default (free, no key; © OpenStreetMap attribution required), Google Maps when
+`GOOGLE_MAPS_API_KEY` is set. Optional `bearing`+`distance_km` ("10 km north of X"). Returns
+`{found, display_name, latlon, xy, in_theatre_bounds, warnings}` — approximate, confirm visually;
+named places work, vague terrain does not.
+
+```json
+{"mission_path": "…", "query": "Kobuleti", "bearing": 0, "distance_km": 10}
+```
 
 ## Next waves (out of scope)
 

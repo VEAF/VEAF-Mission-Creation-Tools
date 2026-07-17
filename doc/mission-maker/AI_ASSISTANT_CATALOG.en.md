@@ -62,6 +62,7 @@ The AI can act in two places, and it changes what "survives":
 | 20 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
 | 21 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
 | 22 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
+| 23 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
 
 ---
 
@@ -152,8 +153,15 @@ theatre (the AI reads the theatre; you supply nothing else).
 
 > 💬 *"What's x=-291000 y=617000 in lat/long?"*
 
-*(Placement by real place name — "near Batumi", "north of Kobuleti" — comes with the geo lot: a
-geocoder resolves the name to coordinates.)*
+### Place by real place name {#geocode}
+
+*Geocoding · ⭐* — DCS theatres are the real world: the AI resolves a **place name** ("Batumi",
+"Kobuleti airport"), optionally offset ("10 km north of X"), to DCS coordinates. Via OpenStreetMap
+by default (free); Google Maps if a key is configured. **Approximate result** (DCS terrain
+approximates reality): the AI always shows the resolved point for you to confirm. **Named** places
+work; vague terrain ("the woods") does not.
+
+> 💬 *"Put a SAM 15 km south-east of Batumi airport."* (the AI geocodes, offsets, then places)
 
 ## 🏗️ Composites — create a full feature (one pass)
 

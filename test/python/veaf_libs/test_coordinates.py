@@ -4,6 +4,8 @@ Reference cases and tolerances are carried over verbatim from the source impleme
 (``bfr-claude-plugins`` `projection.lua` test suite).
 """
 
+import math
+
 import pytest
 from veaf_libs import coordinates
 
@@ -31,6 +33,29 @@ class TestRoundTrip:
         back_x, back_y = coordinates.latlon_to_xy(theatre, *coordinates.xy_to_latlon(theatre, x, y))
         assert abs(back_x - x) < 0.5, f"{theatre} x: {back_x} vs {x}"
         assert abs(back_y - y) < 0.5, f"{theatre} y: {back_y} vs {y}"
+
+
+class TestOffset:
+    def test_due_north_increases_latitude(self) -> None:
+        lat, lon = coordinates.offset_latlon(42.0, 41.0, 0.0, 10_000.0)
+        assert lon == pytest.approx(41.0, abs=1e-6)  # no east/west drift due north
+        assert lat > 42.0
+        # ~10 km north ≈ 0.0899° of latitude.
+        assert lat == pytest.approx(42.0 + 10_000.0 / 111_195.0, abs=1e-3)
+
+    def test_due_east_increases_longitude(self) -> None:
+        lat, lon = coordinates.offset_latlon(42.0, 41.0, 90.0, 10_000.0)
+        assert lon > 41.0
+        assert lat == pytest.approx(42.0, abs=1e-3)
+
+    def test_offset_distance_matches_via_projection(self) -> None:
+        # Offset 10 km from a real Caucasus point; the DCS-xy distance should be ~10 km (within 1%),
+        # validating the geodesic offset composed with the theatre projection.
+        lat0, lon0 = coordinates.xy_to_latlon("caucasus", 0.0, 0.0)
+        lat1, lon1 = coordinates.offset_latlon(lat0, lon0, 30.0, 10_000.0)
+        x0, y0 = coordinates.latlon_to_xy("caucasus", lat0, lon0)
+        x1, y1 = coordinates.latlon_to_xy("caucasus", lat1, lon1)
+        assert math.hypot(x1 - x0, y1 - y0) == pytest.approx(10_000.0, rel=0.01)
 
 
 class TestTheatreHandling:

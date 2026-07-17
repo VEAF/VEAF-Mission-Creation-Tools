@@ -63,6 +63,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 20 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
 | 21 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
 | 22 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
+| 23 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
 
 ---
 
@@ -154,8 +155,15 @@ mission (l'IA lit le théâtre, tu n'as aucun paramètre à fournir).
 
 > 💬 *« Ça fait quoi en lat/long, la position x=-291000 y=617000 ? »*
 
-*(Placement par nom de lieu réel — « près de Batumi », « au nord de Kobuleti » — arrive avec le lot
-géo : un géocodeur résout le nom en coordonnées.)*
+### Placer par nom de lieu réel {#geocoder}
+
+*Géocodage · ⭐* — Les cartes DCS sont le monde réel : l'IA résout un **nom de lieu** (« Batumi »,
+« l'aéroport de Kobuleti »), éventuellement décalé (« à 10 km au nord de X »), en coordonnées DCS.
+Par défaut via OpenStreetMap (gratuit) ; Google Maps si une clé est configurée. **Résultat
+approximatif** (le terrain DCS approxime le réel) : l'IA te montre toujours le point résolu pour que
+tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois ») non.
+
+> 💬 *« Mets un SAM à 15 km au sud-est de l'aéroport de Batumi. »* (l'IA géocode, décale, puis place)
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 

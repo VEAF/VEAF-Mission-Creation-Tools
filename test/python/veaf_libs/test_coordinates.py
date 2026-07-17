@@ -59,8 +59,20 @@ class TestOffset:
 
 
 class TestTheatreHandling:
-    def test_supported_theatres(self) -> None:
-        assert set(coordinates.supported_theatres()) == {"caucasus", "syria", "persiangulf", "marianaislands"}
+    def test_supported_theatres_from_dcs_maps(self) -> None:
+        supported = set(coordinates.supported_theatres())
+        # Sourced from the vendored VEAF/dcs-maps export — all DCS theatres, DCS-spelled keys.
+        assert {
+            "Caucasus",
+            "Syria",
+            "PersianGulf",
+            "MarianaIslands",
+            "Normandy",
+            "Nevada",
+            "SinaiMap",
+            "GermanyCW",
+        } <= supported
+        assert len(supported) >= 14
 
     def test_case_insensitive(self) -> None:
         assert coordinates.is_theatre_supported("Caucasus")
@@ -68,8 +80,14 @@ class TestTheatreHandling:
         lat_mixed, _ = coordinates.xy_to_latlon("CauCasus", 0.0, 0.0)
         assert lat_lower == lat_mixed
 
+    def test_alias_resolves_to_canonical_key(self) -> None:
+        # airdromes.yaml-style names resolve to the dcs-maps keys.
+        assert coordinates.is_theatre_supported("Sinai")  # -> SinaiMap
+        assert coordinates.is_theatre_supported("GermanyColdWar")  # -> GermanyCW
+        assert coordinates.xy_to_latlon("Sinai", 0.0, 0.0) == coordinates.xy_to_latlon("SinaiMap", 0.0, 0.0)
+
     def test_unsupported_theatre_raises_naming_it(self) -> None:
-        with pytest.raises(ValueError, match="nevada"):
-            coordinates.xy_to_latlon("nevada", 0.0, 0.0)
-        with pytest.raises(ValueError, match="nevada"):
-            coordinates.latlon_to_xy("nevada", 40.0, 40.0)
+        with pytest.raises(ValueError, match="atlantis"):
+            coordinates.xy_to_latlon("atlantis", 0.0, 0.0)
+        with pytest.raises(ValueError, match="atlantis"):
+            coordinates.latlon_to_xy("atlantis", 40.0, 40.0)

@@ -375,10 +375,12 @@ Les actions de placement prennent des **coordonnées locales DCS** (`x`/`y`, en 
 projection propre au théâtre) ; un Mission Maker raisonne plutôt en lat/long sur une carte. La vague
 10 donne au LLM de quoi se repérer et convertir, en design-time (sans DCS lancé).
 
-Socle : `veaf_libs.coordinates` — port pur-Python (Transverse Mercator WGS84) de `projection.lua`
-(MIT, `bfr-claude-plugins`, voir [ADR 0015](../adr/0015-coordinate-projection-port.md)) avec les
-tables par théâtre (Caucasus, Syria, PersianGulf, MarianaIslands). Comme les cartes DCS **sont le
-monde réel projeté**, ce socle relie `x/y DCS ↔ lat/lon réel`.
+Socle : `veaf_libs.coordinates` — Transverse Mercator WGS84 pur-Python (pas de `pyproj`), dont les
+constantes par théâtre viennent de la donnée vendorisée `data/dcs-maps.yaml` (export MIT de
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), voir [ADR 0015](../adr/0015-coordinate-projection-port.md))
+— **tous les théâtres DCS** (Caucasus, Syria, PersianGulf, Marianas, Normandy, Nevada, SinaiMap,
+GermanyCW, Kola, TheChannel, Falklands, Afghanistan, Iraq). Comme les cartes DCS **sont le monde
+réel projeté**, ce socle relie `x/y DCS ↔ lat/lon réel`.
 
 ### `describe_map`
 

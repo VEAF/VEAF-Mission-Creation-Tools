@@ -1,6 +1,6 @@
 # 01 — Drop the `Sim` dependency in `veaf.Logger:print`
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 02 — Use the real `onPlayerTrySendChat` callback in the server hook
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Context
 

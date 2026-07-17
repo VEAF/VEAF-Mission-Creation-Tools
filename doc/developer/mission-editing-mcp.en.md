@@ -368,10 +368,12 @@ Placement actions take **DCS local coordinates** (`x`/`y`, metres in the theatre
 a Mission Maker thinks in lat/long off a map. Wave 10 gives the LLM map awareness and conversion,
 design-time (no running DCS).
 
-Foundation: `veaf_libs.coordinates` — a pure-Python port (Transverse Mercator WGS84) of
-`projection.lua` (MIT, `bfr-claude-plugins`, see [ADR 0015](../adr/0015-coordinate-projection-port.md))
-with the per-theatre tables (Caucasus, Syria, PersianGulf, MarianaIslands). Since DCS theatres **are
-the real world projected**, this bridges `DCS x/y ↔ real-world lat/lon`.
+Foundation: `veaf_libs.coordinates` — pure-Python Transverse Mercator WGS84 (no `pyproj`), whose
+per-theatre constants come from the vendored `data/dcs-maps.yaml` (MIT export of
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), see [ADR 0015](../adr/0015-coordinate-projection-port.md))
+— **all DCS theatres** (Caucasus, Syria, PersianGulf, Marianas, Normandy, Nevada, SinaiMap,
+GermanyCW, Kola, TheChannel, Falklands, Afghanistan, Iraq). Since DCS theatres **are the real world
+projected**, this bridges `DCS x/y ↔ real-world lat/lon`.
 
 ### `describe_map`
 

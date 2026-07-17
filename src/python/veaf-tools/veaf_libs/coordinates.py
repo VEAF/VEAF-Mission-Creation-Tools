@@ -1,15 +1,21 @@
 """Convert between DCS local coordinates (x/y, metres) and geographic lat/lon, per theatre.
 
-The DCS ``coord.*`` conversions only exist in the in-game Lua runtime; this is a **pure-Python
-port** of the Transverse Mercator (WGS84) forward/inverse used design-time, so tooling can place
-things by lat/long without a running DCS. Each theatre has its own projection origin.
+The DCS ``coord.*`` conversions only exist in the in-game Lua runtime; this is a **pure-Python**
+Transverse Mercator (WGS84) forward/inverse used design-time, so tooling can place things by
+lat/long without a running DCS. Each theatre has its own projection origin.
 
-Ported from ``bfr-claude-plugins/plugins/dcs-mission-tools/tools/src/lib/projection.lua`` (MIT,
-BFR / David Pierron & contributors). VEAF is Apache-2.0; MIT is compatible — attribution kept here.
-See ``docs/adr/0015-coordinate-projection-port.md``.
+Per-theatre projection constants come from the vendored ``data/dcs-maps.yaml`` — the export of
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps) (MIT), the VEAF-maintained source of DCS map
+projections (all theatres). We keep this thin pure-Python maths (no ``pyproj``) and only consume
+its data. See ``docs/adr/0015-coordinate-projection-port.md``.
 """
 
 import math
+from functools import lru_cache
+
+import yaml
+
+from veaf_libs.bundled_data import read_bundled_text
 
 # WGS84 ellipsoid + UTM scale, as in the source.
 _A = 6378137.0
@@ -20,23 +26,42 @@ _EP2 = _E2 / (1 - _E2)
 _E4 = _E2 * _E2
 _E6 = _E2 * _E2 * _E2
 
-#: Per-theatre Transverse Mercator origin: central meridian (deg) + false offsets (metres).
-_THEATRES: dict[str, dict[str, float]] = {
-    "caucasus": {"lon0": 33, "x0": -99516.9999999732, "y0": -4998114.999999984},
-    "syria": {"lon0": 39, "x0": 282801.00000003993, "y0": -3879865.9999999935},
-    "persiangulf": {"lon0": 57, "x0": 75755.99999999645, "y0": -2894933.0000000377},
-    "marianaislands": {"lon0": 147, "x0": 238417.99999989968, "y0": -1491840.000000048},
-}
+#: Alternate theatre spellings some tooling emits → the canonical `dcs-maps` key (lowercased).
+_THEATRE_ALIASES: dict[str, str] = {"sinai": "sinaimap", "germanycoldwar": "germanycw"}
+
+
+@lru_cache(maxsize=1)
+def _load() -> tuple[dict[str, dict[str, float]], dict[str, str]]:
+    """Load the vendored ``dcs-maps.yaml`` once → (params-by-lower-key, display-name-by-lower-key).
+
+    Each params entry carries ``lon0``/``x0``/``y0`` (from ``lon_0``/``x_0``/``y_0``); ``k_0`` is
+    0.9996 across all DCS theatres (== :data:`_K0`), so it is not stored per theatre.
+    """
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcs-maps.yaml")) or {}
+    params: dict[str, dict[str, float]] = {}
+    names: dict[str, str] = {}
+    for name, entry in raw.items():
+        if isinstance(entry, dict) and "lon_0" in entry:
+            key = str(name).lower()
+            params[key] = {"lon0": float(entry["lon_0"]), "x0": float(entry["x_0"]), "y0": float(entry["y_0"])}
+            names[key] = str(name)
+    return params, names
+
+
+def _resolve_key(theatre: str) -> str:
+    """Lowercase + alias-resolve a theatre name to its canonical `dcs-maps` key."""
+    key = theatre.lower()
+    return _THEATRE_ALIASES.get(key, key)
 
 
 def supported_theatres() -> list[str]:
-    """Return the theatre names coordinate conversion is available for (sorted)."""
-    return sorted(_THEATRES)
+    """Return the theatre names coordinate conversion is available for (sorted, DCS spelling)."""
+    return sorted(_load()[1].values())
 
 
 def _theatre_params(theatre: str) -> dict[str, float]:
-    """Return a theatre's projection params (case-insensitive), or raise ``ValueError``."""
-    params = _THEATRES.get(theatre.lower())
+    """Return a theatre's projection params (case-insensitive, alias-aware), or raise ``ValueError``."""
+    params = _load()[0].get(_resolve_key(theatre))
     if params is None:
         raise ValueError(f"Unsupported theatre '{theatre}' (supported: {', '.join(supported_theatres())}).")
     return params
@@ -154,8 +179,8 @@ def latlon_to_xy(theatre: str, lat: float, lon: float) -> tuple[float, float]:
 
 
 def is_theatre_supported(theatre: str) -> bool:
-    """Return whether coordinate conversion is available for ``theatre`` (case-insensitive)."""
-    return theatre.lower() in _THEATRES
+    """Return whether coordinate conversion is available for ``theatre`` (case-insensitive, alias-aware)."""
+    return _resolve_key(theatre) in _load()[0]
 
 
 #: Mean Earth radius (metres), for the great-circle offset.

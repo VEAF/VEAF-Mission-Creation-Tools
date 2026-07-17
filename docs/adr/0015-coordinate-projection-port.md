@@ -2,7 +2,7 @@
 status: accepted
 ---
 
-# Design-time DCS coordinate projection: copy `projection.lua` into Python
+# Design-time DCS coordinate projection: pure-Python TM, constants vendored from VEAF/dcs-maps
 
 The mission-editing MCP and `veaf-tools` place things by DCS local coordinates (`x`/`y`, metres in
 each theatre's own projection), but a Mission Maker thinks in lat/long off a map. To accept human
@@ -13,22 +13,30 @@ in-game Lua runtime, and the repo had no Python projection.
 Each theatre uses its own Transverse Mercator (WGS84) projection: a central meridian plus false
 easting/northing offsets. Deriving and validating those constants from scratch is error-prone.
 
-**Decision.** We **copy** an existing, tested implementation into Python
-(`veaf_libs/coordinates.py`) rather than derive our own or add a heavy dependency: the
-`projection.lua` from
-`bfr-claude-plugins/plugins/dcs-mission-tools/tools/src/lib/projection.lua` (**MIT**, BFR code —
-not itself a third-party port). It carries the hard part — the WGS84 TM forward/inverse **and** the
-per-theatre origin tables for **caucasus, syria, persiangulf, marianaislands** — and ships five
-reference cases `(theatre, x, y, lat, lon)` we reuse verbatim as Python tests.
+**Decision.** Keep a **thin pure-Python** Transverse Mercator forward/inverse in
+`veaf_libs/coordinates.py` (WGS84 series; maths lineage from `bfr-claude-plugins`' `projection.lua`,
+MIT), and **source the per-theatre constants from data**: vendor the export of
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps) (**MIT**, VEAF-maintained) as
+`veaf_libs/data/dcs-maps.yaml`, read at load time for `lon_0`/`x_0`/`y_0`. That export covers **all
+DCS theatres** (Caucasus, Syria, PersianGulf, Marianas(+WWII), Normandy, Nevada, SinaiMap,
+GermanyCW, Kola, TheChannel, Falklands, Afghanistan, Iraq) with the exact DCS theatre-string keys.
+We validated it against the original four (dcs-maps ≡ `projection.lua` to the micron) and reuse the
+`projection.lua` reference cases as regression tests.
 
-VEAF is Apache-2.0; MIT is compatible. We keep a short attribution header on the copied module (no
-separate NOTICE — the header is the attribution). This is a **copy**, not a shared upstream: no
-drift-tracking, no vendoring machinery. New theatres are added as pure data (their origin
-constants) as they are captured — never fabricated.
+Data, not code: the valuable, stable part is the per-theatre table, which dcs-maps publishes for
+consumption. A light drift note lets us re-sync when Mitch updates it. A short alias map covers
+alternate spellings some tooling emits (`Sinai`→`SinaiMap`, `GermanyColdWar`→`GermanyCW`).
 
-**Alternatives rejected.** Depending on `pydcs` (a large mission-manipulation library whose model
-overlaps our own) just for its projections; and deriving the TM constants ourselves (needless risk
-when a tested, license-compatible implementation exists in the family of projects).
+**Alternatives rejected.** Depending on / adopting the `dcs-maps-coordinates` **package** — it
+pulls `pyproj` + `mgrs` (native C libraries): not on PyPI (git-dep fragility), and `pyproj` is
+costly/risky to bundle in our PyInstaller exe, for a gain (MGRS/UTM/PROJ-exactness) we don't need
+(our pure-Python matches its lat/lon↔x/y exactly for the placement use case). Also rejected:
+hand-maintaining the constants ourselves, or scraping `pydcs` — the VEAF export is the authoritative,
+maintained source.
 
-**Accuracy.** The port reproduces the source's reference cases within its tolerances — `< 5e-6°`
-on lat/lon and `< 0.5 m` on the `x → lat/lon → x` round-trip.
+**Accuracy.** Reproduces the reference cases within `< 5e-6°` on lat/lon and `< 0.5 m` on the
+`x → lat/lon → x` round-trip.
+
+**Out of scope.** MGRS/UTM (available in dcs-maps if ever wanted); per-theatre bounding boxes
+(geocoding bias) stay a separate hand-approximated dataset — a theatre without a box simply gets no
+bias.

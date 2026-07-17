@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-PLUGIN — ship veaf-mission-mcp as a self-hosted Claude plugin
 
-Status: 🔄 in-progress (001 done — `veaf-tools mcp` subcommand; 002/003 ready — the plugin itself + delivery, one open decision below)
+Status: 🔄 in-progress (001 done — `veaf-tools mcp`; 002 plumbing DONE — plugin.json + .mcp.json + marketplace.json + skill (installable, testable); remaining = the SessionStart updater bootstrap (Windows-first, throttle 4h) + 003 doc)
 
 Branch: `feature/mcp-plugin` → PR → `feature/mcp-mission-editor`
 

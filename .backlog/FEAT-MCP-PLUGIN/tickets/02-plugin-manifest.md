@@ -1,6 +1,6 @@
 # FEAT-MCP-PLUGIN-002 — Plugin manifest + MCP wiring (+ binary delivery)
 
-Status: ⬜ ready (delivery = (a) bootstrap-on-first-run, decided with David)
+Status: 🔄 in-progress — plugin plumbing DONE (plugin.json + .mcp.json + marketplace.json + skill); the updater bootstrap (SessionStart hook, throttled 4h) is the remaining part
 Type: feat
 Files: `plugin/.claude-plugin/plugin.json`, `plugin/.mcp.json`, `plugin/skills/veaf-mission-authoring/` (existing)
 

@@ -39,9 +39,10 @@ Windows) handles this — no manual copy:
   session still holds it locked, so the refresh takes effect on the **next** session (a running exe
   cannot replace itself).
 
-By default it tracks `published-latest` (the stable production pointer). To test a **pre-release**,
-set the environment variable `VEAF_MCP_UPDATER_TAG` before launching Claude, e.g.
-`VEAF_MCP_UPDATER_TAG=published-v6.9.21-rc1` — the bootstrap then installs that tag instead.
+By default it tracks `published-latest` (the stable production pointer). **Test-only:** to try a
+**pre-release**, set the environment variable `VEAF_MCP_UPDATER_TAG` before launching Claude, e.g.
+`VEAF_MCP_UPDATER_TAG=published-v6.9.21-rc1` — the bootstrap (and `scaffold_mission`) then install
+that tag instead. Not needed once the tools ship to `published-latest`.
 
 Bootstrap failures are non-fatal: the hook exits 0 so a network hiccup never blocks the session.
 

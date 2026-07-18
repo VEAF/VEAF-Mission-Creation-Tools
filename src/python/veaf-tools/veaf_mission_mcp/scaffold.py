@@ -22,9 +22,11 @@ _GITHUB_OWNER = "VEAF"
 _GITHUB_REPO = "VEAF-Mission-Creation-Tools"
 #: Default release tag (the rolling "latest published" pointer the updater also defaults to).
 _DEFAULT_TAG = "published-latest"
-#: Env var (also read by the plugin's bootstrap hook) that overrides the default tag — so the
-#: veaf-tools this installs into the mission folder matches the version running the MCP, e.g. when
-#: testing a pre-release. An explicit ``tag`` argument still wins over it.
+#: Env var that overrides the default tag — so the veaf-tools this installs into the mission folder
+#: matches the version running the MCP. **Test-only**: its purpose is to test a pre-release while
+#: the chantier isn't on ``published-latest`` yet; once released, the default suffices. The same
+#: name is read by the plugin's ``bootstrap.ps1`` (which can't import this constant — keep the two
+#: in sync). An explicit ``tag`` argument still wins over it.
 _TAG_ENV_VAR = "VEAF_MCP_UPDATER_TAG"
 #: Templates accepted here. ``custom`` is excluded: it opens an interactive TUI picker with no TTY
 #: under a subprocess. The template question is the calling LLM's job (a required parameter).

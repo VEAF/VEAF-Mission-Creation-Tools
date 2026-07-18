@@ -31,6 +31,9 @@ try {
     if (-not $dataDir) { exit 0 }  # no per-plugin data dir → nothing we can install into
     if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Force -Path $dataDir | Out-Null }
 
+    # VEAF_MCP_UPDATER_TAG: test-only override to install a pre-release; keep this name in sync
+    # with scaffold.py's _TAG_ENV_VAR (both read the same var so the MCP + the mission folder get
+    # the same version). Default: published-latest (the stable production pointer).
     $tag = if ($env:VEAF_MCP_UPDATER_TAG) { $env:VEAF_MCP_UPDATER_TAG } else { "published-latest" }
     $repo = "VEAF/VEAF-Mission-Creation-Tools"
     $updater = Join-Path $dataDir "veaf-tools-updater.exe"

@@ -61,13 +61,10 @@ as that unit's **`name`** (the `units` entry takes an optional `name`; the runti
 `#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
 content over hand-placing literal units.
 
-**The spawned asset takes the fake-unit's coalition.** A `#command` runs as if a marker were
-placed by that unit, so the runtime spawns in **the fake unit's own coalition** — a **blue**
-fake-unit carrying `#command="-samLR"` yields a **blue** SAM, a red one a red SAM. Aliases like
-`-samLR` are **not** inherently red; "random" there means a random LR **battery type**, not a side.
-(The "coalition is ignored" above is only about which real groups the zone *captures* by geometry —
-it does not override a `#command` fake-unit's side.) So for a blue SAM site, place the fake-unit as
-**blue**; do not fall back to hand-placed units just to get a colour.
+**Coalition rule:** a `#command` fake-unit spawns in **its own coalition** — a blue fake-unit →
+a blue SAM (`-samLR` is not inherently red; its "random" is the battery *type*). So for a blue SAM
+site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
+"coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

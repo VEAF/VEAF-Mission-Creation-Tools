@@ -4,15 +4,18 @@
 --
 -- Features:
 -- ---------
--- * This hook is used on the VEAF server. It has multiple features :
--- *   - autorestart at night when no one is connected
--- *   - listen to chat text and extract commands to be run on the server (WIP)
--- *   - open a socket to listen to specific commands and push them on the server (TBD)
--- 
+-- * This hook runs on a DCS dedicated server. It:
+-- *   - listens to chat and runs VEAF commands on the server (via veafRemote / veafSecurity)
+-- *   - loads the VEAF pilots list (permission levels per UCID)
+-- *   - optionally restarts the server when idle (opt-in: enableAutoRestart)
+-- *   - optionally pushes telemetry to an API server (opt-in: enableBufferingSocket)
+--
 -- Usage:
 -- ---------
 -- *   - Drop this script in the Scripts/Hooks folder of the server ("saved games" !)
--- *   - Also drop the `veaf-pilots.lua` file in the main server folder ("saved games" !) and edit it
+-- *   - Drop the `veaf-pilots.txt` file next to it (or in a shared dir, see pilotsDir) and edit it
+-- *   - Per-server settings (server name, bot channel, enableAutoRestart, enableBufferingSocket,
+-- *     pilotsDir) belong in a companion VEAF-specific-server-hook.lua, loaded after this file
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veafServerHook = {}
@@ -22,10 +25,6 @@ require = base.require
 io = require('io')
 lfs = require('lfs')
 os = require('os')
-package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/BufferingSocket/lua/?.lua"
-package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/BufferingSocket/bin/' ..'?.dll;'
-veafServerHook.config = require "BufferingSocketConfig"
-BufferingSocket = require('BufferingSocket')
 DCS_DIR = lfs.writedir()
 VEAF_SERVER_DIR = DCS_DIR .. [[scripts\hooks\]]
 VEAF_PILOTS_FILE = "veaf-pilots.txt"
@@ -38,11 +37,25 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.6.0"
+veafServerHook.Version = "2.7.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
 veafServerHook.Debug = false
+
+-- Optional features, OFF by default (these are the VEAF production defaults).
+-- A companion VEAF-specific-server-hook.lua, loaded after this file, may turn
+-- them on before the first callback fires.
+-- * enableAutoRestart: the idle/uptime restart watchdog and the restart/restartnow/halt
+--   chat commands (VEAF delegates restarts to DCSServerBot, so it stays off).
+-- * enableBufferingSocket: push server telemetry to the API server through the optional
+--   native BufferingSocket module (loaded defensively, so a server without it never crashes).
+veafServerHook.enableAutoRestart = false
+veafServerHook.enableBufferingSocket = false
+
+-- Directory holding VEAF_PILOTS_FILE; defaults to VEAF_SERVER_DIR. A specific hook
+-- may point it elsewhere (e.g. a Saved Games root shared by several servers).
+veafServerHook.pilotsDir = nil
 
 veafServerHook.CommandStarter = "/"
 veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
@@ -159,6 +172,7 @@ end
 function veafServerHook.onSimulationStart()
     veafServerHook.logDebug(string.format("veafServerHook.onSimulationStart()"))
     veafServerHook.initialize()
+    veafServerHook.setupBufferingSocket()
     -- ask the mission for its maximum runtime
     veafServerHook.logDebug(string.format("ask the mission for its maximum runtime"))
     local _maxDuration = nil
@@ -250,7 +264,9 @@ end
 
 function veafServerHook.onPlayerDisconnect(id, err_code)
     veafServerHook.logDebug(string.format("veafServerHook.onPlayerDisconnect([%s], [%s])", veafServerHook.p(id), veafServerHook.p(err_code)))
-    veafServerHook.stopMissionIfNeeded()
+    if veafServerHook.enableAutoRestart then
+        veafServerHook.stopMissionIfNeeded()
+    end
 end
 
 -- DCS delivers chat to the server through the onPlayerTrySendChat(playerID, msg, all)
@@ -306,13 +322,13 @@ function veafServerHook.onSimulationFrame()
 
     local _now = Sim.getRealTime()
 
-    if _now > veafServerHook.lastServerUptimeCheckFrameTime + veafServerHook.FRAME_CHECK_FREQUENCY_IN_SECONDS then
+    if veafServerHook.enableAutoRestart and _now > veafServerHook.lastServerUptimeCheckFrameTime + veafServerHook.FRAME_CHECK_FREQUENCY_IN_SECONDS then
         veafServerHook.lastServerUptimeCheckFrameTime = _now
         veafServerHook.logTrace(string.format("checking server uptime"))
         veafServerHook.stopMissionIfNeeded()
     end
 
-    if veafServerHook.config.activate and _now > veafServerHook.lastUDPFrameTime + veafServerHook.config.refreshDelay then
+    if veafServerHook.enableBufferingSocket and veafServerHook.config and veafServerHook.config.activate and _now > veafServerHook.lastUDPFrameTime + veafServerHook.config.refreshDelay then
         veafServerHook.lastUDPFrameTime = _now
         veafServerHook.logTrace(string.format("sending data"))
         veafServerHook.sendData(_now)
@@ -415,7 +431,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         end
     elseif _module and _module:lower() == "restart" then
         -- only level >= 10 can schedule mission restart
-        if pilot.level >= 10 then
+        if veafServerHook.enableAutoRestart and pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.maxServerUptime = 0
             veafServerHook.closeServerAtLastDisconnect = false
@@ -427,7 +443,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         end
     elseif _module and _module:lower() == "restartnow" then
         -- only level >= 30 can schedule mission restart without waiting for all to disconnect
-        if pilot.level >= 30 then
+        if veafServerHook.enableAutoRestart and pilot.level >= 30 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.maxServerUptime = 0
             veafServerHook.maxPlayersForRestart = 666
@@ -440,7 +456,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         end
     elseif _module and _module:lower() == "halt" then
         -- only level >= 10 can schedule server halt (and hopefully autorestart)
-        if pilot.level >= 10 then
+        if veafServerHook.enableAutoRestart and pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.maxServerUptime = 0
             veafServerHook.closeServerAtLastDisconnect = true
@@ -537,7 +553,7 @@ end
 function veafServerHook.loadPilots()
     veafServerHook.logDebug(string.format("veafServerHook.loadPilots()"))
     veafServerHook.logInfo(string.format("loading pilots"))
-    local filepath = VEAF_SERVER_DIR .. VEAF_PILOTS_FILE
+    local filepath = (veafServerHook.pilotsDir or VEAF_SERVER_DIR) .. VEAF_PILOTS_FILE
     local file = assert(loadfile(filepath))
     if not file then
         veafServerHook.logError(string.format("Error while loading pilots list file [%s]",veafServerHook.p(filepath)))
@@ -555,16 +571,34 @@ function veafServerHook.loadPilots()
     end
 end
 
+-- Optionally set up the telemetry socket to the API server. BufferingSocket is an
+-- optional native module: it is loaded defensively (pcall) only when explicitly
+-- enabled, so a server that does not ship it never crashes the hook at load time.
+function veafServerHook.setupBufferingSocket()
+    if not veafServerHook.enableBufferingSocket then
+        return
+    end
+    package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/BufferingSocket/lua/?.lua"
+    package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/BufferingSocket/bin/' ..'?.dll;'
+    local _okConfig, _config = pcall(require, "BufferingSocketConfig")
+    local _okSocket, _socket = pcall(require, "BufferingSocket")
+    if not (_okConfig and _okSocket) then
+        veafServerHook.enableBufferingSocket = false
+        veafServerHook.logError("BufferingSocket was requested but could not be loaded; telemetry is disabled")
+        return
+    end
+    veafServerHook.config = _config
+    BufferingSocket = _socket
+    if veafServerHook.config.activate then
+        veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", veafServerHook.p(veafServerHook.config.host), veafServerHook.p(veafServerHook.config.port)))
+        BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
+    end
+end
+
 function veafServerHook.initialize()
     veafServerHook.logDebug(string.format("veafServerHook.initialize"))
     veafServerHook.logInfo(string.format("initializing module"))
     veafServerHook.loadPilots()
-end
-
--- set up the socket to call the web server
-if veafServerHook.config.activate then
-    veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", veafServerHook.p(veafServerHook.config.host), veafServerHook.p(veafServerHook.config.port)))
-    BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
 end
 
 veafServerHook.logDebug(string.format("registering DCS callbacks"))

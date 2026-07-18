@@ -66,6 +66,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 23 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
 | 24 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
 | 25 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
+| 26 | [Colorer une base et activer ses slots dynamiques](#colorer-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
 
 ---
 
@@ -214,6 +215,17 @@ les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble.
 Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
 
 > 💬 *« Crée une CAP à la demande “Escort” avec deux F-15. »*
+
+## 🛫 Bases & aérodromes
+
+### Colorer une base et activer ses slots dynamiques {#colorer-base}
+
+*Recette (dossier) · 🔥* — Assigne un aérodrome à une coalition (bleu / rouge / neutre). La couleur
+d'une base ne se change **pas** en posant une unité à côté : dis simplement « Mezzeh est bleu » et
+l'IA colore l'aérodrome **durablement** puis **active ses slots dynamiques** (Dynamic Spawn), en
+remplissant son entrepôt avec les avions dynamiques de la coalition au build.
+
+> 💬 *« Mets la base de Mezzeh en bleu. »*
 
 ---
 

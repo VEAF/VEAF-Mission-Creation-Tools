@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from veaf_mission_mcp.oracle import (
+    _command_category,
     describe_module,
     describe_naming_conventions,
     list_shortcuts,
@@ -101,3 +102,21 @@ def test_describe_module_reports_enabled_from_mission_yaml(tmp_path: Path) -> No
     path.write_text("modules:\n  QRA: true\n  COMBATZONE: false\n", encoding="utf-8")
     assert describe_module("QRA", mission_yaml_path=path)["enabled"] is True
     assert describe_module("COMBATZONE", mission_yaml_path=path)["enabled"] is False
+
+
+def test_command_category_classifies_known_families() -> None:
+    assert _command_category(["-samLR"], "Random long range SAM battery") == "SAM"
+    assert _command_category(["-aaa"], "Random AAA battery") == "AAA"
+    assert _command_category(["-infantry"], "Dynamic infantry section") == "infantry"
+    assert _command_category(["-armor"], "Random armor group") == "armor"
+    assert _command_category(["-mortar"], "Mortar artillery team") == "artillery"
+
+
+def test_command_category_falls_back_to_other() -> None:
+    assert _command_category(["-zzz"], "something with no known family") == "other"
+
+
+def test_list_shortcuts_commands_carry_a_category() -> None:
+    commands = list_shortcuts()["commands"]
+    assert commands, "expected a non-empty command alias list"
+    assert all("category" in c for c in commands)

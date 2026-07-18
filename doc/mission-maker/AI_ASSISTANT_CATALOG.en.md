@@ -65,6 +65,7 @@ The AI can act in two places, and it changes what "survives":
 | 23 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
 | 24 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
 | 25 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
+| 26 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
 
 ---
 
@@ -212,6 +213,17 @@ exact name). You name the aircraft, the AI picks the type and assembles.
 **and** the `cap_missions` entry in `mission.yaml`.
 
 > 💬 *"Create an on-demand CAP “Escort” with two F-15s."*
+
+## 🛫 Bases & airfields
+
+### Colour a base and enable its dynamic slots {#colour-base}
+
+*Recipe (folder) · 🔥* — Assign an airfield to a coalition (blue / red / neutral). A base's colour
+is **not** changed by placing a unit nearby: just say "Mezzeh is blue" and the assistant colours the
+airfield **durably**, then **enables its Dynamic Spawn slots**, filling its warehouse with the
+coalition's dynamic aircraft at build time.
+
+> 💬 *"Make Mezzeh blue."*
 
 ---
 

@@ -60,6 +60,54 @@ def list_unit_types(
     return {"units": units}
 
 
+#: Ordered (category, keywords) rules to classify a `#command` alias — first match wins, so more
+#: specific families come first. Derived from the alias + its description, so the assistant can
+#: enumerate e.g. "all the SAM aliases" instead of substring-guessing. Uncategorized → "other".
+_COMMAND_CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
+    (
+        "SAM",
+        (
+            "sam",
+            "sa-",
+            "sa2",
+            "sa3",
+            "sa6",
+            "sa8",
+            "sa10",
+            "sa11",
+            "sa13",
+            "sa15",
+            "sa19",
+            "hq7",
+            "manpad",
+            "stinger",
+            "igla",
+            "avenger",
+            "patriot",
+            "hawk",
+            "roland",
+        ),
+    ),
+    ("AAA", ("aaa", "flak", "shilka", "zu-23", "zsu", "gepard")),
+    ("artillery", ("arty", "artillery", "mortar", "grad", "msta", "smerch", "uragan", "mlrs")),
+    ("armor", ("armor", "armour", "tank", " apc", "ifv")),
+    ("infantry", ("infantry", "soldier", "squad", "manpads")),
+    ("naval", ("ship", "boat", "naval", "carrier", "frigate", "cruiser", "destroyer")),
+    ("transport", ("transport", "truck", "convoy", "logistic")),
+    ("air", ("cap", "awacs", "tanker", "airplane", "helicopter", "drone", "afac")),
+    ("ewr", ("ewr", "early warning")),
+]
+
+
+def _command_category(aliases: list[str], description: str) -> str:
+    """Classify a `#command` alias into a coarse family (SAM/AAA/infantry/…) from its text."""
+    haystack = f"{' '.join(aliases)} {description}".lower()
+    for category, keywords in _COMMAND_CATEGORY_RULES:
+        if any(keyword in haystack for keyword in keywords):
+            return category
+    return "other"
+
+
 def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
     """List the VEAF spawn aliases (the `-shilka`/`-sa8`… vocabulary).
 
@@ -76,7 +124,9 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
 
     Returns:
         `{"units": [{"aliases", "unitType"}, ...], "groups": [{"aliases", "groupName",
-        "description"}, ...], "commands": [{"aliases", "description", "veafCommand"}, ...]}`.
+        "description"}, ...], "commands": [{"aliases", "description", "veafCommand", "category"},
+        ...]}`. ``category`` is a coarse family (SAM/AAA/infantry/armor/artillery/naval/transport/
+        air/ewr/other) so aliases can be enumerated by kind.
     """
     data = _load_bundled_data_yaml("veaf-units.yaml")
     needle = name_contains.lower() if name_contains else None
@@ -105,6 +155,7 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
             "aliases": list(e.get("aliases") or []),
             "description": e.get("description", ""),
             "veafCommand": e.get("veafCommand", ""),
+            "category": _command_category(list(e.get("aliases") or []), e.get("description", "")),
         }
         for e in get_shortcuts()
         if _matches(list(e.get("aliases") or []), f"{e.get('description', '')} {e.get('veafCommand', '')}")

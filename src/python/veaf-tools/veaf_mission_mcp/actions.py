@@ -8,6 +8,7 @@ from veaf_libs.blank_mission import supported_theatres
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
+from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
@@ -546,6 +547,31 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: build_mission(Path(p["folder_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_airbase_coalition",
+            description=(
+                "Assign a DCS airfield to a coalition in a mission FOLDER, durably. An airfield's "
+                "coalition lives in warehouses.airports[<id>].coalition, NOT in mission.coalition — "
+                "so placing a unit near a base never turns the base itself; use this action. Resolves "
+                "the airfield name to an id via the mission's theatre, sets the coalition, and turns "
+                "on the base's Dynamic Spawn slots (the build then stocks them). Backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (mission.yaml + src/mission/).",
+                    },
+                    "name": {"type": "string", "description": "The airfield display name (e.g. 'Mezzeh')."},
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                },
+                "required": ["folder_path", "name", "coalition"],
+            },
+        ),
+        handler=lambda p: set_airbase_coalition(Path(p["folder_path"]), name=p["name"], coalition=p["coalition"]),
     )
     catalog.register(
         ActionSpec(

@@ -1,36 +1,36 @@
 # ---------------------------------------------------------------------------
 # Dynamic-Slot warehouses (DYNSLOT-WAREHOUSE)
 # ---------------------------------------------------------------------------
-# Configure DCS Dynamic Slots per coalition. The build applies this to the
+# Configures DCS Dynamic Slots per coalition. The build applies this to the
 # mission's `warehouses`: it enables `dynamicSpawn` on the selected airbases,
 # sets fuel / munitions / aircraft stock, and links each offered aircraft type
-# to its dynamic-spawn template group (the group placed in the Mission Editor
-# with "Dynamic spawn template" ticked) via `linkDynTempl`.
+# to its dynamic-spawn template group via `linkDynTempl`. Runs AFTER aircraft
+# injection so the template groups (and their ids) already exist.
 #
-# This file is OPTIONAL and ships fully commented: as-is it changes nothing.
-# A coalition you do NOT declare here is left untouched. This step runs AFTER
-# aircraft injection so the template groups (and their ids) already exist.
+# DEFAULT (below): every airbase assigned to a coalition (e.g. via the MCP
+# `set_airbase_coalition`, or set in the Mission Editor) gets Dynamic Slots
+# enabled, unlimited fuel/munitions, and its warehouse auto-filled with every
+# dynamic-spawn template of that coalition. With no assigned airbase, this
+# changes nothing.
 #
-# Example:
-#
-# blue:
-#   defaults:                 # applied to every selected airport
-#     fuel: unlimited         # unlimited fuel (omit to leave the mission's value)
-#     weapons: unlimited      # unlimited munitions
-#     aircrafts:              # aircraft types offered as dynamic slots
-#       UH-1H:   { amount: unlimited, template: "DST - UH-1H" }
-#       A-10C_2: { amount: 50 }           # template auto-matched by aircraft type
-#   airports:                 # OPTIONAL. Absent => ALL blue airports get `defaults`.
-#     Senaki-Kolkhi: {}                   # by name (resolved via the mission theatre)
-#     24: { aircrafts: { Yak-52: { amount: 10 } } }   # by id + per-airport override
-#
-# red:
-#   defaults:
-#     aircrafts:
-#       MiG-29S: { amount: unlimited }
-#
-# Notes:
-# - `template` references a template group by NAME; omit it to auto-match a
-#   template group of the same aircraft type (same coalition).
-# - Airports can be named only on installed theatres whose names are in the
-#   committed airdrome table; otherwise reference them by numeric id.
+# Customize:
+# - Add `aircrafts:` under a coalition's `defaults:` to offer a specific list
+#   instead of auto-filling. Each entry: `{ amount: unlimited | <n>, template?: "<name>" }`;
+#   omit `template` to auto-match a template group of the same aircraft type.
+# - Add an `airports:` map to target specific bases (by name on installed
+#   theatres, or by numeric id) instead of all airbases of the coalition:
+#     airports:
+#       Senaki-Kolkhi: {}
+#       24: { aircrafts: { Yak-52: { amount: 10 } } }
+# - Remove a coalition block to leave that side's warehouses untouched.
+# ---------------------------------------------------------------------------
+
+blue:
+  defaults:
+    fuel: unlimited
+    weapons: unlimited
+
+red:
+  defaults:
+    fuel: unlimited
+    weapons: unlimited

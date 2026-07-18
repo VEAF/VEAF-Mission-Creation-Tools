@@ -178,12 +178,31 @@ def _merge_settings(defaults: dict, override: dict | None) -> dict:
     return merged
 
 
+def _coalition_template_types(mission: DcsMission) -> dict[str, list[str]]:
+    """Map each coalition (lower-case) to the aircraft types owning a dynamic-spawn template.
+
+    Types keep their original case (unlike :func:`_build_template_index`, which lower-cases its
+    keys) because they become DCS warehouse `aircrafts` keys, which are case-sensitive.
+    """
+    types: dict[str, list[str]] = {}
+    for group in mission.iter_groups():
+        if group.group_dcs.get("dynSpawnTemplate") is not True:
+            continue
+        if group.group_dcs.get("groupId") is None or not group.unit_type:
+            continue
+        bucket = types.setdefault((group.coalition or "").lower(), [])
+        if group.unit_type not in bucket:
+            bucket.append(group.unit_type)
+    return types
+
+
 def _apply_to_airport(
     airport: dict,
     settings: dict,
     template_index: dict[tuple[str, str, str], int],
     coalition_key: str,
     mission_categories: dict[str, str],
+    auto_fill_types: list[str],
 ) -> int:
     """Apply one airport's settings in place; return the number of templates linked."""
     airport["dynamicSpawn"] = True
@@ -194,6 +213,12 @@ def _apply_to_airport(
 
     linked = 0
     aircrafts_cfg = settings.get("aircrafts") or {}
+    if not aircrafts_cfg:
+        # No explicit aircraft list -> auto-fill: stock every dynamic template of this coalition
+        # (unlimited), so a base just assigned to a side is playable out of the box. An explicit
+        # `aircrafts:` in the config overrides this. Types keep their original case (the index is
+        # lower-cased, which would mis-key the DCS warehouse), hence `auto_fill_types`.
+        aircrafts_cfg = {atype: {"amount": "unlimited"} for atype in auto_fill_types}
     if aircrafts_cfg:
         stock = airport.setdefault("aircrafts", {})
         for aircraft_type, acfg in aircrafts_cfg.items():
@@ -239,6 +264,7 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
 
     theatre = str(mission.theatre_content or "")
     template_index = _build_template_index(mission)
+    template_types = _coalition_template_types(mission)
     mission_categories = _build_mission_categories(mission)
 
     airports_configured = 0
@@ -266,7 +292,12 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
 
         for airport_id, settings in targets.items():
             templates_linked += _apply_to_airport(
-                airports[airport_id], settings, template_index, coalition_key, mission_categories
+                airports[airport_id],
+                settings,
+                template_index,
+                coalition_key,
+                mission_categories,
+                template_types.get(coalition_key, []),
             )
             airports_configured += 1
 

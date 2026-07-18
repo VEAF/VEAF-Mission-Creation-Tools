@@ -59,6 +59,16 @@ The dangerous ones:
   `#spawndelay=` → tune combat-zone spawn behaviour.
 - QRA deploy entries starting with `[` or `-` are read as commands, not group names.
 
+## Prefer VEAF aliases over literal units
+
+When a `list_shortcuts` alias covers what's asked (a SAM, AAA, infantry, armor, artillery, a
+convoy…), **use the alias, not hand-placed literal DCS units** — whether as a `#command` fake-unit
+(combat-zone content) or a `#veafInterpreter` carrier (permanent asset). `list_shortcuts` gives each
+command a `category` (SAM / AAA / infantry / armor / artillery / naval / transport / …), so look
+there first to find the right alias. Fall back to literal units only when **no alias fits** — a
+specific airframe/type or an exact placement the alias can't express. Example: asked for a
+long-range SAM, place a `#veafInterpreter["-samLR"]` carrier, **not** a literal Patriot battery.
+
 ## Combat zone vs QRA — two different group models
 
 **Combat zone** — groups are found by **geometry** (inside the trigger zone), coalition is
@@ -77,9 +87,10 @@ site, make the fake-unit **blue** — don't fall back to literal units just for 
 
 **Permanent asset vs combat-zone asset — two spawn markers, don't confuse them:**
 - `#veafInterpreter["<alias …>"]` on a unit's **`name`** → spawned **at mission start** and
-  **permanent** (the carrier unit is destroyed). Use it for always-there assets, e.g. a fixed SAM
-  site: a **blue** unit named `#veafInterpreter["-samLR"]` → a blue long-range SAM at that spot on
-  start. Same alias vocabulary as `list_shortcuts`; same coalition rule (follows the carrier).
+  **permanent** (the carrier unit is destroyed). Use it — **in preference to a literal unit** — for
+  always-there assets, e.g. a fixed SAM site: a **blue** unit named `#veafInterpreter["-samLR"]` →
+  a blue long-range SAM at that spot on start. Same alias vocabulary as `list_shortcuts`; same
+  coalition rule (follows the carrier).
 - `#command="-<alias> …"` on a fake-unit **inside a combat-zone** → spawned when the **zone is
   activated** (dynamic), and despawned/respawned with the zone.
 - Both take the alias from `list_shortcuts` and spawn in the carrier's coalition. Pick
@@ -93,12 +104,21 @@ site, make the fake-unit **blue** — don't fall back to literal units just for 
 late-activation interceptor group with a coherent name, set its coalition, and list that exact
 name in the QRA definition.
 
+## Airbases — coalition & dynamic slots
+
+An airfield's coalition is **not** set by placing a unit near it — it lives in the mission's
+warehouses table. When the user says "make Mezzeh blue", call **`set_airbase_coalition`** (name +
+coalition) on the mission folder. It colours the airfield durably and turns on its **Dynamic Spawn
+slots** at the same time; the build then stocks the base's warehouse with that coalition's dynamic
+templates. So a base the user assigns becomes both the right colour **and** playable (dynamic slots)
+without extra steps.
+
 ## Worked examples
 
 - *"Create a CZ with two enemy armor groups."* → Create trigger zone (e.g. `CZ-North`). Add two
-  groups named `CZ-North-armor-1` / `CZ-North-armor-2` inside it — either with concrete armor
-  unit types from `list_unit_types`, or as fake-unit groups carrying `#command="-armor ..."` using
-  an alias from `list_shortcuts`. Add the `COMBATZONE` block referencing `CZ-North`.
+  groups named `CZ-North-armor-1` / `CZ-North-armor-2` inside it — as fake-unit groups carrying
+  `#command="-armor ..."` (alias from `list_shortcuts`, **preferred**), or, only if no alias fits,
+  concrete armor unit types from `list_unit_types`. Add the `COMBATZONE` block referencing `CZ-North`.
 - *"Create a QRA with Mirage 2000s."* → Resolve the Mirage 2000 type via `list_unit_types`. Create
   a Late-Activation group (coherent name, correct coalition), a trigger zone, and a `QRA`
   definition referencing the group name verbatim. The user did not give names — you did.

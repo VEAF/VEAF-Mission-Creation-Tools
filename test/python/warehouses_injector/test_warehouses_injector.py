@@ -185,6 +185,28 @@ class TestCategoryNesting:
         assert set(aircrafts.keys()) == {"helicopters", "planes"}
 
 
+class TestAutoFill:
+    def test_defaults_without_aircrafts_stock_every_coalition_template(self) -> None:
+        m = _mission()  # one blue dynamic template: UH-1H (groupId 2114)
+        cfg = {"blue": {"defaults": {"fuel": "unlimited"}}}  # no aircrafts -> auto-fill
+
+        result = apply_warehouses(m, cfg)
+
+        heli = m.warehouses_content["airports"][23]["aircrafts"]["helicopters"]
+        assert heli["UH-1H"]["unlimited"] is True
+        assert heli["UH-1H"]["linkDynTempl"] == 2114
+        assert result.templates_linked == 2  # both blue airports auto-filled
+
+    def test_explicit_aircrafts_overrides_auto_fill(self) -> None:
+        m = _mission()  # blue template is UH-1H
+        cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 3}}}}}
+
+        apply_warehouses(m, cfg)
+
+        heli = m.warehouses_content["airports"][23]["aircrafts"]["helicopters"]
+        assert heli["UH-1H"]["initialAmount"] == 3  # explicit list used, not the unlimited auto-fill
+
+
 class TestEdgeCases:
     def test_no_airports_returns_zero(self) -> None:
         m = DcsMission(file_path=Path("d.miz"), warehouses_content={"airports": {}}, mission_content={})

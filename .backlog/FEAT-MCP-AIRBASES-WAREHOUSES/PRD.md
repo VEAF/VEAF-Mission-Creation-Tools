@@ -1,6 +1,6 @@
 # Lot FEAT-MCP-AIRBASES-WAREHOUSES — airbase coalition, dynamic slots, alias-first
 
-Status: 🔄 in-progress
+Status: ✅ done (PR #603 merged → `feature/mcp-mission-editor`)
 
 Branch: `feat/mcp-airbases-warehouses` → PR → `feature/mcp-mission-editor`
 

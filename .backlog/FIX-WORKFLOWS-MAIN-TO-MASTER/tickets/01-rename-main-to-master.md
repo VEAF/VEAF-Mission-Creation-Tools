@@ -1,6 +1,6 @@
 # 01 — Rename main → master in all workflow triggers
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Task
 

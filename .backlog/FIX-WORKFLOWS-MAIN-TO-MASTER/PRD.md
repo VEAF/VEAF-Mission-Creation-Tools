@@ -1,7 +1,7 @@
 # Lot FIX-WORKFLOWS-MAIN-TO-MASTER
 
-Status: 🔄 in-progress
-Branch: `fix/workflows-main-to-master` → `develop-v6`
+Status: ✅ done
+Branch: `fix/workflows-main-to-master` → `develop-v6` (merged, PR #616)
 
 ## Problem Statement
 

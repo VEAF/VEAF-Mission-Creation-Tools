@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 from veaf_libs import platform_assets
 from veaf_mission_mcp import scaffold
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
 
 
 class _FakeResponse:
@@ -99,7 +100,7 @@ class TestScaffoldMission:
     def test_updater_env_disables_the_pause(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
         updater_run = recorder["runs"][0]
-        assert updater_run["kwargs"]["env"]["VEAF_UPDATER_NO_PAUSE"] == "1"
+        assert updater_run["kwargs"]["env"][NO_PAUSE_ENV_VAR] == "1"
 
     def test_theatre_forwarded_to_prepare(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", theatre="caucasus")

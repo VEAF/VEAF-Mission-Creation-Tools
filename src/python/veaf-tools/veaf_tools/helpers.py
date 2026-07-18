@@ -143,16 +143,24 @@ def _is_double_clicked() -> bool:
     return False
 
 
+#: Environment variable a programmatic caller sets (to a truthy value) to force the exit pause
+#: off. Referenced by :func:`should_auto_pause`, ``scaffold_mission``, and ``bootstrap.ps1``
+#: (which cannot import this constant, so keep the string in sync there).
+NO_PAUSE_ENV_VAR = "VEAF_UPDATER_NO_PAUSE"
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
 def should_auto_pause() -> bool:
     """Return whether a tool should pause for a keypress before exiting.
 
     True only for a genuine double-click launch (see :func:`_is_double_clicked`), and **never**
-    when the ``VEAF_UPDATER_NO_PAUSE`` environment variable is set. A programmatic caller — the
-    plugin's SessionStart bootstrap or ``scaffold_mission`` — exports that variable so the tool
-    never blocks on an interactive ``input()`` prompt with no one to press a key (the cause of
-    the plugin bootstrap hang).
+    when :data:`NO_PAUSE_ENV_VAR` (``VEAF_UPDATER_NO_PAUSE``) is set to a truthy value
+    (``1``/``true``/``yes``/``on``). A programmatic caller — the plugin's SessionStart bootstrap
+    or ``scaffold_mission`` — exports it as ``"1"`` so the tool never blocks on an interactive
+    ``input()`` prompt with no one to press a key (the cause of the plugin bootstrap hang). Any
+    other value (including ``"0"``/unset) leaves the double-click behaviour unchanged.
     """
-    if os.environ.get("VEAF_UPDATER_NO_PAUSE"):
+    if os.environ.get(NO_PAUSE_ENV_VAR, "").strip().lower() in _TRUTHY:
         return False
     return _is_double_clicked()
 

@@ -15,6 +15,7 @@ from typing import Any
 
 import requests
 from veaf_libs import platform_assets
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
 
 #: GitHub repository the release assets are fetched from.
 _GITHUB_OWNER = "VEAF"
@@ -73,9 +74,7 @@ def _run(cmd: list[str], cwd: Path, step: str, timeout: float, env: dict[str, st
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
-        raise RuntimeError(
-            f"{step} timed out after {timeout:.0f}s (no progress) — check the network or the release tag."
-        ) from exc
+        raise RuntimeError(f"{step} timed out after {timeout:.0f}s with no progress.") from exc
     if result.returncode != 0:
         raise RuntimeError(f"{step} failed (exit {result.returncode}): {result.stderr or result.stdout}".strip())
 
@@ -163,7 +162,7 @@ def scaffold_mission(
         cwd=folder,
         step="updater",
         timeout=_UPDATER_TIMEOUT,
-        env={**os.environ, "VEAF_UPDATER_NO_PAUSE": "1"},
+        env={**os.environ, NO_PAUSE_ENV_VAR: "1"},
     )
 
     veaf_tools = folder / platform_assets.veaf_tools_binary_name()

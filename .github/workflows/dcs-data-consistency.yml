@@ -10,7 +10,7 @@ name: DCS Data Consistency
 
 on:
   push:
-    branches: [develop-v6, main]
+    branches: [develop-v6, master]
     paths:
       - "src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml"
       - "src/python/veaf-tools/veaf_libs/data/dcsUnits.yaml"

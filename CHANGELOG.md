@@ -13,6 +13,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Logger no longer crashes on servers wired to DCSServerBot** (FIX-SERVERHOOK-CHAT-SIM-LOGGER). `veaf.Logger:print` forwarded log lines to the DCSServerBot channel via `Sim.getMissionName()`, but `Sim` is a GameGUI/hook global that does not exist in the mission scripting environment — so every `:error()` raised `attempt to index global 'Sim'`. On such servers this swallowed player-facing messages (e.g. the carrier-ops "radio not authenticated" notice never displayed) and broke unrelated error paths. The mission name now comes from `veaf.config.MISSION_NAME`.
 - **Server hook now actually receives chat commands** (FIX-SERVERHOOK-CHAT-SIM-LOGGER). `VEAF-Server-hook.lua` listened on `onChatMessage`, which is not a DCS GameGUI callback, so no server chat command (`/secu login`, `/send`, `/restart`, …) ever ran. It now uses the real `onPlayerTrySendChat(playerID, msg, all)` callback, returning `nil` for normal chat (broadcast) and `""` for a recognised VEAF command (consumed). Redeploy the hook on servers to pick this up.
 
+### Changed
+- **Server hook is a single deployable source again** (REFACTOR-SERVER-HOOK-CANONICAL). `VEAF-Server-hook.lua` no longer `require`s the native `BufferingSocket` module at load time (which crashed the hook when the module was absent). Its two production-specific divergences are now OFF-by-default flags a companion `VEAF-specific-server-hook.lua` can enable: `enableBufferingSocket` (telemetry, now loaded defensively via `pcall` and auto-disabled if missing), `enableAutoRestart` (idle-restart watchdog + `restart`/`restartnow`/`halt` commands), plus `pilotsDir` to share one `veaf-pilots.txt` across servers. Repo defaults reproduce the deployed behaviour, so the hook can be deployed by plain copy. Bumped to 2.7.0; new admin doc `doc/mission-maker/scripts/veafServerHook.md`.
+
 ## [6.9.2] — 2026-07-15
 
 ### Added

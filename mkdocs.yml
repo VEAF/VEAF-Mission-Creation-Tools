@@ -125,6 +125,7 @@ nav:
       - veafRadio: mission-maker/scripts/veafRadio.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
       - veafSecurity: mission-maker/scripts/veafSecurity.md
+      - veafServerHook: mission-maker/scripts/veafServerHook.md
       - veafShortcuts: mission-maker/scripts/veafShortcuts.md
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
       - veafSpawn: mission-maker/scripts/veafSpawn.md
@@ -134,6 +135,9 @@ nav:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
     - DCS data generators: developer/dcs-data.md
+    - Mission editing MCP: developer/mission-editing-mcp.md
+    - Radio preset projection: developer/radio-preset-projection.md
+    - Export JSON contract: developer/export-json-contract.md
     - Testing: TESTING.md
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md

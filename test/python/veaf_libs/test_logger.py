@@ -53,6 +53,19 @@ class TestLoggerInfoRouting(unittest.TestCase):
         # Not printed permanently because the status line handled it.
         self.assertNotIn("secret transient line", console.export_text())
 
+
+class TestMuteConsole(unittest.TestCase):
+    """A stdio MCP server must never let a log line reach stdout (JSON-RPC only)."""
+
+    def test_mute_console_silences_rich_output(self) -> None:
+        console = _recording_console()
+        log = Logger(logger_name="test-logger-mute", console=console)
+        log.mute_console()
+        self.assertIsNone(log.console)
+        self.assertIsNone(log.status)
+        log.info("must not reach stdout")  # no console → nothing printed
+        self.assertEqual(console.export_text(), "")
+
     def test_info_falls_back_when_status_declines(self) -> None:
         console = _recording_console()
         log = Logger(logger_name="test-logger-info3", console=console)

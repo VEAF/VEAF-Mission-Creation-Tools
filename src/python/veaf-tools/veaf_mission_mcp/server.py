@@ -72,6 +72,10 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
 
 def main() -> None:
     """Start the MCP server over stdio."""
+    # stdout carries the MCP JSON-RPC stream — silence the Rich console so no log line ever
+    # corrupts it (otherwise the client connects but sees no tools). Logs still go to the log
+    # file / logging handlers (stderr).
+    logger.mute_console()
     logger.info(f"Starting {SERVER_NAME} v{VERSION}")
     mcp.run()
 

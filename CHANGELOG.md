@@ -15,6 +15,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Automatic radio menu pagination** (FEAT-COMBATZONE-RADIO-GROUPS, [ADR 0013](docs/adr/0013-radio-menu-pagination.md)). Any F10 radio menu that exceeds the DCS 10-item limit is now paginated automatically at render time, spilling the overflow into "Next page" submenus — no per-module code, and no "Next page" when a menu fits. Opt a menu out with `veafRadio.doNotPaginate(menu)`; a menu holding a `USAGE_ForUnit` command opts out automatically (with a warning). The Combat Zone menu (and its radio groups) benefits for free.
 
 ### Changed
+- **The Claude plugin version now tracks the veaf-tools version** (found testing): the plugin manifest shipped a standalone `0.2.0` while the tools were at `6.9.x`, which was confusing (`claude plugin list` vs `veaf-tools --version`). `plugin/.claude-plugin/plugin.json` is aligned to the tools' version, and a new `test_plugin_version.py` guard fails CI if the two ever drift — so every version bump touches both.
 - The opt-in pagination helpers `veafRadio.addPaginatedRadioElements` / `addPaginatedRadioMenu` no longer paginate themselves (they sort and insert their elements); pagination is now done once, at render time, for every menu.
 
 ### Added

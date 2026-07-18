@@ -26,12 +26,14 @@ VEAF conventions may be stale or wrong.
 
 For an action's exact parameters, call `describe_action(name)`.
 
-**These oracle actions plus this skill are the authoritative source for VEAF facts** — naming
-conventions, spawn aliases, marker/`#command`/`#veafInterpreter` formats, module config. Do **not**
-reach for other tools or agents, and do **not** read the VEAF framework's Lua source, to answer a
-VEAF question: a mission maker's machine has neither. If a fact seems missing, re-query the oracle
-(`describe_naming_conventions`, `describe_action`, `list_shortcuts`) or state the gap plainly —
-never source it externally or guess.
+**These oracle actions plus this skill are the authoritative source for VEAF-framework facts** —
+naming conventions, spawn aliases, marker/`#command`/`#veafInterpreter` formats, module config.
+**For those specifically**, don't consult other tools/agents or read the VEAF framework's Lua
+source (a mission maker's machine has neither): if a fact seems missing, re-query the oracle
+(`describe_naming_conventions`, `describe_action`, `list_shortcuts`) or state the gap plainly rather
+than sourcing it elsewhere or guessing. This scoping is **only** about VEAF-framework knowledge —
+keep using your other tools normally for everything else (geocoding, reading/writing files,
+building, etc.).
 
 ## The two editing worlds
 

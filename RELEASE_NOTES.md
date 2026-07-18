@@ -1,8 +1,8 @@
-# VEAF Mission Creation Tools — 6.9.25-rc1 (pré-release de test)
+# VEAF Mission Creation Tools — 6.9.26-rc1 (pré-release de test)
 
 > ⚠️ **Version de test, pas pour la production.** Elle ne remplace pas la version
 > stable : `published-latest` reste en 6.9.2. Pour l'essayer, il faut la **cibler
-> explicitement** — `veaf-tools-updater update --tag published-v6.9.25-rc1`. But :
+> explicitement** — `veaf-tools-updater update --tag published-v6.9.26-rc1`. But :
 > éprouver le nouvel **assistant IA de création de missions** avant sa sortie officielle.
 
 ## 🤖 Créer et éditer une mission VEAF avec un assistant IA
@@ -29,7 +29,7 @@ en binaire (données de cartes/unités embarquées, robustesse du scaffold).
 
 ## 🧪 Comment tester
 
-1. `veaf-tools-updater update --tag published-v6.9.25-rc1` dans un dossier de mission (ou
-   laissez l'assistant scaffolder avec `tag="published-v6.9.25-rc1"`).
+1. `veaf-tools-updater update --tag published-v6.9.26-rc1` dans un dossier de mission (ou
+   laissez l'assistant scaffolder avec `tag="published-v6.9.26-rc1"`).
 2. Demandez une mission à l'assistant en précisant le théâtre.
 3. Remontez tout accroc — c'est le but de cette pré-release.

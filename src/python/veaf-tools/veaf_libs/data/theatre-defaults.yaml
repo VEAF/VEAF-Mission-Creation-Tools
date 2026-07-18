@@ -1,0 +1,153 @@
+# Per-theatre constants for synthesizing a blank mission (FEAT-BLANK-MISSION-THEATRE).
+#
+# `generate_blank_mission` composes a generic mission skeleton with these per-theatre values
+# (map centre/zoom + per-coalition bullseye) to produce a minimal loadable blank for a map.
+#
+# EXTRACTED (not fabricated) from the calibration missions in VEAF/dcs-maps `data/maps/*.miz`
+# (MIT, Mitch), parsed with our own read_miz. Keys are the exact DCS `theatre` string.
+# Re-generate by re-parsing updated dcs-maps missions (see FEAT-BLANK-MISSION-THEATRE).
+
+Afghanistan:
+  bullseye:
+    blue:
+      x: -258000.0
+      y: -42500.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 41660.0
+      y: -372200.0
+  map:
+    centerX: 23011.019
+    centerY: -175428.57142857
+    zoom: 1000000.0
+  name: Afghanistan
+Caucasus:
+  bullseye:
+    blue:
+      x: -291014.0
+      y: 617414.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 11557.0
+      y: 371700.0
+  map:
+    centerX: -355000.0
+    centerY: 618000.0
+    zoom: 1000000.0
+  name: Caucasus
+GermanyCW:
+  bullseye:
+    blue:
+      x: -469122.0
+      y: -977867.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: -35732.0
+      y: -483164.0
+  map:
+    centerX: -215173.905
+    centerY: -658571.42857143
+    zoom: 1000000.0
+  name: GermanyCW
+MarianaIslands:
+  bullseye:
+    blue:
+      x: 0.0
+      y: 0.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 0.0
+      y: 0.0
+  map:
+    centerX: -812.833
+    centerY: 106.048
+    zoom: 1000000.0
+  name: MarianaIslands
+MarianaIslandsWWII:
+  bullseye:
+    blue:
+      x: -985.0
+      y: -5020.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 190335.0
+      y: 100854.0
+  map:
+    centerX: 182793.459
+    centerY: 98986.08
+    zoom: 1000000.0
+  name: MarianaIslandsWWII
+Normandy:
+  bullseye:
+    blue:
+      x: 181390.0
+      y: -20374.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: -78118.0
+      y: 141824.0
+  map:
+    centerX: 3822.7091633466
+    centerY: 15000.0
+    zoom: 683266.93227092
+  name: Normandy
+PersianGulf:
+  bullseye:
+    blue:
+      x: 0.0
+      y: 0.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 0.0
+      y: 0.0
+  map:
+    centerX: 67350.0
+    centerY: -35610.0
+    zoom: 1000000.0
+  name: PersianGulf
+SinaiMap:
+  bullseye:
+    blue:
+      x: 217809.531
+      y: 347211.281
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 7598.523
+      y: 15460.493
+  map:
+    centerX: 0.0
+    centerY: 78571.428571429
+    zoom: 1000000.0
+  name: SinaiMap
+Syria:
+  bullseye:
+    blue:
+      x: -379712.0
+      y: -111473.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: -130663.0
+      y: 111865.0
+  map:
+    centerX: 17893.30258415
+    centerY: 33486.211083955
+    zoom: 1181538.8329136
+  name: Syria

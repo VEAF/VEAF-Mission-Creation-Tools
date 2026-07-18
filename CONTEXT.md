@@ -211,6 +211,51 @@ override layered on top of the untouched upstream Foothold config — it restate
 only what changes, never the whole config.
 _Avoid_: foothold settings, config patch
 
+## LLM-assisted mission editing
+
+**Editor-parity action**:
+An action that reproduces, on the mission's raw source `.miz`, exactly what a
+Mission Maker could do by hand in the DCS Mission Editor — add a trigger, a
+zone, a group — mutating `mission.lua` tables directly. Not deduplicated or
+made idempotent by the tool: calling it twice creates two triggers, same as two
+clicks in the editor. Distinct from a _VMCT action_, which goes through
+`mission.yaml` and the existing workers.
+_Avoid_: vanilla action, low-level action
+
+**VMCT action**:
+An action that edits a mission through the declarative `mission.yaml` config
+and its workers (e.g. `inject_presets`, `aircraft_groups`), as opposed to an
+_Editor-parity action_ which bypasses that pipeline to mutate the `.miz`
+directly. Since wave 4 the mission-editing MCP exposes a first concrete VMCT
+action on the source itself: `set_mission_module`/`describe_mission_config`
+edit the `mission.yaml` `modules:` block through a comment-preserving
+`ruamel.yaml` round-trip (`mission_tools.mission_yaml_editor`).
+
+**Embedded-Lua edit action**:
+The third mission-editing MCP family: edits the **text** of the `.lua` files
+embedded in the `.miz` (`l10n/DEFAULT/**/*.lua`) directly, without a rebuild —
+neither the raw `mission.lua` tables (that's an _Editor-parity action_) nor the
+`mission.yaml` pipeline (that's a _VMCT action_). Two flavours: a **generic**
+text/regex search-replace, and **VMCT-vocabulary** edits that know the semantics
+of the generated `veaf-config.lua` (log level, module enable, security flag,
+`veaf.config.*`). Underpinned by `rewrite_miz_members`, which swaps archive
+members verbatim without re-serialising the Lua tables.
+
+**Domain oracle**:
+The read-only "brain" of the mission-editing MCP (`veaf_mission_mcp.oracle`): actions
+exposing the DCS + VEAF knowledge the LLM needs to author correctly — unit types,
+VEAF spawn aliases, the reserved group/unit naming conventions, module lookup. Every
+fact is read from the **canonical sources** the build already uses (generated
+`dcsUnits.yaml`, `veaf-units.yaml`, `lua_module_scanner`, vendored data) so it cannot
+drift. Complements the write actions ("hands") and `describe_*` ("eyes"); paired with
+the `veaf-mission-authoring` Claude skill ("how to reason").
+
+**Composite action** (a.k.a. one-pass builder):
+A high-level mission-editing MCP action that lays down a **complete** VEAF feature in a single
+call, across **both worlds** of a mission folder — the exploded `src/mission/` (zones/groups) and
+`mission.yaml` (module config) — by orchestrating the lower-level primitives (`create_combat_zone`,
+`create_qra`, `create_cap_mission`). Edits the durable source; no build is triggered.
+
 ## Script loading
 
 **Static loading**:

@@ -17,7 +17,7 @@ import veaf_tools.commands  # noqa: E402, F401  — side effect: registers all c
 from veaf_libs.logger import console  # noqa: E402
 from veaf_libs.tui import maybe_bridge_to_tui  # noqa: E402
 from veaf_tools.app import VERSION, app  # noqa: E402
-from veaf_tools.helpers import _is_double_clicked  # noqa: E402
+from veaf_tools.helpers import should_auto_pause  # noqa: E402
 
 if __name__ == "__main__":
     console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     if bridged := maybe_bridge_to_tui(sys.argv[1:]):
         sys.argv = sys.argv[:1] + bridged
 
-    auto_pause = _is_double_clicked()
+    auto_pause = should_auto_pause()
     try:
         app()
     finally:

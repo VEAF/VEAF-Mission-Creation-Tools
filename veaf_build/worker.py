@@ -443,12 +443,38 @@ class BuildAndReleaseWorker:
                 except ValueError:
                     pass
 
-    def _veaf_tools_extra_data(self, modules_json_path: Path | None) -> list[tuple[Path, str]]:
+    def _scan_lua_shortcuts(self) -> Path | None:
+        """Generate the spawn-shortcut list JSON bundled into veaf-tools; return its path."""
+        with spinner_context("Scanning Lua spawn shortcuts..."):
+            veaf_tools_path = str(self.src_dir / "python" / "veaf-tools")
+            sys.path.insert(0, veaf_tools_path)
+            try:
+                from veaf_libs.veaf_shortcuts_scanner import generate_shortcuts_json  # type: ignore[import-not-found]
+
+                lua_file = self.src_dir / "scripts" / "veaf" / "veafShortcuts.lua"
+                candidate = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf-shortcuts.json"
+                count = generate_shortcuts_json(candidate, lua_file)
+                logger.debug(f"Generated spawn-shortcut list: {count} aliases → {candidate}")
+                return candidate
+            except Exception as e:
+                logger.warning(f"Could not generate spawn-shortcut list: {e}")
+                return None
+            finally:
+                try:
+                    sys.path.remove(veaf_tools_path)
+                except ValueError:
+                    pass
+
+    def _veaf_tools_extra_data(
+        self, modules_json_path: Path | None, shortcuts_json_path: Path | None = None
+    ) -> list[tuple[Path, str]]:
         """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable."""
         locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
         extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
         if modules_json_path:
             extra.append((modules_json_path, "."))
+        if shortcuts_json_path:
+            extra.append((shortcuts_json_path, "."))
         radio_specs_yaml = self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-specs.yaml"
         if radio_specs_yaml.exists():
             extra.append((radio_specs_yaml, "presets_injector/data"))
@@ -467,6 +493,14 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "airfield-frequencies.yaml", "veaf_libs/data"),
             # VEAF framework spawn data, rendered to Lua and injected at mission build.
             (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
+            # DCS unit-type database, read by the MCP oracle (list_unit_types) at runtime.
+            (veaf_tools_dir / "veaf_libs" / "data" / "dcsUnits.yaml", "veaf_libs/data"),
+            # Per-theatre blank-mission constants, read by prepare --theatre / scaffold_mission.
+            (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
+            # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.
+            (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
+            # Per-theatre bounding boxes, read by the MCP geocode action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "theatre-bounds.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.
             (veaf_tools_dir / "mission_builder" / "data" / "placeholder_groups.json", "mission_builder/data"),
             # Default third-party aircraft mods stripped from requiredModules at build.
@@ -475,13 +509,13 @@ class BuildAndReleaseWorker:
         extra.extend((path, dest) for path, dest in bundled_data if path.exists())
         return extra
 
-    def _build_veaf_tools_exe(self, modules_json_path: Path | None) -> None:
+    def _build_veaf_tools_exe(self, modules_json_path: Path | None, shortcuts_json_path: Path | None = None) -> None:
         """Build the main veaf-tools executable with its bundled data."""
         with spinner_context("Building veaf-tools executable..."):
             self._build_pyinstaller_executable(
                 "veaf-tools",
                 self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
-                extra_data=self._veaf_tools_extra_data(modules_json_path),
+                extra_data=self._veaf_tools_extra_data(modules_json_path, shortcuts_json_path),
             )
 
     def _build_updater_exe(self) -> None:
@@ -499,10 +533,11 @@ class BuildAndReleaseWorker:
         """Build both Python executables (veaf-tools + updater) using PyInstaller."""
         self._prepare_dist()
         modules_json_path = self._scan_lua_modules()
+        shortcuts_json_path = self._scan_lua_shortcuts()
         version_py_path = self._version_py_path
         try:
             self._write_version_py(version_py_path)
-            self._build_veaf_tools_exe(modules_json_path)
+            self._build_veaf_tools_exe(modules_json_path, shortcuts_json_path)
             self._build_updater_exe()
         finally:
             self._restore_version_py(version_py_path)
@@ -515,10 +550,11 @@ class BuildAndReleaseWorker:
         """
         self._prepare_dist()
         modules_json_path = self._scan_lua_modules()
+        shortcuts_json_path = self._scan_lua_shortcuts()
         version_py_path = self._version_py_path
         try:
             self._write_version_py(version_py_path)
-            self._build_veaf_tools_exe(modules_json_path)
+            self._build_veaf_tools_exe(modules_json_path, shortcuts_json_path)
         finally:
             self._restore_version_py(version_py_path)
 

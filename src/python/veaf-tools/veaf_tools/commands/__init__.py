@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     export,
     extract,
     inject_presets,
+    mcp,
     prepare,
     user_config,
     validate,

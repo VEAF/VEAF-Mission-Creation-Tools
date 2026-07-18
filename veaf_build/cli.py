@@ -29,6 +29,7 @@ import yaml
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 
+from veaf_build.github import version_is_prerelease
 from veaf_build.worker import PAUSE_MESSAGE, VERBOSE_HELP, BuildAndReleaseWorker
 
 CONFIG_FILE: str = "veaf-tools-config.yaml"
@@ -177,8 +178,9 @@ def publish(
     ),
     prerelease: bool = typer.Option(
         False,
-        help="Mark as pre-release (e.g. RC). Does NOT update published-latest. "
-        "Test with: veaf-tools-updater update --tag published-v<version>",
+        help="Mark as pre-release (e.g. RC). Requires a semver pre-release version "
+        "(--version 6.9.21-rc1): the release workflow keys off the '-' suffix to leave "
+        "published-latest untouched. Test with: veaf-tools-updater update --tag published-v<version>",
     ),
     ci: bool = typer.Option(
         False,
@@ -194,8 +196,9 @@ def publish(
     Use this after running 'build' and editing RELEASE_NOTES.md.
     It will publish the already-compiled artifacts to GitHub.
 
-    For pre-release testing without affecting production users, use --prerelease.
-    The published-latest tag is left untouched; test with:
+    For pre-release testing without affecting production users, publish a semver
+    pre-release version (e.g. --version 6.9.21-rc1 --prerelease). The release workflow
+    keys off the '-' suffix, so published-latest is left untouched; test with:
         veaf-tools-updater update --tag published-v<version>
     """
     logger.set_verbose(verbose)
@@ -204,6 +207,18 @@ def publish(
 
     version = _resolve_version(version)
     effective_token = _resolve_token(token, config)
+
+    # A pre-release must carry a semver pre-release suffix: the release workflow keys off the
+    # '-' in the version to decide whether to move published-latest, so --prerelease on a plain
+    # version (e.g. 6.9.20) would publish a "pre-release" locally yet still let CI advance
+    # published-latest — the exact trap that shipped dev to production once.
+    if prerelease and not version_is_prerelease(version):
+        logger.error(
+            f"--prerelease needs a semver pre-release version (got '{version}'). "
+            f"Re-run with e.g. --version {version}-rc1, so the release workflow leaves "
+            "published-latest on the current stable."
+        )
+        sys.exit(1)
 
     # Verify that published.zip exists
     published_zip = Path("published.zip")

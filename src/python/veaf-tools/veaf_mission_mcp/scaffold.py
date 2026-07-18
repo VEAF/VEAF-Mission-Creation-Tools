@@ -1,0 +1,194 @@
+"""Scaffold a fresh VEAF mission folder from GitHub (wave 9).
+
+Turns an **empty** folder into a ready mission folder by driving the **real VEAF binaries** the
+way a maker would on first run — download the updater from the release, run it (it fetches +
+installs the tools and ``published/`` into the folder), then ``veaf-tools prepare`` to lay down the
+default scaffold for the chosen template. This is the "upstream" of the wave-8 composite builders:
+create the folder, then fill it. See ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 9).
+"""
+
+import json
+import os
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import requests
+from veaf_libs import platform_assets
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
+
+#: GitHub repository the release assets are fetched from.
+_GITHUB_OWNER = "VEAF"
+_GITHUB_REPO = "VEAF-Mission-Creation-Tools"
+#: Default release tag (the rolling "latest published" pointer the updater also defaults to).
+_DEFAULT_TAG = "published-latest"
+#: Env var that overrides the default tag — so the veaf-tools this installs into the mission folder
+#: matches the version running the MCP. **Test-only**: its purpose is to test a pre-release while
+#: the chantier isn't on ``published-latest`` yet; once released, the default suffices. The same
+#: name is read by the plugin's ``bootstrap.ps1`` (which can't import this constant — keep the two
+#: in sync). An explicit ``tag`` argument still wins over it.
+_TAG_ENV_VAR = "VEAF_MCP_UPDATER_TAG"
+#: Templates accepted here. ``custom`` is excluded: it opens an interactive TUI picker with no TTY
+#: under a subprocess. The template question is the calling LLM's job (a required parameter).
+_TEMPLATES = ("minimal", "standard", "full")
+
+#: Seconds before a stalled asset download is abandoned.
+_DOWNLOAD_TIMEOUT = 300
+#: Seconds before a stalled updater run is abandoned (it downloads + extracts published.zip).
+_UPDATER_TIMEOUT = 600
+#: Seconds before a stalled ``prepare`` run is abandoned (fast; synthetic, no network).
+_PREPARE_TIMEOUT = 180
+
+
+def _asset_download_url(tag: str, asset_name: str) -> str:
+    """Build the stable release-download URL for an asset (no GitHub API, no rate limit)."""
+    return f"https://github.com/{_GITHUB_OWNER}/{_GITHUB_REPO}/releases/download/{tag}/{asset_name}"
+
+
+def _download_updater(url: str, dest: Path, token: str | None) -> None:
+    """Download the updater binary at ``url`` into ``dest`` (executable bit set on Unix).
+
+    Streamed to disk in chunks so the ~20-25 MB binary never sits fully in memory.
+    """
+    headers = {"Authorization": f"token {token}"} if token else {}
+    with requests.get(url, headers=headers, timeout=_DOWNLOAD_TIMEOUT, stream=True) as response:
+        response.raise_for_status()
+        with dest.open("wb") as handle:
+            for chunk in response.iter_content(chunk_size=65536):
+                handle.write(chunk)
+    if not platform_assets.is_windows():
+        os.chmod(dest, 0o755)
+
+
+def _run(cmd: list[str], cwd: Path, step: str, timeout: float, env: dict[str, str] | None = None) -> None:
+    """Run ``cmd`` in ``cwd``; raise ``RuntimeError`` naming ``step`` on a non-zero exit or timeout.
+
+    ``stdin`` is closed (``DEVNULL``) so a child that tries to read interactive input fails fast
+    instead of blocking forever on the MCP server's stdio pipe, and ``timeout`` bounds a stalled
+    step (both learned from the updater-pause hang).
+    """
+    # Not a shell command (shell=False): `cmd` is built here from binary paths we just installed
+    # and fixed flags, so there is no shell to inject into and nothing external drives the argv.
+    try:
+        result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+            cmd,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"{step} timed out after {timeout:.0f}s with no progress.") from exc
+    if result.returncode != 0:
+        raise RuntimeError(f"{step} failed (exit {result.returncode}): {result.stderr or result.stdout}".strip())
+
+
+def _installed_version(folder: Path) -> str | None:
+    """Best-effort read of the installed tools version from ``published/package.json``."""
+    package_json = folder / "published" / "package.json"
+    if not package_json.exists():
+        return None
+    try:
+        return json.loads(package_json.read_text(encoding="utf-8")).get("version")
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def scaffold_mission(
+    target_folder: str,
+    *,
+    template: str,
+    theatre: str | None = None,
+    github_token: str | None = None,
+    tag: str | None = None,
+) -> dict[str, Any]:
+    """Scaffold a fresh VEAF mission folder in an empty ``target_folder``.
+
+    Drives the real bootstrap: download the OS's updater asset from the release, run it (installs
+    the VEAF tools + ``published/`` into the folder), then ``veaf-tools prepare --template`` to lay
+    down the default scaffold.
+
+    Args:
+        target_folder: The folder to initialize. Created if missing; **must be empty**.
+        template: Coverage tier — one of ``minimal`` / ``standard`` / ``full`` (``custom`` is not
+            supported: its interactive picker has no TTY under a subprocess).
+        theatre: Optional DCS theatre — when given, forwarded to ``prepare --theatre`` so a
+            synthetic blank mission for that map is laid down in ``src/mission/`` (no DCS
+            round-trip). Omitted → ``src/mission/`` is left empty (the maker supplies their own).
+        github_token: Optional GitHub token, relayed to the updater (``--token``) to bypass the
+            API rate limit on its own ``published.zip`` fetch.
+        tag: Release tag to install from; relayed to the updater (``--tag``) and used to build the
+            updater download URL. Defaults to the ``VEAF_MCP_UPDATER_TAG`` env var if set (so the
+            installed veaf-tools matches the MCP's own version, e.g. a pre-release), else
+            ``published-latest``.
+
+    Returns:
+        ``{"folder", "template", "veaf_tools_version", "updater_asset"}``.
+
+    Raises:
+        ValueError: when ``template`` is invalid, the folder already has non-hidden content (a
+            likely-existing mission — hidden entries like ``.git``/``.claude`` are ignored), or the
+            platform has no updater asset.
+        RuntimeError: when the updater or ``prepare`` exits non-zero, or the updater did not install
+            ``veaf-tools`` / ``published/``.
+    """
+    if template not in _TEMPLATES:
+        raise ValueError(f"Unsupported template '{template}' (expected one of: {', '.join(_TEMPLATES)}).")
+
+    tag = tag or os.environ.get(_TAG_ENV_VAR) or _DEFAULT_TAG
+    folder = Path(target_folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    # Refuse to scaffold over existing content, but ignore hidden tooling entries — under Claude
+    # Code the working folder always has a `.claude/` (and often `.git/`), so "literally empty" is
+    # never true; blocking on those would make scaffolding unusable in-place.
+    non_hidden = [entry.name for entry in folder.iterdir() if not entry.name.startswith(".")]
+    if non_hidden:
+        raise ValueError(
+            f"Target folder already has content ({', '.join(sorted(non_hidden))}): {folder} — "
+            "scaffolding only initializes an otherwise-empty folder (hidden entries like .git/.claude are OK)."
+        )
+
+    asset_name = platform_assets.release_updater_asset_name()
+    if asset_name is None:
+        raise ValueError("No VEAF updater asset for this platform — scaffolding is unsupported here.")
+
+    # 1. Download the updater into the folder.
+    updater_path = folder / platform_assets.updater_binary_name()
+    _download_updater(_asset_download_url(tag, asset_name), updater_path, github_token)
+
+    # 2. Run the updater (it fetches + installs the tools and published/ into the folder).
+    #    VEAF_UPDATER_NO_PAUSE stops the updater from ever blocking on its exit `input()` pause
+    #    when a console happens to be attached (the plugin bootstrap hang).
+    updater_cmd = [str(updater_path)]
+    if github_token:
+        updater_cmd += ["--token", github_token]
+    updater_cmd += ["--tag", tag]
+    _run(
+        updater_cmd,
+        cwd=folder,
+        step="updater",
+        timeout=_UPDATER_TIMEOUT,
+        env={**os.environ, NO_PAUSE_ENV_VAR: "1"},
+    )
+
+    veaf_tools = folder / platform_assets.veaf_tools_binary_name()
+    if not veaf_tools.exists() or not (folder / "published").is_dir():
+        raise RuntimeError(
+            f"The updater did not install veaf-tools / published/ into {folder} — "
+            "check the updater output or the release tag."
+        )
+
+    # 3. Lay down the default scaffold for the chosen template (+ theatre blank if requested).
+    prepare_cmd = [str(veaf_tools), "prepare", "--template", template, "--force"]
+    if theatre:
+        prepare_cmd += ["--theatre", theatre]
+    _run(prepare_cmd, cwd=folder, step="prepare", timeout=_PREPARE_TIMEOUT)
+
+    return {
+        "folder": str(folder),
+        "template": template,
+        "veaf_tools_version": _installed_version(folder),
+        "updater_asset": asset_name,
+    }

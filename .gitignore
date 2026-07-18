@@ -34,6 +34,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 src/python/veaf-tools/veaf_libs/veaf_modules_list.json
+src/python/veaf-tools/veaf_libs/veaf-shortcuts.json
 test/veaf-tools/mission.json
 veaf-tools.log
 test/veaf-tools/groups.json

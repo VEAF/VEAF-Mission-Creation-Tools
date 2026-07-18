@@ -7,6 +7,17 @@ from pathlib import Path
 from veaf_libs.logger import logger  # type: ignore[import-not-found]
 
 
+def version_is_prerelease(version: str | None) -> bool:
+    """Return whether *version* is a semver pre-release (a ``-`` suffix, e.g. ``6.9.21-rc1``).
+
+    The single source of truth for pre-release detection on the Python side (``_is_prerelease``
+    and the CLI publish guard). VEAF versions are strict semver ``X.Y.Z``, so a ``-`` never
+    appears in a stable version — it always marks a pre-release. The ``release.yml`` workflow
+    applies the same rule in bash (``*-*``); keep the two in sync if this ever changes.
+    """
+    return "-" in (version or "")
+
+
 class GitHubPublisher:
     """Handles creating git tags and GitHub releases."""
 
@@ -36,7 +47,11 @@ class GitHubPublisher:
 
     @property
     def _is_prerelease(self) -> bool:
-        return self.prerelease
+        # A pre-release is either explicitly flagged, or signalled by a semver pre-release
+        # suffix in the version (e.g. 6.9.21-rc1) — see version_is_prerelease. Keying off the
+        # version keeps the CLI and the release workflow from ever disagreeing on whether to
+        # move the floating `published-latest` tag.
+        return self.prerelease or version_is_prerelease(self.version)
 
     def publish(self, package_path: Path, package_hash: str, force: bool = False) -> None:
         """Publish release to GitHub using git tags and gh CLI."""

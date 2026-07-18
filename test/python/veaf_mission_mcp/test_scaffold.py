@@ -1,0 +1,199 @@
+"""Tests for the `scaffold_mission` action (wave 9).
+
+The action downloads and runs real binaries; these tests mock the HTTP download and
+`subprocess.run` to assert the **orchestration** — the download → run-updater → run-prepare
+sequence, the argument shape, the working directory, and the guard/failure paths — not a real
+network install (that is a manual end-to-end check).
+"""
+
+import subprocess
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+
+import pytest
+from veaf_libs import platform_assets
+from veaf_mission_mcp import scaffold
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
+
+
+class _FakeResponse:
+    """Minimal stand-in for a streamed `requests` response (context manager + iter_content)."""
+
+    def __init__(self, content: bytes = b"MZ-fake-binary") -> None:
+        self._content = content
+
+    def raise_for_status(self) -> None:  # pragma: no cover - trivial
+        return None
+
+    def iter_content(self, chunk_size: int = 65536) -> "list[bytes]":
+        return [self._content]
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *exc: object) -> bool:
+        return False
+
+
+@pytest.fixture
+def recorder(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
+    """Mock the download + subprocess seams and record every call.
+
+    The fake updater run creates the artifacts a real updater would (`veaf-tools[.exe]` and
+    `published/package.json`) so the post-updater checks pass on the happy path.
+    """
+    calls: dict[str, list[Any]] = {"downloads": [], "runs": []}
+
+    def fake_get(url: str, **kwargs: Any) -> _FakeResponse:
+        calls["downloads"].append({"url": url, "kwargs": kwargs})
+        return _FakeResponse()
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+        calls["runs"].append({"cmd": cmd, "kwargs": kwargs})
+        cwd = Path(kwargs["cwd"])
+        if "updater" in Path(cmd[0]).name:
+            (cwd / platform_assets.veaf_tools_binary_name()).write_text("x", encoding="utf-8")
+            published = cwd / "published"
+            published.mkdir(exist_ok=True)
+            (published / "package.json").write_text('{"version": "6.9.9"}', encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(scaffold.requests, "get", fake_get)
+    monkeypatch.setattr(scaffold.subprocess, "run", fake_run)
+    return calls
+
+
+class TestScaffoldMission:
+    def test_happy_path_download_then_updater_then_prepare(
+        self, tmp_path: Path, recorder: dict[str, list[Any]]
+    ) -> None:
+        target = tmp_path / "new-mission"
+        result = scaffold.scaffold_mission(str(target), template="standard")
+
+        # One download: the updater asset for this OS.
+        assert len(recorder["downloads"]) == 1
+        assert platform_assets.release_updater_asset_name() in recorder["downloads"][0]["url"]
+
+        # Two runs, in order: the updater, then veaf-tools prepare.
+        assert len(recorder["runs"]) == 2
+        updater_run, prepare_run = recorder["runs"]
+        assert Path(updater_run["cmd"][0]).name == platform_assets.updater_binary_name()
+        assert Path(updater_run["kwargs"]["cwd"]) == target
+        assert Path(prepare_run["cmd"][0]).name == platform_assets.veaf_tools_binary_name()
+        assert prepare_run["cmd"][1:] == ["prepare", "--template", "standard", "--force"]
+        assert Path(prepare_run["kwargs"]["cwd"]) == target
+
+        assert result["folder"] == str(target)
+        assert result["template"] == "standard"
+        assert result["veaf_tools_version"] == "6.9.9"
+
+    def test_subprocesses_close_stdin_and_bound_timeout(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        # Guards against the updater-pause hang: every child gets no stdin and a timeout,
+        # so it fails fast instead of blocking forever on the MCP server's stdio pipe.
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        assert len(recorder["runs"]) == 2
+        for run in recorder["runs"]:
+            assert run["kwargs"]["stdin"] is subprocess.DEVNULL
+            assert run["kwargs"]["timeout"] and run["kwargs"]["timeout"] > 0
+
+    def test_updater_env_disables_the_pause(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        updater_run = recorder["runs"][0]
+        assert updater_run["kwargs"]["env"][NO_PAUSE_ENV_VAR] == "1"
+
+    def test_theatre_forwarded_to_prepare(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", theatre="caucasus")
+        prepare_cmd = recorder["runs"][1]["cmd"]
+        assert prepare_cmd[1:] == ["prepare", "--template", "standard", "--force", "--theatre", "caucasus"]
+
+    def test_theatre_omitted_no_flag(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        prepare_cmd = recorder["runs"][1]["cmd"]
+        assert "--theatre" not in prepare_cmd
+
+    def test_token_and_tag_relayed_to_updater(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="minimal", github_token="ghp_x", tag="published-v6.9.9")
+        updater_cmd = recorder["runs"][0]["cmd"]
+        assert "--token" in updater_cmd and "ghp_x" in updater_cmd
+        assert "--tag" in updater_cmd and "published-v6.9.9" in updater_cmd
+        # The tag is also used to build the download URL.
+        assert "published-v6.9.9" in recorder["downloads"][0]["url"]
+
+    def test_tag_defaults_to_env_var(
+        self, tmp_path: Path, recorder: dict[str, list[Any]], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # With no explicit tag, install the version the MCP itself runs (e.g. a pre-release),
+        # not the stale published-latest — the cause of a scaffold installing 6.9.2 in testing.
+        monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v9.9.9-rc1")
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        assert "published-v9.9.9-rc1" in recorder["runs"][0]["cmd"]
+        assert "published-v9.9.9-rc1" in recorder["downloads"][0]["url"]
+
+    def test_explicit_tag_wins_over_env(
+        self, tmp_path: Path, recorder: dict[str, list[Any]], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v9.9.9-rc1")
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", tag="published-v1.0.0")
+        updater_cmd = recorder["runs"][0]["cmd"]
+        assert "published-v1.0.0" in updater_cmd
+        assert "published-v9.9.9-rc1" not in updater_cmd
+
+    def test_rejects_folder_with_non_hidden_content(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        target = tmp_path / "busy"
+        target.mkdir()
+        (target / "leftover.txt").write_text("x", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="already has content"):
+            scaffold.scaffold_mission(str(target), template="standard")
+
+        assert recorder["downloads"] == [] and recorder["runs"] == []
+
+    def test_hidden_only_folder_is_accepted(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        # Under Claude Code the working folder always has a .claude/ (often .git/): must not block.
+        target = tmp_path / "syria-mezzeh"
+        (target / ".claude").mkdir(parents=True)
+        (target / ".gitignore").write_text("x", encoding="utf-8")
+
+        result = scaffold.scaffold_mission(str(target), template="standard")
+
+        assert result["folder"] == str(target)
+        assert len(recorder["runs"]) == 2  # proceeded: updater + prepare ran
+
+    def test_rejects_invalid_template_before_any_work(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        with pytest.raises(ValueError, match="template"):
+            scaffold.scaffold_mission(str(tmp_path / "m"), template="custom")
+
+        assert recorder["downloads"] == [] and recorder["runs"] == []
+
+    def test_updater_nonzero_exit_surfaces(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(scaffold.requests, "get", lambda url, **k: _FakeResponse())
+        monkeypatch.setattr(
+            scaffold.subprocess, "run", lambda cmd, **k: SimpleNamespace(returncode=1, stdout="", stderr="boom")
+        )
+        with pytest.raises(RuntimeError, match="updater"):
+            scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+
+    def test_missing_veaf_tools_after_updater_surfaces(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Updater "succeeds" but installs nothing.
+        monkeypatch.setattr(scaffold.requests, "get", lambda url, **k: _FakeResponse())
+        monkeypatch.setattr(
+            scaffold.subprocess, "run", lambda cmd, **k: SimpleNamespace(returncode=0, stdout="", stderr="")
+        )
+        with pytest.raises(RuntimeError, match="veaf-tools|published"):
+            scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+
+    def test_prepare_nonzero_exit_surfaces(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(scaffold.requests, "get", lambda url, **k: _FakeResponse())
+
+        def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+            cwd = Path(kwargs["cwd"])
+            if "updater" in Path(cmd[0]).name:
+                (cwd / platform_assets.veaf_tools_binary_name()).write_text("x", encoding="utf-8")
+                (cwd / "published").mkdir(exist_ok=True)
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+            return SimpleNamespace(returncode=2, stdout="", stderr="prepare failed")
+
+        monkeypatch.setattr(scaffold.subprocess, "run", fake_run)
+        with pytest.raises(RuntimeError, match="prepare"):
+            scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")

@@ -82,6 +82,20 @@ class Logger:
             self.status.stop()
         return self
 
+    def mute_console(self) -> Self:
+        """Silence Rich console output; keep the log file + logging handlers.
+
+        A stdio MCP server speaks JSON-RPC on **stdout** — any Rich `console.print` there
+        corrupts the stream and the client sees the server but no tools. Call this before
+        `mcp.run()` so all logging stays on the log file / logging handlers (stderr) and never
+        touches stdout.
+        """
+        if self.status:
+            self.status.stop()
+        self.console = None
+        self.status = None
+        return self
+
     def set_level(self, level):
         self.logger.setLevel(level=level)
         return self

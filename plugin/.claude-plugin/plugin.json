@@ -1,0 +1,38 @@
+{
+  "name": "veaf-mission-editor",
+  "displayName": "VEAF Mission Editor",
+  "description": "Author VEAF DCS missions from Claude Code — create, edit, validate and build a mission through the veaf-mission-mcp server, guided by the veaf-mission-authoring skill.",
+  "version": "6.9.30",
+  "author": {
+    "name": "VEAF",
+    "url": "https://www.veaf.org"
+  },
+  "homepage": "https://veaf.github.io/documentation/",
+  "repository": "https://github.com/VEAF/VEAF-Mission-Creation-Tools",
+  "license": "Apache-2.0",
+  "keywords": ["dcs", "dcs-world", "mission", "veaf", "mcp", "mission-editor"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.ps1\"",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

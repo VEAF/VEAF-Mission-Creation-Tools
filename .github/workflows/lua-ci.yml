@@ -2,7 +2,7 @@ name: Lua CI
 
 on:
   push:
-    branches: [develop-v6, main]
+    branches: [develop-v6, master]
   pull_request:
 
 jobs:

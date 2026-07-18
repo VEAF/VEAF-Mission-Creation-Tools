@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **CI workflows now trigger on `master`** (FIX-WORKFLOWS-MAIN-TO-MASTER). Every workflow was scoped to a `main` branch that does not exist in this repo (the stable branch is `master`), so no CI ran on a push to `master` — quality checks, SBOM, secret scanning and the `latest` docs deploy were all dead on the branch that receives the release merges. Renamed `main` → `master` across the 7 workflows (`develop-v6` triggers and the `v*` tag doc path untouched).
+
 ### Changed
 - **Secret-scanning CI uses the free gitleaks CLI** (FIX-SECRET-SCANNING-GITLEAKS-CLI). The `Secret Scanning` workflow relied on `gitleaks/gitleaks-action@v3`, whose wrapper requires a **paid licence for GitHub organisations** — without a `GITLEAKS_LICENSE` secret it aborted (`[VEAF] is an organization. License key is required.`), so the job had failed on every run since it was added and secret scanning never actually ran. It now installs the MIT-licensed **gitleaks CLI** (pinned) and runs `gitleaks git` against the existing `.gitleaks.toml` — no licence, organisations included.
 

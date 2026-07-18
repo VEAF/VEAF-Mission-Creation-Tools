@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - develop-v6
-      - main
+      - master
     tags:
       - "v*"
 
@@ -59,8 +59,8 @@ jobs:
         if: github.ref == 'refs/heads/develop-v6'
         run: poetry run mike deploy --update-aliases --push --remote ext-docs dev
 
-      - name: Deploy docs (main → alias "latest")
-        if: github.ref == 'refs/heads/main'
+      - name: Deploy docs (master → alias "latest")
+        if: github.ref == 'refs/heads/master'
         run: poetry run mike deploy --update-aliases --push --remote ext-docs latest
 
       - name: Deploy docs (tag → versioned release + alias "latest")

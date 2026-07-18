@@ -17,7 +17,7 @@ def _find_group(mission_content: dict, name: str) -> dict:
 
 class TestAddGroup:
     def test_adds_a_group_visible_after_reload(self, sample_miz: Path) -> None:
-        add_group(
+        result = add_group(
             sample_miz,
             coalition="red",
             country_id=0,
@@ -27,10 +27,39 @@ class TestAddGroup:
             position={"x": 1000.0, "y": 2000.0},
             units=[{"type": "T-72B", "count": 2}],
         )
+        assert result["durable"] is False  # a .miz is the built world (transient)
 
         described = describe_mission(sample_miz)
         names = {g["name"] for g in described["groups"]}
         assert "Red Armor Patrol" in names
+
+    def test_adds_a_group_durably_to_a_mission_folder(self, tmp_path: Path) -> None:
+        # Targeting the exploded src/mission/ writes into the recipe (survives a rebuild) — the way
+        # to place a permanent SAM (a `#veafInterpreter["-samLR"]` unit) that isn't lost on build.
+        from mission_tools.miz_tools import read_mission_folder
+
+        exploded = tmp_path / "src" / "mission"
+        exploded.mkdir(parents=True)
+        (exploded / "mission").write_text(
+            'mission =\n{\n  ["coalition"] =\n  {\n    ["red"] =\n    {\n'
+            '      ["country"] =\n      {\n      },\n    },\n  },\n}\n',
+            encoding="utf-8",
+        )
+
+        result = add_group(
+            tmp_path,  # the mission FOLDER, not a .miz
+            coalition="red",
+            country_id=0,
+            country_name="Russia",
+            category="vehicle",
+            name="PermanentSAM",
+            position={"x": 1.0, "y": 2.0},
+            units=[{"type": "T-72B", "count": 1}],
+        )
+        assert result["durable"] is True
+
+        content = read_mission_folder(tmp_path).mission_content or {}
+        assert _find_group(content, "PermanentSAM")  # persisted into src/mission/
 
     def test_expands_unit_type_count_pairs_into_individual_units(self, sample_miz: Path) -> None:
         add_group(
@@ -135,7 +164,7 @@ class TestAddGroup:
         with zipfile.ZipFile(miz_path, "w") as zf:
             zf.writestr("options", b"options = {\n}\n")
 
-        with pytest.raises(ValueError, match="Not a valid DCS mission archive"):
+        with pytest.raises(ValueError, match="Not a valid DCS mission"):
             add_group(
                 miz_path,
                 coalition="red",

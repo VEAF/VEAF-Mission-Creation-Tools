@@ -16,13 +16,14 @@ from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
+from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 _UNIT_SPACING_METERS = 20
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
 
 
 def add_group(
-    miz_path: Path,
+    target: Path,
     *,
     coalition: str,
     country_id: int,
@@ -37,10 +38,19 @@ def add_group(
     late_activation: bool = False,
     as_spawn_template: bool = False,
 ) -> dict[str, Any]:
-    """Add a group to a mission's source `.miz`, in place, backed up first.
+    """Add a group to a mission, in place, backed up first.
+
+    The `target` selects which world you edit:
+
+    - a **mission folder** (holds `src/mission/`) → the exploded source, so the group is
+      **durable** (survives a rebuild). Use this for standing content, e.g. a permanent SAM
+      carried by a `#veafInterpreter["-samLR"]` unit.
+    - a **`.miz`** → the built mission, **transient** (overwritten by the next build from the
+      recipe).
 
     Args:
-        miz_path: Path to the mission's source `.miz`.
+        target: The mission **folder** (durable, exploded `src/mission/`) or a **`.miz`**
+            (transient, built).
         coalition: `"blue"`, `"red"` or `"neutral"`.
         country_id: The DCS numeric country id (e.g. 0 for Russia).
         country_name: The DCS country name (e.g. `"Russia"`), used only if the
@@ -64,15 +74,18 @@ def add_group(
             spawnable-aircraft template).
 
     Returns:
-        `{"group_id": <int>, "name": <resolved name>, "warnings": [...]}` — `warnings` flags any
-        reserved-naming-convention collision for the caller to relay (the write still happens).
+        `{"group_id": <int>, "name": <resolved name>, "durable": <bool>, "warnings": [...]}` —
+        `durable` is true when `target` is a mission folder (recipe) vs a built `.miz`; `warnings`
+        flags any reserved-naming-convention collision for the caller to relay (the write still
+        happens).
 
     Raises:
-        ValueError: If the archive is not a valid mission, or `units` yields no units.
+        ValueError: If the target is not a valid mission, or `units` yields no units.
     """
-    mission = read_miz(miz_path)
+    is_folder = target.is_dir()
+    mission = load_folder_mission(target) if is_folder else read_miz(target)
     if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+        raise ValueError(f"Not a valid DCS mission (missing 'mission' content): {target}")
 
     name = resolve_group_name(name, for_combat_zone=for_combat_zone, as_spawn_template=as_spawn_template)
     group_id = insert_group_into_content(
@@ -89,12 +102,18 @@ def add_group(
         late_activation=late_activation,
     )
 
-    warnings = validate_group_name(name, miz_path=miz_path, expected_combat_zone=for_combat_zone)["warnings"]
+    # A folder has no single `.miz` to scan for the combat-zone capture trap, so validate names-only
+    # there (like the composites do); on a `.miz` also check the geometric trap against the archive.
+    validate_kwargs = {} if is_folder else {"miz_path": target}
+    warnings = validate_group_name(name, expected_combat_zone=for_combat_zone, **validate_kwargs)["warnings"]
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    if is_folder:
+        save_folder_mission(mission, target)  # writes src/mission/, backed up
+    else:
+        backup_before_write(target)
+        write_miz(mission, target)
 
-    return {"group_id": group_id, "name": name, "warnings": warnings}
+    return {"group_id": group_id, "name": name, "durable": is_folder, "warnings": warnings}
 
 
 def insert_group_into_content(

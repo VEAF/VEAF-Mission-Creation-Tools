@@ -84,6 +84,9 @@ site, make the fake-unit **blue** — don't fall back to literal units just for 
   activated** (dynamic), and despawned/respawned with the zone.
 - Both take the alias from `list_shortcuts` and spawn in the carrier's coalition. Pick
   `#veafInterpreter` for a standing site, `#command` for zone-driven content.
+- To place either **durably**, add the carrier unit with `add_group` **targeting the mission
+  folder** (it writes `src/mission/`, so it survives a rebuild) — not a `.miz` (that's the built
+  world, overwritten on the next build). `add_group`'s result has `durable: true` for a folder.
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

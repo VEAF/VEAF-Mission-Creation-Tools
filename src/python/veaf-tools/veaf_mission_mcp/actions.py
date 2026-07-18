@@ -66,14 +66,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="add_group",
             description=(
-                "Insert a ground/vehicle group into a mission's source .miz, in place, backed up "
-                "first. Mirrors adding a group by hand in the DCS Mission Editor -- not "
-                "deduplicated, calling this twice creates two groups."
+                "Insert a ground/vehicle group into a mission, in place, backed up first. Mirrors "
+                "adding a group by hand in the DCS Mission Editor -- not deduplicated, calling this "
+                "twice creates two groups. Target a mission FOLDER for a durable group in the recipe "
+                "(survives rebuild) -- e.g. a permanent SAM via a '#veafInterpreter[\"-samLR\"]' unit "
+                "name -- or a .miz for a transient edit of the built mission."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz "
+                        "(transient, built). Use the folder for standing content that must survive a rebuild.",
+                    },
                     "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
                     "country_id": {"type": "integer", "description": "DCS numeric country id."},
                     "country_name": {"type": "string", "description": "DCS country name (e.g. 'Russia')."},
@@ -137,7 +143,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                 },
                 "required": [
-                    "miz_path",
+                    "target",
                     "coalition",
                     "country_id",
                     "country_name",
@@ -873,7 +879,7 @@ def _handle_replace_in_mission_files(params: dict[str, Any]) -> dict[str, Any]:
 
 def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
     return add_group(
-        Path(params["miz_path"]),
+        Path(params["target"]),
         coalition=params["coalition"],
         country_id=params["country_id"],
         country_name=params["country_name"],

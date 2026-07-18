@@ -7,7 +7,7 @@ from veaf_mission_mcp import server
 
 def _add_group_params(miz_path: Path, name: str, y_offset: float) -> dict:
     return {
-        "miz_path": str(miz_path),
+        "target": str(miz_path),
         "coalition": "red",
         "country_id": 0,
         "country_name": "Russia",

@@ -9,6 +9,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.10.0] — 2026-07-18
+
+First stable, official v6 release cut to `master` (previously `master` still carried v5).
+This tags the accumulated v6 line — declarative `mission.yaml` toolchain, the AI mission
+authoring assistant (MCP server + Claude plugin), all-theatre coordinates and geo-placement,
+and the cross-platform binaries — as the new `published-latest`.
+
 ### Fixed
 - **Logger no longer crashes on servers wired to DCSServerBot** (FIX-SERVERHOOK-CHAT-SIM-LOGGER). `veaf.Logger:print` forwarded log lines to the DCSServerBot channel via `Sim.getMissionName()`, but `Sim` is a GameGUI/hook global that does not exist in the mission scripting environment — so every `:error()` raised `attempt to index global 'Sim'`. On such servers this swallowed player-facing messages (e.g. the carrier-ops "radio not authenticated" notice never displayed) and broke unrelated error paths. The mission name now comes from `veaf.config.MISSION_NAME`.
 - **Server hook now actually receives chat commands** (FIX-SERVERHOOK-CHAT-SIM-LOGGER). `VEAF-Server-hook.lua` listened on `onChatMessage`, which is not a DCS GameGUI callback, so no server chat command (`/secu login`, `/send`, `/restart`, …) ever ran. It now uses the real `onPlayerTrySendChat(playerID, msg, all)` callback, returning `nil` for normal chat (broadcast) and `""` for a recognised VEAF command (consumed). Redeploy the hook on servers to pick this up.

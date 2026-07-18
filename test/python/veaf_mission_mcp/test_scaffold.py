@@ -120,6 +120,25 @@ class TestScaffoldMission:
         # The tag is also used to build the download URL.
         assert "published-v6.9.9" in recorder["downloads"][0]["url"]
 
+    def test_tag_defaults_to_env_var(
+        self, tmp_path: Path, recorder: dict[str, list[Any]], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # With no explicit tag, install the version the MCP itself runs (e.g. a pre-release),
+        # not the stale published-latest — the cause of a scaffold installing 6.9.2 in testing.
+        monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v9.9.9-rc1")
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        assert "published-v9.9.9-rc1" in recorder["runs"][0]["cmd"]
+        assert "published-v9.9.9-rc1" in recorder["downloads"][0]["url"]
+
+    def test_explicit_tag_wins_over_env(
+        self, tmp_path: Path, recorder: dict[str, list[Any]], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v9.9.9-rc1")
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", tag="published-v1.0.0")
+        updater_cmd = recorder["runs"][0]["cmd"]
+        assert "published-v1.0.0" in updater_cmd
+        assert "published-v9.9.9-rc1" not in updater_cmd
+
     def test_rejects_folder_with_non_hidden_content(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         target = tmp_path / "busy"
         target.mkdir()

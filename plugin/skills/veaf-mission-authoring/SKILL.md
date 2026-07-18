@@ -53,12 +53,21 @@ The dangerous ones:
 ## Combat zone vs QRA — two different group models
 
 **Combat zone** — groups are found by **geometry** (inside the trigger zone), coalition is
-ignored (VEAF despawns then respawns them), and membership also keys off the **zone-name prefix**.
-So: create the trigger zone, then create groups named `<ZoneName>-...` placed inside it. To have
-the zone spawn VEAF assets rather than hand-placed units, use a fake unit carrying
-`#command="-<alias> ..."` (an alias from `list_shortcuts`) — set it as that unit's **`name`** (the
-`units` entry takes an optional `name`; the runtime reads `#command`/`#spawn*` off the unit name).
-**Prefer this `#command` fake-unit** for combat-zone content over hand-placing literal units.
+ignored **for capture** (VEAF despawns then respawns any group inside, whatever its side), and
+membership also keys off the **zone-name prefix**. So: create the trigger zone, then create groups
+named `<ZoneName>-...` placed inside it. To have the zone spawn VEAF assets rather than hand-placed
+units, use a fake unit carrying `#command="-<alias> ..."` (an alias from `list_shortcuts`) — set it
+as that unit's **`name`** (the `units` entry takes an optional `name`; the runtime reads
+`#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
+content over hand-placing literal units.
+
+**The spawned asset takes the fake-unit's coalition.** A `#command` runs as if a marker were
+placed by that unit, so the runtime spawns in **the fake unit's own coalition** — a **blue**
+fake-unit carrying `#command="-samLR"` yields a **blue** SAM, a red one a red SAM. Aliases like
+`-samLR` are **not** inherently red; "random" there means a random LR **battery type**, not a side.
+(The "coalition is ignored" above is only about which real groups the zone *captures* by geometry —
+it does not override a `#command` fake-unit's side.) So for a blue SAM site, place the fake-unit as
+**blue**; do not fall back to hand-placed units just to get a colour.
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

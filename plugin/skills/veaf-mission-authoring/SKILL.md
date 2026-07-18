@@ -26,6 +26,15 @@ VEAF conventions may be stale or wrong.
 
 For an action's exact parameters, call `describe_action(name)`.
 
+**These oracle actions plus this skill are the authoritative source for VEAF-framework facts** —
+naming conventions, spawn aliases, marker/`#command`/`#veafInterpreter` formats, module config.
+**For those specifically**, don't consult other tools/agents or read the VEAF framework's Lua
+source (a mission maker's machine has neither): if a fact seems missing, re-query the oracle
+(`describe_naming_conventions`, `describe_action`, `list_shortcuts`) or state the gap plainly rather
+than sourcing it elsewhere or guessing. This scoping is **only** about VEAF-framework knowledge —
+keep using your other tools normally for everything else (geocoding, reading/writing files,
+building, etc.).
+
 ## The two editing worlds
 
 - **Recipe** — the source `mission.yaml`. Durable: survives a rebuild. Prefer it for configuration.
@@ -65,6 +74,16 @@ content over hand-placing literal units.
 a blue SAM (`-samLR` is not inherently red; its "random" is the battery *type*). So for a blue SAM
 site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
 "coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
+
+**Permanent asset vs combat-zone asset — two spawn markers, don't confuse them:**
+- `#veafInterpreter["<alias …>"]` on a unit's **`name`** → spawned **at mission start** and
+  **permanent** (the carrier unit is destroyed). Use it for always-there assets, e.g. a fixed SAM
+  site: a **blue** unit named `#veafInterpreter["-samLR"]` → a blue long-range SAM at that spot on
+  start. Same alias vocabulary as `list_shortcuts`; same coalition rule (follows the carrier).
+- `#command="-<alias> …"` on a fake-unit **inside a combat-zone** → spawned when the **zone is
+  activated** (dynamic), and despawned/respawned with the zone.
+- Both take the alias from `list_shortcuts` and spawn in the carrier's coalition. Pick
+  `#veafInterpreter` for a standing site, `#command` for zone-driven content.
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

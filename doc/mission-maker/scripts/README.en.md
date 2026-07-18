@@ -93,6 +93,14 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 
 ---
 
+## Server administration
+
+| Component | File | What it does |
+|-----------|------|--------------|
+| [veafServerHook](veafServerHook.en.md) | `VEAF-Server-hook.lua` | Dedicated-server hook: chat commands (`/secu login`, `/send`…), pilots list, opt-in restart/telemetry |
+
+---
+
 ## Data Modules
 
 These are pure data files — no initialisation needed.

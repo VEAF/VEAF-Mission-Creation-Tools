@@ -1,6 +1,6 @@
 # 02 — Doc admin : installation / mise à jour du hook serveur
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Context
 

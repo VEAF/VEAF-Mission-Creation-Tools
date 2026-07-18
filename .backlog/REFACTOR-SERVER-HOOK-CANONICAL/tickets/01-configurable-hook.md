@@ -1,6 +1,6 @@
 # 01 — Rendre le hook configurable (BufferingSocket / autorestart / pilotsDir)
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Change (`src/scripts/Hooks/VEAF-Server-hook.lua`)
 

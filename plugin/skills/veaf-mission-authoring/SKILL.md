@@ -53,12 +53,18 @@ The dangerous ones:
 ## Combat zone vs QRA — two different group models
 
 **Combat zone** — groups are found by **geometry** (inside the trigger zone), coalition is
-ignored (VEAF despawns then respawns them), and membership also keys off the **zone-name prefix**.
-So: create the trigger zone, then create groups named `<ZoneName>-...` placed inside it. To have
-the zone spawn VEAF assets rather than hand-placed units, use a fake unit carrying
-`#command="-<alias> ..."` (an alias from `list_shortcuts`) — set it as that unit's **`name`** (the
-`units` entry takes an optional `name`; the runtime reads `#command`/`#spawn*` off the unit name).
-**Prefer this `#command` fake-unit** for combat-zone content over hand-placing literal units.
+ignored **for capture** (VEAF despawns then respawns any group inside, whatever its side), and
+membership also keys off the **zone-name prefix**. So: create the trigger zone, then create groups
+named `<ZoneName>-...` placed inside it. To have the zone spawn VEAF assets rather than hand-placed
+units, use a fake unit carrying `#command="-<alias> ..."` (an alias from `list_shortcuts`) — set it
+as that unit's **`name`** (the `units` entry takes an optional `name`; the runtime reads
+`#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
+content over hand-placing literal units.
+
+**Coalition rule:** a `#command` fake-unit spawns in **its own coalition** — a blue fake-unit →
+a blue SAM (`-samLR` is not inherently red; its "random" is the battery *type*). So for a blue SAM
+site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
+"coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the

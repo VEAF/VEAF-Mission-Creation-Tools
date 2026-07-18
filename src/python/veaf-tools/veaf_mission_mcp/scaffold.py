@@ -22,6 +22,12 @@ _GITHUB_OWNER = "VEAF"
 _GITHUB_REPO = "VEAF-Mission-Creation-Tools"
 #: Default release tag (the rolling "latest published" pointer the updater also defaults to).
 _DEFAULT_TAG = "published-latest"
+#: Env var that overrides the default tag — so the veaf-tools this installs into the mission folder
+#: matches the version running the MCP. **Test-only**: its purpose is to test a pre-release while
+#: the chantier isn't on ``published-latest`` yet; once released, the default suffices. The same
+#: name is read by the plugin's ``bootstrap.ps1`` (which can't import this constant — keep the two
+#: in sync). An explicit ``tag`` argument still wins over it.
+_TAG_ENV_VAR = "VEAF_MCP_UPDATER_TAG"
 #: Templates accepted here. ``custom`` is excluded: it opens an interactive TUI picker with no TTY
 #: under a subprocess. The template question is the calling LLM's job (a required parameter).
 _TEMPLATES = ("minimal", "standard", "full")
@@ -113,8 +119,10 @@ def scaffold_mission(
             round-trip). Omitted → ``src/mission/`` is left empty (the maker supplies their own).
         github_token: Optional GitHub token, relayed to the updater (``--token``) to bypass the
             API rate limit on its own ``published.zip`` fetch.
-        tag: Release tag to install from (default ``published-latest``); relayed to the updater
-            (``--tag``) and used to build the updater download URL.
+        tag: Release tag to install from; relayed to the updater (``--tag``) and used to build the
+            updater download URL. Defaults to the ``VEAF_MCP_UPDATER_TAG`` env var if set (so the
+            installed veaf-tools matches the MCP's own version, e.g. a pre-release), else
+            ``published-latest``.
 
     Returns:
         ``{"folder", "template", "veaf_tools_version", "updater_asset"}``.
@@ -129,7 +137,7 @@ def scaffold_mission(
     if template not in _TEMPLATES:
         raise ValueError(f"Unsupported template '{template}' (expected one of: {', '.join(_TEMPLATES)}).")
 
-    tag = tag or _DEFAULT_TAG
+    tag = tag or os.environ.get(_TAG_ENV_VAR) or _DEFAULT_TAG
     folder = Path(target_folder)
     folder.mkdir(parents=True, exist_ok=True)
     # Refuse to scaffold over existing content, but ignore hidden tooling entries — under Claude

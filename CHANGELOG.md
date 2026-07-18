@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Secret-scanning CI uses the free gitleaks CLI** (FIX-SECRET-SCANNING-GITLEAKS-CLI). The `Secret Scanning` workflow relied on `gitleaks/gitleaks-action@v3`, whose wrapper requires a **paid licence for GitHub organisations** — without a `GITLEAKS_LICENSE` secret it aborted (`[VEAF] is an organization. License key is required.`), so the job had failed on every run since it was added and secret scanning never actually ran. It now installs the MIT-licensed **gitleaks CLI** (pinned) and runs `gitleaks git` against the existing `.gitleaks.toml` — no licence, organisations included.
+
 ## [6.10.0] — 2026-07-18
 
 First stable, official v6 release cut to `master` (previously `master` still carried v5).

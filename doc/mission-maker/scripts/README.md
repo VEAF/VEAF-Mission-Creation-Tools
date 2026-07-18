@@ -93,6 +93,14 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 
 ---
 
+## Administration serveur
+
+| Composant | Fichier | Rôle |
+|-----------|---------|------|
+| [veafServerHook](veafServerHook.md) | `VEAF-Server-hook.lua` | Hook serveur dédié : commandes chat (`/secu login`, `/send`…), liste des pilotes, restart/télémétrie opt-in |
+
+---
+
 ## Raccourcis (Aliases)
 
 | Module | Fichier | Description |

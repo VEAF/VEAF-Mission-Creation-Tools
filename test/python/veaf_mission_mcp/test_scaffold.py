@@ -6,6 +6,7 @@ sequence, the argument shape, the working directory, and the guard/failure paths
 network install (that is a manual end-to-end check).
 """
 
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -13,6 +14,7 @@ from typing import Any
 import pytest
 from veaf_libs import platform_assets
 from veaf_mission_mcp import scaffold
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
 
 
 class _FakeResponse:
@@ -85,6 +87,20 @@ class TestScaffoldMission:
         assert result["folder"] == str(target)
         assert result["template"] == "standard"
         assert result["veaf_tools_version"] == "6.9.9"
+
+    def test_subprocesses_close_stdin_and_bound_timeout(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        # Guards against the updater-pause hang: every child gets no stdin and a timeout,
+        # so it fails fast instead of blocking forever on the MCP server's stdio pipe.
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        assert len(recorder["runs"]) == 2
+        for run in recorder["runs"]:
+            assert run["kwargs"]["stdin"] is subprocess.DEVNULL
+            assert run["kwargs"]["timeout"] and run["kwargs"]["timeout"] > 0
+
+    def test_updater_env_disables_the_pause(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
+        scaffold.scaffold_mission(str(tmp_path / "m"), template="standard")
+        updater_run = recorder["runs"][0]
+        assert updater_run["kwargs"]["env"][NO_PAUSE_ENV_VAR] == "1"
 
     def test_theatre_forwarded_to_prepare(self, tmp_path: Path, recorder: dict[str, list[Any]]) -> None:
         scaffold.scaffold_mission(str(tmp_path / "m"), template="standard", theatre="caucasus")

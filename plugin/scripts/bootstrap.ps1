@@ -21,6 +21,11 @@
 #>
 $ErrorActionPreference = "Stop"
 
+# Never let the updater block on its exit "press a key" pause: a hidden detached window is still
+# a real console, so the updater would otherwise wait forever on input() with no one to press a
+# key (the plugin bootstrap hang). The updater reads this to force no-pause.
+$env:VEAF_UPDATER_NO_PAUSE = "1"
+
 try {
     $dataDir = $env:CLAUDE_PLUGIN_DATA
     if (-not $dataDir) { exit 0 }  # no per-plugin data dir → nothing we can install into

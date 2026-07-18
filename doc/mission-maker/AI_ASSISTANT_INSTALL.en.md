@@ -18,11 +18,17 @@ plain language and the assistant runs it end to end: create → edit → validat
 In a terminal — or via the `/plugin …` slash commands inside Claude Code:
 
 ```powershell
+git config --global core.longpaths true   # Windows: allow long paths when the marketplace is cloned
 claude plugin marketplace add VEAF/VEAF-Mission-Creation-Tools
 claude plugin install veaf-mission-editor@veaf
 ```
 
 Then **restart Claude Code**. (Public repo: no authentication needed.)
+
+> **Windows:** the first line avoids a "Filename too long" clone failure (the 260-char limit). If
+> `add` already failed for that reason, delete the partial clone under
+> `~/.claude/plugins/marketplaces/` and retry. On a fresh machine that refuses the SSH host key,
+> force HTTPS: `git config --global url."https://github.com/".insteadOf "git@github.com:"`.
 
 ## First launch
 

@@ -1,7 +1,7 @@
 # Lot FIX-SECRET-SCANNING-GITLEAKS-CLI
 
-Status: 🔄 in-progress
-Branch: `fix/secret-scanning-gitleaks-cli` → `develop-v6`
+Status: ✅ done
+Branch: `fix/secret-scanning-gitleaks-cli` → `develop-v6` (merged, PR #615)
 
 ## Problem Statement
 

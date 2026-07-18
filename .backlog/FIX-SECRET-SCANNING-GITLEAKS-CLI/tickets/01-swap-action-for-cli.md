@@ -1,6 +1,6 @@
 # 01 — Swap gitleaks-action for the free CLI
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Task
 

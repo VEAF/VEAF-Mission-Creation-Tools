@@ -58,3 +58,32 @@ class TestBuildMission:
         )
         with pytest.raises(RuntimeError, match="build failed"):
             build_tools.build_mission(tmp_path)
+
+    def test_closes_stdin_bounds_timeout_and_disables_pause(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The build must never inherit the MCP server's JSON-RPC stdin (a read there never gets
+        # EOF and hangs forever — the observed deadlock): stdin is closed, the pause is disabled,
+        # and a timeout bounds a stalled build.
+        from veaf_tools.helpers import NO_PAUSE_ENV_VAR
+
+        seen: dict[str, Any] = {}
+
+        def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+            seen.update(kwargs)
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(build_tools.subprocess, "run", fake_run)
+        build_tools.build_mission(tmp_path)
+
+        assert seen["stdin"] is build_tools.subprocess.DEVNULL
+        assert seen["timeout"] == build_tools._BUILD_TIMEOUT
+        assert seen["env"][NO_PAUSE_ENV_VAR] == "1"
+
+    def test_timeout_surfaces_as_runtime_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+            raise build_tools.subprocess.TimeoutExpired(cmd, build_tools._BUILD_TIMEOUT)
+
+        monkeypatch.setattr(build_tools.subprocess, "run", fake_run)
+        with pytest.raises(RuntimeError, match="timed out"):
+            build_tools.build_mission(tmp_path)

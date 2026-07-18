@@ -7,11 +7,17 @@ go from an empty folder to a playable mission without leaving the assistant. See
 ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 11).
 """
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from veaf_libs import platform_assets
+from veaf_tools.helpers import NO_PAUSE_ENV_VAR
+
+#: Upper bound on a single ``veaf-tools build`` — generous (a full build with many presets is slow
+#: on a fresh VM), but bounded so a stalled build surfaces as an error instead of a hung MCP call.
+_BUILD_TIMEOUT = 900
 
 
 def validate_mission(folder_path: Path) -> dict[str, Any]:
@@ -55,9 +61,22 @@ def build_mission(folder_path: Path) -> dict[str, Any]:
     """
     folder = Path(folder_path)
     cmd = [_veaf_tools_binary(folder), "build"]
-    result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
-        cmd, cwd=str(folder), capture_output=True, text=True
-    )
+    # stdin is closed (DEVNULL) so the build never blocks forever on an interactive input()
+    # inherited from the MCP server's stdio pipe — the JSON-RPC stdin never reaches EOF, so a
+    # read there would hang indefinitely (the observed deadlock). The env flag suppresses any
+    # exit pause, and timeout bounds a stalled build. Same fix as scaffold._run.
+    try:
+        result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+            cmd,
+            cwd=str(folder),
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=_BUILD_TIMEOUT,
+            env={**os.environ, NO_PAUSE_ENV_VAR: "1"},
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"build timed out after {_BUILD_TIMEOUT:.0f}s with no progress.") from exc
     if result.returncode != 0:
         raise RuntimeError(f"build failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()}")
     return {"folder": str(folder), "ok": True, "message": (result.stdout or "").strip()[-1000:]}

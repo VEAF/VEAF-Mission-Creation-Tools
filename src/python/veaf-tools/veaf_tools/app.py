@@ -59,7 +59,7 @@ def main() -> None:
     from veaf_libs.tui import maybe_bridge_to_tui
 
     import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
-    from veaf_tools.helpers import _is_double_clicked
+    from veaf_tools.helpers import should_auto_pause
 
     console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
 
@@ -69,7 +69,7 @@ def main() -> None:
     if bridged := maybe_bridge_to_tui(sys.argv[1:]):
         sys.argv = sys.argv[:1] + bridged
 
-    auto_pause = _is_double_clicked()
+    auto_pause = should_auto_pause()
     try:
         app()
     finally:

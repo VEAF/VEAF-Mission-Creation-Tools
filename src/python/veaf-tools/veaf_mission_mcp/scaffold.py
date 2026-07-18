@@ -27,6 +27,10 @@ _TEMPLATES = ("minimal", "standard", "full")
 
 #: Seconds before a stalled asset download is abandoned.
 _DOWNLOAD_TIMEOUT = 300
+#: Seconds before a stalled updater run is abandoned (it downloads + extracts published.zip).
+_UPDATER_TIMEOUT = 600
+#: Seconds before a stalled ``prepare`` run is abandoned (fast; synthetic, no network).
+_PREPARE_TIMEOUT = 180
 
 
 def _asset_download_url(tag: str, asset_name: str) -> str:
@@ -49,13 +53,29 @@ def _download_updater(url: str, dest: Path, token: str | None) -> None:
         os.chmod(dest, 0o755)
 
 
-def _run(cmd: list[str], cwd: Path, step: str) -> None:
-    """Run ``cmd`` in ``cwd``; raise ``RuntimeError`` naming ``step`` on a non-zero exit."""
+def _run(cmd: list[str], cwd: Path, step: str, timeout: float, env: dict[str, str] | None = None) -> None:
+    """Run ``cmd`` in ``cwd``; raise ``RuntimeError`` naming ``step`` on a non-zero exit or timeout.
+
+    ``stdin`` is closed (``DEVNULL``) so a child that tries to read interactive input fails fast
+    instead of blocking forever on the MCP server's stdio pipe, and ``timeout`` bounds a stalled
+    step (both learned from the updater-pause hang).
+    """
     # Not a shell command (shell=False): `cmd` is built here from binary paths we just installed
     # and fixed flags, so there is no shell to inject into and nothing external drives the argv.
-    result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
-        cmd, cwd=str(cwd), capture_output=True, text=True
-    )
+    try:
+        result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+            cmd,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"{step} timed out after {timeout:.0f}s (no progress) — check the network or the release tag."
+        ) from exc
     if result.returncode != 0:
         raise RuntimeError(f"{step} failed (exit {result.returncode}): {result.stderr or result.stdout}".strip())
 
@@ -132,11 +152,19 @@ def scaffold_mission(
     _download_updater(_asset_download_url(tag, asset_name), updater_path, github_token)
 
     # 2. Run the updater (it fetches + installs the tools and published/ into the folder).
+    #    VEAF_UPDATER_NO_PAUSE stops the updater from ever blocking on its exit `input()` pause
+    #    when a console happens to be attached (the plugin bootstrap hang).
     updater_cmd = [str(updater_path)]
     if github_token:
         updater_cmd += ["--token", github_token]
     updater_cmd += ["--tag", tag]
-    _run(updater_cmd, cwd=folder, step="updater")
+    _run(
+        updater_cmd,
+        cwd=folder,
+        step="updater",
+        timeout=_UPDATER_TIMEOUT,
+        env={**os.environ, "VEAF_UPDATER_NO_PAUSE": "1"},
+    )
 
     veaf_tools = folder / platform_assets.veaf_tools_binary_name()
     if not veaf_tools.exists() or not (folder / "published").is_dir():
@@ -149,7 +177,7 @@ def scaffold_mission(
     prepare_cmd = [str(veaf_tools), "prepare", "--template", template, "--force"]
     if theatre:
         prepare_cmd += ["--theatre", theatre]
-    _run(prepare_cmd, cwd=folder, step="prepare")
+    _run(prepare_cmd, cwd=folder, step="prepare", timeout=_PREPARE_TIMEOUT)
 
     return {
         "folder": str(folder),

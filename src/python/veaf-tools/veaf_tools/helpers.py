@@ -143,6 +143,20 @@ def _is_double_clicked() -> bool:
     return False
 
 
+def should_auto_pause() -> bool:
+    """Return whether a tool should pause for a keypress before exiting.
+
+    True only for a genuine double-click launch (see :func:`_is_double_clicked`), and **never**
+    when the ``VEAF_UPDATER_NO_PAUSE`` environment variable is set. A programmatic caller — the
+    plugin's SessionStart bootstrap or ``scaffold_mission`` — exports that variable so the tool
+    never blocks on an interactive ``input()`` prompt with no one to press a key (the cause of
+    the plugin bootstrap hang).
+    """
+    if os.environ.get("VEAF_UPDATER_NO_PAUSE"):
+        return False
+    return _is_double_clicked()
+
+
 def _read_single_char() -> str:
     """Read one character from the console without waiting for Enter (Windows/Unix)."""
     try:

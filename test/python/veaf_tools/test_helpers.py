@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from veaf_tools.helpers import _is_double_clicked, _update_build_config_in_yaml
+from veaf_tools.helpers import _is_double_clicked, _update_build_config_in_yaml, should_auto_pause
 
 
 class TestUpdateBuildConfigInYaml(unittest.TestCase):
@@ -57,6 +58,26 @@ class TestUpdateBuildConfigInYaml(unittest.TestCase):
             self.assertIn("dev_mode: true", content)
             # Only one build: section
             self.assertEqual(content.count("build:"), 1)
+
+
+class TestShouldAutoPause(unittest.TestCase):
+    """`VEAF_UPDATER_NO_PAUSE` must force no-pause so a programmatic caller never hangs."""
+
+    def test_env_var_forces_no_pause_without_checking_launch(self) -> None:
+        with (
+            patch.dict(os.environ, {"VEAF_UPDATER_NO_PAUSE": "1"}),
+            patch("veaf_tools.helpers._is_double_clicked", return_value=True) as double_clicked,
+        ):
+            self.assertFalse(should_auto_pause())
+            double_clicked.assert_not_called()  # short-circuits, never consults the launch context
+
+    def test_delegates_to_double_clicked_when_env_absent(self) -> None:
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("VEAF_UPDATER_NO_PAUSE", None)
+            with patch("veaf_tools.helpers._is_double_clicked", return_value=True):
+                self.assertTrue(should_auto_pause())
+            with patch("veaf_tools.helpers._is_double_clicked", return_value=False):
+                self.assertFalse(should_auto_pause())
 
 
 class TestIsDoubleClicked(unittest.TestCase):

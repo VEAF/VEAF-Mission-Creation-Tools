@@ -27,6 +27,10 @@ lfs = require('lfs')
 os = require('os')
 DCS_DIR = lfs.writedir()
 VEAF_SERVER_DIR = DCS_DIR .. [[scripts\hooks\]]
+-- Parent of the server's Saved Games folder (writedir() is Saved Games\<server>\, so this
+-- resolves to Saved Games\). All VEAF servers live side by side there, so a single shared
+-- veaf-pilots.txt dropped in that root is picked up by every server with no per-server config.
+VEAF_SHARED_DIR = DCS_DIR .. [[..\]]
 VEAF_PILOTS_FILE = "veaf-pilots.txt"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,7 +41,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.7.0"
+veafServerHook.Version = "2.7.1"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -53,8 +57,9 @@ veafServerHook.Debug = false
 veafServerHook.enableAutoRestart = false
 veafServerHook.enableBufferingSocket = false
 
--- Directory holding VEAF_PILOTS_FILE; defaults to VEAF_SERVER_DIR. A specific hook
--- may point it elsewhere (e.g. a Saved Games root shared by several servers).
+-- Directory holding VEAF_PILOTS_FILE; defaults to VEAF_SHARED_DIR (the Saved Games root
+-- shared by every VEAF server, so one pilots file serves them all). A specific hook may
+-- point it elsewhere (e.g. the hook's own folder for a standalone server).
 veafServerHook.pilotsDir = nil
 
 veafServerHook.CommandStarter = "/"
@@ -405,6 +410,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
 
     if not pilot then
         veafServerHook.logWarning(string.format("Unknown pilot [%s] sent chat message [%s])",veafServerHook.p(playerName), veafServerHook.p(message)))
+        pilot = { level = -1 } -- unknown pilot: no power at all (same convention as onPlayerConnect)
     end
 
     local _module, _command = message:match(veafServerHook.CommandParser)
@@ -553,10 +559,10 @@ end
 function veafServerHook.loadPilots()
     veafServerHook.logDebug(string.format("veafServerHook.loadPilots()"))
     veafServerHook.logInfo(string.format("loading pilots"))
-    local filepath = (veafServerHook.pilotsDir or VEAF_SERVER_DIR) .. VEAF_PILOTS_FILE
-    local file = assert(loadfile(filepath))
+    local filepath = (veafServerHook.pilotsDir or VEAF_SHARED_DIR) .. VEAF_PILOTS_FILE
+    local file, err = loadfile(filepath)
     if not file then
-        veafServerHook.logError(string.format("Error while loading pilots list file [%s]",veafServerHook.p(filepath)))
+        veafServerHook.logError(string.format("Cannot load pilots list file [%s]: %s -- no pilot will be recognized and every command will be denied", veafServerHook.p(filepath), veafServerHook.p(err)))
         return
     end
 

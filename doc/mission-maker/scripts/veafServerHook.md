@@ -22,7 +22,9 @@ Hook DCS (environnement GameGUI) tournant sur un serveur dédié. Il :
 ## Installation
 
 1. Déposer `VEAF-Server-hook.lua` dans `Saved Games/<serveur>/Scripts/Hooks/`.
-2. Déposer `veaf-pilots.txt` à côté (ou dans un dossier partagé, voir `pilotsDir`) et l'éditer.
+2. Déposer `veaf-pilots.txt` dans la racine `Saved Games/` (un seul fichier partagé sert tous
+   les serveurs par défaut) et l'éditer. Pour un fichier propre à un serveur, définir `pilotsDir`
+   (voir ci-dessous).
 3. Ajouter un `VEAF-specific-server-hook.lua` dans le même dossier pour la configuration
    propre au serveur (voir ci-dessous).
 4. **Redémarrer le serveur** : le hook est chargé au démarrage de DCS ; recharger la mission
@@ -42,7 +44,7 @@ simple. Tout ce qui est propre à un serveur va dans `VEAF-specific-server-hook.
 ```lua
 veafServerHook.enableAutoRestart     = false  -- watchdog de redémarrage + commandes /restart /restartnow /halt
 veafServerHook.enableBufferingSocket = false  -- télémétrie vers un serveur d'API (module natif BufferingSocket)
-veafServerHook.pilotsDir             = nil     -- dossier du fichier pilotes ; défaut = dossier du hook
+veafServerHook.pilotsDir             = nil     -- dossier du fichier pilotes ; défaut = racine Saved Games/ partagée
 ```
 
 - **`enableAutoRestart`** (défaut `false`) : active le redémarrage automatique du serveur
@@ -51,8 +53,9 @@ veafServerHook.pilotsDir             = nil     -- dossier du fichier pilotes ; d
 - **`enableBufferingSocket`** (défaut `false`) : active la télémétrie. Le module natif
   `BufferingSocket` est chargé de façon défensive : s'il est absent, la télémétrie est
   désactivée automatiquement et le hook continue de fonctionner (aucun crash).
-- **`pilotsDir`** (défaut `nil` → dossier du hook) : permet de mutualiser un `veaf-pilots.txt`
-  partagé par plusieurs serveurs (p. ex. la racine `Saved Games/`).
+- **`pilotsDir`** (défaut `nil` → racine `Saved Games/` partagée, un niveau au-dessus du dossier
+  serveur) : tous les serveurs VEAF lisent le même `veaf-pilots.txt` sans configuration propre.
+  Le pointer ailleurs (p. ex. le dossier du hook) pour un serveur autonome avec sa propre liste.
 
 Le specific-hook porte aussi `serverName` et `serverBotChannel` (injectés dans la mission).
 

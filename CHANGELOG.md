@@ -10,6 +10,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Server hook: the shared pilots list is loaded again, and load failures no longer crash the hook or deny everyone silently** (FIX-SERVERHOOK-UNKNOWN-PILOT-PARSE). On a production server no pilot was recognized at all (admin included) and any `/command` crashed the hook. Three linked defects:
+  - The pilots file is meant to be **shared by all VEAF servers** from the `Saved Games/` root, but `loadPilots` looked for it under the per-server `Scripts/Hooks/` folder (`writedir()\scripts\hooks\`), where it does not exist — so the list was always empty. The default location is now the shared `Saved Games/` root (`writedir()\..\`), one level above the server folder; `pilotsDir` still overrides it for a standalone server.
+  - `loadPilots` used `assert(loadfile(filepath))`, which *threw* on a missing file — making the `if not file` error branch right below dead code and leaving the pilots table empty. It now loads defensively: a missing/invalid file logs a clear error (`no pilot will be recognized and every command will be denied`) instead of raising a raw Lua exception.
+  - `veafServerHook.parse` logged the "Unknown pilot" warning but kept going and then indexed `pilot.level` on a `nil` pilot, throwing `attempt to index local 'pilot' (a nil value)` (VEAF-Server-hook.lua:413). A pilot absent from the list now gets `level = -1` (no power at all), the same convention `onPlayerConnect` already used, so the command is cleanly denied instead of crashing the hook.
+  All three paths only became reachable once #590 revived the dead chat callback (`onChatMessage` → `onPlayerTrySendChat`).
 - **CI workflows now trigger on `master`** (FIX-WORKFLOWS-MAIN-TO-MASTER). Every workflow was scoped to a `main` branch that does not exist in this repo (the stable branch is `master`), so no CI ran on a push to `master` — quality checks, SBOM, secret scanning and the `latest` docs deploy were all dead on the branch that receives the release merges. Renamed `main` → `master` across the 7 workflows (`develop-v6` triggers and the `v*` tag doc path untouched).
 
 ### Changed

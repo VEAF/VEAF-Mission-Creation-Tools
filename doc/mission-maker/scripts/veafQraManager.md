@@ -100,6 +100,7 @@ modules:
 | `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
 | `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
 | `airport_link` | string | — | Non | Nom de base aérienne DCS liée — QRA hors ligne si détruite |
+| `active_at_start` | booléen | `true` | Non | `false` : la QRA est déclarée mais **pas armée** au démarrage — elle attend un `qra.start` (menu radio) ou un appel script |
 | `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette QRA (voir ci-dessous) |
 | `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |
 

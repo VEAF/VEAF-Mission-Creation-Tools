@@ -826,3 +826,65 @@ def test_menu_and_command_labels_are_escaped():
     assert 'veafRadio.menu("Say "hi""' not in lua
     assert '[[Say "hi"]]' in lua
     assert '[[quote " here]]' in lua
+
+
+def test_combatzone_completable_false_emits_setter():
+    """``completable: false`` keeps a zone alive (needed for a blue-only zone)."""
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {"COMBATZONE": {"combat_zones": [{"zone_name": "BLUE_DEFENCE", "completable": False}]}},
+    }
+    assert ":setCompletable(false)" in generate_config_lua(yaml_data)
+
+
+def test_combatzone_completable_default_emits_nothing():
+    """Absent or true, nothing is emitted (the runtime already defaults to completable)."""
+    for zone in ({"zone_name": "CZ"}, {"zone_name": "CZ", "completable": True}):
+        yaml_data: dict = {
+            "mission": {"name": "Test"},
+            "lua_modules": {"COMBATZONE": {"combat_zones": [zone]}},
+        }
+        assert "setCompletable" not in generate_config_lua(yaml_data)
+
+
+def _qra_yaml(*definitions: dict) -> dict:
+    """Build a minimal mission carrying QRA *definitions* (internal `qra:` repr)."""
+    return {
+        "mission": {"name": "Test"},
+        "lua_modules": {"QRA": {}},
+        "qra": {"definitions": list(definitions)},
+    }
+
+
+def test_qra_started_by_default():
+    """Without ``active_at_start``, a QRA is armed at mission start (unchanged behaviour)."""
+    lua = generate_config_lua(_qra_yaml({"name": "QRA-Nord", "coalition": "RED"}))
+    assert 'setName("QRA-Nord")' in lua
+    assert ":start()" in lua
+
+
+def test_qra_active_at_start_false_omits_start():
+    """``active_at_start: false`` leaves the QRA declared but not armed."""
+    lua = generate_config_lua(_qra_yaml({"name": "QRA-Dormant", "coalition": "RED", "active_at_start": False}))
+    # Still declared and named, so `qra.start` (or a script) can arm it later.
+    assert 'setName("QRA-Dormant")' in lua
+    assert ":start()" not in lua
+
+
+def test_qra_active_at_start_true_emits_start():
+    """An explicit ``active_at_start: true`` behaves like the default."""
+    lua = generate_config_lua(_qra_yaml({"name": "QRA-Nord", "coalition": "RED", "active_at_start": True}))
+    assert ":start()" in lua
+
+
+def test_qra_mixed_active_at_start_only_skips_the_flagged_one():
+    """Only the flagged QRA is left unarmed; the others still start."""
+    lua = generate_config_lua(
+        _qra_yaml(
+            {"name": "QRA-Armed", "coalition": "RED"},
+            {"name": "QRA-Dormant", "coalition": "RED", "active_at_start": False},
+        )
+    )
+    assert lua.count(":start()") == 1
+    # The single :start() belongs to the armed QRA's chain, before the dormant one begins.
+    assert lua.index('setName("QRA-Armed")') < lua.index(":start()") < lua.index('setName("QRA-Dormant")')

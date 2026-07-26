@@ -85,6 +85,7 @@ modules:
 | `radio_menu_prefix` | string | — | No | Prefix shown before the zone label in the menu |
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
+| `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own. Required for a zone holding **no RED unit**: completion is decided on the red count alone, so such a zone would deactivate on its first check (~1 min) |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |

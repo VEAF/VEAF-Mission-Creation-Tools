@@ -78,6 +78,95 @@ jobs:
           git push origin -f published-latest
 
   # ---------------------------------------------------------------------------
+  # Map-capture kit — the zip handed to helpers who collect DCS map data for us
+  # (see doc/developer/capture-airbases.md). Bundles veaf-tools.exe, the bridge
+  # server taken from the latest VEAF-dcs-bridge release, a ready bridge mission
+  # per supported theatre (generated without DCS), and the procedure.
+  # Ships NO dcs-serve.yaml: the server generates its own api_key on first launch,
+  # so this public asset never carries a secret.
+  # ---------------------------------------------------------------------------
+  kit:
+    name: Map capture kit
+    needs: release
+    runs-on: windows-latest  # the kit ships the Windows veaf-tools.exe
+    timeout-minutes: 30
+
+    permissions:
+      contents: write  # needed to upload the asset to the release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#published-v}"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (including PyInstaller)
+        run: poetry install --with build --all-extras
+
+      - name: Build veaf-tools executable
+        run: poetry run veaf-build build-standalone --version ${{ steps.version.outputs.version }}
+
+      # Best-effort: the bridge server lives in another repo. If it has no release yet
+      # (or the download fails), the kit is still published — without dcs-serve.exe.
+      - name: Fetch the dcs-bridge release (for dcs-serve.exe)
+        id: bridge
+        continue-on-error: true
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p bridge-release
+          if gh release download --repo VEAF/VEAF-dcs-bridge --pattern "dcs-bridge-*.zip" --dir bridge-release; then
+            ZIP=$(ls bridge-release/dcs-bridge-*.zip | head -1)
+            echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+            echo "Using $ZIP"
+          else
+            echo "No dcs-bridge release found — the kit will ship without dcs-serve.exe"
+          fi
+
+      - name: Assemble the kit
+        shell: bash
+        run: |
+          ARGS=(--version "${{ steps.version.outputs.version }}" --exe dist/veaf-tools.exe --output dist)
+          [[ -n "${{ steps.bridge.outputs.zip }}" ]] && ARGS+=(--bridge-zip "${{ steps.bridge.outputs.zip }}")
+          poetry run veaf-build build-kit "${ARGS[@]}"
+
+      - name: Upload the kit to the release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          KIT="dist/veaf-map-capture-kit-${{ steps.version.outputs.version }}.zip"
+          gh release upload "${{ steps.version.outputs.tag }}" "$KIT" --clobber
+          # Mirror onto the floating published-latest release (the user-facing "Latest"),
+          # except for a pre-release which must leave it on the previous stable.
+          if [[ "${{ steps.version.outputs.prerelease }}" != "true" ]] && gh release view published-latest >/dev/null 2>&1; then
+            gh release upload published-latest "$KIT" --clobber
+          fi
+
+  # ---------------------------------------------------------------------------
   # Cross-platform standalone binaries.
   # PyInstaller cannot cross-compile, so each OS/arch builds on its own runner and
   # uploads its `veaf-tools` + `veaf-tools-updater` binaries to the Release above.

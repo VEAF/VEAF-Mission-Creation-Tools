@@ -1,75 +1,89 @@
-"""Generate the airdrome name->id table from a DCS installation.
+"""Generate the airdrome name->id table from DCS runtime airbase dumps.
 
-Unlike the country/units tables (datamine-sourced), the airdrome name<->id
-mapping is **terrain-specific** and lives only in the DCS install, in each map's
-``Mods/terrains/<Theatre>/Beacons.lua`` — each airfield beacon carries a
-``display_name`` and a ``beaconId = 'airfield<ID>_<n>'`` whose ``<ID>`` is the
-DCS airdrome id (the same id used as the key in a mission's ``warehouses``
-``airports[<id>]`` table). The datamine does **not** carry this data (it only
-dumps the global ``_G`` tables), so this generator reads the install directly.
+The airdrome name<->id mapping is **terrain-specific** and, crucially, the only
+authoritative source for the *exact* name a mission uses (the value ``airport_link``
+or ``Airbase.getByName`` expects) is the DCS runtime itself: ``Airbase:getName()``.
+Terrain files (``Beacons.lua``/``Radio.lua``) carry beacon/ATC callsigns that differ
+from the real airbase name (e.g. ``Abu_Ad_Duhur`` vs ``Abu al-Duhur``), so this
+generator is fed by **runtime dumps** instead.
 
-It needs a DCS install path (``--dcs-path``) and is therefore install-dependent:
-the committed artifact is **not** CI-guarded (a CI runner has no DCS install).
-Parsing is a plain text read — DCS does not need to be running.
+Each dump is a committed ``airbase_dumps/<Theatre>.json`` file — the richer artifact
+captured with ``veaf-tools capture-map`` (``{id, name, lat, lon, coalition}`` per
+airbase, real airfields and terrain helipads alike). This generator only consumes the
+``name -> id`` projection to (re)build the flat ``airdromes.yaml`` the build/validation
+read; the JSON keeps the geo data for other uses.
 
-Run via ``veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/.../DCS World"``.
+``generate`` **merges** the available dumps into ``airdromes.yaml``: a theatre with a
+dump is fully replaced from it, a theatre without one is left untouched (theatres are
+migrated to runtime dumps lot-by-lot). Runtime-dependent, so the committed artifact is
+**not** CI-guarded. Run via ``veaf-build update-dcs-data --airdromes``.
 """
 
 from __future__ import annotations
 
-import re
+import json
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 # Committed artifact consumed at design time to resolve airdrome names to ids.
 DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "src/python/veaf-tools/veaf_libs/data/airdromes.yaml"
 
-_TERRAINS_SUBDIR = "Mods/terrains"
-_BEACONS_FILE = "Beacons.lua"
+# Committed runtime dumps, one <Theatre>.json per captured theatre.
+DUMPS_DIR = Path(__file__).parent / "airbase_dumps"
 
-# display_name = _('Batumi');  ... beaconId = 'airfield22_0';
-_AIRFIELD_RE = re.compile(r"display_name\s*=\s*_\('([^']+)'\)\s*;\s*beaconId\s*=\s*'airfield(\d+)_")
+#: Legacy theatre keys left over from the retired ``Beacons.lua`` scraper, which named
+#: theatres after the **terrain folder** instead of the DCS ``mission.theatre`` string.
+#: They hold beacon labels (not airbase names) and are superseded once the canonical
+#: theatre is captured, so they are dropped to avoid a stale duplicate.
+#: Mirrors ``veaf_libs.blank_mission._THEATRE_ALIASES`` (alias -> canonical).
+LEGACY_THEATRE_ALIASES: dict[str, str] = {"Sinai": "SinaiMap", "GermanyColdWar": "GermanyCW"}
 
 
-def parse_beacons(text: str) -> dict[str, int]:
-    """Parse one terrain ``Beacons.lua`` into a ``{airfield name: id}`` map.
+def names_to_ids(airbases: list[dict[str, Any]]) -> dict[str, int]:
+    """Project a dump's airbase records to a sorted ``{name: id}`` map.
 
     Args:
-        text: Raw contents of a terrain ``Beacons.lua``.
+        airbases: Records with at least ``name`` and ``id`` keys.
 
     Returns:
-        Airfield name -> DCS airdrome id (first id wins per name; sorted by name).
+        Airbase name -> id (sorted by name; first id wins on a duplicate name).
     """
     by_name: dict[str, int] = {}
-    for name, id_str in _AIRFIELD_RE.findall(text):
-        by_name.setdefault(name, int(id_str))
+    for ab in airbases:
+        name = str(ab.get("name", "")).strip()
+        if name and "id" in ab:
+            by_name.setdefault(name, int(ab["id"]))
     return dict(sorted(by_name.items()))
 
 
-def extract_all_airdromes(dcs_path: Path) -> dict[str, dict[str, int]]:
-    """Parse every installed terrain's ``Beacons.lua`` under a DCS install.
+def load_dumps(dumps_dir: Path = DUMPS_DIR) -> dict[str, dict[str, int]]:
+    """Parse every committed ``<Theatre>.json`` dump into ``{theatre: {name: id}}``.
 
     Args:
-        dcs_path: Root of a DCS World installation.
+        dumps_dir: Directory holding the per-theatre ``.json`` dumps.
 
     Returns:
-        Theatre name -> {airfield name -> id}. Terrains whose ``Beacons.lua`` has
-        no airfield beacons (e.g. Normandy) map to an empty dict.
-
-    Raises:
-        FileNotFoundError: If the ``Mods/terrains`` directory is missing.
+        Theatre name -> {airbase name -> id}.
     """
-    terrains_dir = dcs_path / _TERRAINS_SUBDIR
-    if not terrains_dir.is_dir():
-        raise FileNotFoundError(f"DCS terrains directory not found: {terrains_dir}")
     result: dict[str, dict[str, int]] = {}
-    for terrain_dir in sorted(p for p in terrains_dir.iterdir() if p.is_dir()):
-        beacons = terrain_dir / _BEACONS_FILE
-        if not beacons.is_file():
-            continue
-        result[terrain_dir.name] = parse_beacons(beacons.read_text(encoding="utf-8", errors="ignore"))
+    if not dumps_dir.is_dir():
+        return result
+    for dump in sorted(dumps_dir.glob("*.json")):
+        doc = json.loads(dump.read_text(encoding="utf-8"))
+        theatre = str(doc.get("theatre") or dump.stem)
+        result[theatre] = names_to_ids(doc.get("airbases") or [])
     return result
+
+
+def _load_existing_theatres(output: Path) -> dict[str, dict[str, int]]:
+    """Return the ``theatres`` table already committed in *output* (empty if absent)."""
+    if not output.is_file():
+        return {}
+    data = yaml.safe_load(output.read_text(encoding="utf-8")) or {}
+    theatres = data.get("theatres") or {}
+    return {str(t): dict(a or {}) for t, a in theatres.items()}
 
 
 def write_airdromes_yaml(theatres: dict[str, dict[str, int]], output: Path) -> None:
@@ -83,18 +97,25 @@ def write_airdromes_yaml(theatres: dict[str, dict[str, int]], output: Path) -> N
     data = {"theatres": {theatre: airfields for theatre, airfields in sorted(theatres.items())}}
     with open(output, "w", encoding="utf-8", newline="\n") as f:
         f.write("# DCS airdrome name -> id table, per theatre.\n")
-        f.write("# Generated from a DCS install's Mods/terrains/<Theatre>/Beacons.lua.\n")
-        f.write("# Install-dependent (terrain files), so NOT CI-guarded and may grow as\n")
-        f.write("# maps are installed. Re-run `veaf-build update-dcs-data --airdromes --dcs-path <DCS>`.\n")
-        f.write("# Used at build time to resolve airdrome names in warehouses.yaml.\n\n")
+        f.write("# Generated from runtime airbase dumps — see veaf_build/dcs_data/airbase_dumps/<Theatre>.json.\n")
+        f.write("# Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).\n")
+        f.write("# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.\n")
+        f.write(
+            "# Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.\n\n"
+        )
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
-def generate(dcs_path: Path, output: Path | None = None) -> int:
-    """Parse a DCS install's terrains and write the airdrome table.
+def generate(dumps_dir: Path = DUMPS_DIR, output: Path | None = None) -> int:
+    """Merge the committed runtime dumps into the airdrome table.
+
+    A theatre that has a dump is fully (re)generated from it; a theatre without a
+    dump is preserved as already committed in *output* (progressive migration).
+    A legacy folder-named duplicate (see :data:`LEGACY_THEATRE_ALIASES`) is dropped
+    once its canonical theatre has been captured.
 
     Args:
-        dcs_path: Root of a DCS World installation.
+        dumps_dir: Directory holding the per-theatre ``.json`` dumps.
         output: Destination YAML path. Defaults to the committed :data:`DEFAULT_OUTPUT`.
 
     Returns:
@@ -102,6 +123,11 @@ def generate(dcs_path: Path, output: Path | None = None) -> int:
     """
     if output is None:
         output = DEFAULT_OUTPUT
-    theatres = extract_all_airdromes(dcs_path)
-    write_airdromes_yaml(theatres, output)
-    return sum(len(a) for a in theatres.values())
+    merged = _load_existing_theatres(output)
+    dumped = load_dumps(dumps_dir)
+    merged.update(dumped)
+    for legacy, canonical in LEGACY_THEATRE_ALIASES.items():
+        if canonical in dumped:
+            merged.pop(legacy, None)
+    write_airdromes_yaml(merged, output)
+    return sum(len(a) for a in merged.values())

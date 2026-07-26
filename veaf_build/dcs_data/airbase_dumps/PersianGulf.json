@@ -1,0 +1,215 @@
+{
+  "theatre": "PersianGulf",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Abu Musa Island",
+      "lat": 25.875042,
+      "lon": 55.021382,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Bandar Abbas Intl",
+      "lat": 27.203639,
+      "lon": 56.370356,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Bandar Lengeh",
+      "lat": 26.530817,
+      "lon": 54.813116,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Al Dhafra AFB",
+      "lat": 24.257929,
+      "lon": 54.534203,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Dubai Intl",
+      "lat": 25.248265,
+      "lon": 55.379296,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Al Maktoum Intl",
+      "lat": 24.888624,
+      "lon": 55.17492,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Fujairah Intl",
+      "lat": 25.105736,
+      "lon": 56.340424,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Tunb Island AFB",
+      "lat": 26.251539,
+      "lon": 55.31128,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Havadarya",
+      "lat": 27.159928,
+      "lon": 56.183089,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Khasab",
+      "lat": 26.179806,
+      "lon": 56.243172,
+      "coalition": 3
+    },
+    {
+      "id": 11,
+      "name": "Lar",
+      "lat": 27.674805,
+      "lon": 54.368317,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Al Minhad AFB",
+      "lat": 25.026806,
+      "lon": 55.383678,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Qeshm Island",
+      "lat": 26.766332,
+      "lon": 55.91807,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Sharjah Intl",
+      "lat": 25.322796,
+      "lon": 55.531388,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Sirri Island",
+      "lat": 25.903344,
+      "lon": 54.548215,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Tunb Kochak",
+      "lat": 26.243605,
+      "lon": 55.149352,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Sir Abu Nuayr",
+      "lat": 25.216155,
+      "lon": 54.23694,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Kerman",
+      "lat": 30.257696,
+      "lon": 56.958269,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Shiraz Intl",
+      "lat": 29.533104,
+      "lon": 52.609894,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Sas Al Nakheel",
+      "lat": 24.448211,
+      "lon": 54.514697,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Bandar-e-Jask",
+      "lat": 25.650484,
+      "lon": 57.792126,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Abu Dhabi Intl",
+      "lat": 24.464723,
+      "lon": 54.639226,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Al-Bateen",
+      "lat": 24.434059,
+      "lon": 54.450706,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Kish Intl",
+      "lat": 26.529651,
+      "lon": 53.964909,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Al Ain Intl",
+      "lat": 24.276767,
+      "lon": 55.611736,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Lavan Island",
+      "lat": 26.815354,
+      "lon": 53.341604,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Jiroft",
+      "lat": 28.731593,
+      "lon": 57.664119,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Ras Al Khaimah Intl",
+      "lat": 25.602262,
+      "lon": 55.941865,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Liwa AFB",
+      "lat": 23.660697,
+      "lon": 53.812498,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Quasoura_airport",
+      "lat": 22.775988,
+      "lon": 55.077138,
+      "coalition": 0
+    }
+  ]
+}

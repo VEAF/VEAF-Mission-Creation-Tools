@@ -26,6 +26,7 @@ from typing import Any
 
 import typer
 import yaml
+from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL  # type: ignore[import-not-found]
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 
@@ -160,6 +161,60 @@ def build_standalone(
 
     if pause:
         input(PAUSE_MESSAGE)
+
+
+@app.command(name="build-kit")
+def build_kit(
+    version: str | None = typer.Option(None, help="Version stamped in the kit's zip name."),
+    exe: str = typer.Option("dist/veaf-tools.exe", "--exe", help="Built veaf-tools executable to bundle."),
+    bridge_zip: str | None = typer.Option(
+        None, "--bridge-zip", help="VEAF-dcs-bridge release zip to take dcs-serve.exe (+ the Lua) from."
+    ),
+    bridge_lua: str | None = typer.Option(
+        None,
+        "--bridge-lua",
+        help="Local dcs-bridge.lua for the bundled missions (default: from the zip, else download).",
+    ),
+    output: str = typer.Option("dist", "--output", help="Directory the kit zip is written to."),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """Assemble the map-capture kit zip handed to helpers collecting DCS map data.
+
+    Bundles the `veaf-tools` executable, the bridge server (from a VEAF-dcs-bridge release
+    zip when given), a ready bridge mission per supported theatre, and the procedure. No
+    `dcs-serve.yaml` is shipped: the server generates its own key on first launch, so the
+    artifact carries no secret.
+    """
+    logger.set_verbose(verbose)
+    from veaf_libs.dcs_bridge_capture import resolve_bridge_lua  # type: ignore[import-not-found]
+
+    from veaf_build import kit as kit_mod
+
+    resolved_version = _resolve_version(version)
+    repo_root = Path(__file__).parent.parent
+    zip_path = Path(output) / f"veaf-map-capture-kit-{resolved_version}.zip"
+    staging = Path(output) / "kit-staging"
+    zip_source = Path(bridge_zip) if bridge_zip else None
+
+    # Prefer the Lua shipped in the bridge release (matches dcs-serve.exe), else download it.
+    lua_path: Path | None = Path(bridge_lua) if bridge_lua else None
+    if lua_path is None and zip_source is not None:
+        lua_path = kit_mod.extract_bridge_lua(zip_source, staging.parent / "bridge-lua")
+    if lua_path is None:
+        lua_path = resolve_bridge_lua(None)
+
+    console.print(f"[cyan]Assembling the map-capture kit {resolved_version}...[/cyan]")
+    result = kit_mod.assemble_kit(
+        staging,
+        zip_path,
+        veaf_tools_exe=Path(exe),
+        procedure_md=repo_root / "doc" / "developer" / "capture-airbases.md",
+        bridge_lua=lua_path,
+        bridge_zip=zip_source,
+    )
+    if zip_source is None:
+        console.print("[yellow]⚠ no --bridge-zip: the kit ships without dcs-serve.exe[/yellow]")
+    console.print(f"[green]✓ kit written: {result} ({result.stat().st_size / 1e6:.1f} MB)[/green]")
 
 
 @app.command()
@@ -425,13 +480,24 @@ def update_dcs_data(
     units: bool = typer.Option(False, "--units", help="Regenerate the DCS units database (YAML + dcsUnits.lua)."),
     radio: bool = typer.Option(False, "--radio", help="Regenerate the DCS aircraft radio specs."),
     airdromes: bool = typer.Option(
-        False, "--airdromes", help="Regenerate the airdrome name->id table (needs --dcs-path)."
+        False, "--airdromes", help="Regenerate the airdrome name->id table from committed runtime dumps."
     ),
     airfield_freqs: bool = typer.Option(
         False, "--airfield-freqs", help="Regenerate the airfield ATC-frequency table (needs --dcs-path)."
     ),
-    dcs_path: str | None = typer.Option(
-        None, "--dcs-path", help="Path to a DCS World install (for --airdromes / --airfield-freqs)."
+    dcs_path: str | None = typer.Option(None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs)."),
+    inject_bridge: str | None = typer.Option(
+        None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."
+    ),
+    capture: bool = typer.Option(
+        False, "--capture", help="With --airdromes: capture airdromes from the running bridge mission, then merge."
+    ),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help="dcs-serve base URL for --capture."),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help="dcs-serve superuser Bearer token for --capture."
+    ),
+    bridge_lua: str | None = typer.Option(
+        None, "--bridge-lua", help="Local dcs-bridge.lua to embed for --inject-bridge (default: download)."
     ),
     all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
 ) -> None:
@@ -453,16 +519,32 @@ def update_dcs_data(
     ref_short = DATAMINE_REF[:8]
 
     if airdromes:
-        if not dcs_path:
-            console.print("[red]--airdromes requires --dcs-path <DCS World install>[/red]")
-            raise typer.Exit(code=1)
         from pathlib import Path
+
+        from veaf_libs import dcs_bridge_capture as capture_mod  # type: ignore[import-not-found]
 
         from veaf_build.dcs_data import airdromes as airdromes_provider
 
-        console.print(f"[cyan]Generating airdrome table from {dcs_path}...[/cyan]")
-        count = airdromes_provider.generate(Path(dcs_path))
-        console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
+        if inject_bridge:
+            lua = capture_mod.resolve_bridge_lua(bridge_lua)
+            res = capture_mod.inject_bridge(Path(inject_bridge), lua)
+            console.print(
+                f"[green]✓ dcs-bridge injected into {inject_bridge} (trigger #{res['trigger_index']})[/green]"
+            )
+
+        if capture:
+            console.print(f"[cyan]Capturing airbases from the running mission via {serve_url}...[/cyan]")
+            # Falls back to the api_key in a dcs-serve.yaml / dcs-client.yaml nearby.
+            key = capture_mod.resolve_api_key(api_key)
+            theatre, airbases = capture_mod.capture_airbases(serve_url, key)
+            dump_path = capture_mod.write_airbase_dump(theatre, airbases, airdromes_provider.DUMPS_DIR)
+            console.print(f"[green]✓ captured theatre '{theatre}' ({len(airbases)} airbases) → {dump_path}[/green]")
+
+        # Regenerate from the committed dumps, unless the run only injected the bridge.
+        if capture or not inject_bridge:
+            console.print("[cyan]Generating airdrome table from committed runtime dumps...[/cyan]")
+            count = airdromes_provider.generate()
+            console.print(f"[green]✓ {count} airfields written across all dumped theatres[/green]")
 
     if airfield_freqs:
         if not dcs_path:

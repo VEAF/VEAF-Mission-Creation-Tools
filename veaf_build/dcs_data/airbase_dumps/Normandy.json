@@ -1,0 +1,635 @@
+{
+  "theatre": "Normandy",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Saint Pierre du Mont",
+      "lat": 49.389798,
+      "lon": -0.947183,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Lignerolles",
+      "lat": 49.177205,
+      "lon": -0.795874,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Cretteville",
+      "lat": 49.33224,
+      "lon": -1.372378,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Maupertus",
+      "lat": 49.648179,
+      "lon": -1.457139,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Brucheville",
+      "lat": 49.370367,
+      "lon": -1.208502,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Meautis",
+      "lat": 49.283764,
+      "lon": -1.291997,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Cricqueville-en-Bessin",
+      "lat": 49.359831,
+      "lon": -1.006558,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Lessay",
+      "lat": 49.206399,
+      "lon": -1.516793,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Sainte-Laurent-sur-Mer",
+      "lat": 49.362172,
+      "lon": -0.864574,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Biniville",
+      "lat": 49.432936,
+      "lon": -1.46484,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Cardonville",
+      "lat": 49.356791,
+      "lon": -1.054566,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Deux Jumeaux",
+      "lat": 49.349375,
+      "lon": -0.990008,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Chippelle",
+      "lat": 49.244719,
+      "lon": -0.962914,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Beuzeville",
+      "lat": 49.417373,
+      "lon": -1.305003,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Azeville",
+      "lat": 49.479646,
+      "lon": -1.324803,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Picauville",
+      "lat": 49.398517,
+      "lon": -1.418534,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Le Molay",
+      "lat": 49.257858,
+      "lon": -0.88743,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Longues-sur-Mer",
+      "lat": 49.340172,
+      "lon": -0.700733,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Carpiquet",
+      "lat": 49.179411,
+      "lon": -0.462931,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Bazenville",
+      "lat": 49.301185,
+      "lon": -0.571477,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Sainte-Croix-sur-Mer",
+      "lat": 49.320699,
+      "lon": -0.525281,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Beny-sur-Mer",
+      "lat": 49.293694,
+      "lon": -0.426302,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Rucqueville",
+      "lat": 49.251915,
+      "lon": -0.589838,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Sommervieu",
+      "lat": 49.300288,
+      "lon": -0.67901,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Lantheuil",
+      "lat": 49.269369,
+      "lon": -0.54524,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Evreux",
+      "lat": 49.029131,
+      "lon": 1.220147,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Chailey",
+      "lat": 50.956788,
+      "lon": -0.050298,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Needs Oar Point",
+      "lat": 50.769114,
+      "lon": -1.442811,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Funtington",
+      "lat": 50.862831,
+      "lon": -0.864985,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Tangmere",
+      "lat": 50.840469,
+      "lon": -0.698294,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Ford",
+      "lat": 50.823127,
+      "lon": -0.595829,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Argentan",
+      "lat": 48.7663,
+      "lon": -0.024739,
+      "coalition": 0
+    },
+    {
+      "id": 33,
+      "name": "Goulet",
+      "lat": 48.745888,
+      "lon": -0.115115,
+      "coalition": 0
+    },
+    {
+      "id": 34,
+      "name": "Barville",
+      "lat": 48.475043,
+      "lon": 0.318096,
+      "coalition": 0
+    },
+    {
+      "id": 35,
+      "name": "Essay",
+      "lat": 48.519684,
+      "lon": 0.264562,
+      "coalition": 0
+    },
+    {
+      "id": 36,
+      "name": "Hauterive",
+      "lat": 48.503769,
+      "lon": 0.19651,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Lymington",
+      "lat": 50.766069,
+      "lon": -1.518951,
+      "coalition": 0
+    },
+    {
+      "id": 38,
+      "name": "Vrigny",
+      "lat": 48.675792,
+      "lon": -0.006434,
+      "coalition": 0
+    },
+    {
+      "id": 39,
+      "name": "Odiham",
+      "lat": 51.233417,
+      "lon": -0.931367,
+      "coalition": 0
+    },
+    {
+      "id": 40,
+      "name": "Conches",
+      "lat": 48.939213,
+      "lon": 0.968852,
+      "coalition": 0
+    },
+    {
+      "id": 41,
+      "name": "West Malling",
+      "lat": 51.272843,
+      "lon": 0.414966,
+      "coalition": 0
+    },
+    {
+      "id": 42,
+      "name": "Villacoublay",
+      "lat": 48.764077,
+      "lon": 2.210921,
+      "coalition": 0
+    },
+    {
+      "id": 43,
+      "name": "Kenley",
+      "lat": 51.305838,
+      "lon": -0.100205,
+      "coalition": 0
+    },
+    {
+      "id": 44,
+      "name": "Beauvais-Tille",
+      "lat": 49.45813,
+      "lon": 2.104886,
+      "coalition": 0
+    },
+    {
+      "id": 45,
+      "name": "Cormeilles-en-Vexin",
+      "lat": 49.09818,
+      "lon": 2.043007,
+      "coalition": 0
+    },
+    {
+      "id": 46,
+      "name": "Creil",
+      "lat": 49.248974,
+      "lon": 2.511293,
+      "coalition": 0
+    },
+    {
+      "id": 47,
+      "name": "Guyancourt",
+      "lat": 48.761472,
+      "lon": 2.076625,
+      "coalition": 0
+    },
+    {
+      "id": 48,
+      "name": "Lonrai",
+      "lat": 48.465355,
+      "lon": 0.029871,
+      "coalition": 0
+    },
+    {
+      "id": 49,
+      "name": "Dinan-Trelivan",
+      "lat": 48.44252,
+      "lon": -2.108143,
+      "coalition": 0
+    },
+    {
+      "id": 50,
+      "name": "Heathrow",
+      "lat": 51.477794,
+      "lon": -0.473705,
+      "coalition": 0
+    },
+    {
+      "id": 51,
+      "name": "Fecamp-Benouville",
+      "lat": 49.750648,
+      "lon": 0.356796,
+      "coalition": 0
+    },
+    {
+      "id": 52,
+      "name": "Farnborough",
+      "lat": 51.283694,
+      "lon": -0.775096,
+      "coalition": 0
+    },
+    {
+      "id": 53,
+      "name": "Friston",
+      "lat": 50.759964,
+      "lon": 0.16513,
+      "coalition": 0
+    },
+    {
+      "id": 54,
+      "name": "Deanland",
+      "lat": 50.886702,
+      "lon": 0.16765,
+      "coalition": 0
+    },
+    {
+      "id": 55,
+      "name": "Triqueville",
+      "lat": 49.331957,
+      "lon": 0.460061,
+      "coalition": 0
+    },
+    {
+      "id": 56,
+      "name": "Poix",
+      "lat": 49.813907,
+      "lon": 1.969707,
+      "coalition": 0
+    },
+    {
+      "id": 57,
+      "name": "Orly",
+      "lat": 48.734054,
+      "lon": 2.385341,
+      "coalition": 0
+    },
+    {
+      "id": 58,
+      "name": "Stoney Cross",
+      "lat": 50.921058,
+      "lon": -1.652438,
+      "coalition": 0
+    },
+    {
+      "id": 59,
+      "name": "Amiens-Glisy",
+      "lat": 49.87479,
+      "lon": 2.382581,
+      "coalition": 0
+    },
+    {
+      "id": 60,
+      "name": "Ronai",
+      "lat": 48.819736,
+      "lon": -0.154371,
+      "coalition": 0
+    },
+    {
+      "id": 61,
+      "name": "Rouen-Boos",
+      "lat": 49.39037,
+      "lon": 1.183728,
+      "coalition": 0
+    },
+    {
+      "id": 62,
+      "name": "Deauville",
+      "lat": 49.366313,
+      "lon": 0.152165,
+      "coalition": 0
+    },
+    {
+      "id": 63,
+      "name": "Saint-Aubin",
+      "lat": 49.882421,
+      "lon": 1.085068,
+      "coalition": 0
+    },
+    {
+      "id": 64,
+      "name": "Flers",
+      "lat": 48.751572,
+      "lon": -0.589973,
+      "coalition": 0
+    },
+    {
+      "id": 65,
+      "name": "Avranches Le Val-Saint-Pere",
+      "lat": 48.671025,
+      "lon": -1.385696,
+      "coalition": 0
+    },
+    {
+      "id": 66,
+      "name": "Gravesend",
+      "lat": 51.425122,
+      "lon": 0.397152,
+      "coalition": 0
+    },
+    {
+      "id": 67,
+      "name": "Beaumont-le-Roger",
+      "lat": 49.0934,
+      "lon": 0.799703,
+      "coalition": 0
+    },
+    {
+      "id": 68,
+      "name": "Broglie",
+      "lat": 49.01314,
+      "lon": 0.504567,
+      "coalition": 0
+    },
+    {
+      "id": 69,
+      "name": "Bernay Saint Martin",
+      "lat": 49.108776,
+      "lon": 0.599147,
+      "coalition": 0
+    },
+    {
+      "id": 70,
+      "name": "Saint-Andre-de-lEure",
+      "lat": 48.895893,
+      "lon": 1.26067,
+      "coalition": 0
+    },
+    {
+      "id": 71,
+      "name": "Biggin Hill",
+      "lat": 51.335586,
+      "lon": 0.03644,
+      "coalition": 0
+    },
+    {
+      "id": 72,
+      "name": "Manston",
+      "lat": 51.344974,
+      "lon": 1.327783,
+      "coalition": 0
+    },
+    {
+      "id": 73,
+      "name": "Detling",
+      "lat": 51.302455,
+      "lon": 0.595876,
+      "coalition": 0
+    },
+    {
+      "id": 74,
+      "name": "Lympne",
+      "lat": 51.08462,
+      "lon": 1.014094,
+      "coalition": 0
+    },
+    {
+      "id": 75,
+      "name": "Abbeville Drucat",
+      "lat": 50.134533,
+      "lon": 1.843953,
+      "coalition": 0
+    },
+    {
+      "id": 76,
+      "name": "Saint-Omer Wizernes",
+      "lat": 50.728388,
+      "lon": 2.236385,
+      "coalition": 0
+    },
+    {
+      "id": 77,
+      "name": "Merville Calonne",
+      "lat": 50.621577,
+      "lon": 2.662567,
+      "coalition": 0
+    },
+    {
+      "id": 78,
+      "name": "High Halden",
+      "lat": 51.129372,
+      "lon": 0.710201,
+      "coalition": 0
+    },
+    {
+      "id": 79,
+      "name": "Dunkirk-Mardyck",
+      "lat": 51.029995,
+      "lon": 2.24811,
+      "coalition": 0
+    },
+    {
+      "id": 80,
+      "name": "Lashenden",
+      "lat": 51.157994,
+      "lon": 0.63555,
+      "coalition": 0
+    },
+    {
+      "id": 81,
+      "name": "Eastchurch",
+      "lat": 51.391887,
+      "lon": 0.84272,
+      "coalition": 0
+    },
+    {
+      "id": 82,
+      "name": "Hawkinge",
+      "lat": 51.108664,
+      "lon": 1.152649,
+      "coalition": 0
+    },
+    {
+      "id": 83,
+      "name": "Guernsey",
+      "lat": 49.434105,
+      "lon": -2.590834,
+      "coalition": 0
+    },
+    {
+      "id": 84,
+      "name": "Jersey",
+      "lat": 49.207508,
+      "lon": -2.2055,
+      "coalition": 0
+    },
+    {
+      "id": 85,
+      "name": "Alderney",
+      "lat": 49.706373,
+      "lon": -2.220094,
+      "coalition": 0
+    },
+    {
+      "id": 86,
+      "name": "Headcorn",
+      "lat": 51.183024,
+      "lon": 0.680018,
+      "coalition": 0
+    },
+    {
+      "id": 87,
+      "name": "Saint-Pol-Bryas",
+      "lat": 50.399973,
+      "lon": 2.354094,
+      "coalition": 0
+    },
+    {
+      "id": 88,
+      "name": "Northolt",
+      "lat": 51.554806,
+      "lon": -0.409432,
+      "coalition": 0
+    },
+    {
+      "id": 89,
+      "name": "Holmsley South",
+      "lat": 50.787874,
+      "lon": -1.693187,
+      "coalition": 0
+    },
+    {
+      "id": 90,
+      "name": "Bembridg",
+      "lat": 50.676115,
+      "lon": -1.104761,
+      "coalition": 0
+    }
+  ]
+}

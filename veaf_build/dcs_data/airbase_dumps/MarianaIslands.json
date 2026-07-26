@@ -1,0 +1,61 @@
+{
+  "theatre": "MarianaIslands",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Rota Intl",
+      "lat": 14.174905,
+      "lon": 145.232486,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Saipan Intl",
+      "lat": 15.115122,
+      "lon": 145.718798,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Tinian Intl",
+      "lat": 14.997429,
+      "lon": 145.608306,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Antonio B. Won Pat Intl",
+      "lat": 13.479569,
+      "lon": 144.784775,
+      "coalition": 3
+    },
+    {
+      "id": 5,
+      "name": "Olf Orote",
+      "lat": 13.439831,
+      "lon": 144.64681,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Andersen AFB",
+      "lat": 13.576048,
+      "lon": 144.917461,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Pagan Airstrip",
+      "lat": 18.124206,
+      "lon": 145.761064,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "North West Field",
+      "lat": 13.625334,
+      "lon": 144.858398,
+      "coalition": 0
+    }
+  ]
+}

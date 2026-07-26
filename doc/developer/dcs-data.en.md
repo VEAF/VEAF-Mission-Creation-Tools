@@ -13,8 +13,8 @@ interchangeable:
 | Source | How | Needs DCS? | Examples |
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
-| **In-DCS export** | run `src/scripts/veaf/dcsDataExport.lua` from the Mission Editor, commit the dump | yes | airbases, weapons |
-| **DCS install files** | read terrain files from a local DCS install (`--dcs-path`) | install only (not running) | airdrome name→id table |
+| **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airdrome name→id table, weapons |
+| **DCS install files** | read terrain files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
 data VEAF needs at build/runtime. The in-DCS export now only covers data the
@@ -29,12 +29,12 @@ veaf-build update-dcs-data            # every pure artifact (countries + units)
 veaf-build update-dcs-data --countries
 veaf-build update-dcs-data --units    # regenerates dcsUnits.yaml AND dcsUnits.lua
 veaf-build update-dcs-data --radio
-veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+veaf-build update-dcs-data --airdromes    # merges the committed runtime dumps
 ```
 
 `--radio`, `--airdromes` and `--airfield-freqs` are excluded from the no-flag /
-`--all` run: radio has manual overlays, and airdromes / airfield-freqs need a local
-DCS install path.
+`--all` run: radio has manual overlays, airdromes merges committed runtime dumps, and
+airfield-freqs needs a local DCS install path (`--dcs-path`).
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -163,18 +163,40 @@ airfield display name to its numeric **airdrome id** — the same id a mission's
 `warehouses` uses as `airports[<id>]`. It lets build tools (the Dynamic-Slot
 warehouse wiring) accept airfield *names* instead of raw ids.
 
-It is **install-dependent**, not datamine-sourced: the data lives only in each
-map's `Mods/terrains/<Theatre>/Beacons.lua` (airfield beacons carry a
-`display_name` and a `beaconId = 'airfield<ID>_<n>'`). So it is generated from a
-local DCS install and is **not CI-guarded** (a CI runner has no DCS install):
+It is **runtime-dependent**: the only source for the *exact* name `Airbase.getByName`
+/ a QRA `airport_link` expects is DCS itself (`Airbase:getName()`). Terrain files carry
+*beacon*/*ATC* callsigns that differ from the real name (e.g. `Abu_Ad_Duhur` instead of
+`Abu al-Duhur`) — hence `Beacons.lua` is dropped. Each theatre is captured once in-game
+with the **VEAF dcs-bridge** (`world.getAirbases()`, category `AIRDROME` — everything,
+airfields **and** terrain helipads, all valid `Airbase` objects with a warehouse) and
+the dump committed under `veaf_build/dcs_data/airdrome_dumps/<Theatre>.tsv`
+(`<id><TAB><name>`). `--airdromes` merges the available dumps into the YAML (a dumped
+theatre is regenerated, a theatre with no dump is preserved — migrated lot-by-lot). It is
+**not CI-guarded** (depends on a running DCS):
 
 ```bash
-veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+veaf-build update-dcs-data --airdromes
 ```
 
+**Capturing a dump (delegable, no source or Python).** Two `veaf-tools` commands (so
+in the shipped executable, usable by a non-dev) produce the rich
+`airbase_dumps/<theatre>.json` dump (`{id, name, lat, lon, coalition}` per airbase):
+
+```bash
+# 1. inject the bridge into any mission on the target theatre
+veaf-tools inject-bridge myMission.miz
+# 2. launch myMission.miz in DCS + start dcs-serve, then capture
+veaf-tools capture-map --api-key <dcs-serve superuser token> --out-dir <folder>
+```
+
+On the dev side, `veaf-build update-dcs-data --airdromes` then merges the committed
+`.json` under `veaf_build/dcs_data/airbase_dumps/` into the YAML (name→id projection).
+Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
+[VEAF-dcs-bridge repo](https://github.com/VEAF/VEAF-dcs-bridge) for `dcs-serve`.
+
 `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Caveats:
-the table only covers **installed** theatres, and beacon-less maps (e.g. Normandy,
-WW2) yield no entries — callers fall back to ids. Resolution is case-insensitive.
+the table only covers **already-dumped** theatres; an un-dumped theatre yields no
+entries — callers fall back to ids. Resolution is case-insensitive.
 
 ## The airfield-frequency table
 

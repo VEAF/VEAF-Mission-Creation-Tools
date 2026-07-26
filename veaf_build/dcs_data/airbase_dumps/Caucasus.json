@@ -1,0 +1,152 @@
+{
+  "theatre": "Caucasus",
+  "airbases": [
+    {
+      "id": 12,
+      "name": "Anapa-Vityazevo",
+      "lat": 45.013175,
+      "lon": 37.359783,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Krasnodar-Center",
+      "lat": 45.08743,
+      "lon": 38.925202,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Novorossiysk",
+      "lat": 44.67333,
+      "lon": 37.786226,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Krymsk",
+      "lat": 44.961383,
+      "lon": 37.985887,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Maykop-Khanskaya",
+      "lat": 44.67144,
+      "lon": 40.021427,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Gelendzhik",
+      "lat": 44.567675,
+      "lon": 38.004146,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Sochi-Adler",
+      "lat": 43.439378,
+      "lon": 39.924232,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Krasnodar-Pashkovsky",
+      "lat": 45.0461,
+      "lon": 39.203067,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Sukhumi-Babushara",
+      "lat": 42.852741,
+      "lon": 41.142448,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Gudauta",
+      "lat": 43.124233,
+      "lon": 40.564176,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Batumi",
+      "lat": 41.60328,
+      "lon": 41.609275,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Senaki-Kolkhi",
+      "lat": 42.238728,
+      "lon": 42.061021,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Kobuleti",
+      "lat": 41.932105,
+      "lon": 41.876484,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Kutaisi",
+      "lat": 42.179154,
+      "lon": 42.495684,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Mineralnye Vody",
+      "lat": 44.218647,
+      "lon": 43.10068,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Nalchik",
+      "lat": 43.510071,
+      "lon": 43.625109,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Mozdok",
+      "lat": 43.791303,
+      "lon": 44.620327,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Tbilisi-Lochini",
+      "lat": 41.67472,
+      "lon": 44.946875,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Soganlug",
+      "lat": 41.641163,
+      "lon": 44.947183,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Vaziani",
+      "lat": 41.637736,
+      "lon": 45.019091,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Beslan",
+      "lat": 43.208501,
+      "lon": 44.588923,
+      "coalition": 0
+    }
+  ]
+}

@@ -3,6 +3,7 @@ from . import (  # noqa: F401
     aircraft_groups,
     ask,
     build,
+    capture_map,
     config,
     convert_other,
     convert_v5,

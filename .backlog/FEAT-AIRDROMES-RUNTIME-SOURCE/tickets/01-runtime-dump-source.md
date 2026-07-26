@@ -1,6 +1,6 @@
 # 01 — Airdrome table from committed runtime dumps
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feat
 
 ## Tasks

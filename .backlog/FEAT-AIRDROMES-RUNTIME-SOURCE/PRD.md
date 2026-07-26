@@ -1,6 +1,6 @@
 # FEAT-AIRDROMES-RUNTIME-SOURCE — Airdrome table from runtime dumps
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 
@@ -36,9 +36,9 @@ captured in-game via the VEAF dcs-bridge (`world.getAirbases()`, category
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | Rewrite `airdromes.py` on runtime dumps + merge; commit `Syria.tsv` (225 airbases); regenerate `airdromes.yaml`; drop `--dcs-path` for `--airdromes`; TDD; docs (dev `dcs-data`, `dcs_airdromes` docstring); CHANGELOG; version bump | 🔄 |
-| 02 | Delegable capture tooling: `veaf-tools inject-bridge` + `veaf-tools capture-map` (rich `<theatre>.json` over `dcs-serve`), shared `veaf_libs/dcs_bridge_capture.py`; TDD; helper procedure. Validated live — David captured 6 theatres with the kit | 🔄 |
-| 03 | Ship the kit from the release CI (`veaf-map-capture-kit-<version>.zip`): `veaf-build build-kit` + a `kit` job; key auto-resolved from `dcs-serve.yaml` so no secret is published; bundled bridge missions generated without DCS | 🔄 |
+| 01 | ✅ Rewrite `airdromes.py` on runtime dumps + merge; commit `Syria.tsv` (225 airbases); regenerate `airdromes.yaml`; drop `--dcs-path` for `--airdromes`; TDD; docs (dev `dcs-data`, `dcs_airdromes` docstring); CHANGELOG; version bump | ✅ |
+| 02 | ✅ Delegable capture tooling: `veaf-tools inject-bridge` + `veaf-tools capture-map` (rich `<theatre>.json` over `dcs-serve`), shared `veaf_libs/dcs_bridge_capture.py`; TDD; helper procedure. Validated live — David captured 6 theatres with the kit | ✅ |
+| 03 | ✅ Ship the kit from the release CI (`veaf-map-capture-kit-<version>.zip`): `veaf-build build-kit` + a `kit` job; key auto-resolved from `dcs-serve.yaml` so no secret is published; bundled bridge missions generated without DCS | ✅ |
 
 ## Captured in this lot (7 theatres, 657 airbases)
 

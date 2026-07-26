@@ -1,6 +1,6 @@
 # 03 — Ship the map-capture kit from the release CI
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feat
 
 ## Goal

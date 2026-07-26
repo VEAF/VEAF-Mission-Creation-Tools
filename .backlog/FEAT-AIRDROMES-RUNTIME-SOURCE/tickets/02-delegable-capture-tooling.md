@@ -1,6 +1,6 @@
 # 02 — Delegable map-data capture tooling
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feat
 
 ## Goal

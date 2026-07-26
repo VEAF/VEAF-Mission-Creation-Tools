@@ -84,6 +84,7 @@ modules:
 | `radio_menu_prefix` | string | — | Non | Préfixe affiché devant le libellé de la zone dans le menu |
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
+| `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même. Nécessaire pour une zone **sans unité ROUGE** : la complétion étant décidée sur le seul décompte des rouges, une telle zone se désactiverait dès la première vérification (~1 min) |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |

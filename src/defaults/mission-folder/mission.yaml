@@ -142,6 +142,7 @@ modules:
   #         radio_menu_prefix: BLUE   # prefix shown before the zone label in the menu
   #         training: false
   #         active_at_start: true   # activate this zone automatically at mission start
+  #         completable: true       # false = never auto-completes; required for a zone with no RED unit
   #   QRA:
   #     enabled: true
   #     silence_all: false
@@ -160,6 +161,7 @@ modules:
   #             random_pick: 1
   #         delay_before_rearming: 30
   #         delay_before_activating: 30
+  #         active_at_start: true   # false = declared but not armed; wait for a qra.start radio command
   #   AIRWAVES:
   #     enabled: true
   #     airwave_zones:

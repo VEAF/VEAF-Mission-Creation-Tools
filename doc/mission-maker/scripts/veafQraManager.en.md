@@ -100,6 +100,7 @@ modules:
 | `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
 | `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
 | `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
+| `active_at_start` | boolean | `true` | No | `false`: the QRA is declared but **not armed** at start — it waits for a `qra.start` (radio menu) or a scripted call |
 | `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
 | `radio_menu` | boolean | `false` | No | Automatically generate an F10 radio submenu to control this QRA (see below) |
 | `radio_menu_restrict_to_group` | string | — | No | Name of a DCS group; the generated submenu only appears for that group |
@@ -283,7 +284,7 @@ modules:
           - "MiG-29 QRA North"
 ```
 
-> There is no YAML equivalent of `:start()`: any definition listed under `definitions:` is started automatically when the mission loads. To delay when it comes online, use `delay_before_activating`; to leave it off, remove it (or comment it out) from `definitions:`.
+> A definition listed under `definitions:` is started automatically when the mission loads. To delay when it comes online, use `delay_before_activating`; to declare it **without arming it**, set `active_at_start: false` (it can then be armed by a `qra.start` radio command or a script); to drop it entirely, remove it from `definitions:`.
 
 **Via `mission-script.lua`** — call the builder after `veafQraManager.initialize()`, then `:start()` explicitly:
 

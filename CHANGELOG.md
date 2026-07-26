@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.11.0] — 2026-07-26
+
 ### Added
 - **A QRA can be declared without being armed** (FEAT-ACTIVATION-CONTROLS). New `active_at_start` key on a `modules.QRA.definitions[]` entry (default `true`, so nothing changes for existing missions). With `false`, the generated builder chain stops before `:start()`: the QRA is still registered under its name, so a `qra.start` radio command — or a script — arms it later. Until then it is inert (its birth-event handler returns early while its enemy-unit cache is unset). Previously every QRA was armed at mission load and `active_at_start` was silently ignored there (it is a *combat-zone* key). Reported by Tripack.
 - **A combat zone can be told never to auto-complete** (FEAT-ACTIVATION-CONTROLS). New `completable` key on a `modules.COMBATZONE.combat_zones[]` entry (default `true`), mapping to the runtime's existing `:setCompletable(false)`, which stops the zone from scheduling its completion watchdog. This is what a zone holding **only BLUE units** needs: completion is decided on the *red* unit count alone (`nbUnitsR == 0` — the blue count is computed but never used), so such a zone activated and then deactivated itself on its first check, about a minute later. Reported by Tripack. Making the enemy coalition itself configurable remains open.

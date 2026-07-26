@@ -1,8 +1,8 @@
 # DCS airdrome name -> id table, per theatre.
-# Generated from a DCS install's Mods/terrains/<Theatre>/Beacons.lua.
-# Install-dependent (terrain files), so NOT CI-guarded and may grow as
-# maps are installed. Re-run `veaf-build update-dcs-data --airdromes --dcs-path <DCS>`.
-# Used at build time to resolve airdrome names in warehouses.yaml.
+# Generated from runtime airbase dumps — see veaf_build/dcs_data/airbase_dumps/<Theatre>.json.
+# Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).
+# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.
+# Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.
 
 theatres:
   Caucasus:
@@ -17,198 +17,655 @@ theatres:
     Krymsk: 15
     Kutaisi: 25
     Maykop-Khanskaya: 16
-    MineralnyeVody: 26
+    Mineralnye Vody: 26
     Mozdok: 28
     Nalchik: 27
+    Novorossiysk: 14
     Senaki-Kolkhi: 23
     Sochi-Adler: 18
+    Soganlug: 30
     Sukhumi-Babushara: 20
     Tbilisi-Lochini: 29
     Vaziani: 31
-  GermanyColdWar:
+  GermanyCW:
+    Adelsheim: 52
+    Airracing Frankfurt: 204
+    Airracing Koblenz: 123
+    Airracing Lubeck: 201
     Allstedt: 157
-    AltesLager: 2
-    BUCHEL: 235
+    Altes Lager: 2
+    Bad Durkheim: 242
+    Barth: 3
+    Bienenfarm: 110
     Bindersleben: 164
     Bitburg: 200
     Bornholm: 33
     Brand: 34
     Brandis: 35
+    Braunschweig: 107
     Bremen: 5
     Briest: 6
+    Buchel: 235
+    Buckeburg: 7
     Celle: 8
     Chojna: 36
     Cochstedt: 9
     Cologne: 37
     Damgarten: 10
+    Dedelow: 103
     Dessau: 83
     Dusseldorf: 38
     Falkenberg: 39
     Fassberg: 11
-    Finkenwerder: 18
     Finow: 12
-    Finthen: 44
     Frankfurt: 163
     Fritzlar: 154
     Fulda: 166
     Gardelegen: 112
     Garz: 13
     Gatow: 14
+    Gelnhausen: 243
     Giebelstadt: 159
+    Glindbruchkippe: 113
+    Gross Mohrdorf: 80
+    Grosse Wiese: 141
     Gutersloh: 16
+    H FRG 01: 53
+    H FRG 02: 54
+    H FRG 03: 55
+    H FRG 04: 56
+    H FRG 05: 57
+    H FRG 06: 58
+    H FRG 07: 59
+    H FRG 08: 60
+    H FRG 09: 61
+    H FRG 10: 62
+    H FRG 11: 100
+    H FRG 12: 64
+    H FRG 13: 65
+    H FRG 14: 66
+    H FRG 15: 78
+    H FRG 16: 96
+    H FRG 17: 97
+    H FRG 18: 98
+    H FRG 19: 99
+    H FRG 20: 143
+    H FRG 21: 148
+    H FRG 23: 150
+    H FRG 25: 191
+    H FRG 27: 202
+    H FRG 30: 211
+    H FRG 31: 212
+    H FRG 32: 213
+    H FRG 34: 215
+    H FRG 38: 219
+    H FRG 39: 151
+    H FRG 40: 234
+    H FRG 41: 253
+    H FRG 42: 254
+    H FRG 43: 237
+    H FRG 44: 238
+    H FRG 45: 239
+    H FRG 46: 240
+    H FRG 47: 241
+    H FRG 48: 220
+    H FRG 49: 221
+    H FRG 50: 149
+    H FRG 51: 218
+    H GDR 01: 67
+    H GDR 02: 68
+    H GDR 03: 69
+    H GDR 04: 70
+    H GDR 05: 71
+    H GDR 06: 72
+    H GDR 07: 73
+    H GDR 08: 74
+    H GDR 09: 75
+    H GDR 10: 76
+    H GDR 11: 77
+    H GDR 12: 85
+    H GDR 13: 91
+    H GDR 14: 92
+    H GDR 15: 93
+    H GDR 16: 94
+    H GDR 17: 95
+    H GDR 18: 142
+    H GDR 19: 145
+    H GDR 21: 152
+    H GDR 22: 153
+    H GDR 24: 185
+    H GDR 25: 226
+    H GDR 26: 227
+    H GDR 30: 146
+    H GDR 31: 229
+    H GDR 32: 230
+    H GDR 33: 122
+    H GDR 34: 124
+    H Med FRG 01: 129
+    H Med FRG 02: 130
+    H Med FRG 04: 132
+    H Med FRG 06: 134
+    H Med FRG 11: 139
+    H Med FRG 12: 144
+    H Med FRG 13: 186
+    H Med FRG 14: 187
+    H Med FRG 15: 188
+    H Med FRG 16: 189
+    H Med FRG 17: 190
+    H Med FRG 21: 208
+    H Med FRG 24: 222
+    H Med FRG 26: 225
+    H Med FRG 27: 231
+    H Med FRG 29: 233
+    H Med GDR 01: 119
+    H Med GDR 02: 120
+    H Med GDR 03: 121
+    H Med GDR 08: 126
+    H Med GDR 09: 127
+    H Med GDR 10: 128
+    H Med GDR 11: 147
+    H Med GDR 12: 180
+    H Med GDR 13: 181
+    H Med GDR 14: 182
+    H Med GDR 16: 184
+    H Radar FRG 02: 223
+    H Radar GDR 01: 193
+    H Radar GDR 02: 194
+    H Radar GDR 03: 195
+    H Radar GDR 04: 196
+    H Radar GDR 05: 197
+    H Radar GDR 06: 198
+    H Radar GDR 07: 199
+    H Radar GDR 08: 252
+    H Radar GDR 09: 251
     Hahn: 155
+    Haina: 161
     Hamburg: 17
+    Hamburg Finkenwerder: 18
     Hannover: 19
-    'Heidelberg ': 40
+    Hasselfelde: 140
+    Heidelberg: 40
+    Herrenteich: 244
+    Hildesheim: 115
+    Hockenheim: 245
     Holzdorf: 118
-    KASTRUP: 41
-    KOLN: 37
+    Kammermark: 104
     Kastrup: 41
     Kiel: 42
     Kothen: 82
     Laage: 20
-    Leipzig: 171
-    Lerz: 21
+    Landstuhl: 43
+    Langenselbold: 246
+    Larz: 21
+    Leipzig Mockau: 236
     Lubeck: 81
+    Luneburg: 89
     Mahlwinkel: 22
+    Mainz Finthen: 44
     Marxwalde: 46
-    Mending: 168
+    Mendig: 168
     Merseburg: 169
-    Mockau: 236
     Neubrandenburg: 23
     Neuruppin: 24
     Nordholz: 47
+    Northeim: 90
     Norvenich: 48
+    Ober-Morlen: 248
     Obermehler Schlotheim: 51
     Oranienburg: 49
     Parchim: 84
     Peenemunde: 25
+    Perwenitz: 125
     Pferdsfeld: 232
-    Platz: 7
+    Pinnow: 111
+    Pottschutthohe: 249
     Ramstein: 165
-    SEMBACH: 156
+    Revinge: 79
+    Rinteln: 117
+    Schkeuditz: 171
     Schonefeld: 26
     Schweinfurt: 160
+    Sembach: 156
+    Sittensen: 131
     Spangdahlem: 162
     Sperenberg: 101
+    Sprendlingen: 135
     Stendal: 27
     Sturup: 45
-    Szczecin Goleniow: 50
-    TEGEL: 28
+    Szczecin-Goleniow: 50
+    Tagra: 87
     Tegel: 28
     Tempelhof: 29
     Templin: 15
+    Thurland: 136
     Tutow: 30
-    WUNSTORF: 32
+    Uelzen: 102
+    Uetersen: 86
+    Ummern: 114
+    Verden-Scharnhorst: 116
+    Walldorf: 247
+    Waren Vielist: 109
     Werneuchen: 31
+    Weser Wumme: 106
     Wiesbaden: 170
+    Wismar: 108
     Wittstock: 1
-    Wolfsburg: 107
+    Worms: 250
     Wunstorf: 32
     Zerbst: 4
+    Zollschen: 137
     Zweibrucken: 158
   MarianaIslands:
-    Andersen: 6
-    AntonioBWonPat: 4
-    Rota: 1
-    Saipan: 2
-  Normandy: {}
+    Andersen AFB: 6
+    Antonio B. Won Pat Intl: 4
+    North West Field: 8
+    Olf Orote: 5
+    Pagan Airstrip: 7
+    Rota Intl: 1
+    Saipan Intl: 2
+    Tinian Intl: 3
+  Normandy:
+    Abbeville Drucat: 75
+    Alderney: 85
+    Amiens-Glisy: 59
+    Argentan: 32
+    Avranches Le Val-Saint-Pere: 65
+    Azeville: 15
+    Barville: 34
+    Bazenville: 20
+    Beaumont-le-Roger: 67
+    Beauvais-Tille: 44
+    Bembridg: 90
+    Beny-sur-Mer: 22
+    Bernay Saint Martin: 69
+    Beuzeville: 14
+    Biggin Hill: 71
+    Biniville: 10
+    Broglie: 68
+    Brucheville: 5
+    Cardonville: 11
+    Carpiquet: 19
+    Chailey: 27
+    Chippelle: 13
+    Conches: 40
+    Cormeilles-en-Vexin: 45
+    Creil: 46
+    Cretteville: 3
+    Cricqueville-en-Bessin: 7
+    Deanland: 54
+    Deauville: 62
+    Detling: 73
+    Deux Jumeaux: 12
+    Dinan-Trelivan: 49
+    Dunkirk-Mardyck: 79
+    Eastchurch: 81
+    Essay: 35
+    Evreux: 26
+    Farnborough: 52
+    Fecamp-Benouville: 51
+    Flers: 64
+    Ford: 31
+    Friston: 53
+    Funtington: 29
+    Goulet: 33
+    Gravesend: 66
+    Guernsey: 83
+    Guyancourt: 47
+    Hauterive: 36
+    Hawkinge: 82
+    Headcorn: 86
+    Heathrow: 50
+    High Halden: 78
+    Holmsley South: 89
+    Jersey: 84
+    Kenley: 43
+    Lantheuil: 25
+    Lashenden: 80
+    Le Molay: 17
+    Lessay: 8
+    Lignerolles: 2
+    Longues-sur-Mer: 18
+    Lonrai: 48
+    Lymington: 37
+    Lympne: 74
+    Manston: 72
+    Maupertus: 4
+    Meautis: 6
+    Merville Calonne: 77
+    Needs Oar Point: 28
+    Northolt: 88
+    Odiham: 39
+    Orly: 57
+    Picauville: 16
+    Poix: 56
+    Ronai: 60
+    Rouen-Boos: 61
+    Rucqueville: 23
+    Saint Pierre du Mont: 1
+    Saint-Andre-de-lEure: 70
+    Saint-Aubin: 63
+    Saint-Omer Wizernes: 76
+    Saint-Pol-Bryas: 87
+    Sainte-Croix-sur-Mer: 21
+    Sainte-Laurent-sur-Mer: 9
+    Sommervieu: 24
+    Stoney Cross: 58
+    Tangmere: 30
+    Triqueville: 55
+    Villacoublay: 42
+    Vrigny: 38
+    West Malling: 41
   PersianGulf:
-    ABUDHABI: 22
-    AbuDhabiInt: 22
-    Abumusa: 1
-    AlAinInt: 25
-    AlBateenInt: 23
-    AlDhafra: 4
-    BandarAbbas: 2
-    BandarEJask: 21
-    BandarLengeh: 3
-    Fujairah: 7
-    GheshmIsland: 13
+    Abu Dhabi Intl: 22
+    Abu Musa Island: 1
+    Al Ain Intl: 25
+    Al Dhafra AFB: 4
+    Al Maktoum Intl: 6
+    Al Minhad AFB: 12
+    Al-Bateen: 23
+    Bandar Abbas Intl: 2
+    Bandar Lengeh: 3
+    Bandar-e-Jask: 21
+    Dubai Intl: 5
+    Fujairah Intl: 7
     Havadarya: 9
-    JASK: 21
     Jiroft: 27
-    KERMAN: 18
-    KishIsland: 24
-    Kochak: 16
-    LAR: 11
-    LavanIsland: 26
-    LiwaAirbase: 29
-    Minhad: 12
-    RasAlKhaimah: 28
-    SHIRAZ: 19
-    SasAlNakheel: 20
-    SirriIsland: 15
-  Sinai:
-    AXD: 35
-    Abyad: 48
-    AsSalihiyah: 3
-    BenGurion: 24
-    BilbeisAirBase: 16
-    BorgElArabIntl: 35
-    CairoInternationalAirport: 17
-    CairoInternationalAirportd: 17
-    CairoWest: 18
-    Damascus: 48
-    Eilat: 41
-    Eilat/IlanandAsafRamonAirport: 41
-    ElArish: 29
-    Faid: 6
-    HURG: 38
+    Kerman: 18
+    Khasab: 10
+    Kish Intl: 24
+    Lar: 11
+    Lavan Island: 26
+    Liwa AFB: 29
+    Qeshm Island: 13
+    Quasoura_airport: 30
+    Ras Al Khaimah Intl: 28
+    Sas Al Nakheel: 20
+    Sharjah Intl: 14
+    Shiraz Intl: 19
+    Sir Abu Nuayr: 17
+    Sirri Island: 15
+    Tunb Island AFB: 8
+    Tunb Kochak: 16
+  SinaiMap:
+    Abu Rudeis: 26
+    Abu Suwayr: 2
+    Al Bahr al Ahmar: 44
+    Al Ismailiyah: 4
+    Al Khatatbah: 31
+    Al Mansurah: 14
+    Al Rahmaniyah Air Base: 32
+    As Salihiyah: 3
+    AzZaqaziq: 15
+    Baluza: 27
+    Ben-Gurion: 24
+    Beni Suef: 33
+    Bilbeis Air Base: 16
+    Bir Hasanah: 28
+    Birma Air Base: 34
+    Borg El Arab International Airport: 35
+    Cairo International Airport: 17
+    Cairo West: 18
+    Damascus Intl: 48
+    Difarsuwar Airfield: 1
+    Ein Shamer: 52
+    El Arish: 29
+    El Gora: 30
+    El Minya: 36
+    Fayed: 6
+    Gebel El Basur Air Base: 37
     Hatzerim: 7
     Hatzor: 20
-    Hurghada: 38
-    InshasAirbase: 19
-    Ismailiyah: 4
-    KALDE: 46
-    Kibrit: 11
+    Hurghada International Airport: 38
+    Inshas Airbase: 19
+    Jiyanklis Air Base: 39
+    Kedem: 12
+    Khalkhalah Air Base: 55
+    Kibrit Air Base: 11
+    King Feisal Air Base: 54
+    Kom Awshim: 40
+    Megiddo: 51
     Melez: 5
-    Mezze: 49
+    Mezzeh Air Base: 49
     Nevatim: 8
-    Otaebe: 48
     Ovda: 10
-    RMTDVD: 50
-    Ramon: 9
-    SharmElSheikhIntl: 42
-    TABUK: 47
-    Taba: 53
-    TelNof: 23
-    WADIABURISH: 43
-    WadiAlJandali: 13
+    Palmachim: 21
+    Quwaysina: 45
+    Rafic Hariri Intl: 46
+    Ramat David: 50
+    Ramon Airbase: 9
+    Ramon International Airport: 41
+    Sde Dov: 22
+    Sharm El Sheikh International Airport: 42
+    St Catherine: 25
+    Taba International Airport: 53
+    Tabuk: 47
+    TabukHeliBase: 56
+    Tel Nof: 23
+    Wadi Abu Rish: 43
+    Wadi al Jandali: 13
   Syria:
-    ABYAD: 7
-    ADANA: 2
-    AKROTIRI: 44
-    ALANYA/GAZIPASA: 41
-    ALEPPO: 27
+    Abu al-Duhur: 1
+    Adana Sakirpasa: 2
+    Adiyaman: 219
     Akrotiri: 44
-    BEIRUT: 6
-    BenGurion: 221
-    Cheka: 40
-    Cukurova: 90
-    DAMASCUS: 7
-    DEIR_EZ-ZOR: 42
+    Al Qusayr: 3
+    Al-Dumayr: 9
+    Aleppo: 27
+    An Nasiriyah: 4
+    At Tanf: 63
+    Bassel Al-Assad: 21
+    Beirut-Rafic Hariri: 6
+    Ben Gurion: 221
+    Chukurova: 90
     Damascus: 7
+    Deir ez-Zor: 42
     Diyarbakir: 217
-    ERCAN: 49
-    FAMAGUSTA_GECITKALE: 50
-    GAZIANTEP: 11
-    GAZIPASA/ALANYA: 41
-    GECITKALE: 50
-    HATAY: 15
+    Ercan: 49
+    Eyn Shemer: 10
+    Gaziantep: 11
+    Gazipasa: 41
+    Gecitkale: 50
+    Gulechoba: 216
+    H3: 53
+    H3 Northwest: 54
+    H3 Southwest: 55
+    H4: 12
+    H4 Emergency: 61
+    HC01: 69
+    HC02: 70
+    HC03: 71
+    HC04: 72
+    HC05: 73
+    HC06: 74
+    HI01: 79
+    HI02: 80
+    HI03: 82
+    HI05: 83
+    HI06: 84
+    HI07: 85
+    HI08: 76
+    HI09: 77
+    HI11: 86
+    HI12: 87
+    HI13: 116
+    HI14: 115
+    HI15: 114
+    HI16: 113
+    HI17: 112
+    HI18: 186
+    HI20: 193
+    HI21: 199
+    HI22: 198
+    HI23: 197
+    HI24: 196
+    HI25: 195
+    HI26: 194
+    HJ01: 203
+    HJ02: 202
+    HJ03: 201
+    HJ04: 200
+    HL01: 208
+    HL02: 207
+    HL03: 206
+    HL04: 205
+    HL05: 204
+    HL06: 157
+    HL07: 155
+    HL08: 154
+    HL09: 153
+    HL10: 152
+    HL11: 151
+    HL12: 148
+    HL13: 147
+    HMed00: 129
+    HMed01: 128
+    HMed02: 127
+    HMed03: 126
+    HMed04: 125
+    HMed05: 124
+    HMed06: 123
+    HMed07: 122
+    HMed08: 121
+    HMed09: 120
+    HMed10: 119
+    HMed11: 130
+    HMed12: 176
+    HMed13: 175
+    HMed14: 174
+    HMed15: 173
+    HMed16: 172
+    HMed17: 171
+    HMed18: 170
+    HMed19: 169
+    HMed20: 168
+    HMed21: 167
+    HMed22: 166
+    HMed23: 165
+    HMed24: 164
+    HMed25: 163
+    HMed26: 162
+    HMed27: 161
+    HMed28: 160
+    HMed29: 159
+    HMed30: 158
+    HOil01: 181
+    HOil02: 180
+    HOil03: 179
+    HOil04: 178
+    HOil05: 177
+    HOil06: 211
+    HS02: 89
+    HS03: 187
+    HS04: 184
+    HS05: 92
+    HS06: 93
+    HS07: 185
+    HS08: 94
+    HS09: 95
+    HS10: 96
+    HS11: 97
+    HS12: 105
+    HS13: 104
+    HS14: 103
+    HS15: 102
+    HS16: 101
+    HS17: 100
+    HS18: 99
+    HS19: 98
+    HS20: 111
+    HS21: 110
+    HS22: 109
+    HS23: 108
+    HS24: 107
+    HS25: 106
+    HS26: 145
+    HS27: 156
+    HS28: 189
+    HS29: 190
+    HS30: 191
+    HS31: 210
+    HS32: 209
+    HS33: 118
+    HS34: 183
+    HS35: 150
+    HS36: 188
+    HS37: 215
+    HS38: 214
+    HS39: 213
+    HS40: 212
+    HS41: 149
+    HS42: 146
+    HStad01: 144
+    HStad02: 143
+    HStad03: 142
+    HStad04: 141
+    HStad05: 140
+    HStad06: 139
+    HT01: 117
+    HT02: 192
+    H_med_orig_01: 138
+    H_med_orig_02: 137
+    H_med_orig_03: 136
+    H_med_orig_04: 135
+    H_med_orig_05: 134
+    H_med_orig_06: 133
+    H_med_orig_07: 132
+    H_med_orig_08: 131
+    H_med_orig_09: 182
+    Haifa: 13
+    Hama: 14
+    Hatay: 15
     Hatzerim: 81
-    INCIRLIC: 16
-    KALDE: 6
+    Hatzor: 222
+    Herzliya: 66
+    Incirlik: 16
+    Jirah: 17
+    Kahramanmaras: 75
+    Kedem: 88
+    Khalkhalah: 18
+    Kharab Ishk: 59
+    King Abdullah II: 65
+    King Hussein Air College: 19
+    Kingsfield: 45
+    Kiryat Shmona: 20
     Konya: 218
-    LATAKIA: 21
+    Kuweires: 31
+    Lakatamia: 48
     Larnaca: 47
-    MEZZEH: 25
+    Marj Ruhayyil: 23
+    Marj as Sultan North: 22
+    Marj as Sultan South: 8
+    Marka: 67
+    Megiddo: 24
+    Mezzeh: 25
+    Minakh: 26
+    Muwaffaq Salti: 68
+    Naqoura: 52
     Nevatim: 62
-    PALMYRA: 28
-    Pafos: 46
-    PrinceHussein: 64
-    RAMATDAVID: 30
-    ROSH-PINA: 34
+    Nicosia: 43
+    Palmachim: 223
+    Palmyra: 28
+    Paphos: 46
+    Pinarbashi: 51
+    Prince Hassan: 64
+    Qabr as Sitt: 29
+    Ramat David: 30
+    Rayak: 32
+    Rene Mouawad: 33
+    Rosh Pina: 34
+    Ruwayshid: 57
     Sanliurfa: 58
-    TEL_NOF: 220
+    Sanliurfa Heliport: 224
+    Sayqal: 35
+    Shayrat: 36
+    T2: 225
+    T3: 226
+    Tabqa: 37
+    Taftanaz: 38
+    Tal Siman: 60
+    Tel Nof: 220
     Teyman: 91
+    Tha'lah: 5
+    Tiyas: 39
+    Wujah Al Hajar: 40
+    Zarqa: 56

@@ -1,0 +1,397 @@
+{
+  "theatre": "SinaiMap",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Difarsuwar Airfield",
+      "lat": 30.423829,
+      "lon": 32.335049,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Abu Suwayr",
+      "lat": 30.570418,
+      "lon": 32.109823,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "As Salihiyah",
+      "lat": 30.783021,
+      "lon": 32.037799,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Al Ismailiyah",
+      "lat": 30.59008,
+      "lon": 32.246684,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Melez",
+      "lat": 30.401003,
+      "lon": 33.156202,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Fayed",
+      "lat": 30.328723,
+      "lon": 32.282131,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Hatzerim",
+      "lat": 31.235725,
+      "lon": 34.669682,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Nevatim",
+      "lat": 31.205365,
+      "lon": 34.995878,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Ramon Airbase",
+      "lat": 30.773347,
+      "lon": 34.65385,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Ovda",
+      "lat": 29.93064,
+      "lon": 34.929107,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Kibrit Air Base",
+      "lat": 30.235209,
+      "lon": 32.500059,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Kedem",
+      "lat": 31.258515,
+      "lon": 34.648416,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Wadi al Jandali",
+      "lat": 30.057609,
+      "lon": 31.828304,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Al Mansurah",
+      "lat": 30.955645,
+      "lon": 31.440852,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "AzZaqaziq",
+      "lat": 30.58226,
+      "lon": 31.663705,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Bilbeis Air Base",
+      "lat": 30.386276,
+      "lon": 31.609749,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Cairo International Airport",
+      "lat": 30.098133,
+      "lon": 31.419873,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Cairo West",
+      "lat": 30.093241,
+      "lon": 30.899751,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Inshas Airbase",
+      "lat": 30.326969,
+      "lon": 31.437177,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Hatzor",
+      "lat": 31.754914,
+      "lon": 34.715697,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Palmachim",
+      "lat": 31.893067,
+      "lon": 34.68777,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Sde Dov",
+      "lat": 32.119759,
+      "lon": 34.785752,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Tel Nof",
+      "lat": 31.826102,
+      "lon": 34.816978,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Ben-Gurion",
+      "lat": 31.996997,
+      "lon": 34.886275,
+      "coalition": 2
+    },
+    {
+      "id": 25,
+      "name": "St Catherine",
+      "lat": 28.67657,
+      "lon": 34.063779,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Abu Rudeis",
+      "lat": 28.905341,
+      "lon": 33.195412,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Baluza",
+      "lat": 31.001504,
+      "lon": 32.561255,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Bir Hasanah",
+      "lat": 30.187986,
+      "lon": 33.425569,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "El Arish",
+      "lat": 31.025935,
+      "lon": 33.824634,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "El Gora",
+      "lat": 31.070896,
+      "lon": 34.13767,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Al Khatatbah",
+      "lat": 30.313333,
+      "lon": 30.873121,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Al Rahmaniyah Air Base",
+      "lat": 31.032572,
+      "lon": 30.668829,
+      "coalition": 0
+    },
+    {
+      "id": 33,
+      "name": "Beni Suef",
+      "lat": 29.182934,
+      "lon": 31.016127,
+      "coalition": 0
+    },
+    {
+      "id": 34,
+      "name": "Birma Air Base",
+      "lat": 30.826797,
+      "lon": 30.944291,
+      "coalition": 0
+    },
+    {
+      "id": 35,
+      "name": "Borg El Arab International Airport",
+      "lat": 30.928718,
+      "lon": 29.683903,
+      "coalition": 0
+    },
+    {
+      "id": 36,
+      "name": "El Minya",
+      "lat": 28.089334,
+      "lon": 30.734993,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Gebel El Basur Air Base",
+      "lat": 30.549951,
+      "lon": 30.545968,
+      "coalition": 0
+    },
+    {
+      "id": 38,
+      "name": "Hurghada International Airport",
+      "lat": 27.193353,
+      "lon": 33.786995,
+      "coalition": 0
+    },
+    {
+      "id": 39,
+      "name": "Jiyanklis Air Base",
+      "lat": 30.82954,
+      "lon": 30.180528,
+      "coalition": 0
+    },
+    {
+      "id": 40,
+      "name": "Kom Awshim",
+      "lat": 29.54455,
+      "lon": 30.898615,
+      "coalition": 0
+    },
+    {
+      "id": 41,
+      "name": "Ramon International Airport",
+      "lat": 29.74208,
+      "lon": 35.018555,
+      "coalition": 0
+    },
+    {
+      "id": 42,
+      "name": "Sharm El Sheikh International Airport",
+      "lat": 27.969205,
+      "lon": 34.382927,
+      "coalition": 0
+    },
+    {
+      "id": 43,
+      "name": "Wadi Abu Rish",
+      "lat": 28.987755,
+      "lon": 31.703676,
+      "coalition": 0
+    },
+    {
+      "id": 44,
+      "name": "Al Bahr al Ahmar",
+      "lat": 26.545548,
+      "lon": 33.128604,
+      "coalition": 0
+    },
+    {
+      "id": 45,
+      "name": "Quwaysina",
+      "lat": 30.590723,
+      "lon": 31.126081,
+      "coalition": 0
+    },
+    {
+      "id": 46,
+      "name": "Rafic Hariri Intl",
+      "lat": 33.838378,
+      "lon": 35.479703,
+      "coalition": 0
+    },
+    {
+      "id": 47,
+      "name": "Tabuk",
+      "lat": 28.379804,
+      "lon": 36.59569,
+      "coalition": 0
+    },
+    {
+      "id": 48,
+      "name": "Damascus Intl",
+      "lat": 33.38558,
+      "lon": 36.496399,
+      "coalition": 0
+    },
+    {
+      "id": 49,
+      "name": "Mezzeh Air Base",
+      "lat": 33.472038,
+      "lon": 36.211502,
+      "coalition": 0
+    },
+    {
+      "id": 50,
+      "name": "Ramat David",
+      "lat": 32.674888,
+      "lon": 35.177388,
+      "coalition": 0
+    },
+    {
+      "id": 51,
+      "name": "Megiddo",
+      "lat": 32.597595,
+      "lon": 35.219967,
+      "coalition": 0
+    },
+    {
+      "id": 52,
+      "name": "Ein Shamer",
+      "lat": 32.439875,
+      "lon": 35.013575,
+      "coalition": 0
+    },
+    {
+      "id": 53,
+      "name": "Taba International Airport",
+      "lat": 29.600751,
+      "lon": 34.791733,
+      "coalition": 0
+    },
+    {
+      "id": 54,
+      "name": "King Feisal Air Base",
+      "lat": 30.337047,
+      "lon": 36.163191,
+      "coalition": 0
+    },
+    {
+      "id": 55,
+      "name": "Khalkhalah Air Base",
+      "lat": 33.089428,
+      "lon": 36.533861,
+      "coalition": 0
+    },
+    {
+      "id": 56,
+      "name": "TabukHeliBase",
+      "lat": 28.311846,
+      "lon": 36.689877,
+      "coalition": 0
+    }
+  ]
+}

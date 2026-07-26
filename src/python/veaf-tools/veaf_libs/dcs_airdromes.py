@@ -6,10 +6,10 @@ This module resolves an airfield **name** (as shown in the Mission Editor) to it
 id for a given theatre, so build tools (e.g. the Dynamic-Slot warehouse wiring)
 can let users name airbases instead of guessing ids.
 
-Backed by ``data/airdromes.yaml`` (generated from a DCS install's terrain
-``Beacons.lua`` — see ``veaf-build update-dcs-data --airdromes``). The table is
-install-dependent: a theatre absent from the install (or a beacon-less WW2 map
-like Normandy) simply has no entries, and the lookup returns ``None``.
+Backed by ``data/airdromes.yaml``, whose names are the exact ``Airbase:getName()``
+values captured from runtime dumps (``world.getAirbases()`` via the VEAF dcs-bridge —
+see ``veaf-build update-dcs-data --airdromes``). The table is per-theatre: a theatre
+not yet dumped simply has no entries, and the lookup returns ``None``.
 """
 
 from __future__ import annotations

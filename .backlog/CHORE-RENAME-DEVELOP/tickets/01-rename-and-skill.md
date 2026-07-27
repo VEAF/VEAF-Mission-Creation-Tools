@@ -1,6 +1,6 @@
 # 01 — Rename the branch, rewrite references, fix the release skill
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: chore
 
 ## Tasks

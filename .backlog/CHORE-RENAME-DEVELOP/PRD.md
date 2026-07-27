@@ -1,6 +1,6 @@
 # CHORE-RENAME-DEVELOP — `develop-v6` → `develop` + canonical gitflow for releases
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Why
 
@@ -44,12 +44,12 @@ PR #625 (`develop-v6` → `master`) was **squash-merged**, so the two branches c
 `published-v6.11.0` is not reachable from `master`. The back-merge below repairs the
 divergence; the skill now forbids squash for release merges so it does not recur.
 
-## Remaining
+## Tickets
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | Rename + rewrite all references + fix the release skill | 🔄 |
-| 02 | Back-merge `master` → `develop` to reunify the histories | ⬜ |
+| 01 | Rename + rewrite all references + fix the release skill | ✅ |
+| 02 | Back-merge `master` → `develop` to reunify the histories | ✅ |
 
 ## Not done (deliberately)
 

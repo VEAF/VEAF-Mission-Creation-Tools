@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **A script embedded by `add_startup_script_trigger` never loaded** (FIX-MAPRESOURCE-KEY). In `file_static` mode the resource key was written into the **`mission`** table, whereas DCS resolves `getValueResourceByKey` against the separate `l10n/DEFAULT/mapResource` archive member. The `.lua` was embedded but unreachable: the editor showed an empty FILE field on the DO SCRIPT FILE action and the script silently never ran. Affects every mission outfitted through that action — including the bridge missions bundled in the map-capture kit, which is how it surfaced. A second, related loss was found while fixing it: a `.miz` carrying **no** `mapResource` member at all (possible for a tool-generated mission) lost the key too, since `write_miz` only rewrites members that already exist — the helper now supplies the file itself. The unit test had locked in the wrong behaviour (asserting the key landed in `mission`), and the end-to-end test only checked that the `.lua` was in the archive, never that its key resolved; both are corrected and two regression tests added. Verified in the DCS editor.
+
 ## [6.11.0] — 2026-07-26
 
 ### Added

@@ -13,8 +13,8 @@ Les données DCS entrent dans le dépôt de **deux** façons, non interchangeabl
 | Source | Comment | Besoin de DCS ? | Exemples |
 |--------|---------|-----------------|----------|
 | **Datamine communautaire** | clone de `Quaggles/dcs-lua-datamine` à un ref pinné | non | table des pays, **base des unités**, specs radio |
-| **Export in-DCS** | exécuter `src/scripts/veaf/dcsDataExport.lua` depuis l'éditeur, committer le dump | oui | airbases, armements |
-| **Fichiers d'install DCS** | lire les fichiers terrain d'une install locale (`--dcs-path`) | install seule (pas lancé) | table nom→id des aérodromes |
+| **Export in-DCS** | capturer un dump en jeu (dcs-bridge `world.getAirbases()`, ou `dcsDataExport.lua`), committer le dump | oui (DCS lancé) | table nom→id des aérodromes, armements |
+| **Fichiers d'install DCS** | lire les fichiers terrain d'une install locale (`--dcs-path`) | install seule (pas lancé) | fréquences ATC d'aérodrome |
 
 La voie datamine est reproductible et vérifiable en CI ; c'est la voie par défaut
 pour toutes les données dont VEAF a besoin au build/runtime. L'export in-DCS ne
@@ -30,12 +30,12 @@ veaf-build update-dcs-data            # tous les artefacts purs (countries + uni
 veaf-build update-dcs-data --countries
 veaf-build update-dcs-data --units    # régénère dcsUnits.yaml ET dcsUnits.lua
 veaf-build update-dcs-data --radio
-veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+veaf-build update-dcs-data --airdromes    # fusionne les dumps runtime committés
 ```
 
 `--radio`, `--airdromes` et `--airfield-freqs` sont exclus du run sans flag / `--all` :
-radio a des overlays manuels, et airdromes / airfield-freqs nécessitent le chemin
-d'une install DCS locale.
+radio a des overlays manuels, airdromes fusionne des dumps runtime committés, et
+airfield-freqs nécessite le chemin d'une install DCS locale (`--dcs-path`).
 
 Le datamine est cloné à un ref **pinné**
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), donc la génération est
@@ -165,20 +165,42 @@ nom d'aérodrome à son **id numérique** — le même id que `airports[<id>]` d
 `warehouses` d'une mission. Elle permet aux outils de build (le câblage warehouse
 des Dynamic Slots) d'accepter des **noms** d'aérodrome au lieu d'ids bruts.
 
-Elle est **dépendante de l'install**, pas du datamine : la donnée n'existe que dans
-le `Mods/terrains/<Théâtre>/Beacons.lua` de chaque carte (les beacons d'aérodrome
-portent un `display_name` et un `beaconId = 'airfield<ID>_<n>'`). Elle est donc
-générée depuis une install DCS locale et **non gardée par la CI** (un runner CI
-n'a pas d'install DCS) :
+Elle est **dépendante du runtime** : la seule source du nom *exact* attendu par
+`Airbase.getByName` / le `airport_link` d'une QRA est DCS lui-même
+(`Airbase:getName()`). Les fichiers terrain portent des libellés de *beacon* ou d'*ATC*
+qui diffèrent du vrai nom (ex. `Abu_Ad_Duhur` au lieu de `Abu al-Duhur`) — d'où
+l'abandon de `Beacons.lua`. Chaque théâtre est capturé une fois en jeu avec le
+**VEAF dcs-bridge** (`world.getAirbases()`, catégorie `AIRDROME` — tout, aérodromes
+**et** héliports de terrain, tous des `Airbase` valides avec warehouse), et le dump
+committé sous `veaf_build/dcs_data/airdrome_dumps/<Théâtre>.tsv` (`<id><TAB><nom>`).
+`--airdromes` fusionne les dumps disponibles dans le YAML (un théâtre dumpé est
+régénéré, un théâtre sans dump est préservé — migration lot par lot). **Non gardée
+par la CI** (dépend d'un DCS lancé) :
 
 ```bash
-veaf-build update-dcs-data --airdromes --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+veaf-build update-dcs-data --airdromes
 ```
 
+**Capturer un dump (délégable, sans source ni Python).** Deux commandes `veaf-tools`
+(donc dans l'exe distribué, utilisable par un non-dev) produisent le dump riche
+`airbase_dumps/<theatre>.json` (`{id, name, lat, lon, coalition}` par aérodrome) :
+
+```bash
+# 1. injecter le pont dans n'importe quelle mission du théâtre voulu
+veaf-tools inject-bridge maMission.miz
+# 2. lancer maMission.miz dans DCS + démarrer dcs-serve, puis capturer
+veaf-tools capture-map --api-key <token superuser dcs-serve> --out-dir <dossier>
+```
+
+Le `veaf-build update-dcs-data --airdromes` (côté dev) fusionne ensuite les `.json`
+committés sous `veaf_build/dcs_data/airbase_dumps/` dans le YAML (projection nom→id).
+Procédure complète pour les assistants : [capture-airbases](capture-airbases.md). Voir
+le [dépôt VEAF-dcs-bridge](https://github.com/VEAF/VEAF-dcs-bridge) pour `dcs-serve`.
+
 `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Limites : la
-table ne couvre que les théâtres **installés**, et les cartes sans beacons (ex.
-Normandy, WW2) ne donnent aucune entrée — l'appelant retombe alors sur les ids. La
-résolution est insensible à la casse.
+table ne couvre que les théâtres **déjà dumpés** ; un théâtre non dumpé ne donne
+aucune entrée — l'appelant retombe alors sur les ids. La résolution est insensible
+à la casse.
 
 ## La table des fréquences d'aérodrome
 

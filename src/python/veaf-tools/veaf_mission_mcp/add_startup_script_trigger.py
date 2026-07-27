@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import luadata
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
@@ -64,6 +65,14 @@ def add_startup_script_trigger(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
+    # `mapResource` is its own archive member; a key written into the `mission` table would
+    # never be seen by getValueResourceByKey. `read_miz` leaves it None when the archive has
+    # no such member — and `write_miz` only rewrites members that already exist, so in that
+    # case we must supply the file ourselves (see below) or the key would be dropped.
+    map_resource_member_missing = mission.map_resource_content is None
+    if mission.map_resource_content is None:
+        mission.map_resource_content = {}
+
     index, additional_files = apply_startup_script_trigger(
         mission.mission_content,
         mode=mode,
@@ -72,12 +81,24 @@ def add_startup_script_trigger(
         source_path=source_path,
         runtime_path=runtime_path,
         resource_name=resource_name,
+        map_resource=mission.map_resource_content,
     )
+
+    if map_resource_member_missing and mission.map_resource_content:
+        additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = _serialize_map_resource(
+            mission.map_resource_content
+        )
 
     backup_before_write(miz_path)
     write_miz(mission, miz_path, additional_files=additional_files or None)
 
     return {"trigger_index": index, "comment": comment}
+
+
+def _serialize_map_resource(resources: dict[str, str]) -> bytes:
+    """Render a `mapResource` table the way `write_miz` does, for a missing archive member."""
+    lua = luadata.serialize(resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
+    return f"mapResource = \n{lua}".encode()
 
 
 def apply_startup_script_trigger(
@@ -89,6 +110,7 @@ def apply_startup_script_trigger(
     source_path: str | None = None,
     runtime_path: str | None = None,
     resource_name: str | None = None,
+    map_resource: dict[str, str] | None = None,
 ) -> tuple[int, dict[str, bytes]]:
     """Mutate a parsed `mission` table in place, adding the startup script trigger.
 
@@ -109,7 +131,7 @@ def apply_startup_script_trigger(
         embed into the archive (``arcname → bytes``, empty unless static-file mode).
     """
     action_trigrule, action_compiled, additional_files = _build_action(
-        mode, content, inline_lua, source_path, runtime_path, resource_name
+        mode, content, inline_lua, source_path, runtime_path, resource_name, map_resource
     )
     index = _next_trigger_index(content)
     _append_trigrule(content, index, comment, action_trigrule)
@@ -124,6 +146,7 @@ def _build_action(
     source_path: str | None,
     runtime_path: str | None,
     resource_name: str | None,
+    map_resource: dict[str, str] | None,
 ) -> tuple[dict[str, Any], str, dict[str, bytes]]:
     """Build the (trigrule action, compiled trig action string, files-to-embed) for a mode."""
     if mode == "inline":
@@ -149,8 +172,10 @@ def _build_action(
         src = Path(source_path)
         if not src.is_file():
             raise FileNotFoundError(f"Script file not found: {src}")
+        if map_resource is None:
+            raise ValueError("mode='file_static' requires map_resource (the mission's l10n/DEFAULT/mapResource table)")
         basename = resource_name or src.name
-        key = _allocate_map_resource_key(content, basename)
+        key = _allocate_map_resource_key(map_resource, basename)
         arcname = f"{DEFAULT_SCRIPTS_LOCATION}/{basename}"
         return (
             {"predicate": "a_do_script_file", "file": key},
@@ -169,9 +194,19 @@ def _lua_literal(text: str) -> str:
     return json.dumps(text, ensure_ascii=False)
 
 
-def _allocate_map_resource_key(content: dict[str, Any], basename: str) -> str:
-    """Return a fresh, unique `mapResource` key for an embedded script."""
-    resources = content.setdefault("mapResource", {})
+def _allocate_map_resource_key(resources: dict[str, str], basename: str) -> str:
+    """Return a fresh, unique `mapResource` key for an embedded script.
+
+    Args:
+        resources: The mission's **`l10n/DEFAULT/mapResource`** table (``DcsMission.
+            map_resource_content``), mutated in place. This is a *separate archive member*,
+            not a sub-table of `mission`: DCS resolves `getValueResourceByKey` against it,
+            so a key written anywhere else is silently ignored (empty FILE in the editor).
+        basename: The embedded script's file name.
+
+    Returns:
+        The allocated key, already registered in *resources*.
+    """
     stem = Path(basename).stem
     key = f"MCP_MapKey_{stem}"
     suffix = 2

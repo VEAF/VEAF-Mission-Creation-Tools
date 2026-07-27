@@ -22,7 +22,8 @@ A DCS hook (GameGUI environment) running on a dedicated server. It:
 ## Installation
 
 1. Drop `VEAF-Server-hook.lua` into `Saved Games/<server>/Scripts/Hooks/`.
-2. Drop `veaf-pilots.txt` next to it (or in a shared folder, see `pilotsDir`) and edit it.
+2. Drop `veaf-pilots.txt` into the `Saved Games/` root (one shared file serves every server by
+   default) and edit it. To use a per-server file instead, set `pilotsDir` (see below).
 3. Add a `VEAF-specific-server-hook.lua` in the same folder for per-server configuration
    (see below).
 4. **Restart the server**: the hook is loaded at DCS startup; reloading the mission is not
@@ -42,7 +43,7 @@ goes into `VEAF-specific-server-hook.lua`:
 ```lua
 veafServerHook.enableAutoRestart     = false  -- restart watchdog + /restart /restartnow /halt commands
 veafServerHook.enableBufferingSocket = false  -- telemetry to an API server (native BufferingSocket module)
-veafServerHook.pilotsDir             = nil     -- pilots file folder; default = the hook's folder
+veafServerHook.pilotsDir             = nil     -- pilots file folder; default = shared Saved Games/ root
 ```
 
 - **`enableAutoRestart`** (default `false`): enables the idle-server restart and the
@@ -51,8 +52,9 @@ veafServerHook.pilotsDir             = nil     -- pilots file folder; default = 
 - **`enableBufferingSocket`** (default `false`): enables telemetry. The native `BufferingSocket`
   module is loaded defensively: if absent, telemetry is disabled automatically and the hook keeps
   working (no crash).
-- **`pilotsDir`** (default `nil` → the hook's folder): lets several servers share one
-  `veaf-pilots.txt` (e.g. the `Saved Games/` root).
+- **`pilotsDir`** (default `nil` → the shared `Saved Games/` root, one level above the server
+  folder): every VEAF server reads the same `veaf-pilots.txt` there with no per-server config.
+  Point it elsewhere (e.g. the hook's own folder) for a standalone server with its own list.
 
 The specific hook also carries `serverName` and `serverBotChannel` (injected into the mission).
 

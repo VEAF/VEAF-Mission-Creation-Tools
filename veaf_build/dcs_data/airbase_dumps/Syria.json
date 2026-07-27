@@ -1,0 +1,1580 @@
+{
+  "theatre": "Syria",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Abu al-Duhur",
+      "lat": 35.731462,
+      "lon": 37.118802,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Adana Sakirpasa",
+      "lat": 36.988387,
+      "lon": 35.291557,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Al Qusayr",
+      "lat": 34.566877,
+      "lon": 36.585415,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "An Nasiriyah",
+      "lat": 33.926566,
+      "lon": 36.875345,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Tha'lah",
+      "lat": 32.698127,
+      "lon": 36.402739,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Beirut-Rafic Hariri",
+      "lat": 33.812429,
+      "lon": 35.486242,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Damascus",
+      "lat": 33.41534,
+      "lon": 36.504255,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Marj as Sultan South",
+      "lat": 33.487476,
+      "lon": 36.474471,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Al-Dumayr",
+      "lat": 33.615122,
+      "lon": 36.763409,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Eyn Shemer",
+      "lat": 32.442094,
+      "lon": 34.999301,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Gaziantep",
+      "lat": 36.951779,
+      "lon": 37.462742,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "H4",
+      "lat": 32.536851,
+      "lon": 38.206376,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Haifa",
+      "lat": 32.806453,
+      "lon": 35.045021,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Hama",
+      "lat": 35.116099,
+      "lon": 36.725473,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Hatay",
+      "lat": 36.37127,
+      "lon": 36.29809,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Incirlik",
+      "lat": 36.994254,
+      "lon": 35.412713,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Jirah",
+      "lat": 36.09941,
+      "lon": 37.920906,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Khalkhalah",
+      "lat": 33.08831,
+      "lon": 36.534633,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "King Hussein Air College",
+      "lat": 32.348794,
+      "lon": 36.270213,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Kiryat Shmona",
+      "lat": 33.212372,
+      "lon": 35.59242,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Bassel Al-Assad",
+      "lat": 35.412866,
+      "lon": 35.949954,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Marj as Sultan North",
+      "lat": 33.500423,
+      "lon": 36.466322,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Marj Ruhayyil",
+      "lat": 33.284184,
+      "lon": 36.444304,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Megiddo",
+      "lat": 32.597578,
+      "lon": 35.220203,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Mezzeh",
+      "lat": 33.482714,
+      "lon": 36.235064,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Minakh",
+      "lat": 36.522812,
+      "lon": 37.033622,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Aleppo",
+      "lat": 36.179024,
+      "lon": 37.23835,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Palmyra",
+      "lat": 34.558297,
+      "lon": 38.331885,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Qabr as Sitt",
+      "lat": 33.458595,
+      "lon": 36.356859,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Ramat David",
+      "lat": 32.657742,
+      "lon": 35.19107,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Kuweires",
+      "lat": 36.189374,
+      "lon": 37.570439,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Rayak",
+      "lat": 33.842902,
+      "lon": 35.976932,
+      "coalition": 0
+    },
+    {
+      "id": 33,
+      "name": "Rene Mouawad",
+      "lat": 34.583953,
+      "lon": 35.998687,
+      "coalition": 0
+    },
+    {
+      "id": 34,
+      "name": "Rosh Pina",
+      "lat": 32.979282,
+      "lon": 35.572651,
+      "coalition": 0
+    },
+    {
+      "id": 35,
+      "name": "Sayqal",
+      "lat": 33.680052,
+      "lon": 37.204069,
+      "coalition": 0
+    },
+    {
+      "id": 36,
+      "name": "Shayrat",
+      "lat": 34.49464,
+      "lon": 36.894469,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Tabqa",
+      "lat": 35.755614,
+      "lon": 38.551251,
+      "coalition": 0
+    },
+    {
+      "id": 38,
+      "name": "Taftanaz",
+      "lat": 35.973223,
+      "lon": 36.785894,
+      "coalition": 0
+    },
+    {
+      "id": 39,
+      "name": "Tiyas",
+      "lat": 34.522725,
+      "lon": 37.61448,
+      "coalition": 0
+    },
+    {
+      "id": 40,
+      "name": "Wujah Al Hajar",
+      "lat": 34.286961,
+      "lon": 35.68399,
+      "coalition": 0
+    },
+    {
+      "id": 41,
+      "name": "Gazipasa",
+      "lat": 36.297823,
+      "lon": 32.286068,
+      "coalition": 0
+    },
+    {
+      "id": 42,
+      "name": "Deir ez-Zor",
+      "lat": 35.290033,
+      "lon": 40.161449,
+      "coalition": 0
+    },
+    {
+      "id": 43,
+      "name": "Nicosia",
+      "lat": 35.143831,
+      "lon": 33.282144,
+      "coalition": 0
+    },
+    {
+      "id": 44,
+      "name": "Akrotiri",
+      "lat": 34.594066,
+      "lon": 32.974818,
+      "coalition": 0
+    },
+    {
+      "id": 45,
+      "name": "Kingsfield",
+      "lat": 35.016621,
+      "lon": 33.721656,
+      "coalition": 0
+    },
+    {
+      "id": 46,
+      "name": "Paphos",
+      "lat": 34.722393,
+      "lon": 32.471802,
+      "coalition": 0
+    },
+    {
+      "id": 47,
+      "name": "Larnaca",
+      "lat": 34.86562,
+      "lon": 33.613584,
+      "coalition": 0
+    },
+    {
+      "id": 48,
+      "name": "Lakatamia",
+      "lat": 35.106312,
+      "lon": 33.321671,
+      "coalition": 0
+    },
+    {
+      "id": 49,
+      "name": "Ercan",
+      "lat": 35.154614,
+      "lon": 33.498108,
+      "coalition": 0
+    },
+    {
+      "id": 50,
+      "name": "Gecitkale",
+      "lat": 35.236404,
+      "lon": 33.707278,
+      "coalition": 0
+    },
+    {
+      "id": 51,
+      "name": "Pinarbashi",
+      "lat": 35.278335,
+      "lon": 33.267014,
+      "coalition": 0
+    },
+    {
+      "id": 52,
+      "name": "Naqoura",
+      "lat": 33.107906,
+      "lon": 35.127285,
+      "coalition": 0
+    },
+    {
+      "id": 53,
+      "name": "H3",
+      "lat": 32.940993,
+      "lon": 39.732583,
+      "coalition": 0
+    },
+    {
+      "id": 54,
+      "name": "H3 Northwest",
+      "lat": 33.070356,
+      "lon": 39.606626,
+      "coalition": 0
+    },
+    {
+      "id": 55,
+      "name": "H3 Southwest",
+      "lat": 32.738104,
+      "lon": 39.612103,
+      "coalition": 0
+    },
+    {
+      "id": 56,
+      "name": "Zarqa",
+      "lat": 32.028284,
+      "lon": 36.134631,
+      "coalition": 0
+    },
+    {
+      "id": 57,
+      "name": "Ruwayshid",
+      "lat": 32.403696,
+      "lon": 39.142216,
+      "coalition": 0
+    },
+    {
+      "id": 58,
+      "name": "Sanliurfa",
+      "lat": 37.460456,
+      "lon": 38.912852,
+      "coalition": 0
+    },
+    {
+      "id": 59,
+      "name": "Kharab Ishk",
+      "lat": 36.546867,
+      "lon": 38.587486,
+      "coalition": 0
+    },
+    {
+      "id": 60,
+      "name": "Tal Siman",
+      "lat": 36.263473,
+      "lon": 38.924055,
+      "coalition": 0
+    },
+    {
+      "id": 61,
+      "name": "H4 Emergency",
+      "lat": 32.386549,
+      "lon": 37.775112,
+      "coalition": 0
+    },
+    {
+      "id": 62,
+      "name": "Nevatim",
+      "lat": 31.211499,
+      "lon": 35.028902,
+      "coalition": 0
+    },
+    {
+      "id": 63,
+      "name": "At Tanf",
+      "lat": 33.506451,
+      "lon": 38.614883,
+      "coalition": 0
+    },
+    {
+      "id": 64,
+      "name": "Prince Hassan",
+      "lat": 32.169308,
+      "lon": 37.138222,
+      "coalition": 0
+    },
+    {
+      "id": 65,
+      "name": "King Abdullah II",
+      "lat": 31.999049,
+      "lon": 36.232154,
+      "coalition": 0
+    },
+    {
+      "id": 66,
+      "name": "Herzliya",
+      "lat": 32.177311,
+      "lon": 34.844129,
+      "coalition": 0
+    },
+    {
+      "id": 67,
+      "name": "Marka",
+      "lat": 31.978747,
+      "lon": 36.007007,
+      "coalition": 0
+    },
+    {
+      "id": 68,
+      "name": "Muwaffaq Salti",
+      "lat": 31.819166,
+      "lon": 36.790783,
+      "coalition": 0
+    },
+    {
+      "id": 69,
+      "name": "HC01",
+      "lat": 34.924213,
+      "lon": 33.603722,
+      "coalition": 0
+    },
+    {
+      "id": 70,
+      "name": "HC02",
+      "lat": 34.830849,
+      "lon": 33.478191,
+      "coalition": 0
+    },
+    {
+      "id": 71,
+      "name": "HC03",
+      "lat": 35.311947,
+      "lon": 33.290077,
+      "coalition": 0
+    },
+    {
+      "id": 72,
+      "name": "HC04",
+      "lat": 35.267204,
+      "lon": 33.495895,
+      "coalition": 0
+    },
+    {
+      "id": 73,
+      "name": "HC05",
+      "lat": 35.093868,
+      "lon": 33.88578,
+      "coalition": 0
+    },
+    {
+      "id": 74,
+      "name": "HC06",
+      "lat": 35.084003,
+      "lon": 33.89719,
+      "coalition": 0
+    },
+    {
+      "id": 75,
+      "name": "Kahramanmaras",
+      "lat": 37.540346,
+      "lon": 36.962365,
+      "coalition": 0
+    },
+    {
+      "id": 76,
+      "name": "HI08",
+      "lat": 32.96188,
+      "lon": 35.550068,
+      "coalition": 0
+    },
+    {
+      "id": 77,
+      "name": "HI09",
+      "lat": 32.982101,
+      "lon": 35.514713,
+      "coalition": 0
+    },
+    {
+      "id": 79,
+      "name": "HI01",
+      "lat": 32.882233,
+      "lon": 35.718987,
+      "coalition": 0
+    },
+    {
+      "id": 80,
+      "name": "HI02",
+      "lat": 32.937675,
+      "lon": 35.568729,
+      "coalition": 0
+    },
+    {
+      "id": 81,
+      "name": "Hatzerim",
+      "lat": 31.241537,
+      "lon": 34.647086,
+      "coalition": 0
+    },
+    {
+      "id": 82,
+      "name": "HI03",
+      "lat": 32.805607,
+      "lon": 35.401592,
+      "coalition": 0
+    },
+    {
+      "id": 83,
+      "name": "HI05",
+      "lat": 32.808124,
+      "lon": 35.425282,
+      "coalition": 0
+    },
+    {
+      "id": 84,
+      "name": "HI06",
+      "lat": 32.606247,
+      "lon": 34.973019,
+      "coalition": 0
+    },
+    {
+      "id": 85,
+      "name": "HI07",
+      "lat": 32.823078,
+      "lon": 35.43618,
+      "coalition": 0
+    },
+    {
+      "id": 86,
+      "name": "HI11",
+      "lat": 32.994808,
+      "lon": 35.484074,
+      "coalition": 0
+    },
+    {
+      "id": 87,
+      "name": "HI12",
+      "lat": 33.017097,
+      "lon": 35.704506,
+      "coalition": 0
+    },
+    {
+      "id": 88,
+      "name": "Kedem",
+      "lat": 31.262423,
+      "lon": 34.63314,
+      "coalition": 0
+    },
+    {
+      "id": 89,
+      "name": "HS02",
+      "lat": 35.338551,
+      "lon": 36.074306,
+      "coalition": 0
+    },
+    {
+      "id": 90,
+      "name": "Chukurova",
+      "lat": 36.905723,
+      "lon": 35.079591,
+      "coalition": 0
+    },
+    {
+      "id": 91,
+      "name": "Teyman",
+      "lat": 31.283647,
+      "lon": 34.725987,
+      "coalition": 0
+    },
+    {
+      "id": 92,
+      "name": "HS05",
+      "lat": 35.789131,
+      "lon": 37.724785,
+      "coalition": 0
+    },
+    {
+      "id": 93,
+      "name": "HS06",
+      "lat": 33.279041,
+      "lon": 36.08532,
+      "coalition": 0
+    },
+    {
+      "id": 94,
+      "name": "HS08",
+      "lat": 34.644829,
+      "lon": 36.743645,
+      "coalition": 0
+    },
+    {
+      "id": 95,
+      "name": "HS09",
+      "lat": 36.060356,
+      "lon": 37.34314,
+      "coalition": 0
+    },
+    {
+      "id": 96,
+      "name": "HS10",
+      "lat": 36.05069,
+      "lon": 37.332313,
+      "coalition": 0
+    },
+    {
+      "id": 97,
+      "name": "HS11",
+      "lat": 33.386337,
+      "lon": 36.272713,
+      "coalition": 0
+    },
+    {
+      "id": 98,
+      "name": "HS19",
+      "lat": 33.415749,
+      "lon": 36.284515,
+      "coalition": 0
+    },
+    {
+      "id": 99,
+      "name": "HS18",
+      "lat": 34.610935,
+      "lon": 38.252987,
+      "coalition": 0
+    },
+    {
+      "id": 100,
+      "name": "HS17",
+      "lat": 34.627048,
+      "lon": 38.24295,
+      "coalition": 0
+    },
+    {
+      "id": 101,
+      "name": "HS16",
+      "lat": 35.987839,
+      "lon": 37.414272,
+      "coalition": 0
+    },
+    {
+      "id": 102,
+      "name": "HS15",
+      "lat": 33.394596,
+      "lon": 36.359737,
+      "coalition": 0
+    },
+    {
+      "id": 103,
+      "name": "HS14",
+      "lat": 33.455406,
+      "lon": 36.08709,
+      "coalition": 0
+    },
+    {
+      "id": 104,
+      "name": "HS13",
+      "lat": 33.745689,
+      "lon": 36.803543,
+      "coalition": 0
+    },
+    {
+      "id": 105,
+      "name": "HS12",
+      "lat": 33.429516,
+      "lon": 36.118744,
+      "coalition": 0
+    },
+    {
+      "id": 106,
+      "name": "HS25",
+      "lat": 33.457619,
+      "lon": 36.130844,
+      "coalition": 0
+    },
+    {
+      "id": 107,
+      "name": "HS24",
+      "lat": 33.44479,
+      "lon": 36.309883,
+      "coalition": 0
+    },
+    {
+      "id": 108,
+      "name": "HS23",
+      "lat": 33.181957,
+      "lon": 36.572014,
+      "coalition": 0
+    },
+    {
+      "id": 109,
+      "name": "HS22",
+      "lat": 33.707951,
+      "lon": 36.672863,
+      "coalition": 0
+    },
+    {
+      "id": 110,
+      "name": "HS21",
+      "lat": 33.411659,
+      "lon": 36.191734,
+      "coalition": 0
+    },
+    {
+      "id": 111,
+      "name": "HS20",
+      "lat": 33.353466,
+      "lon": 36.484825,
+      "coalition": 0
+    },
+    {
+      "id": 112,
+      "name": "HI17",
+      "lat": 32.624008,
+      "lon": 35.379086,
+      "coalition": 0
+    },
+    {
+      "id": 113,
+      "name": "HI16",
+      "lat": 32.945545,
+      "lon": 35.204643,
+      "coalition": 0
+    },
+    {
+      "id": 114,
+      "name": "HI15",
+      "lat": 33.010471,
+      "lon": 35.662956,
+      "coalition": 0
+    },
+    {
+      "id": 115,
+      "name": "HI14",
+      "lat": 32.762867,
+      "lon": 35.302696,
+      "coalition": 0
+    },
+    {
+      "id": 116,
+      "name": "HI13",
+      "lat": 32.983322,
+      "lon": 35.727112,
+      "coalition": 0
+    },
+    {
+      "id": 117,
+      "name": "HT01",
+      "lat": 36.848221,
+      "lon": 34.721374,
+      "coalition": 0
+    },
+    {
+      "id": 118,
+      "name": "HS33",
+      "lat": 33.035233,
+      "lon": 35.138645,
+      "coalition": 0
+    },
+    {
+      "id": 119,
+      "name": "HMed10",
+      "lat": 33.207394,
+      "lon": 35.571163,
+      "coalition": 0
+    },
+    {
+      "id": 120,
+      "name": "HMed09",
+      "lat": 35.004292,
+      "lon": 34.059132,
+      "coalition": 0
+    },
+    {
+      "id": 121,
+      "name": "HMed08",
+      "lat": 35.343964,
+      "lon": 33.194805,
+      "coalition": 0
+    },
+    {
+      "id": 122,
+      "name": "HMed07",
+      "lat": 35.333282,
+      "lon": 33.324345,
+      "coalition": 0
+    },
+    {
+      "id": 123,
+      "name": "HMed06",
+      "lat": 35.14653,
+      "lon": 36.75338,
+      "coalition": 0
+    },
+    {
+      "id": 124,
+      "name": "HMed05",
+      "lat": 35.144325,
+      "lon": 33.353882,
+      "coalition": 0
+    },
+    {
+      "id": 125,
+      "name": "HMed04",
+      "lat": 37.05294,
+      "lon": 35.278847,
+      "coalition": 0
+    },
+    {
+      "id": 126,
+      "name": "HMed03",
+      "lat": 35.516701,
+      "lon": 35.791237,
+      "coalition": 0
+    },
+    {
+      "id": 127,
+      "name": "HMed02",
+      "lat": 35.955952,
+      "lon": 38.989261,
+      "coalition": 0
+    },
+    {
+      "id": 128,
+      "name": "HMed01",
+      "lat": 34.974998,
+      "lon": 33.848,
+      "coalition": 0
+    },
+    {
+      "id": 129,
+      "name": "HMed00",
+      "lat": 36.576164,
+      "lon": 36.198921,
+      "coalition": 0
+    },
+    {
+      "id": 130,
+      "name": "HMed11",
+      "lat": 32.570587,
+      "lon": 35.846153,
+      "coalition": 0
+    },
+    {
+      "id": 131,
+      "name": "H_med_orig_08",
+      "lat": 33.892998,
+      "lon": 35.523026,
+      "coalition": 0
+    },
+    {
+      "id": 132,
+      "name": "H_med_orig_07",
+      "lat": 32.833473,
+      "lon": 34.986786,
+      "coalition": 0
+    },
+    {
+      "id": 133,
+      "name": "H_med_orig_06",
+      "lat": 35.128021,
+      "lon": 33.378605,
+      "coalition": 0
+    },
+    {
+      "id": 134,
+      "name": "H_med_orig_05",
+      "lat": 32.785538,
+      "lon": 34.980602,
+      "coalition": 0
+    },
+    {
+      "id": 135,
+      "name": "H_med_orig_04",
+      "lat": 34.707989,
+      "lon": 32.981915,
+      "coalition": 0
+    },
+    {
+      "id": 136,
+      "name": "H_med_orig_03",
+      "lat": 34.921448,
+      "lon": 33.604271,
+      "coalition": 0
+    },
+    {
+      "id": 137,
+      "name": "H_med_orig_02",
+      "lat": 34.787979,
+      "lon": 32.445278,
+      "coalition": 0
+    },
+    {
+      "id": 138,
+      "name": "H_med_orig_01",
+      "lat": 37.011604,
+      "lon": 35.352592,
+      "coalition": 0
+    },
+    {
+      "id": 139,
+      "name": "HStad06",
+      "lat": 33.528229,
+      "lon": 36.298248,
+      "coalition": 0
+    },
+    {
+      "id": 140,
+      "name": "HStad05",
+      "lat": 35.116772,
+      "lon": 36.761856,
+      "coalition": 0
+    },
+    {
+      "id": 141,
+      "name": "HStad04",
+      "lat": 35.560509,
+      "lon": 35.744415,
+      "coalition": 0
+    },
+    {
+      "id": 142,
+      "name": "HStad03",
+      "lat": 36.216019,
+      "lon": 37.156712,
+      "coalition": 0
+    },
+    {
+      "id": 143,
+      "name": "HStad02",
+      "lat": 35.146095,
+      "lon": 33.314098,
+      "coalition": 0
+    },
+    {
+      "id": 144,
+      "name": "HStad01",
+      "lat": 36.999065,
+      "lon": 35.329559,
+      "coalition": 0
+    },
+    {
+      "id": 145,
+      "name": "HS26",
+      "lat": 33.046852,
+      "lon": 39.608337,
+      "coalition": 0
+    },
+    {
+      "id": 146,
+      "name": "HS42",
+      "lat": 32.746105,
+      "lon": 35.879589,
+      "coalition": 0
+    },
+    {
+      "id": 147,
+      "name": "HL13",
+      "lat": 33.138226,
+      "lon": 35.504536,
+      "coalition": 0
+    },
+    {
+      "id": 148,
+      "name": "HL12",
+      "lat": 33.173721,
+      "lon": 35.275311,
+      "coalition": 0
+    },
+    {
+      "id": 149,
+      "name": "HS41",
+      "lat": 32.757938,
+      "lon": 35.897854,
+      "coalition": 0
+    },
+    {
+      "id": 150,
+      "name": "HS35",
+      "lat": 33.804146,
+      "lon": 36.149845,
+      "coalition": 0
+    },
+    {
+      "id": 151,
+      "name": "HL11",
+      "lat": 33.709881,
+      "lon": 35.966698,
+      "coalition": 0
+    },
+    {
+      "id": 152,
+      "name": "HL10",
+      "lat": 34.264351,
+      "lon": 36.483223,
+      "coalition": 0
+    },
+    {
+      "id": 153,
+      "name": "HL09",
+      "lat": 34.365204,
+      "lon": 36.512112,
+      "coalition": 0
+    },
+    {
+      "id": 154,
+      "name": "HL08",
+      "lat": 33.20377,
+      "lon": 35.353058,
+      "coalition": 0
+    },
+    {
+      "id": 155,
+      "name": "HL07",
+      "lat": 33.262177,
+      "lon": 35.418499,
+      "coalition": 0
+    },
+    {
+      "id": 156,
+      "name": "HS27",
+      "lat": 33.427551,
+      "lon": 35.934891,
+      "coalition": 0
+    },
+    {
+      "id": 157,
+      "name": "HL06",
+      "lat": 33.305878,
+      "lon": 35.540962,
+      "coalition": 0
+    },
+    {
+      "id": 158,
+      "name": "HMed30",
+      "lat": 37.050694,
+      "lon": 37.389832,
+      "coalition": 0
+    },
+    {
+      "id": 159,
+      "name": "HMed29",
+      "lat": 35.338799,
+      "lon": 40.129429,
+      "coalition": 0
+    },
+    {
+      "id": 160,
+      "name": "HMed28",
+      "lat": 34.558056,
+      "lon": 38.278747,
+      "coalition": 0
+    },
+    {
+      "id": 161,
+      "name": "HMed27",
+      "lat": 35.960659,
+      "lon": 38.041775,
+      "coalition": 0
+    },
+    {
+      "id": 162,
+      "name": "HMed26",
+      "lat": 36.194,
+      "lon": 37.097927,
+      "coalition": 0
+    },
+    {
+      "id": 163,
+      "name": "HMed25",
+      "lat": 31.719399,
+      "lon": 35.797813,
+      "coalition": 0
+    },
+    {
+      "id": 164,
+      "name": "HMed24",
+      "lat": 33.893459,
+      "lon": 35.567333,
+      "coalition": 0
+    },
+    {
+      "id": 165,
+      "name": "HMed23",
+      "lat": 34.692108,
+      "lon": 32.960266,
+      "coalition": 0
+    },
+    {
+      "id": 166,
+      "name": "HMed22",
+      "lat": 31.881649,
+      "lon": 36.009781,
+      "coalition": 0
+    },
+    {
+      "id": 167,
+      "name": "HMed21",
+      "lat": 33.455982,
+      "lon": 36.235229,
+      "coalition": 0
+    },
+    {
+      "id": 168,
+      "name": "HMed20",
+      "lat": 32.16534,
+      "lon": 34.845364,
+      "coalition": 0
+    },
+    {
+      "id": 169,
+      "name": "HMed19",
+      "lat": 32.821049,
+      "lon": 34.990643,
+      "coalition": 0
+    },
+    {
+      "id": 170,
+      "name": "HMed18",
+      "lat": 32.70816,
+      "lon": 35.302074,
+      "coalition": 0
+    },
+    {
+      "id": 171,
+      "name": "HMed17",
+      "lat": 33.523601,
+      "lon": 36.354866,
+      "coalition": 0
+    },
+    {
+      "id": 172,
+      "name": "HMed16",
+      "lat": 34.720741,
+      "lon": 36.732967,
+      "coalition": 0
+    },
+    {
+      "id": 173,
+      "name": "HMed15",
+      "lat": 36.206242,
+      "lon": 36.152401,
+      "coalition": 0
+    },
+    {
+      "id": 174,
+      "name": "HMed14",
+      "lat": 34.883778,
+      "lon": 35.886967,
+      "coalition": 0
+    },
+    {
+      "id": 175,
+      "name": "HMed13",
+      "lat": 32.181805,
+      "lon": 34.978767,
+      "coalition": 0
+    },
+    {
+      "id": 176,
+      "name": "HMed12",
+      "lat": 31.993191,
+      "lon": 35.890022,
+      "coalition": 0
+    },
+    {
+      "id": 177,
+      "name": "HOil05",
+      "lat": 35.328835,
+      "lon": 40.105461,
+      "coalition": 0
+    },
+    {
+      "id": 178,
+      "name": "HOil04",
+      "lat": 35.194103,
+      "lon": 40.081764,
+      "coalition": 0
+    },
+    {
+      "id": 179,
+      "name": "HOil03",
+      "lat": 35.191097,
+      "lon": 39.90297,
+      "coalition": 0
+    },
+    {
+      "id": 180,
+      "name": "HOil02",
+      "lat": 35.337807,
+      "lon": 39.760842,
+      "coalition": 0
+    },
+    {
+      "id": 181,
+      "name": "HOil01",
+      "lat": 34.602757,
+      "lon": 37.901714,
+      "coalition": 0
+    },
+    {
+      "id": 182,
+      "name": "H_med_orig_09",
+      "lat": 37.028118,
+      "lon": 35.351902,
+      "coalition": 0
+    },
+    {
+      "id": 183,
+      "name": "HS34",
+      "lat": 34.927536,
+      "lon": 35.992031,
+      "coalition": 0
+    },
+    {
+      "id": 184,
+      "name": "HS04",
+      "lat": 35.791042,
+      "lon": 37.726269,
+      "coalition": 0
+    },
+    {
+      "id": 185,
+      "name": "HS07",
+      "lat": 34.65768,
+      "lon": 38.289162,
+      "coalition": 0
+    },
+    {
+      "id": 186,
+      "name": "HI18",
+      "lat": 32.467857,
+      "lon": 35.023209,
+      "coalition": 0
+    },
+    {
+      "id": 187,
+      "name": "HS03",
+      "lat": 34.669693,
+      "lon": 38.298283,
+      "coalition": 0
+    },
+    {
+      "id": 188,
+      "name": "HS36",
+      "lat": 33.234722,
+      "lon": 36.148785,
+      "coalition": 0
+    },
+    {
+      "id": 189,
+      "name": "HS28",
+      "lat": 33.274971,
+      "lon": 36.270191,
+      "coalition": 0
+    },
+    {
+      "id": 190,
+      "name": "HS29",
+      "lat": 33.251736,
+      "lon": 36.270973,
+      "coalition": 0
+    },
+    {
+      "id": 191,
+      "name": "HS30",
+      "lat": 33.281158,
+      "lon": 36.264183,
+      "coalition": 0
+    },
+    {
+      "id": 192,
+      "name": "HT02",
+      "lat": 37.019718,
+      "lon": 35.343609,
+      "coalition": 0
+    },
+    {
+      "id": 193,
+      "name": "HI20",
+      "lat": 32.999348,
+      "lon": 35.407543,
+      "coalition": 0
+    },
+    {
+      "id": 194,
+      "name": "HI26",
+      "lat": 32.084785,
+      "lon": 34.781246,
+      "coalition": 0
+    },
+    {
+      "id": 195,
+      "name": "HI25",
+      "lat": 33.182911,
+      "lon": 35.234249,
+      "coalition": 0
+    },
+    {
+      "id": 196,
+      "name": "HI24",
+      "lat": 32.143486,
+      "lon": 34.815281,
+      "coalition": 0
+    },
+    {
+      "id": 197,
+      "name": "HI23",
+      "lat": 31.747503,
+      "lon": 34.935722,
+      "coalition": 0
+    },
+    {
+      "id": 198,
+      "name": "HI22",
+      "lat": 32.087601,
+      "lon": 34.919762,
+      "coalition": 0
+    },
+    {
+      "id": 199,
+      "name": "HI21",
+      "lat": 32.761124,
+      "lon": 35.400593,
+      "coalition": 0
+    },
+    {
+      "id": 200,
+      "name": "HJ04",
+      "lat": 32.476517,
+      "lon": 36.063328,
+      "coalition": 0
+    },
+    {
+      "id": 201,
+      "name": "HJ03",
+      "lat": 32.484177,
+      "lon": 36.065887,
+      "coalition": 0
+    },
+    {
+      "id": 202,
+      "name": "HJ02",
+      "lat": 32.586731,
+      "lon": 35.924606,
+      "coalition": 0
+    },
+    {
+      "id": 203,
+      "name": "HJ01",
+      "lat": 33.313847,
+      "lon": 38.702709,
+      "coalition": 0
+    },
+    {
+      "id": 204,
+      "name": "HL05",
+      "lat": 33.153759,
+      "lon": 35.196449,
+      "coalition": 0
+    },
+    {
+      "id": 205,
+      "name": "HL04",
+      "lat": 33.132565,
+      "lon": 35.393307,
+      "coalition": 0
+    },
+    {
+      "id": 206,
+      "name": "HL03",
+      "lat": 33.182842,
+      "lon": 35.495831,
+      "coalition": 0
+    },
+    {
+      "id": 207,
+      "name": "HL02",
+      "lat": 33.169388,
+      "lon": 35.187008,
+      "coalition": 0
+    },
+    {
+      "id": 208,
+      "name": "HL01",
+      "lat": 33.265526,
+      "lon": 35.216251,
+      "coalition": 0
+    },
+    {
+      "id": 209,
+      "name": "HS32",
+      "lat": 32.075859,
+      "lon": 36.144588,
+      "coalition": 0
+    },
+    {
+      "id": 210,
+      "name": "HS31",
+      "lat": 33.732975,
+      "lon": 36.509041,
+      "coalition": 0
+    },
+    {
+      "id": 211,
+      "name": "HOil06",
+      "lat": 32.113991,
+      "lon": 36.106201,
+      "coalition": 0
+    },
+    {
+      "id": 212,
+      "name": "HS40",
+      "lat": 32.825222,
+      "lon": 35.996227,
+      "coalition": 0
+    },
+    {
+      "id": 213,
+      "name": "HS39",
+      "lat": 32.587032,
+      "lon": 35.399849,
+      "coalition": 0
+    },
+    {
+      "id": 214,
+      "name": "HS38",
+      "lat": 32.438259,
+      "lon": 36.019165,
+      "coalition": 0
+    },
+    {
+      "id": 215,
+      "name": "HS37",
+      "lat": 33.552185,
+      "lon": 36.447208,
+      "coalition": 0
+    },
+    {
+      "id": 216,
+      "name": "Gulechoba",
+      "lat": 38.006044,
+      "lon": 39.952822,
+      "coalition": 0
+    },
+    {
+      "id": 217,
+      "name": "Diyarbakir",
+      "lat": 37.878276,
+      "lon": 40.204302,
+      "coalition": 0
+    },
+    {
+      "id": 218,
+      "name": "Konya",
+      "lat": 37.96525,
+      "lon": 32.556388,
+      "coalition": 0
+    },
+    {
+      "id": 219,
+      "name": "Adiyaman",
+      "lat": 37.725762,
+      "lon": 38.460339,
+      "coalition": 0
+    },
+    {
+      "id": 220,
+      "name": "Tel Nof",
+      "lat": 31.829716,
+      "lon": 34.837949,
+      "coalition": 0
+    },
+    {
+      "id": 221,
+      "name": "Ben Gurion",
+      "lat": 32.012418,
+      "lon": 34.870943,
+      "coalition": 0
+    },
+    {
+      "id": 222,
+      "name": "Hatzor",
+      "lat": 31.766167,
+      "lon": 34.735268,
+      "coalition": 0
+    },
+    {
+      "id": 223,
+      "name": "Palmachim",
+      "lat": 31.894923,
+      "lon": 34.688798,
+      "coalition": 0
+    },
+    {
+      "id": 224,
+      "name": "Sanliurfa Heliport",
+      "lat": 37.186493,
+      "lon": 38.791603,
+      "coalition": 0
+    },
+    {
+      "id": 225,
+      "name": "T2",
+      "lat": 34.386512,
+      "lon": 40.157659,
+      "coalition": 0
+    },
+    {
+      "id": 226,
+      "name": "T3",
+      "lat": 34.526927,
+      "lon": 38.739218,
+      "coalition": 0
+    }
+  ]
+}

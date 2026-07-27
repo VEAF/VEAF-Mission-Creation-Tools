@@ -1,0 +1,1594 @@
+{
+  "theatre": "GermanyCW",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Wittstock",
+      "lat": 53.2049,
+      "lon": 12.54027,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Altes Lager",
+      "lat": 51.99691,
+      "lon": 12.96658,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Barth",
+      "lat": 54.338497,
+      "lon": 12.7022,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Zerbst",
+      "lat": 51.995191,
+      "lon": 12.128058,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Bremen",
+      "lat": 53.046923,
+      "lon": 8.774707,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Briest",
+      "lat": 52.440517,
+      "lon": 12.47095,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Buckeburg",
+      "lat": 52.277235,
+      "lon": 9.071338,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Celle",
+      "lat": 52.592647,
+      "lon": 10.039395,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Cochstedt",
+      "lat": 51.853775,
+      "lon": 11.400507,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Damgarten",
+      "lat": 54.260926,
+      "lon": 12.426974,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Fassberg",
+      "lat": 52.919237,
+      "lon": 10.166477,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Finow",
+      "lat": 52.824949,
+      "lon": 13.711836,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Garz",
+      "lat": 53.875886,
+      "lon": 14.167761,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Gatow",
+      "lat": 52.476596,
+      "lon": 13.150991,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Templin",
+      "lat": 53.03203,
+      "lon": 13.568105,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Gutersloh",
+      "lat": 51.923148,
+      "lon": 8.290827,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Hamburg",
+      "lat": 53.635092,
+      "lon": 9.998606,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Hamburg Finkenwerder",
+      "lat": 53.529414,
+      "lon": 9.822141,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Hannover",
+      "lat": 52.453769,
+      "lon": 9.710421,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Laage",
+      "lat": 53.919812,
+      "lon": 12.260841,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Larz",
+      "lat": 53.303901,
+      "lon": 12.7356,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Mahlwinkel",
+      "lat": 52.387953,
+      "lon": 11.844443,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Neubrandenburg",
+      "lat": 53.602182,
+      "lon": 13.290616,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Neuruppin",
+      "lat": 52.942843,
+      "lon": 12.769586,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Peenemunde",
+      "lat": 54.166479,
+      "lon": 13.761513,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Schonefeld",
+      "lat": 52.388535,
+      "lon": 13.553727,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Stendal",
+      "lat": 52.628094,
+      "lon": 11.80594,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Tegel",
+      "lat": 52.559846,
+      "lon": 13.309965,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Tempelhof",
+      "lat": 52.471003,
+      "lon": 13.389723,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Tutow",
+      "lat": 53.931396,
+      "lon": 13.216531,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Werneuchen",
+      "lat": 52.630984,
+      "lon": 13.751116,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Wunstorf",
+      "lat": 52.458256,
+      "lon": 9.440303,
+      "coalition": 0
+    },
+    {
+      "id": 33,
+      "name": "Bornholm",
+      "lat": 55.067177,
+      "lon": 14.745143,
+      "coalition": 0
+    },
+    {
+      "id": 34,
+      "name": "Brand",
+      "lat": 52.035731,
+      "lon": 13.762987,
+      "coalition": 0
+    },
+    {
+      "id": 35,
+      "name": "Brandis",
+      "lat": 51.330329,
+      "lon": 12.670063,
+      "coalition": 0
+    },
+    {
+      "id": 36,
+      "name": "Chojna",
+      "lat": 52.938968,
+      "lon": 14.438256,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Cologne",
+      "lat": 50.877794,
+      "lon": 7.133831,
+      "coalition": 0
+    },
+    {
+      "id": 38,
+      "name": "Dusseldorf",
+      "lat": 51.281637,
+      "lon": 6.755849,
+      "coalition": 0
+    },
+    {
+      "id": 39,
+      "name": "Falkenberg",
+      "lat": 51.548467,
+      "lon": 13.236448,
+      "coalition": 0
+    },
+    {
+      "id": 40,
+      "name": "Heidelberg",
+      "lat": 49.393982,
+      "lon": 8.658982,
+      "coalition": 0
+    },
+    {
+      "id": 41,
+      "name": "Kastrup",
+      "lat": 55.614387,
+      "lon": 12.66461,
+      "coalition": 0
+    },
+    {
+      "id": 42,
+      "name": "Kiel",
+      "lat": 54.379097,
+      "lon": 10.135983,
+      "coalition": 0
+    },
+    {
+      "id": 43,
+      "name": "Landstuhl",
+      "lat": 49.402807,
+      "lon": 7.536287,
+      "coalition": 0
+    },
+    {
+      "id": 44,
+      "name": "Mainz Finthen",
+      "lat": 49.968258,
+      "lon": 8.141445,
+      "coalition": 0
+    },
+    {
+      "id": 45,
+      "name": "Sturup",
+      "lat": 55.547906,
+      "lon": 13.374422,
+      "coalition": 0
+    },
+    {
+      "id": 46,
+      "name": "Marxwalde",
+      "lat": 52.61364,
+      "lon": 14.259045,
+      "coalition": 0
+    },
+    {
+      "id": 47,
+      "name": "Nordholz",
+      "lat": 53.769375,
+      "lon": 8.675758,
+      "coalition": 0
+    },
+    {
+      "id": 48,
+      "name": "Norvenich",
+      "lat": 50.82734,
+      "lon": 6.643104,
+      "coalition": 0
+    },
+    {
+      "id": 49,
+      "name": "Oranienburg",
+      "lat": 52.71536,
+      "lon": 13.222682,
+      "coalition": 0
+    },
+    {
+      "id": 50,
+      "name": "Szczecin-Goleniow",
+      "lat": 53.578866,
+      "lon": 14.912986,
+      "coalition": 0
+    },
+    {
+      "id": 51,
+      "name": "Obermehler Schlotheim",
+      "lat": 51.265397,
+      "lon": 10.643938,
+      "coalition": 0
+    },
+    {
+      "id": 52,
+      "name": "Adelsheim",
+      "lat": 49.363604,
+      "lon": 9.427626,
+      "coalition": 0
+    },
+    {
+      "id": 53,
+      "name": "H FRG 01",
+      "lat": 52.266052,
+      "lon": 10.615637,
+      "coalition": 0
+    },
+    {
+      "id": 54,
+      "name": "H FRG 02",
+      "lat": 53.878601,
+      "lon": 10.642456,
+      "coalition": 0
+    },
+    {
+      "id": 55,
+      "name": "H FRG 03",
+      "lat": 53.644215,
+      "lon": 10.140129,
+      "coalition": 0
+    },
+    {
+      "id": 56,
+      "name": "H FRG 04",
+      "lat": 53.44223,
+      "lon": 10.517905,
+      "coalition": 0
+    },
+    {
+      "id": 57,
+      "name": "H FRG 05",
+      "lat": 53.159287,
+      "lon": 10.948311,
+      "coalition": 0
+    },
+    {
+      "id": 58,
+      "name": "H FRG 06",
+      "lat": 53.07272,
+      "lon": 8.907938,
+      "coalition": 0
+    },
+    {
+      "id": 59,
+      "name": "H FRG 07",
+      "lat": 53.115475,
+      "lon": 11.184009,
+      "coalition": 0
+    },
+    {
+      "id": 60,
+      "name": "H FRG 08",
+      "lat": 52.606014,
+      "lon": 10.630504,
+      "coalition": 0
+    },
+    {
+      "id": 61,
+      "name": "H FRG 09",
+      "lat": 52.518207,
+      "lon": 10.844312,
+      "coalition": 0
+    },
+    {
+      "id": 62,
+      "name": "H FRG 10",
+      "lat": 52.386185,
+      "lon": 9.771017,
+      "coalition": 0
+    },
+    {
+      "id": 64,
+      "name": "H FRG 12",
+      "lat": 53.675743,
+      "lon": 10.800685,
+      "coalition": 0
+    },
+    {
+      "id": 65,
+      "name": "H FRG 13",
+      "lat": 52.031402,
+      "lon": 8.583062,
+      "coalition": 0
+    },
+    {
+      "id": 66,
+      "name": "H FRG 14",
+      "lat": 52.464729,
+      "lon": 13.223081,
+      "coalition": 0
+    },
+    {
+      "id": 67,
+      "name": "H GDR 01",
+      "lat": 53.438107,
+      "lon": 11.144806,
+      "coalition": 0
+    },
+    {
+      "id": 68,
+      "name": "H GDR 02",
+      "lat": 52.618755,
+      "lon": 12.356065,
+      "coalition": 0
+    },
+    {
+      "id": 69,
+      "name": "H GDR 03",
+      "lat": 53.112141,
+      "lon": 13.52652,
+      "coalition": 0
+    },
+    {
+      "id": 70,
+      "name": "H GDR 04",
+      "lat": 53.524124,
+      "lon": 13.320291,
+      "coalition": 0
+    },
+    {
+      "id": 71,
+      "name": "H GDR 05",
+      "lat": 53.638531,
+      "lon": 13.897128,
+      "coalition": 0
+    },
+    {
+      "id": 72,
+      "name": "H GDR 06",
+      "lat": 52.414478,
+      "lon": 12.534485,
+      "coalition": 0
+    },
+    {
+      "id": 73,
+      "name": "H GDR 07",
+      "lat": 52.984531,
+      "lon": 11.703077,
+      "coalition": 0
+    },
+    {
+      "id": 74,
+      "name": "H GDR 08",
+      "lat": 52.70723,
+      "lon": 13.543298,
+      "coalition": 0
+    },
+    {
+      "id": 75,
+      "name": "H GDR 09",
+      "lat": 53.867264,
+      "lon": 13.115553,
+      "coalition": 0
+    },
+    {
+      "id": 76,
+      "name": "H GDR 10",
+      "lat": 52.504551,
+      "lon": 13.52469,
+      "coalition": 0
+    },
+    {
+      "id": 77,
+      "name": "H GDR 11",
+      "lat": 52.385353,
+      "lon": 13.611285,
+      "coalition": 0
+    },
+    {
+      "id": 78,
+      "name": "H FRG 15",
+      "lat": 52.603458,
+      "lon": 13.314887,
+      "coalition": 0
+    },
+    {
+      "id": 79,
+      "name": "Revinge",
+      "lat": 55.726092,
+      "lon": 13.44253,
+      "coalition": 0
+    },
+    {
+      "id": 80,
+      "name": "Gross Mohrdorf",
+      "lat": 54.389384,
+      "lon": 12.898065,
+      "coalition": 0
+    },
+    {
+      "id": 81,
+      "name": "Lubeck",
+      "lat": 53.802258,
+      "lon": 10.701777,
+      "coalition": 0
+    },
+    {
+      "id": 82,
+      "name": "Kothen",
+      "lat": 51.721398,
+      "lon": 11.979096,
+      "coalition": 0
+    },
+    {
+      "id": 83,
+      "name": "Dessau",
+      "lat": 51.832133,
+      "lon": 12.176999,
+      "coalition": 0
+    },
+    {
+      "id": 84,
+      "name": "Parchim",
+      "lat": 53.423304,
+      "lon": 11.769254,
+      "coalition": 0
+    },
+    {
+      "id": 85,
+      "name": "H GDR 12",
+      "lat": 52.484844,
+      "lon": 11.596376,
+      "coalition": 0
+    },
+    {
+      "id": 86,
+      "name": "Uetersen",
+      "lat": 53.645944,
+      "lon": 9.712089,
+      "coalition": 0
+    },
+    {
+      "id": 87,
+      "name": "Tagra",
+      "lat": 55.594915,
+      "lon": 13.721929,
+      "coalition": 0
+    },
+    {
+      "id": 89,
+      "name": "Luneburg",
+      "lat": 53.249034,
+      "lon": 10.463902,
+      "coalition": 0
+    },
+    {
+      "id": 90,
+      "name": "Northeim",
+      "lat": 52.984606,
+      "lon": 11.243762,
+      "coalition": 0
+    },
+    {
+      "id": 91,
+      "name": "H GDR 13",
+      "lat": 53.609173,
+      "lon": 12.206164,
+      "coalition": 0
+    },
+    {
+      "id": 92,
+      "name": "H GDR 14",
+      "lat": 53.044029,
+      "lon": 13.381989,
+      "coalition": 0
+    },
+    {
+      "id": 93,
+      "name": "H GDR 15",
+      "lat": 52.186172,
+      "lon": 12.179097,
+      "coalition": 0
+    },
+    {
+      "id": 94,
+      "name": "H GDR 16",
+      "lat": 52.221176,
+      "lon": 11.781077,
+      "coalition": 0
+    },
+    {
+      "id": 95,
+      "name": "H GDR 17",
+      "lat": 53.900059,
+      "lon": 11.38724,
+      "coalition": 0
+    },
+    {
+      "id": 96,
+      "name": "H FRG 16",
+      "lat": 52.110313,
+      "lon": 9.444643,
+      "coalition": 0
+    },
+    {
+      "id": 97,
+      "name": "H FRG 17",
+      "lat": 53.151012,
+      "lon": 9.481282,
+      "coalition": 0
+    },
+    {
+      "id": 98,
+      "name": "H FRG 18",
+      "lat": 54.150635,
+      "lon": 10.552375,
+      "coalition": 0
+    },
+    {
+      "id": 99,
+      "name": "H FRG 19",
+      "lat": 53.464558,
+      "lon": 9.908177,
+      "coalition": 0
+    },
+    {
+      "id": 100,
+      "name": "H FRG 11",
+      "lat": 52.80537,
+      "lon": 10.05105,
+      "coalition": 0
+    },
+    {
+      "id": 101,
+      "name": "Sperenberg",
+      "lat": 52.137955,
+      "lon": 13.288085,
+      "coalition": 0
+    },
+    {
+      "id": 102,
+      "name": "Uelzen",
+      "lat": 52.983635,
+      "lon": 10.472323,
+      "coalition": 0
+    },
+    {
+      "id": 103,
+      "name": "Dedelow",
+      "lat": 53.35624,
+      "lon": 13.777079,
+      "coalition": 0
+    },
+    {
+      "id": 104,
+      "name": "Kammermark",
+      "lat": 53.195245,
+      "lon": 12.157066,
+      "coalition": 0
+    },
+    {
+      "id": 106,
+      "name": "Weser Wumme",
+      "lat": 53.060947,
+      "lon": 9.208321,
+      "coalition": 0
+    },
+    {
+      "id": 107,
+      "name": "Braunschweig",
+      "lat": 52.31936,
+      "lon": 10.563799,
+      "coalition": 0
+    },
+    {
+      "id": 108,
+      "name": "Wismar",
+      "lat": 53.91429,
+      "lon": 11.497933,
+      "coalition": 0
+    },
+    {
+      "id": 109,
+      "name": "Waren Vielist",
+      "lat": 53.568008,
+      "lon": 12.658787,
+      "coalition": 0
+    },
+    {
+      "id": 110,
+      "name": "Bienenfarm",
+      "lat": 52.656329,
+      "lon": 12.752561,
+      "coalition": 0
+    },
+    {
+      "id": 111,
+      "name": "Pinnow",
+      "lat": 53.621228,
+      "lon": 11.565138,
+      "coalition": 0
+    },
+    {
+      "id": 112,
+      "name": "Gardelegen",
+      "lat": 52.527721,
+      "lon": 11.357486,
+      "coalition": 0
+    },
+    {
+      "id": 113,
+      "name": "Glindbruchkippe",
+      "lat": 52.324523,
+      "lon": 10.172632,
+      "coalition": 0
+    },
+    {
+      "id": 114,
+      "name": "Ummern",
+      "lat": 52.618729,
+      "lon": 10.414364,
+      "coalition": 0
+    },
+    {
+      "id": 115,
+      "name": "Hildesheim",
+      "lat": 52.180931,
+      "lon": 9.954169,
+      "coalition": 0
+    },
+    {
+      "id": 116,
+      "name": "Verden-Scharnhorst",
+      "lat": 52.967502,
+      "lon": 9.277339,
+      "coalition": 0
+    },
+    {
+      "id": 117,
+      "name": "Rinteln",
+      "lat": 52.175927,
+      "lon": 9.04906,
+      "coalition": 0
+    },
+    {
+      "id": 118,
+      "name": "Holzdorf",
+      "lat": 51.766821,
+      "lon": 13.188867,
+      "coalition": 0
+    },
+    {
+      "id": 119,
+      "name": "H Med GDR 01",
+      "lat": 54.093304,
+      "lon": 12.088701,
+      "coalition": 0
+    },
+    {
+      "id": 120,
+      "name": "H Med GDR 02",
+      "lat": 54.302376,
+      "lon": 13.072044,
+      "coalition": 0
+    },
+    {
+      "id": 121,
+      "name": "H Med GDR 03",
+      "lat": 54.090878,
+      "lon": 13.376113,
+      "coalition": 0
+    },
+    {
+      "id": 122,
+      "name": "H GDR 33",
+      "lat": 50.859188,
+      "lon": 10.743132,
+      "coalition": 0
+    },
+    {
+      "id": 123,
+      "name": "Airracing Koblenz",
+      "lat": 50.288813,
+      "lon": 7.833594,
+      "coalition": 0
+    },
+    {
+      "id": 124,
+      "name": "H GDR 34",
+      "lat": 53.072506,
+      "lon": 12.629696,
+      "coalition": 0
+    },
+    {
+      "id": 125,
+      "name": "Perwenitz",
+      "lat": 52.665192,
+      "lon": 13.004817,
+      "coalition": 0
+    },
+    {
+      "id": 126,
+      "name": "H Med GDR 08",
+      "lat": 52.270981,
+      "lon": 11.878193,
+      "coalition": 0
+    },
+    {
+      "id": 127,
+      "name": "H Med GDR 09",
+      "lat": 52.162426,
+      "lon": 11.633036,
+      "coalition": 0
+    },
+    {
+      "id": 128,
+      "name": "H Med GDR 10",
+      "lat": 51.959778,
+      "lon": 12.100929,
+      "coalition": 0
+    },
+    {
+      "id": 129,
+      "name": "H Med FRG 01",
+      "lat": 53.84798,
+      "lon": 10.688355,
+      "coalition": 0
+    },
+    {
+      "id": 130,
+      "name": "H Med FRG 02",
+      "lat": 53.561298,
+      "lon": 10.024595,
+      "coalition": 0
+    },
+    {
+      "id": 131,
+      "name": "Sittensen",
+      "lat": 53.318275,
+      "lon": 9.575904,
+      "coalition": 0
+    },
+    {
+      "id": 132,
+      "name": "H Med FRG 04",
+      "lat": 53.25235,
+      "lon": 10.398181,
+      "coalition": 0
+    },
+    {
+      "id": 134,
+      "name": "H Med FRG 06",
+      "lat": 52.296394,
+      "lon": 8.891155,
+      "coalition": 0
+    },
+    {
+      "id": 135,
+      "name": "Sprendlingen",
+      "lat": 49.865223,
+      "lon": 7.964851,
+      "coalition": 0
+    },
+    {
+      "id": 136,
+      "name": "Thurland",
+      "lat": 51.686564,
+      "lon": 12.207919,
+      "coalition": 0
+    },
+    {
+      "id": 137,
+      "name": "Zollschen",
+      "lat": 51.261892,
+      "lon": 12.091337,
+      "coalition": 0
+    },
+    {
+      "id": 139,
+      "name": "H Med FRG 11",
+      "lat": 51.730316,
+      "lon": 8.778217,
+      "coalition": 0
+    },
+    {
+      "id": 140,
+      "name": "Hasselfelde",
+      "lat": 51.705472,
+      "lon": 10.885994,
+      "coalition": 0
+    },
+    {
+      "id": 141,
+      "name": "Grosse Wiese",
+      "lat": 52.1376,
+      "lon": 10.576288,
+      "coalition": 0
+    },
+    {
+      "id": 142,
+      "name": "H GDR 18",
+      "lat": 51.848137,
+      "lon": 10.766606,
+      "coalition": 0
+    },
+    {
+      "id": 143,
+      "name": "H FRG 20",
+      "lat": 51.713306,
+      "lon": 10.589121,
+      "coalition": 0
+    },
+    {
+      "id": 144,
+      "name": "H Med FRG 12",
+      "lat": 51.817207,
+      "lon": 10.336157,
+      "coalition": 0
+    },
+    {
+      "id": 145,
+      "name": "H GDR 19",
+      "lat": 51.845871,
+      "lon": 11.29379,
+      "coalition": 0
+    },
+    {
+      "id": 146,
+      "name": "H GDR 30",
+      "lat": 54.510483,
+      "lon": 13.618227,
+      "coalition": 0
+    },
+    {
+      "id": 147,
+      "name": "H Med GDR 11",
+      "lat": 51.77092,
+      "lon": 10.790493,
+      "coalition": 0
+    },
+    {
+      "id": 148,
+      "name": "H FRG 21",
+      "lat": 52.335758,
+      "lon": 10.639429,
+      "coalition": 0
+    },
+    {
+      "id": 149,
+      "name": "H FRG 50",
+      "lat": 52.831764,
+      "lon": 9.775314,
+      "coalition": 0
+    },
+    {
+      "id": 150,
+      "name": "H FRG 23",
+      "lat": 52.947968,
+      "lon": 10.115503,
+      "coalition": 0
+    },
+    {
+      "id": 151,
+      "name": "H FRG 39",
+      "lat": 50.577255,
+      "lon": 9.695579,
+      "coalition": 0
+    },
+    {
+      "id": 152,
+      "name": "H GDR 21",
+      "lat": 54.281006,
+      "lon": 12.518647,
+      "coalition": 0
+    },
+    {
+      "id": 153,
+      "name": "H GDR 22",
+      "lat": 52.070557,
+      "lon": 13.089146,
+      "coalition": 0
+    },
+    {
+      "id": 154,
+      "name": "Fritzlar",
+      "lat": 51.112496,
+      "lon": 9.291124,
+      "coalition": 0
+    },
+    {
+      "id": 155,
+      "name": "Hahn",
+      "lat": 49.956485,
+      "lon": 7.27233,
+      "coalition": 0
+    },
+    {
+      "id": 156,
+      "name": "Sembach",
+      "lat": 49.510639,
+      "lon": 7.878218,
+      "coalition": 0
+    },
+    {
+      "id": 157,
+      "name": "Allstedt",
+      "lat": 51.383812,
+      "lon": 11.463157,
+      "coalition": 0
+    },
+    {
+      "id": 158,
+      "name": "Zweibrucken",
+      "lat": 49.200481,
+      "lon": 7.392413,
+      "coalition": 0
+    },
+    {
+      "id": 159,
+      "name": "Giebelstadt",
+      "lat": 49.646513,
+      "lon": 9.952675,
+      "coalition": 0
+    },
+    {
+      "id": 160,
+      "name": "Schweinfurt",
+      "lat": 50.048892,
+      "lon": 10.173992,
+      "coalition": 0
+    },
+    {
+      "id": 161,
+      "name": "Haina",
+      "lat": 50.988978,
+      "lon": 10.494268,
+      "coalition": 0
+    },
+    {
+      "id": 162,
+      "name": "Spangdahlem",
+      "lat": 49.985889,
+      "lon": 6.71365,
+      "coalition": 0
+    },
+    {
+      "id": 163,
+      "name": "Frankfurt",
+      "lat": 50.046583,
+      "lon": 8.594214,
+      "coalition": 0
+    },
+    {
+      "id": 164,
+      "name": "Bindersleben",
+      "lat": 50.978123,
+      "lon": 10.976018,
+      "coalition": 0
+    },
+    {
+      "id": 165,
+      "name": "Ramstein",
+      "lat": 49.437282,
+      "lon": 7.615644,
+      "coalition": 0
+    },
+    {
+      "id": 166,
+      "name": "Fulda",
+      "lat": 50.539951,
+      "lon": 9.647069,
+      "coalition": 0
+    },
+    {
+      "id": 168,
+      "name": "Mendig",
+      "lat": 50.367587,
+      "lon": 7.326516,
+      "coalition": 0
+    },
+    {
+      "id": 169,
+      "name": "Merseburg",
+      "lat": 51.361552,
+      "lon": 11.932953,
+      "coalition": 0
+    },
+    {
+      "id": 170,
+      "name": "Wiesbaden",
+      "lat": 50.047353,
+      "lon": 8.311329,
+      "coalition": 0
+    },
+    {
+      "id": 171,
+      "name": "Schkeuditz",
+      "lat": 51.411827,
+      "lon": 12.244023,
+      "coalition": 0
+    },
+    {
+      "id": 180,
+      "name": "H Med GDR 12",
+      "lat": 50.987915,
+      "lon": 10.316368,
+      "coalition": 0
+    },
+    {
+      "id": 181,
+      "name": "H Med GDR 13",
+      "lat": 51.289265,
+      "lon": 10.743367,
+      "coalition": 0
+    },
+    {
+      "id": 182,
+      "name": "H Med GDR 14",
+      "lat": 50.809082,
+      "lon": 10.21873,
+      "coalition": 0
+    },
+    {
+      "id": 184,
+      "name": "H Med GDR 16",
+      "lat": 50.886089,
+      "lon": 11.617337,
+      "coalition": 0
+    },
+    {
+      "id": 185,
+      "name": "H GDR 24",
+      "lat": 52.166626,
+      "lon": 13.484154,
+      "coalition": 0
+    },
+    {
+      "id": 186,
+      "name": "H Med FRG 13",
+      "lat": 49.452728,
+      "lon": 7.767097,
+      "coalition": 0
+    },
+    {
+      "id": 187,
+      "name": "H Med FRG 14",
+      "lat": 50.97467,
+      "lon": 9.80471,
+      "coalition": 0
+    },
+    {
+      "id": 188,
+      "name": "H Med FRG 15",
+      "lat": 51.257019,
+      "lon": 9.379733,
+      "coalition": 0
+    },
+    {
+      "id": 189,
+      "name": "H Med FRG 16",
+      "lat": 51.552895,
+      "lon": 8.332072,
+      "coalition": 0
+    },
+    {
+      "id": 190,
+      "name": "H Med FRG 17",
+      "lat": 51.399204,
+      "lon": 9.659754,
+      "coalition": 0
+    },
+    {
+      "id": 191,
+      "name": "H FRG 25",
+      "lat": 50.724075,
+      "lon": 9.931884,
+      "coalition": 0
+    },
+    {
+      "id": 193,
+      "name": "H Radar GDR 01",
+      "lat": 51.799797,
+      "lon": 10.612503,
+      "coalition": 0
+    },
+    {
+      "id": 194,
+      "name": "H Radar GDR 02",
+      "lat": 50.571777,
+      "lon": 10.08525,
+      "coalition": 0
+    },
+    {
+      "id": 195,
+      "name": "H Radar GDR 03",
+      "lat": 51.107845,
+      "lon": 10.193686,
+      "coalition": 0
+    },
+    {
+      "id": 196,
+      "name": "H Radar GDR 04",
+      "lat": 51.624039,
+      "lon": 10.724235,
+      "coalition": 0
+    },
+    {
+      "id": 197,
+      "name": "H Radar GDR 05",
+      "lat": 52.006374,
+      "lon": 10.723486,
+      "coalition": 0
+    },
+    {
+      "id": 198,
+      "name": "H Radar GDR 06",
+      "lat": 52.325382,
+      "lon": 11.455597,
+      "coalition": 0
+    },
+    {
+      "id": 199,
+      "name": "H Radar GDR 07",
+      "lat": 53.280174,
+      "lon": 11.081132,
+      "coalition": 0
+    },
+    {
+      "id": 200,
+      "name": "Bitburg",
+      "lat": 49.950342,
+      "lon": 6.577423,
+      "coalition": 0
+    },
+    {
+      "id": 201,
+      "name": "Airracing Lubeck",
+      "lat": 53.708027,
+      "lon": 10.76871,
+      "coalition": 0
+    },
+    {
+      "id": 202,
+      "name": "H FRG 27",
+      "lat": 51.323422,
+      "lon": 9.477091,
+      "coalition": 0
+    },
+    {
+      "id": 204,
+      "name": "Airracing Frankfurt",
+      "lat": 50.006801,
+      "lon": 8.093154,
+      "coalition": 0
+    },
+    {
+      "id": 208,
+      "name": "H Med FRG 21",
+      "lat": 49.246117,
+      "lon": 7.36523,
+      "coalition": 0
+    },
+    {
+      "id": 211,
+      "name": "H FRG 30",
+      "lat": 50.019608,
+      "lon": 7.349018,
+      "coalition": 0
+    },
+    {
+      "id": 212,
+      "name": "H FRG 31",
+      "lat": 49.920067,
+      "lon": 7.293042,
+      "coalition": 0
+    },
+    {
+      "id": 213,
+      "name": "H FRG 32",
+      "lat": 49.474709,
+      "lon": 7.881512,
+      "coalition": 0
+    },
+    {
+      "id": 215,
+      "name": "H FRG 34",
+      "lat": 50.416492,
+      "lon": 7.441757,
+      "coalition": 0
+    },
+    {
+      "id": 218,
+      "name": "H FRG 51",
+      "lat": 49.613483,
+      "lon": 7.381087,
+      "coalition": 0
+    },
+    {
+      "id": 219,
+      "name": "H FRG 38",
+      "lat": 50.517971,
+      "lon": 9.134741,
+      "coalition": 0
+    },
+    {
+      "id": 220,
+      "name": "H FRG 48",
+      "lat": 49.922039,
+      "lon": 6.677135,
+      "coalition": 0
+    },
+    {
+      "id": 221,
+      "name": "H FRG 49",
+      "lat": 50.069393,
+      "lon": 8.56591,
+      "coalition": 0
+    },
+    {
+      "id": 222,
+      "name": "H Med FRG 24",
+      "lat": 51.554184,
+      "lon": 8.568386,
+      "coalition": 0
+    },
+    {
+      "id": 223,
+      "name": "H Radar FRG 02",
+      "lat": 50.233296,
+      "lon": 8.457879,
+      "coalition": 0
+    },
+    {
+      "id": 225,
+      "name": "H Med FRG 26",
+      "lat": 49.927509,
+      "lon": 6.839789,
+      "coalition": 0
+    },
+    {
+      "id": 226,
+      "name": "H GDR 25",
+      "lat": 51.138687,
+      "lon": 11.772348,
+      "coalition": 0
+    },
+    {
+      "id": 227,
+      "name": "H GDR 26",
+      "lat": 51.493927,
+      "lon": 11.907455,
+      "coalition": 0
+    },
+    {
+      "id": 229,
+      "name": "H GDR 31",
+      "lat": 54.368923,
+      "lon": 13.08567,
+      "coalition": 0
+    },
+    {
+      "id": 230,
+      "name": "H GDR 32",
+      "lat": 54.34737,
+      "lon": 13.455492,
+      "coalition": 0
+    },
+    {
+      "id": 231,
+      "name": "H Med FRG 27",
+      "lat": 50.077335,
+      "lon": 8.216296,
+      "coalition": 0
+    },
+    {
+      "id": 232,
+      "name": "Pferdsfeld",
+      "lat": 49.854633,
+      "lon": 7.588759,
+      "coalition": 0
+    },
+    {
+      "id": 233,
+      "name": "H Med FRG 29",
+      "lat": 49.402496,
+      "lon": 7.558637,
+      "coalition": 0
+    },
+    {
+      "id": 234,
+      "name": "H FRG 40",
+      "lat": 50.374081,
+      "lon": 7.58396,
+      "coalition": 0
+    },
+    {
+      "id": 235,
+      "name": "Buchel",
+      "lat": 50.164801,
+      "lon": 7.055254,
+      "coalition": 0
+    },
+    {
+      "id": 236,
+      "name": "Leipzig Mockau",
+      "lat": 51.39656,
+      "lon": 12.417527,
+      "coalition": 0
+    },
+    {
+      "id": 237,
+      "name": "H FRG 43",
+      "lat": 49.760147,
+      "lon": 9.491091,
+      "coalition": 0
+    },
+    {
+      "id": 238,
+      "name": "H FRG 44",
+      "lat": 49.944073,
+      "lon": 8.916184,
+      "coalition": 0
+    },
+    {
+      "id": 239,
+      "name": "H FRG 45",
+      "lat": 49.744633,
+      "lon": 9.071655,
+      "coalition": 0
+    },
+    {
+      "id": 240,
+      "name": "H FRG 46",
+      "lat": 50.050911,
+      "lon": 9.8238,
+      "coalition": 0
+    },
+    {
+      "id": 241,
+      "name": "H FRG 47",
+      "lat": 49.576088,
+      "lon": 9.349868,
+      "coalition": 0
+    },
+    {
+      "id": 242,
+      "name": "Bad Durkheim",
+      "lat": 49.472261,
+      "lon": 8.190537,
+      "coalition": 0
+    },
+    {
+      "id": 243,
+      "name": "Gelnhausen",
+      "lat": 50.195814,
+      "lon": 9.159491,
+      "coalition": 0
+    },
+    {
+      "id": 244,
+      "name": "Herrenteich",
+      "lat": 49.340612,
+      "lon": 8.485711,
+      "coalition": 0
+    },
+    {
+      "id": 245,
+      "name": "Hockenheim",
+      "lat": 49.322112,
+      "lon": 8.530673,
+      "coalition": 0
+    },
+    {
+      "id": 246,
+      "name": "Langenselbold",
+      "lat": 50.176585,
+      "lon": 9.068646,
+      "coalition": 0
+    },
+    {
+      "id": 247,
+      "name": "Walldorf",
+      "lat": 49.300125,
+      "lon": 8.661047,
+      "coalition": 0
+    },
+    {
+      "id": 248,
+      "name": "Ober-Morlen",
+      "lat": 50.364653,
+      "lon": 8.716647,
+      "coalition": 0
+    },
+    {
+      "id": 249,
+      "name": "Pottschutthohe",
+      "lat": 49.262912,
+      "lon": 7.485459,
+      "coalition": 0
+    },
+    {
+      "id": 250,
+      "name": "Worms",
+      "lat": 49.607376,
+      "lon": 8.369167,
+      "coalition": 0
+    },
+    {
+      "id": 251,
+      "name": "H Radar GDR 09",
+      "lat": 52.493992,
+      "lon": 14.088625,
+      "coalition": 0
+    },
+    {
+      "id": 252,
+      "name": "H Radar GDR 08",
+      "lat": 52.791889,
+      "lon": 10.811338,
+      "coalition": 0
+    },
+    {
+      "id": 253,
+      "name": "H FRG 41",
+      "lat": 49.793274,
+      "lon": 9.984979,
+      "coalition": 0
+    },
+    {
+      "id": 254,
+      "name": "H FRG 42",
+      "lat": 49.828194,
+      "lon": 9.887384,
+      "coalition": 0
+    }
+  ]
+}

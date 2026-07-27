@@ -1,56 +1,78 @@
-# VEAF Mission Creation Tools — 6.10.0
+# VEAF Mission Creation Tools — 6.11.0
 
-Première version **stable et officielle** de la ligne v6. Elle remplace la v5 et
-devient la version installée par défaut (`published-latest`).
+Cette version répond à trois retours de **Tripack** : les **noms d'aérodromes** étaient
+faux dans nos données, et il manquait un moyen de **choisir quand** une QRA ou une zone de
+combat s'active. Aucune mission existante n'a besoin d'être retouchée.
 
-## 🚀 Une nouvelle chaîne de création de missions
+## 🛫 Les noms d'aérodromes sont enfin les bons
 
-La v6 décrit une mission de façon **déclarative** dans un simple `mission.yaml`, puis
-la construit :
+Le build refusait des `airport_link` de QRA parfaitement valides — Tiyas, Marj Ruhayyil,
+Al-Dumayr… — en les déclarant « aérodrome inconnu ». **Merci à Tripack** de l'avoir
+signalé : ses noms étaient corrects depuis le début, c'est notre table qui était fausse.
 
-- **Migrer depuis la v5** — `convert-v5` reprend une mission v5 existante et produit son
-  équivalent v6, presets radio et données de spawn compris.
-- **Partir d'un modèle** — `prepare --template` pose un dossier de mission prêt à remplir.
-- **Valider puis construire** — `validate` vérifie la cohérence (références, fréquences,
-  types d'unités) et `build` assemble le `.miz` jouable.
-- **Presets radio & kneeboards** — projection des presets par type d'appareil, planchettes
-  générées automatiquement.
+En cause : cette table nom→identifiant était extraite des **balises radio** des cartes.
+Elle contenait donc des noms de VOR ou de NDB au lieu de noms d'aérodromes, et ignorait
+toutes les bases sans balise. Elle est désormais construite depuis **DCS lui-même**, ce
+qui donne le nom exact reconnu en jeu.
 
-## 🤖 Créer une mission avec un assistant IA
+- **7 cartes couvertes**, 657 terrains : Caucase, Syrie, Golfe Persique, Normandie,
+  Mariannes, Sinaï, Allemagne guerre froide.
+- **Hélistations incluses** : elles sont utilisables pour une QRA ou un spawn.
+- Vaut aussi pour les **entrepôts** (`warehouses.yaml`), qui utilisent la même table.
 
-La v6 ouvre un **serveur MCP** livré comme **plugin Claude** : un assistant IA construit
-une mission VEAF **de bout en bout**, du dossier vide au `.miz` jouable, en langage naturel.
+## 🎛️ Choisir quand une QRA ou une zone s'active
 
-- **Partir de zéro** — carte blanche prête à remplir pour le théâtre choisi (Caucasus,
-  Syria, Persian Gulf, Normandy, Marianas, Sinaï, Germany CW, Afghanistan).
-- **Placer par la géographie réelle** — « à 10 km au nord de Kobuleti », « près de Batumi ».
-- **Poser des éléments VEAF** — combat zones, QRA, CAP ; l'assistant connaît les conventions
-  de nommage et privilégie les **raccourcis de spawn** (`#command`, ex. `-samLR`).
-- **Gérer les bases** — « Mezzeh est bleu » colore l'aérodrome et active ses slots dynamiques.
+Deux nouvelles clés dans `mission.yaml`, toutes deux demandées par **Tripack** :
 
-## 🛠️ Runtime DCS
+- **QRA en sommeil** — `active_at_start: false` déclare une QRA **sans l'armer** : elle
+  attend une commande radio `qra.start` ou un appel de script. *(Jusqu'ici toute QRA était
+  armée au chargement de la mission ; la clé était ignorée sans avertissement.)*
+- **Zone qui ne s'éteint pas** — `completable: false` empêche une zone de combat de se
+  terminer d'elle-même. Indispensable pour une zone **sans unité rouge** : la fin de partie
+  se décidant sur le seul décompte des rouges, une telle zone s'activait puis se
+  désactivait toute seule au bout d'une minute environ — exactement le symptôme rapporté.
 
-- **Pagination automatique** des menus radio F10 (fini le débordement de la limite des 10).
-- **Combat zones** : regroupement et préfixe de menu radio pilotables depuis le YAML.
-- **QRA / slots dynamiques** : réactions correctes sur les appareils en slot dynamique.
-- **Server hook** déployable par simple copie (flags OFF par défaut) — **à redéployer**.
+## 🗺️ Aider à collecter les données d'une carte
 
-## 🌍 Multi-théâtres & multi-plateformes
+Les cartes que personne n'a encore relevées peuvent maintenant l'être **par n'importe
+qui**, sans outil de développement : un nouveau **kit de capture** est publié à chaque
+version, avec les programmes, une mission prête pour chaque carte connue et une procédure
+pas-à-pas.
 
-- Conversion de coordonnées et **placement géographique sur les 14 théâtres DCS**.
-- Binaires standalone **Linux / macOS** en plus de Windows.
+- Téléchargez `veaf-map-capture-kit-<version>.zip` dans les fichiers de cette version.
+- Fonctionne aussi sur **n'importe quelle carte** via une mission créée dans l'éditeur DCS.
+- Chaque relevé renvoyé enrichit la table pour toute la communauté.
 
-## ⚠️ Notes de migration pour les mission makers
+**Cartes déjà relevées :**
 
-- Une mission **v5** se convertit avec `convert-v5` (ne pas éditer un dossier v6 à la main
-  comme en v5).
-- Le **server hook** doit être redéployé (nouveau contrat de callbacks).
-- `MISSILEGUARDIAN` n'est plus activé par le tier `full` — il est désormais **opt-in**.
-- L'**AJS-37** rompt l'iso-fonctionnalité des presets radio (agencement dédié Viggen).
+- [x] Caucase
+- [x] Syrie
+- [x] Golfe Persique
+- [x] Normandie
+- [x] Mariannes
+- [x] Sinaï
+- [x] Allemagne guerre froide
+
+**Cartes qui restent à relever — si vous en possédez une, votre aide est bienvenue :**
+
+- [ ] Nevada (NTTR)
+- [ ] La Manche
+- [ ] Atlantique Sud (Malouines)
+- [ ] Kola
+- [ ] Afghanistan
+- [ ] Irak
+- [ ] Mariannes 1944
+
+## 🖥️ Serveurs
+
+- **Liste de pilotes partagée retrouvée** : sur un serveur de production, plus aucun pilote
+  n'était reconnu (administrateur compris) et toute commande `/…` faisait planter le hook.
+  Le fichier partagé est de nouveau lu au bon endroit, un fichier absent est signalé
+  clairement au lieu de tout interrompre, et un pilote inconnu se voit refuser la commande
+  proprement. **Hook à redéployer.**
 
 ## 🙏 Remerciements
 
-Merci à tous les **mission makers** et **mission programmers** de la VEAF qui ont essuyé
-les plâtres de la v6 et fait remonter retours, tests et correctifs — avec une pensée
-spéciale pour **Dup**, **Flogas**, **Reaper** et **Tripack**. Merci également à **Mitch**
-pour les données dcs-maps.
+Merci à **Tripack**, dont les retours sur les QRA et les zones de combat sont à l'origine
+de l'essentiel de cette version, et à tous les **mission makers** de la VEAF qui
+continuent de faire remonter ce qui coince.

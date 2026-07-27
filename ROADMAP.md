@@ -34,12 +34,13 @@ one-shot lot.
 
 ---
 
-## 3. Next macro step — a complete v6 release to `master`
+## 3. Macro step DONE — v6.10.0 cut to `master`
 
-So far every v6 release has been a **dev release** (tag `published-vx.y.z` off
-`develop-v6`); `master` still carries v5 (**v5.103.3**). The next milestone is cutting a
-**complete, stable v6 release to `master`** — the official v6. **This gates the vision
-work below: no §5 initiative starts until that release is out.**
+✅ **2026-07-18** — the first **complete, stable v6 release** was cut to `master`
+(**v6.10.0**), replacing the v5 line it carried (v5.103.3). `master` now tracks v6:
+`develop-v6` was merged in (v5 history superseded via `merge -s ours` then ff, tree pure
+v6), tagged `published-v6.10.0` (binaries + GitHub Release + `published-latest`) and
+`v6.10.0` (docs `latest`). **The vision work below is now unblocked.**
 
 ---
 

@@ -632,6 +632,11 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
         lines.append(f"{indent}    :setBriefing({br_lua})")
     if zone_def.get("user_activation_disabled"):
         lines.append(f"{indent}    :disableUserActivation()")
+    # `completable: false` stops the zone from auto-completing: the runtime never schedules
+    # its watchdog. Needed for a zone holding no RED unit, since completion is decided on
+    # the red count alone — such a zone would otherwise deactivate on the first check.
+    if zone_def.get("completable", True) is False:
+        lines.append(f"{indent}    :setCompletable(false)")
     if "training" in zone_def:
         lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
     for cz in zone_def.get("chained_zones") or []:
@@ -798,7 +803,11 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     if al := qra_def.get("airport_link"):
         lines.append(f'{indent}    :setAirportLink("{al}")')
 
-    lines.append(f"{indent}    :start()")
+    # `active_at_start: false` declares the QRA without arming it: the builder chain stops
+    # before :start(). The QRA is still registered under its name by :setName(), so a
+    # `qra.start` radio command (or a script) can arm it later.
+    if qra_def.get("active_at_start", True):
+        lines.append(f"{indent}    :start()")
     return lines
 
 
@@ -1470,6 +1479,7 @@ def generate_mission_yaml_template(
                     "    #         random_pick: 1",
                     "    #     delay_before_rearming: 30",
                     "    #     delay_before_activating: 30",
+                    "    #     active_at_start: true    # false = declared but not armed (wait for qra.start)",
                 ]
         else:
             lines.append(f"  # {yaml_key}:")

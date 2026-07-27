@@ -9,7 +9,7 @@ name: DCS Mock Coverage
 
 on:
   push:
-    branches: [develop-v6, main]
+    branches: [develop-v6, master]
     paths:
       - "src/scripts/veaf/**"
       - "test/lua/dcs_mocks.lua"

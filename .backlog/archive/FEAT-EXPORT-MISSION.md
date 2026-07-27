@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Security invariant (the whole point)**: the export path must **never** execute Lua — only `luadata` parsing. A test should assert no `lua`/`subprocess`/`exec` is involved.
 
-**Branch**: `feature/export-mission` → PR → `develop-v6`.
+**Branch**: `feature/export-mission` → PR → `develop`.
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

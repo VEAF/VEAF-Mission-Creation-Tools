@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Decided (David) — both (a)+(b)**: on injected template groups, set **(a)** `hiddenOnPlanner: true` (and `hiddenOnMFD: true`) so they vanish from the briefing slot list, **and** **(b)** a slot **password** so they are locked even if a slot is reached another way (defence in depth). Password value is an implementation detail (e.g. a fixed non-published constant). Must confirm neither flag nor the password disturbs dynamic-slot spawning, which references the template by name.
 
-**Branch**: `fix/template-slots-visible` → PR → `develop-v6`
+**Branch**: `fix/template-slots-visible` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

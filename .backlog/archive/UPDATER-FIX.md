@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Corriger l'architecture updater → ne plus créer de fichiers `src/` par défaut. `prepare` est la commande dédiée pour initialiser un nouveau dossier. Supprimer `build.cmd` du toolkit v6. Corriger la doc MIGRATION_GUIDE (partir du dossier v5 existant, pas d'un dossier vide).
-**Branch**: `feature/updater-no-src-defaults` → PR → `develop-v6`
+**Branch**: `feature/updater-no-src-defaults` → PR → `develop`
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|

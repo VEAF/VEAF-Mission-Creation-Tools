@@ -1,8 +1,8 @@
 # Lot FEAT-MCP-MISSION-EDITOR — MCP server for LLM-assisted mission editing (v1: groups/units)
 
-Status: ✅ done — umbrella **PR #575 merged into `develop-v6`** (David closed it after VM testing). Waves 1-12 delivered: the MCP spans create→edit→validate→build→play. Distribution as a Claude plugin is done (`FEAT-MCP-PLUGIN`, self-hosted in this repo), and the follow-up real-usage lots landed on the integration branch before the merge (`FEAT-MCP-ADD-GROUP-FOLDER`, `FEAT-MCP-ORACLE-COMMANDS`, `FEAT-MCP-AIRBASES-WAREHOUSES`, plus the stdout/updater/build-stdin fixes). Projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`); MGRS dropped. More-theatre data remains a general backlog item, not a blocker.
+Status: ✅ done — umbrella **PR #575 merged into `develop`** (David closed it after VM testing). Waves 1-12 delivered: the MCP spans create→edit→validate→build→play. Distribution as a Claude plugin is done (`FEAT-MCP-PLUGIN`, self-hosted in this repo), and the follow-up real-usage lots landed on the integration branch before the merge (`FEAT-MCP-ADD-GROUP-FOLDER`, `FEAT-MCP-ORACLE-COMMANDS`, `FEAT-MCP-AIRBASES-WAREHOUSES`, plus the stdout/updater/build-stdin fixes). Projection is a pure-Python copy of `projection.lua` (MIT, `bfr-claude-plugins`); MGRS dropped. More-theatre data remains a general backlog item, not a blocker.
 
-Branch: `feature/mcp-mission-editor` → PR → `develop-v6`
+Branch: `feature/mcp-mission-editor` → PR → `develop`
 
 ## Context
 
@@ -279,5 +279,5 @@ exposed in the `add_group` schema; the composites already pass units through, so
 - Updates `ROADMAP.md` §4 (`NL-MISSION-GEN` now has a started first phase) and `CONTEXT.md`
   (new "LLM-assisted mission editing" section: _Editor-parity action_ / _VMCT action_).
 - `master` has not yet had a complete v6 release cut (still v5.103.3; latest is
-  `published-v6.9.0` off `develop-v6`) — David confirmed proceeding anyway under normal
-  gitflow (branch off `develop-v6`, dev release picks it up), not waiting for the master cut.
+  `published-v6.9.0` off `develop`) — David confirmed proceeding anyway under normal
+  gitflow (branch off `develop`, dev release picks it up), not waiting for the master cut.

@@ -2,7 +2,7 @@ name: Python Quality
 
 on:
   push:
-    branches: [develop-v6, master]
+    branches: [develop, master]
     paths:
       - "src/python/**"
       - "pyproject.toml"

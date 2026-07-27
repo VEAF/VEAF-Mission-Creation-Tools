@@ -1,7 +1,7 @@
 # Lot FEAT-PRESETS-KNEEBOARD-TOGGLE — disable preset kneeboard generation (with Tripack)
 
 Status: ✅ done
-Branch: feat/presets-kneeboard-toggle → PR → develop-v6
+Branch: feat/presets-kneeboard-toggle → PR → develop
 
 ## Problem Statement
 

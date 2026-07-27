@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Allow declaring custom Lua scripts in `mission.yaml` to suppress warnings and control the generation of the DCS load trigger.
 
-**Branch**: `feature/custom-scripts` → PR → `develop-v6`
+**Branch**: `feature/custom-scripts` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: `lua_config_generator._emit_airwave_zone` emitted an `AirWaveZone:new():…:start()` chain including setters absent from `src/scripts/veaf/veafAirWaves.lua` (`setMessageWaveDeployed`, `setMessageEndZone`, `setMessageEndAll`, `setMinimumSecondsBetweenWaves`, `setMaximumSecondsBetweenWaves`). In Lua a nil method call raises "attempt to call method '…' (a nil value)" → any mission whose `mission.yaml` configures an AirWaves zone crashed at mission start. Found during the DOC-REVIEW audit (out of doc scope).
 
-**Branch**: `fix/airwaves-generator` → PR → `develop-v6`
+**Branch**: `fix/airwaves-generator` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

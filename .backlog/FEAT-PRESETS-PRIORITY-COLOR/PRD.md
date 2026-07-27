@@ -1,7 +1,7 @@
 # Lot FEAT-PRESETS-PRIORITY-COLOR — channel priority, colour & AJS-37 packing
 
 Status: ✅ done
-Branch: feat/presets-priority-color → PR [#569](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/569) → develop-v6 (merged, squash `4fcfadef`)
+Branch: feat/presets-priority-color → PR [#569](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/569) → develop (merged, squash `4fcfadef`)
 ADR: [0012](../../docs/adr/0012-channel-priority-colour-and-ajs37-packing.md) (extends 0010, breaks 0003 for the AJS-37)
 
 ## Problem Statement

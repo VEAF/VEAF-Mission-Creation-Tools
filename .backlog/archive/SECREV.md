@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Fix the security and correctness defects surfaced by the full-repository code review. Two are release-blocking: arbitrary code execution when parsing any `.miz` file, and silent data loss when extracting helicopter groups.
 
-**Branch**: `fix/secrev-findings` → PR → `develop-v6`
+**Branch**: `fix/secrev-findings` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

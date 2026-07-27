@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Decision** (grilling 2026-06-10): combined heuristic — mission year **and** WW2-era unit/aircraft types — with a `mission.yaml` override that always takes precedence.
 
-**Branch**: `feat/era-autodetect` → PR → `develop-v6`
+**Branch**: `feat/era-autodetect` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

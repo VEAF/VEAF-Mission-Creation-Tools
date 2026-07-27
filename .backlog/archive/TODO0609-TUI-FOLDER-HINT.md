@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: In the TUI, the mission-folder prompt shows a bare `.` default, which is not obviously the current directory. Add an explanatory label and show the resolved absolute path. Covers todo-2026.06.09 item 11.
 
-**Branch**: `feat/tui-folder-hint` → PR → `develop-v6`
+**Branch**: `feat/tui-folder-hint` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

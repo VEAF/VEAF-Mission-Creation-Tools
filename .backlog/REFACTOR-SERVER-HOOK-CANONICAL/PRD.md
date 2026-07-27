@@ -1,7 +1,7 @@
 # Lot REFACTOR-SERVER-HOOK-CANONICAL — hook serveur = source déployable unique
 
 Status: ✅ done
-Branch: fix/refactor-server-hook-canonical → PR → develop-v6
+Branch: fix/refactor-server-hook-canonical → PR → develop
 
 ## Problem Statement
 

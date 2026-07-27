@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: A pilot who mistypes an F10 marker command usually gets **no feedback**, and error surfacing is inconsistent across modules. `veafSpawnAircraft` (`:67`) and `veafShortcuts` (`:625`) call `trigger.action.outText(...)`, but `veafNamedPoints.executeCommand` returns `false` silently and `veafSpawnParser` silently ignores unrecognized parameters (47-rule if-chain). A handler that crashes only logs to the DCS log — invisible in-game. Establish one feedback path and a global safety net so pilot mistakes and runtime errors are always visible.
 
-**Branch**: `feature/uxpilot-feedback` → PR → `develop-v6`
+**Branch**: `feature/uxpilot-feedback` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

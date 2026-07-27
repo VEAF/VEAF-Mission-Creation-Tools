@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Allow the build tool to optionally inject `dcs-bridge.lua` into a DCS mission via a DO SCRIPT FILE trigger, controlled by a flag in `mission.yaml`.
 
-**Branch**: `feature/dcs-bridge-injection` → PR → `develop-v6`
+**Branch**: `feature/dcs-bridge-injection` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

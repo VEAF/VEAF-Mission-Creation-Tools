@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: `veaf-tools extract` raised `KeyError: 1` because `extract_mission` still indexed every script-file entry as a `(path, dest)` tuple, while `get_community_script_files()` was refactored (lot COMM-001) to return dicts. Normalize the iteration so community dicts are handled by their `path`/`dest` keys.
 
-**Branch**: `fix/extract-community-dict` → PR → `develop-v6`
+**Branch**: `fix/extract-community-dict` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

@@ -1,7 +1,7 @@
 # Lot FIX-EVENTHANDLER-UNITCATEGORY — dynamic-slot airplane still treated as a helicopter by the QRA
 
 Status: ✅ done
-Branch: fix/eventhandler-unitcategory → PR #544 → merged into develop-v6
+Branch: fix/eventhandler-unitcategory → PR #544 → merged into develop
 
 ## Problem Statement
 

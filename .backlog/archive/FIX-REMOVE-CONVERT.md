@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Remove the `convert` command which is broken on v6 missions (crashes on missing `missionConfig.lua`) and whose role is covered by `extract` + `build`.
 
-**Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
+**Branch**: `fix/remove-convert-command` → PR #371 → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

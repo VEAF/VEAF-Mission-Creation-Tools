@@ -6,7 +6,7 @@ Status: ✅ done
 
 > **Coordination**: TODO0609-SPAWN-EXTERNALIZE and TODO0609-AIRCRAFT-INJECT reopen these same files. De-duplicate **there**, within those lots' scope, rather than twice — this lot may be folded into SPAWN-EXTERNALIZE once -001 lands. Respect `CLAUDE.md` §2 RULE N°1 (no refactor outside a lot already touching the file).
 
-**Branch**: `refactor/spawn-subsystem` → PR → `develop-v6`
+**Branch**: `refactor/spawn-subsystem` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

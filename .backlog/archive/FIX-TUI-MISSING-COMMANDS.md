@@ -14,7 +14,7 @@ Signatures (for the specs):
 - `generate-config`: `--output` option (no positional).
 - `user-config`: `--set` / `--unset` / `--init` options (no positional).
 
-**Branch**: `fix/tui-missing-commands` → PR → `develop-v6` (Python TUI only).
+**Branch**: `fix/tui-missing-commands` → PR → `develop` (Python TUI only).
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

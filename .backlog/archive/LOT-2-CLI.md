@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Improve `veaf-tools.exe` startup behavior and centralize installation.
-**Branch**: `feature/cli-improvements` → PR → `develop-v6`
+**Branch**: `feature/cli-improvements` → PR → `develop`
 **Depends on**: Lot 1 complete (quality gate)
 
 | # | Ticket | Type | Effort | Depends on | Status |

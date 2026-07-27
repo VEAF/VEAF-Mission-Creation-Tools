@@ -2,7 +2,7 @@
 
 Status: ✅ done (001-004 delivered, merged via PR #582; Caucasus DCS-load-verified by David. **005: extended to 9 theatres** (Caucasus, Afghanistan, GermanyCW, MarianaIslands(+WWII), Normandy, PersianGulf, SinaiMap, Syria) — `theatre-defaults.yaml` now **extracted from the calibration missions in VEAF/dcs-maps** `data/maps/*.miz` (MIT), parsed with our own `read_miz`, no code change. **DCS-load-verified by David on Caucasus + Normandy (WW2) + Syria (modern)** — the skeleton holds across maps/eras. The 5 maps dcs-maps lacks (Nevada/Kola/Falklands/TheChannel/Iraq) get a blank when Mitch adds them.)
 
-Branch: `feature/blank-mission-theatre` → PR → `feature/mcp-mission-editor` (stacked on wave 9; reaches `develop-v6` via the umbrella PR #575)
+Branch: `feature/blank-mission-theatre` → PR → `feature/mcp-mission-editor` (stacked on wave 9; reaches `develop` via the umbrella PR #575)
 
 ## Context
 

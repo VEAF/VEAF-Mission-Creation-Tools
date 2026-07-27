@@ -2,9 +2,9 @@
 
 Status: ✅ done
 
-**Goal**: Fix bugs found during a verified pre-release code review (unrelated to the documentation lot). These block the next `develop-v6` release. B1 is a functional regression and should be fixed first.
+**Goal**: Fix bugs found during a verified pre-release code review (unrelated to the documentation lot). These block the next `develop` release. B1 is a functional regression and should be fixed first.
 
-**Branch**: `fix/prerel-bugs` → PR → `develop-v6` (Python changes; separate from the doc PR)
+**Branch**: `fix/prerel-bugs` → PR → `develop` (Python changes; separate from the doc PR)
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|

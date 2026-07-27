@@ -14,7 +14,7 @@ Status: ✅ done
 
 **Fix**: extend all three guards to `if ctld and ctld.builtFOBS and ctld.logisticUnits then` (or equivalent per site).
 
-**Branch**: `fix/ctld-nil` → PR → `develop-v6`
+**Branch**: `fix/ctld-nil` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

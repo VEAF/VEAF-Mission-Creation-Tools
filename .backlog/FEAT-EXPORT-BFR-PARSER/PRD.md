@@ -2,7 +2,7 @@
 
 Status: ✅ done (merged #519)
 
-Branch: `feature/export-bfr-parser` → PR → `develop-v6`
+Branch: `feature/export-bfr-parser` → PR → `develop`
 
 ## Context
 

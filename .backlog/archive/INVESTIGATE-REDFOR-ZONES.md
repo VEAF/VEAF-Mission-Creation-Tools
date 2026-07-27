@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: understand the runtime error `ERROR: Coalition red has no territory zones and/or controls no airfields. Please add zone with a name starting with REDFOR in the mission editor and make sure at least one contains an airbase.` Identify which module/script raises it (REDFOR/BLUEFOR zone convention — likely a community or campaign-style script), when it fires, whether it is expected/benign or a VEAF-side issue, and what (if anything) the build or docs should do about it.
 
-**Branch**: `feature/INVESTIGATE-REDFOR-ZONES` → PR → `develop-v6`
+**Branch**: `feature/INVESTIGATE-REDFOR-ZONES` → PR → `develop`
 
 **Findings (spike DONE)**:
 

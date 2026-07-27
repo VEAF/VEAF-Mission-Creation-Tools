@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Field feedback (IMC-Day second round, `tests-mct6-imcday(3).md` §9, tested on 6.4.0)** confirms the need and adds three concrete defects, ticketized below: the legacy v5 dynamic-loading triggers are not recovered by the migration ([VEAF-mission-converter#17](https://github.com/VEAF/VEAF-mission-converter/issues/17), explicitly deferred to this lot by ADR 0004), the injected loading triggers are recreated on every build so user customizations of load order are lost (possible in MCT 5), and the legacy "CTLD beacons loading" trigger survives migration even when CTLD is disabled.
 
-**Branch**: `fix/triggers-verify` → PR → `develop-v6`
+**Branch**: `fix/triggers-verify` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

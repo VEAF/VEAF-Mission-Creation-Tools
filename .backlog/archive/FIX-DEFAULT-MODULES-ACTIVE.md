@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: A freshly-scaffolded mission's default `mission.yaml` had **every** module commented out → building it activated no module → **no VEAF F10 menu** in game. Per David, the default must mirror `convert-v5`'s baseline so a fresh mission works out of the box. Active set chosen (option C minus MISSILEGUARDIAN).
 
-**Branch**: `fix/default-mission-yaml-active-modules` → PR → `develop-v6`
+**Branch**: `fix/default-mission-yaml-active-modules` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

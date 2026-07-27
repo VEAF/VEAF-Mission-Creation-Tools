@@ -1,7 +1,7 @@
 # Lot FIX-MIG15-PRIMARY-FREQ — build wrongly rejects the MiG-15bis HF primary frequency
 
 Status: ✅ done
-Branch: fix/mig15-primary-freq → PR #546 → merged into develop-v6
+Branch: fix/mig15-primary-freq → PR #546 → merged into develop
 
 ## Problem Statement
 

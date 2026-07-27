@@ -18,7 +18,7 @@ Status: ✅ done
 
 **So the invalid `0.625` comes from Tripack's OWN `Yak-52 Template` groups** (his `dynamic-slot-templates.yaml` / source mission), not the default or the pipeline. Open question: why DCS accepts `0.625` in `freq-yak52.miz` (a hand-made dynSpawnTemplate slot) but rejects it in his templates — the difference is in the exact template structure. **Needs from Tripack: the BUILT `.miz` that triggers the DCS error.** A diff against the accepted `freq-yak52.miz` will pinpoint where the invalid `0.625` sits and what differs. **Status: needs Tripack's failing built `.miz`.**
 
-**Branch**: `fix/dynslot-radio-units` → PR → `develop-v6`
+**Branch**: `fix/dynslot-radio-units` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

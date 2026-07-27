@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Approach** (validated with David): emit BOTH forms from a single per-trigger spec (`VeafTriggerSpec` + `LuaAction`/`FileAction`) so they can never diverge; the static mission trigger and the dynamic `veafDynamicConfig.lua` both use the one ordered list `_ordered_mission_script_names()` (veaf-config → mission-script → custom_scripts; excludes veafDynamicConfig.lua, in one place). Keep `custom_scripts` API as a single `generate_load_trigger` flag (repaired to apply in both modes); mode-specific script sets ("dynamic-only" debug scripts) are handled via build **profiles** (documented). `mission-script.lua` stays auto-loaded first. Annexes: spawn-data trigger kept separate + documented; CTLD-beacons legacy v5 trigger deferred (needs Flogas's exact CTLD/CSAR config). Plan: `C:\Users\David\.claude\plans\federated-churning-pascal.md`.
 
-**Branch**: `feature/custom-scripts-triggers` → PR → `develop-v6`
+**Branch**: `feature/custom-scripts-triggers` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

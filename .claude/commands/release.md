@@ -8,11 +8,27 @@ STRICTLY execute the following steps, one by one, waiting for the developer's re
 
 ## Context
 
-- Active development branch: `develop-v6`
-- Release branch naming: `release/x.y.z` (created from `develop-v6`)
-- PR target: `develop-v6` (not `master` — `master` is reserved for stable milestones)
-- Tag naming: `published-vx.y.z` (pushed by the developer manually after the PR is merged)
-- CI trigger: pushing the `published-vx.y.z` tag → `release.yml` workflow builds and publishes the GitHub Release using `RELEASE_NOTES.md` as-is from the tagged commit
+The project follows the **canonical gitflow**:
+
+- Active development branch: `develop` (features arrive there through PRs)
+- Stable branch: `master` — it carries the released line and is where releases land
+- Release branch naming: `release/x.y.z` (created from `develop`)
+- **PR target: `master`** — a release branch merges into `master`, never into `develop`
+- **Merge method: a real merge commit — NOT squash.** Squashing rewrites the release into a
+  single new commit, so `master` and `develop` stop sharing history: `develop` then shows as
+  permanently "N commits ahead", the release tag is unreachable from `master`, and later
+  merges raise artificial conflicts. (This happened on 6.11.0 — repaired by a back-merge.)
+- Tag naming: `published-vx.y.z`, pushed by the developer **on `master`** once the release PR
+  is merged
+- **Back-merge**: after tagging, merge `master` back into `develop` so both branches share
+  history again and `develop` carries the version bump
+- CI trigger: pushing the `published-vx.y.z` tag → `release.yml` builds and publishes the
+  GitHub Release using `RELEASE_NOTES.md` as-is from the tagged commit
+
+> Historical note: this file used to say the release PR targeted `develop-v6` and that
+> `master` was "reserved for stable milestones". That made sense while `master` still carried
+> **v5** and the v6 line lived on `develop-v6`. Since 6.10.0, `master` *is* the v6 stable
+> line, and `develop-v6` has been renamed `develop` — so the canonical flow above applies.
 
 ---
 
@@ -46,17 +62,35 @@ Once `RELEASE_NOTES.md` is validated by the developer, apply these changes:
 ## Step 5: Git Operations
 
 Execute the following autonomously:
-1. Create branch `release/x.y.z` from `develop-v6`
-2. Commit all modified files (`RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml`, `doc/ROADMAP.md`)
-3. Push the branch and open a PR `release/x.y.z` → `develop-v6`
+1. Create branch `release/x.y.z` from `develop`
+2. Commit all modified files (`RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml`, the plugin
+   manifest — kept in lockstep — and `doc/ROADMAP.md` if applicable)
+3. Push the branch and open a PR `release/x.y.z` → **`master`**
 
-Then provide the developer with these final commands to run **after the PR is merged**:
+Tell the developer explicitly that this PR must be merged with a **merge commit, not a
+squash** (see Context: squashing decouples `master` from `develop`). `master` requires an
+approving review, so the developer merges it.
+
+Then provide these final commands to run **after the PR is merged**:
 
 ```bash
-git checkout develop-v6
-git pull origin develop-v6
+# 1. tag the release on master (this is what publishes it)
+git checkout master
+git pull origin master
 git tag published-vx.y.z
 git push origin published-vx.y.z
+
+# 2. back-merge so develop shares master's history again and carries the version bump
+git checkout develop
+git pull origin develop
+git merge origin/master
+git push origin develop
 ```
 
-> **Warning:** pushing the tag is irreversible — it immediately triggers the CI release workflow. Only run after the PR is merged and the content has been validated.
+> **Warning:** pushing the tag is irreversible — it immediately triggers the CI release
+> workflow, which publishes the GitHub Release and moves `published-latest` (unless the
+> version carries a pre-release suffix such as `-rc1`). Only run it after the PR is merged
+> and the content validated.
+
+> Do not skip the back-merge: without it `develop` and `master` drift apart and every later
+> release merge gets harder.

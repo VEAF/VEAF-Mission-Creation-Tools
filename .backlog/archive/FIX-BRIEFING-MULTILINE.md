@@ -10,7 +10,7 @@ Status: ✅ done
 3. `_yaml_str()` in `v5_converter.py` does not handle strings containing real newlines.
 4. CAP mission briefings emitted inline via `_yaml_str()` instead of block scalar.
 
-**Branch**: `fix/briefing-multiline` → PR → `develop-v6`
+**Branch**: `fix/briefing-multiline` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -20,7 +20,7 @@ Status: ✅ done
 | `veaf_libs/lua_config_generator.py` | `Module '...' requires '...' which is not configured — auto-enabling '...'` (~line 628) |
 | `waypoints_injector/waypoints_manager.py` | `Loaded N waypoint(s) and N flight plan template(s)` (~line 142) |
 
-**Branch**: `fix/i18n-coverage` → PR → `develop-v6`
+**Branch**: `fix/i18n-coverage` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -4,11 +4,11 @@
 > (`channel_lists`, le « mode plan » de `presets.yaml`) sur les radios physiques
 > de chaque type d'aéronef, en tenant compte de ses particularités matérielles
 > (canal 0, slots réservés, canaux spéciaux en dur, mapping par clé…), plus la
-> priorité/couleur des canaux et les planchettes par type ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)).
+> priorité/couleur des canaux et les planchettes par type ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)).
 >
-> Décision d'architecture : [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md)
-> (étend [ADR 0003](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0003-presets-fidelity.md)).
-> Analyse amont : [exploration](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/exploration/RADIO-PRESETS-PER-TYPE-PROJECTION.md).
+> Décision d'architecture : [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md)
+> (étend [ADR 0003](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0003-presets-fidelity.md)).
+> Analyse amont : [exploration](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/RADIO-PRESETS-PER-TYPE-PROJECTION.md).
 > Côté mission-maker : [format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur).
 
 ---
@@ -40,9 +40,9 @@ voie de **surcharge manuelle** : elle l'emporte toujours sur le packer.
 
 | Fichier | Rôle |
 |---|---|
-| [`dcs-radio-layouts.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/data/dcs-radio-layouts.yaml) | **Source de vérité des particularités par type.** Maintenu à la main. Chaque primitive y est documentée en tête de fichier. |
-| [`dcs-radio-specs.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml) | Plages de fréquences / modulation par radio physique. **Auto-généré** (`poetry run update-radio-specs`), ne jamais éditer à la main. |
-| [`presets_manager.py`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/presets_manager.py) | Le packer et ses règles : `_assign_roles_by_position` (défaut par bande), `_check_layout_radio_count` (garde de comptage), `_channel_list_for_role` (résolution de rôle). |
+| [`dcs-radio-layouts.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/data/dcs-radio-layouts.yaml) | **Source de vérité des particularités par type.** Maintenu à la main. Chaque primitive y est documentée en tête de fichier. |
+| [`dcs-radio-specs.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml) | Plages de fréquences / modulation par radio physique. **Auto-généré** (`poetry run update-radio-specs`), ne jamais éditer à la main. |
+| [`presets_manager.py`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/presets_manager.py) | Le packer et ses règles : `_assign_roles_by_position` (défaut par bande), `_check_layout_radio_count` (garde de comptage), `_channel_list_for_role` (résolution de rôle). |
 
 ## Rôles radio (vocabulaire fixe)
 
@@ -107,7 +107,7 @@ autres passent par le défaut par bande.
 
 Le détail slot-par-slot de chaque type (avec les commentaires expliquant le
 pourquoi de chaque choix) vit directement dans
-[`dcs-radio-layouts.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/data/dcs-radio-layouts.yaml).
+[`dcs-radio-layouts.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/data/dcs-radio-layouts.yaml).
 
 ## Priorité et couleur des canaux (ADR 0012)
 
@@ -137,12 +137,12 @@ Pour l'AJS-37, la colonne CH affiche les **libellés pilote** (`100`-`139` puis
 ## Ajouter ou corriger un type
 
 1. Identifier les radios physiques de l'appareil dans
-   [`dcs-radio-specs.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml)
+   [`dcs-radio-specs.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml)
    (index, bandes) — voir aussi la table lisible
    [`dcs-radio-specs.md`](../mission-maker/dcs-radio-specs.md).
 2. Vérifier si le défaut par bande suffit (souvent oui). Si non, ajouter une
    entrée dans `dcs-radio-layouts.yaml` avec le mapping index → rôle et les
    primitives nécessaires ; commenter chaque radio (nom + bande).
 3. Couvrir le comportement par un test dans
-   [`test/python/presets_injector/`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/tree/develop-v6/test/python/presets_injector)
+   [`test/python/presets_injector/`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/tree/develop/test/python/presets_injector)
    (fidélité de layout, capacité, cas AJS-37…).

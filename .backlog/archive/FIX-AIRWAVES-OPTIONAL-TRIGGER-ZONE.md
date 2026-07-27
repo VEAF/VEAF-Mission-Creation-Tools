@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Workaround (immediate, for an already-migrated mission.yaml)**: remove the `trigger_zone_name:` line from the airwave zone — the zone keeps working via center/radius and the ERROR disappears.
 
-**Branch**: `fix/airwaves-optional-trigger-zone` → PR → `develop-v6`
+**Branch**: `fix/airwaves-optional-trigger-zone` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

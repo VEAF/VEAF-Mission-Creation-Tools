@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Context**: The original bug (`veafCommands nil`) was resolved by Lot FIX-BUNDLE. Potential secondary cause not addressed: individual v5 VEAF `.lua` files still present in `src/scripts/` could be loaded via the `src/scripts/*.lua` glob and create DCS runtime conflicts. OLDSCRIPTS-002 can be implemented independently of the investigation.
 
-**Branch**: `fix/oldscripts-detection` → PR → `develop-v6`
+**Branch**: `fix/oldscripts-detection` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

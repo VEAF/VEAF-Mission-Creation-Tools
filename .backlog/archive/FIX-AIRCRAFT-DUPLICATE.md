@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Fix a DCS crash (`attempt to index global 'teamMemberDatalinks' (a nil value)`) caused by duplicate aircraft groups created during `inject_groups(mode="add")`. In add mode, groups already present in the mission were appended again from YAML, creating copies without `datalinks` metadata. The fix skips groups whose name already exists.
 
-**Branch**: `fix/aircraft-duplicate-inject` → PR #375 → `develop-v6`
+**Branch**: `fix/aircraft-duplicate-inject` → PR #375 → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -1,7 +1,7 @@
 # Lot FIX-CONVERTV5-PRESETS-OUTPUT — cleaner convert-v5 presets.yaml (with David)
 
 Status: ✅ done
-Branch: fix/convertv5-presets-output → PR → develop-v6
+Branch: fix/convertv5-presets-output → PR → develop
 
 ## Problem Statement
 

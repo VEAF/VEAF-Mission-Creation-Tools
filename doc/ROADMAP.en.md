@@ -9,13 +9,13 @@ This document describes the intended direction for the project. Items are ordere
 | Symbol | Meaning |
 |--------|---------|
 | ✅ | Done — shipped in a release |
-| 🔄 | In progress — on `develop-v6` |
+| 🔄 | In progress — on `develop` |
 | 🔵 | Planned — ticket exists in backlog |
 | ⚪ | Idea — not yet ticketed |
 
 ---
 
-## v6.x — Current development cycle (`develop-v6`)
+## v6.x — Current development cycle (`develop`)
 
 ### Foundation (Lot 1 — INFRA)
 - ✅ **Poetry migration** — replace `requirements.txt` with `pyproject.toml` managed by Poetry
@@ -39,7 +39,7 @@ This document describes the intended direction for the project. Items are ordere
 - ✅ **Mission YAML → module selection** — `lua_modules` section in `mission.yaml` drives which modules are included and how they are initialized
 
 ### Release
-- ✅ **v6.x releases** — published continuously from `develop-v6` (`published-vx.y.z` tags); current version **6.5.0**. The `develop-v6` → `master` merge is reserved for stable milestones.
+- ✅ **v6.x releases** — published continuously from `develop` (`published-vx.y.z` tags); current version **6.5.0**. The `develop` → `master` merge is reserved for stable milestones.
 - ✅ **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
 - ✅ **v6.3.3 release** — stabilization and bug fixes: Lua initialize() crashes, build pipeline fixes, build profiles, CSAR YAML-first, auto dependency resolution
 

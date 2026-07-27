@@ -11,7 +11,7 @@ Status: ✅ done
 - **Mission-overridable default messages** (QRA, AirWaves, Sanctuary, GroundAI, MissileGuardian, the default CAP objective) now store i18n **keys** as their defaults and resolve them through `veaf.t` at send time: the default localizes, while a mission's custom override passes through unchanged (`veaf.t` returns an unknown key verbatim before formatting).
 - Logs stay English; only on-screen text is localized.
 
-**Branch**: `feature/lua-i18n-sweep` → PR → `develop-v6`
+**Branch**: `feature/lua-i18n-sweep` → PR → `develop`
 
 **Done**: ~95 catalog keys added (FR + EN) across `move.*`, `namedpoints.*`, `spawn.*`, `qra.*`, `airwaves.*`, `sanctuary.*`, `groundai.*`, `mg.*`, `report.*` (shared coord/count fragments), `combatzone.*`, `combatmission.*`, `carrier.*`, `transport.*`. 13 modules routed through `veaf.t`. Rendering tests in `test_veafCombatZone`/`test_veafCombatMission`/`test_veafCarrierOperations` now load `veafI18n.lua` and pin `language = "en"`; representative FR/EN tests added to `test_veafI18n.lua` (32 total). Full Lua suite green (34 suites), stylua clean, no duplicate catalog keys.
 

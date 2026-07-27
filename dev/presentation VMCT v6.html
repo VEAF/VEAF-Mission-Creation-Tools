@@ -108,7 +108,7 @@ code,.mono{font-family:monospace;background:rgba(232,160,32,.11);color:var(--gol
   <button onclick="go(1)" id="bnext">▶</button>
 </div>
 <script>
-const LOGO="https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop-v6/VEAF-CT-v6-logo.png";
+const LOGO="https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop/VEAF-CT-v6-logo.png";
 
 const SL=[
 {t:"cover"},
@@ -168,7 +168,7 @@ note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> expose u
 ];
 
 const NOTES=[
-"Slide d'introduction. v5 = branche master (dernière release v5.103.3). v6 = branche develop-v6, version actuelle 6.4.0.",
+"Slide d'introduction. v5 = branche master (dernière release v5.103.3). v6 = branche develop, version actuelle 6.4.0.",
 "Tour d'horizon. La migration sera traitée en dernier — c'est ce qui intéresse le plus les utilisateurs existants.",
 "En v5, mettre en place l'environnement était un frein réel pour les nouveaux créateurs de mission. En v6 : zéro dépendance.",
 "Message clé de la slide. Insister sur le contraste avant/après.",
@@ -572,7 +572,7 @@ function rSummary(){
 }
 
 function rLinks(){
-  const links=[['Documentation v6','veaf.github.io/documentation/dev/'],['GitHub — branche develop-v6','github.com/VEAF/VEAF-Mission-Creation-Tools'],['Guide de migration','…/mission-maker/MIGRATION_GUIDE/'],['Référence mission.yaml','…/MISSION_YAML_REFERENCE/'],['Discord VEAF','veaf.org/discord'],['Doc v5 (archive)','veaf.github.io/documentation/v5/']];
+  const links=[['Documentation v6','veaf.github.io/documentation/dev/'],['GitHub — branche develop','github.com/VEAF/VEAF-Mission-Creation-Tools'],['Guide de migration','…/mission-maker/MIGRATION_GUIDE/'],['Référence mission.yaml','…/MISSION_YAML_REFERENCE/'],['Discord VEAF','veaf.org/discord'],['Doc v5 (archive)','veaf.github.io/documentation/v5/']];
   return `<div class="lbl">Ressources</div>
   <div class="link-list">${links.map(([l,u])=>`<div class="link-row"><span class="link-lbl">${l}</span><span class="link-url">${u}</span></div>`).join('')}</div>
   <div style="text-align:center;margin-top:18px;font-family:var(--raj);font-size:24px;color:var(--muted)">Questions ? → <span style="color:var(--gold)">Discord VEAF</span></div>`;

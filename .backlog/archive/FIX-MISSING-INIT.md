@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Context**: The Python build (`lua_config_generator.py`) generates an `<module>.initialize()` call for all modules listed in `_MODULE_INIT_ORDER`. A full audit revealed 4 modules missing this function: `veafCacheManager`, `veafTime`, `veafUnits`, `veafSkynetIadsMonitor`.
 
-**Branch**: `fix/missing-initialize-fns` → PR → `develop-v6`
+**Branch**: `fix/missing-initialize-fns` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

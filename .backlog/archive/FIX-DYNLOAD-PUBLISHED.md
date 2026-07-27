@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Dynamic loading was broken from a `published/` install (Flogas): the build always emitted the DEV framework loader (`VeafDynamicLoader.lua`, which `loadfile`s the **individual** `veaf/*.lua`), but `published.zip` ships only the concatenated **bundle** `veaf/veaf-scripts.lua` — so the individual files were absent → runtime "no file" error. Also, the mission maker's `custom_scripts` were never loaded dynamically (the hand-maintained `veafDynamicConfig.lua` only listed `mission-script.lua`). Per David: support two scenarios — **DEV** (load individual scripts from a repo checkout, `scripts_path`) and **PROD** (load the bundle from `scripts_path`, default `./published`) — and in both, load the mission maker's custom scripts dynamically.
 
-**Branch**: `feat/dynload-prod` → PR → `develop-v6`
+**Branch**: `feat/dynload-prod` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

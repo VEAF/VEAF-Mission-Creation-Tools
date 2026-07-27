@@ -239,7 +239,7 @@
 
         const meta = (entry.title && entry.title !== entry.version)
           ? entry.title
-          : (isDev ? 'Development branch (develop-v6)' : isLatest ? 'Latest stable release' : '');
+          : (isDev ? 'Development branch (develop)' : isLatest ? 'Latest stable release' : '');
 
         card.innerHTML = `
           <div class="vc-name">${entry.version}${badges}</div>
@@ -256,7 +256,7 @@
         // Static fallback when versions.json is not accessible
         renderVersions([
           { version: 'latest', title: 'Latest stable release', aliases: [] },
-          { version: 'dev',    title: 'Development branch (develop-v6)', aliases: [] }
+          { version: 'dev',    title: 'Development branch (develop)', aliases: [] }
         ]);
       });
   </script>

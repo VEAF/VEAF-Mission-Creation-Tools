@@ -72,7 +72,7 @@ Injects radio frequency presets into every aircraft group that has at least one 
 
 ### Two authoring formats
 
-Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepts two layers, which coexist:
+Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepts two layers, which coexist:
 
 - **`channel_lists`** (recommended): the mission-maker declares their channel lists once per coalition, by functional **Radio role** (primary UHF, primary VHF, FM…), and the build automatically projects each list onto every aircraft type's physical radios, honouring that type's hardware quirks (channel 0, reserved slots, hardcoded special channels, radio fusion — AJS-37, OH-58D, Mi-24P…). One frequency change propagates to the whole fleet. These per-type projection rules are documented on the developer side: [Per-type radio-preset projection](developer/radio-preset-projection.en.md).
 - **`radios_collection` / `presets_collection` / `presets_assignments`** (legacy): the mission-maker defines each preset's content radio by radio, then explicitly assigns it per aircraft type. This format remains fully supported and now serves as the **manual override mechanism**: an explicit assignment in `presets_assignments` for a given type always wins over the `channel_lists` automatic projection — including the special value `none` (no injection at all).
@@ -184,7 +184,7 @@ A channel can be defined in three ways, in `channel_lists` as well as `radios_co
 ### Channel priority and colour (kneeboards)
 
 On a plan entry (object form), two optional attributes enrich the kneeboard
-([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)):
+([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)):
 
 - **`priority: <n>`** — highlights the channel on **every** kneeboard (a `Pn`
   marker + orange Name/Freq cells). On the **AJS-37 (Viggen)** only, priorities
@@ -209,7 +209,7 @@ folder (`KNEEBOARD/<type>/IMAGES/`).
 
 ### v5 conversion: two files (`convert-v5`)
 
-Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` emits **two** preset files:
+Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` emits **two** preset files:
 
 - **`presets.yaml` — simplified plan (default, loaded by the build)**: `channel_lists` alone (plus the rare overrides the packer cannot project at all). The build projects the crystallisation onto every aircraft automatically — warbirds included (VHF/FM-capable radios), dropping out-of-band channels. This is the file that fully exploits the preset-plan model.
 - **`presets.v5.yaml` — faithful copy (reference / rollback, NOT loaded by the build)**: the complete iso-functional conversion (`channel_lists` + a dedicated `{coalition}_{aircraft}` preset per bespoke layout, reproducing the exact channel → frequency map and `mod`, see ADR 0003).
@@ -330,7 +330,7 @@ settings:
 
 ## Step 3 — Aircraft Groups: spawnables (B) and dynamic-slot templates (C)
 
-Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0002-aircraft-group-injection-sort-criteria.md)):
+Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md)):
 
 - **(B) spawnable groups** (`src/spawnables.yaml`, step `spawnable_aircrafts`): real hidden groups cloned on demand in-game by `veafSpawn`. Marker: the `veafSpawn-` name prefix.
 - **(C) dynamic-slot templates** (`src/dynamic-slot-templates.yaml`, step `dynamic_slot_templates`): groups used as a **model** for DCS Dynamic Slots, consumed natively by the engine. Marker: the DCS flag `dynSpawnTemplate = true`.
@@ -558,7 +558,7 @@ blue:
 
 ## Step 5 — Spawn Data (`spawn-groups.yaml`)
 
-The `_spawn unit <alias>` and `_spawn group <alias>` marker commands rely on two Lua tables (`veafUnits.UnitsDatabase` and `veafUnits.GroupsDatabase`). Since v6 these are no longer hard-coded in `veafUnits.lua`: they come from YAML, are rendered to Lua, and **injected into the `.miz` at mission build** (DCS cannot parse YAML at runtime). See [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0005-spawn-data-externalization.md).
+The `_spawn unit <alias>` and `_spawn group <alias>` marker commands rely on two Lua tables (`veafUnits.UnitsDatabase` and `veafUnits.GroupsDatabase`). Since v6 these are no longer hard-coded in `veafUnits.lua`: they come from YAML, are rendered to Lua, and **injected into the `.miz` at mission build** (DCS cannot parse YAML at runtime). See [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
 
 ### Always on
 

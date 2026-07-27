@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: When the user has no `mission.yaml`, `build` resolved the config from the absent file in `MissionBuilderWorker.__init__` **before** `complete_src_folder_with_defaults()` (run later in `work()`) copied the default into the folder. Result: `self.mission_yaml` (and everything derived — `veaf-config.lua`, community toggles, custom_scripts, dynamic_mode) stayed empty → **no veaf-config.lua, no VEAF menu**, and all community scripts wrongly enabled. Fix the ordering so the default is available before the config is read.
 
-**Branch**: `fix/build-copy-defaults-before-read` → PR → `develop-v6`
+**Branch**: `fix/build-copy-defaults-before-read` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

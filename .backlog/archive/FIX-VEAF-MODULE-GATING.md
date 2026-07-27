@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: The VEAF Lua framework integrates with community libraries via `if <Global> then …` blocks (`AIEN`, `ctld`, `csar`, `STTS`, `SkynetIADS` — ~16 sites across `veaf.lua`, `veafAssets`, `veafGrass`, `veafSpawnAircraft`, `veafSpawnGround`, `veafRadio`, `veafSkynetIadsMonitor`). These fire whenever the **global exists**, not when the module is **enabled in `mission.yaml`**. So a mission maker who brings **their own version** of a lib (declared in `custom_scripts:`) while **disabling the VEAF module** (e.g. `modules: { ctld: false }`) still gets VEAF's integration applied to *their* version — VEAF reconfigures a foreign `CTLD`/`AIEN`/… assuming its own API. This is the AIEN clobber the 007 Foothold pilot hit (`AIEN.config.AIEN_xcl_tag` table → VEAF's `"XCL"` string → `ipairs` crash), **generalised to any VEAF mission**. Gate each block on the module being enabled (reuse `veaf.isEnabled(id)` / the generated `veaf.setConfig(id, "enable", false)`), default-on for back-compat. **Open design point**: the top-level blocks in `veaf.lua` run at framework-init time — confirm the enabled flags (from `veaf-config.lua`) are set *before* they execute, or move the integration to a point where they are (the runtime/in-function blocks are fine). Surfaced by FOOTHOLD-V6-007.
 
-**Branch**: `fix/veaf-module-gating` → PR → `develop-v6`
+**Branch**: `fix/veaf-module-gating` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

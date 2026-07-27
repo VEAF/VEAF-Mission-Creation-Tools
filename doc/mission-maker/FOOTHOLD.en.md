@@ -6,9 +6,9 @@
 > `.miz` (Modern **and** Cold-War) from a single mission folder.
 >
 > Architecture: **generic code, author-specific knowledge as data** (see
-> [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0007-third-party-mission-adoption.md))
+> [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md))
 > and **untouched upstream config + lexically-validated partial override** (see
-> [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0008-foothold-config-override.md)).
+> [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0008-foothold-config-override.md)).
 > The per-command detail lives in [CONVERT_OTHER](CONVERT_OTHER.md) and the
 > [mission.yaml reference](../MISSION_YAML_REFERENCE.md).
 

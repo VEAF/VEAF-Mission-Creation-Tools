@@ -3,7 +3,7 @@
 Status: ✅ done
 
 Documentation-only lot from Tripack's feedback. No code changes, no PR — direct
-commits on `develop-v6` (chore/doc policy). Two independent doc gaps.
+commits on `develop` (chore/doc policy). Two independent doc gaps.
 
 ## Problem
 

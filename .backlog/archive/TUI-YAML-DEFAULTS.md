@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: When `veaf-tools` is launched in TUI mode, the proposed argument defaults are currently static (`mission.miz`, `.`, …) or the last saved value. They ignore a `mission.yaml` present in the working directory. The wizard should detect an existing `mission.yaml` and derive smarter defaults from it — at least for the mission name prompt.
 
-**Branch**: `feat/tui-yaml-defaults` → PR → `develop-v6`
+**Branch**: `feat/tui-yaml-defaults` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

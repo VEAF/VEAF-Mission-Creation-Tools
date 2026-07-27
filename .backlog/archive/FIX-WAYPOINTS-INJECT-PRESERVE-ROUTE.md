@@ -6,7 +6,7 @@ Status: ✅ done
 
 This lot also **reverts FIX-DEFAULTS-AIRCRAFT-ROSTER** (#438): emptying the default spawnables/dynamic-slot-templates was a misdiagnosis — injecting those late-activation/dyn-spawn groups is normal and intended; they were not the cause of the message.
 
-**Branch**: `fix/waypoints-injection-preserve-route` → PR → `develop-v6`
+**Branch**: `fix/waypoints-injection-preserve-route` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

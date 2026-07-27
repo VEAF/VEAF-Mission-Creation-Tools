@@ -1,7 +1,7 @@
 # Lot FIX-DYNSLOT-TEMPLATE-CATEGORY — airplane dynamic-slot templates miscategorized as helicopters
 
 Status: ✅ done
-Branch: fix/dynslot-template-category → PR → develop-v6
+Branch: fix/dynslot-template-category → PR → develop
 
 ## Problem Statement
 

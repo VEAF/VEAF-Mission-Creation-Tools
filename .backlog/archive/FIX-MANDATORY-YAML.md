@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: The three YAML generators (`v5_converter.py`, `lua_config_generator.py`, `config_migrator.py`) emitted `enable: true` for mandatory modules (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). The build blocked on these entries with a critical error. They must emit `{}` instead (matching the `src/defaults/mission-folder/mission.yaml` template).
 
-**Branch**: `fix/mandatory-yaml-enable` → PR → `develop-v6`
+**Branch**: `fix/mandatory-yaml-enable` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

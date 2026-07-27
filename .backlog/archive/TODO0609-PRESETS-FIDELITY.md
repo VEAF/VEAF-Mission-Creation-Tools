@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: v5 presets encode DCS module quirks (e.g. Mi-24 channel 0 mapped to channel 20 on injection, AJS-37 offsets). The current `convert-v5` loses these. First make conversion iso-functional with the v5 mission; then analyse whether the v6 `presets.yaml` data structure is adequate (the v5 structure may have been better) and propose enriched defaults. Covers todo-2026.06.09 item 13.
 
-**Branch**: `fix/presets-fidelity` → PR → `develop-v6` (13a); follow-up branch for 13b once the spike lands
+**Branch**: `fix/presets-fidelity` → PR → `develop` (13a); follow-up branch for 13b once the spike lands
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

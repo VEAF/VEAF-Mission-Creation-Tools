@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Two quality guards are advertised but neutralized where it matters. `pyproject.toml:102-120` sets `ignore_errors = true` for **every large worker** (`aircrafts_injector_worker`, `mission_builder_worker`, `mission_converter_worker`, `presets_*`, `waypoints_*`, `weather_*`), so mypy only type-checks already-clean small files — exactly where the SECREV defects did *not* hide. Line coverage is **16%** with `--cov-fail-under=15`, so the gate protects nothing. Turn both into a debt eroded lot-by-lot rather than a single big-bang. Supersedes the archived single-shot attempt (`backlog-archive.md` "Retirer `ignore_errors`…").
 
-**Branch**: `chore/quality-gate` → PR → `develop-v6`
+**Branch**: `chore/quality-gate` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

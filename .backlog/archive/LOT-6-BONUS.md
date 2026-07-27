@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Quality-of-life improvements after the priority lots.
-**Branch**: `feature/bonus-logger-doc` → PR → `develop-v6`
+**Branch**: `feature/bonus-logger-doc` → PR → `develop`
 **Depends on**: Lot 4 (LUA-001), Lot 2 (TOOL-003)
 
 | # | Ticket | Type | Effort | Depends on | Status |

@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Python quality gate working locally and in CI before any feature work.
-**Branch**: `feature/infra-poetry-quality-gate` → PR → `develop-v6`
+**Branch**: `feature/infra-poetry-quality-gate` → PR → `develop`
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|

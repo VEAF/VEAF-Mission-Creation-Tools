@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Éliminer la duplication du pattern `onEventMarkChange + executeCommand + markTextAnalysis` répété dans 8+ modules, et remplacer les dispatchers if/elseif manuels par des registres dynamiques.
 Chaque ticket est indépendant — ordre recommandé : ARCH-001 → ARCH-002 → ARCH-003, puis ARCH-004 → ARCH-005 en parallèle.
-**Branch**: une branche par ticket `refactor/arch-xxx` → PR → `develop-v6`
+**Branch**: une branche par ticket `refactor/arch-xxx` → PR → `develop`
 ⚠️ ARCH-001 : l'ordre d'enregistrement dans le registre doit reproduire exactement l'ordre actuel du if/elseif (veafShortcuts en premier).
 
 | # | Ticket | File(s) | Type | Effort | Status |

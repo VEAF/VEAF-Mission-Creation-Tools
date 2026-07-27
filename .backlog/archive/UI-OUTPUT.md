@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Make `veaf-tools` (and later `veaf-tools-updater`) output readable. Low-importance progress messages scroll endlessly today. Introduce three output tiers: permanent technical lines, permanent chapter headers, and a single overwriting transient line for everything else (warnings/errors stay permanent). The full log file keeps every message. `--verbose` and non-interactive output fall back to the classic line-by-line display.
 
-**Branch**: `feature/UI-OUTPUT` → PR → `develop-v6`
+**Branch**: `feature/UI-OUTPUT` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

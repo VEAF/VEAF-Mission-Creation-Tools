@@ -191,7 +191,7 @@ Once all prerequisites are installed:
 ```powershell
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
-git checkout develop-v6
+git checkout develop
 
 # Install all Python dependencies
 poetry install
@@ -359,13 +359,13 @@ Use the release assistant prompt at `.prompts/generate-release-notes.md` to run 
 
 #### Release flow (git flow)
 
-The AI assistant handles: creating `release/x.y.z` from `develop-v6`, committing all release files, and opening the PR.
+The AI assistant handles: creating `release/x.y.z` from `develop`, committing all release files, and opening the PR.
 
 After the PR is merged, the developer runs:
 
 ```bash
-git checkout develop-v6
-git pull origin develop-v6
+git checkout develop
+git pull origin develop
 git tag published-vx.y.z
 git push origin published-vx.y.z
 ```
@@ -536,10 +536,10 @@ veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
 
 ### Git Flow
 
-- **Feature work:** create `feature/xxx` from `develop-v6`, open PR → `develop-v6`
-- **Bug fixes:** create `fix/xxx` from `develop-v6`, open PR → `develop-v6`
+- **Feature work:** create `feature/xxx` from `develop`, open PR → `develop`
+- **Bug fixes:** create `fix/xxx` from `develop`, open PR → `develop`
 - **Hotfixes to production:** `fix/xxx` from `master`, PR → `master`
-- **Releases:** `release/vX.Y.Z` from `develop-v6`, PR → `master`
+- **Releases:** `release/vX.Y.Z` from `develop`, PR → `master`
 
 ### Commit Convention
 

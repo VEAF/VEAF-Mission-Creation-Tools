@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Auto-detect the user's language (OS locale or `--lang` flag) and deliver the full experience in that language: CLI output, generated file comments, and documentation. Ship EN and FR as first-class citizens.
-**Branch**: `feature/i18n` → PR → `develop-v6`
+**Branch**: `feature/i18n` → PR → `develop`
 **Depends on**: Lot 10 (generated-file comment strings stabilised)
 
 | # | Ticket | Type | Effort | Depends on | Status |

@@ -1,7 +1,7 @@
 # Lot FEAT-RADIO-YAML-MENUS — declare F10 radio menus in YAML (with Tripack)
 
 Status: ✅ done
-Branch: feat/radio-yaml-menus → PR → develop-v6
+Branch: feat/radio-yaml-menus → PR → develop
 ADR: [0011](../../docs/adr/0011-radio-yaml-menus.md)
 
 ## Problem Statement

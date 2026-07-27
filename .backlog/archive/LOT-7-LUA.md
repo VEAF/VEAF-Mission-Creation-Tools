@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Fix the most impactful Lua bugs, prioritized from issue triage.
-**Branch**: `fix/lua-high-priority` → PR → `develop-v6`
+**Branch**: `fix/lua-high-priority` → PR → `develop`
 **Depends on**: Lot 4 (LUA-CONFIG — same files, avoid conflicts)
 
 | # | Ticket | Issue | Type | Effort | Status |

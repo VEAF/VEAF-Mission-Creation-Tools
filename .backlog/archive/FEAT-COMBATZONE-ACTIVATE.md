@@ -6,7 +6,7 @@ Status: ✅ done
 
 **YAML shape (decided — David)**: a **per-zone flag** inside `combat_zones:` — `active_at_start: true` on each zone to activate. Single source of truth (no zone-name duplication), consistent with the existing zone definitions. The generator collects the flagged zones and emits one `veafCombatZone.ActivateZone("<name>", true)` per flag, **after** `veafCombatZone.initialize()`.
 
-**Branch**: `feat/combatzone-activate` → PR → `develop-v6`
+**Branch**: `feat/combatzone-activate` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

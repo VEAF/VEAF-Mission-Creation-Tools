@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Targeted fixes for identified bugs and recurring anti-patterns in the Lua codebase.
 No structural breakage — each ticket is isolated and low-risk.
-**Branch**: `fix/lua-quality` → PR → `develop-v6`
+**Branch**: `fix/lua-quality` → PR → `develop`
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|

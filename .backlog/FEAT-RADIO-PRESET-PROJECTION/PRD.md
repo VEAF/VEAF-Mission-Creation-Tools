@@ -1,7 +1,7 @@
 # Lot FEAT-RADIO-PRESET-PROJECTION — per-type radio-preset projection (preset plan model)
 
 Status: ✅ done
-Branch: feature/radio-preset-projection → PR → develop-v6
+Branch: feature/radio-preset-projection → PR → develop
 Decisions: [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md) ·
 Analysis: [RADIO-PRESETS-PER-TYPE-PROJECTION](../../docs/exploration/RADIO-PRESETS-PER-TYPE-PROJECTION.md) ·
 Glossary: [CONTEXT.md](../../CONTEXT.md)

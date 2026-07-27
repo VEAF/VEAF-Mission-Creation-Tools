@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: `inject-aircrafts` crashes DCS at mission load (`me_mission.lua:512`, `fixCountriesNames` → `attempt to index field '?' (a nil value)`) when a `mission.yaml` injects aircraft into a country (e.g. `France`) that has no ground unit in the source `.miz`. Root cause: `AircraftGroupsInjectorWorker._ensure_country` only recovers a country's DCS numeric `id` by looking it up in another coalition already present in the mission (commit `bc37be3`, partial); a country absent everywhere is created **without `id`**, which DCS dereferences as nil on load. This lot makes country-id resolution systematic (mission → generated DCS table → hard error), generates the name→id table from the `Quaggles/dcs-lua-datamine` repo (each `_G/db/Countries/*.lua` carries `Name` + `WorldID`, CJTF/UN included — no DCS install needed), consolidates the scattered DCS-data generators (`dcsDataExport.lua`, `dcs_units_parser.py`, `radio_specs_updater.py`) under a single `veaf-build update-dcs-data` command with a pinned upstream + freshness guards (per-PR consistency + scheduled drift watcher), and finally lifts the documented "≥1 blue + ≥1 red ground group" base-mission requirement once a spike confirms a synthetic unit-less country satisfies the injectors and survives a DCS save.
 
-**Branch**: `feature/DCSDATA` → PR → `develop-v6`
+**Branch**: `feature/DCSDATA` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

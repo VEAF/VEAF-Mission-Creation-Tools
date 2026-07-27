@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: `mission.yaml` becomes the single source of truth for all mission configuration. Python generates `veaf-config.lua` at build time. `missionConfig.lua` → `mission-script.lua` (custom code only). `convert-v5` actively extracts all recognized patterns.
-**Branch**: `feature/yaml-config` → PR → `develop-v6`
+**Branch**: `feature/yaml-config` → PR → `develop`
 **Depends on**: Lot RC (builder infrastructure), Lot 4 (LUA-CONFIG)
 
 | # | Ticket | Type | Effort | Depends on | Status |

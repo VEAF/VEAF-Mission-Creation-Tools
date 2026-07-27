@@ -10,7 +10,7 @@ Status: ✅ done
 
 `csar-beacon.ogg` is not referenced anywhere and was dropped from the mapping. `radiobeep.ogg` (JTAC fallback beep, CTLD only) is **not redistributed by upstream** and is left to the mission maker — the build warns when an enabled module's required sound is shipped by neither the tools nor the mission. Assets flow into `published.zip` automatically (the release packager already includes all of `src/scripts/community/**`).
 
-**Branch**: `feat/build-community-sounds` → PR → `develop-v6`
+**Branch**: `feat/build-community-sounds` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

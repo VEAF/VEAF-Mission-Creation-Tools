@@ -119,7 +119,7 @@ widget auto-targets the local Worker on localhost.
 
 ## Gaps for VEAF productionization (out of POC scope)
 
-- Create a BACKLOG lot, branch from `develop-v6`, add tests, open a PR.
+- Create a BACKLOG lot, branch from `develop`, add tests, open a PR.
 - **Automated re-indexing is wired** in `.github/workflows/docs-chatbot-index.yml` (rebuilds + uploads
   to KV on doc changes). It needs three repository secrets: `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN`
   (Workers KV edit), `CLOUDFLARE_ACCOUNT_ID`. Note: KV free tier allows 1,000 writes/day — a full

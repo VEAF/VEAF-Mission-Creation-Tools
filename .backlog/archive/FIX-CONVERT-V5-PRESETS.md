@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Fix `convert-v5` so that per-aircraft radio specificity from `radioSettings` is preserved in the generated `presets.yaml`.
 
-**Branch**: `fix/convert-v5-presets-per-aircraft` → PR #381 → `develop-v6`
+**Branch**: `fix/convert-v5-presets-per-aircraft` → PR #381 → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

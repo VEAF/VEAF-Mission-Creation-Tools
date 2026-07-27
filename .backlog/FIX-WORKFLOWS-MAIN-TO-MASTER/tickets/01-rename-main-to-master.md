@@ -9,13 +9,13 @@ actually run on the repo's real stable branch.
 
 ## Steps
 
-- `branches: [develop-v6, main]` → `[develop-v6, master]` in: `dcs-data-consistency.yml`,
+- `branches: [develop, main]` → `[develop, master]` in: `dcs-data-consistency.yml`,
   `dcs-mock-coverage.yml`, `lua-ci.yml`, `python-quality.yml`, `sbom.yml`,
   `secret-scanning.yml`.
 - `docs.yml`: push trigger `- main` → `- master`; deploy step condition
   `refs/heads/main` → `refs/heads/master`; update the step name comment.
 - `sbom.yml`: update the header comment mentioning `main` pushes.
-- Leave every `develop-v6` trigger and the `v*` tag paths untouched.
+- Leave every `develop` trigger and the `v*` tag paths untouched.
 
 ## Done when
 

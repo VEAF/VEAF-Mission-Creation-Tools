@@ -9,13 +9,13 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 | Symbole | Signification |
 |---------|---------------|
 | ✅ | Fait — livré dans une release |
-| 🔄 | En cours — sur `develop-v6` |
+| 🔄 | En cours — sur `develop` |
 | 🔵 | Planifié — ticket existant dans le backlog |
 | ⚪ | Idée — pas encore de ticket |
 
 ---
 
-## v6.x — Cycle de développement actuel (`develop-v6`)
+## v6.x — Cycle de développement actuel (`develop`)
 
 ### Fondations (Lot 1 — INFRA)
 - ✅ **Migration Poetry** — remplacement de `requirements.txt` par `pyproject.toml` géré par Poetry
@@ -39,7 +39,7 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 - ✅ **Mission YAML → sélection de modules** — la section `lua_modules` dans `mission.yaml` pilote quels modules sont inclus et comment ils sont initialisés
 
 ### Release
-- ✅ **Releases v6.x** — publication continue depuis `develop-v6` (tags `published-vx.y.z`) ; version courante **6.9.2**. Le merge `develop-v6` → `master` est réservé aux jalons stables.
+- ✅ **Releases v6.x** — publication continue depuis `develop` (tags `published-vx.y.z`) ; version courante **6.9.2**. Le merge `develop` → `master` est réservé aux jalons stables.
 - ✅ **Release v6.9.2** — **confort des menus radio F10** : pagination automatique de tout menu VEAF dépassant la limite DCS de 10 entrées (sous-menus « Page suivante », opt-out `veafRadio.doNotPaginate`, ADR 0013) ; regroupement des combat zones dans le menu radio via deux clés `mission.yaml` (`radio_group_name` = sous-menu commun, `radio_menu_prefix` = préfixe de libellé), reprises par `convert-v5`. Retour de Reaper (FEAT-COMBATZONE-RADIO-GROUPS).
 - ✅ **Release v6.9.0** — **planchettes radio** : deux attributs d'auteur valables sur tous les appareils — `priority` (surligne un canal sur la planchette + marqueur `Pn` ; sur l'AJS-37, alimente en plus les raccourcis FR22 Special 1/2/3 & FR24 H) et `color` (regroupe les canaux par couleur) ; **une planchette par type d'appareil** (`KNEEBOARD/<type>/IMAGES/`, entêtes gris). Vitrine : l'AJS-37 Viggen, packé par clé sur les Groups 100-139 avec ses vrais libellés cockpit sur deux colonnes (ADR 0012, casse l'iso-fonctionnalité ADR 0003 côté packer ; convert-v5 inchangé). Retours de Tripack (FEAT-PRESETS-PRIORITY-COLOR).
 - ✅ **Release v6.8.0** — **presets radio** : nouveau modèle « plan » (`channel_lists` projetés automatiquement sur chaque appareil, ADR 0010), fréquences remplacées par des **noms lisibles** à la conversion (aérodromes + indicatifs VEAF), `convert-v5` génère un plan par défaut + copie fidèle ; **menus radio F10 déclarables en YAML** sans Lua (ADR 0011) ; `pipeline.presets` peut désactiver les kneeboards en gardant l'injection radio ; data ATC des aérodromes dataminée par théâtre. Corrections : presets radio dans l'exe, sortie `presets.yaml` nettoyée, CH-47F. Retours de Tripack (FEAT-RADIO-PRESET-PROJECTION, FEAT-CONVERTV5-PLAN-PRESETS, FEAT-CONVERTV5-FREQ-ALIASING, FEAT-AIRFIELD-FREQS-DATA, FEAT-RADIO-YAML-MENUS, FEAT-PRESETS-KNEEBOARD-TOGGLE, FIX-CONVERTV5-PRESETS-OUTPUT).

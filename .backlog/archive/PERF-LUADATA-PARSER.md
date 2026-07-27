@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: SECREV-001 replaced the lua-executing parser with a pure-Python state machine to remove RCE. On large missions (Flogas, 8.9 MB `.miz`) the build became 5-10× slower — `read_miz` ≈ 0.86 s, dominated by the parser. Profiling showed two hotspots: `node_entries_append` re-sorted + rescanned the whole entry list on **every** append (`O(n²·log n)` per table), and the main loop walked the input one byte at a time (`sbins[pos:pos+1]` slice + whitespace test per char). Recover speed without reintroducing code execution.
 
-**Branch**: `perf/luadata-parser` → PR → `develop-v6`
+**Branch**: `perf/luadata-parser` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

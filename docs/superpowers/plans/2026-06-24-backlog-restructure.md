@@ -10,8 +10,8 @@
 
 ## Global Constraints
 
-- **Git workflow:** all work on a single feature branch `chore/backlog-restructure` cut from `develop-v6`; one PR targeting `develop-v6` (CLAUDE.md §8). Never commit directly to `develop-v6`/`master`/`main`.
-- **Sync first:** before starting, `git fetch` then `git pull --ff-only` on `develop-v6` (CLAUDE.md §8.0).
+- **Git workflow:** all work on a single feature branch `chore/backlog-restructure` cut from `develop`; one PR targeting `develop` (CLAUDE.md §8). Never commit directly to `develop`/`master`/`main`.
+- **Sync first:** before starting, `git fetch` then `git pull --ff-only` on `develop` (CLAUDE.md §8.0).
 - **Commit style:** Conventional Commits in English (`type(scope): description`).
 - **Artifact language:** all `.backlog/` content (PRD.md, tickets, index, archive) and all docs are written in **English**.
 - **Status vocabulary (exact):** `ready` ⬜ · `in-progress` 🔄 · `waiting-human` 🧑 · `done` ✅ · `wontfix` 🚫.
@@ -38,7 +38,7 @@ Wire the Matt Pocock skills *first*, so the new structure is the live convention
 ```bash
 cd /c/dev/dpierron/vmct-v6
 git fetch
-git switch develop-v6 && git pull --ff-only
+git switch develop && git pull --ff-only
 git switch -c chore/backlog-restructure
 ```
 
@@ -210,7 +210,7 @@ mkdir -p .backlog/CLEANUP-LUPA/tickets
 # Lot CLEANUP-LUPA — remove the dead `lupa` dependency
 
 Status: ⬜ ready
-Branch: chore/cleanup-lupa → PR → develop-v6
+Branch: chore/cleanup-lupa → PR → develop
 
 ## Problem Statement
 
@@ -594,7 +594,7 @@ git checkout .backlog/README.md
 
 ```bash
 git push -u origin chore/backlog-restructure
-gh pr create --base develop-v6 --title "chore: restructure backlog into .backlog/ + wire Matt Pocock skills" --body "Implements docs/superpowers/specs/2026-06-24-backlog-restructure-design.md (ADR 0009). Replaces monolithic backlog.md with per-lot .backlog/ directories and configures the Matt Pocock engineering skills via docs/agents/*."
+gh pr create --base develop --title "chore: restructure backlog into .backlog/ + wire Matt Pocock skills" --body "Implements docs/superpowers/specs/2026-06-24-backlog-restructure-design.md (ADR 0009). Replaces monolithic backlog.md with per-lot .backlog/ directories and configures the Matt Pocock engineering skills via docs/agents/*."
 ```
 
 - [ ] **Step 6: Monitor the PR**

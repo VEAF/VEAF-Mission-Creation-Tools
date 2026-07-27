@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Make `veaf-tools ask` work out of the box with **no API key**. A project key cannot be shipped in the distributed tool (it would be scraped and the quota/key abused), so the default routes through the project's Cloudflare Worker — which owns the Gemini key server-side, runs the RAG and streams the answer, exactly like the website chatbot. Supersedes CHATBOT-CLI-001/002/003 (the direct-key + local-index path was removed). David's decisions: **Worker only** (no user-key path) and the CLI authenticates with a **dedicated header** (not by loosening the browser Origin allow-list).
 
-**Branch**: `feat/chatbot-cli-worker` → PR → `develop-v6`
+**Branch**: `feat/chatbot-cli-worker` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

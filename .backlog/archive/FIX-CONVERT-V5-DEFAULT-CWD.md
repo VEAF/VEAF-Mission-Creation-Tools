@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Fix**: Change `no_args_is_help=True` → `no_args_is_help=False` (or remove the parameter entirely).
 
-**Branch**: `fix/convert-v5-default-cwd` → PR → `develop-v6`
+**Branch**: `fix/convert-v5-default-cwd` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

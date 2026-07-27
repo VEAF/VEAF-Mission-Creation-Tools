@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Fix bugs discovered during RC testing before the final release.
-**Branch**: `develop-v6` (direct commits — RC hotfixes)
+**Branch**: `develop` (direct commits — RC hotfixes)
 
 | # | Ticket | Type | Effort | Status |
 |---|--------|------|--------|--------|

@@ -1,4 +1,4 @@
-# REL-003 — squash merge `develop-v6` → `master`
+# REL-003 — squash merge `develop` → `master`
 
 Status: ⬜ ready
 Type: chore
@@ -6,11 +6,11 @@ Files: —
 
 ## What to build
 
-Squash merge `develop-v6` → `master`.
+Squash merge `develop` → `master`.
 
 ## Acceptance criteria
 
-- [ ] `develop-v6` squash-merged into `master`
+- [ ] `develop` squash-merged into `master`
 
 ## Blocked by
 

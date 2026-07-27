@@ -1,7 +1,7 @@
 # Lot FIX-SECRET-SCANNING-GITLEAKS-CLI
 
 Status: ✅ done
-Branch: `fix/secret-scanning-gitleaks-cli` → `develop-v6` (merged, PR #615)
+Branch: `fix/secret-scanning-gitleaks-cli` → `develop` (merged, PR #615)
 
 ## Problem Statement
 
@@ -42,7 +42,7 @@ config (allowlist preserved).
 
 ## Out of Scope
 
-- The `main` vs `master` branch mismatch in the trigger (`branches: [develop-v6, main]` —
+- The `main` vs `master` branch mismatch in the trigger (`branches: [develop, main]` —
   the repo uses `master`, so the workflow never runs on `master`). Noted, not fixed here to
   keep the change surgical; candidate for a follow-up.
 - Migrating to GitHub-native secret scanning.

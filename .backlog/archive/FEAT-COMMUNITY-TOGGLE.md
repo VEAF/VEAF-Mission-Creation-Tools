@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Allow mission makers to individually enable or disable community Lua scripts (TUM, CTLD, CSAR, etc.) via a `community_scripts:` section in `mission.yaml`, analogous to the existing `lua_modules:` section.
 
-**Branch**: `feature/community-toggle` → PR → `develop-v6`
+**Branch**: `feature/community-toggle` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

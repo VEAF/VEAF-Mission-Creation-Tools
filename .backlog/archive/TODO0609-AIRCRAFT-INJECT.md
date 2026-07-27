@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Frozen decisions** (see `CONTEXT.md` and `docs/adr/0002-aircraft-group-injection-sort-criteria.md`): two distinct features sharing one extract/inject tool; sort by `dynSpawnTemplate` flag (priority) then `veafSpawn-` prefix, else ignore; **drop the legacy `.*[tT]emplate.*` name sort** (root cause of the historical misrouting bug).
 
-**Branch**: `feat/aircraft-inject` → PR → `develop-v6`
+**Branch**: `feat/aircraft-inject` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

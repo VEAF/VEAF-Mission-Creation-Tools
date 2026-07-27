@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Spike findings (001 ✅)**: Dynamic Slots are **per airbase** — `warehouses.airports[<id>].dynamicSpawn = true` enables them; `aircrafts[<type>]` is the warehouse stock; **`aircrafts[<type>].linkDynTempl = <groupId>`** links the slot to a `dynSpawnTemplate=true` group (the model providing loadout/livery/radio/route — confirmed in the demo: `linkDynTempl=2114` ↔ group "DST - UH-1H" groupId 2114). The template group's physical placement is irrelevant. The airport key `<id>` is the DCS **airdrome id**; warehouses carry no names, and the datamine has no airdrome table — but each airport block has a `coalition` field (so "all airports of a coalition" needs no names), and name→id is recoverable from the **install** (`Mods/terrains/*/Beacons.lua`). Config model (David): `warehouses.yaml` per coalition (undeclared → untouched); per coalition global defaults (fuel/weapons/aircraft+templates) applied to all coalition airports, or a specific airport list (by name or id) with overrides; the build sets `dynamicSpawn`, stock, fuel and `linkDynTempl`.
 
-**Branch**: `feat/dynslot-warehouse` → PR → `develop-v6`
+**Branch**: `feat/dynslot-warehouse` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

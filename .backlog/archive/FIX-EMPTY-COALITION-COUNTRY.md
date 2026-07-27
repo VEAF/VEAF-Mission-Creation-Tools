@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: `veaf-tools build` crashed with `AttributeError: 'dict' object has no attribute 'append'` (`coalition_placeholder._find_or_add_country`) on a minimal mission where one side is empty. An empty DCS `country = {}` Lua table deserializes to a dict (not a list) under `all_is_dict`, so `setdefault("country", [])` returned the existing dict and `.append` failed. Reproduced with a single-A-10C Caucasus mission (blue populated, red/neutrals empty).
 
-**Branch**: `fix/empty-coalition-country` → PR → `develop-v6`
+**Branch**: `fix/empty-coalition-country` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Fix**: Change `'debug'` → `'info'` in the fallback.
 
-**Branch**: `fix/convert-v5-log-default` → PR → `develop-v6`
+**Branch**: `fix/convert-v5-log-default` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

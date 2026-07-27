@@ -6,7 +6,7 @@ Status: ✅ done
 
 > Depends on TODO0609-MODULES-UNIFY for the target YAML shape that commented-out elements (-001) are emitted into.
 
-**Branch**: `feat/convert-fidelity` → PR → `develop-v6`
+**Branch**: `feat/convert-fidelity` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Replace all user-facing references to `missionConfig.lua` with the correct v6 name (`mission-script.lua` for custom code, `mission.yaml` for configuration).
 
-**Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
+**Branch**: `fix/remove-convert-command` → PR #371 → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

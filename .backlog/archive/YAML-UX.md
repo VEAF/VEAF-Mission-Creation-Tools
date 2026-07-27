@@ -13,7 +13,7 @@ Status: ✅ done
 
 **Dépendances**: UX-001 → UX-002 → UX-003 (dans cet ordre). UX-004/005/006 indépendants.
 
-**Branch**: `feature/yaml-ux` → PR → `develop-v6`
+**Branch**: `feature/yaml-ux` → PR → `develop`
 
 | # | Ticket | Description | Files | Type | Effort | Status |
 |---|--------|-------------|-------|------|--------|--------|

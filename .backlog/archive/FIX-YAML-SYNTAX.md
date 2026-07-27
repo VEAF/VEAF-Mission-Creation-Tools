@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Context**: An unhandled `yaml.YAMLError` in `build.py` (name peek) and `mission_builder_worker.py` (full load) caused a crash with traceback. PyYAML's native error message (file, line, column, context) is now propagated via `logger.error`.
 
-**Branch**: `fix/yaml-syntax-error` → PR → `develop-v6`
+**Branch**: `fix/yaml-syntax-error` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

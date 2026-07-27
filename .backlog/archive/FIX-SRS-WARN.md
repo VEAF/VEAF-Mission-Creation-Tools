@@ -12,7 +12,7 @@ Status: ✅ done
 
 **File**: `src/scripts/veaf/veafRadio.lua`, around line 920–934.
 
-**Branch**: `fix/srs-warn` → PR → `develop-v6`
+**Branch**: `fix/srs-warn` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

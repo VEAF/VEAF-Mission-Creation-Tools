@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Understand and document the two dynamic-loading files — `VeafDynamicLoader.lua` (loads VEAF scripts) and `veafDynamicConfig.lua` (loads mission scripts) — determine whether one is obsolete, and clarify the overall static-vs-dynamic loading of VEAF scripts (including how `convert-v5` handles legacy v5 dynamic-loading triggers). Covers todo-2026.06.09 item 2.
 
-**Branch**: `chore/dynload-clarify` → PR → `develop-v6`
+**Branch**: `chore/dynload-clarify` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

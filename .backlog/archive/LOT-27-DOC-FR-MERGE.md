@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Switch French as the default MkDocs documentation language and enrich v6 pages with the missing conceptual content from the v5 documentation (written manually).
 
-**Branch**: `feature/doc-fr-default-and-v5-merge` → PR → `develop-v6`
+**Branch**: `feature/doc-fr-default-and-v5-merge` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

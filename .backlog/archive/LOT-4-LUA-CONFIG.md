@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Each Lua module can be configured and disabled via `missionconfig.lua` without touching module source code. Fully backward compatible.
-**Branch**: `feature/lua-config-system` → PR → `develop-v6`
+**Branch**: `feature/lua-config-system` → PR → `develop`
 **Depends on**: Lot 1 (quality gate for TOOL-003/LUA-005)
 
 | # | Ticket | Type | Effort | Depends on | Status |

@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Done**: decision was to localize **all** of `veafCasMission`'s own on-screen text (per user — "tous les messages VEAF localisés sauf modules communautaires comme CTLD"). 11 `cas.*` catalog keys added (FR + EN): spawn confirmation, full target report (target/AFAC/LAT-LON decimal & DMS/MGRS/from-bullseye value & line/weather header) and the `_cas` HELP text. The weather **body** stays English — it is `veafWeatherData.getWeatherString(...)`, a different module out of this lot's scope. Command tokens (`_cas`, `defense`, `size`, `armor`, `spacing`) kept literal in both languages. 9 new tests in `test/lua/test_veafI18n.lua` (17 total, all green).
 
-**Branch**: `feature/lua-i18n-cas` → PR → `develop-v6`
+**Branch**: `feature/lua-i18n-cas` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

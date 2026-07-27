@@ -1,7 +1,7 @@
 # Lot ENRICH-DEFAULT-PRESETS — broaden the shipped default radio presets (with Tripack)
 
 Status: ⬜ ready
-Branch: feat/enrich-default-presets → PR → develop-v6
+Branch: feat/enrich-default-presets → PR → develop
 
 ## Problem Statement
 

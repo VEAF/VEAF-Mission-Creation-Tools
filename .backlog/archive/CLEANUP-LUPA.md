@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: SECREV-001 routed all `.miz`/Lua parsing through the pure-Python `luadata` state machine to remove the RCE, but `lupa` was still bundled — a non-optional dependency + `hiddenimports` in the `.spec` (RC-002) — and still referenced in two dead spots: the unused `_lua_table_to_dict` path in the vendored `luadata` serializer, and the lupa-based reference oracle in `test_secrev_rce.py`. It is dead weight in the dependency tree and the binary. Remove it. (Surfaced while planning FOOTHOLD-V6: the config-validation design deliberately avoids reintroducing lupa.)
 
-**Branch**: `chore/cleanup-lupa` → PR → `develop-v6`
+**Branch**: `chore/cleanup-lupa` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

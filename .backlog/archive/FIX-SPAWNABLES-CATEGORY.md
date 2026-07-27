@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: the shipped default `src/defaults/mission-folder/src/spawnables.yaml` files all 50 fixed-wing CAP templates (F-15C, M-2000C, MiGs, …) under the **`helicopters:`** category (`airplanes:` was empty before the MQ-9 restore). The build injects them faithfully → in the `.miz` they land under the country's `helicopter` group table instead of `plane`. Confirmed in a built mission. The current `extract-aircraft-groups` tool categorizes correctly (it put the MQ-9 under `airplanes`), so this is a **stale extraction artifact** baked into the committed default, not a live tool bug. Found during DCS-UPDATE-VERIFY (R3-FINDING-2) and spun off. **TBD**: (1) confirm whether the wrong category actually breaks CAP spawning at runtime or veaf re-derives it from the unit type (sets priority); (2) regenerate / re-categorize the default set under `airplanes`; (3) check the source the default was generated from.
 
-**Branch**: `fix/spawnables-category` → PR → `develop-v6`
+**Branch**: `fix/spawnables-category` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

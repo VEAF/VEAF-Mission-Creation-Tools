@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: IMC-Day testing (Flogas) showed a v5 mission whose own `src/scripts/VeafDynamicLoader.lua` is a *mission-scripts loader* (its own ordered `scriptsToLoad`: Moose, FgTools, FgWeather, FgCsg2, missionConfig, FgMission). `convert-v5` does not (and should not) parse arbitrary custom loaders, so those scripts were never registered as `custom_scripts:` → no load trigger → the runtime F10 menu was missing (the real **IMC2-003** root cause). Per David: do **not** build a brittle parser for one specific loader shape; instead detect generically that an undeclared `.lua` *loads other scripts* and point the user at the v6 `custom_scripts:` mechanism. Also resolves the misleading "unexpected lua file" advice for the v5 `VeafDynamicLoader.lua` (name-collides with the v6 framework loader — see ADR 0004).
 
-**Branch**: `feat/custom-loader-hint` → PR → `develop-v6`
+**Branch**: `feat/custom-loader-hint` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

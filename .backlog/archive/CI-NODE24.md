@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: GitHub Actions will force Node.js 20 actions to run on Node.js 24 starting June 16th, 2026, and remove Node.js 20 from runners on September 16th, 2026. Bump the affected actions to majors that ship a Node.js 24 runtime so the workflows keep working without the deprecation warning.
 
-**Branch**: `chore/ci-node24` → PR → `develop-v6`
+**Branch**: `chore/ci-node24` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

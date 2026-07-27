@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Bring the documentation chatbot (ask a question about the VEAF docs, get a grounded AI answer) to the design-time tooling — a `veaf-tools ask` CLI command (one-shot + interactive REPL with session history) and a TUI menu entry — **reusing the same RAG index built by the docs CI** (single source of truth). The index (`vec-{lang}.bin` + `txt-{lang}.json` from `poc/doc-chatbot/worker/scripts/build-index.mjs`) is published as a public artifact; the Python tool downloads + caches it, then only embeds the question and generates the answer with the *user's own* `GEMINI_API_KEY`. No local re-embedding, no Cloudflare credentials, no extra runtime dependency (`requests` + pure-Python cosine). Approach decided over full-injection (wastes the user's quota at ~100k tokens/question) and over calling the deployed Worker (Origin allow-list 403 + burns the project's quota). Idiomatic to veaf-tools: Typer command in `commands/`, `BaseWorker` pattern, InquirerPy TUI, config via env var / `~/veafmct.yaml`, `veaf_libs.logger`, i18n `t()`, tests in `test/python/`.
 
-**Branch**: `feature/chatbot-cli` → PR → `develop-v6`
+**Branch**: `feature/chatbot-cli` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

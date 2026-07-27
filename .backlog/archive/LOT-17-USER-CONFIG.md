@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Ajouter un fichier `~/veafmct.yaml` de configuration globale utilisateur ; compléter l'audit i18n (toutes les chaînes des commandes CLI traduites) ; nouvelle commande `user-config`.
-**Branch**: `feature/user-global-config` → PR → `develop-v6`
+**Branch**: `feature/user-global-config` → PR → `develop`
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|

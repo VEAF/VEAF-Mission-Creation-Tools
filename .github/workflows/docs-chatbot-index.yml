@@ -10,7 +10,7 @@ name: Rebuild docs chatbot index
 on:
   push:
     branches:
-      - develop-v6
+      - develop
     paths:
       - "doc/**"
       - "poc/doc-chatbot/worker/scripts/build-index.mjs"

@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Faire passer chaque module Lua à au moins 50 % de couverture de ligne (mesurée via `poetry run test-lua --coverage`).
 Couverture initiale (2026-05-23) : 48,35 % global, mais 26 modules en dessous du seuil.
-**Branch**: une branche par ticket `test/cov-xxx` → PR → `develop-v6`
+**Branch**: une branche par ticket `test/cov-xxx` → PR → `develop`
 ⚠️ Certains modules nécessitent d'étoffer `dcs_mocks.lua` pour exposer des chemins de code difficiles à atteindre.
 
 | # | Ticket | Modules ciblés (couverture actuelle) | Type | Effort | Status |

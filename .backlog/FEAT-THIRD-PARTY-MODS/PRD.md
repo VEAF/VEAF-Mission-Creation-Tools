@@ -2,7 +2,7 @@
 
 Status: ✅ done (merged #571, released in 6.9.1)
 
-Branch: `feature/third-party-mods` → PR → `develop-v6`
+Branch: `feature/third-party-mods` → PR → `develop`
 
 ## Context
 

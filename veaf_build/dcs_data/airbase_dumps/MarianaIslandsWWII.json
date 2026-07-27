@@ -1,0 +1,82 @@
+{
+  "theatre": "MarianaIslandsWWII",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Agana",
+      "lat": 13.480571,
+      "lon": 144.783754,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Orote",
+      "lat": 13.439826,
+      "lon": 144.633582,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Airfield 3",
+      "lat": 15.068688,
+      "lon": 145.631266,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Charon Kanoa",
+      "lat": 15.156408,
+      "lon": 145.702816,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Gurguan Point",
+      "lat": 15.002243,
+      "lon": 145.594282,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Isley",
+      "lat": 15.119959,
+      "lon": 145.722399,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Kagman",
+      "lat": 15.167955,
+      "lon": 145.768808,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Marpi",
+      "lat": 15.283359,
+      "lon": 145.809215,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Rota",
+      "lat": 14.174851,
+      "lon": 145.23728,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Ushi",
+      "lat": 15.07885,
+      "lon": 145.632141,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Pagan",
+      "lat": 18.124433,
+      "lon": 145.761969,
+      "coalition": 0
+    }
+  ]
+}

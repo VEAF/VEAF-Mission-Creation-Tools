@@ -1,0 +1,145 @@
+{
+  "theatre": "Iraq",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Al-Asad Airbase",
+      "lat": 33.78107,
+      "lon": 42.407293,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Baghdad International Airport",
+      "lat": 33.267637,
+      "lon": 44.217886,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Mosul International Airport",
+      "lat": 36.315017,
+      "lon": 43.143028,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Erbil International Airport",
+      "lat": 36.258346,
+      "lon": 43.947146,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Bashur Airport",
+      "lat": 36.540089,
+      "lon": 44.333529,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Qayyarah Airfield West",
+      "lat": 35.778104,
+      "lon": 43.114842,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Sulaimaniyah International Airport",
+      "lat": 35.570506,
+      "lon": 45.302468,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Balad Airbase",
+      "lat": 33.952586,
+      "lon": 44.359505,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Al-Taji Airport",
+      "lat": 33.517,
+      "lon": 44.259248,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Kirkuk International Airport",
+      "lat": 35.476631,
+      "lon": 44.337933,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "K1 Base",
+      "lat": 35.518198,
+      "lon": 44.279261,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Al-Sahra Airport",
+      "lat": 34.676327,
+      "lon": 43.529009,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Al-Taquddum Airport",
+      "lat": 33.346037,
+      "lon": 43.584803,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Al-Salam Airbase",
+      "lat": 33.287275,
+      "lon": 44.488033,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "H-2 Airbase",
+      "lat": 33.363764,
+      "lon": 40.586067,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "H-3 Main Airbase",
+      "lat": 32.940568,
+      "lon": 39.733778,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "H-3 Southwest Airbase",
+      "lat": 32.748121,
+      "lon": 39.59354,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "H-3 Northwest Airbase",
+      "lat": 33.081532,
+      "lon": 39.586629,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Al-Kut Airport",
+      "lat": 32.487757,
+      "lon": 45.743051,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Kharg Airfield",
+      "lat": 29.267417,
+      "lon": 50.314697,
+      "coalition": 0
+    }
+  ]
+}

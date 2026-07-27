@@ -82,29 +82,19 @@ et refais les étapes **2 → 4**. (Inutile de relancer la fenêtre noire, laiss
 
 Coche au fur et à mesure. **Inutile de refaire une carte déjà cochée.**
 
-### ✅ Déjà récupérées
+### ✅ Toutes les cartes DCS actuelles sont couvertes 🎉
 
-- [x] **Syria**
-- [x] **Caucasus**
-- [x] **Cold War Germany** (Allemagne guerre froide)
-- [x] **Marianas** (Mariannes)
-- [x] **Normandy** (Normandie)
-- [x] **Persian Gulf** (Golfe Persique)
-- [x] **Sinai** (Sinaï)
+- [x] **Syria** · **Caucasus** · **Cold War Germany** · **Marianas** · **Normandy**
+- [x] **Persian Gulf** · **Sinai** — *relevées par David*
+- [x] **Nevada** · **The Channel** (la Manche) · **South Atlantic** (Malouines) · **Kola**
+- [x] **Afghanistan** · **Iraq** · **Marianas WWII** (Mariannes 1944) — *relevées par Reaper, merci !*
 
-### ⬜ À récupérer (si tu as la carte)
+**Il n'y a donc plus rien à relever pour l'instant.** Ce dont on aura encore besoin :
 
-- [ ] **Nevada** (NTTR)
-- [ ] **The Channel** (la Manche)
-- [ ] **South Atlantic** (Atlantique Sud / Malouines)
-- [ ] **Kola**
-- [ ] **Afghanistan**
-- [ ] **Iraq** (Irak)
-- [ ] **Marianas WWII** (Mariannes 1944)
-
-> Tu n'as pas une carte ? Passe simplement à la suivante — on prend ce que tu as.
-> Une nouvelle carte est sortie et n'est pas dans la liste ? Fais-la quand même
-> (voir juste en dessous), ça nous intéresse !
+- **une nouvelle carte DCS sort** → relève-la (la mission se fabrique en deux minutes dans
+  l'éditeur, voir juste en dessous) ;
+- **une carte existante gagne des terrains** dans une mise à jour → un nouveau relevé
+  remplace simplement l'ancien.
 
 ---
 

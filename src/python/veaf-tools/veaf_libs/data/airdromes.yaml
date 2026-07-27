@@ -5,6 +5,36 @@
 # Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.
 
 theatres:
+  Afghanistan:
+    Bagram: 16
+    Bamyan: 18
+    Bost: 8
+    Camp Bastion: 10
+    Camp Bastion Heliport: 13
+    Chaghcharan: 5
+    Dwyer: 11
+    FOB Camp Dubs: 27
+    FOB Clark: 28
+    FOB Salerno: 23
+    FOB Thunder: 26
+    Farah: 2
+    Gardez: 20
+    Ghazni Heliport: 21
+    Herat: 1
+    Jalalabad: 19
+    Kabul: 17
+    Kandahar: 7
+    Kandahar Heliport: 15
+    Khost: 25
+    Maymana Zahiraddin Faryabi: 4
+    Nimroz: 12
+    Qala i Naw: 6
+    Sharana: 22
+    Shindand: 3
+    Shindand Heliport: 14
+    Tarinkot: 9
+    Urgoon Heliport: 24
+    Zaranj: 37
   Caucasus:
     Anapa-Vityazevo: 12
     Batumi: 22
@@ -27,6 +57,34 @@ theatres:
     Sukhumi-Babushara: 20
     Tbilisi-Lochini: 29
     Vaziani: 31
+  Falklands:
+    Almirante Schroeders: 19
+    Comandante Luis Piedrabuena: 16
+    Cullen: 28
+    El Calafate: 14
+    Franco Bianco: 23
+    Gobernador Gregores: 26
+    Goose Green: 24
+    Gull Point: 29
+    Hipico Flying Club: 25
+    Mount Pleasant: 2
+    O'Higgins: 27
+    Pampa Guanaco: 10
+    Port Stanley: 1
+    Porvenir: 18
+    Puerto Natales: 13
+    Puerto Santa Cruz: 15
+    Puerto Williams: 12
+    Punta Arenas: 9
+    Rio Chico: 21
+    Rio Gallegos: 5
+    Rio Grande: 6
+    Rio Turbio: 20
+    San Carlos FOB: 3
+    San Julian: 11
+    Tolhuin: 17
+    Ushuaia: 7
+    Ushuaia Helo Port: 8
   GermanyCW:
     Adelsheim: 52
     Airracing Frankfurt: 204
@@ -255,6 +313,65 @@ theatres:
     Zerbst: 4
     Zollschen: 137
     Zweibrucken: 158
+  Iraq:
+    Al-Asad Airbase: 1
+    Al-Kut Airport: 19
+    Al-Sahra Airport: 12
+    Al-Salam Airbase: 14
+    Al-Taji Airport: 9
+    Al-Taquddum Airport: 13
+    Baghdad International Airport: 2
+    Balad Airbase: 8
+    Bashur Airport: 5
+    Erbil International Airport: 4
+    H-2 Airbase: 15
+    H-3 Main Airbase: 16
+    H-3 Northwest Airbase: 18
+    H-3 Southwest Airbase: 17
+    K1 Base: 11
+    Kharg Airfield: 20
+    Kirkuk International Airport: 10
+    Mosul International Airport: 3
+    Qayyarah Airfield West: 6
+    Sulaimaniyah International Airport: 7
+  Kola:
+    Afrikanda: 33
+    Alakurtti: 19
+    Alta: 24
+    Andoya: 20
+    Arvidsjaur: 36
+    Banak: 1
+    Bardufoss: 21
+    Boden Heli Base: 34
+    Bodo: 7
+    Enontekio: 26
+    Evenes: 25
+    Hemavan: 35
+    Hosio: 23
+    Ivalo: 18
+    Jokkmokk: 11
+    Kalevala: 32
+    Kalixfors: 13
+    Kallax: 15
+    Kemi Tornio: 3
+    Kilpyavr: 28
+    Kirkenes: 14
+    Kiruna: 5
+    Kittila: 22
+    Koshka Yavr: 30
+    Kuusamo: 16
+    Luostari Pechenga: 29
+    Monchegorsk: 10
+    Murmansk International: 12
+    Olenya: 9
+    Poduzhemye: 31
+    Rovaniemi: 2
+    Severomorsk-1: 8
+    Severomorsk-3: 6
+    Sodankyla: 27
+    Tromso: 37
+    Vidsel: 17
+    Vuojarvi: 4
   MarianaIslands:
     Andersen AFB: 6
     Antonio B. Won Pat Intl: 4
@@ -264,6 +381,36 @@ theatres:
     Rota Intl: 1
     Saipan Intl: 2
     Tinian Intl: 3
+  MarianaIslandsWWII:
+    Agana: 1
+    Airfield 3: 3
+    Charon Kanoa: 4
+    Gurguan Point: 5
+    Isley: 6
+    Kagman: 7
+    Marpi: 8
+    Orote: 2
+    Pagan: 11
+    Rota: 9
+    Ushi: 10
+  Nevada:
+    Beatty: 5
+    Boulder City: 6
+    Creech: 1
+    Echo Bay: 7
+    Groom Lake: 2
+    Henderson Executive: 8
+    Jean: 9
+    Laughlin: 10
+    Lincoln County: 11
+    McCarran International: 3
+    Mesquite: 13
+    Mina: 14
+    Nellis: 4
+    North Las Vegas: 15
+    Pahute Mesa: 16
+    Tonopah: 17
+    Tonopah Test Range: 18
   Normandy:
     Abbeville Drucat: 75
     Alderney: 85
@@ -669,3 +816,16 @@ theatres:
     Tiyas: 39
     Wujah Al Hajar: 40
     Zarqa: 56
+  TheChannel:
+    Abbeville Drucat: 1
+    Biggin Hill: 14
+    Detling: 8
+    Dunkirk Mardyck: 4
+    Eastchurch: 10
+    Hawkinge: 6
+    Headcorn: 13
+    High Halden: 12
+    Lympne: 7
+    Manston: 5
+    Merville Calonne: 2
+    Saint Omer Longuenesse: 3

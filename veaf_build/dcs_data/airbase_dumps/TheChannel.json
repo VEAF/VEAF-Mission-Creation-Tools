@@ -1,0 +1,89 @@
+{
+  "theatre": "TheChannel",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Abbeville Drucat",
+      "lat": 50.149532,
+      "lon": 1.836286,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Merville Calonne",
+      "lat": 50.615302,
+      "lon": 2.64332,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Saint Omer Longuenesse",
+      "lat": 50.728779,
+      "lon": 2.227592,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Dunkirk Mardyck",
+      "lat": 51.029471,
+      "lon": 2.248435,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Manston",
+      "lat": 51.344456,
+      "lon": 1.327998,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Hawkinge",
+      "lat": 51.115113,
+      "lon": 1.160572,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Lympne",
+      "lat": 51.083691,
+      "lon": 1.012437,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Detling",
+      "lat": 51.308241,
+      "lon": 0.605524,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Eastchurch",
+      "lat": 51.390814,
+      "lon": 0.840443,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "High Halden",
+      "lat": 51.122666,
+      "lon": 0.687347,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Headcorn",
+      "lat": 51.182949,
+      "lon": 0.681482,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Biggin Hill",
+      "lat": 51.32841,
+      "lon": 0.034491,
+      "coalition": 0
+    }
+  ]
+}

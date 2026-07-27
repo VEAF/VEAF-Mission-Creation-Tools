@@ -197,7 +197,7 @@ committés sous `veaf_build/dcs_data/airbase_dumps/` dans le YAML (projection no
 Procédure complète pour les assistants : [capture-airbases](capture-airbases.md). Voir
 le [dépôt VEAF-dcs-bridge](https://github.com/VEAF/VEAF-dcs-bridge) pour `dcs-serve`.
 
-`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Limites : la
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Couverture : **les 14 théâtres DCS** sont dumpés (810 aérodromes). Limite résiduelle : la
 table ne couvre que les théâtres **déjà dumpés** ; un théâtre non dumpé ne donne
 aucune entrée — l'appelant retombe alors sur les ids. La résolution est insensible
 à la casse.

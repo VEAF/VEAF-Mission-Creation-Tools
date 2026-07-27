@@ -57,23 +57,39 @@ class TestFileStaticMode:
         script = tmp_path / "myscript.lua"
         script.write_bytes(b"-- my script\n")
         content = _content()
+        map_resource: dict[str, str] = {}
 
         index, extra = apply_startup_script_trigger(
-            content, mode="file_static", comment="load", source_path=str(script)
+            content, mode="file_static", comment="load", source_path=str(script), map_resource=map_resource
         )
 
         key = content["trigrules"][index]["actions"][0]["file"]
-        assert content["mapResource"][key] == "myscript.lua"
+        # The key belongs to the mission's `l10n/DEFAULT/mapResource` table — NOT to the
+        # `mission` table: DCS resolves getValueResourceByKey against the former only.
+        assert map_resource[key] == "myscript.lua"
+        assert "mapResource" not in content
         assert content["trig"]["actions"][index] == f'a_do_script_file(getValueResourceByKey("{key}"));'
         assert extra == {"l10n/DEFAULT/myscript.lua": b"-- my script\n"}
+
+    def test_requires_the_map_resource_table(self, tmp_path: Path) -> None:
+        """Without the mission's mapResource table the key would be lost — fail loudly."""
+        script = tmp_path / "myscript.lua"
+        script.write_text("-- x\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="requires map_resource"):
+            apply_startup_script_trigger(_content(), mode="file_static", comment="load", source_path=str(script))
 
     def test_two_same_named_files_get_distinct_keys(self, tmp_path: Path) -> None:
         script = tmp_path / "dup.lua"
         script.write_text("-- 1\n", encoding="utf-8")
         content = _content()
 
-        i1, _ = apply_startup_script_trigger(content, mode="file_static", comment="a", source_path=str(script))
-        i2, _ = apply_startup_script_trigger(content, mode="file_static", comment="b", source_path=str(script))
+        map_resource: dict[str, str] = {}
+        i1, _ = apply_startup_script_trigger(
+            content, mode="file_static", comment="a", source_path=str(script), map_resource=map_resource
+        )
+        i2, _ = apply_startup_script_trigger(
+            content, mode="file_static", comment="b", source_path=str(script), map_resource=map_resource
+        )
 
         k1 = content["trigrules"][i1]["actions"][0]["file"]
         k2 = content["trigrules"][i2]["actions"][0]["file"]
@@ -135,6 +151,29 @@ class TestMizIntegration:
 
         with zipfile.ZipFile(sample_miz) as zf:
             assert "l10n/DEFAULT/myscript.lua" in zf.namelist()
+            # Regression guard: the resource key must land in l10n/DEFAULT/mapResource, the
+            # only table DCS resolves. Writing it into `mission` leaves the editor's FILE
+            # field empty and the script never loads.
+            mission_txt = zf.read("mission").decode("utf-8")
+            map_resource_txt = zf.read("l10n/DEFAULT/mapResource").decode("utf-8")
+        key = mission_txt.split('getValueResourceByKey(\\"', 1)[1].split('\\"', 1)[0]
+        assert key in map_resource_txt
+        assert "myscript.lua" in map_resource_txt
+
+    def test_static_writes_map_resource_when_the_member_is_absent(self, tmp_path: Path) -> None:
+        """A .miz with no l10n/DEFAULT/mapResource still gets one (write_miz only rewrites
+        members that already exist, so the key would otherwise be silently dropped)."""
+        script = tmp_path / "s.lua"
+        script.write_text("-- x\n", encoding="utf-8")
+        miz = tmp_path / "bare.miz"
+        with zipfile.ZipFile(miz, "w") as zf:
+            zf.writestr("mission", 'mission = \n{\n    ["trig"] = \n    {\n    },\n}\n')
+
+        add_startup_script_trigger(miz, mode="file_static", comment="load", source_path=str(script))
+
+        with zipfile.ZipFile(miz) as zf:
+            assert "l10n/DEFAULT/mapResource" in zf.namelist()
+            assert "s.lua" in zf.read("l10n/DEFAULT/mapResource").decode("utf-8")
 
     def test_raises_when_mission_file_is_missing(self, tmp_path: Path) -> None:
         miz = tmp_path / "empty.miz"

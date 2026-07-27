@@ -1,0 +1,124 @@
+{
+  "theatre": "Nevada",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Creech",
+      "lat": 36.58443,
+      "lon": -115.686811,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Groom Lake",
+      "lat": 37.219139,
+      "lon": -115.785311,
+      "coalition": 2
+    },
+    {
+      "id": 3,
+      "name": "McCarran International",
+      "lat": 36.07667,
+      "lon": -115.16219,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Nellis",
+      "lat": 36.225662,
+      "lon": -115.043808,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Beatty",
+      "lat": 36.868394,
+      "lon": -116.786083,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Boulder City",
+      "lat": 35.943682,
+      "lon": -114.860552,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Echo Bay",
+      "lat": 36.310471,
+      "lon": -114.469338,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Henderson Executive",
+      "lat": 35.967469,
+      "lon": -115.133471,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Jean",
+      "lat": 35.773786,
+      "lon": -115.325703,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Laughlin",
+      "lat": 35.165905,
+      "lon": -114.559864,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Lincoln County",
+      "lat": 37.79339,
+      "lon": -114.419237,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Mesquite",
+      "lat": 36.827345,
+      "lon": -114.060335,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Mina",
+      "lat": 38.374547,
+      "lon": -118.093499,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "North Las Vegas",
+      "lat": 36.213365,
+      "lon": -115.186738,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Pahute Mesa",
+      "lat": 37.094831,
+      "lon": -116.3154,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Tonopah",
+      "lat": 38.058024,
+      "lon": -117.075917,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Tonopah Test Range",
+      "lat": 37.78404,
+      "lon": -116.773303,
+      "coalition": 0
+    }
+  ]
+}

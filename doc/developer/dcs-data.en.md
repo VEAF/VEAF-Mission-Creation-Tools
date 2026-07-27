@@ -194,7 +194,7 @@ On the dev side, `veaf-build update-dcs-data --airdromes` then merges the commit
 Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
 [VEAF-dcs-bridge repo](https://github.com/VEAF/VEAF-dcs-bridge) for `dcs-serve`.
 
-`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Caveats:
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** are dumped (810 airbases). Residual caveat:
 the table only covers **already-dumped** theatres; an un-dumped theatre yields no
 entries — callers fall back to ids. Resolution is case-insensitive.
 

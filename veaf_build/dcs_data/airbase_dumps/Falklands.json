@@ -1,0 +1,194 @@
+{
+  "theatre": "Falklands",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Port Stanley",
+      "lat": -51.686118,
+      "lon": -57.768162,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Mount Pleasant",
+      "lat": -51.81798,
+      "lon": -58.472047,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "San Carlos FOB",
+      "lat": -51.50204,
+      "lon": -59.002822,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Rio Gallegos",
+      "lat": -51.608004,
+      "lon": -69.289205,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Rio Grande",
+      "lat": -53.777683,
+      "lon": -67.763501,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Ushuaia",
+      "lat": -54.843736,
+      "lon": -68.313832,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Ushuaia Helo Port",
+      "lat": -54.815912,
+      "lon": -68.303936,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Punta Arenas",
+      "lat": -53.012694,
+      "lon": -70.847155,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Pampa Guanaco",
+      "lat": -54.050236,
+      "lon": -68.803567,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "San Julian",
+      "lat": -49.305372,
+      "lon": -67.789938,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Puerto Williams",
+      "lat": -54.930623,
+      "lon": -67.636409,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Puerto Natales",
+      "lat": -51.674476,
+      "lon": -72.518434,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "El Calafate",
+      "lat": -50.279555,
+      "lon": -72.036793,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Puerto Santa Cruz",
+      "lat": -50.018362,
+      "lon": -68.590805,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Comandante Luis Piedrabuena",
+      "lat": -49.995185,
+      "lon": -68.944056,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Tolhuin",
+      "lat": -54.499704,
+      "lon": -67.180115,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Porvenir",
+      "lat": -53.249805,
+      "lon": -70.335774,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Almirante Schroeders",
+      "lat": -53.602107,
+      "lon": -70.482982,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Rio Turbio",
+      "lat": -51.60304,
+      "lon": -72.209321,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Rio Chico",
+      "lat": -51.668467,
+      "lon": -69.273094,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Franco Bianco",
+      "lat": -52.736735,
+      "lon": -69.345005,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Goose Green",
+      "lat": -51.817546,
+      "lon": -58.982588,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Hipico Flying Club",
+      "lat": -48.759556,
+      "lon": -70.233348,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Gobernador Gregores",
+      "lat": -48.786184,
+      "lon": -70.130774,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "O'Higgins",
+      "lat": -48.474318,
+      "lon": -72.562251,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Cullen",
+      "lat": -52.883657,
+      "lon": -68.403599,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Gull Point",
+      "lat": -52.177612,
+      "lon": -58.861619,
+      "coalition": 0
+    }
+  ]
+}

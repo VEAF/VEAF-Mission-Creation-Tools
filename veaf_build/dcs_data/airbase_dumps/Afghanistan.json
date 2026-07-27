@@ -1,0 +1,208 @@
+{
+  "theatre": "Afghanistan",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Herat",
+      "lat": 34.220031,
+      "lon": 62.23013,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Farah",
+      "lat": 32.354877,
+      "lon": 62.173144,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Shindand",
+      "lat": 33.383008,
+      "lon": 62.260362,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Maymana Zahiraddin Faryabi",
+      "lat": 35.924391,
+      "lon": 64.766196,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Chaghcharan",
+      "lat": 34.529394,
+      "lon": 65.280156,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Qala i Naw",
+      "lat": 34.992086,
+      "lon": 63.124538,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Kandahar",
+      "lat": 31.513218,
+      "lon": 65.860715,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Bost",
+      "lat": 31.552017,
+      "lon": 64.363255,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Tarinkot",
+      "lat": 32.609904,
+      "lon": 65.85651,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Camp Bastion",
+      "lat": 31.83582,
+      "lon": 64.220203,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Dwyer",
+      "lat": 31.085639,
+      "lon": 64.057556,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Nimroz",
+      "lat": 30.970915,
+      "lon": 62.053757,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Camp Bastion Heliport",
+      "lat": 31.853778,
+      "lon": 64.212514,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Shindand Heliport",
+      "lat": 33.406895,
+      "lon": 62.267975,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Kandahar Heliport",
+      "lat": 31.52107,
+      "lon": 65.846961,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Bagram",
+      "lat": 34.958799,
+      "lon": 69.275381,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Kabul",
+      "lat": 34.570239,
+      "lon": 69.19633,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Bamyan",
+      "lat": 34.806271,
+      "lon": 67.80689,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Jalalabad",
+      "lat": 34.406067,
+      "lon": 70.490638,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Gardez",
+      "lat": 33.621613,
+      "lon": 69.2331,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Ghazni Heliport",
+      "lat": 33.502879,
+      "lon": 68.414037,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Sharana",
+      "lat": 33.121102,
+      "lon": 68.842034,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "FOB Salerno",
+      "lat": 33.363209,
+      "lon": 69.958743,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Urgoon Heliport",
+      "lat": 32.937884,
+      "lon": 69.150001,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Khost",
+      "lat": 33.33647,
+      "lon": 69.959203,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "FOB Thunder",
+      "lat": 0.0,
+      "lon": 2e-06,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "FOB Camp Dubs",
+      "lat": 0.0,
+      "lon": 2e-06,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "FOB Clark",
+      "lat": 0.0,
+      "lon": 2e-06,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Zaranj",
+      "lat": 30.965807,
+      "lon": 61.86754,
+      "coalition": 0
+    }
+  ]
+}

@@ -651,6 +651,7 @@
   "presets_injector.injected": "injected presets into {count} aircraft",
   "presets_injector.no_preset": "{count} group(s) had no matching preset in presets.yaml (left unchanged)",
   "presets_injector.invalid_primary_frequency": "Invalid primary radio frequency (below {min} MHz — ADF/HF cannot be a group's main radio; DCS would refuse to save the mission): {details}. Fix the frequency in the source mission / dynamic-slot template.",
+  "presets_injector.primary_freq_not_promoted": "{details}: channel 1 is outside the aircraft's tunable primary-frequency range, so the group keeps its own frequency (the presets themselves are injected as usual).",
   "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
   "presets_injector.kneeboard.unknown_color": "Unknown channel color '{color}' (not a Pillow colour name or #RRGGBB[AA]) — the channel is left uncoloured on the kneeboard.",
   "presets_injector.spinner.processing_groups": "Processing groups...",

@@ -86,6 +86,7 @@ modules:
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
 | `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | Non | Coalition **hostile** : ses unités sont celles qu'il faut détruire pour terminer la zone, et celles que le rapport F10 annonce comme « ennemis ». `BLUE` pour une zone jouée **côté rouge** (voir ci-dessous) |
+| `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(camp qui joue la zone)* | Non | Coalition à qui le menu F10 de la zone est proposé. Par défaut : le camp opposé à `enemy_coalition`. `ALL` le montre aux deux camps (voir ci-dessous) |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
@@ -144,6 +145,40 @@ fin. Une zone qui ne précise rien se comporte exactement comme avant.
 
 Côté Lua, l'équivalent est `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)` ; le setter
 accepte aussi la chaîne `"blue"` / `"red"`.
+
+### À qui le menu F10 est-il proposé ?
+
+Le menu F10 d'une zone n'est pas seulement de la lecture : c'est par lui qu'on **active** la
+zone, qu'on demande son état, qu'on tire la fumée. Il est donc proposé au **camp qui joue la
+zone**, c'est-à-dire l'opposé de `enemy_coalition` :
+
+| `enemy_coalition` | Menu F10 visible par |
+|-------------------|----------------------|
+| `RED` (défaut) | les bleus |
+| `BLUE` | les rouges |
+
+Rien à écrire pour obtenir ce comportement. Pour y déroger, `radio_menu_coalition` :
+
+```yaml
+      - type: zone
+        zone_name: "CZ-Alpha"
+        radio_menu_coalition: ALL   # les deux camps voient la zone et peuvent l'activer
+```
+
+`ALL` est utile pour un arbitre ou un Mission Master qui occupe un slot rouge et doit pouvoir
+déclencher une zone bleue. On peut aussi nommer un camp explicitement (`RED` / `BLUE`) quand il
+ne correspond pas à celui qui joue la zone.
+
+> **Changement de comportement (6.11.8)** : avant cette version, toutes les zones étaient
+> proposées aux deux camps. Une mission dont tous les slots joueurs sont bleus ne verra aucune
+> différence ; une mission avec des slots rouges qui doivent garder l'accès aux zones bleues doit
+> ajouter `radio_menu_coalition: ALL` sur ces zones.
+
+Le menu parent (`COMBAT ZONES`, et le sous-menu de `radio_group_name`) reste visible par tout le
+monde : un groupe radio peut contenir des zones des deux camps. Chaque camp voit donc l'entrée
+`COMBAT ZONES` sans les zones de l'autre.
+
+Côté Lua : `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` ou `"all"`.
 
 ---
 

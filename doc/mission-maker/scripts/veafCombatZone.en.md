@@ -87,6 +87,7 @@ modules:
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
 | `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | No | The **hostile** coalition: its units are the ones that must be destroyed for the zone to complete, and the ones the F10 report calls "enemies". Use `BLUE` for a zone played from the **red side** (see below) |
+| `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(the side playing the zone)* | No | Which coalition is offered the zone's F10 menu. Defaults to the opposite of `enemy_coalition`. `ALL` shows it to both sides (see below) |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
@@ -144,6 +145,39 @@ says nothing behaves exactly as before.
 
 In Lua the equivalent is `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)`; the setter also
 accepts the `"blue"` / `"red"` string form.
+
+### Who is offered the F10 menu?
+
+A zone's F10 menu is not read-only: it is how the zone gets **activated**, its status requested,
+its smoke popped. So it is offered to the **side playing the zone** — the opposite of
+`enemy_coalition`:
+
+| `enemy_coalition` | F10 menu visible to |
+|-------------------|---------------------|
+| `RED` (default) | blue |
+| `BLUE` | red |
+
+Nothing to write to get that. To override it, use `radio_menu_coalition`:
+
+```yaml
+      - type: zone
+        zone_name: "CZ-Alpha"
+        radio_menu_coalition: ALL   # both sides see the zone and can activate it
+```
+
+`ALL` is what you want for an umpire or Mission Master sitting in a red slot who must be able to
+trigger a blue zone. A side can also be named explicitly (`RED` / `BLUE`) when it is not the one
+playing the zone.
+
+> **Behaviour change (6.11.8)**: before this version every zone was offered to both sides. A
+> mission whose player slots are all blue sees no difference; a mission with red slots that must
+> keep access to the blue zones needs `radio_menu_coalition: ALL` on those zones.
+
+The parent menu (`COMBAT ZONES`, and the `radio_group_name` submenu) stays visible to everyone: a
+radio group may hold zones of both sides. So each side sees the `COMBAT ZONES` entry without the
+other side's zones under it.
+
+In Lua: `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` or `"all"`.
 
 ---
 

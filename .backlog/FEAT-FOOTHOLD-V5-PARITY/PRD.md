@@ -64,6 +64,7 @@ David's decision: **keep the menu hidden**, and restore the passwords.
 | 01 | [`security`: set passwords at L1, not just L9](tickets/01-security-l1-passwords.md) | ✅ |
 | 02 | [RADIO: expose `create_menus`](tickets/02-radio-create-menus.md) | ✅ |
 | 03 | [Apply to the ten Foothold missions](tickets/03-apply-to-foothold.md) | ✅ |
+| 04 | [`_ICAO_<code>` in the mission file name (server real weather)](tickets/04-icao-mission-naming.md) | ✅ |
 
 ## Note on the hash algorithm
 

@@ -137,12 +137,46 @@ mission:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs |
+| `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs, **et nom du `.miz` construit** — voir la note de nommage ci-dessous |
 | `export_path` | string \| null | `null` | Non | Surcharge le chemin d'export DCS Saved Games |
 | `era` | string | `MODERN` | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn |
 | `silence_atc_on_all_airbases` | booléen | `false` | Non | Option globale : coupe l'ATC DCS sur tous les aérodromes (émet `veaf.silenceAtcOnAllAirbases()`). `convert-v5` la migre depuis un appel actif et annote sa provenance |
 | `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 | `third_party_mods` | liste de strings | `[]` | Non | Mods DCS **tiers** (avions payants/communautaires) à rendre **non bloquants** : leurs identifiants sont retirés de la table `requiredModules` du `.miz` au build, si bien qu'un pilote qui ne possède pas le mod peut quand même **charger** la mission (le slot correspondant est simplement indisponible). La liste est **unie** à une liste VEAF par défaut couvrant les mods courants (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — n'y déclarer que les mods non déjà pris en charge. À ne pas confondre avec les *Modules* VEAF (bloc `modules:`, qui sont des capacités, pas des add-ons DCS) |
+
+#### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
+
+`mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
+`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez au contraire un nom
+terminé par `.miz` et il est repris **tel quel**, sans date.
+
+C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,
+l'extension RealWeather de [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
+cherche **`_ICAO_<code>`** dans le nom du `.miz` et récupère le METAR réel de cet aérodrome au
+démarrage de la mission — la météo suit donc la réalité sans reconstruire. Nommez la mission en
+conséquence :
+
+```yaml
+mission:
+  name: VEAF_Foothold_Caucasus_ICAO_URSS   # -> VEAF_Foothold_Caucasus_ICAO_URSS_20260728.miz
+```
+
+Deux règles pour choisir le code :
+
+- ce doit être **un aérodrome du théâtre** (n'importe lequel ; un grand vaut mieux) ;
+- il doit avoir une **station METAR vivante**. Vérifiez-le avant de vous y fier : une station peut
+  exister *et* être périmée, ce qui est pire que pas de météo réelle du tout, puisque la mission
+  annonce alors une météo « réelle » vieille de plusieurs jours. Contrôle en une ligne :
+
+```bash
+curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
+```
+
+Les deux premiers chiffres du groupe `JJHHMMZ` sont le jour de l'observation — comparez-les à la
+date du jour. Mesuré sur le théâtre Afghanistan par exemple, **toutes** les stations sont
+périmées (Kaboul un mois de retard, Herat seize jours, Bagram un jour) : ces missions sont donc
+délibérément nommées **sans** marqueur `_ICAO_`, ce qui laisse RealWeather tranquille et conserve
+la météo choisie.
 
 ---
 

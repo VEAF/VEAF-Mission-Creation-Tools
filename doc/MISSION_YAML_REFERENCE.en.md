@@ -137,12 +137,44 @@ mission:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `name` | string | — | No | Mission name shown in menus and logs |
+| `name` | string | — | No | Mission name shown in menus and logs, **and the name of the built `.miz`** — see the naming note below |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
 | `era` | string | `MODERN` | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
+
+#### The `.miz` file name is an interface — `_ICAO_<code>` and real weather {#icao-naming}
+
+`mission.name` becomes the built file name: `<name>_<YYYYMMDD>.miz`, plus a `_<VARIANT>` suffix
+when [`build_variants:`](#build_variants) is used. Give a name ending in `.miz` instead and the
+name is taken **verbatim**, with no date.
+
+That matters because **server-side tooling reads the file name**. On the VEAF servers, the
+RealWeather extension of [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
+looks for **`_ICAO_<code>`** in the mission's file name and fetches that airfield's live METAR at
+mission start — so the weather follows reality without rebuilding. Name the mission accordingly:
+
+```yaml
+mission:
+  name: VEAF_Foothold_Caucasus_ICAO_URSS   # -> VEAF_Foothold_Caucasus_ICAO_URSS_20260728.miz
+```
+
+Two rules when picking the code:
+
+- it must be **an airfield on that theatre** (any one; a large one is better);
+- it must have a **live METAR station**. Check before trusting it — a station can exist and be
+  stale, which is worse than no real weather at all, since the mission then advertises a
+  "real" weather that is days old. A one-line check:
+
+```bash
+curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
+```
+
+The first two digits of the `DDHHMMZ` group are the day of observation — compare them with today.
+Measured on the Afghanistan theatre, for instance, **every** station is stale (Kabul a month
+behind, Herat sixteen days, Bagram a day), so those missions are deliberately named **without**
+an `_ICAO_` marker: RealWeather then leaves them alone and the authored weather stands.
 
 ---
 

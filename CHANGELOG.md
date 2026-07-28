@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Released documentation is published again** (FIX-DOCS-LATEST-ALIAS). The docs site still advertised **6.10.0** as `latest` although 6.11.0 had shipped. Two stacked causes: the release procedure only documented the `published-v*` tag, so the `v*` tag that deploys the versioned documentation was never pushed for 6.11.0 (procedure fixed); and `docs.yml` could not have succeeded anyway — its `master` step ran `mike deploy latest`, creating a **version** literally named `latest` that collided with the `latest` **alias** the tag step needs (`alias 'latest' already specified as a version`). That step only started running after `main`→`master` was corrected, which is why the breakage appeared then. The `master` step is removed (a release's documentation is published by its tag), the parasite version was deleted from the site, and `v6.11.2` redeployed: the picker now shows `6.11.2` as `latest`.
+
 ## [6.11.2] — 2026-07-28
 
 ### Added

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Adopt every Lekaa Foothold release archive of a folder onto the VEAF v6 toolchain.
 
@@ -27,8 +27,9 @@
     Where to create one mission subfolder per archive. Created if missing.
 
 .PARAMETER VeafTools
-    Path to `veaf-tools.exe`. When omitted, the script looks in -OutputFolder, then in
-    -InputFolder, then on the PATH.
+    Path to `veaf-tools.exe`. When omitted, the script looks beside the -SharedPublished bundle
+    (publish-local leaves the executable next to `published/`, not inside it), then in
+    -OutputFolder, then in `<OutputFolder>\_toolchain`, then in -InputFolder, then on the PATH.
 
 .PARAMETER Update
     Re-import into mission folders that already exist (`convert-other --update`): refreshes the
@@ -40,6 +41,26 @@
     Run `veaf-tools validate` on each mission folder after adopting it, so a batch of ten
     tells you which ones are sane.
 
+.PARAMETER Build
+    Build each mission after adopting it. Implies -Validate: building a mission that does not
+    validate wastes minutes per folder.
+
+    Two things are checked first, and reported per mission rather than silently accepted:
+    a `mission.yaml` whose `config_override` is still commented out (the mission would ship
+    without its Era / FootholdLocale), and a `pipeline.weather` step still enabled (which
+    multiplies every mission by its weather variants).
+
+.PARAMETER SharedPublished
+    Path to a **shared** `published/` folder (the one `veaf-build publish-local` or the updater
+    produces), passed to the build as `--scripts-path`. Without it every mission folder needs
+    its own copy — around 58 MB each.
+
+    Note the path must be the `published` folder itself, not its parent.
+
+    The build persists `--scripts-path` into `mission.yaml` (`build.scripts_path`) and the path
+    is machine-specific, so this script **removes that key again** after each build. Your
+    `mission.yaml` is left as you wrote it.
+
 .EXAMPLE
     # First adoption of a release.
     .\Convert-FootholdBatch.ps1 -InputFolder D:\downloads\foothold-4.4.1 -OutputFolder D:\veaf\foothold-v6
@@ -49,8 +70,14 @@
     .\Convert-FootholdBatch.ps1 -InputFolder D:\downloads\foothold-4.5.0 `
         -OutputFolder D:\veaf\foothold-v6 -Update -Validate
 
+.EXAMPLE
+    # Refresh and rebuild the ten missions against one shared scripts bundle.
+    .\Convert-FootholdBatch.ps1 -InputFolder D:\downloads\foothold-4.5.0 `
+        -OutputFolder D:\veaf\foothold-v6 -Update -Build `
+        -SharedPublished D:\veaf\foothold-v6\_published
+
 .NOTES
-    Expect roughly a minute per mission: each Foothold ships ~40 MB of Lua to extract.
+    Expect roughly a minute per mission for the adoption alone; -Build adds a few more each.
 #>
 [CmdletBinding()]
 param(
@@ -58,7 +85,9 @@ param(
     [Parameter(Mandatory)] [string] $OutputFolder,
     [string] $VeafTools,
     [switch] $Update,
-    [switch] $Validate
+    [switch] $Validate,
+    [switch] $Build,
+    [string] $SharedPublished
 )
 
 Set-StrictMode -Version Latest
@@ -71,26 +100,37 @@ $Ww2ConfigName = 'Foothold Config WW2.lua'
 $LongPathWarnThreshold = 180
 
 function Resolve-VeafTools {
-    <#  Locate veaf-tools.exe: explicit parameter, then the output folder (that is where
-        `veaf-build publish-local` and the updater drop it), then the input folder, then
-        the PATH. #>
-    param([string] $Explicit, [string] $OutputFolder, [string] $InputFolder)
+    <#  Locate veaf-tools.exe, in order: the explicit parameter; next to a -SharedPublished
+        bundle (publish-local drops the executable beside published/, not inside it); the output
+        folder; the output folder's _toolchain/; the input folder; the PATH.  #>
+    param([string] $Explicit, [string] $OutputFolder, [string] $InputFolder, [string] $SharedPublished)
 
     if ($Explicit) {
         if (-not (Test-Path -LiteralPath $Explicit)) { throw "veaf-tools introuvable : $Explicit" }
         return (Resolve-Path -LiteralPath $Explicit).Path
     }
-    foreach ($folder in @($OutputFolder, $InputFolder)) {
+
+    $folders = [System.Collections.Generic.List[string]]::new()
+    if ($SharedPublished) { $folders.Add((Split-Path -Parent $SharedPublished)) }
+    $folders.Add($OutputFolder)
+    $folders.Add((Join-Path $OutputFolder '_toolchain'))
+    $folders.Add($InputFolder)
+
+    foreach ($folder in $folders) {
+        if (-not $folder) { continue }
         $candidate = Join-Path $folder 'veaf-tools.exe'
         if (Test-Path -LiteralPath $candidate) { return (Resolve-Path -LiteralPath $candidate).Path }
     }
     $onPath = Get-Command 'veaf-tools.exe' -ErrorAction SilentlyContinue
     if ($onPath) { return $onPath.Source }
 
-    throw @"
-veaf-tools.exe introuvable. Passez -VeafTools <chemin>, ou déposez l'exécutable dans le dossier
-d'entrée ou de sortie (c'est ce que font l'updater et `veaf-build publish-local`).
-"@
+    # Single-quoted here-string: a double-quoted one would read the backtick before
+    # `veaf-build` as an escape and print "eaf-build".
+    throw @'
+veaf-tools.exe introuvable. Passez -VeafTools <chemin>, ou déposez l'exécutable à côté du
+dossier published partagé, dans le dossier de sortie (ou son sous-dossier _toolchain), ou
+dans le dossier d'entrée — c'est là que l'updater et "veaf-build publish-local" le laissent.
+'@
 }
 
 function Get-ConversionProfile {
@@ -131,18 +171,84 @@ function Get-ConversionProfile {
     }
 }
 
-function Invoke-VeafTools {
-    <#  Run veaf-tools and return $true on success, printing its output only on failure so a
-        ten-mission batch stays readable.  #>
-    param([string] $Exe, [string[]] $Arguments)
+function Get-PreBuildWarnings {
+    <#  Return the reasons this mission is probably not ready to build.
 
-    $output = & $Exe @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host '    --- sortie de veaf-tools ---' -ForegroundColor DarkGray
-        $output | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-        return $false
+        Both are worth catching before spending minutes on a build: an untouched
+        `config_override` ships a mission without its Era / FootholdLocale, and the weather step
+        turns one mission into one .miz per declared version. Text inspection on purpose — there
+        is no YAML parser in PowerShell and both markers are unambiguous.
+
+        Case matters here: `-cmatch`, not `-match`. The scaffold carries a `WEATHER: true` VEAF
+        *module*, which an insensitive match confuses with the `weather:` pipeline step.  #>
+    param([string] $MissionYaml, [string] $MissionFolder)
+
+    $warnings = @()
+    if (-not (Test-Path -LiteralPath $MissionYaml)) { return @('mission.yaml absent') }
+    $lines = Get-Content -LiteralPath $MissionYaml
+
+    if (-not ($lines | Where-Object { $_ -cmatch '^config_override:' })) {
+        if ($lines | Where-Object { $_ -cmatch '^#\s*config_override:' }) {
+            $warnings += 'config_override encore commenté (ni Era ni FootholdLocale ne seront appliqués)'
+        }
     }
-    return $true
+
+    # The weather step reads src/versions.yaml and emits one .miz per version declared there.
+    # It only bites when that file exists, so do not cry wolf on a folder without it.
+    $versions = Join-Path $MissionFolder 'src/versions.yaml'
+    if (Test-Path -LiteralPath $versions) {
+        $weatherOff = $lines | Where-Object { $_ -cmatch '^\s+weather:\s*false' }
+        if (-not $weatherOff) {
+            $warnings += "src/versions.yaml présent et l'étape weather n'est pas désactivée — un .miz par version déclarée. Ajoutez 'pipeline:' / '  weather: false' au mission.yaml."
+        }
+    }
+    return $warnings
+}
+
+function Remove-PersistedScriptsPath {
+    <#  Drop the `build.scripts_path` key the build persists when --scripts-path is used.
+
+        The path is machine-specific (the generated comment says so), so leaving it in a
+        mission.yaml that may be shared or committed would be wrong.  #>
+    param([string] $MissionYaml)
+
+    if (-not (Test-Path -LiteralPath $MissionYaml)) { return }
+    $content = Get-Content -LiteralPath $MissionYaml
+    $kept = $content | Where-Object { $_ -notmatch '^\s+scripts_path:\s*' }
+    if ($kept.Count -ne $content.Count) {
+        Set-Content -LiteralPath $MissionYaml -Value $kept -Encoding UTF8
+    }
+}
+
+function Invoke-VeafTools {
+    <#  Run veaf-tools and return $true on success. Its full output is printed on failure only,
+        so a ten-mission batch stays readable — but warnings are surfaced even on success:
+        hiding them once cost us every mission being named mission_<date>.miz while veaf-tools
+        was saying so on every run.
+
+        `WorkingDirectory` matters for the build, which resolves `published/` relative to the
+        current directory.  #>
+    param([string] $Exe, [string[]] $Arguments, [string] $WorkingDirectory)
+
+    $previous = $null
+    if ($WorkingDirectory) {
+        $previous = (Get-Location).Path
+        Set-Location -LiteralPath $WorkingDirectory
+    }
+    try {
+        $output = & $Exe @Arguments 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '    --- sortie de veaf-tools ---' -ForegroundColor DarkGray
+            $output | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+            return $false
+        }
+        $flagged = @($output | Where-Object { $_ -match 'invalide|introuvable|manquant|ignoré|avertissement|WARNING' })
+        foreach ($line in $flagged) { Write-Host "    ! $line" -ForegroundColor Yellow }
+        return $true
+    }
+    finally {
+        if ($previous) { Set-Location -LiteralPath $previous }
+    }
 }
 
 # ── Preflight ────────────────────────────────────────────────────────────────────────────
@@ -154,16 +260,42 @@ if (-not (Test-Path -LiteralPath $OutputFolder)) {
 }
 $OutputFolder = (Resolve-Path -LiteralPath $OutputFolder).Path
 
-$exe = Resolve-VeafTools -Explicit $VeafTools -OutputFolder $OutputFolder -InputFolder $InputFolder
+# Building a mission that does not validate wastes minutes per folder.
+if ($Build) { $Validate = $true }
+
+# Resolve -SharedPublished BEFORE looking for the executable: the bundle's parent folder is
+# where publish-local leaves veaf-tools.exe, so it is the best place to find it.
+if ($SharedPublished) {
+    if (-not (Test-Path -LiteralPath $SharedPublished)) {
+        throw "Dossier published partagé introuvable : $SharedPublished"
+    }
+    $SharedPublished = (Resolve-Path -LiteralPath $SharedPublished).Path
+    # A published/ bundle carries the community scripts under src/scripts/community/.
+    if (-not (Test-Path -LiteralPath (Join-Path $SharedPublished 'src/scripts/community/mist.lua'))) {
+        throw @"
+$SharedPublished ne ressemble pas à un dossier published (src/scripts/community/mist.lua absent).
+-SharedPublished attend le dossier 'published' lui-même, pas son parent.
+"@
+    }
+}
+
+$exe = Resolve-VeafTools -Explicit $VeafTools -OutputFolder $OutputFolder `
+    -InputFolder $InputFolder -SharedPublished $SharedPublished
 
 $archives = @(Get-ChildItem -LiteralPath $InputFolder -Filter '*.zip' -File | Sort-Object Name)
 if ($archives.Count -eq 0) { throw "Aucune archive .zip dans $InputFolder" }
+
+$steps = @('adoption')
+if ($Validate) { $steps += 'validation' }
+if ($Build) { $steps += 'build' }
 
 Write-Host ''
 Write-Host "veaf-tools   : $exe"
 Write-Host "Entrée       : $InputFolder"
 Write-Host "Sortie       : $OutputFolder"
 Write-Host "Missions     : $($archives.Count) archive(s)$(if ($Update) { ' — mode mise à jour' })"
+Write-Host "Étapes       : $($steps -join ' → ')"
+if ($SharedPublished) { Write-Host "Scripts VEAF : $SharedPublished (partagé)" }
 Write-Host ''
 
 # ── Batch ────────────────────────────────────────────────────────────────────────────────
@@ -190,6 +322,7 @@ foreach ($archive in $archives) {
 
     $converted = Invoke-VeafTools -Exe $exe -Arguments $arguments
     $validated = $null
+    $built = $null
 
     if ($converted) {
         Write-Host "    adopté$(if ($isRefresh) { ' (mise à jour)' })" -ForegroundColor Green
@@ -201,6 +334,32 @@ foreach ($archive in $archives) {
                 Write-Host '    validation en échec' -ForegroundColor Yellow
             }
         }
+        if ($Build -and $validated) {
+            $missionYaml = Join-Path $target 'mission.yaml'
+            foreach ($w in (Get-PreBuildWarnings -MissionYaml $missionYaml -MissionFolder $target)) {
+                Write-Warning "    $w"
+            }
+            # No positional argument: `build`'s FIRST positional is the mission NAME, not the
+            # folder. Passing '.' made it the name, which is invalid, so it fell back to
+            # "mission" and the mission.yaml's `mission.name` was never read — every mission
+            # came out as mission_<date>.miz. The folder defaults to '.', and we already run
+            # from it.
+            $buildArgs = @('build')
+            if ($SharedPublished) { $buildArgs += @('--scripts-path', $SharedPublished) }
+            # The build resolves published/ from the current directory, hence -WorkingDirectory.
+            $built = Invoke-VeafTools -Exe $exe -Arguments $buildArgs -WorkingDirectory $target
+            if ($SharedPublished) { Remove-PersistedScriptsPath -MissionYaml $missionYaml }
+            $produced = @(Get-ChildItem -LiteralPath $target -Filter '*.miz' -File -ErrorAction SilentlyContinue) +
+                        @(Get-ChildItem -LiteralPath (Join-Path $target 'missions') -Filter '*.miz' -File -ErrorAction SilentlyContinue)
+            if ($built) {
+                Write-Host "    construit — $($produced.Count) .miz" -ForegroundColor Green
+            } else {
+                Write-Host '    ÉCHEC du build' -ForegroundColor Red
+            }
+        }
+        elseif ($Build) {
+            Write-Host '    build ignoré (la validation a échoué)' -ForegroundColor Yellow
+        }
     }
     else {
         Write-Host '    ÉCHEC de la conversion' -ForegroundColor Red
@@ -211,6 +370,7 @@ foreach ($archive in $archives) {
         Profil    = $profileName
         Converti  = $converted
         Validé    = $validated
+        Construit = $built
         Dossier   = $target
     })
     Write-Host ''
@@ -218,18 +378,23 @@ foreach ($archive in $archives) {
 
 # ── Summary ──────────────────────────────────────────────────────────────────────────────
 Write-Host 'Résumé' -ForegroundColor Cyan
-$results | Format-Table -AutoSize -Property Mission, Profil, Converti, @{
-    Name = 'Validé'; Expression = { if ($null -eq $_.Validé) { '-' } else { $_.Validé } }
-}
+$dash = { param($v) if ($null -eq $v) { '-' } else { $v } }
+$results | Format-Table -AutoSize -Property Mission, Profil, Converti,
+    @{ Name = 'Validé';    Expression = { & $dash $_.Validé } },
+    @{ Name = 'Construit'; Expression = { & $dash $_.Construit } }
 
-$failed = @($results | Where-Object { -not $_.Converti -or $_.Validé -eq $false })
+$failed = @($results | Where-Object { -not $_.Converti -or $_.Validé -eq $false -or $_.Construit -eq $false })
 if ($failed.Count -gt 0) {
     Write-Host "$($failed.Count) mission(s) en échec : $($failed.Mission -join ', ')" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "$($results.Count) mission(s) adoptée(s) dans $OutputFolder" -ForegroundColor Green
+Write-Host "$($results.Count) mission(s) traitée(s) dans $OutputFolder" -ForegroundColor Green
 Write-Host ''
-Write-Host 'Étapes suivantes, par mission : régler le mission.yaml (décommenter config_override,'
-Write-Host "activer les modules VEAF voulus), puis 'veaf-tools build .' depuis son dossier."
+if ($Build) {
+    Write-Host 'Les .miz sont dans chaque dossier de mission. Il reste à les tester dans DCS.'
+} else {
+    Write-Host 'Étapes suivantes, par mission : régler le mission.yaml (décommenter config_override,'
+    Write-Host "activer les modules VEAF voulus), puis relancer avec -Build."
+}
 exit 0

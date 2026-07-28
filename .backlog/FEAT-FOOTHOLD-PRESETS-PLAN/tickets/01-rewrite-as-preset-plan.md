@@ -1,6 +1,6 @@
 # 01 — Rewrite the Foothold presets as a preset plan
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Why
@@ -26,25 +26,25 @@ authoring model.
 
 ## Tasks
 
-- [ ] Write the `channel_lists` block for `blue` from the three existing radios, preserving
+- [x] Write the `channel_lists` block for `blue` from the three existing radios, preserving
       channel numbers and titles (they appear on the kneeboards).
-- [ ] Decide `fm_substitute` (helicopter FM-as-second-radio): same list as `fm_supplement`, or
+- [x] Decide `fm_substitute` (helicopter FM-as-second-radio): same list as `fm_supplement`, or
       a shorter one. The current file's CH-47 collection (`modern_blue_fm_uhf`) is the clue.
-- [ ] Drop the collections the packer now covers, and **check each against the report** rather
+- [x] Drop the collections the packer now covers, and **check each against the report** rather
       than assuming: A-10C_2 (inverted), CH-47Fbl1, AH-64D_BLK_II, OH58D, SA342* (Gazelle).
-- [ ] Revisit the three `empty` assignments (`Mi-8MT`, `Mi-24P`, `MiG-15bis`): the packer knows
+- [x] Revisit the three `empty` assignments (`Mi-8MT`, `Mi-24P`, `MiG-15bis`): the packer knows
       the Mi-24P channel-0 rotation, so `empty` is likely no longer needed. `MiG-15bis` had its
       own fix (`FIX-MIG15-PRIMARY-FREQ`) — confirm what it needs now.
-- [ ] Keep `red: all: none` (Foothold's red side is AI).
-- [ ] Consider `priority`/`color` on the key channels (ADR 0012) — Guard, the tankers, the
+- [x] Keep `red: all: none` (Foothold's red side is AI).
+- [x] Consider `priority`/`color` on the key channels (ADR 0012) — Guard, the tankers, the
       carrier — since they also drive the AJS-37 FR22 specials.
-- [ ] Build one mission with the new file and **diff `presets-validation-report.md` against the
+- [x] Build one mission with the new file and **diff `presets-validation-report.md` against the
       current one**: the out-of-band section must shrink to nothing, or every remaining entry
       must be explained.
-- [ ] Compare the generated kneeboards before/after on two or three types (a plain one, the
+- [x] Compare the generated kneeboards before/after on two or three types (a plain one, the
       Apache, the AJS-37) — the plates are what players actually read.
-- [ ] Roll the file out to the ten Foothold mission folders.
-- [ ] CHANGELOG + version bump.
+- [x] Roll the file out to the ten Foothold mission folders.
+- [x] CHANGELOG + version bump.
 
 ## Verify
 

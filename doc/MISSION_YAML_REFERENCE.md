@@ -137,12 +137,50 @@ mission:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs |
+| `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs, **et nom du `.miz` construit** — voir la note de nommage ci-dessous |
 | `export_path` | string \| null | `null` | Non | Surcharge le chemin d'export DCS Saved Games |
 | `era` | string | `MODERN` | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn |
 | `silence_atc_on_all_airbases` | booléen | `false` | Non | Option globale : coupe l'ATC DCS sur tous les aérodromes (émet `veaf.silenceAtcOnAllAirbases()`). `convert-v5` la migre depuis un appel actif et annote sa provenance |
 | `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 | `third_party_mods` | liste de strings | `[]` | Non | Mods DCS **tiers** (avions payants/communautaires) à rendre **non bloquants** : leurs identifiants sont retirés de la table `requiredModules` du `.miz` au build, si bien qu'un pilote qui ne possède pas le mod peut quand même **charger** la mission (le slot correspondant est simplement indisponible). La liste est **unie** à une liste VEAF par défaut couvrant les mods courants (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — n'y déclarer que les mods non déjà pris en charge. À ne pas confondre avec les *Modules* VEAF (bloc `modules:`, qui sont des capacités, pas des add-ons DCS) |
+
+#### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
+
+`mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
+`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez au contraire un nom
+terminé par `.miz` et il est repris **tel quel**, sans date.
+
+C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,
+l'extension RealWeather de [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
+cherche **`_ICAO_<code>`** dans le nom du `.miz` et récupère le METAR réel de cet aérodrome au
+démarrage de la mission — la météo suit donc la réalité sans reconstruire. Nommez la mission en
+conséquence :
+
+```yaml
+mission:
+  name: VEAF_Foothold_Caucasus_ICAO_URSS   # -> VEAF_Foothold_Caucasus_ICAO_URSS_20260728.miz
+```
+
+Deux règles pour choisir le code :
+
+- ce doit être **un aérodrome du théâtre** (n'importe lequel ; un grand vaut mieux) ;
+- il doit avoir une **station METAR vivante**. Vérifiez-le avant de vous y fier : une station peut
+  exister *et* être périmée, ce qui est pire que pas de météo réelle du tout, puisque la mission
+  annonce alors une météo « réelle » vieille de plusieurs jours. Contrôle en une ligne :
+
+```bash
+curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
+```
+
+Les deux premiers chiffres du groupe `JJHHMMZ` sont le jour de l'observation — comparez-les à la
+date du jour.
+
+Quand tout un théâtre est dégradé, deux réponses se défendent, et le choix revient à qui exploite
+le serveur. Mesuré sur l'Afghanistan, **toutes** les stations retardent (Kaboul un mois, Herat
+seize jours, Bagram un jour ; six aérodromes n'ont aucune station) : soit on **omet** le marqueur,
+ce qui laisse RealWeather tranquille et conserve la météo choisie, soit on **prend la moins
+mauvaise** en sachant ce qu'on obtient. Le Foothold Afghanistan de VEAF utilise `OAIX` (Bagram,
+environ un jour de retard) — un choix assumé, pas un oubli.
 
 ---
 
@@ -152,20 +190,26 @@ Contrôle le système de sécurité VEAF. Par défaut, la sécurité est désact
 
 ```yaml
 security:
-  disabled: true                    # true = aucun mot de passe requis (défaut)
-  password_hashes:                  # hashes SHA-256 pour l'accès joueur/JTF
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
-  password_mm_hashes:               # hashes SHA-256 pour l'accès Mission Master
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
+  disabled: false                   # false = un mot de passe est requis
+  password_hashes:                  # hashes SHA-1 donnant l'accès joueur/JTF
+    - "2a4efd2397e081bcacb82b3e447c584c65cc83ee"
+  password_mm_hashes:               # hashes SHA-1 donnant l'accès Mission Master
+    - "99685b3c7cb1fb08a829fc97d4a8564fc5f9435a"
 ```
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
 | `disabled` | booléen | `true` | Non | `true` = aucun mot de passe requis |
-| `password_hashes` | string[] | `[]` | Non | Hashes SHA-256 pour l'accès joueur |
-| `password_mm_hashes` | string[] | `[]` | Non | Hashes SHA-256 pour l'accès Mission Master |
+| `password_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès joueur. Émis aux niveaux **L1 et L9**, pour que le mot de passe ouvre l'authentification par marqueur et les spawns sensibles, pas seulement les portes L9 |
+| `password_mm_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès Mission Master (table dédiée, sans cascade de niveaux) |
 
-> Pour générer un hash SHA-256 : `echo -n "votremotdepasse" | sha256sum` (Linux/macOS) ou utilisez un outil en ligne.
+> **SHA-1, pas SHA-256.** `veafSecurity._checkPassword` hashe ce que tape le joueur avec
+> `sha1.hex(password)` puis cherche le résultat dans la table : un hash SHA-256 ne correspondra
+> donc jamais et le mot de passe ne fonctionnera **jamais**, en silence. Cette page indiquait
+> SHA-256 jusqu'à sa correction — vérifiez toute mission dont le mot de passe semble ignoré.
+>
+> Pour en générer un : `echo -n "votremotdepasse" | sha1sum` (Linux/macOS), ou
+> `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" votremotdepasse`.
 
 ---
 
@@ -286,6 +330,21 @@ modules:
 | `logLevel` | string | *(global)* | Surcharger le niveau de log pour ce module uniquement |
 
 Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
+
+**Champs `init:` du module `RADIO` :**
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `help_menus` | booléen | `true` | Transmis à `veafRadio.initialize` en tant que `skipHelpMenus` |
+| `create_menus` | booléen | `true` | `false` ne construit **aucun menu F10 VEAF** (`dontCreateMenus`). Combiné à `security:`, c'est ainsi qu'une mission publique garde les commandes VEAF accessibles uniquement via des marqueurs protégés par mot de passe. Omettez la clé pour conserver le comportement actuel |
+
+```yaml
+modules:
+  RADIO:
+    enabled: true
+    init:
+      create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
+```
 
 **Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs en majuscules. Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure :
 

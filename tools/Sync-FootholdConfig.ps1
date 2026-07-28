@@ -15,6 +15,7 @@
     | `modules:`                       | `custom_scripts:` (setup script differs per map) |
     | `pipeline:`                      | `strip_native_triggers:` (trigger names differ) |
     | `config_override:` → `values:`   | `config_override:` → `target:` (WW2 differs) |
+    | `security:` (passwords)          | `mission:` → `silence_atc_on_all_airbases` sits beside the name, so it is per-mission |
     | `build_variants:`, `profiles:`   | `mission:` (its name)                        |
 
     Blocks are moved as whole text spans, comments included — nothing is re-serialised, so a
@@ -58,12 +59,30 @@ param(
     [Parameter(Mandatory)] [string] $Reference,
     [Parameter(Mandatory)] [string] $MissionsFolder,
     [switch] $Apply,
-    [string[]] $Keys = @('global_log_level', 'modules', 'pipeline', 'config_override', 'build_variants', 'profiles'),
+    [string[]] $Keys = @('global_log_level', 'modules', 'pipeline', 'security', 'config_override', 'build_variants', 'profiles'),
     [switch] $IncludeOtherProfiles
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Read-Utf8Lines {
+    <#  Read a UTF-8 file as lines, whatever the PowerShell edition.
+
+        `Get-Content` without -Encoding reads ANSI on Windows PowerShell 5.1, so a UTF-8
+        mission.yaml comes back with its accents and box-drawing characters mangled — and
+        writing it out again corrupts the file (it produced U+009D in eight mission.yaml
+        comments before this was fixed). The .NET API is unambiguous on both editions.  #>
+    param([string] $Path)
+    return [System.IO.File]::ReadAllLines($Path, [System.Text.Encoding]::UTF8)
+}
+
+function Write-Utf8Lines {
+    <#  Write lines back as UTF-8 without BOM, preserving what Read-Utf8Lines read.  #>
+    param([string] $Path, [string[]] $Lines)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllLines($Path, $Lines, $utf8NoBom)
+}
 
 function Resolve-MissionYaml {
     <#  Accept either a mission folder or a mission.yaml path.  #>
@@ -181,7 +200,7 @@ function Set-Block {
 
 # ── Preflight ────────────────────────────────────────────────────────────────────────────
 $refYaml = Resolve-MissionYaml -PathOrFolder $Reference
-$refLines = Get-Content -LiteralPath $refYaml
+$refLines = Read-Utf8Lines -Path $refYaml
 $refFolder = Split-Path -Parent $refYaml
 $refProfile = Get-ScalarValue -Lines $refLines -Key 'conversion_profile'
 
@@ -226,7 +245,7 @@ foreach ($folder in (Get-ChildItem -LiteralPath $MissionsFolder -Directory | Sor
     if (-not (Test-Path -LiteralPath $yaml)) { continue }
     if ((Resolve-Path -LiteralPath $folder.FullName).Path -eq (Resolve-Path -LiteralPath $refFolder).Path) { continue }
 
-    $lines = Get-Content -LiteralPath $yaml
+    $lines = Read-Utf8Lines -Path $yaml
     $targetProfile = Get-ScalarValue -Lines $lines -Key 'conversion_profile'
 
     Write-Host $folder.Name -ForegroundColor Cyan
@@ -305,7 +324,7 @@ foreach ($folder in (Get-ChildItem -LiteralPath $MissionsFolder -Directory | Sor
         if ($Apply) {
             $backup = "$yaml.bak"
             if (-not (Test-Path -LiteralPath $backup)) { Copy-Item -LiteralPath $yaml -Destination $backup }
-            Set-Content -LiteralPath $yaml -Value $updated -Encoding UTF8
+            Write-Utf8Lines -Path $yaml -Lines $updated
             Write-Host '    écrit' -ForegroundColor Green
         }
         $touched++

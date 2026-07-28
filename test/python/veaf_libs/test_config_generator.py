@@ -209,14 +209,51 @@ class TestExportPath(unittest.TestCase):
 
 
 class TestPasswordHashes(unittest.TestCase):
-    def test_hash_emitted(self) -> None:
+    def test_hash_emitted_at_both_levels(self) -> None:
+        """A declared password must reach L1, not only L9.
+
+        The levels are ordered L0 (90) > L1 (10) > L9 (1), and the gates that matter in
+        practice — marker authentication (`checkPassword_L1`), the sensitive spawns
+        (`veafSpawnCore:142`), transport missions — accept **L1 or L0 only**. Emitting L9 alone
+        produced a password that could not authenticate a marker, whatever it was set to; the
+        hand-written v5 missions set both levels for exactly this reason.
+        """
         lua = generate_config_lua({"security": {"password_hashes": ["abc123def"]}})
+        self.assertIn('veafSecurity.password_L1["abc123def"] = true', lua)
         self.assertIn('veafSecurity.password_L9["abc123def"] = true', lua)
 
     def test_multiple_hashes(self) -> None:
         lua = generate_config_lua({"security": {"password_hashes": ["h1", "h2"]}})
         self.assertIn('"h1"', lua)
         self.assertIn('"h2"', lua)
+
+    def test_mm_hashes_stay_in_their_own_table(self) -> None:
+        # Mission Master is a separate table, checked by checkPassword_MM alone — it must not
+        # inherit the L1/L9 cascade.
+        lua = generate_config_lua({"security": {"password_mm_hashes": ["mm1"]}})
+        self.assertIn('veafSecurity.password_MM["mm1"] = true', lua)
+        self.assertNotIn('veafSecurity.password_L1["mm1"]', lua)
+
+
+class TestRadioCreateMenus(unittest.TestCase):
+    """`create_menus: false` reproduces veafRadio.initialize(skipHelpMenus, dontCreateMenus)."""
+
+    def test_create_menus_false_passes_dont_create_menus(self) -> None:
+        # `create_menus` reads naturally but the Lua parameter is `dontCreateMenus`, so the
+        # value is negated on the way out.
+        lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True, "init": {"create_menus": False}}}})
+        self.assertIn("veafRadio.initialize(true, true)", lua)
+
+    def test_create_menus_true_is_the_default_shape(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True, "init": {"create_menus": True}}}})
+        self.assertIn("veafRadio.initialize(true, false)", lua)
+
+    def test_omitting_create_menus_keeps_the_previous_output(self) -> None:
+        """Regression guard: a mission that never mentions create_menus must generate exactly
+        what it generated before this key existed — a single argument."""
+        lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True}}})
+        self.assertIn("veafRadio.initialize(true)", lua)
+        self.assertNotIn("veafRadio.initialize(true,", lua)
 
 
 class TestSettings(unittest.TestCase):

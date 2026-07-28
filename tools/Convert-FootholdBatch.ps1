@@ -171,6 +171,24 @@ function Get-ConversionProfile {
     }
 }
 
+function Read-Utf8Lines {
+    <#  Read a UTF-8 file as lines, whatever the PowerShell edition.
+
+        `Get-Content` without -Encoding reads ANSI on Windows PowerShell 5.1, so a UTF-8
+        mission.yaml comes back with its accents and box-drawing characters mangled — and
+        writing it out again corrupts the file (it produced U+009D in eight mission.yaml
+        comments before this was fixed). The .NET API is unambiguous on both editions.  #>
+    param([string] $Path)
+    return [System.IO.File]::ReadAllLines($Path, [System.Text.Encoding]::UTF8)
+}
+
+function Write-Utf8Lines {
+    <#  Write lines back as UTF-8 without BOM, preserving what Read-Utf8Lines read.  #>
+    param([string] $Path, [string[]] $Lines)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllLines($Path, $Lines, $utf8NoBom)
+}
+
 function Get-PreBuildWarnings {
     <#  Return the reasons this mission is probably not ready to build.
 
@@ -185,7 +203,7 @@ function Get-PreBuildWarnings {
 
     $warnings = @()
     if (-not (Test-Path -LiteralPath $MissionYaml)) { return @('mission.yaml absent') }
-    $lines = Get-Content -LiteralPath $MissionYaml
+    $lines = Read-Utf8Lines -Path $MissionYaml
 
     if (-not ($lines | Where-Object { $_ -cmatch '^config_override:' })) {
         if ($lines | Where-Object { $_ -cmatch '^#\s*config_override:' }) {
@@ -213,10 +231,10 @@ function Remove-PersistedScriptsPath {
     param([string] $MissionYaml)
 
     if (-not (Test-Path -LiteralPath $MissionYaml)) { return }
-    $content = Get-Content -LiteralPath $MissionYaml
+    $content = Read-Utf8Lines -Path $MissionYaml
     $kept = $content | Where-Object { $_ -notmatch '^\s+scripts_path:\s*' }
     if ($kept.Count -ne $content.Count) {
-        Set-Content -LiteralPath $MissionYaml -Value $kept -Encoding UTF8
+        Write-Utf8Lines -Path $MissionYaml -Lines $kept
     }
 }
 

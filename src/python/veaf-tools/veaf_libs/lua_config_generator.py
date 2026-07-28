@@ -67,10 +67,19 @@ _MODULE_INIT_ORDER: list[str] = [
 
 #: Per-module ``initialize()`` positional arguments.
 #: Maps module ID → list of ``(yaml_key, python_default)`` tuples.
+#:
+#: A key whose default is ``None`` is **optional**: it is only passed when the mission declares
+#: it, so a mission that never mentions it generates the exact same call as before the key
+#: existed. That is how ``RADIO.create_menus`` stays additive.
 _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
-    "RADIO": [("help_menus", True)],
+    "RADIO": [("help_menus", True), ("create_menus", None)],
     "CARRIER": [("include_carrier_operations_radio", True)],
 }
+
+#: Init keys whose YAML meaning is the negation of the Lua parameter they feed.
+#: ``create_menus: false`` → ``dontCreateMenus = true``: the YAML says what the mission-maker
+#: wants, the Lua says what the function takes.
+_NEGATED_INIT_KEYS: frozenset[str] = frozenset({"create_menus"})
 
 #: YAML keys that are NOT forwarded as ``veaf.setConfig()`` calls.
 _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
@@ -440,10 +449,18 @@ def _emit_module_body(
     init_cfg: dict = mod_cfg.get("init") or {}
 
     if mod_id in _MODULE_INIT_PARAMS:
-        # Modules with typed positional args to initialize()
-        param_specs = _MODULE_INIT_PARAMS[mod_id]
-        args = ", ".join(_to_lua_scalar(init_cfg.get(yaml_key, default)) for yaml_key, default in param_specs)
-        lines.append(f"    {var_name}.initialize({args})")
+        # Modules with typed positional args to initialize(). A spec whose default is None is
+        # optional: omitted from the call unless the mission declares it, so adding one never
+        # changes the output of a mission that does not use it.
+        rendered: list[str] = []
+        for init_key, default in _MODULE_INIT_PARAMS[mod_id]:
+            if default is None and init_key not in init_cfg:
+                continue
+            value = init_cfg.get(init_key, default)
+            if init_key in _NEGATED_INIT_KEYS:
+                value = not value
+            rendered.append(_to_lua_scalar(value))
+        lines.append(f"    {var_name}.initialize({', '.join(rendered)})")
 
     elif mod_id == "NAMEDPOINTS":
         custom_points: list = mod_cfg.get("custom_points") or []
@@ -1192,7 +1209,13 @@ def generate_config_lua(
         lines.append("-- ── Security ─────────────────────────────────────────────────────────────────")
         if "disabled" in security_cfg:
             lines.append(f"veaf.SecurityDisabled = {'true' if security_cfg['disabled'] else 'false'}")
+        # Both levels, deliberately. Levels rank L0 (90) > L1 (10) > L9 (1), and the gates that
+        # matter — marker authentication (checkPassword_L1), the sensitive spawns
+        # (veafSpawnCore:142), transport missions — accept L1 or L0 only. Emitting L9 alone gave
+        # a password that could not authenticate a marker whatever it was set to; the
+        # hand-written v5 missions set both for this exact reason.
         for hash_val in security_cfg.get("password_hashes") or []:
+            lines.append(f'veafSecurity.password_L1["{hash_val}"] = true')
             lines.append(f'veafSecurity.password_L9["{hash_val}"] = true')
         mm_hashes: list = security_cfg.get("password_mm_hashes") or []
         if mm_hashes:

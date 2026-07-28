@@ -152,20 +152,26 @@ Controls the VEAF security system. By default, security is disabled (all players
 
 ```yaml
 security:
-  disabled: true                    # true = no password required (default)
-  password_hashes:                  # SHA-256 hashes for player/JTF access
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
-  password_mm_hashes:               # SHA-256 hashes for Mission Master access
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
+  disabled: false                   # false = a password is required
+  password_hashes:                  # SHA-1 hashes granting player/JTF access
+    - "2a4efd2397e081bcacb82b3e447c584c65cc83ee"
+  password_mm_hashes:               # SHA-1 hashes granting Mission Master access
+    - "99685b3c7cb1fb08a829fc97d4a8564fc5f9435a"
 ```
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
 | `disabled` | boolean | `true` | No | `true` = no password required |
-| `password_hashes` | string[] | `[]` | No | SHA-256 hashes for player access |
-| `password_mm_hashes` | string[] | `[]` | No | SHA-256 hashes for Mission Master access |
+| `password_hashes` | string[] | `[]` | No | **SHA-1** hashes granting player access. Emitted at levels **L1 and L9**, so the password opens marker authentication and the sensitive spawns, not only the L9 gates |
+| `password_mm_hashes` | string[] | `[]` | No | **SHA-1** hashes granting Mission Master access (its own table, no level cascade) |
 
-> To generate a SHA-256 hash: `echo -n "yourpassword" | sha256sum` (Linux/macOS) or use an online tool.
+> **SHA-1, not SHA-256.** `veafSecurity._checkPassword` hashes what the player types with
+> `sha1.hex(password)` and looks it up in the table, so a SHA-256 hash never matches and the
+> password silently never works. This page said SHA-256 until it was corrected — check any
+> existing mission whose password appears to be ignored.
+>
+> To generate one: `echo -n "yourpassword" | sha1sum` (Linux/macOS), or
+> `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" yourpassword`.
 
 ---
 
@@ -286,6 +292,21 @@ modules:
 | `logLevel` | string | *(global)* | Override log level for this module only |
 
 Additional `init:` or data fields are module-specific — see each module's documentation page.
+
+**`RADIO` `init:` fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `help_menus` | boolean | `true` | Passed to `veafRadio.initialize` as `skipHelpMenus` |
+| `create_menus` | boolean | `true` | `false` builds **no VEAF F10 menu at all** (`dontCreateMenus`). Combined with `security:`, that is how a public mission keeps the VEAF commands reachable only through password-protected map markers. Omit the key to keep today's behaviour |
+
+```yaml
+modules:
+  RADIO:
+    enabled: true
+    init:
+      create_menus: false       # no VEAF radio menu; commands via markers only
+```
 
 **Community scripts** are listed in the same block, using their uppercase IDs. When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it:
 

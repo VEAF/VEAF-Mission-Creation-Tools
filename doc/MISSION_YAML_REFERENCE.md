@@ -152,20 +152,26 @@ Contrôle le système de sécurité VEAF. Par défaut, la sécurité est désact
 
 ```yaml
 security:
-  disabled: true                    # true = aucun mot de passe requis (défaut)
-  password_hashes:                  # hashes SHA-256 pour l'accès joueur/JTF
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
-  password_mm_hashes:               # hashes SHA-256 pour l'accès Mission Master
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
+  disabled: false                   # false = un mot de passe est requis
+  password_hashes:                  # hashes SHA-1 donnant l'accès joueur/JTF
+    - "2a4efd2397e081bcacb82b3e447c584c65cc83ee"
+  password_mm_hashes:               # hashes SHA-1 donnant l'accès Mission Master
+    - "99685b3c7cb1fb08a829fc97d4a8564fc5f9435a"
 ```
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
 | `disabled` | booléen | `true` | Non | `true` = aucun mot de passe requis |
-| `password_hashes` | string[] | `[]` | Non | Hashes SHA-256 pour l'accès joueur |
-| `password_mm_hashes` | string[] | `[]` | Non | Hashes SHA-256 pour l'accès Mission Master |
+| `password_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès joueur. Émis aux niveaux **L1 et L9**, pour que le mot de passe ouvre l'authentification par marqueur et les spawns sensibles, pas seulement les portes L9 |
+| `password_mm_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès Mission Master (table dédiée, sans cascade de niveaux) |
 
-> Pour générer un hash SHA-256 : `echo -n "votremotdepasse" | sha256sum` (Linux/macOS) ou utilisez un outil en ligne.
+> **SHA-1, pas SHA-256.** `veafSecurity._checkPassword` hashe ce que tape le joueur avec
+> `sha1.hex(password)` puis cherche le résultat dans la table : un hash SHA-256 ne correspondra
+> donc jamais et le mot de passe ne fonctionnera **jamais**, en silence. Cette page indiquait
+> SHA-256 jusqu'à sa correction — vérifiez toute mission dont le mot de passe semble ignoré.
+>
+> Pour en générer un : `echo -n "votremotdepasse" | sha1sum` (Linux/macOS), ou
+> `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" votremotdepasse`.
 
 ---
 
@@ -286,6 +292,21 @@ modules:
 | `logLevel` | string | *(global)* | Surcharger le niveau de log pour ce module uniquement |
 
 Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
+
+**Champs `init:` du module `RADIO` :**
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `help_menus` | booléen | `true` | Transmis à `veafRadio.initialize` en tant que `skipHelpMenus` |
+| `create_menus` | booléen | `true` | `false` ne construit **aucun menu F10 VEAF** (`dontCreateMenus`). Combiné à `security:`, c'est ainsi qu'une mission publique garde les commandes VEAF accessibles uniquement via des marqueurs protégés par mot de passe. Omettez la clé pour conserver le comportement actuel |
+
+```yaml
+modules:
+  RADIO:
+    enabled: true
+    init:
+      create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
+```
 
 **Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs en majuscules. Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure :
 

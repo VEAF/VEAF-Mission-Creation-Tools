@@ -34,6 +34,18 @@ Cold War Germany, Kola, Iraq, Afghanistan, WWII Normandy), each holding:
 Pass the `.zip` straight to `convert-other`: it adopts the `.miz` inside and ignores the
 rest. No need to unzip by hand.
 
+> **All ten maps at once.** A release ships one archive per map. From a clone of this
+> repository, [`tools/Convert-FootholdBatch.ps1`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/Convert-FootholdBatch.ps1)
+> adopts them all in one pass, picking the right profile for each (it looks inside the archive,
+> not at its name):
+>
+> ```powershell
+> .\tools\Convert-FootholdBatch.ps1 -InputFolder <zip-folder> -OutputFolder <missions-folder> -Validate
+> ```
+>
+> On later releases add `-Update`: the scripts are refreshed and every tuned `mission.yaml` is
+> preserved. Budget roughly a minute per mission.
+
 ### Which profile for which map
 
 | Map | Profile |

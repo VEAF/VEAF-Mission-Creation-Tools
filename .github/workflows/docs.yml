@@ -38,6 +38,13 @@ jobs:
       - name: Install docs dependencies
         run: poetry install --with docs --no-root
 
+      # The repository keeps a readable `6.11.x`-style placeholder in the pages that display a
+      # version; the published site must state the version it was generated from. Stamped on this
+      # throwaway checkout only — nothing is committed back (DOC-QUALITY-GATE). Run as a plain
+      # script: it is stdlib-only, so it needs neither the project installed nor its deps.
+      - name: Stamp the shipped version into the docs headers
+        run: python veaf_build/docs_version_stamp.py
+
       - name: Configure git identity (required by mike)
         run: |
           git config user.name "github-actions[bot]"

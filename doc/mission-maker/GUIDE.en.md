@@ -97,7 +97,7 @@ Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
 
 ---
 
-## Global User Configuration
+## Global User Configuration {#global-user-configuration}
 
 Create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults that apply to **all** your VEAF projects on this machine:
 
@@ -306,10 +306,10 @@ Beyond the Lua modules that run inside DCS, `veaf-tools build` can chain **pipel
 
 | Step | Role | Detailed schema |
 |------|------|-----------------|
-| `presets` | Injects radio frequency presets into human-piloted aircraft groups and generates the associated kneeboard PNG plates | [presets.yaml](../PIPELINE_REFERENCE.en.md#step-1--radio-presets-presetsyaml) |
-| `waypoints` | Injects waypoint templates (bullseye, navigation) into human aircraft groups | [waypoints.yaml](../PIPELINE_REFERENCE.en.md#step-2--waypoints-waypointsyaml) |
-| `spawnable_aircrafts` / `dynamic_slot_templates` | Injects spawnable aircraft groups and dynamic-slot templates | [aircraft groups](../PIPELINE_REFERENCE.en.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
-| `weather` | Creates several mission variants with different weather and time settings | [versions.yaml](../PIPELINE_REFERENCE.en.md#step-6--weather--time-versions-versionsyaml) |
+| `presets` | Injects radio frequency presets into human-piloted aircraft groups and generates the associated kneeboard PNG plates | [presets.yaml](../PIPELINE_REFERENCE.en.md#pipeline-step-1-presets) |
+| `waypoints` | Injects waypoint templates (bullseye, navigation) into human aircraft groups | [waypoints.yaml](../PIPELINE_REFERENCE.en.md#pipeline-step-2-waypoints) |
+| `spawnable_aircrafts` / `dynamic_slot_templates` | Injects spawnable aircraft groups and dynamic-slot templates | [aircraft groups](../PIPELINE_REFERENCE.en.md#pipeline-step-3-aircraft-groups) |
+| `weather` | Creates several mission variants with different weather and time settings | [versions.yaml](../PIPELINE_REFERENCE.en.md#pipeline-step-6-versions) |
 
 Each step accepts the **scalar** form (`true`/`false` to enable or skip) or the **mapping** form (detailed options). For example, the `presets` step can keep the radio injection while suppressing the PNG plates globally:
 

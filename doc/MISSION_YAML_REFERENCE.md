@@ -421,7 +421,7 @@ modules:
 
 Chaque nœud de `tree` est soit un sous-menu (`{ menu: "...", items: [...] }`, récursif) soit une commande (`{ command: "...", action: <verbe>, <clés> }`). Le vocabulaire d'actions est fermé (`qra.start`/`qra.stop`, `airwave.start`/`airwave.stop`/`airwave.reset`, `flag.on`/`flag.off`/`flag.set`/`flag.increment`/`flag.decrement`, `message`, `lua`). Une action `lua` référence une fonction définie dans `mission-script.lua` : si la fonction est absente, le build échoue.
 
-Voir le schéma complet, le tableau des actions et un exemple détaillé dans [veafRadio → Menus radio en YAML](mission-maker/scripts/veafRadio.md#menus-radio-en-yaml).
+Voir le schéma complet, le tableau des actions et un exemple détaillé dans [veafRadio → Menus radio en YAML](mission-maker/scripts/veafRadio.md#radio-menus-in-yaml).
 
 ---
 
@@ -495,7 +495,7 @@ Buildez la variante dev avec `veaf-tools build --profile DEV` (elle charge `FgMi
 
 ---
 
-### `pipeline:`
+### `pipeline:` {#pipeline}
 
 Contrôle les étapes optionnelles du pipeline de build. Voir la [Référence Pipeline](PIPELINE_REFERENCE.md) pour le schéma complet des fichiers de configuration de chaque étape.
 
@@ -560,11 +560,11 @@ profiles:
       dynamic_loading: true   # chargement dynamique pour le profil de test
 ```
 
-> Voir la section [Mode développeur](developer/GUIDE.md#mode-développeur) du Guide du développeur pour le workflow complet.
+> Voir la section [Mode développeur](developer/GUIDE.md#developer-mode) du Guide du développeur pour le workflow complet.
 
 ---
 
-### `profiles:`
+### `profiles:` {#profiles}
 
 Profils de build nommés. Chaque profil est un ensemble de surcharges qui fusionnent en profondeur sur la `mission.yaml` de base lorsque vous passez `--profile <nom>` à `veaf-tools build`. Les clés absentes du profil conservent leur valeur de base. Les listes sont remplacées intégralement, pas concaténées. La clé `profiles:` elle-même n'est jamais transmise au générateur Lua ni au pipeline.
 
@@ -648,8 +648,8 @@ veaf-tools.exe build --profile MODERN   # ne produit que la variante MODERN (san
 | `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
 | [`modules.RADIO.user_menus`](#modulesradiouser_menus--menus-radio-f10-en-yaml) | Menus radio F10 déclarés en YAML |
 | `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
-| `pipeline.presets` | [schéma presets.yaml](PIPELINE_REFERENCE.md#étape-1--préréglages-radio-presetsyaml) |
-| `pipeline.waypoints` | [schéma waypoints.yaml](PIPELINE_REFERENCE.md#étape-2--points-de-cheminement-waypointsyaml) |
+| `pipeline.presets` | [schéma presets.yaml](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
+| `pipeline.waypoints` | [schéma waypoints.yaml](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
 
 ### Courant — la plupart des missions
 
@@ -671,8 +671,8 @@ veaf-tools.exe build --profile MODERN   # ne produit que la variante MODERN (san
 | `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
 | [`modules.SKYNET` / `.CTLD` / `.CSAR`](#modules-tiers--skynet--ctld--csar-sous-modules) | Skynet IADS, CTLD, CSAR |
 | [`veaf_tools:`](#veaf_tools) | Contrainte de version |
-| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c) |
-| `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#étape-6--variantes-météo--horaire-versionsyaml) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
+| `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
 | [`custom_scripts:`](#custom_scripts) | Scripts Lua custom à inclure dans la mission |
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |

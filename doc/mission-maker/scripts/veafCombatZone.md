@@ -28,7 +28,7 @@ Les zones individuelles sont créées et initialisées séparément (voir ci-des
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:

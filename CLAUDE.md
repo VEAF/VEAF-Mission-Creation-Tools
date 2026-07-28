@@ -76,6 +76,11 @@ These are enforcement obligations on **every** lot, not a separate clean-up task
 
 Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish between scripts running in-game inside DCS and the Python build tooling.
 
+- **Quality gate**: run `poetry run docs-check` after touching anything under `doc/` or `mkdocs.yml`. The CI `Docs Check` job runs the same command; it fails on a broken relative link, a cross-page anchor the target does not expose, a cross-page anchor derived from a heading, a French page with no `.en.md`, or a page absent from the `nav`.
+- **Both languages, always**: a new page ships as `page.md` (French, the default locale) **and** `page.en.md`, and goes into the `mkdocs.yml` `nav` with its `nav_translations` entry. A page reachable only through an inline link is invisible to anyone browsing the menu.
+- **Anchor convention**: any section linked from another page carries an **explicit English** anchor — `## Couverture {#coverage}` / `## Coverage {#coverage}`. The anchor is identical across languages; the heading text stays in the page's language. Never link a heading-derived slug: it breaks on the next reword and differs between FR and EN.
+- **Never hand-write a version** in a page header: the repo keeps a readable range (`6.11.x`) and the deploy workflow stamps the shipped version (`veaf_build/docs_version_stamp.py`).
+
 ### Python (`src/python/` or `test/python/`)
 
 - **Architecture**: Strictly respect the Worker (`*_worker.py`), Manager (`*_manager.py`), and Data Models (`models.py`) structural pattern.

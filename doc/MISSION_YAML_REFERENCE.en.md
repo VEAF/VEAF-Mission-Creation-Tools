@@ -493,7 +493,7 @@ Build the dev variant with `veaf-tools build --profile DEV` (it loads `FgMission
 
 ---
 
-### `pipeline:`
+### `pipeline:` {#pipeline}
 
 Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELINE_REFERENCE.md) for the full schema of each step's config file.
 
@@ -562,7 +562,7 @@ profiles:
 
 ---
 
-### `profiles:`
+### `profiles:` {#profiles}
 
 Named build profiles. Each profile is a set of config overrides that deep-merge onto the base `mission.yaml` when you pass `--profile <name>` to `veaf-tools build`. Keys absent from the profile retain their base values. Lists are replaced, not concatenated. The `profiles:` key itself is never written to the built mission.
 
@@ -688,10 +688,10 @@ veaf-tools.exe build --profile MODERN   # produces only the MODERN variant (unsu
 | Section / Field | Description |
 |-----------------|-------------|
 | [`pipeline:`](#pipeline) | Pipeline step control |
-| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#step-1--radio-presets-presetsyaml) |
-| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#step-2--waypoints-waypointsyaml) |
-| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
-| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-6--weather--time-versions-versionsyaml) |
+| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
+| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
+| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
 | [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |

@@ -36,7 +36,7 @@ Cela reconstruit l'intégralité de l'arbre F10. L'appel est idempotent — il g
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:
@@ -108,7 +108,7 @@ veafRadio.createUserMenu(
 
 ---
 
-## Menus radio en YAML
+## Menus radio en YAML {#radio-menus-in-yaml}
 
 Depuis ADR 0011, un créateur de mission peut déclarer un menu radio F10 personnalisé **entièrement en YAML**, sans écrire de Lua, sous `modules.RADIO.user_menus`. C'est le pendant déclaratif de `veafRadio.createUserMenu()` (voir l'encart ci-dessus), destiné notamment aux menus de contrôle du Mission Master (MM).
 

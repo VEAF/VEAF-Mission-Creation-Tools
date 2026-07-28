@@ -51,7 +51,7 @@ lua test/lua/test_veafSpawn.lua
 
 ---
 
-## Couverture
+## Couverture {#coverage}
 
 Générez un rapport de couverture ligne par ligne avec [luacov](https://github.com/lunarmodules/luacov) :
 

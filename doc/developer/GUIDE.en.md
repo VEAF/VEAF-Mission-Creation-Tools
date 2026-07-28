@@ -71,7 +71,7 @@ VEAF-Mission-Creation-Tools/
 
 ---
 
-## Development Environment
+## Development Environment {#development-environment}
 
 Two setup paths are available. The DevContainer is recommended for new contributors and ensures an environment identical to CI.
 
@@ -160,7 +160,7 @@ Verify:
 lua -v   # Lua 5.1.x expected
 ```
 
-#### 5. StyLua 2.4.0 (Lua code quality)
+#### 5. StyLua 2.4.0 (Lua code quality) {#stylua-setup}
 
 StyLua formats Lua code. **Version 2.4.0 is enforced by CI** — any other version will fail the formatting job.
 
@@ -219,7 +219,7 @@ poetry run pytest     # Python tests
 
 ---
 
-## Lua Runtime Scripts
+## Lua Runtime Scripts {#lua-runtime-scripts}
 
 ### Module Structure
 
@@ -299,7 +299,7 @@ local groupById = veaf.mist.getGroupById(groupId)
 
 ---
 
-## Python Tools
+## Python Tools {#python-tools}
 
 ### CLI Architecture
 
@@ -465,9 +465,40 @@ Luacheck is enforced by the `Luacheck` CI job.
 | `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
 | `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |
+| `Docs Check` | Documentation links and anchors, FR/EN pairing, pages missing from the menu |
 | `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
 
 All CI jobs must be green before a PR can be merged.
+
+### Before a commit touching the documentation {#docs-check}
+
+```bash
+poetry run docs-check
+```
+
+The `Docs Check` CI job runs exactly that command. It refuses four kinds of rot that had quietly
+accumulated before it existed (see the `DOC-AUDIT-PASS` lot):
+
+| Check | Why |
+|-------|-----|
+| relative `.md` link to a file that does not exist | six links were returning 404 **in production** |
+| cross-page anchor the target does not expose | a section renumbering had left links behind |
+| cross-page anchor derived from a heading | it breaks on the first reword and **differs between FR and EN**; declare `{#anchor}` |
+| FR page with no `.en.md`, or absent from the `nav` | one page went untranslated for months, serving French on its English URL |
+
+**Anchor convention**: the anchor name is **English** and identical in both languages; the visible
+heading stays in the page's own language.
+
+```markdown
+## Couverture {#coverage}      <!-- FR: French heading, English anchor -->
+## Coverage {#coverage}        <!-- EN: same anchor -->
+```
+
+A cross-page link then always targets `#coverage`, whatever language the reader is in.
+
+> The version shown in the big references' headers is **not** hand-written: the repository keeps a
+> readable range (`6.11.x`) and the deploy workflow replaces it with the shipped version
+> (`poetry run docs-stamp-version`).
 
 ### Releasing a new version
 
@@ -480,7 +511,7 @@ git push origin published-v6.1.0
 
 ---
 
-## Developer Mode
+## Developer Mode {#developer-mode}
 
 Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
 When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone

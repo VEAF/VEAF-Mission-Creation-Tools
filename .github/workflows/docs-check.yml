@@ -1,0 +1,41 @@
+# Guards the documentation against silent rot: broken links, dead cross-page anchors, pages
+# missing an English version, and pages absent from the mkdocs nav.
+#
+# Added after DOC-AUDIT-PASS found eight such defects that had accumulated unnoticed — among them
+# an English page missing for months (its EN URL served French) and six links returning 404 in
+# production. Every other artifact in this repo has a gate; the documentation had none.
+name: Docs Check
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+    paths:
+      - "doc/**"
+      - "mkdocs.yml"
+      - "veaf_build/docs_check.py"
+      - "veaf_build/docs_version_stamp.py"
+      - ".github/workflows/docs-check.yml"
+
+jobs:
+  docs-check:
+    name: Links, anchors, translations, nav
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      # Both scripts are stdlib-only, so no Poetry install is needed — the job stays a
+      # few seconds long, which is what makes it acceptable on every doc push.
+      # The version headers are deliberately NOT gated here: the repository keeps a `6.11.x`
+      # placeholder, so `docs-stamp-version --check` is expected to report a difference on every
+      # commit. It is stamped at deploy time (docs.yml) and `--check` stays a local diagnostic.
+      - name: Check the documentation
+        run: python veaf_build/docs_check.py

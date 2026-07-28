@@ -30,7 +30,7 @@ There is no per-carrier registration API. On `initialize()`, the module scans ev
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 Carrier operations are enabled via the `CARRIER` module ID. Carriers themselves are not declared in `mission.yaml`: they are auto-discovered from the carrier groups present in the mission (see [Enable](#enable)).
 

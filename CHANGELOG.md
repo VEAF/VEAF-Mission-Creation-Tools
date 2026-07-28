@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.12.0] — 2026-07-28
 
 ### Added
 - **The documentation now has a quality gate** (DOC-QUALITY-GATE). Every other artifact in this repo is gated; `doc/` was not, which is how DOC-AUDIT-PASS came to find eight defects that had accumulated silently. `poetry run docs-check` (CI job `Docs Check`) refuses a broken relative link, a cross-page anchor the target does not expose, a cross-page anchor derived from a heading, a French page with no `.en.md`, a page absent from the `nav`, and a `nav` entry with no file. It is stdlib-only, so the job needs no Poetry install and runs in seconds. Two behaviours are pinned by tests because getting them wrong produced 245 false positives during the audit — relative links are language-agnostic (the i18n plugin rewrites them) and `pymdownx` anchors keep their accents.

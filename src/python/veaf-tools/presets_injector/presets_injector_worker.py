@@ -18,6 +18,8 @@ from .radio_frequency_validator import (
     ChannelFrequency,
     FrequencyIssue,
     collect_invalid_channel_frequencies,
+    fits_human_radio,
+    get_human_radio,
     get_valid_ranges,
     is_strict,
     validate_frequencies,
@@ -95,6 +97,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self._pending_freq_warnings: dict[str, _PendingFreqWarning] = {}
         # Resolved frequency issues populated after process_groups(); used by generate_validation_report().
         self._freq_issues: list[FrequencyIssue] = []
+        # unit_type → channel-1 frequency that was *not* promoted to the group's primary
+        # because it falls outside the airframe's HumanRadio range; reported once per type.
+        self._skipped_primary_promotions: dict[str, float] = {}
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -173,9 +178,17 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     # injecting the FM channel freq would make the ME flag it as invalid.
                     # Likewise an ADF/HF channel (sub-VHF, e.g. ARK-15M 0.625 MHz) must
                     # not become the primary frequency — DCS rejects it (FIX-DYNSLOT-RADIO-UNITS).
+                    # Finally the channel must fall inside the airframe's own HumanRadio range,
+                    # which can be far narrower than its preset range (FW-190: 38.4–42.4 MHz
+                    # primary vs 38–156 MHz presets — FIX-PRIMARY-FREQ-HUMANRADIO). When it does
+                    # not, the key is left alone so the group keeps DCS's valid default.
                     first_radio_type = next(iter(inject_preset.radios.values())).radio_type
                     if first_radio_type != "fm" and _is_valid_primary_frequency(first_freq):
-                        group.group_dcs["frequency"] = first_freq
+                        unit_type = group.unit_type
+                        if unit_type and not fits_human_radio(unit_type, first_freq):
+                            self._skipped_primary_promotions[unit_type] = first_freq
+                        else:
+                            group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
             channel_freqs = [
@@ -275,6 +288,15 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 nb_units_processed += self.process_units(group, preset_definition)
             else:
                 nb_groups_without_preset += 1
+
+        if not silent and self._skipped_primary_promotions:
+            details = ", ".join(
+                f"{unit_type} ({freq} MHz, primary limited to {hr.min_mhz}–{hr.max_mhz} MHz)"
+                if (hr := get_human_radio(unit_type))
+                else f"{unit_type} ({freq} MHz)"
+                for unit_type, freq in sorted(self._skipped_primary_promotions.items())
+            )
+            logger.detail(t("presets_injector.primary_freq_not_promoted", details=details))
 
         if not silent:
             logger.detail(tn("presets_injector.injected", nb_units_processed))

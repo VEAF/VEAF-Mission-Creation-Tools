@@ -246,7 +246,9 @@ end
 
 -- Ensure veafSecurity.isAuthenticated exists (dcs_mocks.lua defines veafSecurity without it)
 veafSecurity = veafSecurity or {}
-veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function() return false end
+veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function()
+  return false
+end
 
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioMenuOps — wrapper functions, delCommand, clearSubmenu, delSubmenu
@@ -519,7 +521,9 @@ function TestVeafRadioPaginated:test_calls_method_for_each_element()
   local menu = { subMenus = {}, commands = {} }
   local elements = { a = { sort = 1 }, b = { sort = 2 }, c = { sort = 3 } }
   local called = {}
-  local addFn = function(m, title, elem) table.insert(called, title) end
+  local addFn = function(m, title, elem)
+    table.insert(called, title)
+  end
   veafRadio.addPaginatedRadioElements(menu, addFn, elements)
   luaunit.assertEquals(#called, 3)
 end
@@ -531,7 +535,9 @@ function TestVeafRadioPaginated:test_uses_title_attribute()
     e2 = { displayName = "Beta", sort = 2 },
   }
   local called = {}
-  local addFn = function(m, title, elem) table.insert(called, title) end
+  local addFn = function(m, title, elem)
+    table.insert(called, title)
+  end
   veafRadio.addPaginatedRadioElements(menu, addFn, elements, "displayName")
   table.sort(called)
   luaunit.assertEquals(called[1], "Alpha")
@@ -685,10 +691,7 @@ TestVeafRadioCreateUserMenu = {}
 
 function TestVeafRadioCreateUserMenu:test_no_groupId_uses_addSubMenu_addCommand()
   local cfg = {
-    veafRadio.menu(
-      "TopMenu",
-      veafRadio.command("Sub", function() end, nil)
-    ),
+    veafRadio.menu("TopMenu", veafRadio.command("Sub", function() end, nil)),
     veafRadio.command("Direct", function() end, "p"),
   }
   veafRadio.createUserMenu(cfg)
@@ -736,6 +739,217 @@ function TestVeafRadioCreateUserMenu:test_with_unknown_group_name_falls_back_glo
   missionCommands.addCommand = origGlobal
   luaunit.assertFalse(usedForGroup)
   luaunit.assertTrue(usedGlobal)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioCoalitionMenus — coalition-scoped menu nodes
+-- (FEAT-COMBATZONE-MENU-COALITION)
+-- ---------------------------------------------------------------------------
+TestVeafRadioCoalitionMenus = {}
+
+function TestVeafRadioCoalitionMenus:setUp()
+  self._orig = {
+    addSubMenu = missionCommands.addSubMenu,
+    addSubMenuForCoalition = missionCommands.addSubMenuForCoalition,
+    addCommand = missionCommands.addCommand,
+    addCommandForCoalition = missionCommands.addCommandForCoalition,
+    addCommandForGroup = missionCommands.addCommandForGroup,
+    removeItem = missionCommands.removeItem,
+    removeItemForCoalition = missionCommands.removeItemForCoalition,
+    humanGroups = veafRadio.humanGroups,
+    humanUnits = veafRadio.humanUnits,
+  }
+  self.calls = {}
+  local this = self
+  local function record(kind)
+    return function(...)
+      local args = { ... }
+      table.insert(this.calls, { kind = kind, args = args })
+      return { kind = kind, title = args[1] }
+    end
+  end
+  missionCommands.addSubMenu = record("subMenu")
+  missionCommands.addSubMenuForCoalition = record("subMenuForCoalition")
+  missionCommands.addCommand = record("command")
+  missionCommands.addCommandForCoalition = record("commandForCoalition")
+  missionCommands.addCommandForGroup = record("commandForGroup")
+  missionCommands.removeItem = record("removeItem")
+  missionCommands.removeItemForCoalition = record("removeItemForCoalition")
+  veafRadio.humanGroups = {}
+  veafRadio.humanUnits = {}
+end
+
+function TestVeafRadioCoalitionMenus:tearDown()
+  for name, fn in pairs(self._orig) do
+    if name == "humanGroups" or name == "humanUnits" then
+      veafRadio[name] = fn
+    else
+      missionCommands[name] = fn
+    end
+  end
+end
+
+function TestVeafRadioCoalitionMenus:_kinds()
+  local kinds = {}
+  for _, call in ipairs(self.calls) do
+    table.insert(kinds, call.kind)
+  end
+  return table.concat(kinds, ",")
+end
+
+function TestVeafRadioCoalitionMenus:_firstOfKind(kind)
+  for _, call in ipairs(self.calls) do
+    if call.kind == kind then
+      return call
+    end
+  end
+  return nil
+end
+
+--- Seed a human group so per-group commands have somewhere to go.
+function TestVeafRadioCoalitionMenus:_addHumanGroup(groupId, side, unitName)
+  veafRadio.humanGroups[groupId] = {
+    callsigns = { unitName },
+    units = { [unitName] = { name = unitName } },
+    coalition = side,
+  }
+  veafRadio.humanUnits[unitName] = { name = unitName, spawned = true }
+end
+
+function TestVeafRadioCoalitionMenus:test_unscoped_node_uses_global_api()
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addMenu("Global zone", nil)
+  builder:build()
+  luaunit.assertNil(self:_firstOfKind("subMenuForCoalition"))
+  luaunit.assertNotNil(self:_firstOfKind("subMenu"))
+end
+
+function TestVeafRadioCoalitionMenus:test_scoped_node_uses_coalition_api()
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:build()
+  local call = self:_firstOfKind("subMenuForCoalition")
+  luaunit.assertNotNil(call)
+  luaunit.assertEquals(call.args[1], coalition.side.RED)
+  luaunit.assertEquals(call.args[2], "Red zone")
+end
+
+function TestVeafRadioCoalitionMenus:test_children_inherit_the_scope()
+  -- A global child under a scoped parent has no coherent meaning in DCS.
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Blue zone", nil, coalition.side.BLUE)
+  builder:addMenu("Sub", scoped)
+  builder:build()
+  local scopedCalls = 0
+  for _, call in ipairs(self.calls) do
+    if call.kind == "subMenuForCoalition" then
+      scopedCalls = scopedCalls + 1
+      luaunit.assertEquals(call.args[1], coalition.side.BLUE)
+    end
+  end
+  luaunit.assertEquals(scopedCalls, 2)
+end
+
+function TestVeafRadioCoalitionMenus:test_forall_command_in_scoped_menu_is_scoped()
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:addCommand("Get info", scoped, function() end, nil, veafRadio.USAGE_ForAll)
+  builder:build()
+  local call = self:_firstOfKind("commandForCoalition")
+  luaunit.assertNotNil(call)
+  luaunit.assertEquals(call.args[1], coalition.side.RED)
+  luaunit.assertNil(self:_firstOfKind("command"))
+end
+
+function TestVeafRadioCoalitionMenus:test_pergroup_command_skips_the_other_coalition()
+  self:_addHumanGroup(1, coalition.side.RED, "RedPilot")
+  self:_addHumanGroup(2, coalition.side.BLUE, "BluePilot")
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:addCommand("Get info", scoped, function() end, nil, veafRadio.USAGE_ForGroup)
+  builder:build()
+  local groupIds = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == "commandForGroup" then
+      table.insert(groupIds, call.args[1])
+    end
+  end
+  luaunit.assertEquals(groupIds, { 1 })
+end
+
+function TestVeafRadioCoalitionMenus:test_pergroup_command_reaches_both_sides_when_unscoped()
+  -- regression guard: without a scope, nothing is filtered
+  self:_addHumanGroup(1, coalition.side.RED, "RedPilot")
+  self:_addHumanGroup(2, coalition.side.BLUE, "BluePilot")
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Open zone", nil)
+  builder:addCommand("Get info", menu, function() end, nil, veafRadio.USAGE_ForGroup)
+  builder:build()
+  local count = 0
+  for _, call in ipairs(self.calls) do
+    if call.kind == "commandForGroup" then
+      count = count + 1
+    end
+  end
+  luaunit.assertEquals(count, 2)
+end
+
+function TestVeafRadioCoalitionMenus:test_group_without_known_coalition_is_kept()
+  -- DCS did not give us a side for this group; excluding it would silently drop its menu.
+  self:_addHumanGroup(7, nil, "UnknownPilot")
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:addCommand("Get info", scoped, function() end, nil, veafRadio.USAGE_ForGroup)
+  builder:build()
+  luaunit.assertNotNil(self:_firstOfKind("commandForGroup"))
+end
+
+function TestVeafRadioCoalitionMenus:test_pagination_pages_inherit_the_scope()
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Red zone", nil, coalition.side.RED)
+  for i = 1, veafRadio.MENU_PAGE_SIZE + 3 do
+    builder:addCommand(string.format("cmd%02d", i), scoped, function() end, nil, veafRadio.USAGE_ForAll)
+  end
+  builder:build()
+  local nextPageLabel = veaf.t("radio.next_page")
+  local pages = 0
+  for _, call in ipairs(self.calls) do
+    if call.kind == "subMenuForCoalition" and call.args[2] == nextPageLabel then
+      pages = pages + 1
+    end
+    -- an overflow page must never be created globally under a scoped menu
+    luaunit.assertFalse(call.kind == "subMenu" and call.args[1] == nextPageLabel)
+  end
+  luaunit.assertTrue(pages > 0)
+end
+
+function TestVeafRadioCoalitionMenus:test_rebuild_removes_scoped_menus()
+  -- The menu is rebuilt on every player join; a scoped node the global removeItem cannot
+  -- reach would stack one duplicate per join.
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:build()
+  self.calls = {}
+  builder:rebuild()
+  local call = self:_firstOfKind("removeItemForCoalition")
+  luaunit.assertNotNil(call)
+  luaunit.assertEquals(call.args[1], coalition.side.RED)
+  luaunit.assertNotNil(self:_firstOfKind("removeItem"))
+end
+
+function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
+  local menu = veafRadio.addSubMenu("Scoped", nil, coalition.side.BLUE)
+  luaunit.assertEquals(menu.coalition, coalition.side.BLUE)
+  veafRadio.delSubmenu("Scoped", nil)
 end
 
 os.exit(luaunit.LuaUnit.run())

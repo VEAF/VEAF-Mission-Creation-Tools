@@ -12,9 +12,20 @@
 #           - min_mhz: 30.0
 #             max_mhz: 87.975
 #             modulation: FM | AM | AM/FM
+#     human_radio:              # range the ME accepts as the group's PRIMARY frequency;
+#       min_mhz: 38.4           # narrower than `radios` on some airframes (FW-190: 38.4-42.4
+#       max_mhz: 42.4           # primary vs a 38-156 preset range). A primary outside this
+#       default_mhz: 38.4       # range makes the Mission Editor refuse to save. Absent when
+#       modulation: FM | AM | AM/FM   # the airframe sets no bound.
+#     dcs_rejects_on_load: true # MANUAL overlay — regeneration does not reproduce it
 
 A-10C:
   category: plane
+  human_radio:
+    default_mhz: 251.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: 'VHF AM: ARC-186'
@@ -34,6 +45,11 @@ A-10C:
       modulation: AM/FM
 A-10C_2:
   category: plane
+  human_radio:
+    default_mhz: 251.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: 'UHF/VHF: ARC-210'
@@ -65,6 +81,11 @@ A-10C_2:
       modulation: AM/FM
 A6E:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.95
+    min_mhz: 225.0
+    modulation: AM
   name: A6E
   radios:
   - name: 'UHF AN/ARC-159 #1'
@@ -79,6 +100,11 @@ A6E:
       modulation: AM/FM
 AH-64D_BLK_II:
   category: helicopter
+  human_radio:
+    default_mhz: 225.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: ARC-186
@@ -103,6 +129,11 @@ AH-64D_BLK_II:
       modulation: FM
 AJS37:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.95
+    min_mhz: 103.0
+    modulation: AM
   name: AJS37
   radios:
   - name: Radio frequencies
@@ -112,6 +143,11 @@ AJS37:
       modulation: AM/FM
 AV8BNA:
   category: plane
+  human_radio:
+    default_mhz: 243.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: AV8BNA
   radios:
   - name: V/UHF Radio 1
@@ -131,6 +167,11 @@ AV8BNA:
       modulation: AM/FM
 Bf-109K-4:
   category: plane
+  human_radio:
+    default_mhz: 40.0
+    max_mhz: 156.0
+    min_mhz: 38.0
+    modulation: AM
   name: Inline
   radios:
   - name: FuG 16 ZY
@@ -140,6 +181,11 @@ Bf-109K-4:
       modulation: AM/FM
 C-101CC:
   category: plane
+  human_radio:
+    default_mhz: 225.0
+    max_mhz: 399.975
+    min_mhz: 118.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: V/TVU-740
@@ -149,6 +195,11 @@ C-101CC:
       modulation: AM/FM
 C-101EB:
   category: plane
+  human_radio:
+    default_mhz: 225.0
+    max_mhz: 399.975
+    min_mhz: 225.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: AN/ARC-164
@@ -158,6 +209,11 @@ C-101EB:
       modulation: AM/FM
 C-130J-30:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.975
+    min_mhz: 1.0
+    modulation: AM
   name: TurboProp
   radios:
   - name: UHF-1/2
@@ -172,6 +228,11 @@ C-130J-30:
       modulation: AM
 CH-47Fbl1:
   category: helicopter
+  human_radio:
+    default_mhz: 251.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: 'VHF FM: ARC-186'
@@ -197,6 +258,11 @@ CH-47Fbl1:
       modulation: FM
 Christen Eagle II:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: Christen Eagle II
   radios:
   - name: KY 197A
@@ -209,6 +275,11 @@ Christen Eagle II:
       modulation: AM/FM
 F-14A-135-GR:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: F-14A-135-GR
   radios:
   - name: UHF AN/ARC-159
@@ -229,6 +300,11 @@ F-14A-135-GR:
       modulation: AM/FM
 F-14A-135-GR-Early:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: F-14A-135-GR-Early
   radios:
   - name: UHF AN/ARC-159
@@ -249,6 +325,11 @@ F-14A-135-GR-Early:
       modulation: AM/FM
 F-14B:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: F-14B
   radios:
   - name: UHF AN/ARC-159
@@ -269,6 +350,11 @@ F-14B:
       modulation: AM/FM
 F-15ESE:
   category: plane
+  human_radio:
+    default_mhz: 243.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: UHF Radio 1
@@ -292,6 +378,11 @@ F-15ESE:
       modulation: AM/FM
 F-16C_50:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: COMM 1 (UHF) AN/ARC-164
@@ -309,6 +400,11 @@ F-16C_50:
       modulation: AM
 F-4E-45MC:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.95
+    min_mhz: 225.0
+    modulation: AM
   name: F-4E-45MC
   radios:
   - name: UHF AN/ARC-164 COMM channels
@@ -323,6 +419,11 @@ F-4E-45MC:
       modulation: AM/FM
 F-5E-3:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.999
+    min_mhz: 225.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: UHF Radio AN/ARC-164
@@ -332,6 +433,11 @@ F-5E-3:
       modulation: AM/FM
 F-86F Sabre:
   category: plane
+  human_radio:
+    default_mhz: 225.0
+    max_mhz: 400.0
+    min_mhz: 225.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: AN/ARC-27
@@ -341,6 +447,11 @@ F-86F Sabre:
       modulation: AM/FM
 F-86F_FC:
   category: plane
+  human_radio:
+    default_mhz: 225.0
+    max_mhz: 400.0
+    min_mhz: 225.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: AN/ARC-27
@@ -350,6 +461,11 @@ F-86F_FC:
       modulation: AM/FM
 F4U-1D:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: Radial
   radios:
   - name: ARC-5
@@ -370,6 +486,11 @@ F4U-1D:
       modulation: AM/FM
 F4U-1D_CW:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: Radial
   radios:
   - name: ARC-5
@@ -390,6 +511,11 @@ F4U-1D_CW:
       modulation: AM/FM
 FA-18C:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: 'COMM 1: ARC-210'
@@ -428,6 +554,11 @@ FA-18C:
       modulation: AM/FM
 FA-18C_hornet:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboFan
   radios:
   - name: 'COMM 1: ARC-210'
@@ -466,6 +597,11 @@ FA-18C_hornet:
       modulation: AM/FM
 FW-190A8:
   category: plane
+  human_radio:
+    default_mhz: 38.4
+    max_mhz: 42.4
+    min_mhz: 38.4
+    modulation: AM
   name: Radial
   radios:
   - name: FuG 16 Z
@@ -475,6 +611,11 @@ FW-190A8:
       modulation: AM/FM
 FW-190D9:
   category: plane
+  human_radio:
+    default_mhz: 38.4
+    max_mhz: 42.4
+    min_mhz: 38.4
+    modulation: AM
   name: Piston
   radios:
   - name: FuG 16 Z
@@ -484,6 +625,11 @@ FW-190D9:
       modulation: AM/FM
 Hawk:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Hawk
   radios:
   - name: Radio 1
@@ -493,6 +639,11 @@ Hawk:
       modulation: AM/FM
 I-16:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Radial
   radios:
   - name: SCR522
@@ -502,6 +653,11 @@ I-16:
       modulation: AM/FM
 JF-17:
   category: plane
+  human_radio:
+    default_mhz: 243.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: JF-17
   radios:
   - name: COMM 1/2 Preset
@@ -511,6 +667,11 @@ JF-17:
       modulation: AM/FM
 Ka-50:
   category: helicopter
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: R-828
@@ -525,6 +686,11 @@ Ka-50:
       modulation: AM/FM
 Ka-50_3:
   category: helicopter
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: R-828
@@ -539,6 +705,11 @@ Ka-50_3:
       modulation: AM/FM
 L-39C:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: R-832M
@@ -551,6 +722,11 @@ L-39C:
       modulation: AM/FM
 L-39ZA:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: R-832M
@@ -563,6 +739,11 @@ L-39ZA:
       modulation: AM/FM
 La-7:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: La-7
   radios:
   - name: SCR522
@@ -572,6 +753,11 @@ La-7:
       modulation: AM/FM
 M-2000C:
   category: plane
+  human_radio:
+    default_mhz: 251.0
+    max_mhz: 399.975
+    min_mhz: 225.0
+    modulation: AM
   name: M-2000C
   radios:
   - name: UHF Radio
@@ -589,6 +775,11 @@ M-2000C:
       modulation: AM/FM
 MB-339A:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: AN/ARC-150(V)-2
@@ -615,6 +806,11 @@ MB-339A:
       modulation: AM/FM
 MB-339APAN:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: AN/ARC-150(V)-2
@@ -641,6 +837,11 @@ MB-339APAN:
       modulation: AM/FM
 Mi-24P:
   category: helicopter
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: R-863
@@ -655,6 +856,11 @@ Mi-24P:
       modulation: AM/FM
 Mi-8MT:
   category: helicopter
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: R-863
@@ -690,6 +896,11 @@ MiG-15bis_FC:
 MiG-19P:
   category: plane
   dcs_rejects_on_load: true
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 150.0
+    min_mhz: 100.0
+    modulation: AM
   name: MiG-19P
   radios:
   - name: RSIU-4V Radio
@@ -699,6 +910,11 @@ MiG-19P:
       modulation: AM/FM
 MiG-21Bis:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 390.0
+    min_mhz: 118.0
+    modulation: AM
   name: MiG-21Bis
   radios:
   - name: R-832
@@ -711,6 +927,11 @@ MiG-21Bis:
       modulation: AM/FM
 MiG-29 Fulcrum:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: VHF/UHF Radio R-862
@@ -728,6 +949,11 @@ MiG-29 Fulcrum:
       modulation: AM/FM
 Mirage-F1AD:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -742,6 +968,11 @@ Mirage-F1AD:
       modulation: AM/FM
 Mirage-F1AZ:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -756,6 +987,11 @@ Mirage-F1AZ:
       modulation: AM/FM
 Mirage-F1B:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -770,6 +1006,11 @@ Mirage-F1B:
       modulation: AM/FM
 Mirage-F1BD:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -784,6 +1025,11 @@ Mirage-F1BD:
       modulation: AM/FM
 Mirage-F1BE:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -798,6 +1044,11 @@ Mirage-F1BE:
       modulation: AM/FM
 Mirage-F1BQ:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -812,6 +1063,11 @@ Mirage-F1BQ:
       modulation: AM/FM
 Mirage-F1C:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -826,6 +1082,11 @@ Mirage-F1C:
       modulation: AM/FM
 Mirage-F1C-200:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -840,6 +1101,11 @@ Mirage-F1C-200:
       modulation: AM/FM
 Mirage-F1CE:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -854,6 +1120,11 @@ Mirage-F1CE:
       modulation: AM/FM
 Mirage-F1CG:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -868,6 +1139,11 @@ Mirage-F1CG:
       modulation: AM/FM
 Mirage-F1CH:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -882,6 +1158,11 @@ Mirage-F1CH:
       modulation: AM/FM
 Mirage-F1CJ:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -896,6 +1177,11 @@ Mirage-F1CJ:
       modulation: AM/FM
 Mirage-F1CK:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -910,6 +1196,11 @@ Mirage-F1CK:
       modulation: AM/FM
 Mirage-F1CR:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -924,6 +1215,11 @@ Mirage-F1CR:
       modulation: AM/FM
 Mirage-F1CT:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -938,6 +1234,11 @@ Mirage-F1CT:
       modulation: AM/FM
 Mirage-F1CZ:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -952,6 +1253,11 @@ Mirage-F1CZ:
       modulation: AM/FM
 Mirage-F1DDA:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -966,6 +1272,11 @@ Mirage-F1DDA:
       modulation: AM/FM
 Mirage-F1ED:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -980,6 +1291,11 @@ Mirage-F1ED:
       modulation: AM/FM
 Mirage-F1EDA:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -994,6 +1310,11 @@ Mirage-F1EDA:
       modulation: AM/FM
 Mirage-F1EE:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1008,6 +1329,11 @@ Mirage-F1EE:
       modulation: AM/FM
 Mirage-F1EH:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1022,6 +1348,11 @@ Mirage-F1EH:
       modulation: AM/FM
 Mirage-F1EQ:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1036,6 +1367,11 @@ Mirage-F1EQ:
       modulation: AM/FM
 Mirage-F1JA:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1050,6 +1386,11 @@ Mirage-F1JA:
       modulation: AM/FM
 Mirage-F1M-CE:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1064,6 +1405,11 @@ Mirage-F1M-CE:
       modulation: AM/FM
 Mirage-F1M-EE:
   category: plane
+  human_radio:
+    default_mhz: 127.5
+    max_mhz: 400.0
+    min_mhz: 100.0
+    modulation: AM
   name: TurboJet
   radios:
   - name: TRAP-136
@@ -1078,6 +1424,11 @@ Mirage-F1M-EE:
       modulation: AM/FM
 MosquitoFBMkVI:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 0.2
+    modulation: AM
   name: Piston
   radios:
   - name: TR.1143
@@ -1102,6 +1453,11 @@ MosquitoFBMkVI:
       modulation: AM/FM
 OH58D:
   category: helicopter
+  human_radio:
+    default_mhz: 116.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
   name: OH58D
   radios:
   - name: UHF AM
@@ -1126,6 +1482,11 @@ OH58D:
       modulation: AM/FM
 P-47D-30:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Radial
   radios:
   - name: SCR-522
@@ -1140,6 +1501,11 @@ P-47D-30:
       modulation: AM/FM
 P-47D-30bl1:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Radial
   radios:
   - name: SCR-522
@@ -1154,6 +1520,11 @@ P-47D-30bl1:
       modulation: AM/FM
 P-47D-40:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Radial
   radios:
   - name: SCR-522
@@ -1168,6 +1539,11 @@ P-47D-40:
       modulation: AM/FM
 P-51D:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Piston
   radios:
   - name: SCR-522
@@ -1182,6 +1558,11 @@ P-51D:
       modulation: AM/FM
 P-51D-30-NA:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Piston
   radios:
   - name: SCR-522
@@ -1196,6 +1577,11 @@ P-51D-30-NA:
       modulation: AM/FM
 QF-4E:
   category: plane
+  human_radio:
+    default_mhz: 305.0
+    max_mhz: 399.95
+    min_mhz: 225.0
+    modulation: AM
   name: QF-4E
   radios:
   - name: UHF AN/ARC-164 COMM channels
@@ -1210,6 +1596,11 @@ QF-4E:
       modulation: AM/FM
 SA342L:
   category: helicopter
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 143.975
+    min_mhz: 118.0
+    modulation: AM
   name: SA342L
   radios:
   - name: FM Radio
@@ -1220,6 +1611,11 @@ SA342L:
 SA342M:
   category: helicopter
   dcs_rejects_on_load: true
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 143.975
+    min_mhz: 118.0
+    modulation: AM
   name: SA342M
   radios:
   - name: FM Radio
@@ -1229,6 +1625,11 @@ SA342M:
       modulation: AM/FM
 SA342Minigun:
   category: helicopter
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 143.975
+    min_mhz: 118.0
+    modulation: AM
   name: SA342Minigun
   radios:
   - name: FM Radio
@@ -1238,6 +1639,11 @@ SA342Minigun:
       modulation: AM/FM
 SA342Mistral:
   category: helicopter
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 143.975
+    min_mhz: 118.0
+    modulation: AM
   name: SA342Mistral
   radios:
   - name: FM Radio
@@ -1247,6 +1653,11 @@ SA342Mistral:
       modulation: AM/FM
 SpitfireLFMkIX:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 38.0
+    modulation: AM
   name: Piston
   radios:
   - name: TR.1143
@@ -1256,6 +1667,11 @@ SpitfireLFMkIX:
       modulation: AM/FM
 SpitfireLFMkIXCW:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 38.0
+    modulation: AM
   name: Piston
   radios:
   - name: TR.1143
@@ -1265,6 +1681,11 @@ SpitfireLFMkIXCW:
       modulation: AM/FM
 TF-51D:
   category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 156.0
+    min_mhz: 100.0
+    modulation: AM
   name: Piston
   radios:
   - name: SCR-522
@@ -1279,6 +1700,11 @@ TF-51D:
       modulation: AM/FM
 UH-1H:
   category: helicopter
+  human_radio:
+    default_mhz: 251.0
+    max_mhz: 399.975
+    min_mhz: 225.0
+    modulation: AM
   name: TurboShaft
   radios:
   - name: UHF AN/ARC-51
@@ -1288,6 +1714,11 @@ UH-1H:
       modulation: AM/FM
 Yak-52:
   category: plane
+  human_radio:
+    default_mhz: 132.0
+    max_mhz: 136.975
+    min_mhz: 118.0
+    modulation: AM
   name: Radial
   radios:
   - name: ARK-15M

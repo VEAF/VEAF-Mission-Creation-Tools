@@ -1,7 +1,7 @@
 # Modules Lua VEAF — Référence API complète
 
-**Version :** 6.5.25
-**Dernière mise à jour :** Juin 2026
+**Version :** générée pour la 6.11.x
+**Dernière mise à jour :** Juillet 2026
 **Projet :** VEAF Mission Creation Tools
 
 ---
@@ -3692,14 +3692,18 @@ veafRadio.USAGE_ForUnit = 2
 
 #### Fonctions
 
-##### `veafRadio.addSubMenu(title, parentMenu)`
+##### `veafRadio.addSubMenu(title, parentMenu, coalitionSide)`
 
-Ajoute un sous-menu au radio.
+Ajoute un sous-menu au menu radio.
 
 **Paramètres :**
 
 - `title` (string) — Titre du sous-menu
 - `parentMenu` (menu, optionnel) — Menu parent (nil = menu VEAF racine)
+- `coalitionSide` (number, optionnel) — `coalition.side.RED` / `coalition.side.BLUE` : le
+  sous-menu **et tout ce qu'il contient** ne sont montrés qu'à cette coalition (`nil` = tout le
+  monde). L'appartenance est héritée par les sous-menus, les commandes et les pages de
+  pagination ; une commande `USAGE_ForGroup` n'est posée que pour les groupes de ce camp.
 
 **Retourne :** `menu` — Objet sous-menu
 

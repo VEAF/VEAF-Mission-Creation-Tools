@@ -70,7 +70,7 @@ VEAF-Mission-Creation-Tools/
 
 ---
 
-## Environnement de développement
+## Environnement de développement {#development-environment}
 
 Deux options de setup sont disponibles. Le DevContainer est recommandé pour les nouveaux contributeurs : il garantit un environnement identique à la CI.
 
@@ -159,7 +159,7 @@ Vérification :
 lua -v   # Lua 5.1.x attendu
 ```
 
-#### 5. StyLua 2.4.0 (qualité du code Lua)
+#### 5. StyLua 2.4.0 (qualité du code Lua) {#stylua-setup}
 
 StyLua formate le code Lua. **La version 2.4.0 est imposée par la CI** — toute autre version fera échouer le job de formatage.
 
@@ -218,7 +218,7 @@ poetry run pytest     # tests Python
 
 ---
 
-## Scripts Lua runtime
+## Scripts Lua runtime {#lua-runtime-scripts}
 
 ### Structure des modules
 
@@ -298,7 +298,7 @@ local groupById = veaf.mist.getGroupById(groupId)
 
 ---
 
-## Outils Python
+## Outils Python {#python-tools}
 
 ### Architecture CLI
 
@@ -419,7 +419,7 @@ poetry run test-lua --filter combat
 poetry run test-lua --coverage
 ```
 
-Affiche un tableau de couverture ligne par ligne. Nécessite `luarocks install luacov` (pré-installé dans le DevContainer). Voir [TESTING.md](../TESTING.md#couverture) pour plus de détails.
+Affiche un tableau de couverture ligne par ligne. Nécessite `luarocks install luacov` (pré-installé dans le DevContainer). Voir [TESTING.md](../TESTING.md#coverage) pour plus de détails.
 
 ### Suite unique
 
@@ -464,9 +464,40 @@ Luacheck est imposé par le job CI `Luacheck`.
 | `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |
+| `Docs Check` | Liens et ancres de la documentation, versions FR/EN, pages absentes du menu |
 | `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 
 Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
+
+### Avant un commit qui touche à la documentation {#docs-check}
+
+```bash
+poetry run docs-check
+```
+
+Le job CI `Docs Check` lance exactement la même commande. Il refuse quatre dérives qui, avant son
+existence, s'étaient accumulées silencieusement (voir le lot `DOC-AUDIT-PASS`) :
+
+| Vérification | Pourquoi |
+|--------------|----------|
+| lien relatif `.md` vers un fichier inexistant | six liens renvoyaient un 404 **en production** |
+| ancre inter-page inexistante dans la page cible | une renumérotation de sections avait laissé des liens derrière elle |
+| ancre inter-page dérivée d'un titre | elle casse au premier reformulage et **diffère entre FR et EN** ; déclarez `{#ancre}` |
+| page FR sans version `.en.md`, ou absente du menu `nav` | une page est restée non traduite des mois, servant du français sur l'URL anglaise |
+
+**Convention d'ancre** : le nom de l'ancre est **en anglais** et identique dans les deux langues ;
+le titre affiché, lui, reste dans la langue de la page.
+
+```markdown
+## Couverture {#coverage}      <!-- FR : titre français, ancre anglaise -->
+## Coverage {#coverage}        <!-- EN : même ancre -->
+```
+
+Un lien inter-page vise alors toujours `#coverage`, quelle que soit la langue du lecteur.
+
+> La version affichée en en-tête des grosses références n'est **pas** écrite à la main : le dépôt
+> garde un intervalle lisible (`6.11.x`) et le workflow de publication la remplace par la version
+> livrée (`poetry run docs-stamp-version`).
 
 ---
 
@@ -481,7 +512,7 @@ git push origin published-v6.1.0
 
 ---
 
-## Mode développeur
+## Mode développeur {#developer-mode}
 
 Le mode développeur permet de tester des modifications locales de `veaf-scripts.lua` sans publier de version.
 Lorsqu'il est activé, `veaf-tools build` lit les scripts depuis un clone local de VEAF-Mission-Creation-Tools

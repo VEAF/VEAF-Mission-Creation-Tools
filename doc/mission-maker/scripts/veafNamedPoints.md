@@ -25,7 +25,7 @@ veafNamedPoints.initialize()
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:

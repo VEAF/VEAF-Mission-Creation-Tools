@@ -39,7 +39,8 @@ This document describes the intended direction for the project. Items are ordere
 - ✅ **Mission YAML → module selection** — `lua_modules` section in `mission.yaml` drives which modules are included and how they are initialized
 
 ### Release
-- ✅ **v6.x releases** — published continuously from `develop` (`published-vx.y.z` tags); current version **6.5.0**. The `develop` → `master` merge is reserved for stable milestones.
+- ✅ **v6.x releases** — each release goes out on a `release/x.y.z` branch merged into `master` (the v6 stable line since 6.10.0), then tagged twice: `published-vx.y.z` for the binaries, `vx.y.z` for the versioned documentation. Current version **6.12.0**.
+- ✅ **v6.12.0 release** — **combat zones on both sides**: `enemy_coalition` makes a zone playable from the red side (completion and the friends/enemies labels follow), and its F10 menu now goes only to the side playing it (`radio_menu_coalition`, with `ALL` to restore the shared menu) — `veafRadio` can now scope a submenu to a coalition. **Foothold chain**: `convert-other` adopts the release archive as distributed, a `foothold-ww2` profile for Normandy, `validate` rejects an ineffective `config_override.target`, batch adoption of the ten maps, radio presets on the plan model. **Reliability**: a group's primary frequency is bounded by the airframe's real range (FW-190 bug reported by Tripack, 27 aircraft affected), and a `mission.yaml` password finally protects something (SHA-1 hashes, not SHA-256). **Documentation**: full audit of the published site, plus a CI gate to keep it that way.
 - ✅ **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
 - ✅ **v6.3.3 release** — stabilization and bug fixes: Lua initialize() crashes, build pipeline fixes, build profiles, CSAR YAML-first, auto dependency resolution
 

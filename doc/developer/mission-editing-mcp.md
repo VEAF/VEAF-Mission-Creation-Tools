@@ -12,7 +12,7 @@
 
 Première phase de **NL-MISSION-GEN** (voir `ROADMAP.md` §4) : permettre à un LLM d'éditer une
 mission DCS pour le compte d'un Mission Maker — et à terme, d'en générer une entière depuis un
-prompt détaillé. Voir [ADR 0014](../adr/0014-mission-editor-mcp-editor-parity-layer.md) pour la
+prompt détaillé. Voir [ADR 0014](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0014-mission-editor-mcp-editor-parity-layer.md) pour la
 décision d'architecture, et `CONTEXT.md` (section « LLM-assisted mission editing ») pour le
 vocabulaire.
 
@@ -151,7 +151,7 @@ zone que `group_validation` exige + les groupes à l'intérieur). Pas de dédupl
 Écriture. Ajoute un trigger **« au démarrage de la mission »** qui exécute un script — pour
 outiller une mission **vanilla ou CTLD** avec du scripting sans passer par l'onglet Triggers de
 l'éditeur DCS. Généralise `inject_dcs_bridge_trigger` et le chargement static/dynamic VEAF
-([ADR 0004](../adr/0004-dynamic-script-loading.md)). Contrairement à ce helper (qui insère en
+([ADR 0004](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0004-dynamic-script-loading.md)). Contrairement à ce helper (qui insère en
 position 1 et renumérote tout), cette action **ajoute à la fin** (index libre suivant) — aucun
 trigger existant n'est renuméroté. Trois modes :
 
@@ -381,7 +381,7 @@ projection propre au théâtre) ; un Mission Maker raisonne plutôt en lat/long 
 
 Socle : `veaf_libs.coordinates` — Transverse Mercator WGS84 pur-Python (pas de `pyproj`), dont les
 constantes par théâtre viennent de la donnée vendorisée `data/dcs-maps.yaml` (export MIT de
-[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), voir [ADR 0015](../adr/0015-coordinate-projection-port.md))
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), voir [ADR 0015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0015-coordinate-projection-port.md))
 — **tous les théâtres DCS** (Caucasus, Syria, PersianGulf, Marianas, Normandy, Nevada, SinaiMap,
 GermanyCW, Kola, TheChannel, Falklands, Afghanistan, Iraq). Comme les cartes DCS **sont le monde
 réel projeté**, ce socle relie `x/y DCS ↔ lat/lon réel`.

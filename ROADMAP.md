@@ -28,9 +28,7 @@ the current version is **6.7.8**.
 |-----|--------|------|
 | `ENRICH-DEFAULT-PRESETS` | ⬜ | Needs a 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
 
-There is **no Claude-actionable technical lot left** without external input (a David
-in-game test, or Tripack data). `RELEASE` stays as a recurring chore template, not a
-one-shot lot.
+`RELEASE` stays as a recurring chore template, not a one-shot lot.
 
 ---
 

@@ -67,11 +67,28 @@ class AircraftRadio:
 
 
 @dataclass
+class HumanRadio:
+    """The range the DCS Mission Editor accepts in a group's *primary* frequency field.
+
+    Distinct from ``panelRadio.range``, which bounds the radio set's preset channels: the
+    FW-190A8 tunes presets across 38–156 MHz but its primary frequency is confined to
+    38.4–42.4 MHz. Writing a primary outside this range makes the ME refuse to save the
+    mission (FIX-PRIMARY-FREQ-HUMANRADIO).
+    """
+
+    min_mhz: float
+    max_mhz: float
+    default_mhz: float | None = None
+    modulation: str = "AM/FM"
+
+
+@dataclass
 class AircraftSpec:
     dcs_id: str
     display_name: str
     category: str
     radios: list[AircraftRadio] = field(default_factory=list)
+    human_radio: HumanRadio | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +174,40 @@ def parse_panel_radio(lua_content: str) -> list[AircraftRadio] | None:
     return radios if radios else None
 
 
+def parse_human_radio(lua_content: str) -> HumanRadio | None:
+    """Extract the ``HumanRadio`` block from a DCS Lua aircraft file.
+
+    Args:
+        lua_content: Full text of the aircraft's datamine Lua file.
+
+    Returns:
+        The parsed :class:`HumanRadio`, or ``None`` when the block is absent or carries no
+        ``minFrequency``/``maxFrequency`` pair (an unbounded primary — nothing to enforce).
+    """
+    match = re.search(r"\bHumanRadio\s*=\s*\{", lua_content)
+    if not match:
+        return None
+
+    block = _extract_block(lua_content, match.end() - 1)
+    if not block:
+        return None
+
+    min_match = re.search(r"\bminFrequency\s*=\s*([0-9.]+)", block)
+    max_match = re.search(r"\bmaxFrequency\s*=\s*([0-9.]+)", block)
+    if not (min_match and max_match):
+        return None
+
+    freq_match = re.search(r"\bfrequency\s*=\s*([0-9.]+)", block)
+    mod_match = re.search(r"\bmodulation\s*=\s*([0-9]+)", block)
+    modulation = MODULATION_MAP.get(int(mod_match.group(1)), "AM/FM") if mod_match else "AM/FM"
+    return HumanRadio(
+        min_mhz=float(min_match.group(1)),
+        max_mhz=float(max_match.group(1)),
+        default_mhz=float(freq_match.group(1)) if freq_match else None,
+        modulation=modulation,
+    )
+
+
 def parse_display_name(lua_content: str) -> str:
     # 'type = "..."' holds the aircraft's DCS display name at the top level of the file.
     match = re.search(r'^\s*type\s*=\s*"([^"]+)"', lua_content, re.MULTILINE)
@@ -189,7 +240,13 @@ def extract_all_specs(clone_root: Path) -> list[AircraftSpec]:
                 if radios:
                     display_name = parse_display_name(content) or dcs_id
                     specs.append(
-                        AircraftSpec(dcs_id=dcs_id, display_name=display_name, category=category, radios=radios)
+                        AircraftSpec(
+                            dcs_id=dcs_id,
+                            display_name=display_name,
+                            category=category,
+                            radios=radios,
+                            human_radio=parse_human_radio(content),
+                        )
                     )
                     print(f"OK ({len(radios)} radio{'s' if len(radios) > 1 else ''})")
                 else:
@@ -209,7 +266,7 @@ def extract_all_specs(clone_root: Path) -> list[AircraftSpec]:
 def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
     result: dict = {}
     for spec in specs:
-        result[spec.dcs_id] = {
+        entry: dict = {
             "name": spec.display_name,
             "category": spec.category,
             "radios": [
@@ -223,6 +280,14 @@ def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
                 for r in spec.radios
             ],
         }
+        if spec.human_radio:
+            entry["human_radio"] = {
+                "min_mhz": spec.human_radio.min_mhz,
+                "max_mhz": spec.human_radio.max_mhz,
+                "default_mhz": spec.human_radio.default_mhz,
+                "modulation": spec.human_radio.modulation,
+            }
+        result[spec.dcs_id] = entry
     return result
 
 
@@ -244,7 +309,13 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
         f.write("#         ranges:\n")
         f.write("#           - min_mhz: 30.0\n")
         f.write("#             max_mhz: 87.975\n")
-        f.write("#             modulation: FM | AM | AM/FM\n\n")
+        f.write("#             modulation: FM | AM | AM/FM\n")
+        f.write("#     human_radio:            # range the ME accepts as the group's PRIMARY frequency\n")
+        f.write("#       min_mhz: 38.4         # narrower than `radios` for some airframes (FW-190: 38.4-42.4\n")
+        f.write("#       max_mhz: 42.4         # vs a 38-156 preset range) — a primary outside it is rejected\n")
+        f.write("#       default_mhz: 38.4     # DCS's own default, or null\n")
+        f.write("#       modulation: FM | AM | AM/FM\n")
+        f.write("#     dcs_rejects_on_load: true   # MANUAL overlay, not regenerated\n\n")
         yaml.dump(data, f, allow_unicode=True, sort_keys=True, default_flow_style=False)
     print(f"\nYAML written to {output}")
 
@@ -297,8 +368,65 @@ def write_markdown(specs: list[AircraftSpec], output: Path) -> None:
                     first = False
         lines.append("")
 
+    lines += _primary_frequency_section(specs)
+
     output.write_text("\n".join(lines), encoding="utf-8", newline="\n")
     print(f"Markdown written to {output}")
+
+
+def _primary_frequency_section(specs: list[AircraftSpec]) -> list[str]:
+    """Build the Markdown section listing aircraft whose primary frequency is restricted.
+
+    Only aircraft whose ``human_radio`` range is *narrower* than the span of their preset
+    ranges are listed — those are the ones where a valid preset channel is still an invalid
+    primary frequency, and the only ones a mission maker needs to know about.
+
+    Args:
+        specs: All extracted aircraft specs.
+
+    Returns:
+        Markdown lines for the section (a note only, when no aircraft is restricted).
+    """
+    restricted: list[tuple[AircraftSpec, HumanRadio]] = []
+    for spec in specs:
+        hr = spec.human_radio
+        if not hr:
+            continue
+        all_ranges = [rng for radio in spec.radios for rng in radio.ranges]
+        if not all_ranges:
+            continue
+        if hr.min_mhz > min(r.min_mhz for r in all_ranges) or hr.max_mhz < max(r.max_mhz for r in all_ranges):
+            restricted.append((spec, hr))
+
+    lines = [
+        "## Primary-frequency limits",
+        "",
+        "A group's **primary frequency** (the `frequency` field on the group in the Mission",
+        "Editor) is validated against a separate, sometimes much narrower range than the preset",
+        "channels above. The aircraft below are those where the two differ: a frequency that is a",
+        "perfectly valid *preset channel* is rejected as a *primary*, and the ME then refuses to",
+        "save the mission (`Invalid frequency <x> MHz`).",
+        "",
+        "`inject-presets` normally promotes channel 1 of the first radio to the primary; for these",
+        "aircraft it skips the promotion instead and leaves DCS's own default in place.",
+        "",
+    ]
+    if not restricted:
+        lines += ["*No aircraft in this dataset restricts its primary frequency.*", ""]
+        return lines
+
+    lines += [
+        "| Aircraft | DCS ID | Primary min (MHz) | Primary max (MHz) | Default (MHz) | Modulation |",
+        "|----------|--------|------------------:|------------------:|--------------:|------------|",
+    ]
+    for spec, hr in restricted:
+        default = f"{hr.default_mhz:.3f}" if hr.default_mhz is not None else "—"
+        lines.append(
+            f"| **{spec.display_name}** | `{spec.dcs_id}` | {hr.min_mhz:.3f} | {hr.max_mhz:.3f} "
+            f"| {default} | {_MOD_BADGE.get(hr.modulation, hr.modulation)} |"
+        )
+    lines.append("")
+    return lines
 
 
 # ---------------------------------------------------------------------------

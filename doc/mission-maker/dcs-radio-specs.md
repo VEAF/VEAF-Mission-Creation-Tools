@@ -12,7 +12,7 @@ par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquenc
 ## Particularités par type — gérées automatiquement
 
 Avec le format recommandé `channel_lists` (voir
-[format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur)), vous
+[format `presets.yaml`](../PIPELINE_REFERENCE.md#two-authoring-formats)), vous
 déclarez vos listes de canaux **une seule fois par coalition**, par rôle radio
 (UHF principal, VHF principal, FM…). Le build les projette ensuite sur les
 radios physiques de **chaque** appareil, en gérant tout seul ses particularités
@@ -47,6 +47,51 @@ chaque build.
 Si vous découvrez un autre appareil qui pousse DCS à rejeter la mission, ajoutez
 `dcs_rejects_on_load: true` à son entrée dans
 `src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` et ouvrez une pull request.
+
+---
+
+## Fréquence principale du groupe (`human_radio`) {#primary-frequency}
+
+Un appareil DCS impose **deux** contraintes de fréquence différentes, et il est facile de les
+confondre :
+
+| Contrainte | Ce qu'elle borne | Où elle apparaît |
+|------------|------------------|------------------|
+| plages `radios` (tableaux ci-dessous) | les **canaux préréglés** de la radio | onglet radio du slot |
+| `human_radio` | la **fréquence principale du groupe** | champ « fréquence » du groupe dans l'éditeur |
+
+Pour la plupart des appareils modernes, la seconde est aussi large que la première et la
+distinction est invisible. Mais pour 27 appareils elle est **plus étroite** — parfois
+radicalement. Le FW-190A8 accepte des canaux préréglés de 38 à 156 MHz, alors que sa fréquence
+principale est confinée entre 38.4 et 42.4 MHz.
+
+Si la fréquence principale sort de la plage `human_radio`, l'éditeur de mission **refuse
+d'enregistrer la mission** avec un message du type :
+
+```
+FW-190D9 Template: Fréquence invalide 134 MHz
+```
+
+`inject-presets` promeut normalement le canal 1 de la première radio en fréquence principale du
+groupe, pour que le champ de l'éditeur reflète le canal 1. Quand ce canal sort de la plage
+`human_radio` de l'appareil, la promotion est **abandonnée** : le groupe conserve sa propre
+fréquence (celle de la mission source, ou la valeur par défaut de DCS), ce qui garde la mission
+enregistrable. Le build le signale en mode détaillé ; les préréglages, eux, sont injectés
+normalement.
+
+Les plages `human_radio` sont extraites du datamine avec le reste des specs et vivent dans
+`dcs-radio-specs.yaml`, sous chaque appareil :
+
+```yaml
+FW-190A8:
+  human_radio:
+    min_mhz: 38.4
+    max_mhz: 42.4
+    default_mhz: 38.4      # valeur par défaut de DCS
+    modulation: AM
+```
+
+Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait comme avant.
 
 ---
 

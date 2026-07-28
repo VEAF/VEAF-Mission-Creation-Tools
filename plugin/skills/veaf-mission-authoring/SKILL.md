@@ -85,6 +85,18 @@ a blue SAM (`-samLR` is not inherently red; its "random" is the battery *type*).
 site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
 "coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
+**Which side must die:** a zone completes when the **hostile** coalition's units are gone, and
+that side is **red** unless you say otherwise. If the units to destroy are blue — a zone played
+from the red side — set `enemy_coalition: BLUE` on the `combat_zones[]` entry; otherwise the zone
+holds no red unit, the watchdog sees zero enemies on its first pass (~1 min) and completes
+immediately. The F10 report's friends/enemies labels follow the same setting.
+
+**Who gets the F10 menu:** it follows from the above — the side playing the zone (the opposite of
+`enemy_coalition`) is the one offered the menu, and the menu is how a zone is *activated*, not just
+read. Nothing to set for that. Add `radio_menu_coalition: ALL` only when both sides must be able to
+trigger the zone (an umpire in a red slot activating a blue zone), or name a side explicitly when it
+is not the one playing the zone.
+
 **Permanent asset vs combat-zone asset — two spawn markers, don't confuse them:**
 - `#veafInterpreter["<alias …>"]` on a unit's **`name`** → spawned **at mission start** and
   **permanent** (the carrier unit is destroyed). Use it — **in preference to a literal unit** — for

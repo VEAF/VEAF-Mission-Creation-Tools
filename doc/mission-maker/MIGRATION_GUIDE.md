@@ -43,7 +43,7 @@ flowchart TD
 
 3. Ayez votre dossier de mission v5 sous la main
 
-> **Conseil — configuration globale utilisateur :** Avant de commencer, créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des préférences persistantes sur cette machine — notamment la langue (`lang: fr`) afin que tous les outils s'affichent en français. Voir [Configuration globale utilisateur](GUIDE.md#configuration-globale-utilisateur) pour le détail et les commandes disponibles.
+> **Conseil — configuration globale utilisateur :** Avant de commencer, créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des préférences persistantes sur cette machine — notamment la langue (`lang: fr`) afin que tous les outils s'affichent en français. Voir [Configuration globale utilisateur](GUIDE.md#global-user-configuration) pour le détail et les commandes disponibles.
 
 ---
 

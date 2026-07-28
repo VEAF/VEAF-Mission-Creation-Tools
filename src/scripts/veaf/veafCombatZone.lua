@@ -37,6 +37,14 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
+-- Coalition a zone considers hostile unless told otherwise: red, i.e. blue players
+-- clearing a red zone. Set per zone with VeafCombatZone:setEnemyCoalition().
+veafCombatZone.DEFAULT_ENEMY_COALITION = 1
+
+-- Sentinel for setRadioMenuCoalition("all"): show the zone's F10 menu to everyone, as it was
+-- before the menu became side-scoped. Distinct from nil, which means "not set".
+veafCombatZone.RADIO_MENU_FOR_ALL = "all"
+
 veafCombatZone.RadioMenuName = "COMBAT ZONES"
 
 -- Combat zones specific radio menu name
@@ -275,6 +283,11 @@ function VeafCombatZone:new(objectToCopy)
   objectToCreate.showZonePositionInfo = true
   -- zone is completable (i.e. disable it when all ennemies are dead)
   objectToCreate.completable = true
+  -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
+  -- Defaults to red: the players are blue and the zone holds the red opposition.
+  objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
+  -- coalition the F10 menu is restricted to; nil = derive it from enemyCoalition
+  objectToCreate.radioMenuCoalition = nil
   -- DCS groups that have been spawned (for cleaning up later)
   objectToCreate.spawnedGroups = {}
   objectToCreate.delayedSpawners = {}
@@ -443,6 +456,82 @@ end
 function VeafCombatZone:setCompletable(value)
   self.completable = value
   return self
+end
+
+-- set which coalition the zone treats as hostile: its units are the ones that must be
+-- destroyed for the zone to complete, and the ones the F10 report calls "enemies".
+-- Accepts a DCS side number (coalition.side.BLUE) or a "red"/"blue" string, because this is
+-- called both from hand-written Lua and from the config generated out of mission.yaml.
+function VeafCombatZone:setEnemyCoalition(value)
+  local side = value
+  if type(side) == "string" then
+    local name = side:lower()
+    side = (name == "red" and 1) or (name == "blue" and 2) or nil
+  end
+  -- Only RED and BLUE can be hostile. NEUTRAL (0) and any other side would leave the zone in
+  -- a silently inconsistent state: getFriendlyCoalition() would still answer, the report's
+  -- tally lookup would find nothing, and completion would fall back to counting reds.
+  if side ~= 1 and side ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      string.format(
+        "VeafCombatZone[%s]:setEnemyCoalition() : [%s] is not RED or BLUE, keeping [%d]",
+        veaf.p(self.missionEditorZoneName),
+        veaf.p(value),
+        self:getEnemyCoalition()
+      )
+    )
+    return self
+  end
+  self.enemyCoalition = side
+  return self
+end
+
+function VeafCombatZone:getEnemyCoalition()
+  return self.enemyCoalition or veafCombatZone.DEFAULT_ENEMY_COALITION
+end
+
+-- the other side of getEnemyCoalition(): whoever the zone is played by
+function VeafCombatZone:getFriendlyCoalition()
+  if self:getEnemyCoalition() == 2 then
+    return 1
+  end
+  return 2
+end
+
+-- restrict (or not) the zone's F10 menu to one coalition. The menu is not read-only — it is
+-- how a zone is activated — so by default it goes to the side playing the zone. Accepts a side
+-- number, "red"/"blue", or "all" to show it to everyone as it was before
+-- FEAT-COMBATZONE-MENU-COALITION.
+function VeafCombatZone:setRadioMenuCoalition(value)
+  local side = value
+  if type(side) == "string" then
+    local name = side:lower()
+    if name == "all" then
+      self.radioMenuCoalition = veafCombatZone.RADIO_MENU_FOR_ALL
+      return self
+    end
+    side = (name == "red" and 1) or (name == "blue" and 2) or nil
+  end
+  if side ~= 1 and side ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      string.format(
+        "VeafCombatZone[%s]:setRadioMenuCoalition() : [%s] is not RED, BLUE or ALL, keeping the default",
+        veaf.p(self.missionEditorZoneName),
+        veaf.p(value)
+      )
+    )
+    return self
+  end
+  self.radioMenuCoalition = side
+  return self
+end
+
+-- the coalition the zone's F10 menu is shown to, or nil for everyone
+function VeafCombatZone:getRadioMenuCoalition()
+  if self.radioMenuCoalition == veafCombatZone.RADIO_MENU_FOR_ALL then
+    return nil
+  end
+  return self.radioMenuCoalition or self:getFriendlyCoalition()
 end
 
 function VeafCombatZone:getTriggerZone()
@@ -875,62 +964,62 @@ function VeafCombatZone:getInformation(unitName)
       end
     end
 
-    if nbShipsB + nbStaticsB + nbVehiclesB + nbInfantryB > 0 and self:isShowUnitsList() then
-      local msgs = {}
-      if nbShipsB > 0 then
-        table.insert(msgs, veaf.t("report.count_ships", nbShipsB))
+    -- The tallies above are per real coalition; which one reads as "friends" and which as
+    -- "enemies" depends on the side the zone is played from (setEnemyCoalition).
+    local tallies = {
+      [1] = {
+        ships = nbShipsR,
+        statics = nbStaticsR,
+        vehicles = nbVehiclesR,
+        infantry = nbInfantryR,
+        byType = unitsByTypeR,
+      },
+      [2] = {
+        ships = nbShipsB,
+        statics = nbStaticsB,
+        vehicles = nbVehiclesB,
+        infantry = nbInfantryB,
+        byType = unitsByTypeB,
+      },
+    }
+
+    local function appendTally(side, messageKey)
+      local tally = tallies[side]
+      if not tally then
+        return
       end
-      if nbStaticsB > 0 then
-        table.insert(msgs, veaf.t("report.count_structures", nbStaticsB))
-      end
-      if nbVehiclesB > 0 then
-        table.insert(msgs, veaf.t("report.count_vehicles", nbVehiclesB))
-      end
-      if nbInfantryB > 0 then
-        table.insert(msgs, veaf.t("report.count_soldiers", nbInfantryB))
-      end
-      message = message .. veaf.t("combatzone.friends", table.concat(msgs, ","))
-      if self:isTraining() then
-        local firstUnit = true
-        for name, count in pairs(unitsByTypeB) do
-          local separator = ", "
-          if firstUnit then
-            separator = ""
-            firstUnit = false
-          end
-          message = message .. string.format("%s%d %s", separator, count, name)
+      if tally.ships + tally.statics + tally.vehicles + tally.infantry > 0 and self:isShowUnitsList() then
+        local msgs = {}
+        if tally.ships > 0 then
+          table.insert(msgs, veaf.t("report.count_ships", tally.ships))
         end
-        message = message .. "\n"
+        if tally.statics > 0 then
+          table.insert(msgs, veaf.t("report.count_structures", tally.statics))
+        end
+        if tally.vehicles > 0 then
+          table.insert(msgs, veaf.t("report.count_vehicles", tally.vehicles))
+        end
+        if tally.infantry > 0 then
+          table.insert(msgs, veaf.t("report.count_soldiers", tally.infantry))
+        end
+        message = message .. veaf.t(messageKey, table.concat(msgs, ","))
+        if self:isTraining() then
+          local firstUnit = true
+          for name, count in pairs(tally.byType) do
+            local separator = ", "
+            if firstUnit then
+              separator = ""
+              firstUnit = false
+            end
+            message = message .. string.format("%s%d %s", separator, count, name)
+          end
+          message = message .. "\n"
+        end
       end
     end
-    if nbShipsR + nbStaticsR + nbVehiclesR + nbInfantryR > 0 and self:isShowUnitsList() then
-      local msgs = {}
-      if nbShipsR > 0 then
-        table.insert(msgs, veaf.t("report.count_ships", nbShipsR))
-      end
-      if nbStaticsR > 0 then
-        table.insert(msgs, veaf.t("report.count_structures", nbStaticsR))
-      end
-      if nbVehiclesR > 0 then
-        table.insert(msgs, veaf.t("report.count_vehicles", nbVehiclesR))
-      end
-      if nbInfantryR > 0 then
-        table.insert(msgs, veaf.t("report.count_soldiers", nbInfantryR))
-      end
-      message = message .. veaf.t("combatzone.enemies", table.concat(msgs, ","))
-      if self:isTraining() then
-        local firstUnit = true
-        for name, count in pairs(unitsByTypeR) do
-          local separator = ", "
-          if firstUnit then
-            separator = ""
-            firstUnit = false
-          end
-          message = message .. string.format("%s%d %s", separator, count, name)
-        end
-        message = message .. "\n"
-      end
-    end
+
+    appendTally(self:getFriendlyCoalition(), "combatzone.friends")
+    appendTally(self:getEnemyCoalition(), "combatzone.enemies")
     message = message .. "\n"
 
     if self:isShowZonePositionInfo() then
@@ -1200,7 +1289,14 @@ function VeafCombatZone:completionCheck()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("nbUnitsB=%d", nbUnitsB))
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("nbUnitsR=%d", nbUnitsR))
 
-  if nbUnitsR == 0 then
+  -- completion is decided on the hostile side only, which is red unless the zone says
+  -- otherwise (setEnemyCoalition) — a red-side zone is cleared when its blue units are gone.
+  local nbEnemyUnits = nbUnitsR
+  if self:getEnemyCoalition() == 2 then
+    nbEnemyUnits = nbUnitsB
+  end
+
+  if nbEnemyUnits == 0 then
     -- everyone is dead, let's end this mess
     if veafCombatZone.EventMessages.CombatZoneComplete then
       local message = veaf.t(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
@@ -1297,7 +1393,7 @@ function VeafCombatZone:updateRadioMenu(inBatch)
   end
   if shouldAddSubMenu then
     veaf.loggers.get(veafCombatZone.Id):debug("add the radio submenu")
-    self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(self:isActive()), self.radioParentPath)
+    self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(self:isActive()), self.radioParentPath, self:getRadioMenuCoalition())
   end
 
   if shouldAddSubMenu then

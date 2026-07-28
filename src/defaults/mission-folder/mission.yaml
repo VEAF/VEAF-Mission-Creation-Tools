@@ -142,7 +142,10 @@ modules:
   #         radio_menu_prefix: BLUE   # prefix shown before the zone label in the menu
   #         training: false
   #         active_at_start: true   # activate this zone automatically at mission start
-  #         completable: true       # false = never auto-completes; required for a zone with no RED unit
+  #         completable: true       # false = never auto-completes on its own
+  #         enemy_coalition: RED    # RED | BLUE — the hostile side; BLUE = zone played from the red side
+  #         radio_menu_coalition: ALL   # RED | BLUE | ALL — who is offered the F10 menu
+  #                                     # (default: the side playing the zone; ALL = both)
   #   QRA:
   #     enabled: true
   #     silence_all: false

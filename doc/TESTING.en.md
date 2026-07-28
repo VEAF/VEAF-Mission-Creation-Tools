@@ -51,7 +51,7 @@ lua test/lua/test_veafSpawn.lua
 
 ---
 
-## Coverage
+## Coverage {#coverage}
 
 Generate a per-file line coverage report using [luacov](https://github.com/lunarmodules/luacov):
 

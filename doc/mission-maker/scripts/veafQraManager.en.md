@@ -47,7 +47,7 @@ local myQra = VeafQRA:new()
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 QRA definitions live **under `modules.QRA`** (`silence_all` + `definitions:`). The `QRA` module must be enabled in `modules:`.
 

@@ -35,7 +35,7 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:

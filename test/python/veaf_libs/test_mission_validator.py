@@ -154,6 +154,45 @@ class TestMissionValidator(unittest.TestCase):
         issues = validate_mission_folder(folder)
         self.assertTrue(any(i.level == ERROR and "GhostSetting" in i.message for i in issues))
 
+    def test_config_override_missing_target_is_error(self) -> None:
+        """A target matching no injected script is a silent no-op, not a harmless typo.
+
+        The build positions the override right after its target; when the target is absent it
+        appends the override **last** — after the setup script has already read the globals.
+        The override is then built, loaded, and has no effect. Caught here instead.
+        (Found by adopting WWII Normandy with the modern `foothold` profile.)
+        """
+        folder = _make_folder(
+            'config_override:\n  target: "Foothold Config.lua"\n  values:\n    CapDifficulty: medium\n',
+            mission_table=_MISSION_WITH_PLAYER,
+            # This mission ships the WW2 config, not the modern one the override targets.
+            extra={"src/scripts/Foothold Config WW2.lua": "CapDifficulty = easy\n"},
+        )
+        issues = validate_mission_folder(folder)
+        self.assertTrue(
+            any(i.level == ERROR and "Foothold Config.lua" in i.message for i in issues),
+            f"expected an error naming the missing target, got {[i.message for i in issues]}",
+        )
+
+    def test_config_override_target_matches_on_basename(self) -> None:
+        # The build anchors the override on the target's basename, so a target written as a
+        # bare filename must match a script stored under src/scripts/.
+        folder = _make_folder(
+            'config_override:\n  target: "l10n/DEFAULT/Foothold Config.lua"\n  values:\n    CapDifficulty: medium\n',
+            mission_table=_MISSION_WITH_PLAYER,
+            extra={"src/scripts/Foothold Config.lua": "CapDifficulty = easy\n"},
+        )
+        self.assertFalse(any("config_override" in i.message for i in validate_mission_folder(folder)))
+
+    def test_config_override_without_target_is_not_flagged(self) -> None:
+        # target is optional: without one the override just loads in collection order.
+        folder = _make_folder(
+            "config_override:\n  values:\n    CapDifficulty: medium\n",
+            mission_table=_MISSION_WITH_PLAYER,
+            extra={"src/scripts/Foothold Config.lua": "CapDifficulty = easy\n"},
+        )
+        self.assertFalse(any("config_override" in i.message for i in validate_mission_folder(folder)))
+
 
 class TestValidateMissionContent(unittest.TestCase):
     """FEAT-BUILD-VALIDATE-REFS — Mission-Editor reference checks and their severity."""

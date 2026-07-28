@@ -96,7 +96,7 @@ Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ---
 
-## Configuration globale utilisateur
+## Configuration globale utilisateur {#global-user-configuration}
 
 Créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des valeurs par défaut persistantes applicables à **tous** vos projets VEAF sur cette machine :
 
@@ -305,10 +305,10 @@ Au-delà des modules Lua exécutés dans DCS, `veaf-tools build` peut enchaîner
 
 | Étape | Rôle | Schéma détaillé |
 |-------|------|-----------------|
-| `presets` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains et génère les planchettes (kneeboards) PNG associées | [presets.yaml](../PIPELINE_REFERENCE.md#étape-1--préréglages-radio-presetsyaml) |
-| `waypoints` | Injecte des modèles de points de cheminement (bullseye, navigation) dans les groupes d'avions humains | [waypoints.yaml](../PIPELINE_REFERENCE.md#étape-2--points-de-cheminement-waypointsyaml) |
-| `spawnable_aircrafts` / `dynamic_slot_templates` | Injecte les groupes d'aéronefs spawnables et les modèles de slot dynamique | [groupes d'aéronefs](../PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c) |
-| `weather` | Crée plusieurs variantes de mission avec différentes météos et heures | [versions.yaml](../PIPELINE_REFERENCE.md#étape-6--variantes-météo--horaire-versionsyaml) |
+| `presets` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains et génère les planchettes (kneeboards) PNG associées | [presets.yaml](../PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
+| `waypoints` | Injecte des modèles de points de cheminement (bullseye, navigation) dans les groupes d'avions humains | [waypoints.yaml](../PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
+| `spawnable_aircrafts` / `dynamic_slot_templates` | Injecte les groupes d'aéronefs spawnables et les modèles de slot dynamique | [groupes d'aéronefs](../PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
+| `weather` | Crée plusieurs variantes de mission avec différentes météos et heures | [versions.yaml](../PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
 
 Chaque étape accepte la forme **scalaire** (`true`/`false` pour activer ou ignorer) ou la forme **mapping** (options détaillées). Par exemple, l'étape `presets` peut conserver l'injection radio tout en supprimant les planchettes PNG globalement :
 

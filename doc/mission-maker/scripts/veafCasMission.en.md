@@ -29,7 +29,7 @@ veafCasMission.initialize()
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 `veafCasMission` itself has no YAML-configurable fields. However, **CAP missions** and **Combat missions** (managed by the `COMBATMISSION` module) are declared in top-level `mission.yaml` sections.
 

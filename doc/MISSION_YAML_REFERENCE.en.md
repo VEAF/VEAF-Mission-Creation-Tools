@@ -137,12 +137,48 @@ mission:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `name` | string | — | No | Mission name shown in menus and logs |
+| `name` | string | — | No | Mission name shown in menus and logs, **and the name of the built `.miz`** — see the naming note below |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
 | `era` | string | `MODERN` | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
+
+#### The `.miz` file name is an interface — `_ICAO_<code>` and real weather {#icao-naming}
+
+`mission.name` becomes the built file name: `<name>_<YYYYMMDD>.miz`, plus a `_<VARIANT>` suffix
+when [`build_variants:`](#build_variants) is used. Give a name ending in `.miz` instead and the
+name is taken **verbatim**, with no date.
+
+That matters because **server-side tooling reads the file name**. On the VEAF servers, the
+RealWeather extension of [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
+looks for **`_ICAO_<code>`** in the mission's file name and fetches that airfield's live METAR at
+mission start — so the weather follows reality without rebuilding. Name the mission accordingly:
+
+```yaml
+mission:
+  name: VEAF_Foothold_Caucasus_ICAO_URSS   # -> VEAF_Foothold_Caucasus_ICAO_URSS_20260728.miz
+```
+
+Two rules when picking the code:
+
+- it must be **an airfield on that theatre** (any one; a large one is better);
+- it must have a **live METAR station**. Check before trusting it — a station can exist and be
+  stale, which is worse than no real weather at all, since the mission then advertises a
+  "real" weather that is days old. A one-line check:
+
+```bash
+curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
+```
+
+The first two digits of the `DDHHMMZ` group are the day of observation — compare them with today.
+
+When a whole theatre is degraded, there are two defensible answers, and the choice belongs to
+whoever runs the server. Measured on Afghanistan, **every** station lags (Kabul a month, Herat
+sixteen days, Bagram a day; six airfields have no station at all): either **omit** the marker, so
+RealWeather leaves the mission alone and the authored weather stands, or **take the least bad**
+and know what you are getting. The VEAF Foothold Afghanistan uses `OAIX` (Bagram, about a day
+behind) — a deliberate choice, not an oversight.
 
 ---
 
@@ -152,20 +188,26 @@ Controls the VEAF security system. By default, security is disabled (all players
 
 ```yaml
 security:
-  disabled: true                    # true = no password required (default)
-  password_hashes:                  # SHA-256 hashes for player/JTF access
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
-  password_mm_hashes:               # SHA-256 hashes for Mission Master access
-    - "e3b0c44298fc1c149afbf4c8996fb924..."
+  disabled: false                   # false = a password is required
+  password_hashes:                  # SHA-1 hashes granting player/JTF access
+    - "2a4efd2397e081bcacb82b3e447c584c65cc83ee"
+  password_mm_hashes:               # SHA-1 hashes granting Mission Master access
+    - "99685b3c7cb1fb08a829fc97d4a8564fc5f9435a"
 ```
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
 | `disabled` | boolean | `true` | No | `true` = no password required |
-| `password_hashes` | string[] | `[]` | No | SHA-256 hashes for player access |
-| `password_mm_hashes` | string[] | `[]` | No | SHA-256 hashes for Mission Master access |
+| `password_hashes` | string[] | `[]` | No | **SHA-1** hashes granting player access. Emitted at levels **L1 and L9**, so the password opens marker authentication and the sensitive spawns, not only the L9 gates |
+| `password_mm_hashes` | string[] | `[]` | No | **SHA-1** hashes granting Mission Master access (its own table, no level cascade) |
 
-> To generate a SHA-256 hash: `echo -n "yourpassword" | sha256sum` (Linux/macOS) or use an online tool.
+> **SHA-1, not SHA-256.** `veafSecurity._checkPassword` hashes what the player types with
+> `sha1.hex(password)` and looks it up in the table, so a SHA-256 hash never matches and the
+> password silently never works. This page said SHA-256 until it was corrected — check any
+> existing mission whose password appears to be ignored.
+>
+> To generate one: `echo -n "yourpassword" | sha1sum` (Linux/macOS), or
+> `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" yourpassword`.
 
 ---
 
@@ -286,6 +328,21 @@ modules:
 | `logLevel` | string | *(global)* | Override log level for this module only |
 
 Additional `init:` or data fields are module-specific — see each module's documentation page.
+
+**`RADIO` `init:` fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `help_menus` | boolean | `true` | Passed to `veafRadio.initialize` as `skipHelpMenus` |
+| `create_menus` | boolean | `true` | `false` builds **no VEAF F10 menu at all** (`dontCreateMenus`). Combined with `security:`, that is how a public mission keeps the VEAF commands reachable only through password-protected map markers. Omit the key to keep today's behaviour |
+
+```yaml
+modules:
+  RADIO:
+    enabled: true
+    init:
+      create_menus: false       # no VEAF radio menu; commands via markers only
+```
 
 **Community scripts** are listed in the same block, using their uppercase IDs. When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it:
 
@@ -436,7 +493,7 @@ Build the dev variant with `veaf-tools build --profile DEV` (it loads `FgMission
 
 ---
 
-### `pipeline:`
+### `pipeline:` {#pipeline}
 
 Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELINE_REFERENCE.md) for the full schema of each step's config file.
 
@@ -505,7 +562,7 @@ profiles:
 
 ---
 
-### `profiles:`
+### `profiles:` {#profiles}
 
 Named build profiles. Each profile is a set of config overrides that deep-merge onto the base `mission.yaml` when you pass `--profile <name>` to `veaf-tools build`. Keys absent from the profile retain their base values. Lists are replaced, not concatenated. The `profiles:` key itself is never written to the built mission.
 
@@ -631,10 +688,10 @@ veaf-tools.exe build --profile MODERN   # produces only the MODERN variant (unsu
 | Section / Field | Description |
 |-----------------|-------------|
 | [`pipeline:`](#pipeline) | Pipeline step control |
-| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#step-1--radio-presets-presetsyaml) |
-| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#step-2--waypoints-waypointsyaml) |
-| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
-| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-4--weather--time-versions-versionsyaml) |
+| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
+| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
+| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
 | [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |

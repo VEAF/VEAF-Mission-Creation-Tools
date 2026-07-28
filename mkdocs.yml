@@ -76,6 +76,7 @@ plugins:
             Migration Guide: Guide de Migration
             Scripts: Scripts
             Developer: Développeur
+            Capture a map's airbases: Récupérer les aérodromes d'une carte
             References: Références
             Tools CLI Reference: Référence CLI des outils
             Lua API Reference: Référence de l'API Lua
@@ -135,6 +136,7 @@ nav:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
     - DCS data generators: developer/dcs-data.md
+    - Capture a map's airbases: developer/capture-airbases.md
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md

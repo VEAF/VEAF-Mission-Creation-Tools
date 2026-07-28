@@ -9,7 +9,7 @@
 > Décision d'architecture : [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md)
 > (étend [ADR 0003](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0003-presets-fidelity.md)).
 > Analyse amont : [exploration](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/RADIO-PRESETS-PER-TYPE-PROJECTION.md).
-> Côté mission-maker : [format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur).
+> Côté mission-maker : [format `presets.yaml`](../PIPELINE_REFERENCE.md#two-authoring-formats).
 
 ---
 

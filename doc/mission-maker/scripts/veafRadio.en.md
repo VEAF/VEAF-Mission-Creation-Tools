@@ -36,7 +36,7 @@ This rebuilds the entire F10 tree. It is safe to call multiple times — it debo
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:
@@ -108,7 +108,7 @@ veafRadio.createUserMenu(
 
 ---
 
-## Radio menus in YAML
+## Radio menus in YAML {#radio-menus-in-yaml}
 
 Since ADR 0011, a mission maker can declare a custom F10 radio menu **entirely in YAML**, with no Lua, under `modules.RADIO.user_menus`. This is the declarative counterpart of `veafRadio.createUserMenu()` (see the callout above), intended in particular for Mission Master (MM) control menus.
 
@@ -175,6 +175,34 @@ When adding commands via the low-level API, the `usage` parameter controls who s
 | `veafRadio.USAGE_ForUnit` | `2` | One entry per connected human pilot; entry title is prefixed with the pilot's callsign |
 
 `USAGE_ForGroup` is ideal for commands that should respond differently per flight (e.g. "Request support for my flight"). `USAGE_ForUnit` is for individual pilot interactions.
+
+---
+
+## Restricting a menu to one coalition {#coalition-scoped-menus}
+
+`usage` decides **who gets a command**. To hide a **whole submenu** from the other side, pass a
+coalition as `addSubMenu`'s third argument:
+
+```lua
+-- this submenu, and everything under it, only exists for red
+local redMenu = veafRadio.addSubMenu("RED zones", nil, coalition.side.RED)
+veafRadio.addCommandToSubmenu("Status", redMenu, myFunction, nil, veafRadio.USAGE_ForGroup)
+```
+
+Three consequences, all automatic:
+
+- **the side is inherited** — by child submenus, commands, and the pagination pages created when a
+  menu exceeds `MENU_PAGE_SIZE`; there is no "visible to all" child under a restricted menu;
+- a `USAGE_ForGroup` or `USAGE_ForUnit` command is only attached for groups **of that side** (a
+  group whose coalition DCS does not report is kept);
+- the menu is rebuilt on every player join, and restricted menus are removed explicitly at that
+  point — otherwise they would stack up one duplicate per join.
+
+The **parent** menu is untouched: hang a restricted submenu under a global one and the other side
+still sees the parent, simply without that entry.
+
+> Used by combat zones, which offer their menu to the side playing them — see
+> [veafCombatZone](veafCombatZone.md#f10-menu-audience).
 
 ---
 

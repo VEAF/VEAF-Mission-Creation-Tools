@@ -29,7 +29,7 @@ Il n'existe pas d'API d'enregistrement par porte-avions. À l'`initialize()`, le
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 Les opérations de porte-avions sont activées via l'ID de module `CARRIER`. Les porte-avions eux-mêmes ne sont pas déclarés dans `mission.yaml` : ils sont détectés automatiquement à partir des groupes porte-avions présents dans la mission (voir [Activation](#activation)).
 

@@ -1,0 +1,75 @@
+# Conversion profile — WWII Normandy Foothold (community campaign, by sevenfifty777
+# on Lekaa's Foothold engine).
+#
+# Author-specific knowledge for adopting the WWII Normandy Foothold `.miz` via
+# `veaf-tools convert-other --profile foothold-ww2`. Data only; the code that reads
+# this stays generic. See ADR 0007.
+#
+# WHY A SEPARATE PROFILE (and not a flag on `foothold`): the WW2 mission differs in
+# *which settings exist at all*, so one profile cannot describe both without putting a
+# conditional in generic code — exactly what ADR 0007 exists to prevent.
+#
+#   | | foothold | foothold-ww2 |
+#   |---|---|---|
+#   | config file  | Foothold Config.lua | Foothold Config WW2.lua |
+#   | `Era`        | Modern/Coldwar/Gulfwar/Vietnam | absent (WW2 has no era switch) |
+#   | `StartNormal`| present | absent |
+#   | Foothold CTLD| ships its own | ships none |
+#
+# NOTE: the script load ORDER is NOT listed here — convert-other detects it
+# generically from the mission's native triggers.
+
+name: foothold-ww2
+description: VEAF adoption of the WWII Normandy Foothold (sevenfifty777, on Lekaa's engine).
+
+# VEAF modules to enable in the scaffold (on top of the always-on infrastructure
+# + MIST). Same set as the `foothold` profile.
+modules:
+  - RADIO
+  - SPAWN
+  - WEATHER
+  - SHORTCUTS
+  - SECURITY
+  - REMOTE
+
+# Deliberately EMPTY, unlike the `foothold` profile: the Normandy mission ships no
+# CTLD of its own (no "Foothold CTLD.lua", no "Foothold_CTLD_Red.lua"), so nothing
+# here forbids the VEAF CTLD. It stays OFF by default all the same — adopting a
+# mission must not silently add a subsystem — but you may enable `CTLD: true` in
+# `modules:` if this mission wants it.
+incompatible_modules: []
+
+# VEAF bundled community scripts to disable in the scaffold: this mission ships its
+# own libraries (Moose, AIEN, EWRS, Splash) as custom_scripts, so VEAF's must stay OFF
+# to avoid double-loading and conflicts. `ctld` is intentionally ABSENT from this list
+# (see incompatible_modules above). MiST is absent too — it is a mandatory VEAF
+# dependency and cannot be disabled.
+disabled_community_scripts:
+  - stts
+  - aien
+  - csar
+  - hercules
+  - skynet
+  - tum
+
+# Stabilise upstream versioned script names so `custom_scripts:` paths survive a
+# version bump (and `convert-other --update`). Same rules as the `foothold` profile:
+# only *version-stamped* names, never the per-map setup script
+# (here `Normandy_Zone_Setup.lua`, which is stable).
+name_normalization:
+  - pattern: "Moose_*.lua"
+    replacement: "Moose.lua"
+  - pattern: "Splash_Damage_*.lua"
+    replacement: "Splash_Damage.lua"
+
+# Partial config-override scaffold, layered over the untouched upstream config. See
+# ADR 0008. Only keys that EXIST in "Foothold Config WW2.lua" belong here: `validate`
+# checks each one lexically against the injected code, so an `Era` or a `StartNormal`
+# (absent from the WW2 config) would fail the build.
+config_override:
+  target: "Foothold Config WW2.lua"
+  defaults:
+    CapDifficulty: medium
+    AutoRestart: false
+    # Foothold's on-screen language: EN, DE, FR, ES, RU, PT-BR, TR, IT, zh-CN, zh-TW.
+    FootholdLocale: FR

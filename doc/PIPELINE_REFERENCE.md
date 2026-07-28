@@ -58,7 +58,7 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
 ---
 
-## Étape 1 — Préréglages radio (`presets.yaml`)
+## Étape 1 — Préréglages radio (`presets.yaml`) {#pipeline-step-1-presets}
 
 Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs contenant au moins un pilote humain (compétence Client/Player). Génère également des images de kneeboard PNG pour chaque préréglage.
 
@@ -70,7 +70,7 @@ Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs co
 <dossier-mission>/src/presets.yaml
 ```
 
-### Deux formats d'auteur
+### Deux formats d'auteur {#two-authoring-formats}
 
 Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepte deux couches, qui coexistent :
 
@@ -254,7 +254,7 @@ Les specs couvrent 87 aéronefs pilotables et sont issues de [dcs-lua-datamine](
 
 ---
 
-## Étape 2 — Points de cheminement (`waypoints.yaml`)
+## Étape 2 — Points de cheminement (`waypoints.yaml`) {#pipeline-step-2-waypoints}
 
 Injecte des modèles de points de cheminement dans les groupes d'aéronefs pilotés par des humains. Seuls les groupes avec au moins une unité Client/Player sont modifiés.
 
@@ -329,7 +329,7 @@ settings:
 
 ---
 
-## Étape 3 — Groupes d'aéronefs : spawnables (B) et modèles de slot dynamique (C)
+## Étape 3 — Groupes d'aéronefs : spawnables (B) et modèles de slot dynamique (C) {#pipeline-step-3-aircraft-groups}
 
 Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md)) :
 
@@ -401,7 +401,7 @@ airplanes:
 
 ---
 
-## Étape 6 — Variantes météo & horaire (`versions.yaml`)
+## Étape 6 — Variantes météo & horaire (`versions.yaml`) {#pipeline-step-6-versions}
 
 Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec une configuration de temps et/ou de météo différente.
 

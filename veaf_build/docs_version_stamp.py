@@ -30,7 +30,8 @@ _UPDATED_LINE = re.compile(r"^(\*\*(?:Dernière mise à jour|Last Updated)\s*:?\
 #: pass and caught by reading the published 6.12.0 page, which still advertised v6.5.25 there.
 #: Anchored on the ASCII product name rather than the localised label: one occurrence per page,
 #: and no accented literal to get wrong.
-_GENERATED_FOR_LINE = re.compile(r"^(\*\*[^*]+\*\*\s*VEAF Mission Creation Tools v)\d[\w.+-]*\s*$", re.MULTILINE)
+#: `\w` would also admit underscores, which no version we publish contains.
+_GENERATED_FOR_LINE = re.compile(r"^(\*\*[^*]+\*\*\s*VEAF Mission Creation Tools v)\d[0-9A-Za-z.+-]*\s*$", re.MULTILINE)
 _PYPROJECT_VERSION = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
 
 _FR_MONTHS = {

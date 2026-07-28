@@ -106,6 +106,12 @@ class TestFooter:
         assert out.count("**Dernière mise à jour :** Juillet 2026") == 2
         assert "Juin 2026" not in out
 
+    def test_underscore_is_not_treated_as_part_of_a_version(self):
+        # `\w` would have matched "v6.5.25_local"; no version we publish carries an underscore.
+        text = _FR_HEADER + _FR_FOOTER.replace("v6.5.25", "v6.5.25_local")
+        out = stamp_text(text, "6.12.0", date(2026, 7, 28), french=True)
+        assert "v6.5.25_local" in out
+
     def test_document_version_is_left_alone(self):
         # "**Version du document :** 1.0" is the page's own revision, not the product version.
         out = stamp_text(_FR_HEADER + _FR_FOOTER, "6.12.0", date(2026, 7, 28), french=True)
@@ -116,7 +122,7 @@ class TestFooter:
         # producing a pattern that silently matched nothing.
         from veaf_build.docs_version_stamp import _GENERATED_FOR_LINE
 
-        assert all(ord(c) >= 32 for c in _GENERATED_FOR_LINE.pattern)
+        assert all(c.isprintable() for c in _GENERATED_FOR_LINE.pattern)
 
 
 class TestStamp:

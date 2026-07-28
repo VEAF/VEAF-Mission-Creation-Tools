@@ -78,6 +78,7 @@
   "builder.incompatible_modules": "Cannot build: module(s) {modules} are incompatible with the '{profile}' conversion profile. Disable them in mission.yaml.",
   "builder.stripped_native_triggers": "Stripped {count} native load trigger(s) declared in strip_native_triggers.",
   "validate.config_override_unknown_segment": "config_override: '{segment}' (in key '{override_key}') is found nowhere in the injected mission scripts — a typo or an upstream rename. Fix the key or update config_override.",
+  "validate.config_override_target_missing": "config_override: the target '{target}' is not among this mission's scripts. The override would be loaded last, after the setup script has already read the settings, so it would have no effect. Point target at a script listed in custom_scripts (or use the conversion profile matching this mission).",
   "builder.config_override_unknown_segments": "Cannot build: config_override references identifier(s) {segments} found nowhere in the injected mission scripts. Fix the key(s) in mission.yaml (config_override).",
   "builder.radio_lua_functions_missing": "Cannot build: radio menu(s) reference Lua function(s) {functions} found nowhere in the mission scripts. Define them in mission-script.lua or fix the 'lua' action in mission.yaml.",
   "builder.config_override_generated": "Generated '{file}' from config_override ({count} override(s)).",

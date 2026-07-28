@@ -6,8 +6,14 @@ Type: feat
 ## Why
 
 `WWII_Normandy_Foothold_5.2.2` (by *sevenfifty777*) is a Foothold, but not the same family.
-Adopting it with `--profile foothold` yields a scaffold that fails `validate`, and one wrong
-incompatibility.
+Adopting it with `--profile foothold` yields a scaffold pointing at a config file the mission
+does not have, plus one wrong incompatibility.
+
+> **Correction.** This ticket first claimed the wrong profile "fails `validate`". It did not:
+> it validated cleanly, built, and produced an override loaded too late to do anything. That
+> silent failure is fixed in [ticket 05](05-validate-config-override-target.md), which makes
+> an unresolvable `config_override.target` an error — so the claim is true *now*, because of
+> 05, not because it ever was.
 
 Measured against the shipped 5.2.2 `.miz`:
 

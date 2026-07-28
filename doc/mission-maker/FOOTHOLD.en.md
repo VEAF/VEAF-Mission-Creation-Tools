@@ -44,8 +44,12 @@ rest. No need to unzip by hand.
 Normandy is a different family, hence its own profile: its config file is called
 `Foothold Config WW2.lua`, it has **no** `Era` global (WWII has no era switch) and no
 `StartNormal`, and the mission **ships no Foothold CTLD** — so the VEAF CTLD is not
-incompatible there (it stays OFF by default, but you may enable it). Adopting Normandy with
-the `foothold` profile would produce a `mission.yaml` that fails `validate`.
+incompatible there (it stays OFF by default, but you may enable it).
+
+Adopt Normandy with the `foothold` profile and `validate` stops you: the `config_override`
+would target `Foothold Config.lua`, absent from this mission, and the override would then be
+loaded **last** — after the setup script has already read the settings — so it would have no
+effect at all.
 
 ## Overview
 
@@ -113,8 +117,13 @@ modules:
 
 Uncomment the `config_override:` block and put in **only** the globals you change
 (the rest of `Foothold Config.lua` stays untouched and updates by itself on the
-next version). Each key is **validated lexically** against the injected code: a
-typo fails `validate` and the build.
+next version). `validate` checks two things:
+
+- each key is **validated lexically** against the injected code — a typo or an upstream rename
+  fails `validate` and the build;
+- the `target` must **name one of the mission's scripts**. Otherwise the override would be
+  loaded last, after the setup script has already read the settings, and would have no effect
+  — a silent failure, now blocked.
 
 ```yaml
 config_override:

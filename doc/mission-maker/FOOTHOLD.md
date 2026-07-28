@@ -46,8 +46,12 @@ La Normandie est une autre famille, d'où son profil : son fichier de config s'a
 `Foothold Config WW2.lua`, il n'a **pas** de global `Era` (la Seconde Guerre mondiale n'a pas
 de sélecteur d'ère) ni de `StartNormal`, et la mission **n'embarque aucune CTLD Foothold** —
 la CTLD VEAF n'y est donc pas incompatible (elle reste OFF par défaut, mais vous pouvez
-l'activer). Adopter la Normandie avec le profil `foothold` produirait un `mission.yaml` qui
-échoue à `validate`.
+l'activer).
+
+Si vous adoptez la Normandie avec le profil `foothold`, `validate` vous arrête : le
+`config_override` viserait `Foothold Config.lua`, absent de cette mission, et l'override
+serait alors chargé **en dernier** — après le script de setup qui a déjà lu les réglages —
+donc sans aucun effet.
 
 ## Vue d'ensemble
 
@@ -116,8 +120,13 @@ modules:
 
 Décommentez le bloc `config_override:` et n'y mettez **que** les globals que vous
 changez (le reste de `Foothold Config.lua` reste intact et se met à jour tout seul
-à la prochaine version). Chaque clé est **validée lexicalement** contre le code
-injecté : une faute de frappe fait échouer `validate` et le build.
+à la prochaine version). Deux contrôles au `validate` :
+
+- chaque clé est **validée lexicalement** contre le code injecté — une faute de frappe ou un
+  renommage amont fait échouer `validate` et le build ;
+- le `target` doit **désigner un script de la mission**. Sinon l'override serait chargé en
+  dernier, après le script de setup qui a déjà lu les réglages, et n'aurait donc aucun effet —
+  une panne silencieuse, désormais bloquée.
 
 ```yaml
 config_override:

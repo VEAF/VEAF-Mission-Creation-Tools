@@ -1,6 +1,6 @@
 # 01 — Gate the primary-frequency promotion on the aircraft's HumanRadio range
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Goal
 
@@ -10,13 +10,13 @@ promoted channel against it.
 
 ## Definition of Done
 
-- [ ] `radio_specs_updater.py` parses `HumanRadio` and emits `human_radio:` per aircraft
-- [ ] `dcs-radio-specs.yaml` + `doc/mission-maker/dcs-radio-specs.md` regenerated at the
+- [x] `radio_specs_updater.py` parses `HumanRadio` and emits `human_radio:` per aircraft
+- [x] `dcs-radio-specs.yaml` + `doc/mission-maker/dcs-radio-specs.md` regenerated at the
       pinned `DATAMINE_REF` (CI consistency guard passes)
-- [ ] `radio_frequency_validator.get_human_radio()` / `fits_human_radio()` added
-- [ ] `process_units` promotes channel 1 only when it fits `human_radio`
-- [ ] Unit tests for extraction, validator and the promotion guard; FW-190A8 @ 134 MHz no
+- [x] `radio_frequency_validator.get_human_radio()` / `fits_human_radio()` added
+- [x] `process_units` promotes channel 1 only when it fits `human_radio`
+- [x] Unit tests for extraction, validator and the promotion guard; FW-190A8 @ 134 MHz no
       longer promoted, F-16C and MiG-15bis unaffected
-- [ ] `doc/mission-maker/scripts/` / presets doc mention the primary-frequency rule
-- [ ] `CHANGELOG.md` entry, PATCH version bumped in `pyproject.toml` + `plugin.json`
-- [ ] mypy exclusion for `presets_injector_worker` dropped if listed (ratchet policy)
+- [x] `doc/mission-maker/scripts/` / presets doc mention the primary-frequency rule
+- [x] `CHANGELOG.md` entry, PATCH version bumped in `pyproject.toml` + `plugin.json`
+- [x] mypy exclusion for `presets_injector_worker` dropped if listed (ratchet policy)

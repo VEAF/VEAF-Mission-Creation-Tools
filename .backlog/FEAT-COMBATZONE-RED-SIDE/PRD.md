@@ -1,7 +1,7 @@
 # Lot FEAT-COMBATZONE-RED-SIDE — a combat zone can be played from the red side
 
-Status: 🔄 in-progress
-Branch: feature/FEAT-COMBATZONE-RED-SIDE
+Status: ✅ done
+Branch: feature/FEAT-COMBATZONE-RED-SIDE → PR #640 → merged into develop
 
 ## Problem Statement
 

@@ -1,7 +1,7 @@
 # Lot FIX-PRIMARY-FREQ-HUMANRADIO — a promoted preset frequency can fall outside the aircraft's tunable range
 
-Status: 🔄 in-progress
-Branch: fix/FIX-PRIMARY-FREQ-HUMANRADIO
+Status: ✅ done
+Branch: fix/FIX-PRIMARY-FREQ-HUMANRADIO → PR #639 → merged into develop
 
 ## Problem Statement
 

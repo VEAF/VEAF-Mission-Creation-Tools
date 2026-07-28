@@ -253,6 +253,54 @@ class TestProcessUnits(unittest.TestCase):
         worker.process_units(group, preset)
         self.assertEqual(group.group_dcs["frequency"], original_freq)
 
+    def _make_fw190_group(self) -> Group:
+        # FW-190A8: presets tune 38-156 MHz but the primary is confined to 38.4-42.4.
+        # 38.4 is DCS's own default, which is what the red (preset-less) groups keep.
+        return Group(
+            group_dcs={"units": [{"type": "FW-190A8", "skill": "Client"}], "frequency": 38.4},
+            aircraft_type="plane",
+            country="Germany",
+            coalition="blue",
+            human_pilot=True,
+            name="FW-190A8 Template",
+            unit_type="FW-190A8",
+        )
+
+    def test_process_units_freq_outside_human_radio_not_promoted(self) -> None:
+        # FIX-PRIMARY-FREQ-HUMANRADIO — the Snowfox regression: channel 1 at 134 MHz is a
+        # legitimate FuG 16 *preset* (kept, not dropped) but an invalid *primary*, and DCS
+        # then refuses to save the mission ("Fréquence invalide 134 MHz").
+        worker = _make_worker()
+        group = self._make_fw190_group()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf_blue", radio_type="vhf")
+        radio.channels = [Channel(1, freq=134.0)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertEqual(group.group_dcs["frequency"], 38.4)
+        # The preset itself is still injected — only the promotion is skipped.
+        self.assertIn("Radio", group.group_dcs["units"][0])
+
+    def test_process_units_freq_inside_human_radio_is_promoted(self) -> None:
+        worker = _make_worker()
+        group = self._make_fw190_group()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf_blue", radio_type="vhf")
+        radio.channels = [Channel(1, freq=40.0)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertAlmostEqual(group.group_dcs["frequency"], 40.0)
+
+    def test_skipped_promotion_is_recorded_once_per_type(self) -> None:
+        worker = _make_worker()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf_blue", radio_type="vhf")
+        radio.channels = [Channel(1, freq=134.0)]
+        preset.add_radio(radio)
+        for _ in range(2):
+            worker.process_units(self._make_fw190_group(), preset)
+        self.assertEqual(worker._skipped_primary_promotions, {"FW-190A8": 134.0})
+
 
 class TestProcessGroups(unittest.TestCase):
     def test_process_groups_with_matching_preset(self) -> None:

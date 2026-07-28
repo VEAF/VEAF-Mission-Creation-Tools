@@ -651,6 +651,7 @@
   "presets_injector.injected": "Préréglages injectés dans {count} aéronef(s)",
   "presets_injector.no_preset": "{count} groupe(s) sans préréglage correspondant dans presets.yaml (inchangé(s))",
   "presets_injector.invalid_primary_frequency": "Fréquence radio principale invalide (sous {min} MHz — une radio ADF/HF ne peut pas être la radio principale d'un groupe ; DCS refuserait d'enregistrer la mission) : {details}. Corrigez la fréquence dans la mission source / le modèle de slot dynamique.",
+  "presets_injector.primary_freq_not_promoted": "{details} : le canal 1 est hors de la plage de fréquence principale accordable de l'appareil ; le groupe conserve donc sa propre fréquence (les préréglages sont injectés normalement).",
   "presets_injector.kneeboard_pages": "{count} page(s) de kneeboard ajoutée(s) à la mission",
   "presets_injector.kneeboard.unknown_color": "Couleur de canal inconnue '{color}' (ni un nom de couleur Pillow ni #RRGGBB[AA]) — le canal n'est pas colorisé sur le kneeboard.",
   "presets_injector.spinner.processing_groups": "Traitement des groupes...",

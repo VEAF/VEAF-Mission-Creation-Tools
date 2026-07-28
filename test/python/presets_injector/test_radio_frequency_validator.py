@@ -7,6 +7,8 @@ from presets_injector.radio_frequency_validator import (
     ChannelFrequency,
     FrequencyRange,
     _canonical_type,
+    fits_human_radio,
+    get_human_radio,
     get_radios,
     get_valid_ranges,
     validate_frequencies,
@@ -259,3 +261,80 @@ class TestAircraftTypeAlias(unittest.TestCase):
 
     def test_unknown_type_still_none(self):
         self.assertIsNone(get_radios("NoSuchJet"))
+
+
+_HUMAN_RADIO_SPECS = {
+    # Real FW-190A8 data: a 38-156 MHz preset range but a primary confined to 38.4-42.4.
+    "FW-190A8": {
+        "name": "Radial",
+        "category": "plane",
+        "radios": [{"name": "FuG 16 Z", "ranges": [{"min_mhz": 38.0, "max_mhz": 156.0, "modulation": "AM/FM"}]}],
+        "human_radio": {"min_mhz": 38.4, "max_mhz": 42.4, "default_mhz": 38.4, "modulation": "AM"},
+    },
+    "F-16C_50": {
+        "name": "F-16C Viper",
+        "category": "plane",
+        "radios": [{"name": "ARC-164", "ranges": [{"min_mhz": 225.0, "max_mhz": 399.975, "modulation": "AM"}]}],
+        "human_radio": {"min_mhz": 225.0, "max_mhz": 399.975, "default_mhz": 251.0, "modulation": "AM"},
+    },
+    # Hand-curated entry (MiG-15bis family): no human_radio data at all.
+    "MiG-15bis": {
+        "name": "MiG-15bis",
+        "category": "plane",
+        "dcs_rejects_on_load": True,
+        "radios": [{"name": "RSI-6K", "ranges": [{"min_mhz": 3.75, "max_mhz": 5.0, "modulation": "AM"}]}],
+    },
+    # Defensive: a malformed overlay missing max_mhz must be treated as "no bound".
+    "Partial-Data": {
+        "name": "Partial",
+        "category": "plane",
+        "radios": [{"name": "R", "ranges": [{"min_mhz": 100.0, "max_mhz": 150.0, "modulation": "AM"}]}],
+        "human_radio": {"min_mhz": 100.0},
+    },
+}
+
+
+class TestHumanRadio(unittest.TestCase):
+    """FIX-PRIMARY-FREQ-HUMANRADIO — the primary frequency has its own, narrower range."""
+
+    def setUp(self):
+        self._patcher = patch("presets_injector.radio_frequency_validator._SPECS", _HUMAN_RADIO_SPECS)
+        self._patcher.start()
+
+    def tearDown(self):
+        self._patcher.stop()
+
+    def test_returns_range_for_bounded_aircraft(self):
+        human_radio = get_human_radio("FW-190A8")
+        self.assertIsNotNone(human_radio)
+        assert human_radio is not None
+        self.assertEqual((human_radio.min_mhz, human_radio.max_mhz), (38.4, 42.4))
+        self.assertEqual(human_radio.modulation, "AM")
+
+    def test_returns_none_for_unknown_aircraft(self):
+        self.assertIsNone(get_human_radio("NoSuchJet"))
+
+    def test_returns_none_when_no_human_radio_data(self):
+        self.assertIsNone(get_human_radio("MiG-15bis"))
+
+    def test_returns_none_when_data_incomplete(self):
+        self.assertIsNone(get_human_radio("Partial-Data"))
+
+    def test_fw190_rejects_preset_vhf_channel(self):
+        # The Snowfox regression: 134 MHz is a valid *preset* channel but an invalid primary.
+        self.assertTrue(validate_frequency("FW-190A8", 134.0))
+        self.assertFalse(fits_human_radio("FW-190A8", 134.0))
+
+    def test_fw190_accepts_in_range_frequency(self):
+        self.assertTrue(fits_human_radio("FW-190A8", 40.0))
+        self.assertTrue(fits_human_radio("FW-190A8", 38.4))
+        self.assertTrue(fits_human_radio("FW-190A8", 42.4))
+
+    def test_viper_uhf_channel_still_promotable(self):
+        self.assertTrue(fits_human_radio("F-16C_50", 251.0))
+
+    def test_permissive_when_no_data(self):
+        # No human_radio (MiG-15bis) / unknown type / no type at all: never block.
+        self.assertTrue(fits_human_radio("MiG-15bis", 3.75))
+        self.assertTrue(fits_human_radio("NoSuchJet", 999.0))
+        self.assertTrue(fits_human_radio(None, 999.0))

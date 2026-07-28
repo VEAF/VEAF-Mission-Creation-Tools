@@ -574,9 +574,13 @@ def update_dcs_data(
     # reproduce, so --all must never silently overwrite it.
     if radio:
         console.print(
-            "[yellow]⚠ Regenerating radio specs OVERWRITES manual overlays "
-            "(`dcs_rejects_on_load` flags + the bilingual critical-aircraft doc). "
-            "Re-apply them after generation.[/yellow]"
+            "[yellow]⚠ Regenerating radio specs OVERWRITES manual overlays. It does not just "
+            "drop the `dcs_rejects_on_load` flags: whole aircraft entries absent from the "
+            "datamine disappear (MiG-15bis, MiG-15bis_FC — 87 entries become 85), and the "
+            "hand-written FR doc page is replaced by the generated EN one.\n"
+            "  Safer than overwriting: keep the current YAML and merge only the new keys into "
+            "it (a load/dump round-trip is byte-neutral), then diff — the result must show "
+            "insertions only.[/yellow]"
         )
         console.print(f"[cyan]Generating DCS radio specs (datamine@{ref_short})...[/cyan]")
         from veaf_build.radio_specs_updater import main as update_radio

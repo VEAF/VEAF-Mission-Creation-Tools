@@ -114,6 +114,53 @@ def get_radios(unit_type: str) -> list[RadioSpec] | None:
     ]
 
 
+def get_human_radio(unit_type: str) -> FrequencyRange | None:
+    """Return the range the Mission Editor accepts as the group's *primary* frequency.
+
+    This is DCS's ``HumanRadio`` block, which is a different — sometimes far narrower —
+    constraint than the preset channel ranges returned by :func:`get_valid_ranges`. The
+    FW-190A8 tunes preset channels across 38–156 MHz but its primary frequency is confined
+    to 38.4–42.4 MHz, and the ME refuses to save a mission whose primary sits outside it.
+
+    Args:
+        unit_type: DCS unit type string (e.g. "FW-190A8").
+
+    Returns:
+        The primary-frequency range, or None when the unit type is unknown or the airframe
+        declares no bound.
+    """
+    specs = _load_specs()
+    entry = specs.get(_canonical_type(unit_type))
+    if not entry:
+        return None
+    hr = entry.get("human_radio")
+    if not hr or "min_mhz" not in hr or "max_mhz" not in hr:
+        return None
+    return FrequencyRange(min_mhz=hr["min_mhz"], max_mhz=hr["max_mhz"], modulation=hr.get("modulation", "AM/FM"))
+
+
+def fits_human_radio(unit_type: str | None, freq_mhz: float) -> bool:
+    """Whether *freq_mhz* may be written as *unit_type*'s primary group frequency.
+
+    Permissive by design: an unknown aircraft, or one that declares no ``human_radio``
+    bound, returns True so the promotion behaves exactly as it did before this check
+    existed. Only a known, explicitly bounded airframe can reject a frequency.
+
+    Args:
+        unit_type: DCS unit type string, or None when unknown.
+        freq_mhz: Candidate primary frequency in MHz.
+
+    Returns:
+        True unless the aircraft declares a primary range that excludes *freq_mhz*.
+    """
+    if unit_type is None:
+        return True
+    human_radio = get_human_radio(unit_type)
+    if human_radio is None:
+        return True
+    return human_radio.contains(freq_mhz)
+
+
 def is_strict(unit_type: str) -> bool:
     """Return True if out-of-range preset frequencies cause DCS to reject the mission at load.
 

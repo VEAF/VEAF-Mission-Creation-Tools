@@ -68,6 +68,21 @@ Not writing the key is the whole fix: the aircraft keeps DCS's own valid default
 clamping, no substitute channel — those would silently retune the group to something the
 mission maker never asked for.
 
+## Verification against the reported mission
+
+Auditing `Snowfox_20260728.miz` through `mission_tools.iter_groups` + the new
+`get_human_radio` — 104 human/player groups — returns exactly two offenders:
+
+```
+FW-190A8 Template   FW-190A8   frequency=134.0   allowed 38.4-42.4   radioSet=True   blue
+FW-190D9 Template   FW-190D9   frequency=134.0   allowed 38.4-42.4   radioSet=True   blue
+```
+
+The same two groups DCS names, and no other aircraft in that mission — so the new range data
+matches the Mission Editor's own verdict, with no false positive over a 104-group fleet. (The
+`.miz` already built still carries 134; it needs a rebuild on ≥ 6.11.6, or the frequency field
+set back to 38.4 by hand before saving.)
+
 ## Testing Decisions
 
 - Unit tests on the new extraction (`HumanRadio` present / absent / malformed).

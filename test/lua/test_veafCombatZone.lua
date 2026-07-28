@@ -934,6 +934,155 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_training_wi
 end
 
 -- ============================================================================
+-- TestVeafCombatZoneEnemyCoalition (FEAT-COMBATZONE-RED-SIDE)
+-- ============================================================================
+TestVeafCombatZoneEnemyCoalition = {}
+
+function TestVeafCombatZoneEnemyCoalition:setUp()
+  veafCombatZone.zonesDict = {}
+  veafCombatZone.zonesList = {}
+  dcs_mocks.clearUnitsAndGroups()
+  self.z = VeafCombatZone:new():setFriendlyName("Sided"):setMissionEditorZoneName("SIDED_ZONE")
+  self.z:disableJunkCleanup()
+end
+
+function TestVeafCombatZoneEnemyCoalition:tearDown()
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_defaults_to_red()
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 1)
+  luaunit.assertEquals(self.z:getFriendlyCoalition(), 2)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_module_default_constant()
+  luaunit.assertEquals(veafCombatZone.DEFAULT_ENEMY_COALITION, 1)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_setter_accepts_side_number()
+  self.z:setEnemyCoalition(2)
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+  luaunit.assertEquals(self.z:getFriendlyCoalition(), 1)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_setter_accepts_string()
+  -- the generated config passes the YAML value through as a string
+  self.z:setEnemyCoalition("blue")
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+  self.z:setEnemyCoalition("RED")
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 1)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_setter_keeps_previous_on_unknown_value()
+  self.z:setEnemyCoalition("blue")
+  self.z:setEnemyCoalition("purple")
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_setter_is_chainable()
+  luaunit.assertEquals(self.z:setEnemyCoalition(2), self.z)
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_blue_sided_zone_stays_active_while_blue_units_live()
+  -- Before this feature such a zone completed on its very first check: completion was
+  -- decided on the red count alone, and a red-side zone holds no red unit.
+  self.z:setEnemyCoalition(2):setActive(true)
+  dcs_mocks.addGroup("blueEnemies", {
+    getUnits = function()
+      return { { getCoalition = function() return 2 end } }
+    end,
+  })
+  self.z:addSpawnedGroup("blueEnemies")
+  self.z:completionCheck()
+  luaunit.assertTrue(self.z:isActive())
+  dcs_mocks.removeGroup("blueEnemies")
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_blue_sided_zone_completes_when_blue_units_are_gone()
+  self.z:setEnemyCoalition(2):setActive(true)
+  dcs_mocks.addGroup("redFriends", {
+    getUnits = function()
+      return { { getCoalition = function() return 1 end } }
+    end,
+  })
+  self.z:addSpawnedGroup("redFriends")
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+  dcs_mocks.removeGroup("redFriends")
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_red_sided_zone_still_completes_on_red_death()
+  -- regression guard for the default behaviour
+  self.z:setActive(true)
+  dcs_mocks.addGroup("blueOnly", {
+    getUnits = function()
+      return { { getCoalition = function() return 2 end } }
+    end,
+  })
+  self.z:addSpawnedGroup("blueOnly")
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+  dcs_mocks.removeGroup("blueOnly")
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneRedSideReport (FEAT-COMBATZONE-RED-SIDE)
+-- ============================================================================
+TestVeafCombatZoneRedSideReport = {}
+
+function TestVeafCombatZoneRedSideReport:setUp()
+  self._origFindUnit = veafUnits.findUnit
+  veafUnits.findUnit = function(typeName)
+    if typeName == "FakeVehicle" then
+      return { vehicle = true, naval = false, infantry = false }
+    end
+    return nil
+  end
+  dcs_mocks.clearUnitsAndGroups()
+  self.z = VeafCombatZone:new()
+    :setFriendlyName("Red Side Zone")
+    :setMissionEditorZoneName("RED_SIDE_ZONE")
+    :setEnemyCoalition(2)
+    :setActive(true)
+    :setShowZonePositionInfo(false)
+end
+
+function TestVeafCombatZoneRedSideReport:tearDown()
+  veafUnits.findUnit = self._origFindUnit
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+function TestVeafCombatZoneRedSideReport:test_blue_units_are_reported_as_enemies()
+  dcs_mocks.addGroup("blueEnemyGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("blueEnemyGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("ENEMIES") ~= nil)
+  luaunit.assertNil(info:find("FRIENDS"))
+  dcs_mocks.removeGroup("blueEnemyGrp")
+end
+
+function TestVeafCombatZoneRedSideReport:test_red_units_are_reported_as_friends()
+  dcs_mocks.addGroup("redFriendGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("redFriendGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("FRIENDS") ~= nil)
+  luaunit.assertNil(info:find("ENEMIES"))
+  dcs_mocks.removeGroup("redFriendGrp")
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

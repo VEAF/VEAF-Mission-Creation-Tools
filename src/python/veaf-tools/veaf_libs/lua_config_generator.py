@@ -654,6 +654,18 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     # the red count alone — such a zone would otherwise deactivate on the first check.
     if zone_def.get("completable", True) is False:
         lines.append(f"{indent}    :setCompletable(false)")
+    # `enemy_coalition` picks the side whose units must die for the zone to complete, and
+    # which tally the F10 report calls "enemies". RED is the runtime default, so it is not
+    # emitted — existing generated configs stay byte-identical.
+    enemy_coalition = zone_def.get("enemy_coalition")
+    # `is not None` rather than truthiness: an empty or blank value is an authoring mistake
+    # that must be reported, not silently skipped into the RED default.
+    if enemy_coalition is not None:
+        side = str(enemy_coalition).strip().upper()
+        if side not in ("RED", "BLUE"):
+            raise ValueError(f"combat zone {zone_name!r}: enemy_coalition must be RED or BLUE, got {enemy_coalition!r}")
+        if side != "RED":
+            lines.append(f"{indent}    :setEnemyCoalition(coalition.side.{side})")
     if "training" in zone_def:
         lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
     for cz in zone_def.get("chained_zones") or []:

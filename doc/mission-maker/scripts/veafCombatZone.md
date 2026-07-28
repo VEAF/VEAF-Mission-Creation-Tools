@@ -84,7 +84,8 @@ modules:
 | `radio_menu_prefix` | string | — | Non | Préfixe affiché devant le libellé de la zone dans le menu |
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
-| `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même. Nécessaire pour une zone **sans unité ROUGE** : la complétion étant décidée sur le seul décompte des rouges, une telle zone se désactiverait dès la première vérification (~1 min) |
+| `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même |
+| `enemy_coalition` | `RED` \| `BLUE` | `RED` | Non | Coalition **hostile** : ses unités sont celles qu'il faut détruire pour terminer la zone, et celles que le rapport F10 annonce comme « ennemis ». `BLUE` pour une zone jouée **côté rouge** (voir ci-dessous) |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
@@ -112,6 +113,37 @@ modules:
         zone_name: "CZ-Alpha"
         friendly_name: "Alpha"
 ```
+
+### Zone jouée côté rouge
+
+Par défaut, une zone de combat suppose que les joueurs sont **bleus** et que les unités à
+détruire sont **rouges**. Deux comportements en découlaient : la zone se terminait quand il ne
+restait plus d'unité rouge, et le rapport F10 annonçait les bleus comme « amis » et les rouges
+comme « ennemis ».
+
+`enemy_coalition: BLUE` inverse les deux : la zone se termine quand ses unités **bleues** ont
+été détruites, et le rapport nomme les bleus « ennemis » et les rouges « amis ».
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: "CZ-Kobuleti"
+        friendly_name: "Kobuleti"
+        enemy_coalition: BLUE   # les joueurs sont rouges, les bleus sont les ennemis
+```
+
+Le décompte des unités reste identique — seul change le camp sur lequel porte la condition de
+fin. Une zone qui ne précise rien se comporte exactement comme avant.
+
+> Auparavant, une zone sans unité rouge nécessitait `completable: false`, ce qui n'en faisait pas
+> une zone rouge : cela désactivait simplement la fin automatique, et le rapport continuait
+> d'appeler les ennemis bleus « amis ». `enemy_coalition` remplace ce contournement.
+
+Côté Lua, l'équivalent est `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)` ; le setter
+accepte aussi la chaîne `"blue"` / `"red"`.
 
 ---
 

@@ -85,7 +85,8 @@ modules:
 | `radio_menu_prefix` | string | — | No | Prefix shown before the zone label in the menu |
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
-| `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own. Required for a zone holding **no RED unit**: completion is decided on the red count alone, so such a zone would deactivate on its first check (~1 min) |
+| `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own |
+| `enemy_coalition` | `RED` \| `BLUE` | `RED` | No | The **hostile** coalition: its units are the ones that must be destroyed for the zone to complete, and the ones the F10 report calls "enemies". Use `BLUE` for a zone played from the **red side** (see below) |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
@@ -113,6 +114,36 @@ modules:
         zone_name: "CZ-Alpha"
         friendly_name: "Alpha"
 ```
+
+### A zone played from the red side
+
+By default a combat zone assumes the players are **blue** and the units to destroy are **red**.
+Two behaviours followed from that: the zone completed once no red unit was left, and the F10
+report labelled the blue tally "friends" and the red one "enemies".
+
+`enemy_coalition: BLUE` flips both: the zone completes once its **blue** units are destroyed, and
+the report calls the blue units "enemies" and the red ones "friends".
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: "CZ-Kobuleti"
+        friendly_name: "Kobuleti"
+        enemy_coalition: BLUE   # players are red, blue are the enemies
+```
+
+Unit counting itself is unchanged — only the side the completion condition looks at. A zone that
+says nothing behaves exactly as before.
+
+> A zone holding no red unit previously needed `completable: false`, which did not make it a
+> red-side zone: it merely switched auto-completion off, and the report still called the blue
+> enemies "friends". `enemy_coalition` replaces that workaround.
+
+In Lua the equivalent is `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)`; the setter also
+accepts the `"blue"` / `"red"` string form.
 
 ---
 

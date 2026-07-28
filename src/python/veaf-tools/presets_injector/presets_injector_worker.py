@@ -184,10 +184,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     # not, the key is left alone so the group keeps DCS's valid default.
                     first_radio_type = next(iter(inject_preset.radios.values())).radio_type
                     if first_radio_type != "fm" and _is_valid_primary_frequency(first_freq):
-                        if fits_human_radio(group.unit_type, first_freq):
-                            group.group_dcs["frequency"] = first_freq
+                        unit_type = group.unit_type
+                        if unit_type and not fits_human_radio(unit_type, first_freq):
+                            self._skipped_primary_promotions[unit_type] = first_freq
                         else:
-                            self._skipped_primary_promotions[group.unit_type or ""] = first_freq
+                            group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
             channel_freqs = [

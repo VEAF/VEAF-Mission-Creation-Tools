@@ -499,6 +499,21 @@ Un lien inter-page vise alors toujours `#coverage`, quelle que soit la langue du
 > garde un intervalle lisible (`6.11.x`) et le workflow de publication la remplace par la version
 > livrée (`poetry run docs-stamp-version`).
 
+### Republier la documentation d'une version déjà sortie
+
+Relancer le build du tag ne suffit pas : il reconstruirait depuis le **commit tagué**, donc sans
+un correctif arrivé après le tag. Utilisez le déclenchement manuel du workflow `Deploy Docs` :
+
+| Champ | Valeur |
+|-------|--------|
+| branche | celle qui contient le correctif (`develop`) |
+| `version` | la version à republier, par exemple `6.12.0` |
+| `set_latest` | coché si cette version doit rester la `latest` du site |
+
+La version saisie est aussi celle qui est tamponnée dans les pages — sans quoi republier la 6.12.0
+depuis un dépôt en 6.12.1 estampillerait les pages 6.12.1. Laisser `version` vide redéploie
+simplement l'alias `dev`.
+
 ---
 
 ### Publier une nouvelle version

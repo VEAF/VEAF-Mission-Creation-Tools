@@ -36,7 +36,7 @@ jobs:
             echo "Upstream moved: $current -> $latest"
           fi
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         if: steps.compare.outputs.changed == 'true'
         with:
           python-version: "3.13"

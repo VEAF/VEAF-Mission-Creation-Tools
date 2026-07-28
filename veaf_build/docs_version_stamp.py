@@ -26,6 +26,11 @@ STAMPED_PAGES: tuple[str, ...] = ("doc/LUA_API_REFERENCE.md", "doc/LUA_API_REFER
 
 _VERSION_LINE = re.compile(r"^(\*\*Version\s*:?\*\*)\s*.+$", re.MULTILINE)
 _UPDATED_LINE = re.compile(r"^(\*\*(?:Dernière mise à jour|Last Updated)\s*:?\*\*)\s*.+$", re.MULTILINE)
+#: The page repeats a version in its footer ("Généré pour : … v6.5.25"). Missed on the first
+#: pass and caught by reading the published 6.12.0 page, which still advertised v6.5.25 there.
+#: Anchored on the ASCII product name rather than the localised label: one occurrence per page,
+#: and no accented literal to get wrong.
+_GENERATED_FOR_LINE = re.compile(r"^(\*\*[^*]+\*\*\s*VEAF Mission Creation Tools v)\d[\w.+-]*\s*$", re.MULTILINE)
 _PYPROJECT_VERSION = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
 
 _FR_MONTHS = {
@@ -81,7 +86,9 @@ def stamp_text(text: str, version: str, today: date, french: bool) -> str:
         version_value = f"generated for {version}"
         updated_value = f"{today:%B} {today.year}"
     text = _VERSION_LINE.sub(lambda m: f"{m.group(1)} {version_value}", text, count=1)
-    return _UPDATED_LINE.sub(lambda m: f"{m.group(1)} {updated_value}", text, count=1)
+    # No count here: the header and the footer both carry a date, and both must reflect the build.
+    text = _UPDATED_LINE.sub(lambda m: f"{m.group(1)} {updated_value}", text)
+    return _GENERATED_FOR_LINE.sub(lambda m: f"{m.group(1)}{version}", text)
 
 
 def stamp(repo_root: Path, check_only: bool = False, today: date | None = None) -> list[str]:

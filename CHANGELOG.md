@@ -7,6 +7,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **The docs version stamper also stamps the page footer** (DOC-STAMP-FOOTER). `LUA_API_REFERENCE` carries a version and a date **twice** — header and footer — and the first implementation stamped only the header, using `count=1`. The published 6.12.0 page therefore still advertised *"Généré pour : VEAF Mission Creation Tools v6.5.25"* and *"Juin 2026"* in its footer, which is exactly the stale-header defect the stamper was written to end. Found by reading the published page rather than trusting the local run. The footer pattern is anchored on the ASCII product name instead of the localised label, and both date lines are now stamped. A regression test asserts the pattern contains no control character: the first attempt wrote a literal backspace where a regex `` was intended, producing a pattern that silently matched nothing — invisible in the source and in a `sed` dump.
+
 ## [6.12.0] — 2026-07-28
 
 ### Added

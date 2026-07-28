@@ -71,6 +71,54 @@ class TestStampText:
         assert "**Version :** générée pour la 6.11.9" in out
 
 
+# The page repeats a version and a date in its footer. The first pass stamped only the header,
+# which shipped a 6.12.0 page still advertising v6.5.25 — caught by reading the published site.
+_FR_FOOTER = """
+---
+
+**Version du document :** 1.0
+**Dernière mise à jour :** Juin 2026
+**Généré pour :** VEAF Mission Creation Tools v6.5.25
+"""
+
+_EN_FOOTER = """
+---
+
+**Document Version:** 1.0
+**Last Updated:** June 2026
+**Generated for:** VEAF Mission Creation Tools v6.5.25
+"""
+
+
+class TestFooter:
+    def test_footer_version_is_stamped(self):
+        out = stamp_text(_FR_HEADER + _FR_FOOTER, "6.12.0", date(2026, 7, 28), french=True)
+        assert "**Généré pour :** VEAF Mission Creation Tools v6.12.0" in out
+        assert "v6.5.25" not in out
+
+    def test_footer_version_is_stamped_in_english(self):
+        out = stamp_text(_EN_HEADER + _EN_FOOTER, "6.12.0", date(2026, 7, 28), french=False)
+        assert "**Generated for:** VEAF Mission Creation Tools v6.12.0" in out
+        assert "v6.5.25" not in out
+
+    def test_both_date_lines_are_stamped(self):
+        out = stamp_text(_FR_HEADER + _FR_FOOTER, "6.12.0", date(2026, 7, 28), french=True)
+        assert out.count("**Dernière mise à jour :** Juillet 2026") == 2
+        assert "Juin 2026" not in out
+
+    def test_document_version_is_left_alone(self):
+        # "**Version du document :** 1.0" is the page's own revision, not the product version.
+        out = stamp_text(_FR_HEADER + _FR_FOOTER, "6.12.0", date(2026, 7, 28), french=True)
+        assert "**Version du document :** 1.0" in out
+
+    def test_pattern_carries_no_control_character(self):
+        # The first attempt wrote a literal backspace (\\x08) where a regex \\b was intended,
+        # producing a pattern that silently matched nothing.
+        from veaf_build.docs_version_stamp import _GENERATED_FOR_LINE
+
+        assert all(ord(c) >= 32 for c in _GENERATED_FOR_LINE.pattern)
+
+
 class TestStamp:
     def test_writes_both_pages(self, repo: Path):
         assert sorted(stamp(repo, today=date(2026, 7, 28))) == sorted(STAMPED_PAGES)

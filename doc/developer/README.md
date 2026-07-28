@@ -47,25 +47,25 @@ flowchart LR
 
 **Tu veux modifier un script Lua** (ajouter une fonctionnalité, corriger un bug dans les modules) :
 
-1. Lis la section [Scripts Lua runtime](GUIDE.md#scripts-lua-runtime) du guide
+1. Lis la section [Scripts Lua runtime](GUIDE.md#lua-runtime-scripts) du guide
 2. Modifie le fichier dans `src/scripts/veaf/`
 3. Lance `poetry run test-lua` pour vérifier que rien n'est cassé
 
 **Tu veux modifier les outils Python** (la CLI `veaf-tools.exe`, le pipeline de build) :
 
-1. Lis la section [Outils Python](GUIDE.md#outils-python) du guide
+1. Lis la section [Outils Python](GUIDE.md#python-tools) du guide
 2. Modifie le code dans `src/python/veaf-tools/`
 3. Lance `poetry run pytest` pour vérifier
 
 **Tu démarres de zéro et n'as rien d'installé** :
 
-→ La [section Environnement de développement](GUIDE.md#environnement-de-développement) détaille toutes les installations pas-à-pas (Python, Poetry, Lua, StyLua).
+→ La [section Environnement de développement](GUIDE.md#development-environment) détaille toutes les installations pas-à-pas (Python, Poetry, Lua, StyLua).
 
 ---
 
 ## Vérification initiale de l'environnement
 
-À faire une seule fois après avoir suivi le [guide de setup](GUIDE.md#environnement-de-développement), pour confirmer que tout est bien installé :
+À faire une seule fois après avoir suivi le [guide de setup](GUIDE.md#development-environment), pour confirmer que tout est bien installé :
 
 ```powershell
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
@@ -88,7 +88,7 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 | Fichiers Lua (`src/scripts/veaf/`) | `stylua --check src/scripts/veaf/` puis `poetry run test-lua` |
 | Code Python (`src/python/`) | `poetry run ruff check src/python` puis `poetry run mypy src/python` puis `poetry run pytest` |
 
-> Sur Windows, `stylua` est installé dans `~/.local/bin/stylua.exe` par défaut (voir [guide de setup](GUIDE.md#5-stylua-240-qualité-du-code-lua)).
+> Sur Windows, `stylua` est installé dans `~/.local/bin/stylua.exe` par défaut (voir [guide de setup](GUIDE.md#stylua-setup)).
 
 ---
 

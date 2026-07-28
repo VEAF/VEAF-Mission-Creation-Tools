@@ -46,7 +46,7 @@ local myQra = VeafQRA:new()
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 Les définitions QRA vivent **sous `modules.QRA`** (`silence_all` + `definitions:`). Le module `QRA` doit être activé dans `modules:`.
 
@@ -121,7 +121,7 @@ modules:
         radio_menu_restrict_to_group: "MM Ctrl"  # optionnel : réserver le sous-menu à ce groupe DCS
 ```
 
-C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (QRA, AirWaves, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#menus-radio-en-yaml).
+C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (QRA, AirWaves, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#radio-menus-in-yaml).
 
 ### Exemple minimal
 

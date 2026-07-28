@@ -866,4 +866,4 @@ Pour plus de détails techniques, consultez le code source ou le dépôt GitHub.
 4. Locale du système (registre Windows / locale système sur Linux–macOS)
 5. `en` (repli intégré)
 
-Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.md#configuration-globale-utilisateur) pour les détails complets.
+Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.

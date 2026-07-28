@@ -58,7 +58,7 @@ When set to an object, the following sub-fields apply:
 
 ---
 
-## Step 1 — Radio Presets (`presets.yaml`)
+## Step 1 — Radio Presets (`presets.yaml`) {#pipeline-step-1-presets}
 
 Injects radio frequency presets into every aircraft group that has at least one human pilot (Client/Player skill). Also generates kneeboard PNG images for each preset.
 
@@ -70,7 +70,7 @@ Injects radio frequency presets into every aircraft group that has at least one 
 <mission-folder>/src/presets.yaml
 ```
 
-### Two authoring formats
+### Two authoring formats {#two-authoring-formats}
 
 Since [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepts two layers, which coexist:
 
@@ -253,7 +253,7 @@ Specs cover 87 player-flyable aircraft and are sourced from [dcs-lua-datamine](h
 
 ---
 
-## Step 2 — Waypoints (`waypoints.yaml`)
+## Step 2 — Waypoints (`waypoints.yaml`) {#pipeline-step-2-waypoints}
 
 Injects waypoint templates into human-piloted aircraft groups. Only groups with at least one Client/Player unit are modified.
 
@@ -328,7 +328,7 @@ settings:
 
 ---
 
-## Step 3 — Aircraft Groups: spawnables (B) and dynamic-slot templates (C)
+## Step 3 — Aircraft Groups: spawnables (B) and dynamic-slot templates (C) {#pipeline-step-3-aircraft-groups}
 
 Two **distinct uses** of injected aircraft groups, handled by two independent steps (see [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md)):
 
@@ -400,7 +400,7 @@ airplanes:
 
 ---
 
-## Step 6 — Weather & Time Versions (`versions.yaml`)
+## Step 6 — Weather & Time Versions (`versions.yaml`) {#pipeline-step-6-versions}
 
 Creates multiple `.miz` variants from a single base mission, each with a different time and/or weather configuration.
 

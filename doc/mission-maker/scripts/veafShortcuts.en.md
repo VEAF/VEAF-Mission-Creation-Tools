@@ -32,7 +32,7 @@ This automatically registers the default alias list.
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:
@@ -89,7 +89,7 @@ veafShortcuts.AddAlias(
 
 ---
 
-## Default Aliases Reference
+## Default Aliases Reference {#default-aliases-reference}
 
 The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
 

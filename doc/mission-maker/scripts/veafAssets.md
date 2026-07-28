@@ -30,7 +30,7 @@ Doit être appelé après avoir défini `veafAssets.Assets`.
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:

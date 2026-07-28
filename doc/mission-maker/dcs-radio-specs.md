@@ -12,7 +12,7 @@ par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquenc
 ## Particularités par type — gérées automatiquement
 
 Avec le format recommandé `channel_lists` (voir
-[format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur)), vous
+[format `presets.yaml`](../PIPELINE_REFERENCE.md#two-authoring-formats)), vous
 déclarez vos listes de canaux **une seule fois par coalition**, par rôle radio
 (UHF principal, VHF principal, FM…). Le build les projette ensuite sur les
 radios physiques de **chaque** appareil, en gérant tout seul ses particularités

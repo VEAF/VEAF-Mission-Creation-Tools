@@ -68,7 +68,7 @@ Le contenu exact dépend de ce que le créateur de la mission a activé : certai
 
 ---
 
-## Les commandes par marqueur
+## Les commandes par marqueur {#marker-commands}
 
 En plus du menu radio, vous pouvez donner des ordres en écrivant une **commande dans un marqueur** sur la carte F10.
 

@@ -36,7 +36,7 @@ This rebuilds the entire F10 tree. It is safe to call multiple times — it debo
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:
@@ -108,7 +108,7 @@ veafRadio.createUserMenu(
 
 ---
 
-## Radio menus in YAML
+## Radio menus in YAML {#radio-menus-in-yaml}
 
 Since ADR 0011, a mission maker can declare a custom F10 radio menu **entirely in YAML**, with no Lua, under `modules.RADIO.user_menus`. This is the declarative counterpart of `veafRadio.createUserMenu()` (see the callout above), intended in particular for Mission Master (MM) control menus.
 

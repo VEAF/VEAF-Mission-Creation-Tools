@@ -29,7 +29,7 @@ Individual zones are created and initialised separately (see below).
 
 ---
 
-## Configuration (`mission.yaml`)
+## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
 ```yaml
 modules:

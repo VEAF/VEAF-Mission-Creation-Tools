@@ -3694,7 +3694,7 @@ veafRadio.USAGE_ForUnit = 2
 
 ##### `veafRadio.addSubMenu(title, parentMenu, coalitionSide)`
 
-Ajoute un sous-menu au radio.
+Ajoute un sous-menu au menu radio.
 
 **Paramètres :**
 

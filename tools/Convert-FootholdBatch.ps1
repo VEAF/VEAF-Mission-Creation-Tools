@@ -45,10 +45,15 @@
     Build each mission after adopting it. Implies -Validate: building a mission that does not
     validate wastes minutes per folder.
 
-    Two things are checked first, and reported per mission rather than silently accepted:
-    a `mission.yaml` whose `config_override` is still commented out (the mission would ship
-    without its Era / FootholdLocale), and a `pipeline.weather` step still enabled (which
+    Two things are checked before building, and reported per mission rather than silently
+    accepted: a `mission.yaml` whose `config_override` is still commented out (the mission would
+    ship without its Era / FootholdLocale), and a `pipeline.weather` step still enabled (which
     multiplies every mission by its weather variants).
+
+    After building, the `.miz` files present are compared with the name `mission.yaml` asks for.
+    A file left over from an earlier build under a different name is flagged: on the VEAF servers
+    the name is an interface — RealWeather reads `_ICAO_<code>` from it — so deploying a stale one
+    silently pulls the weather of the wrong airfield.
 
 .PARAMETER SharedPublished
     Path to a **shared** `published/` folder (the one `veaf-build publish-local` or the updater
@@ -223,6 +228,39 @@ function Get-PreBuildWarnings {
     return $warnings
 }
 
+function Test-MizNaming {
+    <#  Compare the .miz files present with the name mission.yaml asks for.
+
+        The build names its output after `mission.name`, and on the VEAF servers that name is an
+        interface: RealWeather reads `_ICAO_<code>` from it. A .miz left over from an earlier
+        build under a different name is therefore not just clutter — deploy it and the mission
+        pulls the weather of the wrong airfield, silently. That happened for real on five
+        missions when their ICAO codes were corrected.
+
+        Returns @{Expected; Matching; Stale}: the expected base name, the files that match it
+        (several is normal — weather or era variants suffix it), and those that do not.  #>
+    param([string] $MissionFolder, [string] $MissionYaml)
+
+    $expected = $null
+    if (Test-Path -LiteralPath $MissionYaml) {
+        foreach ($line in (Read-Utf8Lines -Path $MissionYaml)) {
+            # `name:` indented under `mission:`; stop at the first, ignore any trailing comment.
+            if ($line -cmatch '^\s+name:\s*([^\s#]+)') { $expected = $Matches[1]; break }
+        }
+    }
+
+    $all = @(Get-ChildItem -LiteralPath $MissionFolder -Filter '*.miz' -File -ErrorAction SilentlyContinue) +
+           @(Get-ChildItem -LiteralPath (Join-Path $MissionFolder 'missions') -Filter '*.miz' -File -ErrorAction SilentlyContinue)
+
+    if (-not $expected) {
+        # No mission.name: the build falls back to its own default, so nothing to compare against.
+        return @{ Expected = $null; Matching = @($all | ForEach-Object Name); Stale = @() }
+    }
+    $matching = @($all | Where-Object { $_.Name -like "$expected`_*" } | ForEach-Object Name)
+    $stale = @($all | Where-Object { $_.Name -notlike "$expected`_*" } | ForEach-Object Name)
+    return @{ Expected = $expected; Matching = $matching; Stale = $stale }
+}
+
 function Remove-PersistedScriptsPath {
     <#  Drop the `build.scripts_path` key the build persists when --scripts-path is used.
 
@@ -367,10 +405,18 @@ foreach ($archive in $archives) {
             # The build resolves published/ from the current directory, hence -WorkingDirectory.
             $built = Invoke-VeafTools -Exe $exe -Arguments $buildArgs -WorkingDirectory $target
             if ($SharedPublished) { Remove-PersistedScriptsPath -MissionYaml $missionYaml }
-            $produced = @(Get-ChildItem -LiteralPath $target -Filter '*.miz' -File -ErrorAction SilentlyContinue) +
-                        @(Get-ChildItem -LiteralPath (Join-Path $target 'missions') -Filter '*.miz' -File -ErrorAction SilentlyContinue)
             if ($built) {
-                Write-Host "    construit — $($produced.Count) .miz" -ForegroundColor Green
+                $naming = Test-MizNaming -MissionFolder $target -MissionYaml $missionYaml
+                Write-Host "    construit — $($naming.Matching.Count) .miz" -ForegroundColor Green
+                if ($naming.Expected -and $naming.Matching.Count -eq 0) {
+                    Write-Warning "    aucun .miz nommé d'après mission.name ($($naming.Expected)) — vérifiez le build"
+                }
+                foreach ($stale in $naming.Stale) {
+                    Write-Warning "    .miz périmé, d'un build antérieur sous un autre nom : $stale"
+                }
+                if ($naming.Stale.Count -gt 0) {
+                    Write-Host '      supprimez-les pour ne pas déployer le mauvais fichier' -ForegroundColor Yellow
+                }
             } else {
                 Write-Host '    ÉCHEC du build' -ForegroundColor Red
             }

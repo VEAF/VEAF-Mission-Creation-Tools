@@ -27,8 +27,9 @@
     Where to create one mission subfolder per archive. Created if missing.
 
 .PARAMETER VeafTools
-    Path to `veaf-tools.exe`. When omitted, the script looks in -OutputFolder, then in
-    -InputFolder, then on the PATH.
+    Path to `veaf-tools.exe`. When omitted, the script looks beside the -SharedPublished bundle
+    (publish-local leaves the executable next to `published/`, not inside it), then in
+    -OutputFolder, then in `<OutputFolder>\_toolchain`, then in -InputFolder, then on the PATH.
 
 .PARAMETER Update
     Re-import into mission folders that already exist (`convert-other --update`): refreshes the
@@ -99,26 +100,37 @@ $Ww2ConfigName = 'Foothold Config WW2.lua'
 $LongPathWarnThreshold = 180
 
 function Resolve-VeafTools {
-    <#  Locate veaf-tools.exe: explicit parameter, then the output folder (that is where
-        `veaf-build publish-local` and the updater drop it), then the input folder, then
-        the PATH. #>
-    param([string] $Explicit, [string] $OutputFolder, [string] $InputFolder)
+    <#  Locate veaf-tools.exe, in order: the explicit parameter; next to a -SharedPublished
+        bundle (publish-local drops the executable beside published/, not inside it); the output
+        folder; the output folder's _toolchain/; the input folder; the PATH.  #>
+    param([string] $Explicit, [string] $OutputFolder, [string] $InputFolder, [string] $SharedPublished)
 
     if ($Explicit) {
         if (-not (Test-Path -LiteralPath $Explicit)) { throw "veaf-tools introuvable : $Explicit" }
         return (Resolve-Path -LiteralPath $Explicit).Path
     }
-    foreach ($folder in @($OutputFolder, $InputFolder)) {
+
+    $folders = [System.Collections.Generic.List[string]]::new()
+    if ($SharedPublished) { $folders.Add((Split-Path -Parent $SharedPublished)) }
+    $folders.Add($OutputFolder)
+    $folders.Add((Join-Path $OutputFolder '_toolchain'))
+    $folders.Add($InputFolder)
+
+    foreach ($folder in $folders) {
+        if (-not $folder) { continue }
         $candidate = Join-Path $folder 'veaf-tools.exe'
         if (Test-Path -LiteralPath $candidate) { return (Resolve-Path -LiteralPath $candidate).Path }
     }
     $onPath = Get-Command 'veaf-tools.exe' -ErrorAction SilentlyContinue
     if ($onPath) { return $onPath.Source }
 
-    throw @"
-veaf-tools.exe introuvable. Passez -VeafTools <chemin>, ou déposez l'exécutable dans le dossier
-d'entrée ou de sortie (c'est ce que font l'updater et `veaf-build publish-local`).
-"@
+    # Single-quoted here-string: a double-quoted one would read the backtick before
+    # `veaf-build` as an escape and print "eaf-build".
+    throw @'
+veaf-tools.exe introuvable. Passez -VeafTools <chemin>, ou déposez l'exécutable à côté du
+dossier published partagé, dans le dossier de sortie (ou son sous-dossier _toolchain), ou
+dans le dossier d'entrée — c'est là que l'updater et "veaf-build publish-local" le laissent.
+'@
 }
 
 function Get-ConversionProfile {
@@ -242,11 +254,11 @@ if (-not (Test-Path -LiteralPath $OutputFolder)) {
 }
 $OutputFolder = (Resolve-Path -LiteralPath $OutputFolder).Path
 
-$exe = Resolve-VeafTools -Explicit $VeafTools -OutputFolder $OutputFolder -InputFolder $InputFolder
-
 # Building a mission that does not validate wastes minutes per folder.
 if ($Build) { $Validate = $true }
 
+# Resolve -SharedPublished BEFORE looking for the executable: the bundle's parent folder is
+# where publish-local leaves veaf-tools.exe, so it is the best place to find it.
 if ($SharedPublished) {
     if (-not (Test-Path -LiteralPath $SharedPublished)) {
         throw "Dossier published partagé introuvable : $SharedPublished"
@@ -260,6 +272,9 @@ $SharedPublished ne ressemble pas à un dossier published (src/scripts/community
 "@
     }
 }
+
+$exe = Resolve-VeafTools -Explicit $VeafTools -OutputFolder $OutputFolder `
+    -InputFolder $InputFolder -SharedPublished $SharedPublished
 
 $archives = @(Get-ChildItem -LiteralPath $InputFolder -Filter '*.zip' -File | Sort-Object Name)
 if ($archives.Count -eq 0) { throw "Aucune archive .zip dans $InputFolder" }

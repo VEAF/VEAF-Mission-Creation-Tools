@@ -178,6 +178,34 @@ Lors de l'ajout de commandes via l'API bas niveau, le paramètre `usage` contrô
 
 ---
 
+## Réserver un menu à une coalition {#coalition-scoped-menus}
+
+`usage` décide **qui reçoit une commande**. Pour masquer un **sous-menu entier** à l'autre camp,
+passez une coalition en troisième argument de `addSubMenu` :
+
+```lua
+-- ce sous-menu, et tout ce qu'il contient, n'existe que pour les rouges
+local menuRouge = veafRadio.addSubMenu("Zones ROUGE", nil, coalition.side.RED)
+veafRadio.addCommandToSubmenu("Statut", menuRouge, maFonction, nil, veafRadio.USAGE_ForGroup)
+```
+
+Trois conséquences, automatiques :
+
+- **l'appartenance est héritée** — sous-menus, commandes et pages de pagination créées quand le
+  menu dépasse `MENU_PAGE_SIZE` ; il n'y a pas d'enfant « visible par tous » sous un menu réservé ;
+- une commande `USAGE_ForGroup` ou `USAGE_ForUnit` n'est posée que pour les groupes **de ce camp**
+  (un groupe dont DCS ne nous donne pas la coalition est conservé) ;
+- le menu est reconstruit à chaque connexion de joueur, et les menus réservés sont retirés
+  explicitement à ce moment-là — sans quoi ils s'empileraient en double à chaque arrivée.
+
+Le menu **parent** n'est pas modifié : si vous accrochez un menu réservé sous un menu global,
+l'autre camp continue de voir le parent, simplement vide de cette entrée.
+
+> Utilisé par les zones de combat, qui proposent leur menu au camp qui les joue — voir
+> [veafCombatZone](veafCombatZone.md#f10-menu-audience).
+
+---
+
 ## API bas niveau
 
 Pour un contrôle plus fin, construire l'arbre de menus directement :

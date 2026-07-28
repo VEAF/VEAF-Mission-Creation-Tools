@@ -178,6 +178,34 @@ When adding commands via the low-level API, the `usage` parameter controls who s
 
 ---
 
+## Restricting a menu to one coalition {#coalition-scoped-menus}
+
+`usage` decides **who gets a command**. To hide a **whole submenu** from the other side, pass a
+coalition as `addSubMenu`'s third argument:
+
+```lua
+-- this submenu, and everything under it, only exists for red
+local redMenu = veafRadio.addSubMenu("RED zones", nil, coalition.side.RED)
+veafRadio.addCommandToSubmenu("Status", redMenu, myFunction, nil, veafRadio.USAGE_ForGroup)
+```
+
+Three consequences, all automatic:
+
+- **the side is inherited** — by child submenus, commands, and the pagination pages created when a
+  menu exceeds `MENU_PAGE_SIZE`; there is no "visible to all" child under a restricted menu;
+- a `USAGE_ForGroup` or `USAGE_ForUnit` command is only attached for groups **of that side** (a
+  group whose coalition DCS does not report is kept);
+- the menu is rebuilt on every player join, and restricted menus are removed explicitly at that
+  point — otherwise they would stack up one duplicate per join.
+
+The **parent** menu is untouched: hang a restricted submenu under a global one and the other side
+still sees the parent, simply without that entry.
+
+> Used by combat zones, which offer their menu to the side playing them — see
+> [veafCombatZone](veafCombatZone.md#f10-menu-audience).
+
+---
+
 ## Low-level API
 
 For finer control, build the menu tree directly:

@@ -269,7 +269,7 @@ modules:
 | `enabled` | booléen | `false` | Activer l'intégration CTLD / CSAR |
 | `settings` | dictionnaire | — | Paires `ctld.xxx` / `csar.xxx` (ex: `hoverPickup: true`, `enableAllslots: true`) |
 
-VEAF génère les affectations `ctld.xxx = value` / `csar.xxx = value` et l'appel `initialize()` dans `veaf-config.lua`. À la conversion `convert-v5`, ces réglages sont extraits automatiquement de `missionConfig.lua`. Pour les réglages complexes comme `aircraftType` (table par appareil), continuez d'utiliser le motif de callback Lua dans `mission-script.lua`. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#intégration-ctld-et-csar).
+VEAF génère les affectations `ctld.xxx = value` / `csar.xxx = value` et l'appel `initialize()` dans `veaf-config.lua`. À la conversion `convert-v5`, ces réglages sont extraits automatiquement de `missionConfig.lua`. Pour les réglages complexes comme `aircraftType` (table par appareil), continuez d'utiliser le motif de callback Lua dans `mission-script.lua`. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#ctld-and-csar-integration).
 
 > **Sons.** CTLD et CSAR jouent leurs sons par nom de fichier au runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). Quand CTLD ou CSAR est activé, le build injecte automatiquement les sons requis qu'il embarque (`src/scripts/community/sounds/`) dans le `l10n/DEFAULT/` de la mission, sans écraser un son déjà fourni par votre mission. Un son requis qui n'est fourni ni par les outils ni par votre mission est signalé par un avertissement de build — ajoutez-le dans `src/mission/l10n/DEFAULT/` (ex. `radiobeep.ogg`, le bip de secours JTAC, n'est pas redistribué).
 
@@ -672,7 +672,7 @@ veaf-tools.exe build --profile MODERN   # ne produit que la variante MODERN (san
 | [`modules.SKYNET` / `.CTLD` / `.CSAR`](#modules-tiers--skynet--ctld--csar-sous-modules) | Skynet IADS, CTLD, CSAR |
 | [`veaf_tools:`](#veaf_tools) | Contrainte de version |
 | `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs--spawnables-b-et-modèles-de-slot-dynamique-c) |
-| `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#étape-4--variantes-météo--horaire-versionsyaml) |
+| `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#étape-6--variantes-météo--horaire-versionsyaml) |
 | [`custom_scripts:`](#custom_scripts) | Scripts Lua custom à inclure dans la mission |
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |

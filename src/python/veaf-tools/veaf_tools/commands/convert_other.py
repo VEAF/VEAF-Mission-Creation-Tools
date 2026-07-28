@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 from mission_builder import ConversionReport, OtherMissionConverter
+from veaf_libs.mission_input import AmbiguousMissionInput, is_archive, resolve_input_miz
 from veaf_libs.paths import resolve_path
 
 from veaf_tools.app import (
@@ -57,14 +58,29 @@ def convert_other(
 
     p_output = resolve_path(path=output_folder, default_path=Path.cwd())
 
+    # The input may be a release .zip bundling the .miz with a config manager and a manual
+    # (Lekaa's Foothold assets): adopt the .miz it holds, without unzipping by hand.
     converter = OtherMissionConverter(version=VERSION)
-    report: ConversionReport = converter.convert(
-        input_mission_path=p_input,
-        output_mission_folder=p_output,
-        force=force,
-        profile_name=profile,
-        update=update,
-    )
+    try:
+        with resolve_input_miz(p_input) as p_miz:
+            report: ConversionReport = converter.convert(
+                input_mission_path=p_miz,
+                output_mission_folder=p_output,
+                force=force,
+                profile_name=profile,
+                update=update,
+            )
+            if is_archive(p_input):
+                report.actions.insert(
+                    0, t("convert_other.action.from_archive", mission=p_miz.name, archive=p_input.name)
+                )
+    except AmbiguousMissionInput as exc:
+        # Never guess which mission the user meant: name the members and stop.
+        key = "archive_many_miz" if exc.candidates else "archive_no_miz"
+        logger.error(
+            t(f"convert_other.command.{key}", archive=exc.archive.name, names=", ".join(exc.candidates)),
+            exception_type=ValueError,
+        )
 
     # ── Console output ────────────────────────────────────────────────────────
     console.print(f"\n[bold cyan]{t('convert_v5.command.folder_label')}[/bold cyan] {p_output}\n")

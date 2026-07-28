@@ -77,6 +77,26 @@ def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> N
     assert "airfield-frequencies.yaml" in sources
 
 
+def test_veaf_tools_extra_data_bundles_conversion_profiles(tmp_path: Path) -> None:
+    """Regression guard: the conversion profiles must ship, or `convert-other --profile
+    foothold` dies with "unknown conversion profile" in the packaged executable — which it
+    did from the day profiles were introduced until FEAT-FOOTHOLD-RELEASE-INTAKE.
+
+    The stale veaf-tools.spec listed them, but the build does not use that file: it passes
+    --add-data from `_veaf_tools_extra_data`, so this list is the one that matters.
+    """
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = worker._veaf_tools_extra_data(None)
+    dests = [dest for _src, dest in bundled]
+    assert "veaf_libs/data/convert-profiles" in dests
+
+    # The whole directory ships, so a new profile needs no build change.
+    profiles_dir = next(src for src, dest in bundled if dest == "veaf_libs/data/convert-profiles")
+    assert profiles_dir.is_dir()
+    shipped = {p.stem for p in profiles_dir.glob("*.yaml")}
+    assert {"foothold", "foothold-ww2"} <= shipped
+
+
 def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
     """Regression guard: third_party_mods.json must ship so the build's requiredModules
     stripping works in the packaged executable (FEAT-THIRD-PARTY-MODS)."""

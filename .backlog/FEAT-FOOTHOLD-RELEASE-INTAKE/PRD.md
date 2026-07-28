@@ -1,6 +1,6 @@
 # FEAT-FOOTHOLD-RELEASE-INTAKE — adopt Lekaa's new release channel
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 
@@ -62,16 +62,33 @@ ergonomics of the new release channel.
 5. **Normandy WW2 is a different family.** Config target is `Foothold Config WW2.lua`, which
    has **no `Era`** and **no `StartNormal`**; the mission ships **no Foothold CTLD**, so the
    profile's `incompatible_modules: [CTLD]` is wrong there — the VEAF CTLD would be usable.
-   Adopting Normandy with `--profile foothold` produces a scaffold that fails `validate`.
+   Adopting Normandy with `--profile foothold` produced a mission that **validated cleanly and
+   built**, with an override silently loaded too late to have any effect (see ticket 05 — this
+   PRD first claimed it failed `validate`, which was wrong).
+
+## Two defects found while testing this lot
+
+Exercising tickets 01-04 **through the packaged executable** instead of `poetry` surfaced two
+pre-existing defects, both fixed here (ticket 05):
+
+- **`--profile` never worked in the shipped binary.** The conversion profiles were never
+  bundled by PyInstaller, so `veaf-tools.exe convert-other … --profile foothold` died with
+  *unknown conversion profile*. The documented moulinette was unusable for any VEAF member
+  not running from the sources. (`veaf-tools.spec` lists them, but the build ignores that
+  file.)
+- **`config_override.target` was never validated.** A target naming no injected script makes
+  the build append the override **last** — after the setup script has read the globals — so it
+  loads and does nothing. Now an error.
 
 ## Scope
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`](tickets/01-profile-name-rules-and-locale.md) | ⬜ |
-| 02 | [`convert-other` accepts a release `.zip`](tickets/02-convert-other-accepts-zip.md) | ⬜ |
-| 03 | [Document the new release channel, external config and `Era` values](tickets/03-doc-release-channel.md) | ⬜ |
-| 04 | [`foothold-ww2` profile for Normandy](tickets/04-foothold-ww2-profile.md) | ⬜ |
+| 01 | [Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`](tickets/01-profile-name-rules-and-locale.md) | ✅ |
+| 02 | [`convert-other` accepts a release `.zip`](tickets/02-convert-other-accepts-zip.md) | ✅ |
+| 03 | [Document the new release channel, external config and `Era` values](tickets/03-doc-release-channel.md) | ✅ |
+| 04 | [`foothold-ww2` profile for Normandy](tickets/04-foothold-ww2-profile.md) | ✅ |
+| 05 | [Bundle the profiles, and validate `config_override.target`](tickets/05-validate-config-override-target.md) | ✅ |
 
 ## Out of scope
 

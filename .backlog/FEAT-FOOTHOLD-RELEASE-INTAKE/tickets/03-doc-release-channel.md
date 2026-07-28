@@ -1,6 +1,6 @@
 # 03 — Document the new release channel, external config and `Era` values
 
-Status: ⬜ ready
+Status: ✅ done
 Type: docs
 
 ## Why
@@ -42,13 +42,13 @@ setting that drives Foothold's on-screen language.
 
 ## Tasks
 
-- [ ] Rewrite the prerequisites + step 1 of `FOOTHOLD.md` / `FOOTHOLD.en.md` for the release
+- [x] Rewrite the prerequisites + step 1 of `FOOTHOLD.md` / `FOOTHOLD.en.md` for the release
       channel.
-- [ ] Add the external-config section (mission-maker view + the server-side warning).
-- [ ] Update the Modern/Cold-War section for the four `Era` values and `FootholdLocale`.
-- [ ] Note in `CONVERT_OTHER.md` / `.en.md` that a Foothold upstream now arrives zipped.
-- [ ] Check whether the deployment/ops doc needs the same warning; add it there if so.
-- [ ] CHANGELOG entry (docs-only, no version bump unless another ticket in the lot bumps).
+- [x] Add the external-config section (mission-maker view + the server-side warning).
+- [x] Update the Modern/Cold-War section for the four `Era` values and `FootholdLocale`.
+- [x] Note in `CONVERT_OTHER.md` / `.en.md` that a Foothold upstream now arrives zipped.
+- [x] Check whether the deployment/ops doc needs the same warning; add it there if so.
+- [x] CHANGELOG entry (docs-only, no version bump unless another ticket in the lot bumps).
 
 ## Verify
 

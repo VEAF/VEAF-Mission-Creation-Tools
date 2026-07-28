@@ -7,6 +7,7 @@ Caucasus `.miz` (Lekaa): each loader trigrule carries ordered ``a_do_script_file
 actions whose ``file`` is a ``mapResource`` key resolving to a ``.lua`` filename.
 """
 
+import os
 import tempfile
 import unittest
 import zipfile
@@ -195,6 +196,12 @@ class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
         self.assertIn("Foothold Config.lua", yaml)
         self.assertIn("CapDifficulty", yaml)
 
+    def test_config_override_scaffold_offers_foothold_locale(self) -> None:
+        # The locale is a setting a VEAF mission-maker actually changes, so the commented
+        # scaffold must surface it (upstream config V1.0.9 accepts "FR").
+        yaml = build_scaffold_yaml([], [], self._profile())
+        self.assertIn("#     FootholdLocale: FR", yaml)
+
     def test_community_scripts_disabled_inside_modules_block(self) -> None:
         # FOOTHOLD-V6-009 fix: disables go INSIDE the unified modules: block — a separate
         # community_scripts: block is the deprecated form and is ignored when modules: exists.
@@ -210,7 +217,17 @@ class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
         self.assertNotIn("aien: false", yaml)
 
 
-_REAL_MIZ = Path(r"D:\dev\_VEAF\tmp\test-foothold\test-caucasus\Foothold_CA_4.1.5_Multi_Language_Coldwar-Modern.miz")
+#: A real upstream Foothold Caucasus `.miz`, if the developer has one. Overridable via
+#: ``VEAF_TEST_FOOTHOLD_MIZ`` so the path does not rot with each Lekaa release (the
+#: default below tracks the release these tests were last exercised against).
+_REAL_MIZ = Path(
+    os.environ.get(
+        "VEAF_TEST_FOOTHOLD_MIZ",
+        r"D:\dev\_VEAF\tmp\foothold-2026.07.28"
+        r"\Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam"
+        r"\Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.miz",
+    )
+)
 
 
 @unittest.skipUnless(_REAL_MIZ.exists(), "real third-party Foothold .miz not available")
@@ -227,7 +244,7 @@ class TestOtherMissionConverterIntegration(unittest.TestCase):
             self.assertTrue(report.mission_yaml_generated)
             yaml = (out / "mission.yaml").read_text(encoding="utf-8")
             expected_order = [
-                "Moose_2026-04-28.lua",
+                "Moose_2026-06-14.lua",
                 "Foothold_Localization.lua",
                 "Foothold Config.lua",
                 "zoneCommander.lua",
@@ -246,7 +263,7 @@ class TestOtherMissionConverterIntegration(unittest.TestCase):
             # Extracted scripts land in src/scripts/.
             self.assertTrue((out / "src" / "scripts" / "AIEN.lua").exists())
 
-    def test_foothold_profile_normalizes_moose_and_marks_profile(self) -> None:
+    def test_foothold_profile_normalizes_versioned_names_and_marks_profile(self) -> None:
         from mission_builder.other_converter import OtherMissionConverter
 
         with tempfile.TemporaryDirectory() as td:
@@ -255,11 +272,16 @@ class TestOtherMissionConverterIntegration(unittest.TestCase):
 
             yaml = (out / "mission.yaml").read_text(encoding="utf-8")
             self.assertIn("conversion_profile: foothold", yaml)
-            # Versioned Moose name normalised, on disk and in the scaffold.
-            self.assertTrue((out / "src" / "scripts" / "Moose.lua").exists())
-            self.assertFalse((out / "src" / "scripts" / "Moose_2026-04-28.lua").exists())
-            self.assertIn("src/scripts/Moose.lua", yaml)
-            self.assertNotIn("Moose_2026-04-28.lua", yaml)
+            # Both version-stamped names normalised, on disk and in the scaffold, so the
+            # custom_scripts paths survive the next Lekaa bump.
+            for versioned, fixed in (
+                ("Moose_2026-06-14.lua", "Moose.lua"),
+                ("Splash_Damage_3.4.1_leka.lua", "Splash_Damage.lua"),
+            ):
+                self.assertTrue((out / "src" / "scripts" / fixed).exists(), fixed)
+                self.assertFalse((out / "src" / "scripts" / versioned).exists(), versioned)
+                self.assertIn(f"src/scripts/{fixed}", yaml)
+                self.assertNotIn(versioned, yaml)
 
     def test_existing_yaml_not_overwritten_without_force(self) -> None:
         from mission_builder.other_converter import OtherMissionConverter

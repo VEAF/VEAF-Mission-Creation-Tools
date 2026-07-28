@@ -246,11 +246,17 @@ def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue
 
 
 def _check_config_override(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
-    """Each ``config_override.values`` key segment must exist in the injected corpus.
+    """Validate ``config_override``: its ``target`` resolves, and its key segments exist.
 
-    Validates lexically (whole-word identifier search) against the concatenated
-    ``src/scripts/*.lua`` sources — a segment found nowhere is a typo or an upstream
-    rename and is reported as an error. See ADR 0008.
+    Two distinct failures, both silent until now:
+
+    - **target**: the build anchors the override right after the script named by ``target``
+      and, when that name is absent, appends it **last** — after the setup script has read
+      the globals, so the override loads but has no effect. An unresolvable target is
+      therefore an error, not a cosmetic mismatch.
+    - **values**: each dotted-path segment is validated lexically (whole-word identifier
+      search) against the concatenated ``src/scripts/*.lua`` sources; a segment found
+      nowhere is a typo or an upstream rename. See ADR 0008.
     """
     co = yaml_data.get("config_override")
     if not isinstance(co, dict):
@@ -258,14 +264,29 @@ def _check_config_override(folder: Path, yaml_data: dict) -> list[ValidationIssu
     values = co.get("values")
     if not isinstance(values, dict) or not values:
         return []
-    corpus = read_corpus(folder / "src" / "scripts")
-    issues: list[ValidationIssue] = []
+    scripts_dir = folder / "src" / "scripts"
+    issues = _check_config_override_target(scripts_dir, co.get("target"))
+    corpus = read_corpus(scripts_dir)
     for key in values:
         for segment in find_unknown_segments({key: values[key]}, corpus):
             issues.append(
                 ValidationIssue(ERROR, t("validate.config_override_unknown_segment", segment=segment, override_key=key))
             )
     return issues
+
+
+def _check_config_override_target(scripts_dir: Path, target: object) -> list[ValidationIssue]:
+    """The ``config_override.target`` must name a script present in *scripts_dir*.
+
+    Matched on basename, like the build's own positioning. Absent target → no check (the
+    override then simply loads in collection order, which is a deliberate choice).
+    """
+    if not target:
+        return []
+    name = Path(str(target)).name
+    if (scripts_dir / name).is_file():
+        return []
+    return [ValidationIssue(ERROR, t("validate.config_override_target_missing", target=name))]
 
 
 def _read_source_mission(folder: Path) -> dict | None:

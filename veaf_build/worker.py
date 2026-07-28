@@ -484,6 +484,12 @@ class BuildAndReleaseWorker:
         if radio_layouts_yaml.exists():
             extra.append((radio_layouts_yaml, "presets_injector/data"))
         veaf_tools_dir = self.src_dir / "python" / "veaf-tools"
+        # Conversion profiles ship as a whole directory (like the locales), so adding a
+        # profile needs no build change. Without this, `convert-other --profile foothold`
+        # fails with "unknown conversion profile" in the packaged executable only.
+        profiles_dir = veaf_tools_dir / "veaf_libs" / "data" / "convert-profiles"
+        if profiles_dir.is_dir():
+            extra.append((profiles_dir, "veaf_libs/data/convert-profiles"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),

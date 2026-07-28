@@ -1,13 +1,19 @@
 # 04 — `foothold-ww2` profile for Normandy
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Why
 
 `WWII_Normandy_Foothold_5.2.2` (by *sevenfifty777*) is a Foothold, but not the same family.
-Adopting it with `--profile foothold` yields a scaffold that fails `validate`, and one wrong
-incompatibility.
+Adopting it with `--profile foothold` yields a scaffold pointing at a config file the mission
+does not have, plus one wrong incompatibility.
+
+> **Correction.** This ticket first claimed the wrong profile "fails `validate`". It did not:
+> it validated cleanly, built, and produced an override loaded too late to do anything. That
+> silent failure is fixed in [ticket 05](05-validate-config-override-target.md), which makes
+> an unresolvable `config_override.target` an error — so the claim is true *now*, because of
+> 05, not because it ever was.
 
 Measured against the shipped 5.2.2 `.miz`:
 
@@ -40,16 +46,16 @@ A second bundled profile `foothold-ww2.yaml`:
 
 ## Tasks
 
-- [ ] Write `veaf_libs/data/convert-profiles/foothold-ww2.yaml` with the above, commented in
+- [x] Write `veaf_libs/data/convert-profiles/foothold-ww2.yaml` with the above, commented in
       the same style as `foothold.yaml` (data only, no code change expected).
-- [ ] Unit test: the profile loads, target is the WW2 config, `incompatible_modules` is
+- [x] Unit test: the profile loads, target is the WW2 config, `incompatible_modules` is
       empty, `ctld` is not in `disabled_community_scripts`.
-- [ ] Adopt `WWII_Normandy_Foothold_5.2.2` with it and run `validate` — must pass with the
+- [x] Adopt `WWII_Normandy_Foothold_5.2.2` with it and run `validate` — must pass with the
       `config_override` block uncommented (every key lexically present in the WW2 config).
-- [ ] Build it and check the native loaders are stripped and the 10 scripts injected.
-- [ ] Document the profile in `FOOTHOLD.md` / `.en.md`: which profile for which map, and why
+- [x] Build it and check the native loaders are stripped and the 10 scripts injected.
+- [x] Document the profile in `FOOTHOLD.md` / `.en.md`: which profile for which map, and why
       Normandy needs its own (no era switch, no Foothold CTLD).
-- [ ] CHANGELOG + version bump.
+- [x] CHANGELOG + version bump.
 
 ## Notes
 

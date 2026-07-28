@@ -221,9 +221,13 @@ function Remove-PersistedScriptsPath {
 }
 
 function Invoke-VeafTools {
-    <#  Run veaf-tools and return $true on success, printing its output only on failure so a
-        ten-mission batch stays readable. `WorkingDirectory` matters for the build, which
-        resolves `published/` relative to the current directory.  #>
+    <#  Run veaf-tools and return $true on success. Its full output is printed on failure only,
+        so a ten-mission batch stays readable — but warnings are surfaced even on success:
+        hiding them once cost us every mission being named mission_<date>.miz while veaf-tools
+        was saying so on every run.
+
+        `WorkingDirectory` matters for the build, which resolves `published/` relative to the
+        current directory.  #>
     param([string] $Exe, [string[]] $Arguments, [string] $WorkingDirectory)
 
     $previous = $null
@@ -238,6 +242,8 @@ function Invoke-VeafTools {
             $output | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
             return $false
         }
+        $flagged = @($output | Where-Object { $_ -match 'invalide|introuvable|manquant|ignoré|avertissement|WARNING' })
+        foreach ($line in $flagged) { Write-Host "    ! $line" -ForegroundColor Yellow }
         return $true
     }
     finally {
@@ -333,7 +339,12 @@ foreach ($archive in $archives) {
             foreach ($w in (Get-PreBuildWarnings -MissionYaml $missionYaml -MissionFolder $target)) {
                 Write-Warning "    $w"
             }
-            $buildArgs = @('build', '.')
+            # No positional argument: `build`'s FIRST positional is the mission NAME, not the
+            # folder. Passing '.' made it the name, which is invalid, so it fell back to
+            # "mission" and the mission.yaml's `mission.name` was never read — every mission
+            # came out as mission_<date>.miz. The folder defaults to '.', and we already run
+            # from it.
+            $buildArgs = @('build')
             if ($SharedPublished) { $buildArgs += @('--scripts-path', $SharedPublished) }
             # The build resolves published/ from the current directory, hence -WorkingDirectory.
             $built = Invoke-VeafTools -Exe $exe -Arguments $buildArgs -WorkingDirectory $target

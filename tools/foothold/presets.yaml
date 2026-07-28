@@ -1,0 +1,772 @@
+# presets.yaml — shared radio presets for the VEAF Foothold missions.
+#
+# Copy this file to <mission-folder>/src/presets.yaml. It is deliberately
+# map-agnostic (channel lists reference callsigns and literal frequencies, never
+# airfields), so the same file serves all ten Foothold maps.
+#
+# Written as a PRESET PLAN (ADR 0010): declare each Radio role's channel list once
+# and the build projects it onto every aircraft's physical radios, honouring each
+# type's quirks (channel-0 rotation, reserved slots, radio fusion, per-channel
+# modulation). This replaces the previous hand-written radios_collection /
+# presets_collection layers, which needed one collection per airframe quirk and
+# handed ten types channels outside their radios' bands.
+#
+# Radio roles and their band:
+#   primary_1      uhf   first V/UHF radio
+#   primary_2      vhf   second V/UHF radio; also the warbirds' single radio
+#   fm_supplement  fm    FM on top of two V/UHF radios (attack aircraft)
+#   fm_substitute  fm    FM as the second radio (helicopters)
+#   fm_secondary   fm    a further supplemental FM (e.g. OH-58D); defaults to a copy
+#                        of fm_supplement, so it is not restated here
+#
+# A channel whose alias has no frequency in the role's band is dropped from that
+# list — reported by `validate`, silent under `build`.
+
+channel_lists:
+  blue:
+
+    # ── First V/UHF radio ──────────────────────────────────────────────────────
+    # Foothold's own UHF plan: literal frequencies, not the airfield aliases.
+    # The gaps (05-08, 15-30) are intentional — they keep Guard on 01 and the
+    # tanker block on 09-14 whatever the airframe.
+    primary_1: &uhf_channels
+      01:
+        title: Guard/UHF
+        channel: Guard
+      02:
+        title: Home
+        freq: 255.00
+      03:
+        title: Tactical
+        freq: 265
+      04:
+        title: Alternate
+        freq: 255.00
+      05:
+      06:
+      07:
+      08:
+      09:
+        title: Tanker MAIN-Airforce
+        freq: 266
+      10:
+        title: Tanker SEC-Airforce
+        freq: 259
+      11:
+        title: Tanker MAIN-Navy
+        freq: 260
+      12:
+        title: Tanker SEC-Navy
+        freq: 268
+      13:
+        title: Tanker OVERHEAD-Navy
+        freq: 253
+      14:
+        title: AWACS
+        freq: 255
+      15:
+      16:
+      17:
+      18:
+      19:
+      20:
+      21:
+      22:
+      23:
+      24:
+      25:
+      26:
+      27:
+      28:
+      29:
+      30:
+
+    # ── Second V/UHF radio (and the warbirds' single radio) ────────────────────
+    # Guard plus the flight callsigns, on their VHF frequencies.
+    primary_2: &vhf_channels
+      01: Guard
+      02: Archer
+      03: Arctic
+      04: Astro
+      05: Nickel
+      06: Nitro
+      07: Ninja
+      08: Pinder
+      09: Bengal
+      10: Blade
+      11: Gordon
+      12: Gypsy
+      13: Gunstar
+      14: Leica
+      15: Lucid
+      16: Lusty
+      17: Lion
+
+    # ── FM on top of two V/UHF radios (attack aircraft) ────────────────────────
+    # Literal 30-33, the flight callsigns on their FM frequencies, then 50-59.
+    fm_supplement: &fm_channels
+      01: 30.000
+      02: 31.000
+      03: 32.000
+      04: 33.000
+      05: Archer
+      06: Arctic
+      07: Astro
+      08: Nickel
+      09: Nitro
+      10: Ninja
+      11: Pinder
+      12: Bengal
+      13: Blade
+      14: Gordon
+      15: Gypsy
+      16: Gunstar
+      17: Leica
+      18: Lucid
+      19: Lusty
+      20: Lion
+      21: 50.000
+      22: 51.000
+      23: 52.000
+      24: 53.000
+      25: 54.000
+      26: 55.000
+      27: 56.000
+      28: 57.000
+      29: 58.000
+      30: 59.000
+
+    # ── FM as the second radio (helicopters) ───────────────────────────────────
+    # Same channels as fm_supplement (YAML anchor above): a helicopter crew and an
+    # A-10 crew must be able to talk to each other on the same numbered channel.
+    fm_substitute: *fm_channels
+
+  # Foothold's red side is AI-only: no presets to inject.
+  red: {}
+
+# ── Legacy override layer — Flaming Cliffs and other types the packer cannot reach ──
+#
+# The preset plan above projects onto each aircraft's PHYSICAL radios, which the build
+# reads from `dcs-radio-specs.yaml`. That file (auto-generated from the DCS datamine)
+# covers 87 types but **no Flaming Cliffs aircraft** — Su-27, Su-25T, Su-25, MiG-29A/S/G,
+# J-11A, A-10A, F-15C, Su-33 are all absent — so the packer produces nothing for them and
+# they would ship with no radio presets at all.
+#
+# ADR 0010 keeps the old layers as the manual-override path for exactly this case: an
+# explicit assignment for a type always wins over the projection. The channel lists are
+# reused verbatim through YAML anchors, so there is ONE place to edit a frequency.
+#
+# Remove a type from `presets_assignments` below as soon as it appears in
+# dcs-radio-specs.yaml — the projection then handles it properly, ADF radios included.
+
+radios_collection:
+  blue_radios:
+    radio_uhf:
+      title: UHF
+      type: uhf
+      channels: *uhf_channels
+    radio_vhf:
+      title: VHF
+      type: vhf
+      channels: *vhf_channels
+    radio_fm:
+      title: FM
+      type: fm
+      channels: *fm_channels
+
+presets_collection:
+  blue_presets:
+    legacy_uhf_vhf_fm:
+      title: Blue coalition - UHF/VHF/FM
+      radios:
+        radio_1: radio_uhf
+        radio_2: radio_vhf
+        radio_3: radio_fm
+
+# Manual overrides. An explicit assignment for a type always wins over the
+# channel_lists projection above (ADR 0010) — this block is where an airframe the
+# packer gets wrong would be pinned down. Empty of aircraft entries on purpose:
+# the projection handles the A-10's inverted radios, the Apache, the Gazelles, the
+# CH-47, the OH-58D's second FM and the Mi-24P's channel-0 rotation, all of which
+# previously needed a hand-written collection here.
+presets_assignments:
+  blue:
+    plane:
+      # Flaming Cliffs (absent from dcs-radio-specs.yaml — see above).
+      Su-27: legacy_uhf_vhf_fm
+      Su-25T: legacy_uhf_vhf_fm
+      Su-25: legacy_uhf_vhf_fm
+      Su-33: legacy_uhf_vhf_fm
+      MiG-29A: legacy_uhf_vhf_fm
+      MiG-29S: legacy_uhf_vhf_fm
+      MiG-29G: legacy_uhf_vhf_fm
+      J-11A: legacy_uhf_vhf_fm
+      A-10A: legacy_uhf_vhf_fm
+      F-15C: legacy_uhf_vhf_fm
+      # Also absent from the specs.
+      F-14BU: legacy_uhf_vhf_fm
+  red:
+    all:
+      all: none
+
+channels_collection: # Lists all the radio channels available on the map
+    airports-caucasus: # name of the collection
+      Batumi: # a channel ; this is its alias (used later in the radio definitions)
+        title: Batumi / 16X  # title of the channel; defaults to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
+        freqs:   # frequencies to set on this channel; mandatory
+          uhf: 260
+          vhf: 131
+          fm:  40.4
+      Beslan:
+        title: Beslan
+        freqs: 
+          uhf: 270
+          vhf: 141
+          fm:  42.4
+      Gudauta:
+        title: Gudauta
+        freqs: 
+          uhf: 259
+          vhf: 130
+          fm:  40.2
+      Kutaisi:
+        title: Kutaisi / 44X
+        freqs: 
+          uhf: 263
+          vhf: 134
+          fm:  41
+      Sochi:
+        title: Sochi-Adler
+        freqs: 
+          uhf: 256
+          vhf: 127
+          fm:  39.6
+      Sukhumi:
+        title: Sukhumi
+        freqs: 
+          uhf: 258
+          vhf: 129
+          fm:  40
+      Tbilisi-Lochini:
+        title: Tbilisi-Lochini / 25X
+        freqs: 
+          uhf: 267
+          vhf: 138
+          fm:  41.8
+      Vaziani:
+        title: Vaziani / 22X
+        freqs: 
+          uhf: 269
+          vhf: 140
+          fm:  42.2
+
+    airports-syria:
+      Abu al-Duhur:
+          title: Abu al-Duhur
+          freqs:
+            uhf: 250.5
+            vhf: 122.2
+            fm:  38.95
+      Adana Sakirpasa:
+          title: Adana Sakirpasa
+          freqs:
+            uhf: 251.25
+            vhf: 121.1
+            fm:  39.7
+      Akrotiri:
+          title: Akrotiri / 107X
+          freqs:
+            uhf: 252
+            vhf: 128
+            fm:  40.45
+      Al Qusayr:
+          title: Al Qusayr
+          freqs:
+            uhf: 251.8
+            vhf: 119.2
+            fm:  40.25
+      Al-Dumayr:
+          title: Al-Dumayr
+          freqs:
+            uhf: 253.35
+            vhf: 120.3
+            fm:  41.8
+      Aleppo:
+          title: Aleppo
+          freqs:
+            uhf: 251.1
+            vhf: 119.1
+            fm:  39.55
+      An Nasiriyah:
+          title: An Nasiriyah
+          freqs:
+            uhf: 252.3
+            vhf: 122.3
+            fm:  40.75
+      Bassel al-Assad:
+          title: Bassel al-Assad
+          freqs:
+            uhf: 250.6
+            vhf: 118.1
+            fm:  39.05
+      Beirut:
+          title: Beirut
+          freqs:
+            uhf: 253.2
+            vhf: 118.9
+            fm:  41.65
+      Ben Gurion:
+          title: Ben Gurion
+          freqs:
+            uhf: 250.7
+            vhf: 134.6
+            fm:  39.15
+      Damascus:
+          title: Damascus
+          freqs:
+            uhf: 253.25
+            vhf: 118.5
+            fm:  41.7
+      Deir ez-Zor:
+          title: Deir ez-Zor
+          freqs:
+            uhf: 251.95
+            vhf: 118.1
+            fm:  40.4
+      Ercan:
+          title: Ercan
+          freqs:
+            uhf: 252.25
+            vhf: 120.2
+            fm:  40.7
+      Eyn Shemer:
+          title: Eyn Shemer
+          freqs:
+            uhf: 250.05
+            vhf: 123.4
+            fm:  38.45
+      Gaziantep:
+          title: Gaziantep
+          freqs:
+            uhf: 250.1
+            vhf: 120.1
+            fm:  38.5
+      Gazipasa:
+          title: Gazipasa
+          freqs:
+            uhf: 251.9
+            vhf: 119.25
+            fm:  40.35
+      Gecitkale:
+          title: Gecitkale
+          freqs:
+            uhf: 252.35
+            vhf: 120
+            fm:  40.8
+      H3:
+          title: H3
+          freqs:
+            uhf: 252.5
+            vhf: 122
+            fm:  40.95
+      H3 Northwest:
+          title: H3 Northwest
+          freqs:
+            uhf: 252.55
+            vhf: 122.1
+            fm:  41
+      H3 Southwest:
+          title: H3 Southwest
+          freqs:
+            uhf: 252.6
+            vhf: 122.4
+            fm:  41.05
+      H4:
+          title: H4
+          freqs:
+            uhf: 250.15
+            vhf: 122.6
+            fm:  38.55
+      Haifa:
+          title: Haifa
+          freqs:
+            uhf: 250.2
+            vhf: 127.8
+            fm:  38.6
+      Hama:
+          title: Hama
+          freqs:
+            uhf: 250.25
+            vhf: 118.05
+            fm:  38.65
+      Hatay:
+          title: Hatay
+          freqs:
+            uhf: 250.3
+            vhf: 128.5
+            fm:  38.7
+      Hatzor:
+          title: Hatzor
+          freqs:
+            uhf: 250.75
+            vhf: 125.75
+            fm:  39.2
+      Herzliya:
+          title: Herzliya
+          freqs:
+            uhf: 253.05
+            vhf: 122.2
+            fm:  41.5
+      Incirlik:
+          title: Incirlik / 21X
+          freqs:
+            uhf: 360.1
+            vhf: 122.1
+            fm:  38.75
+      Jirah:
+          title: Jirah
+          freqs:
+            uhf: 250.35
+            vhf: 118.1
+            fm:  38.8
+      Khalkhalah:
+          title: Khalkhalah
+          freqs:
+            uhf: 250.4
+            vhf: 122.5
+            fm:  38.85
+      King Abdullah Il:
+          title: King Abdullah Il
+          freqs:
+            uhf: 253
+            vhf: 118.4
+            fm:  41.45
+      King Hussein Air College:
+          title: King Hussein Air College
+          freqs:
+            uhf: 250.45
+            vhf: 118.3
+            fm:  38.9
+      Kingsfield:
+          title: Kingsfield
+          freqs:
+            uhf: 252.05
+            vhf: 121
+            fm:  40.5
+      Kiryat Shmona:
+          title: Kiryat Shmona
+          freqs:
+            uhf: 250.55
+            vhf: 118.4
+            fm:  39
+      Kuweires:
+          title: Kuweires
+          freqs:
+            uhf: 251.35
+            vhf: 120.5
+            fm:  39.8
+      Larnaca:
+          title: Larnaca
+          freqs:
+            uhf: 252.15
+            vhf: 121.2
+            fm:  40.6
+      Marj Ruhayyil:
+          title: Marj Ruhayyil
+          freqs:
+            uhf: 250.9
+            vhf: 120.8
+            fm:  39.35
+      Marka:
+          title: Marka
+          freqs:
+            uhf: 253.1
+            vhf: 118.1
+            fm:  41.55
+      Megiddo:
+          title: Megiddo
+          freqs:
+            uhf: 250.95
+            vhf: 119.9
+            fm:  39.4
+      Mezzeh:
+          title: Mezzeh
+          freqs:
+            uhf: 251
+            vhf: 120.7
+            fm:  39.45
+      Minakh:
+          title: Minakh
+          freqs:
+            uhf: 251.05
+            vhf: 120.6
+            fm:  39.5
+      Muwaffaq Salti:
+          title: Muwaffaq Salti / 85X
+          freqs:
+            uhf: 253.15
+            vhf: 120.5
+            fm:  41.6
+      Palmachim:
+          title: Palmachim
+          freqs:
+            uhf: 250.8
+            vhf: 118.25
+            fm:  39.25
+      Palmyra:
+          title: Palmyra
+          freqs:
+            uhf: 251.15
+            vhf: 121.9
+            fm:  39.6
+      Paphos:
+          title: Paphos / 79X
+          freqs:
+            uhf: 252.1
+            vhf: 119.9
+            fm:  40.55
+      Pinarbashi:
+          title: Pinarbashi (Heliport)
+          freqs:
+            uhf: 252.4
+            vhf: 121
+            fm:  40.85
+      Prince Hassan:
+          title: Prince Hassan / 106X
+          freqs:
+            uhf: 252.95
+            vhf: 122.6
+            fm:  41.4
+      Ramat David:
+          title: Ramat David / 84X
+          freqs:
+            uhf: 251.3
+            vhf: 118.6
+            fm:  39.75
+      Rayak:
+          title: Rayak
+          freqs:
+            uhf: 251.4
+            vhf: 124.4
+            fm:  39.85
+      Rene Mouawad:
+          title: Rene Mouawad
+          freqs:
+            uhf: 251.45
+            vhf: 121
+            fm:  39.9
+      Rosh Pina:
+          title: Rosh Pina
+          freqs:
+            uhf: 251.5
+            vhf: 118.45
+            fm:  39.95
+      Ruwayshid:
+          title: Ruwayshid
+          freqs:
+            uhf: 252.65
+            vhf: 122.1
+            fm:  41.1
+      Sanliurfa:
+          title: Sanliurfa
+          freqs:
+            uhf: 252.7
+            vhf: 118.4
+            fm:  41.15
+      Sayqal:
+          title: Sayqal
+          freqs:
+            uhf: 251.55
+            vhf: 120.4
+            fm:  40
+      Shayrat:
+          title: Shayrat
+          freqs:
+            uhf: 251.6
+            vhf: 120.2
+            fm:  40.05
+      Tabqa:
+          title: Tabqa
+          freqs:
+            uhf: 251.65
+            vhf: 118.5
+            fm:  40.1
+      Taftanaz:
+          title: Taftanaz (Heliport)
+          freqs:
+            uhf: 251.7
+            vhf: 122.8
+            fm:  40.15
+      Tel Nof:
+          title: Tel Nof
+          freqs:
+            uhf: 250.65
+            vhf: 128.1
+            fm:  39.1
+      Thalah:
+          title: Tha'lah
+          freqs:
+            uhf: 252.8
+            vhf: 118
+            fm:  41.25
+      Tiyas:
+          title: Tiyas
+          freqs:
+            uhf: 251.75
+            vhf: 120.5
+            fm:  40.2
+      Wujah Al Hajar:
+          title: Wujah Al Hajar
+          freqs:
+            uhf: 251.85
+            vhf: 120.5
+            fm:  40.3
+
+    tactical:
+      Guard: 
+        title: Guard
+        freqs:
+          uhf: 243
+          vhf: 121.5
+      Stennis:
+        title: Stennis / 10X
+        freqs: 
+          uhf: 225
+      Tarawa:
+        title: Tarawa / 11X
+        freqs: 
+          uhf: 226
+      Roosevelt:
+        title: Roosevelt / 12X
+        freqs: 
+          uhf: 227
+      Forrestal:
+        title: Forrestal / 13X
+        freqs: 
+          uhf: 228
+      Magic:
+        title: Magic
+        freqs: 
+          uhf: 282.2
+      Package01:
+        title: Package 01
+        freqs: 
+          uhf: 291
+      Texaco-1:
+        title: Texaco-1/BS/60Y
+        freqs: 
+          uhf: 290.1
+      Shell-1:
+        title: Shell-1/BS/62Y
+        freqs: 
+          uhf: 290.3
+      Shell-2:
+        title: Shell-2/BM/63Y
+        freqs: 
+          uhf: 290.4
+      Arco-1:
+        title: Arco-1/BM/64Y  
+        freqs: 
+          uhf: 290.5
+      Range-KOBULETI:
+        title: Range KOBULETI
+        freqs: 
+          uhf: 305.1
+
+    flights:  
+      Archer:
+        title: Archer
+        freqs: 
+          vhf: 120
+          uhf: 390
+          fm:  30
+      Arctic:
+        title: Arctic
+        freqs: 
+          vhf: 120.1
+          uhf: 390.1
+          fm:  30.1
+      Astro:
+        title: Astro
+        freqs: 
+          vhf: 120.2
+          uhf: 390.2
+          fm:  30.2
+      Nickel:
+        title: Nickel
+        freqs: 
+          vhf: 120.3
+          uhf: 390.3
+          fm:  30.3
+      Nitro:
+        title: Nitro
+        freqs: 
+          vhf: 120.4
+          uhf: 390.4
+          fm:  30.4
+      Ninja:
+        title: Ninja
+        freqs: 
+          vhf: 120.5
+          uhf: 390.5
+          fm:  30.5
+      Pinder:
+        title: Pinder
+        freqs: 
+          vhf: 120.6
+          uhf: 390.6
+          fm:  30.6
+      Bengal:
+        title: Bengal
+        freqs: 
+          vhf: 120.7
+          uhf: 390.7
+          fm:  30.7
+      Blade:
+        title: Blade
+        freqs: 
+          vhf: 120.8
+          uhf: 390.8
+          fm:  30.8
+      Gordon:
+        title: Gordon
+        freqs: 
+          vhf: 120.9
+          uhf: 390.9
+          fm:  30.9
+      Gypsy:
+        title: Gypsy
+        freqs: 
+          vhf: 121.1
+          uhf: 391.1
+          fm:  31.1
+      Gunstar:
+        title: Gunstar
+        freqs: 
+          vhf: 121.2
+          uhf: 391.2
+          fm:  31.2
+      Leica:
+        title: Leica
+        freqs: 
+          vhf: 121.3
+          uhf: 391.3
+          fm:  31.3
+      Lucid:
+        title: Lucid
+        freqs: 
+          vhf: 121.4
+          uhf: 391.4
+          fm:  31.4
+      Lusty:
+        title: Lusty
+        freqs: 
+          vhf: 121.6
+          uhf: 391.6
+          fm:  31.6
+      Lion:
+        title: Lion
+        freqs: 
+          vhf: 121.7
+          uhf: 391.7
+          fm:  31.7

@@ -8,7 +8,8 @@ Anything a mission-maker needs on their own machine belongs in the product inste
 
 | Item | What it is |
 |------|------------|
-| [`Convert-FootholdBatch.ps1`](Convert-FootholdBatch.ps1) | Adopts every Lekaa Foothold release archive of a folder in one pass, picking the right conversion profile per mission. See [FOOTHOLD](../doc/mission-maker/FOOTHOLD.md). |
+| [`Convert-FootholdBatch.ps1`](Convert-FootholdBatch.ps1) | Adopts every Lekaa Foothold release archive of a folder in one pass, picking the right conversion profile per mission, and optionally validates and builds them all. See [FOOTHOLD](../doc/mission-maker/FOOTHOLD.md). |
+| [`foothold/`](foothold/) | Assets shared by the Foothold missions — the radio `presets.yaml`. |
 | `klogg/veaf.conf` | Highlight rules for [klogg](https://klogg.filimonov.dev/), to read a DCS log with the VEAF lines standing out. |
 
 Related: `scripts/` holds thin Python wrappers around `veaf_build` entry points.

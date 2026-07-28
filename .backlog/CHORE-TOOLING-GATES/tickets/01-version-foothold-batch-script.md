@@ -22,7 +22,15 @@ so it belongs in the repo rather than in a scratch folder.
   closes the run, and the exit code is non-zero if anything failed (usable from a scheduler);
 - prints `veaf-tools` output **only on failure**, so ten conversions stay readable;
 - `-Update` for every release after the first (refresh scripts, keep each tuned
-  `mission.yaml`), `-Validate` to check the whole batch;
+  `mission.yaml`), `-Validate` to check the whole batch, `-Build` to build them all;
+- `-Build` takes `-SharedPublished <…/published>` so one scripts bundle serves the ten
+  missions instead of ~58 MB per folder (it becomes the build's `--scripts-path`). Since the
+  build **persists** that machine-specific path into `mission.yaml`, the script strips the key
+  again afterwards — the file is left as the author wrote it;
+- before each build it reports what would make the result wrong rather than accepting it
+  silently: a `config_override` still commented out, and a `src/versions.yaml` present while
+  the weather step is enabled (which turns one mission into one `.miz` per declared version —
+  verified: 8 instead of 1);
 - warns when an output path exceeds 180 characters — Foothold's archive names are long and the
   build can hit the Windows limit.
 

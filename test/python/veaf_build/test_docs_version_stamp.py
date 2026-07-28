@@ -136,3 +136,10 @@ class TestStamp:
     def test_missing_page_is_skipped(self, tmp_path: Path):
         (tmp_path / "pyproject.toml").write_text('version = "6.11.9"\n', encoding="utf-8")
         assert stamp(tmp_path, today=date(2026, 7, 28)) == []
+
+    def test_explicit_version_overrides_pyproject(self, repo: Path):
+        # Republishing an older version's docs: the tree says 6.11.9, the pages must say 6.12.0.
+        stamp(repo, today=date(2026, 7, 28), version="6.12.0")
+        text = (repo / STAMPED_PAGES[0]).read_text(encoding="utf-8")
+        assert "générée pour la 6.12.0" in text
+        assert "6.11.9" not in text

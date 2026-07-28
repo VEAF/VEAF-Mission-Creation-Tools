@@ -9,6 +9,22 @@ on:
     tags:
       - "v*"           # → the versioned release + the "latest" alias
 
+  # Republish a version's documentation without moving its tag. Re-running the tag build would
+  # rebuild from the *tagged* commit — so a fix landed after the tag (e.g. the footer version
+  # stamper) would never reach the published pages. This path builds from the branch you pick and
+  # deploys under the version you name.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to (re)publish, e.g. 6.12.0. Leave empty to deploy the 'dev' alias."
+        required: false
+        type: string
+      set_latest:
+        description: "Also move the 'latest' alias (and the site default) to that version"
+        required: false
+        type: boolean
+        default: true
+
 jobs:
   deploy-docs:
     name: Build and deploy MkDocs
@@ -42,8 +58,18 @@ jobs:
       # version; the published site must state the version it was generated from. Stamped on this
       # throwaway checkout only — nothing is committed back (DOC-QUALITY-GATE). Run as a plain
       # script: it is stdlib-only, so it needs neither the project installed nor its deps.
+      # On a manual republish, the version being published is NOT the working tree's version:
+      # republishing 6.12.0 from a 6.12.1 tree would stamp 6.12.1 onto the 6.12.0 pages. Passed
+      # through an env var rather than interpolated into the shell — inputs are untrusted.
       - name: Stamp the shipped version into the docs headers
-        run: python veaf_build/docs_version_stamp.py
+        env:
+          FORCED_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ -n "$FORCED_VERSION" ]; then
+            python veaf_build/docs_version_stamp.py --version "$FORCED_VERSION"
+          else
+            python veaf_build/docs_version_stamp.py
+          fi
 
       - name: Configure git identity (required by mike)
         run: |
@@ -63,8 +89,27 @@ jobs:
             "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/documentation.git"
           git fetch ext-docs gh-pages --depth=1 || true
 
+      # `github.event_name == 'push'` matters: without it, a manual republish of 6.12.0 run from
+      # `develop` would also redeploy the "dev" alias, which is not what was asked for.
       - name: Deploy docs (develop → alias "dev")
-        if: github.ref == 'refs/heads/develop'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: poetry run mike deploy --update-aliases --push --remote ext-docs dev
+
+      - name: Republish a version (manual)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          SET_LATEST: ${{ github.event.inputs.set_latest }}
+        run: |
+          if [ "$SET_LATEST" = "true" ]; then
+            poetry run mike deploy --update-aliases --push --remote ext-docs "$VERSION" latest
+            poetry run mike set-default --push --remote ext-docs latest
+          else
+            poetry run mike deploy --update-aliases --push --remote ext-docs "$VERSION"
+          fi
+
+      - name: Deploy the "dev" alias (manual, no version given)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version == ''
         run: poetry run mike deploy --update-aliases --push --remote ext-docs dev
 
       # No step for a plain push to `master`: `mike deploy latest` would create a *version*

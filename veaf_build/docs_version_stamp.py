@@ -91,18 +91,27 @@ def stamp_text(text: str, version: str, today: date, french: bool) -> str:
     return _GENERATED_FOR_LINE.sub(lambda m: f"{m.group(1)}{version}", text)
 
 
-def stamp(repo_root: Path, check_only: bool = False, today: date | None = None) -> list[str]:
+def stamp(
+    repo_root: Path,
+    check_only: bool = False,
+    today: date | None = None,
+    version: str | None = None,
+) -> list[str]:
     """Stamp every page in :data:`STAMPED_PAGES`.
 
     Args:
         repo_root: Repository root holding ``pyproject.toml`` and ``doc/``.
         check_only: When True, report what would change without writing.
         today: Date to stamp; defaults to today.
+        version: Version to stamp. Defaults to the one in ``pyproject.toml`` — pass it explicitly
+            when **republishing an older version's documentation**, where the working tree's
+            version is not the one being published (republishing 6.12.0 from a 6.12.1 tree would
+            otherwise stamp 6.12.1 onto the 6.12.0 pages).
 
     Returns:
         The relative paths whose header changed (or would change).
     """
-    version = read_version(repo_root / "pyproject.toml")
+    version = version or read_version(repo_root / "pyproject.toml")
     when = today or date.today()
     changed: list[str] = []
     for rel in STAMPED_PAGES:
@@ -131,9 +140,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Stamp the shipped version into the docs headers.")
     parser.add_argument("--repo-root", type=Path, default=_REPO_ROOT)
     parser.add_argument("--check", action="store_true", help="Report, do not write; exit 1 if stale.")
+    parser.add_argument(
+        "--version",
+        help="Version to stamp instead of pyproject's — use when republishing an older version's docs.",
+    )
     args = parser.parse_args(argv)
 
-    changed = stamp(args.repo_root, check_only=args.check)
+    changed = stamp(args.repo_root, check_only=args.check, version=args.version)
     if not changed:
         print("docs-stamp-version: headers already up to date.")
         return 0

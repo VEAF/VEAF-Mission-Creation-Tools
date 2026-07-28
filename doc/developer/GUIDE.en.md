@@ -500,6 +500,20 @@ A cross-page link then always targets `#coverage`, whatever language the reader 
 > readable range (`6.11.x`) and the deploy workflow replaces it with the shipped version
 > (`poetry run docs-stamp-version`).
 
+### Republishing an already-released version's documentation
+
+Re-running the tag build is not enough: it would rebuild from the **tagged commit**, so a fix that
+landed after the tag would never reach the pages. Use the `Deploy Docs` workflow's manual trigger:
+
+| Field | Value |
+|-------|-------|
+| branch | the one carrying the fix (`develop`) |
+| `version` | the version to republish, e.g. `6.12.0` |
+| `set_latest` | ticked if that version should remain the site's `latest` |
+
+The version you enter is also the one stamped into the pages — otherwise republishing 6.12.0 from a
+6.12.1 tree would stamp 6.12.1 onto them. Leaving `version` empty simply redeploys the `dev` alias.
+
 ### Releasing a new version
 
 Push a `published-v*` tag — the `Release` CI workflow does everything automatically:

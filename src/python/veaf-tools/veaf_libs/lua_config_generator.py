@@ -657,8 +657,11 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     # `enemy_coalition` picks the side whose units must die for the zone to complete, and
     # which tally the F10 report calls "enemies". RED is the runtime default, so it is not
     # emitted — existing generated configs stay byte-identical.
-    if enemy_coalition := zone_def.get("enemy_coalition"):
-        side = str(enemy_coalition).upper()
+    enemy_coalition = zone_def.get("enemy_coalition")
+    # `is not None` rather than truthiness: an empty or blank value is an authoring mistake
+    # that must be reported, not silently skipped into the RED default.
+    if enemy_coalition is not None:
+        side = str(enemy_coalition).strip().upper()
         if side not in ("RED", "BLUE"):
             raise ValueError(f"combat zone {zone_name!r}: enemy_coalition must be RED or BLUE, got {enemy_coalition!r}")
         if side != "RED":

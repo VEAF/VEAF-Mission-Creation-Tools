@@ -879,6 +879,19 @@ def test_combatzone_enemy_coalition_rejects_unknown_value():
         generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "enemy_coalition": "NEUTRAL"}))
 
 
+def test_combatzone_enemy_coalition_rejects_blank_value():
+    """A blank value is an authoring mistake, not a request for the default — a truthiness
+    check would skip validation and silently produce a RED zone."""
+    for blank in ("", "   "):
+        with pytest.raises(ValueError, match="enemy_coalition"):
+            generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "enemy_coalition": blank}))
+
+
+def test_combatzone_enemy_coalition_tolerates_surrounding_whitespace():
+    lua = generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "enemy_coalition": " blue "}))
+    assert ":setEnemyCoalition(coalition.side.BLUE)" in lua
+
+
 def _qra_yaml(*definitions: dict) -> dict:
     """Build a minimal mission carrying QRA *definitions* (internal `qra:` repr)."""
     return {

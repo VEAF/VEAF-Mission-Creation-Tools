@@ -457,25 +457,26 @@ end
 -- Accepts a DCS side number (coalition.side.BLUE) or a "red"/"blue" string, because this is
 -- called both from hand-written Lua and from the config generated out of mission.yaml.
 function VeafCombatZone:setEnemyCoalition(value)
-  if type(value) == "string" then
-    local name = value:lower()
-    if name == "red" then
-      value = 1
-    elseif name == "blue" then
-      value = 2
-    else
-      veaf.loggers.get(veafCombatZone.Id):error(
-        string.format(
-          "VeafCombatZone[%s]:setEnemyCoalition() : unknown coalition [%s], keeping [%d]",
-          veaf.p(self.missionEditorZoneName),
-          veaf.p(value),
-          self.enemyCoalition
-        )
-      )
-      return self
-    end
+  local side = value
+  if type(side) == "string" then
+    local name = side:lower()
+    side = (name == "red" and 1) or (name == "blue" and 2) or nil
   end
-  self.enemyCoalition = value
+  -- Only RED and BLUE can be hostile. NEUTRAL (0) and any other side would leave the zone in
+  -- a silently inconsistent state: getFriendlyCoalition() would still answer, the report's
+  -- tally lookup would find nothing, and completion would fall back to counting reds.
+  if side ~= 1 and side ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      string.format(
+        "VeafCombatZone[%s]:setEnemyCoalition() : [%s] is not RED or BLUE, keeping [%d]",
+        veaf.p(self.missionEditorZoneName),
+        veaf.p(value),
+        self:getEnemyCoalition()
+      )
+    )
+    return self
+  end
+  self.enemyCoalition = side
   return self
 end
 

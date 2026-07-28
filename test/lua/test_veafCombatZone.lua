@@ -979,6 +979,24 @@ function TestVeafCombatZoneEnemyCoalition:test_setter_keeps_previous_on_unknown_
   luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
 end
 
+function TestVeafCombatZoneEnemyCoalition:test_setter_rejects_invalid_side_numbers()
+  -- Only RED and BLUE can be hostile: NEUTRAL (0) or a bogus side would leave the zone
+  -- silently inconsistent (report tally not found, completion falling back to reds).
+  for _, side in ipairs({ 0, 3, -1 }) do
+    self.z:setEnemyCoalition("blue")
+    self.z:setEnemyCoalition(side)
+    luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+  end
+end
+
+function TestVeafCombatZoneEnemyCoalition:test_setter_rejects_non_scalar_values()
+  self.z:setEnemyCoalition("blue")
+  self.z:setEnemyCoalition(nil)
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+  self.z:setEnemyCoalition({})
+  luaunit.assertEquals(self.z:getEnemyCoalition(), 2)
+end
+
 function TestVeafCombatZoneEnemyCoalition:test_setter_is_chainable()
   luaunit.assertEquals(self.z:setEnemyCoalition(2), self.z)
 end

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Adopt every Lekaa Foothold release archive of a folder onto the VEAF v6 toolchain.
 

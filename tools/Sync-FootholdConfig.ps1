@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Reproduce the common part of one Foothold `mission.yaml` across the other missions.
 
@@ -206,7 +206,7 @@ if ($Keys -contains 'config_override') {
 
 Write-Host ''
 Write-Host "Référence      : $refYaml"
-Write-Host "Profil réf.    : $($refProfile ?? '(aucun)')"
+Write-Host "Profil réf.    : $(if ($refProfile) { $refProfile } else { '(aucun)' })"
 Write-Host "Blocs copiés   : $(($refBlocks.Keys | Sort-Object) -join ', ')$(if ($refValues) { ', config_override.values' })"
 Write-Host "Missions       : $MissionsFolder"
 Write-Host "Mode           : $(if ($Apply) { 'ÉCRITURE (sauvegarde .bak par fichier)' } else { 'simulation — rien ne sera écrit' })"
@@ -232,7 +232,9 @@ foreach ($folder in (Get-ChildItem -LiteralPath $MissionsFolder -Directory | Sor
     Write-Host $folder.Name -ForegroundColor Cyan
 
     if ($targetProfile -ne $refProfile -and -not $IncludeOtherProfiles) {
-        Write-Host "    ignoré — profil '$($targetProfile ?? "aucun")' ≠ référence '$($refProfile ?? "aucun")'" -ForegroundColor Yellow
+        $shownTarget = if ($targetProfile) { $targetProfile } else { 'aucun' }
+        $shownRef = if ($refProfile) { $refProfile } else { 'aucun' }
+        Write-Host "    ignoré — profil '$shownTarget' ≠ référence '$shownRef'" -ForegroundColor Yellow
         Write-Host '      (à configurer à la main ; -IncludeOtherProfiles pour forcer)'
         $skipped++
         Write-Host ''

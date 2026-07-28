@@ -18,8 +18,14 @@ The project follows the **canonical gitflow**:
   single new commit, so `master` and `develop` stop sharing history: `develop` then shows as
   permanently "N commits ahead", the release tag is unreachable from `master`, and later
   merges raise artificial conflicts. (This happened on 6.11.0 — repaired by a back-merge.)
-- Tag naming: `published-vx.y.z`, pushed by the developer **on `master`** once the release PR
-  is merged
+- **Two tags, two jobs — push both, on `master`:**
+  - `published-vx.y.z` → the GitHub Release: executables, `published.zip`, the map-capture kit
+  - `vx.y.z` → the **versioned documentation** (`mike deploy "$VERSION" latest`, which also
+    moves the `latest` alias and the default)
+
+  Pushing only `published-v*` publishes the binaries but leaves the documentation site
+  showing the **previous** version as `latest`. That is exactly what happened with 6.11.0:
+  the docs stayed on 6.10.0 because no `v6.11.0` tag was ever created.
 - **Back-merge**: after tagging, merge `master` back into `develop` so both branches share
   history again and `develop` carries the version bump
 - CI trigger: pushing the `published-vx.y.z` tag → `release.yml` builds and publishes the
@@ -74,11 +80,12 @@ approving review, so the developer merges it.
 Then provide these final commands to run **after the PR is merged**:
 
 ```bash
-# 1. tag the release on master (this is what publishes it)
+# 1. tag the release on master — BOTH tags, or the docs stay on the previous version
 git checkout master
 git pull origin master
-git tag published-vx.y.z
-git push origin published-vx.y.z
+git tag published-vx.y.z          # → binaries, published.zip, the capture kit
+git tag vx.y.z                    # → versioned docs + the "latest" alias
+git push origin published-vx.y.z vx.y.z
 
 # 2. back-merge so develop shares master's history again and carries the version bump
 git checkout develop
@@ -94,3 +101,6 @@ git push origin develop
 
 > Do not skip the back-merge: without it `develop` and `master` drift apart and every later
 > release merge gets harder.
+
+> Do not skip the `vx.y.z` tag either: the release would ship binaries whose documentation is
+> not published, and the site's `latest` would keep pointing at the previous version.

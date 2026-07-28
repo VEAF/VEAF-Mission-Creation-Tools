@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.11.2] — 2026-07-28
+
 ### Added
 - **All 14 DCS theatres now resolve airfield names** (FEAT-AIRDROMES-RUNTIME-SOURCE). **Reaper** captured the seven maps nobody had covered yet — Nevada, The Channel, South Atlantic (Falklands), Kola, Afghanistan, Iraq and Marianas WWII — using the map-capture kit, so `airdromes.yaml` goes from 7 theatres / 657 airbases to **14 theatres / 810 airbases**. A QRA `airport_link` or a `warehouses.yaml` entry now resolves on every current map. Note: DCS exposes no coordinates for three Afghanistan forward bases (`FOB Thunder`, `FOB Camp Dubs`, `FOB Clark`) — they are kept because their name and id are valid, which is all the name→id table uses.
 

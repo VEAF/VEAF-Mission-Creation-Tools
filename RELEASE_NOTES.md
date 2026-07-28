@@ -1,78 +1,37 @@
-# VEAF Mission Creation Tools — 6.11.0
+# VEAF Mission Creation Tools — 6.11.2
 
-Cette version répond à trois retours de **Tripack** : les **noms d'aérodromes** étaient
-faux dans nos données, et il manquait un moyen de **choisir quand** une QRA ou une zone de
-combat s'active. Aucune mission existante n'a besoin d'être retouchée.
+Deux apports depuis la 6.11.0 : **toutes les cartes DCS** ont désormais leurs noms
+d'aérodromes, et un correctif important sur les scripts embarqués dans une mission.
 
-## 🛫 Les noms d'aérodromes sont enfin les bons
+## 🌍 Les 14 cartes DCS sont couvertes
 
-Le build refusait des `airport_link` de QRA parfaitement valides — Tiyas, Marj Ruhayyil,
-Al-Dumayr… — en les déclarant « aérodrome inconnu ». **Merci à Tripack** de l'avoir
-signalé : ses noms étaient corrects depuis le début, c'est notre table qui était fausse.
+**Merci à Reaper**, qui a relevé avec le kit de capture les sept cartes que personne n'avait
+encore faites : **Nevada, la Manche, Atlantique Sud (Malouines), Kola, Afghanistan, Irak et
+Mariannes 1944**.
 
-En cause : cette table nom→identifiant était extraite des **balises radio** des cartes.
-Elle contenait donc des noms de VOR ou de NDB au lieu de noms d'aérodromes, et ignorait
-toutes les bases sans balise. Elle est désormais construite depuis **DCS lui-même**, ce
-qui donne le nom exact reconnu en jeu.
+La table des aérodromes passe ainsi de 7 à **14 cartes**, et de 657 à **810 terrains**.
+Concrètement : un `airport_link` de QRA ou un aérodrome de `warehouses.yaml` se résout
+maintenant **sur n'importe quelle carte DCS actuelle**, avec le nom exact reconnu en jeu.
 
-- **7 cartes couvertes**, 657 terrains : Caucase, Syrie, Golfe Persique, Normandie,
-  Mariannes, Sinaï, Allemagne guerre froide.
-- **Hélistations incluses** : elles sont utilisables pour une QRA ou un spawn.
-- Vaut aussi pour les **entrepôts** (`warehouses.yaml`), qui utilisent la même table.
+C'est aussi la démonstration que le kit livré en 6.11.0 fonctionne : Reaper a produit les sept
+relevés sur sa machine, sans aucun outil de développement.
 
-## 🎛️ Choisir quand une QRA ou une zone s'active
+## 🔧 Un script embarqué dans une mission se charge enfin
 
-Deux nouvelles clés dans `mission.yaml`, toutes deux demandées par **Tripack** :
+Quand un script était embarqué dans une mission par l'assistant IA (ou par le kit de capture),
+il **ne se chargeait jamais** : dans l'éditeur DCS, l'action « DO SCRIPT FILE » affichait un
+champ FILE **vide**, et rien ne s'exécutait — sans le moindre message d'erreur.
 
-- **QRA en sommeil** — `active_at_start: false` déclare une QRA **sans l'armer** : elle
-  attend une commande radio `qra.start` ou un appel de script. *(Jusqu'ici toute QRA était
-  armée au chargement de la mission ; la clé était ignorée sans avertissement.)*
-- **Zone qui ne s'éteint pas** — `completable: false` empêche une zone de combat de se
-  terminer d'elle-même. Indispensable pour une zone **sans unité rouge** : la fin de partie
-  se décidant sur le seul décompte des rouges, une telle zone s'activait puis se
-  désactivait toute seule au bout d'une minute environ — exactement le symptôme rapporté.
+La cause : la référence au fichier était écrite au mauvais endroit dans la mission. Elle est
+désormais posée là où DCS la lit réellement. Corrigé aussi : une mission dépourvue de table de
+ressources perdait également la référence.
 
-## 🗺️ Aider à collecter les données d'une carte
+**Signalé par David**, qui a ouvert une mission du kit dans l'éditeur — ce qui a mis en
+évidence un défaut touchant *toutes* les missions outillées par l'assistant, pas seulement le
+kit.
 
-Les cartes que personne n'a encore relevées peuvent maintenant l'être **par n'importe
-qui**, sans outil de développement : un nouveau **kit de capture** est publié à chaque
-version, avec les programmes, une mission prête pour chaque carte connue et une procédure
-pas-à-pas.
+## 📄 Note
 
-- Téléchargez `veaf-map-capture-kit-<version>.zip` dans les fichiers de cette version.
-- Fonctionne aussi sur **n'importe quelle carte** via une mission créée dans l'éditeur DCS.
-- Chaque relevé renvoyé enrichit la table pour toute la communauté.
-
-**Cartes déjà relevées :**
-
-- [x] Caucase
-- [x] Syrie
-- [x] Golfe Persique
-- [x] Normandie
-- [x] Mariannes
-- [x] Sinaï
-- [x] Allemagne guerre froide
-
-**Cartes qui restent à relever — si vous en possédez une, votre aide est bienvenue :**
-
-- [ ] Nevada (NTTR)
-- [ ] La Manche
-- [ ] Atlantique Sud (Malouines)
-- [ ] Kola
-- [ ] Afghanistan
-- [ ] Irak
-- [ ] Mariannes 1944
-
-## 🖥️ Serveurs
-
-- **Liste de pilotes partagée retrouvée** : sur un serveur de production, plus aucun pilote
-  n'était reconnu (administrateur compris) et toute commande `/…` faisait planter le hook.
-  Le fichier partagé est de nouveau lu au bon endroit, un fichier absent est signalé
-  clairement au lieu de tout interrompre, et un pilote inconnu se voit refuser la commande
-  proprement. **Hook à redéployer.**
-
-## 🙏 Remerciements
-
-Merci à **Tripack**, dont les retours sur les QRA et les zones de combat sont à l'origine
-de l'essentiel de cette version, et à tous les **mission makers** de la VEAF qui
-continuent de faire remonter ce qui coince.
+Les missions-pont du **kit de capture de la 6.11.0 étaient affectées** par ce défaut ; son
+archive a déjà été remplacée. Si vous l'avez téléchargée avant ce correctif, reprenez-la dans
+les fichiers de cette version.

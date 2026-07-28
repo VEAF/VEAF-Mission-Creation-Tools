@@ -383,31 +383,35 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
       -- In a coalition-scoped subtree, a per-group command must not be attached for a group
       -- of the other side: it cannot see the parent path (FEAT-COMBATZONE-MENU-COALITION).
       -- A group whose coalition DCS never gave us is left in, as before.
-      local wrongSide = coalitionSide ~= nil and groupData.coalition ~= nil and groupData.coalition ~= coalitionSide
-      for _, callsign in pairs(wrongSide and {} or groupData.callsigns) do
-        veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
-        local unitData = groupData.units[callsign]
-        local unitName = unitData.name
-        veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-        local humanUnit = veafRadio.humanUnits[unitName]
-        veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-        if humanUnit and humanUnit.spawned then
-          veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
-          local parameters = command.parameters
-          if parameters == nil then
-            parameters = unitName
-          else
-            parameters = { command.parameters }
-            table.insert(parameters, unitName)
+      -- Skip the whole group rather than iterate an empty table: this runs for every human
+      -- group on every menu rebuild.
+      local onThisSide = coalitionSide == nil or groupData.coalition == nil or groupData.coalition == coalitionSide
+      if onThisSide then
+        for _, callsign in pairs(groupData.callsigns) do
+          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
+          local unitData = groupData.units[callsign]
+          local unitName = unitData.name
+          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
+          local humanUnit = veafRadio.humanUnits[unitName]
+          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
+          if humanUnit and humanUnit.spawned then
+            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+            local parameters = command.parameters
+            if parameters == nil then
+              parameters = unitName
+            else
+              parameters = { command.parameters }
+              table.insert(parameters, unitName)
+            end
+            local _title = command.title
+            if command.usage == veafRadio.USAGE_ForUnit then
+              _title = callsign .. " - " .. command.title
+            end
+            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+              self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
+            end
+            alreadyDoneGroups[groupId] = true
           end
-          local _title = command.title
-          if command.usage == veafRadio.USAGE_ForUnit then
-            _title = callsign .. " - " .. command.title
-          end
-          if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-            self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
-          end
-          alreadyDoneGroups[groupId] = true
         end
       end
     end

@@ -1,6 +1,6 @@
 # FEAT-FOOTHOLD-RELEASE-INTAKE — adopt Lekaa's new release channel
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 
@@ -68,10 +68,10 @@ ergonomics of the new release channel.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`](tickets/01-profile-name-rules-and-locale.md) | ⬜ |
-| 02 | [`convert-other` accepts a release `.zip`](tickets/02-convert-other-accepts-zip.md) | ⬜ |
-| 03 | [Document the new release channel, external config and `Era` values](tickets/03-doc-release-channel.md) | ⬜ |
-| 04 | [`foothold-ww2` profile for Normandy](tickets/04-foothold-ww2-profile.md) | ⬜ |
+| 01 | [Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`](tickets/01-profile-name-rules-and-locale.md) | ✅ |
+| 02 | [`convert-other` accepts a release `.zip`](tickets/02-convert-other-accepts-zip.md) | ✅ |
+| 03 | [Document the new release channel, external config and `Era` values](tickets/03-doc-release-channel.md) | ✅ |
+| 04 | [`foothold-ww2` profile for Normandy](tickets/04-foothold-ww2-profile.md) | ✅ |
 
 ## Out of scope
 

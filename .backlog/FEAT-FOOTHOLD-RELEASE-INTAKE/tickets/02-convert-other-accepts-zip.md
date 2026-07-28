@@ -1,6 +1,6 @@
 # 02 — `convert-other` accepts a release `.zip`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Why
@@ -29,19 +29,19 @@ Since the moulinette is meant to be re-run by any VEAF member on each upstream v
 
 ## Tasks
 
-- [ ] Extract the input resolution out of `veaf_tools/commands/convert_other.py` into a
+- [x] Extract the input resolution out of `veaf_tools/commands/convert_other.py` into a
       small helper (a context manager yielding the `.miz` path) so both the command and the
       tests use one code path.
-- [ ] Accept `.zip` in the command; keep `.miz` untouched.
-- [ ] i18n strings (FR + EN) for the two failure cases and for an action line stating which
+- [x] Accept `.zip` in the command; keep `.miz` untouched.
+- [x] i18n strings (FR + EN) for the two failure cases and for an action line stating which
       `.miz` was picked out of the archive.
-- [ ] Unit tests: single-`.miz` zip adopts; multi-`.miz` zip fails with both names listed;
+- [x] Unit tests: single-`.miz` zip adopts; multi-`.miz` zip fails with both names listed;
       `.miz`-free zip fails; a plain `.miz` path still works; the temp dir is gone
       afterwards in every case.
-- [ ] End-to-end check against the real
+- [x] End-to-end check against the real
       `Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip`.
-- [ ] Update `doc/mission-maker/CONVERT_OTHER.md` + `.en.md` (the argument accepts both).
-- [ ] CHANGELOG + version bump.
+- [x] Update `doc/mission-maker/CONVERT_OTHER.md` + `.en.md` (the argument accepts both).
+- [x] CHANGELOG + version bump.
 
 ## Notes
 

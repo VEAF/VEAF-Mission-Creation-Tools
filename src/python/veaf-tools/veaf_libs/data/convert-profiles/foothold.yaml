@@ -44,9 +44,16 @@ disabled_community_scripts:
 
 # Stabilise upstream versioned script names so `custom_scripts:` paths survive a
 # Lekaa version bump (and `convert-other --update`). Glob pattern -> fixed name.
+#
+# Only *version-stamped* names belong here. The per-map setup script
+# (MA_Setup_CA.lua, footholdSyriaSetup.lua, kola_setup.lua, AF_SETUP.lua, …) varies
+# per **map**, not per version, and a mission folder adopts exactly one map — a rule
+# collapsing those would hide which map the folder holds.
 name_normalization:
   - pattern: "Moose_*.lua"
     replacement: "Moose.lua"
+  - pattern: "Splash_Damage_*.lua"
+    replacement: "Splash_Damage.lua"
 
 # Partial config-override scaffold: a small set of settings a mission-maker
 # commonly changes, layered over the untouched upstream config file. See ADR 0008.
@@ -56,3 +63,6 @@ config_override:
     CapDifficulty: medium
     StartNormal: true
     AutoRestart: false
+    # Foothold's on-screen language (config V1.0.9): EN, DE, FR, ES, RU, PT-BR, TR,
+    # IT, zh-CN, zh-TW. Does not force the players' radio-menu language.
+    FootholdLocale: FR

@@ -19,9 +19,25 @@ veaf-tools convert-other <mission.miz> <dossier-de-sortie>
 Sans argument (dans un terminal interactif), la commande ouvre l'assistant TUI
 et demande le `.miz` source puis le dossier de sortie.
 
+### L'entrée peut être une archive de release
+
+Les missions tierces sont souvent distribuées sous forme d'**archive `.zip`** plutôt que de
+`.miz` nu — les assets Foothold de Lekaa contiennent la mission avec un exécutable de
+gestion de configuration, le manuel et un raccourci. Passez l'archive que vous avez
+téléchargée, `convert-other` adopte le `.miz` qu'elle contient :
+
+```bash
+veaf-tools convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-de-sortie> --profile foothold
+```
+
+Seul le membre `.miz` est lu ; rien d'autre dans l'archive n'est écrit où que ce soit
+(l'exécutable embarqué n'est jamais extrait, ni exécuté). L'archive doit contenir
+**exactement un** `.miz` : s'il n'y en a aucun, ou plusieurs, la commande s'arrête et
+nomme ce qu'elle a trouvé plutôt que de deviner quelle mission vous visiez.
+
 | Argument / option | Rôle |
 |-------------------|------|
-| `INPUT_MIZ` | Chemin du `.miz` tiers à adopter |
+| `INPUT_MIZ` | Chemin de la mission tierce à adopter : un `.miz`, ou une archive `.zip` en contenant exactement un |
 | `OUTPUT_FOLDER` | Dossier de mission v6 à créer / compléter |
 | `--force` | Écraser un `mission.yaml` existant (sinon il est laissé intact) |
 | `--report-file` | Chemin du rapport Markdown (défaut `<sortie>/convert-other-report.md`) |
@@ -36,8 +52,11 @@ connaissance propre à une famille de missions est appliquée — **données, pa
 
 - **active les modules VEAF** que Foothold utilise (RADIO, SPAWN, WEATHER,
   SHORTCUTS, SECURITY, REMOTE) au lieu du tier `minimal` ;
-- **normalise les noms versionnés** (`Moose_2026-04-28.lua` → `Moose.lua`) pour que
-  les chemins `custom_scripts:` restent stables entre versions de Lekaa ;
+- **normalise les noms versionnés** (`Moose_2026-06-14.lua` → `Moose.lua`,
+  `Splash_Damage_3.4.1_leka.lua` → `Splash_Damage.lua`) pour que les chemins
+  `custom_scripts:` restent stables entre versions de Lekaa. Le script de setup propre à
+  chaque carte (`MA_Setup_CA.lua`, `footholdSyriaSetup.lua`, `kola_setup.lua`…) n'est
+  **pas** normalisé : ces noms varient par carte, pas par version ;
 - **inscrit un marqueur** `conversion_profile: foothold` dans le `mission.yaml` ;
 - **pré-remplit un `config_override` commenté** ciblant `Foothold Config.lua` ;
 - **déclare les modules incompatibles** (`CTLD` : Foothold embarque sa propre CTLD).
@@ -47,6 +66,15 @@ connaissance propre à une famille de missions est appliquée — **données, pa
 ```bash
 veaf-tools convert-other <mission.miz> <dossier-de-sortie> --profile foothold
 ```
+
+### Profils livrés
+
+| Profil | Pour |
+|--------|------|
+| `foothold` | le Foothold de Lekaa sur Caucasus, Persian Gulf, Sinaï, Syrie, Cold War Germany, Kola, Irak, Afghanistan |
+| `foothold-ww2` | le Foothold Normandie WWII — autre fichier de config (`Foothold Config WW2.lua`), pas de `Era`, et pas de CTLD Foothold, donc la CTLD VEAF n'y est *pas* incompatible |
+
+Voir [FOOTHOLD](FOOTHOLD.md) pour la procédure complète à chaque version.
 
 ## Ce que fait la commande
 
@@ -114,6 +142,9 @@ Foothold de Lekaa), ré-importez-la dans votre dossier déjà adopté avec `--up
 ```bash
 veaf-tools convert-other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
 ```
+
+Le nouvel upstream peut aussi être l'archive `.zip` de release — même règle, exactement un
+`.miz` dedans.
 
 En mode mise à jour, `convert-other` :
 

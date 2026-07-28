@@ -1,6 +1,6 @@
 # 01 — Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Why
@@ -17,16 +17,16 @@ the handful of settings a mission-maker actually changes.
 
 ## Tasks
 
-- [ ] Add a `name_normalization` rule `Splash_Damage_*.lua` → `Splash_Damage.lua`.
-- [ ] Add `FootholdLocale: FR` to `config_override.defaults` (the block is emitted
+- [x] Add a `name_normalization` rule `Splash_Damage_*.lua` → `Splash_Damage.lua`.
+- [x] Add `FootholdLocale: FR` to `config_override.defaults` (the block is emitted
       commented out, so this is a suggestion, not a forced value).
-- [ ] Unit test: `ConversionProfile.normalize_script_name` maps
+- [x] Unit test: `ConversionProfile.normalize_script_name` maps
       `Splash_Damage_3.4.1_leka.lua` → `Splash_Damage.lua` and leaves `Zeus.lua` alone.
-- [ ] Unit test: `build_scaffold_yaml` with the `foothold` profile emits `FootholdLocale`
+- [x] Unit test: `build_scaffold_yaml` with the `foothold` profile emits `FootholdLocale`
       in the commented `config_override` block.
-- [ ] Re-run the moulinette on `Foothold_CA_4.4.1` and confirm `custom_scripts:` now lists
+- [x] Re-run the moulinette on `Foothold_CA_4.4.1` and confirm `custom_scripts:` now lists
       `src/scripts/Splash_Damage.lua`.
-- [ ] CHANGELOG + version bump (`pyproject.toml` + `plugin/.claude-plugin/plugin.json`).
+- [x] CHANGELOG + version bump (`pyproject.toml` + `plugin/.claude-plugin/plugin.json`).
 
 ## Verify
 

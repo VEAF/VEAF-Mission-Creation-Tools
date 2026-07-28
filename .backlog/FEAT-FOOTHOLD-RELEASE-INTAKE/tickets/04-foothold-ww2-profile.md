@@ -1,6 +1,6 @@
 # 04 — `foothold-ww2` profile for Normandy
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Why
@@ -40,16 +40,16 @@ A second bundled profile `foothold-ww2.yaml`:
 
 ## Tasks
 
-- [ ] Write `veaf_libs/data/convert-profiles/foothold-ww2.yaml` with the above, commented in
+- [x] Write `veaf_libs/data/convert-profiles/foothold-ww2.yaml` with the above, commented in
       the same style as `foothold.yaml` (data only, no code change expected).
-- [ ] Unit test: the profile loads, target is the WW2 config, `incompatible_modules` is
+- [x] Unit test: the profile loads, target is the WW2 config, `incompatible_modules` is
       empty, `ctld` is not in `disabled_community_scripts`.
-- [ ] Adopt `WWII_Normandy_Foothold_5.2.2` with it and run `validate` — must pass with the
+- [x] Adopt `WWII_Normandy_Foothold_5.2.2` with it and run `validate` — must pass with the
       `config_override` block uncommented (every key lexically present in the WW2 config).
-- [ ] Build it and check the native loaders are stripped and the 10 scripts injected.
-- [ ] Document the profile in `FOOTHOLD.md` / `.en.md`: which profile for which map, and why
+- [x] Build it and check the native loaders are stripped and the 10 scripts injected.
+- [x] Document the profile in `FOOTHOLD.md` / `.en.md`: which profile for which map, and why
       Normandy needs its own (no era switch, no Foothold CTLD).
-- [ ] CHANGELOG + version bump.
+- [x] CHANGELOG + version bump.
 
 ## Notes
 

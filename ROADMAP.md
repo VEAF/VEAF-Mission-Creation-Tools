@@ -26,7 +26,6 @@ the current version is **6.7.8**.
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| `FEAT-FOOTHOLD-RELEASE-INTAKE` | ⬜ | None for 01-03 (Claude-actionable). Ticket 04 (`foothold-ww2` profile) is gated on 🧑 **David deciding whether VEAF runs a Normandy Foothold**. |
 | `ENRICH-DEFAULT-PRESETS` | ⬜ | Needs a 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot.

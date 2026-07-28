@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Compare pinned ref to upstream HEAD
         id: compare

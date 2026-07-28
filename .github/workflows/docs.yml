@@ -3,7 +3,7 @@ name: Deploy Docs
 on:
   push:
     branches:
-      - develop-v6
+      - develop
       - master
     tags:
       - "v*"
@@ -55,8 +55,8 @@ jobs:
             "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/documentation.git"
           git fetch ext-docs gh-pages --depth=1 || true
 
-      - name: Deploy docs (develop-v6 → alias "dev")
-        if: github.ref == 'refs/heads/develop-v6'
+      - name: Deploy docs (develop → alias "dev")
+        if: github.ref == 'refs/heads/develop'
         run: poetry run mike deploy --update-aliases --push --remote ext-docs dev
 
       - name: Deploy docs (master → alias "latest")

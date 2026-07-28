@@ -1,7 +1,7 @@
 # Lot FEAT-LUA-BUILD-STAMP — single build stamp in the DCS log instead of per-module versions
 
 Status: ✅ done
-Branch: feature/lua-build-stamp → PR #543 → merged into develop-v6
+Branch: feature/lua-build-stamp → PR #543 → merged into develop
 
 ## Problem Statement
 

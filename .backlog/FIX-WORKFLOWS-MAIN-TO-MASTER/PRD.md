@@ -1,12 +1,12 @@
 # Lot FIX-WORKFLOWS-MAIN-TO-MASTER
 
 Status: ✅ done
-Branch: `fix/workflows-main-to-master` → `develop-v6` (merged, PR #616)
+Branch: `fix/workflows-main-to-master` → `develop` (merged, PR #616)
 
 ## Problem Statement
 
 Every CI workflow triggers on the branch `main`, but the repository has **no `main`
-branch** — its default/stable branch is `master` (branches: `develop-v6`, `master`,
+branch** — its default/stable branch is `master` (branches: `develop`, `master`,
 `development`). So all the branch-scoped triggers on `main` are **dead**: none of the CI
 runs on a push to `master`. Surfaced right after the v6.10.0 release — pushing the release
 to `master` triggered no quality checks, and `docs.yml` only redeployed the `latest` docs
@@ -15,7 +15,7 @@ alias via the `v*` tag, never via the branch push it was meant to.
 Affected workflows (10 occurrences across 7 files):
 
 - `dcs-data-consistency.yml`, `dcs-mock-coverage.yml`, `lua-ci.yml`, `python-quality.yml`,
-  `sbom.yml`, `secret-scanning.yml` — `branches: [develop-v6, main]`
+  `sbom.yml`, `secret-scanning.yml` — `branches: [develop, main]`
 - `docs.yml` — push trigger `- main`, the `main → latest` deploy step condition
   (`github.ref == 'refs/heads/main'`) and its comment
 
@@ -33,7 +33,7 @@ actually runs on `master`:
 ## Implementation Decisions
 
 - Pure mechanical substitution; no trigger added or removed beyond the `main`→`master`
-  rename. `develop-v6` triggers untouched.
+  rename. `develop` triggers untouched.
 - **No product version bump**: CI-only infrastructure; the shipped binary is unchanged.
 
 ## Testing Decisions

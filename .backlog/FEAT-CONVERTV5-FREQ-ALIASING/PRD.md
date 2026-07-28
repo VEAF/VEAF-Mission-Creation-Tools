@@ -1,7 +1,7 @@
 # Lot FEAT-CONVERTV5-FREQ-ALIASING — replace hardcoded preset freqs with readable aliases
 
 Status: ✅ done
-Branch: feat/convertv5-freq-aliasing → PR → develop-v6
+Branch: feat/convertv5-freq-aliasing → PR → develop
 ADR: extends [0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 > Lot 3/3 of the convert-v5 preset-aliasing plan. Needs

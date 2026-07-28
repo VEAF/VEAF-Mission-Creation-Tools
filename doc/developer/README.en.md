@@ -70,7 +70,7 @@ Do this once after following the [setup guide](GUIDE.md#development-environment)
 ```powershell
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
-git checkout develop-v6
+git checkout develop
 poetry install
 
 poetry run test-lua   # should show "OK" for every suite

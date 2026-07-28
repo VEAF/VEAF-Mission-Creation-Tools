@@ -1,7 +1,7 @@
 # Lot FIX-SERVERHOOK-CHAT-SIM-LOGGER — logger `Sim` crash + dead server-hook chat callback
 
 Status: ✅ done
-Branch: fix/server-hook-chat-and-sim-logger → PR → develop-v6
+Branch: fix/server-hook-chat-and-sim-logger → PR → develop
 
 ## Problem Statement
 

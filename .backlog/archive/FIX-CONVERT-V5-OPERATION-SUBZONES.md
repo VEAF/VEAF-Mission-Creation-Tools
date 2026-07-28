@@ -16,7 +16,7 @@ veafCombatZone.AddZone(VeafCombatOperation:new():setMissionEditorZoneName("goriO
 
 **Workaround (immediate, for an already-migrated mission.yaml)**: add the sub-zones as `combat_zones` (`type: zone`, `zone_name: subCombatZone_<x>`, friendly_name/briefing) **and** set `zone_name`/`dependencies` on the operation's tasking_orders.
 
-**Branch**: `fix/convert-v5-operation-subzones` → PR → `develop-v6`
+**Branch**: `fix/convert-v5-operation-subzones` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

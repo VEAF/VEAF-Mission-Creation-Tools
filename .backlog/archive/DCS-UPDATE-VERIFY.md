@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: a DCS World update landed; re-verify the maximum of things the toolchain depends on — every DCS-derived datum **and** the in-game runtime behaviour — and journal each check (remark → analysis → fix) in `TEST-PLAN-DCS-UPDATE.md`. Key insight: almost all DCS data comes from the **Quaggles datamine** at a pinned `DATAMINE_REF` (not the local DCS install), so a DCS update does **not** auto-change our data — only a datamine bump does. Only **airdromes** (`airdromes.yaml`, from `Mods/terrains/<map>/Beacons.lua`) depend on the local install and are **not** CI-guarded. Single branch, single PR at the end if fixes are produced.
 
-**Branch**: `feature/dcs-update-verify` → PR → `develop-v6`
+**Branch**: `feature/dcs-update-verify` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

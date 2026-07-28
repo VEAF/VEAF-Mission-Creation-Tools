@@ -2,9 +2,9 @@
 
 Status: ✅ done
 
-**Goal**: Make the documentation complete, detailed, accessible, fully bilingual (FR/EN parity), with ELI5 explanations for non-dev audiences (pilots, mission makers), mermaid diagrams, and screenshot placeholders. Blocks the next develop-v6 release.
+**Goal**: Make the documentation complete, detailed, accessible, fully bilingual (FR/EN parity), with ELI5 explanations for non-dev audiences (pilots, mission makers), mermaid diagrams, and screenshot placeholders. Blocks the next develop release.
 
-**Branch**: `feature/doc-overhaul` → PR → `develop-v6`
+**Branch**: `feature/doc-overhaul` → PR → `develop`
 
 **Audit findings** (verified):
 - FR systematically lags EN: LUA_API_REFERENCE −1077 lines, TOOLS_REFERENCE −346, pilot/GUIDE −103, veafAirWaves −131, veafCombatZone −103, others −20…−50
@@ -49,5 +49,5 @@ blocks). Code blocks/identifiers stay identical; only prose is translated.
 - Screenshot placeholders live under `doc/assets/img/<area>/`.
 - Per-doc commits, verify parity with `wc -l` after each file.
 
-**After DOC-005c:** update CHANGELOG, open PR `feature/doc-overhaul` → `develop-v6`,
+**After DOC-005c:** update CHANGELOG, open PR `feature/doc-overhaul` → `develop`,
 then the user captures the screenshots listed in DOC-006 to drop into `doc/assets/img/`.

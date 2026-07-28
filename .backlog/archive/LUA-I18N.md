@@ -11,7 +11,7 @@ Status: ✅ done
 - **Catalog location**: one Lua catalog module loaded by the framework (e.g. `veafI18n.lua`), vs per-module inline tables. Keep it test-friendly (`poetry run test-lua`).
 - **Migration is incremental**: ship the framework + the UXPILOT pilot-feedback messages first; migrate the rest module-by-module (hundreds of `outText` literals — erode over time, do not big-bang).
 
-**Branch**: `feat/lua-i18n` → PR → `develop-v6`
+**Branch**: `feat/lua-i18n` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

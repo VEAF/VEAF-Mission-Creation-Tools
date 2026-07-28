@@ -81,28 +81,19 @@ Send that `<Map>.json` file to **David**. Done for this map!
 
 Tick as you go. **No need to redo a map already ticked.**
 
-### ✅ Already collected
+### ✅ Every current DCS map is covered 🎉
 
-- [x] **Syria**
-- [x] **Caucasus**
-- [x] **Cold War Germany**
-- [x] **Marianas**
-- [x] **Normandy**
-- [x] **Persian Gulf**
-- [x] **Sinai**
+- [x] **Syria** · **Caucasus** · **Cold War Germany** · **Marianas** · **Normandy**
+- [x] **Persian Gulf** · **Sinai** — *collected by David*
+- [x] **Nevada** · **The Channel** · **South Atlantic** (Falklands) · **Kola**
+- [x] **Afghanistan** · **Iraq** · **Marianas WWII** — *collected by Reaper, thanks!*
 
-### ⬜ Still to collect (if you own the map)
+**So there is nothing left to collect right now.** What we will still need:
 
-- [ ] **Nevada** (NTTR)
-- [ ] **The Channel**
-- [ ] **South Atlantic** (Falklands)
-- [ ] **Kola**
-- [ ] **Afghanistan**
-- [ ] **Iraq**
-- [ ] **Marianas WWII**
-
-> Don't own a map? Just skip to the next one — we take whatever you have.
-> A new map came out and isn't listed? Do it anyway (see just below), we want it!
+- **a brand-new DCS map ships** → collect it (the mission takes two minutes to build in the
+  editor, see just below);
+- **an existing map gains airfields** in an update → a fresh capture simply replaces the old
+  one.
 
 ---
 

@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Éliminer les redondances, améliorer la navigation, créer des landing pages par audience, mettre à jour le contenu.
-**Branch**: `doc/restructure-navigation` → PR → `develop-v6`
+**Branch**: `doc/restructure-navigation` → PR → `develop`
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|

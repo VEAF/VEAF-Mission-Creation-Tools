@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Réduire la complexité des modules les plus chargés du codebase Lua.
 Chaque ticket est indépendant mais risqué — à traiter un par un avec tests en mission réelle.
-**Branch**: une branche par ticket `refactor/lua-xxx` → PR → `develop-v6`
+**Branch**: une branche par ticket `refactor/lua-xxx` → PR → `develop`
 ⚠️ Impact fort sur les missions existantes : chaque PR doit être testée en mission avant merge.
 
 | # | Ticket | File(s) | Type | Effort | Status |

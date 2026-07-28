@@ -34,15 +34,15 @@ For manual setup, see the [Developer Guide](doc/developer/GUIDE.md#development-e
 ## Development workflow
 
 ```
-develop-v6        ← integration branch (all PRs target this)
+develop        ← integration branch (all PRs target this)
   └── feature/xxx ← your work
   └── fix/xxx     ← bug fixes
 main              ← stable releases only
 ```
 
-1. Fork or create a branch from `develop-v6`
+1. Fork or create a branch from `develop`
 2. Make your changes (see [quality checklist](#quality-checklist) below)
-3. Open a PR against `develop-v6`
+3. Open a PR against `develop`
 4. Address review comments — CI must be green before merge
 
 ---

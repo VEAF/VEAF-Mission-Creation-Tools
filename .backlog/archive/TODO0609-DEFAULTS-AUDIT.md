@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: `prepare` copies the whole `src/defaults/mission-folder/` tree into a new mission via `rglob` (`prepare.py:68`), so any leftover file ships to users. The aircraft YAML files are legitimate (see TODO0609-AIRCRAFT-INJECT). Audit the rest to confirm nothing else is dead weight. Covers todo-2026.06.09 item 12.
 
-**Branch**: `chore/defaults-audit` → PR → `develop-v6`
+**Branch**: `chore/defaults-audit` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

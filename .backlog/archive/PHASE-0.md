@@ -2,11 +2,11 @@
 
 Status: ✅ done
 
-Immediate actions — no feature branch, direct commits on `develop-v6`.
+Immediate actions — no feature branch, direct commits on `develop`.
 
 | # | Ticket | Type | Effort | Status |
 |---|--------|------|--------|--------|
-| DOC-001 | Rename branch `develop/v6-new-build-system` → `develop-v6` | chore | 5 min | [x] |
+| DOC-001 | Rename branch `develop/v6-new-build-system` → `develop` | chore | 5 min | [x] |
 | DOC-002 | Create `plan-2026.05.16.md` (pitch doc) | chore | 20 min | [x] |
 | DOC-003 | Create `doc/backlog.md` (this file) | chore | 30 min | [x] |
 | DOC-004 | Create `CHANGELOG.md` (from `RELEASE_NOTES.md`, Keep a Changelog format) | chore | 30 min | [x] |
@@ -20,14 +20,14 @@ Immediate actions — no feature branch, direct commits on `develop-v6`.
 
 **DOC-001 — Rename branch**
 ```powershell
-git branch -m develop/v6-new-build-system develop-v6
-git push origin develop-v6
+git branch -m develop/v6-new-build-system develop
+git push origin develop
 git push origin --delete develop/v6-new-build-system
 ```
 Update the default branch on GitHub if needed.
 
 **DOC-004 — CHANGELOG.md**
-[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format. Port entries from `RELEASE_NOTES.md` (v6.0.5, v6.0.4, ...). Add `[Unreleased]` section for `develop-v6` changes not yet released.
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format. Port entries from `RELEASE_NOTES.md` (v6.0.5, v6.0.4, ...). Add `[Unreleased]` section for `develop` changes not yet released.
 
 **DOC-005 — ROADMAP.md**
 v6 vision and beyond: quality gate, TUI, Lua config system, DCSUnits doc. No dates — priority order and per-feature status only.

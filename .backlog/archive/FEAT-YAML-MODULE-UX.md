@@ -7,7 +7,7 @@ Status: ✅ done
 2. Community script IDs displayed in uppercase (`MIST`, `STTS`…) like VEAF modules
 3. Modules sorted by category (Infrastructure first, then Core / Features / Combat / External)
 
-**Branch**: `feature/yaml-module-ux` → PR → `develop-v6`
+**Branch**: `feature/yaml-module-ux` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

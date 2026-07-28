@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Prevent users from explicitly setting `enable: true` (or any value) on mandatory modules in `mission.yaml`; emit a clear error at build time.
 
-**Branch**: `fix/mandatory-yaml-enable` → PR → `develop-v6`
+**Branch**: `fix/mandatory-yaml-enable` → PR → `develop`
 
 | # | Ticket | Type | Effort | Status |
 |---|--------|------|--------|--------|

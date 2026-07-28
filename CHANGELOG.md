@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.11.2] — 2026-07-28
+
+### Added
+- **All 14 DCS theatres now resolve airfield names** (FEAT-AIRDROMES-RUNTIME-SOURCE). **Reaper** captured the seven maps nobody had covered yet — Nevada, The Channel, South Atlantic (Falklands), Kola, Afghanistan, Iraq and Marianas WWII — using the map-capture kit, so `airdromes.yaml` goes from 7 theatres / 657 airbases to **14 theatres / 810 airbases**. A QRA `airport_link` or a `warehouses.yaml` entry now resolves on every current map. Note: DCS exposes no coordinates for three Afghanistan forward bases (`FOB Thunder`, `FOB Camp Dubs`, `FOB Clark`) — they are kept because their name and id are valid, which is all the name→id table uses.
+
 ### Fixed
 - **A script embedded by `add_startup_script_trigger` never loaded** (FIX-MAPRESOURCE-KEY). In `file_static` mode the resource key was written into the **`mission`** table, whereas DCS resolves `getValueResourceByKey` against the separate `l10n/DEFAULT/mapResource` archive member. The `.lua` was embedded but unreachable: the editor showed an empty FILE field on the DO SCRIPT FILE action and the script silently never ran. Affects every mission outfitted through that action — including the bridge missions bundled in the map-capture kit, which is how it surfaced. A second, related loss was found while fixing it: a `.miz` carrying **no** `mapResource` member at all (possible for a tool-generated mission) lost the key too, since `write_miz` only rewrites members that already exist — the helper now supplies the file itself. The unit test had locked in the wrong behaviour (asserting the key landed in `mission`), and the end-to-end test only checked that the `.lua` was in the archive, never that its key resolved; both are corrected and two regression tests added. Verified in the DCS editor.
 
@@ -30,7 +35,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `loadPilots` used `assert(loadfile(filepath))`, which *threw* on a missing file — making the `if not file` error branch right below dead code and leaving the pilots table empty. It now loads defensively: a missing/invalid file logs a clear error (`no pilot will be recognized and every command will be denied`) instead of raising a raw Lua exception.
   - `veafServerHook.parse` logged the "Unknown pilot" warning but kept going and then indexed `pilot.level` on a `nil` pilot, throwing `attempt to index local 'pilot' (a nil value)` (VEAF-Server-hook.lua:413). A pilot absent from the list now gets `level = -1` (no power at all), the same convention `onPlayerConnect` already used, so the command is cleanly denied instead of crashing the hook.
   All three paths only became reachable once #590 revived the dead chat callback (`onChatMessage` → `onPlayerTrySendChat`).
-- **CI workflows now trigger on `master`** (FIX-WORKFLOWS-MAIN-TO-MASTER). Every workflow was scoped to a `main` branch that does not exist in this repo (the stable branch is `master`), so no CI ran on a push to `master` — quality checks, SBOM, secret scanning and the `latest` docs deploy were all dead on the branch that receives the release merges. Renamed `main` → `master` across the 7 workflows (`develop-v6` triggers and the `v*` tag doc path untouched).
+- **CI workflows now trigger on `master`** (FIX-WORKFLOWS-MAIN-TO-MASTER). Every workflow was scoped to a `main` branch that does not exist in this repo (the stable branch is `master`), so no CI ran on a push to `master` — quality checks, SBOM, secret scanning and the `latest` docs deploy were all dead on the branch that receives the release merges. Renamed `main` → `master` across the 7 workflows (`develop` triggers and the `v*` tag doc path untouched).
 
 ## [6.10.0] — 2026-07-18
 
@@ -620,7 +625,7 @@ and the cross-platform binaries — as the new `published-latest`.
 - `veafSpawnCore.lua` reduced from ~1834 to ~900 lines: parser extracted; 25-branch if/elseif replaced by handler dispatch loop
 - `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` sub-modules self-register their spawn handlers via `veafSpawn.registerCommandHandler()`
 - 7 remote modules self-register via `veafRemote.registerRemoteModule()` — hardcoded switch in `executeCommandFromRemote` removed
-- Branch renamed from `develop/v6-new-build-system` to `develop-v6`
+- Branch renamed from `develop/v6-new-build-system` to `develop`
 - `veaf.BaseLogLevel` default changed from `trace` to `info`
 - All 1233 `veaf.p(` log-argument calls migrated to `veaf.lp(` across all Lua scripts
 - Single build output (`veaf-scripts.lua`) — `veaf-scripts-debug.lua` / `veaf-scripts-trace.lua` variants removed

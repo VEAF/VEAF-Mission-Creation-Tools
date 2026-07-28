@@ -72,7 +72,7 @@ Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs co
 
 ### Deux formats d'auteur
 
-Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepte deux couches, qui coexistent :
+Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `presets.yaml` accepte deux couches, qui coexistent :
 
 - **`channel_lists`** (recommandé) : le mission-maker déclare une seule fois par coalition ses listes de canaux, par **rôle radio** fonctionnel (UHF principal, VHF principal, FM…), et le build projette automatiquement chaque liste sur les radios physiques de chaque type d'aéronef, en tenant compte de ses particularités matérielles (canal 0, slots réservés, canaux spéciaux en dur, fusion de radios — AJS-37, OH-58D, Mi-24P…). Une seule modification de fréquence se propage à toute la flotte. Le détail de ces règles de projection par type est documenté côté développeur : [Projection des presets radio par type](developer/radio-preset-projection.md).
 - **`radios_collection` / `presets_collection` / `presets_assignments`** (historique) : le mission-maker définit lui-même, radio par radio, le contenu de chaque préréglage puis l'assigne explicitement par type d'appareil. Ce format reste entièrement supporté et sert désormais de **mécanisme de surcharge manuelle** : une affectation explicite dans `presets_assignments` pour un type donné l'emporte toujours sur la projection automatique de `channel_lists` — y compris la valeur spéciale `none` (aucune injection).
@@ -184,7 +184,7 @@ Un canal peut être défini de trois façons, dans `channel_lists` comme dans `r
 ### Priorité et couleur d'un canal (planchettes)
 
 Sur une entrée du plan (forme objet), deux attributs facultatifs enrichissent la
-planchette ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)) :
+planchette ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)) :
 
 - **`priority: <n>`** — met le canal en évidence sur **toute** planchette
   (marqueur `Pn` + cellules Name/Freq stabilotées en orange). Sur l'**AJS-37
@@ -210,7 +210,7 @@ DCS du type (`KNEEBOARD/<type>/IMAGES/`).
 
 ### Conversion v5 : deux fichiers (`convert-v5`)
 
-Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` produit **deux** fichiers de préréglages :
+Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` produit **deux** fichiers de préréglages :
 
 - **`presets.yaml` — plan simplifié (par défaut, chargé par le build)** : `channel_lists` seul (plus, le cas échéant, les rares surcharges que le packer ne peut pas projeter du tout). Le build projette automatiquement la cristallisation sur chaque aéronef, warbirds compris (radios compatibles VHF/FM), en droppant les canaux hors bande. C'est le fichier qui exploite pleinement le modèle preset-plan.
 - **`presets.v5.yaml` — copie fidèle (référence / repli, non chargée par le build)** : la conversion iso-fonctionnelle complète (`channel_lists` + un préréglage dédié `{coalition}_{aéronef}` par agencement sur mesure, reproduisant exactement la carte canal → fréquence et les `mod`, voir ADR 0003).
@@ -331,7 +331,7 @@ settings:
 
 ## Étape 3 — Groupes d'aéronefs : spawnables (B) et modèles de slot dynamique (C)
 
-Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0002-aircraft-group-injection-sort-criteria.md)) :
+Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux étapes indépendantes (voir [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md)) :
 
 - **(B) groupes spawnables** (`src/spawnables.yaml`, étape `spawnable_aircrafts`) : vrais groupes cachés, clonés à la demande en jeu par `veafSpawn`. Marqueur : préfixe de nom `veafSpawn-`.
 - **(C) modèles de slot dynamique** (`src/dynamic-slot-templates.yaml`, étape `dynamic_slot_templates`) : groupes servant de **modèle** aux Dynamic Slots DCS, consommés nativement par le moteur. Marqueur : flag DCS `dynSpawnTemplate = true`.
@@ -559,7 +559,7 @@ blue:
 
 ## Étape 5 — Données de spawn (`spawn-groups.yaml`)
 
-Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0005-spawn-data-externalization.md).
+Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
 
 ### Toujours active
 

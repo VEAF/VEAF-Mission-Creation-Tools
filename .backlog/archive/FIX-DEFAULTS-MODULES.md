@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: David's review of the default `mission.yaml`: (1) MiST is a hard VEAF dependency → must always be injected (like the mandatory infrastructure modules); (2) WEATHERMARK no longer belongs in our scripts → remove it from the default (full removal tracked separately); (3) TUM has no initialization in the generated config (kept in the default; init tracked separately).
 
-**Branch**: `fix/defaults-mist-weathermark-tum` → PR → `develop-v6`
+**Branch**: `fix/defaults-mist-weathermark-tum` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

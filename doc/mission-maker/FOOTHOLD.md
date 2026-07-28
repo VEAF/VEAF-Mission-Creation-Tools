@@ -7,9 +7,9 @@
 > mission.
 >
 > Architecture : **code générique, connaissance auteur en donnée** (voir
-> [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0007-third-party-mission-adoption.md))
+> [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md))
 > et **config amont intacte + override partiel validé lexicalement** (voir
-> [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/docs/adr/0008-foothold-config-override.md)).
+> [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0008-foothold-config-override.md)).
 > Le détail de chaque commande est dans [CONVERT_OTHER](CONVERT_OTHER.md) et la
 > [référence mission.yaml](../MISSION_YAML_REFERENCE.md).
 

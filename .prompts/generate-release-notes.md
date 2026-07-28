@@ -8,9 +8,9 @@ STRICTLY execute the following steps, one by one, waiting for the developer's re
 
 ## Context
 
-- Active development branch: `develop-v6`
-- Release branch naming: `release/x.y.z` (created from `develop-v6`)
-- PR target: `develop-v6` (not `master` — `master` is reserved for stable milestones)
+- Active development branch: `develop`
+- Release branch naming: `release/x.y.z` (created from `develop`)
+- PR target: `develop` (not `master` — `master` is reserved for stable milestones)
 - Tag naming: `published-vx.y.z` (pushed by the developer manually after the PR is merged)
 - CI trigger: pushing the `published-vx.y.z` tag → `release.yml` workflow builds and publishes the GitHub Release using `RELEASE_NOTES.md` as-is from the tagged commit
 
@@ -42,15 +42,15 @@ Once `RELEASE_NOTES.md` is validated by the developer, apply these changes:
 ## Step 5: Git Operations
 
 Execute the following autonomously:
-1. Create branch `release/x.y.z` from `develop-v6`
+1. Create branch `release/x.y.z` from `develop`
 2. Commit all modified files (`RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml`, `doc/ROADMAP.md`)
-3. Push the branch and open a PR `release/x.y.z` → `develop-v6`
+3. Push the branch and open a PR `release/x.y.z` → `develop`
 
 Then provide the developer with these final commands to run **after the PR is merged**:
 
 ```bash
-git checkout develop-v6
-git pull origin develop-v6
+git checkout develop
+git pull origin develop
 git tag published-vx.y.z
 git push origin published-vx.y.z
 ```

@@ -1,7 +1,7 @@
 # Lot FIX-SERVERHOOK-UNKNOWN-PILOT-PARSE — shared pilots list not loaded + crash on unlisted pilot
 
 Status: ✅ done
-Branch: fix/serverhook-unknown-pilot-parse → PR #620 → develop-v6 (merged)
+Branch: fix/serverhook-unknown-pilot-parse → PR #620 → develop (merged)
 
 ## Problem Statement
 

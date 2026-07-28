@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Remove `missions.yaml` as an accepted alias for the weather pipeline config. `versions.yaml` is the only valid filename. Eliminates confusion with `mission.yaml`.
 
-**Branch**: `feature/versions-yaml-only` → PR #386 → `develop-v6`
+**Branch**: `feature/versions-yaml-only` → PR #386 → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -6,7 +6,7 @@ Status: ✅ done
 
 > **Boundary** (HANDOFF §6): this is the *generate-a-Lua-base* axis (A + `veafUnits`), explicitly **out of scope** of TODO0609-AIRCRAFT-INJECT (the *inject-groups* axis, B + C). Do not seek a unified A↔B/C group schema; the two chantiers are factored along the pipeline axis, not "it's a group".
 
-**Branch**: `feat/spawn-externalize` → PR → `develop-v6`
+**Branch**: `feat/spawn-externalize` → PR → `develop`
 
 **Spike result (001 ✅)** — see [ADR 0005](docs/adr/0005-spawn-data-externalization.md):
 

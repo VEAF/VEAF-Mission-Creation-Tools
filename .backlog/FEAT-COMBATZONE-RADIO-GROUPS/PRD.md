@@ -1,7 +1,7 @@
 # Lot FEAT-COMBATZONE-RADIO-GROUPS — combat-zone radio grouping + global menu pagination
 
 Status: ✅ done
-Branch: claude/combat-zone-radio-config-e13993 → PR → develop-v6
+Branch: claude/combat-zone-radio-config-e13993 → PR → develop
 ADR: [0013](../../docs/adr/0013-radio-menu-pagination.md)
 
 ## Problem Statement

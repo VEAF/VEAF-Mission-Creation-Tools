@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Running `build` with a bare mission name (instead of a `.miz` file or the default `mission.miz`) left the output mission as a path *relative to the current directory*. The weather step resolves a relative mission path against `versions.yaml`'s parent (`<folder>/src`), so it looked for `<folder>/src/<name>.miz` and aborted with `Base mission not found`. The bug surfaced through the TUI because the mission.yaml-aware default (lot TUI-YAML-DEFAULTS) now pre-fills the real mission name, taking this code path instead of the `== DEFAULT_MISSION_FILE` branch that anchored the path in the mission folder.
 
-**Branch**: `fix/build-bare-name-path` → PR → `develop-v6`
+**Branch**: `fix/build-bare-name-path` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

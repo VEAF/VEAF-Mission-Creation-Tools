@@ -2,9 +2,9 @@
 
 Status: ✅ done
 
-**Goal**: Address the second round of IMC-Day migration field feedback (`tests-mct6-imcday(3).md`, tested with v6.4.0 on 2026-06-10; the first round, 2026-05-31 / v6.2.0, was handled by the archived Lot 26 IMC-FEEDBACK). Items already fixed in `develop-v6` carry no ticket here: Skynet listed twice and QRA/`external_modules:` scattering are solved by TODO0609-MODULES-UNIFY (ships with the next release). The `spawnables.yaml`/`templates.yaml` confusion repros were handed to **TODO0609-AIRCRAFT-INJECT**, and the trigger-migration repros to **TODO0609-TRIGGERS-VERIFY** (see there).
+**Goal**: Address the second round of IMC-Day migration field feedback (`tests-mct6-imcday(3).md`, tested with v6.4.0 on 2026-06-10; the first round, 2026-05-31 / v6.2.0, was handled by the archived Lot 26 IMC-FEEDBACK). Items already fixed in `develop` carry no ticket here: Skynet listed twice and QRA/`external_modules:` scattering are solved by TODO0609-MODULES-UNIFY (ships with the next release). The `spawnables.yaml`/`templates.yaml` confusion repros were handed to **TODO0609-AIRCRAFT-INJECT**, and the trigger-migration repros to **TODO0609-TRIGGERS-VERIFY** (see there).
 
-**Branch**: `fix/imc-feedback-2` → PR → `develop-v6`
+**Branch**: `fix/imc-feedback-2` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

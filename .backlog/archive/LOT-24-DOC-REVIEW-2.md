@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Context**: All other REV-* tickets from Lot 24 are archived. REV-002 is waiting for the user to provide the `.conf` file.
 
-**Branch**: `fix/doc-review-klogg` → PR → `develop-v6`
+**Branch**: `fix/doc-review-klogg` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

@@ -58,7 +58,7 @@ These are enforcement obligations on **every** lot, not a separate clean-up task
 
 ## 5. Git Flow and Commits
 
-- **Branch Management**: All work must be done on feature branches (`feature/*` or `fix/*`) created from `develop-v6`. Never commit directly to `master` or `main`.
+- **Branch Management**: All work must be done on feature branches (`feature/*` or `fix/*`) created from `develop`. Never commit directly to `master` or `main`.
 - **Commit Messages**: Scrupulously respect the Conventional Commits specification in English (`type(scope): description`).
 
 ---
@@ -97,20 +97,20 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 
 For every action requested by the user, execute these steps in order:
 
-0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop-v6` (or rebase your branch onto the latest `origin/develop-v6`). Never reason about "what's left to do" or start work from a stale local checkout.
+0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop` (or rebase your branch onto the latest `origin/develop`). Never reason about "what's left to do" or start work from a stale local checkout.
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
 2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add a row to `.backlog/README.md`.
-3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
+3. **Create a branch** from `develop` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
 6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.
-10. **Open a PR** targeting `develop-v6` and report the PR URL to the user.
+10. **Open a PR** targeting `develop` and report the PR URL to the user.
 11. **Monitor the PR**: wait for Sourcery review and CI. Address any feedback, then merge when approved.
-12. **After merge**: switch back to `develop-v6`, pull, and confirm to the user.
+12. **After merge**: switch back to `develop`, pull, and confirm to the user.
 
 ---
 

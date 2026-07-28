@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: during the manual v6.4.x test campaign (a v6-built mission tested in DCS in **dynamic** mode, plus design-time checks of `convert-v5`, the CLI/TUI and `veaf-build`), every plan section (build, runtime, convert-v5, CLI/TUI, DCS data, security/perf) was exercised. Most items already worked; the issues below were found and fixed. Each is journaled (remark → analysis → fix) in the temporary `TEST-PLAN-VEAF-6.4.x.md`. Single branch, single PR.
 
-**Branch**: `fix/tests` → [PR #468](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/468) → `develop-v6` (squash `d62e0c23`)
+**Branch**: `fix/tests` → [PR #468](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/468) → `develop` (squash `d62e0c23`)
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

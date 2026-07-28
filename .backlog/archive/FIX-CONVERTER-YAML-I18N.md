@@ -6,7 +6,7 @@ Status: ✅ done
 1. The YAML syntax quick-reference header is missing (only present in `generate-config` output, not in `convert-v5` output).
 2. All comment strings in the generated file are hardcoded English regardless of the user locale.
 
-**Branch**: `fix/converter-yaml-i18n` → PR → `develop-v6`
+**Branch**: `fix/converter-yaml-i18n` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

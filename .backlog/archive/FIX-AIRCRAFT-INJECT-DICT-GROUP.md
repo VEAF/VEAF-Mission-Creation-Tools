@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Fix direction**: In `_ensure_aircraft_category`, after ensuring existence, normalize `country[category]["group"]` to a list — if it is a dict, replace it in `country` with `list(values())` (empty dict → `[]`, keyed dict → its group values, preserving any existing groups) so the subsequent `.append` works. (This is the recurring "luadata empty/keyed table → dict" pitfall; keep the fix local to the injector.)
 
-**Branch**: `fix/aircraft-inject-dict-group` → PR → `develop-v6` (Python injector only).
+**Branch**: `fix/aircraft-inject-dict-group` → PR → `develop` (Python injector only).
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

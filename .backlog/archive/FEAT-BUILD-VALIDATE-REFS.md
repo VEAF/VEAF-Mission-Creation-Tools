@@ -21,7 +21,7 @@ Infra reuse: [mission_validator.py](src/python/veaf-tools/veaf_libs/mission_vali
 
 Out of scope: AIRWAVES `waves.groups` (spawn pattern, not a named ME group — kept excluded); TUM `BLUFOR`/`REDFOR` zones stay WARNING (unchanged).
 
-**Branch**: `feature/build-validate-refs` → PR → `develop-v6` (build-time only, no DCS validation needed).
+**Branch**: `feature/build-validate-refs` → PR → `develop` (build-time only, no DCS validation needed).
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

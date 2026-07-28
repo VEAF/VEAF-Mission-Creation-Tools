@@ -76,7 +76,7 @@ The current per-lot block, enriched with Matt's PRD template:
 # Lot <LOT-ID> — <title>
 
 Status: ⬜ ready
-Branch: feature/<id>  (or fix/<id>) → PR → develop-v6
+Branch: feature/<id>  (or fix/<id>) → PR → develop
 
 ## Problem Statement
 ## Solution
@@ -204,7 +204,7 @@ The skills themselves are installed **globally** (`~/.claude/skills/`) and are
 ## Open questions / risks
 
 - **Git workflow for the migration itself.** This restructure is itself "a lot"
-  and should follow CLAUDE.md §8 (feature branch → PR → `develop-v6`), not a
+  and should follow CLAUDE.md §8 (feature branch → PR → `develop`), not a
   direct commit. The implementation plan should sync first (§8.0) and run on a
   dedicated branch (e.g. `chore/backlog-restructure`).
 - **Lot-ID collisions.** A few Matt skills share short names across categories;

@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: `veaf-tools` with no arguments opens a guided interactive mode instead of showing help.
-**Branch**: `feature/tui-interactive` → PR → `develop-v6`
+**Branch**: `feature/tui-interactive` → PR → `develop`
 **Depends on**: Lot 1 (quality gate), Lot 2 TOOL-002 (VEAF_HOME for preferences)
 
 | # | Ticket | Type | Effort | Depends on | Status |

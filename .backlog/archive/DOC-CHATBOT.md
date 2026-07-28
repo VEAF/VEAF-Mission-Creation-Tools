@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Add a free, bilingual (FR/EN) chatbot that guides users from within the VEAF v6 documentation site (MkDocs Material → GitHub Pages), modeled on the Solde chatbot but re-shaped for a static/public site. A Cloudflare Worker (free tier) holds the Gemini API key, enforces an Origin allow-list + per-IP rate-limit (KV), and answers via **RAG**: it embeds the question (`gemini-embedding-001`, 768d), retrieves the most relevant doc passages from a Cloudflare Vectorize index (filtered by language), and streams a grounded answer from `gemini-2.5-flash-lite`. RAG was adopted after a live test proved full-document injection (~100k tokens/request) hits the Gemini free-tier tokens-per-minute ceiling at ~2 questions/minute; context caching was ruled out (cached tokens still count against TPM and it requires billing). Implementation lives under `poc/doc-chatbot/` (Worker + index build script) and `doc/assets/chatbot/` (widget); deployed and validated live at `https://veaf-docs-chatbot.veaf.workers.dev`.
 
-**Branch**: `claude/cranky-heyrovsky-e6f193` → PR → `develop-v6`
+**Branch**: `claude/cranky-heyrovsky-e6f193` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

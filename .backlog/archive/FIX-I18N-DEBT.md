@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: Fix all 107 hardcoded English strings in the 25 files currently listed in `_TODO_EXEMPTIONS`, add matching keys to `en.json`/`fr.json`, and remove every file from the exemption list so COV-003 enforces the whole codebase.
 
-**Branch**: `fix/i18n-debt` → PR → `develop-v6`
+**Branch**: `fix/i18n-debt` → PR → `develop`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|

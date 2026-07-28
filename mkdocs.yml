@@ -4,7 +4,7 @@ site_url: https://veaf.github.io/documentation/
 repo_url: https://github.com/VEAF/VEAF-Mission-Creation-Tools
 repo_name: VEAF/VEAF-Mission-Creation-Tools
 docs_dir: doc
-edit_uri: blob/develop-v6/doc/
+edit_uri: blob/develop/doc/
 
 theme:
   name: material

@@ -1,0 +1,264 @@
+{
+  "theatre": "Kola",
+  "airbases": [
+    {
+      "id": 1,
+      "name": "Banak",
+      "lat": 70.05776,
+      "lon": 24.975276,
+      "coalition": 0
+    },
+    {
+      "id": 2,
+      "name": "Rovaniemi",
+      "lat": 66.574566,
+      "lon": 25.849959,
+      "coalition": 0
+    },
+    {
+      "id": 3,
+      "name": "Kemi Tornio",
+      "lat": 65.792105,
+      "lon": 24.586346,
+      "coalition": 0
+    },
+    {
+      "id": 4,
+      "name": "Vuojarvi",
+      "lat": 67.075947,
+      "lon": 26.560454,
+      "coalition": 0
+    },
+    {
+      "id": 5,
+      "name": "Kiruna",
+      "lat": 67.83031,
+      "lon": 20.352317,
+      "coalition": 0
+    },
+    {
+      "id": 6,
+      "name": "Severomorsk-3",
+      "lat": 68.856774,
+      "lon": 33.715938,
+      "coalition": 0
+    },
+    {
+      "id": 7,
+      "name": "Bodo",
+      "lat": 67.266973,
+      "lon": 14.335478,
+      "coalition": 0
+    },
+    {
+      "id": 8,
+      "name": "Severomorsk-1",
+      "lat": 69.041039,
+      "lon": 33.404833,
+      "coalition": 0
+    },
+    {
+      "id": 9,
+      "name": "Olenya",
+      "lat": 68.165641,
+      "lon": 33.478249,
+      "coalition": 0
+    },
+    {
+      "id": 10,
+      "name": "Monchegorsk",
+      "lat": 67.980068,
+      "lon": 33.005546,
+      "coalition": 0
+    },
+    {
+      "id": 11,
+      "name": "Jokkmokk",
+      "lat": 66.503493,
+      "lon": 20.13492,
+      "coalition": 0
+    },
+    {
+      "id": 12,
+      "name": "Murmansk International",
+      "lat": 68.79078,
+      "lon": 32.735392,
+      "coalition": 0
+    },
+    {
+      "id": 13,
+      "name": "Kalixfors",
+      "lat": 67.76986,
+      "lon": 20.24961,
+      "coalition": 0
+    },
+    {
+      "id": 14,
+      "name": "Kirkenes",
+      "lat": 69.727983,
+      "lon": 29.911999,
+      "coalition": 0
+    },
+    {
+      "id": 15,
+      "name": "Kallax",
+      "lat": 65.55461,
+      "lon": 22.098573,
+      "coalition": 0
+    },
+    {
+      "id": 16,
+      "name": "Kuusamo",
+      "lat": 65.994259,
+      "lon": 29.22226,
+      "coalition": 0
+    },
+    {
+      "id": 17,
+      "name": "Vidsel",
+      "lat": 65.879747,
+      "lon": 20.129465,
+      "coalition": 0
+    },
+    {
+      "id": 18,
+      "name": "Ivalo",
+      "lat": 68.613256,
+      "lon": 27.42397,
+      "coalition": 0
+    },
+    {
+      "id": 19,
+      "name": "Alakurtti",
+      "lat": 66.966443,
+      "lon": 30.365891,
+      "coalition": 0
+    },
+    {
+      "id": 20,
+      "name": "Andoya",
+      "lat": 69.306749,
+      "lon": 16.121185,
+      "coalition": 0
+    },
+    {
+      "id": 21,
+      "name": "Bardufoss",
+      "lat": 69.052219,
+      "lon": 18.566432,
+      "coalition": 0
+    },
+    {
+      "id": 22,
+      "name": "Kittila",
+      "lat": 67.710632,
+      "lon": 24.841318,
+      "coalition": 0
+    },
+    {
+      "id": 23,
+      "name": "Hosio",
+      "lat": 65.89861,
+      "lon": 25.721762,
+      "coalition": 0
+    },
+    {
+      "id": 24,
+      "name": "Alta",
+      "lat": 69.980949,
+      "lon": 23.349632,
+      "coalition": 0
+    },
+    {
+      "id": 25,
+      "name": "Evenes",
+      "lat": 68.50251,
+      "lon": 16.677568,
+      "coalition": 0
+    },
+    {
+      "id": 26,
+      "name": "Enontekio",
+      "lat": 68.369035,
+      "lon": 23.437226,
+      "coalition": 0
+    },
+    {
+      "id": 27,
+      "name": "Sodankyla",
+      "lat": 67.401033,
+      "lon": 26.615792,
+      "coalition": 0
+    },
+    {
+      "id": 28,
+      "name": "Kilpyavr",
+      "lat": 69.101813,
+      "lon": 32.420332,
+      "coalition": 0
+    },
+    {
+      "id": 29,
+      "name": "Luostari Pechenga",
+      "lat": 69.40697,
+      "lon": 30.999283,
+      "coalition": 0
+    },
+    {
+      "id": 30,
+      "name": "Koshka Yavr",
+      "lat": 69.262938,
+      "lon": 31.208859,
+      "coalition": 0
+    },
+    {
+      "id": 31,
+      "name": "Poduzhemye",
+      "lat": 64.916729,
+      "lon": 34.286119,
+      "coalition": 0
+    },
+    {
+      "id": 32,
+      "name": "Kalevala",
+      "lat": 65.211405,
+      "lon": 31.13767,
+      "coalition": 0
+    },
+    {
+      "id": 33,
+      "name": "Afrikanda",
+      "lat": 67.454209,
+      "lon": 32.809867,
+      "coalition": 0
+    },
+    {
+      "id": 34,
+      "name": "Boden Heli Base",
+      "lat": 65.810454,
+      "lon": 21.692645,
+      "coalition": 0
+    },
+    {
+      "id": 35,
+      "name": "Hemavan",
+      "lat": 65.799748,
+      "lon": 15.090087,
+      "coalition": 0
+    },
+    {
+      "id": 36,
+      "name": "Arvidsjaur",
+      "lat": 65.598218,
+      "lon": 19.258236,
+      "coalition": 0
+    },
+    {
+      "id": 37,
+      "name": "Tromso",
+      "lat": 69.673352,
+      "lon": 18.911499,
+      "coalition": 0
+    }
+  ]
+}

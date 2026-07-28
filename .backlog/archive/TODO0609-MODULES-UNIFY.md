@@ -6,7 +6,7 @@ Status: ✅ done
 
 **Decisions** (grilling 2026-06-10): everything nested under `modules:`; remove `external_modules:`/`qra:`; hard break (no deprecation); `convert-v5` extracts CTLD/CSAR config from v5. See `docs/adr/0001-modules-single-source-of-truth.md`.
 
-**Branch**: `feat/modules-unify` → PR → `develop-v6`
+**Branch**: `feat/modules-unify` → PR → `develop`
 
 | # | Ticket | Files | Type | Status |
 |---|--------|-------|------|--------|

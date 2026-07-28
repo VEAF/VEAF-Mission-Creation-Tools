@@ -3,7 +3,7 @@
 Status: ✅ done
 
 **Goal**: Résoudre les problèmes de qualité identifiés lors de la revue de code (mai 2026). Fixes ciblés, pas de changement structurel majeur.
-**Branch**: `feature/quality-cleanup` → PR #316 → `develop-v6` ✅ merged 2026-05-20
+**Branch**: `feature/quality-cleanup` → PR #316 → `develop` ✅ merged 2026-05-20
 **Depends on**: Lot 5 (release v6.1.0 terminée — ces fixes sont post-release)
 
 | # | Ticket | File(s) | Type | Effort | Status |

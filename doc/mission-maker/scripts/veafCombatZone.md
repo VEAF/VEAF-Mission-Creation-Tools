@@ -115,7 +115,7 @@ modules:
         friendly_name: "Alpha"
 ```
 
-### Zone jouée côté rouge
+### Zone jouée côté rouge {#red-side-zone}
 
 Par défaut, une zone de combat suppose que les joueurs sont **bleus** et que les unités à
 détruire sont **rouges**. Deux comportements en découlaient : la zone se terminait quand il ne
@@ -146,7 +146,7 @@ fin. Une zone qui ne précise rien se comporte exactement comme avant.
 Côté Lua, l'équivalent est `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)` ; le setter
 accepte aussi la chaîne `"blue"` / `"red"`.
 
-### À qui le menu F10 est-il proposé ?
+### À qui le menu F10 est-il proposé ? {#f10-menu-audience}
 
 Le menu F10 d'une zone n'est pas seulement de la lecture : c'est par lui qu'on **active** la
 zone, qu'on demande son état, qu'on tire la fumée. Il est donc proposé au **camp qui joue la

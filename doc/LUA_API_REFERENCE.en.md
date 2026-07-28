@@ -1,7 +1,7 @@
 # VEAF Lua Modules - Complete API Reference
 
-**Version:** 6.5.25
-**Last Updated:** June 2026
+**Version:** generated for 6.11.x
+**Last Updated:** July 2026
 **Project:** VEAF Mission Creation Tools
 
 ---
@@ -3693,7 +3693,7 @@ veafRadio.USAGE_ForUnit = 2
 
 #### Functions
 
-##### `veafRadio.addSubMenu(title, parentMenu)`
+##### `veafRadio.addSubMenu(title, parentMenu, coalitionSide)`
 
 Add submenu to radio.
 
@@ -3701,6 +3701,10 @@ Add submenu to radio.
 
 - `title` (string) - Submenu title
 - `parentMenu` (menu, optional) - Parent menu (nil = root VEAF menu)
+- `coalitionSide` (number, optional) - `coalition.side.RED` / `coalition.side.BLUE`: the submenu
+  **and everything under it** is only shown to that coalition (`nil` = everyone). The side is
+  inherited by child submenus, commands and pagination pages; a `USAGE_ForGroup` command is only
+  attached for groups of that side.
 
 **Returns:** `menu` - Submenu object
 

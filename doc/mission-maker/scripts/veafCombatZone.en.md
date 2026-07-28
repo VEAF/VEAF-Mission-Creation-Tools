@@ -116,7 +116,7 @@ modules:
         friendly_name: "Alpha"
 ```
 
-### A zone played from the red side
+### A zone played from the red side {#red-side-zone}
 
 By default a combat zone assumes the players are **blue** and the units to destroy are **red**.
 Two behaviours followed from that: the zone completed once no red unit was left, and the F10
@@ -146,7 +146,7 @@ says nothing behaves exactly as before.
 In Lua the equivalent is `VeafCombatZone:setEnemyCoalition(coalition.side.BLUE)`; the setter also
 accepts the `"blue"` / `"red"` string form.
 
-### Who is offered the F10 menu?
+### Who is offered the F10 menu? {#f10-menu-audience}
 
 A zone's F10 menu is not read-only: it is how the zone gets **activated**, its status requested,
 its smoke popped. So it is offered to the **side playing the zone** — the opposite of

@@ -12,7 +12,7 @@
 
 First phase of **NL-MISSION-GEN** (see `ROADMAP.md` §4): let an LLM edit a DCS mission on a
 Mission Maker's behalf — and, eventually, generate one end-to-end from a detailed prompt. See
-[ADR 0014](../adr/0014-mission-editor-mcp-editor-parity-layer.md) for the architecture decision,
+[ADR 0014](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0014-mission-editor-mcp-editor-parity-layer.md) for the architecture decision,
 and `CONTEXT.md` (section "LLM-assisted mission editing") for the vocabulary.
 
 Two action families, deliberately kept apart:
@@ -146,7 +146,7 @@ requires + the groups inside it). No deduplication.
 Write. Adds a **"mission start"** trigger that runs a script — for outfitting a **vanilla or
 CTLD** mission with scripting without the DCS editor's Triggers tab. Generalizes
 `inject_dcs_bridge_trigger` and the VEAF static/dynamic loading mechanism
-([ADR 0004](../adr/0004-dynamic-script-loading.md)). Unlike that helper (which inserts at index 1
+([ADR 0004](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0004-dynamic-script-loading.md)). Unlike that helper (which inserts at index 1
 and renumbers everything), this **appends** at the next free index — no existing trigger is
 renumbered. Three modes:
 
@@ -374,7 +374,7 @@ design-time (no running DCS).
 
 Foundation: `veaf_libs.coordinates` — pure-Python Transverse Mercator WGS84 (no `pyproj`), whose
 per-theatre constants come from the vendored `data/dcs-maps.yaml` (MIT export of
-[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), see [ADR 0015](../adr/0015-coordinate-projection-port.md))
+[VEAF/dcs-maps](https://github.com/VEAF/dcs-maps), see [ADR 0015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0015-coordinate-projection-port.md))
 — **all DCS theatres** (Caucasus, Syria, PersianGulf, Marianas, Normandy, Nevada, SinaiMap,
 GermanyCW, Kola, TheChannel, Falklands, Afghanistan, Iraq). Since DCS theatres **are the real world
 projected**, this bridges `DCS x/y ↔ real-world lat/lon`.

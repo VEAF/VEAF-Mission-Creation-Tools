@@ -691,7 +691,7 @@ veaf-tools.exe build --profile MODERN   # produces only the MODERN variant (unsu
 | `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#step-1--radio-presets-presetsyaml) |
 | `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#step-2--waypoints-waypointsyaml) |
 | `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-spawnables-b-and-dynamic-slot-templates-c) |
-| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-4--weather--time-versions-versionsyaml) |
+| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-6--weather--time-versions-versionsyaml) |
 | [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |

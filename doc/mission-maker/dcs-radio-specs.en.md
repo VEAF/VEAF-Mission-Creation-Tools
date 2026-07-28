@@ -1,103 +1,98 @@
-# Spécifications des fréquences radio DCS
+# DCS radio frequency specifications
 
-Table de référence des plages de fréquences radio valides pour tous les appareils DCS pilotables
-par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquences définies dans
-`presets.yaml` sont compatibles avec le matériel radio de l'appareil cible.
+Reference table of the valid radio frequency ranges for every player-flyable DCS aircraft. Used by
+`inject-presets` to check that the frequencies declared in `presets.yaml` are compatible with the
+target aircraft's radio hardware.
 
-> **Source** : [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Régénérez avec `poetry run update-radio-specs` après un patch DCS.
-
----
-
-## Particularités par type — gérées automatiquement
-
-Avec le format recommandé `channel_lists` (voir
-[format `presets.yaml`](../PIPELINE_REFERENCE.md#deux-formats-dauteur)), vous
-déclarez vos listes de canaux **une seule fois par coalition**, par rôle radio
-(UHF principal, VHF principal, FM…). Le build les projette ensuite sur les
-radios physiques de **chaque** appareil, en gérant tout seul ses particularités
-matérielles : le canal 0 du Mi-24P et du CH-47, les slots réservés « M »/« C »
-de l'OH-58D, la radio unique du Viggen (AJS-37) avec ses canaux spéciaux
-FR22/FR24 en dur, etc. Vous n'avez **rien** à configurer pour ces appareils :
-une modification de fréquence se propage à toute la flotte.
-
-> Le détail des règles de projection par type (quel appareil a quelle
-> particularité, et comment elles sont encodées) est documenté côté
-> développeur : [Projection des presets radio par type](../developer/radio-preset-projection.md).
+> **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
+> Regenerate with `poetry run update-radio-specs` after a DCS patch.
 
 ---
 
-## Appareils critiques (`dcs_rejects_on_load`)
+## Per-type quirks — handled for you
 
-Certains appareils provoquent une erreur DCS bloquante au chargement de la mission si une fréquence
-de preset se trouve hors de leur plage radio valide. Ils sont marqués `dcs_rejects_on_load: true`
-dans `dcs-radio-specs.yaml` et émettent toujours un `WARNING` pendant `veaf-tools build`.
+With the recommended `channel_lists` format (see
+[the `presets.yaml` formats](../PIPELINE_REFERENCE.md#two-authoring-formats)), you declare your
+channel lists **once per coalition**, per radio role (primary UHF, primary VHF, FM…). The build
+then projects them onto **each** aircraft's physical radios, handling that airframe's hardware
+quirks on its own: the Mi-24P and CH-47 channel 0, the OH-58D's reserved "M"/"C" slots, the
+Viggen's (AJS-37) single radio with its hard-coded FR22/FR24 special channels, and so on. You have
+**nothing** to configure for those aircraft: a frequency change propagates to the whole fleet.
 
-Appareils critiques actuellement connus :
+> The per-type projection rules (which aircraft has which quirk, and how they are encoded) are
+> documented on the developer side:
+> [Per-type radio preset projection](../developer/radio-preset-projection.md).
 
-| Appareil | ID DCS | Plage valide |
-|----------|--------|--------------|
+---
+
+## Critical aircraft (`dcs_rejects_on_load`)
+
+Some aircraft make DCS raise a blocking error when the mission loads if a preset frequency falls
+outside their valid radio range. They carry `dcs_rejects_on_load: true` in `dcs-radio-specs.yaml`
+and always emit a `WARNING` during `veaf-tools build`.
+
+Currently known critical aircraft:
+
+| Aircraft | DCS ID | Valid range |
+|----------|--------|-------------|
 | MiG-19P | `MiG-19P` | 100–150 MHz |
-| Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM uniquement) |
+| Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM only) |
 
-Pour les autres appareils, DCS enregistre les fréquences silencieusement sans planter. Les
-problèmes restent signalés dans le `presets-validation-report.md` généré automatiquement après
-chaque build.
+Every other aircraft stores the frequencies silently without crashing. Such problems are still
+reported in the `presets-validation-report.md` generated after each build.
 
-Si vous découvrez un autre appareil qui pousse DCS à rejeter la mission, ajoutez
-`dcs_rejects_on_load: true` à son entrée dans
-`src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` et ouvrez une pull request.
+If you find another aircraft that makes DCS reject the mission, add `dcs_rejects_on_load: true` to
+its entry in `src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` and open a pull
+request.
 
 ---
 
-## Fréquence principale du groupe (`human_radio`) {#primary-frequency}
+## The group's primary frequency (`human_radio`) {#primary-frequency}
 
-Un appareil DCS impose **deux** contraintes de fréquence différentes, et il est facile de les
-confondre :
+A DCS aircraft enforces **two** different frequency constraints, and they are easy to confuse:
 
-| Contrainte | Ce qu'elle borne | Où elle apparaît |
-|------------|------------------|------------------|
-| plages `radios` (tableaux ci-dessous) | les **canaux préréglés** de la radio | onglet radio du slot |
-| `human_radio` | la **fréquence principale du groupe** | champ « fréquence » du groupe dans l'éditeur |
+| Constraint | What it bounds | Where it shows up |
+|------------|----------------|-------------------|
+| `radios` ranges (tables below) | the radio's **preset channels** | the slot's radio tab |
+| `human_radio` | the **group's primary frequency** | the group's "frequency" field in the editor |
 
-Pour la plupart des appareils modernes, la seconde est aussi large que la première et la
-distinction est invisible. Mais pour 27 appareils elle est **plus étroite** — parfois
-radicalement. Le FW-190A8 accepte des canaux préréglés de 38 à 156 MHz, alors que sa fréquence
-principale est confinée entre 38.4 et 42.4 MHz.
+For most modern aircraft the second is as wide as the first and the distinction is invisible. But
+for 27 aircraft it is **narrower** — sometimes radically. The FW-190A8 accepts preset channels from
+38 to 156 MHz, while its primary frequency is confined between 38.4 and 42.4 MHz.
 
-Si la fréquence principale sort de la plage `human_radio`, l'éditeur de mission **refuse
-d'enregistrer la mission** avec un message du type :
+If the primary frequency falls outside the `human_radio` range, the Mission Editor **refuses to
+save the mission**, with a message such as:
 
 ```
-FW-190D9 Template: Fréquence invalide 134 MHz
+FW-190D9 Template: Invalid frequency 134 MHz
 ```
 
-`inject-presets` promeut normalement le canal 1 de la première radio en fréquence principale du
-groupe, pour que le champ de l'éditeur reflète le canal 1. Quand ce canal sort de la plage
-`human_radio` de l'appareil, la promotion est **abandonnée** : le groupe conserve sa propre
-fréquence (celle de la mission source, ou la valeur par défaut de DCS), ce qui garde la mission
-enregistrable. Le build le signale en mode détaillé ; les préréglages, eux, sont injectés
-normalement.
+`inject-presets` normally promotes channel 1 of the first radio to the group's primary frequency, so
+that the editor's field matches channel 1. When that channel falls outside the aircraft's
+`human_radio` range, the promotion is **skipped**: the group keeps its own frequency (the one from
+the source mission, or DCS's own default), which keeps the mission saveable. The build reports it in
+detailed mode; the presets themselves are injected as usual.
 
-Les plages `human_radio` sont extraites du datamine avec le reste des specs et vivent dans
-`dcs-radio-specs.yaml`, sous chaque appareil :
+The `human_radio` ranges are extracted from the datamine along with the rest of the specs and live
+in `dcs-radio-specs.yaml`, under each aircraft:
 
 ```yaml
 FW-190A8:
   human_radio:
     min_mhz: 38.4
     max_mhz: 42.4
-    default_mhz: 38.4      # valeur par défaut de DCS
+    default_mhz: 38.4      # DCS's own default
     modulation: AM
 ```
 
-Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait comme avant.
+An aircraft with no `human_radio` block enforces no bound: the promotion happens as before.
 
 ---
 
-## Avions
+## Fixed-wing aircraft
 
-| Appareil | ID DCS | Radio | Min (MHz) | Max (MHz) | Modulation |
+
+| Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |
 |----------|--------|-------|----------:|----------:|------------|
 | **TurboFan** | `A-10C` | VHF AM: ARC-186 | 116.000 | 151.975 | AM / FM |
 |  |  | UHF AM: ARC-164 | 225.000 | 399.975 | AM / FM |
@@ -278,9 +273,9 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 |  |  | BC-1206 | 100.000 | 200.000 | AM / FM |
 | **Radial** | `Yak-52` | ARK-15M | 0.100 | 1.795 | AM / FM |
 
-## Hélicoptères
+## Helicopters
 
-| Appareil | ID DCS | Radio | Min (MHz) | Max (MHz) | Modulation |
+| Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |
 |----------|--------|-------|----------:|----------:|------------|
 | **TurboShaft** | `AH-64D_BLK_II` | ARC-186 | 108.000 | 151.975 | AM / FM |
 |  |  | ARC-164 | 225.000 | 399.975 | AM / FM |

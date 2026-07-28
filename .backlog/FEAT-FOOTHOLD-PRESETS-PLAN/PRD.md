@@ -1,6 +1,6 @@
 # FEAT-FOOTHOLD-PRESETS-PLAN — move the Foothold `presets.yaml` to the preset-plan model
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Context
 
@@ -46,9 +46,38 @@ the maker's problem, and out-of-band channels stop being produced at all.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Rewrite the Foothold presets as a preset plan](tickets/01-rewrite-as-preset-plan.md) | ⬜ |
+| 01 | [Rewrite the Foothold presets as a preset plan](tickets/01-rewrite-as-preset-plan.md) | ✅ |
 
-## Decision needed before starting
+## Result
+
+Written as `tools/foothold/presets.yaml` and deployed to the ten mission folders (each previous
+file kept alongside as `presets.yaml.bak`). Measured on two maps with very different fleets:
+
+| | `Foothold_AF_2.4.1` | `WWII_Normandy_5.2.2` |
+|---|---|---|
+| Types with out-of-band channels | **10 → 2** | **2 → 0** |
+| Kneeboard plates | 30 → **32** | 2 → 2 |
+| Types losing coverage | **none** | **none** |
+
+The two extra plates are `Mi-24P` and `Mi-8MT`, which the old file gave up on (`empty`) because
+their channel-0 rotation needed a bespoke collection — the packer handles it. The six hand-written
+collections (inverted A-10, Apache, Gazelle, CH-47, OH-58D) are gone.
+
+### What the conversion uncovered
+
+Converting first **removed** presets from 7 types (F-14BU, J-11A, MiG-29A/G/S, Su-25T, Su-27): the
+packer needs each type's physical radios from `dcs-radio-specs.yaml`, and that file covers 87 types
+but **no Flaming Cliffs aircraft**. Those are playable and Foothold puts player slots on them, so
+the file keeps a **legacy override layer** for them — the manual-override path ADR 0010 preserves
+for exactly this case — with the channel lists reused through YAML anchors, so no frequency is
+duplicated.
+
+The two entries still in the report are **not** authoring mistakes; they are filed as
+[FIX-RADIO-LAYOUT-GAPS](../FIX-RADIO-LAYOUT-GAPS/PRD.md): an ADF classified as an FM radio
+(`MiG-29 Fulcrum`, `Ka-50`, `Ka-50_3`, `Yak-52`) and two out-of-range `trailing_specials`
+hard-coded in the AJS-37 layout.
+
+## Decision taken
 
 **Hand-write the plan, or build a legacy→plan converter?** There is no migration tool today:
 `convert-v5` generates a plan from a **v5 mission's** `radioPresets*` tables, which does not
@@ -59,8 +88,7 @@ UHF/VHF/FM — plus a couple of special collections), it is one file reused acro
 missions, and the result must be read and approved by a human anyway. A converter would be more
 code than the thing it converts, for a migration VEAF performs once.
 
-Ticket 01 assumes the hand-written route; say so if a reusable converter is wanted instead, and
-it becomes a different ticket.
+David approved the hand-written route; done that way.
 
 ## Out of scope
 

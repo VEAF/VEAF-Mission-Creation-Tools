@@ -139,11 +139,7 @@ function TestVeafCombatZoneElement:test_spawnDelay_string_coercion()
 end
 
 function TestVeafCombatZoneElement:test_chaining_setters()
-  local result = self.el
-    :setName("chain")
-    :setDcsStatic(true)
-    :setSpawnRadius(100)
-    :setSpawnChance(50)
+  local result = self.el:setName("chain"):setDcsStatic(true):setSpawnRadius(100):setSpawnChance(50)
   -- chaining returns self (or same instance)
   luaunit.assertEquals(self.el:getName(), "chain")
   luaunit.assertTrue(self.el:isDcsStatic())
@@ -289,7 +285,7 @@ function TestVeafCombatZone:test_enableUserActivation_toggle()
 end
 
 function TestVeafCombatZone:test_setEnableSmokeAndFlare()
-  luaunit.assertTrue(self.z.enableSmokeAndFlare)  -- default
+  luaunit.assertTrue(self.z.enableSmokeAndFlare) -- default
   self.z:setEnableSmokeAndFlare(false)
   luaunit.assertFalse(self.z.enableSmokeAndFlare)
 end
@@ -311,7 +307,9 @@ end
 
 function TestVeafCombatZone:test_onCompletedHook_setter()
   local called = false
-  local hook = function() called = true end
+  local hook = function()
+    called = true
+  end
   self.z:setOnCompletedHook(hook)
   self.z.onCompletedHook()
   luaunit.assertTrue(called)
@@ -423,7 +421,7 @@ function TestVeafCombatZoneElementsManagement:test_addZoneElementsFromZoneNamed_
   veafCombatZone.zonesDict["srczone"] = srcZone
   self.z:addZoneElementsFromZoneNamed("srczone")
   luaunit.assertEquals(#self.z:getZoneElements(), 1)
-  veafCombatZone.zonesDict["srczone"] = nil  -- cleanup
+  veafCombatZone.zonesDict["srczone"] = nil -- cleanup
 end
 
 -- ============================================================================
@@ -606,7 +604,11 @@ end
 function TestVeafCombatZoneCompletion:test_completionCheck_with_red_group_reschedules()
   dcs_mocks.addGroup("redgrp", {
     getUnits = function()
-      return { { getCoalition = function() return 1 end } }
+      return { {
+        getCoalition = function()
+          return 1
+        end,
+      } }
     end,
   })
   self.z:addSpawnedGroup("redgrp")
@@ -618,7 +620,11 @@ end
 function TestVeafCombatZoneCompletion:test_completionCheck_blue_coalition_counted()
   dcs_mocks.addGroup("bluegrp", {
     getUnits = function()
-      return { { getCoalition = function() return 2 end } }
+      return { {
+        getCoalition = function()
+          return 2
+        end,
+      } }
     end,
   })
   self.z:addSpawnedGroup("bluegrp")
@@ -629,7 +635,9 @@ end
 
 function TestVeafCombatZoneCompletion:test_completionCheck_onCompletedHook_called()
   local hookCalled = false
-  self.z:setOnCompletedHook(function(_) hookCalled = true end)
+  self.z:setOnCompletedHook(function(_)
+    hookCalled = true
+  end)
   self.z:completionCheck()
   luaunit.assertTrue(hookCalled)
 end
@@ -638,7 +646,11 @@ function TestVeafCombatZoneCompletion:test_completionCheck_static_object_red_coa
   local origStaticGetByName = StaticObject.getByName
   StaticObject.getByName = function(name)
     if name == "staticUnit123" then
-      return { getCoalition = function() return 1 end }
+      return {
+        getCoalition = function()
+          return 1
+        end,
+      }
     end
     return nil
   end
@@ -666,7 +678,15 @@ function TestVeafCombatZoneCompletion:test_desactivate_with_static_object_found(
   local origStaticGetByName = StaticObject.getByName
   StaticObject.getByName = function(name)
     if name == "staticGrp456" then
-      return { getName = function() return name end, destroy = function() end, getCoalition = function() return 1 end }
+      return {
+        getName = function()
+          return name
+        end,
+        destroy = function() end,
+        getCoalition = function()
+          return 1
+        end,
+      }
     end
     return nil
   end
@@ -857,11 +877,8 @@ function TestVeafCombatZoneGetInformation:setUp()
     return nil
   end
   dcs_mocks.clearUnitsAndGroups()
-  self.z = VeafCombatZone:new()
-    :setFriendlyName("Info Zone")
-    :setMissionEditorZoneName("INFO_ZONE")
-    :setActive(true)
-    :setShowZonePositionInfo(false)
+  self.z =
+    VeafCombatZone:new():setFriendlyName("Info Zone"):setMissionEditorZoneName("INFO_ZONE"):setActive(true):setShowZonePositionInfo(false)
 end
 
 function TestVeafCombatZoneGetInformation:tearDown()
@@ -878,7 +895,14 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_unit_nil_ty
   dcs_mocks.addGroup("nilTypeGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 1 end, getTypeName = function() return nil end },
+        {
+          getCoalition = function()
+            return 1
+          end,
+          getTypeName = function()
+            return nil
+          end,
+        },
       }
     end,
   })
@@ -892,7 +916,14 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_red_vehicle
   dcs_mocks.addGroup("redVehicleGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
+        {
+          getCoalition = function()
+            return 1
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
       }
     end,
   })
@@ -906,7 +937,14 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_blue_vehicl
   dcs_mocks.addGroup("blueVehicleGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+        {
+          getCoalition = function()
+            return 2
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
       }
     end,
   })
@@ -922,8 +960,22 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_training_wi
   dcs_mocks.addGroup("trainGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
-        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+        {
+          getCoalition = function()
+            return 1
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
+        {
+          getCoalition = function()
+            return 2
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
       }
     end,
   })
@@ -1007,7 +1059,11 @@ function TestVeafCombatZoneEnemyCoalition:test_blue_sided_zone_stays_active_whil
   self.z:setEnemyCoalition(2):setActive(true)
   dcs_mocks.addGroup("blueEnemies", {
     getUnits = function()
-      return { { getCoalition = function() return 2 end } }
+      return { {
+        getCoalition = function()
+          return 2
+        end,
+      } }
     end,
   })
   self.z:addSpawnedGroup("blueEnemies")
@@ -1020,7 +1076,11 @@ function TestVeafCombatZoneEnemyCoalition:test_blue_sided_zone_completes_when_bl
   self.z:setEnemyCoalition(2):setActive(true)
   dcs_mocks.addGroup("redFriends", {
     getUnits = function()
-      return { { getCoalition = function() return 1 end } }
+      return { {
+        getCoalition = function()
+          return 1
+        end,
+      } }
     end,
   })
   self.z:addSpawnedGroup("redFriends")
@@ -1034,7 +1094,11 @@ function TestVeafCombatZoneEnemyCoalition:test_red_sided_zone_still_completes_on
   self.z:setActive(true)
   dcs_mocks.addGroup("blueOnly", {
     getUnits = function()
-      return { { getCoalition = function() return 2 end } }
+      return { {
+        getCoalition = function()
+          return 2
+        end,
+      } }
     end,
   })
   self.z:addSpawnedGroup("blueOnly")
@@ -1074,7 +1138,14 @@ function TestVeafCombatZoneRedSideReport:test_blue_units_are_reported_as_enemies
   dcs_mocks.addGroup("blueEnemyGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+        {
+          getCoalition = function()
+            return 2
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
       }
     end,
   })
@@ -1089,7 +1160,14 @@ function TestVeafCombatZoneRedSideReport:test_red_units_are_reported_as_friends(
   dcs_mocks.addGroup("redFriendGrp", {
     getUnits = function()
       return {
-        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
+        {
+          getCoalition = function()
+            return 1
+          end,
+          getTypeName = function()
+            return "FakeVehicle"
+          end,
+        },
       }
     end,
   })
@@ -1098,6 +1176,73 @@ function TestVeafCombatZoneRedSideReport:test_red_units_are_reported_as_friends(
   luaunit.assertTrue(info:find("FRIENDS") ~= nil)
   luaunit.assertNil(info:find("ENEMIES"))
   dcs_mocks.removeGroup("redFriendGrp")
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneRadioMenuCoalition (FEAT-COMBATZONE-MENU-COALITION)
+-- ============================================================================
+TestVeafCombatZoneRadioMenuCoalition = {}
+
+function TestVeafCombatZoneRadioMenuCoalition:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Menu"):setMissionEditorZoneName("MENU_ZONE")
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_defaults_to_the_friendly_side()
+  -- A default (red-enemy) zone is played by blue, so its menu goes to blue.
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 2)
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_follows_enemy_coalition()
+  self.z:setEnemyCoalition(2)
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 1)
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_explicit_side_overrides_the_default()
+  self.z:setRadioMenuCoalition(1)
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 1)
+  self.z:setRadioMenuCoalition("blue")
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 2)
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_all_makes_the_menu_global()
+  -- nil is what veafRadio.addSubMenu treats as "show to everyone".
+  self.z:setRadioMenuCoalition("all")
+  luaunit.assertNil(self.z:getRadioMenuCoalition())
+  self.z:setRadioMenuCoalition("ALL")
+  luaunit.assertNil(self.z:getRadioMenuCoalition())
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_all_survives_an_enemy_coalition_change()
+  self.z:setRadioMenuCoalition("all")
+  self.z:setEnemyCoalition(2)
+  luaunit.assertNil(self.z:getRadioMenuCoalition())
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_invalid_value_keeps_the_default()
+  self.z:setRadioMenuCoalition("purple")
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 2)
+  self.z:setRadioMenuCoalition(0)
+  luaunit.assertEquals(self.z:getRadioMenuCoalition(), 2)
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_setter_is_chainable()
+  luaunit.assertEquals(self.z:setRadioMenuCoalition("all"), self.z)
+end
+
+function TestVeafCombatZoneRadioMenuCoalition:test_menu_is_created_for_that_side()
+  -- End to end through veafRadio: a red-side zone's submenu must be scoped to red.
+  local origAdd = veafRadio.addSubMenu
+  local captured = {}
+  veafRadio.addSubMenu = function(title, parent, side)
+    table.insert(captured, { title = title, side = side })
+    return { title = title, subMenus = {}, commands = {} }
+  end
+  self.z:setEnemyCoalition(2)
+  self.z.radioParentPath = { title = "COMBAT ZONES", subMenus = {}, commands = {} }
+  self.z:updateRadioMenu(true)
+  veafRadio.addSubMenu = origAdd
+  luaunit.assertTrue(#captured > 0)
+  luaunit.assertEquals(captured[1].side, 1)
 end
 
 -- ============================================================================

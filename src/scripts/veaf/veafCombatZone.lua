@@ -41,6 +41,10 @@ veafCombatZone.DefaultSpawnRadiusForStatics = 0
 -- clearing a red zone. Set per zone with VeafCombatZone:setEnemyCoalition().
 veafCombatZone.DEFAULT_ENEMY_COALITION = 1
 
+-- Sentinel for setRadioMenuCoalition("all"): show the zone's F10 menu to everyone, as it was
+-- before the menu became side-scoped. Distinct from nil, which means "not set".
+veafCombatZone.RADIO_MENU_FOR_ALL = "all"
+
 veafCombatZone.RadioMenuName = "COMBAT ZONES"
 
 -- Combat zones specific radio menu name
@@ -282,6 +286,8 @@ function VeafCombatZone:new(objectToCopy)
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
+  -- coalition the F10 menu is restricted to; nil = derive it from enemyCoalition
+  objectToCreate.radioMenuCoalition = nil
   -- DCS groups that have been spawned (for cleaning up later)
   objectToCreate.spawnedGroups = {}
   objectToCreate.delayedSpawners = {}
@@ -490,6 +496,42 @@ function VeafCombatZone:getFriendlyCoalition()
     return 1
   end
   return 2
+end
+
+-- restrict (or not) the zone's F10 menu to one coalition. The menu is not read-only — it is
+-- how a zone is activated — so by default it goes to the side playing the zone. Accepts a side
+-- number, "red"/"blue", or "all" to show it to everyone as it was before
+-- FEAT-COMBATZONE-MENU-COALITION.
+function VeafCombatZone:setRadioMenuCoalition(value)
+  local side = value
+  if type(side) == "string" then
+    local name = side:lower()
+    if name == "all" then
+      self.radioMenuCoalition = veafCombatZone.RADIO_MENU_FOR_ALL
+      return self
+    end
+    side = (name == "red" and 1) or (name == "blue" and 2) or nil
+  end
+  if side ~= 1 and side ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      string.format(
+        "VeafCombatZone[%s]:setRadioMenuCoalition() : [%s] is not RED, BLUE or ALL, keeping the default",
+        veaf.p(self.missionEditorZoneName),
+        veaf.p(value)
+      )
+    )
+    return self
+  end
+  self.radioMenuCoalition = side
+  return self
+end
+
+-- the coalition the zone's F10 menu is shown to, or nil for everyone
+function VeafCombatZone:getRadioMenuCoalition()
+  if self.radioMenuCoalition == veafCombatZone.RADIO_MENU_FOR_ALL then
+    return nil
+  end
+  return self.radioMenuCoalition or self:getFriendlyCoalition()
 end
 
 function VeafCombatZone:getTriggerZone()
@@ -1351,7 +1393,7 @@ function VeafCombatZone:updateRadioMenu(inBatch)
   end
   if shouldAddSubMenu then
     veaf.loggers.get(veafCombatZone.Id):debug("add the radio submenu")
-    self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(self:isActive()), self.radioParentPath)
+    self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(self:isActive()), self.radioParentPath, self:getRadioMenuCoalition())
   end
 
   if shouldAddSubMenu then

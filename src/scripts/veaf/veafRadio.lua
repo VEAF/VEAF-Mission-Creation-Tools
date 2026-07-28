@@ -119,6 +119,12 @@ function veafRadio.onBirthEvent(event)
         veafRadio.humanGroups[groupId].callsigns = {}
         veafRadio.humanGroups[groupId].units = {}
       end
+      -- The group's side, needed to keep a per-group command inside a coalition-scoped
+      -- submenu from being attached for a group that cannot see it
+      -- (FEAT-COMBATZONE-MENU-COALITION). Left nil when DCS gives us no coalition.
+      if not veafRadio.humanGroups[groupId].coalition and event.initiator.getCoalition then
+        veafRadio.humanGroups[groupId].coalition = event.initiator:getCoalition()
+      end
 
       table.insert(veafRadio.humanGroups[groupId].callsigns, callsign)
       veaf.loggers.get(veafRadio.Id):trace("veafRadio.humanGroups=%s", veafRadio.humanGroups)
@@ -283,12 +289,16 @@ function veafRadio.RadioMenuBuilder:new(root)
 end
 
 --- Creates a submenu node under parent (or root when nil) and returns it.
-function veafRadio.RadioMenuBuilder:addMenu(label, parent)
+--- When coalitionSide is given (coalition.side.RED / BLUE), the node and everything
+--- below it render through the DCS ForCoalition menu API, so only that side sees them
+--- (FEAT-COMBATZONE-MENU-COALITION).
+function veafRadio.RadioMenuBuilder:addMenu(label, parent, coalitionSide)
   local subMenu = {
     title = label,
     dcsRadioMenu = nil,
     subMenus = {},
     commands = {},
+    coalition = coalitionSide,
   }
   local menu = parent or self._root
   table.insert(menu.subMenus, subMenu)
@@ -312,11 +322,32 @@ end
 --- Removes the root DCS menu entry and rebuilds the entire tree from scratch.
 function veafRadio.RadioMenuBuilder:rebuild()
   if self._root.dcsRadioMenu then
+    -- Coalition-scoped nodes live in their own DCS namespace, so the global removeItem on the
+    -- root is not guaranteed to reach them. The menu is rebuilt on every player join, so
+    -- anything left behind would stack up one duplicate per join — remove them explicitly
+    -- first (FEAT-COMBATZONE-MENU-COALITION). Removing an already-gone item is a no-op.
+    self:_removeCoalitionMenus(self._root)
     missionCommands.removeItem(self._root.dcsRadioMenu)
   else
     veaf.loggers.get(veafRadio.Id):info("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
   end
   self:build()
+end
+
+--- (internal) Depth-first removal of every rendered coalition-scoped submenu under node.
+function veafRadio.RadioMenuBuilder:_removeCoalitionMenus(node)
+  if not node then
+    return
+  end
+  for _, subMenu in ipairs(node.subMenus or {}) do
+    self:_removeCoalitionMenus(subMenu)
+  end
+  if node.renderedForCoalition and node.dcsRadioMenu then
+    veaf.loggers.get(veafRadio.Id):trace("removing coalition %s menu %s", node.renderedForCoalition, veaf.p(node.title))
+    missionCommands.removeItemForCoalition(node.renderedForCoalition, node.dcsRadioMenu)
+    node.dcsRadioMenu = nil
+    node.renderedForCoalition = nil
+  end
 end
 
 --- Builds the DCS menu tree from the root node without clearing first.
@@ -340,7 +371,7 @@ end
 --- (internal) Places a single logical command onto the given DCS menu, handling
 --- the ForAll (global) and per-group / per-unit dispatch. Extracted from
 --- _buildSubtree so pagination can target a specific page's DCS menu.
-function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu)
+function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide)
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
     command.usage = veafRadio.USAGE_ForAll
@@ -349,35 +380,43 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu)
     local alreadyDoneGroups = {}
     for groupId, groupData in pairs(veafRadio.humanGroups) do
       veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
-      for _, callsign in pairs(groupData.callsigns) do
-        veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
-        local unitData = groupData.units[callsign]
-        local unitName = unitData.name
-        veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-        local humanUnit = veafRadio.humanUnits[unitName]
-        veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-        if humanUnit and humanUnit.spawned then
-          veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
-          local parameters = command.parameters
-          if parameters == nil then
-            parameters = unitName
-          else
-            parameters = { command.parameters }
-            table.insert(parameters, unitName)
+      -- In a coalition-scoped subtree, a per-group command must not be attached for a group
+      -- of the other side: it cannot see the parent path (FEAT-COMBATZONE-MENU-COALITION).
+      -- A group whose coalition DCS never gave us is left in, as before.
+      -- Skip the whole group rather than iterate an empty table: this runs for every human
+      -- group on every menu rebuild.
+      local onThisSide = coalitionSide == nil or groupData.coalition == nil or groupData.coalition == coalitionSide
+      if onThisSide then
+        for _, callsign in pairs(groupData.callsigns) do
+          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
+          local unitData = groupData.units[callsign]
+          local unitName = unitData.name
+          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
+          local humanUnit = veafRadio.humanUnits[unitName]
+          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
+          if humanUnit and humanUnit.spawned then
+            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+            local parameters = command.parameters
+            if parameters == nil then
+              parameters = unitName
+            else
+              parameters = { command.parameters }
+              table.insert(parameters, unitName)
+            end
+            local _title = command.title
+            if command.usage == veafRadio.USAGE_ForUnit then
+              _title = callsign .. " - " .. command.title
+            end
+            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+              self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
+            end
+            alreadyDoneGroups[groupId] = true
           end
-          local _title = command.title
-          if command.usage == veafRadio.USAGE_ForUnit then
-            _title = callsign .. " - " .. command.title
-          end
-          if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-            self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters)
-          end
-          alreadyDoneGroups[groupId] = true
         end
       end
     end
   else
-    self:_addDcsCommand(nil, command.title, dcsMenu, command, command.parameters)
+    self:_addDcsCommand(nil, command.title, dcsMenu, command, command.parameters, coalitionSide)
   end
 end
 
@@ -395,10 +434,16 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     return
   end
 
-  if parentNode then
-    node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentNode.dcsRadioMenu)
+  -- A coalition-scoped node scopes everything below it: a global child under a scoped
+  -- parent has no coherent meaning in DCS (FEAT-COMBATZONE-MENU-COALITION).
+  local coalitionSide = node.coalition or (parentNode and parentNode.coalition)
+  node.renderedForCoalition = coalitionSide
+
+  local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
+  if coalitionSide then
+    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, node.title, parentDcsMenu)
   else
-    node.dcsRadioMenu = missionCommands.addSubMenu(node.title)
+    node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentDcsMenu)
   end
 
   local function compareByTitle(a, b)
@@ -429,26 +474,31 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   local placedOnPage = 0
   local function advancePageIfFull()
     if paginate and placedOnPage >= veafRadio.MENU_PAGE_SIZE - 1 then
-      currentDcsMenu = missionCommands.addSubMenu(veaf.t("radio.next_page"), currentDcsMenu)
+      -- A page of a scoped menu must be scoped too, or the overflow would be world-visible.
+      if coalitionSide then
+        currentDcsMenu = missionCommands.addSubMenuForCoalition(coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
+      else
+        currentDcsMenu = missionCommands.addSubMenu(veaf.t("radio.next_page"), currentDcsMenu)
+      end
       placedOnPage = 0
     end
   end
 
   for _, command in ipairs(node.commands) do
     advancePageIfFull()
-    self:_placeCommandOnMenu(command, currentDcsMenu)
+    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide)
     placedOnPage = placedOnPage + 1
   end
 
   for _, subMenu in ipairs(node.subMenus) do
     advancePageIfFull()
-    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu }, subMenu)
+    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide }, subMenu)
     placedOnPage = placedOnPage + 1
   end
 end
 
---- (internal) Adds a single DCS command, handling secured and per-group dispatch.
-function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, command, parameters)
+--- (internal) Adds a single DCS command, handling secured and per-group / per-coalition dispatch.
+function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, command, parameters, coalitionSide)
   if not command.method then
     veaf.loggers.get(veafRadio.Id):error("ERROR - missing method for command " .. title)
   end
@@ -467,9 +517,14 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
   end
   veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
   veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))
+  -- Per-group wins over per-coalition: it is the narrower scope, and the group has already
+  -- been filtered to the right side by _placeCommandOnMenu.
   if groupId then
     veaf.loggers.get(veafRadio.Id):trace("adding for group %s command %s", groupId or "", _title or "")
     missionCommands.addCommandForGroup(groupId, _title, dcsParent, _method, _parameters)
+  elseif coalitionSide then
+    veaf.loggers.get(veafRadio.Id):trace("adding for coalition %s command %s", coalitionSide, _title or "")
+    missionCommands.addCommandForCoalition(coalitionSide, _title, dcsParent, _method, _parameters)
   else
     veaf.loggers.get(veafRadio.Id):trace("adding for all command %s", _title or "")
     missionCommands.addCommand(_title, dcsParent, _method, _parameters)
@@ -548,8 +603,10 @@ function veafRadio.addMenu(title)
   return veafRadio.addSubMenu(title, nil)
 end
 
-function veafRadio.addSubMenu(title, radioMenu)
-  return veafRadio._builder:addMenu(title, radioMenu)
+--- Adds a submenu. When coalitionSide is set (coalition.side.RED / BLUE), the submenu and
+--- everything under it is only shown to that coalition (FEAT-COMBATZONE-MENU-COALITION).
+function veafRadio.addSubMenu(title, radioMenu, coalitionSide)
+  return veafRadio._builder:addMenu(title, radioMenu, coalitionSide)
 end
 
 --- Opt a menu out of automatic render-time pagination (ADR 0013).

@@ -18,12 +18,18 @@ end
 -- ---------------------------------------------------------------------------
 env = {
   setErrorMessageBoxEnabled = function(_) end,
-  error = function(text) _log("E", text) end,
-  warning = function(text) _log("W", text) end,
-  info = function(text) _log("I", text) end,
+  error = function(text)
+    _log("E", text)
+  end,
+  warning = function(text)
+    _log("W", text)
+  end,
+  info = function(text)
+    _log("I", text)
+  end,
   mission = {
     theatre = "Caucasus",
-    date    = { Day = 1, Month = 1, Year = 2024 },
+    date = { Day = 1, Month = 1, Year = 2024 },
     triggers = { zones = {} },
     coalition = {
       blue = { country = {} },
@@ -36,8 +42,12 @@ env = {
 -- timer
 -- ---------------------------------------------------------------------------
 timer = {
-  getTime = function() return dcs_mocks.currentTime end,
-  getAbsTime = function() return dcs_mocks.currentTime end,
+  getTime = function()
+    return dcs_mocks.currentTime
+  end,
+  getAbsTime = function()
+    return dcs_mocks.currentTime
+  end,
   scheduleFunction = function(fn, args, t) end,
 }
 
@@ -68,15 +78,19 @@ trigger = {
     explosion = function(...) end,
   },
   misc = {
-    getUserFlag = function(flag) return 0 end,
-    getZone = function(name) return nil end,
+    getUserFlag = function(flag)
+      return 0
+    end,
+    getZone = function(name)
+      return nil
+    end,
   },
   smokeColor = {
-    Green  = 0,
-    Red    = 1,
-    White  = 2,
+    Green = 0,
+    Red = 1,
+    White = 2,
     Orange = 3,
-    Blue   = 4,
+    Blue = 4,
   },
 }
 
@@ -118,13 +132,23 @@ world = {
   },
   addEventHandler = function(handler) end,
   removeEventHandler = function(handler) end,
-  getAirbases = function(coalition_id) return {} end,
+  getAirbases = function(coalition_id)
+    return {}
+  end,
   searchObjects = function(category, volume, fn) end,
-  getMarkPanels = function() return {} end,
-  removeJunk = function(searchVolume) return 0 end,
+  getMarkPanels = function()
+    return {}
+  end,
+  removeJunk = function(searchVolume)
+    return 0
+  end,
   weather = {
-    getFogThickness = function() return 0 end,
-    getFogVisibilityDistance = function() return 0 end,
+    getFogThickness = function()
+      return 0
+    end,
+    getFogVisibilityDistance = function()
+      return 0
+    end,
     setFogAnimation = function(fogAnimationKeys) end,
     setFogThickness = function(thickness) end,
     setFogVisibilityDistance = function(visibility) end,
@@ -136,15 +160,25 @@ world = {
 -- ---------------------------------------------------------------------------
 coalition = {
   side = { NEUTRAL = 0, RED = 1, BLUE = 2 },
-  getGroups = function(side, category) return {} end,
-  getStaticObjects = function(side) return {} end,
-  getAirbases = function(side) return {} end,
+  getGroups = function(side, category)
+    return {}
+  end,
+  getStaticObjects = function(side)
+    return {}
+  end,
+  getAirbases = function(side)
+    return {}
+  end,
   addGroup = function(...) end,
   getCountryCoalition = function(countryId)
     -- Russia (0) → RED, USA (2) → BLUE
-    if countryId == 0 then return 1 end  -- coalition.side.RED
-    if countryId == 2 then return 2 end  -- coalition.side.BLUE
-    return 0  -- NEUTRAL
+    if countryId == 0 then
+      return 1
+    end -- coalition.side.RED
+    if countryId == 2 then
+      return 2
+    end -- coalition.side.BLUE
+    return 0 -- NEUTRAL
   end,
 }
 
@@ -160,21 +194,29 @@ country = {
 -- Unit / Group / StaticObject / Object
 -- ---------------------------------------------------------------------------
 Unit = {
-  getByName = function(name) return nil end,
+  getByName = function(name)
+    return nil
+  end,
   Category = { AIRPLANE = 0, HELICOPTER = 1, GROUND_UNIT = 2, SHIP = 3, STRUCTURE = 4 },
 }
 Group = {
-  getByName = function(name) return nil end,
+  getByName = function(name)
+    return nil
+  end,
   Category = { GROUND = 0, AIRPLANE = 1, HELICOPTER = 2, SHIP = 3, TRAIN = 4 },
 }
 StaticObject = {
-  getByName = function(name) return nil end,
+  getByName = function(name)
+    return nil
+  end,
 }
 Object = {
   Category = { UNIT = 1, WEAPON = 2, STATIC = 3, BASE = 4, SCENERY = 5, CARGO = 6 },
 }
 Airbase = {
-  getByName = function(name) return nil end,
+  getByName = function(name)
+    return nil
+  end,
   Category = { AIRDROME = 0, HELIPAD = 1, SHIP = 2 },
 }
 
@@ -182,53 +224,103 @@ Airbase = {
 -- land / coord / atmosphere
 -- ---------------------------------------------------------------------------
 land = {
-  getHeight = function(vec2) return 0 end,
-  getSurfaceType = function(vec2) return 1 end,
+  getHeight = function(vec2)
+    return 0
+  end,
+  getSurfaceType = function(vec2)
+    return 1
+  end,
   -- DCS returns the closest road point as two numbers (x, z); echo the query point.
-  getClosestPointOnRoads = function(roadType, x, z) return x, z end,
+  getClosestPointOnRoads = function(roadType, x, z)
+    return x, z
+  end,
   SurfaceType = { LAND = 1, SHALLOW_WATER = 2, WATER = 3, ROAD = 4, RUNWAY = 5 },
 }
 coord = {
-  LLtoLO = function(lat, lon, alt) return { x = 0, y = 0, z = 0 } end,
-  LOtoLL = function(vec3) return 0, 0, 0 end,
-  LOtoMGRS = function(vec3) return { UTMZone = "", Easting = 0, Northing = 0 } end,
-  MGRStoLL = function(mgrs) return 0, 0 end,
-  LLtoMGRS = function(lat, lon) return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 } end,
+  LLtoLO = function(lat, lon, alt)
+    return { x = 0, y = 0, z = 0 }
+  end,
+  LOtoLL = function(vec3)
+    return 0, 0, 0
+  end,
+  LOtoMGRS = function(vec3)
+    return { UTMZone = "", Easting = 0, Northing = 0 }
+  end,
+  MGRStoLL = function(mgrs)
+    return 0, 0
+  end,
+  LLtoMGRS = function(lat, lon)
+    return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 }
+  end,
 }
 atmosphere = {
-  getWind = function(point) return { x = 0, y = 0, z = 0 } end,
-  getWindWithTurbulence = function(point) return { x = 0, y = 0, z = 0 } end,
-  getTemperatureAndPressure = function(point) return 293.15, 101325 end,
+  getWind = function(point)
+    return { x = 0, y = 0, z = 0 }
+  end,
+  getWindWithTurbulence = function(point)
+    return { x = 0, y = 0, z = 0 }
+  end,
+  getTemperatureAndPressure = function(point)
+    return 293.15, 101325
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- missionCommands
 -- ---------------------------------------------------------------------------
 missionCommands = {
-  addCommand = function(...) return {} end,
-  addCommandForGroup = function(...) return {} end,
-  addSubMenu = function(...) return {} end,
-  addSubMenuForGroup = function(...) return {} end,
+  addCommand = function(...)
+    return {}
+  end,
+  addCommandForCoalition = function(...)
+    return {}
+  end,
+  addCommandForGroup = function(...)
+    return {}
+  end,
+  addSubMenu = function(...)
+    return {}
+  end,
+  addSubMenuForCoalition = function(...)
+    return {}
+  end,
+  addSubMenuForGroup = function(...)
+    return {}
+  end,
   removeItem = function(item) end,
+  removeItemForCoalition = function(coalitionSide, item) end,
+  removeItemForGroup = function(groupId, item) end,
 }
 
 -- ---------------------------------------------------------------------------
 -- log (DCS server-side log)
 -- ---------------------------------------------------------------------------
 log = {
-  write = function(source, level, text) _log(level, "[" .. source .. "] " .. text) end,
-  ALERT = 0, ERROR = 1, WARNING = 2, INFO = 3, DEBUG = 4,
+  write = function(source, level, text)
+    _log(level, "[" .. source .. "] " .. text)
+  end,
+  ALERT = 0,
+  ERROR = 1,
+  WARNING = 2,
+  INFO = 3,
+  DEBUG = 4,
 }
 
 -- ---------------------------------------------------------------------------
 -- DCS (global DCS table)
 -- ---------------------------------------------------------------------------
 DCS = {
-  getMissionName = function() return "TestMission" end,
-  getModelTime = function() return dcs_mocks.currentTime end,
+  getMissionName = function()
+    return "TestMission"
+  end,
+  getModelTime = function()
+    return dcs_mocks.currentTime
+  end,
 }
 Sim = {
-  getMissionName = function() return "TestMission" end,
+  getMissionName = function()
+    return "TestMission"
+  end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -239,7 +331,9 @@ local function _deepCopy(orig, seen)
   local orig_type = type(orig)
   local copy
   if orig_type == "table" then
-    if seen[orig] then return seen[orig] end
+    if seen[orig] then
+      return seen[orig]
+    end
     copy = {}
     seen[orig] = copy
     for k, v in pairs(orig) do
@@ -253,29 +347,33 @@ local function _deepCopy(orig, seen)
 end
 
 mist = {
-  scheduleFunction  = function(fn, args, t) end,
-  removeFunction    = function(fn) end,
-  addEventHandler   = function(handler) return handler end,
-  removeEventHandler= function(handler) end,
-  dynAddStatic      = function(template) end,
-  respawnGroup      = function(name, reset) end,
+  scheduleFunction = function(fn, args, t) end,
+  removeFunction = function(fn) end,
+  addEventHandler = function(handler)
+    return handler
+  end,
+  removeEventHandler = function(handler) end,
+  dynAddStatic = function(template) end,
+  respawnGroup = function(name, reset) end,
   DBs = {
-    MEgroupsByName   = {},
-    units            = {},
-    unitsByName      = {},
-    humansByName     = {},
-    groupsByName     = {},
+    MEgroupsByName = {},
+    units = {},
+    unitsByName = {},
+    humansByName = {},
+    groupsByName = {},
   },
-  getGroupRoute = function(groupName) return nil end,
+  getGroupRoute = function(groupName)
+    return nil
+  end,
   vec = {
     mag = function(v)
       local x = v.x or 0
       local y = v.y or 0
       local z = v.z or 0
-      return math.sqrt(x*x + y*y + z*z)
+      return math.sqrt(x * x + y * y + z * z)
     end,
     dp = function(v1, v2)
-      return (v1.x or 0)*(v2.x or 0) + (v1.y or 0)*(v2.y or 0) + (v1.z or 0)*(v2.z or 0)
+      return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
     end,
     add = function(v1, v2)
       return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
@@ -294,19 +392,33 @@ mist = {
         return math.floor(n + 0.5)
       end
     end,
-    metersToFeet    = function(m)   return m * 3.28084 end,
-    feetToMeters    = function(ft)  return ft / 3.28084 end,
-    NMToMeters      = function(nm)  return nm * 1852 end,
-    metersToNM      = function(m)   return m / 1852 end,
-    mpsToKnots      = function(mps) return mps * 1.94384 end,
-    get2DDist       = function(v1, v2)
+    metersToFeet = function(m)
+      return m * 3.28084
+    end,
+    feetToMeters = function(ft)
+      return ft / 3.28084
+    end,
+    NMToMeters = function(nm)
+      return nm * 1852
+    end,
+    metersToNM = function(m)
+      return m / 1852
+    end,
+    mpsToKnots = function(mps)
+      return mps * 1.94384
+    end,
+    get2DDist = function(v1, v2)
       local dx = (v1.x or 0) - (v2.x or 0)
       local dz = (v1.z or 0) - (v2.z or 0)
       return math.sqrt(dx * dx + dz * dz)
     end,
-    toDegree = function(rad) return rad * 180 / math.pi end,
-    toRadian = function(deg) return deg * math.pi / 180 end,
-    converter       = function(from, to, value)
+    toDegree = function(rad)
+      return rad * 180 / math.pi
+    end,
+    toRadian = function(deg)
+      return deg * math.pi / 180
+    end,
+    converter = function(from, to, value)
       if from == "hpa" and to == "inhg" then
         return value * 0.02953
       end
@@ -318,16 +430,22 @@ mist = {
 -- ---------------------------------------------------------------------------
 -- Object helpers
 -- ---------------------------------------------------------------------------
-Object.getCategory = function(obj) return Object.Category.UNIT end
+Object.getCategory = function(obj)
+  return Object.Category.UNIT
+end
 
 -- ---------------------------------------------------------------------------
 -- Unit / Group extra stubs
 -- ---------------------------------------------------------------------------
-Unit.getGroup = function(unit) return nil end
-Unit.destroy  = function(unit) end
+Unit.getGroup = function(unit)
+  return nil
+end
+Unit.destroy = function(unit) end
 -- getCategoryEx() returns a Unit.Category (AIRPLANE/HELICOPTER/…); unlike getCategory()
 -- which returns an Object.Category. Default to AIRPLANE; tests override per unit.
-Unit.getCategoryEx = function(unit) return (unit and unit._categoryEx) or Unit.Category.AIRPLANE end
+Unit.getCategoryEx = function(unit)
+  return (unit and unit._categoryEx) or Unit.Category.AIRPLANE
+end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end
 
@@ -335,8 +453,12 @@ Group.destroy = function(obj) end
 mist.getRandPointInCircle = function(spot, r)
   return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
 end
-mist.getNextUnitId = function() return 999 end
-mist.teleportToPoint = function(vars) return nil end
+mist.getNextUnitId = function()
+  return 999
+end
+mist.teleportToPoint = function(vars)
+  return nil
+end
 mist.dynAdd = function(template) end
 mist.goRoute = function(group, route) end
 
@@ -344,15 +466,21 @@ mist.goRoute = function(group, route) end
 -- world.weather  (used by veafWeather module)
 -- ---------------------------------------------------------------------------
 world.weather = {
-  getFogThickness           = function() return 0 end,
-  getFogVisibilityDistance  = function() return 0 end,
+  getFogThickness = function()
+    return 0
+  end,
+  getFogVisibilityDistance = function()
+    return 0
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- weathermark  (DCS internal; used inside veafWeatherData:create())
 -- ---------------------------------------------------------------------------
 weathermark = {
-  _GetWind = function(vec3, altitude) return 270, 5 end,
+  _GetWind = function(vec3, altitude)
+    return 270, 5
+  end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -375,8 +503,8 @@ end
 -- Configurable unit / group registry
 -- ---------------------------------------------------------------------------
 
-local _unit_registry  = {}  -- name → mock unit table
-local _group_registry = {}  -- name → mock group table
+local _unit_registry = {} -- name → mock unit table
+local _group_registry = {} -- name → mock group table
 
 --- Register a mock unit so that Unit.getByName(name) returns it.
 -- @param name  Unit name string
@@ -386,14 +514,28 @@ local _group_registry = {}  -- name → mock group table
 function dcs_mocks.addUnit(name, data)
   local u = data or {}
   u.name = name
-  u.isExist  = u.isExist  ~= nil and u.isExist  or function() return true  end
-  u.inAir    = u.inAir    ~= nil and u.inAir    or function() return false end
-  u.getPoint = u.getPoint or function() return { x = 0, y = 0, z = 0 }    end
-  u.getCoalition = u.getCoalition or function() return coalition.side.BLUE end
-  u.getName  = u.getName  or function() return name end
-  u.getGroup = u.getGroup or function() return nil  end
-  u.getCategoryEx = u.getCategoryEx or function(self) return self._categoryEx or Unit.Category.AIRPLANE end
-  u.destroy  = u.destroy  or function() end
+  u.isExist = u.isExist ~= nil and u.isExist or function()
+    return true
+  end
+  u.inAir = u.inAir ~= nil and u.inAir or function()
+    return false
+  end
+  u.getPoint = u.getPoint or function()
+    return { x = 0, y = 0, z = 0 }
+  end
+  u.getCoalition = u.getCoalition or function()
+    return coalition.side.BLUE
+  end
+  u.getName = u.getName or function()
+    return name
+  end
+  u.getGroup = u.getGroup or function()
+    return nil
+  end
+  u.getCategoryEx = u.getCategoryEx or function(self)
+    return self._categoryEx or Unit.Category.AIRPLANE
+  end
+  u.destroy = u.destroy or function() end
   _unit_registry[name] = u
 end
 
@@ -403,29 +545,45 @@ end
 function dcs_mocks.addGroup(name, data)
   local g = data or {}
   g.name = name
-  g.isExist   = g.isExist   ~= nil and g.isExist   or function() return true  end
-  g.getName   = g.getName   or function() return name end
-  g.getID     = g.getID     or function() return g._id or 1 end
-  g.getUnits  = g.getUnits  or function() return {}   end
-  g.destroy   = g.destroy   or function() end
+  g.isExist = g.isExist ~= nil and g.isExist or function()
+    return true
+  end
+  g.getName = g.getName or function()
+    return name
+  end
+  g.getID = g.getID or function()
+    return g._id or 1
+  end
+  g.getUnits = g.getUnits or function()
+    return {}
+  end
+  g.destroy = g.destroy or function() end
   _group_registry[name] = g
 end
 
 --- Remove a unit from the registry (simulates unit death / despawn).
-function dcs_mocks.removeUnit(name) _unit_registry[name] = nil end
+function dcs_mocks.removeUnit(name)
+  _unit_registry[name] = nil
+end
 
 --- Remove a group from the registry.
-function dcs_mocks.removeGroup(name) _group_registry[name] = nil end
+function dcs_mocks.removeGroup(name)
+  _group_registry[name] = nil
+end
 
 --- Clear all registered units and groups.
 function dcs_mocks.clearUnitsAndGroups()
-  _unit_registry  = {}
+  _unit_registry = {}
   _group_registry = {}
 end
 
 -- Wire up the DCS API stubs to the registries.
-Unit.getByName   = function(name) return _unit_registry[name]  end
-Group.getByName  = function(name) return _group_registry[name] end
+Unit.getByName = function(name)
+  return _unit_registry[name]
+end
+Group.getByName = function(name)
+  return _group_registry[name]
+end
 
 --- Return all captured log lines matching a pattern.
 function dcs_mocks.findLog(pattern)
@@ -448,100 +606,170 @@ trigger.flareColor = { RED = 0, GREEN = 1, WHITE = 2, YELLOW = 3 }
 -- ---------------------------------------------------------------------------
 Controller = {
   setCommand = function(controller, cmd) end,
-  pushTask   = function(controller, task) end,
+  pushTask = function(controller, task) end,
 }
 
 -- ---------------------------------------------------------------------------
 -- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
 -- ---------------------------------------------------------------------------
 ctld = {
-  JTACAutoLase        = function(...) end,
-  cleanupJTAC         = function(...) end,
-  addJTAC             = function(...) end,
-  logisticUnits       = {},
-  builtFOBS           = {},
-  beaconCount         = 0,
-  fobBeacons          = {},
-  createRadioBeacon   = function(...) return { vhf = 0, uhf = 0, fm = 0 } end,
+  JTACAutoLase = function(...) end,
+  cleanupJTAC = function(...) end,
+  addJTAC = function(...) end,
+  logisticUnits = {},
+  builtFOBS = {},
+  beaconCount = 0,
+  fobBeacons = {},
+  createRadioBeacon = function(...)
+    return { vhf = 0, uhf = 0, fm = 0 }
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- veafNamedPoints  (named points registry stub)
 -- ---------------------------------------------------------------------------
 veafNamedPoints = {
-  addPoint  = function(name, point) end,
+  addPoint = function(name, point) end,
   namePoint = function(pos, name, side, permanent) end,
-  getPoint  = function(name) return nil end,
+  getPoint = function(name)
+    return nil
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- veafSecurity  (security checks — always pass in tests)
 -- ---------------------------------------------------------------------------
 veafSecurity = {
-  checkPassword_L0 = function(...) return true end,
-  checkSecurity_L9 = function(...) return true end,
-  checkSecurity_L1 = function(...) return true end,
-  checkSecurity_MM = function(...) return true end,
+  checkPassword_L0 = function(...)
+    return true
+  end,
+  checkSecurity_L9 = function(...)
+    return true
+  end,
+  checkSecurity_L1 = function(...)
+    return true
+  end,
+  checkSecurity_MM = function(...)
+    return true
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- veafUnits  (unit/group database stubs)
 -- ---------------------------------------------------------------------------
 veafUnits = {
-  findUnit                 = function(name) return nil end,
-  findDcsUnit              = function(name) return nil end,
-  findGroup                = function(name) return nil end,
-  checkPositionForUnit     = function(pt, unit) return true end,
-  processGroup             = function(group, ...) return group end,
-  placeGroup               = function(group, ...) return group, {} end,
+  findUnit = function(name)
+    return nil
+  end,
+  findDcsUnit = function(name)
+    return nil
+  end,
+  findGroup = function(name)
+    return nil
+  end,
+  checkPositionForUnit = function(pt, unit)
+    return true
+  end,
+  processGroup = function(group, ...)
+    return group
+  end,
+  placeGroup = function(group, ...)
+    return group, {}
+  end,
   removePathfindingFixUnit = function(...) end,
   delayBeforePathfindingFix = 1,
-  countInfantryAndVehicles = function(groupData) return 0, 0 end,
-  traceGroup               = function(...) end,
+  countInfantryAndVehicles = function(groupData)
+    return 0, 0
+  end,
+  traceGroup = function(...) end,
 }
 
 -- ---------------------------------------------------------------------------
 -- veafCasMission  (CAS group generators)
 -- ---------------------------------------------------------------------------
 veafCasMission = {
-  SIDE_BLUE               = 2,
-  SIDE_RED                = 1,
-  generateInfantryGroup   = function(...) return { units = {} } end,
-  generateArmorPlatoon    = function(...) return { units = {} } end,
-  generateAirDefenseGroup = function(...) return { units = {} } end,
-  generateTransportCompany= function(...) return { units = {} } end,
-  generateCasGroup        = function(...) return {} end,
+  SIDE_BLUE = 2,
+  SIDE_RED = 1,
+  generateInfantryGroup = function(...)
+    return { units = {} }
+  end,
+  generateArmorPlatoon = function(...)
+    return { units = {} }
+  end,
+  generateAirDefenseGroup = function(...)
+    return { units = {} }
+  end,
+  generateTransportCompany = function(...)
+    return { units = {} }
+  end,
+  generateCasGroup = function(...)
+    return {}
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- veafRadio  (radio menu stubs)
 -- ---------------------------------------------------------------------------
 veafRadio = {
-  getHumanUnitOrWingman = function(name) return nil end,
-  addSubMenu            = function(...) return {} end,
-  addCommandToSubmenu   = function(...) end,
-  USAGE_ForAll          = 0,
-  USAGE_ForGroup        = 1,
+  getHumanUnitOrWingman = function(name)
+    return nil
+  end,
+  addMenu = function(...)
+    return {}
+  end,
+  addSubMenu = function(...)
+    return {}
+  end,
+  addCommandToSubmenu = function(...) end,
+  addSecuredCommandToSubmenu = function(...) end,
+  addCommandToMainMenu = function(...) end,
+  addSecuredCommandToMainMenu = function(...) end,
+  delCommand = function(...) end,
+  delSubmenu = function(...) end,
+  clearSubmenu = function(...) end,
+  doNotPaginate = function(...) end,
+  refreshRadioMenu = function(...) end,
+  USAGE_ForAll = 0,
+  USAGE_ForGroup = 1,
+  USAGE_ForUnit = 2,
 }
 
 -- ---------------------------------------------------------------------------
 -- mist.tostringLL  (used by infoOnAllConvoys with non-empty convoy data)
 -- ---------------------------------------------------------------------------
-mist.tostringLL = function(lat, lon, acc) return "0N 0E" end
+mist.tostringLL = function(lat, lon, acc)
+  return "0N 0E"
+end
 
 -- Update addGroup to include controller and category defaults
 local _original_addGroup = dcs_mocks.addGroup
 function dcs_mocks.addGroup(name, data)
   _original_addGroup(name, data)
-  local g = _group_registry[name]  -- already set by _original_addGroup
+  local g = _group_registry[name] -- already set by _original_addGroup
   if not g.getController then
-    local _ctrl = { setCommand = function() end, pushTask = function() end, getDetectedTargets = function() return {} end }
-    g.getController = function(self) return _ctrl end
+    local _ctrl = {
+      setCommand = function() end,
+      pushTask = function() end,
+      getDetectedTargets = function()
+        return {}
+      end,
+    }
+    g.getController = function(self)
+      return _ctrl
+    end
   end
-  g.getCategory  = g.getCategory  or function(self) return Group.Category.GROUND end
-  g.getCoalition = g.getCoalition or function(self) return coalition.side.BLUE  end
-  g.getUnit      = g.getUnit      or function(self, idx) return nil end
+  g.getCategory = g.getCategory or function(self)
+    return Group.Category.GROUND
+  end
+  g.getCoalition = g.getCoalition or function(self)
+    return coalition.side.BLUE
+  end
+  g.getUnit = g.getUnit or function(self, idx)
+    return nil
+  end
 end
 
 -- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
-Group.getUnits = function(grp) return grp:getUnits() end
+Group.getUnits = function(grp)
+  return grp:getUnits()
+end

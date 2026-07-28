@@ -666,6 +666,20 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
             raise ValueError(f"combat zone {zone_name!r}: enemy_coalition must be RED or BLUE, got {enemy_coalition!r}")
         if side != "RED":
             lines.append(f"{indent}    :setEnemyCoalition(coalition.side.{side})")
+    # `radio_menu_coalition` overrides who sees the zone's F10 menu; absent, the runtime shows it
+    # to the side playing the zone (the opposite of `enemy_coalition`). ALL restores the global
+    # menu, so it is passed as a string rather than a `coalition.side` constant.
+    menu_coalition = zone_def.get("radio_menu_coalition")
+    if menu_coalition is not None:
+        menu_side = str(menu_coalition).strip().upper()
+        if menu_side not in ("RED", "BLUE", "ALL"):
+            raise ValueError(
+                f"combat zone {zone_name!r}: radio_menu_coalition must be RED, BLUE or ALL, got {menu_coalition!r}"
+            )
+        if menu_side == "ALL":
+            lines.append(f'{indent}    :setRadioMenuCoalition("all")')
+        else:
+            lines.append(f"{indent}    :setRadioMenuCoalition(coalition.side.{menu_side})")
     if "training" in zone_def:
         lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
     for cz in zone_def.get("chained_zones") or []:

@@ -892,6 +892,30 @@ def test_combatzone_enemy_coalition_tolerates_surrounding_whitespace():
     assert ":setEnemyCoalition(coalition.side.BLUE)" in lua
 
 
+def test_combatzone_radio_menu_coalition_emits_the_side():
+    """FEAT-COMBATZONE-MENU-COALITION — override who sees the zone's F10 menu."""
+    lua = generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "radio_menu_coalition": "RED"}))
+    assert ":setRadioMenuCoalition(coalition.side.RED)" in lua
+
+
+def test_combatzone_radio_menu_coalition_all_is_a_string():
+    """ALL is not a `coalition.side` constant — it is the runtime's "show to everyone" sentinel."""
+    lua = generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "radio_menu_coalition": "all"}))
+    assert ':setRadioMenuCoalition("all")' in lua
+    assert "coalition.side.ALL" not in lua
+
+
+def test_combatzone_radio_menu_coalition_absent_emits_nothing():
+    """Absent, the runtime derives it from enemy_coalition."""
+    assert "setRadioMenuCoalition" not in generate_config_lua(_combatzone_yaml({"zone_name": "CZ"}))
+
+
+def test_combatzone_radio_menu_coalition_rejects_unknown_value():
+    for bad in ("NEUTRAL", "", "  "):
+        with pytest.raises(ValueError, match="radio_menu_coalition"):
+            generate_config_lua(_combatzone_yaml({"zone_name": "CZ", "radio_menu_coalition": bad}))
+
+
 def _qra_yaml(*definitions: dict) -> dict:
     """Build a minimal mission carrying QRA *definitions* (internal `qra:` repr)."""
     return {

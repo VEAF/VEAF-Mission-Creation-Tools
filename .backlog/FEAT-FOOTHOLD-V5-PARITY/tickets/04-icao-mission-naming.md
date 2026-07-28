@@ -42,23 +42,25 @@ first two digits of the `DDHHMMZ` group:
 | Iraq | `ORBI` | Baghdad | 28 ✅ |
 | Kola | `ULMM` | Murmansk | 28 ✅ |
 | Normandy | `LFRK` | Caen-Carpiquet | 28 ✅ |
-| **Afghanistan** | **none** | — | every station stale |
+| Afghanistan | `OAIX` | Bagram | 27 — **1 day behind**, least bad of the theatre |
 
 Normandy was solved with David's suggestion: look through the theatre's airfield list
 (`airdromes.yaml`, 90 entries) for one that still exists today. Heathrow, Orly, Jersey, Beauvais,
 Deauville and Carpiquet all qualify; **Carpiquet** wins because it sits in the middle of the
 combat area *and* reports.
 
-Afghanistan is the interesting case: all 29 airfields were tested and **none** has a usable
-station — Kabul a month behind, Herat 16 days, Bagram a day, and Maymana/Shindand/Bost/Farah/
-Zaranj/Ghazni have no station at all (404). A stale METAR is worse than none, because the mission
-then advertises a "real" weather that is days old. So that mission is named **without** the
-marker, on purpose.
+Afghanistan is the interesting case: all 29 airfields were tested and **none** is fresh — Kabul a
+month behind, Herat 16 days, Bagram a day, and Maymana/Shindand/Bost/Farah/Zaranj/Ghazni have no
+station at all (404).
+
+Two answers were defensible: omit the marker (authored weather stands), or take the least bad and
+know it. **David chose `OAIX` (Bagram)** — a day-old real weather beats a frozen one for his use.
+Re-checked before applying: still one day behind. The documentation now presents both options
+instead of prescribing the omission.
 
 ## Tasks
 
-- [x] Apply `VEAF_Foothold_<Theatre>_ICAO_<code>` to the nine, and a marker-less name to
-      Afghanistan.
+- [x] Apply `VEAF_Foothold_<Theatre>_ICAO_<code>` to all ten, Afghanistan included (`OAIX`).
 - [x] Verify the produced file names carry `_ICAO_<code>_<date>.miz`, matching David's examples.
 - [x] Re-validate the ten.
 - [x] Document the convention in `MISSION_YAML_REFERENCE` (FR + EN): that the file name is an

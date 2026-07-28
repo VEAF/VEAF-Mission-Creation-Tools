@@ -173,10 +173,14 @@ curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
 ```
 
 Les deux premiers chiffres du groupe `JJHHMMZ` sont le jour de l'observation — comparez-les à la
-date du jour. Mesuré sur le théâtre Afghanistan par exemple, **toutes** les stations sont
-périmées (Kaboul un mois de retard, Herat seize jours, Bagram un jour) : ces missions sont donc
-délibérément nommées **sans** marqueur `_ICAO_`, ce qui laisse RealWeather tranquille et conserve
-la météo choisie.
+date du jour.
+
+Quand tout un théâtre est dégradé, deux réponses se défendent, et le choix revient à qui exploite
+le serveur. Mesuré sur l'Afghanistan, **toutes** les stations retardent (Kaboul un mois, Herat
+seize jours, Bagram un jour ; six aérodromes n'ont aucune station) : soit on **omet** le marqueur,
+ce qui laisse RealWeather tranquille et conserve la météo choisie, soit on **prend la moins
+mauvaise** en sachant ce qu'on obtient. Le Foothold Afghanistan de VEAF utilise `OAIX` (Bagram,
+environ un jour de retard) — un choix assumé, pas un oubli.
 
 ---
 

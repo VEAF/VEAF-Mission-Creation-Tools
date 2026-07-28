@@ -172,9 +172,13 @@ curl -s https://tgftp.nws.noaa.gov/data/observations/metar/stations/URSS.TXT
 ```
 
 The first two digits of the `DDHHMMZ` group are the day of observation — compare them with today.
-Measured on the Afghanistan theatre, for instance, **every** station is stale (Kabul a month
-behind, Herat sixteen days, Bagram a day), so those missions are deliberately named **without**
-an `_ICAO_` marker: RealWeather then leaves them alone and the authored weather stands.
+
+When a whole theatre is degraded, there are two defensible answers, and the choice belongs to
+whoever runs the server. Measured on Afghanistan, **every** station lags (Kabul a month, Herat
+sixteen days, Bagram a day; six airfields have no station at all): either **omit** the marker, so
+RealWeather leaves the mission alone and the authored weather stands, or **take the least bad**
+and know what you are getting. The VEAF Foothold Afghanistan uses `OAIX` (Bagram, about a day
+behind) — a deliberate choice, not an oversight.
 
 ---
 

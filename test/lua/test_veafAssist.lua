@@ -16,6 +16,7 @@ local MAIN_PWR = "PTR-ELEC-TMB-MPWR-510"
 local JFS = "PTR-ENGSTART-TMB-JETFUEL-447"
 
 --- A checklist mixing both validation modes, shaped exactly like ticket 02 emits.
+--- P1 stands for any live cockpit parameter the aircraft publishes.
 local function definition(id)
   return {
     id = id or "test-checklist",
@@ -24,28 +25,41 @@ local function definition(id)
     menu = "cold-start",
     images = { "KEY_0", "KEY_1", "KEY_2", "KEY_3" },
     steps = {
-      { label = "step.one", element = MAIN_PWR, check = { type = "argument", argument = 510, min = -0.05, max = 0.05 } },
-      { label = "step.two", element = MAIN_PWR, check = { type = "argument", argument = 510, min = 0.95, max = 1.05 } },
+      { label = "step.one", element = MAIN_PWR, check = { type = "cockpit_param", param = "P1", min = -0.05, max = 0.05 } },
+      { label = "step.two", element = MAIN_PWR, check = { type = "cockpit_param", param = "P1", min = 0.95, max = 1.05 } },
       { label = "step.three", element = JFS, check = { type = "confirm" } },
     },
   }
 end
 
+--- The cockpit parameters the fake aircraft currently publishes.
+local cockpitParams = {}
+
+--- Stand in for the engine's list_cockpit_params(), same "NAME:value" dump format.
+function list_cockpit_params()
+  local lines = {}
+  for name, value in pairs(cockpitParams) do
+    lines[#lines + 1] = name .. ":" .. tostring(value)
+  end
+  return table.concat(lines, "\n")
+end
+
 --- Reset the whole module and the mocks, then register a fresh checklist.
-local function setUpEngine(unitArgs)
+local function setUpEngine(params)
   dcs_mocks.reset()
   veafAssist.checklists = {}
   veafAssist.sessions = {}
+  veafAssist.paramCache = nil
   veafAssist.nextHighlightId = veafAssist.FIRST_HIGHLIGHT_ID
   veafAssist.available = veafAssist.nativeFunctionsAvailable()
   veafAssist.registerChecklist(definition())
-  dcs_mocks.addUnit("Pilot #1", { _id = 42, _drawArgs = unitArgs or { [510] = -1.0 } })
+  cockpitParams = params or { P1 = -1.0 }
+  dcs_mocks.addUnit("Pilot #1", { _id = 42 })
 end
 
---- Move a cockpit switch and run one evaluation tick.
-local function setArgumentAndTick(unitName, argument, value)
-  local unit = Unit.getByName(unitName)
-  unit._drawArgs[argument] = value
+--- Change a published cockpit parameter and run one evaluation tick.
+local function setParamAndTick(_, param, value)
+  cockpitParams[param] = value
   veafAssist.loop()
 end
 
@@ -79,8 +93,15 @@ function TestVeafAssistModule:test_id()
 end
 
 function TestVeafAssistModule:test_default_checks_are_registered()
-  luaunit.assertIsFunction(veafAssist.checks["argument"])
+  luaunit.assertIsFunction(veafAssist.checks["cockpit_param"])
   luaunit.assertIsFunction(veafAssist.checks["confirm"])
+end
+
+function TestVeafAssistModule:test_there_is_no_argument_check()
+  -- A cockpit control's position cannot be read from the mission environment, so an
+  -- `argument` check would never fire. The format rejects the field; the engine offers
+  -- no such check either, so a hand-written checklist cannot resurrect it silently.
+  luaunit.assertNil(veafAssist.checks["argument"])
 end
 
 function TestVeafAssistModule:test_registerCheck_adds_a_named_check()
@@ -143,31 +164,32 @@ function TestVeafAssistSessions:test_start_boxes_the_first_step_element()
 end
 
 function TestVeafAssistSessions:test_already_satisfied_steps_are_ticked_on_start()
-  -- The pilot pre-flipped MAIN PWR to BATT: step 1 must not be asked for again.
-  setUpEngine({ [510] = 0.0 })
+  -- The monitored value already sits in step 1's window: it must not be asked for again.
+  setUpEngine({ P1 = 0.0 })
   veafAssist.start("Pilot #1", "test-checklist")
   luaunit.assertTrue(session("Pilot #1").done[1])
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 2)
 end
 
-function TestVeafAssistSessions:test_step_advances_only_when_the_argument_enters_the_window()
+function TestVeafAssistSessions:test_step_advances_only_when_the_parameter_enters_the_window()
   setUpEngine()
   veafAssist.start("Pilot #1", "test-checklist")
 
-  setArgumentAndTick("Pilot #1", 510, -0.5)
+  setParamAndTick("Pilot #1", "P1", -0.5)
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 1)
 
-  setArgumentAndTick("Pilot #1", 510, 0.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 2)
 end
 
-function TestVeafAssistSessions:test_a_passed_step_stays_passed_when_the_switch_moves_on()
-  -- MAIN PWR walks OFF → BATT → MAIN PWR. Step 1 (BATT) is no longer satisfied once
-  -- the switch reaches MAIN PWR; it must stay ticked rather than strand the pilot.
+function TestVeafAssistSessions:test_a_passed_step_stays_passed_when_the_value_moves_on()
+  -- A monitored value passes through step 1's window on its way to step 2's. Step 1 is
+  -- no longer satisfied once it gets there; it must stay ticked rather than strand the
+  -- pilot in a loop.
   setUpEngine()
   veafAssist.start("Pilot #1", "test-checklist")
-  setArgumentAndTick("Pilot #1", 510, 0.0)
-  setArgumentAndTick("Pilot #1", 510, 1.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  setParamAndTick("Pilot #1", "P1", 1.0)
 
   luaunit.assertTrue(session("Pilot #1").done[1])
   luaunit.assertTrue(session("Pilot #1").done[2])
@@ -178,12 +200,12 @@ function TestVeafAssistSessions:test_confirm_only_advances_a_confirm_step()
   setUpEngine()
   veafAssist.start("Pilot #1", "test-checklist")
 
-  -- Step 1 is an argument step: confirming it must not tick it.
+  -- Step 1 is a parameter step: confirming it must not tick it.
   veafAssist.confirmStep("Pilot #1")
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 1)
 
-  setArgumentAndTick("Pilot #1", 510, 0.0)
-  setArgumentAndTick("Pilot #1", 510, 1.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  setParamAndTick("Pilot #1", "P1", 1.0)
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 3)
 
   veafAssist.confirmStep("Pilot #1")
@@ -221,20 +243,20 @@ function TestVeafAssistSessions:test_highlight_is_reissued_only_when_the_boxed_e
 
   -- Steps 1 and 2 box the same element: advancing must not re-box what is already
   -- boxed — that is a visual flicker for nothing.
-  setArgumentAndTick("Pilot #1", 510, 0.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
   veafAssist.loop()
   luaunit.assertEquals(highlightedElements(), { MAIN_PWR })
 
   -- Step 3 boxes another element: that one is a real target change.
-  setArgumentAndTick("Pilot #1", 510, 1.0)
+  setParamAndTick("Pilot #1", "P1", 1.0)
   luaunit.assertEquals(highlightedElements(), { MAIN_PWR, JFS })
 end
 
 function TestVeafAssistSessions:test_displayed_picture_tracks_the_progress_state()
   setUpEngine()
   veafAssist.start("Pilot #1", "test-checklist")
-  setArgumentAndTick("Pilot #1", 510, 0.0)
-  setArgumentAndTick("Pilot #1", 510, 1.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  setParamAndTick("Pilot #1", "P1", 1.0)
   luaunit.assertEquals(displayedResources(), { "KEY_0", "KEY_1", "KEY_2" })
 end
 
@@ -295,7 +317,7 @@ end
 
 function TestVeafAssistSessions:test_two_pilots_do_not_share_a_highlight_id()
   setUpEngine()
-  dcs_mocks.addUnit("Pilot #2", { _id = 43, _drawArgs = { [510] = -1.0 } })
+  dcs_mocks.addUnit("Pilot #2", { _id = 43 })
   veafAssist.start("Pilot #1", "test-checklist")
   veafAssist.start("Pilot #2", "test-checklist")
   luaunit.assertNotEquals(session("Pilot #1").highlightId, session("Pilot #2").highlightId)
@@ -315,12 +337,44 @@ function TestVeafAssistSessions:test_an_unknown_check_type_never_passes()
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 1)
 end
 
-function TestVeafAssistSessions:test_a_missing_argument_never_passes()
-  -- The aircraft does not report argument 510 at all (wrong module, or a typo).
+function TestVeafAssistSessions:test_a_missing_parameter_never_passes()
+  -- The aircraft publishes no parameter named P1 (wrong module, or a typo).
   setUpEngine({})
   veafAssist.start("Pilot #1", "test-checklist")
   veafAssist.loop()
   luaunit.assertEquals(session("Pilot #1").displayedIndex, 1)
+end
+
+function TestVeafAssistSessions:test_a_parameter_name_containing_colons_is_read()
+  -- ExternalFM:HumanInfo:AoA and friends: the dump splits on the LAST colon.
+  setUpEngine({ ["ExternalFM:HumanInfo:AoA"] = 0.5 })
+  veafAssist.registerChecklist({
+    id = "colon-param",
+    title = "t",
+    aircraft = { "F-16C_50" },
+    menu = "m",
+    steps = {
+      { label = "l", element = MAIN_PWR, check = { type = "cockpit_param", param = "ExternalFM:HumanInfo:AoA", min = 0.4, max = 0.6 } },
+    },
+  })
+  veafAssist.start("Pilot #1", "colon-param")
+  luaunit.assertNil(session("Pilot #1"))
+end
+
+function TestVeafAssistSessions:test_the_parameter_dump_is_read_once_per_tick()
+  local calls = 0
+  local real = list_cockpit_params
+  list_cockpit_params = function()
+    calls = calls + 1
+    return real()
+  end
+  setUpEngine()
+  veafAssist.start("Pilot #1", "test-checklist")
+  calls = 0
+  veafAssist.loop()
+  list_cockpit_params = real
+  -- Three steps in the checklist, one dump.
+  luaunit.assertEquals(calls, 1)
 end
 
 -- ---------------------------------------------------------------------------
@@ -407,7 +461,6 @@ function TestVeafAssistRadioMenu:test_an_idle_pilot_of_the_right_type_sees_only_
   setUpMenu()
   dcs_mocks.addUnit("Pilot #1", {
     _id = 42,
-    _drawArgs = { [510] = -1.0 },
     getTypeName = function()
       return "F-16C_50"
     end,
@@ -430,7 +483,6 @@ function TestVeafAssistRadioMenu:test_a_session_swaps_the_start_entry_for_the_co
   setUpMenu()
   dcs_mocks.addUnit("Pilot #1", {
     _id = 42,
-    _drawArgs = { [510] = -1.0 },
     getTypeName = function()
       return "F-16C_50"
     end,
@@ -448,7 +500,6 @@ function TestVeafAssistRadioMenu:test_confirm_appears_only_on_a_confirm_step()
   setUpMenu()
   dcs_mocks.addUnit("Pilot #1", {
     _id = 42,
-    _drawArgs = { [510] = -1.0 },
     getTypeName = function()
       return "F-16C_50"
     end,
@@ -456,8 +507,8 @@ function TestVeafAssistRadioMenu:test_confirm_appears_only_on_a_confirm_step()
   veafAssist.start("Pilot #1", "test-checklist")
   luaunit.assertFalse(veafAssist.currentStepNeedsConfirmation("Pilot #1"))
 
-  setArgumentAndTick("Pilot #1", 510, 0.0)
-  setArgumentAndTick("Pilot #1", 510, 1.0)
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  setParamAndTick("Pilot #1", "P1", 1.0)
   -- Step 3 is the confirm one.
   luaunit.assertTrue(veafAssist.currentStepNeedsConfirmation("Pilot #1"))
   local visible = visibleEntries("Pilot #1")
@@ -479,7 +530,6 @@ function TestVeafAssistRadioMenu:test_radioStart_unpacks_the_builder_parameters(
   setUpMenu()
   dcs_mocks.addUnit("Pilot #1", {
     _id = 42,
-    _drawArgs = { [510] = -1.0 },
     getTypeName = function()
       return "F-16C_50"
     end,

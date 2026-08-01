@@ -22,7 +22,7 @@ _CHECKLIST = {
     "aircraft": ["F-16C_50"],
     "menu": "cold-start",
     "steps": [
-        {"label": "step.one", "element": "PTR-ELEC-TMB-MPWR-510", "argument": 510, "equals": 1.0},
+        {"label": "step.one", "element": "PTR-ELEC-TMB-MPWR-510", "param": "BASE_SENSOR_NOSE_GEAR_DOWN", "equals": 1.0},
         {"label": "step.two", "element": "PTR-X", "confirm": True},
     ],
 }
@@ -116,7 +116,7 @@ class TestGeneratedLua(unittest.TestCase):
         self.assertIn("veafAssist.registerChecklist({", lua)
         self.assertIn('id = "mission-own"', lua)
         self.assertIn("images = {", lua)
-        self.assertIn('type = "argument"', lua)
+        self.assertIn('type = "cockpit_param"', lua)
         self.assertIn('type = "confirm"', lua)
 
     def test_nothing_is_registered_when_the_module_is_off(self):

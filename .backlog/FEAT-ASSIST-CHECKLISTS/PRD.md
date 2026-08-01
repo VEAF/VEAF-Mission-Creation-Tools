@@ -178,15 +178,24 @@ it is the extension point this now has to be used through.
 `list_cockpit_params` publishes altitude, speed, heading, gear, canopy, flaps and fuel, live. A bomb
 run — the PRD's own second client — is well served by that. An engine start is not.
 
-## The open design call
+## The design call — settled 2026-08-01
 
-1. **Ship `confirm`-only.** The module shows where to look and tracks progress; the pilot ticks. Honest,
-   immediate, loses the self-ticking that made the idea attractive.
-2. **Add a `cockpit_param` check** on top, reading `list_cockpit_params`. Purely additive — a new entry
-   in the registry, no engine or format change. Automates whatever has a measurable effect and leaves
-   the rest to the pilot. Worth little for an engine start, a lot for the bomb run.
-3. **Drop the lot.** Not recommended: the boxing and the on-screen checklist work and are most of the
-   value.
+David chose **confirm-first plus a `cockpit_param` check**, and both are implemented:
 
-Waiting on David. Whatever is chosen, the F-16C checklist's three `argument` steps have to become
-`confirm` steps, and the `argument` check has to stop pretending it can fire.
+- The F-16C checklist is **pilot-confirmed throughout**; its three automatic steps are gone.
+- The `argument:` field is **rejected by the format** with an error naming the alternatives, and the
+  engine registers no `argument` check — so a hand-written checklist cannot resurrect it silently.
+- A step's **`param:`** reads a live cockpit parameter (`BASE_SENSOR_NOSE_GEAR_DOWN`,
+  `BASE_SENSOR_IAS`, …) and ticks when it enters the window. `equals` / `tolerance` / `range` are
+  unchanged; only what they apply to moved from a control to a published value. The engine parses
+  `list_cockpit_params()` **once per tick**, shared by every session and step, because the dump is
+  ~19 KB of text.
+
+The upshot for the roadmap: an engine-start checklist is a *guided and confirmed* one, while the bomb
+run the PRD names as the second client — altitude, speed, heading, distance — is fully automatic. The
+value of a step-data generator (the follow-up lot) drops accordingly: writing steps was never the
+bottleneck, and half of what it would have generated is unusable.
+
+**Unverified optimisation:** `c_cockpit_param_in_range` exists in the mission environment and would
+let the engine ask a question instead of parsing a dump. Its signature was not probed — DCS had been
+closed by then.

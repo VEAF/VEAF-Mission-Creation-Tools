@@ -102,14 +102,52 @@ function veafAssist.registerCheck(name, fn)
   veafAssist.checks[name] = fn
 end
 
---- Read an animation argument and compare it against the step's window.
-veafAssist.registerCheck("argument", function(unit, step)
+--- Cockpit parameters read this tick, so a checklist with several param steps parses
+--- the engine's 19 KB dump once instead of once per step. Invalidated every loop.
+veafAssist.paramCache = nil
+
+--- Parse `list_cockpit_params()` into a name -> number table.
+--- The dump is one `NAME:value` per line; a name may itself contain colons
+--- (`ExternalFM:HumanInfo:AoA`), so the split is on the LAST colon.
+local function readCockpitParams()
+  if veafAssist.paramCache then
+    return veafAssist.paramCache
+  end
+  if type(list_cockpit_params) ~= "function" then
+    return nil
+  end
+  local ok, dump = pcall(list_cockpit_params)
+  if not ok or type(dump) ~= "string" then
+    return nil
+  end
+  local params = {}
+  for line in dump:gmatch("[^\r\n]+") do
+    local name, value = line:match("^(.*):([^:]*)$")
+    if name and tonumber(value) then
+      params[name] = tonumber(value)
+    end
+  end
+  veafAssist.paramCache = params
+  return params
+end
+
+--- Read a live cockpit parameter and compare it against the step's window.
+---
+--- This reads what the aircraft *is*, not where its switches are: a control's position
+--- cannot be read from the mission environment at all (measured in game — see
+--- docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md section 3). Altitude, speed, heading,
+--- gear, canopy, flaps and fuel are published and live; switch positions are not.
+veafAssist.registerCheck("cockpit_param", function(_, step)
   local check = step.check
-  if not (unit and check and check.argument) then
+  if not (check and check.param) then
     return false
   end
-  local ok, value = pcall(unit.getDrawArgumentValue, unit, check.argument)
-  if not ok or type(value) ~= "number" then
+  local params = readCockpitParams()
+  if not params then
+    return false
+  end
+  local value = params[check.param]
+  if type(value) ~= "number" then
     return false
   end
   return value >= check.min and value <= check.max
@@ -293,9 +331,13 @@ end
 
 --- Main loop: evaluate every running session, then reschedule.
 function veafAssist.loop()
+  -- One snapshot of the cockpit parameters per tick, shared by every session and every
+  -- step: the engine's dump is ~19 KB of text and parsing it per step would not scale.
+  veafAssist.paramCache = nil
   for unitName, session in pairs(veafAssist.sessions) do
     updateSession(unitName, session)
   end
+  veafAssist.paramCache = nil
   mist.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
 end
 

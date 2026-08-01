@@ -75,22 +75,21 @@ aircraft: [F-16C_50]          # DCS type names; an unknown type is rejected
 menu: cold-start              # slot under "Assistance"
 
 steps:
-  # Automatically validated: a cockpit animation argument is read
+  # Pilot-validated: the element is boxed to show where to look
   - label: MAIN PWR switch to MAIN PWR
     element: PTR-ELEC-TMB-MPWR-510   # cockpit element to box
-    argument: 510                    # animation argument to read
+    confirm: true
+
+  # Automatically validated: a value the aircraft publishes is read
+  - label: Gear down
+    param: BASE_SENSOR_NOSE_GEAR_DOWN
     equals: 1.0                      # target value…
     tolerance: 0.05                  # …within this tolerance (0.05 by default)
 
-  # Pilot-validated: the element is boxed anyway, to show where to look
-  - label: JFS RUN light on — check
-    element: PTR-ENGSTART-TMB-JETFUEL-447
-    confirm: true
-
   # Wide window: range replaces equals + tolerance
-  - label: Throttle between IDLE and MIL
-    argument: 757
-    range: [0.2, 0.9]
+  - label: Speed between 250 and 300 kt
+    param: BASE_SENSOR_IAS
+    range: [128.0, 154.0]
 ```
 
 Things to keep in mind:
@@ -99,26 +98,54 @@ Things to keep in mind:
   unchanged, so you can simply write your own text.
 - **`element` is independent of the validation mode**: a gauge can be boxed while the pilot is the
   one who says it is good.
-- **An `argument` means automatic validation**; with no argument, the pilot validates.
-- **A spring-loaded switch** (one that returns to neutral by itself) cannot be caught by its
-  argument: use `confirm: true`.
+- **A `param` means automatic validation**; with no param, the pilot validates.
+- The **default tolerance of 0.05** suits the values that read 0 or 1. For an altitude or a speed,
+  give your own `tolerance`, or a `range`.
 - A mistake in the file **fails the build** with a message naming the offending file, rather than
   producing a Lua error in game.
 
-### Find the element and the argument {#find-element-and-argument}
+### A switch position cannot be read {#no-switch-reading}
 
-Both are read from the aircraft module's files, inside your DCS installation:
+This is the module's defining limit, and it was **measured in game**: a mission script cannot see
+where a cockpit control is. An F-16C's MAIN PWR switch was moved through all three of its positions
+without any of the three available mechanisms budging. The cockpit is a separate model and its state
+does not reach the mission; ED's own training checklists manage it because their code runs *inside*
+the module's cockpit, which is closed to us.
+
+In practice: **a "set this switch to that position" step is validated with `confirm`**. That is the
+case for all six steps of the shipped F-16C checklist.
+
+Measurements and details:
+[DCS cockpit + picture API](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md).
+
+### Find a `param` {#find-a-param}
+
+What can be read is a control's **effect**, not the control. On an F-16C on the ramp, 78 values are
+published, among them:
+
+| Parameter | What it holds |
+|---|---|
+| `BASE_SENSOR_NOSE_GEAR_DOWN` | `1` nose gear down |
+| `BASE_SENSOR_WOW_LEFT_GEAR` | `1` weight on the left wheel |
+| `BASE_SENSOR_CANOPY_POS` | canopy opening, `0` to `1` |
+| `BASE_SENSOR_FLAPS_RETRACTED` | `1` flaps retracted |
+| `BASE_SENSOR_IAS` | indicated airspeed (m/s) |
+| `BASE_SENSOR_BAROALT` | barometric altitude (m) |
+| `BASE_SENSOR_HEADING` | heading (radians) |
+| `BASE_SENSOR_FUEL_TOTAL` | fuel remaining |
+
+The list is per aircraft: each module publishes what it wants. To see yours, call
+`list_cockpit_params()` in the mission environment — it returns one `NAME:value` per line.
+
+### Find the element to box {#find-element}
+
+It is read from the aircraft module's files, inside your DCS installation:
 
 ```text
 <DCS>\Mods\aircraft\<Aircraft>\Cockpit\Scripts\clickabledata.lua
 ```
 
-The trailing number of an element name **is** the animation argument:
-`PTR-ELEC-TMB-MPWR-510` → argument `510`.
-
-The **window**, however, has to be measured: a three-position switch may run `0` to `1` or `-1` to
-`+1`. Read the value for **every** position, not just the one you want, and pick a tolerance narrow
-enough to reject the neighbouring position.
+Only **clickable** elements are listed there: a gauge or a warning light has no name to box.
 
 ---
 

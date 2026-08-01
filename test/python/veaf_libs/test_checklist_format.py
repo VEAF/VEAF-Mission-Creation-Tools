@@ -19,9 +19,9 @@ VALID_CHECKLIST = {
     "menu": "cold-start",
     "steps": [
         {
-            "label": "assist.f16c.main_pwr",
+            "label": "assist.gear_down",
             "element": "PTR-ELEC-TMB-MPWR-510",
-            "argument": 510,
+            "param": "BASE_SENSOR_NOSE_GEAR_DOWN",
             "equals": 1.0,
             "tolerance": 0.05,
         },
@@ -56,10 +56,10 @@ class TestChecklistModel(unittest.TestCase):
         self.assertEqual(["F-16C_50"], checklist.aircraft)
         self.assertEqual(2, len(checklist.steps))
 
-    def test_argument_step_resolves_its_window(self):
+    def test_param_step_resolves_its_window(self):
         checklist = parse_checklist(VALID_CHECKLIST, source="test.yaml")
         self.assertEqual(
-            {"type": "argument", "argument": 510, "min": 0.95, "max": 1.05},
+            {"type": "cockpit_param", "param": "BASE_SENSOR_NOSE_GEAR_DOWN", "min": 0.95, "max": 1.05},
             checklist.steps[0].check_table(),
         )
 
@@ -72,21 +72,21 @@ class TestChecklistModel(unittest.TestCase):
 
     def test_range_window_is_used_as_is(self):
         checklist = parse_checklist(
-            _with_steps({"label": "l", "argument": 42, "range": [0.2, 0.8]}),
+            _with_steps({"label": "l", "param": "BASE_SENSOR_IAS", "range": [120.0, 180.0]}),
             source="test.yaml",
         )
         self.assertEqual(
-            {"type": "argument", "argument": 42, "min": 0.2, "max": 0.8},
+            {"type": "cockpit_param", "param": "BASE_SENSOR_IAS", "min": 120.0, "max": 180.0},
             checklist.steps[0].check_table(),
         )
 
     def test_default_tolerance_applies_when_omitted(self):
         checklist = parse_checklist(
-            _with_steps({"label": "l", "argument": 42, "equals": 0.5}),
+            _with_steps({"label": "l", "param": "BASE_SENSOR_FLAPS_RETRACTED", "equals": 0.5}),
             source="test.yaml",
         )
         self.assertEqual(
-            {"type": "argument", "argument": 42, "min": 0.45, "max": 0.55},
+            {"type": "cockpit_param", "param": "BASE_SENSOR_FLAPS_RETRACTED", "min": 0.45, "max": 0.55},
             checklist.steps[0].check_table(),
         )
 
@@ -141,40 +141,50 @@ class TestChecklistRejections(unittest.TestCase):
     def test_unknown_aircraft_type_is_rejected(self):
         self._assert_rejected({**VALID_CHECKLIST, "aircraft": ["F-16C_51"]}, "F-16C_51")
 
-    def test_argument_and_check_together_are_rejected(self):
+    def test_param_and_check_together_are_rejected(self):
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 1, "equals": 1.0, "check": {"type": "x"}}),
-            "argument",
+            _with_steps({"label": "l", "param": "P", "equals": 1.0, "check": {"type": "x"}}),
+            "param",
             "check",
         )
 
-    def test_confirm_with_argument_is_rejected(self):
+    def test_the_argument_field_is_rejected_with_an_explanation(self):
+        # A cockpit control's position is unreadable from the mission environment, so a
+        # step written this way would never tick. It must fail loudly, not silently.
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 1, "equals": 1.0, "confirm": True}),
+            _with_steps({"label": "l", "argument": 510, "equals": 1.0}),
+            "argument",
+            "confirm",
+            "param",
+        )
+
+    def test_confirm_with_param_is_rejected(self):
+        self._assert_rejected(
+            _with_steps({"label": "l", "param": "P", "equals": 1.0, "confirm": True}),
             "confirm",
         )
 
     def test_tolerance_without_equals_is_rejected(self):
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 1, "range": [0.0, 1.0], "tolerance": 0.05}),
+            _with_steps({"label": "l", "param": "P", "range": [0.0, 1.0], "tolerance": 0.05}),
             "tolerance",
         )
 
     def test_equals_and_range_together_are_rejected(self):
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 1, "equals": 1.0, "range": [0.0, 1.0]}),
+            _with_steps({"label": "l", "param": "P", "equals": 1.0, "range": [0.0, 1.0]}),
             "range",
         )
 
-    def test_equals_without_argument_is_rejected(self):
+    def test_equals_without_param_is_rejected(self):
         self._assert_rejected(_with_steps({"label": "l", "equals": 1.0}), "equals")
 
-    def test_argument_without_window_is_rejected(self):
-        self._assert_rejected(_with_steps({"label": "l", "argument": 510}), "argument")
+    def test_param_without_window_is_rejected(self):
+        self._assert_rejected(_with_steps({"label": "l", "param": "P"}), "param")
 
     def test_inverted_range_is_rejected(self):
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 1, "range": [1.0, 0.0]}),
+            _with_steps({"label": "l", "param": "P", "range": [1.0, 0.0]}),
             "range",
         )
 
@@ -265,8 +275,8 @@ class TestChecklistEmission(unittest.TestCase):
     def test_emitted_step_carries_element_and_window(self):
         lua = self._emit(VALID_CHECKLIST)
         self.assertIn('element = "PTR-ELEC-TMB-MPWR-510"', lua)
-        self.assertIn('type = "argument"', lua)
-        self.assertIn("argument = 510", lua)
+        self.assertIn('type = "cockpit_param"', lua)
+        self.assertIn('param = "BASE_SENSOR_NOSE_GEAR_DOWN"', lua)
         self.assertIn("min = 0.95", lua)
         self.assertIn("max = 1.05", lua)
 

@@ -36,8 +36,9 @@ from veaf_libs.logger import logger
 CHECKLISTS_FOLDER_NAME = "checklists"
 
 #: Half-width of the acceptance window when a step gives ``equals`` without ``tolerance``.
-#: Wide enough to absorb the animation not landing exactly on its detent, narrow enough
-#: to reject the neighbouring position of a three-position switch.
+#: Sized for the 0/1 parameters that make up most of what an aircraft publishes (gear
+#: down, flaps retracted, weight on wheels). A physical quantity — an altitude, a speed —
+#: needs its own ``tolerance`` or a ``range``; 0.05 metres would never match.
 DEFAULT_TOLERANCE = 0.05
 
 #: Decimal places kept when resolving a window, so ``0.5 - 0.05`` emits ``0.45`` rather
@@ -56,24 +57,32 @@ class ChecklistError(ValueError):
 class ChecklistStep(BaseModel):
     """One line of a checklist: what to do, and how we know it is done.
 
-    A step carries **exactly one** validation mode. ``argument`` reads an animation
-    argument and compares it against a window; ``check`` names a check the engine
+    A step carries **exactly one** validation mode. ``param`` reads a live cockpit
+    parameter and compares it against a window; ``check`` names a check the engine
     registered (the extension point for later checklists); ``confirm`` waits for the
     pilot to tick the line from the radio menu. A step declaring none of the three is a
     confirm step — but it must then at least box an ``element``, otherwise it says
     nothing at all.
+
+    **There is deliberately no way to validate a step on the position of a cockpit
+    control.** It cannot be read from the mission environment — measured in game, see
+    ``docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md`` section 3 — so the old
+    ``argument:`` field is rejected rather than silently never firing. What *is* readable
+    is the **effect** a control produces: altitude, speed, heading, gear, canopy, flaps,
+    fuel. That is what ``param`` reads.
 
     Attributes:
         label: i18n catalog key, or a literal string (``veaf.t()`` returns an unknown
             key unchanged, so a mission maker can write plain text).
         element: Cockpit element to box. Optional, and independent of the validation
             mode: a gauge can be boxed while the pilot is the one who says it is good.
-        argument: Animation argument to read.
-        equals: Target value of *argument*; the window is ``equals ± tolerance``.
+        param: Cockpit parameter to read, e.g. ``BASE_SENSOR_NOSE_GEAR_DOWN``.
+        equals: Target value of *param*; the window is ``equals ± tolerance``.
         tolerance: Half-width of the window around *equals*.
-        range: Explicit ``[min, max]`` window, for a position with a wide span.
+        range: Explicit ``[min, max]`` window, for a value with a wide span.
         confirm: Ticked by the pilot rather than measured.
         check: ``{type: <name>, …}`` — a named check with its parameters.
+        argument: **Rejected.** Kept in the model only so the error can explain why.
         device: DCS cockpit device id, carried for a future demonstration mode.
         command: DCS cockpit command id, carried for a future demonstration mode.
     """
@@ -82,22 +91,30 @@ class ChecklistStep(BaseModel):
 
     label: str = Field(min_length=1)
     element: str | None = None
-    argument: int | None = None
+    param: str | None = None
     equals: float | None = None
     tolerance: float | None = None
     range: list[float] | None = None
     confirm: bool = False
     check: dict[str, Any] | None = None
+    argument: int | None = None
     device: int | None = None
     command: int | None = None
 
     @model_validator(mode="after")
     def _exactly_one_validation_mode(self) -> ChecklistStep:
         """Reject a step whose validation modes conflict, or whose window is incomplete."""
+        if self.argument is not None:
+            raise ValueError(
+                "a cockpit control's position cannot be read from the mission environment, so "
+                "'argument' can never validate a step — use 'confirm: true', or 'param' on a value "
+                "the aircraft publishes (see docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md)"
+            )
+
         declared = [
             name
             for name, present in (
-                ("argument", self.argument is not None),
+                ("param", self.param is not None),
                 ("check", self.check is not None),
                 ("confirm", self.confirm),
             )
@@ -108,14 +125,14 @@ class ChecklistStep(BaseModel):
 
         if self.tolerance is not None and self.equals is None:
             raise ValueError("tolerance only makes sense with equals")
-        if self.equals is not None and self.argument is None:
-            raise ValueError("equals needs the argument it applies to")
-        if self.range is not None and self.argument is None:
-            raise ValueError("range needs the argument it applies to")
+        if self.equals is not None and self.param is None:
+            raise ValueError("equals needs the param it applies to")
+        if self.range is not None and self.param is None:
+            raise ValueError("range needs the param it applies to")
         if self.equals is not None and self.range is not None:
             raise ValueError("equals and range are mutually exclusive")
-        if self.argument is not None and self.equals is None and self.range is None:
-            raise ValueError("an argument step needs an acceptance window: equals or range")
+        if self.param is not None and self.equals is None and self.range is None:
+            raise ValueError("a param step needs an acceptance window: equals or range")
         if self.range is not None and (len(self.range) != 2 or self.range[0] >= self.range[1]):
             raise ValueError("range is [min, max] with min < max")
 
@@ -137,7 +154,7 @@ class ChecklistStep(BaseModel):
         """
         if self.check is not None:
             return dict(self.check)
-        if self.argument is None:
+        if self.param is None:
             return {"type": "confirm"}
         if self.equals is not None:
             tolerance = DEFAULT_TOLERANCE if self.tolerance is None else self.tolerance
@@ -147,8 +164,8 @@ class ChecklistStep(BaseModel):
             window = self.range or [0.0, 0.0]
             low, high = window[0], window[1]
         return {
-            "type": "argument",
-            "argument": self.argument,
+            "type": "cockpit_param",
+            "param": self.param,
             "min": round(low, _WINDOW_PRECISION),
             "max": round(high, _WINDOW_PRECISION),
         }

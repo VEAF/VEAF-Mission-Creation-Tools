@@ -2,15 +2,20 @@
 # autostart sequence (Mods/aircraft/F-16C/Cockpit/Scripts/Macro_sequencies.lua,
 # start_sequence_full), in ED's order and with ED's wording.
 #
-# Element names and animation arguments are read from clickabledata.lua; the acceptance
-# windows are derived from the switch prototypes in clickable_defs.lua and are marked
-# "to confirm in game" in .backlog/FEAT-ASSIST-CHECKLISTS/tickets/06-f16c-checklist.md
-# until they are measured in the cockpit.
+# EVERY step is pilot-confirmed, and that is not a shortcut. A cockpit control's position
+# cannot be read from the mission environment — measured in game on 2026-08-01, with MAIN
+# PWR moved through all three positions while the animation argument never budged. See
+# docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md section 3.
 #
-# The JFS switch is spring-loaded (springloaded_3_pos_tumb): its animation argument
-# returns to 0 as soon as it is released, so throwing it cannot be detected by reading
-# the argument — those two steps are pilot-confirmed, and the switch is boxed anyway to
-# show where to look.
+# What IS readable is the effect a control produces (altitude, speed, gear, fuel…), via a
+# step's `param:`. Nothing in an engine start qualifies: the aircraft publishes no switch
+# state, and its engine RPM only becomes meaningful once the engine already runs — which
+# is the last step anyway. So the assistance here boxes the control, shows the checklist,
+# and lets the pilot tick.
+#
+# Element names are read from clickabledata.lua. The JFS switch is spring-loaded
+# (springloaded_3_pos_tumb), so even in an environment that could read arguments, it would
+# be back at 0 before anything polled it.
 
 id: f16c-cold-start
 title: assist.f16c.coldstart.title
@@ -20,15 +25,11 @@ menu: cold-start
 steps:
   - label: assist.f16c.main_pwr_batt
     element: PTR-ELEC-TMB-MPWR-510
-    argument: 510
-    equals: 0.0
-    tolerance: 0.05
+    confirm: true
 
   - label: assist.f16c.main_pwr_on
     element: PTR-ELEC-TMB-MPWR-510
-    argument: 510
-    equals: 1.0
-    tolerance: 0.05
+    confirm: true
 
   - label: assist.f16c.jfs_start2
     element: PTR-ENGSTART-TMB-JETFUEL-447
@@ -40,9 +41,7 @@ steps:
 
   - label: assist.f16c.throttle_idle
     element: PTR-THRTL-RLS-757
-    argument: 757
-    equals: 1.0
-    tolerance: 0.05
+    confirm: true
 
   - label: assist.f16c.engine_idle
     confirm: true

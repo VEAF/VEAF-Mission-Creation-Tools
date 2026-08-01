@@ -1,8 +1,8 @@
 # 06 — F-16C cold-start checklist, six steps
 
-**Status:** 🧑 waiting-human — the checklist is written and loads; the argument windows are **derived from
-ED's source, not measured in the cockpit**, and the order still needs a pilot's eye. See "What was
-written" at the end.
+**Status:** 🧑 waiting-human — the checklist is written, loads and renders. It is **pilot-confirmed
+throughout**: the in-game probe of 2026-08-01 showed a cockpit control's position cannot be read at all,
+so the three automatic steps became confirm steps. What remains is a pilot's review of the slice.
 
 The first checklist, and the lot's only content. Six steps, hand-written, shipped in the VMCT catalogue as
 `checklists/f16c-cold-start.yaml`.
@@ -95,16 +95,22 @@ to seven images.
 Starting Engine* / *Starting Engine* phase, in ED's order and with ED's wording. Not the six switches an
 earlier draft picked, and not the 106-step whole.
 
-| # | ED's label | Element | Arg | Mode |
-|---|---|---|---|---|
-| 1 | `- MAIN PWR SWITCH - BATT` | `PTR-ELEC-TMB-MPWR-510` | 510 | argument, 0.0 ± 0.05 |
-| 2 | `- MAIN PWR SWITCH - MAIN PWR` | `PTR-ELEC-TMB-MPWR-510` | 510 | argument, 1.0 ± 0.05 |
-| 3 | `- JFS SWITCH - START 2` | `PTR-ENGSTART-TMB-JETFUEL-447` | — | confirm |
-| 4 | `- JFS RUN LIGHT - CHECK` | `PTR-ENGSTART-TMB-JETFUEL-447` | — | confirm |
-| 5 | `- THROTTLE - IDLE (20% RPM MINIMUM)` | `PTR-THRTL-RLS-757` | 757 | argument, 1.0 ± 0.05 |
-| 6 | `- ENGINE AT IDLE - CHECK` | — | — | confirm |
+| # | ED's label | Element | Mode |
+|---|---|---|---|
+| 1 | `- MAIN PWR SWITCH - BATT` | `PTR-ELEC-TMB-MPWR-510` | confirm |
+| 2 | `- MAIN PWR SWITCH - MAIN PWR` | `PTR-ELEC-TMB-MPWR-510` | confirm |
+| 3 | `- JFS SWITCH - START 2` | `PTR-ENGSTART-TMB-JETFUEL-447` | confirm |
+| 4 | `- JFS RUN LIGHT - CHECK` | `PTR-ENGSTART-TMB-JETFUEL-447` | confirm |
+| 5 | `- THROTTLE - IDLE (20% RPM MINIMUM)` | `PTR-THRTL-RLS-757` | confirm |
+| 6 | `- ENGINE AT IDLE - CHECK` | — | confirm |
 
-Three automatic checks and three confirmations, so the prototype exercises both modes.
+**Every step is pilot-confirmed**, and steps 1, 2 and 5 were automatic until the in-game probe of
+2026-08-01 showed that a cockpit control's position cannot be read from the mission environment at
+all — see [the exploration note](../../../docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md) section 3.
+Nothing in an engine start has a readable *effect* to fall back on either: the aircraft publishes no
+switch state, and its RPM only becomes meaningful once the engine runs, which is the last step. So
+this checklist boxes the control, shows the progress and lets the pilot tick — which is what the
+assistance is worth here.
 
 **Why the JFS switch is not an argument step.** `clickabledata.lua:118` builds it with
 `springloaded_3_pos_tumb`: the switch is spring-loaded and its animation argument returns to 0 the instant
@@ -116,7 +122,14 @@ the format allows a confirm step with no element. Note in passing that the PRD's
 `PTR-HYDCP-IND-3018` **does not exist** anywhere in the F-16C module — it was an illustration, not a
 reference; nothing in this checklist uses it.
 
-## The windows are derived, not measured — this is what still needs a cockpit
+## The windows: moot, and here is why
+
+The measurement this ticket demanded was attempted on 2026-08-01 and returned the finding that
+removed the need for it. Kept below because the element/argument mapping is still correct reference
+data — it is what a future in-cockpit bridge would use — and because the reasoning that produced it
+is sound even though its conclusion is now unreachable.
+
+## The windows were derived, not measured
 
 Every element and argument above is read from
 `<DCS>\Mods\aircraft\F-16C\Cockpit\Scripts\clickabledata.lua` (verified 2026-08-01). The **windows** are
@@ -140,10 +153,6 @@ measurement stays mandatory:
 return tostring(Unit.getByName('<slot>'):getDrawArgumentValue(510))
 ```
 
-**Two things left, both needing David:**
-
-1. Read arguments 510 and 757 in **every** position and replace the derived windows with measured ones
-   (`± 0.05` is almost certainly fine given the ±1 spacing, but "almost certainly" is not measured).
-2. **A pilot review of the slice.** It is coherent in ED's file; whether it is coherent *in isolation* —
-   starting an engine without the cockpit configuration that precedes it in the full sequence — is a
-   question for someone who flies the jet. Reviewer: _not yet reviewed_.
+**One thing left:** a **pilot review of the slice.** It is coherent in ED's file; whether it is
+coherent *in isolation* — starting an engine without the cockpit configuration that precedes it in
+the full sequence — is a question for someone who flies the jet. Reviewer: _not yet reviewed_.

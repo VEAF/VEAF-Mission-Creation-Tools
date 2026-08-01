@@ -75,22 +75,21 @@ aircraft: [F-16C_50]          # types DCS concernés ; un type inconnu est refus
 menu: cold-start              # emplacement sous « Assistance »
 
 steps:
-  # Étape validée automatiquement : on lit un argument d'animation du cockpit
+  # Étape validée par le pilote : l'élément est encadré pour montrer où regarder
   - label: MAIN PWR sur MAIN PWR
     element: PTR-ELEC-TMB-MPWR-510   # élément à encadrer dans le cockpit
-    argument: 510                    # argument d'animation à lire
+    confirm: true
+
+  # Étape validée automatiquement : on lit une grandeur publiée par l'appareil
+  - label: Train sorti
+    param: BASE_SENSOR_NOSE_GEAR_DOWN
     equals: 1.0                      # valeur cible…
     tolerance: 0.05                  # …à ± cette tolérance (0.05 par défaut)
 
-  # Étape validée par le pilote : l'élément est encadré quand même, pour montrer où regarder
-  - label: Voyant JFS RUN allumé — vérifier
-    element: PTR-ENGSTART-TMB-JETFUEL-447
-    confirm: true
-
   # Fenêtre large : range remplace equals + tolerance
-  - label: Manette entre IDLE et MIL
-    argument: 757
-    range: [0.2, 0.9]
+  - label: Vitesse entre 250 et 300 kt
+    param: BASE_SENSOR_IAS
+    range: [128.0, 154.0]
 ```
 
 Points à retenir :
@@ -99,26 +98,54 @@ Points à retenir :
   renvoyée telle quelle, donc vous pouvez écrire directement votre texte.
 - **`element` est indépendant du mode de validation** : une jauge peut être encadrée alors que c'est
   le pilote qui dit qu'elle est bonne.
-- **`argument` implique une validation automatique**, sans `argument` c'est le pilote qui valide.
-- **Un interrupteur à rappel** (qui revient tout seul en position neutre) ne peut pas être détecté
-  par son argument : utilisez `confirm: true`.
+- **`param` implique une validation automatique**, sans `param` c'est le pilote qui valide.
+- La **tolérance par défaut de 0.05** convient aux grandeurs qui valent 0 ou 1. Pour une altitude ou
+  une vitesse, donnez votre propre `tolerance`, ou un `range`.
 - Une erreur dans le fichier **fait échouer la construction** avec un message qui nomme le fichier
   fautif, plutôt que de produire une erreur Lua en jeu.
 
-### Trouver l'élément et l'argument {#find-element-and-argument}
+### On ne peut pas lire la position d'un interrupteur {#no-switch-reading}
 
-Les deux se lisent dans les fichiers du module d'appareil, dans votre installation DCS :
+C'est la limite structurante de ce module, et elle a été **mesurée en jeu** : un script de mission
+ne voit pas la position des commandes du cockpit. L'interrupteur MAIN PWR d'un F-16C a été déplacé
+sur ses trois positions sans qu'aucun des trois mécanismes disponibles ne bouge. Le cockpit est un
+modèle séparé et son état ne remonte pas jusqu'à la mission ; les checklists d'entraînement d'ED y
+arrivent parce que leur code tourne *dans* le cockpit du module, ce qui nous est fermé.
+
+Conséquence pratique : **une étape « mettre tel interrupteur sur telle position » se valide en
+`confirm`**. C'est le cas des six étapes de la checklist F-16C livrée.
+
+Mesures et détails :
+[DCS cockpit + picture API](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md).
+
+### Trouver un `param` {#find-a-param}
+
+Ce qu'on peut lire, c'est **l'effet** d'une commande, pas la commande. Sur un F-16C au parking,
+78 grandeurs sont publiées, parmi lesquelles :
+
+| Paramètre | Ce qu'il vaut |
+|---|---|
+| `BASE_SENSOR_NOSE_GEAR_DOWN` | `1` train avant sorti |
+| `BASE_SENSOR_WOW_LEFT_GEAR` | `1` poids sur la roue gauche |
+| `BASE_SENSOR_CANOPY_POS` | ouverture de la verrière, `0` à `1` |
+| `BASE_SENSOR_FLAPS_RETRACTED` | `1` volets rentrés |
+| `BASE_SENSOR_IAS` | vitesse indiquée (m/s) |
+| `BASE_SENSOR_BAROALT` | altitude barométrique (m) |
+| `BASE_SENSOR_HEADING` | cap (radians) |
+| `BASE_SENSOR_FUEL_TOTAL` | carburant restant |
+
+La liste dépend de l'appareil : chaque module publie ce qu'il veut. Pour voir celle du vôtre,
+appelez `list_cockpit_params()` dans l'environnement mission — elle renvoie un `NOM:valeur` par ligne.
+
+### Trouver l'élément à encadrer {#find-element}
+
+Il se lit dans les fichiers du module d'appareil, dans votre installation DCS :
 
 ```text
 <DCS>\Mods\aircraft\<Appareil>\Cockpit\Scripts\clickabledata.lua
 ```
 
-Le nombre en fin de nom d'élément **est** l'argument d'animation :
-`PTR-ELEC-TMB-MPWR-510` → argument `510`.
-
-La **fenêtre**, en revanche, se mesure : un interrupteur à trois positions peut aller de `0` à `1`
-ou de `-1` à `+1`. Relevez la valeur pour **chaque** position, pas seulement celle qui vous
-intéresse, et choisissez une tolérance assez étroite pour rejeter la position voisine.
+Seuls les éléments **cliquables** y figurent : une jauge ou un voyant n'a pas de nom à encadrer.
 
 ---
 

@@ -124,7 +124,10 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local TOWER_DISTANCE = 20
   local BEACON_DISTANCE = 3
 
-  if not veaf.ctld_initialized then
+  -- veaf.ctld_initialized went with the v1 init wrapper. CTLD 2 is a registered VEAF module,
+  -- so the framework's own gate answers the same question — and answers it correctly when the
+  -- mission disabled the module rather than merely failing to load the script.
+  if not (ctld and veaf.isEnabled("ctld")) then
     veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)", veaf.p(name))
     return nil
   end

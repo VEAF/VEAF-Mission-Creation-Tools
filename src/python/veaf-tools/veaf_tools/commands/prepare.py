@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 import typer
+from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
 from veaf_libs.paths import resolve_path
 
 from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger, t, tn
@@ -36,6 +37,38 @@ def _resolve_defaults_source(mission_folder: Path) -> Path | None:
         if candidate.is_dir():
             return candidate
     return None
+
+
+def _scaffold_ctld_config(mission_folder: Path, defaults_source_path: Path) -> None:
+    """Seed ``ctld-config.yaml`` from the vendored CTLD engine's own catalogue.
+
+    CTLD 2 takes a **complete** configuration snapshot, so the mission maker's file
+    starts as a copy of the shipped defaults and is then edited in ``ctld-tools``.
+    Reading the catalogue out of ``CTLD.lua`` rather than storing a copy here is what
+    keeps it current across CTLD upgrades (ADR 0016).
+
+    An existing file is never touched, not even with ``--force``: it is the mission
+    maker's configuration, not a scaffold artifact.
+
+    Args:
+        mission_folder: The folder being prepared.
+        defaults_source_path: The resolved ``<root>/defaults/mission-folder`` directory,
+            whose grandparent holds ``scripts/community/CTLD.lua``.
+    """
+    from veaf_libs.ctld_config import read_default_config
+
+    destination = mission_folder / CTLD_CONFIG_FILENAME
+    if destination.exists():
+        logger.debug(f"Never-overwrite: {CTLD_CONFIG_FILENAME}")
+        return
+
+    catalogue = read_default_config(defaults_source_path.parents[1] / "scripts" / "community" / "CTLD.lua")
+    if catalogue is None:
+        logger.warning(t("cmd.prepare.ctld_config_unavailable", file=CTLD_CONFIG_FILENAME))
+        return
+
+    destination.write_text(catalogue, encoding="utf-8")
+    console.print(t("cmd.prepare.ctld_config_created", file=CTLD_CONFIG_FILENAME))
 
 
 def _resolve_template_modules(template: str) -> set[str]:
@@ -250,6 +283,12 @@ def prepare(
 
             (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")
             console.print(tn("cmd.prepare.template_applied", len(enabled_modules), template=template))
+
+            # A template that enables CTLD gets the matching ctld-config.yaml, seeded from
+            # the vendored engine's own catalogue. Scaffold only: the build never writes
+            # this file, so a mission maker's edits are theirs (ADR 0016).
+            if "CTLD" in {module.upper() for module in enabled_modules}:
+                _scaffold_ctld_config(p_mission_folder, defaults_source_path)
 
         # Lay down a synthetic blank mission for the chosen theatre into src/mission/, so the folder
         # builds without a DCS round-trip. Never clobber an existing mission unless --force.

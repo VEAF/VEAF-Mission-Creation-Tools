@@ -611,8 +611,19 @@ Controller = {
 
 -- ---------------------------------------------------------------------------
 -- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
+--
+-- Mixed v1 / v2 on purpose, for the length of the CTLD 2 migration: the v1 globals
+-- below are still what veafGrass / veafSpawnGround / veafSpawnEffects poke, and they
+-- go when FEAT-CTLD2-INTEGRATION ticket 05 ports those bridges to the v2 managers.
+-- `utils.log` and `initialize` are the v2 surface veaf.lua drives today.
 -- ---------------------------------------------------------------------------
 ctld = {
+  -- v2
+  initialize = function() end,
+  utils = {
+    log = function(...) end,
+  },
+  -- v1, pending ticket 05
   JTACAutoLase = function(...) end,
   cleanupJTAC = function(...) end,
   addJTAC = function(...) end,

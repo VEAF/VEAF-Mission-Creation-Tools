@@ -26,6 +26,8 @@
   "cmd.prepare.unknown_template": "Unknown template '{template}'. Valid: {valid}.",
   "cmd.prepare.custom_prompt": "Select the modules to enable",
   "cmd.prepare.template_applied": "[green]Applied the '{template}' template: {count} module(s) enabled in mission.yaml.[/green]",
+  "cmd.prepare.ctld_config_created": "Created {file} from the bundled CTLD defaults — edit it with ctld-tools.",
+  "cmd.prepare.ctld_config_unavailable": "Could not read the CTLD default configuration; {file} was not created. Generate one with ctld-tools.",
   "cmd.prepare.next_steps": "[dim]Next: place/extract your .miz into src/mission, then `veaf-tools validate` and `veaf-tools build`.[/dim]",
   "cmd.prepare.opt.mission_folder": "Folder to initialize as a VEAF mission folder.",
   "cmd.prepare.done": "Preparation completed!",

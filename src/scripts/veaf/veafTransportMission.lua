@@ -709,16 +709,20 @@ function veafTransportMission.resetAllCargoes()
   trigger.action.outText(veaf.t("transport.cargoes_respawned"), 15)
 end
 
+-- Both of these pointed at CTLD v1 helpers (ctld.autoInitializeAllHumanTransports /
+-- autoInitializeAllLogistic) that VEAF defined and CTLD 2 does not have. They are kept as
+-- deprecation stubs for mission scripts that still call them, and now name the replacement:
+-- a transport is any aircraft type with a capabilitiesByType entry, and a logistic point is
+-- an LGZ_ zone — both declared in the mission's ctld-config.yaml, nothing to run.
+
 function veafTransportMission.initializeAllHelosInCTLD()
   veaf.loggers
     .get(veafTransportMission.Id)
-    :warn("Please use ctld.autoInitializeAllHumanTransports - it's automatically run by the veaf.lua script")
+    :warn("Obsolete: CTLD 2 recognises a transport by its capabilitiesByType entry in ctld-config.yaml")
 end
 
 function veafTransportMission.initializeAllLogisticInCTLD()
-  veaf.loggers
-    .get(veafTransportMission.Id)
-    :warn("Please use ctld.autoInitializeAllLogistic - it's automatically run by the veaf.lua script")
+  veaf.loggers.get(veafTransportMission.Id):warn("Obsolete: CTLD 2 discovers logistic points from LGZ_ zones and ctld-config.yaml")
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

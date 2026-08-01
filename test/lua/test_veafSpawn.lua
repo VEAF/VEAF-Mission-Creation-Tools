@@ -649,11 +649,27 @@ TestVeafSpawnGround = {}
 function TestVeafSpawnGround:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
-  veaf.ctld_initialized = false
   veafSpawn.spawnedConvoys = {}
+  self._savedCtld = ctld
+  self._savedConfig = veaf.config.ctld
 end
 
-function TestVeafSpawnGround:test_spawnFob_no_ctld()
+function TestVeafSpawnGround:tearDown()
+  ctld = self._savedCtld
+  veaf.config.ctld = self._savedConfig
+end
+
+-- A FOB needs CTLD, and there are two ways not to have it. The v1 code knew only one
+-- (veaf.ctld_initialized, set by the init wrapper); the module gate distinguishes them.
+
+function TestVeafSpawnGround:test_spawnFob_without_the_ctld_script()
+  ctld = nil
+  local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
+  luaunit.assertNil(result)
+end
+
+function TestVeafSpawnGround:test_spawnFob_with_the_ctld_module_disabled()
+  veaf.config.ctld = { enable = false }
   local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
   luaunit.assertNil(result)
 end

@@ -26,6 +26,8 @@
   "cmd.prepare.unknown_template": "Template inconnu '{template}'. Valides : {valid}.",
   "cmd.prepare.custom_prompt": "Sélectionnez les modules à activer",
   "cmd.prepare.template_applied": "[green]Template '{template}' appliqué : {count} module(s) activé(s) dans mission.yaml.[/green]",
+  "cmd.prepare.ctld_config_created": "{file} créé à partir des valeurs par défaut de CTLD — éditez-le avec ctld-tools.",
+  "cmd.prepare.ctld_config_unavailable": "Impossible de lire la configuration par défaut de CTLD ; {file} n'a pas été créé. Générez-en un avec ctld-tools.",
   "cmd.prepare.next_steps": "[dim]Ensuite : placez/extrayez votre .miz dans src/mission, puis `veaf-tools validate` et `veaf-tools build`.[/dim]",
   "cmd.prepare.opt.mission_folder": "Dossier à initialiser comme dossier de mission VEAF.",
   "cmd.prepare.done": "Préparation terminée !",

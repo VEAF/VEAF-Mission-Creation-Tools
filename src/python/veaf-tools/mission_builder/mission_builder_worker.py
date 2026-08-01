@@ -38,6 +38,7 @@ from veaf_libs.config_override import (
     render_override_lua,
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
+from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, CTLD_USER_CONFIG_FILENAME
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import find_undefined_lua_functions, generate_config_lua
@@ -53,15 +54,6 @@ from mission_builder.third_party_mods import strip_third_party_mods
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
 )
-
-#: The mission's CTLD 2 configuration, a complete YAML snapshot authored in ctld-tools
-#: and living beside mission.yaml. See docs/adr/0016-ctld2-sidecar-configuration.md.
-CTLD_CONFIG_FILENAME = "ctld-config.yaml"
-
-#: The Lua wrapper generated from it, loaded immediately before CTLD.lua. Same name as
-#: CTLD's own template, so a mission maker opening the .miz recognises it.
-CTLD_USER_CONFIG_FILENAME = "CTLD_userConfig.lua"
-
 
 def _lua_long_bracket(text: str) -> str:
     """Wrap *text* in a Lua long-bracket literal, escaping nothing.

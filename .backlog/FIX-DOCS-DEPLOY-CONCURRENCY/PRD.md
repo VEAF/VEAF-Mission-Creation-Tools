@@ -1,7 +1,7 @@
 # Lot FIX-DOCS-DEPLOY-CONCURRENCY — two concurrent docs deployments knock each other out
 
-Status: ⬜ ready
-Branch: —
+Status: ✅ done
+Branch: `fix/docs-deploy-concurrency`
 
 ## Problem Statement
 
@@ -45,8 +45,17 @@ concurrency:
 `cancel-in-progress: false` matters — cancelling would drop a deployment on the floor, which is the
 very outcome to avoid. Queuing costs a couple of minutes and loses nothing.
 
-Worth checking at the same time whether the `gh-pages` fetch/push should retry on rejection, since a
-queue removes the collision but not an unrelated concurrent push to `VEAF/documentation`.
+**Retry: not added, and here is why.** The open question was whether the `gh-pages` push should
+retry on rejection, since a queue removes collisions between *our* runs but not a concurrent push
+from somewhere else. Checked: `docs.yml` in this repository is the **only** producer for
+`VEAF/documentation` — CTLD and the other VEAF projects publish to their own `gh-pages`. A retry
+would therefore guard against a writer that does not exist. Should one appear, this note is the
+place to reconsider.
+
+**Seen again before the fix landed.** The 6.13.0 release reproduced it exactly: the `v6.13.0` tag
+deployment and the `develop` back-merge deployment raced, and the second was rejected. The versioned
+documentation went out, the `dev` alias did not, and the run was red in a tab nobody watches — the
+failure mode this lot describes.
 
 ## Definition of Done
 

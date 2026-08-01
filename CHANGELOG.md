@@ -7,6 +7,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Two documentation deployments can no longer knock each other out** (FIX-DOCS-DEPLOY-CONCURRENCY). Every `Deploy Docs` run fetches `gh-pages` from the external documentation repository, builds and pushes it back, so two at once meant the second fetched before the first landed and was rejected — `! [rejected] gh-pages -> gh-pages (fetch first)`. The window is built into the release procedure, which pushes the `v*` tag and back-merges to `develop` minutes later: it cost the 6.13.0 release a red run, and it is why the 6.11.0 documentation was never published at all. A `concurrency` group makes deployments queue; `cancel-in-progress: false`, because cancelling would drop a deployment on the floor, which is the outcome to avoid. No retry on the push: `docs.yml` here is the only producer for that repository, verified, so a retry would guard against a writer that does not exist.
+
 ## [6.13.0] — 2026-08-01
 
 ### Changed

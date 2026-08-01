@@ -22,7 +22,9 @@ Sections handled
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 
+from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_module_scanner import get_modules
@@ -1177,9 +1179,64 @@ def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     return bool(cfg)
 
 
+def _emit_check_table(check: dict[str, object]) -> str:
+    """Render a step's resolved check descriptor as an inline Lua table.
+
+    ``type`` leads, so a generated checklist reads the way the engine dispatches it.
+    """
+    ordered = ["type", *(key for key in check if key != "type")]
+    fields = [f"{key} = {_emit_lua_value(check[key])}" for key in ordered if key in check]
+    return "{" + ", ".join(fields) + "}"
+
+
+def _emit_lua_value(value: object) -> str:
+    """Render a scalar for embedding in a generated table, strings safely quoted."""
+    return _emit_lua_string(value) if isinstance(value, str) else _to_lua_scalar(value)
+
+
+def _emit_checklist_step(step: ChecklistStep) -> str:
+    """Render one checklist step as an inline Lua table."""
+    fields = [f"label = {_emit_lua_string(step.label)}"]
+    if step.element is not None:
+        fields.append(f"element = {_emit_lua_string(step.element)}")
+    for carried in ("device", "command"):
+        value = getattr(step, carried)
+        if value is not None:
+            fields.append(f"{carried} = {_to_lua_scalar(value)}")
+    fields.append(f"check = {_emit_check_table(step.check_table())}")
+    return "{" + ", ".join(fields) + "}"
+
+
+def emit_checklists_lua(checklists: Sequence[Checklist], indent: str = "    ") -> list[str]:
+    """Render one ``veafAssist.registerChecklist()`` call per checklist.
+
+    Args:
+        checklists: The checklists the mission activates, already validated.
+        indent: Leading whitespace, so the block sits inside its ``if`` guard.
+
+    Returns:
+        The Lua lines (empty when there is nothing to register).
+    """
+    lines: list[str] = []
+    for checklist in checklists:
+        lines.append(f"{indent}veafAssist.registerChecklist({{")
+        lines.append(f"{indent}    id = {_emit_lua_string(checklist.id)},")
+        lines.append(f"{indent}    title = {_emit_lua_string(checklist.title)},")
+        aircraft = ", ".join(_emit_lua_string(name) for name in checklist.aircraft)
+        lines.append(f"{indent}    aircraft = {{{aircraft}}},")
+        lines.append(f"{indent}    menu = {_emit_lua_string(checklist.menu)},")
+        lines.append(f"{indent}    steps = {{")
+        for step in checklist.steps:
+            lines.append(f"{indent}        {_emit_checklist_step(step)},")
+        lines.append(f"{indent}    }},")
+        lines.append(f"{indent}}})")
+    return lines
+
+
 def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
+    checklists: Sequence[Checklist] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -1190,6 +1247,11 @@ def generate_config_lua(
     header:
         Comment text prepended after the separator line. Defaults to the
         localised generated-file header from the i18n catalog.
+    checklists:
+        Guided checklists the mission activates. Emitted **before** the module
+        initialisation block, so ``veafAssist.initialize()`` sees a populated
+        catalogue when it builds its radio menu. Nothing is emitted when empty,
+        which is what keeps a mission that activates none of them free of cost.
 
     Returns
     -------
@@ -1262,6 +1324,16 @@ def generate_config_lua(
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
             lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+        lines.append("")
+
+    # ── Guided checklists ─────────────────────────────────────────────────
+    # Registered before the module block: veafAssist.initialize() reads the catalogue
+    # to build its radio menu, so the data has to be there first.
+    if checklists:
+        lines.append("-- ── Guided checklists (assistance) ───────────────────────────────────────────")
+        lines.append("if veafAssist then")
+        lines.extend(emit_checklists_lua(checklists))
+        lines.append("end")
         lines.append("")
 
     # ── Module configuration + initialization ─────────────────────────────

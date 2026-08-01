@@ -490,6 +490,11 @@ class BuildAndReleaseWorker:
         profiles_dir = veaf_tools_dir / "veaf_libs" / "data" / "convert-profiles"
         if profiles_dir.is_dir():
             extra.append((profiles_dir, "veaf_libs/data/convert-profiles"))
+        # Guided-checklist catalogue — a whole directory, same reasoning as the profiles:
+        # shipping a new checklist must not need a build change.
+        checklists_dir = veaf_tools_dir / "veaf_libs" / "data" / "checklists"
+        if checklists_dir.is_dir():
+            extra.append((checklists_dir, "veaf_libs/data/checklists"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),

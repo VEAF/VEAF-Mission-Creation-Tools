@@ -1,6 +1,6 @@
 # 02 — checklist YAML: schema, loader, Lua emission
 
-**Status:** ⬜ ready — depends on 01. The other tickets consume this ticket's output, so it goes first.
+**Status:** ✅ done — 2026-08-01.
 
 Python side. Reads checklist YAML, validates it, and emits the Lua table the engine consumes. DCS has no
 YAML reader: the YAML is design-time only.
@@ -63,3 +63,26 @@ aircraft type is rejected; a mission activating nothing emits nothing.
 - Tests green, `--cov-fail-under` bumped per the ratchet policy in `CLAUDE.md` §3.
 - If this changes what the config generator emits, `src/defaults/mission-folder/mission.yaml` updated in
   the same lot (`CLAUDE.md` §9.7).
+
+## What was built
+
+[`veaf_libs/checklists.py`](../../../src/python/veaf-tools/veaf_libs/checklists.py) — the pydantic models
+(`Checklist`, `ChecklistStep`), `parse_checklist()` and `load_checklists()`. Emission lives in
+[`lua_config_generator.py`](../../../src/python/veaf-tools/veaf_libs/lua_config_generator.py)
+(`emit_checklists_lua`, plus the `checklists=` parameter of `generate_config_lua`), which is where the Lua
+string helpers already are. Tests:
+[`test_checklist_format.py`](../../../test/python/veaf_libs/test_checklist_format.py), 34 cases.
+
+Three calls taken while building it:
+
+- **The window is resolved at design time.** `equals` + `tolerance` becomes `min` / `max` in the emitted
+  table, so the engine's comparison is a plain `min <= value <= max` and no arithmetic ships to Lua.
+- **`tolerance` defaults to 0.05** when a step gives `equals` without one — the value every example in the
+  PRD uses. Narrow enough to reject the neighbouring position of a three-position switch.
+- **Every step emits a uniform `check = {type = …}` table**, `confirm` and `argument` included. The engine
+  dispatches on `check.type` through its registry with no special case, which is what makes the bomb-run
+  lot purely additive.
+
+**Left to ticket 05:** *which* checklists a mission activates. `generate_config_lua` takes the list it is
+given and emits nothing for an empty one, so the loader and the emitter are complete; the `mission.yaml`
+key that selects ids is part of the wiring ticket, and inventing it here would have pre-empted it.

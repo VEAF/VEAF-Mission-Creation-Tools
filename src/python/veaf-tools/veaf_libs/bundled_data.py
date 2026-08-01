@@ -30,3 +30,27 @@ def read_bundled_text(package: str, *parts: str) -> str:
     for part in parts:
         resource = resource / part
     return resource.read_text(encoding="utf-8")
+
+
+def bundled_dir(package: str, *parts: str) -> Path:
+    """Return the filesystem path of a packaged data **directory**.
+
+    Same resolution as :func:`read_bundled_text`, for callers that must enumerate a
+    directory rather than read one known file (e.g. the shipped checklist catalogue,
+    whose contents are not known in advance).
+
+    Args:
+        package: Top-level package the directory ships under (e.g. ``"veaf_libs"``).
+        *parts: Path components under the package (e.g. ``"data"``, ``"checklists"``).
+
+    Returns:
+        The directory path. It may not exist — callers decide whether an absent
+        directory is an error or simply "nothing shipped".
+    """
+    bundle_path = Path(getattr(sys, "_MEIPASS", "")) / package / Path(*parts)
+    if bundle_path.is_dir():
+        return bundle_path
+    resource = importlib.resources.files(package)
+    for part in parts:
+        resource = resource / part
+    return Path(str(resource))

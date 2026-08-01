@@ -16,3 +16,14 @@
 *.zip binary
 *.exe binary
 *.miz binary
+
+# Vendored and generated artifacts: collapsed in GitHub diffs and skipped by the
+# automated reviewers. Nobody reads these line by line — reading them would be
+# meaningless, since they come from someone else's build (see vendored.yaml) or from
+# ours. Left un-collapsed, a single re-vendoring buries a whole pull request: the
+# 6.13.0 release carried 25k changed lines, 24k of which were one copied CTLD.lua,
+# and Sourcery declined to review it for exceeding its diff limit.
+# `git diff` is unaffected — this only changes how GitHub presents them.
+src/scripts/community/*.lua linguist-generated=true
+src/scripts/veaf/dcsUnits.lua linguist-generated=true
+src/python/veaf-tools/veaf_libs/data/dcs-schema/** linguist-generated=true

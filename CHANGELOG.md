@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.13.0] — 2026-08-01
 
 ### Changed
 - **The four VEAF modules that talk to CTLD use its v2 API** (FEAT-CTLD2-INTEGRATION). `veafGrass`, `veafSpawnGround`, `veafSpawnEffects` and `veafSpawnAircraft` poked v1 globals — `ctld.logisticUnits`, `ctld.builtFOBS`, `ctld.fobBeacons`, `ctld.beaconCount` — none of which exist in CTLD 2, where a manager owns each. They now call `CTLDZoneManager:registerFOBAsLogistic`, `CTLDBeaconManager:createAtPoint` and `CTLDJTACManager:autoLase` / `stopAutoLase` directly rather than the `legacy_api` wrappers, which log a `DEPRECATED` line on every call. Two consequences worth knowing: a FOB beacon is numbered by CTLD instead of by a second VEAF counter, and the TACAN carrier unit on a FARP is spawned by `veafGrass.spawnTacanCarrierUnit` — it was borrowed from `ctld.spawnRadioBeaconUnit`, but it is a plain DCS group with nothing CTLD about it. The scaffolded `ctld-config.yaml` also carries the VEAF starting values for `logisticUnitTypes` and `troopZoneShipTypes`, which is what preserves the carrier and FARP recognition `autoInitializeAllLogistic` used to provide; `FARP Ammo Storage` is **not** among them — it is the display name of `FARP Ammo Dump Coating`, so the v1 entry never matched anything.

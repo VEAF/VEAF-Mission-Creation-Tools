@@ -1,206 +1,161 @@
-# VEAF Mission Creation Tools — 6.12.0
+# VEAF Mission Creation Tools — 6.13.0
 
-Trois chantiers dans cette version : les **zones de combat** deviennent symétriques (jouables
-côté rouge, avec un menu radio propre à chaque camp), la **chaîne Foothold** encaisse les
-releases de Lekaa telles qu'elles sont distribuées, et une série de **correctifs de fiabilité**
-sur des choses qui semblaient marcher sans marcher — une mission que l'éditeur refusait
-d'enregistrer, un mot de passe décoratif, une page de doc anglaise servant du français.
+Une seule grande nouvelle dans cette version : **CTLD passe à la version 2**. Le script de
+transport et de logistique embarqué par les outils n'est plus le monolithe historique de
+ciribob mais la **réécriture VEAF** — même jeu, code modulaire et testé — et surtout, il ne se
+configure plus dans `mission.yaml` mais dans un fichier dédié, avec un **éditeur graphique**.
+
+> **CTLD embarqué : `2.0.0-rc3`.** C'est une *release candidate*, pas encore une version
+> stable. Elle est éprouvée (plus de 1 100 tests automatiques et des tests en vol), mais si
+> vous exploitez un serveur public, sachez sur quoi vous décollez.
 
 ---
 
 ## ⚠️ À lire avant de mettre à jour
 
-**Le menu F10 d'une zone de combat n'est plus proposé aux deux camps.** Il va désormais au camp
-qui joue la zone : par défaut les **bleus**, puisque l'ennemi par défaut est rouge.
+**Si vos missions activent CTLD, elles demandent une action de votre part.** Deux points
+arrêtent le build tant que vous n'y avez pas touché, et deux autres changent le vol.
 
-- Si tous les slots joueurs de vos missions sont bleus : **aucune différence**.
-- Si vous avez des slots rouges qui doivent garder l'accès aux zones bleues (un arbitre, un
-  Mission Master en slot rouge) : ajoutez `radio_menu_coalition: ALL` sur ces zones.
-
-Le détail et le YAML exact sont dans la section **Migration** en fin de page.
-
----
-
-## ⚔️ Les zones de combat se jouent des deux côtés
-
-Jusqu'ici une zone de combat supposait que les joueurs étaient bleus et que les unités à
-détruire étaient rouges. Ce n'était pas un réglage manquant, c'était une hypothèse inscrite en
-dur à deux endroits : la zone se terminait quand il ne restait plus d'unité **rouge**, et le
-rapport F10 annonçait les bleus comme « amis » et les rouges comme « ennemis ».
-
-Conséquence : une zone dont les ennemis étaient bleus ne pouvait pas fonctionner. Elle ne
-contenait aucune unité rouge, donc le surveillant comptait zéro ennemi dès sa première passe
-(~1 min) et désactivait la zone aussitôt.
-
-Le contournement qui circulait — `completable: false` — ne rendait pas la zone rouge : il
-coupait simplement la fin automatique, et le rapport continuait d'appeler les ennemis bleus
-« amis ».
+### 1. Le bloc `settings:` de CTLD n'est plus lu — et `validate` le refuse
 
 ```yaml
 modules:
-  COMBATZONE:
+  CTLD:
     enabled: true
-    combat_zones:
-      - type: zone
-        zone_name: "CZ-Kobuleti"
-        enemy_coalition: BLUE   # les joueurs sont rouges, les bleus sont les ennemis
+    settings:            # ← n'existe plus
+      hoverPickup: true
 ```
 
-La condition de fin **et** les libellés amis/ennemis du rapport suivent ce réglage. Une zone
-qui ne précise rien se comporte exactement comme avant.
-
-### Chaque camp ne voit que ses zones
-
-Le menu F10 d'une zone n'est pas qu'un affichage : c'est par lui qu'on **active** la zone,
-qu'on tire la fumée, qu'on demande son état. Avec des zones rouges devenues possibles, chaque
-camp pouvait déclencher les zones de l'autre.
-
-Une zone propose donc maintenant son menu au camp qui la joue, et `radio_menu_coalition`
-permet d'en décider autrement (`RED`, `BLUE`, ou `ALL` pour revenir au menu commun).
-
-Le menu parent `COMBAT ZONES` reste, lui, visible par tout le monde : un groupe radio peut
-contenir des zones des deux camps.
-
----
-
-## 🏗️ Foothold : les releases s'adoptent telles qu'elles arrivent
-
-Les missions Foothold de Lekaa ne se distribuent plus en `.miz` nu mais en **archive**, avec le
-gestionnaire de configuration, le manuel et un raccourci. Chaque adoption commençait donc par
-un dézippage manuel.
-
-- **`convert-other` accepte l'archive** que vous avez téléchargée et adopte le `.miz` qu'elle
-  contient. Seul ce membre est lu — l'exécutable fourni n'est jamais extrait, jamais lancé. Si
-  l'archive contient zéro ou plusieurs `.miz`, la commande s'arrête et dit ce qu'elle a trouvé
-  plutôt que de deviner.
-- **Nouveau profil `foothold-ww2`** pour la Normandie WWII : c'est une autre famille (fichier
-  de configuration différent, pas de variable `Era`, pas de CTLD Foothold). L'adopter avec le
-  profil moderne produisait une surcharge embarquée, chargée… et sans effet.
-- **`validate` refuse une `config_override.target` qui ne désigne aucun script injecté** —
-  exactement le piège précédent : la surcharge était embarquée et silencieusement inopérante.
-- **Adoption par lot des dix cartes** d'une release, en une passe, avec choix du profil **par
-  contenu** (le script ouvre le `.miz` dans l'archive et cherche le fichier de configuration
-  WWII, donc une future carte WWII nommée autrement se résout quand même). Éprouvé sur la vraie
-  4.4.1 : 10/10 adoptées et validées.
-- **Les préréglages radio Foothold passent au modèle par plan.** L'ancien fichier
-  *fonctionnait*, mais donnait à **10 types d'appareils** des canaux hors de la bande de leurs
-  radios — silencieusement supprimés, l'AJS-37 perdant sa liste FM de 30 canaux entière. Sur
-  `Foothold_AF_2.4.1` : **10 → 2** types en défaut et **30 → 32** planchettes ; sur la Normandie
-  WWII : **2 → 0**. Le Mi-24P et le Mi-8MT gagnent des préréglages que l'ancien fichier avait
-  renoncé à leur donner.
-
----
-
-## 🔧 Fiabilité : ce qui semblait marcher sans marcher
-
-### Une mission avec des FW-190 refusait de s'enregistrer
-
-Signalé par **Tripack**. L'éditeur de mission renvoyait :
-
-```
-FW-190D9 Template: Fréquence invalide 134 MHz
-```
-
-…et seuls les templates **bleus** étaient signalés. Un appareil DCS impose en réalité **deux**
-contraintes de fréquence différentes, et l'outillage n'en connaissait qu'une :
-
-| Contrainte | Ce qu'elle borne | FW-190 |
-|------------|------------------|--------|
-| plage radio | les **canaux préréglés** | 38–156 MHz |
-| `human_radio` | la **fréquence principale du groupe** | 38.4–42.4 MHz |
-
-L'injecteur recopie le canal 1 dans la fréquence du groupe pour que les deux concordent. Le
-canal 1 valait 134 MHz : préréglage parfaitement légal sur la FuG 16, fréquence principale
-illégale. Les FW-190 rouges allaient bien parce qu'ils ne correspondent à aucun préréglage —
-l'injecteur n'y touchait pas.
-
-La contrainte manquante est désormais connue pour **27 appareils sur 87**, et la recopie est
-abandonnée quand elle produirait une fréquence invalide : le groupe garde la sienne, les
-préréglages sont injectés normalement. Au passage, cela ferme le même piège latent sur le Hawk,
-le M-2000C et toute la série P-51 / P-47 / Mosquito.
-
-> Si vous avez déjà construit une mission touchée, elle porte encore la mauvaise fréquence :
-> reconstruisez-la avec cette version, ou remettez 38.4 à la main dans le champ avant
-> d'enregistrer.
-
-### Un mot de passe de `mission.yaml` protège enfin quelque chose
-
-Deux défauts indépendants faisaient de `security:` une décoration. Les empreintes n'étaient
-émises qu'au niveau le plus faible, alors que les verrous qui comptent (authentification des
-marqueurs, apparitions sensibles, missions de transport) lisent les niveaux forts : un mot de
-passe configuré ainsi ne pouvait authentifier aucun marqueur.
-
-Et la page de référence documentait **SHA-256** quand le script calcule un **SHA-1** : toute
-empreinte produite en suivant la documentation ne pouvait jamais correspondre. La mission
-paraissait protégée et était grande ouverte.
-
-**Si vous utilisez `security:`, régénérez vos empreintes en SHA-1 et revérifiez vos missions.**
-
-### Autres correctifs
-
-- `convert-other --profile` fonctionne dans l'exécutable livré : les profils n'étaient pas
-  embarqués, la moulinette Foothold documentée était donc inutilisable sans les sources.
-- La documentation des versions publiées repart : le site restait sur la 6.10.0 alors que la
-  6.11.0 était sortie.
-- Le lot Foothold signale un `.miz` dont le nom ne correspond plus à `mission.yaml` — ce nom
-  est une interface (RealWeather y lit le code `_ICAO_`), donc un fichier resté d'une
-  construction antérieure tire la météo du mauvais aérodrome, sans rien dire.
-
----
-
-## 📚 Documentation
-
-Un audit complet a été passé sur le site publié. Ce qu'il a corrigé : une page qui n'existait
-qu'en français et servait donc du français sur son URL anglaise, six liens renvoyant un **404
-en production**, des ancres laissées derrière par une renumérotation de sections, une signature
-d'API périmée, un en-tête annonçant une version vieille de six correctifs, et une page absente
-de tous les menus.
-
-Ces défauts n'étaient pas un problème de rangement mais d'absence de surveillance : la CI
-vérifiait le Lua, le Python, la couverture, les données DCS — et rien dans la documentation.
-C'est réparé : un contrôle refuse désormais un lien mort, une ancre inexistante, une page non
-traduite ou absente du menu. Les ancres citées d'une page à l'autre sont explicites et en
-anglais, identiques dans les deux langues, **le texte des titres restant dans la langue de la
-page**.
-
----
-
-## 🔀 Migration
-
-Un seul point demande une action, et seulement dans un cas précis.
-
-**Votre mission est concernée si** elle contient des zones de combat **et** des slots joueurs
-rouges qui doivent pouvoir consulter ou activer les zones bleues.
-
-Dans ce cas, sur les zones concernées :
+devient simplement :
 
 ```yaml
-      - type: zone
-        zone_name: "CZ-Alpha"
-        radio_menu_coalition: ALL   # les deux camps voient la zone et peuvent l'activer
+modules:
+  CTLD: true
 ```
 
-**Votre mission n'est pas concernée si** tous vos slots joueurs sont bleus : le menu allait déjà
-de fait aux seuls bleus présents, rien ne change à l'usage.
+…et vos réglages partent dans un fichier `ctld-config.yaml`, à côté de `mission.yaml`. La
+marche à suivre est en fin de page.
 
-Rien d'autre à modifier : `enemy_coalition` vaut `RED` par défaut, et une zone qui ne mentionne
-aucune de ces deux clés se comporte comme avant, au bit près dans la configuration générée.
+Pourquoi une erreur plutôt qu'un avertissement ? Parce que **ce canal n'a jamais complètement
+fonctionné** : les valeurs écrites là étaient posées, puis écrasées par la configuration VEAF
+en dur, sans un mot. Un `slingLoad: false` dans un `mission.yaml` n'a jamais rien fait. Plutôt
+que de continuer en silence, l'outil s'arrête et vous dit où aller.
 
-> Cette restriction s'appuie sur la fonction de menu par coalition de DCS. Les cas usuels sont
-> couverts ; si vous constatez un comportement inattendu sur le menu `COMBAT ZONES` en jeu,
-> signalez-le — `radio_menu_coalition: ALL` rétablit immédiatement l'ancien comportement sur la
-> zone concernée.
+### 2. Les noms de zones réservés disparaissent
+
+Les vingt noms `logistic #001` … `#020` et `pickzone #001` … `#020` ne sont plus reconnus.
+CTLD 2 découvre ses zones **par préfixe de nom**, directement dans l'éditeur de mission :
+`LGZ_` pour une zone logistique, `TRZ_` pour une zone d'embarquement de troupes. Sans limite de
+nombre, et avec un nom qui dit ce que la zone fait.
+
+Pour qu'une zone suive un objet mobile — un porte-avions —, liez-la à l'unité dans l'éditeur
+(*Moving Zone*) : elle le suivra en vol.
+
+### 3. Le ramassage des caisses change pour les pilotes
+
+Jusqu'ici VEAF imposait l'**élingage réel** de DCS. Les outils reprennent désormais le
+comportement par défaut de CTLD : **le stationnaire au-dessus de la caisse suffit**. Plus
+permissif, et la fenêtre de stationnaire est un peu plus serrée :
+
+| | Avant (VEAF) | Maintenant (CTLD 2) |
+|---|---|---|
+| hauteur de stationnaire | 5 à 15 m | 7,5 à 12 m |
+| distance à la caisse | 8 m | 5,5 m |
+
+### 4. Les capacités d'emport sont réalignées
+
+Les limites que VEAF portait en dur dataient de la configuration d'origine. On adopte celles de
+CTLD 2, calées sur les appareils :
+
+| Appareil | Avant | Maintenant |
+|---|---|---|
+| UH-1H | 10 soldats | 8 |
+| UH-60L | 20 | 12 |
+| Mi-8MTV2 | 20 | 16 |
+| CH-47F | 33 | 40 |
+
+Les **Gazelle** (SA342 L/M/Mistral/Minigun) et le **Yak-52** gardent leur soldat unique et
+n'emportent pas de caisse. Le **Ka-50** conserve son menu CTLD — reconnaissance, statut JTAC,
+balises — mais ne transporte plus troupes ni caisses : l'ancienne version le lui permettait par
+accident, pas par choix.
 
 ---
 
-## 🙏 Merci
+## 🛠️ Configurer CTLD : un outil, plus de YAML à la main
 
-- **Tripack**, qui a remonté les deux bugs de fréquence radio (le FW-190 de cette version, le
-  MiG-15bis précédemment) en construisant ses propres missions avec les outils. Les deux
-  venaient de la même zone du code et ont chacun révélé une contrainte DCS que l'outillage ne
-  modélisait pas.
-- **Reaper et les copains de la VEAF**, pour le test de la mission **OT Caucasus** avec cette
-  version — une mission complète passée en jeu vérifie ce qu'aucun test automatique ne voit.
-- La chaîne Foothold de cette version vient d'un besoin concret : adopter la **release 4.4.1 de
-  Lekaa** sur les dix cartes des serveurs VEAF. Chaque friction rencontrée sur ce vrai lot est
-  devenue un correctif ou un garde-fou.
+La configuration de CTLD est désormais un fichier **`ctld-config.yaml`** posé à côté de votre
+`mission.yaml`, et vous l'éditez avec **`ctld-tools.exe`**, livré avec CTLD
+([page des releases](https://github.com/VEAF/CTLD/releases)) : double-cliquez, il s'ouvre dans
+votre navigateur, en local, sans rien installer.
+
+Tout y est éditable — caisses, groupes de troupes, zones, capacités par appareil, zones IA —
+avec des libellés en clair plutôt que des noms de réglages, les unités (m / kg / s), une
+recherche sur l'ensemble des paramètres, un marqueur sur ce que vous avez changé et un retour
+au défaut d'un clic. L'interface est en français. La validation tourne en continu et vous parle
+de vos données, pas de la syntaxe.
+
+`veaf-tools prepare` crée le fichier pour vous quand le modèle choisi active CTLD, prérempli
+avec les valeurs par défaut du moteur et les choix VEAF (les porte-avions et les dépôts FARP
+sont reconnus automatiquement comme points logistiques, comme avant). Ensuite il est à vous :
+le build ne le réécrit jamais.
+
+> **N'utilisez pas le bouton « Injecter dans la mission » de `ctld-tools`** sur une mission
+> VEAF. Il écrit directement dans un `.miz`, or le `.miz` est reconstruit à chaque build depuis
+> votre dossier mission : votre injection disparaîtrait au build suivant. Enregistrez le
+> fichier, le build s'occupe du reste.
+
+**Un point à connaître** : ce fichier est une configuration **complète**, pas une liste de
+différences. Un réglage simple que vous omettez reprend la valeur par défaut du moteur — et
+CTLD vous le dit à l'écran au démarrage de la mission. Mais une **liste** omise — une section
+de caisses, un groupe de troupes, une zone — est réellement supprimée. C'est ainsi qu'on retire
+un élément, et c'est pourquoi il vaut mieux partir du fichier existant que d'en écrire un.
+
+Quand vous monterez CTLD de version, l'outil comparera votre fichier au nouveau catalogue et
+vous listera ce qui est apparu, ce qui a disparu et ce qui diffère, avant que vous ne
+réenregistriez. Rien n'est jamais fusionné dans votre dos.
+
+---
+
+## 📖 Documentation
+
+- **Le guide du mission maker enseigne le nouveau modèle** : configuration en fichier dédié,
+  zones par préfixe, ordre de chargement réel des scripts dans la mission, et un tableau
+  avant/après pour la migration. En français et en anglais, comme le reste du site.
+- **La documentation d'une version peut être republiée sans déplacer son tag.** Jusqu'ici, un
+  correctif de documentation arrivé après la pose du tag ne pouvait pas atteindre les pages
+  publiées : reconstruire depuis le tag rebâtissait l'ancien contenu.
+- **Le tampon de version marque aussi le pied de page.** La page de référence Lua porte sa
+  version à deux endroits et un seul était mis à jour : la page 6.12.0 annonçait encore
+  « v6.5.25 — juin 2026 » en bas.
+
+---
+
+## 🔄 Migration, pas à pas
+
+Pour chaque mission qui active CTLD :
+
+1. **Récupérez `ctld-tools.exe`** sur la [page des releases de CTLD](https://github.com/VEAF/CTLD/releases).
+2. **Lancez-le** (double-clic) et enregistrez la configuration dans votre dossier mission sous
+   le nom `ctld-config.yaml`. Il démarre sur les valeurs par défaut : reportez-y les réglages
+   que vous aviez dans `settings:`, s'il y en avait de réellement actifs.
+3. **Dans `mission.yaml`**, remplacez le bloc `CTLD:` par `CTLD: true`.
+4. **Dans l'éditeur de mission**, remplacez les unités et zones nommées `logistic #0NN` /
+   `pickzone #0NN` par des zones nommées `LGZ_…` / `TRZ_…`.
+5. **Dans `mission-script.lua`**, supprimez tout appel à `ctld.initialize(...)` : le framework
+   VEAF s'en charge. Les fonctions `veaf.ctld_initialize_replacement` et `veaf.ctld_initialized`
+   n'existent plus.
+6. **Rebuildez** et lancez `veaf-tools validate` : il vous dira ce qui reste à corriger.
+
+Les missions **Foothold** ne sont pas concernées : elles embarquent leur propre CTLD et le CTLD
+VEAF y reste désactivé, comme avant.
+
+---
+
+## 🙏 Crédits
+
+CTLD 2 est l'œuvre de **FullGas**, développeur principal de la réécriture — architecture,
+moteur, outil de configuration. **Zip** a assuré l'intégration dans les outils de création de
+mission.
+
+Merci également aux mission makers qui remontent ce qui casse : c'est ainsi que les pièges
+silencieux, comme un `settings:` que personne ne lisait, finissent par être trouvés.

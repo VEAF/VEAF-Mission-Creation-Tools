@@ -26,10 +26,14 @@ the current version is **6.7.8**.
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| `FEAT-CTLD2-INTEGRATION` | ✅ | Swap the bundled CTLD v1 for [VEAF/CTLD](https://github.com/VEAF/CTLD) 2 ([ADR 0016](docs/adr/0016-ctld2-sidecar-configuration.md)). Tickets 01→04 + 06 are free to start; **ticket 05 (runtime bridges) waits on a CTLD rc3** carrying `FEAT-VMCT-INTEGRATION` + `FIX-SHIP-ZONE-ANCHOR-PARITY`, filed in that repo and being worked in parallel by David. Ship against the 2.0.0 stable, not an rc. |
 | `ENRICH-DEFAULT-PRESETS` | ⬜ | Needs a 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot.
+
+**Delivered since the last refresh:** `FEAT-CTLD2-INTEGRATION` — the bundled CTLD becomes
+[VEAF/CTLD](https://github.com/VEAF/CTLD) 2 and moves its configuration to a `ctld-config.yaml`
+sidecar ([ADR 0016](docs/adr/0016-ctld2-sidecar-configuration.md), PR #646). The four gaps it
+found in CTLD 2 shipped there first (CTLD PRs #79, #80, #86).
 
 ---
 

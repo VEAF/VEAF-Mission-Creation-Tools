@@ -1,7 +1,8 @@
 # FEAT-ASSIST-CHECKLISTS — guided checklists from YAML, cold start as first client
 
-**Status:** ⬜ ready — ticket 01 done (the cockpit primitives are proven in game). Prototype delivers the
-engine plus one checklist: F-16C cold start.
+**Status:** 🧑 waiting-human — everything is built and green (02 → 07); **nothing has been flown**. The
+prototype exists to answer four questions and every one of them needs a cockpit — see
+[ticket 07](tickets/07-documentation.md). No verdict until then.
 
 Opened 2026-08-01, design settled with David the same evening. Every decision below was taken with him
 and is not open for re-litigation by the implementer.
@@ -150,15 +151,23 @@ message, and the pilot still gets feedback when the image is hidden.
 | 02 | [Checklist YAML: schema, loader, Lua emission](tickets/02-yaml-format-and-emission.md) | 01 (**✅ done**) |
 | 03 | [Checklist image generator](tickets/03-image-generator.md) | 02 (**✅ done**) |
 | 04 | [`veafAssist.lua` — the engine](tickets/04-assist-engine.md) | 02 (**✅ done**) |
-| 05 | [Radio menu, i18n and `mission.yaml` wiring](tickets/05-menu-and-config.md) | 03, 04 |
+| 05 | [Radio menu, i18n and `mission.yaml` wiring](tickets/05-menu-and-config.md) | 03, 04 (**🧑 unflown**) |
 | 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 (**🧑 windows to measure, slice to review**) |
-| 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 |
+| 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 (**🧑 verdict pending**) |
 
 ## What needs a live DCS
 
-Three things are written and tested but unverified in game, and every one of them needs David's DCS
-running with `dcs-serve` up. They are gathered here so they can be answered in one sitting:
+Everything below is written, tested and green, and **none of it has been seen working**. Gathered here
+so it can be answered in one sitting, in a mission built with `modules: ASSIST: {enabled: true,
+checklists: [f16c-cold-start]}` and flown from a cold F-16C:
 
-- **`Unit:getDrawArgumentValue` on a player-flown aircraft** — ticket 04. The automatic check rests on it.
-- **The F-16C argument windows** — ticket 06. Derived from ED's switch prototypes, not measured.
-- **The picture over a cockpit** — ticket 03. Legibility, alignment and size, which ticket 05 settles.
+| # | Question | Whose ticket |
+|---|---|---|
+| 1 | Does `Unit:getDrawArgumentValue(510)` report the MAIN PWR position for a **player-flown** aircraft? | 04 — the automatic check rests entirely on it |
+| 2 | The argument value in **every** position of arguments 510 and 757 | 06 — the windows are derived from ED's prototypes, not measured |
+| 3 | Is the picture legible over a cockpit, and are the alignment / size right? | 03 + 05 |
+| 4 | Does the F10 menu behave — start, contextual entries, stop? | 05 |
+| 5 | **Two pilots assisted at once**, without one boxing the other's cockpit | 05 — the reason per-session highlight ids exist |
+| 6 | Is a highlight visible to a second player at all? | 01, left open since the spike |
+
+A pilot review of the F-16C slice (ticket 06) is the one item that needs a person rather than a probe.

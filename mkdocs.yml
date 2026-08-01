@@ -114,6 +114,7 @@ nav:
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md
       - veafAirbases: mission-maker/scripts/veafAirbases.md
       - veafAssets: mission-maker/scripts/veafAssets.md
+      - veafAssist: mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md

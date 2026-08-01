@@ -55,6 +55,7 @@ _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
 )
 
+
 def _lua_long_bracket(text: str) -> str:
     """Wrap *text* in a Lua long-bracket literal, escaping nothing.
 

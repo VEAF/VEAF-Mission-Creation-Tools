@@ -1,6 +1,6 @@
 # FEAT-CTLD2-INTEGRATION — replace the bundled CTLD v1 with CTLD 2
 
-**Status:** 🔄 in-progress — tickets 01→04 merged into the lot branch; 05 waits on a CTLD rc3, 06 open.
+**Status:** ✅ done — merged 2026-08-01 (PR #646), all six tickets, against CTLD 2.0.0-rc3.
 
 Opened 2026-08-01. Design settled in a grilling session; every decision below was taken with David
 and is not open for re-litigation by the implementer.

@@ -1,6 +1,6 @@
 # 02 — the VEAF configuration patch, and generating `ctld-config.yaml` at build time
 
-**Status:** ⬜ ready
+**Status:** ✅ done — the patch turned out empty; see the PRD's decision 4.
 
 Depends on 01.
 

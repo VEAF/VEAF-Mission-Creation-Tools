@@ -1,6 +1,6 @@
 # 06 — documentation: the new CTLD mode of operation
 
-**Status:** ⬜ ready
+**Status:** ✅ done
 
 Can proceed alongside 02→04; finish it once 05 has settled the runtime behaviour.
 

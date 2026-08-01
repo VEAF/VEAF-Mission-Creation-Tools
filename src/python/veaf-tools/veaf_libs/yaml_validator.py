@@ -166,7 +166,13 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                 errors.append(t("yaml.semantic.bad_enabled", module=key, type=type(cfg["enabled"]).__name__))
             if "logLevel" in cfg and not isinstance(cfg["logLevel"], str):
                 errors.append(t("yaml.semantic.bad_loglevel", module=key, type=type(cfg["logLevel"]).__name__))
-            if "settings" in cfg and not isinstance(cfg["settings"], dict):
+            if "settings" in cfg and key.upper() == "CTLD":
+                # CTLD 2 reads a complete YAML snapshot from the mission's
+                # ctld-config.yaml (ADR 0016); nothing here reaches the engine. An
+                # error, not a warning: the v1 channel silently discarded half of what
+                # was written to it, and a warning would keep that habit alive.
+                errors.append(t("yaml.semantic.ctld_settings_removed", module=key))
+            elif "settings" in cfg and not isinstance(cfg["settings"], dict):
                 errors.append(t("yaml.semantic.bad_settings", module=key, type=type(cfg["settings"]).__name__))
             init = cfg.get("init")
             if isinstance(init, dict):

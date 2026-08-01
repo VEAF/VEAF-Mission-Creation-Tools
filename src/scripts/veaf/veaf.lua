@@ -4489,188 +4489,59 @@ if AIEN then
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- changes to CTLD
+-- CTLD 2 integration
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Our CTLD (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call ctld.initialize from mission-script.lua
--- Here, we're upgrading the vanilla CTLD initialize function so it's smarter
+-- CTLD 2 (https://github.com/VEAF/CTLD) configures itself from a complete YAML snapshot that the
+-- build injects as CTLD_userConfig.lua, loaded just before CTLD.lua. That same file sets
+-- ctld.dontInitialize, so the engine waits for us instead of starting itself on load: we register
+-- it as a VEAF module, which gives it the framework's ordering, its enable flag and its logLevel.
+--
+-- VEAF sets no CTLD setting here. Everything a mission needs lives in its ctld-config.yaml, edited
+-- with ctld-tools (see docs/adr/0016-ctld2-sidecar-configuration.md).
 
----The VEAF replacement function that wraps up around ctld.initialize
----@param configurationCallback function? a callback that will be called before calling the vanilla ctld.initialize function
-function veaf.ctld_initialize_replacement(configurationCallback)
-  if ctld then
-    veaf.loggers.get(veaf.Id):info(string.format("Setting up CTLD"))
+veaf.ctldId = "ctld"
 
-    -- logging change
-    ctld.p = veaf.p
-    ctld.Id = "CTLD"
-    --ctld.LogLevel = "info"
-    --ctld.LogLevel = "debug"
-    --ctld.LogLevel = "trace"
+--- Map a CTLD log level onto the matching VEAF logger method.
+-- CTLD says WARN where the VEAF logger says warn, and an unknown level must not index nil.
+veaf.ctldLogLevels = {
+  ERROR = "error",
+  WARN = "warn",
+  WARNING = "warn",
+  INFO = "info",
+  DEBUG = "debug",
+  TRACE = "trace",
+}
 
-    ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logError = function(message, args)
-      veaf.loggers.get(ctld.Id):error(message, args)
-    end
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logInfo = function(message, args)
-      veaf.loggers.get(ctld.Id):info(message, args)
-    end
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logDebug = function(message, args)
-      veaf.loggers.get(ctld.Id):debug(message, args)
-    end
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logTrace = function(message, args)
-      veaf.loggers.get(ctld.Id):trace(message, args)
-    end
-
-    -- global configuration change
-    ctld.addPlayerAircraftByType = true
-    ctld.loadCrateFromMenu = true -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
-    ctld.slingLoad = true -- if false, crates can be used WITHOUT slingloading, by hovering above the crate, simulating slingloading but not the weight...
-    ctld.crateWaitTime = 0 -- time in seconds to wait before you can spawn another crate
-
-    -- Simulated Sling load configuration
-    ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
-    ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
-    ctld.maxDistanceFromCrate = 8.0 -- Maximum distance from from crate for hover
-    ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
-
-    -- ************** Maximum Units SETUP for UNITS ******************
-
-    ctld.unitLoadLimits["UH-1H"] = 10
-    ctld.unitLoadLimits["Mi-24P"] = 10
-    ctld.unitLoadLimits["Mi-8MT"] = 20
-    ctld.unitLoadLimits["UH-60L"] = 20
-    ctld.unitLoadLimits["Yak-52"] = 1
-    ctld.unitLoadLimits["SA342L"] = 1
-    ctld.unitLoadLimits["SA342M"] = 1
-    ctld.unitLoadLimits["SA342Mistral"] = 1
-    ctld.unitLoadLimits["SA342Minigun"] = 1
-    ctld.unitLoadLimits["CH-47Fbl1"] = 33
-
-    ctld.internalCargoLimits["Mi-8MT"] = 2
-    ctld.internalCargoLimits["CH-47Fbl1"] = 4
-
-    -- ************** Allowable actions for UNIT TYPES ******************
-    ctld.aircraftTypeTable = {
-      "Hercules",
-      "UH-60L",
-      "Ka-50",
-      "Ka-50_3",
-      "Mi-8MT",
-      "Mi-24P",
-      "SA342L",
-      "SA342M",
-      "SA342Mistral",
-      "SA342Minigun",
-      "UH-1H",
-      "CH-47Fbl1",
-      "Yak-52",
-    }
-
-    ctld.unitActions["Yak-52"] = { crates = false, troops = true }
-    ctld.unitActions["UH-60L"] = { crates = true, troops = true }
-    ctld.unitActions["SA342L"] = { crates = false, troops = true }
-    ctld.unitActions["SA342M"] = { crates = false, troops = true }
-    ctld.unitActions["SA342Mistral"] = { crates = false, troops = true }
-    ctld.unitActions["SA342Minigun"] = { crates = false, troops = true }
-
-    -- ************** INFANTRY GROUPS FOR PICKUP ******************
-
-    ctld.autoInitializeAllLogistic = function()
-      local LogisticTypeNames = { "LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating" }
-      veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
-      ctld.logisticUnits = {}
-      local units = veaf.mist.getAllUnitData() -- local copy for faster execution
-      for name, unit in pairs(units) do
-        veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-        if unit then
-          for _, unitTypeName in pairs(LogisticTypeNames) do
-            if unitTypeName:lower() == unit.type:lower() then
-              table.insert(ctld.logisticUnits, unit.unitName)
-              veaf.loggers.get(ctld.Id):debug("Adding CTLD logistic unit %s of group %s", veaf.lp(unit.unitName), veaf.lp(unit.groupName))
-            end
-          end
-        end
-      end
-
-      -- generate 20 logistic unit names in the form "logistic #001"
-      veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
-      for i = 1, 20 do
-        table.insert(ctld.logisticUnits, string.format("logistic #%03d", i))
-      end
-
-      veaf.loggers.get(ctld.Id):trace("ctld.logisticUnits=%s", veaf.lp(ctld.logisticUnits))
-    end
-
-    ctld.autoInitializeAllPickupZones = function()
-      local PickupShipNames = { "LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW" }
-      veaf.loggers.get(ctld.Id):info("autoInitializeAllPickupZones()")
-      ctld.pickupZones = {}
-      -- add all ships to the pickup zones table
-      local units = mist.makeUnitTable({ "[all][ship]" }) -- get all ships in the mission
-      veaf.loggers.get(ctld.Id):trace("units=%s", veaf.lp(units))
-      for _, unitName in pairs(units) do
-        if unitName then
-          local unitObject = Unit.getByName(unitName)
-          local _unitCoalition = nil
-          if unitObject then
-            _unitCoalition = veaf.getCoalitionForCountry(veaf.getCountryName(unitObject:getCountry()), true)
-          end
-          local zone = { unitName, nil, -1, "yes", _unitCoalition, nil }
-          table.insert(ctld.pickupZones, zone)
-          veaf.loggers.get(ctld.Id):debug("Adding CTLD pickup zone for ship: [%s]", veaf.lp(zone))
-        end
-      end
-
-      -- generate 20 pickup zone names in the form "pickzone #001"
-      veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
-      for i = 1, 20 do
-        table.insert(ctld.pickupZones, { string.format("pickzone #%03d", i), "none", -1, "yes", 0 })
-      end
-
-      veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.lp(ctld.pickupZones))
-    end
-
-    -- automatically add all the carriers and FARPs to ctld.logisticUnits
-    ctld.autoInitializeAllLogistic()
-
-    -- automatically generate pickup zones names
-    ctld.autoInitializeAllPickupZones()
-
-    -- if a callback is defined, this is the right moment to call it
-    if configurationCallback and type(configurationCallback) == "function" then
-      -- a configuration callback has been set, call it
-      veaf.loggers.get(ctld.Id):info("calling the configuration callback")
-      configurationCallback()
-      veaf.loggers.get(ctld.Id):info("done calling the configuration callback")
-    end
-
-    -- call the actual CTLD.initialize
-    ---@diagnostic disable-next-line: param-type-mismatch
-    veaf.ctld_initialize(true)
-    veaf.ctld_initialized = true
-    veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
-  else
-    veaf.loggers.get(veaf.Id):error(string.format("CTLD is not loaded"))
+--- Route CTLD's logging into the VEAF logger, then start the engine.
+-- CTLD 2 funnels all of its logging through ctld.utils.log(level, fmt, ...) and has no level
+-- filtering of its own: everything reaches env.info regardless. Overriding that single function
+-- gives the mission maker one place to set verbosity — veaf.config.ctld.logLevel, like any other
+-- VEAF module — where v1 needed seven separate overrides.
+function veaf.ctld_initialize()
+  if not ctld then
+    veaf.loggers.get(veaf.Id):error("CTLD is enabled but CTLD.lua was not loaded")
+    return
   end
+
+  local ctldLogger = veaf.loggers.get(veaf.ctldId) or veaf.loggers.new(veaf.ctldId, "info")
+
+  if ctld.utils then
+    ctld.utils.log = function(level, message, ...)
+      local method = veaf.ctldLogLevels[tostring(level):upper()] or "info"
+      ctldLogger[method](ctldLogger, message, ...)
+    end
+  else
+    veaf.loggers.get(veaf.Id):warn("CTLD.utils is missing - CTLD logs will not be routed to the VEAF logger")
+  end
+
+  -- Must come after the override: ctld.initialize() flushes CTLD's startup report, which is
+  -- precisely the output naming a stale or incomplete configuration.
+  ctld.initialize()
 end
 
 if ctld then
-  veaf.loggers.get(veaf.Id):info(string.format("replacing CTLD.initialize()"))
-  veaf.ctld_initialize = ctld.initialize -- used to call the vanilla ctld.initialize from the VEAF replacement
-  ctld.initialize = veaf.ctld_initialize_replacement -- replace the ctld.initialize with the VEAF wrapper function
+  -- Ordered before the VEAF modules that talk to CTLD (veafGrass 150, veafAssets 160).
+  veaf.registerModule(veaf.ctldId, veaf.ctld_initialize, { enable = true }, 50)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

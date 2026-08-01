@@ -127,9 +127,26 @@ class TestValidateModulesSemantics(unittest.TestCase):
             fn({"modules": {"RADIO": {"enabled": "yes"}}})
 
     def test_bad_settings_type_is_error(self) -> None:
+        # CSAR, not CTLD: CTLD rejects `settings:` outright now, whatever its type.
         mock_log, fn = self._patched()
         with self.assertRaises(typer.Abort):
-            fn({"modules": {"CTLD": {"enabled": True, "settings": True}}})
+            fn({"modules": {"CSAR": {"enabled": True, "settings": True}}})
+
+    def test_ctld_settings_is_error_even_when_well_formed(self) -> None:
+        """CTLD 2 is configured in ctld-config.yaml — anything here is silently dropped.
+
+        An error rather than a warning: the v1 channel accepted these keys and then let
+        the VEAF init wrapper overwrite half of them, with no message at all. Failing
+        loudly is the whole point of moving the configuration out (ADR 0016).
+        """
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "settings": {"hoverPickup": True}}}})
+
+    def test_ctld_without_settings_is_accepted(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"CTLD": {"enabled": True}}})
+        mock_log.error.assert_not_called()
 
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()

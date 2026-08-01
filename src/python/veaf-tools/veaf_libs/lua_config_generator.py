@@ -1273,7 +1273,6 @@ def generate_config_lua(
     combat_missions_data: list = mission_yaml.get("combat_missions") or []
     external_modules: dict = mission_yaml.get("external_modules") or {}
     skynet_cfg: dict = external_modules.get("skynet") or {}
-    ctld_cfg: dict = external_modules.get("ctld") or {}
 
     if lua_modules:
         # ── MODUX-002: error on mandatory modules with any enable/enabled key ──
@@ -1377,16 +1376,9 @@ def generate_config_lua(
         lines.append("end")
         lines.append("")
 
-    if ctld_cfg.get("enabled"):
-        lines.append("-- ── CTLD configuration ───────────────────────────────────────────────────────")
-        lines.append("-- Note: CTLD.lua must be loaded by mission-script.lua before this block.")
-        lines.append("if ctld then")
-        ctld_props = {k: v for k, v in ctld_cfg.items() if k != "enabled"}
-        for key, value in ctld_props.items():
-            lines.append(f"    ctld.{key} = {_to_lua_scalar(value)}")
-        lines.append("    ctld.initialize()")
-        lines.append("end")
-        lines.append("")
+    # No CTLD block: CTLD 2 is configured by the mission's ctld-config.yaml, injected as
+    # CTLD_userConfig.lua right before CTLD.lua by the builder, and started by veaf.lua.
+    # See docs/adr/0016-ctld2-sidecar-configuration.md.
 
     csar_cfg: dict = external_modules.get("csar") or {}
     if csar_cfg.get("enabled"):
@@ -1552,13 +1544,19 @@ def generate_mission_yaml_template(
                 "  #   include_blue_in_radio: false",
                 "  #   debug_blue: false",
             ]
-        elif upper in ("CTLD", "CSAR"):
-            example = "hoverPickup: true" if upper == "CTLD" else "enableAllslots: true"
+        elif upper == "CTLD":
+            # CTLD 2 takes no settings here: its configuration is the mission's
+            # ctld-config.yaml (ADR 0016). Advertising a settings: block would invite
+            # writing values the build silently drops.
+            lines += [
+                f"  # {sid}: false            # configured in ctld-config.yaml (edit it with ctld-tools)",
+            ]
+        elif upper == "CSAR":
             lines += [
                 f"  # {sid}:",
                 "  #   enabled: false",
                 f"  #   settings:                # {sid.lower()}.xxx = value pairs",
-                f"  #     {example}",
+                "  #     enableAllslots: true",
             ]
         else:
             lines.append(f"  # {sid}: true")

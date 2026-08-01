@@ -497,6 +497,11 @@ function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
   dcs_mocks.clearUnitsAndGroups()
+  for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
+    if manager then
+      manager._instance.calls = {}
+    end
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -611,19 +616,56 @@ Controller = {
 
 -- ---------------------------------------------------------------------------
 -- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
+--
+-- Mixed v1 / v2 on purpose, for the length of the CTLD 2 migration: the v1 globals
+-- below are still what veafGrass / veafSpawnGround / veafSpawnEffects poke, and they
+-- go when FEAT-CTLD2-INTEGRATION ticket 05 ports those bridges to the v2 managers.
+-- `utils.log` and `initialize` are the v2 surface veaf.lua drives today.
 -- ---------------------------------------------------------------------------
 ctld = {
-  JTACAutoLase = function(...) end,
-  cleanupJTAC = function(...) end,
-  addJTAC = function(...) end,
-  logisticUnits = {},
-  builtFOBS = {},
-  beaconCount = 0,
-  fobBeacons = {},
-  createRadioBeacon = function(...)
-    return { vhf = 0, uhf = 0, fm = 0 }
-  end,
+  initialize = function() end,
+  utils = {
+    log = function(...) end,
+  },
 }
+
+-- CTLD 2 managers. Each records its calls so a test can assert what VEAF asked of CTLD
+-- without reaching into the engine; dcs_mocks.reset() clears them.
+local function _manager(methods)
+  local instance = { calls = {} }
+  for name, fn in pairs(methods) do
+    instance[name] = function(self, ...)
+      table.insert(self.calls, { method = name, args = { ... } })
+      return fn(...)
+    end
+  end
+  return {
+    getInstance = function()
+      return instance
+    end,
+    _instance = instance,
+  }
+end
+
+CTLDZoneManager = _manager({
+  registerFOBAsLogistic = function() end,
+  unregisterLogistic = function() end,
+})
+
+CTLDBeaconManager = _manager({
+  -- Frequencies in Hz, as the real manager returns them.
+  createAtPoint = function()
+    return { vhf = 30000, uhf = 250000000, fm = 30000000 }
+  end,
+  removeBeacon = function()
+    return true
+  end,
+})
+
+CTLDJTACManager = _manager({
+  autoLase = function() end,
+  stopAutoLase = function() end,
+})
 
 -- ---------------------------------------------------------------------------
 -- veafNamedPoints  (named points registry stub)

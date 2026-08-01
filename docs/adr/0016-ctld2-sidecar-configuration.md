@@ -33,9 +33,13 @@ CTLD's own `ctld-tools`, and injected verbatim by the VMCT build into a MISSION 
 before `CTLD.lua`. `mission.yaml` keeps `CTLD:` as an on/off flag; `settings:` is removed and
 rejected by `validate` with a message naming the replacement.
 
-**The VEAF starting point is regenerated at build time.** The repo versions only a short patch — the
-settings VEAF used to hardcode — and the pipeline applies it over the default catalogue read from
-`ctld.configDefault` inside the vendored `CTLD.lua`.
+**The starting point is read from the engine, not stored here.** Scaffolding a mission with CTLD
+enabled writes a `ctld-config.yaml` extracted from `ctld.configDefault` inside the vendored
+`CTLD.lua`. Nothing is layered on top: comparing the eight settings VEAF used to hardcode against
+the CTLD 2 defaults left **nothing to patch** — three already matched, `crateWaitTime` no longer
+exists in the engine, `slingLoad` was an inconclusive experiment, and the three hover distances were
+aligned on CTLD's values. Should a VEAF deviation reappear, it belongs in a short versioned patch
+applied at scaffold time — never in a committed snapshot (see below).
 
 **VEAF still owns initialisation.** The injected trigger also sets `ctld.dontInitialize = true`;
 `veaf.lua` installs the log routing and then calls `ctld.initialize()`.
@@ -47,10 +51,10 @@ would carry its own copy of a versioned catalogue that CTLD revises every releas
 ships version-gap detection for exactly this problem. Duplicating the catalogue means re-solving it
 badly.
 
-**Commit the generated VEAF snapshot instead of regenerating it.** Readable in review, but frozen: a
-CTLD release adding a crate section or an aircraft type would leave every VEAF mission without it,
-silently, by the "missing list means removed" rule. Regeneration keeps the reviewed diff to the
-40-odd lines that are actually VEAF choices.
+**Keep a copy of the catalogue in this repo and scaffold from that.** Readable in review, but frozen:
+a CTLD release adding a crate section or an aircraft type would leave every new VEAF mission without
+it, silently, by the "missing list means removed" rule. Reading it from the vendored engine means the
+two cannot drift apart, and a CTLD upgrade needs no action here.
 
 **Keep `settings:` working as a secondary channel.** That is precisely the silent-overwrite failure
 described above, rebuilt on purpose.

@@ -1629,6 +1629,83 @@ function TestVeafLoggerDcsServerBot:test_error_uses_unknown_when_mission_name_ni
 end
 
 -- ---------------------------------------------------------------------------
+-- CTLD 2 integration (FEAT-CTLD2-INTEGRATION ticket 04)
+--
+-- CTLD 2 has no log level of its own: ctld.utils.log(level, ...) labels the text and
+-- sends everything to env.info. Routing that one function into the VEAF logger is what
+-- puts CTLD's verbosity — and its startup report — under veaf.config.ctld.logLevel.
+-- ---------------------------------------------------------------------------
+TestVeafCtldIntegration = {}
+
+function TestVeafCtldIntegration:setUp()
+  self._savedLog = ctld.utils.log
+  self._savedInit = ctld.initialize
+  self._calls = {}
+  local calls = self._calls
+  self._logger = { captured = {} }
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    self._logger[level] = function(_, message)
+      table.insert(calls, { level = level, message = message })
+    end
+  end
+  self._savedGet = veaf.loggers.get
+  veaf.loggers.get = function(id)
+    if id == veaf.ctldId then
+      return self._logger
+    end
+    return self._savedGet(id)
+  end
+end
+
+function TestVeafCtldIntegration:tearDown()
+  ctld.utils.log = self._savedLog
+  ctld.initialize = self._savedInit
+  veaf.loggers.get = self._savedGet
+end
+
+function TestVeafCtldIntegration:test_registers_itself_as_a_veaf_module()
+  -- Registered rather than started on load: the framework then owns its ordering, its
+  -- enable flag and its logLevel, like any other module.
+  luaunit.assertNotNil(veaf.modules[veaf.ctldId])
+  luaunit.assertTrue(veaf.modules[veaf.ctldId].order < 150) -- before veafGrass / veafAssets
+end
+
+function TestVeafCtldIntegration:test_log_levels_map_onto_the_veaf_logger()
+  veaf.ctld_initialize()
+  ctld.utils.log("ERROR", "bad")
+  ctld.utils.log("WARN", "careful")
+  ctld.utils.log("DEBUG", "noisy")
+  luaunit.assertEquals(self._calls[1], { level = "error", message = "bad" })
+  luaunit.assertEquals(self._calls[2], { level = "warn", message = "careful" })
+  luaunit.assertEquals(self._calls[3], { level = "debug", message = "noisy" })
+end
+
+function TestVeafCtldIntegration:test_unknown_level_falls_back_to_info()
+  -- Indexing the logger with an unmapped level would be a nil call — inside a log
+  -- statement, i.e. exactly where a crash is hardest to read.
+  veaf.ctld_initialize()
+  ctld.utils.log("VERBOSE", "hello")
+  luaunit.assertEquals(self._calls[1].level, "info")
+end
+
+function TestVeafCtldIntegration:test_initialize_runs_after_the_override_is_installed()
+  local seenOverride = false
+  ctld.initialize = function()
+    seenOverride = ctld.utils.log ~= self._savedLog
+  end
+  veaf.ctld_initialize()
+  luaunit.assertTrue(seenOverride, "startup report must be logged through the VEAF logger")
+end
+
+function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
+  local saved = ctld
+  ctld = nil
+  local ok = pcall(veaf.ctld_initialize)
+  ctld = saved
+  luaunit.assertTrue(ok)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

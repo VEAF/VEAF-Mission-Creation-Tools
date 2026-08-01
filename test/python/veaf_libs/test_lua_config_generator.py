@@ -145,20 +145,19 @@ def test_assets_plain_information_uses_quoted_string():
 # ---------------------------------------------------------------------------
 
 
-def test_ctld_enabled_generates_guard_and_initialize():
+def test_ctld_enabled_emits_no_configuration_block():
+    """CTLD 2 is configured by ctld-config.yaml, not from here (ADR 0016).
+
+    Settings that used to be emitted must not reappear: the engine would ignore
+    them (its configuration is a complete YAML snapshot loaded before it), and
+    ``ctld.initialize()`` is now called by veaf.lua after the log routing is set up.
+    """
     yaml_data: dict = {"external_modules": {"ctld": {"enabled": True, "hoverPickup": False, "slingLoad": True}}}
     lua = generate_config_lua(yaml_data)
-    assert "if ctld then" in lua
-    assert "ctld.hoverPickup = false" in lua
-    assert "ctld.slingLoad = true" in lua
-    assert "ctld.initialize()" in lua
-    # Block structure: guard → props → initialize → end, in order
-    idx_guard = lua.index("if ctld then")
-    idx_init = lua.index("ctld.initialize()")
-    idx_end = lua.index("end", idx_init)
-    assert idx_guard < idx_init < idx_end
-    # initialize() appears exactly once
-    assert lua.count("ctld.initialize()") == 1
+    assert "if ctld then" not in lua
+    assert "ctld.hoverPickup" not in lua
+    assert "ctld.slingLoad" not in lua
+    assert "ctld.initialize()" not in lua
 
 
 def test_ctld_disabled_emits_nothing():
@@ -206,7 +205,8 @@ def test_csar_missing_emits_nothing():
     assert "csar" not in lua
 
 
-def test_ctld_and_csar_both_enabled():
+def test_csar_still_generated_when_ctld_is_enabled_too():
+    """Dropping the CTLD block must not touch CSAR, which still uses this channel."""
     yaml_data: dict = {
         "external_modules": {
             "ctld": {"enabled": True, "hoverPickup": True},
@@ -214,10 +214,10 @@ def test_ctld_and_csar_both_enabled():
         }
     }
     lua = generate_config_lua(yaml_data)
-    assert "if ctld then" in lua
     assert "if csar then" in lua
-    assert "ctld.initialize()" in lua
+    assert "csar.enableAllslots = false" in lua
     assert "csar.initialize()" in lua
+    assert "if ctld then" not in lua
 
 
 # ---------------------------------------------------------------------------

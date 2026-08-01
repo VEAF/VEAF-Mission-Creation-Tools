@@ -181,16 +181,21 @@ modules:
   # ── Community scripts (off by default — enable what your mission uses) ─────
   # (MiST is mandatory and lives in the Infrastructure block above.)
   STTS: false
-  CTLD: false               # extended: CTLD -> { enabled: true, settings: { hoverPickup: true } }
+  CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
   HERCULES: false
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, ... }
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
-# Note: SKYNET, CTLD, CSAR and QRA are configured entirely inside the `modules:`
-# block above (single source of truth). There is no separate `external_modules:`
-# or `qra:` section any more.
+# Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block
+# above (single source of truth). There is no separate `external_modules:` or
+# `qra:` section any more.
+# CTLD is the exception: it takes only its on/off flag here, and its settings live
+# in `ctld-config.yaml` next to this file — a complete configuration snapshot you
+# edit with `ctld-tools.exe` (double-click it, it opens in your browser). The build
+# injects that file into the mission; do not use the tool's own "inject into .miz"
+# button on a VEAF mission, the next build would overwrite it.
 
 # ── CAP missions ──────────────────────────────────────────────────────────────
 # Requires COMBATMISSION module enabled in modules above.

@@ -63,6 +63,15 @@ class TestPrepareTemplates(unittest.TestCase):
             parsed = _yaml.safe_load(config.read_text(encoding="utf-8"))
             self.assertIn("configVersion", parsed)
 
+            # The VEAF overrides are applied on the way out: without them a VEAF mission
+            # loses the carrier / FARP recognition autoInitializeAllLogistic used to give.
+            # The two discovery settings landed in CTLD after 2.0.0-rc2, so this assertion
+            # only runs once the vendored engine carries them — re-vendoring turns it on.
+            if "logisticUnitTypes" not in parsed["mm_facing"]:
+                self.skipTest("vendored CTLD predates logisticUnitTypes / troopZoneShipTypes")
+            self.assertIn("Stennis", parsed["mm_facing"]["logisticUnitTypes"])
+            self.assertIn("CVN_71", parsed["mm_facing"]["troopZoneShipTypes"])
+
     def test_minimal_template_does_not_seed_a_ctld_configuration(self) -> None:
         """No CTLD, no 1000-line file in the mission maker's folder."""
         with tempfile.TemporaryDirectory() as tmp:

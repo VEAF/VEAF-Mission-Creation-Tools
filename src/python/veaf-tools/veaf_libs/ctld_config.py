@@ -15,6 +15,7 @@ See docs/adr/0016-ctld2-sidecar-configuration.md.
 
 from __future__ import annotations
 
+import io
 import re
 from pathlib import Path
 
@@ -30,6 +31,33 @@ CTLD_USER_CONFIG_FILENAME = "CTLD_userConfig.lua"
 #: The level is captured so the closing sequence matched is the matching one — a
 #: level-1 document contains ``]]`` freely.
 _CONFIG_DEFAULT_RE = re.compile(r"ctld\.configDefault\s*=\s*\[(=*)\[\r?\n(.*?)\]\1\]", re.DOTALL)
+
+#: What a VEAF mission expects on top of the CTLD defaults, applied when scaffolding.
+#:
+#: CTLD 2 ships both lists empty — the right default for the wider world, since a
+#: non-empty one would change behaviour for every existing mission. VEAF missions have
+#: relied on the equivalent behaviour for years, through `autoInitializeAllLogistic` and
+#: `autoInitializeAllPickupZones` in `veaf.lua`: any carrier or FARP ammo dump is a
+#: logistic point, any carrier is a troop pickup point.
+#:
+#: Type ids, not display names: `getTypeName()` returns the id. `FARP Ammo Storage`,
+#: which the v1 list carried, is the *display* name of `FARP Ammo Dump Coating` (DCS sets
+#: `swapped_names` on that object), so it never matched anything and is not carried over.
+VEAF_CONFIG_OVERRIDES: dict[str, list[str]] = {
+    "logisticUnitTypes": [
+        "LHA_Tarawa",
+        "Stennis",
+        "CVN_71",
+        "KUZNECOW",
+        "FARP Ammo Dump Coating",
+    ],
+    "troopZoneShipTypes": [
+        "LHA_Tarawa",
+        "Stennis",
+        "CVN_71",
+        "KUZNECOW",
+    ],
+}
 
 
 def extract_default_config(ctld_lua: str) -> str | None:
@@ -60,3 +88,39 @@ def read_default_config(ctld_lua_path: Path) -> str | None:
     if not ctld_lua_path.is_file():
         return None
     return extract_default_config(ctld_lua_path.read_text(encoding="utf-8", errors="replace"))
+
+
+def apply_veaf_overrides(catalogue: str) -> str:
+    """Return *catalogue* with the VEAF starting values applied.
+
+    Round-trips through ruamel so the catalogue keeps its comments, its ordering and its
+    formatting: the mission maker reads this file in ctld-tools, and a reformatted
+    document would make every later diff unreadable.
+
+    A key VEAF wants but the catalogue does not define is **skipped**, not created: it
+    would mean the vendored engine is older than this override list, and inventing a
+    setting the engine will not read helps nobody. The mismatch surfaces as the missing
+    behaviour, not as a broken config.
+
+    Args:
+        catalogue: The default configuration YAML, as read from the engine.
+
+    Returns:
+        The same document with the VEAF overrides applied.
+    """
+    from ruamel.yaml import YAML
+
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    document = yaml.load(catalogue)
+
+    for key, value in VEAF_CONFIG_OVERRIDES.items():
+        for section_name in ("mm_facing", "advanced"):
+            section = document.get(section_name)
+            if section is not None and key in section:
+                section[key] = value
+                break
+
+    stream = io.StringIO()
+    yaml.dump(document, stream)
+    return stream.getvalue()

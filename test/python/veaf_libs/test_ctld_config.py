@@ -51,6 +51,56 @@ class TestReadDefaultConfig(unittest.TestCase):
         self.assertIsNone(read_default_config(Path(tempfile.mkdtemp()) / "absent.lua"))
 
 
+class TestApplyVeafOverrides(unittest.TestCase):
+    """CTLD ships both discovery lists empty; VEAF missions have relied on the
+    equivalent behaviour since `autoInitializeAllLogistic` lived in veaf.lua."""
+
+    _CATALOGUE = (
+        'configVersion: "2.0.0"\n'
+        "mm_facing:\n"
+        "  # keep me\n"
+        "  numberOfTroops: 10\n"
+        "  logisticUnitTypes: []\n"
+        "  troopZoneShipTypes: []\n"
+    )
+
+    def test_fills_both_discovery_lists(self) -> None:
+        import yaml
+
+        from veaf_libs.ctld_config import VEAF_CONFIG_OVERRIDES, apply_veaf_overrides
+
+        result = yaml.safe_load(apply_veaf_overrides(self._CATALOGUE))["mm_facing"]
+        self.assertEqual(result["logisticUnitTypes"], VEAF_CONFIG_OVERRIDES["logisticUnitTypes"])
+        self.assertEqual(result["troopZoneShipTypes"], VEAF_CONFIG_OVERRIDES["troopZoneShipTypes"])
+
+    def test_leaves_everything_else_alone(self) -> None:
+        import yaml
+
+        from veaf_libs.ctld_config import apply_veaf_overrides
+
+        result = apply_veaf_overrides(self._CATALOGUE)
+        self.assertEqual(yaml.safe_load(result)["mm_facing"]["numberOfTroops"], 10)
+        self.assertIn("# keep me", result)  # comments survive: the MM reads this file
+
+    def test_a_key_the_catalogue_does_not_define_is_skipped(self) -> None:
+        """An older vendored engine must not gain an invented setting."""
+        import yaml
+
+        from veaf_libs.ctld_config import apply_veaf_overrides
+
+        older = 'configVersion: "2.0.0"\nmm_facing:\n  numberOfTroops: 10\n'
+        result = yaml.safe_load(apply_veaf_overrides(older))["mm_facing"]
+        self.assertNotIn("logisticUnitTypes", result)
+
+    def test_the_farp_display_name_is_not_carried_over(self) -> None:
+        """`FARP Ammo Storage` is the display name of `FARP Ammo Dump Coating`, and
+        getTypeName() returns the type id — the v1 entry never matched anything."""
+        from veaf_libs.ctld_config import VEAF_CONFIG_OVERRIDES
+
+        self.assertNotIn("FARP Ammo Storage", VEAF_CONFIG_OVERRIDES["logisticUnitTypes"])
+        self.assertIn("FARP Ammo Dump Coating", VEAF_CONFIG_OVERRIDES["logisticUnitTypes"])
+
+
 class TestAgainstTheVendoredEngine(unittest.TestCase):
     """The real artifact — catches a CTLD build that changes how it embeds its defaults."""
 

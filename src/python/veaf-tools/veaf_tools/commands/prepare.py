@@ -55,7 +55,7 @@ def _scaffold_ctld_config(mission_folder: Path, defaults_source_path: Path) -> N
         defaults_source_path: The resolved ``<root>/defaults/mission-folder`` directory,
             whose grandparent holds ``scripts/community/CTLD.lua``.
     """
-    from veaf_libs.ctld_config import read_default_config
+    from veaf_libs.ctld_config import apply_veaf_overrides, read_default_config
 
     destination = mission_folder / CTLD_CONFIG_FILENAME
     if destination.exists():
@@ -67,7 +67,7 @@ def _scaffold_ctld_config(mission_folder: Path, defaults_source_path: Path) -> N
         logger.warning(t("cmd.prepare.ctld_config_unavailable", file=CTLD_CONFIG_FILENAME))
         return
 
-    destination.write_text(catalogue, encoding="utf-8")
+    destination.write_text(apply_veaf_overrides(catalogue), encoding="utf-8")
     console.print(t("cmd.prepare.ctld_config_created", file=CTLD_CONFIG_FILENAME))
 
 

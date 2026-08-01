@@ -22,7 +22,7 @@ Sections handled
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
@@ -1207,11 +1207,18 @@ def _emit_checklist_step(step: ChecklistStep) -> str:
     return "{" + ", ".join(fields) + "}"
 
 
-def emit_checklists_lua(checklists: Sequence[Checklist], indent: str = "    ") -> list[str]:
+def emit_checklists_lua(
+    checklists: Sequence[Checklist],
+    image_keys: Mapping[str, Sequence[str]] | None = None,
+    indent: str = "    ",
+) -> list[str]:
     """Render one ``veafAssist.registerChecklist()`` call per checklist.
 
     Args:
         checklists: The checklists the mission activates, already validated.
+        image_keys: Per checklist id, the resource key of each progress state. Emitted
+            so the engine indexes a list instead of rebuilding a name by concatenation;
+            a checklist with no entry simply displays no picture.
         indent: Leading whitespace, so the block sits inside its ``if`` guard.
 
     Returns:
@@ -1225,6 +1232,10 @@ def emit_checklists_lua(checklists: Sequence[Checklist], indent: str = "    ") -
         aircraft = ", ".join(_emit_lua_string(name) for name in checklist.aircraft)
         lines.append(f"{indent}    aircraft = {{{aircraft}}},")
         lines.append(f"{indent}    menu = {_emit_lua_string(checklist.menu)},")
+        keys = (image_keys or {}).get(checklist.id)
+        if keys:
+            rendered = ", ".join(_emit_lua_string(key) for key in keys)
+            lines.append(f"{indent}    images = {{{rendered}}},")
         lines.append(f"{indent}    steps = {{")
         for step in checklist.steps:
             lines.append(f"{indent}        {_emit_checklist_step(step)},")
@@ -1237,6 +1248,7 @@ def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
     checklists: Sequence[Checklist] | None = None,
+    checklist_images: Mapping[str, Sequence[str]] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -1252,6 +1264,8 @@ def generate_config_lua(
         initialisation block, so ``veafAssist.initialize()`` sees a populated
         catalogue when it builds its radio menu. Nothing is emitted when empty,
         which is what keeps a mission that activates none of them free of cost.
+    checklist_images:
+        Per checklist id, the resource key of each rendered progress state.
 
     Returns
     -------
@@ -1332,7 +1346,7 @@ def generate_config_lua(
     if checklists:
         lines.append("-- ── Guided checklists (assistance) ───────────────────────────────────────────")
         lines.append("if veafAssist then")
-        lines.extend(emit_checklists_lua(checklists))
+        lines.extend(emit_checklists_lua(checklists, checklist_images))
         lines.append("end")
         lines.append("")
 

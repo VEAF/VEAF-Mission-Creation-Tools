@@ -1,0 +1,48 @@
+# F-16C engine start — the "Before Starting Engine" / "Starting Engine" slice of ED's own
+# autostart sequence (Mods/aircraft/F-16C/Cockpit/Scripts/Macro_sequencies.lua,
+# start_sequence_full), in ED's order and with ED's wording.
+#
+# Element names and animation arguments are read from clickabledata.lua; the acceptance
+# windows are derived from the switch prototypes in clickable_defs.lua and are marked
+# "to confirm in game" in .backlog/FEAT-ASSIST-CHECKLISTS/tickets/06-f16c-checklist.md
+# until they are measured in the cockpit.
+#
+# The JFS switch is spring-loaded (springloaded_3_pos_tumb): its animation argument
+# returns to 0 as soon as it is released, so throwing it cannot be detected by reading
+# the argument — those two steps are pilot-confirmed, and the switch is boxed anyway to
+# show where to look.
+
+id: f16c-cold-start
+title: assist.f16c.coldstart.title
+aircraft: [F-16C_50]
+menu: cold-start
+
+steps:
+  - label: assist.f16c.main_pwr_batt
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510
+    equals: 0.0
+    tolerance: 0.05
+
+  - label: assist.f16c.main_pwr_on
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510
+    equals: 1.0
+    tolerance: 0.05
+
+  - label: assist.f16c.jfs_start2
+    element: PTR-ENGSTART-TMB-JETFUEL-447
+    confirm: true
+
+  - label: assist.f16c.jfs_run_light
+    element: PTR-ENGSTART-TMB-JETFUEL-447
+    confirm: true
+
+  - label: assist.f16c.throttle_idle
+    element: PTR-THRTL-RLS-757
+    argument: 757
+    equals: 1.0
+    tolerance: 0.05
+
+  - label: assist.f16c.engine_idle
+    confirm: true

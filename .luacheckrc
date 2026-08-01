@@ -45,6 +45,8 @@ globals = {
   "coord", "atmosphere", "missionCommands", "log",
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
+  -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
+  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager",
   "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits",
   "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot", "niod",
   "SkynetIADSAbstractRadarElement",

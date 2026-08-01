@@ -64,10 +64,15 @@ trigger *before* `CTLD.lua`. There is no merge: a missing *setting* falls back t
 Four gaps found while auditing the bridges, filed in the CTLD repo as `FEAT-VMCT-INTEGRATION`
 (+ `FIX-SHIP-ZONE-ANCHOR-PARITY`): logistic zone discovery by unit type, ship troop-zone discovery,
 a public beacon API for a caller that is not a pilot, and — found while comparing the catalogues —
-**`capabilitiesByType` entries for seven aircraft VMCT has configured for years and CTLD 2 does not
-know**: Ka-50, Ka-50_3, the four SA342 variants and the Yak-52. With `addPlayerAircraftByType`, no
-entry means no CTLD menu at all, so a Gazelle pilot would find nothing. **They land first, in a
-rc3**; ticket 05 here depends on them. Tickets 01→04 and 06 do not.
+**`capabilitiesByType` entries for aircraft VMCT has configured for years and CTLD 2 does not
+know**: Ka-50, Ka-50_3, the four SA342 variants and the Yak-52.
+
+**All four shipped** (CTLD PRs #79, #80, #86). The aircraft lot settled the question this PRD
+originally got wrong: an aircraft with no entry does **not** lose the CTLD menu — the root menu,
+Check Cargo, RECON and JTAC status are ungated, and only the transport half depends on the entry.
+So the four Gazelles and the Yak-52 gained one (one soldier, no crates, as v1 declared) and the
+**Ka-50 deliberately did not**: v1 let it sling crates and carry troops by *absence* from its
+tables, not by decision, and an all-false entry would advertise a transport that is not one.
 
 ## Definition of done
 

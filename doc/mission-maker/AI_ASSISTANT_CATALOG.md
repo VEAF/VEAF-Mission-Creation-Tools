@@ -248,7 +248,7 @@ zones de déclenchement (nom, position, rayon) présents dans la mission.
 ou configurés (avec leurs réglages).
 
 > 💬 *« Qu'est-ce qui est activé dans ma mission ? »*
-> 💬 *« Est-ce que CTLD est actif ? Avec quels réglages ? »*
+> 💬 *« Est-ce que CTLD est actif ? »* (ses réglages, eux, vivent dans `ctld-config.yaml`)
 
 ---
 

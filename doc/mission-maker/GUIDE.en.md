@@ -275,10 +275,8 @@ modules:
 -- Example: custom shortcut alias
 -- veafShortcuts.AddAlias(VeafAlias:new():setName("-cas1"):setVeafCommand("_cas"))
 
--- Example: CTLD third-party integration (see CTLD and CSAR Integration for full details)
--- if ctld then ctld.initialize(function()
---     -- ctld.hoverPickup = false
--- end) end
+-- Note: nothing to write here for CTLD — it is configured in ctld-config.yaml
+-- (see CTLD and CSAR Integration)
 ```
 
 ### Security Levels
@@ -496,22 +494,41 @@ local defenseZone = AirWaveZone:new()
 
 ## CTLD and CSAR Integration {#ctld-and-csar-integration}
 
-[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just configure them via `mission.yaml` using the YAML-first approach below.
+[CTLD](https://github.com/VEAF/CTLD) (troop transport and logistics) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively: you never have to load or initialise them yourself. They are **not** configured the same way — **CSAR in `mission.yaml`, CTLD in a file of its own.**
 
-### Configuring CTLD via mission.yaml (YAML-first)
+### Configuring CTLD: `ctld-config.yaml` + ctld-tools
 
-You can enable CTLD and set its properties directly in `mission.yaml`, without any Lua:
+In `mission.yaml`, CTLD is now just a switch:
 
 ```yaml
 modules:
-  CTLD:
-    enabled: true
-    settings:                # ctld.xxx = value pairs
-      hoverPickup: false
-      slingLoad: true
+  CTLD: true
 ```
 
-VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time, including the `ctld.initialize()` call. Use `mission-script.lua` only for settings not yet supported by the YAML schema (e.g. `aircraftType` tables).
+Everything else — distances, timers, crates, troop groups, zones, per-aircraft capabilities — lives in a **`ctld-config.yaml`** file next to `mission.yaml` in your mission folder. You edit it with **`ctld-tools.exe`**, shipped with CTLD: double-click it and the tool opens in your browser, locally, with nothing to install. It validates as you type and shows plain-language labels rather than raw setting names.
+
+`veaf-tools prepare` creates the file for you when the chosen template enables CTLD, pre-filled with the engine's own defaults. It is never overwritten afterwards: it is your configuration.
+
+At build time VEAF injects it into the mission as a `CTLD_userConfig.lua` loaded immediately before `CTLD.lua`.
+
+!!! warning "Do not use ctld-tools' own \"inject into mission\" button"
+    It writes straight into a `.miz`. On a VEAF mission the `.miz` is rebuilt from the mission folder on every build, so your injection would be wiped by the next one. Save the `ctld-config.yaml` file and let the build do the rest.
+
+!!! note "This file is a **complete** configuration"
+    CTLD 2 merges nothing. A plain setting you omit falls back to the engine default (and says so when the mission starts), but a **list** you omit — a crate section, a troop group, a zone — is genuinely removed. That is how you take one out. Always start from the existing file rather than writing one from scratch.
+
+When you upgrade CTLD and your file was written against an earlier version, `ctld-tools` lists what appeared, what disappeared and what differs from the default before you save it again.
+
+#### What changed from CTLD v1
+
+| Before | Now |
+|---|---|
+| `modules: CTLD: { settings: … }` | `ctld-config.yaml` (a `settings:` block is rejected by `validate`) |
+| units named `logistic #001` … `#020` | a Mission Editor zone named `LGZ_…` (any number of them) |
+| zones named `pickzone #001` … `#020` | a Mission Editor zone named `TRZ_…` |
+| `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the VEAF framework initialises CTLD |
+
+To attach a logistic zone to something that moves — a carrier, say — link the zone to the unit in the Mission Editor (*Moving Zone*): the zone follows its unit.
 
 ### Configuring CSAR via mission.yaml (YAML-first)
 
@@ -531,42 +548,20 @@ VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` ca
 
 ### Loading order in the DCS trigger chain
 
-CTLD/CSAR scripts must be loaded before the VEAF scripts:
+The build produces this chain for you; it is written out here so you can read it back in the Mission Editor:
 
 ```
-DO SCRIPT FILE → ctld.lua          (third-party)
-DO SCRIPT FILE → csar.lua          (third-party)
-DO SCRIPT FILE → veaf-scripts.lua  (VEAF modules)
-DO SCRIPT FILE → veaf-config.lua   (generated from mission.yaml)
-DO SCRIPT FILE → mission-script.lua (your custom code)
+DO SCRIPT FILE → CTLD_userConfig.lua (generated from your ctld-config.yaml)
+DO SCRIPT FILE → CTLD.lua            (third-party)
+DO SCRIPT FILE → csar.lua            (third-party)
+DO SCRIPT FILE → veaf-scripts.lua    (VEAF modules)
+DO SCRIPT FILE → veaf-config.lua     (generated from mission.yaml)
+DO SCRIPT FILE → mission-script.lua  (your custom code)
 ```
 
-When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
+The order of the first two lines matters: CTLD reads its configuration as it loads. That same file also tells it to wait for the VEAF framework instead of starting on its own, which lets VEAF route its messages into the VEAF logs — including its startup report, which is what flags an incomplete or outdated configuration.
 
-### Lua fallback — CTLD in mission-script.lua
-
-For settings not covered by `mission.yaml`, use the Lua callback pattern:
-
-```lua
-if ctld then
-    local initializeCTLD = true
-    if initializeCTLD then
-        veaf.loggers.get(veaf.Id):info("initialize CTLD")
-        local function configurationCallback()
-            -- Configure CTLD settings before it initialises
-            -- ctld.hoverPickup = false
-            -- ctld.slingLoad   = true
-        end
-        -- Calls the VEAF-wrapped version of ctld.initialize
-        ctld.initialize(configurationCallback)
-    else
-        -- Prevent the auto-scheduled ctld.initialize from running
-        ctld.alreadyInitialized = true
-    end
-end
-```
-
-The `configurationCallback` is called immediately before the real `ctld.initialize()` — set CTLD properties there, not before.
+CSAR keeps the older mechanism: `veaf-scripts.lua` detects the `csar` global table and wraps its `initialize()` function.
 
 ### Lua fallback — CSAR in mission-script.lua
 

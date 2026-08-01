@@ -246,7 +246,7 @@ zones (name, position, radius) present in the mission.
 disabled, or configured (with their settings).
 
 > 💬 *"What's enabled in my mission?"*
-> 💬 *"Is CTLD active? With what settings?"*
+> 💬 *"Is CTLD active?"* (its settings live in `ctld-config.yaml`)
 
 ---
 

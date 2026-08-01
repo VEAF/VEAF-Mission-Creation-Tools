@@ -55,6 +55,14 @@ A third-party script (MIST, CTLD, CSAR, Skynet, STTS, Hercules…) shipped and
 injected by the build. A kind of Module.
 _Avoid_: external module, external script
 
+**Sidecar configuration**:
+A Community script whose settings live in their own file in the mission folder
+rather than under `modules:` — the script owns its configuration format and its
+authoring tool, and `mission.yaml` keeps only the on/off flag. CTLD is the first
+(`ctld-config.yaml`, authored in `ctld-tools`); the build injects the file
+verbatim before the script. See [ADR 0016](docs/adr/0016-ctld2-sidecar-configuration.md).
+_Avoid_: external config, user config (that is CTLD's own name for the injected value)
+
 **QRA** (Quick Reaction Alert):
 The `veafQraManager` capability: interceptor groups that scramble when an enemy
 enters a zone. Configured as a Module.

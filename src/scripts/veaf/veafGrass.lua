@@ -972,6 +972,44 @@ function veafGrass.fillFarpWarehouse(farp)
 end
 
 ------------------------------------------------------------------------------
+-- Spawn the ground unit that carries a FARP's TACAN.
+--
+-- A TACAN needs a group to receive the ActivateBeacon command; the unit type
+-- (`TACAN_beacon`) is the same one CTLD uses for its own beacons. CTLD v1 exposed
+-- ctld.spawnRadioBeaconUnit and VEAF borrowed it, but this is plain DCS spawning with
+-- nothing CTLD about it — and CTLD 2 keeps its equivalent private, rightly so.
+--
+-- @param point vec3 : where to put it
+-- @param country : the FARP's country (name or id, as mist.dynAdd accepts)
+-- @param displayName string : shown in the unit name, so a pilot reading the F10 map
+--                             sees the channel
+-- @return Group or nil
+------------------------------------------------------------------------------
+function veafGrass.spawnTacanCarrierUnit(point, country, displayName)
+  local groupName = string.format("VEAF TACAN carrier - %s", displayName)
+  local spawned = mist.dynAdd({
+    country = country,
+    category = "GROUND_UNIT",
+    groupName = groupName,
+    hidden = true,
+    units = {
+      {
+        type = "TACAN_beacon",
+        name = groupName,
+        x = point.x,
+        y = point.z, -- DCS ground unit: mission y is world z
+        heading = 0,
+        skill = "Excellent",
+      },
+    },
+  })
+  if not spawned then
+    return nil
+  end
+  return Group.getByName(spawned.name)
+end
+
+------------------------------------------------------------------------------
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
@@ -998,12 +1036,11 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     name = farp.groupName
   end
   if ctld and veaf.isEnabled("ctld") then
-    if ctld.builtFOBS then
-      table.insert(ctld.builtFOBS, name)
-    end
-    if ctld.logisticUnits then
-      table.insert(ctld.logisticUnits, name)
-    end
+    -- CTLD 2 owns its FOB list (CTLDFOBManager), so only the logistic zone is ours to
+    -- declare. It is anchored to the FARP's position rather than to a unit: the FARP is a
+    -- set of statics, not a single object to follow.
+    local farpPoint = { x = farp.x, y = math.floor(land.getHeight(farp) + 1), z = farp.y }
+    CTLDZoneManager.getInstance():registerFOBAsLogistic(name, farpPoint, nil, farp.coalition)
   end
 
   local farpUnitNameCounter = 1
@@ -1299,18 +1336,28 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       },
     }
     veaf.loggers.get(veafGrass.Id):trace(string.format("setting %s", veaf.p(command)))
-    local spawnedGroup = ctld.spawnRadioBeaconUnit(beaconPoint, farp.country, tacanGroupName, tacanGroupName)
-    local controller = spawnedGroup:getController()
-    controller:setCommand(command)
-    veaf.loggers.get(veafGrass.Id):trace(string.format("done setting TACAN command"))
+    -- The carrier unit for the TACAN is a plain DCS group, not a CTLD concept: v1's
+    -- ctld.spawnRadioBeaconUnit was borrowed for convenience and has no public equivalent
+    -- in CTLD 2. Spawning it here removes the dependency on a CTLD internal.
+    local spawnedGroup = veafGrass.spawnTacanCarrierUnit(beaconPoint, farp.country, tacanGroupName)
+    if spawnedGroup then
+      local controller = spawnedGroup:getController()
+      controller:setCommand(command)
+      veaf.loggers.get(veafGrass.Id):trace(string.format("done setting TACAN command"))
+    else
+      veaf.loggers.get(veafGrass.Id):error("could not spawn the TACAN carrier unit for %s", veaf.p(tacanGroupName))
+    end
     -- spawn CTLD beacon
-    local _beaconInfo = ctld.createRadioBeacon(beaconPoint, farpCoalitionNumber, farp.country, farp.unitName or farp.name, -1, true)
-    if _beaconInfo ~= nil then
+    local _beacon = CTLDBeaconManager.getInstance():createAtPoint(beaconPoint, farpCoalitionNumber, farp.country, {
+      name = farp.unitName or farp.name,
+      isFOB = true, -- never expires, as the v1 call did with batteryLife = -1
+    })
+    if _beacon ~= nil then
       farpNamedPoint.tacan = string.format(
         "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM - %s",
-        _beaconInfo.vhf / 1000,
-        _beaconInfo.uhf / 1000000,
-        _beaconInfo.fm / 1000000,
+        _beacon.vhf / 1000,
+        _beacon.uhf / 1000000,
+        _beacon.fm / 1000000,
         tacanGroupName
       )
       veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))

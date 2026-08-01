@@ -220,7 +220,7 @@ function veafSpawn.spawnUnit(
 
     -- start lasing
     if ctld and veaf.isEnabled("ctld") then
-      ctld.cleanupJTAC(groupName)
+      CTLDJTACManager.getInstance():stopAutoLase(groupName)
       local radioData = { freq = freq, mod = mod, name = groupName }
       veafSpawn.JTACAutoLase(groupName, code, radioData)
     end
@@ -286,7 +286,9 @@ function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
   local _radio = radioData or {}
   veaf.loggers.get(veafSpawn.Id):trace(string.format("_radio=%s\n", veaf.p(_radio)))
   veaf.loggers.get(veafSpawn.Id):trace(string.format("calling CTLD"))
-  ctld.JTACAutoLase(groupName, laserCode, false, "all", nil, _radio)
+  -- The legacy ctld.JTACAutoLase wrapper still exists but logs a DEPRECATED line on every
+  -- call, and a mission spawns JTACs often enough to fill the log with it.
+  CTLDJTACManager.getInstance():autoLase(groupName, laserCode, false, "all", nil, _radio)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("CTLD called"))
 end
 
@@ -666,7 +668,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
     -- start lasing
     if ctld and veaf.isEnabled("ctld") then
-      ctld.cleanupJTAC(_spawnedGroup.name)
+      CTLDJTACManager.getInstance():stopAutoLase(_spawnedGroup.name)
       local radioData = { freq = frequency, mod = mod, name = _spawnedGroup.name }
       veafSpawn.JTACAutoLase(_spawnedGroup.name, code, radioData)
     end

@@ -45,6 +45,49 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertNotIn("WEATHER", modules)  # standard-only
             self.assertNotIn("SECURITY", modules)  # off by default
 
+    def test_standard_template_seeds_the_ctld_configuration(self) -> None:
+        """A template that enables CTLD ships the matching ctld-config.yaml (ADR 0016).
+
+        CTLD 2 reads a complete snapshot, so the mission maker starts from the engine's
+        own catalogue — extracted from the vendored CTLD.lua, never a copy kept here.
+        """
+        import yaml as _yaml
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = _runner.invoke(app, ["prepare", "--template", "standard", str(folder), "--force"])
+            self.assertEqual(result.exit_code, 0, result.output)
+
+            config = folder / "ctld-config.yaml"
+            self.assertTrue(config.is_file(), "standard enables CTLD, so its config must be seeded")
+            parsed = _yaml.safe_load(config.read_text(encoding="utf-8"))
+            self.assertIn("configVersion", parsed)
+
+            # The VEAF overrides are applied on the way out: without them a VEAF mission
+            # loses the carrier / FARP recognition autoInitializeAllLogistic used to give.
+            # The two discovery settings landed in CTLD after 2.0.0-rc2, so this assertion
+            # only runs once the vendored engine carries them — re-vendoring turns it on.
+            if "logisticUnitTypes" not in parsed["mm_facing"]:
+                self.skipTest("vendored CTLD predates logisticUnitTypes / troopZoneShipTypes")
+            self.assertIn("Stennis", parsed["mm_facing"]["logisticUnitTypes"])
+            self.assertIn("CVN_71", parsed["mm_facing"]["troopZoneShipTypes"])
+
+    def test_minimal_template_does_not_seed_a_ctld_configuration(self) -> None:
+        """No CTLD, no 1000-line file in the mission maker's folder."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            _runner.invoke(app, ["prepare", "--template", "minimal", str(folder), "--force"])
+            self.assertFalse((folder / "ctld-config.yaml").exists())
+
+    def test_an_existing_ctld_configuration_survives_force(self) -> None:
+        """It is the mission maker's configuration, not a scaffold artifact."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            config = folder / "ctld-config.yaml"
+            config.write_text("# mine\n", encoding="utf-8")
+            _runner.invoke(app, ["prepare", "--template", "standard", str(folder), "--force"])
+            self.assertEqual(config.read_text(encoding="utf-8"), "# mine\n")
+
     def test_ask_replace_non_interactive_keeps_all(self) -> None:
         # Without a TTY (CI, pipes), the overwrite prompt must not block: keep everything.
         from unittest import mock

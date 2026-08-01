@@ -240,10 +240,7 @@ modules:
     debug_red: false                 # verbose Skynet debug for RED
     include_blue_in_radio: false     # add BLUE IADS status to F10 menu
     debug_blue: false                # verbose Skynet debug for BLUE
-  CTLD:
-    enabled: true
-    settings:                        # ctld.xxx = value pairs
-      hoverPickup: true
+  CTLD: true                         # configured in ctld-config.yaml, not here
   CSAR:
     enabled: true
     settings:                        # csar.xxx = value pairs
@@ -260,14 +257,18 @@ modules:
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
 
-#### `modules.CTLD` / `modules.CSAR` fields
+#### `modules.CSAR` fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable CTLD / CSAR integration |
-| `settings` | mapping | — | `ctld.xxx` / `csar.xxx` pairs (e.g. `hoverPickup: true`, `enableAllslots: true`) |
+| `enabled` | boolean | `false` | Enable CSAR integration |
+| `settings` | mapping | — | `csar.xxx` pairs (e.g. `enableAllslots: true`) |
 
-VEAF generates the `ctld.xxx = value` / `csar.xxx = value` assignments and the `initialize()` call in `veaf-config.lua`. On `convert-v5`, these settings are extracted automatically from `missionConfig.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
+VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. On `convert-v5`, these settings are extracted automatically from `missionConfig.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
+
+#### `modules.CTLD`: a boolean, nothing else
+
+CTLD 2 is configured **outside `mission.yaml`**, in a `ctld-config.yaml` file sitting next to it and edited with `ctld-tools.exe`. A `settings:` block under `CTLD` is **rejected by `validate`**: it was no longer read, and letting it pass in silence is exactly the defect this change removes. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
 
 > **Sounds.** CTLD and CSAR play sounds by filename at runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). When CTLD or CSAR is enabled, the build automatically injects the required sounds it ships (`src/scripts/community/sounds/`) into the mission's `l10n/DEFAULT/`, without overwriting any sound your mission already provides. A required sound shipped by neither the tools nor your mission is reported with a build warning — add it to `src/mission/l10n/DEFAULT/` (e.g. `radiobeep.ogg`, the JTAC fallback beep, is not redistributed).
 

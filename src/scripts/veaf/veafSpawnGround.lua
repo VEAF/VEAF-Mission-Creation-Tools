@@ -124,7 +124,10 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local TOWER_DISTANCE = 20
   local BEACON_DISTANCE = 3
 
-  if not veaf.ctld_initialized then
+  -- veaf.ctld_initialized went with the v1 init wrapper. CTLD 2 is a registered VEAF module,
+  -- so the framework's own gate answers the same question — and answers it correctly when the
+  -- mission disabled the module rather than merely failing to load the script.
+  if not (ctld and veaf.isEnabled("ctld")) then
     veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)", veaf.p(name))
     return nil
   end
@@ -184,34 +187,22 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   _namedPoint.runways = {}
 
   if ctld and veaf.isEnabled("ctld") then
-    --make it able to deploy crates and pickup troops
-    if ctld.logisticUnits then
-      table.insert(ctld.logisticUnits, _fobName)
-    end
-    if ctld.builtFOBS then
-      table.insert(ctld.builtFOBS, _fobName)
-    end
+    -- make it able to deploy crates and pickup troops. CTLD 2 owns the FOB list itself
+    -- (CTLDFOBManager), so the logistic zone is the only thing we declare.
+    CTLDZoneManager.getInstance():registerFOBAsLogistic(_fobName, _spawnPosition, nil, _side)
 
-    -- spawn a beacon
-    if ctld.beaconCount and ctld.fobBeacons then
-      local _beaconPoint = {
-        z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-        x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
-        y = _spawnPosition.y,
-      }
-      ctld.beaconCount = ctld.beaconCount + 1
-      local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
-      local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
-      if _radioBeaconDetails ~= nil then
-        ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
-        _namedPoint.tacan = string.format(
-          "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM",
-          _radioBeaconDetails.vhf / 1000,
-          _radioBeaconDetails.uhf / 1000000,
-          _radioBeaconDetails.fm / 1000000
-        )
-        veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
-      end
+    -- spawn a beacon. Its name is CTLD's to allocate now — the "FOB Beacon #N" counter
+    -- VEAF kept was a second numbering next to the manager's own.
+    local _beaconPoint = {
+      z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
+      x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+      y = _spawnPosition.y,
+    }
+    local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_beaconPoint, _side, _country, { isFOB = true })
+    if _beacon ~= nil then
+      _namedPoint.tacan =
+        string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000)
+      veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
     end
   end
   trigger.action.outTextForCoalition(_side, veaf.t("spawn.fob_built", _fobName), 10)

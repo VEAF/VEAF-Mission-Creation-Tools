@@ -30,6 +30,11 @@ the current version is **6.7.8**.
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot.
 
+**Delivered since the last refresh:** `FEAT-CTLD2-INTEGRATION` — the bundled CTLD becomes
+[VEAF/CTLD](https://github.com/VEAF/CTLD) 2 and moves its configuration to a `ctld-config.yaml`
+sidecar ([ADR 0016](docs/adr/0016-ctld2-sidecar-configuration.md), PR #646). The four gaps it
+found in CTLD 2 shipped there first (CTLD PRs #79, #80, #86).
+
 ---
 
 ## 3. Macro step DONE — v6.10.0 cut to `master`

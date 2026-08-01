@@ -649,11 +649,27 @@ TestVeafSpawnGround = {}
 function TestVeafSpawnGround:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
-  veaf.ctld_initialized = false
   veafSpawn.spawnedConvoys = {}
+  self._savedCtld = ctld
+  self._savedConfig = veaf.config.ctld
 end
 
-function TestVeafSpawnGround:test_spawnFob_no_ctld()
+function TestVeafSpawnGround:tearDown()
+  ctld = self._savedCtld
+  veaf.config.ctld = self._savedConfig
+end
+
+-- A FOB needs CTLD, and there are two ways not to have it. The v1 code knew only one
+-- (veaf.ctld_initialized, set by the init wrapper); the module gate distinguishes them.
+
+function TestVeafSpawnGround:test_spawnFob_without_the_ctld_script()
+  ctld = nil
+  local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
+  luaunit.assertNil(result)
+end
+
+function TestVeafSpawnGround:test_spawnFob_with_the_ctld_module_disabled()
+  veaf.config.ctld = { enable = false }
   local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
   luaunit.assertNil(result)
 end
@@ -749,15 +765,27 @@ function TestVeafSpawnGround:test_spawnGroup()
 end
 
 function TestVeafSpawnGround:test_spawnFob_with_ctld()
-  -- Requires ctld_initialized=true and a full ctld stub (builtFOBS, beaconCount, fobBeacons, createRadioBeacon)
-  veaf.ctld_initialized = true
-  ctld.logisticUnits = {}
-  ctld.builtFOBS     = {}
-  ctld.beaconCount   = 0
-  ctld.fobBeacons    = {}
   local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB2", "usa", "", 1, 0, 0, true, false)
   luaunit.assertIsString(result)
   luaunit.assertStrContains(result, "TestFOB2")
+end
+
+function TestVeafSpawnGround:test_spawnFob_registers_a_logistic_zone_and_a_beacon()
+  -- The v1 code pushed the name into three CTLD tables and numbered the beacon itself;
+  -- both are the managers' business now.
+  dcs_mocks.reset()
+  veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB3", "usa", "", 1, 0, 0, true, false)
+
+  local zoneCalls = CTLDZoneManager.getInstance().calls
+  luaunit.assertEquals(#zoneCalls, 1)
+  luaunit.assertEquals(zoneCalls[1].method, "registerFOBAsLogistic")
+  luaunit.assertStrContains(zoneCalls[1].args[1], "TestFOB3")
+
+  local beaconCalls = CTLDBeaconManager.getInstance().calls
+  luaunit.assertEquals(#beaconCalls, 1)
+  luaunit.assertEquals(beaconCalls[1].method, "createAtPoint")
+  -- isFOB: a FOB beacon never runs out of battery, as the v1 call said with -1.
+  luaunit.assertTrue(beaconCalls[1].args[4].isFOB)
 end
 
 -- ---------------------------------------------------------------------------
@@ -825,12 +853,15 @@ function TestVeafSpawnAircraft:test_dumpSpawnablePlanesList_empty()
 end
 
 function TestVeafSpawnAircraft:test_JTACAutoLase()
-  local lased = false
-  local origLase = ctld.JTACAutoLase
-  ctld.JTACAutoLase = function(groupName, code, ...) lased = true end
+  -- Goes to the v2 manager, not the legacy ctld.JTACAutoLase wrapper: that one logs a
+  -- DEPRECATED line on every call, and a mission spawns JTACs often.
+  dcs_mocks.reset()
   veafSpawn.JTACAutoLase("JTAC1", 1688, nil)
-  ctld.JTACAutoLase = origLase
-  luaunit.assertTrue(lased)
+  local calls = CTLDJTACManager.getInstance().calls
+  luaunit.assertEquals(#calls, 1)
+  luaunit.assertEquals(calls[1].method, "autoLase")
+  luaunit.assertEquals(calls[1].args[1], "JTAC1")
+  luaunit.assertEquals(calls[1].args[2], 1688)
 end
 
 function TestVeafSpawnAircraft:test_afacWatchdog_nil_group_name()

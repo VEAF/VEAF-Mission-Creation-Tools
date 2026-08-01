@@ -1,6 +1,6 @@
 # 04 — retire `veaf.ctld_initialize_replacement`, route the logs, own the init
 
-**Status:** ⬜ ready
+**Status:** ✅ done
 
 Depends on 03.
 

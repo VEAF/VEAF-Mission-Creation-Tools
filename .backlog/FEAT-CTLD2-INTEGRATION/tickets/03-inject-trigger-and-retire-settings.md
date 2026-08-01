@@ -1,6 +1,6 @@
 # 03 — inject the config trigger, retire `settings:`
 
-**Status:** ⬜ ready
+**Status:** ✅ done
 
 Depends on 02.
 

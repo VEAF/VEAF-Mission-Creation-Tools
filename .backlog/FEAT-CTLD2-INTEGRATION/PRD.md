@@ -1,6 +1,6 @@
 # FEAT-CTLD2-INTEGRATION — replace the bundled CTLD v1 with CTLD 2
 
-**Status:** ⬜ ready
+**Status:** 🔄 in-progress — tickets 01→04 merged into the lot branch; 05 waits on a CTLD rc3, 06 open.
 
 Opened 2026-08-01. Design settled in a grilling session; every decision below was taken with David
 and is not open for re-litigation by the implementer.
@@ -37,11 +37,16 @@ trigger *before* `CTLD.lua`. There is no merge: a missing *setting* falls back t
 3. **`ctld-config.yaml` sits next to `mission.yaml`**, is the mission's CTLD configuration, and is
    **injected by the VMCT build only**. A mission maker edits it with `ctld-tools.exe`; they never
    use that tool's own "inject into .miz" button in a VMCT context — the build would overwrite it.
-4. **The VEAF default is regenerated at build time**, not committed as a frozen snapshot: the repo
-   versions a short VEAF patch (the settings currently hardcoded in `veaf.lua`), the pipeline reads
-   `ctld.configDefault` out of the vendored `CTLD.lua` and applies the patch over it. A committed
-   1000-line snapshot would silently deprive missions of every crate, troop and aircraft type a
-   later CTLD adds — the "missing list = removed" rule.
+4. **The default is read from the vendored engine**, never committed as a frozen snapshot: scaffolding
+   extracts `ctld.configDefault` out of `CTLD.lua`. A committed 1000-line copy would silently deprive
+   new missions of every crate, troop and aircraft type a later CTLD adds — the "missing list =
+   removed" rule.
+   **Settled during implementation:** the VEAF patch this decision assumed turned out to be *empty*.
+   Of the eight settings hardcoded in `veaf.lua`, three already matched the CTLD 2 default,
+   `crateWaitTime` no longer exists in the engine, `slingLoad` was an inconclusive experiment
+   (dropped), and the three hover distances are aligned on CTLD's values. Same call for the
+   per-aircraft capacities, which diverged on four types. The seeded file is the default catalogue
+   verbatim, and the patch mechanism was not built.
 5. **VEAF controls initialisation** (option *ii* of three): the injected trigger sets `configUser`
    **and** `dontInitialize = true`; `veaf.lua` overrides the logger, then calls `ctld.initialize()`.
    Letting it auto-start would put CTLD's whole init — including the startup report that names bad
@@ -56,10 +61,13 @@ trigger *before* `CTLD.lua`. There is no merge: a missing *setting* falls back t
 
 ## What CTLD 2 owes us
 
-Three gaps found while auditing the bridges, filed in the CTLD repo as
-`FEAT-VMCT-INTEGRATION` (+ `FIX-SHIP-ZONE-ANCHOR-PARITY`): logistic zone discovery by unit type,
-ship troop-zone discovery, and a public beacon API for a caller that is not a pilot. **They land
-first, in a rc3**; ticket 05 here depends on them. Tickets 01→04 and 06 do not and can proceed.
+Four gaps found while auditing the bridges, filed in the CTLD repo as `FEAT-VMCT-INTEGRATION`
+(+ `FIX-SHIP-ZONE-ANCHOR-PARITY`): logistic zone discovery by unit type, ship troop-zone discovery,
+a public beacon API for a caller that is not a pilot, and — found while comparing the catalogues —
+**`capabilitiesByType` entries for seven aircraft VMCT has configured for years and CTLD 2 does not
+know**: Ka-50, Ka-50_3, the four SA342 variants and the Yak-52. With `addPlayerAircraftByType`, no
+entry means no CTLD menu at all, so a Gazelle pilot would find nothing. **They land first, in a
+rc3**; ticket 05 here depends on them. Tickets 01→04 and 06 do not.
 
 ## Definition of done
 

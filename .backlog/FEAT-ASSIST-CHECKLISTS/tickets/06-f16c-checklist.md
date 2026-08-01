@@ -1,6 +1,8 @@
 # 06 — F-16C cold-start checklist, six steps
 
-**Status:** ⬜ ready — depends on 02 for the format. Can run in parallel with 03 and 04.
+**Status:** 🧑 waiting-human — the checklist is written and loads; the argument windows are **derived from
+ED's source, not measured in the cockpit**, and the order still needs a pilot's eye. See "What was
+written" at the end.
 
 The first checklist, and the lot's only content. Six steps, hand-written, shipped in the VMCT catalogue as
 `checklists/f16c-cold-start.yaml`.
@@ -81,3 +83,67 @@ Check the exact DCS type name for the `aircraft` list against the unit catalogue
 - FR + EN catalog entries.
 - The order reviewed by an F-16C pilot, and **who reviewed it recorded in this ticket**.
 - The measured argument table recorded here.
+
+## What was written
+
+[`veaf_libs/data/checklists/f16c-cold-start.yaml`](../../../src/python/veaf-tools/veaf_libs/data/checklists/f16c-cold-start.yaml),
+six steps, plus FR + EN entries under `assist.f16c.*` in
+[`veafI18n.lua`](../../../src/scripts/veaf/veafI18n.lua). It loads through `load_checklists()` and renders
+to seven images.
+
+**The slice** is ED's own `start_sequence_full`, lines 259–285 of `Macro_sequencies.lua`: the *Before
+Starting Engine* / *Starting Engine* phase, in ED's order and with ED's wording. Not the six switches an
+earlier draft picked, and not the 106-step whole.
+
+| # | ED's label | Element | Arg | Mode |
+|---|---|---|---|---|
+| 1 | `- MAIN PWR SWITCH - BATT` | `PTR-ELEC-TMB-MPWR-510` | 510 | argument, 0.0 ± 0.05 |
+| 2 | `- MAIN PWR SWITCH - MAIN PWR` | `PTR-ELEC-TMB-MPWR-510` | 510 | argument, 1.0 ± 0.05 |
+| 3 | `- JFS SWITCH - START 2` | `PTR-ENGSTART-TMB-JETFUEL-447` | — | confirm |
+| 4 | `- JFS RUN LIGHT - CHECK` | `PTR-ENGSTART-TMB-JETFUEL-447` | — | confirm |
+| 5 | `- THROTTLE - IDLE (20% RPM MINIMUM)` | `PTR-THRTL-RLS-757` | 757 | argument, 1.0 ± 0.05 |
+| 6 | `- ENGINE AT IDLE - CHECK` | — | — | confirm |
+
+Three automatic checks and three confirmations, so the prototype exercises both modes.
+
+**Why the JFS switch is not an argument step.** `clickabledata.lua:118` builds it with
+`springloaded_3_pos_tumb`: the switch is spring-loaded and its animation argument returns to 0 the instant
+it is released — ED's own sequence sets `JfsSwStart2` to `-1.0` then straight back to `0.0`. Reading
+argument 447 could therefore never catch it. It is boxed anyway, so the pilot sees where to look.
+
+**Step 6 boxes nothing.** The engine RPM gauge is not a clickable element, so it has no name to box, and
+the format allows a confirm step with no element. Note in passing that the PRD's example element
+`PTR-HYDCP-IND-3018` **does not exist** anywhere in the F-16C module — it was an illustration, not a
+reference; nothing in this checklist uses it.
+
+## The windows are derived, not measured — this is what still needs a cockpit
+
+Every element and argument above is read from
+`<DCS>\Mods\aircraft\F-16C\Cockpit\Scripts\clickabledata.lua` (verified 2026-08-01). The **windows** are
+derived from the switch prototypes in `clickable_defs.lua`, which is one inference away from a
+measurement:
+
+| Element | Prototype | `arg_lim` | Derived positions |
+|---|---|---|---|
+| `PTR-ELEC-TMB-MPWR-510` | `default_3_position_tumb` (`clickable_defs.lua:96`) | `{-1, 1}` | −1 OFF · 0 BATT · +1 MAIN PWR |
+| `PTR-ENGSTART-TMB-JETFUEL-447` | `springloaded_3_pos_tumb` (`:256`) | `{-1,0}` / `{0,1}` | rests at 0 |
+| `PTR-THRTL-RLS-757` | `default_button` → `button_prototype` (`:27`) | `{0, 1}` | 0 OFF · 1 IDLE |
+
+The MAIN PWR mapping is corroborated by ED's sequence, which sends `MainPwrSw` `-1.0` for OFF (line 101),
+`0.0` for BATT (line 266) and `1.0` for MAIN PWR (line 271) — command value and animation argument agree
+*on this switch*. That agreement is exactly what the ticket warns is not guaranteed in general, so the
+measurement stays mandatory:
+
+```lua
+-- with the player sitting in the F-16C, through the bridge with env=mission,
+-- once per position of each switch:
+return tostring(Unit.getByName('<slot>'):getDrawArgumentValue(510))
+```
+
+**Two things left, both needing David:**
+
+1. Read arguments 510 and 757 in **every** position and replace the derived windows with measured ones
+   (`± 0.05` is almost certainly fine given the ±1 spacing, but "almost certainly" is not measured).
+2. **A pilot review of the slice.** It is coherent in ED's file; whether it is coherent *in isolation* —
+   starting an engine without the cockpit configuration that precedes it in the full sequence — is a
+   question for someone who flies the jet. Reviewer: _not yet reviewed_.

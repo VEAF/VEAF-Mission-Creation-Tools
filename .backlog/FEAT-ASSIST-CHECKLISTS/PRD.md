@@ -147,9 +147,18 @@ message, and the pilot still gets feedback when the image is hidden.
 | # | Ticket | Depends on |
 |---|---|---|
 | 01 | [Prove the cockpit primitives from the mission environment](tickets/01-primitives-spike.md) | — (**✅ done**) |
-| 02 | [Checklist YAML: schema, loader, Lua emission](tickets/02-yaml-format-and-emission.md) | 01 |
-| 03 | [Checklist image generator](tickets/03-image-generator.md) | 02 |
-| 04 | [`veafAssist.lua` — the engine](tickets/04-assist-engine.md) | 02 |
+| 02 | [Checklist YAML: schema, loader, Lua emission](tickets/02-yaml-format-and-emission.md) | 01 (**✅ done**) |
+| 03 | [Checklist image generator](tickets/03-image-generator.md) | 02 (**✅ done**) |
+| 04 | [`veafAssist.lua` — the engine](tickets/04-assist-engine.md) | 02 (**✅ done**) |
 | 05 | [Radio menu, i18n and `mission.yaml` wiring](tickets/05-menu-and-config.md) | 03, 04 |
-| 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 |
+| 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 (**🧑 windows to measure, slice to review**) |
 | 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 |
+
+## What needs a live DCS
+
+Three things are written and tested but unverified in game, and every one of them needs David's DCS
+running with `dcs-serve` up. They are gathered here so they can be answered in one sitting:
+
+- **`Unit:getDrawArgumentValue` on a player-flown aircraft** — ticket 04. The automatic check rests on it.
+- **The F-16C argument windows** — ticket 06. Derived from ED's switch prototypes, not measured.
+- **The picture over a cockpit** — ticket 03. Legibility, alignment and size, which ticket 05 settles.

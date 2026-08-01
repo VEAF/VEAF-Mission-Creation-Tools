@@ -43,6 +43,11 @@ globals = {
   "VoiceChat", "net", "lfs", "StaticObject",
   -- DCS API globals commonly used but often omitted from stub lists
   "coord", "atmosphere", "missionCommands", "log",
+  -- Native trigger-action functions of the mission scripting environment, used by
+  -- veafAssist. They live in no script — the engine exposes them (verified in game,
+  -- .backlog/FEAT-ASSIST-CHECKLISTS/tickets/01-primitives-spike.md).
+  "a_cockpit_highlight", "a_cockpit_remove_highlight", "a_cockpit_perform_clickable_action",
+  "a_out_picture_u", "a_out_picture_stop", "getValueResourceByKey",
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
@@ -52,7 +57,7 @@ globals = {
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
-  "veafAirWaves", "veafAssets", "veafCacheManager", "veafCarrierOperations",
+  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMissileGuardian", "veafMove",

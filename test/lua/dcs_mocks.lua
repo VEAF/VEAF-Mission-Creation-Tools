@@ -496,6 +496,7 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.cockpitCalls = {}
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
     if manager then
@@ -539,6 +540,15 @@ function dcs_mocks.addUnit(name, data)
   end
   u.getCategoryEx = u.getCategoryEx or function(self)
     return self._categoryEx or Unit.Category.AIRPLANE
+  end
+  u.getID = u.getID or function(self)
+    return self._id or 1
+  end
+  -- Cockpit animation arguments, read by veafAssist's `argument` check.
+  -- A test sets them with { _drawArgs = { [510] = 1.0 } } and moves a switch by
+  -- reassigning the entry.
+  u.getDrawArgumentValue = u.getDrawArgumentValue or function(self, arg)
+    return (self._drawArgs or {})[arg]
   end
   u.destroy = u.destroy or function() end
   _unit_registry[name] = u
@@ -814,4 +824,69 @@ end
 -- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
 Group.getUnits = function(grp)
   return grp:getUnits()
+end
+
+-- ---------------------------------------------------------------------------
+-- Cockpit primitives of the mission scripting environment (veafAssist)
+--
+-- a_cockpit_highlight / a_out_picture_u and friends are native functions the DCS
+-- engine exposes to `env=mission` — they live in no script, so they have to be
+-- stubbed here. Each records its calls so a test can assert what the engine asked
+-- of the cockpit; dcs_mocks.reset() clears the record.
+-- ---------------------------------------------------------------------------
+
+--- Calls recorded by the cockpit stubs, in order: { fn = "…", args = { … } }.
+dcs_mocks.cockpitCalls = {}
+
+local function _recordCockpitCall(name, ...)
+  table.insert(dcs_mocks.cockpitCalls, { fn = name, args = { ... } })
+end
+
+--- Return the recorded calls to one cockpit function, in order.
+function dcs_mocks.cockpitCallsTo(name)
+  local found = {}
+  for _, call in ipairs(dcs_mocks.cockpitCalls) do
+    if call.fn == name then
+      table.insert(found, call)
+    end
+  end
+  return found
+end
+
+function a_cockpit_highlight(id, element)
+  _recordCockpitCall("a_cockpit_highlight", id, element)
+  return true
+end
+
+function a_cockpit_remove_highlight(id)
+  _recordCockpitCall("a_cockpit_remove_highlight", id)
+  return true
+end
+
+function a_out_picture_u(unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, sizeUnits)
+  _recordCockpitCall(
+    "a_out_picture_u",
+    unitId,
+    resource,
+    duration,
+    clearView,
+    startDelay,
+    hAlign,
+    vAlign,
+    size,
+    sizeUnits
+  )
+  return true
+end
+
+function a_out_picture_stop()
+  _recordCockpitCall("a_out_picture_stop")
+  return true
+end
+
+--- Resolve an embedded resource key. The real one maps the key to the file the
+--- build embedded; here the key is its own resolution, which is enough to assert
+--- that the right state was displayed.
+function getValueResourceByKey(key)
+  return key
 end

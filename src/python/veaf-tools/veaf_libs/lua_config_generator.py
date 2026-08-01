@@ -57,6 +57,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "AIRBASES",
     "MARKERS",
     "MISSILEGUARDIAN",
+    "ASSIST",
     "TIME",
     "UNITS",
     "CACHE",
@@ -225,6 +226,7 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
         "REMOTE",
         "AIRBASES",
         "MISSILEGUARDIAN",
+        "ASSIST",
         "INTERPRETER",
     ],
     "Combat": [

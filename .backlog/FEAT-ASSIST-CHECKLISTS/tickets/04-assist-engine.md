@@ -1,6 +1,6 @@
 # 04 — `veafAssist.lua`, the engine
 
-**Status:** ⬜ ready — depends on 02 for the data shape. Can run in parallel with 03.
+**Status:** ✅ done — 2026-08-01, except the two ticket 01 probes, which need a live DCS (see below).
 
 New runtime module following the house pattern (`veafAssist = {}`, `.Id = "ASSIST"`,
 `veaf.loggers.new(...)`, constants in caps, i18n keys resolved through `veaf.t()` at send time — see
@@ -84,3 +84,41 @@ sessions do not share a highlight id; unknown checklist id is inert.
 - Module + tests green under `poetry run test-lua`, `luacheck` and `stylua --check` clean.
 - Lua coverage floor bumped per the ratchet policy.
 - Both ticket 01 probes answered in writing.
+
+## What was built
+
+[`veafAssist.lua`](../../../src/scripts/veaf/veafAssist.lua), 30 tests in
+[`test_veafAssist.lua`](../../../test/lua/test_veafAssist.lua), 95 % line coverage. The mocks gained
+`Unit:getDrawArgumentValue`, the four cockpit primitives and `getValueResourceByKey`, each recording its
+calls so a test asserts what the engine asked of the cockpit. Lua coverage floor 69 → 70.
+
+**One design point the ticket did not anticipate: a passed step stays passed.** The described loop —
+"walk the steps, find the first one whose check fails" — re-evaluates everything on every tick, and that
+breaks on any sequence where a control passes *through* a position. ED's own cold start does exactly that:
+MAIN PWR goes OFF → BATT → MAIN PWR, so the moment the pilot reaches MAIN PWR the BATT step stops being
+satisfied and the engine would send them back to it, forever. The engine therefore latches: steps already
+satisfied are ticked **when the session opens** (which is the "usable half-way through" behaviour the PRD
+asked for), and from then on only the current step is evaluated, and stays ticked once passed.
+
+Two smaller calls: the highlight is re-issued when the **boxed element** changes, not merely when the step
+index does — consecutive steps on the same switch would otherwise flicker the box for nothing; and an
+unknown `check.type` never passes and warns once, rather than throwing on every tick.
+
+## Left open — needs a live DCS
+
+Both ticket 01 probes are still open, and both need David's DCS running with `dcs-serve` up:
+
+1. **Does `Unit:getDrawArgumentValue(arg)` report cockpit switch state for a player-flown aircraft?** The
+   whole `argument` check rests on it. The engine calls it through `pcall` and treats a non-number as "not
+   satisfied", so a negative answer degrades to "nothing ever auto-validates" rather than an error storm —
+   but the feature would then need the `c_player_unit_argument_in_range` fallback.
+2. **Is `a_out_picture_u` reachable from the mission environment?** Detected at init; the module refuses
+   to start without it.
+
+One thing the ticket listed as unknown is now **answered from ED's own source** rather than a probe:
+`me_trigrules.lua:979` documents `seconds = 0` as *"if the picture display time is 0, show until
+`a_out_picture_stop` is called (DCSCORE-2754)"*, and gives the full signature —
+`a_out_picture_u(unitId, file, seconds, clearview, startDelay, horzAlignment, vertAlignment, size,
+sizeUnits)`. The persistent-checklist design holds.
+
+Still open too, and not blocking: whether a highlight is visible to a **second** player.

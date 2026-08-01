@@ -1145,6 +1145,25 @@ veaf.i18nCatalog = {
     en = "The radio menu lists all the assets, friendly or enemy\nUse these menus to respawn the assets when needed\n",
   },
 
+  -- veafAssist — guided checklists. Short event texts; the persistent checklist
+  -- itself is the generated picture, not a message.
+  ["assist.started"] = {
+    fr = "Assistance : %s",
+    en = "Assistance: %s",
+  },
+  ["assist.step_validated"] = {
+    fr = "Fait : %s",
+    en = "Done: %s",
+  },
+  ["assist.step_skipped"] = {
+    fr = "Étape passée : %s",
+    en = "Step skipped: %s",
+  },
+  ["assist.completed"] = {
+    fr = "Terminé : %s",
+    en = "Complete: %s",
+  },
+
   -- veafAssist — guided checklists.
   -- The F-16C wording follows ED's own autostart sequence (Macro_sequencies.lua); the
   -- cockpit labels stay in English because that is what is written in the cockpit.

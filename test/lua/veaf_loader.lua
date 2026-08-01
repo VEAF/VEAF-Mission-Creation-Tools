@@ -46,6 +46,7 @@ local _moduleOrder = {
   "veafSanctuary",
   "veafQraManager",
   "veafAirWaves",
+  "veafAssist",
   "veafEventHandler",
   "veafCacheManager",
   "veafGroundAI",

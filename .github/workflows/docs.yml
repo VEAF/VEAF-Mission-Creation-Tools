@@ -1,5 +1,21 @@
 name: Deploy Docs
 
+# Deployments queue instead of colliding. Every run of this workflow fetches `gh-pages`
+# from the external VEAF/documentation repository, builds, and pushes it back; two at
+# once means the second fetched before the first landed, and its push is rejected with
+# `! [rejected] gh-pages -> gh-pages (fetch first)`.
+#
+# The window is not theoretical — it is built into the release procedure, which pushes
+# the `v*` tag and then back-merges to `develop` minutes later. It cost the 6.13.0
+# release a red run, and the 6.11.0 documentation was never published at all for the
+# same reason.
+#
+# `cancel-in-progress: false` is the point: cancelling would drop a deployment on the
+# floor, which is the very outcome to avoid. Queuing costs a couple of minutes.
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: false
+
 on:
   push:
     branches:

@@ -1,8 +1,9 @@
 # FEAT-ASSIST-CHECKLISTS — guided checklists from YAML, cold start as first client
 
-**Status:** 🧑 waiting-human — everything is built and green (02 → 07); **nothing has been flown**. The
-prototype exists to answer four questions and every one of them needs a cockpit — see
-[ticket 07](tickets/07-documentation.md). No verdict until then.
+**Status:** 🧑 waiting-human — everything is built and green (02 → 07), and the first in-game probe
+returned a **negative result on the central mechanism**: a cockpit switch position cannot be read from
+the mission environment, so the `argument` check can never fire. Everything else stands. The design
+call on what replaces it is open — see *Probed in game* below.
 
 Opened 2026-08-01, design settled with David the same evening. Every decision below was taken with him
 and is not open for re-litigation by the implementer.
@@ -155,19 +156,37 @@ message, and the pilot still gets feedback when the image is hidden.
 | 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 (**🧑 windows to measure, slice to review**) |
 | 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 (**🧑 verdict pending**) |
 
-## What needs a live DCS
+## Probed in game — 2026-08-01
 
-Everything below is written, tested and green, and **none of it has been seen working**. Gathered here
-so it can be answered in one sitting, in a mission built with `modules: ASSIST: {enabled: true,
-checklists: [f16c-cold-start]}` and flown from a cold F-16C:
-
-| # | Question | Whose ticket |
+| # | Question | Answer |
 |---|---|---|
-| 1 | Does `Unit:getDrawArgumentValue(510)` report the MAIN PWR position for a **player-flown** aircraft? | 04 — the automatic check rests entirely on it |
-| 2 | The argument value in **every** position of arguments 510 and 757 | 06 — the windows are derived from ED's prototypes, not measured |
-| 3 | Is the picture legible over a cockpit, and are the alignment / size right? | 03 + 05 |
-| 4 | Does the F10 menu behave — start, contextual entries, stop? | 05 |
-| 5 | **Two pilots assisted at once**, without one boxing the other's cockpit | 05 — the reason per-session highlight ids exist |
-| 6 | Is a highlight visible to a second player at all? | 01, left open since the spike |
+| 1 | Does `Unit:getDrawArgumentValue` report a **cockpit switch** position? | ❌ **No.** MAIN PWR moved OFF → BATT → MAIN PWR, argument 510 stayed `0`. `c_player_unit_argument_in_range`, the documented fallback, is equally blind. `list_cockpit_params()` (562 entries, 78 live) exposes **no control position at all**. Details in [the exploration note](../../docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md), section 3 |
+| 2 | Is `a_out_picture_u` reachable? | ✅ Yes, with the whole `a_*` family (114 functions), and ED's source settles `seconds = 0` |
+| 3 | Argument windows for 510 / 757 | ⛔ Moot — there is nothing to measure |
+| 4 | Picture legible over a cockpit, alignment, size | ⬜ Not yet |
+| 5 | F10 menu behaviour | ⬜ Not yet |
+| 6 | Two pilots assisted at once | ⬜ Not yet |
+| 7 | Highlight visible to a second player | ⬜ Not yet |
 
-A pilot review of the F-16C slice (ticket 06) is the one item that needs a person rather than a probe.
+**What survives:** the boxing (`a_cockpit_highlight`, proven in game at ticket 01), the picture, the
+`confirm` mode, the YAML format, the engine, the menu, the image generation. The check registry too —
+it is the extension point this now has to be used through.
+
+**What falls:** validation by control position. Three of the six F-16C steps can never self-tick.
+
+**The door that stays open:** the *effect* of a control is readable even though the control is not.
+`list_cockpit_params` publishes altitude, speed, heading, gear, canopy, flaps and fuel, live. A bomb
+run — the PRD's own second client — is well served by that. An engine start is not.
+
+## The open design call
+
+1. **Ship `confirm`-only.** The module shows where to look and tracks progress; the pilot ticks. Honest,
+   immediate, loses the self-ticking that made the idea attractive.
+2. **Add a `cockpit_param` check** on top, reading `list_cockpit_params`. Purely additive — a new entry
+   in the registry, no engine or format change. Automates whatever has a measurable effect and leaves
+   the rest to the pilot. Worth little for an engine start, a lot for the bomb run.
+3. **Drop the lot.** Not recommended: the boxing and the on-screen checklist work and are most of the
+   value.
+
+Waiting on David. Whatever is chosen, the F-16C checklist's three `argument` steps have to become
+`confirm` steps, and the `argument` check has to stop pretending it can fire.

@@ -40,7 +40,32 @@ Notes worth keeping:
 
 The tutor is a runtime module driven by data — see the PRD. No trigger rule is emitted at all.
 
-## Left open, for ticket 02 to settle first thing
+## Both open questions answered — 2026-08-01, in game, through the bridge
+
+**`a_out_picture_u` is reachable: yes.** Along with `a_out_picture_stop`, `getValueResourceByKey` and
+the whole `a_*` family — 114 of them. And ED's own source settles the duration question without a
+probe: `me_trigrules.lua` documents `seconds = 0` as "show until `a_out_picture_stop`" (DCSCORE-2754).
+
+**`Unit:getDrawArgumentValue` reports a cockpit switch position: NO.** This one is negative and it
+costs the lot its automatic validation. MAIN PWR was moved through OFF → BATT → MAIN PWR between
+reads and argument 510 stayed at `0` throughout — as did `c_player_unit_argument_in_range`, the
+documented fallback, which is therefore no fallback at all. `getDrawArgumentValue` works (52 non-zero
+arguments on a 0-800 sweep: gear, control surfaces, lights) but reads the **external** model;
+`list_cockpit_params()` returns 562 entries, 78 of them live, and not one is a control position.
+
+The signal was already in this ticket's own notes: `MAKE_CHECKLIST_ITEM` and `update_checklist` are
+not exposed **because they run in the module's cockpit environment**, which is exactly where the
+switch state lives. The consequence was not drawn at the time.
+
+Full measurements in
+[DCS cockpit + picture API](../../../docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md), section 3.
+
+**A probing note for next time:** the bridge's `/api/exec` runs in a **sandbox** — 96 globals, zero
+`a_` function. The real mission environment (288 globals, 114 `a_`) is reached with
+`net.dostring_in("mission", …)`. A first probe here concluded "the functions do not exist"; it was
+looking at the sandbox.
+
+## Originally left open, for ticket 02 to settle first thing
 
 **Does `Unit:getDrawArgumentValue(arg)` return cockpit switch state for a player-flown aircraft?** It is
 the documented way to read an animation argument

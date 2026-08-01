@@ -191,3 +191,9 @@ poc/doc-chatbot/worker/vec-*.bin
 poc/doc-chatbot/worker/txt-*.json
 poc/doc-chatbot/worker/.embed-cache.json
 poc/doc-chatbot/worker/.wrangler/
+
+# dcs-bridge local configuration — dcs-serve writes an API key into these when it is
+# started from this folder. Secrets, and machine-local: never committed.
+dcs-serve.yaml
+dcs-client.yaml
+dcs-tokens.yaml

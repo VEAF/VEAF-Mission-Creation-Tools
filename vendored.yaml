@@ -53,12 +53,12 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc2"
+    pinned: "2.0.0-rc3"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
     watch:
-      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc2" }
+      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc3" }
 
   - id: csar
     source: https://github.com/VEAF/DCS-CSAR

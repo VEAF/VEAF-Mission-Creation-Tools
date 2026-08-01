@@ -1,6 +1,6 @@
 # 05 — port the four VEAF modules to the v2 manager APIs
 
-**Status:** ✅ done — ported against CTLD `develop`; the vendored rc2 predates the two discovery settings, so re-vendoring is what turns their scaffold assertion on.
+**Status:** ✅ done — ported against CTLD `develop`, now vendored as 2.0.0-rc3, so the scaffold assertion on `logisticUnitTypes` / `troopZoneShipTypes` runs for real.
 
 Depends on 04 **and** on the CTLD-side lots `FEAT-VMCT-INTEGRATION` + `FIX-SHIP-ZONE-ANCHOR-PARITY`
 shipping in a rc3. Do not start before: the beacon API does not exist yet.

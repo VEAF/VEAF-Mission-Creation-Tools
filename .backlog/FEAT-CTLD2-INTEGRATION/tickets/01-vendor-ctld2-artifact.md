@@ -1,6 +1,6 @@
 # 01 — vendor the CTLD 2 artifact and rewrite its drift-watch entry
 
-**Status:** ✅ done — vendored at 2.0.0-rc2; re-vendor the stable before shipping.
+**Status:** ✅ done — vendored at 2.0.0-rc3, which carries every API this lot calls. Re-vendor the stable when it is cut; the watch will say so on its own, since `/releases/latest` starts resolving the moment a non-prerelease exists and the pin will then differ.
 
 No dependency. Do this first: ticket 02 reads the default catalogue out of the vendored file.
 

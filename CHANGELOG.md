@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **CTLD is now CTLD 2, and it is configured in its own file** (FEAT-CTLD2-INTEGRATION, [ADR 0016](docs/adr/0016-ctld2-sidecar-configuration.md)). The bundled script becomes [VEAF/CTLD](https://github.com/VEAF/CTLD) 2 — the OOP rewrite — vendored verbatim instead of the adapted ciribob v1 concatenation. A mission's CTLD settings move out of `mission.yaml` into a `ctld-config.yaml` beside it, a complete YAML snapshot edited with `ctld-tools.exe` and injected by the build as `CTLD_userConfig.lua`, loaded immediately before `CTLD.lua` in both static and dynamic mode. **`modules.CTLD.settings:` is no longer read and is now a validation error**, because the v1 channel only ever half-worked: the generated `ctld.<key>` lines were silently overwritten by the hardcoded configuration in `veaf.ctld_initialize_replacement`, so a `slingLoad: false` written in a `mission.yaml` never did anything and never said so. The build also defers CTLD's start-up (`ctld.dontInitialize`) so the VEAF framework initialises it after wiring its logger, keeping CTLD's startup report in the VEAF log.
+
 ### Added
 - **A version's documentation can be republished without moving its tag** (DOC-STAMP-FOOTER). `Deploy Docs` gained a manual trigger taking a `version` (and whether to move `latest`). Re-running the tag build was not an option: it rebuilds from the **tagged commit**, so a fix landed after the tag — such as the footer stamper below — could never reach the published pages. The version entered is also the one stamped into the pages, since republishing 6.12.0 from a 6.12.1 tree would otherwise stamp 6.12.1 onto them. Documented in the developer guide (FR + EN).
 

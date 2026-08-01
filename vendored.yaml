@@ -45,16 +45,20 @@ artifacts:
       - { kind: github-file, repo: VEAF/MissionScriptingTools, ref: master, pinned: "89a579c0ddb4" }
       - { kind: github-release, repo: mrSkortch/MissionScriptingTools, pinned: "4.5.126", role: upstream-ref }
 
+  # CTLD 2 is a full VEAF rewrite, not a fork: it deliberately carries NO `upstream` and a
+  # single watch. The ciribob lineage ended with v1 — "did the origin ship something to port?"
+  # has no answer for a rewrite, so the two-watch convention above does not apply here.
+  # Until VEAF/CTLD cuts a stable 2.0.0, `/releases/latest` skips the -rc pre-releases and the
+  # watch reports `unresolved` rather than drift. Expected; do not "fix" it by listing releases.
+  # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
-    source: https://github.com/VEAF/DCS-CTLD
-    upstream: https://github.com/ciribob/DCS-CTLD
-    pinned: "VEAF concat (ctld.Version 202401.01)"
-    vendoring: adapted
+    source: https://github.com/VEAF/CTLD
+    pinned: "2.0.0-rc2"
+    vendoring: verbatim
     path: src/scripts/community/CTLD.lua
-    manual_steps: "Re-fetch CTLD.lua + the i18n translations from the VEAF fork and re-concatenate them into the single vendored CTLD.lua (header documents the manual concat)."
+    manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
     watch:
-      - { kind: github-file, repo: VEAF/DCS-CTLD, ref: master, pinned: "7edb23f55536" }
-      - { kind: github-release, repo: ciribob/DCS-CTLD, pinned: "1.6.1", role: upstream-ref }
+      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc2" }
 
   - id: csar
     source: https://github.com/VEAF/DCS-CSAR

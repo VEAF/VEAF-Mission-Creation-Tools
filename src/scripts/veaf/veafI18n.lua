@@ -1164,6 +1164,33 @@ veaf.i18nCatalog = {
     en = "Complete: %s",
   },
 
+  -- veafAssist — radio menu. "assist.menu.<slot>" labels a checklist's `menu` slot; an
+  -- unknown slot resolves to itself, so a mission maker's own checklist still reads.
+  ["assist.menu.root"] = {
+    fr = "Assistance",
+    en = "Assistance",
+  },
+  ["assist.menu.cold-start"] = {
+    fr = "Démarrage à froid",
+    en = "Cold start",
+  },
+  ["assist.menu.confirm"] = {
+    fr = "Valider cette étape",
+    en = "Confirm this step",
+  },
+  ["assist.menu.skip"] = {
+    fr = "Passer cette étape",
+    en = "Skip this step",
+  },
+  ["assist.menu.toggle_picture"] = {
+    fr = "Masquer / afficher la checklist",
+    en = "Hide / show the checklist",
+  },
+  ["assist.menu.stop"] = {
+    fr = "Arrêter l'assistance",
+    en = "Stop the assistance",
+  },
+
   -- veafAssist — guided checklists.
   -- The F-16C wording follows ED's own autostart sequence (Macro_sequencies.lua); the
   -- cockpit labels stay in English because that is what is written in the cockpit.

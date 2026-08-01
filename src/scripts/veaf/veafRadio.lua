@@ -306,6 +306,7 @@ function veafRadio.RadioMenuBuilder:addMenu(label, parent, coalitionSide)
 end
 
 --- Creates a command node under parent (or root when nil) and returns it.
+--- The caller may set `groupFilter` on the returned node — see _placeCommandOnMenu.
 function veafRadio.RadioMenuBuilder:addCommand(label, parent, method, parameters, usage, isSecured)
   local command = {
     title = label,
@@ -371,6 +372,13 @@ end
 --- (internal) Places a single logical command onto the given DCS menu, handling
 --- the ForAll (global) and per-group / per-unit dispatch. Extracted from
 --- _buildSubtree so pagination can target a specific page's DCS menu.
+---
+--- A command may carry an optional `groupFilter(unitName, groupId) -> boolean`, consulted
+--- once per candidate unit: false leaves the entry out for that group. It is what lets a
+--- module offer an entry only to the pilots it applies to — an aircraft type that has a
+--- checklist, a pilot with a session running — instead of showing everyone an item that
+--- answers "nothing for you" (veafAssist). Only per-group / per-unit commands are
+--- filtered: a ForAll command has no unit to decide on.
 function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide)
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
@@ -394,7 +402,16 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
           veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
           local humanUnit = veafRadio.humanUnits[unitName]
           veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-          if humanUnit and humanUnit.spawned then
+          local passesFilter = true
+          if command.groupFilter then
+            local ok, result = pcall(command.groupFilter, unitName, groupId)
+            -- A filter that throws must not take the whole menu rebuild down with it.
+            passesFilter = ok and result == true
+            if not ok then
+              veaf.loggers.get(veafRadio.Id):warn("groupFilter for command %s failed: %s", veaf.p(command.title), veaf.p(result))
+            end
+          end
+          if humanUnit and humanUnit.spawned and passesFilter then
             veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
             local parameters = command.parameters
             if parameters == nil then

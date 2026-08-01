@@ -237,11 +237,20 @@ local function stepLabel(session, index)
   return step and veaf.t(step.label) or ""
 end
 
+--- Ask the radio menu to re-evaluate which entries this pilot should see.
+--- The refresh is debounced by veafRadio, so calling it on every transition is cheap.
+local function refreshMenu()
+  if veafRadio and veafAssist.rootPath then
+    veafRadio.refreshRadioMenu()
+  end
+end
+
 --- End a session, clearing everything it owns.
 local function closeSession(session)
   highlightElement(session, nil)
   hidePicture(session)
   veafAssist.sessions[session.unitName] = nil
+  refreshMenu()
 end
 
 --- Advance a session to its current step, re-boxing and repainting as needed.
@@ -256,6 +265,9 @@ local function refreshSession(unit, session)
     return
   end
   session.displayedIndex = index
+  -- The step changed, so "Confirm this step" may have just become relevant, or stopped
+  -- being so.
+  refreshMenu()
   -- Re-issue the highlight only when the target step changes: ED's own
   -- update_checklist guards on exactly this, and re-boxing every tick is
   -- wasteful and visually unstable.
@@ -350,6 +362,7 @@ function veafAssist.start(unitName, checklistId)
   tickAlreadySatisfiedSteps(unit, session)
   tell(session, "assist.started", veaf.t(checklist.title))
   refreshSession(unit, session)
+  refreshMenu()
   return true
 end
 
@@ -426,6 +439,129 @@ function veafAssist.stop(unitName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Radio menu
+--
+-- One `Assistance` submenu, whose entries are per player group: a global entry would let
+-- one pilot put a highlight in someone else's cockpit. Which entries a pilot actually
+-- sees is decided by a `groupFilter` on each command rather than by rebuilding the tree,
+-- so the menu follows the session state without the module ever removing what it added —
+-- leftovers stack one duplicate per join, the bug FEAT-COMBATZONE-MENU-COALITION fixed.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The DCS type a player unit flies, or nil when the unit is gone.
+local function typeOfUnit(unitName)
+  local unit = Unit.getByName(unitName)
+  if not (unit and unit.getTypeName) then
+    return nil
+  end
+  local ok, typeName = pcall(unit.getTypeName, unit)
+  return ok and typeName or nil
+end
+
+--- Whether a pilot can be offered a given checklist: nothing running, right aircraft.
+function veafAssist.canStart(unitName, checklistId)
+  if veafAssist.sessions[unitName] then
+    return false
+  end
+  local checklist = veafAssist.checklists[checklistId]
+  if not checklist then
+    return false
+  end
+  local typeName = typeOfUnit(unitName)
+  for _, aircraft in ipairs(checklist.aircraft or {}) do
+    if aircraft == typeName then
+      return true
+    end
+  end
+  return false
+end
+
+--- Whether a pilot has a session running.
+function veafAssist.isAssisted(unitName)
+  return veafAssist.sessions[unitName] ~= nil
+end
+
+--- Whether the pilot's current step is one they have to confirm themselves.
+--- An inert "Confirm" on an automatic step invites a press and a puzzled pilot.
+function veafAssist.currentStepNeedsConfirmation(unitName)
+  local session = veafAssist.sessions[unitName]
+  if not session then
+    return false
+  end
+  local index = currentStepIndex(session)
+  local step = index and session.checklist.steps[index]
+  return step ~= nil and step.check ~= nil and step.check.type == "confirm"
+end
+
+--- Menu label of a checklist: the `menu` slot, resolved through the catalog.
+--- An unknown key comes back unchanged, so a mission maker's own slot still reads.
+local function menuLabel(checklist)
+  return veaf.t("assist.menu." .. tostring(checklist.menu))
+end
+
+--- Radio entry point: start. Carries the checklist id, so the builder hands over
+--- { checklistId, unitName }.
+function veafAssist.radioStart(parameters)
+  local checklistId, unitName = veaf.safeUnpack(parameters)
+  veafAssist.start(unitName, checklistId)
+end
+
+--- The contextual entries carry no parameter, so the builder hands over the unit name.
+function veafAssist.radioConfirm(unitName)
+  veafAssist.confirmStep(unitName)
+end
+
+function veafAssist.radioSkip(unitName)
+  veafAssist.skipStep(unitName)
+end
+
+function veafAssist.radioTogglePicture(unitName)
+  veafAssist.togglePicture(unitName)
+end
+
+function veafAssist.radioStop(unitName)
+  veafAssist.stop(unitName)
+end
+
+--- Build the `Assistance` submenu. Nothing at all when the mission activates no
+--- checklist: an empty menu is worse than no menu.
+function veafAssist.buildRadioMenu()
+  if not veafRadio or next(veafAssist.checklists) == nil then
+    return
+  end
+
+  veafAssist.rootPath = veafRadio.addSubMenu(veaf.t("assist.menu.root"))
+
+  -- Sorted by id so the menu order does not depend on table iteration order.
+  local ids = {}
+  for id in pairs(veafAssist.checklists) do
+    table.insert(ids, id)
+  end
+  table.sort(ids)
+  for _, id in ipairs(ids) do
+    local checklist = veafAssist.checklists[id]
+    local command =
+      veafRadio.addCommandToSubmenu(menuLabel(checklist), veafAssist.rootPath, veafAssist.radioStart, id, veafRadio.USAGE_ForGroup)
+    command.groupFilter = function(unitName)
+      return veafAssist.canStart(unitName, id)
+    end
+  end
+
+  local contextual = {
+    { key = "assist.menu.confirm", method = veafAssist.radioConfirm, filter = veafAssist.currentStepNeedsConfirmation },
+    { key = "assist.menu.skip", method = veafAssist.radioSkip, filter = veafAssist.isAssisted },
+    { key = "assist.menu.toggle_picture", method = veafAssist.radioTogglePicture, filter = veafAssist.isAssisted },
+    { key = "assist.menu.stop", method = veafAssist.radioStop, filter = veafAssist.isAssisted },
+  }
+  for _, entry in ipairs(contextual) do
+    local command = veafRadio.addCommandToSubmenu(veaf.t(entry.key), veafAssist.rootPath, entry.method, nil, veafRadio.USAGE_ForGroup)
+    command.groupFilter = entry.filter
+  end
+
+  veafRadio.refreshRadioMenu()
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -440,6 +576,7 @@ function veafAssist.initialize()
     return
   end
 
+  veafAssist.buildRadioMenu()
   mist.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
 
   veafAssist.initialized = true

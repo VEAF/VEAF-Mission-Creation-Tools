@@ -99,6 +99,9 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zones",
         "airwave_zones",
         "password_mm_hashes",
+        # ASSIST: a build-time selection, not a runtime setting — the engine only ever
+        # sees the checklists the build chose to emit.
+        "checklists",
     }
 )
 
@@ -1157,6 +1160,27 @@ def _resolve_deps(effective: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
+    """Return a module's normalised config block, or ``None`` when it is not active.
+
+    Accepts every shape a mission may write (``ID: true``, ``ID:``, ``ID: {enabled: …}``)
+    and applies the same enable rule as the generator itself, so a caller reading a
+    module's settings cannot disagree with what gets emitted.
+
+    Args:
+        mission_yaml: The effective ``mission.yaml`` mapping (internal ``lua_modules`` key).
+        module_id: The module id, e.g. ``"ASSIST"``.
+
+    Returns:
+        The module's settings, or ``None`` when the mission omits or disables it.
+    """
+    modules: dict = mission_yaml.get("lua_modules") or {}
+    if module_id not in modules:
+        return None
+    config = _normalize_module_cfg(modules[module_id])
+    return config if _get_module_enabled(config, True) else None
 
 
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:

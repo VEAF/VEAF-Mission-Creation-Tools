@@ -5,6 +5,7 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafI18n.lua")
+dofile(src .. "/veafRadio.lua")
 dofile(src .. "/veafAssist.lua")
 
 -- ---------------------------------------------------------------------------
@@ -353,6 +354,138 @@ function TestVeafAssistAvailability:test_initialize_does_not_arm_the_module_with
   a_out_picture_u = saved
   veafAssist.initialize()
   luaunit.assertTrue(veafAssist.initialized)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafAssistRadioMenu
+-- ---------------------------------------------------------------------------
+TestVeafAssistRadioMenu = {}
+
+--- Rebuild the menu from scratch on a clean engine, and return the Assistance node.
+local function setUpMenu()
+  setUpEngine()
+  veafRadio.radioMenu.subMenus = {}
+  veafRadio.radioMenu.commands = {}
+  veafAssist.rootPath = nil
+  veafAssist.buildRadioMenu()
+  return veafAssist.rootPath
+end
+
+--- Titles of the entries a given pilot would actually see.
+local function visibleEntries(unitName)
+  local titles = {}
+  for _, command in ipairs(veafAssist.rootPath.commands) do
+    if not command.groupFilter or command.groupFilter(unitName) then
+      table.insert(titles, command.title)
+    end
+  end
+  return titles
+end
+
+function TestVeafAssistRadioMenu:test_no_menu_when_the_mission_activates_no_checklist()
+  dcs_mocks.reset()
+  veafAssist.checklists = {}
+  veafAssist.rootPath = nil
+  veafAssist.buildRadioMenu()
+  luaunit.assertNil(veafAssist.rootPath)
+end
+
+function TestVeafAssistRadioMenu:test_the_menu_holds_one_start_entry_plus_the_contextual_ones()
+  local root = setUpMenu()
+  luaunit.assertNotNil(root)
+  luaunit.assertEquals(#root.commands, 5)
+end
+
+function TestVeafAssistRadioMenu:test_every_entry_is_per_group()
+  local root = setUpMenu()
+  for _, command in ipairs(root.commands) do
+    luaunit.assertEquals(command.usage, veafRadio.USAGE_ForGroup)
+  end
+end
+
+function TestVeafAssistRadioMenu:test_an_idle_pilot_of_the_right_type_sees_only_the_start_entry()
+  setUpMenu()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    _drawArgs = { [510] = -1.0 },
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  luaunit.assertEquals(visibleEntries("Pilot #1"), { veaf.t("assist.menu.cold-start") })
+end
+
+function TestVeafAssistRadioMenu:test_a_pilot_of_another_type_sees_nothing()
+  setUpMenu()
+  dcs_mocks.addUnit("Hog #1", {
+    _id = 43,
+    getTypeName = function()
+      return "A-10C_2"
+    end,
+  })
+  luaunit.assertEquals(visibleEntries("Hog #1"), {})
+end
+
+function TestVeafAssistRadioMenu:test_a_session_swaps_the_start_entry_for_the_contextual_ones()
+  setUpMenu()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    _drawArgs = { [510] = -1.0 },
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  veafAssist.start("Pilot #1", "test-checklist")
+  local visible = visibleEntries("Pilot #1")
+  table.sort(visible)
+  -- Step 1 is an argument step, so "Confirm this step" is not offered yet.
+  local expected = { veaf.t("assist.menu.skip"), veaf.t("assist.menu.stop"), veaf.t("assist.menu.toggle_picture") }
+  table.sort(expected)
+  luaunit.assertEquals(visible, expected)
+end
+
+function TestVeafAssistRadioMenu:test_confirm_appears_only_on_a_confirm_step()
+  setUpMenu()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    _drawArgs = { [510] = -1.0 },
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  veafAssist.start("Pilot #1", "test-checklist")
+  luaunit.assertFalse(veafAssist.currentStepNeedsConfirmation("Pilot #1"))
+
+  setArgumentAndTick("Pilot #1", 510, 0.0)
+  setArgumentAndTick("Pilot #1", 510, 1.0)
+  -- Step 3 is the confirm one.
+  luaunit.assertTrue(veafAssist.currentStepNeedsConfirmation("Pilot #1"))
+  local visible = visibleEntries("Pilot #1")
+  local found = false
+  for _, title in ipairs(visible) do
+    if title == veaf.t("assist.menu.confirm") then
+      found = true
+    end
+  end
+  luaunit.assertTrue(found)
+end
+
+function TestVeafAssistRadioMenu:test_a_pilot_with_no_unit_is_offered_nothing()
+  setUpMenu()
+  luaunit.assertFalse(veafAssist.canStart("Ghost #1", "test-checklist"))
+end
+
+function TestVeafAssistRadioMenu:test_radioStart_unpacks_the_builder_parameters()
+  setUpMenu()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    _drawArgs = { [510] = -1.0 },
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  veafAssist.radioStart({ "test-checklist", "Pilot #1" })
+  luaunit.assertNotNil(veafAssist.sessions["Pilot #1"])
 end
 
 os.exit(luaunit.LuaUnit.run())

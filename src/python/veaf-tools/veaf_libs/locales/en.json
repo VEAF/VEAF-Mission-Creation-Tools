@@ -905,5 +905,6 @@
   "checklist.unreadable": "Cannot read checklist '{source}': {details}",
   "checklist.duplicate_id": "Two checklists declare the id '{id}': '{first}' and '{second}'. Ids must be unique within a folder.",
   "checklist.units_catalogue_unavailable": "DCS unit catalogue unavailable: checklist aircraft types will not be validated.",
-  "checklist.images_generated": "Generated {n} checklist image(s), {size} KB embedded in the mission."
+  "checklist.images_generated": "Generated {n} checklist image(s), {size} KB embedded in the mission.",
+  "checklist.unknown_id": "mission.yaml activates unknown checklist(s): {ids}. Known: {known}."
 }

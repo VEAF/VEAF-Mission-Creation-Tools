@@ -82,6 +82,18 @@ class ChecklistImages:
         """Total weight the checklist adds to the ``.miz``."""
         return sum(len(payload) for payload in self.files.values())
 
+    def resources(self) -> dict[str, str]:
+        """Return the ``mapResource`` entries: resource key → embedded file name.
+
+        Built by state index rather than by sorting the file names, which would put
+        ``…-10.png`` between ``…-1.png`` and ``…-2.png`` and silently pair every state
+        of a ten-step-or-longer checklist with the wrong picture.
+
+        Returns:
+            One entry per progress state.
+        """
+        return {key: image_filename(self.checklist_id, state) for state, key in enumerate(self.resource_keys)}
+
 
 def resource_key(checklist_id: str, state: int) -> str:
     """Return the DCS resource key of one progress state.

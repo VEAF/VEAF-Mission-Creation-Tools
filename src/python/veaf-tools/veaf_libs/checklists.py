@@ -20,6 +20,7 @@ Sidecar files rather than blocks of ``mission.yaml``, per the call in
 
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -258,6 +259,64 @@ def _load_folder(folder: Path, into: dict[str, Checklist]) -> None:
             )
         seen[checklist.id] = path.name
         into[checklist.id] = checklist
+
+
+def load_mission_checklists(mission_folder: Path) -> dict[str, Checklist]:
+    """Load only the checklists a mission ships in its own ``checklists/`` folder.
+
+    Kept separate from :func:`load_checklists` because "the mission maker put this file
+    here" is what activates a checklist when ``mission.yaml`` gives no explicit list.
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The mission's own checklists, keyed by ``id`` (empty when it has none).
+
+    Raises:
+        ChecklistError: on any invalid or duplicated definition.
+    """
+    result: dict[str, Checklist] = {}
+    _load_folder(mission_folder / CHECKLISTS_FOLDER_NAME, result)
+    return result
+
+
+def select_activated(
+    available: Mapping[str, Checklist],
+    configured_ids: Sequence[str] | None,
+    mission_ids: Collection[str] = (),
+) -> list[Checklist]:
+    """Return the checklists a mission activates, in a stable order.
+
+    Two rules, and the second is the one that makes the common case need no configuration:
+
+    - an explicit ``checklists:`` list in ``mission.yaml`` wins, and an id it names that
+      no source provides is a build error rather than a silently missing menu entry;
+    - with no list, the checklists the mission maker dropped in its own ``checklists/``
+      folder are activated. **Never the whole VMCT catalogue** — every activated checklist
+      costs images in the ``.miz``, so activating a catalogue by accident is not an option.
+
+    Args:
+        available: Every checklist that could be activated, catalogue and mission merged.
+        configured_ids: The ``checklists:`` list, or ``None`` when the key is absent.
+        mission_ids: Ids the mission ships in its own folder.
+
+    Returns:
+        The activated checklists, sorted by id.
+
+    Raises:
+        ChecklistError: when the configured list names an unknown id.
+    """
+    if configured_ids is None:
+        chosen = {str(entry) for entry in mission_ids}
+    else:
+        chosen = {str(entry) for entry in configured_ids}
+        unknown = sorted(entry for entry in chosen if entry not in available)
+        if unknown:
+            raise ChecklistError(
+                t("checklist.unknown_id", ids=", ".join(unknown), known=", ".join(sorted(available)) or "none")
+            )
+    return [available[checklist_id] for checklist_id in sorted(chosen) if checklist_id in available]
 
 
 def load_checklists(mission_folder: Path | None = None, catalogue_dir: Path | None = None) -> dict[str, Checklist]:

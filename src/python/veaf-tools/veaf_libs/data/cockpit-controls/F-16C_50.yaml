@@ -19,6 +19,10 @@ controls:
     positions:
     - 'OFF'
     - BACKUP
+    command: control_commands.DigitalBackup
+    values:
+      'OFF': 0.0
+      BACKUP: 1.0
     range:
     - 0.0
     - 1.0
@@ -30,6 +34,10 @@ controls:
     positions:
     - NORM
     - EXTEND
+    command: control_commands.AltFlaps
+    values:
+      NORM: 0.0
+      EXTEND: 1.0
     range:
     - 0.0
     - 1.0
@@ -41,6 +49,8 @@ controls:
     positions:
     - 'OFF'
     - BIT
+    command: control_commands.BitSw
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -52,6 +62,8 @@ controls:
     positions:
     - 'OFF'
     - RESET
+    command: control_commands.FlcsReset
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -63,6 +75,10 @@ controls:
     positions:
     - AUTO
     - LOCK
+    command: control_commands.LeFlaps
+    values:
+      AUTO: 0.0
+      LOCK: 1.0
     range:
     - 0.0
     - 1.0
@@ -74,6 +90,10 @@ controls:
     positions:
     - DISC
     - NORM
+    command: control_commands.TrimApDisc
+    values:
+      DISC: 0.0
+      NORM: 1.0
     range:
     - 0.0
     - 1.0
@@ -83,6 +103,8 @@ controls:
     hint: ROLL TRIM Wheel
     prototype: default_axis_limited_1_side
     positions: []
+    command: control_commands.RollTrim
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -92,6 +114,8 @@ controls:
     hint: PITCH TRIM Wheel
     prototype: default_axis_limited_1_side
     positions: []
+    command: control_commands.PitchTrim
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -101,6 +125,8 @@ controls:
     hint: YAW TRIM Knob
     prototype: default_axis_limited
     positions: []
+    command: control_commands.YawTrim
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -112,6 +138,8 @@ controls:
     positions:
     - OVRD
     - NORM
+    command: control_commands.ManualPitchOverride
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -123,6 +151,10 @@ controls:
     positions:
     - CAT III
     - CAT I
+    command: control_commands.StoresConfig
+    values:
+      I: 1.0
+      III: 0.0
     range:
     - 0.0
     - 1.0
@@ -136,6 +168,8 @@ controls:
     - A
     - P OFF
     - ALT HOLD
+    command: control_commands.ApPitchAtt
+    values: {}
     range: null
     readable: false
   PTR-CLCP-TMB-ROLL-108:
@@ -146,6 +180,11 @@ controls:
     - STRG SEL
     - ATT HOLD
     - HDG SEL
+    command: control_commands.ApRoll
+    values:
+      STRG SEL: -1.0
+      ATT HOLD: 0.0
+      HDG SEL: 1.0
     range:
     - -1.0
     - 1.0
@@ -155,6 +194,10 @@ controls:
     hint: ADV MODE Switch
     prototype: default_2_position_tumb
     positions: []
+    command: control_commands.AdvMode
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -166,6 +209,10 @@ controls:
     positions:
     - ENABLE
     - DISABLE
+    command: control_commands.ManualTfFlyup
+    values:
+      DISABLE: 0.0
+      ENABLE: 1.0
     range:
     - 0.0
     - 1.0
@@ -177,6 +224,8 @@ controls:
     positions:
     - 'OFF'
     - IDLE
+    command: control_commands.ThrottleOnOff
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -194,6 +243,16 @@ controls:
     - A
     - B
     - C
+    command: extlights_commands.AntiCollKn
+    values:
+      'OFF': 0.0
+      '1': 0.1
+      '2': 0.2
+      '3': 0.3
+      '4': 0.4
+      A: 0.5
+      B: 0.6
+      C: 0.7
     range:
     - 0.0
     - 0.7000000000000001
@@ -205,6 +264,10 @@ controls:
     positions:
     - FLASH
     - STEADY
+    command: extlights_commands.PosFlash
+    values:
+      STEADY: 0.0
+      FLASH: 1.0
     range:
     - 0.0
     - 1.0
@@ -217,6 +280,11 @@ controls:
     - BRT
     - 'OFF'
     - DIM
+    command: extlights_commands.PosWingTail
+    values:
+      DIM: -1.0
+      'OFF': 0.0
+      BRT: 1.0
     range:
     - -1.0
     - 1.0
@@ -229,6 +297,11 @@ controls:
     - BRT
     - 'OFF'
     - DIM
+    command: extlights_commands.PosFus
+    values:
+      DIM: -1.0
+      'OFF': 0.0
+      BRT: 1.0
     range:
     - -1.0
     - 1.0
@@ -238,6 +311,8 @@ controls:
     hint: FORM Knob
     prototype: default_axis_limited
     positions: []
+    command: extlights_commands.FormKn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -252,6 +327,13 @@ controls:
     - A-C
     - FORM
     - NORM
+    command: extlights_commands.Master
+    values:
+      'OFF': 0.0
+      ALL: 0.1
+      A-C: 0.2
+      FORM: 0.3
+      NORM: 0.4
     range:
     - 0.0
     - 0.4
@@ -261,6 +343,8 @@ controls:
     hint: AERIAL REFUELING Knob
     prototype: default_axis_limited
     positions: []
+    command: extlights_commands.AerialRefuel
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -273,6 +357,11 @@ controls:
     - LANDING
     - 'OFF'
     - TAXI
+    command: extlights_commands.LandingTaxi
+    values:
+      TAXI: -1.0
+      'OFF': 0.0
+      LANDING: 1.0
     range:
     - -1.0
     - 1.0
@@ -282,6 +371,8 @@ controls:
     hint: Master Caution Button - Push to reset
     prototype: default_button
     positions: []
+    command: cptlights_commands.MasterCaution
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -291,6 +382,8 @@ controls:
     hint: MAL & IND LTS Test Button - Push to test
     prototype: default_button
     positions: []
+    command: cptlights_commands.MalIndLtsTest
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -300,6 +393,8 @@ controls:
     hint: PRIMARY CONSOLES BRT Knob
     prototype: default_axis_limited
     positions: []
+    command: cptlights_commands.Consoles
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -309,6 +404,8 @@ controls:
     hint: PRIMARY INST PNL BRT Knob
     prototype: default_axis_limited
     positions: []
+    command: cptlights_commands.IntsPnl
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -318,6 +415,8 @@ controls:
     hint: PRIMARY DATA ENTRY DISPLAY BRT Knob
     prototype: default_axis_limited
     positions: []
+    command: cptlights_commands.DataEntryDisplay
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -327,6 +426,8 @@ controls:
     hint: FLOOD CONSOLES BRT Knob
     prototype: default_axis_limited
     positions: []
+    command: cptlights_commands.ConsolesFlood
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -336,6 +437,8 @@ controls:
     hint: FLOOD INST PNL BRT Knob
     prototype: default_axis_limited
     positions: []
+    command: cptlights_commands.InstPnlFlood
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -348,6 +451,8 @@ controls:
     - BRT
     - Center
     - DIM
+    command: cptlights_commands.MalIndLtsDim
+    values: {}
     range: null
     readable: false
   PTR-AOA-LVL-794:
@@ -355,6 +460,8 @@ controls:
     hint: AOA Indexer Dimming Lever
     prototype: default_axis_limited_1_side
     positions: []
+    command: cptlights_commands.IndBrtAoA
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -364,6 +471,8 @@ controls:
     hint: AR Status Indicator Dimming Lever
     prototype: default_axis_limited_1_side
     positions: []
+    command: cptlights_commands.IndBrtAR
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -376,6 +485,11 @@ controls:
     - MAIN PWR
     - BATT
     - 'OFF'
+    command: elec_commands.MainPwrSw
+    values:
+      'OFF': -1.0
+      BATT: 0.0
+      MAIN PWR: 1.0
     range:
     - -1.0
     - 1.0
@@ -385,6 +499,8 @@ controls:
     hint: ELEC CAUTION RESET Button - Push to reset
     prototype: default_button
     positions: []
+    command: elec_commands.CautionResetBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -397,6 +513,8 @@ controls:
     - EPU
     - GEN
     - 'OFF'
+    command: elec_commands.EPU_GEN_TestSw
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -409,6 +527,8 @@ controls:
     - PROBE HEAT
     - 'OFF'
     - TEST(momentarily)
+    command: elec_commands.ProbeHeatSwTEST
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -421,6 +541,10 @@ controls:
     - MAINT
     - NORM
     - TEST(momentarily)
+    command: elec_commands.FlcsPwrTestSwMAINT
+    values:
+      MAINT: -1.0
+      NORM: 0.0
     range:
     - -1.0
     - 0.0
@@ -432,6 +556,10 @@ controls:
     positions:
     - MASTER
     - 'OFF'
+    command: fuel_commands.FuelMasterSw
+    values:
+      MASTER: 0.0
+      'OFF': 1.0
     range:
     - 0.0
     - 1.0
@@ -443,6 +571,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: fuel_commands.FuelMasterSwCvr
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -454,6 +586,10 @@ controls:
     positions:
     - TANK INERTING
     - 'OFF'
+    command: fuel_commands.TankInertingSw
+    values:
+      'OFF': 0.0
+      TANK INERTING: 1.0
     range:
     - 0.0
     - 1.0
@@ -467,6 +603,12 @@ controls:
     - NORM
     - AFT
     - FWD
+    command: fuel_commands.EngineFeedSw
+    values:
+      'OFF': 0.0
+      NORM: 0.1
+      AFT: 0.2
+      FWD: 0.3
     range:
     - 0.0
     - 0.30000000000000004
@@ -478,6 +620,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: fuel_commands.AirRefuelSw
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -489,6 +635,10 @@ controls:
     positions:
     - NORM
     - WING FIRST
+    command: fuel_commands.ExtFuelTransferSw
+    values:
+      NORM: 1.0
+      WING FIRST: 0.0
     range:
     - 0.0
     - 1.0
@@ -500,6 +650,8 @@ controls:
     positions:
     - UP
     - DN
+    command: gear_commands.LGHandle
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -509,6 +661,8 @@ controls:
     hint: DN LOCK REL Button - Push to reset
     prototype: default_button
     positions: []
+    command: gear_commands.DownLockRelBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -520,6 +674,10 @@ controls:
     positions:
     - UP
     - DN
+    command: gear_commands.HookSw
+    values:
+      UP: 1.0
+      DN: 0.0
     range:
     - 0.0
     - 1.0
@@ -529,6 +687,8 @@ controls:
     hint: HORN SILENCER Button - Push to reset
     prototype: default_button
     positions: []
+    command: gear_commands.HornSilencerBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -540,6 +700,10 @@ controls:
     positions:
     - CHAN 1
     - CHAN 2
+    command: gear_commands.BrakesChannelSw
+    values:
+      '1': 1.0
+      '2': 0.0
     range:
     - 0.0
     - 1.0
@@ -552,6 +716,8 @@ controls:
     - PARKING BRAKE
     - ANTI-SKID
     - 'OFF'
+    command: gear_commands.AntiSkidSw
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -563,6 +729,10 @@ controls:
     positions:
     - PULL
     - STOW
+    command: gear_commands.AltGearHandle
+    values:
+      PULL: 1.0
+      STOW: 0.0
     range:
     - 0.0
     - 1.0
@@ -572,6 +742,8 @@ controls:
     hint: ALT GEAR Handle - Push to reset
     prototype: default_button
     positions: []
+    command: gear_commands.AltGearResetBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -581,6 +753,8 @@ controls:
     hint: TEMP Knob
     prototype: default_axis_limited
     positions: []
+    command: ecs_commands.TempKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -594,6 +768,12 @@ controls:
     - NORM
     - DUMP
     - RAM
+    command: ecs_commands.AirSourceKnob
+    values:
+      'OFF': 0.0
+      NORM: 0.1
+      DUMP: 0.2
+      RAM: 0.3
     range:
     - 0.0
     - 0.30000000000000004
@@ -603,6 +783,8 @@ controls:
     hint: DEFOG Lever
     prototype: default_2_position_tumb
     positions: []
+    command: ecs_commands.DefogLever
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -614,6 +796,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: engine_commands.EpuSwCvrOn
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -625,6 +811,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: engine_commands.EpuSwCvrOff
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -637,6 +827,11 @@ controls:
     - 'ON'
     - NORM
     - 'OFF'
+    command: engine_commands.EpuSw
+    values:
+      'OFF': -1.0
+      NORM: 0.0
+      'ON': 1.0
     range:
     - -1.0
     - 1.0
@@ -649,6 +844,11 @@ controls:
     - 'ON'
     - AUTO
     - 'OFF'
+    command: engine_commands.EngAntiIceSw
+    values:
+      'OFF': -1.0
+      AUTO: 0.0
+      'ON': 1.0
     range:
     - -1.0
     - 1.0
@@ -661,6 +861,8 @@ controls:
     - START 1
     - 'OFF'
     - START 2
+    command: engine_commands.JfsSwStart2
+    values: {}
     range: null
     readable: false
   PTR-ENGSTART-CVR-ENGCNT-448:
@@ -670,6 +872,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: engine_commands.EngContSwCvr
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -681,6 +887,10 @@ controls:
     positions:
     - PRI
     - SEC
+    command: engine_commands.EngContSw
+    values:
+      PRI: 0.0
+      SEC: 1.0
     range:
     - 0.0
     - 1.0
@@ -692,6 +902,10 @@ controls:
     positions:
     - MAX POWER
     - 'OFF'
+    command: engine_commands.MaxPowerSw
+    values:
+      'OFF': 0.0
+      MAX POWER: 1.0
     range:
     - 0.0
     - 1.0
@@ -704,6 +918,8 @@ controls:
     - AB RESET
     - NORM
     - ENG DATA
+    command: engine_commands.ABResetSwEngData
+    values: {}
     range: null
     readable: false
   PTR-TESTCP-BTN-FIRE-575:
@@ -711,6 +927,8 @@ controls:
     hint: FIRE & OHEAT DETECT Test Button - Push to test
     prototype: default_button
     positions: []
+    command: engine_commands.FireOheatTestBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -723,6 +941,11 @@ controls:
     - PBG
     - 'ON'
     - 'OFF'
+    command: oxygen_commands.SupplyLever
+    values:
+      'OFF': 0.0
+      'ON': 0.5
+      PBG: 1.0
     range:
     - -1.0
     - 1.0
@@ -734,6 +957,10 @@ controls:
     positions:
     - 100 percent
     - NORM
+    command: oxygen_commands.DiluterLever
+    values:
+      NORM: 0.0
+      100 percent: 1.0
     range:
     - 0.0
     - 1.0
@@ -746,6 +973,8 @@ controls:
     - EMERGENCY
     - NORMAL
     - TEST MASK(momentarily)
+    command: oxygen_commands.EmergencyLeverTestMask
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -757,6 +986,8 @@ controls:
     positions:
     - BIT
     - 'OFF'
+    command: oxygen_commands.ObogsBitSw
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -768,6 +999,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: sms_commands.LeftHDPT
+    values:
+      'OFF': 0.0
+      'ON': 1.0
     range:
     - 0.0
     - 1.0
@@ -779,6 +1014,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: sms_commands.RightHDPT
+    values:
+      'OFF': 0.0
+      'ON': 1.0
     range:
     - 0.0
     - 1.0
@@ -790,6 +1029,10 @@ controls:
     positions:
     - FCR
     - 'OFF'
+    command: fcr_commands.PwrSw
+    values:
+      'OFF': 0.0
+      FCR: 1.0
     range:
     - 0.0
     - 1.0
@@ -802,6 +1045,11 @@ controls:
     - RDR ALT
     - STBY
     - 'OFF'
+    command: ralt_commands.PwrSw
+    values:
+      'OFF': -1.0
+      STBY: 0.0
+      RDR ALT: 1.0
     range:
     - -1.0
     - 1.0
@@ -813,6 +1061,10 @@ controls:
     positions:
     - MMC
     - 'OFF'
+    command: mmc_commands.MmcPwr
+    values:
+      'OFF': 0.0
+      MMC: 1.0
     range:
     - 0.0
     - 1.0
@@ -824,6 +1076,10 @@ controls:
     positions:
     - ST STA
     - 'OFF'
+    command: sms_commands.StStaSw
+    values:
+      'OFF': 0.0
+      ST STA: 1.0
     range:
     - 0.0
     - 1.0
@@ -835,6 +1091,10 @@ controls:
     positions:
     - MFD
     - 'OFF'
+    command: mmc_commands.MFD
+    values:
+      'OFF': 0.0
+      MFD: 1.0
     range:
     - 0.0
     - 1.0
@@ -846,6 +1106,10 @@ controls:
     positions:
     - UFC
     - 'OFF'
+    command: ufc_commands.UFC_Sw
+    values:
+      'OFF': 0.0
+      UFC: 1.0
     range:
     - 0.0
     - 1.0
@@ -857,6 +1121,10 @@ controls:
     positions:
     - GPS
     - 'OFF'
+    command: gps_commands.PwrSw
+    values:
+      'OFF': 0.0
+      GPS: 1.0
     range:
     - 0.0
     - 1.0
@@ -869,6 +1137,11 @@ controls:
     - ZERO
     - 'OFF'
     - 'ON'
+    command: mids_commands.PwrSw
+    values:
+      ZERO: 0.0
+      'OFF': 0.1
+      'ON': 0.2
     range:
     - 0.0
     - 0.2
@@ -885,6 +1158,15 @@ controls:
     - CAL
     - INFLT ALIGN
     - ATT
+    command: ins_commands.ModeKnob
+    values:
+      'OFF': 0.0
+      STOR HDG (ALIGN): 0.1
+      NORM (ALIGN): 0.2
+      NAV: 0.3
+      CAL: 0.4
+      INFLT ALIGN: 0.5
+      ATT: 0.6
     range:
     - 0.0
     - 0.6000000000000001
@@ -896,6 +1178,10 @@ controls:
     positions:
     - MAP
     - 'OFF'
+    command: map_commands.PwrSw
+    values:
+      'OFF': 0.0
+      MAP: 1.0
     range:
     - 0.0
     - 1.0
@@ -907,6 +1193,10 @@ controls:
     positions:
     - DL
     - 'OFF'
+    command: idm_commands.PwrSw
+    values:
+      'OFF': 0.0
+      DL: 1.0
     range:
     - 0.0
     - 1.0
@@ -919,6 +1209,11 @@ controls:
     - MASTER ARM
     - 'OFF'
     - SIMULATE
+    command: mmc_commands.MasterArmSw
+    values:
+      SIMULATE: -1.0
+      'OFF': 0.0
+      MASTER ARM: 1.0
     range:
     - -1.0
     - 1.0
@@ -928,6 +1223,8 @@ controls:
     hint: EMER STORES JETTISON Button - Push to jettison
     prototype: default_button
     positions: []
+    command: mmc_commands.EmerStoresJett
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -939,6 +1236,10 @@ controls:
     positions:
     - ENABLE
     - 'OFF'
+    command: mmc_commands.GroundJett
+    values:
+      ENABLE: 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -948,6 +1249,8 @@ controls:
     hint: ALT REL Button - Push to release
     prototype: default_button
     positions: []
+    command: mmc_commands.AltRel
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -959,6 +1262,10 @@ controls:
     positions:
     - ARM
     - 'OFF'
+    command: sms_commands.LaserSw
+    values:
+      'OFF': 0.0
+      ARM: 1.0
     range:
     - 0.0
     - 1.0
@@ -968,6 +1275,8 @@ controls:
     hint: ICP Priority Function Button, 1(T-ILS)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG1_T_ILS
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -979,6 +1288,8 @@ controls:
     positions:
     - '2'
     - N(ALOW)
+    command: ufc_commands.DIG2_ALOW
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -988,6 +1299,8 @@ controls:
     hint: ICP Priority Function Button, 3
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG3
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -999,6 +1312,8 @@ controls:
     positions:
     - '4'
     - W(STPT)
+    command: ufc_commands.DIG4_STPT
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1008,6 +1323,8 @@ controls:
     hint: ICP Priority Function Button, 5(CRUS)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG5_CRUS
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1019,6 +1336,8 @@ controls:
     positions:
     - '6'
     - E(TIME)
+    command: ufc_commands.DIG6_TIME
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1028,6 +1347,8 @@ controls:
     hint: ICP Priority Function Button, 7(MARK)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG7_MARK
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1039,6 +1360,8 @@ controls:
     positions:
     - '8'
     - S(FIX)
+    command: ufc_commands.DIG8_FIX
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1048,6 +1371,8 @@ controls:
     hint: ICP Priority Function Button, 9(A-CAL)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG9_A_CAL
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1057,6 +1382,8 @@ controls:
     hint: ICP Priority Function Button, 0(M-SEL)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.DIG0_M_SEL
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1066,6 +1393,8 @@ controls:
     hint: ICP COM Override Button, COM1(UHF)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.COM1
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1075,6 +1404,8 @@ controls:
     hint: ICP COM Override Button, COM2(VHF)
     prototype: short_way_button
     positions: []
+    command: ufc_commands.COM2
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1084,6 +1415,8 @@ controls:
     hint: ICP IFF Override Button, IFF
     prototype: short_way_button
     positions: []
+    command: ufc_commands.IFF
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1093,6 +1426,8 @@ controls:
     hint: ICP LIST Override Button, LIST
     prototype: short_way_button
     positions: []
+    command: ufc_commands.LIST
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1102,6 +1437,8 @@ controls:
     hint: ICP Master Mode Button, A-A
     prototype: short_way_button
     positions: []
+    command: ufc_commands.AA
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1111,6 +1448,8 @@ controls:
     hint: ICP Master Mode Button, A-G
     prototype: short_way_button
     positions: []
+    command: ufc_commands.AG
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1120,6 +1459,8 @@ controls:
     hint: ICP Recall Button, RCL
     prototype: short_way_button
     positions: []
+    command: ufc_commands.RCL
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1129,6 +1470,8 @@ controls:
     hint: ICP Enter Button, ENTR
     prototype: short_way_button
     positions: []
+    command: ufc_commands.ENTR
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1138,6 +1481,8 @@ controls:
     hint: ICP Reticle Depression Control Knob
     prototype: default_axis_limited_1_side
     positions: []
+    command: ufc_commands.RET_DEPR_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1147,6 +1492,8 @@ controls:
     hint: ICP Raster Contrast Knob
     prototype: default_axis_limited_1_side
     positions: []
+    command: ufc_commands.CONT_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1156,6 +1503,8 @@ controls:
     hint: ICP Raster Intensity Knob
     prototype: default_axis_limited_1_side
     positions: []
+    command: ufc_commands.BRT_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1165,6 +1514,8 @@ controls:
     hint: ICP HUD Symbology Intensity Knob
     prototype: default_axis_limited_1_side
     positions: []
+    command: ufc_commands.SYM_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1174,6 +1525,8 @@ controls:
     hint: ICP FLIR Polarity Button, Wx
     prototype: short_way_button
     positions: []
+    command: ufc_commands.Wx
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1186,6 +1539,11 @@ controls:
     - GAIN
     - LVL
     - AUTO
+    command: ufc_commands.FLIR_GAIN_Sw
+    values:
+      GAIN: 1.0
+      LVL: 0.0
+      AUTO: -1.0
     range:
     - -1.0
     - 1.0
@@ -1195,6 +1553,8 @@ controls:
     hint: ICP DED Increment/Decrement Switch, Up
     prototype: Rocker_switch_positive
     positions: []
+    command: ufc_commands.DED_INC
+    values: {}
     range: null
     readable: true
   PTR-ICP-RS-OFF-DN-183:
@@ -1202,6 +1562,8 @@ controls:
     hint: ICP DED Increment/Decrement Switch, Down
     prototype: Rocker_switch_negative
     positions: []
+    command: ufc_commands.DED_DEC
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -1211,6 +1573,8 @@ controls:
     hint: ICP FLIR Increment/Decrement Switch, Up
     prototype: Rocker_switch_positive
     positions: []
+    command: ufc_commands.FLIR_INC
+    values: {}
     range: null
     readable: true
   PTR-ICP-RS-FLIR-DN-188:
@@ -1218,6 +1582,8 @@ controls:
     hint: ICP FLIR Increment/Decrement Switch, Down
     prototype: Rocker_switch_negative
     positions: []
+    command: ufc_commands.FLIR_DEC
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -1231,6 +1597,8 @@ controls:
     - O
     - NORM
     - WARN RESET
+    command: ufc_commands.WARN_RESET
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -1240,6 +1608,8 @@ controls:
     hint: ICP Data Control Switch, RTN
     prototype: springloaded_2_pos_tumb_small
     positions: []
+    command: ufc_commands.DCS_RTN
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1249,6 +1619,8 @@ controls:
     hint: ICP Data Control Switch, SEQ
     prototype: springloaded_2_pos_tumb_small
     positions: []
+    command: ufc_commands.DCS_SEQ
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1258,6 +1630,8 @@ controls:
     hint: ICP Data Control Switch, UP
     prototype: springloaded_2_pos_tumb_small
     positions: []
+    command: ufc_commands.DCS_UP
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1267,6 +1641,8 @@ controls:
     hint: ICP Data Control Switch, DN
     prototype: springloaded_2_pos_tumb_small
     positions: []
+    command: ufc_commands.DCS_DOWN
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1276,6 +1652,8 @@ controls:
     hint: F-ACK Button
     prototype: short_way_button
     positions: []
+    command: ufc_commands.F_ACK
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1285,6 +1663,8 @@ controls:
     hint: IFF IDENT Button
     prototype: short_way_button
     positions: []
+    command: ufc_commands.IFF_IDENT
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1297,6 +1677,11 @@ controls:
     - SILENT
     - QUIET
     - NORM
+    command: ufc_commands.RF_Sw
+    values:
+      SILENT: -1.0
+      QUIET: 0.0
+      NORM: 1.0
     range:
     - -1.0
     - 1.0
@@ -1310,6 +1695,11 @@ controls:
     - VAH
     - VAH
     - 'OFF'
+    command: mmc_commands.VvVah
+    values:
+      'OFF': -1.0
+      VAH: 0.0
+      VV/VAH: 1.0
     range:
     - -1.0
     - 1.0
@@ -1323,6 +1713,11 @@ controls:
     - FPM
     - FPM
     - 'OFF'
+    command: mmc_commands.AttFpm
+    values:
+      'OFF': -1.0
+      FPM: 0.0
+      ATT/FPM: 1.0
     range:
     - -1.0
     - 1.0
@@ -1335,6 +1730,11 @@ controls:
     - DED
     - PFL
     - 'OFF'
+    command: mmc_commands.DedData
+    values:
+      'OFF': -1.0
+      PFL: 0.0
+      DED: 1.0
     range:
     - -1.0
     - 1.0
@@ -1347,6 +1747,11 @@ controls:
     - STBY
     - PRI
     - 'OFF'
+    command: mmc_commands.DeprRet
+    values:
+      'OFF': -1.0
+      PRI: 0.0
+      STBY: 1.0
     range:
     - -1.0
     - 1.0
@@ -1359,6 +1764,11 @@ controls:
     - CAS
     - TAS
     - GND SPD
+    command: mmc_commands.Spd
+    values:
+      GND SPD: -1.0
+      TAS: 0.0
+      CAS: 1.0
     range:
     - -1.0
     - 1.0
@@ -1371,6 +1781,11 @@ controls:
     - RADAR
     - BARO
     - AUTO
+    command: mmc_commands.Alt
+    values:
+      AUTO: -1.0
+      BARO: 0.0
+      RADAR: 1.0
     range:
     - -1.0
     - 1.0
@@ -1383,6 +1798,11 @@ controls:
     - DAY
     - AUTO BRT
     - NIGHT
+    command: mmc_commands.Brt
+    values:
+      NIGHT: -1.0
+      AUTO BRT: 0.0
+      DAY: 1.0
     range:
     - -1.0
     - 1.0
@@ -1395,6 +1815,11 @@ controls:
     - STEP
     - 'ON'
     - 'OFF'
+    command: mmc_commands.Test
+    values:
+      'OFF': -1.0
+      'ON': 0.0
+      STEP: 1.0
     range:
     - -1.0
     - 1.0
@@ -1404,6 +1829,11 @@ controls:
     hint: COMM 1 (UHF) Mode Knob
     prototype: multiposition_switch
     positions: []
+    command: intercom_commands.COM1_ModeKnob
+    values:
+      'OFF': 0.0
+      SQL: 0.5
+      GD: 1.0
     range:
     - 0.0
     - 1.0
@@ -1413,6 +1843,11 @@ controls:
     hint: COMM 2 (VHF) Mode Knob
     prototype: multiposition_switch
     positions: []
+    command: intercom_commands.COM2_ModeKnob
+    values:
+      'OFF': 0.0
+      SQL: 0.5
+      GD: 1.0
     range:
     - 0.0
     - 1.0
@@ -1422,6 +1857,8 @@ controls:
     hint: COMM 1 Power Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.COM1_PowerKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1431,6 +1868,8 @@ controls:
     hint: COMM 2 Power Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.COM2_PowerKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1440,6 +1879,8 @@ controls:
     hint: SECURE VOICE Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.SecureVoiceKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1449,6 +1890,8 @@ controls:
     hint: MSL Tone Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.MSL_ToneKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1458,6 +1901,8 @@ controls:
     hint: TF Tone Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.TF_ToneKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1467,6 +1912,8 @@ controls:
     hint: THREAT Tone Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.THREAT_ToneKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1476,6 +1923,8 @@ controls:
     hint: INTERCOM Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.INTERCOM_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1485,6 +1934,8 @@ controls:
     hint: TACAN Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.TACAN_Knob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1494,6 +1945,8 @@ controls:
     hint: ILS Power Knob
     prototype: default_axis_limited
     positions: []
+    command: intercom_commands.ILS_PowerKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1506,6 +1959,11 @@ controls:
     - HOT MIC
     - 'OFF'
     - CIPHER
+    command: intercom_commands.HotMicCipherSw
+    values:
+      CIPHER: -1.0
+      'OFF': 0.0
+      HOT MIC: 1.0
     range:
     - -1.0
     - 1.0
@@ -1517,6 +1975,10 @@ controls:
     positions:
     - VOICE MESSAGE
     - INHIBIT
+    command: intercom_commands.VMS_InhibitSw
+    values:
+      INHIBIT: 0.0
+      VOICE MESSAGE: 1.0
     range:
     - 0.0
     - 1.0
@@ -1529,6 +1991,11 @@ controls:
     - LOWER
     - NORM
     - UPPER
+    command: intercom_commands.IFF_AntSelSw
+    values:
+      LOWER: -1.0
+      NORM: 0.0
+      UPPER: 1.0
     range:
     - -1.0
     - 1.0
@@ -1541,6 +2008,11 @@ controls:
     - LOWER
     - NORM
     - UPPER
+    command: intercom_commands.UHF_AntSelSw
+    values:
+      LOWER: -1.0
+      NORM: 0.0
+      UPPER: 1.0
     range:
     - -1.0
     - 1.0
@@ -1550,6 +2022,8 @@ controls:
     hint: UHF CHAN Knob
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.ChannelKnob
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-100MHZ-SEL-411:
@@ -1557,6 +2031,8 @@ controls:
     hint: UHF Manual Frequency Knob 100 MHz
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.FreqSelector100Mhz
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-10MHZ-SEL-412:
@@ -1564,6 +2040,8 @@ controls:
     hint: UHF Manual Frequency Knob 10 MHz
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.FreqSelector10Mhz
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-1MHZ-SEL-413:
@@ -1571,6 +2049,8 @@ controls:
     hint: UHF Manual Frequency Knob 1 MHz
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.FreqSelector1Mhz
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-0.1MHZ-SEL-414:
@@ -1578,6 +2058,8 @@ controls:
     hint: UHF Manual Frequency Knob 0.1 MHz
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.FreqSelector01Mhz
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-0.025MHZ-SEL-415:
@@ -1585,6 +2067,8 @@ controls:
     hint: UHF Manual Frequency Knob 0.025 MHz
     prototype: multiposition_switch_tumb
     positions: []
+    command: uhf_commands.FreqSelector0025Mhz
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-FUNCTION-417:
@@ -1592,6 +2076,8 @@ controls:
     hint: UHF Function Knob
     prototype: multiposition_switch
     positions: []
+    command: uhf_commands.FunctionKnob
+    values: {}
     range:
     - 0.0
     - 0.30000000000000004
@@ -1601,6 +2087,8 @@ controls:
     hint: UHF Mode Knob
     prototype: multiposition_switch
     positions: []
+    command: uhf_commands.FreqModeKnob
+    values: {}
     range:
     - 0.0
     - 0.2
@@ -1610,6 +2098,8 @@ controls:
     hint: UHF Tone Button
     prototype: default_button
     positions: []
+    command: uhf_commands.TToneSw
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1619,6 +2109,10 @@ controls:
     hint: UHF SQUELCH Switch
     prototype: default_2_position_tumb_small
     positions: []
+    command: uhf_commands.SquelchSw
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -1628,6 +2122,8 @@ controls:
     hint: UHF VOL Knob
     prototype: default_axis_limited
     positions: []
+    command: uhf_commands.VolumeKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1637,6 +2133,8 @@ controls:
     hint: UHF TEST DISPLAY Button
     prototype: default_button
     positions: []
+    command: uhf_commands.TestDisplayBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1646,6 +2144,8 @@ controls:
     hint: UHF STATUS Button
     prototype: default_button
     positions: []
+    command: uhf_commands.StatusBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1657,6 +2157,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: uhf_commands.AccessDoor
+    values:
+      OPEN: 1.0
+      CLOSE: 0.0
     range:
     - 0.0
     - 1.0
@@ -1671,6 +2175,13 @@ controls:
     - LOW
     - NORM
     - EMER
+    command: iff_commands.MasterKnob
+    values:
+      'OFF': 0.0
+      STBY: 0.1
+      LOW: 0.2
+      NORM: 0.3
+      EMER: 0.4
     range:
     - 0.0
     - 0.4
@@ -1684,6 +2195,11 @@ controls:
     - A
     - B
     - ZERO
+    command: iff_commands.M4CodeSw
+    values:
+      HOLD: -1.0
+      A/B: 0.0
+      ZERO: 1.0
     range:
     - -1.0
     - 1.0
@@ -1696,6 +2212,11 @@ controls:
     - OUT
     - A
     - B
+    command: iff_commands.M4ReplySw
+    values:
+      OUT: -1.0
+      A: 0.0
+      B: 1.0
     range:
     - -1.0
     - 1.0
@@ -1707,6 +2228,10 @@ controls:
     positions:
     - OUT
     - AUDIO
+    command: iff_commands.M4MonitorSw
+    values:
+      OUT: 0.0
+      AUDIO: 1.0
     range:
     - 0.0
     - 1.0
@@ -1721,6 +2246,11 @@ controls:
     - 'OFF'
     - M3
     - MS
+    command: iff_commands.EnableSw
+    values:
+      M1/M3: -1.0
+      'OFF': 0.0
+      M3/MS: 1.0
     range:
     - -1.0
     - 1.0
@@ -1730,6 +2260,8 @@ controls:
     hint: IFF MODE 1 Selector Lever, DIGIT 1
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: iff_commands.M1M3Selector1_Dec
+    values: {}
     range: null
     readable: false
   PTR-AUXCOM-TMB-CHNL2-547:
@@ -1737,6 +2269,8 @@ controls:
     hint: IFF MODE 1 Selector Lever, DIGIT 2
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: iff_commands.M1M3Selector2_Dec
+    values: {}
     range: null
     readable: false
   PTR-AUXCOM-TMB-CHNL3-549:
@@ -1744,6 +2278,8 @@ controls:
     hint: IFF MODE 3 Selector Lever, DIGIT 1
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: iff_commands.M1M3Selector3_Dec
+    values: {}
     range: null
     readable: false
   PTR-AUXCOM-TMB-CHNL4-551:
@@ -1751,6 +2287,8 @@ controls:
     hint: IFF MODE 3 Selector Lever, DIGIT 2
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: iff_commands.M1M3Selector4_Dec
+    values: {}
     range: null
     readable: false
   PTR-KY58-LVR-MODE1-705:
@@ -1762,6 +2300,12 @@ controls:
     - C
     - LD
     - RV
+    command: ky58_commands.KY58_ModeSw
+    values:
+      P: 0.0
+      C: 0.1
+      LD: 0.2
+      RV: 0.3
     range:
     - 0.0
     - 0.30000000000000004
@@ -1771,6 +2315,8 @@ controls:
     hint: KY-58 VOLUME Knob
     prototype: default_axis_limited
     positions: []
+    command: ky58_commands.KY58_Volume
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1788,6 +2334,16 @@ controls:
     - '5'
     - '6'
     - Z ALL
+    command: ky58_commands.KY58_FillSw
+    values:
+      '1': 0.1
+      '2': 0.2
+      '3': 0.3
+      '4': 0.4
+      '5': 0.5
+      '6': 0.6
+      Z 1-5: 0.0
+      Z ALL: 0.7
     range:
     - 0.0
     - 0.7000000000000001
@@ -1800,6 +2356,11 @@ controls:
     - 'OFF'
     - 'ON'
     - TD
+    command: ky58_commands.KY58_PowerSw
+    values:
+      'OFF': 0.0
+      'ON': 0.5
+      TD: 1.0
     range:
     - 0.0
     - 1.0
@@ -1812,6 +2373,11 @@ controls:
     - CRAD 1
     - PLAIN
     - CRAD 2
+    command: intercom_commands.PlainCipherSw
+    values:
+      CRAD 2: -1.0
+      PLAIN: 0.0
+      CRAD 1: 1.0
     range:
     - -1.0
     - 1.0
@@ -1823,6 +2389,10 @@ controls:
     positions:
     - OPEN
     - CLOSE
+    command: intercom_commands.ZeroizeSwCvr
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range:
     - 0.0
     - 1.0
@@ -1835,6 +2405,11 @@ controls:
     - OFP
     - 'OFF'
     - DATA
+    command: intercom_commands.ZeroizeSw
+    values:
+      DATA: -1.0
+      'OFF': 0.0
+      OFP: 1.0
     range:
     - -1.0
     - 1.0
@@ -1844,6 +2419,8 @@ controls:
     hint: HMCS SYMBOLOGY INT Knob
     prototype: default_axis_limited
     positions: []
+    command: hmcs_commands.IntKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1853,6 +2430,8 @@ controls:
     hint: RWR Intensity Knob - Rotate to adjust brightness
     prototype: default_axis_limited
     positions: []
+    command: rwr_commands.IntKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1862,6 +2441,8 @@ controls:
     hint: RWR Indicator Control HANDOFF Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.Handoff
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1871,6 +2452,8 @@ controls:
     hint: RWR Indicator Control LAUNCH Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.Launch
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1880,6 +2463,8 @@ controls:
     hint: RWR Indicator Control MODE Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.Mode
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1889,6 +2474,8 @@ controls:
     hint: RWR Indicator Control UNKNOWN SHIP Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.UnknownShip
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1898,6 +2485,8 @@ controls:
     hint: RWR Indicator Control SYS TEST Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.SysTest
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1907,6 +2496,8 @@ controls:
     hint: RWR Indicator Control T Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.TgtSep
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1916,6 +2507,8 @@ controls:
     hint: RWR Indicator Control DIM Knob - Rotate to adjust brightness
     prototype: default_axis_limited
     positions: []
+    command: rwr_commands.BrtKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1925,6 +2518,8 @@ controls:
     hint: RWR Indicator Control SEARCH Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.Search
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1934,6 +2529,8 @@ controls:
     hint: RWR Indicator Control ACT/PWR Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.ActPwr
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1943,6 +2540,8 @@ controls:
     hint: RWR Indicator Control ALTITUDE Button
     prototype: short_way_button
     positions: []
+    command: rwr_commands.Altitude
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1952,6 +2551,10 @@ controls:
     hint: RWR Indicator Control POWER Button
     prototype: default_2_position_tumb
     positions: []
+    command: rwr_commands.Power
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -1961,6 +2564,8 @@ controls:
     hint: CHAFF/FLARE Dispense Button - Push to dispense
     prototype: default_button
     positions: []
+    command: cmds_commands.DispBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -1972,6 +2577,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.RwrSrc
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -1983,6 +2592,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.JmrSrc
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -1994,6 +2607,10 @@ controls:
     positions:
     - 'ON'
     - OFF (no function)
+    command: cmds_commands.MwsSrc
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2005,6 +2622,10 @@ controls:
     positions:
     - JETT
     - 'OFF'
+    command: cmds_commands.Jett
+    values:
+      JETT: 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2016,6 +2637,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.O1Exp
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2027,6 +2652,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.O2Exp
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2038,6 +2667,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.ChExp
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2049,6 +2682,10 @@ controls:
     positions:
     - 'ON'
     - 'OFF'
+    command: cmds_commands.FlExp
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range:
     - 0.0
     - 1.0
@@ -2063,6 +2700,13 @@ controls:
     - '2'
     - '3'
     - '4'
+    command: cmds_commands.Prgm
+    values:
+      BIT: 0.0
+      '1': 0.1
+      '2': 0.2
+      '3': 0.3
+      '4': 0.4
     range:
     - 0.0
     - 0.4
@@ -2078,6 +2722,14 @@ controls:
     - SEMI
     - AUTO
     - BYP
+    command: cmds_commands.Mode
+    values:
+      'OFF': 0.0
+      STBY: 0.1
+      MAN: 0.2
+      SEMI: 0.3
+      AUTO: 0.4
+      BYP: 0.5
     range:
     - 0.0
     - 0.5
@@ -2087,6 +2739,8 @@ controls:
     hint: Left MFD OSB 1
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_1
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2096,6 +2750,8 @@ controls:
     hint: Left MFD OSB 2
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_2
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2105,6 +2761,8 @@ controls:
     hint: Left MFD OSB 3
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_3
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2114,6 +2772,8 @@ controls:
     hint: Left MFD OSB 4
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_4
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2123,6 +2783,8 @@ controls:
     hint: Left MFD OSB 5
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_5
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2132,6 +2794,8 @@ controls:
     hint: Left MFD OSB 6
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_6
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2141,6 +2805,8 @@ controls:
     hint: Left MFD OSB 7
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_7
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2150,6 +2816,8 @@ controls:
     hint: Left MFD OSB 8
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_8
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2159,6 +2827,8 @@ controls:
     hint: Left MFD OSB 9
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_9
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2168,6 +2838,8 @@ controls:
     hint: Left MFD OSB 10
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_10
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2177,6 +2849,8 @@ controls:
     hint: Left MFD OSB 11
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_11
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2186,6 +2860,8 @@ controls:
     hint: Left MFD OSB 12
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_12
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2195,6 +2871,8 @@ controls:
     hint: Left MFD OSB 13
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_13
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2204,6 +2882,8 @@ controls:
     hint: Left MFD OSB 14
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_14
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2213,6 +2893,8 @@ controls:
     hint: Left MFD OSB 15
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_15
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2222,6 +2904,8 @@ controls:
     hint: Left MFD OSB 16
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_16
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2231,6 +2915,8 @@ controls:
     hint: Left MFD OSB 17
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_17
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2240,6 +2926,8 @@ controls:
     hint: Left MFD OSB 18
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_18
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2249,6 +2937,8 @@ controls:
     hint: Left MFD OSB 19
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_19
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2258,6 +2948,8 @@ controls:
     hint: Left MFD OSB 20
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_20
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2269,6 +2961,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.GAIN_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-LMFCD-RS-GAIN-DN-320:
@@ -2278,6 +2972,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.GAIN_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2289,6 +2985,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.SYM_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-LMFCD-RS-SYM-DN-321:
@@ -2298,6 +2996,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.SYM_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2309,6 +3009,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.CON_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-LMFCD-RS-CON-DN-322:
@@ -2318,6 +3020,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.CON_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2329,6 +3033,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.BRT_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-LMFCD-RS-BRT-DN-323:
@@ -2338,6 +3044,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.BRT_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2347,6 +3055,8 @@ controls:
     hint: Right MFD OSB 1
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_1
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2356,6 +3066,8 @@ controls:
     hint: Right MFD OSB 2
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_2
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2365,6 +3077,8 @@ controls:
     hint: Right MFD OSB 3
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_3
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2374,6 +3088,8 @@ controls:
     hint: Right MFD OSB 4
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_4
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2383,6 +3099,8 @@ controls:
     hint: Right MFD OSB 5
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_5
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2392,6 +3110,8 @@ controls:
     hint: Right MFD OSB 6
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_6
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2401,6 +3121,8 @@ controls:
     hint: Right MFD OSB 7
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_7
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2410,6 +3132,8 @@ controls:
     hint: Right MFD OSB 8
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_8
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2419,6 +3143,8 @@ controls:
     hint: Right MFD OSB 9
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_9
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2428,6 +3154,8 @@ controls:
     hint: Right MFD OSB 10
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_10
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2437,6 +3165,8 @@ controls:
     hint: Right MFD OSB 11
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_11
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2446,6 +3176,8 @@ controls:
     hint: Right MFD OSB 12
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_12
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2455,6 +3187,8 @@ controls:
     hint: Right MFD OSB 13
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_13
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2464,6 +3198,8 @@ controls:
     hint: Right MFD OSB 14
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_14
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2473,6 +3209,8 @@ controls:
     hint: Right MFD OSB 15
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_15
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2482,6 +3220,8 @@ controls:
     hint: Right MFD OSB 16
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_16
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2491,6 +3231,8 @@ controls:
     hint: Right MFD OSB 17
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_17
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2500,6 +3242,8 @@ controls:
     hint: Right MFD OSB 18
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_18
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2509,6 +3253,8 @@ controls:
     hint: Right MFD OSB 19
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_19
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2518,6 +3264,8 @@ controls:
     hint: Right MFD OSB 20
     prototype: mfd_button
     positions: []
+    command: mfd_commands.OSB_20
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2529,6 +3277,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.GAIN_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-RMFCD-RS-GAIN-DN-346:
@@ -2538,6 +3288,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.GAIN_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2549,6 +3301,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.SYM_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-RMFCD-RS-SYM-DN-347:
@@ -2558,6 +3312,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.SYM_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2569,6 +3325,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.CON_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-RMFCD-RS-CON-DN-348:
@@ -2578,6 +3336,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.CON_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2589,6 +3349,8 @@ controls:
     positions:
     - Up
     - Increase
+    command: mfd_commands.BRT_Rocker_UP
+    values: {}
     range: null
     readable: true
   PTR-RMFCD-RS-BRT-DN-349:
@@ -2598,6 +3360,8 @@ controls:
     positions:
     - Down
     - Decrease
+    command: mfd_commands.BRT_Rocker_DOWN
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2607,6 +3371,8 @@ controls:
     hint: SET INDEX Knob
     prototype: default_axis
     positions: []
+    command: ami_commands.SettingKnob
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2616,6 +3382,8 @@ controls:
     hint: Barometric Setting Knob
     prototype: default_axis
     positions: []
+    command: alt_commands.ZERO
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2628,6 +3396,8 @@ controls:
     - ELEC
     - 'OFF'
     - PNEU
+    command: alt_commands.ELEC
+    values: {}
     range: null
     readable: false
   PTR-ADI-LVR-KNOB-22:
@@ -2635,6 +3405,8 @@ controls:
     hint: Pitch Trim Knob
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_1
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2644,6 +3416,8 @@ controls:
     hint: CRS Set / Brightness Control Knob
     prototype: default_button_knob
     positions: []
+    command: ehsi_commands.RightKnobBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2653,6 +3427,8 @@ controls:
     hint: HDG Set Knob
     prototype: default_button_knob
     positions: []
+    command: ehsi_commands.LeftKnobBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2662,6 +3438,8 @@ controls:
     hint: Mode (M) Button
     prototype: default_button
     positions: []
+    command: ehsi_commands.ModeBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2671,6 +3449,8 @@ controls:
     hint: Clock Elapsed Time Knob
     prototype: default_button
     positions: []
+    command: clock_commands.CLOCK_right_lev_down
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2682,6 +3462,10 @@ controls:
     positions:
     - UP
     - DOWN
+    command: cpt_commands.CanopyHandle
+    values:
+      UP: 0.0
+      DOWN: 1.0
     range:
     - 0.0
     - 1.0
@@ -2694,6 +3478,8 @@ controls:
     - UP
     - 'OFF'
     - DOWN
+    command: cpt_commands.SeatAdjSwitchDown
+    values: {}
     range: null
     readable: false
   PTR-LARMS-CNPJETT-601:
@@ -2703,6 +3489,10 @@ controls:
     positions:
     - PULL
     - STOW
+    command: cpt_commands.CanopyTHandle
+    values:
+      STOW: 0.0
+      PULL: 1.0
     range:
     - 0.0
     - 1.0
@@ -2714,6 +3504,8 @@ controls:
     positions:
     - ARMED
     - LOCKED
+    command: cpt_commands.EjectionSafetyLever
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2726,6 +3518,8 @@ controls:
     - OPEN
     - HOLD
     - CLOSE(momentarily)
+    command: cpt_commands.CanopySwitchClose
+    values: {}
     range:
     - -1.0
     - 0.0
@@ -2735,6 +3529,10 @@ controls:
     hint: Hide Stick toggle
     prototype: default_2_position_tumb
     positions: []
+    command: cpt_commands.StickHide
+    values:
+      HIDE: 1.0
+      SHOW: 0.0
     range:
     - 0.0
     - 1.0
@@ -2744,6 +3542,11 @@ controls:
     hint: ECM Power Switch
     prototype: default_3_position_tumb
     positions: []
+    command: ecm_commands.PwrSw
+    values:
+      'OFF': -1.0
+      STBY: 0.0
+      OPR: 1.0
     range:
     - -1.0
     - 1.0
@@ -2753,6 +3556,8 @@ controls:
     hint: ECM DIM Knob
     prototype: default_axis_limited_1_side
     positions: []
+    command: ecm_commands.DimRotary
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2762,6 +3567,11 @@ controls:
     hint: ECM XMIT Switch
     prototype: default_3_position_tumb
     positions: []
+    command: ecm_commands.XmitSw
+    values:
+      '3': -1.0
+      '2': 0.0
+      '1': 1.0
     range:
     - -1.0
     - 1.0
@@ -2771,6 +3581,8 @@ controls:
     hint: ECM RESET Button
     prototype: default_button
     positions: []
+    command: ecm_commands.ResetBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2780,6 +3592,8 @@ controls:
     hint: ECM BIT Button
     prototype: default_button
     positions: []
+    command: ecm_commands.BitBtn
+    values: {}
     range:
     - 0.0
     - 1.0
@@ -2789,6 +3603,10 @@ controls:
     hint: ECM 1 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.OneBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2798,6 +3616,10 @@ controls:
     hint: ECM 2 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.TwoBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2807,6 +3629,10 @@ controls:
     hint: ECM 3 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.ThreeBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2816,6 +3642,10 @@ controls:
     hint: ECM 4 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.FourBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2825,6 +3655,10 @@ controls:
     hint: ECM 5 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.FiveBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2834,6 +3668,10 @@ controls:
     hint: ECM 6 Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.SixBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2843,6 +3681,10 @@ controls:
     hint: ECM FRM Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.FrmBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0
@@ -2852,6 +3694,10 @@ controls:
     hint: ECM SPL Button
     prototype: default_2_position_tumb
     positions: []
+    command: ecm_commands.SplBtn
+    values:
+      Depressed: 1.0
+      Released: 0.0
     range:
     - 0.0
     - 1.0

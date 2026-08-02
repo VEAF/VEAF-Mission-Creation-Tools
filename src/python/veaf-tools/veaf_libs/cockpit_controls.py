@@ -94,6 +94,12 @@ class CockpitControl:
             not value order, see the module docstring.
         arg_lim: The window the argument runs between, when known.
         readable: Whether its position can be read back.
+        command: The cockpit command the control drives, e.g. ``elec_commands.MainPwrSw``.
+            It is what ties the control to the aircraft's input bindings.
+        valued_positions: Positions with the value each one sets, recovered from those
+            bindings. **This is the field to resolve a step against**: unlike
+            ``positions`` it is not a guess about ordering, and unlike ``positions`` it
+            exists on aircraft whose hints name nothing.
     """
 
     element: str
@@ -103,6 +109,8 @@ class CockpitControl:
     positions: list[str] = field(default_factory=list)
     arg_lim: tuple[float, float] | None = None
     readable: bool = True
+    command: str = ""
+    valued_positions: list[ControlPosition] = field(default_factory=list)
 
 
 def _is_readable(prototype: str) -> bool:
@@ -189,6 +197,83 @@ def _resolve_delegations(
     return resolved
 
 
+#: One keyboard/joystick binding: the command it drives, the value it sets, its label.
+#: ``{down = elec_commands.MainPwrSw, …, value_down = -1.0, name = _('MAIN PWR Switch - OFF')}``.
+#: This is the **only** source in a DCS install that says which position is which value —
+#: a hint lists position names in its own order, which is not value order. Bindings that
+#: also carry ``up =`` are two-way combos ("MAIN PWR/BATT"), not positions, and are left out.
+_BINDING_RE = re.compile(
+    r"\{\s*down\s*=\s*(?P<command>[\w.]+)\s*,(?P<body>[^}]*?)"
+    r"name\s*=\s*_\(\s*(?P<quote>['\"])(?P<label>.*?)(?P=quote)\s*\)",
+    re.DOTALL,
+)
+_BINDING_VALUE_RE = re.compile(r"value_down\s*=\s*(-?[\d.]+)")
+_BINDING_UP_RE = re.compile(r"(?<!value_)\bup\s*=")
+
+
+@dataclass(frozen=True)
+class ControlPosition:
+    """One position of a control: what it is called, and the value it sets.
+
+    Attributes:
+        name: The position as the aircraft's own bindings name it — ``OFF``, ``BATT``.
+        value: The animation-argument value it corresponds to.
+    """
+
+    name: str
+    value: float
+
+
+def parse_input_positions(input_lua: str) -> dict[str, list[ControlPosition]]:
+    """Parse an aircraft's input bindings into named positions per command.
+
+    Args:
+        input_lua: Text of one or more ``Input/**/default.lua`` files, concatenated.
+
+    Returns:
+        Command name -> its positions, in binding order. A command with fewer than two
+        bindings yields nothing: a single binding is a keystroke, not a set of positions.
+    """
+    by_command: dict[str, list[tuple[float, str]]] = {}
+    for match in _BINDING_RE.finditer(input_lua):
+        body = match.group("body")
+        if _BINDING_UP_RE.search(body):
+            continue
+        value = _BINDING_VALUE_RE.search(body)
+        if value is None:
+            continue
+        by_command.setdefault(match.group("command"), []).append((float(value.group(1)), match.group("label")))
+
+    positions: dict[str, list[ControlPosition]] = {}
+    for command, bindings in by_command.items():
+        if len(bindings) < 2:
+            continue
+        names = _strip_common_prefix([label for _value, label in bindings])
+        seen: set[float] = set()
+        kept: list[ControlPosition] = []
+        for (setting, _label), name in zip(bindings, names, strict=True):
+            if name and setting not in seen:
+                seen.add(setting)
+                kept.append(ControlPosition(name=name, value=setting))
+        if len(kept) > 1:
+            positions[command] = kept
+    return positions
+
+
+def _strip_common_prefix(labels: list[str]) -> list[str]:
+    """Drop the control's own name from a set of binding labels, leaving the positions.
+
+    ``MAIN PWR Switch - OFF`` / ``… - BATT`` share a prefix down to the separator;
+    Heatblur writes ``Hydraulic Transfer Pump Switch NORMAL`` with no separator at all.
+    Cutting at the last shared word handles both without knowing which style is in use.
+    """
+    split = [label.split() for label in labels]
+    shared = 0
+    while all(len(words) > shared + 1 for words in split) and len({words[shared] for words in split}) == 1:
+        shared += 1
+    return [" ".join(words[shared:]).strip(" -/:").strip() for words in split]
+
+
 def _positions_from_hint(hint: str) -> list[str]:
     """Split the position names out of a hint, or return nothing.
 
@@ -208,6 +293,23 @@ def _positions_from_hint(hint: str) -> list[str]:
 #: the F-14 comes back with a tenth of its cockpit.
 _ARG_TABLE_RE = re.compile(r"^(?P<name>\w+)\s*=\s*\{(?P<body>.*?)^\}", re.MULTILINE | re.DOTALL)
 _ARG_CONSTANT_RE = re.compile(r"^\s*(?P<name>\w+)\s*=\s*(?P<value>\d+)\s*,", re.MULTILINE)
+
+#: The command argument of an element's call: the second qualified reference, after the
+#: device. ``default_3_position_tumb(_("…"), devices.ELEC_INTERFACE, elec_commands.MainPwrSw, 510)``.
+_COMMAND_RE = re.compile(r"\w+\.\w+")
+
+
+def _command_of(call_args: str) -> str:
+    """Return the command an element's call drives, or an empty string.
+
+    The device is the first qualified reference of the call and the command the second;
+    a module that passes neither simply has no binding to tie the control to.
+    """
+    references = [
+        piece.strip() for piece in _CALL_ARG_RE.findall(call_args) if _COMMAND_RE.fullmatch(piece.strip()) is not None
+    ]
+    return references[1] if len(references) > 1 else ""
+
 
 #: ``cockpit_args.NAME`` — a reference into one of those tables.
 _QUALIFIED_REF_RE = re.compile(r"^(?P<table>\w+)\.(?P<name>\w+)$")
@@ -287,6 +389,7 @@ def parse_controls(
     clickabledata_lua: str,
     prototypes: dict[str, ControlPrototype],
     constants: dict[str, dict[str, int]] | None = None,
+    input_positions: dict[str, list[ControlPosition]] | None = None,
 ) -> list[CockpitControl]:
     """Parse the clickable elements of a ``clickabledata.lua``.
 
@@ -295,6 +398,7 @@ def parse_controls(
         prototypes: The constructors, from :func:`parse_prototypes`.
         constants: Named-argument tables, from :func:`parse_argument_constants`. Only
             needed by modules that name their arguments instead of writing them out.
+        input_positions: Named positions per command, from :func:`parse_input_positions`.
 
     Returns:
         One entry per element whose argument could be recovered, in file order. An element
@@ -311,8 +415,11 @@ def parse_controls(
         arg_lim = prototype.arg_lim if prototype else None
         if arg_lim is None and prototype_name == _MULTIPOSITION:
             arg_lim = _multiposition_window(match.group("args"))
+        command = _command_of(match.group("args"))
         controls.append(
             CockpitControl(
+                command=command,
+                valued_positions=(input_positions or {}).get(command, []),
                 element=match.group("element"),
                 argument=argument,
                 hint=match.group("hint"),
@@ -334,7 +441,9 @@ class AircraftControls:
     skipped: int = 0
 
 
-def parse_aircraft(aircraft: str, clickabledata_lua: str, defs_lua: str, args_lua: str = "") -> AircraftControls:
+def parse_aircraft(
+    aircraft: str, clickabledata_lua: str, defs_lua: str, args_lua: str = "", input_lua: str = ""
+) -> AircraftControls:
     """Parse one aircraft's cockpit from the text of its Lua files.
 
     Args:
@@ -342,13 +451,20 @@ def parse_aircraft(aircraft: str, clickabledata_lua: str, defs_lua: str, args_lu
         clickabledata_lua: Text of ``clickabledata.lua``.
         defs_lua: Text of ``clickable_defs.lua``.
         args_lua: Text of ``draw_args.lua``, for a module that names its arguments.
+        input_lua: Text of the module's ``Input/**/default.lua`` files, concatenated —
+            the only place a position's *value* is written down.
 
     Returns:
         The parsed controls, with a count of elements the pattern matched but whose
         argument could not be found.
     """
     prototypes = parse_prototypes(defs_lua)
-    controls = parse_controls(clickabledata_lua, prototypes, parse_argument_constants(args_lua))
+    controls = parse_controls(
+        clickabledata_lua,
+        prototypes,
+        parse_argument_constants(args_lua),
+        parse_input_positions(input_lua),
+    )
     # Counted against every element the file declares, not against the ones the pattern
     # understood: an element built in a shape this does not read has to show up here too,
     # or a partial index passes for a complete one.
@@ -426,6 +542,30 @@ def read_aircraft(dcs_path: Path, module: str, aircraft: str) -> AircraftControl
         clickabledata.read_text(encoding="utf-8", errors="replace"),
         read("clickable_defs.lua"),
         read("draw_args.lua"),
+        read_input_bindings(dcs_path, module),
+    )
+
+
+def read_input_bindings(dcs_path: Path, module: str) -> str:
+    """Concatenate every input-binding file a module ships.
+
+    A module spreads its bindings over several profiles — the F-14 has one per crew seat,
+    each pulling the others in with ``dofile`` — and which file holds a given command is
+    not predictable. Reading them all and letting the first binding of a command win costs
+    nothing and misses nothing.
+
+    Args:
+        dcs_path: Root of the DCS installation.
+        module: Folder name under ``Mods/aircraft``.
+
+    Returns:
+        The concatenated text, or an empty string when the module ships no bindings.
+    """
+    root = dcs_path / "Mods" / "aircraft" / module / "Input"
+    if not root.is_dir():
+        return ""
+    return "\n".join(
+        path.read_text(encoding="utf-8", errors="replace") for path in sorted(root.glob("*/*/default.lua"))
     )
 
 
@@ -443,6 +583,10 @@ def to_index(controls: AircraftControls, module: str, dcs_version: str = "") -> 
                 "prototype": control.prototype,
                 # Hint order, NOT value order — see the module docstring.
                 "positions": control.positions,
+                "command": control.command,
+                # Name -> value, from the aircraft's own input bindings. Unlike
+                # `positions`, this says which position IS which value.
+                "values": {position.name: position.value for position in control.valued_positions},
                 "range": list(control.arg_lim) if control.arg_lim else None,
                 "readable": control.readable,
             }

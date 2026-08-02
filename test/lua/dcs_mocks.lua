@@ -54,12 +54,44 @@ timer = {
 -- ---------------------------------------------------------------------------
 -- trigger
 -- ---------------------------------------------------------------------------
+
+--- Pilot-facing messages sent through trigger.action.outText*, in order:
+--- { fn = "outTextForUnit", target = <id or nil>, text = "…", duration = <seconds> }.
+--- Cleared by dcs_mocks.reset().
+dcs_mocks.messages = {}
+
+--- Record one message. Called by the outText* stubs.
+function dcs_mocks.recordMessage(fn, target, text, duration)
+  table.insert(dcs_mocks.messages, { fn = fn, target = target, text = text, duration = duration })
+end
+
+--- Return the recorded messages whose text contains `needle` (a plain substring).
+function dcs_mocks.messagesContaining(needle)
+  local found = {}
+  for _, message in ipairs(dcs_mocks.messages) do
+    if type(message.text) == "string" and message.text:find(needle, 1, true) then
+      table.insert(found, message)
+    end
+  end
+  return found
+end
+
 trigger = {
   action = {
-    outText = function(text, duration) end,
-    outTextForGroup = function(groupId, text, duration) end,
-    outTextForUnit = function(unitId, text, duration) end,
-    outTextForCoalition = function(side, text, duration) end,
+    -- Recorded, not discarded: a module's pilot-facing messages are behaviour, and a
+    -- test asserting on them against a no-op stub passes without checking anything.
+    outText = function(text, duration)
+      dcs_mocks.recordMessage("outText", nil, text, duration)
+    end,
+    outTextForGroup = function(groupId, text, duration)
+      dcs_mocks.recordMessage("outTextForGroup", groupId, text, duration)
+    end,
+    outTextForUnit = function(unitId, text, duration)
+      dcs_mocks.recordMessage("outTextForUnit", unitId, text, duration)
+    end,
+    outTextForCoalition = function(side, text, duration)
+      dcs_mocks.recordMessage("outTextForCoalition", side, text, duration)
+    end,
     markToAll = function(...) end,
     markToCoalition = function(...) end,
     removeMark = function(id) end,
@@ -496,6 +528,7 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do

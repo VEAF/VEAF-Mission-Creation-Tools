@@ -1163,6 +1163,12 @@ veaf.i18nCatalog = {
     fr = "Terminé : %s",
     en = "Complete: %s",
   },
+  -- Text mode only (a mission built with `display: text`): the picture is what normally
+  -- carries the checklist, so without one the current instruction has to be said.
+  ["assist.step_current"] = {
+    fr = "Étape %d/%d : %s",
+    en = "Step %d/%d: %s",
+  },
 
   -- veafAssist — radio menu. "assist.menu.<slot>" labels a checklist's `menu` slot; an
   -- unknown slot resolves to itself, so a mission maker's own checklist still reads.

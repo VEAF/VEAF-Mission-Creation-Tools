@@ -906,5 +906,7 @@
   "checklist.duplicate_id": "Deux checklists déclarent l'id '{id}' : '{first}' et '{second}'. Les ids doivent être uniques dans un même dossier.",
   "checklist.units_catalogue_unavailable": "Catalogue des unités DCS indisponible : les types d'appareils des checklists ne seront pas validés.",
   "checklist.images_generated": "{n} image(s) de checklist générée(s), {size} Ko embarqués dans la mission.",
-  "checklist.unknown_id": "mission.yaml active une ou des checklists inconnues : {ids}. Connues : {known}."
+  "checklist.unknown_id": "mission.yaml active une ou des checklists inconnues : {ids}. Connues : {known}.",
+  "checklist.unknown_display": "modules.ASSIST.display vaut « {value} » ; valeurs attendues : {valid}.",
+  "checklist.text_mode": "Checklists guidées en mode texte : {n} checklist(s) enregistrée(s), aucune image générée."
 }

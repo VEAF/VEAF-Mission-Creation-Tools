@@ -35,6 +35,9 @@ end
 --- Reset the whole module and the mocks, then register a fresh checklist.
 local function setUpEngine(params)
   dcs_mocks.reset()
+  -- A test that swaps a trigger-environment global must not leak it into the next one:
+  -- a stub returning a frozen parameter dump silently broke every later test here.
+  dcs_mocks.restoreTriggerGlobals()
   veafAssist.checklists = {}
   veafAssist.sessions = {}
   veafAssist.paramCache = nil
@@ -360,6 +363,79 @@ function TestVeafAssistSessions:test_the_parameter_dump_is_read_once_per_tick()
   veafAssist.loop()
   -- Three steps in the checklist, one dump.
   luaunit.assertEquals(calls, 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafAssistTextMode
+--
+-- A checklist emitted with no `images` is what `display: text` produces at build
+-- time: no picture was rendered, nothing was embedded, and the current instruction
+-- has to be spoken instead.
+-- ---------------------------------------------------------------------------
+TestVeafAssistTextMode = {}
+
+--- Register the same checklist without its images, as a text-mode build emits it.
+local function setUpTextMode()
+  setUpEngine()
+  local textOnly = definition("text-checklist")
+  textOnly.images = nil
+  veafAssist.registerChecklist(textOnly)
+end
+
+function TestVeafAssistTextMode:test_the_current_instruction_is_sent_on_every_step_change()
+  setUpTextMode()
+  veafAssist.start("Pilot #1", "text-checklist")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("1/3"), 1)
+
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("2/3"), 1)
+end
+
+function TestVeafAssistTextMode:test_the_instruction_carries_the_step_label()
+  setUpTextMode()
+  veafAssist.start("Pilot #1", "text-checklist")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("step.one"), 1)
+end
+
+function TestVeafAssistTextMode:test_no_picture_is_ever_displayed()
+  setUpTextMode()
+  veafAssist.start("Pilot #1", "text-checklist")
+  setParamAndTick("Pilot #1", "P1", 0.0)
+  luaunit.assertEquals(#dcs_mocks.cockpitCallsTo("a_out_picture_u"), 0)
+end
+
+function TestVeafAssistTextMode:test_the_element_is_still_boxed()
+  -- Text mode drops the picture, not the assistance: the box is the other half.
+  setUpTextMode()
+  veafAssist.start("Pilot #1", "text-checklist")
+  luaunit.assertEquals(highlightedElements(), { MAIN_PWR })
+end
+
+function TestVeafAssistTextMode:test_picture_mode_sends_no_current_step_message()
+  -- With a picture on screen, repeating the instruction as a message is noise.
+  setUpEngine()
+  veafAssist.start("Pilot #1", "test-checklist")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("1/3"), 0)
+  luaunit.assertEquals(#dcs_mocks.cockpitCallsTo("a_out_picture_u"), 1)
+end
+
+function TestVeafAssistTextMode:test_the_toggle_entry_is_hidden_without_a_picture()
+  setUpTextMode()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  veafAssist.start("Pilot #1", "text-checklist")
+  luaunit.assertTrue(veafAssist.isAssisted("Pilot #1"))
+  luaunit.assertFalse(veafAssist.hasPicture("Pilot #1"))
+end
+
+function TestVeafAssistTextMode:test_picture_mode_still_reports_a_picture()
+  setUpEngine()
+  veafAssist.start("Pilot #1", "test-checklist")
+  luaunit.assertTrue(veafAssist.hasPicture("Pilot #1"))
 end
 
 -- ---------------------------------------------------------------------------

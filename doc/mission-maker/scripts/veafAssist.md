@@ -52,6 +52,7 @@ signale sur le moment. L'image est le tableau de bord, les textes portent les é
 modules:
   ASSIST:
     enabled: true
+    display: picture                # `picture` (défaut) ou `text`
     checklists: [f16c-cold-start]   # les checklists que cette mission active
 ```
 
@@ -62,6 +63,22 @@ modules:
   image par étape dans le `.miz`.
 - **Module absent ou `enabled: false`** : rien n'est chargé, rien n'est généré, aucune image dans le
   `.miz`.
+
+### Image ou texte {#display-mode}
+
+`display` choisit comment la checklist s'affiche, et c'est un choix **à la construction** :
+
+| Mode | Ce que voit le pilote | Ce que ça coûte |
+|---|---|---|
+| `picture` (défaut) | la checklist entière à l'écran, cases cochées au fur et à mesure | une image par étape embarquée dans le `.miz`, environ 10 Ko chacune |
+| `text` | un message donnant l'instruction courante et l'avancement (`Étape 3/6 : …`) | **rien** : aucune image n'est générée ni embarquée |
+
+Dans les deux cas la commande de cockpit est encadrée : le mode texte enlève l'image, pas
+l'assistance. Une valeur inconnue fait échouer la construction — une faute de frappe ne doit pas
+retomber en silence sur le mode coûteux.
+
+Concrètement, la checklist F-16C livrée pèse 68 Ko en `picture` et 0 en `text`. À quarante étapes,
+l'écart dépasse le demi-mégaoctet.
 
 ### Écrire une checklist {#write-a-checklist}
 

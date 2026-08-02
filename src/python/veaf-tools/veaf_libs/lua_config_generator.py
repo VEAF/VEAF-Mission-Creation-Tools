@@ -99,9 +99,11 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zones",
         "airwave_zones",
         "password_mm_hashes",
-        # ASSIST: a build-time selection, not a runtime setting — the engine only ever
-        # sees the checklists the build chose to emit.
+        # ASSIST: build-time choices, not runtime settings — the engine only ever sees
+        # the checklists the build chose to emit, and infers the display mode from
+        # whether they carry images.
         "checklists",
+        "display",
     }
 )
 

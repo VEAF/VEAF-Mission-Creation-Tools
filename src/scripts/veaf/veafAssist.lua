@@ -333,6 +333,13 @@ local function refreshSession(unit, session)
   -- The step changed, so "Confirm this step" may have just become relevant, or stopped
   -- being so.
   refreshMenu()
+
+  -- Text mode: the build rendered no image, so the current instruction is what carries
+  -- the checklist. A checklist with no `images` IS a text-mode checklist — that is what
+  -- `display: text` produces, and it needs no extra field to say so.
+  if not session.checklist.images then
+    tell(session, "assist.step_current", index, #session.checklist.steps, stepLabel(session, index))
+  end
   -- Re-issue the highlight only when the target step changes: ED's own
   -- update_checklist guards on exactly this, and re-boxing every tick is
   -- wasteful and visually unstable.
@@ -550,6 +557,13 @@ function veafAssist.isAssisted(unitName)
   return veafAssist.sessions[unitName] ~= nil
 end
 
+--- Whether that session has a picture at all — false for a text-mode checklist, where
+--- "hide / show the checklist" would be an entry that does nothing.
+function veafAssist.hasPicture(unitName)
+  local session = veafAssist.sessions[unitName]
+  return session ~= nil and session.checklist.images ~= nil
+end
+
 --- Whether the pilot's current step is one they have to confirm themselves.
 --- An inert "Confirm" on an automatic step invites a press and a puzzled pilot.
 function veafAssist.currentStepNeedsConfirmation(unitName)
@@ -646,7 +660,7 @@ function veafAssist.buildRadioMenu()
 
   -- The occasional ones stay in the submenu.
   local contextual = {
-    { key = "assist.menu.toggle_picture", method = veafAssist.radioTogglePicture, filter = veafAssist.isAssisted },
+    { key = "assist.menu.toggle_picture", method = veafAssist.radioTogglePicture, filter = veafAssist.hasPicture },
     { key = "assist.menu.stop", method = veafAssist.radioStop, filter = veafAssist.isAssisted },
   }
   for _, entry in ipairs(contextual) do

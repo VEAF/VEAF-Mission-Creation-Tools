@@ -117,6 +117,7 @@ modules:
   # folder are activated — never the whole shipped catalogue.
   #   ASSIST:
   #     enabled: true
+  #     display: picture          # `picture` (nice, ~10 KB per step) or `text` (free)
   #     checklists: [f16c-cold-start]
   # SANCTUARY needs `sanctuary_zones:` — uncomment and fill in to enable:
   #   SANCTUARY:

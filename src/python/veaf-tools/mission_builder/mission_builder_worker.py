@@ -159,6 +159,14 @@ _VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
 #: activate and therefore the images to render into the ``.miz``.
 _ASSIST_MODULE_ID = "ASSIST"
 
+#: How a mission wants its checklists shown. ``picture`` renders one image per progress
+#: state and embeds them — nice, and the F-16C's six steps already cost 68 KB. ``text``
+#: renders **nothing**: the engine sends the current instruction as a message instead,
+#: which is the whole reason the option exists.
+_ASSIST_DISPLAY_PICTURE = "picture"
+_ASSIST_DISPLAY_TEXT = "text"
+_ASSIST_DISPLAY_MODES = frozenset({_ASSIST_DISPLAY_PICTURE, _ASSIST_DISPLAY_TEXT})
+
 
 def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
     """Emit the compiled ``trig`` form of a trigger's actions: one concatenated string.
@@ -1949,6 +1957,18 @@ class MissionBuilderWorker(BaseWorker):
         checklists = select_activated(available, configured, mission_ids)
         if not checklists:
             return []
+
+        display = str(assist_cfg.get("display") or _ASSIST_DISPLAY_PICTURE).lower()
+        if display not in _ASSIST_DISPLAY_MODES:
+            logger.error(
+                t("checklist.unknown_display", value=display, valid=", ".join(sorted(_ASSIST_DISPLAY_MODES))),
+                exception_type=ValueError,
+            )
+        if display == _ASSIST_DISPLAY_TEXT:
+            # The whole point of text mode: nothing rendered, nothing embedded, nothing in
+            # mapResource. The engine reads a checklist with no `images` as a text one.
+            logger.info(t("checklist.text_mode", n=len(checklists)))
+            return checklists
 
         # The picture's text must read like the pilot's messages, so it is resolved through
         # the runtime catalog, in the mission's language — the same resolution veaf.t()

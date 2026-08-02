@@ -99,6 +99,47 @@ class TestImageResources(unittest.TestCase):
         self.assertEqual({}, worker._checklist_resources())
 
 
+class TestDisplayMode(unittest.TestCase):
+    """`display: text` is what makes a checklist cheap: nothing is rendered at all."""
+
+    def test_text_mode_registers_the_checklist_but_renders_nothing(self):
+        worker = _make_worker()
+        selected = worker._resolve_checklists(_yaml({"enabled": True, "display": "text"}))
+        self.assertEqual(["mission-own"], [entry.id for entry in selected])
+        self.assertEqual([], worker.checklist_images)
+        self.assertEqual({}, worker._checklist_resources())
+
+    def test_picture_is_the_default(self):
+        worker = _make_worker()
+        worker._resolve_checklists(_yaml({"enabled": True}))
+        with_images = len(worker.checklist_images)
+        worker._resolve_checklists(_yaml({"enabled": True, "display": "picture"}))
+        self.assertEqual(with_images, len(worker.checklist_images))
+        self.assertEqual(1, with_images)
+
+    def test_the_mode_is_case_insensitive(self):
+        worker = _make_worker()
+        worker._resolve_checklists(_yaml({"enabled": True, "display": "TEXT"}))
+        self.assertEqual([], worker.checklist_images)
+
+    def test_an_unknown_mode_fails_the_build(self):
+        # A typo must not fall back to the expensive mode without saying so.
+        worker = _make_worker()
+        with self.assertRaises(ValueError) as ctx:
+            worker._resolve_checklists(_yaml({"enabled": True, "display": "pictures"}))
+        self.assertIn("pictures", str(ctx.exception))
+
+    def test_text_mode_emits_no_images_field(self):
+        from veaf_libs.lua_config_generator import generate_config_lua
+
+        worker = _make_worker()
+        yaml_dict = _yaml({"enabled": True, "display": "text"})
+        checklists = worker._resolve_checklists(yaml_dict)
+        lua = generate_config_lua(yaml_dict, checklists=checklists, checklist_images={})
+        self.assertIn("registerChecklist", lua)
+        self.assertNotIn("images = ", lua)
+
+
 class TestGeneratedLua(unittest.TestCase):
     """What the engine reads at runtime."""
 

@@ -81,9 +81,10 @@ One door, rather than inventing a condition language now: a **named** check with
     check: {type: altitude_above, value: 15000, unit: feet}
 ```
 
-The engine holds a registry — `veafAssist.registerCheck("altitude_above", fn)` — and `argument` /
+The engine holds a registry — `veafAssist.registerCheck("altitude_above", fn)` — and `cockpit_param` /
 `confirm` are simply the two checks registered by default. A bomb-run lot adds checks (altitude, speed,
-heading, distance to a point, selected weapon) without touching the engine or the format.
+heading, distance to a point, selected weapon) without touching the engine or the format — and most of
+those are already readable through `param`, so it may need no new check at all.
 
 ## The display: an image, plus short texts
 
@@ -157,6 +158,7 @@ message, and the pilot still gets feedback when the image is hidden.
 | 05 | [Radio menu, i18n and `mission.yaml` wiring](tickets/05-menu-and-config.md) | 03, 04 (**✅ done**) |
 | 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 (**🧑 slice to review by a pilot**) |
 | 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 (**✅ done**) |
+| 08 | [Picture or text, chosen at build time](tickets/08-display-mode.md) | 03, 04 (**✅ done**) |
 
 ## Probed in game — 2026-08-01
 

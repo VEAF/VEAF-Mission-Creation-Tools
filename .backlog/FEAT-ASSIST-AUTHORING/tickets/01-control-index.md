@@ -1,6 +1,6 @@
 # 01 — extract the cockpit-control index, per aircraft
 
-**Status:** ⬜ ready.
+**Status:** ✅ done.
 
 Everything else in this lot reads this index. It turns `clickabledata.lua` — Lua source living inside
 a DCS installation — into versioned data the tools can query without DCS being present.
@@ -23,7 +23,32 @@ controls:
     readable: true                     # false for spring-loaded and momentary controls
 ```
 
-Measured on the F-16C: 284 elements, all with an argument, 131 naming their positions.
+Measured on the F-16C: 284 elements, all with an argument, 127 naming their positions.
+
+**Done. Four aircraft indexed**, and three assumptions in this ticket turned out to be wrong:
+
+| Aircraft | Controls | Skipped | Readable | Positions named |
+|---|---|---|---|---|
+| F-16C_50 | 284 | 0 | 169 | 127 |
+| A-10C_2 | 470 | 4 | 185 | 8 |
+| AH-64D_BLK_II | 478 | 0 | 123 | 123 |
+| F-14B | 360 | 11 | 260 | 0 |
+
+1. **`clickabledata.lua` is not one format, it is four.** The regex above matches the F-16C and
+   nothing else. The AH-64D names the crew station before the hint and quotes it with apostrophes
+   (0 controls until fixed); the A-10C's UFC keypad passes an empty bare hint (53 missing); Heatblur
+   names its arguments — `cockpit_args.HYD_ISOLATION_Switch` — in a `draw_args.lua` table, which was
+   the difference between 114 F-14 controls and 360. Each was found by indexing a real cockpit.
+2. **Naming positions in the hint is an ED habit, not a convention.** Ticket 03 cannot rely on it:
+   Heatblur names *none* of its positions, and the A-10C names 8 of 470. For those aircraft the
+   position names have to come from somewhere else — the manual (ticket 06), or in-game measurement
+   (ticket 04). This is the single biggest thing this ticket learned.
+3. **The skip count has to be measured against every element declared**, not against what the
+   pattern understood — the first version counted the latter and silently hid 53 A-10C controls.
+
+The F-14B(U) shares this index: its `clickabledata.lua` is two lines of `dofile` pointing at the
+F-14B's, so Heatblur's newer jet has no cockpit data of its own. Provenance carries the DCS version
+read from `autoupdate.cfg` (2.9.28.26385 for these four).
 
 **`positions` is the hint's order, and that order is not the value order** — `MAIN PWR/BATT/OFF` runs
 +1 / 0 / −1 while `OFF/BACKUP` runs 0 / 1. The index records what the hint says and **does not
@@ -53,6 +78,10 @@ regex cannot make sense of is reported, not silently dropped.
 
 ## Definition of done
 
-- The F-16C index generated and committed, with its provenance header.
-- The generator is a `veaf-build` subcommand, documented in the developer guide.
-- Quality gate clean, coverage floor bumped.
+- [x] The F-16C index generated and committed, with its provenance header — plus the A-10C II, the
+      AH-64D and the F-14B, since the generator knows six aircraft and four are installed here.
+- [x] The generator is a `veaf-build` subcommand (`update-dcs-data --cockpit-controls`), documented
+      in [the developer guide](../../../doc/developer/dcs-data.md#cockpit-controls).
+- [x] Quality gate clean, coverage floor bumped 78.5 → 79 (measured 79.22).
+- [x] The indexes ship in the executable, with a packaging guard — which the previous lot's
+      `checklists/` directory did not have either, so that one is now covered too.

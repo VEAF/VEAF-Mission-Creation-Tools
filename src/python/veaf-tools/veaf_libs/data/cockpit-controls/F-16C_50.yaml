@@ -1,0 +1,2858 @@
+# Clickable cockpit controls of the F-16C_50.
+# Generated from F-16C/Cockpit/Scripts/clickabledata.lua in a DCS install.
+# `positions` is in HINT order, which is not value order: a switch whose hint
+# reads MAIN PWR/BATT/OFF runs +1/0/-1. Never infer a value from a rank here.
+# `readable` is false for buttons and spring-loaded switches: they have no
+# position to poll, so a step on one has to be pilot-confirmed.
+# Install-dependent, so NOT CI-guarded. Re-run
+# `veaf-build update-dcs-data --cockpit-controls --dcs-path <DCS>` after a DCS update.
+
+aircraft: F-16C_50
+module: F-16C
+source: clickabledata.lua
+dcs_version: 2.9.28.26385
+controls:
+  PTR-FLTCP-TMB-DIGITAL-566:
+    argument: 566
+    hint: DIGITAL BACKUP Switch, OFF/BACKUP
+    prototype: default_2_position_tumb
+    positions:
+    - 'OFF'
+    - BACKUP
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FLTCP-TMB-AFLP-567:
+    argument: 567
+    hint: ALT FLAPS Switch, NORM/EXTEND
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - EXTEND
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FLTCP-TMB-BIT-574:
+    argument: 574
+    hint: BIT Switch, OFF/BIT
+    prototype: springloaded_2_pos_tumb
+    positions:
+    - 'OFF'
+    - BIT
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-FLTCP-TMB-FLCS-573:
+    argument: 573
+    hint: FLCS RESET Switch, OFF/RESET
+    prototype: springloaded_2_pos_tumb_small
+    positions:
+    - 'OFF'
+    - RESET
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-FLTCP-TMB-LEFLP-572:
+    argument: 572
+    hint: LE FLAPS Switch, AUTO/LOCK
+    prototype: default_2_position_tumb
+    positions:
+    - AUTO
+    - LOCK
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-MANTRIM-TMB-MODE-564:
+    argument: 564
+    hint: TRIM/AP DISC Switch, DISC/NORM
+    prototype: default_2_position_tumb
+    positions:
+    - DISC
+    - NORM
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-MANTRIM-LVR-ROLL-560:
+    argument: 560
+    hint: ROLL TRIM Wheel
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-MANTRIM-LVR-PITCH-562:
+    argument: 562
+    hint: PITCH TRIM Wheel
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-MANTRIM-LVR-YAW-565:
+    argument: 565
+    hint: YAW TRIM Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-MPCP-TMB-MP-425:
+    argument: 425
+    hint: MANUAL PITCH Override Switch, OVRD/NORM
+    prototype: springloaded_2_pos_tumb_small
+    positions:
+    - OVRD
+    - NORM
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LGCP-TMB-STCONF-358:
+    argument: 358
+    hint: STORES CONFIG Switch, CAT III/CAT I
+    prototype: default_2_position_tumb_small
+    positions:
+    - CAT III
+    - CAT I
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CLCP-TMB-PITCH-109:
+    argument: 109
+    hint: Autopilot PITCH Switch, ATT HOLD/ A/P OFF/ ALT HOLD
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - ATT HOLD
+    - A
+    - P OFF
+    - ALT HOLD
+    range: null
+    readable: false
+  PTR-CLCP-TMB-ROLL-108:
+    argument: 108
+    hint: Autopilot ROLL Switch, STRG SEL/ATT HOLD/HDG SEL
+    prototype: default_3_position_tumb_small
+    positions:
+    - STRG SEL
+    - ATT HOLD
+    - HDG SEL
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-CLCP-BTN-ADV-97:
+    argument: 97
+    hint: ADV MODE Switch
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FLTCP-TMB-MAN-568:
+    argument: 568
+    hint: MANUAL TF FLYUP Switch, ENABLE/DISABLE
+    prototype: default_2_position_tumb
+    positions:
+    - ENABLE
+    - DISABLE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-THRTL-RLS-757:
+    argument: 757
+    hint: Throttle, OFF/IDLE
+    prototype: default_button
+    positions:
+    - 'OFF'
+    - IDLE
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-EXTLGT-TMB-ANTCOL-531:
+    argument: 531
+    hint: ANTI-COLL Knob, OFF/1/2/3/4/A/B/C
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - A
+    - B
+    - C
+    range:
+    - 0.0
+    - 0.7000000000000001
+    readable: true
+  PTR-EXTLGT-TMB-FLSH-532:
+    argument: 532
+    hint: FLASH STEADY Switch, FLASH/STEADY
+    prototype: default_2_position_tumb_small
+    positions:
+    - FLASH
+    - STEADY
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EXTLGT-TMB-WNGTAIL-533:
+    argument: 533
+    hint: WING/TAIL Switch, BRT/OFF/DIM
+    prototype: default_3_position_tumb_small
+    positions:
+    - BRT
+    - 'OFF'
+    - DIM
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-EXTLGT-TMB-FUS-534:
+    argument: 534
+    hint: FUSELAGE Switch, BRT/OFF/DIM
+    prototype: default_3_position_tumb_small
+    positions:
+    - BRT
+    - 'OFF'
+    - DIM
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-EXTLGT-LVR-FORM-535:
+    argument: 535
+    hint: FORM Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EXTLGT-TMB-MASTER-536:
+    argument: 536
+    hint: MASTER Switch, OFF/ALL/A-C/FORM/NORM
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - ALL
+    - A-C
+    - FORM
+    - NORM
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  PTR-EXTLGT-LVR-AREF-537:
+    argument: 537
+    hint: AERIAL REFUELING Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-TMB-LIGHTS-360:
+    argument: 360
+    hint: LANDING TAXI LIGHTS Switch, LANDING/OFF/TAXI
+    prototype: default_3_position_tumb_small
+    positions:
+    - LANDING
+    - 'OFF'
+    - TAXI
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-CPBC-BTN-MCAUT-116:
+    argument: 116
+    hint: Master Caution Button - Push to reset
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TESTCP-BTN-MAL-577:
+    argument: 577
+    hint: MAL & IND LTS Test Button - Push to test
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RLGT-LVR-PRICNS-685:
+    argument: 685
+    hint: PRIMARY CONSOLES BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-RLGT-LVR-PRIPNL-686:
+    argument: 686
+    hint: PRIMARY INST PNL BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-RLGT-LVR-PRIDATA-687:
+    argument: 687
+    hint: PRIMARY DATA ENTRY DISPLAY BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-RLGT-LVR-FLDCNS-688:
+    argument: 688
+    hint: FLOOD CONSOLES BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-RLGT-LVR-FLDPNL-690:
+    argument: 690
+    hint: FLOOD INST PNL BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-RLGT-TMB-MALIND-691:
+    argument: 691
+    hint: MAL & IND LTS Switch, BRT/Center/DIM
+    prototype: springloaded_3_pos_tumb_small
+    positions:
+    - BRT
+    - Center
+    - DIM
+    range: null
+    readable: false
+  PTR-AOA-LVL-794:
+    argument: 794
+    hint: AOA Indexer Dimming Lever
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AR-LVL-795:
+    argument: 795
+    hint: AR Status Indicator Dimming Lever
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ELEC-TMB-MPWR-510:
+    argument: 510
+    hint: MAIN PWR Switch, MAIN PWR/BATT/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - MAIN PWR
+    - BATT
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ELEC-BTN-CRES-511:
+    argument: 511
+    hint: ELEC CAUTION RESET Button - Push to reset
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TESTCP-TMB-EPU-579:
+    argument: 579
+    hint: EPU/GEN Test Switch, EPU/GEN /OFF
+    prototype: springloaded_2_pos_tumb_small
+    positions:
+    - EPU
+    - GEN
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TESTCP-TMB-PROBE-578:
+    argument: 578
+    hint: PROBE HEAT Switch, PROBE HEAT/OFF/TEST(momentarily)
+    prototype: default_button_tumb
+    positions:
+    - PROBE HEAT
+    - 'OFF'
+    - TEST(momentarily)
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-TESTCP-TMB-TEST-585:
+    argument: 585
+    hint: FLCS PWR TEST Switch, MAINT/NORM/TEST(momentarily)
+    prototype: default_tumb_button
+    positions:
+    - MAINT
+    - NORM
+    - TEST(momentarily)
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-FUELCP-TMB-MASTER-559:
+    argument: 559
+    hint: FUEL MASTER Switch, MASTER/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - MASTER
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FUELCP-CVR-MASTER-558:
+    argument: 558
+    hint: FUEL MASTER Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FUELCP-TMB-TANK-557:
+    argument: 557
+    hint: TANK INERTING Switch, TANK INERTING /OFF
+    prototype: default_2_position_tumb
+    positions:
+    - TANK INERTING
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-FUELCP-TMB-ENGFEED-556:
+    argument: 556
+    hint: ENGINE FEED Knob, OFF/NORM/AFT/FWD
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - NORM
+    - AFT
+    - FWD
+    range:
+    - 0.0
+    - 0.30000000000000004
+    readable: true
+  PTR-FUELCP-TMB-REFUEL-555:
+    argument: 555
+    hint: AIR REFUEL Switch, OPEN/CLOSE
+    prototype: default_2_position_tumb
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CDCP-TMB-FTRANS-159:
+    argument: 159
+    hint: External Fuel Transfer Switch, NORM/ WING FIRST
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - WING FIRST
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-ARM-LG-362:
+    argument: 362
+    hint: LG Handle, UP/DN
+    prototype: default_2_position_tumb
+    positions:
+    - UP
+    - DN
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-BTN-DNLOCK-361:
+    argument: 361
+    hint: DN LOCK REL Button - Push to reset
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LGCP-TMB-HOOK-354:
+    argument: 354
+    hint: HOOK Switch, UP/DN
+    prototype: default_2_position_tumb
+    positions:
+    - UP
+    - DN
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-BTN-HORN-359:
+    argument: 359
+    hint: HORN SILENCER Button - Push to reset
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LGCP-TMB-BRK-356:
+    argument: 356
+    hint: BRAKES Channel Switch, CHAN 1/CHAN 2
+    prototype: default_2_position_tumb_small
+    positions:
+    - CHAN 1
+    - CHAN 2
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-TMB-PRKNG-357:
+    argument: 357
+    hint: ANTI-SKID Switch, PARKING BRAKE/ANTI-SKID/OFF
+    prototype: default_tumb_button
+    positions:
+    - PARKING BRAKE
+    - ANTI-SKID
+    - 'OFF'
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-LGCP-ALTGEAR-380:
+    argument: 380
+    hint: ALT GEAR Handle, PULL/STOW
+    prototype: default_2_position_tumb
+    positions:
+    - PULL
+    - STOW
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LGCP-BTN-RESET-381:
+    argument: 381
+    hint: ALT GEAR Handle - Push to reset
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-AIRCOND-TMB-TEMP-692:
+    argument: 692
+    hint: TEMP Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AIRCOND-TMB-SRC-693:
+    argument: 693
+    hint: AIR SOURCE Knob, OFF/NORM/DUMP/RAM
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - NORM
+    - DUMP
+    - RAM
+    range:
+    - 0.0
+    - 0.30000000000000004
+    readable: true
+  PTR-LARMS-DEFOG-602:
+    argument: 602
+    hint: DEFOG Lever
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EPU-CVR-EPUTMB-527:
+    argument: 527
+    hint: EPU Switch Cover for ON, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EPU-CVR-EPUTMB-529:
+    argument: 529
+    hint: EPU Switch Cover for OFF, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EPU-TMB-EPUTMB-528:
+    argument: 528
+    hint: EPU Switch, ON/NORM/OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - 'ON'
+    - NORM
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ANTICE-TMB-ENG-710:
+    argument: 710
+    hint: Engine ANTI ICE Switch, ON/AUTO/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - 'ON'
+    - AUTO
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ENGSTART-TMB-JETFUEL-447:
+    argument: 447
+    hint: JFS Switch, START 1/OFF/START 2
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - START 1
+    - 'OFF'
+    - START 2
+    range: null
+    readable: false
+  PTR-ENGSTART-CVR-ENGCNT-448:
+    argument: 448
+    hint: ENG CONT Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ENGSTART-TMB-ENGCNT-449:
+    argument: 449
+    hint: ENG CONT Switch, PRI/SEC
+    prototype: default_2_position_tumb_small
+    positions:
+    - PRI
+    - SEC
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ENGSTART-TMB-MAXPWR-451:
+    argument: 451
+    hint: MAX POWER Switch (is inoperative), MAX POWER/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - MAX POWER
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ENGSTART-TMB-ABENG-450:
+    argument: 450
+    hint: AB RESET Switch, AB RESET/NORM/ENG DATA
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - AB RESET
+    - NORM
+    - ENG DATA
+    range: null
+    readable: false
+  PTR-TESTCP-BTN-FIRE-575:
+    argument: 575
+    hint: FIRE & OHEAT DETECT Test Button - Push to test
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-OXYCP-LVR-SUPP-728:
+    argument: 728
+    hint: Supply Lever, PBG/ON/OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - PBG
+    - 'ON'
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-OXYCP-LVR-DUL-727:
+    argument: 727
+    hint: Diluter Lever, 100 percent/NORM
+    prototype: default_2_position_tumb_small
+    positions:
+    - 100 percent
+    - NORM
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-OXYCP-LVR-EMRG-726:
+    argument: 726
+    hint: Emergency Lever, EMERGENCY/NORMAL/TEST MASK(momentarily)
+    prototype: default_button_tumb
+    positions:
+    - EMERGENCY
+    - NORMAL
+    - TEST MASK(momentarily)
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-TESTCP-TMB-OXY-576:
+    argument: 576
+    hint: OBOGS BIT Switch, BIT/OFF
+    prototype: springloaded_2_pos_tumb_small
+    positions:
+    - BIT
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-SNSR-TMB-LEFT-670:
+    argument: 670
+    hint: LEFT HDPT Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-SNSR-TMB-RIGHT-671:
+    argument: 671
+    hint: RIGHT HDPT Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-SNSR-TMB-FCR-672:
+    argument: 672
+    hint: FCR Switch, FCR/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - FCR
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-SNSR-TMB-RDR-673:
+    argument: 673
+    hint: RDR ALT Switch, RDR ALT/STBY/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - RDR ALT
+    - STBY
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-MMC-715:
+    argument: 715
+    hint: MMC Switch, MMC/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - MMC
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-STSTA-716:
+    argument: 716
+    hint: ST STA Switch, ST STA/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - ST STA
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-MFD-717:
+    argument: 717
+    hint: MFD Switch, MFD/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - MFD
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-UFC-718:
+    argument: 718
+    hint: UFC Switch, UFC/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - UFC
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-GPS-720:
+    argument: 720
+    hint: GPS Switch, GPS/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - GPS
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-LVR-MIDS-723:
+    argument: 723
+    hint: MIDS LVT Knob, ZERO/OFF/ON
+    prototype: multiposition_switch
+    positions:
+    - ZERO
+    - 'OFF'
+    - 'ON'
+    range:
+    - 0.0
+    - 0.2
+    readable: true
+  PTR-AVIPWR-LVR-INS-719:
+    argument: 719
+    hint: INS Knob, OFF/STOR HDG/NORM/NAV/CAL/INFLT ALIGN/ATT
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - STOR HDG
+    - NORM
+    - NAV
+    - CAL
+    - INFLT ALIGN
+    - ATT
+    range:
+    - 0.0
+    - 0.6000000000000001
+    readable: true
+  PTR-AVIPWR-TMB-MAP-722:
+    argument: 722
+    hint: MAP Switch, MAP/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - MAP
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AVIPWR-TMB-DL-721:
+    argument: 721
+    hint: DL Switch, DL/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - DL
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CLCP-TMB-MASTER-105:
+    argument: 105
+    hint: MASTER ARM Switch, MASTER ARM/OFF/SIMULATE
+    prototype: default_3_position_tumb
+    positions:
+    - MASTER ARM
+    - 'OFF'
+    - SIMULATE
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-LGCP-BTN-ESJETT-353:
+    argument: 353
+    hint: EMER STORES JETTISON Button - Push to jettison
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LGCP-TMB-GNDJETT-355:
+    argument: 355
+    hint: GND JETT ENABLE Switch, ENABLE/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - ENABLE
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CLCP-TMB-ALT-104:
+    argument: 104
+    hint: ALT REL Button - Push to release
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CLCP-TMB-LASER-103:
+    argument: 103
+    hint: LASER ARM Switch, ARM/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - ARM
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ICP-BTN-NMB1-171:
+    argument: 171
+    hint: ICP Priority Function Button, 1(T-ILS)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB2-172:
+    argument: 172
+    hint: ICP Priority Function Button, 2/N(ALOW)
+    prototype: short_way_button
+    positions:
+    - '2'
+    - N(ALOW)
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB3-173:
+    argument: 173
+    hint: ICP Priority Function Button, 3
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB4-175:
+    argument: 175
+    hint: ICP Priority Function Button, 4/W(STPT)
+    prototype: short_way_button
+    positions:
+    - '4'
+    - W(STPT)
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB5-176:
+    argument: 176
+    hint: ICP Priority Function Button, 5(CRUS)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB6-177:
+    argument: 177
+    hint: ICP Priority Function Button, 6/E(TIME)
+    prototype: short_way_button
+    positions:
+    - '6'
+    - E(TIME)
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB7-179:
+    argument: 179
+    hint: ICP Priority Function Button, 7(MARK)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB8-180:
+    argument: 180
+    hint: ICP Priority Function Button, 8/S(FIX)
+    prototype: short_way_button
+    positions:
+    - '8'
+    - S(FIX)
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB9-181:
+    argument: 181
+    hint: ICP Priority Function Button, 9(A-CAL)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-NMB0-182:
+    argument: 182
+    hint: ICP Priority Function Button, 0(M-SEL)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-COM1-165:
+    argument: 165
+    hint: ICP COM Override Button, COM1(UHF)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-COM2-166:
+    argument: 166
+    hint: ICP COM Override Button, COM2(VHF)
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-IFF-167:
+    argument: 167
+    hint: ICP IFF Override Button, IFF
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-LIST-168:
+    argument: 168
+    hint: ICP LIST Override Button, LIST
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-AA-169:
+    argument: 169
+    hint: ICP Master Mode Button, A-A
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-AG-170:
+    argument: 170
+    hint: ICP Master Mode Button, A-G
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-RCL-174:
+    argument: 174
+    hint: ICP Recall Button, RCL
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-BTN-ENTR-178:
+    argument: 178
+    hint: ICP Enter Button, ENTR
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-LVR-RET-192:
+    argument: 192
+    hint: ICP Reticle Depression Control Knob
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ICP-LVR-CONT-193:
+    argument: 193
+    hint: ICP Raster Contrast Knob
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ICP-LVR-BRT-191:
+    argument: 191
+    hint: ICP Raster Intensity Knob
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ICP-LVR-SYM-190:
+    argument: 190
+    hint: ICP HUD Symbology Intensity Knob
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ICP-BTN-WX-187:
+    argument: 187
+    hint: ICP FLIR Polarity Button, Wx
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-TMB-GAIN-189:
+    argument: 189
+    hint: ICP FLIR GAIN/LEVEL Switch, GAIN/LVL/AUTO
+    prototype: default_3_position_tumb_small
+    positions:
+    - GAIN
+    - LVL
+    - AUTO
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ICP-RS-OFF-UP-183:
+    argument: 183
+    hint: ICP DED Increment/Decrement Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    range: null
+    readable: true
+  PTR-ICP-RS-OFF-DN-183:
+    argument: 183
+    hint: ICP DED Increment/Decrement Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-ICP-RS-FLIR-UP-188:
+    argument: 188
+    hint: ICP FLIR Increment/Decrement Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    range: null
+    readable: true
+  PTR-ICP-RS-FLIR-DN-188:
+    argument: 188
+    hint: ICP FLIR Increment/Decrement Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-ICP-TMB-DRIFT-186:
+    argument: 186
+    hint: ICP DRIFT CUTOUT/WARN RESET Switch, DRIFT C/O /NORM/WARN RESET
+    prototype: default_button_tumb
+    positions:
+    - DRIFT C
+    - O
+    - NORM
+    - WARN RESET
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-ICP-TMB-RTN-184:
+    argument: 184
+    hint: ICP Data Control Switch, RTN
+    prototype: springloaded_2_pos_tumb_small
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-TMB-SEQ-184:
+    argument: 184
+    hint: ICP Data Control Switch, SEQ
+    prototype: springloaded_2_pos_tumb_small
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-TMB-RTNSEQ-UP-185:
+    argument: 185
+    hint: ICP Data Control Switch, UP
+    prototype: springloaded_2_pos_tumb_small
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ICP-TMB-RTNSEQ-DN-185:
+    argument: 185
+    hint: ICP Data Control Switch, DN
+    prototype: springloaded_2_pos_tumb_small
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CPBC-BTN-FACK-122:
+    argument: 122
+    hint: F-ACK Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CPBC-BTN-IFF-125:
+    argument: 125
+    hint: IFF IDENT Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CLCP-TMB-RF-100:
+    argument: 100
+    hint: RF Switch, SILENT/QUIET/NORM
+    prototype: default_3_position_tumb
+    positions:
+    - SILENT
+    - QUIET
+    - NORM
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-WVAH-675:
+    argument: 675
+    hint: HUD Scales Switch, VV/VAH / VAH / OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - VV
+    - VAH
+    - VAH
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-ATT-676:
+    argument: 676
+    hint: HUD Flightpath Marker Switch, ATT/FPM / FPM / OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - ATT
+    - FPM
+    - FPM
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-DED-677:
+    argument: 677
+    hint: HUD DED/PFLD Data Switch, DED / PFL / OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - DED
+    - PFL
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-DEPR-678:
+    argument: 678
+    hint: HUD Depressible Reticle Switch, STBY / PRI / OFF
+    prototype: default_3_position_tumb
+    positions:
+    - STBY
+    - PRI
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-CAS-679:
+    argument: 679
+    hint: HUD Velocity Switch, CAS / TAS / GND SPD
+    prototype: default_3_position_tumb_small
+    positions:
+    - CAS
+    - TAS
+    - GND SPD
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-ALT-680:
+    argument: 680
+    hint: HUD Altitude Switch, RADAR / BARO / AUTO
+    prototype: default_3_position_tumb_small
+    positions:
+    - RADAR
+    - BARO
+    - AUTO
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-DAYNGT-681:
+    argument: 681
+    hint: HUD Brightness Control Switch, DAY / AUTO BRT / NIGHT
+    prototype: default_3_position_tumb_small
+    positions:
+    - DAY
+    - AUTO BRT
+    - NIGHT
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-RHUD-TMB-TEST-682:
+    argument: 682
+    hint: HUD TEST Switch, STEP / ON / OFF
+    prototype: default_3_position_tumb_small
+    positions:
+    - STEP
+    - 'ON'
+    - 'OFF'
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-TMB-COMM1-434:
+    argument: 434
+    hint: COMM 1 (UHF) Mode Knob
+    prototype: multiposition_switch
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-TMB-COMM2-435:
+    argument: 435
+    hint: COMM 2 (VHF) Mode Knob
+    prototype: multiposition_switch
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-COMM1-430:
+    argument: 430
+    hint: COMM 1 Power Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-COMM2-431:
+    argument: 431
+    hint: COMM 2 Power Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-SV-432:
+    argument: 432
+    hint: SECURE VOICE Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-MSL-433:
+    argument: 433
+    hint: MSL Tone Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-TF-436:
+    argument: 436
+    hint: TF Tone Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO1-LVR-THREAT-437:
+    argument: 437
+    hint: THREAT Tone Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO2-LVR-INTERCOM-440:
+    argument: 440
+    hint: INTERCOM Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO2-LVR-TACAN-441:
+    argument: 441
+    hint: TACAN Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO2-LVR-ILS-442:
+    argument: 442
+    hint: ILS Power Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUDIO2-TMB-MODE-443:
+    argument: 443
+    hint: HOT MIC CIPHER Switch, HOT MIC / OFF / CIPHER
+    prototype: default_3_position_tumb_small
+    positions:
+    - HOT MIC
+    - 'OFF'
+    - CIPHER
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ZROIZE-TMB-VOICE-696:
+    argument: 696
+    hint: Voice Message Inhibit Switch, VOICE MESSAGE/INHIBIT
+    prototype: default_2_position_tumb_small
+    positions:
+    - VOICE MESSAGE
+    - INHIBIT
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ANTICE-TMB-IFF-711:
+    argument: 711
+    hint: IFF ANT SEL Switch, LOWER/NORM/UPPER
+    prototype: default_3_position_tumb_small
+    positions:
+    - LOWER
+    - NORM
+    - UPPER
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ANTICE-TMB-UHF-712:
+    argument: 712
+    hint: UHF ANT SEL Switch, LOWER/NORM/UPPER
+    prototype: default_3_position_tumb_small
+    positions:
+    - LOWER
+    - NORM
+    - UPPER
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ANARC164-CHNL-SELECTOR-410:
+    argument: 410
+    hint: UHF CHAN Knob
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-100MHZ-SEL-411:
+    argument: 411
+    hint: UHF Manual Frequency Knob 100 MHz
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-10MHZ-SEL-412:
+    argument: 412
+    hint: UHF Manual Frequency Knob 10 MHz
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-1MHZ-SEL-413:
+    argument: 413
+    hint: UHF Manual Frequency Knob 1 MHz
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-0.1MHZ-SEL-414:
+    argument: 414
+    hint: UHF Manual Frequency Knob 0.1 MHz
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-0.025MHZ-SEL-415:
+    argument: 415
+    hint: UHF Manual Frequency Knob 0.025 MHz
+    prototype: multiposition_switch_tumb
+    positions: []
+    range: null
+    readable: true
+  PTR-ANARC164-FUNCTION-417:
+    argument: 417
+    hint: UHF Function Knob
+    prototype: multiposition_switch
+    positions: []
+    range:
+    - 0.0
+    - 0.30000000000000004
+    readable: true
+  PTR-ANARC164-FREQMODE-416:
+    argument: 416
+    hint: UHF Mode Knob
+    prototype: multiposition_switch
+    positions: []
+    range:
+    - 0.0
+    - 0.2
+    readable: true
+  PTR-ANARC164-T-TONE-418:
+    argument: 418
+    hint: UHF Tone Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ANARC164-SQUELCH-419:
+    argument: 419
+    hint: UHF SQUELCH Switch
+    prototype: default_2_position_tumb_small
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ANARC164-VOLUME-420:
+    argument: 420
+    hint: UHF VOL Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ANARC164-TEST-DISPLAY-421:
+    argument: 421
+    hint: UHF TEST DISPLAY Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ANARC164-STATUS-422:
+    argument: 422
+    hint: UHF STATUS Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR_ANARC164-CHNL-SELECTOR01-734:
+    argument: 734
+    hint: Access Door, OPEN/CLOSE
+    prototype: default_2_position_tumb
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUXCOM-LVR-MODE-540:
+    argument: 539
+    hint: IFF MASTER Knob, OFF/STBY/LOW/NORM/EMER
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - STBY
+    - LOW
+    - NORM
+    - EMER
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  PTR-AUXCOM-TMB-M4-541:
+    argument: 541
+    hint: IFF M-4 CODE Switch, HOLD/ A/B /ZERO
+    prototype: default_3_position_tumb
+    positions:
+    - HOLD
+    - A
+    - B
+    - ZERO
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-AUXCOM-TMB-REPLY-543:
+    argument: 543
+    hint: IFF MODE 4 REPLY Switch, OUT/A/B
+    prototype: default_3_position_tumb
+    positions:
+    - OUT
+    - A
+    - B
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-AUXCOM-TMB-MONITOR-544:
+    argument: 544
+    hint: IFF MODE 4 MONITOR Switch, OUT/AUDIO
+    prototype: default_2_position_tumb_small
+    positions:
+    - OUT
+    - AUDIO
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-AUXCOM-TMB-TACAN-553:
+    argument: 553
+    hint: IFF ENABLE Switch, M1/M3 /OFF/ M3/MS
+    prototype: default_3_position_tumb_small
+    positions:
+    - M1
+    - M3
+    - 'OFF'
+    - M3
+    - MS
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-AUXCOM-TMB-CHNL1-545:
+    argument: 545
+    hint: IFF MODE 1 Selector Lever, DIGIT 1
+    prototype: springloaded_3_pos_tumb
+    positions: []
+    range: null
+    readable: false
+  PTR-AUXCOM-TMB-CHNL2-547:
+    argument: 547
+    hint: IFF MODE 1 Selector Lever, DIGIT 2
+    prototype: springloaded_3_pos_tumb
+    positions: []
+    range: null
+    readable: false
+  PTR-AUXCOM-TMB-CHNL3-549:
+    argument: 549
+    hint: IFF MODE 3 Selector Lever, DIGIT 1
+    prototype: springloaded_3_pos_tumb
+    positions: []
+    range: null
+    readable: false
+  PTR-AUXCOM-TMB-CHNL4-551:
+    argument: 551
+    hint: IFF MODE 3 Selector Lever, DIGIT 2
+    prototype: springloaded_3_pos_tumb
+    positions: []
+    range: null
+    readable: false
+  PTR-KY58-LVR-MODE1-705:
+    argument: 705
+    hint: KY-58 MODE Knob, P/C/LD/RV
+    prototype: multiposition_switch
+    positions:
+    - P
+    - C
+    - LD
+    - RV
+    range:
+    - 0.0
+    - 0.30000000000000004
+    readable: true
+  PTR-KY58-LVR-VOL-708:
+    argument: 708
+    hint: KY-58 VOLUME Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-KY58-LVR-MODE2-706:
+    argument: 706
+    hint: KY-58 FILL Knob, Z 1-5/1/2/3/4/5/6/Z ALL
+    prototype: multiposition_switch
+    positions:
+    - Z 1-5
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    - Z ALL
+    range:
+    - 0.0
+    - 0.7000000000000001
+    readable: true
+  PTR-KY58-LVR-MODE3-707:
+    argument: 707
+    hint: KY-58 Power Knob, OFF/ON/TD
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - 'ON'
+    - TD
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-NUCLR-TMB-PLAIN-701:
+    argument: 701
+    hint: PLAIN Cipher Switch, CRAD 1/PLAIN/CRAD 2
+    prototype: default_3_position_tumb_small
+    positions:
+    - CRAD 1
+    - PLAIN
+    - CRAD 2
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ZROIZE-CVR-ZERO-694:
+    argument: 694
+    hint: ZEROIZE Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ZROIZE-TMB-ZERO-695:
+    argument: 695
+    hint: ZEROIZE Switch, OFP/OFF/DATA
+    prototype: default_3_position_tumb_small
+    positions:
+    - OFP
+    - 'OFF'
+    - DATA
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-HMDP-LVR-SMBINT-392:
+    argument: 392
+    hint: HMCS SYMBOLOGY INT Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CMSC-LVR-BRT-140:
+    argument: 140
+    hint: RWR Intensity Knob - Rotate to adjust brightness
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-CMSC-BTN-HNDOFF-141:
+    argument: 141
+    hint: RWR Indicator Control HANDOFF Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CMSC-BTN-LNCH-143:
+    argument: 143
+    hint: RWR Indicator Control LAUNCH Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CMSC-BTN-MODE-145:
+    argument: 145
+    hint: RWR Indicator Control MODE Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CMSC-BTN-OBJ-147:
+    argument: 147
+    hint: RWR Indicator Control UNKNOWN SHIP Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CMSC-BTN-STEST-149:
+    argument: 149
+    hint: RWR Indicator Control SYS TEST Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-CMSC-BTN-T-151:
+    argument: 151
+    hint: RWR Indicator Control T Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TWAP-LVR-DIM-404:
+    argument: 404
+    hint: RWR Indicator Control DIM Knob - Rotate to adjust brightness
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-TWAP-BTN-SRCH-395:
+    argument: 395
+    hint: RWR Indicator Control SEARCH Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TWAP-BTN-ACTPWR-397:
+    argument: 397
+    hint: RWR Indicator Control ACT/PWR Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TWAP-BTN-ALT-399:
+    argument: 399
+    hint: RWR Indicator Control ALTITUDE Button
+    prototype: short_way_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-TWAP-BTN-PWR-401:
+    argument: 401
+    hint: RWR Indicator Control POWER Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LSIDE-BTN-CHAFF-604:
+    argument: 604
+    hint: CHAFF/FLARE Dispense Button - Push to dispense
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LPAN-CMDS-TMB-RWR-375:
+    argument: 375
+    hint: RWR 555 Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-TMB-JMR-374:
+    argument: 374
+    hint: JMR Source Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-TMB-MWS-373:
+    argument: 373
+    hint: MWS Source Switch, ON/OFF (no function)
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - OFF (no function)
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-TMB-JTSN-371:
+    argument: 371
+    hint: Jettison Switch, JETT/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - JETT
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-BTN-OSB1-365:
+    argument: 365
+    hint: O1 Expendable Category Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-BTN-OSB2-366:
+    argument: 366
+    hint: O2 Expendable Category Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-BTN-OSB3-367:
+    argument: 367
+    hint: CH Expendable Category Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-BTN-OSB4-368:
+    argument: 368
+    hint: FL Expendable Category Switch, ON/OFF
+    prototype: default_2_position_tumb_small
+    positions:
+    - 'ON'
+    - 'OFF'
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LPAN-CMDS-LVR-PRGM-377:
+    argument: 377
+    hint: PROGRAM Knob, BIT/1/2/3/4
+    prototype: multiposition_switch
+    positions:
+    - BIT
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  PTR-LPAN-CMDS-LVR-MODE-378:
+    argument: 378
+    hint: MODE Knob, OFF/STBY/MAN/SEMI/AUTO/BYP
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - STBY
+    - MAN
+    - SEMI
+    - AUTO
+    - BYP
+    range:
+    - 0.0
+    - 0.5
+    readable: true
+  PTR-LMFCD-BTN-OSB1-300:
+    argument: 300
+    hint: Left MFD OSB 1
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB2-301:
+    argument: 301
+    hint: Left MFD OSB 2
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB3-302:
+    argument: 302
+    hint: Left MFD OSB 3
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB4-303:
+    argument: 303
+    hint: Left MFD OSB 4
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB5-304:
+    argument: 304
+    hint: Left MFD OSB 5
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB6-305:
+    argument: 305
+    hint: Left MFD OSB 6
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB7-306:
+    argument: 306
+    hint: Left MFD OSB 7
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB8-307:
+    argument: 307
+    hint: Left MFD OSB 8
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB9-308:
+    argument: 308
+    hint: Left MFD OSB 9
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB10-309:
+    argument: 309
+    hint: Left MFD OSB 10
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB11-310:
+    argument: 310
+    hint: Left MFD OSB 11
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB12-311:
+    argument: 311
+    hint: Left MFD OSB 12
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB13-312:
+    argument: 312
+    hint: Left MFD OSB 13
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB14-313:
+    argument: 313
+    hint: Left MFD OSB 14
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB15-314:
+    argument: 314
+    hint: Left MFD OSB 15
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB16-315:
+    argument: 315
+    hint: Left MFD OSB 16
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB17-316:
+    argument: 316
+    hint: Left MFD OSB 17
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB18-317:
+    argument: 317
+    hint: Left MFD OSB 18
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB19-318:
+    argument: 318
+    hint: Left MFD OSB 19
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-BTN-OSB20-319:
+    argument: 319
+    hint: Left MFD OSB 20
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LMFCD-RS-GAIN-UP-320:
+    argument: 320
+    hint: Left MFD GAIN Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-LMFCD-RS-GAIN-DN-320:
+    argument: 320
+    hint: Left MFD GAIN Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-LMFCD-RS-SYM-UP-321:
+    argument: 321
+    hint: Left MFD SYM Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-LMFCD-RS-SYM-DN-321:
+    argument: 321
+    hint: Left MFD SYM Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-LMFCD-RS-CON-UP-322:
+    argument: 322
+    hint: Left MFD CON Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-LMFCD-RS-CON-DN-322:
+    argument: 322
+    hint: Left MFD CON Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-LMFCD-RS-BRT-UP-323:
+    argument: 323
+    hint: Left MFD BRT Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-LMFCD-RS-BRT-DN-323:
+    argument: 323
+    hint: Left MFD BRT Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-RMFCD-BTN-OSB1-326:
+    argument: 326
+    hint: Right MFD OSB 1
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB2-327:
+    argument: 327
+    hint: Right MFD OSB 2
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB3-328:
+    argument: 328
+    hint: Right MFD OSB 3
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB4-329:
+    argument: 329
+    hint: Right MFD OSB 4
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB5-330:
+    argument: 330
+    hint: Right MFD OSB 5
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB6-331:
+    argument: 331
+    hint: Right MFD OSB 6
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB7-332:
+    argument: 332
+    hint: Right MFD OSB 7
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB8-333:
+    argument: 333
+    hint: Right MFD OSB 8
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB9-334:
+    argument: 334
+    hint: Right MFD OSB 9
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB10-335:
+    argument: 335
+    hint: Right MFD OSB 10
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB11-336:
+    argument: 336
+    hint: Right MFD OSB 11
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB12-337:
+    argument: 337
+    hint: Right MFD OSB 12
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB13-338:
+    argument: 338
+    hint: Right MFD OSB 13
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB14-339:
+    argument: 339
+    hint: Right MFD OSB 14
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB15-340:
+    argument: 340
+    hint: Right MFD OSB 15
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB16-341:
+    argument: 341
+    hint: Right MFD OSB 16
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB17-342:
+    argument: 342
+    hint: Right MFD OSB 17
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB18-343:
+    argument: 343
+    hint: Right MFD OSB 18
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB19-344:
+    argument: 344
+    hint: Right MFD OSB 19
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-BTN-OSB20-345:
+    argument: 345
+    hint: Right MFD OSB 20
+    prototype: mfd_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RMFCD-RS-GAIN-UP-346:
+    argument: 346
+    hint: Right MFD GAIN Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-RMFCD-RS-GAIN-DN-346:
+    argument: 346
+    hint: Right MFD GAIN Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-RMFCD-RS-SYM-UP-347:
+    argument: 347
+    hint: Right MFD SYM Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-RMFCD-RS-SYM-DN-347:
+    argument: 347
+    hint: Right MFD SYM Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-RMFCD-RS-CON-UP-348:
+    argument: 348
+    hint: Right MFD CON Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-RMFCD-RS-CON-DN-348:
+    argument: 348
+    hint: Right MFD CON Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-RMFCD-RS-BRT-UP-349:
+    argument: 349
+    hint: Right MFD BRT Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    range: null
+    readable: true
+  PTR-RMFCD-RS-BRT-DN-349:
+    argument: 349
+    hint: Right MFD BRT Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  PTR-SPD-LVR-SET-71:
+    argument: 71
+    hint: SET INDEX Knob
+    prototype: default_axis
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ALT-LVR-SET-62:
+    argument: 62
+    hint: Barometric Setting Knob
+    prototype: default_axis
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ALT-TMB-MODE-60:
+    argument: 60
+    hint: Mode Lever, ELEC/OFF/PNEU
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - ELEC
+    - 'OFF'
+    - PNEU
+    range: null
+    readable: false
+  PTR-ADI-LVR-KNOB-22:
+    argument: 22
+    hint: Pitch Trim Knob
+    prototype: default_axis_limited
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-EHSI-LVR-CRS-44:
+    argument: 43
+    hint: CRS Set / Brightness Control Knob
+    prototype: default_button_knob
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-EHSI-LVR-HDG-45:
+    argument: 42
+    hint: HDG Set Knob
+    prototype: default_button_knob
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-EHSI-BTN-M-46:
+    argument: 46
+    hint: Mode (M) Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-RPAN-WATCH-BTN-CTRL-627:
+    argument: 628
+    hint: Clock Elapsed Time Knob
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-LARMS-CNPOPN-600:
+    argument: 600
+    hint: Canopy Handle, UP/DOWN
+    prototype: default_2_position_tumb
+    positions:
+    - UP
+    - DOWN
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-SEAT-TMB-ADJ-786:
+    argument: 786
+    hint: SEAT ADJ Switch, UP/OFF/DOWN
+    prototype: springloaded_3_pos_tumb_small
+    positions:
+    - UP
+    - 'OFF'
+    - DOWN
+    range: null
+    readable: false
+  PTR-LARMS-CNPJETT-601:
+    argument: 601
+    hint: CANOPY JETTISON T-Handle, PULL/STOW
+    prototype: default_2_position_tumb
+    positions:
+    - PULL
+    - STOW
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-SEAT-ARM-LOCK-785:
+    argument: 785
+    hint: Ejection Safety Lever, ARMED/LOCKED
+    prototype: default_2_position_tumb
+    positions:
+    - ARMED
+    - LOCKED
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-LARMS-TMB-OPN-606:
+    argument: 606
+    hint: Canopy Switch, OPEN/HOLD/CLOSE(momentarily)
+    prototype: default_button_tumb
+    positions:
+    - OPEN
+    - HOLD
+    - CLOSE(momentarily)
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  PTR-STICK-HIDE-796:
+    argument: 796
+    hint: Hide Stick toggle
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-TMB-OPR-455:
+    argument: 455
+    hint: ECM Power Switch
+    prototype: default_3_position_tumb
+    positions: []
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ECM-LVR-DIM-456:
+    argument: 456
+    hint: ECM DIM Knob
+    prototype: default_axis_limited_1_side
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-TMB-XMIT-457:
+    argument: 457
+    hint: ECM XMIT Switch
+    prototype: default_3_position_tumb
+    positions: []
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-RESET-458:
+    argument: 458
+    hint: ECM RESET Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ECM-BTN-BIT-459:
+    argument: 459
+    hint: ECM BIT Button
+    prototype: default_button
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  PTR-ECM-BTN-1-460:
+    argument: 460
+    hint: ECM 1 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-2-465:
+    argument: 465
+    hint: ECM 2 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-3-470:
+    argument: 470
+    hint: ECM 3 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-4-475:
+    argument: 475
+    hint: ECM 4 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-5-480:
+    argument: 480
+    hint: ECM 5 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-6-485:
+    argument: 485
+    hint: ECM 6 Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-FRM-490:
+    argument: 490
+    hint: ECM FRM Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  PTR-ECM-BTN-SPL-495:
+    argument: 495
+    hint: ECM SPL Button
+    prototype: default_2_position_tumb
+    positions: []
+    range:
+    - 0.0
+    - 1.0
+    readable: true

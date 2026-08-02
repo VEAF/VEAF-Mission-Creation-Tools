@@ -827,12 +827,18 @@ Group.getUnits = function(grp)
 end
 
 -- ---------------------------------------------------------------------------
--- Cockpit primitives of the mission scripting environment (veafAssist)
+-- Cockpit primitives — and the environment boundary they sit behind
 --
--- a_cockpit_highlight / a_out_picture_u and friends are native functions the DCS
--- engine exposes to `env=mission` — they live in no script, so they have to be
--- stubbed here. Each records its calls so a test can assert what the engine asked
--- of the cockpit; dcs_mocks.reset() clears the record.
+-- Measured in game (docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md): a_cockpit_*
+-- and a_out_picture_* do NOT exist in the environment mission scripts run in.
+-- They live in the trigger environment, reachable only through
+-- net.dostring_in("mission", <code>). The mocks reproduce that boundary rather
+-- than the convenient fiction of one flat namespace: a module that called them
+-- directly would pass its tests here and fail in game, which is exactly what
+-- happened before this was measured.
+--
+-- So the primitives below are deliberately NOT globals. They are reachable only
+-- through the net.dostring_in stub, which evaluates the chunk against them.
 -- ---------------------------------------------------------------------------
 
 --- Calls recorded by the cockpit stubs, in order: { fn = "…", args = { … } }.
@@ -853,33 +859,26 @@ function dcs_mocks.cockpitCallsTo(name)
   return found
 end
 
-function a_cockpit_highlight(id, element)
+--- The trigger environment's globals. Everything a chunk passed to
+--- net.dostring_in("mission", …) can see — and nothing a mission script can.
+local _triggerEnv = {}
+
+_triggerEnv.a_cockpit_highlight = function(id, element)
   _recordCockpitCall("a_cockpit_highlight", id, element)
   return true
 end
 
-function a_cockpit_remove_highlight(id)
+_triggerEnv.a_cockpit_remove_highlight = function(id)
   _recordCockpitCall("a_cockpit_remove_highlight", id)
   return true
 end
 
-function a_out_picture_u(unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, sizeUnits)
-  _recordCockpitCall(
-    "a_out_picture_u",
-    unitId,
-    resource,
-    duration,
-    clearView,
-    startDelay,
-    hAlign,
-    vAlign,
-    size,
-    sizeUnits
-  )
+_triggerEnv.a_out_picture_u = function(unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, units)
+  _recordCockpitCall("a_out_picture_u", unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, units)
   return true
 end
 
-function a_out_picture_stop()
+_triggerEnv.a_out_picture_stop = function()
   _recordCockpitCall("a_out_picture_stop")
   return true
 end
@@ -887,6 +886,63 @@ end
 --- Resolve an embedded resource key. The real one maps the key to the file the
 --- build embedded; here the key is its own resolution, which is enough to assert
 --- that the right state was displayed.
-function getValueResourceByKey(key)
+_triggerEnv.getValueResourceByKey = function(key)
   return key
+end
+
+--- Cockpit parameters the fake aircraft publishes, as the engine's "NAME:value" dump.
+--- A test sets dcs_mocks.cockpitParams to drive it.
+dcs_mocks.cockpitParams = {}
+
+_triggerEnv.list_cockpit_params = function()
+  local lines = {}
+  for name, value in pairs(dcs_mocks.cockpitParams) do
+    lines[#lines + 1] = name .. ":" .. tostring(value)
+  end
+  return table.concat(lines, "\n")
+end
+
+-- The standard-library names a probe chunk needs. The trigger environment is a
+-- namespace of its own, so nothing is inherited from the mission script's globals.
+_triggerEnv.type = type
+_triggerEnv.tostring = tostring
+_triggerEnv.pairs = pairs
+_triggerEnv.table = table
+_triggerEnv.string = string
+
+--- The pristine trigger environment, so a test can put back what it removed.
+local _pristineTriggerEnv = {}
+for name, value in pairs(_triggerEnv) do
+  _pristineTriggerEnv[name] = value
+end
+
+--- Override or remove a trigger-environment global, for a test.
+function dcs_mocks.setTriggerGlobal(name, value)
+  _triggerEnv[name] = value
+end
+
+--- Put every trigger-environment global back the way it was.
+function dcs_mocks.restoreTriggerGlobals()
+  for name in pairs(_triggerEnv) do
+    _triggerEnv[name] = nil
+  end
+  for name, value in pairs(_pristineTriggerEnv) do
+    _triggerEnv[name] = value
+  end
+end
+
+--- net.dostring_in — the only bridge between a mission script and the trigger
+--- environment. Compiles the chunk against _triggerEnv, so a module that reaches
+--- for a_cockpit_highlight directly gets nil, exactly as it would in game.
+net = net or {}
+net.dostring_in = function(environment, code)
+  if environment ~= "mission" then
+    return nil
+  end
+  local chunk, err = loadstring(code)
+  if not chunk then
+    error("net.dostring_in: " .. tostring(err))
+  end
+  setfenv(chunk, _triggerEnv)
+  return chunk()
 end

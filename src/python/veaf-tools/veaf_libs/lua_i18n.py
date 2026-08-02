@@ -36,33 +36,67 @@ def _unescape(text: str) -> str:
     return text
 
 
+#: Start of the catalogue assignment, and the end of the table: a line that is nothing
+#: but a closing brace, which is how ``veafI18n.lua`` is laid out and how the bundle
+#: preserves it. Narrowing to this block matters when reading the **bundle**, where every
+#: other module's tables would otherwise be scraped too — 5245 spurious entries, and a
+#: real chance of one of them shadowing a genuine key.
+#: The **assignment**, anchored at the start of a line — not merely a mention of the
+#: name. The bundle talks about ``veaf.i18nCatalog`` in `veaf.lua`'s comments and code
+#: some 2300 lines before the table itself, and matching that found an empty block.
+_CATALOG_START_RE = re.compile(r"^veaf\.i18nCatalog\s*=\s*\{", re.MULTILINE)
+_CATALOG_END_RE = re.compile(r"^\}", re.MULTILINE)
+
+
+def _catalog_block(lua_text: str) -> str:
+    """Return just the ``veaf.i18nCatalog = { … }`` table, or the whole text if absent."""
+    start = _CATALOG_START_RE.search(lua_text)
+    if start is None:
+        return lua_text
+    end = _CATALOG_END_RE.search(lua_text, start.end())
+    return lua_text[start.start() : end.end()] if end else lua_text[start.start() :]
+
+
 def parse_runtime_catalog(lua_text: str) -> dict[str, dict[str, str]]:
-    """Parse the ``veaf.i18nCatalog`` entries out of a ``veafI18n.lua`` source.
+    """Parse the ``veaf.i18nCatalog`` entries out of a Lua source.
 
     Args:
-        lua_text: The full text of the module.
+        lua_text: The full text of ``veafI18n.lua``, or of the bundle containing it.
 
     Returns:
-        ``{key: {language: text}}``. Empty when the file holds no entry.
+        ``{key: {language: text}}``. Empty when the text holds no entry.
     """
     catalog: dict[str, dict[str, str]] = {}
-    for key, body in _ENTRY_RE.findall(lua_text):
+    for key, body in _ENTRY_RE.findall(_catalog_block(lua_text)):
         translations = {lang: _unescape(text) for lang, text in _VALUE_RE.findall(body)}
         if translations:
             catalog[key] = translations
     return catalog
 
 
+#: Where the catalogue may live, in order of preference. A source checkout has the module
+#: itself; a **distribution has only the concatenated bundle** — `published/` ships
+#: `veaf-scripts.lua` and nothing else. Looking for the module alone silently found no
+#: catalogue and baked raw keys into every checklist picture, which is exactly how this
+#: was discovered: in a cockpit, reading `assist.f16c.main_pwr_batt`.
+_CATALOG_FILENAMES = ("veafI18n.lua", "veaf-scripts.lua")
+
+
 def find_runtime_catalog(scripts_folder: Path) -> Path | None:
-    """Locate ``veafI18n.lua`` under *scripts_folder*.
+    """Locate the file holding the runtime catalogue under *scripts_folder*.
 
     Args:
         scripts_folder: Root of the published VEAF scripts.
 
     Returns:
-        The catalogue path, or ``None`` when the folder ships no such module.
+        The path of the module, or of the bundle that contains it, or ``None`` when
+        neither is there.
     """
-    return next(iter(sorted(scripts_folder.rglob("veafI18n.lua"))), None)
+    for filename in _CATALOG_FILENAMES:
+        found = next(iter(sorted(scripts_folder.rglob(filename))), None)
+        if found is not None:
+            return found
+    return None
 
 
 def load_runtime_catalog(scripts_folder: Path) -> dict[str, dict[str, str]]:

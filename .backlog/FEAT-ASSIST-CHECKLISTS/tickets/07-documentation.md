@@ -1,7 +1,6 @@
 # 07 — document the prototype and its verdict
 
-**Status:** 🧑 waiting-human — the pages are written; **the verdict is not**, and cannot be, until the
-prototype has been flown. See the end of this ticket.
+**Status:** ✅ done — pages written, and the verdict written after the flight of 2026-08-01 (in the PRD).
 
 ## Reference pages
 
@@ -68,20 +67,13 @@ if we skip it the first time it applies.
 
 `poetry run docs-check` is clean.
 
-## The verdict is still missing, deliberately
+## The verdict
 
-The four questions this ticket asks are the point of the whole lot, and **not one of them can be
-answered from a green test suite**:
+Written into the [PRD](../PRD.md) after David flew it on 2026-08-01. In short: it works; hand-writing
+the steps was **not** the bottleneck, which deprioritises the step-data generator lot; the image
+display holds up once `size` and the resource cache are understood; multiplayer is still untested.
 
-- *Does it work in game, for someone who did not write it?* — unflown.
-- *Was hand-writing the steps the bottleneck?* — the honest partial answer is **no, not the writing**.
-  Six steps took minutes once `Macro_sequencies.lua` was found; what actually cost time was deciding
-  *which* slice, noticing the JFS switch is spring-loaded, and the windows — which are still derived
-  rather than measured. That points at the generator lot being worth **less** than expected and the
-  measuring being worth more, but it is a hypothesis until someone has written a second checklist.
-- *Did the image display hold up?* — the pictures were reviewed at their rendered size and read well;
-  nobody has yet seen one **through `a_out_picture` over a cockpit**, which is the only view that
-  settles legibility, screen space and the alignment/size values.
-- *What is the multiplayer answer?* — unknown; the per-session highlight id exists for it.
-
-These belong in the PRD status line once flown. Writing them now would be inventing them.
+The exploration note grew a section 3 for the finding that shaped the whole lot — a cockpit control's
+position cannot be read — and the flight added two more facts to it: the primitives live in the
+**trigger** environment, reachable only through `net.dostring_in("mission", …)`, and DCS **caches
+embedded resources by name**, so a rebuilt mission can show a stale picture.

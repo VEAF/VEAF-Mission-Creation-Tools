@@ -8,14 +8,39 @@ in the repo so the next person does not re-measure them.
 Read this before writing anything that boxes a cockpit control, reads a switch position, or puts a
 picture on a pilot's screen.
 
-## 1. The cockpit trigger actions are plain functions in the mission environment
+## 1. There are TWO Lua environments, and the cockpit functions are in the other one
 
-`a_cockpit_highlight`, `a_cockpit_remove_highlight` and `a_cockpit_perform_clickable_action` appear
-in the Mission Editor as **trigger actions**, which is what makes them look unreachable from a
-script. They are not: they are native functions the engine exposes to the mission scripting
-environment, defined in no file under `<DCS>\Scripts\`.
+This is the fact everything else here depends on, and getting it wrong produced a module that
+silently refused to start.
 
-Verified in game, F-16C cold on the ramp:
+| Environment | Holds | Reached from |
+|---|---|---|
+| **Mission scripts** — where a `DO SCRIPT FILE` script and every VEAF module run | `veaf`, `Unit`, `trigger`, `coalition`, `net` — and **no `a_*` function at all** | the script itself |
+| **Triggers** — where the Mission Editor's actions execute | all **114** `a_*` functions, `getValueResourceByKey`, `list_cockpit_params` — and **no `veaf`, no `net`** | `net.dostring_in("mission", <code>)` |
+
+Measured on 2026-08-01: from a mission script `type(a_cockpit_highlight)` is `"nil"`, while
+`net.dostring_in("mission", 'return type(a_cockpit_highlight)')` returns `"function"`. The two
+namespaces are disjoint — the trigger side has 288 globals and cannot see `veaf` either.
+
+A script therefore calls a cockpit primitive by **formatting a chunk and sending it across**:
+
+```lua
+net.dostring_in("mission", string.format("a_cockpit_highlight(%d, %q)", id, element))
+```
+
+Which is exactly what `TheUniversalMission` does for its own picture output — the pattern was in this
+tree the whole time.
+
+**This requires `net`**, which a stock `MissionScripting.lua` sanitises away. Anything built on the
+bridge needs the same de-sanitisation STTS and dcs-bridge ask for, and should detect its absence at
+start-up rather than fail later.
+
+**A warning about probing:** dcs-bridge's `/api/exec` runs in a **third**, sandboxed environment — 96
+globals, no `a_*`. A probe concluding "the function does not exist" may only be describing that
+sandbox. Cross-check with `net.dostring_in` before believing it; this note's first draft did not, and
+said the opposite of the truth.
+
+Verified in game, F-16C cold on the ramp (through the bridge):
 
 ```lua
 a_cockpit_highlight(100, 'PTR-ELEC-TMB-MPWR-510')   --> ok=true, box appears on the MAIN PWR switch
@@ -26,8 +51,8 @@ a_cockpit_remove_highlight(100)                     --> ok=true, box clears
 field (`size_of_box`) and its aircraft-module selector are not needed at the Lua call site.
 
 `update_checklist` and `MAKE_CHECKLIST_ITEM` (from
-`Scripts\Aircrafts\_Common\Cockpit\Macro_handler.lua`) are **not** exposed — they live in the
-module's own cockpit environment, and their logic has to be reimplemented rather than called.
+`Scripts\Aircrafts\_Common\Cockpit\Macro_handler.lua`) are in **neither** environment — they live in
+the aircraft module's own cockpit environment, and their logic has to be reimplemented, not called.
 
 ## 2. `a_out_picture_u` with `seconds = 0` stays up until you stop it
 
@@ -50,6 +75,16 @@ a_out_picture_u(unitId, file, seconds, clearview, startDelay, horzAlignment, ver
 `getValueResourceByKey("<key>")`. The key has to sit in the `l10n/DEFAULT/mapResource` archive
 member, **not** in the mission table — putting it in the wrong one fails silently and only shows in
 game. That trap has its own lot, [FIX-MAPRESOURCE-KEY](../../.backlog/FIX-MAPRESOURCE-KEY/PRD.md).
+
+Two more things about `size`, both learned the hard way:
+
+- It is a **percentage capped at 100** (ED's default is 100), so a picture can be shrunk and **never
+  enlarged**. Whatever legibility is wanted in game has to be rendered into the image.
+- **DCS caches an embedded resource by name.** Rebuild a mission with the same picture file name and
+  the old bitmap keeps being displayed until DCS is fully restarted — reloading the mission is not
+  enough. The symptom is vicious: only the states you had already displayed are stale, so you see one
+  wrong image among correct ones and look for the bug in the generator. Give a regenerated resource a
+  new name (a content hash) if you want to be safe.
 
 ## 3. A cockpit switch position CANNOT be read from the mission environment
 

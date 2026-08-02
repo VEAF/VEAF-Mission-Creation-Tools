@@ -1174,13 +1174,15 @@ veaf.i18nCatalog = {
     fr = "Démarrage à froid",
     en = "Cold start",
   },
+  -- These two sit at the top level of the radio menu, among unrelated entries, so they
+  -- name the module rather than relying on a parent menu for context.
   ["assist.menu.confirm"] = {
-    fr = "Valider cette étape",
-    en = "Confirm this step",
+    fr = "Assistance : valider l'étape",
+    en = "Assistance: confirm the step",
   },
   ["assist.menu.skip"] = {
-    fr = "Passer cette étape",
-    en = "Skip this step",
+    fr = "Assistance : passer l'étape",
+    en = "Assistance: skip the step",
   },
   ["assist.menu.toggle_picture"] = {
     fr = "Masquer / afficher la checklist",

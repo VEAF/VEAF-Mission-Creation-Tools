@@ -1,7 +1,6 @@
 # 05 — radio menu, i18n and `mission.yaml` wiring
 
-**Status:** 🧑 waiting-human — built and tested against the mocks; the definition of done is entirely
-about behaviour in game, and nothing has been flown yet.
+**Status:** ✅ done — flown and validated 2026-08-01, except the two-pilot case (see the PRD).
 
 Makes the assistance reachable by a pilot and switchable by a mission maker. Nothing here is specific to
 the F-16C.
@@ -109,9 +108,21 @@ aircraft with no checklist therefore sees an empty `Assistance` menu rather than
 Scoping the submenu itself would mean rendering the whole subtree per group, which is a rewrite of
 `veafRadio`'s builder, not a prototype's business.
 
-## Left open — the definition of done is in-game behaviour
+## What the flight changed
 
-None of the four DoD items has been exercised in DCS: starting and stopping from the F10 menu, the
-contextual entries appearing and disappearing, `enabled: false` costing nothing, and above all **two
-players assisted at once**. The last one is the reason the per-session highlight id exists and the one
-the mocks can only pretend to cover.
+**The contextual entries moved to the top level.** Burying "confirm the step" inside `Assistance`
+cost a keystroke on every single step, which David called out immediately — unusable for a six-step
+procedure. `Assistance : valider l'étape` and `Assistance : passer l'étape` now sit at the radio
+menu's root, visible only during a session; the two occasional entries stay in the submenu.
+
+**Order needed a `sortKey`.** `veafRadio` sorts a node's commands alphabetically, and in French
+*"passer"* sorts before *"valider"* — the wrong way round for the pair a pilot presses constantly.
+Commands accept an optional `sortKey` the sort prefers, so a module with an intended sequence gets it
+regardless of how its labels translate.
+
+## Left open
+
+**Two players assisted at once** — the reason the per-session highlight id exists, and the one thing
+the mocks can only pretend to cover. Everything else in the definition of done was exercised in
+flight: starting and stopping from the F10 menu, the contextual entries appearing and disappearing
+with the session, and the module staying inert when disabled.

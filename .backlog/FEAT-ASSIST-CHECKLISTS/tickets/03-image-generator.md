@@ -1,6 +1,6 @@
 # 03 — checklist image generator
 
-**Status:** ✅ done — 2026-08-01, except the in-game legibility check, which needs a mission (see below).
+**Status:** ✅ done — 2026-08-01, legibility confirmed in the cockpit after two corrections (below).
 
 Python side. For each activated checklist, render **one PNG per progress state** and embed them in the
 `.miz` as resources the engine can display.
@@ -62,20 +62,23 @@ states; [`veaf_libs/lua_i18n.py`](../../../src/python/veaf-tools/veaf_libs/lua_i
 `veaf.t()` will use for the messages. Tests:
 [`test_checklist_images.py`](../../../test/python/veaf_libs/test_checklist_images.py).
 
-**The canvas is sized to its longest line**, not fixed. `a_out_picture` scales the picture to a percentage
-of the screen, so a fixed-width canvas would show its trailing emptiness as trailing *screen*, masking the
-cockpit for nothing. Bounds are 380–900 px; width depends on the labels only, never on the progress state,
-so the picture does not jump as the pilot advances. The F-16C checklist of ticket 06 comes out at 436 px
-wide, 7 states, **39 KB total** — well under the 10-20 KB per state the PRD budgeted.
+**The canvas is sized to its longest line**, not fixed: `a_out_picture` shows trailing empty canvas as
+trailing *screen*, masking the cockpit for nothing. Width depends on the labels only, never on the
+progress state, so the picture does not jump as the pilot advances. Bounds 620–1400 px; the F-16C
+checklist comes out at **720 × 450 px**, 7 states, **68 KB total**.
 
-Measured on the F-16C checklist (6 steps, French): 436 × 290 px per state. **Suggested display call for
-ticket 05**, to be checked in the cockpit rather than trusted: `a_out_picture_u(unitId, resource, 0, true,
-0, "2", "1", 20, "0")` — duration 0 so it stays until `a_out_picture_stop`, `clearView` true, top-right,
-20 % of screen width. Left alignment fights the HUD on most layouts; that is the one value most likely to
-need changing.
+## Seen in the cockpit — and what it cost
 
-## Left open
+The suggested display call was wrong in a way no amount of looking at PNGs would have caught.
+**`a_out_picture`'s `size` is a percentage capped at 100** (ED's own default is 100), so the
+suggested `20` rendered the checklist at a fifth of its size — unreadable. Worse, since it can never
+*enlarge*, every bit of legibility has to be baked into the PNG: fonts went 26/20 → 42/32 and the
+canvas 436 → 720 px wide. Seven states now weigh 68 KB instead of 39, still nothing.
 
-The **in-game legibility check** — the images were reviewed by David at their rendered size (states 0, 4
-and 6) and read well, but nobody has yet seen one *through* `a_out_picture` over a cockpit. That needs a
-built mission, so it happens with ticket 05, which is also where the alignment and size above get settled.
+Settled values: `a_out_picture_u(unitId, resource, 0, true, 0, "2", "1", 100, "0")` — top-right,
+full size, up until `a_out_picture_stop`.
+
+**A trap worth knowing:** DCS caches embedded resources **by name**. Rebuilding a mission with the
+same checklist leaves the old picture on screen, and the symptom — one stale image among correct ones
+— points nowhere near the cause. A full DCS restart clears it. The PRD proposes putting a content
+hash in the resource name so it cannot happen to a mission maker.

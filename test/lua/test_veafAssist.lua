@@ -32,18 +32,6 @@ local function definition(id)
   }
 end
 
---- The cockpit parameters the fake aircraft currently publishes.
-local cockpitParams = {}
-
---- Stand in for the engine's list_cockpit_params(), same "NAME:value" dump format.
-function list_cockpit_params()
-  local lines = {}
-  for name, value in pairs(cockpitParams) do
-    lines[#lines + 1] = name .. ":" .. tostring(value)
-  end
-  return table.concat(lines, "\n")
-end
-
 --- Reset the whole module and the mocks, then register a fresh checklist.
 local function setUpEngine(params)
   dcs_mocks.reset()
@@ -53,13 +41,13 @@ local function setUpEngine(params)
   veafAssist.nextHighlightId = veafAssist.FIRST_HIGHLIGHT_ID
   veafAssist.available = veafAssist.nativeFunctionsAvailable()
   veafAssist.registerChecklist(definition())
-  cockpitParams = params or { P1 = -1.0 }
+  dcs_mocks.cockpitParams = params or { P1 = -1.0 }
   dcs_mocks.addUnit("Pilot #1", { _id = 42 })
 end
 
 --- Change a published cockpit parameter and run one evaluation tick.
 local function setParamAndTick(_, param, value)
-  cockpitParams[param] = value
+  dcs_mocks.cockpitParams[param] = value
   veafAssist.loop()
 end
 
@@ -362,17 +350,14 @@ function TestVeafAssistSessions:test_a_parameter_name_containing_colons_is_read(
 end
 
 function TestVeafAssistSessions:test_the_parameter_dump_is_read_once_per_tick()
-  local calls = 0
-  local real = list_cockpit_params
-  list_cockpit_params = function()
-    calls = calls + 1
-    return real()
-  end
   setUpEngine()
   veafAssist.start("Pilot #1", "test-checklist")
-  calls = 0
+  local calls = 0
+  dcs_mocks.setTriggerGlobal("list_cockpit_params", function()
+    calls = calls + 1
+    return "P1:-1.0"
+  end)
   veafAssist.loop()
-  list_cockpit_params = real
   -- Three steps in the checklist, one dump.
   luaunit.assertEquals(calls, 1)
 end
@@ -386,26 +371,43 @@ function TestVeafAssistAvailability:test_available_when_the_cockpit_functions_ex
   luaunit.assertTrue(veafAssist.nativeFunctionsAvailable())
 end
 
+function TestVeafAssistAvailability:test_the_primitives_are_not_visible_as_plain_globals()
+  -- The whole point of the bridge: from where a mission script runs, they are nil.
+  -- A module calling them directly would pass every other test here and fail in game.
+  luaunit.assertNil(rawget(_G, "a_cockpit_highlight"))
+  luaunit.assertNil(rawget(_G, "a_out_picture_u"))
+end
+
 function TestVeafAssistAvailability:test_start_refuses_when_the_cockpit_functions_are_missing()
   setUpEngine()
-  local saved = a_cockpit_highlight
-  a_cockpit_highlight = nil
+  dcs_mocks.setTriggerGlobal("a_cockpit_highlight", nil)
   veafAssist.available = veafAssist.nativeFunctionsAvailable()
   luaunit.assertFalse(veafAssist.available)
   luaunit.assertFalse(veafAssist.start("Pilot #1", "test-checklist"))
-  a_cockpit_highlight = saved
+  dcs_mocks.restoreTriggerGlobals()
   veafAssist.available = veafAssist.nativeFunctionsAvailable()
+end
+
+function TestVeafAssistAvailability:test_start_refuses_without_the_bridge_itself()
+  -- A stock MissionScripting.lua sanitises `net` away, and then nothing is reachable.
+  setUpEngine()
+  local saved = net
+  net = nil
+  veafAssist.available = veafAssist.nativeFunctionsAvailable()
+  luaunit.assertFalse(veafAssist.available)
+  net = saved
+  veafAssist.available = veafAssist.nativeFunctionsAvailable()
+  luaunit.assertTrue(veafAssist.available)
 end
 
 function TestVeafAssistAvailability:test_initialize_does_not_arm_the_module_without_the_primitives()
   setUpEngine()
-  local saved = a_out_picture_u
-  a_out_picture_u = nil
+  dcs_mocks.setTriggerGlobal("a_out_picture_u", nil)
   veafAssist.initialized = false
   veafAssist.initialize()
   luaunit.assertFalse(veafAssist.initialized)
   luaunit.assertFalse(veafAssist.available)
-  a_out_picture_u = saved
+  dcs_mocks.restoreTriggerGlobals()
   veafAssist.initialize()
   luaunit.assertTrue(veafAssist.initialized)
 end
@@ -425,10 +427,24 @@ local function setUpMenu()
   return veafAssist.rootPath
 end
 
---- Titles of the entries a given pilot would actually see.
+--- Titles of the entries a given pilot would actually see, in the Assistance submenu
+--- and at the radio menu's top level (where confirm/skip live).
 local function visibleEntries(unitName)
   local titles = {}
-  for _, command in ipairs(veafAssist.rootPath.commands) do
+  for _, node in ipairs({ veafAssist.rootPath, veafRadio.radioMenu }) do
+    for _, command in ipairs(node.commands or {}) do
+      if not command.groupFilter or command.groupFilter(unitName) then
+        table.insert(titles, command.title)
+      end
+    end
+  end
+  return titles
+end
+
+--- Titles of the top-level entries a given pilot would see.
+local function visibleTopLevelEntries(unitName)
+  local titles = {}
+  for _, command in ipairs(veafRadio.radioMenu.commands or {}) do
     if not command.groupFilter or command.groupFilter(unitName) then
       table.insert(titles, command.title)
     end
@@ -447,7 +463,48 @@ end
 function TestVeafAssistRadioMenu:test_the_menu_holds_one_start_entry_plus_the_contextual_ones()
   local root = setUpMenu()
   luaunit.assertNotNil(root)
-  luaunit.assertEquals(#root.commands, 5)
+  -- One start entry + the two occasional ones; confirm and skip are at the top level.
+  luaunit.assertEquals(#root.commands, 3)
+  luaunit.assertEquals(#veafRadio.radioMenu.commands, 2)
+end
+
+function TestVeafAssistRadioMenu:test_confirm_renders_before_skip()
+  -- The engine sorts a menu's entries, and in French the labels sort the wrong way round
+  -- ("passer" before "valider"), so the order rests on sortKey.
+  setUpMenu()
+  local commands = {}
+  for _, command in ipairs(veafRadio.radioMenu.commands) do
+    commands[#commands + 1] = command
+  end
+  table.sort(commands, function(a, b)
+    return (a.sortKey or a.title) < (b.sortKey or b.title)
+  end)
+  luaunit.assertEquals(commands[1].title, veaf.t("assist.menu.confirm"))
+  luaunit.assertEquals(commands[2].title, veaf.t("assist.menu.skip"))
+end
+
+function TestVeafAssistRadioMenu:test_confirm_and_skip_are_at_the_top_level()
+  -- Pressed once per step: an extra level would cost a keystroke every single time.
+  setUpMenu()
+  local titles = {}
+  for _, command in ipairs(veafRadio.radioMenu.commands) do
+    titles[#titles + 1] = command.title
+  end
+  table.sort(titles)
+  local expected = { veaf.t("assist.menu.confirm"), veaf.t("assist.menu.skip") }
+  table.sort(expected)
+  luaunit.assertEquals(titles, expected)
+end
+
+function TestVeafAssistRadioMenu:test_the_top_level_entries_are_hidden_outside_a_session()
+  setUpMenu()
+  dcs_mocks.addUnit("Pilot #1", {
+    _id = 42,
+    getTypeName = function()
+      return "F-16C_50"
+    end,
+  })
+  luaunit.assertEquals(visibleTopLevelEntries("Pilot #1"), {})
 end
 
 function TestVeafAssistRadioMenu:test_every_entry_is_per_group()
@@ -490,7 +547,7 @@ function TestVeafAssistRadioMenu:test_a_session_swaps_the_start_entry_for_the_co
   veafAssist.start("Pilot #1", "test-checklist")
   local visible = visibleEntries("Pilot #1")
   table.sort(visible)
-  -- Step 1 is an argument step, so "Confirm this step" is not offered yet.
+  -- Step 1 is a parameter step, so "confirm the step" is not offered yet.
   local expected = { veaf.t("assist.menu.skip"), veaf.t("assist.menu.stop"), veaf.t("assist.menu.toggle_picture") }
   table.sort(expected)
   luaunit.assertEquals(visible, expected)

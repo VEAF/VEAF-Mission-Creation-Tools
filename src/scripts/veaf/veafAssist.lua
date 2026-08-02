@@ -49,7 +49,7 @@ veafAssist.PICTURE_CLEAR_VIEW = true
 veafAssist.PICTURE_START_DELAY = 0
 veafAssist.PICTURE_HORIZONTAL_ALIGN = "2" -- right
 veafAssist.PICTURE_VERTICAL_ALIGN = "1" -- top
-veafAssist.PICTURE_SIZE = 20
+veafAssist.PICTURE_SIZE = 100
 veafAssist.PICTURE_SIZE_UNITS = "0"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -113,11 +113,9 @@ local function readCockpitParams()
   if veafAssist.paramCache then
     return veafAssist.paramCache
   end
-  if type(list_cockpit_params) ~= "function" then
-    return nil
-  end
-  local ok, dump = pcall(list_cockpit_params)
-  if not ok or type(dump) ~= "string" then
+  -- list_cockpit_params lives in the trigger environment, like the a_* functions.
+  local dump = veafAssist.inTriggerEnv("return list_cockpit_params()")
+  if type(dump) ~= "string" then
     return nil
   end
   local params = {}
@@ -162,13 +160,39 @@ end)
 -- Cockpit primitives
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Whether the native mission-environment functions this module needs exist.
+--- Run a chunk of Lua in the TRIGGER environment and return what it returned.
+---
+--- The cockpit and picture primitives (a_cockpit_highlight, a_out_picture_u, …) do NOT
+--- live in the environment VEAF scripts run in. Measured in game: from a mission script
+--- `a_cockpit_highlight` is nil, while `net.dostring_in("mission", …)` reaches an
+--- environment holding all 114 `a_*` functions — and, symmetrically, no `veaf` and no
+--- `net`. The two are separate namespaces and this is the only bridge between them. It
+--- is the same call TheUniversalMission makes for its own picture output.
+---
+--- **This requires `net`**, which a stock `MissionScripting.lua` sanitises away. The
+--- module detects that at initialisation and disables itself rather than failing later.
+local function inTriggerEnv(code)
+  if type(net) ~= "table" or type(net.dostring_in) ~= "function" then
+    return nil
+  end
+  local ok, result = pcall(net.dostring_in, "mission", code)
+  if not ok then
+    veaf.loggers.get(veafAssist.Id):warn(string.format("trigger-environment call failed: %s", tostring(result)))
+    return nil
+  end
+  return result
+end
+
+veafAssist.inTriggerEnv = inTriggerEnv
+
+--- Whether the primitives this module needs are reachable.
 --- Checked once at initialisation rather than on every tick.
 function veafAssist.nativeFunctionsAvailable()
-  return type(a_cockpit_highlight) == "function"
-    and type(a_cockpit_remove_highlight) == "function"
-    and type(a_out_picture_u) == "function"
-    and type(a_out_picture_stop) == "function"
+  local probe = inTriggerEnv(
+    'return type(a_cockpit_highlight) .. "/" .. type(a_cockpit_remove_highlight) .. "/" '
+      .. '.. type(a_out_picture_u) .. "/" .. type(a_out_picture_stop) .. "/" .. type(getValueResourceByKey)'
+  )
+  return probe == "function/function/function/function/function"
 end
 
 --- Box a cockpit element, replacing whatever this session was boxing.
@@ -177,11 +201,11 @@ local function highlightElement(session, element)
     return
   end
   if session.highlighted then
-    a_cockpit_remove_highlight(session.highlightId)
+    inTriggerEnv(string.format("a_cockpit_remove_highlight(%d)", session.highlightId))
   end
   session.highlighted = element
   if element then
-    a_cockpit_highlight(session.highlightId, element)
+    inTriggerEnv(string.format("a_cockpit_highlight(%d, %q)", session.highlightId, element))
   end
 end
 
@@ -196,23 +220,26 @@ local function showPicture(session, unit, state)
     return
   end
   session.pictureState = state
-  a_out_picture_u(
-    unit:getID(),
-    getValueResourceByKey(resource),
-    veafAssist.PICTURE_DURATION,
-    veafAssist.PICTURE_CLEAR_VIEW,
-    veafAssist.PICTURE_START_DELAY,
-    veafAssist.PICTURE_HORIZONTAL_ALIGN,
-    veafAssist.PICTURE_VERTICAL_ALIGN,
-    veafAssist.PICTURE_SIZE,
-    veafAssist.PICTURE_SIZE_UNITS
+  inTriggerEnv(
+    string.format(
+      "a_out_picture_u(%d, getValueResourceByKey(%q), %d, %s, %d, %q, %q, %d, %q)",
+      unit:getID(),
+      resource,
+      veafAssist.PICTURE_DURATION,
+      tostring(veafAssist.PICTURE_CLEAR_VIEW),
+      veafAssist.PICTURE_START_DELAY,
+      veafAssist.PICTURE_HORIZONTAL_ALIGN,
+      veafAssist.PICTURE_VERTICAL_ALIGN,
+      veafAssist.PICTURE_SIZE,
+      veafAssist.PICTURE_SIZE_UNITS
+    )
   )
 end
 
 --- Take the picture down and forget which state was shown.
 local function hidePicture(session)
   if session.pictureState ~= nil then
-    a_out_picture_stop()
+    inTriggerEnv("a_out_picture_stop()")
     session.pictureState = nil
   end
 end
@@ -589,9 +616,36 @@ function veafAssist.buildRadioMenu()
     end
   end
 
+  -- The two entries a pilot presses over and over while walking a checklist sit at the
+  -- TOP level, not inside `Assistance`: burying "confirm" one level down costs an extra
+  -- keystroke on every single step, which adds up fast on a six-step procedure. They are
+  -- only visible during a session, so they clutter nobody's menu the rest of the time —
+  -- and their labels name the module, since they appear among unrelated entries.
+  -- sortKey, not the label: "confirm" has to come before "skip", and in French the
+  -- labels sort the other way round ("passer" before "valider"). The shared prefix keeps
+  -- the pair together wherever "Assistance" lands among the other top-level entries.
+  local topLevel = {
+    {
+      key = "assist.menu.confirm",
+      sortKey = "Assistance 1",
+      method = veafAssist.radioConfirm,
+      filter = veafAssist.currentStepNeedsConfirmation,
+    },
+    {
+      key = "assist.menu.skip",
+      sortKey = "Assistance 2",
+      method = veafAssist.radioSkip,
+      filter = veafAssist.isAssisted,
+    },
+  }
+  for _, entry in ipairs(topLevel) do
+    local command = veafRadio.addCommandToSubmenu(veaf.t(entry.key), nil, entry.method, nil, veafRadio.USAGE_ForGroup)
+    command.groupFilter = entry.filter
+    command.sortKey = entry.sortKey
+  end
+
+  -- The occasional ones stay in the submenu.
   local contextual = {
-    { key = "assist.menu.confirm", method = veafAssist.radioConfirm, filter = veafAssist.currentStepNeedsConfirmation },
-    { key = "assist.menu.skip", method = veafAssist.radioSkip, filter = veafAssist.isAssisted },
     { key = "assist.menu.toggle_picture", method = veafAssist.radioTogglePicture, filter = veafAssist.isAssisted },
     { key = "assist.menu.stop", method = veafAssist.radioStop, filter = veafAssist.isAssisted },
   }
@@ -612,9 +666,18 @@ function veafAssist.initialize()
   if not veafAssist.available then
     -- Detected once, here: throwing on every tick would flood the log and the
     -- module would still do nothing useful.
-    veaf.loggers.get(veafAssist.Id):warn(
-      "the cockpit functions (a_cockpit_highlight / a_out_picture_u) are not available in this environment; guided checklists are disabled"
-    )
+    if type(net) ~= "table" or type(net.dostring_in) ~= "function" then
+      veaf.loggers.get(veafAssist.Id):warn(
+        "guided checklists are disabled: net.dostring_in is not available. The cockpit primitives live in the "
+          .. "trigger environment and this is the only bridge to it, so this mission's DCS needs a "
+          .. "MissionScripting.lua with the sanitisation removed (the same tweak STTS and dcs-bridge require)."
+      )
+    else
+      veaf.loggers.get(veafAssist.Id):warn(
+        "guided checklists are disabled: the cockpit primitives (a_cockpit_highlight / a_out_picture_u) were not "
+          .. "found in the trigger environment."
+      )
+    end
     return
   end
 

@@ -29,21 +29,24 @@ from veaf_libs.i18n import tn
 from veaf_libs.logger import logger
 from veaf_libs.lua_i18n import translate
 
-#: Width bounds, in pixels. The canvas is sized to its longest line rather than fixed:
-#: ``a_out_picture`` scales the picture to a percentage of the screen, so trailing empty
-#: canvas would be shown as trailing empty screen, hiding the cockpit for nothing. The
-#: floor keeps a short checklist from rendering as a stamp, the ceiling wraps nothing —
-#: a label that long is a label to shorten. Width depends on the labels only, never on
-#: the progress state, so the picture does not jump as the pilot advances.
-MIN_IMAGE_WIDTH = 380
-MAX_IMAGE_WIDTH = 900
+#: Width bounds, in pixels. The canvas is sized to its longest line rather than fixed,
+#: because ``a_out_picture`` shows trailing empty canvas as trailing empty screen, hiding
+#: the cockpit for nothing. Width depends on the labels only, never on the progress state,
+#: so the picture does not jump as the pilot advances.
+#:
+#: The absolute sizes matter: ``a_out_picture``'s ``size`` is a percentage **capped at
+#: 100**, so a picture can be shrunk but never enlarged. Whatever legibility is wanted in
+#: game has to be rendered in. These values were set after seeing the first version in a
+#: cockpit, where it came out unreadable.
+MIN_IMAGE_WIDTH = 620
+MAX_IMAGE_WIDTH = 1400
 
-_MARGIN = 20
-_TITLE_SIZE = 26
-_LINE_SIZE = 20
-_LINE_HEIGHT = 34
-_BOX_SIZE = 18
-_MARKER_WIDTH = 12
+_MARGIN = 32
+_TITLE_SIZE = 42
+_LINE_SIZE = 32
+_LINE_HEIGHT = 54
+_BOX_SIZE = 28
+_MARKER_WIDTH = 18
 
 _BACKGROUND = (255, 255, 255)
 _TITLE_COLOR = (0, 0, 0)
@@ -149,17 +152,17 @@ def _fonts() -> tuple[FreeTypeFont, FreeTypeFont]:
 def _draw_box(draw: ImageDraw.ImageDraw, left: int, top: int, mark: str) -> None:
     """Draw one line's status box, ticked when the step is done."""
     outline = _DONE_COLOR if mark == _DONE else _PENDING_COLOR
-    draw.rectangle([left, top, left + _BOX_SIZE, top + _BOX_SIZE], outline=outline, width=2)
+    draw.rectangle([left, top, left + _BOX_SIZE, top + _BOX_SIZE], outline=outline, width=3)
     if mark != _DONE:
         return
     draw.line(
         [
-            (left + 4, top + _BOX_SIZE // 2),
-            (left + _BOX_SIZE // 2 - 1, top + _BOX_SIZE - 5),
-            (left + _BOX_SIZE - 3, top + 4),
+            (left + 6, top + _BOX_SIZE // 2),
+            (left + _BOX_SIZE // 2 - 1, top + _BOX_SIZE - 8),
+            (left + _BOX_SIZE - 5, top + 6),
         ],
         fill=_TICK_COLOR,
-        width=3,
+        width=5,
         joint="curve",
     )
 
@@ -189,7 +192,7 @@ def image_width(title: str, labels: list[str]) -> int:
         The width, in pixels.
     """
     title_font, line_font = _fonts()
-    text_left = _MARGIN + _MARKER_WIDTH + 6 + _BOX_SIZE + 10
+    text_left = _MARGIN + _MARKER_WIDTH + 10 + _BOX_SIZE + 16
     needed = max(
         [_MARGIN + _text_width(title_font, title)] + [text_left + _text_width(line_font, label) for label in labels]
     )
@@ -209,18 +212,18 @@ def render_state(title: str, labels: list[str], state: int) -> Image.Image:
     """
     title_font, line_font = _fonts()
     width = image_width(title, labels)
-    height = _MARGIN * 2 + _TITLE_SIZE + 14 + _LINE_HEIGHT * len(labels)
+    height = _MARGIN * 2 + _TITLE_SIZE + 22 + _LINE_HEIGHT * len(labels)
     image = Image.new("RGB", (width, height), color=_BACKGROUND)
     draw = ImageDraw.Draw(image)
 
     draw.text((_MARGIN, _MARGIN), title, font=title_font, fill=_TITLE_COLOR)
-    text_left = _MARGIN + _MARKER_WIDTH + 6 + _BOX_SIZE + 10
+    text_left = _MARGIN + _MARKER_WIDTH + 10 + _BOX_SIZE + 16
 
-    top = _MARGIN + _TITLE_SIZE + 14
+    top = _MARGIN + _TITLE_SIZE + 22
     for label, mark in zip(labels, line_states(len(labels), state), strict=True):
-        box_left = _MARGIN + _MARKER_WIDTH + 6
+        box_left = _MARGIN + _MARKER_WIDTH + 10
         if mark == _CURRENT:
-            draw.rectangle([_MARGIN - 4, top - 4, width - _MARGIN + 4, top + _BOX_SIZE + 6], fill=_CURRENT_BAND)
+            draw.rectangle([_MARGIN - 6, top - 6, width - _MARGIN + 6, top + _BOX_SIZE + 10], fill=_CURRENT_BAND)
             _draw_marker(draw, _MARGIN, top)
         _draw_box(draw, box_left, top, mark)
         colour = {_DONE: _DONE_COLOR, _CURRENT: _CURRENT_COLOR}.get(mark, _PENDING_COLOR)

@@ -306,7 +306,8 @@ function veafRadio.RadioMenuBuilder:addMenu(label, parent, coalitionSide)
 end
 
 --- Creates a command node under parent (or root when nil) and returns it.
---- The caller may set `groupFilter` on the returned node — see _placeCommandOnMenu.
+--- The caller may set `groupFilter` on the returned node (see _placeCommandOnMenu) and
+--- `sortKey` to override its alphabetical position (see _buildSubtree).
 function veafRadio.RadioMenuBuilder:addCommand(label, parent, method, parameters, usage, isSecured)
   local command = {
     title = label,
@@ -463,15 +464,22 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentDcsMenu)
   end
 
-  local function compareByTitle(a, b)
-    if a.title and b.title then
-      return a.title < b.title
+  -- Entries render in alphabetical order, which is the right default when a menu is a
+  -- list to browse. A module whose entries have an intended sequence — veafAssist's
+  -- "confirm the step" before "skip the step" — sets `sortKey` on them instead, so the
+  -- order does not depend on how the labels happen to sort, in French or in any other
+  -- language they get translated to.
+  local function compareByOrder(a, b)
+    local left = a.sortKey or a.title
+    local right = b.sortKey or b.title
+    if left and right then
+      return left < right
     else
       return false
     end
   end
-  table.sort(node.commands, compareByTitle)
-  table.sort(node.subMenus, compareByTitle)
+  table.sort(node.commands, compareByOrder)
+  table.sort(node.subMenus, compareByOrder)
 
   -- Pagination decision (ADR 0013): each command / submenu counts as one item.
   local total = #node.commands + #node.subMenus

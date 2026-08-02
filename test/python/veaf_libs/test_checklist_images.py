@@ -162,10 +162,16 @@ class TestRendering(unittest.TestCase):
 
         self.assertEqual(MIN_IMAGE_WIDTH, image_width("t", ["a"]))
         self.assertEqual(MAX_IMAGE_WIDTH, image_width("t", ["x" * 500]))
-        self.assertLess(
-            image_width("t", ["a step label long enough to pass the floor"]),
-            image_width("t", ["a step label long enough to pass the floor, and then quite a bit more"]),
-        )
+
+        # Between the bounds, the width tracks the content. The label length that gets
+        # there is measured against the font actually available rather than hard-coded:
+        # CI has no Arial and Pillow falls back to a much smaller bitmap font, where a
+        # fixed pair of labels both land on the clamped floor and the assertion is
+        # vacuously false.
+        label = "x" * 20
+        while image_width("t", [label]) <= MIN_IMAGE_WIDTH and len(label) < 400:
+            label += "x" * 20
+        self.assertLess(image_width("t", [label]), image_width("t", [label + "x" * 20]))
 
     def test_width_does_not_change_with_the_state(self):
         labels = ["one", "a much longer second line", "three"]

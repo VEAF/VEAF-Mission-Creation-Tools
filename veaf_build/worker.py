@@ -496,6 +496,12 @@ class BuildAndReleaseWorker:
         checklists_dir = veaf_tools_dir / "veaf_libs" / "data" / "checklists"
         if checklists_dir.is_dir():
             extra.append((checklists_dir, "veaf_libs/data/checklists"))
+        # Cockpit-control indexes — one file per aircraft, read by the checklist resolver
+        # so an instructor never opens a DCS install. A whole directory again: indexing a
+        # new aircraft must not need a build change.
+        cockpit_controls_dir = veaf_tools_dir / "veaf_libs" / "data" / "cockpit-controls"
+        if cockpit_controls_dir.is_dir():
+            extra.append((cockpit_controls_dir, "veaf_libs/data/cockpit-controls"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),

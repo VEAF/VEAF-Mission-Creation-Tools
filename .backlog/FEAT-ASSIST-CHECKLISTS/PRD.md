@@ -159,6 +159,7 @@ message, and the pilot still gets feedback when the image is hidden.
 | 06 | [F-16C cold-start checklist, six steps](tickets/06-f16c-checklist.md) | 02 (**🧑 slice to review by a pilot**) |
 | 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 (**✅ done**) |
 | 08 | [Picture or text, chosen at build time](tickets/08-display-mode.md) | 03, 04 (**✅ done**) |
+| 09 | [Translations written into the checklist](tickets/09-inline-translations.md) | 02 (**✅ done**) |
 
 ## Probed in game — 2026-08-01
 

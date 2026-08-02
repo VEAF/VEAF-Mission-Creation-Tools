@@ -92,6 +92,7 @@ menu: cold-start              # slot under "Assistance"
 
 steps:
   # Pilot-validated: the element is boxed to show where to look
+  # (`label` also accepts {fr: …, en: …} — see below)
   - label: MAIN PWR switch to MAIN PWR
     element: PTR-ELEC-TMB-MPWR-510   # cockpit element to box
     confirm: true
@@ -110,8 +111,17 @@ steps:
 
 Things to keep in mind:
 
-- **A `label` may be a sentence**, not necessarily a catalog key: an unknown key comes back
-  unchanged, so you can simply write your own text.
+- **A `label` (and the `title`) can be written three ways**:
+
+  | Written | Meaning |
+  |---|---|
+  | `label: assist.f16c.main_pwr_batt` | a VEAF catalog key — what the shipped checklists use |
+  | `label: MAIN PWR switch to BATT` | plain text, one language |
+  | `label: {fr: MAIN PWR sur BATT, en: MAIN PWR switch to BATT}` | your own translations, written in place |
+
+  The mapping form is resolved **at build time**, in the mission's language — the same one the
+  picture is rendered in, so the two cannot disagree. A missing language falls back to French, then
+  to any translation present: a label in the wrong language beats no label at all.
 - **`element` is independent of the validation mode**: a gauge can be boxed while the pilot is the
   one who says it is good.
 - **A `param` means automatic validation**; with no param, the pilot validates.

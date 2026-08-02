@@ -93,6 +93,7 @@ menu: cold-start              # emplacement sous « Assistance »
 
 steps:
   # Étape validée par le pilote : l'élément est encadré pour montrer où regarder
+  # (`label` accepte aussi {fr: …, en: …} — voir plus bas)
   - label: MAIN PWR sur MAIN PWR
     element: PTR-ELEC-TMB-MPWR-510   # élément à encadrer dans le cockpit
     confirm: true
@@ -111,8 +112,18 @@ steps:
 
 Points à retenir :
 
-- **Un `label` peut être une phrase**, pas forcément une clé de catalogue : une clé inconnue est
-  renvoyée telle quelle, donc vous pouvez écrire directement votre texte.
+- **Un `label` (et le `title`) s'écrit de trois façons** :
+
+  | Écriture | Sens |
+  |---|---|
+  | `label: assist.f16c.main_pwr_batt` | clé du catalogue VEAF — ce qu'utilisent les checklists livrées |
+  | `label: MAIN PWR sur BATT` | texte en clair, une seule langue |
+  | `label: {fr: MAIN PWR sur BATT, en: MAIN PWR switch to BATT}` | vos traductions, écrites sur place |
+
+  La forme avec traductions est résolue **à la construction**, dans la langue de la mission — la même
+  que celle de l'image, donc les deux ne peuvent pas diverger. Si la langue demandée manque, on
+  retombe sur le français, puis sur n'importe quelle traduction présente : un libellé dans la
+  mauvaise langue vaut mieux que pas de libellé.
 - **`element` est indépendant du mode de validation** : une jauge peut être encadrée alors que c'est
   le pilote qui dit qu'elle est bonne.
 - **`param` implique une validation automatique**, sans `param` c'est le pilote qui valide.

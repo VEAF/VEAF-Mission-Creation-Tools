@@ -24,7 +24,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 
-from veaf_libs.checklists import Checklist, ChecklistStep
+from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_module_scanner import get_modules
@@ -1222,9 +1222,22 @@ def _emit_lua_value(value: object) -> str:
     return _emit_lua_string(value) if isinstance(value, str) else _to_lua_scalar(value)
 
 
-def _emit_checklist_step(step: ChecklistStep) -> str:
+def _emit_localized(text: str | dict[str, str], language: str) -> str:
+    """Render a label or title as a Lua string literal.
+
+    A **string** is emitted untouched: it may be a catalog key, and a key has to reach
+    the engine as a key so ``veaf.t()`` resolves it in game. **Inline translations** are
+    resolved here, in the mission's language — the same one the picture is rendered in,
+    so the two can never disagree.
+    """
+    if isinstance(text, str):
+        return _emit_lua_string(text)
+    return _emit_lua_string(resolve_text(text, {}, language))
+
+
+def _emit_checklist_step(step: ChecklistStep, language: str) -> str:
     """Render one checklist step as an inline Lua table."""
-    fields = [f"label = {_emit_lua_string(step.label)}"]
+    fields = [f"label = {_emit_localized(step.label, language)}"]
     if step.element is not None:
         fields.append(f"element = {_emit_lua_string(step.element)}")
     for carried in ("device", "command"):
@@ -1239,6 +1252,7 @@ def emit_checklists_lua(
     checklists: Sequence[Checklist],
     image_keys: Mapping[str, Sequence[str]] | None = None,
     indent: str = "    ",
+    language: str | None = None,
 ) -> list[str]:
     """Render one ``veafAssist.registerChecklist()`` call per checklist.
 
@@ -1252,11 +1266,12 @@ def emit_checklists_lua(
     Returns:
         The Lua lines (empty when there is nothing to register).
     """
+    resolved_language = language or current_language()
     lines: list[str] = []
     for checklist in checklists:
         lines.append(f"{indent}veafAssist.registerChecklist({{")
         lines.append(f"{indent}    id = {_emit_lua_string(checklist.id)},")
-        lines.append(f"{indent}    title = {_emit_lua_string(checklist.title)},")
+        lines.append(f"{indent}    title = {_emit_localized(checklist.title, resolved_language)},")
         aircraft = ", ".join(_emit_lua_string(name) for name in checklist.aircraft)
         lines.append(f"{indent}    aircraft = {{{aircraft}}},")
         lines.append(f"{indent}    menu = {_emit_lua_string(checklist.menu)},")
@@ -1266,7 +1281,7 @@ def emit_checklists_lua(
             lines.append(f"{indent}    images = {{{rendered}}},")
         lines.append(f"{indent}    steps = {{")
         for step in checklist.steps:
-            lines.append(f"{indent}        {_emit_checklist_step(step)},")
+            lines.append(f"{indent}        {_emit_checklist_step(step, resolved_language)},")
         lines.append(f"{indent}    }},")
         lines.append(f"{indent}}})")
     return lines
@@ -1374,7 +1389,7 @@ def generate_config_lua(
     if checklists:
         lines.append("-- ── Guided checklists (assistance) ───────────────────────────────────────────")
         lines.append("if veafAssist then")
-        lines.extend(emit_checklists_lua(checklists, checklist_images))
+        lines.extend(emit_checklists_lua(checklists, checklist_images, language=language))
         lines.append("end")
         lines.append("")
 

@@ -9,6 +9,7 @@ from veaf_libs.checklists import (
     ChecklistError,
     load_checklists,
     parse_checklist,
+    resolve_text,
 )
 from veaf_libs.lua_config_generator import generate_config_lua
 
@@ -107,6 +108,51 @@ class TestChecklistModel(unittest.TestCase):
         )
         self.assertEqual(3, checklist.steps[0].device)
         self.assertEqual(3001, checklist.steps[0].command)
+
+
+class TestInlineTranslations(unittest.TestCase):
+    """A mission maker writes their own labels, in as many languages as they want."""
+
+    def _step(self, label: object) -> dict:
+        return {**VALID_CHECKLIST, "steps": [{"label": label, "element": "PTR-X", "confirm": True}]}
+
+    def test_a_mapping_is_accepted_for_a_label(self):
+        checklist = parse_checklist(self._step({"fr": "Batterie", "en": "Battery"}), source="test.yaml")
+        self.assertEqual({"fr": "Batterie", "en": "Battery"}, checklist.steps[0].label)
+
+    def test_a_mapping_is_accepted_for_a_title(self):
+        checklist = parse_checklist(
+            {**VALID_CHECKLIST, "title": {"fr": "Démarrage", "en": "Start-up"}}, source="test.yaml"
+        )
+        self.assertEqual("Démarrage", resolve_text(checklist.title, {}, "fr"))
+
+    def test_it_resolves_to_the_missions_language(self):
+        self.assertEqual("Battery", resolve_text({"fr": "Batterie", "en": "Battery"}, {}, "en"))
+        self.assertEqual("Batterie", resolve_text({"fr": "Batterie", "en": "Battery"}, {}, "fr"))
+
+    def test_it_falls_back_to_french_then_to_anything(self):
+        self.assertEqual("Batterie", resolve_text({"fr": "Batterie"}, {}, "de"))
+        # A label in the wrong language beats no label at all.
+        self.assertEqual("Battery", resolve_text({"en": "Battery"}, {}, "de"))
+
+    def test_a_string_still_goes_through_the_catalog(self):
+        catalog = {"my.key": {"fr": "Depuis le catalogue", "en": "From the catalog"}}
+        self.assertEqual("From the catalog", resolve_text("my.key", catalog, "en"))
+        self.assertEqual("plain text", resolve_text("plain text", catalog, "en"))
+
+    def test_an_empty_mapping_is_rejected(self):
+        with self.assertRaises(ChecklistError) as ctx:
+            parse_checklist(self._step({}), source="bad.yaml")
+        self.assertIn("label", str(ctx.exception))
+
+    def test_a_blank_translation_is_rejected(self):
+        with self.assertRaises(ChecklistError) as ctx:
+            parse_checklist(self._step({"fr": "Batterie", "en": "  "}), source="bad.yaml")
+        self.assertIn("en", str(ctx.exception))
+
+    def test_an_empty_string_label_is_rejected(self):
+        with self.assertRaises(ChecklistError):
+            parse_checklist(self._step(""), source="bad.yaml")
 
 
 class TestChecklistRejections(unittest.TestCase):

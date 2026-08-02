@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from veaf_libs.bundled_data import bundled_dir, read_bundled_text
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+from veaf_libs.lua_i18n import RUNTIME_DEFAULT_LANGUAGE, translate
 
 #: Folder holding the checklist files, both in the mission folder and in the catalogue.
 CHECKLISTS_FOLDER_NAME = "checklists"
@@ -44,6 +45,43 @@ DEFAULT_TOLERANCE = 0.05
 #: Decimal places kept when resolving a window, so ``0.5 - 0.05`` emits ``0.45`` rather
 #: than the binary-float noise Lua would then have to compare against.
 _WINDOW_PRECISION = 6
+
+
+#: A piece of pilot-facing text: a catalog key, a plain sentence, or a mapping of
+#: language code to text. The first two are strings and indistinguishable here — an
+#: unknown key resolves to itself, which is what makes plain text work.
+LocalizedText = str | dict[str, str]
+
+
+def resolve_text(text: LocalizedText, catalog: dict[str, dict[str, str]], language: str) -> str:
+    """Return *text* in *language*.
+
+    Args:
+        text: A catalog key, a plain sentence, or inline translations.
+        catalog: The parsed runtime catalog, for the key form.
+        language: The mission's language.
+
+    Returns:
+        The resolved text. A mapping falls back to French then to any entry it has: a
+        label shown in the wrong language beats a label shown as nothing.
+    """
+    if isinstance(text, str):
+        return translate(catalog, text, language)
+    return text.get(language) or text.get(RUNTIME_DEFAULT_LANGUAGE) or next(iter(text.values()), "")
+
+
+def _validate_localized(value: LocalizedText, field: str) -> LocalizedText:
+    """Reject a translations mapping that carries nothing usable."""
+    if isinstance(value, str):
+        if not value.strip():
+            raise ValueError(f"{field} is empty")
+        return value
+    if not value:
+        raise ValueError(f"{field} is an empty set of translations")
+    for lang, text in value.items():
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError(f"{field} has no text for language '{lang}'")
+    return value
 
 
 class ChecklistError(ValueError):
@@ -89,7 +127,7 @@ class ChecklistStep(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    label: str = Field(min_length=1)
+    label: LocalizedText
     element: str | None = None
     param: str | None = None
     equals: float | None = None
@@ -100,6 +138,11 @@ class ChecklistStep(BaseModel):
     argument: int | None = None
     device: int | None = None
     command: int | None = None
+
+    @field_validator("label")
+    @classmethod
+    def _usable_label(cls, value: LocalizedText) -> LocalizedText:
+        return _validate_localized(value, "label")
 
     @model_validator(mode="after")
     def _exactly_one_validation_mode(self) -> ChecklistStep:
@@ -185,10 +228,15 @@ class Checklist(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(min_length=1)
-    title: str = Field(min_length=1)
+    title: LocalizedText
     aircraft: list[str] = Field(min_length=1)
     menu: str = Field(min_length=1)
     steps: list[ChecklistStep] = Field(min_length=1)
+
+    @field_validator("title")
+    @classmethod
+    def _usable_title(cls, value: LocalizedText) -> LocalizedText:
+        return _validate_localized(value, "title")
 
     @field_validator("aircraft")
     @classmethod

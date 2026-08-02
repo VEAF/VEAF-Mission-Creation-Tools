@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 
 from veaf_libs.checklist_images import (
     _TICK_COLOR,
+    _encode,
     image_filename,
     line_states,
     render_all,
@@ -177,6 +178,25 @@ class TestRendering(unittest.TestCase):
         labels = ["one", "a much longer second line", "three"]
         widths = {render_state("Cold start", labels, state).width for state in range(4)}
         self.assertEqual(1, len(widths))
+
+    def test_inline_translations_are_rendered_in_the_missions_language(self):
+        from veaf_libs.checklists import parse_checklist
+
+        checklist = parse_checklist(
+            {
+                "id": "inline",
+                "title": {"fr": "Titre", "en": "Title"},
+                "aircraft": ["F-16C_50"],
+                "menu": "cold-start",
+                "steps": [{"label": {"fr": "Batterie", "en": "Battery"}, "element": "PTR-X", "confirm": True}],
+            },
+            source="test.yaml",
+        )
+        english = render_checklist_images(checklist, {}, "en")
+        french = render_checklist_images(checklist, {}, "fr")
+        self.assertNotEqual(english.files["assist-inline-0.png"], french.files["assist-inline-0.png"])
+        # And neither renders the mapping itself.
+        self.assertEqual(english.files["assist-inline-0.png"], _encode(render_state("Title", ["Battery"], 0)))
 
     def test_indexed_png_stays_small(self):
         images = render_checklist_images(_checklist(12), parse_runtime_catalog(CATALOG_LUA), "en")

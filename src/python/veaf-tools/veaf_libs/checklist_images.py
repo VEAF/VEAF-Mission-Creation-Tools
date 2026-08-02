@@ -24,10 +24,9 @@ from typing import cast
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 
-from veaf_libs.checklists import Checklist
+from veaf_libs.checklists import Checklist, resolve_text
 from veaf_libs.i18n import tn
 from veaf_libs.logger import logger
-from veaf_libs.lua_i18n import translate
 
 #: Width bounds, in pixels. The canvas is sized to its longest line rather than fixed,
 #: because ``a_out_picture`` shows trailing empty canvas as trailing empty screen, hiding
@@ -263,8 +262,8 @@ def render_checklist_images(
     Returns:
         One image per progress state, keys and file names included.
     """
-    title = translate(catalog, checklist.title, language)
-    labels = [translate(catalog, step.label, language) for step in checklist.steps]
+    title = resolve_text(checklist.title, catalog, language)
+    labels = [resolve_text(step.label, catalog, language) for step in checklist.steps]
 
     files: dict[str, bytes] = {}
     keys: list[str] = []

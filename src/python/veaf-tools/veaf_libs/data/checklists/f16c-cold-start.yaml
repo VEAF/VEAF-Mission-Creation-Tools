@@ -2,20 +2,24 @@
 # autostart sequence (Mods/aircraft/F-16C/Cockpit/Scripts/Macro_sequencies.lua,
 # start_sequence_full), in ED's order and with ED's wording.
 #
-# EVERY step is pilot-confirmed, and that is not a shortcut. A cockpit control's position
-# cannot be read from the mission environment — measured in game on 2026-08-01, with MAIN
-# PWR moved through all three positions while the animation argument never budged. See
-# docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md section 3.
+# The two MAIN PWR steps validate themselves; the rest are pilot-confirmed, each for its
+# own reason.
 #
-# What IS readable is the effect a control produces (altitude, speed, gear, fuel…), via a
-# step's `param:`. Nothing in an engine start qualifies: the aircraft publishes no switch
-# state, and its engine RPM only becomes meaningful once the engine already runs — which
-# is the last step anyway. So the assistance here boxes the control, shows the checklist,
-# and lets the pilot tick.
+# Reading a control's position takes going through the EXPORT environment
+# (GetDevice(0):get_argument_value) — the mission environment cannot see it. Measured in
+# game on 2026-08-02: argument 510 reports -1 (OFF), 0 (BATT), +1 (MAIN PWR), matching the
+# `arg_lim = {-1, 1}` of its `default_3_position_tumb` prototype exactly. See
+# docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md.
 #
-# Element names are read from clickabledata.lua. The JFS switch is spring-loaded
-# (springloaded_3_pos_tumb), so even in an environment that could read arguments, it would
-# be back at 0 before anything polled it.
+# Caveat: Export.lua runs on the pilot's machine, so `argument` steps may not validate
+# from a dedicated server. They then simply never auto-tick, and the pilot uses "skip".
+#
+# Why the other four stay confirm:
+#  - JFS is spring-loaded (springloaded_3_pos_tumb): its argument is back at 0 before
+#    anything can poll it, whatever environment does the polling.
+#  - "JFS RUN light" and "engine at idle" are indicator states, not control positions.
+#  - Argument 757 is the throttle's cut-off BUTTON (default_button on ThrottleOnOff), not
+#    the throttle's position — measured at 0 with the throttle at IDLE.
 
 id: f16c-cold-start
 title: assist.f16c.coldstart.title
@@ -25,11 +29,15 @@ menu: cold-start
 steps:
   - label: assist.f16c.main_pwr_batt
     element: PTR-ELEC-TMB-MPWR-510
-    confirm: true
+    argument: 510
+    equals: 0.0
+    tolerance: 0.05
 
   - label: assist.f16c.main_pwr_on
     element: PTR-ELEC-TMB-MPWR-510
-    confirm: true
+    argument: 510
+    equals: 1.0
+    tolerance: 0.05
 
   - label: assist.f16c.jfs_start2
     element: PTR-ENGSTART-TMB-JETFUEL-447

@@ -126,22 +126,41 @@ Points à retenir :
   mauvaise langue vaut mieux que pas de libellé.
 - **`element` est indépendant du mode de validation** : une jauge peut être encadrée alors que c'est
   le pilote qui dit qu'elle est bonne.
-- **`param` implique une validation automatique**, sans `param` c'est le pilote qui valide.
+- **Trois façons de valider une étape** : `argument` (la position d'une commande), `param` (une
+  grandeur publiée par l'appareil), ou rien du tout — c'est alors le pilote qui coche. Une étape en
+  déclare exactement une.
 - La **tolérance par défaut de 0.05** convient aux grandeurs qui valent 0 ou 1. Pour une altitude ou
   une vitesse, donnez votre propre `tolerance`, ou un `range`.
 - Une erreur dans le fichier **fait échouer la construction** avec un message qui nomme le fichier
   fautif, plutôt que de produire une erreur Lua en jeu.
 
-### On ne peut pas lire la position d'un interrupteur {#no-switch-reading}
+### Lire la position d'un interrupteur : `argument` {#switch-reading}
 
-C'est la limite structurante de ce module, et elle a été **mesurée en jeu** : un script de mission
-ne voit pas la position des commandes du cockpit. L'interrupteur MAIN PWR d'un F-16C a été déplacé
-sur ses trois positions sans qu'aucun des trois mécanismes disponibles ne bouge. Le cockpit est un
-modèle séparé et son état ne remonte pas jusqu'à la mission ; les checklists d'entraînement d'ED y
-arrivent parce que leur code tourne *dans* le cockpit du module, ce qui nous est fermé.
+```yaml
+  - label: MAIN PWR sur MAIN PWR
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510        # l'argument d'animation de la commande
+    equals: 1.0
+    tolerance: 0.05
+```
 
-Conséquence pratique : **une étape « mettre tel interrupteur sur telle position » se valide en
-`confirm`**. C'est le cas des six étapes de la checklist F-16C livrée.
+Le nombre en fin de nom d'élément **est** l'argument : `PTR-ELEC-TMB-MPWR-510` → `510`. Les positions
+se lisent dans le prototype de l'interrupteur, dans
+`<DCS>\Mods\aircraft\<Appareil>\Cockpit\Scripts\clickable_defs.lua` — un
+`default_3_position_tumb` a `arg_lim = {-1, 1}`, donc −1 / 0 / +1. Mesuré sur le MAIN PWR du F-16C :
+−1 = OFF, 0 = BATT, +1 = MAIN PWR.
+
+**⚠️ Réserve multijoueur.** Cette lecture passe par l'environnement d'`Export.lua`, qui tourne sur la
+machine du pilote. Depuis un **serveur dédié**, elle ne fonctionnera probablement pas — ce n'est pas
+encore vérifié. Dans ce cas l'étape ne se coche jamais toute seule et le pilote utilise « Passer » ;
+rien ne casse. Si votre mission est destinée à un serveur, préférez `param` ou `confirm`.
+
+**Deux cas où `argument` ne marchera de toute façon pas :**
+
+- un **interrupteur à rappel** (`springloaded_*` dans `clickable_defs.lua`, comme le JFS du F-16C) est
+  déjà revenu au neutre quand on le lit ;
+- un **bouton** n'est pas une position : l'argument 757 du F-16C est le doigt de cut-off de la
+  manette, pas la position de la manette.
 
 Mesures et détails :
 [DCS cockpit + picture API](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md).

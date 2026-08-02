@@ -8,7 +8,7 @@ in the repo so the next person does not re-measure them.
 Read this before writing anything that boxes a cockpit control, reads a switch position, or puts a
 picture on a pilot's screen.
 
-## 1. There are TWO Lua environments, and the cockpit functions are in the other one
+## 1. There are THREE Lua environments, and what you need is rarely in yours
 
 This is the fact everything else here depends on, and getting it wrong produced a module that
 silently refused to start.
@@ -17,6 +17,11 @@ silently refused to start.
 |---|---|---|
 | **Mission scripts** — where a `DO SCRIPT FILE` script and every VEAF module run | `veaf`, `Unit`, `trigger`, `coalition`, `net` — and **no `a_*` function at all** | the script itself |
 | **Triggers** — where the Mission Editor's actions execute | all **114** `a_*` functions, `getValueResourceByKey`, `list_cockpit_params` — and **no `veaf`, no `net`** | `net.dostring_in("mission", <code>)` |
+| **Export** — Export.lua's own | `GetDevice`, `LoGetAircraftDrawArgumentValue`, `LoGetSelfData` — the only place a **control's position** is readable (section 3) | `net.dostring_in("export", <code>)` |
+
+`net.dostring_in` also answers for `server`, `gui` and `config`; `cockpit` is not a valid name.
+Note the naming trap: the **trigger** environment is reached with `"mission"`, not the mission
+scripts' own — which is why the table above is worth keeping.
 
 Measured on 2026-08-01: from a mission script `type(a_cockpit_highlight)` is `"nil"`, while
 `net.dostring_in("mission", 'return type(a_cockpit_highlight)')` returns `"function"`. The two
@@ -86,13 +91,13 @@ Two more things about `size`, both learned the hard way:
   wrong image among correct ones and look for the bug in the generator. Give a regenerated resource a
   new name (a content hash) if you want to be safe.
 
-## 3. A cockpit switch position CANNOT be read from the mission environment
+## 3. A cockpit switch position cannot be read from the mission environment — but the export one reads it
 
-**Measured in game on 2026-08-01**, F-16C on the ramp, David moving MAIN PWR through OFF → BATT →
-MAIN PWR between reads. This is the finding that decides what a guided checklist can and cannot do,
-and it is negative.
+**Measured in game**, F-16C on the ramp, David moving MAIN PWR through OFF → BATT → MAIN PWR
+between reads. The answer took two sessions and reversed itself, so both halves are kept: what fails,
+then what works.
 
-Three independent mechanisms, all reachable from the mission environment, all blind to it:
+Three independent mechanisms, all reachable from the mission environment, all blind to the cockpit:
 
 | Mechanism | Result across three switch positions |
 |---|---|
@@ -116,16 +121,36 @@ live in `Scripts\Aircrafts\_Common\Cockpit\Macro_handler.lua` and run **inside t
 environment**, where the switch state is local. They are not exposed to the mission environment —
 which was already noted in the ticket 01 spike, without the consequence being drawn.
 
-**What this leaves.** Validating a step by *the position of a control* is out of reach. Validating it
-by *the effect that control produces* is not: altitude, speed, heading, gear, canopy, flaps and fuel
-are all readable and live. A bomb-run checklist is well served; an engine-start checklist is not, and
-its steps have to be confirmed by the pilot.
+**But there is a fourth mechanism, in a different environment.** `net.dostring_in` takes an
+environment name, and `"mission"` is only one of them — `export`, `server`, `gui` and `config` answer
+too (`cockpit` does not). **`export` is Export.lua's environment**, and it holds `GetDevice`,
+`LoGetAircraftDrawArgumentValue`, `list_cockpit_params` and `LoGetSelfData`. Measured 2026-08-02,
+same aircraft, same switch:
+
+| MAIN PWR position | `LoGetAircraftDrawArgumentValue(510)` | `GetDevice(0):get_argument_value(510)` |
+|---|---|---|
+| OFF | `0` | **`-1.000`** |
+| BATT | `0` | **`0.000`** |
+| MAIN PWR | `0` | **`1.000`** |
+
+`GetDevice(0):get_argument_value(arg)` reads the **cockpit** — the mechanism DCS-BIOS and SRS use —
+and the values match the `arg_lim = {-1, 1}` of the switch's `default_3_position_tumb` prototype
+exactly. `LoGetAircraftDrawArgumentValue` does not: like `Unit:getDrawArgumentValue`, it reads the
+external model.
+
+**The catch, and it is a real one: `Export.lua` runs on the pilot's machine.** From a mission script
+on a dedicated server this very likely reaches nothing. Untested — it needs a real server — so
+anything built on it should degrade to "never validates" rather than assume.
+
+**What this leaves.** Validating a step by *the position of a control* works, through `export`, with
+that reservation. Validating it by *the effect a control produces* works everywhere: altitude, speed,
+heading, gear, canopy, flaps and fuel are readable and live from the mission environment itself.
 
 ## 4. A spring-loaded switch cannot be detected by its animation argument
 
-Section 3 already rules out reading a switch from the mission environment at all. This one is the
-*second* reason, independent of it, and it matters wherever the cockpit environment **is** reachable
-(a module's own code, a future in-cockpit bridge): a spring-loaded switch has no position to read.
+Section 3 makes a switch readable through `export`. This is the second, independent reason a given
+switch may still be unreadable, and it holds in **every** environment: a spring-loaded switch has no
+position to read, because it is already back where it started.
 
 The trailing number of a cockpit element name **is** its animation argument
 (`PTR-ELEC-TMB-MPWR-510` → argument `510`). `clickabledata.lua` builds each element from a prototype

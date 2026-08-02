@@ -366,6 +366,89 @@ function TestVeafAssistSessions:test_the_parameter_dump_is_read_once_per_tick()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafAssistSwitch
+--
+-- Reading a control's POSITION, through the export environment. The one thing the
+-- mission environment cannot do, and the reason the assistance can auto-tick a
+-- "put this switch there" step at all.
+-- ---------------------------------------------------------------------------
+TestVeafAssistSwitch = {}
+
+--- A checklist whose only step watches MAIN PWR at +1.
+local function setUpSwitch(arguments)
+  setUpEngine()
+  dcs_mocks.cockpitArguments = arguments or { [510] = -1.0 }
+  veafAssist.switchCache = nil
+  veafAssist.registerChecklist({
+    id = "switch-checklist",
+    title = "t",
+    aircraft = { "F-16C_50" },
+    menu = "m",
+    steps = {
+      { label = "step.main_pwr", element = MAIN_PWR, check = { type = "switch", argument = 510, min = 0.95, max = 1.05 } },
+    },
+  })
+end
+
+function TestVeafAssistSwitch:test_the_check_is_registered()
+  luaunit.assertIsFunction(veafAssist.checks["switch"])
+end
+
+function TestVeafAssistSwitch:test_a_switch_out_of_the_window_does_not_pass()
+  setUpSwitch({ [510] = -1.0 })
+  veafAssist.start("Pilot #1", "switch-checklist")
+  veafAssist.loop()
+  luaunit.assertNotNil(session("Pilot #1"))
+end
+
+function TestVeafAssistSwitch:test_a_switch_in_the_window_completes_the_step()
+  setUpSwitch({ [510] = -1.0 })
+  veafAssist.start("Pilot #1", "switch-checklist")
+  dcs_mocks.cockpitArguments[510] = 1.0
+  veafAssist.loop()
+  -- Single-step checklist: passing it finishes the session.
+  luaunit.assertNil(session("Pilot #1"))
+end
+
+function TestVeafAssistSwitch:test_the_three_positions_of_a_three_way_switch_are_told_apart()
+  -- Measured in game: OFF = -1, BATT = 0, MAIN PWR = +1.
+  setUpSwitch({ [510] = 0.0 })
+  veafAssist.start("Pilot #1", "switch-checklist")
+  veafAssist.loop()
+  luaunit.assertNotNil(session("Pilot #1"), "BATT must not satisfy a MAIN PWR step")
+end
+
+function TestVeafAssistSwitch:test_an_unreachable_export_environment_never_passes()
+  -- What a dedicated server is expected to look like: no crash, no auto-tick.
+  setUpSwitch({ [510] = 1.0 })
+  dcs_mocks.exportAvailable = false
+  veafAssist.switchCache = nil
+  veafAssist.start("Pilot #1", "switch-checklist")
+  veafAssist.loop()
+  luaunit.assertNotNil(session("Pilot #1"))
+  -- …and the pilot can still get past it.
+  luaunit.assertTrue(veafAssist.skipStep("Pilot #1"))
+end
+
+function TestVeafAssistSwitch:test_the_argument_is_read_once_per_tick()
+  setUpSwitch({ [510] = -1.0 })
+  veafAssist.start("Pilot #1", "switch-checklist")
+  local reads = 0
+  local real = net.dostring_in
+  net.dostring_in = function(environment, code)
+    if environment == "export" then
+      reads = reads + 1
+    end
+    return real(environment, code)
+  end
+  veafAssist.loop()
+  veafAssist.loop()
+  net.dostring_in = real
+  -- One tick, one read: the second loop invalidated the cache and read again.
+  luaunit.assertEquals(reads, 2)
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafAssistTextMode
 --
 -- A checklist emitted with no `images` is what `display: text` produces at build

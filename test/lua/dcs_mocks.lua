@@ -530,6 +530,8 @@ function dcs_mocks.reset()
   dcs_mocks.logs = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
+  dcs_mocks.cockpitArguments = {}
+  dcs_mocks.exportAvailable = true
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
     if manager then
@@ -964,18 +966,55 @@ function dcs_mocks.restoreTriggerGlobals()
   end
 end
 
---- net.dostring_in — the only bridge between a mission script and the trigger
---- environment. Compiles the chunk against _triggerEnv, so a module that reaches
---- for a_cockpit_highlight directly gets nil, exactly as it would in game.
+-- ---------------------------------------------------------------------------
+-- The export environment — a THIRD namespace
+--
+-- Export.lua's own, where GetDevice(0):get_argument_value(arg) reads a cockpit
+-- control's POSITION. Neither the mission nor the trigger environment can
+-- (measured in game). Kept separate here for the same reason as the trigger one:
+-- a module reaching for GetDevice directly must fail in the tests exactly as it
+-- would in game.
+-- ---------------------------------------------------------------------------
+
+--- Cockpit animation arguments the fake aircraft reports: { [510] = -1.0 }.
+dcs_mocks.cockpitArguments = {}
+
+--- Whether the export environment answers at all. A dedicated server is expected
+--- to look like `false`; set it to exercise the degraded path.
+dcs_mocks.exportAvailable = true
+
+local _exportEnv = {
+  type = type,
+  tostring = tostring,
+  GetDevice = function(_)
+    return {
+      get_argument_value = function(_, argument)
+        return dcs_mocks.cockpitArguments[argument]
+      end,
+    }
+  end,
+}
+
+--- net.dostring_in — the only bridge out of a mission script. Compiles the chunk
+--- against the target environment, so a module that reaches for a_cockpit_highlight
+--- or GetDevice directly gets nil, exactly as it would in game.
 net = net or {}
 net.dostring_in = function(environment, code)
-  if environment ~= "mission" then
+  local target
+  if environment == "mission" then
+    target = _triggerEnv
+  elseif environment == "export" then
+    if not dcs_mocks.exportAvailable then
+      return nil
+    end
+    target = _exportEnv
+  else
     return nil
   end
   local chunk, err = loadstring(code)
   if not chunk then
     error("net.dostring_in: " .. tostring(err))
   end
-  setfenv(chunk, _triggerEnv)
+  setfenv(chunk, target)
   return chunk()
 end

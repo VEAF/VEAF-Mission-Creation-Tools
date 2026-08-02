@@ -151,6 +151,42 @@ veafAssist.registerCheck("cockpit_param", function(_, step)
   return value >= check.min and value <= check.max
 end)
 
+--- Cockpit arguments read this tick, so a checklist watching several switches makes one
+--- round trip per switch per tick rather than one per step evaluation.
+veafAssist.switchCache = nil
+
+--- Read one cockpit animation argument — a control's POSITION — through the export
+--- environment. Returns nil when that environment cannot be reached, which is what a
+--- dedicated server is expected to look like.
+local function readSwitch(argument)
+  veafAssist.switchCache = veafAssist.switchCache or {}
+  local cached = veafAssist.switchCache[argument]
+  if cached ~= nil then
+    return cached
+  end
+  local raw =
+    veafAssist.inExportEnv(string.format("local d = GetDevice(0) if not d then return nil end return d:get_argument_value(%d)", argument))
+  local value = tonumber(raw)
+  if value == nil then
+    return nil
+  end
+  veafAssist.switchCache[argument] = value
+  return value
+end
+
+--- Read a cockpit control's position and compare it against the step's window.
+veafAssist.registerCheck("switch", function(_, step)
+  local check = step.check
+  if not (check and check.argument) then
+    return false
+  end
+  local value = readSwitch(check.argument)
+  if value == nil then
+    return false
+  end
+  return value >= check.min and value <= check.max
+end)
+
 --- Satisfied by a pilot confirmation recorded for that step.
 veafAssist.registerCheck("confirm", function(_, step, session)
   return session ~= nil and session.confirmed[step.index] == true
@@ -171,19 +207,37 @@ end)
 ---
 --- **This requires `net`**, which a stock `MissionScripting.lua` sanitises away. The
 --- module detects that at initialisation and disables itself rather than failing later.
-local function inTriggerEnv(code)
+local function inEnv(environment, code)
   if type(net) ~= "table" or type(net.dostring_in) ~= "function" then
     return nil
   end
-  local ok, result = pcall(net.dostring_in, "mission", code)
+  local ok, result = pcall(net.dostring_in, environment, code)
   if not ok then
-    veaf.loggers.get(veafAssist.Id):warn(string.format("trigger-environment call failed: %s", tostring(result)))
+    veaf.loggers.get(veafAssist.Id):warn(string.format("%s-environment call failed: %s", environment, tostring(result)))
     return nil
   end
   return result
 end
 
+local function inTriggerEnv(code)
+  return inEnv("mission", code)
+end
+
+--- Run a chunk in the EXPORT environment — a third namespace, the one Export.lua runs
+--- in. It is the only place a cockpit control's POSITION can be read, through
+--- `GetDevice(0):get_argument_value(arg)`; measured in game 2026-08-02, MAIN PWR
+--- reporting -1 / 0 / +1 across its three positions while every mission-side mechanism
+--- stayed blank.
+---
+--- **Caveat:** Export.lua runs on the pilot's machine. From a dedicated server this very
+--- likely reaches nothing, which is why a `switch` step that cannot be read simply never
+--- self-validates — the pilot keeps "skip".
+local function inExportEnv(code)
+  return inEnv("export", code)
+end
+
 veafAssist.inTriggerEnv = inTriggerEnv
+veafAssist.inExportEnv = inExportEnv
 
 --- Whether the primitives this module needs are reachable.
 --- Checked once at initialisation rather than on every tick.
@@ -368,10 +422,12 @@ function veafAssist.loop()
   -- One snapshot of the cockpit parameters per tick, shared by every session and every
   -- step: the engine's dump is ~19 KB of text and parsing it per step would not scale.
   veafAssist.paramCache = nil
+  veafAssist.switchCache = nil
   for unitName, session in pairs(veafAssist.sessions) do
     updateSession(unitName, session)
   end
   veafAssist.paramCache = nil
+  veafAssist.switchCache = nil
   mist.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
 end
 

@@ -124,22 +124,40 @@ Things to keep in mind:
   to any translation present: a label in the wrong language beats no label at all.
 - **`element` is independent of the validation mode**: a gauge can be boxed while the pilot is the
   one who says it is good.
-- **A `param` means automatic validation**; with no param, the pilot validates.
+- **Three ways to validate a step**: `argument` (a control's position), `param` (a value the
+  aircraft publishes), or nothing at all — then the pilot ticks it. A step declares exactly one.
 - The **default tolerance of 0.05** suits the values that read 0 or 1. For an altitude or a speed,
   give your own `tolerance`, or a `range`.
 - A mistake in the file **fails the build** with a message naming the offending file, rather than
   producing a Lua error in game.
 
-### A switch position cannot be read {#no-switch-reading}
+### Reading a switch position: `argument` {#switch-reading}
 
-This is the module's defining limit, and it was **measured in game**: a mission script cannot see
-where a cockpit control is. An F-16C's MAIN PWR switch was moved through all three of its positions
-without any of the three available mechanisms budging. The cockpit is a separate model and its state
-does not reach the mission; ED's own training checklists manage it because their code runs *inside*
-the module's cockpit, which is closed to us.
+```yaml
+  - label: MAIN PWR switch to MAIN PWR
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510        # the control's animation argument
+    equals: 1.0
+    tolerance: 0.05
+```
 
-In practice: **a "set this switch to that position" step is validated with `confirm`**. That is the
-case for all six steps of the shipped F-16C checklist.
+The trailing number of an element name **is** the argument: `PTR-ELEC-TMB-MPWR-510` → `510`. The
+positions are read from the switch's prototype in
+`<DCS>\Mods\aircraft\<Aircraft>\Cockpit\Scripts\clickable_defs.lua` — a
+`default_3_position_tumb` has `arg_lim = {-1, 1}`, so −1 / 0 / +1. Measured on the F-16C's MAIN PWR:
+−1 = OFF, 0 = BATT, +1 = MAIN PWR.
+
+**⚠️ Multiplayer caveat.** This reading goes through `Export.lua`'s environment, which runs on the
+pilot's machine. From a **dedicated server** it will most likely not work — this is not verified yet.
+The step then simply never ticks itself and the pilot uses "skip"; nothing breaks. If your mission is
+meant for a server, prefer `param` or `confirm`.
+
+**Two cases where `argument` will not work anyway:**
+
+- a **spring-loaded switch** (`springloaded_*` in `clickable_defs.lua`, like the F-16C's JFS) is back
+  at neutral before anything reads it;
+- a **button** is not a position: the F-16C's argument 757 is the throttle's cut-off finger lift, not
+  the throttle's position.
 
 Measurements and details:
 [DCS cockpit + picture API](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md).

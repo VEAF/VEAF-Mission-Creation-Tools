@@ -91,6 +91,16 @@ class TestChecklistModel(unittest.TestCase):
             checklist.steps[0].check_table(),
         )
 
+    def test_an_argument_step_resolves_to_a_switch_check(self):
+        checklist = parse_checklist(
+            _with_steps({"label": "l", "element": "PTR-X", "argument": 510, "equals": 1.0}),
+            source="test.yaml",
+        )
+        self.assertEqual(
+            {"type": "switch", "argument": 510, "min": 0.95, "max": 1.05},
+            checklist.steps[0].check_table(),
+        )
+
     def test_named_check_is_carried_through(self):
         checklist = parse_checklist(
             _with_steps({"label": "l", "check": {"type": "altitude_above", "value": 15000, "unit": "feet"}}),
@@ -194,13 +204,10 @@ class TestChecklistRejections(unittest.TestCase):
             "check",
         )
 
-    def test_the_argument_field_is_rejected_with_an_explanation(self):
-        # A cockpit control's position is unreadable from the mission environment, so a
-        # step written this way would never tick. It must fail loudly, not silently.
+    def test_argument_and_param_together_are_rejected(self):
         self._assert_rejected(
-            _with_steps({"label": "l", "argument": 510, "equals": 1.0}),
+            _with_steps({"label": "l", "argument": 510, "param": "P", "equals": 1.0}),
             "argument",
-            "confirm",
             "param",
         )
 
@@ -226,7 +233,10 @@ class TestChecklistRejections(unittest.TestCase):
         self._assert_rejected(_with_steps({"label": "l", "equals": 1.0}), "equals")
 
     def test_param_without_window_is_rejected(self):
-        self._assert_rejected(_with_steps({"label": "l", "param": "P"}), "param")
+        self._assert_rejected(_with_steps({"label": "l", "param": "P"}), "acceptance window")
+
+    def test_argument_without_window_is_rejected(self):
+        self._assert_rejected(_with_steps({"label": "l", "argument": 510}), "acceptance window")
 
     def test_inverted_range_is_rejected(self):
         self._assert_rejected(

@@ -160,12 +160,13 @@ message, and the pilot still gets feedback when the image is hidden.
 | 07 | [Document the prototype and its verdict](tickets/07-documentation.md) | 05, 06 (**✅ done**) |
 | 08 | [Picture or text, chosen at build time](tickets/08-display-mode.md) | 03, 04 (**✅ done**) |
 | 09 | [Translations written into the checklist](tickets/09-inline-translations.md) | 02 (**✅ done**) |
+| 10 | [Read a switch through the export environment](tickets/10-switch-position.md) | 04 (**✅ done, unflown**) |
 
 ## Probed in game — 2026-08-01
 
 | # | Question | Answer |
 |---|---|---|
-| 1 | Does `Unit:getDrawArgumentValue` report a **cockpit switch** position? | ❌ **No.** MAIN PWR moved OFF → BATT → MAIN PWR, argument 510 stayed `0`. `c_player_unit_argument_in_range`, the documented fallback, is equally blind. `list_cockpit_params()` (562 entries, 78 live) exposes **no control position at all**. Details in [the exploration note](../../docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md), section 3 |
+| 1 | Does `Unit:getDrawArgumentValue` report a **cockpit switch** position? | ❌ **No**, nor does any mechanism reachable from the mission environment. **But `GetDevice(0):get_argument_value()` in the `export` environment does** — reversed on 2026-08-02, see ticket 10. Details in [the exploration note](../../docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md), section 3 |
 | 2 | Is `a_out_picture_u` reachable? | ✅ Yes, with the whole `a_*` family (114 functions), and ED's source settles `seconds = 0` |
 | 3 | Argument windows for 510 / 757 | ⛔ Moot — there is nothing to measure |
 | 4 | Picture legible over a cockpit, alignment, size | ⬜ Not yet |
@@ -177,7 +178,10 @@ message, and the pilot still gets feedback when the image is hidden.
 `confirm` mode, the YAML format, the engine, the menu, the image generation. The check registry too —
 it is the extension point this now has to be used through.
 
-**What falls:** validation by control position. Three of the six F-16C steps can never self-tick.
+**What falls:** ~~validation by control position~~ — recovered two days later through the `export`
+environment (ticket 10). What genuinely cannot be read, in any environment: a spring-loaded switch
+(it is already back at neutral) and a button (which has no position). Four of the six F-16C steps
+are pilot-confirmed for those reasons, not for want of a mechanism.
 
 **The door that stays open:** the *effect* of a control is readable even though the control is not.
 `list_cockpit_params` publishes altitude, speed, heading, gear, canopy, flaps and fuel, live. A bomb

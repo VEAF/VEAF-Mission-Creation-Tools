@@ -1,6 +1,6 @@
 # 02 — the instructor format: `control`, enriched in place
 
-**Status:** ⬜ ready — depends on 01.
+**Status:** ✅ done.
 
 Two fields on a step, and everything else about the checklist format is unchanged.
 
@@ -33,5 +33,10 @@ no use for it.
 
 ## Definition of done
 
-- Model, validation and the staleness predicate, exposed for ticket 03 to drive.
-- The emitted Lua is byte-identical for a checklist that carries no `control`.
+- [x] Model, validation and the staleness predicate (`ChecklistStep.needs_resolution`,
+      `Checklist.unresolved_steps()`), exposed for ticket 03 to drive.
+- [x] The emitted Lua is byte-identical for a checklist that carries no `control`, and never carries
+      `control` or `resolved_from` when it has them.
+- [x] A checklist with a stale step **fails the build** at activation, naming every stale step at
+      once. Matching ignores case and runs of whitespace, so re-indenting a file does not invalidate
+      every step in it.

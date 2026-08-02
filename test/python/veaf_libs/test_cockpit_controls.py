@@ -6,6 +6,7 @@ from veaf_libs.cockpit_controls import (
     parse_aircraft,
     parse_argument_constants,
     parse_controls,
+    parse_input_positions,
     parse_prototypes,
     to_index,
 )
@@ -129,6 +130,60 @@ class TestOtherDialects(unittest.TestCase):
 
     def test_a_module_without_named_arguments_needs_no_table(self):
         self.assertEqual({}, parse_argument_constants(""))
+
+
+# Real bindings, verbatim apart from the alignment. ED separates the control's name from
+# the position with " - "; Heatblur just runs them together.
+INPUT_LUA = """
+{down = elec_commands.MainPwrSw, cockpit_device_id = devices.ELEC_INTERFACE, value_down = -1.0, name = _('MAIN PWR Switch - OFF'), category = {_('Left Console')}},
+{down = elec_commands.MainPwrSw, cockpit_device_id = devices.ELEC_INTERFACE, value_down =  0.0, name = _('MAIN PWR Switch - BATT'), category = {_('Left Console')}},
+{down = elec_commands.MainPwrSw, cockpit_device_id = devices.ELEC_INTERFACE, value_down =  1.0, name = _('MAIN PWR Switch - MAIN PWR'), category = {_('Left Console')}},
+{down = elec_commands.MainPwrSw, up = elec_commands.MainPwrSw, value_down = 1.0, value_up = 0.0, name = _('MAIN PWR Switch (special) - MAIN PWR/BATT'), category = {_('Special For Joystick')}},
+{down = device_commands.HYD_TRANSFER_PUMP_Switch, cockpit_device_id = devices.HYDRAULICS, value_down = 0, name = _('Hydraulic Transfer Pump Switch NORMAL'), category = {_('Right Sidewall')}},
+{down = device_commands.HYD_TRANSFER_PUMP_Switch, cockpit_device_id = devices.HYDRAULICS, value_down = 1, name = _('Hydraulic Transfer Pump Switch SHUTOFF'), category = {_('Right Sidewall')}},
+{down = elec_commands.OneShot, cockpit_device_id = devices.ELEC_INTERFACE, value_down = 1.0, name = _('Fire Extinguisher'), category = {_('Left Console')}},
+"""
+
+
+class TestInputPositions(unittest.TestCase):
+    """The input bindings — the only place a position's *value* is written down."""
+
+    def setUp(self):
+        self.positions = parse_input_positions(INPUT_LUA)
+
+    def test_a_position_carries_the_value_it_sets(self):
+        # The whole point: this says which position IS which value, where a hint only
+        # gives an order. Measured in game on this very switch: OFF is -1, not +1.
+        found = {p.name: p.value for p in self.positions["elec_commands.MainPwrSw"]}
+        self.assertEqual({"OFF": -1.0, "BATT": 0.0, "MAIN PWR": 1.0}, found)
+
+    def test_a_two_way_combo_is_not_a_position(self):
+        # `MAIN PWR/BATT` is a joystick convenience that sets one value on press and
+        # another on release; taking it for a position would invent "MAIN PWR/BATT".
+        self.assertNotIn("MAIN PWR/BATT", [p.name for p in self.positions["elec_commands.MainPwrSw"]])
+
+    def test_positions_are_read_when_no_separator_is_used(self):
+        found = {p.name: p.value for p in self.positions["device_commands.HYD_TRANSFER_PUMP_Switch"]}
+        self.assertEqual({"NORMAL": 0.0, "SHUTOFF": 1.0}, found)
+
+    def test_a_lone_binding_is_a_keystroke_not_a_set_of_positions(self):
+        self.assertNotIn("elec_commands.OneShot", self.positions)
+
+    def test_a_control_is_tied_to_its_bindings_by_its_command(self):
+        by_element = {
+            c.element: c
+            for c in parse_controls(CLICKABLE_LUA, parse_prototypes(DEFS_LUA), None, parse_input_positions(INPUT_LUA))
+        }
+        control = by_element["PTR-ELEC-TMB-MPWR-510"]
+        self.assertEqual("elec_commands.MainPwrSw", control.command)
+        self.assertEqual(-1.0, {p.name: p.value for p in control.valued_positions}["OFF"])
+
+    def test_a_control_with_no_binding_keeps_empty_positions(self):
+        by_element = {
+            c.element: c
+            for c in parse_controls(CLICKABLE_LUA, parse_prototypes(DEFS_LUA), None, parse_input_positions(INPUT_LUA))
+        }
+        self.assertEqual([], by_element["PTR-AOA-LVL-794"].valued_positions)
 
 
 class TestPrototypes(unittest.TestCase):

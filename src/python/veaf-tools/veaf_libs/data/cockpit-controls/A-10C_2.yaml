@@ -17,6 +17,11 @@ controls:
     hint: OSB 1
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-MFD-L-02:
@@ -24,6 +29,8 @@ controls:
     hint: OSB 2
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-03:
@@ -31,6 +38,8 @@ controls:
     hint: OSB 3
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-04:
@@ -38,6 +47,8 @@ controls:
     hint: OSB 4
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-05:
@@ -45,6 +56,8 @@ controls:
     hint: OSB 5
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-06:
@@ -52,6 +65,8 @@ controls:
     hint: OSB 6
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-07:
@@ -59,6 +74,8 @@ controls:
     hint: OSB 7
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-08:
@@ -66,6 +83,8 @@ controls:
     hint: OSB 8
     prototype: default_button
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-09:
@@ -73,6 +92,8 @@ controls:
     hint: OSB 9
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-10:
@@ -80,6 +101,8 @@ controls:
     hint: OSB 10
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-11:
@@ -87,6 +110,8 @@ controls:
     hint: OSB 11
     prototype: default_button
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-12:
@@ -94,6 +119,8 @@ controls:
     hint: OSB 12
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-13:
@@ -101,6 +128,8 @@ controls:
     hint: OSB 13
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-14:
@@ -108,6 +137,8 @@ controls:
     hint: OSB 14
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-15:
@@ -115,6 +146,10 @@ controls:
     hint: OSB 15
     prototype: default_button
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PNT-BTN-MFD-L-16:
@@ -122,6 +157,8 @@ controls:
     hint: OSB 16
     prototype: default_button
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-17:
@@ -129,6 +166,10 @@ controls:
     hint: OSB 17
     prototype: default_button
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PNT-BTN-MFD-L-18:
@@ -136,6 +177,8 @@ controls:
     hint: OSB 18
     prototype: default_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-L-19:
@@ -143,6 +186,10 @@ controls:
     hint: OSB 19
     prototype: default_button
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: false
   PNT-BTN-MFD-L-20:
@@ -150,6 +197,8 @@ controls:
     hint: OSB 20
     prototype: default_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PNT-MFCD-L-ADJ-UP:
@@ -157,6 +206,8 @@ controls:
     hint: Moving Map Scale Adjust Increase
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-L-ADJ-DN:
@@ -164,6 +215,8 @@ controls:
     hint: Moving Map Scale Adjust Decrease
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-L-DSP-UP:
@@ -171,6 +224,8 @@ controls:
     hint: Increase Backlight Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-L-DSP-DN:
@@ -178,6 +233,8 @@ controls:
     hint: Decrease Backlight Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-BRT-UP:
@@ -185,6 +242,8 @@ controls:
     hint: Increase Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-BRT-DN:
@@ -192,6 +251,8 @@ controls:
     hint: Decrease Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-CON-UP:
@@ -199,6 +260,8 @@ controls:
     hint: Increase Contrast
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-CON-DN:
@@ -206,6 +269,8 @@ controls:
     hint: Decrease Contrast
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-SYM-UP:
@@ -213,6 +278,8 @@ controls:
     hint: Increase Symbol Levels
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-L-SYM-DN:
@@ -220,6 +287,8 @@ controls:
     hint: Decrease Symbol Levels
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-LVR-MFD-L:
@@ -227,6 +296,8 @@ controls:
     hint: DAY/NIGHT/OFF
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_36
+    values: {}
     range: null
     readable: true
   PNT-BTN-MFD-R-01:
@@ -234,6 +305,11 @@ controls:
     hint: OSB 1
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-MFD-R-02:
@@ -241,6 +317,8 @@ controls:
     hint: OSB 2
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-03:
@@ -248,6 +326,8 @@ controls:
     hint: OSB 3
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-04:
@@ -255,6 +335,8 @@ controls:
     hint: OSB 4
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-05:
@@ -262,6 +344,8 @@ controls:
     hint: OSB 5
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-06:
@@ -269,6 +353,8 @@ controls:
     hint: OSB 6
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-07:
@@ -276,6 +362,8 @@ controls:
     hint: OSB 7
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-08:
@@ -283,6 +371,8 @@ controls:
     hint: OSB 8
     prototype: default_button
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-09:
@@ -290,6 +380,8 @@ controls:
     hint: OSB 9
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-10:
@@ -297,6 +389,8 @@ controls:
     hint: OSB 10
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-11:
@@ -304,6 +398,8 @@ controls:
     hint: OSB 11
     prototype: default_button
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-12:
@@ -311,6 +407,8 @@ controls:
     hint: OSB 12
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-13:
@@ -318,6 +416,8 @@ controls:
     hint: OSB 13
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-14:
@@ -325,6 +425,8 @@ controls:
     hint: OSB 14
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-15:
@@ -332,6 +434,10 @@ controls:
     hint: OSB 15
     prototype: default_button
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PNT-BTN-MFD-R-16:
@@ -339,6 +445,8 @@ controls:
     hint: OSB 16
     prototype: default_button
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-17:
@@ -346,6 +454,10 @@ controls:
     hint: OSB 17
     prototype: default_button
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PNT-BTN-MFD-R-18:
@@ -353,6 +465,8 @@ controls:
     hint: OSB 18
     prototype: default_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PNT-BTN-MFD-R-19:
@@ -360,6 +474,10 @@ controls:
     hint: OSB 19
     prototype: default_button
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: false
   PNT-BTN-MFD-R-20:
@@ -367,6 +485,8 @@ controls:
     hint: OSB 20
     prototype: default_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PNT-MFCD-R-ADJ-UP:
@@ -374,6 +494,8 @@ controls:
     hint: Moving Map Scale Adjust Increase
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-R-ADJ-DN:
@@ -381,6 +503,8 @@ controls:
     hint: Moving Map Scale Adjust Decrease
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-R-DSP-UP:
@@ -388,6 +512,8 @@ controls:
     hint: Increase Backlight Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFCD-R-DSP-DN:
@@ -395,6 +521,8 @@ controls:
     hint: Decrease Backlight Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-BRT-UP:
@@ -402,6 +530,8 @@ controls:
     hint: Increase Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-BRT-DN:
@@ -409,6 +539,8 @@ controls:
     hint: Decrease Brightness
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-CON-UP:
@@ -416,6 +548,8 @@ controls:
     hint: Increase Contrast
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-CON-DN:
@@ -423,6 +557,8 @@ controls:
     hint: Decrease Contrast
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-SYM-UP:
@@ -430,6 +566,8 @@ controls:
     hint: Increase Symbol Levels
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-MFD-R-SYM-DN:
@@ -437,6 +575,8 @@ controls:
     hint: Decrease Symbol Levels
     prototype: action_button
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: false
   PNT-LVR-MFD-R:
@@ -444,6 +584,8 @@ controls:
     hint: DAY/NIGHT/OFF
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_36
+    values: {}
     range: null
     readable: true
   PNT-BTN-CMSP-ARW1:
@@ -451,6 +593,11 @@ controls:
     hint: Edit Program Value
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-CMSP-ARW2:
@@ -458,6 +605,8 @@ controls:
     hint: Edit Program Value
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-CMSP-ARW3:
@@ -465,6 +614,8 @@ controls:
     hint: Edit Program Value
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-CMSP-ARW4:
@@ -472,6 +623,8 @@ controls:
     hint: Edit Program Value
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-CMSP-BRT-UP:
@@ -479,6 +632,8 @@ controls:
     hint: Cycle Program or Value Up
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-BTN-CMSP-BRT-DN:
@@ -486,6 +641,8 @@ controls:
     hint: Cycle Program or Value Down
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PNT-BTN-CMSP-RTN:
@@ -493,6 +650,8 @@ controls:
     hint: Save and Return Program
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PNT-TMB-CMSP-JTSN:
@@ -500,6 +659,8 @@ controls:
     hint: Jettison Countermeasures
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PNT-LEV-CMSP-BRT:
@@ -507,6 +668,8 @@ controls:
     hint: Adjust Display Brightness
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PNT-TMB-CMSP-MWS:
@@ -517,6 +680,8 @@ controls:
     positions:
     - Right mouse - ON
     - MENU (No Function)
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PNT-TMB-CMSP-JMR:
@@ -527,6 +692,8 @@ controls:
     positions:
     - Right mouse - ON
     - MENU (No Function)
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PNT-TMB-CMSP-RWR:
@@ -536,6 +703,8 @@ controls:
     positions:
     - Right mouse - ON
     - MENU
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PNT-TMB-CMSP-DISP:
@@ -545,6 +714,8 @@ controls:
     positions:
     - Right mouse - ON
     - MENU
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PNT-LEV-CMSP-MODE:
@@ -552,6 +723,8 @@ controls:
     hint: Master CMS Mode Select
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: true
   PNT-BTN-RWR-JMR:
@@ -559,6 +732,11 @@ controls:
     hint: Select Jammer Program
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-RWR-MWS:
@@ -566,6 +744,8 @@ controls:
     hint: Cycle Missile Warning System Programs. No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-RWR-PRI:
@@ -573,6 +753,8 @@ controls:
     hint: Toggle between 5 and 16 Priority Threats Displayed
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-RWR-SEP:
@@ -580,6 +762,8 @@ controls:
     hint: Separate RWR Symbols
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-RWR-UNK:
@@ -587,6 +771,8 @@ controls:
     hint: Display Unknown Threats
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-LEV-RWR-BRT:
@@ -594,6 +780,8 @@ controls:
     hint: Adjust Display Brightness
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PNT-LEV-RWR-AUD:
@@ -601,6 +789,8 @@ controls:
     hint: Adjust RWR Volume
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-MARM:
@@ -608,6 +798,11 @@ controls:
     hint: Master Arm
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PNT-TMB-AHCP-GUNPAC:
@@ -615,6 +810,8 @@ controls:
     hint: Gun Arm Mode
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-LARM:
@@ -622,6 +819,8 @@ controls:
     hint: Laser Arm
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-TGP:
@@ -629,6 +828,8 @@ controls:
     hint: Targeting Pod Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-ALT:
@@ -636,6 +837,8 @@ controls:
     hint: Altimeter Source
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-TIME:
@@ -643,6 +846,8 @@ controls:
     hint: Day/Night HUD Mode
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-NORM:
@@ -650,6 +855,8 @@ controls:
     hint: NORM/Standby HUD Mode
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-CICU:
@@ -657,6 +864,8 @@ controls:
     hint: Turn On/Off CICU
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-JTRS:
@@ -664,6 +873,8 @@ controls:
     hint: JTRS Datalink On/Off)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PNT-TMB-AHCP-IFFCC:
@@ -671,6 +882,8 @@ controls:
     hint: Turn On/Off/Test IFFCC
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: true
   PNT-BTN-UFC-1:
@@ -678,6 +891,11 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-UFC-2:
@@ -685,6 +903,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-3:
@@ -692,6 +912,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-4:
@@ -699,6 +921,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-5:
@@ -706,6 +930,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-6:
@@ -713,6 +939,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-7:
@@ -720,6 +948,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-8:
@@ -727,6 +957,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-9:
@@ -734,6 +966,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-0:
@@ -741,6 +975,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-SPC:
@@ -748,6 +984,8 @@ controls:
     hint: Space
     prototype: default_button
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-HACK:
@@ -755,6 +993,8 @@ controls:
     hint: Display Hack Time
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-FUNC:
@@ -762,6 +1002,8 @@ controls:
     hint: Select Function Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-LTR:
@@ -769,6 +1011,8 @@ controls:
     hint: Select Letter Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-CLR:
@@ -776,6 +1020,10 @@ controls:
     hint: Clear
     prototype: default_button
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PNT-BTN-UFC-ENT:
@@ -783,6 +1031,8 @@ controls:
     hint: Enter
     prototype: default_button
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-MK:
@@ -790,6 +1040,10 @@ controls:
     hint: Create Overhead Mark Point
     prototype: default_button
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PNT-BTN-UFC-ALT:
@@ -797,6 +1051,8 @@ controls:
     hint: Display and Adjust Altitude Alert Values
     prototype: default_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-STEER-UP:
@@ -804,6 +1060,8 @@ controls:
     hint: Cycle Steerpoint/Waypoint
     prototype: default_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-STEER-DN:
@@ -811,6 +1069,8 @@ controls:
     hint: Cycle Steerpoint/Waypoint
     prototype: default_button
     positions: []
+    command: device_commands.Button_21
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-DEPR-UP:
@@ -818,6 +1078,8 @@ controls:
     hint: Adjust Depressible Pipper
     prototype: default_button
     positions: []
+    command: device_commands.Button_26
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-DEPR-DN:
@@ -825,6 +1087,10 @@ controls:
     hint: Adjust Depressible Pipper
     prototype: default_button
     positions: []
+    command: device_commands.Button_27
+    values:
+      Next Channel: 0.1
+      Previous Channel: -0.1
     range: null
     readable: false
   PNT-BTN-UFC-INTEN-RGT:
@@ -832,6 +1098,8 @@ controls:
     hint: Adjust HUD Brightness (Hold rocker)
     prototype: default_button
     positions: []
+    command: device_commands.Button_28
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-INTEN-LFT:
@@ -839,6 +1107,8 @@ controls:
     hint: Adjust HUD Brightness (Hold rocker)
     prototype: default_button
     positions: []
+    command: device_commands.Button_29
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-FWD:
@@ -846,6 +1116,8 @@ controls:
     hint: Control VHF AM Radio
     prototype: default_button
     positions: []
+    command: device_commands.Button_30
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-MID:
@@ -853,6 +1125,8 @@ controls:
     hint: No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_31
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-AFT:
@@ -860,6 +1134,8 @@ controls:
     hint: No Function
     prototype: default_button
     positions: []
+    command: device_commands.Button_32
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-ADD-4:
@@ -867,6 +1143,8 @@ controls:
     hint: Toggle ARC-210 RT2 Status (long press)
     prototype: default_button
     positions: []
+    command: device_commands.Button_33
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-ADD-5:
@@ -874,6 +1152,8 @@ controls:
     hint: No Function
     prototype: default_button
     positions: []
+    command: device_commands.Button_34
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-ADD-6:
@@ -881,6 +1161,8 @@ controls:
     hint: No Function
     prototype: default_button
     positions: []
+    command: device_commands.Button_35
+    values: {}
     range: null
     readable: false
   PNT-BTN-UFC-MASTWARN:
@@ -888,6 +1170,11 @@ controls:
     hint: Master Caution Light
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PTR-LG-WRN-SILENCE:
@@ -895,6 +1182,8 @@ controls:
     hint: Landing Gear Horn Silence Button
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-L1:
@@ -902,6 +1191,11 @@ controls:
     hint: LSK 3L
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-BTN-CDU-ARW-L2:
@@ -909,6 +1203,8 @@ controls:
     hint: LSK 5L
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-L3:
@@ -916,6 +1212,8 @@ controls:
     hint: LSK 7L
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-L4:
@@ -923,6 +1221,8 @@ controls:
     hint: LSK 9L
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-R1:
@@ -930,6 +1230,8 @@ controls:
     hint: LSK 3R
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-R2:
@@ -937,6 +1239,8 @@ controls:
     hint: LSK 5R
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-R3:
@@ -944,6 +1248,8 @@ controls:
     hint: LSK 7R
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-ARW-R4:
@@ -951,6 +1257,8 @@ controls:
     hint: LSK 9R
     prototype: default_button
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-SYS:
@@ -958,6 +1266,8 @@ controls:
     hint: Display System (SYS) Page
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-NAV:
@@ -965,6 +1275,8 @@ controls:
     hint: Display Navigation (NAV) Page
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-WP:
@@ -972,6 +1284,8 @@ controls:
     hint: Display Waypoint Menu (WP MENU) Page
     prototype: default_button
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-OSET:
@@ -979,6 +1293,8 @@ controls:
     hint: Display Offset (OFFSET) Page
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-FPM:
@@ -986,6 +1302,8 @@ controls:
     hint: Display Flight Plan Menu (FPMENU) Page
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-PREV:
@@ -993,6 +1311,8 @@ controls:
     hint: Go to previous page
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-1:
@@ -1000,6 +1320,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PNT-BTN-CDU-2:
@@ -1007,6 +1331,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-3:
@@ -1014,6 +1340,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-4:
@@ -1021,6 +1351,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-5:
@@ -1028,6 +1360,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: false
   PNT-BTN-CDU-6:
@@ -1035,6 +1371,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-7:
@@ -1042,6 +1380,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_21
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-8:
@@ -1049,6 +1389,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_22
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-9:
@@ -1056,6 +1398,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_23
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-0:
@@ -1063,6 +1407,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_24
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-PNT:
@@ -1070,6 +1416,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_25
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-SLASH:
@@ -1077,6 +1425,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_26
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-A:
@@ -1084,6 +1434,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_27
+    values:
+      Next Channel: 0.1
+      Previous Channel: -0.1
     range: null
     readable: false
   PNT-BTN-CDU-B:
@@ -1091,6 +1445,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_28
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-C:
@@ -1098,6 +1454,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_29
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-D:
@@ -1105,6 +1463,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_30
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-E:
@@ -1112,6 +1472,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_31
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-F:
@@ -1119,6 +1481,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_32
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-G:
@@ -1126,6 +1490,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_33
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-H:
@@ -1133,6 +1499,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_34
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-I:
@@ -1140,6 +1508,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_35
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-J:
@@ -1147,6 +1517,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_36
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-K:
@@ -1154,6 +1526,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_37
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-L:
@@ -1161,6 +1535,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_38
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-M:
@@ -1168,6 +1544,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_39
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-N:
@@ -1175,6 +1553,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_40
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-O:
@@ -1182,6 +1562,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_41
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-P:
@@ -1189,6 +1571,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_42
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-Q:
@@ -1196,6 +1580,12 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_43
+    values:
+      'Master Knob: Radio off': 0.0
+      'Master Knob: Transmit-receive mode with guard receiver': 0.1
+      'Master Knob: Transmit-receive mode': 0.2
+      'Radio Master Knob: Change preset mode': 0.4
     range: null
     readable: false
   PNT-BTN-CDU-R:
@@ -1203,6 +1593,12 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_44
+    values:
+      PRST Mode: 0.2
+      MAN Mode: 0.3
+      243 Guard Frequency Mode: 0.5
+      121.5 Guard Frequency Mode: 0.6
     range: null
     readable: false
   PNT-BTN-CDU-S:
@@ -1210,6 +1606,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_45
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-T:
@@ -1217,6 +1617,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_46
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-U:
@@ -1224,6 +1628,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_47
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-V:
@@ -1231,6 +1639,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_48
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-W:
@@ -1238,6 +1650,10 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_49
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: false
   PNT-BTN-CDU-X:
@@ -1245,6 +1661,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_50
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-Y:
@@ -1252,6 +1670,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_51
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-Z:
@@ -1259,6 +1679,8 @@ controls:
     hint: ''
     prototype: default_button
     positions: []
+    command: device_commands.Button_52
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-V1:
@@ -1266,6 +1688,8 @@ controls:
     hint: No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_53
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-V2:
@@ -1273,6 +1697,8 @@ controls:
     hint: No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_54
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-MK:
@@ -1280,6 +1706,8 @@ controls:
     hint: Create Overhead Mark Point
     prototype: default_button
     positions: []
+    command: device_commands.Button_55
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-BCK:
@@ -1287,6 +1715,8 @@ controls:
     hint: Erase Single Character. Hold for repeated erase
     prototype: default_button
     positions: []
+    command: device_commands.Button_56
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-SPC:
@@ -1294,6 +1724,8 @@ controls:
     hint: Insert Space Into Scratchpad
     prototype: default_button
     positions: []
+    command: device_commands.Button_57
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-CLR:
@@ -1301,6 +1733,8 @@ controls:
     hint: Erase Entire Scratchpad
     prototype: default_button
     positions: []
+    command: device_commands.Button_58
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-FA:
@@ -1308,6 +1742,8 @@ controls:
     hint: Fault Acknowledge/Clear Fault Display
     prototype: default_button
     positions: []
+    command: device_commands.Button_59
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-DIMBRT-L:
@@ -1315,6 +1751,8 @@ controls:
     hint: Decrease Display Brightness
     prototype: default_button
     positions: []
+    command: device_commands.Button_60
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-DIMBRT-R:
@@ -1322,6 +1760,8 @@ controls:
     hint: Increase Display Brightness
     prototype: default_button
     positions: []
+    command: device_commands.Button_61
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-PG-UP:
@@ -1329,6 +1769,8 @@ controls:
     hint: Page Up To Additional Pages When Available
     prototype: default_button
     positions: []
+    command: device_commands.Button_62
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-PG-DN:
@@ -1336,6 +1778,8 @@ controls:
     hint: Page Down To Additional Pages When Available
     prototype: default_button
     positions: []
+    command: device_commands.Button_63
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-BLANC-L:
@@ -1343,6 +1787,8 @@ controls:
     hint: Scroll Waypoint Names During Search
     prototype: default_button
     positions: []
+    command: device_commands.Button_64
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-BLANC-R:
@@ -1350,6 +1796,8 @@ controls:
     hint: Scroll Waypoint Names During Search
     prototype: default_button
     positions: []
+    command: device_commands.Button_65
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-PLUS:
@@ -1357,6 +1805,8 @@ controls:
     hint: Increment/Decrement Data Indicated With +/- Symbol
     prototype: default_button
     positions: []
+    command: device_commands.Button_66
+    values: {}
     range: null
     readable: false
   PNT-BTN-CDU-MINUS:
@@ -1364,6 +1814,8 @@ controls:
     hint: Increment/Decrement Data Indicated With +/- Symbol
     prototype: default_button
     positions: []
+    command: device_commands.Button_67
+    values: {}
     range: null
     readable: false
   PNT-TMB-STEER-SPRING-LD-SWITCH:
@@ -1371,6 +1823,8 @@ controls:
     hint: Toggle Steerpoint
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PNT-LVR-STEER-PT-SEL-SWITCH:
@@ -1378,6 +1832,11 @@ controls:
     hint: Use Steerpoint From Active Flight Plan
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PNT-LEV-PAGE-SEL-SWITCH:
@@ -1385,6 +1844,8 @@ controls:
     hint: CDU Page Select
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-TMB-CDU-SWITCH:
@@ -1392,6 +1853,8 @@ controls:
     hint: CDU Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-TMB-EGI-SWITCH:
@@ -1399,6 +1862,8 @@ controls:
     hint: EGI Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PNT-LVR-WATCH-SET:
@@ -1406,6 +1871,11 @@ controls:
     hint: Toggle Clock and Elapsed Time Modes
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PNT-LVR-WATCH-CTRL:
@@ -1413,6 +1883,8 @@ controls:
     hint: Start, Stop and Reset Elapsed Timer
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PTR-FSCP-EXT-TANKS-WING:
@@ -1420,6 +1892,11 @@ controls:
     hint: External Wing Tanks Boost Pumps
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-FSCP-EXT-TANKS-FUS:
@@ -1427,6 +1904,8 @@ controls:
     hint: External Fuselage Tank Boost Pump
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-FSCP-TK-GATE:
@@ -1434,6 +1913,8 @@ controls:
     hint: Tank Gate
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-FSCP-CROSS-FEED:
@@ -1441,6 +1922,8 @@ controls:
     hint: Cross Feed
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-FSCP-BOOST-PUMPS-WING-L:
@@ -1448,6 +1931,8 @@ controls:
     hint: Boost Pumps Left Wing
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-FSCP-BOOST-PUMPS-WING-R:
@@ -1455,6 +1940,8 @@ controls:
     hint: Boost Pumps Right Wing
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-FSCP-BOOST-PUMPS-MAIN-L:
@@ -1462,6 +1949,8 @@ controls:
     hint: Boost Pumps Main Fuselage Left
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-FSCP-BOOST-PUMPS-MAIN-R:
@@ -1469,6 +1958,8 @@ controls:
     hint: Boost Pumps Main Fuselage Right
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PTR-FSCP-SIG-AMPL:
@@ -1476,6 +1967,8 @@ controls:
     hint: Signal Amplifier Norm/Override
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-FSCP-LINE-CHECK:
@@ -1483,6 +1976,8 @@ controls:
     hint: Line Check
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PTR-FSCP-FILLDISABLE-WING-L:
@@ -1490,6 +1985,8 @@ controls:
     hint: Fill Disable Wing Left
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PTR-FSCP-FILLDISABLE-WING-R:
@@ -1497,6 +1994,8 @@ controls:
     hint: Fill Disable Wing Right
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PTR-FSCP-FILLDISABLE-MAIN-L:
@@ -1504,6 +2003,8 @@ controls:
     hint: Fill Disable Main Left
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PTR-FSCP-FILLDISABLE-MAIN-R:
@@ -1511,6 +2012,10 @@ controls:
     hint: Fill Disable Main Right
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PTR-FSCP-RCVR-LEVER:
@@ -1518,6 +2023,8 @@ controls:
     hint: Aerial Refueling Slipway Control Lever
     prototype: default_animated_lever
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-FQIS-SELECT:
@@ -1525,6 +2032,10 @@ controls:
     hint: Fuel display selector
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: true
   PTR-FQIS-TEST:
@@ -1532,6 +2043,8 @@ controls:
     hint: Fuel Gauge Test
     prototype: default_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PTR-FUEL-FLOW-L:
@@ -1539,6 +2052,11 @@ controls:
     hint: Left Engine Fuel Flow Control
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-FUEL-FLOW-R:
@@ -1546,6 +2064,8 @@ controls:
     hint: Right Engine Fuel Flow Control
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-APU-START:
@@ -1553,6 +2073,8 @@ controls:
     hint: APU On/Off
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-ENGINE-OPER-L:
@@ -1560,6 +2082,8 @@ controls:
     hint: Engine Operate Left
     prototype: default_tumb_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PTR-ENGINE-OPER-R:
@@ -1567,6 +2091,8 @@ controls:
     hint: Engine Operate Right
     prototype: default_tumb_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PTR-THROTTLE-FRICTION:
@@ -1574,6 +2100,8 @@ controls:
     hint: Throttle Friction Control
     prototype: axis_limited_1_side
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-TEMS-DATA:
@@ -1581,6 +2109,8 @@ controls:
     hint: TEMS DATA
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PTR-LCP-AUTOPILOT-PATH-ALT:
@@ -1588,6 +2118,11 @@ controls:
     hint: Autopilot Mode Select Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-LCP-AUTOPILOT-ENGAGE:
@@ -1595,6 +2130,8 @@ controls:
     hint: Autopilot Engage/Disengage
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PTR-LCP-EAC:
@@ -1602,6 +2139,8 @@ controls:
     hint: EAC On/Off
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_26
+    values: {}
     range: null
     readable: true
   PTR-LCP-RDRALTM:
@@ -1609,6 +2148,11 @@ controls:
     hint: Radar Altimeter Normal/Disabled
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-SASP-YAW-SASENGAGE-L:
@@ -1616,6 +2160,8 @@ controls:
     hint: Yaw SAS Engage left
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-SASP-YAW-SASENGAGE-R:
@@ -1623,6 +2169,8 @@ controls:
     hint: Yaw SAS Engage right
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-SASP-PITCH-SASENGAGE-L:
@@ -1630,6 +2178,8 @@ controls:
     hint: Pitch SAS Engage left
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-SASP-PITCH-SASENGAGE-R:
@@ -1637,6 +2187,8 @@ controls:
     hint: Pitch SAS Engage right
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-SASP-MONITOR-TEST:
@@ -1644,6 +2196,8 @@ controls:
     hint: Monitor Test Left/Right
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PTR-SASP-TO-TRIM:
@@ -1651,6 +2205,8 @@ controls:
     hint: Set Takeoff Trim
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PTR-EFCP-SPDBK-EMER-RETR:
@@ -1658,6 +2214,10 @@ controls:
     hint: Speed Brake Emergency Retract
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PTR-EFCP-PTCHROLL-TRIM:
@@ -1665,6 +2225,8 @@ controls:
     hint: Pitch/Roll Trim Norm/Emergency Override
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-EFCP-TRIM-NOSEUP:
@@ -1672,6 +2234,10 @@ controls:
     hint: Trim Emergency Nose Up
     prototype: action_button
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PTR-EFCP-TRIM-RWINGDN:
@@ -1679,6 +2245,8 @@ controls:
     hint: Trim Emergency Right Wing Down
     prototype: action_button
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PTR-EFCP-TRIM-NOSEDN:
@@ -1686,6 +2254,10 @@ controls:
     hint: Trim Emergency Nose Down
     prototype: action_button
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: false
   PTR-EFCP-TRIM-LWINGDN:
@@ -1693,6 +2265,8 @@ controls:
     hint: Trim Emergency Left Wing Down
     prototype: action_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PTR-EFCP-AILERON-EMER-DISENGAGE:
@@ -1700,6 +2274,8 @@ controls:
     hint: Aileron Emergency Disengage
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_21
+    values: {}
     range: null
     readable: true
   PTR-EFCP-ELEVATOR-EMER-DISENGAGE:
@@ -1707,6 +2283,8 @@ controls:
     hint: Elevator Emergency Disengage
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_22
+    values: {}
     range: null
     readable: true
   PTR-EFCP-FLAP-EMER-RETR:
@@ -1714,6 +2292,8 @@ controls:
     hint: Flaps Emergency Retract
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_23
+    values: {}
     range: null
     readable: true
   PTR-EFCP-MRFCS:
@@ -1721,6 +2301,8 @@ controls:
     hint: Manual Reversion Flight Control System (MRFCS)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_24
+    values: {}
     range: null
     readable: true
   PTR-EPP-APU-GEN-PWR:
@@ -1728,6 +2310,11 @@ controls:
     hint: APU Generator On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-EPP-INVERTER:
@@ -1735,6 +2322,8 @@ controls:
     hint: Inverter Switch
     prototype: default_button_tumb
     positions: []
+    command: device_commands.Button_55
+    values: {}
     range: null
     readable: false
   PTR-EPP-AC-GEN-PWR-L:
@@ -1742,6 +2331,8 @@ controls:
     hint: Left AC Generator Power
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-EPP-AC-GEN-PWR-R:
@@ -1749,6 +2340,8 @@ controls:
     hint: Right AC generator Power
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-EPP-BATTERY-PWR:
@@ -1756,6 +2349,8 @@ controls:
     hint: Battery Power
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-EPP-EMER-FLOOD:
@@ -1763,6 +2358,8 @@ controls:
     hint: Emergency Flood Light
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PNT-LNDGEAR:
@@ -1770,6 +2367,11 @@ controls:
     hint: Landing Gear Lever
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-DOWNLOCK-OVERRIDE:
@@ -1777,6 +2379,8 @@ controls:
     hint: Downlock Override
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PTR-FLAPS:
@@ -1784,6 +2388,8 @@ controls:
     hint: Flap Setting
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-ANTI-SKID:
@@ -1791,6 +2397,8 @@ controls:
     hint: Anti Skid
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_28
+    values: {}
     range: null
     readable: true
   PTR-NMSP-HARS:
@@ -1798,6 +2406,11 @@ controls:
     hint: HARS Backup Navigation Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PTR-NMSP-EGI:
@@ -1805,6 +2418,8 @@ controls:
     hint: EGI Navigation Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PTR-NMSP-TISL:
@@ -1812,6 +2427,8 @@ controls:
     hint: TISL No Function
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   PTR-NMSP-STARTPT:
@@ -1819,6 +2436,8 @@ controls:
     hint: STEERPT Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PTR-NMSP-ANCHR:
@@ -1826,6 +2445,8 @@ controls:
     hint: ANCHR Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PTR-NMSP-TCN:
@@ -1833,6 +2454,8 @@ controls:
     hint: TCN Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PTR-NMSP-ILS:
@@ -1840,6 +2463,8 @@ controls:
     hint: ILS Mode
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PTR-NMSP-ABLE-STOW:
@@ -1847,6 +2472,8 @@ controls:
     hint: ABLE-STOW ADI Localizer Bar
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PTR-EXT-STORES-JETT:
@@ -1854,6 +2481,11 @@ controls:
     hint: Emergency Jettison External Stores
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PTR-ALCP-SIGLIGHTS-LAMP-TEST:
@@ -1861,6 +2493,8 @@ controls:
     hint: Test Cockpit Indication Lights
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PTR-ARMGS-COVER:
@@ -1868,6 +2502,8 @@ controls:
     hint: Arm Ground Safety Override Cover
     prototype: default_2_position_cover
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-ARMGS-OVERRIDE-SWITCH:
@@ -1875,6 +2511,8 @@ controls:
     hint: Arm Ground Safety Override Switch
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-CODE:
@@ -1882,6 +2520,8 @@ controls:
     hint: Code
     prototype: IFF_multiposition_spring_switch
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MASTER:
@@ -1889,6 +2529,8 @@ controls:
     hint: Master
     prototype: multiposition_switch
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range:
     - 0.0
     - 0.4
@@ -1898,6 +2540,8 @@ controls:
     hint: Audio/light
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-TEST-M-1:
@@ -1905,6 +2549,8 @@ controls:
     hint: Test M-1
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_41
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-TEST-M-2:
@@ -1912,6 +2558,8 @@ controls:
     hint: Test M-2
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_42
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-TEST-M-3A:
@@ -1919,6 +2567,12 @@ controls:
     hint: Test M-3A
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_43
+    values:
+      'Master Knob: Radio off': 0.0
+      'Master Knob: Transmit-receive mode with guard receiver': 0.1
+      'Master Knob: Transmit-receive mode': 0.2
+      'Radio Master Knob: Change preset mode': 0.4
     range: null
     readable: true
   PTR-IFFCP-TEST-M-C:
@@ -1926,6 +2580,12 @@ controls:
     hint: Test M-C
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_44
+    values:
+      PRST Mode: 0.2
+      MAN Mode: 0.3
+      243 Guard Frequency Mode: 0.5
+      121.5 Guard Frequency Mode: 0.6
     range: null
     readable: true
   PTR-IFFCP-RADTEST:
@@ -1933,6 +2593,10 @@ controls:
     hint: RAD Test/Mon
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_45
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: true
   PTR-IFFCP-MIC-IDENT:
@@ -1940,6 +2604,10 @@ controls:
     hint: Ident/Mic
     prototype: default_springloaded_switch
     positions: []
+    command: device_commands.Button_46
+    values:
+      Decrease: -1.0
+      Increase: 1.0
     range: null
     readable: true
   PTR-IFFCP-ON-OUT:
@@ -1947,6 +2615,8 @@ controls:
     hint: IFF On/Out
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MODE1-WHEEL1:
@@ -1954,6 +2624,11 @@ controls:
     hint: MODE1-WHEEL1
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-IFFCP-MODE1-WHEEL2:
@@ -1961,6 +2636,8 @@ controls:
     hint: MODE1-WHEEL2
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MODE3A-WHEEL1:
@@ -1968,6 +2645,8 @@ controls:
     hint: MODE3A-WHEEL1
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MODE3A-WHEEL2:
@@ -1975,6 +2654,8 @@ controls:
     hint: MODE3A-WHEEL2
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MODE3A-WHEEL3:
@@ -1982,6 +2663,8 @@ controls:
     hint: MODE3A-WHEEL3
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-IFFCP-MODE3A-WHEEL4:
@@ -1989,6 +2672,8 @@ controls:
     hint: MODE3A-WHEEL4
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-BTN-PANIFF-REPLY:
@@ -1996,6 +2681,10 @@ controls:
     hint: Reply test
     prototype: default_button_axis
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PTR-BTN-PANIFF-TEST:
@@ -2003,6 +2692,8 @@ controls:
     hint: Test test
     prototype: default_button_axis
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PTR-OXYGENCP-EMERGENCY:
@@ -2010,6 +2701,8 @@ controls:
     hint: Oxygen Flow Emergency/Normal/Test Mask
     prototype: default_button_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PTR-OXYGENCP-OXYGEN-DILUTER:
@@ -2017,6 +2710,8 @@ controls:
     hint: Oxygen Normal/100%
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-OXYGENCP-SUPPLY:
@@ -2024,6 +2719,11 @@ controls:
     hint: Oxygen Supply On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-ENVCP-OXY-TEST:
@@ -2031,6 +2731,11 @@ controls:
     hint: Oxygen Indicator Test
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PTR-ENVCP-WINDSHIELD-DEFOG:
@@ -2038,6 +2743,8 @@ controls:
     hint: Windshield Defog/Deice
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-CANOPY-DEFOG:
@@ -2045,6 +2752,8 @@ controls:
     hint: Canopy Defog
     prototype: default_axis
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-WINDSHIELD-RREMOVE-WASH:
@@ -2052,6 +2761,8 @@ controls:
     hint: Windshield Rain Removal/Wash
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-PITOT-HEAT:
@@ -2059,6 +2770,8 @@ controls:
     hint: Pitot Heater
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-BLEED-AIR:
@@ -2066,6 +2779,8 @@ controls:
     hint: Bleed Air
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-TEMP-PRESS:
@@ -2073,6 +2788,8 @@ controls:
     hint: Temperature/Pressure Control
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-MAIN-AIR-SUPPLY:
@@ -2080,6 +2797,8 @@ controls:
     hint: Main Air Supply
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-FLOW-LEVEL:
@@ -2087,6 +2806,8 @@ controls:
     hint: Flow Level Control
     prototype: default_axis
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-TEM-LEVEL:
@@ -2094,6 +2815,8 @@ controls:
     hint: Temp Level Control
     prototype: default_axis
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   PTR-ENVCP-CABIN-AIR-COND-OPER-COLD:
@@ -2101,6 +2824,8 @@ controls:
     hint: Air Conditioner to COLD
     prototype: default_button
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PTR-ENVCP-CABIN-AIR-COND-OPER-HOT:
@@ -2108,6 +2833,8 @@ controls:
     hint: Air Conditioner to HOT
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PTR-CBP-AILERON-DISC-L:
@@ -2115,6 +2842,8 @@ controls:
     hint: AILERON DISC L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PTR-CBP-AILERON-DISC-R:
@@ -2122,6 +2851,8 @@ controls:
     hint: AILERON DISC R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   PTR-CBP-SPS-RUDDER-AUTH-LIM:
@@ -2129,6 +2860,8 @@ controls:
     hint: SPS & RUDDER AUTH LIMIT
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PTR-CBP-ELEVATION-DISC-L:
@@ -2136,6 +2869,8 @@ controls:
     hint: ELEVATION DISC L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   PTR-CBP-ELEVATION-DISC-R:
@@ -2143,6 +2878,8 @@ controls:
     hint: ELEVATION DISC R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   PTR-CBP-AILERON-TAB-L:
@@ -2150,6 +2887,8 @@ controls:
     hint: AILERON TAB L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PTR-CBP-AILERON-TAB-R:
@@ -2157,6 +2896,8 @@ controls:
     hint: AILERON TAB R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PTR-CBP-EMER-FLAP:
@@ -2164,6 +2905,8 @@ controls:
     hint: EMER FLAP
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   PTR-CBP-EMER-TRIM:
@@ -2171,6 +2914,10 @@ controls:
     hint: EMER TRIM
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PTR-CBP-LAND-GEAR:
@@ -2178,6 +2925,8 @@ controls:
     hint: LAND GEAR
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: false
   PTR-CBP-ENGINE-START-L:
@@ -2185,6 +2934,10 @@ controls:
     hint: ENGINE START L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PTR-CBP-ENGINE-START-R:
@@ -2192,6 +2945,8 @@ controls:
     hint: ENGINE START R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: false
   PTR-CBP-APU-CONT:
@@ -2199,6 +2954,10 @@ controls:
     hint: APU CONT
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: false
   PTR-CBP-ANG-IGNITOR-1:
@@ -2206,6 +2965,8 @@ controls:
     hint: ENG IGNITOR L/R-1
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PTR-CBP-ANG-IGNITOR-2:
@@ -2213,6 +2974,8 @@ controls:
     hint: ENG IGNITOR L/R-2
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_21
+    values: {}
     range: null
     readable: false
   PTR-CBP-EMER-FUEL-SHUTOFF-ENG-L:
@@ -2220,6 +2983,8 @@ controls:
     hint: EMER FUEL SHUTOFF ENG L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_22
+    values: {}
     range: null
     readable: false
   PTR-CBP-EMER-FUEL-SHUTOFF-ENG-R:
@@ -2227,6 +2992,8 @@ controls:
     hint: EMER FUEL SHUTOFF ENG R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_23
+    values: {}
     range: null
     readable: false
   PTR-CBP-DC-FUEL-PUMP:
@@ -2234,6 +3001,8 @@ controls:
     hint: DC FUEL PUMP
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_24
+    values: {}
     range: null
     readable: false
   PTR-CBP-BLEED-AIR-CONT-L:
@@ -2241,6 +3010,8 @@ controls:
     hint: BLEED AIR CONT L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_25
+    values: {}
     range: null
     readable: false
   PTR-CBP-BLEED-AIR-CONT-R:
@@ -2248,6 +3019,8 @@ controls:
     hint: BLEED AIR CONT R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_26
+    values: {}
     range: null
     readable: false
   PTR-CBP-EXT-STORES-JETT-1:
@@ -2255,6 +3028,10 @@ controls:
     hint: EXT STORES JETT 1
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_27
+    values:
+      Next Channel: 0.1
+      Previous Channel: -0.1
     range: null
     readable: false
   PTR-CBP-EXT-STORES-JETT-2:
@@ -2262,6 +3039,8 @@ controls:
     hint: EXT STORES JETT 2
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_28
+    values: {}
     range: null
     readable: false
   PTR-CBP-STBY-ATT-IND:
@@ -2269,6 +3048,8 @@ controls:
     hint: STBY ATT IND
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_29
+    values: {}
     range: null
     readable: false
   PTR-CBP-MASTER-CAUT:
@@ -2276,6 +3057,8 @@ controls:
     hint: MASTER CAUT
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_30
+    values: {}
     range: null
     readable: false
   PTR-CBP-PITOT-HEAT-AC:
@@ -2283,6 +3066,8 @@ controls:
     hint: PITOT HEAT AC
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_31
+    values: {}
     range: null
     readable: false
   PTR-CBP-IFF:
@@ -2290,6 +3075,8 @@ controls:
     hint: IFF
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_32
+    values: {}
     range: null
     readable: false
   PTR-CBP-UHF-COMM:
@@ -2297,6 +3084,8 @@ controls:
     hint: UHF COMM
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_33
+    values: {}
     range: null
     readable: false
   PTR-CBP-INTER-COMM:
@@ -2304,6 +3093,8 @@ controls:
     hint: INTER COMM
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_34
+    values: {}
     range: null
     readable: false
   PTR-CBP-GENERATOR-CONT-L:
@@ -2311,6 +3102,8 @@ controls:
     hint: GENERATOR CONT L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_35
+    values: {}
     range: null
     readable: false
   PTR-CBP-GENERATOR-CONT-R:
@@ -2318,6 +3111,8 @@ controls:
     hint: GENERATOR CONT R
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_36
+    values: {}
     range: null
     readable: false
   PTR-CBP-CONVERTER-L:
@@ -2325,6 +3120,8 @@ controls:
     hint: CONVERTER L
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_37
+    values: {}
     range: null
     readable: false
   PTR-CBP-AUX-ESS-BUS-0A:
@@ -2332,6 +3129,8 @@ controls:
     hint: AUX ESS BUS 0A
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_38
+    values: {}
     range: null
     readable: false
   PTR-CBP-AUX-ESS-BUS-0B:
@@ -2339,6 +3138,8 @@ controls:
     hint: AUX ESS BUS 0B
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_39
+    values: {}
     range: null
     readable: false
   PTR-CBP-AUX-ESS-BUS-0C:
@@ -2346,6 +3147,8 @@ controls:
     hint: AUX ESS BUS 0C
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_40
+    values: {}
     range: null
     readable: false
   PTR-CBP-BATTERY-BUS-TRANS:
@@ -2353,6 +3156,8 @@ controls:
     hint: BATTERY BUS TRANS
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_41
+    values: {}
     range: null
     readable: false
   PTR-CBP-INVERTER-PWR:
@@ -2360,6 +3165,8 @@ controls:
     hint: INVERTER PWR
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_42
+    values: {}
     range: null
     readable: false
   PTR-CBP-INVERTER-CONT:
@@ -2367,6 +3174,12 @@ controls:
     hint: INVERTER CONT
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_43
+    values:
+      'Master Knob: Radio off': 0.0
+      'Master Knob: Transmit-receive mode with guard receiver': 0.1
+      'Master Knob: Transmit-receive mode': 0.2
+      'Radio Master Knob: Change preset mode': 0.4
     range: null
     readable: false
   PTR-CBP-AUX-ESS-BUS-TIE:
@@ -2374,6 +3187,12 @@ controls:
     hint: AUX ESS BUS TIE
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_44
+    values:
+      PRST Mode: 0.2
+      MAN Mode: 0.3
+      243 Guard Frequency Mode: 0.5
+      121.5 Guard Frequency Mode: 0.6
     range: null
     readable: false
   PNT-ALT-LEVR-L:
@@ -2381,6 +3200,11 @@ controls:
     hint: Set Pressure
     prototype: default_axis
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PNT-ALT-LEVR-R:
@@ -2388,6 +3212,8 @@ controls:
     hint: ELECT/PNEU
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   PTR-LGHTCP-POSITION:
@@ -2398,6 +3224,8 @@ controls:
     - FLASH
     - 'OFF'
     - STEADY
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-FORMATION:
@@ -2405,6 +3233,8 @@ controls:
     hint: Formation Lights
     prototype: default_axis
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-ANTICOLLISION:
@@ -2412,6 +3242,8 @@ controls:
     hint: Anticollision Lights
     prototype: electrically_held_switch
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-ENG-INST:
@@ -2419,6 +3251,11 @@ controls:
     hint: Engine Instruments Lights
     prototype: default_axis
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-LGHTCP-NOSE-ILLUM:
@@ -2426,6 +3263,8 @@ controls:
     hint: Nose Illumination
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-FLIGHT-INST:
@@ -2433,6 +3272,8 @@ controls:
     hint: Flight Instruments Lights
     prototype: default_axis
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-AUX-INST:
@@ -2440,6 +3281,8 @@ controls:
     hint: Auxiliary Instruments Lights
     prototype: default_axis
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-SIGNAL-LTS:
@@ -2447,6 +3290,8 @@ controls:
     hint: Signal Lights
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-ACCEL-COMP:
@@ -2454,6 +3299,8 @@ controls:
     hint: Accelerometer & Compass Lights
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-FLOOD:
@@ -2461,6 +3308,8 @@ controls:
     hint: Flood Light
     prototype: default_axis
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-LGHTCP-CONSOLE:
@@ -2468,6 +3317,8 @@ controls:
     hint: Console Light
     prototype: default_axis
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-LIGHTS-LAND:
@@ -2475,6 +3326,8 @@ controls:
     hint: Land Taxi Lights
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: true
   PTR-ALCP-RSIL:
@@ -2482,6 +3335,10 @@ controls:
     hint: Refuel Status Indexer Lights
     prototype: default_axis
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PTR-ALCP-WPNSTA:
@@ -2489,6 +3346,8 @@ controls:
     hint: Weapon Station Lights. No function
     prototype: default_axis
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-ALCP-NVIS-LTS:
@@ -2496,6 +3355,10 @@ controls:
     hint: Nightvision Lights
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: true
   PTR-FSCP-RCVR-LT:
@@ -2503,6 +3366,8 @@ controls:
     hint: Refueling Lighting Dial
     prototype: default_axis
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: true
   PTR-ALCP-HARSSAS:
@@ -2510,6 +3375,8 @@ controls:
     hint: HARS-SAS Override/NORM
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_31
+    values: {}
     range: null
     readable: true
   PTR-ALCP-FDBAL-TEST:
@@ -2517,6 +3384,8 @@ controls:
     hint: Fire Detect Bleed Air Test
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PTR-FIRE-LENG-PULL:
@@ -2524,6 +3393,11 @@ controls:
     hint: Left Engine Fire T-Handle
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-FIRE-APU-PULL:
@@ -2531,6 +3405,8 @@ controls:
     hint: APU Fire T-Handle
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-FIRE-RENG-PULL:
@@ -2538,6 +3414,8 @@ controls:
     hint: Right Engine Fire T-Handle
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-FIRE-EXTING-DISCH:
@@ -2545,6 +3423,8 @@ controls:
     hint: Fire Extinguishing Agent Discharge
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PNT-LVR-HSI-HDG:
@@ -2552,6 +3432,11 @@ controls:
     hint: Heading Set Knob
     prototype: default_axis
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PNT-LVR-HSI-CRS:
@@ -2559,6 +3444,8 @@ controls:
     hint: Course Set Knob
     prototype: default_axis
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PNT-LVR-ADI-KNOB:
@@ -2566,6 +3453,11 @@ controls:
     hint: ADI Pitch Trim Knob
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-TACAN-TEST:
@@ -2573,6 +3465,8 @@ controls:
     hint: Test TACAN Signal on HSI
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   PTR-TACAN-VOL:
@@ -2580,6 +3474,8 @@ controls:
     hint: Signal Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-TACAN-MODE:
@@ -2587,6 +3483,8 @@ controls:
     hint: Mode Dial
     prototype: multiposition_switch
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range:
     - 0.0
     - 0.4
@@ -2596,6 +3494,11 @@ controls:
     hint: Stall Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-STALLWCP-PEAK:
@@ -2603,6 +3506,8 @@ controls:
     hint: Peak Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-CHANNEL-SELECTOR:
@@ -2610,6 +3515,11 @@ controls:
     hint: Preset Channel Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-ANARC164-100MHZ-SELECTOR:
@@ -2617,6 +3527,8 @@ controls:
     hint: 100 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-10MHZ-SELECTOR:
@@ -2624,6 +3536,8 @@ controls:
     hint: 10 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-1MHZ-SELECTOR:
@@ -2631,6 +3545,8 @@ controls:
     hint: 1 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-0.1MHZ-SELECTOR:
@@ -2638,6 +3554,8 @@ controls:
     hint: 0.1 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-0.025MHZ-SELECTOR:
@@ -2645,6 +3563,8 @@ controls:
     hint: 0.025 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-FREQMODE:
@@ -2652,6 +3572,8 @@ controls:
     hint: Frequency Mode Dial
     prototype: multiposition_switch
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range:
     - 0.0
     - 0.2
@@ -2661,6 +3583,8 @@ controls:
     hint: Function Dial
     prototype: multiposition_switch
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range:
     - 0.0
     - 0.30000000000000004
@@ -2670,6 +3594,8 @@ controls:
     hint: Squelch
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-VOLUME:
@@ -2677,6 +3603,8 @@ controls:
     hint: Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: true
   PTR-ANARC164-TEST-DISPLAY:
@@ -2684,6 +3612,8 @@ controls:
     hint: Test Display
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   PTR-ANARC164-STATUS:
@@ -2691,6 +3621,8 @@ controls:
     hint: Status
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   PTR-ANARC164-LOAD:
@@ -2698,6 +3630,10 @@ controls:
     hint: Load button
     prototype: default_button
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   VHFUHF1P:
@@ -2705,6 +3641,12 @@ controls:
     hint: ARC-210, master switch
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_43
+    values:
+      'Master Knob: Radio off': 0.0
+      'Master Knob: Transmit-receive mode with guard receiver': 0.1
+      'Master Knob: Transmit-receive mode': 0.2
+      'Radio Master Knob: Change preset mode': 0.4
     range: null
     readable: true
   VHFUHF2P:
@@ -2712,6 +3654,10 @@ controls:
     hint: ARC-210, channel select knob
     prototype: default_axis
     positions: []
+    command: device_commands.Button_27
+    values:
+      Next Channel: 0.1
+      Previous Channel: -0.1
     range: null
     readable: true
   VHFUHF3P:
@@ -2719,6 +3665,12 @@ controls:
     hint: ARC-210, secondary switch
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_44
+    values:
+      PRST Mode: 0.2
+      MAN Mode: 0.3
+      243 Guard Frequency Mode: 0.5
+      121.5 Guard Frequency Mode: 0.6
     range: null
     readable: true
   VHFUHF4P:
@@ -2726,6 +3678,8 @@ controls:
     hint: ARC-210, 100 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_25
+    values: {}
     range: null
     readable: true
   VHFUHF5P:
@@ -2733,6 +3687,8 @@ controls:
     hint: ARC-210, 10 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_23
+    values: {}
     range: null
     readable: true
   VHFUHF6P:
@@ -2740,6 +3696,8 @@ controls:
     hint: ARC-210, 1 MHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_21
+    values: {}
     range: null
     readable: true
   VHFUHF7P:
@@ -2747,6 +3705,10 @@ controls:
     hint: ARC-210, 100 KHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: true
   VHFUHF8P:
@@ -2754,6 +3716,10 @@ controls:
     hint: ARC-210, 25  KHz Selector
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: true
   VHFUHF9P:
@@ -2761,6 +3727,8 @@ controls:
     hint: ARC-210, Enter, No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   VHFUHF10P:
@@ -2768,6 +3736,8 @@ controls:
     hint: ARC-210, Offset frequency
     prototype: default_button
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: false
   VHFUHF11P:
@@ -2777,6 +3747,8 @@ controls:
     positions:
     - Transmit
     - receive function toggle
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   VHFUHF12P:
@@ -2786,6 +3758,8 @@ controls:
     positions:
     - Amplitude modulation
     - frequency modulation select
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: false
   VHFUHF13P:
@@ -2793,6 +3767,8 @@ controls:
     hint: ARC-210, Menu pages
     prototype: default_button
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: false
   VHFUHF14P:
@@ -2802,6 +3778,10 @@ controls:
     positions:
     - Squelch on
     - 'off'
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   VHFUHF15P:
@@ -2809,6 +3789,8 @@ controls:
     hint: ARC-210, Select receiver - transmitter, No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: false
   VHFUHF16P:
@@ -2816,6 +3798,8 @@ controls:
     hint: ARC-210, Global positioning system, No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: false
   VHFUHF17P:
@@ -2823,6 +3807,8 @@ controls:
     hint: ARC-210, Time of day receive, No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: false
   VHFUHF18P:
@@ -2830,6 +3816,11 @@ controls:
     hint: ARC-210, Time of day send, No function
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   VHFUHF19P:
@@ -2837,6 +3828,8 @@ controls:
     hint: ARC-210, upper FSK
     prototype: default_button
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   VHFUHF20P:
@@ -2844,6 +3837,8 @@ controls:
     hint: ARC-210, middle FSK
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   VHFUHF21P:
@@ -2851,6 +3846,8 @@ controls:
     hint: ARC-210, lower FSK
     prototype: default_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   VHFUHF22P:
@@ -2858,6 +3855,8 @@ controls:
     hint: ARC-210, brightness increase
     prototype: default_button
     positions: []
+    command: device_commands.Button_8
+    values: {}
     range: null
     readable: false
   VHFUHF23P:
@@ -2865,6 +3864,8 @@ controls:
     hint: ARC-210, brightness decrease
     prototype: default_button
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PTR-ANARC186-VHFAM-PRESET:
@@ -2872,6 +3873,11 @@ controls:
     hint: Preset Channel Selector
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-ANARC186-VHFAM-MODE:
@@ -2879,6 +3885,8 @@ controls:
     hint: Frequency Mode Dial
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-FREQEMER-CONTROL:
@@ -2886,6 +3894,8 @@ controls:
     hint: Frequency Selection Dial
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-VOLUME:
@@ -2893,6 +3903,8 @@ controls:
     hint: Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-LOAD:
@@ -2900,6 +3912,8 @@ controls:
     hint: Load
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PTR-ANARC186-VHFAM-SQUELCH:
@@ -2907,6 +3921,8 @@ controls:
     hint: Squelch / TONE
     prototype: default_small_tumb_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PTR-ANARC186-VHFAM-FREQ-1:
@@ -2914,6 +3930,8 @@ controls:
     hint: Frequency Selector the 1nd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-FREQ-2:
@@ -2921,6 +3939,8 @@ controls:
     hint: Frequency Selector the 2nd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-FREQ-3:
@@ -2928,6 +3948,8 @@ controls:
     hint: Frequency Selector the 3rd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFAM-FREQ-4:
@@ -2935,6 +3957,10 @@ controls:
     hint: Frequency Selector the 4th
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PTR-ANARC186-VHFFM-PRESET:
@@ -2942,6 +3968,11 @@ controls:
     hint: Preset Channel Selector
     prototype: multiposition_switch_1_side
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-ANARC186-VHFFM-MODE:
@@ -2949,6 +3980,8 @@ controls:
     hint: Frequency Mode Dial
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-FREQEMER-CONTROL:
@@ -2956,6 +3989,8 @@ controls:
     hint: Frequency Selection Dial
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-VOLUME:
@@ -2963,6 +3998,8 @@ controls:
     hint: Volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-LOAD:
@@ -2970,6 +4007,8 @@ controls:
     hint: Load
     prototype: default_button
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PTR-ANARC186-VHFFM-SQUELCH:
@@ -2977,6 +4016,8 @@ controls:
     hint: Squelch / TONE
     prototype: default_small_tumb_button
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: false
   PTR-ANARC186-VHFFM-FREQ-1:
@@ -2984,6 +4025,8 @@ controls:
     hint: Frequency Selector the 1nd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-FREQ-2:
@@ -2991,6 +4034,8 @@ controls:
     hint: Frequency Selector the 2nd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-FREQ-3:
@@ -2998,6 +4043,8 @@ controls:
     hint: Frequency Selector the 3rd
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   PTR-ANARC186-VHFFM-FREQ-4:
@@ -3005,6 +4052,10 @@ controls:
     hint: Frequency Selector the 4th
     prototype: radio_wheel
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PTR-SEAT-ADJBUTTON:
@@ -3012,6 +4063,8 @@ controls:
     hint: Seat Height Adjustment
     prototype: springloaded_3_pos_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: false
   PTR-CANOPY-OPEN:
@@ -3019,6 +4072,8 @@ controls:
     hint: Canopy Open/Hold/Close
     prototype: default_button_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PTR-INTERCOM-INT:
@@ -3026,6 +4081,11 @@ controls:
     hint: INT Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-INTERCOM-FM:
@@ -3033,6 +4093,8 @@ controls:
     hint: FM Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-VHF:
@@ -3040,6 +4102,8 @@ controls:
     hint: VHF Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-UHF:
@@ -3047,6 +4111,8 @@ controls:
     hint: UHF Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-AIM:
@@ -3054,6 +4120,8 @@ controls:
     hint: AIM Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-IFF:
@@ -3061,6 +4129,8 @@ controls:
     hint: IFF Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-ILS:
@@ -3068,6 +4138,8 @@ controls:
     hint: ILS Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-TCN:
@@ -3075,6 +4147,10 @@ controls:
     hint: TCN Switch
     prototype: intercom_rotate_tumb
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PTR-INTERCOM-HM:
@@ -3082,6 +4158,10 @@ controls:
     hint: HM Switch
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: false
   PTR-INTERCOM-VOL:
@@ -3089,6 +4169,8 @@ controls:
     hint: Intercom volume
     prototype: default_axis
     positions: []
+    command: device_commands.Button_18
+    values: {}
     range: null
     readable: true
   PTR-INTERCOM-MODE:
@@ -3096,6 +4178,10 @@ controls:
     hint: Selector switch
     prototype: multiposition_switch_intercom
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: true
   PTR-INTERCOM-CALL:
@@ -3103,6 +4189,8 @@ controls:
     hint: Call button
     prototype: default_button
     positions: []
+    command: device_commands.Button_20
+    values: {}
     range: null
     readable: false
   PTR-HARS-FAST-ERECT:
@@ -3110,6 +4198,11 @@ controls:
     hint: HARS Fast Erect
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   PTR-HARS-CP-SLAVE:
@@ -3117,6 +4210,8 @@ controls:
     hint: HARS SLAVE-DG mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-HARS-CP-N-S:
@@ -3124,6 +4219,8 @@ controls:
     hint: HARS N/S toggle switch
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-HARS-CP-MAG-VAR:
@@ -3131,6 +4228,8 @@ controls:
     hint: HARS MAG VAR
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-HARS-CP-LATITUDE:
@@ -3138,6 +4237,8 @@ controls:
     hint: HARS Latitude Dial
     prototype: default_axis
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-HARS-CP-PUSH-TO-SYNC:
@@ -3145,6 +4246,8 @@ controls:
     hint: HARS Push-To-Sync
     prototype: default_button_axis
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: false
   PTR-ZEROIZE-COVER:
@@ -3152,6 +4255,11 @@ controls:
     hint: Zeroise Cover
     prototype: default_2_position_cover
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PTR-ZEROIZE-SWITCH:
@@ -3159,6 +4267,8 @@ controls:
     hint: Zeroise Switch
     prototype: default_2_position_small_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   PTR-DELAY-SWITCH:
@@ -3166,6 +4276,8 @@ controls:
     hint: Delay Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_3
+    values: {}
     range: null
     readable: true
   PTR-LVR-PANKY58-PLAIN:
@@ -3173,6 +4285,8 @@ controls:
     hint: C/RAD switch
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_4
+    values: {}
     range: null
     readable: true
   PTR-LVR-PANKY58-1TO5:
@@ -3180,6 +4294,8 @@ controls:
     hint: Full switch
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_5
+    values: {}
     range: null
     readable: true
   PTR-LVR-PANKY58-MODE:
@@ -3187,6 +4303,8 @@ controls:
     hint: Mode switch
     prototype: multiposition_switch_tumb
     positions: []
+    command: device_commands.Button_6
+    values: {}
     range: null
     readable: true
   PTR-TMB-PANKY58-POWER:
@@ -3194,6 +4312,8 @@ controls:
     hint: Power switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_7
+    values: {}
     range: null
     readable: true
   PTR-BTN-ARM-DWNC-L:
@@ -3201,6 +4321,8 @@ controls:
     hint: Auxiliary Landing Gear Handle Lock button
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_9
+    values: {}
     range: null
     readable: false
   PTR-ARM-SEAT-HANDLE:
@@ -3208,6 +4330,8 @@ controls:
     hint: Seat Arm Handle
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_10
+    values: {}
     range: null
     readable: true
   BOARD-LADDER-COVER-PTR:
@@ -3215,6 +4339,8 @@ controls:
     hint: Extend boarding ladder cover
     prototype: default_2_position_cover_plastic
     positions: []
+    command: device_commands.Button_11
+    values: {}
     range: null
     readable: true
   BOARD-LADDER-BUTTON-PTR:
@@ -3222,6 +4348,8 @@ controls:
     hint: Extend boarding ladder button
     prototype: default_button
     positions: []
+    command: device_commands.Button_12
+    values: {}
     range: null
     readable: false
   ACCEL_KNOB_PTR:
@@ -3229,6 +4357,11 @@ controls:
     hint: Push to set
     prototype: default_button
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: false
   DVADR-RC-FUNC-CONTROL-SW-PTR:
@@ -3236,6 +4369,11 @@ controls:
     hint: Function control toggle switch
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   DVADR-VIDEO-SW-PTR:
@@ -3243,6 +4381,8 @@ controls:
     hint: Video selector toggle switch (N/A)
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_2
+    values: {}
     range: null
     readable: true
   ANTI-G-VALVE-PTR:
@@ -3250,6 +4390,8 @@ controls:
     hint: Anti-G suit valve test button
     prototype: default_button
     positions: []
+    command: device_commands.Button_14
+    values: {}
     range: null
     readable: false
   CANOPY-DISENGAGE-LEVER-PTR:
@@ -3257,6 +4399,8 @@ controls:
     hint: Internal canopy actuator disengage lever
     prototype: default_animated_lever
     positions: []
+    command: device_commands.Button_13
+    values: {}
     range: null
     readable: true
   stick_visibility_PNT:
@@ -3264,6 +4408,8 @@ controls:
     hint: Hide Stick toggle
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-CNP-JETT-BTN:
@@ -3271,6 +4417,10 @@ controls:
     hint: Canopy Jettison Lever Unlock Button
     prototype: push_button_tumb
     positions: []
+    command: device_commands.Button_15
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: false
   PTR-ANTSP-IFF:
@@ -3278,6 +4428,10 @@ controls:
     hint: IFF antenna switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_19
+    values:
+      Increase: 0.1
+      Decrease: -0.1
     range: null
     readable: true
   PTR-ANTSP-UHF:
@@ -3285,6 +4439,8 @@ controls:
     hint: UHF antenna switch
     prototype: default_3_position_small_tumb
     positions: []
+    command: device_commands.Button_16
+    values: {}
     range: null
     readable: true
   PTR-ANTSP-EGI-HQ-TOD:
@@ -3292,6 +4448,10 @@ controls:
     hint: EGI HQ TOD
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.Button_17
+    values:
+      AM Preset Channel Decrease: -1.0
+      AM Preset Channel Increase: 1.0
     range: null
     readable: true
   PNT-LVR-RWR:
@@ -3299,6 +4459,11 @@ controls:
     hint: Adjust Display Brightness
     prototype: default_axis_limited
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true
   PNT-MIRROR-LEFT:
@@ -3306,6 +4471,8 @@ controls:
     hint: Toggle Mirrors
     prototype: default_2_position_tumb
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: true
   PNT-MIRROR-FRONT:
@@ -3313,6 +4480,8 @@ controls:
     hint: Toggle Mirrors
     prototype: default_2_position_tumb
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: true
   PNT-MIRROR-RIGHT:
@@ -3320,6 +4489,8 @@ controls:
     hint: Toggle Mirrors
     prototype: default_2_position_tumb
     positions: []
+    command: ''
+    values: {}
     range: null
     readable: true
   HVI_switch_point:
@@ -3327,5 +4498,10 @@ controls:
     hint: Scorpion HMCS Power
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.Button_1
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      BAT: -1.0
     range: null
     readable: true

@@ -24,10 +24,17 @@ It **refuses**, listing what it found, when:
 - no control scores above a floor — `bouton power` finds no hint containing "power";
 - two controls score within a hair of each other;
 - the position name is not among the control's `positions`;
-- **the value cannot be derived.** The index gives positions in hint order, which is not value order.
-  A two-position control with `range: [0, 1]` is unambiguous. A three-position one is not:
-  `MAIN PWR/BATT/OFF` may run +1 → −1 or the reverse, and the resolver must say so rather than pick.
-  In-game verification (ticket 04) is what closes this; until then the instructor supplies the value.
+- **the value cannot be derived** — which turns out to be far rarer than this ticket assumed. It was
+  written believing the only sources were the hint's order (not value order) and in-game measurement,
+  so a three-position switch would always have to be refused. **That was wrong**: an aircraft's input
+  bindings (`Input/<Aircraft>/**/default.lua`) state the mapping outright —
+  `MAIN PWR Switch - OFF` sets `-1.0`, `- BATT` sets `0.0`, `- MAIN PWR` sets `1.0`, matching what
+  the previous lot measured in game to the digit, and `OFF/BACKUP` likewise gives 0/1. Ticket 01 now
+  publishes this as `values:` per control. So the resolver **reads** the value, and only refuses when
+  the control has no `values` entry: 104 of the F-16C's 284 controls have one (103 of them readable),
+  87 of the F-14's 360 — an aircraft whose hints name *no* positions at all — but only 7 of the
+  AH-64D's 478, whose panels and bindings do not share commands. Where `values` is missing the
+  refusal stands, and ticket 04 remains how it gets closed.
 - the control is `readable: false` — spring-loaded or a button. The message says to use `confirm`,
   and why.
 

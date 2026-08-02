@@ -17,6 +17,8 @@ controls:
     hint: Storage Bin
     prototype: default_animated_lever
     positions: []
+    command: device_commands.PILOT_NVG_BIN
+    values: {}
     range: null
     readable: true
   PNT_NVG_PILOT:
@@ -24,6 +26,8 @@ controls:
     hint: Pilot Night Vision Goggles
     prototype: default_animated_lever
     positions: []
+    command: device_commands.PILOT_NVG_EQUIP_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_NVG_RIO:
@@ -31,6 +35,8 @@ controls:
     hint: RIO Night Vision Goggles
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RIO_NVG_EQUIP_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_629:
@@ -38,6 +44,10 @@ controls:
     hint: Hydraulic Transfer Pump Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HYD_TRANSFER_PUMP_Switch
+    values:
+      NORMAL: 0.0
+      SHUTOFF: 1.0
     range: null
     readable: true
   PNT_630:
@@ -45,6 +55,10 @@ controls:
     hint: Hydraulic Transfer Pump Switch Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.HYD_TRANSFER_PUMP_SwitchCover
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range: null
     readable: true
   PNT_631:
@@ -52,6 +66,8 @@ controls:
     hint: Hydraulic Isolation Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HYD_ISOL_Switch
+    values: {}
     range: null
     readable: true
   PNT_928:
@@ -59,6 +75,8 @@ controls:
     hint: Hydraulic Emergency Flight Control Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.HYD_EMERG_FLT_Switch
+    values: {}
     range: null
     readable: true
   PNT_8100:
@@ -66,6 +84,8 @@ controls:
     hint: Hydraulic Emergency Flight Control Switch Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.HYD_EMERG_FLT_SwitchCover
+    values: {}
     range: null
     readable: true
   PNT_1071:
@@ -73,6 +93,8 @@ controls:
     hint: MASTER RESET
     prototype: default_button
     positions: []
+    command: device_commands.MASTER_Reset
+    values: {}
     range: null
     readable: false
   PNT_2100:
@@ -80,6 +102,8 @@ controls:
     hint: Stow Inlet Ramps Left Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.INLET_RAMPS_LeftSwitch
+    values: {}
     range: null
     readable: true
   PNT_2101:
@@ -87,6 +111,8 @@ controls:
     hint: Stow Inlet Ramps Right Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.INLET_RAMPS_RightSwitch
+    values: {}
     range: null
     readable: true
   PNT_317:
@@ -94,6 +120,10 @@ controls:
     hint: Emergency Wing Sweep Handle Cover
     prototype: default_animated_lever
     positions: []
+    command: device_commands.WINGSWEEP_EmergencySweepCover
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range: null
     readable: true
   PNT_307:
@@ -101,6 +131,8 @@ controls:
     hint: Altimeter Mode Switch
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.ALTIMETER_Mode
+    values: {}
     range: null
     readable: true
   PNT_306:
@@ -108,6 +140,8 @@ controls:
     hint: Altimeter Pressure Setting
     prototype: default_axis
     positions: []
+    command: device_commands.ALTIMETER_Knob
+    values: {}
     range: null
     readable: true
   PNT_20307:
@@ -115,6 +149,8 @@ controls:
     hint: Altimeter Mode Switch
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RIOALTIMETER_Mode
+    values: {}
     range: null
     readable: true
   PNT_20306:
@@ -122,6 +158,8 @@ controls:
     hint: Altimeter Pressure Setting
     prototype: default_axis
     positions: []
+    command: device_commands.RIOALTIMETER_Knob
+    values: {}
     range: null
     readable: true
   PNT_1075:
@@ -129,6 +167,8 @@ controls:
     hint: Nose Strut Compression Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.GEAR_Strut
+    values: {}
     range: null
     readable: true
   PNT_497:
@@ -136,6 +176,8 @@ controls:
     hint: Launch Bar Abort
     prototype: default_button
     positions: []
+    command: device_commands.GEAR_LaunchBarAbort
+    values: {}
     range: null
     readable: false
   PNT_496:
@@ -143,6 +185,8 @@ controls:
     hint: Launch Bar Abort Switch Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.GEAR_LaunchBarAbortCover
+    values: {}
     range: null
     readable: true
   PNT_1072:
@@ -150,6 +194,11 @@ controls:
     hint: Anti-Skid Spoiler BK Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.BRAKE_AntiSkidAndSpoilerBrake
+    values:
+      Both: 1.0
+      'Off': 0.0
+      Spoiler Only: -1.0
     range: null
     readable: true
   PNT_237:
@@ -157,6 +206,8 @@ controls:
     hint: Parking Brake Handle
     prototype: default_animated_lever
     positions: []
+    command: device_commands.BRAKE_ParkingBrake
+    values: {}
     range: null
     readable: true
   PNT_633:
@@ -164,6 +215,8 @@ controls:
     hint: Gear Down Lock Override
     prototype: default_animated_lever
     positions: []
+    command: device_commands.GEAR_DownLockOverride
+    values: {}
     range: null
     readable: true
   PNT_2109:
@@ -171,6 +224,11 @@ controls:
     hint: Autopilot - Vector / Automatic Carrier Landing
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.AP_Vector
+    values:
+      VEC/PCD: 1.0
+      'Off': 0.0
+      ACL: -1.0
     range: null
     readable: true
   PNT_2110:
@@ -178,6 +236,10 @@ controls:
     hint: Autopilot - Altitude Hold
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.AP_Altitude
+    values:
+      'On': 1.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_2111:
@@ -185,6 +247,11 @@ controls:
     hint: Autopilot - Heading / Ground Track
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.AP_Heading
+    values:
+      'On': 1.0
+      'Off': 0.0
+      GT: -1.0
     range: null
     readable: true
   PNT_2112:
@@ -192,6 +259,10 @@ controls:
     hint: Autopilot - Engage
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.AP_Engage
+    values:
+      'On': 1.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_THROT_L:
@@ -199,6 +270,8 @@ controls:
     hint: Left Engine Fuel Cutoff
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.THROTTLE_Left_Throttle_CutOff
+    values: {}
     range: null
     readable: true
   PNT_THROT_R:
@@ -206,6 +279,8 @@ controls:
     hint: Right Engine Fuel Cutoff
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.THROTTLE_Right_Throttle_CutOff
+    values: {}
     range: null
     readable: true
   PNT_2104:
@@ -213,6 +288,11 @@ controls:
     hint: Throttle Mode
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ENGINE_Throttle_Mode
+    values:
+      MAN: -1.0
+      BOOST: 0.0
+      AUTO: 1.0
     range: null
     readable: true
   PNT_2103:
@@ -220,6 +300,8 @@ controls:
     hint: Throttle Temp
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ENGINE_Throttle_Temp
+    values: {}
     range: null
     readable: true
   PNT_941:
@@ -227,6 +309,11 @@ controls:
     hint: Engine/Probe Anti-Ice
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ENGINE_Probe_Anti_Ice
+    values:
+      'OFF': -1.0
+      AUTO: 0.0
+      ORIDE: 1.0
     range: null
     readable: true
   PNT_2105:
@@ -234,6 +321,8 @@ controls:
     hint: Engine Airstart
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ENGINE_Air_Start
+    values: {}
     range: null
     readable: true
   PNT_2102:
@@ -241,6 +330,10 @@ controls:
     hint: Engine Crank
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ENGINE_Crank
+    values:
+      Left Engine: 1.0
+      Right Engine: -1.0
     range: null
     readable: true
   PNT_16007:
@@ -248,6 +341,8 @@ controls:
     hint: Left Engine Mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ENGINE_Left_Mode
+    values: {}
     range: null
     readable: true
   PNT_16008:
@@ -255,6 +350,8 @@ controls:
     hint: Right Engine Mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ENGINE_Right_Mode
+    values: {}
     range: null
     readable: true
   PNT_16005:
@@ -262,6 +359,10 @@ controls:
     hint: Asymmetric Thrust Limiter Cover
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ENGINE_Asym_LimiterCover
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range: null
     readable: true
   PNT_16006:
@@ -269,6 +370,10 @@ controls:
     hint: Asymmetric Thrust Limiter
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ENGINE_Asym_Limiter
+    values:
+      'ON': 0.0
+      'OFF': 1.0
     range: null
     readable: true
   PNT_FIRE_EXT_SW_L:
@@ -276,6 +381,8 @@ controls:
     hint: Fire Ext Bottle - Left
     prototype: default_button
     positions: []
+    command: device_commands.FIRE_Bottle_Fire_L
+    values: {}
     range: null
     readable: false
   PNT_FIRE_EXT_SW_R:
@@ -283,6 +390,8 @@ controls:
     hint: Fire Ext Bottle - Right
     prototype: default_button
     positions: []
+    command: device_commands.FIRE_Bottle_Fire_R
+    values: {}
     range: null
     readable: false
   PNT_1044:
@@ -290,6 +399,8 @@ controls:
     hint: Fuel Shutoff - Right
     prototype: default_animated_lever
     positions: []
+    command: device_commands.FUELSYSTEM_Shutoff_R
+    values: {}
     range: null
     readable: true
   PNT_15081:
@@ -297,6 +408,8 @@ controls:
     hint: Fuel Shutoff - Left
     prototype: default_animated_lever
     positions: []
+    command: device_commands.FUELSYSTEM_Shutoff_L
+    values: {}
     range: null
     readable: true
   PNT_1094:
@@ -304,6 +417,10 @@ controls:
     hint: Fuel Feed Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.FUELSYSTEM_Fuel_Feed_Cover
+    values:
+      CLOSE: 0.0
+      OPEN: 1.0
     range: null
     readable: true
   PNT_1095:
@@ -311,6 +428,11 @@ controls:
     hint: Fuel Feed
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.FUELSYSTEM_Fuel_Feed
+    values:
+      AFT: -1.0
+      NORM: 0.0
+      FWD: 1.0
     range: null
     readable: true
   PNT_1001:
@@ -318,6 +440,11 @@ controls:
     hint: Wing/Ext Trans
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.FUELSYSTEM_WingExt_Trans
+    values:
+      Oride: 1.0
+      Auto: 0.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_1074:
@@ -325,6 +452,10 @@ controls:
     hint: Fuel Dump
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.FUELSYSTEM_Dump
+    values:
+      'Off': -1.0
+      Dump: 1.0
     range: null
     readable: true
   PNT_1073:
@@ -332,6 +463,11 @@ controls:
     hint: Refuel Probe
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.FUELSYSTEM_Refuel_Probe
+    values:
+      extend, Refuel All: 1.0
+      extend, Refuel Fuselage: 0.0
+      Retract: -1.0
     range: null
     readable: true
   PNT_1076:
@@ -339,6 +475,8 @@ controls:
     hint: Fuel Quantity Selector
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.FUELSYSTEM_Fuel_Qty_Sel
+    values: {}
     range: null
     readable: true
   PNT_1050:
@@ -346,6 +484,8 @@ controls:
     hint: BINGO Fuel Level Knob
     prototype: default_axis
     positions: []
+    command: device_commands.FUELSYSTEM_Bingo_Knob
+    values: {}
     range: null
     readable: true
   PNT_937:
@@ -353,6 +493,8 @@ controls:
     hint: Left Generator Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ELEC_MASTER_GEN_LeftSwitch
+    values: {}
     range: null
     readable: true
   PNT_936:
@@ -360,6 +502,8 @@ controls:
     hint: Right Generator Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.ELEC_MASTER_GEN_RightSwitch
+    values: {}
     range: null
     readable: true
   PNT_927:
@@ -367,6 +511,8 @@ controls:
     hint: Emergency Generator Switch Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.ELEC_EMERG_GEN_SwitchCover
+    values: {}
     range: null
     readable: true
   PNT_926:
@@ -374,6 +520,8 @@ controls:
     hint: Emergency Generator Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ELEC_EMERG_GEN_Switch
+    values: {}
     range: null
     readable: true
   PNT_224:
@@ -381,6 +529,8 @@ controls:
     hint: Canopy Jettison
     prototype: default_animated_lever
     positions: []
+    command: device_commands.CANOPY_Drop
+    values: {}
     range: null
     readable: true
   PNT_2051:
@@ -388,6 +538,8 @@ controls:
     hint: RIO Canopy Jettison
     prototype: default_animated_lever
     positions: []
+    command: device_commands.CANOPY_Drop_RIO
+    values: {}
     range: null
     readable: true
   PNT_2049:
@@ -395,6 +547,8 @@ controls:
     hint: Ejection CMD Lever
     prototype: default_animated_lever
     positions: []
+    command: device_commands.EJECT_CMD_Lever
+    values: {}
     range: null
     readable: true
   PNT_Seat_Safety:
@@ -402,6 +556,8 @@ controls:
     hint: Ejection Seat Safety
     prototype: default_animated_lever
     positions: []
+    command: device_commands.EJECT_ArmPilot
+    values: {}
     range: null
     readable: true
   PNT_498:
@@ -409,6 +565,8 @@ controls:
     hint: Ejection Seat Safety
     prototype: default_animated_lever
     positions: []
+    command: device_commands.EJECT_ArmRIO
+    values: {}
     range: null
     readable: true
   PNT_122:
@@ -416,6 +574,8 @@ controls:
     hint: Storage
     prototype: default_animated_lever
     positions: []
+    command: device_commands.RIO_STORAGE_BOX
+    values: {}
     range: null
     readable: true
   PNT_8114:
@@ -423,6 +583,10 @@ controls:
     hint: Pilot Oxygen On
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.PilotOxygenOn
+    values:
+      'OFF': 0.0
+      'ON': 1.0
     range: null
     readable: true
   PNT_119:
@@ -430,6 +594,8 @@ controls:
     hint: RIO Oxygen On
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RIOOxygenOn
+    values: {}
     range: null
     readable: true
   PNT_939:
@@ -437,6 +603,8 @@ controls:
     hint: Cabin Pressure Dump
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.CabinPressureDump
+    values: {}
     range: null
     readable: true
   PNT_929:
@@ -444,6 +612,8 @@ controls:
     hint: Air Source Ram
     prototype: default_displaybutton
     positions: []
+    command: device_commands.AirSourceRam
+    values: {}
     range: null
     readable: false
   PNT_933:
@@ -451,6 +621,8 @@ controls:
     hint: Air Source Off
     prototype: default_displaybutton
     positions: []
+    command: device_commands.AirSourceOff
+    values: {}
     range: null
     readable: false
   PNT_930:
@@ -458,6 +630,8 @@ controls:
     hint: Air Source Left Engine
     prototype: default_displaybutton
     positions: []
+    command: device_commands.AirSourceLEng
+    values: {}
     range: null
     readable: false
   PNT_931:
@@ -465,6 +639,8 @@ controls:
     hint: Air Source Right Engine
     prototype: default_displaybutton
     positions: []
+    command: device_commands.AirSourceREng
+    values: {}
     range: null
     readable: false
   PNT_932:
@@ -472,6 +648,8 @@ controls:
     hint: Air Source Both Engines
     prototype: default_displaybutton
     positions: []
+    command: device_commands.AirSourceBoth
+    values: {}
     range: null
     readable: false
   PNT_942:
@@ -479,6 +657,8 @@ controls:
     hint: Wind Shield Air
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WindShield_Air
+    values: {}
     range: null
     readable: true
   PNT_950:
@@ -486,6 +666,8 @@ controls:
     hint: Temperature
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.Temperature
+    values: {}
     range: null
     readable: true
   PNT_975:
@@ -493,6 +675,8 @@ controls:
     hint: Wind Shield Defog
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WindShield_Defog
+    values: {}
     range: null
     readable: true
   PNT_940:
@@ -500,6 +684,8 @@ controls:
     hint: Temp Auto / Man
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.TempAutoMan
+    values: {}
     range: null
     readable: true
   PNT_938:
@@ -507,6 +693,8 @@ controls:
     hint: Ram Air
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RamAir
+    values: {}
     range: null
     readable: true
   PNT_RIO_MIRROR_MOVE:
@@ -514,6 +702,8 @@ controls:
     hint: Adjust RIO Mirror
     prototype: default_axis
     positions: []
+    command: device_commands.Adjust_RIO_Mirror
+    values: {}
     range: null
     readable: true
   PNT_PILOT_MIRROR_MOVE_TOP:
@@ -521,6 +711,8 @@ controls:
     hint: Adjust Top Mirror
     prototype: default_axis
     positions: []
+    command: device_commands.Adjust_Pilot_Mirror_T
+    values: {}
     range: null
     readable: true
   PNT_PILOT_MIRROR_MOVE_LEFT:
@@ -528,6 +720,8 @@ controls:
     hint: Adjust Right Mirror
     prototype: default_axis
     positions: []
+    command: device_commands.Adjust_Pilot_Mirror_L
+    values: {}
     range: null
     readable: true
   PNT_PILOT_MIRROR_MOVE_RIGHT:
@@ -535,6 +729,8 @@ controls:
     hint: Adjust Left Mirror
     prototype: default_axis
     positions: []
+    command: device_commands.Adjust_Pilot_Mirror_R
+    values: {}
     range: null
     readable: true
   PNT_915:
@@ -542,6 +738,10 @@ controls:
     hint: Hook Bypass
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.AoA_HookBypass
+    values:
+      CARRIER: 0.0
+      FIELD: 1.0
     range: null
     readable: true
   PNT_918:
@@ -549,6 +749,10 @@ controls:
     hint: Taxi Light
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.LIGHTS_Taxi
+    values:
+      'OFF': 0.0
+      'ON': 1.0
     range: null
     readable: true
   PNT_921:
@@ -556,6 +760,11 @@ controls:
     hint: White Flood Light
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.LIGHTS_WhiteFlood
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
     range: null
     readable: true
   PNT_913_22:
@@ -563,6 +772,11 @@ controls:
     hint: Position Lights Wing
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.LIGHTS_PositionWings
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
     range: null
     readable: true
   PNT_916:
@@ -570,6 +784,11 @@ controls:
     hint: Position Lights Tail
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.LIGHTS_PositionTail
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
     range: null
     readable: true
   PNT_919:
@@ -577,6 +796,10 @@ controls:
     hint: Position Lights Flash
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.LIGHTS_PositionFlash
+    values:
+      STEADY: 0.0
+      FLASH: 1.0
     range: null
     readable: true
   PNT_923:
@@ -584,6 +807,10 @@ controls:
     hint: Anti-Collision Lights
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.LIGHTS_AntiCol
+    values:
+      'OFF': 0.0
+      'ON': 1.0
     range: null
     readable: true
   PNT_917:
@@ -591,6 +818,8 @@ controls:
     hint: AoA Indexer Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.AoA_IndexerStrength
+    values: {}
     range: null
     readable: true
   PNT_913:
@@ -598,6 +827,8 @@ controls:
     hint: ACM Panel Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_ACMPanel
+    values: {}
     range: null
     readable: true
   PNT_920:
@@ -605,6 +836,8 @@ controls:
     hint: Instrument Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_Instruments
+    values: {}
     range: null
     readable: true
   PNT_922:
@@ -612,6 +845,8 @@ controls:
     hint: Console Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_Console
+    values: {}
     range: null
     readable: true
   PNT_925:
@@ -619,6 +854,8 @@ controls:
     hint: Formation Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_Formation
+    values: {}
     range: null
     readable: true
   PNT_159:
@@ -626,6 +863,11 @@ controls:
     hint: White Flood Light
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.LIGHTS_WhiteFlood_RIO
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
     range: null
     readable: true
   PNT_193:
@@ -633,6 +875,8 @@ controls:
     hint: Instrument Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_Instruments_RIO
+    values: {}
     range: null
     readable: true
   PNT_192:
@@ -640,6 +884,8 @@ controls:
     hint: Console Light Intensity
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LIGHTS_Console_RIO
+    values: {}
     range: null
     readable: true
   PNT_1010:
@@ -647,6 +893,10 @@ controls:
     hint: VDI Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DISP_VDI_power
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PNT_1009:
@@ -654,6 +904,10 @@ controls:
     hint: HUD Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DISP_HUD_power
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PNT_1008:
@@ -661,6 +915,10 @@ controls:
     hint: HSD/ECMD Power On/Off
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DISP_HSD_ECMD_power
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PNT_1002:
@@ -668,6 +926,8 @@ controls:
     hint: 'Navigation Steer Commands: TACAN'
     prototype: default_displaybutton
     positions: []
+    command: device_commands.NAV_Btn_Steer_TCN
+    values: {}
     range: null
     readable: false
   PNT_1003:
@@ -675,6 +935,8 @@ controls:
     hint: 'Navigation Steer Commands: Destination'
     prototype: default_displaybutton
     positions: []
+    command: device_commands.NAV_Btn_Steer_DEST
+    values: {}
     range: null
     readable: false
   PNT_1004:
@@ -682,6 +944,8 @@ controls:
     hint: 'Navigation Steer Commands: AWL PCD'
     prototype: default_displaybutton
     positions: []
+    command: device_commands.NAV_Btn_Steer_AWL_PCD
+    values: {}
     range: null
     readable: false
   PNT_1005:
@@ -689,6 +953,8 @@ controls:
     hint: 'Navigation Steer Commands: Vector'
     prototype: default_displaybutton
     positions: []
+    command: device_commands.NAV_Btn_Steer_VEC
+    values: {}
     range: null
     readable: false
   PNT_1006:
@@ -696,6 +962,8 @@ controls:
     hint: 'Navigation Steer Commands: Manual'
     prototype: default_displaybutton
     positions: []
+    command: device_commands.NAV_Btn_Steer_MAN
+    values: {}
     range: null
     readable: false
   PNT_1016:
@@ -703,6 +971,11 @@ controls:
     hint: HSD Display Mode
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.HSD_Display_Mode_Cycle
+    values:
+      NAV: 1.0
+      TID: 0.0
+      ECM: -1.0
     range: null
     readable: true
   PNT_1017:
@@ -710,6 +983,10 @@ controls:
     hint: HSD ECM Override
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HSD_ECM_Override
+    values:
+      'On': 1.0
+      'Off': 0.0
     range: null
     readable: true
   PNT_1039:
@@ -717,6 +994,8 @@ controls:
     hint: HSD Selected Heading
     prototype: default_axis
     positions: []
+    command: device_commands.HSD_Knob_Heading
+    values: {}
     range: null
     readable: true
   PNT_1040:
@@ -724,6 +1003,8 @@ controls:
     hint: HSD Selected Course
     prototype: default_axis
     positions: []
+    command: device_commands.HSD_Knob_Course
+    values: {}
     range: null
     readable: true
   PNT_1043:
@@ -731,6 +1012,8 @@ controls:
     hint: HSD Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.HSD_Knob_Brightness
+    values: {}
     range: null
     readable: true
   PNT_1041:
@@ -738,6 +1021,8 @@ controls:
     hint: HSD Test
     prototype: default_button
     positions: []
+    command: device_commands.HSD_Btn_Test
+    values: {}
     range: null
     readable: false
   PNT_2023:
@@ -745,6 +1030,8 @@ controls:
     hint: ECMD Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.ECMD_Knob_Brightness
+    values: {}
     range: null
     readable: true
   PNT_2024:
@@ -752,6 +1039,8 @@ controls:
     hint: ECMD Test
     prototype: default_button
     positions: []
+    command: device_commands.ECMD_Btn_Test
+    values: {}
     range: null
     readable: false
   PNT_292:
@@ -759,6 +1048,8 @@ controls:
     hint: TACAN CMD Button
     prototype: default_button
     positions: []
+    command: device_commands.TACAN_CMD_Btn_Pilot
+    values: {}
     range: null
     readable: false
   PNT_135:
@@ -766,6 +1057,8 @@ controls:
     hint: TACAN CMD Button
     prototype: default_button
     positions: []
+    command: device_commands.TACAN_CMD_Btn_RIO
+    values: {}
     range: null
     readable: false
   PNT_2041:
@@ -773,6 +1066,13 @@ controls:
     hint: TACAN Mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.TACAN_Knob_Func_Pilot
+    values:
+      'OFF': 0.0
+      REC: 1.0
+      T/R: 2.0
+      A/A: 3.0
+      BCN: 4.0
     range: null
     readable: true
   PNT_2036:
@@ -780,6 +1080,8 @@ controls:
     hint: TACAN Volume
     prototype: default_axis
     positions: []
+    command: device_commands.TACAN_Knob_Vol_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2042:
@@ -787,6 +1089,8 @@ controls:
     hint: TACAN Mode Normal/Inverse
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.TACAN_Mode_Norm_Inv_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2043:
@@ -794,6 +1098,10 @@ controls:
     hint: TACAN Channel X/Y
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.TACAN_Mode_X_Y_Pilot
+    values:
+      X: -1.0
+      Y: 1.0
     range: null
     readable: true
   PNT_2115:
@@ -801,6 +1109,8 @@ controls:
     hint: TACAN BIT
     prototype: default_button
     positions: []
+    command: device_commands.TACAN_Btn_BIT_Pilot
+    values: {}
     range: null
     readable: false
   PNT_TACAN_OUTER_TWIST_PILOT:
@@ -808,6 +1118,8 @@ controls:
     hint: TACAN Channel Wheel (Tens)
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.TACAN_Knob_Chnl_Tens_Pilot
+    values: {}
     range: null
     readable: true
   PNT_TACAN_LEVER_PILOT:
@@ -815,6 +1127,8 @@ controls:
     hint: TACAN Channel Lever (Ones)
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.TACAN_Knob_Chnl_Ones_Pilot
+    values: {}
     range: null
     readable: true
   PNT_910:
@@ -822,6 +1136,10 @@ controls:
     hint: AN/ARA-63 Power Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.ARA63_Power_Switch
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range: null
     readable: true
   PNT_911:
@@ -829,6 +1147,8 @@ controls:
     hint: AN/ARA-63 BIT Button
     prototype: default_button
     positions: []
+    command: device_commands.ARA63_BIT_Btn
+    values: {}
     range: null
     readable: false
   PNT_912:
@@ -836,6 +1156,8 @@ controls:
     hint: AN/ARA-63 Channel Knob
     prototype: multiposition_switch
     positions: []
+    command: device_commands.ARA63_Chnl_Knob
+    values: {}
     range: null
     readable: true
   PNT_2040:
@@ -843,6 +1165,8 @@ controls:
     hint: ALR-67 Volume
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_ICS_Vol_ALR67_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2039:
@@ -850,6 +1174,8 @@ controls:
     hint: Sidewinder Volume
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_ICS_Vol_Sidewinder
+    values: {}
     range: null
     readable: true
   PNT_2047:
@@ -857,6 +1183,8 @@ controls:
     hint: ICS Volume
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_ICS_Vol_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2045:
@@ -864,6 +1192,11 @@ controls:
     hint: ICS Amplifier Selector
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_ICS_Ampl_Pilot
+    values:
+      B/U: 0.0
+      NORM: 0.5
+      EMER: 1.0
     range: null
     readable: true
   PNT_2044:
@@ -871,6 +1204,11 @@ controls:
     hint: ICS Function Selector
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADIO_ICS_Func_Pilot
+    values:
+      COLD MIC: -1.0
+      HOT MIC: 0.0
+      RADIO OVERRIDE: 1.0
     range: null
     readable: true
   PNT_400:
@@ -878,6 +1216,8 @@ controls:
     hint: ICS Volume
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_ICS_Vol_RIO
+    values: {}
     range: null
     readable: true
   PNT_401:
@@ -885,6 +1225,11 @@ controls:
     hint: ICS Amplifier Selector
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_ICS_Ampl_RIO
+    values:
+      B/U: 0.0
+      NORM: 0.5
+      EMER: 1.0
     range: null
     readable: true
   PNT_402:
@@ -892,6 +1237,11 @@ controls:
     hint: ICS Function Selector
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADIO_ICS_Func_RIO
+    values:
+      COLD MIC: -1.0
+      HOT MIC: 0.0
+      RADIO OVERRIDE: 1.0
     range: null
     readable: true
   PNT_381:
@@ -899,6 +1249,11 @@ controls:
     hint: XMTR SEL Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADIO_ICS_XMTR_SEL_RIO
+    values:
+      UHF1: 1.0
+      UHF2: -1.0
+      BOTH: 0.0
     range: null
     readable: true
   PNT_380:
@@ -906,6 +1261,8 @@ controls:
     hint: V/UHF 2 ANT Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RIO_UHF_UPR_LWR
+    values: {}
     range: null
     readable: true
   PNT_382:
@@ -913,6 +1270,8 @@ controls:
     hint: KY MODE Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RIO_KY_MODE
+    values: {}
     range: null
     readable: true
   PNT_2033:
@@ -920,6 +1279,11 @@ controls:
     hint: UHF ARC-159 Freq Mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_UHF_FREQ_MODE_Pilot
+    values:
+      GUARD: 1.0
+      MANUAL: 0.5
+      PRESET: 0.0
     range: null
     readable: true
   PNT_2034:
@@ -927,6 +1291,11 @@ controls:
     hint: UHF ARC-159 Function
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_UHF_FUNC_Pilot
+    values:
+      'OFF': 0.0
+      MAIN: 1.0
+      BOTH: 2.0
     range: null
     readable: true
   PNT_2032:
@@ -934,6 +1303,8 @@ controls:
     hint: UHF ARC-159 Preset Channel Selector
     prototype: multiposition_switch_springy
     positions: []
+    command: device_commands.RADIO_UHF_CHAN_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2035:
@@ -941,6 +1312,10 @@ controls:
     hint: UHF ARC-159 Squelch Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADIO_UHF_SQL_Pilot
+    values:
+      SQL: 1.0
+      'OFF': 0.0
     range: null
     readable: true
   PNT_2030:
@@ -948,6 +1323,8 @@ controls:
     hint: UHF ARC-159 100MHz & 10MHz
     prototype: default_springloaded_3pos_switch_tiny
     positions: []
+    command: device_commands.RADIO_UHF_FREQ_HUNDRED_TEN_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2029:
@@ -955,6 +1332,8 @@ controls:
     hint: UHF ARC-159 1MHz
     prototype: default_springloaded_3pos_switch_tiny
     positions: []
+    command: device_commands.RADIO_UHF_FREQ_UNIT_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2028:
@@ -962,6 +1341,8 @@ controls:
     hint: UHF ARC-159 0.1MHz
     prototype: default_springloaded_3pos_switch_tiny
     positions: []
+    command: device_commands.RADIO_UHF_FREQ_TEHTH_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2026:
@@ -969,6 +1350,8 @@ controls:
     hint: UHF ARC-159 0.025MHz
     prototype: default_springloaded_3pos_switch_tiny
     positions: []
+    command: device_commands.RADIO_UHF_FREQ_HUNDREDTH_Pilot
+    values: {}
     range: null
     readable: true
   PNT_8115:
@@ -976,6 +1359,8 @@ controls:
     hint: UHF ARC-159 Read
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_UHF_READ_Pilot
+    values: {}
     range: null
     readable: false
   PNT_2031:
@@ -983,6 +1368,8 @@ controls:
     hint: UHF ARC-159 Volume Pilot
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_UHF_VOL_Pilot
+    values: {}
     range: null
     readable: true
   PNT_383:
@@ -990,6 +1377,8 @@ controls:
     hint: UHF ARC-159 Volume RIO
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_UHF_VOL_RIO
+    values: {}
     range: null
     readable: true
   PNT_2027:
@@ -997,6 +1386,8 @@ controls:
     hint: UHF ARC-159 Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_UHF_BRT_Pilot
+    values: {}
     range: null
     readable: true
   PNT_16009:
@@ -1004,6 +1395,8 @@ controls:
     hint: UHF ARC-159 Load
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_UHF_LOAD_Pilot
+    values: {}
     range: null
     readable: false
   PNT_16010:
@@ -1011,6 +1404,8 @@ controls:
     hint: UHF ARC-159 Tone
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_UHF_TONE_Pilot
+    values: {}
     range: null
     readable: false
   PNT_RIO_UHF_OUTER:
@@ -1018,6 +1413,14 @@ controls:
     hint: VHF/UHF ARC-182 Freq Mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_VHF_FREQ_MODE_RIO
+    values:
+      '243': 0.0
+      MAN: 0.2
+      G: 0.4
+      PRESET: 0.6
+      READ: 0.8
+      LOAD: 1.0
     range: null
     readable: true
   PNT_358:
@@ -1025,6 +1428,13 @@ controls:
     hint: VHF/UHF ARC-182 MODE
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_VHF_FUNC_RIO
+    values:
+      'OFF': 0.0
+      T/R: 0.25
+      T/R&G: 0.5
+      DF: 0.75
+      TEST: 1.0
     range: null
     readable: true
   PNT_352:
@@ -1032,6 +1442,8 @@ controls:
     hint: VHF/UHF ARC-182 Preset Channel Selector
     prototype: multiposition_switch
     positions: []
+    command: device_commands.RADIO_VHF_CHAN_RIO
+    values: {}
     range: null
     readable: true
   PNT_359:
@@ -1039,6 +1451,10 @@ controls:
     hint: VHF/UHF ARC-182 FM/AM Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADIO_VHF_FM_AM_RIO
+    values:
+      AM: 1.0
+      FM: 0.0
     range: null
     readable: true
   PNT_351:
@@ -1046,6 +1462,10 @@ controls:
     hint: VHF/UHF ARC-182 Squelch Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADIO_VHF_SQL_RIO
+    values:
+      SQL: 1.0
+      'OFF': 0.0
     range: null
     readable: true
   PNT_354:
@@ -1053,6 +1473,8 @@ controls:
     hint: VHF/UHF ARC-182 100MHz & 10MHz
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RADIO_VHF_FREQ_HUNDRED_TEN_RIO
+    values: {}
     range: null
     readable: true
   PNT_355:
@@ -1060,6 +1482,8 @@ controls:
     hint: VHF/UHF ARC-182 1MHz
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RADIO_VHF_FREQ_UNIT_RIO
+    values: {}
     range: null
     readable: true
   PNT_356:
@@ -1067,6 +1491,8 @@ controls:
     hint: VHF/UHF ARC-182 0.1MHz
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RADIO_VHF_FREQ_TEHTH_RIO
+    values: {}
     range: null
     readable: true
   PNT_357:
@@ -1074,6 +1500,8 @@ controls:
     hint: VHF/UHF ARC-182 0.025MHz
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RADIO_VHF_FREQ_HUNDREDTH_RIO
+    values: {}
     range: null
     readable: true
   PNT_350:
@@ -1081,6 +1509,8 @@ controls:
     hint: VHF/UHF ARC-182 Volume RIO
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_VHF_VOL_RIO
+    values: {}
     range: null
     readable: true
   PNT_2038:
@@ -1088,6 +1518,8 @@ controls:
     hint: VHF/UHF ARC-182 Volume Pilot
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_VHF_VOL_PILOT
+    values: {}
     range: null
     readable: true
   PNT_360:
@@ -1095,6 +1527,8 @@ controls:
     hint: VHF/UHF ARC-182 Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_VHF_BRT_RIO
+    values: {}
     range: null
     readable: true
   PNT_116:
@@ -1102,6 +1536,10 @@ controls:
     hint: KY-28 Power Mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_KY28_POWER_MODE
+    values:
+      'OFF': 0.0
+      C: 1.0
     range: null
     readable: true
   PNT_115:
@@ -1109,6 +1547,10 @@ controls:
     hint: KY-28 Radio Selector
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADIO_KY28_RADIO_SELECTOR
+    values:
+      RAD-1: 0.0
+      RAD-2: 0.5
     range: null
     readable: true
   PNT_150:
@@ -1116,6 +1558,10 @@ controls:
     hint: KY-28 ZEROIZE Cover
     prototype: default_flipcover
     positions: []
+    command: device_commands.RADIO_KY28_ZEROIZE_COVER
+    values:
+      Up: 1.0
+      Down: 0.0
     range: null
     readable: true
   PNT_361:
@@ -1123,6 +1569,8 @@ controls:
     hint: KY-28 ZEROIZE
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_KY28_ZEROIZE
+    values: {}
     range: null
     readable: false
   PNT_1031:
@@ -1130,6 +1578,8 @@ controls:
     hint: UHF Radio Remote Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_UHF_Remote_DISP_BRT_Pilot
+    values: {}
     range: null
     readable: true
   PNT_406:
@@ -1137,6 +1587,8 @@ controls:
     hint: UHF Radio Remote Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_UHF_Remote_DISP_BRT_RIO
+    values: {}
     range: null
     readable: true
   PNT_1030:
@@ -1144,6 +1596,8 @@ controls:
     hint: VHF/UHF Radio Remote Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADIO_VHF_Remote_DISP_BRT_Pilot
+    values: {}
     range: null
     readable: true
   UHF_BIT_TEST:
@@ -1151,6 +1605,8 @@ controls:
     hint: UHF Radio Remote Display Test
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_UHF_Remote_DISP_TEST_Pilot
+    values: {}
     range: null
     readable: false
   PNT_405:
@@ -1158,6 +1614,8 @@ controls:
     hint: UHF Radio Remote Display Test
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_UHF_Remote_DISP_TEST_RIO
+    values: {}
     range: null
     readable: false
   VHF_BIT_TEST:
@@ -1165,6 +1623,8 @@ controls:
     hint: VHF/UHF Radio Remote Display Test
     prototype: default_button
     positions: []
+    command: device_commands.RADIO_VHF_Remote_DISP_TEST_Pilot
+    values: {}
     range: null
     readable: false
   PNT_151:
@@ -1172,6 +1632,14 @@ controls:
     hint: DECM Jammer Power/Mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.DECM_Mode_Knob
+    values:
+      'OFF': 0.0
+      Test STBY: 0.2
+      Test Hold 3sec: 0.4
+      Test ACT: 0.6
+      REC: 0.8
+      RPT: 1.0
     range: null
     readable: true
   PNT_9950:
@@ -1179,6 +1647,8 @@ controls:
     hint: DECM Jammer Volume
     prototype: default_axis
     positions: []
+    command: device_commands.DECM_Vol_Knob
+    values: {}
     range: null
     readable: true
   PNT_16011:
@@ -1186,6 +1656,8 @@ controls:
     hint: AN/ALR-67 Display Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RWR_Brightness_Pilot
+    values: {}
     range: null
     readable: true
   PNT_2136:
@@ -1193,6 +1665,13 @@ controls:
     hint: AN/ALR-67 Display Type
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RWR_DISPLAY_TYPE
+    values:
+      NORM: 0.0
+      AI: 0.25
+      AAA: 0.5
+      UNK: 0.75
+      FRIEND: 1.0
     range: null
     readable: true
   PNT_2137:
@@ -1200,6 +1679,8 @@ controls:
     hint: AN/ALR-67 Mode
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RWR_DISPLAY_MODE
+    values: {}
     range: null
     readable: true
   PNT_2140:
@@ -1207,6 +1688,8 @@ controls:
     hint: AN/ALR-67 Test
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RWR_TEST_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_2139:
@@ -1214,6 +1697,10 @@ controls:
     hint: AN/ALR-67 Power
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RWR_POWER
+    values:
+      'ON': 1.0
+      'OFF': 0.0
     range: null
     readable: true
   PNT_2138:
@@ -1221,6 +1708,8 @@ controls:
     hint: AN/ALR-67 Volume
     prototype: default_axis
     positions: []
+    command: device_commands.RWR_ALR67_Volume
+    values: {}
     range: null
     readable: true
   PNT_905:
@@ -1228,6 +1717,11 @@ controls:
     hint: Compass Mode
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.AHRS_ModeSwitch
+    values:
+      DG: 1.0
+      SLAVED: 0.0
+      COMP: -1.0
     range: null
     readable: true
   PNT_906:
@@ -1235,6 +1729,10 @@ controls:
     hint: Compass N-S Hemisphere
     prototype: alt_2_position_tumb
     positions: []
+    command: device_commands.AHRS_NorthSouth
+    values:
+      South: 1.0
+      North: -1.0
     range: null
     readable: true
   PNT_909:
@@ -1242,6 +1740,8 @@ controls:
     hint: Compass LAT Correction
     prototype: default_axis
     positions: []
+    command: device_commands.AHRS_LatCorrection
+    values: {}
     range: null
     readable: true
   PNT_1022:
@@ -1249,6 +1749,8 @@ controls:
     hint: Gun Ammunition Counter Adjustment
     prototype: default_axis
     positions: []
+    command: device_commands.WEAP_Gun_Ammo_adjust
+    values: {}
     range: null
     readable: true
   PNT_1019:
@@ -1256,6 +1758,10 @@ controls:
     hint: VDI Display Mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DISP_VDI_display_mode
+    values:
+      TV: 1.0
+      Norm: 0.0
     range: null
     readable: true
   PNT_1015:
@@ -1263,6 +1769,8 @@ controls:
     hint: HUD Take-Off Mode
     prototype: default_displaybutton
     positions: []
+    command: device_commands.DISP_mode_takeoff
+    values: {}
     range: null
     readable: false
   PNT_1014:
@@ -1270,6 +1778,8 @@ controls:
     hint: HUD Cruise Mode
     prototype: default_displaybutton
     positions: []
+    command: device_commands.DISP_mode_cruise
+    values: {}
     range: null
     readable: false
   PNT_1013:
@@ -1277,6 +1787,8 @@ controls:
     hint: HUD Air-to-Air Mode
     prototype: default_displaybutton
     positions: []
+    command: device_commands.DISP_mode_air2air
+    values: {}
     range: null
     readable: false
   PNT_1012:
@@ -1284,6 +1796,8 @@ controls:
     hint: HUD Air-to-Ground Mode
     prototype: default_displaybutton
     positions: []
+    command: device_commands.DISP_mode_air2ground
+    values: {}
     range: null
     readable: false
   PNT_1011:
@@ -1291,6 +1805,8 @@ controls:
     hint: HUD Landing Mode
     prototype: default_displaybutton
     positions: []
+    command: device_commands.DISP_mode_landing
+    values: {}
     range: null
     readable: false
   PNT_228:
@@ -1298,6 +1814,8 @@ controls:
     hint: Accelerometer Reset
     prototype: default_button
     positions: []
+    command: device_commands.ACCEL_Reset
+    values: {}
     range: null
     readable: false
   PNT_1038:
@@ -1305,6 +1823,8 @@ controls:
     hint: VDI Screen Contrast
     prototype: default_axis
     positions: []
+    command: device_commands.VDIG_VDI_contrast
+    values: {}
     range: null
     readable: true
   PNT_1036:
@@ -1312,6 +1832,8 @@ controls:
     hint: VDI Screen Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.VDIG_VSDI_bright
+    values: {}
     range: null
     readable: true
   PNT_1037:
@@ -1319,6 +1841,8 @@ controls:
     hint: HUD Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.VDIG_HUD_bright
+    values: {}
     range: null
     readable: true
   PNT_BARO_SET:
@@ -1326,6 +1850,8 @@ controls:
     hint: Barometric Reference Pressure
     prototype: default_axis
     positions: []
+    command: device_commands.HUD_Baro_set
+    values: {}
     range: null
     readable: true
   PNT_1046:
@@ -1333,6 +1859,10 @@ controls:
     hint: Master Arm Cover
     prototype: default_animated_lever
     positions: []
+    command: device_commands.WEAP_Master_Arm_Cover
+    values:
+      open: 1.0
+      close: 0.0
     range: null
     readable: true
   PNT_1047:
@@ -1340,6 +1870,11 @@ controls:
     hint: Master Arm Switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WEAP_Master_Arm
+    values:
+      'on': -1.0
+      'off': 0.0
+      training: 1.0
     range: null
     readable: true
   PNT_1049:
@@ -1347,6 +1882,10 @@ controls:
     hint: ACM Cover
     prototype: default_animated_lever
     positions: []
+    command: device_commands.WEAP_ACM_Cover
+    values:
+      open: 1.0
+      close: 0.0
     range: null
     readable: true
   PNT_1048:
@@ -1354,6 +1893,8 @@ controls:
     hint: ACM Jettison
     prototype: default_button
     positions: []
+    command: device_commands.WEAP_ACM_Jettison
+    values: {}
     range: null
     readable: false
   PNT_PEN_CLICK:
@@ -1361,6 +1902,8 @@ controls:
     hint: Pen
     prototype: default_button
     positions: []
+    command: device_commands.PILOT_CHECKLIST_TOOL_PEN_CLICK
+    values: {}
     range: null
     readable: false
   PNT_PEN_CLICK_RIO:
@@ -1368,6 +1911,8 @@ controls:
     hint: Pen
     prototype: default_button
     positions: []
+    command: device_commands.RIO_CHECKLIST_TOOL_PEN_CLICK
+    values: {}
     range: null
     readable: false
   PNT_RIO_MCAUTION:
@@ -1375,6 +1920,8 @@ controls:
     hint: Master Caution Reset
     prototype: default_button
     positions: []
+    command: device_commands.WLP_Master_Caution_RIO
+    values: {}
     range: null
     readable: false
   PNT_SW_COOL:
@@ -1382,6 +1929,8 @@ controls:
     hint: Sidewinder cool
     prototype: default_button_big
     positions: []
+    command: device_commands.WEAP_SW_Cool
+    values: {}
     range: null
     readable: false
   PNT_MSL_PREP:
@@ -1389,6 +1938,8 @@ controls:
     hint: Missile prepare
     prototype: default_button_big
     positions: []
+    command: device_commands.WEAP_MSL_Prep
+    values: {}
     range: null
     readable: false
   PNT_MSL_MODE:
@@ -1396,6 +1947,8 @@ controls:
     hint: Missile mode
     prototype: default_button_big
     positions: []
+    command: device_commands.WEAP_MSL_Mode
+    values: {}
     range: null
     readable: false
   PNT_239:
@@ -1403,6 +1956,8 @@ controls:
     hint: Emergency stores jettison
     prototype: default_button_big
     positions: []
+    command: device_commands.WEAP_Emer_Jettison
+    values: {}
     range: null
     readable: false
   PNT_1051:
@@ -1410,6 +1965,8 @@ controls:
     hint: Clock Wind
     prototype: default_axis
     positions: []
+    command: device_commands.CLOCK_Wind
+    values: {}
     range: null
     readable: true
   PNT_CLOCK_RESET:
@@ -1417,6 +1974,8 @@ controls:
     hint: Clock Timer Start/Stop/Reset
     prototype: default_button
     positions: []
+    command: device_commands.CLOCK_Timer
+    values: {}
     range: null
     readable: false
   PNT_1053:
@@ -1424,6 +1983,8 @@ controls:
     hint: Clock Timer Start/Stop/Reset
     prototype: default_button
     positions: []
+    command: device_commands.RIO_CLOCK_Timer
+    values: {}
     range: null
     readable: false
   PNT_1118:
@@ -1431,6 +1992,8 @@ controls:
     hint: TID Jam strobe
     prototype: default_button
     positions: []
+    command: device_commands.TID_JAM_STROBE
+    values: {}
     range: null
     readable: false
   PNT_2113:
@@ -1438,6 +2001,8 @@ controls:
     hint: TID Launch zone
     prototype: default_button
     positions: []
+    command: device_commands.TID_LAUNCH_ZONE
+    values: {}
     range: null
     readable: false
   PNT_2007:
@@ -1445,6 +2010,8 @@ controls:
     hint: HCU TCS mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HCU_IR_TV
+    values: {}
     range: null
     readable: true
   PNT_2008:
@@ -1452,6 +2019,8 @@ controls:
     hint: HCU radar mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HCU_RDR
+    values: {}
     range: null
     readable: true
   PNT_2009:
@@ -1459,6 +2028,8 @@ controls:
     hint: HCU DDD mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HCU_DDD_cursor
+    values: {}
     range: null
     readable: true
   PNT_2010:
@@ -1466,6 +2037,8 @@ controls:
     hint: HCU TID mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.HCU_TID_cursor
+    values: {}
     range: null
     readable: true
   PNT_2011:
@@ -1473,6 +2046,11 @@ controls:
     hint: TV/IR switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.HCU_TVIR_enable
+    values:
+      'On': 1.0
+      Standby: 0.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_2012:
@@ -1480,6 +2058,11 @@ controls:
     hint: WCS switch
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.HCU_WCS_enable
+    values:
+      XMIT: 1.0
+      Standby: 0.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_2013:
@@ -1487,6 +2070,8 @@ controls:
     hint: Power reset
     prototype: default_button
     positions: []
+    command: device_commands.HCU_POWER_RESET_BUTTON
+    values: {}
     range: null
     readable: false
   PNT_2014:
@@ -1494,6 +2079,8 @@ controls:
     hint: Light test
     prototype: default_button
     positions: []
+    command: device_commands.HCU_LIGHT_TEST_BUTTON
+    values: {}
     range: null
     readable: false
   PNT_40:
@@ -1501,6 +2088,8 @@ controls:
     hint: RADAR 5 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_5
+    values: {}
     range: null
     readable: false
   PNT_41:
@@ -1508,6 +2097,8 @@ controls:
     hint: RADAR 10 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_10
+    values: {}
     range: null
     readable: false
   PNT_42:
@@ -1515,6 +2106,8 @@ controls:
     hint: RADAR 20 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_20
+    values: {}
     range: null
     readable: false
   PNT_43:
@@ -1522,6 +2115,8 @@ controls:
     hint: RADAR 50 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_50
+    values: {}
     range: null
     readable: false
   PNT_44:
@@ -1529,6 +2124,8 @@ controls:
     hint: RADAR 100 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_100
+    values: {}
     range: null
     readable: false
   PNT_45:
@@ -1536,6 +2133,8 @@ controls:
     hint: RADAR 200 NM
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_range_200
+    values: {}
     range: null
     readable: false
   PNT_10:
@@ -1543,6 +2142,8 @@ controls:
     hint: RADAR pulse search
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_PSRCH
+    values: {}
     range: null
     readable: false
   PNT_11:
@@ -1550,6 +2151,8 @@ controls:
     hint: RADAR track while scan manual
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_TWSMAN
+    values: {}
     range: null
     readable: false
   PNT_12:
@@ -1557,6 +2160,8 @@ controls:
     hint: RADAR track while scan auto
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_TWSAUTO
+    values: {}
     range: null
     readable: false
   PNT_13:
@@ -1564,6 +2169,8 @@ controls:
     hint: RADAR range while scan
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_RWS
+    values: {}
     range: null
     readable: false
   PNT_14:
@@ -1571,6 +2178,8 @@ controls:
     hint: RADAR pulse doppler search
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_PDSRCH
+    values: {}
     range: null
     readable: false
   PNT_15:
@@ -1578,6 +2187,8 @@ controls:
     hint: RADAR pulse single target track
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_PSTT
+    values: {}
     range: null
     readable: false
   PNT_9916:
@@ -1585,6 +2196,8 @@ controls:
     hint: RADAR pulse doppler single target track
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_WCS_PDSTT
+    values: {}
     range: null
     readable: false
   PNT_17:
@@ -1592,6 +2205,8 @@ controls:
     hint: DDD Interrogate Friend or Foe
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_display_IFF
+    values: {}
     range: null
     readable: false
   PNT_18:
@@ -1599,6 +2214,8 @@ controls:
     hint: DDD Infrared (no function)
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_display_IR
+    values: {}
     range: null
     readable: false
   PNT_19:
@@ -1606,6 +2223,8 @@ controls:
     hint: DDD RADAR
     prototype: default_button
     positions: []
+    command: device_commands.RADAR_DDD_display_radar
+    values: {}
     range: null
     readable: false
   PNT_1812:
@@ -1613,6 +2232,8 @@ controls:
     hint: CCM SPL (no function)
     prototype: default_button
     positions: []
+    command: device_commands.CCM_SPL
+    values: {}
     range: null
     readable: false
   PNT_1813:
@@ -1620,6 +2241,8 @@ controls:
     hint: CCM ALT DIFF (no function)
     prototype: default_button
     positions: []
+    command: device_commands.CCM_ALT_DIFF
+    values: {}
     range: null
     readable: false
   PNT_1814:
@@ -1627,6 +2250,8 @@ controls:
     hint: CCM VGS (no function)
     prototype: default_button
     positions: []
+    command: device_commands.CCM_VGS
+    values: {}
     range: null
     readable: false
   PNT_20:
@@ -1634,6 +2259,8 @@ controls:
     hint: IR gain (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_IR_gain
+    values: {}
     range: null
     readable: true
   PNT_21:
@@ -1641,6 +2268,8 @@ controls:
     hint: IR volume (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_IR_volume
+    values: {}
     range: null
     readable: true
   PNT_22:
@@ -1648,6 +2277,8 @@ controls:
     hint: IR threshold (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_IR_threshold
+    values: {}
     range: null
     readable: true
   PNT_23:
@@ -1655,6 +2286,8 @@ controls:
     hint: Brightness
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_DDD_bright
+    values: {}
     range: null
     readable: true
   PNT_24:
@@ -1662,6 +2295,8 @@ controls:
     hint: Pulse video
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_DDD_pulse_vid
+    values: {}
     range: null
     readable: true
   PNT_25:
@@ -1669,6 +2304,8 @@ controls:
     hint: Erase
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_DDD_erase
+    values: {}
     range: null
     readable: true
   PNT_26:
@@ -1676,6 +2313,8 @@ controls:
     hint: Pulse gain
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_DDD_pulse_gain
+    values: {}
     range: null
     readable: true
   PNT_27:
@@ -1683,6 +2322,8 @@ controls:
     hint: ACM threshold (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_ACM_thresh
+    values: {}
     range: null
     readable: true
   PNT_28:
@@ -1690,6 +2331,8 @@ controls:
     hint: JAM/JET (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_jamjet
+    values: {}
     range: null
     readable: true
   PNT_29:
@@ -1697,6 +2340,8 @@ controls:
     hint: PD threshold clutter (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_PD_thresh_clutter
+    values: {}
     range: null
     readable: true
   PNT_30:
@@ -1704,6 +2349,8 @@ controls:
     hint: PD threshold clear (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_PD_thresh_clear
+    values: {}
     range: null
     readable: true
   PNT_34:
@@ -1711,6 +2358,11 @@ controls:
     hint: Aspect
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_aspect
+    values:
+      tail: -1.0
+      beam: 0.0
+      nose: 1.0
     range: null
     readable: true
   PNT_35:
@@ -1718,6 +2370,11 @@ controls:
     hint: Closing Velocity scale
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_Vc_scale
+    values:
+      low: -1.0
+      norm: 0.0
+      x4: 1.0
     range: null
     readable: true
   PNT_36:
@@ -1725,6 +2382,11 @@ controls:
     hint: Target size
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_tgts
+    values:
+      normal: 1.0
+      small: 0.0
+      large: -1.0
     range: null
     readable: true
   PNT_37:
@@ -1732,6 +2394,11 @@ controls:
     hint: Main Lobe Clutter filter
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_MLC
+    values:
+      out: -1.0
+      auto: 0.0
+      in: 1.0
     range: null
     readable: true
   PNT_38:
@@ -1739,6 +2406,8 @@ controls:
     hint: Automatic Gain Control (no function)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_AGC
+    values: {}
     range: null
     readable: true
   PNT_3900:
@@ -1746,6 +2415,8 @@ controls:
     hint: Parametric amplifier (no function)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADAR_DDD_paramp
+    values: {}
     range: null
     readable: true
   PNT_79:
@@ -1753,6 +2424,12 @@ controls:
     hint: Radar elevation scan
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADAR_elevation_bars_knob
+    values:
+      1 bar scan: 0.0
+      2 bar scan: 0.3333
+      4 bar scan: 0.6666
+      8 bar scan: 0.9999
     range: null
     readable: true
   PNT_80:
@@ -1760,6 +2437,12 @@ controls:
     hint: Radar azimuth scan
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RADAR_azimuth_scan_knob
+    values:
+      10 degree scan: 0.0
+      20 degree scan: 0.3333
+      40 degree scan: 0.6666
+      65 degree scan: 0.9999
     range: null
     readable: true
   PNT_81:
@@ -1767,6 +2450,8 @@ controls:
     hint: Radar elevation center
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_elevation_center_knob
+    values: {}
     range: null
     readable: true
   PNT_82:
@@ -1774,6 +2459,8 @@ controls:
     hint: Radar azimuth center
     prototype: default_axis
     positions: []
+    command: device_commands.RADAR_azimuth_center_knob
+    values: {}
     range: null
     readable: true
   PNT_83:
@@ -1781,6 +2468,10 @@ controls:
     hint: Stabilize
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RADAR_stab_switch
+    values:
+      out: -1.0
+      in: 1.0
     range: null
     readable: true
   PNT_84:
@@ -1788,6 +2479,8 @@ controls:
     hint: VSL switch
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.RADAR_VSL_switch
+    values: {}
     range: null
     readable: true
   PNT_85:
@@ -1795,6 +2488,8 @@ controls:
     hint: TCS Trim azimuth
     prototype: default_axis
     positions: []
+    command: device_commands.TCS_Trim_az
+    values: {}
     range: null
     readable: true
   PNT_86:
@@ -1802,6 +2497,8 @@ controls:
     hint: TCS Trim elevation
     prototype: default_axis
     positions: []
+    command: device_commands.TCS_Trim_el
+    values: {}
     range: null
     readable: true
   PNT_87:
@@ -1809,6 +2506,11 @@ controls:
     hint: TCS Acquisition
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.TCS_ACQ_switch
+    values:
+      Auto: -1.0
+      MAN: 0.0
+      Auto Search: 1.0
     range: null
     readable: true
   PNT_88:
@@ -1816,6 +2518,10 @@ controls:
     hint: TCS FOV
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.TCS_FOV_button
+    values:
+      wide: 1.0
+      narrow: -1.0
     range: null
     readable: true
   PNT_89:
@@ -1823,6 +2529,11 @@ controls:
     hint: TCS Slave
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.TCS_Slave_switch
+    values:
+      Slave TCS: -1.0
+      TCS/Radar independent: 0.0
+      Slave Radar: 1.0
     range: null
     readable: true
   PNT_91:
@@ -1830,6 +2541,8 @@ controls:
     hint: Record mode (no function)
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.RECORD_mode
+    values: {}
     range: null
     readable: true
   PNT_16016:
@@ -1837,6 +2550,8 @@ controls:
     hint: Record reset (no function)
     prototype: default_axis
     positions: []
+    command: device_commands.RECORD_Knob_Reset
+    values: {}
     range: null
     readable: true
   PNT_9960:
@@ -1844,6 +2559,18 @@ controls:
     hint: Weapon Interval x10ms
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.WEAP_Interval_10s
+    values:
+      '0': 0.0
+      '1': 0.111
+      '2': 0.222
+      '3': 0.333
+      '4': 0.444
+      '5': 0.555
+      '6': 0.666
+      '7': 0.777
+      '8': 0.888
+      '9': 0.999
     range: null
     readable: true
   PNT_9961:
@@ -1851,6 +2578,18 @@ controls:
     hint: Weapon Interval x100ms
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.WEAP_Interval_100s
+    values:
+      '0': 0.0
+      '1': 0.111
+      '2': 0.222
+      '3': 0.333
+      '4': 0.444
+      '5': 0.555
+      '6': 0.666
+      '7': 0.777
+      '8': 0.888
+      '9': 0.999
     range: null
     readable: true
   PNT_9962:
@@ -1858,6 +2597,12 @@ controls:
     hint: Weapon Quantity 10s
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.WEAP_Quantity_10s
+    values:
+      '0': 0.0
+      '1': 0.111
+      '2': 0.222
+      '3': 0.333
     range: null
     readable: true
   PNT_9963:
@@ -1865,6 +2610,18 @@ controls:
     hint: Weapon Quantity 1s
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.WEAP_Quantity_1s
+    values:
+      '0': 0.0
+      '1': 0.111
+      '2': 0.222
+      '3': 0.333
+      '4': 0.444
+      '5': 0.555
+      '6': 0.666
+      '7': 0.777
+      '8': 0.888
+      '9': 0.999
     range: null
     readable: true
   PNT_2022:
@@ -1872,6 +2629,13 @@ controls:
     hint: Attack mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.WEAP_ATTK_Mode
+    values:
+      Computer TGT: 0.0
+      Computer IP: 0.25
+      Computer PLT: 0.5
+      MAN: 0.75
+      D/L BOMB: 1.0
     range: null
     readable: true
   PNT_58:
@@ -1879,6 +2643,13 @@ controls:
     hint: Elec fuse
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.WEAP_Elec_Fuse
+    values:
+      Safe: 0.0
+      VT: 0.25
+      INST: 0.5
+      DLY1: 0.75
+      DLY2: 1.0
     range: null
     readable: true
   PNT_72:
@@ -1886,6 +2657,14 @@ controls:
     hint: Missile speed gate
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.WEAP_MSL_SPD_Gate
+    values:
+      Wide: 0.0
+      Narrow: 0.2
+      Nose: 0.4
+      Nose Quater: 0.6
+      Tail Quater: 0.8
+      Tail: 1.0
     range: null
     readable: true
   PNT_78:
@@ -1893,6 +2672,8 @@ controls:
     hint: Selective jettison
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.WEAP_Selective_Jett
+    values: {}
     range: null
     readable: true
   PNT_1069:
@@ -1900,6 +2681,8 @@ controls:
     hint: Jettison aux guard
     prototype: default_animated_lever
     positions: []
+    command: device_commands.WEAP_Selective_Jett_cover
+    values: {}
     range: null
     readable: true
   PNT_63:
@@ -1907,6 +2690,11 @@ controls:
     hint: Mech fuse
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WEAP_Mech_Fuse
+    values:
+      Nose: 1.0
+      Safe: 0.0
+      Nose/Tail: -1.0
     range: null
     readable: true
   PNT_75:
@@ -1914,6 +2702,11 @@ controls:
     hint: Missile option
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WEAP_Missile_Option
+    values:
+      Phoenix Active: -1.0
+      normal: 0.0
+      Sparrow Pulse Doppler: 1.0
     range: null
     readable: true
   PNT_60:
@@ -1921,6 +2714,10 @@ controls:
     hint: Bomb single/pairs
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Bomb_SinglePairs
+    values:
+      Pairs: -1.0
+      Single: 1.0
     range: null
     readable: true
   PNT_61:
@@ -1928,6 +2725,10 @@ controls:
     hint: Bomb step/ripple
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Bomb_StepRipple
+    values:
+      Ripple: -1.0
+      Step: 1.0
     range: null
     readable: true
   PNT_62:
@@ -1935,6 +2736,10 @@ controls:
     hint: A/G gun mode
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_AG_Gun
+    values:
+      Mixed: 1.0
+      'Off': -1.0
     range: null
     readable: true
   PNT_66:
@@ -1942,6 +2747,10 @@ controls:
     hint: Jettison racks/weapons
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_RackWeapons
+    values:
+      Weapons: -1.0
+      MER/TER: 1.0
     range: null
     readable: true
   PNT_73:
@@ -1949,6 +2758,10 @@ controls:
     hint: Jettison left tank
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_LeftTank
+    values:
+      Safe: -1.0
+      Select: 1.0
     range: null
     readable: true
   PNT_67:
@@ -1956,6 +2769,10 @@ controls:
     hint: Jettison right tank
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_RightTank
+    values:
+      Safe: -1.0
+      Select: 1.0
     range: null
     readable: true
   PNT_68:
@@ -1963,6 +2780,8 @@ controls:
     hint: Jettison station 1
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station1
+    values: {}
     range: null
     readable: true
   PNT_65:
@@ -1970,6 +2789,8 @@ controls:
     hint: Jettison station 3
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station3
+    values: {}
     range: null
     readable: true
   PNT_69:
@@ -1977,6 +2798,8 @@ controls:
     hint: Jettison station 4
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station4
+    values: {}
     range: null
     readable: true
   PNT_70:
@@ -1984,6 +2807,8 @@ controls:
     hint: Jettison station 5
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station5
+    values: {}
     range: null
     readable: true
   PNT_64:
@@ -1991,6 +2816,8 @@ controls:
     hint: Jettison station 6
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station6
+    values: {}
     range: null
     readable: true
   PNT_71:
@@ -1998,6 +2825,8 @@ controls:
     hint: Jettison station 8
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.WEAP_Jett_Station8
+    values: {}
     range: null
     readable: true
   PNT_74:
@@ -2005,6 +2834,8 @@ controls:
     hint: A/A Launch
     prototype: default_button
     positions: []
+    command: device_commands.WEAP_AA_Launch
+    values: {}
     range: null
     readable: false
   PNT_9964:
@@ -2012,6 +2843,8 @@ controls:
     hint: Next Launch
     prototype: default_button
     positions: []
+    command: device_commands.WEAP_Next_launch
+    values: {}
     range: null
     readable: false
   PNT_98:
@@ -2019,6 +2852,14 @@ controls:
     hint: CAP category
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.CAP_category
+    values:
+      BIT: 0.0
+      SPL: 0.2
+      NAV: 0.4
+      TAC: 0.6
+      D/L: 0.8
+      TGT: 1.0
     range: null
     readable: true
   PNT_123:
@@ -2026,6 +2867,8 @@ controls:
     hint: CAP btn 4
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button4
+    values: {}
     range: null
     readable: false
   PNT_124:
@@ -2033,6 +2876,8 @@ controls:
     hint: CAP btn 5
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button5
+    values: {}
     range: null
     readable: false
   PNT_125:
@@ -2040,6 +2885,8 @@ controls:
     hint: CAP btn 3
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button3
+    values: {}
     range: null
     readable: false
   PNT_126:
@@ -2047,6 +2894,8 @@ controls:
     hint: CAP btn 2
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button2
+    values: {}
     range: null
     readable: false
   PNT_127:
@@ -2054,6 +2903,8 @@ controls:
     hint: CAP btn 1
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button1
+    values: {}
     range: null
     readable: false
   PNT_128:
@@ -2061,6 +2912,8 @@ controls:
     hint: CAP TNG NBR
     prototype: default_button
     positions: []
+    command: device_commands.CAP_tng_nbr
+    values: {}
     range: null
     readable: false
   PNT_129:
@@ -2068,6 +2921,8 @@ controls:
     hint: CAP btn 10
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button10
+    values: {}
     range: null
     readable: false
   PNT_130:
@@ -2075,6 +2930,8 @@ controls:
     hint: CAP btn 9
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button9
+    values: {}
     range: null
     readable: false
   PNT_131:
@@ -2082,6 +2939,8 @@ controls:
     hint: CAP btn 8
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button8
+    values: {}
     range: null
     readable: false
   PNT_132:
@@ -2089,6 +2948,8 @@ controls:
     hint: CAP btn 7
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button7
+    values: {}
     range: null
     readable: false
   PNT_133:
@@ -2096,6 +2957,8 @@ controls:
     hint: CAP btn 6
     prototype: default_button
     positions: []
+    command: device_commands.CAP_button6
+    values: {}
     range: null
     readable: false
   PNT_134:
@@ -2103,6 +2966,8 @@ controls:
     hint: CAP PGM RSTRT
     prototype: default_button
     positions: []
+    command: device_commands.CAP_program_restart
+    values: {}
     range: null
     readable: false
   PNT_136:
@@ -2110,6 +2975,8 @@ controls:
     hint: CAP LONG 6
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_LONG_6
+    values: {}
     range: null
     readable: false
   PNT_137:
@@ -2117,6 +2984,8 @@ controls:
     hint: CAP LAT 1
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_LAT_1
+    values: {}
     range: null
     readable: false
   PNT_138:
@@ -2124,6 +2993,8 @@ controls:
     hint: CAP NBR 2
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_NBR_2
+    values: {}
     range: null
     readable: false
   PNT_139:
@@ -2131,6 +3002,8 @@ controls:
     hint: CAP 7
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_7
+    values: {}
     range: null
     readable: false
   PNT_140:
@@ -2138,6 +3011,8 @@ controls:
     hint: CAP HDG 8
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_HDG_8
+    values: {}
     range: null
     readable: false
   PNT_141:
@@ -2145,6 +3020,8 @@ controls:
     hint: CAP SPD 3
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_SPD_3
+    values: {}
     range: null
     readable: false
   PNT_143:
@@ -2152,6 +3029,8 @@ controls:
     hint: CAP ALT 4
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_ALT_4
+    values: {}
     range: null
     readable: false
   PNT_142:
@@ -2159,6 +3038,8 @@ controls:
     hint: CAP 9
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_9
+    values: {}
     range: null
     readable: false
   PNT_144:
@@ -2166,6 +3047,8 @@ controls:
     hint: CAP BRG 0
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_BRG_0
+    values: {}
     range: null
     readable: false
   PNT_145:
@@ -2173,6 +3056,8 @@ controls:
     hint: CAP RNG 5
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_RNG_5
+    values: {}
     range: null
     readable: false
   PNT_146:
@@ -2180,6 +3065,8 @@ controls:
     hint: CAP N+E
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_NE
+    values: {}
     range: null
     readable: false
   PNT_147:
@@ -2187,6 +3074,8 @@ controls:
     hint: CAP S-W
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_SW
+    values: {}
     range: null
     readable: false
   PNT_148:
@@ -2194,6 +3083,8 @@ controls:
     hint: CAP clear
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_clear
+    values: {}
     range: null
     readable: false
   PNT_149:
@@ -2201,6 +3092,8 @@ controls:
     hint: CAP enter
     prototype: default_cap_button
     positions: []
+    command: device_commands.CAP_enter
+    values: {}
     range: null
     readable: false
   PNT_413:
@@ -2208,6 +3101,8 @@ controls:
     hint: Datalink Power
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.DATALINK_power
+    values: {}
     range: null
     readable: true
   PNT_175:
@@ -2215,6 +3110,8 @@ controls:
     hint: Datalink Antenna (no function)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DATALINK_antenna_pos
+    values: {}
     range: null
     readable: true
   PNT_176:
@@ -2222,6 +3119,8 @@ controls:
     hint: Datalink Reply (no function)
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DATALINK_reply
+    values: {}
     range: null
     readable: true
   PNT_177:
@@ -2229,6 +3128,8 @@ controls:
     hint: Datalink CAINS/TAC
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.DATALINK_tac_cains
+    values: {}
     range: null
     readable: true
   PNT_191:
@@ -2236,6 +3137,8 @@ controls:
     hint: Datalink Antijam (no function)
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.DATALINK_antijam
+    values: {}
     range: null
     readable: true
   PNT_196:
@@ -2243,6 +3146,8 @@ controls:
     hint: Datalink freq 10MHz
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.DATALINK_freq_10s
+    values: {}
     range: null
     readable: true
   PNT_195:
@@ -2250,6 +3155,8 @@ controls:
     hint: Datalink freq 1MHz
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.DATALINK_freq_1s
+    values: {}
     range: null
     readable: true
   PNT_197:
@@ -2257,6 +3164,8 @@ controls:
     hint: Datalink freq 100kHz
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.DATALINK_freq_tenths
+    values: {}
     range: null
     readable: true
   PNT_222:
@@ -2264,6 +3173,8 @@ controls:
     hint: Datalink address high
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.DATALINK_addr_hi
+    values: {}
     range: null
     readable: true
   PNT_223:
@@ -2271,6 +3182,8 @@ controls:
     hint: Datalink address low
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.DATALINK_addr_lo
+    values: {}
     range: null
     readable: true
   PNT_118:
@@ -2278,6 +3191,8 @@ controls:
     hint: Beacon mode
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.BEACON_mode_knob
+    values: {}
     range: null
     readable: true
   PNT_117:
@@ -2285,6 +3200,8 @@ controls:
     hint: ACLS test
     prototype: default_button
     positions: []
+    command: device_commands.BEACON_ACLS_test_button
+    values: {}
     range: null
     readable: false
   PNT_96:
@@ -2292,6 +3209,8 @@ controls:
     hint: Beacon Power
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.BEACON_power_switch
+    values: {}
     range: null
     readable: true
   PNT_161:
@@ -2299,6 +3218,8 @@ controls:
     hint: IFF audio/light
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.IFF_audiolight_switch
+    values: {}
     range: null
     readable: true
   PNT_162:
@@ -2306,6 +3227,8 @@ controls:
     hint: IFF M1
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.IFF_M1_switch
+    values: {}
     range: null
     readable: true
   PNT_163:
@@ -2313,6 +3236,8 @@ controls:
     hint: IFF M2
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.IFF_M2_switch
+    values: {}
     range: null
     readable: true
   PNT_164:
@@ -2320,6 +3245,8 @@ controls:
     hint: IFF M3/A
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.IFF_M3A_switch
+    values: {}
     range: null
     readable: true
   PNT_165:
@@ -2327,6 +3254,8 @@ controls:
     hint: IFF MC
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.IFF_MC_switch
+    values: {}
     range: null
     readable: true
   PNT_166:
@@ -2334,6 +3263,8 @@ controls:
     hint: IFF RAD
     prototype: default_springloaded_3pos_switch
     positions: []
+    command: device_commands.IFF_RAD_switch
+    values: {}
     range: null
     readable: true
   PNT_181:
@@ -2341,6 +3272,8 @@ controls:
     hint: IFF M4
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.IFF_M4_switch
+    values: {}
     range: null
     readable: true
   PNT_183:
@@ -2348,6 +3281,8 @@ controls:
     hint: IFF M4 code
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.IFF_code_knob
+    values: {}
     range: null
     readable: true
   PNT_184:
@@ -2355,6 +3290,8 @@ controls:
     hint: IFF master
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.IFF_master_knob
+    values: {}
     range: null
     readable: true
   PNT_185:
@@ -2362,6 +3299,8 @@ controls:
     hint: IFF test
     prototype: default_button
     positions: []
+    command: device_commands.IFF_test_button
+    values: {}
     range: null
     readable: false
   PNT_186:
@@ -2369,6 +3308,8 @@ controls:
     hint: IFF reply
     prototype: default_button
     positions: []
+    command: device_commands.IFF_reply_button
+    values: {}
     range: null
     readable: false
   PNT_2262:
@@ -2376,6 +3317,8 @@ controls:
     hint: IFF M3 code ---x
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M3code_1s
+    values: {}
     range: null
     readable: true
   PNT_2261:
@@ -2383,6 +3326,8 @@ controls:
     hint: IFF M3 code --x-
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M3code_10s
+    values: {}
     range: null
     readable: true
   PNT_198:
@@ -2390,6 +3335,8 @@ controls:
     hint: IFF M3 code -x--
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M3code_100s
+    values: {}
     range: null
     readable: true
   PNT_199:
@@ -2397,6 +3344,8 @@ controls:
     hint: IFF M3 code x---
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M3code_1000s
+    values: {}
     range: null
     readable: true
   PNT_200:
@@ -2404,6 +3353,8 @@ controls:
     hint: IFF M1 code -x
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M1code_1s
+    values: {}
     range: null
     readable: true
   PNT_201:
@@ -2411,6 +3362,8 @@ controls:
     hint: IFF M1 code x-
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.IFF_M1code_10s
+    values: {}
     range: null
     readable: true
   PNT_AAI_MODE:
@@ -2418,6 +3371,8 @@ controls:
     hint: Interrogator Mode
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.INT_Mode
+    values: {}
     range: null
     readable: true
   PNT_AAI_CODE_UNI:
@@ -2425,6 +3380,8 @@ controls:
     hint: Interrogator Code ---x
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.INT_Code_1s
+    values: {}
     range: null
     readable: true
   PNT_AAI_CODE_TEN:
@@ -2432,6 +3389,8 @@ controls:
     hint: Interrogator Code --x-
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.INT_Code_10s
+    values: {}
     range: null
     readable: true
   PNT_AAI_CODE_HUNDRED:
@@ -2439,6 +3398,8 @@ controls:
     hint: Interrogator Code -x--
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.INT_Code_100s
+    values: {}
     range: null
     readable: true
   PNT_AAI_CODE_THOUSAND:
@@ -2446,6 +3407,8 @@ controls:
     hint: Interrogator Code x---
     prototype: multiposition_roller_limited
     positions: []
+    command: device_commands.INT_Code_1000s
+    values: {}
     range: null
     readable: true
   PNT_AAI_M4:
@@ -2453,6 +3416,8 @@ controls:
     hint: Interrogator M4 Alarm Override
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.INT_M4_ALARM
+    values: {}
     range: null
     readable: true
   PNT_95:
@@ -2460,6 +3425,8 @@ controls:
     hint: Liquid cooling
     prototype: default_3_position_tumb
     positions: []
+    command: device_commands.LIQUID_cooling_switch
+    values: {}
     range: null
     readable: true
   PNT_667:
@@ -2467,6 +3434,8 @@ controls:
     hint: LANTIRN Power
     prototype: multiposition_switch_limited
     positions: []
+    command: device_commands.LANTIRN_PowerMode
+    values: {}
     range: null
     readable: true
   PNT_668:
@@ -2474,6 +3443,8 @@ controls:
     hint: LANTIRN Laser Arm Switch
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.LANTIRN_Laser_ARM
+    values: {}
     range: null
     readable: true
   PNT_670:
@@ -2481,6 +3452,8 @@ controls:
     hint: Video Output Toggle (TCS/LANTIRN)
     prototype: default_button
     positions: []
+    command: device_commands.LANTIRN_TCS_Select_Toggle
+    values: {}
     range: null
     readable: false
   PNT_669:
@@ -2488,6 +3461,8 @@ controls:
     hint: LANTIRN Operate Mode (Unstow)
     prototype: default_button
     positions: []
+    command: device_commands.LANTIRN_OPER_STBY_Toggle
+    values: {}
     range: null
     readable: false
   PNT_671:
@@ -2495,6 +3470,8 @@ controls:
     hint: LANTIRN IBIT
     prototype: default_button
     positions: []
+    command: device_commands.LANTIRN_IBIT
+    values: {}
     range: null
     readable: false
   PNT_PLT_GreasePencil_L:
@@ -2502,6 +3479,8 @@ controls:
     hint: Hide/Show Grease Pencil
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.PILOT_GREASE_PENCIL_LEFT_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_PLT_GreasePencil_R:
@@ -2509,6 +3488,8 @@ controls:
     hint: Hide/Show Grease Pencil
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.PILOT_GREASE_PENCIL_RIGHT_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_RIO_GreasePencil_L:
@@ -2516,6 +3497,8 @@ controls:
     hint: Hide/Show Grease Pencil
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RIO_GREASE_PENCIL_LEFT_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_RIO_GreasePencil_R:
@@ -2523,6 +3506,8 @@ controls:
     hint: Hide/Show Grease Pencil
     prototype: default_2_position_tumb
     positions: []
+    command: device_commands.RIO_GREASE_PENCIL_RIGHT_SWITCH
+    values: {}
     range: null
     readable: true
   PNT_8116:
@@ -2530,5 +3515,7 @@ controls:
     hint: Rudder Trim
     prototype: default_springloaded_3pos_switch_tiny
     positions: []
+    command: device_commands.PILOT_RUDDER_TRIM_SWITCH
+    values: {}
     range: null
     readable: true

@@ -966,5 +966,8 @@
   "cmd.explore_cockpit.stopped": "Arrêté.",
   "tui.cmd.explore_cockpit.description": "Explorer un cockpit et nommer ses contrôles",
   "tui.arg.explore_aircraft": "Type d'appareil dans lequel vous êtes",
-  "tui.arg.explore_control": "Contrôle à encadrer d'abord (facultatif)"
+  "tui.arg.explore_control": "Contrôle à encadrer d'abord (facultatif)",
+  "verifier.in_game.ok": "OK ({value}) - etape suivante",
+  "verifier.in_game.nothing": "Rien lu - etape passee",
+  "verifier.in_game.mismatch": "Lu {measured}, attendu {expected} - a verifier"
 }

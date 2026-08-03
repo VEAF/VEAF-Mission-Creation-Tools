@@ -26,6 +26,8 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from veaf_libs.i18n import t
+
 #: How close a reading has to be to the expected value to count as a match. Wider than a
 #: checklist's own tolerance: this is asking "is it the same position", not "is the step
 #: satisfied", and an argument DCS animates towards a target can sit a hair off it.
@@ -108,6 +110,18 @@ def read_argument(run_lua: LuaRunner, argument: int) -> float:
         ) from error
 
 
+def say(run_lua: LuaRunner, text: str, seconds: int = 20) -> None:
+    """Show a message **in DCS**, where the person doing the work is looking.
+
+    Everything this module prints to a console is invisible to a pilot sitting in a
+    cockpit at full screen — which is the only person who can act on it. Measured on the
+    bridge: ``trigger.action.outText`` reaches the screen from the mission environment,
+    while ``a_out_text_delay`` through the trigger environment does not.
+    """
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+    run_lua(f'trigger.action.outText("{escaped}", {int(seconds)}) return "said"')
+
+
 def highlight(run_lua: LuaRunner, element: str | None) -> None:
     """Box *element* in the pilot's cockpit, or clear the box when it is ``None``."""
     if element is None:
@@ -116,36 +130,51 @@ def highlight(run_lua: LuaRunner, element: str | None) -> None:
         run_lua(f'net.dostring_in("mission", \'a_cockpit_highlight(1, "{element}")\') return "boxed"')
 
 
-def wait_for_change(
+def wait_for_value(
     run_lua: LuaRunner,
     argument: int,
+    expected: float,
     timeout: float = DEFAULT_STEP_TIMEOUT,
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], float] = time.monotonic,
 ) -> float | None:
-    """Wait for an argument to move away from where it started, and settle.
+    """Wait for an argument to reach *expected*, and report where it ended up.
 
-    Waiting on a *change* rather than a keypress is what lets the pilot stay in the
-    cockpit. Waiting for it to settle avoids catching a switch mid-animation.
+    Waiting on the value rather than on a keypress is what lets the pilot stay in the
+    cockpit. Waiting for the **wanted** value rather than for any movement is what took a
+    real session to learn: told to put a switch back and forth, the first version caught
+    the first half of the trip and announced the checklist had the wrong value.
+
+    A control already sitting in the wanted position is confirmed at once — asking someone
+    to move a switch that is already correct is a way of telling them the tool is broken.
 
     Args:
         run_lua: Runs Lua in the mission environment.
         argument: The animation argument to watch.
+        expected: The value that ends the wait.
         timeout: How long to wait before giving up, in seconds.
         sleep: Injected for tests.
         now: Injected for tests.
 
     Returns:
-        The settled value, or ``None`` if nothing moved before the timeout.
+        ``expected`` once reached; otherwise the last settled value the pilot left it at,
+        which is the interesting answer — it means the checklist is wrong. ``None`` when
+        nothing ever moved.
     """
     start = read_argument(run_lua, argument)
+    if abs(start - expected) <= MATCH_TOLERANCE:
+        return start
+
     deadline = now() + timeout
     candidate: float | None = None
     stable_since = 0.0
+    settled: float | None = None
 
     while now() < deadline:
         sleep(POLL_INTERVAL)
         current = read_argument(run_lua, argument)
+        if abs(current - expected) <= MATCH_TOLERANCE:
+            return current
         if abs(current - start) <= MATCH_TOLERANCE:
             candidate = None
             continue
@@ -153,8 +182,8 @@ def wait_for_change(
             candidate = current
             stable_since = now()
         elif now() - stable_since >= SETTLE_SECONDS:
-            return candidate
-    return None
+            settled = candidate
+    return settled
 
 
 def make_lua_runner(serve_url: str, api_key: str, timeout: float = 15.0) -> LuaRunner:
@@ -199,6 +228,7 @@ def verify_step(
     argument: int,
     expected: float,
     timeout: float = DEFAULT_STEP_TIMEOUT,
+    instruction: str = "",
 ) -> StepReading:
     """Box one control, wait for the pilot to move it, and read what it became.
 
@@ -209,13 +239,30 @@ def verify_step(
         argument: The animation argument to read.
         expected: The value the checklist claims.
         timeout: How long to wait for the pilot.
+        instruction: What to tell the pilot to do, shown **in DCS**. Without it the
+            request only exists in a console the pilot cannot see.
 
     Returns:
         What was read, against what was expected.
     """
     highlight(run_lua, element)
+    if instruction:
+        say(run_lua, instruction, seconds=int(timeout))
     try:
-        measured = wait_for_change(run_lua, argument, timeout=timeout)
+        measured = wait_for_value(run_lua, argument, expected, timeout=timeout)
     finally:
         highlight(run_lua, None)
-    return StepReading(number=number, element=element, argument=argument, expected=expected, measured=measured)
+
+    reading = StepReading(number=number, element=element, argument=argument, expected=expected, measured=measured)
+    if instruction:
+        say(run_lua, _outcome_text(reading), seconds=6)
+    return reading
+
+
+def _outcome_text(reading: StepReading) -> str:
+    """One line for the pilot, in game, saying whether to move on."""
+    if reading.matches:
+        return str(t("verifier.in_game.ok", value=reading.measured))
+    if reading.timed_out:
+        return str(t("verifier.in_game.nothing"))
+    return str(t("verifier.in_game.mismatch", measured=reading.measured, expected=reading.expected))

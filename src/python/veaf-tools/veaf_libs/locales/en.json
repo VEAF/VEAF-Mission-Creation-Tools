@@ -966,5 +966,8 @@
   "cmd.explore_cockpit.stopped": "Stopped.",
   "tui.cmd.explore_cockpit.description": "Explore a live cockpit and name its controls",
   "tui.arg.explore_aircraft": "Aircraft type you are sitting in",
-  "tui.arg.explore_control": "Control to box first (optional)"
+  "tui.arg.explore_control": "Control to box first (optional)",
+  "verifier.in_game.ok": "OK ({value}) - next step",
+  "verifier.in_game.nothing": "Nothing read - step skipped",
+  "verifier.in_game.mismatch": "Read {measured}, expected {expected} - check this"
 }

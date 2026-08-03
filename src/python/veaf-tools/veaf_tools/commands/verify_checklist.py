@@ -69,7 +69,8 @@ def verify_checklist(
     readings = []
     try:
         for number, step in measurable:
-            console.print(t("cmd.verify_checklist.prompt", number=number, label=_plain(step.label)))
+            todo = _what_to_do(step)
+            console.print(t("cmd.verify_checklist.prompt", number=number, label=todo))
             reading = verify_step(
                 run_lua,
                 number=number,
@@ -77,6 +78,7 @@ def verify_checklist(
                 argument=int(step.argument or 0),
                 expected=float(step.equals or 0.0),
                 timeout=timeout,
+                instruction=f"{number}. {todo}",
             )
             readings.append(reading)
             if reading.timed_out:
@@ -108,6 +110,20 @@ def _plain(label: object) -> str:
     if isinstance(label, dict):
         return str(label.get("fr") or label.get("en") or next(iter(label.values()), ""))
     return str(label)
+
+
+def _what_to_do(step: object) -> str:
+    """Say which control to move and where, not just what the step is called.
+
+    A step's label is written for a pilot mid-procedure — "Lancer le moteur droit" — and
+    says neither which control nor which position. The instructor's own `control` text
+    does both, and it is right there in the file; the element and the expected value are
+    the fallback when a step was written the technical way.
+    """
+    control = getattr(step, "control", None)
+    if control:
+        return str(control)
+    return f"{getattr(step, 'element', '?')} → {getattr(step, 'equals', '?')} ({_plain(getattr(step, 'label', ''))})"
 
 
 def _mark_verified(path: Path, numbers: list[int]) -> None:

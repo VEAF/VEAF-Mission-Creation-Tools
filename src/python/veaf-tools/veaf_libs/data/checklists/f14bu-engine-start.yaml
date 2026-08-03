@@ -1,0 +1,82 @@
+# F-14B(U) engine start — the pilot's "Engine Startup" procedure.
+#
+# Source: Heatblur's official F-14 manual, https://f14.manuals.heatblur.se/f14bu/procedures/checklists/startup.html
+# read on 2026-08-03. The sequence and the positions are technical facts about the
+# aircraft; the wording of the labels here is our own, and Heatblur's text is not
+# reproduced. The manual's own vocabulary and the cockpit's differ in places — it says
+# "HYD TRANSFER PUMP ... OFF" where the switch is labelled SHUTOFF — and the `control`
+# lines below name the position the cockpit uses, since that is what gets checked.
+#
+# The RIO's part of the procedure is a separate checklist, not extra steps here.
+#
+# Written the instructor way: each step says what to do in plain words, and
+# `veaf-tools resolve-checklist` filled in element/argument/equals from the F-14B(U)
+# cockpit index. Re-run it after editing any `control`.
+
+id: f14bu-engine-start
+title:
+  en: F-14B(U) — engine start (pilot)
+  fr: F-14B(U) — démarrage moteurs (pilote)
+aircraft: [F-14BU]
+menu: cold-start
+
+steps:
+  - label:
+      en: Air source OFF
+      fr: Source d'air sur OFF
+    control: Air Source Off
+    element: PNT_933
+    confirm: true
+    resolved_from: Air Source Off
+
+  - label:
+      en: Hydraulic transfer pump to SHUTOFF, cover up
+      fr: Pompe de transfert hydraulique sur SHUTOFF, capot relevé
+    control: Hydraulic Transfer Pump Switch sur SHUTOFF
+    element: PNT_629
+    argument: 629
+    equals: 1.0
+    resolved_from: Hydraulic Transfer Pump Switch sur SHUTOFF
+
+  - label:
+      en: Crank the right engine
+      fr: Lancer le moteur droit
+    control: Engine Crank sur Right Engine
+    element: PNT_2102
+    argument: 2102
+    equals: -1.0
+    resolved_from: Engine Crank sur Right Engine
+
+  - label:
+      en: Right throttle to IDLE once RPM passes 20%
+      fr: Manette droite sur IDLE une fois 20% de régime atteint
+    confirm: true
+
+  - label:
+      en: R GEN caution out around 59% RPM
+      fr: Voyant R GEN éteint vers 59% de régime
+    element: PNT_936
+    confirm: true
+
+  - label:
+      en: Crank the left engine
+      fr: Lancer le moteur gauche
+    control: Engine Crank sur Left Engine
+    element: PNT_2102
+    argument: 2102
+    equals: 1.0
+    resolved_from: Engine Crank sur Left Engine
+
+  - label:
+      en: Left throttle to IDLE once RPM passes 20%
+      fr: Manette gauche sur IDLE une fois 20% de régime atteint
+    confirm: true
+
+  - label:
+      en: Hydraulic transfer pump back to NORMAL
+      fr: Pompe de transfert hydraulique de retour sur NORMAL
+    control: Hydraulic Transfer Pump Switch sur NORMAL
+    element: PNT_629
+    argument: 629
+    equals: 0.0
+    resolved_from: Hydraulic Transfer Pump Switch sur NORMAL

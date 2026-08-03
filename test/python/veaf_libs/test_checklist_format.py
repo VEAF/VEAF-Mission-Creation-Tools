@@ -199,6 +199,13 @@ class TestChecklistRejections(unittest.TestCase):
     def test_unknown_aircraft_type_is_rejected(self):
         self._assert_rejected({**VALID_CHECKLIST, "aircraft": ["F-16C_51"]}, "F-16C_51")
 
+    def test_an_aircraft_too_recent_for_the_catalogue_is_accepted_if_indexed(self):
+        # The unit catalogue is generated from a datamine at a pinned revision, so it does
+        # not know the F-14B(U). Refusing a checklist for the aircraft somebody just bought
+        # would be the wrong answer; its committed cockpit index proves it exists.
+        checklist = parse_checklist({**VALID_CHECKLIST, "aircraft": ["F-14BU"]}, "s")
+        self.assertEqual(["F-14BU"], checklist.aircraft)
+
     def test_param_and_check_together_are_rejected(self):
         self._assert_rejected(
             _with_steps({"label": "l", "param": "P", "equals": 1.0, "check": {"type": "x"}}),
@@ -519,6 +526,28 @@ class TestControlStaysDesignTime(unittest.TestCase):
         self.assertIn("PTR-THRTL-RLS-757", lua)
         self.assertNotIn("throttle sur idle", lua)
         self.assertNotIn("resolved_from", lua)
+
+
+class TestShippedCatalogue(unittest.TestCase):
+    """Every checklist this project ships has to load, and be fully resolved."""
+
+    def test_the_shipped_checklists_load(self):
+        shipped = load_checklists()
+        self.assertIn("f16c-cold-start", shipped)
+        self.assertIn("f14bu-engine-start", shipped)
+
+    def test_no_shipped_checklist_has_an_unresolved_step(self):
+        # A shipped checklist with a stale `control` would fail the build of any mission
+        # that activates it — found here rather than by a mission maker.
+        for identifier, checklist in load_checklists().items():
+            self.assertEqual([], checklist.unresolved_steps(), identifier)
+
+    def test_the_f14bu_checklist_checks_the_switches_it_can(self):
+        steps = load_checklists()["f14bu-engine-start"].steps
+        switches = [step.check_table() for step in steps if step.check_table()["type"] == "switch"]
+        # The two transfer-pump steps and the two engine-crank ones; the throttles are
+        # axes and the air-source selector is five separate buttons.
+        self.assertEqual(4, len(switches))
 
 
 if __name__ == "__main__":

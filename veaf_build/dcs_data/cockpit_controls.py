@@ -35,10 +35,16 @@ AIRCRAFT: dict[str, str] = {
     "A-10C_2": "A-10C_2",
     "AH-64D": "AH-64D_BLK_II",
     "F-15E": "F-15ESE",
-    # Heatblur's F-14B(U) has no cockpit of its own: its clickabledata.lua is two lines
-    # of `dofile` pointing back at the F-14B's, so both aircraft share one index.
     "F14": "F-14B",
+    # Heatblur's F-14B(U) has no cockpit of its own: its clickabledata.lua is two lines
+    # of `dofile` pointing back at the F-14B's. It does ship its own input bindings
+    # though, which is where position values come from, so it gets its own index rather
+    # than sharing the F-14B's.
+    "F14BU": "F-14BU",
 }
+
+#: Modules whose cockpit files live in another module's folder.
+COCKPIT_SOURCE: dict[str, str] = {"F14BU": "F14"}
 
 
 def write_index_yaml(index: dict, output: Path) -> None:
@@ -86,7 +92,7 @@ def generate(dcs_path: Path, output_dir: Path | None = None, only: str | None = 
     written: dict[str, tuple[int, int]] = {}
     for module, aircraft in wanted.items():
         try:
-            parsed = read_aircraft(dcs_path, module, aircraft)
+            parsed = read_aircraft(dcs_path, module, aircraft, COCKPIT_SOURCE.get(module))
         except FileNotFoundError:
             continue
         index = to_index(parsed, module=module, dcs_version=dcs_version)

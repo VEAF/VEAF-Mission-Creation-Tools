@@ -1144,6 +1144,92 @@ veaf.i18nCatalog = {
     fr = "Le menu radio liste tous les actifs, amis ou ennemis\nUtilisez ces menus pour faire réapparaître les actifs au besoin\n",
     en = "The radio menu lists all the assets, friendly or enemy\nUse these menus to respawn the assets when needed\n",
   },
+
+  -- veafAssist — guided checklists. Short event texts; the persistent checklist
+  -- itself is the generated picture, not a message.
+  ["assist.started"] = {
+    fr = "Assistance : %s",
+    en = "Assistance: %s",
+  },
+  ["assist.step_validated"] = {
+    fr = "Fait : %s",
+    en = "Done: %s",
+  },
+  ["assist.step_skipped"] = {
+    fr = "Étape passée : %s",
+    en = "Step skipped: %s",
+  },
+  ["assist.completed"] = {
+    fr = "Terminé : %s",
+    en = "Complete: %s",
+  },
+  -- Text mode only (a mission built with `display: text`): the picture is what normally
+  -- carries the checklist, so without one the current instruction has to be said.
+  ["assist.step_current"] = {
+    fr = "Étape %d/%d : %s",
+    en = "Step %d/%d: %s",
+  },
+
+  -- veafAssist — radio menu. "assist.menu.<slot>" labels a checklist's `menu` slot; an
+  -- unknown slot resolves to itself, so a mission maker's own checklist still reads.
+  ["assist.menu.root"] = {
+    fr = "Assistance",
+    en = "Assistance",
+  },
+  ["assist.menu.cold-start"] = {
+    fr = "Démarrage à froid",
+    en = "Cold start",
+  },
+  -- These two sit at the top level of the radio menu, among unrelated entries, so they
+  -- name the module rather than relying on a parent menu for context.
+  ["assist.menu.confirm"] = {
+    fr = "Assistance : valider l'étape",
+    en = "Assistance: confirm the step",
+  },
+  ["assist.menu.skip"] = {
+    fr = "Assistance : passer l'étape",
+    en = "Assistance: skip the step",
+  },
+  ["assist.menu.toggle_picture"] = {
+    fr = "Masquer / afficher la checklist",
+    en = "Hide / show the checklist",
+  },
+  ["assist.menu.stop"] = {
+    fr = "Arrêter l'assistance",
+    en = "Stop the assistance",
+  },
+
+  -- veafAssist — guided checklists.
+  -- The F-16C wording follows ED's own autostart sequence (Macro_sequencies.lua); the
+  -- cockpit labels stay in English because that is what is written in the cockpit.
+  ["assist.f16c.coldstart.title"] = {
+    fr = "F-16C — démarrage moteur",
+    en = "F-16C — engine start",
+  },
+  ["assist.f16c.main_pwr_batt"] = {
+    fr = "MAIN PWR sur BATT",
+    en = "MAIN PWR switch to BATT",
+  },
+  ["assist.f16c.main_pwr_on"] = {
+    fr = "MAIN PWR sur MAIN PWR",
+    en = "MAIN PWR switch to MAIN PWR",
+  },
+  ["assist.f16c.jfs_start2"] = {
+    fr = "JFS sur START 2",
+    en = "JFS switch to START 2",
+  },
+  ["assist.f16c.jfs_run_light"] = {
+    fr = "Voyant JFS RUN allumé — vérifier",
+    en = "JFS RUN light on — check",
+  },
+  ["assist.f16c.throttle_idle"] = {
+    fr = "Manette sur IDLE (20 % RPM minimum)",
+    en = "Throttle to IDLE (20% RPM minimum)",
+  },
+  ["assist.f16c.engine_idle"] = {
+    fr = "Moteur au ralenti — vérifier",
+    en = "Engine at idle — check",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

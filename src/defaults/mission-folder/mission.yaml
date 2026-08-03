@@ -111,6 +111,14 @@ modules:
   #         name: T1-Arco-1
   #         description: Arco-1 (KC-135)
   #         information: "Tacan 64Y\nU290.50 (20)"
+  # ASSIST offers guided checklists from the F10 menu (Assistance / …). Off by default:
+  # every activated checklist bakes one picture per step into the .miz.
+  # With no `checklists:` list, the checklists you drop in this mission's `checklists/`
+  # folder are activated — never the whole shipped catalogue.
+  #   ASSIST:
+  #     enabled: true
+  #     display: picture          # `picture` (nice, ~10 KB per step) or `text` (free)
+  #     checklists: [f16c-cold-start]
   # SANCTUARY needs `sanctuary_zones:` — uncomment and fill in to enable:
   #   SANCTUARY:
   #     enabled: true

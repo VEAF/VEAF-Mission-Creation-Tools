@@ -1,6 +1,6 @@
 # 05 — radio menu, i18n and `mission.yaml` wiring
 
-**Status:** ⬜ ready — depends on 03 and 04.
+**Status:** ✅ done — flown and validated 2026-08-01, except the two-pilot case (see the PRD).
 
 Makes the assistance reachable by a pilot and switchable by a mission maker. Nothing here is specific to
 the F-16C.
@@ -73,3 +73,56 @@ belong to ticket 06.
 - **Two players assisted simultaneously without interference** — the case ticket 04's per-session
   highlight allocation exists for, and the one worth testing in game rather than only in mocks.
 - Python-side tests for the config plumbing, following the existing module patterns.
+
+## What was built
+
+The menu is in [`veafAssist.lua`](../../../src/scripts/veaf/veafAssist.lua) (`buildRadioMenu`), the
+config plumbing in [`mission_builder_worker.py`](../../../src/python/veaf-tools/mission_builder/mission_builder_worker.py)
+(`_resolve_checklists`, `_checklist_resources`) and the activation rule in
+[`checklists.py`](../../../src/python/veaf-tools/veaf_libs/checklists.py) (`select_activated`).
+Tests: 9 more Lua cases in `test_veafAssist.lua`, plus `test_checklist_activation.py` and
+`test_assist_checklists_build.py`.
+
+**A small addition to `veafRadio`, and it is the piece that makes the menu work.** The ticket asks for
+an entry only where it applies, and `veafRadio` had no way to express that: a per-group command was
+attached for **every** human group. Commands now accept an optional
+`groupFilter(unitName, groupId) -> boolean`, consulted once per candidate unit. Three lines in
+`_placeCommandOnMenu`, no signature change, and a filter that throws is logged and treated as false so
+it cannot take a menu rebuild down with it.
+
+That filter does more than hide the entry from the wrong aircraft: **the whole contextual menu is
+expressed with it**. Start entries and in-session entries all live in the tree permanently, and each
+decides for itself whether this pilot should see it. Nothing is ever added or removed, so the
+duplicate-per-join failure mode of `FEAT-COMBATZONE-MENU-COALITION` cannot happen here — a state change
+just calls `veafRadio.refreshRadioMenu()`, which is already debounced.
+
+**Activation rule, as agreed with David:** an explicit `checklists:` list wins and an unknown id fails
+the build; with no list, the checklists the mission maker dropped in the mission's own `checklists/`
+folder are activated — never the whole shipped catalogue, since every activated checklist costs one
+image per step in the `.miz`.
+
+## Known limitation
+
+The `Assistance` submenu itself is global — only its **entries** are per group. A pilot flying an
+aircraft with no checklist therefore sees an empty `Assistance` menu rather than no menu at all.
+Scoping the submenu itself would mean rendering the whole subtree per group, which is a rewrite of
+`veafRadio`'s builder, not a prototype's business.
+
+## What the flight changed
+
+**The contextual entries moved to the top level.** Burying "confirm the step" inside `Assistance`
+cost a keystroke on every single step, which David called out immediately — unusable for a six-step
+procedure. `Assistance : valider l'étape` and `Assistance : passer l'étape` now sit at the radio
+menu's root, visible only during a session; the two occasional entries stay in the submenu.
+
+**Order needed a `sortKey`.** `veafRadio` sorts a node's commands alphabetically, and in French
+*"passer"* sorts before *"valider"* — the wrong way round for the pair a pilot presses constantly.
+Commands accept an optional `sortKey` the sort prefers, so a module with an intended sequence gets it
+regardless of how its labels translate.
+
+## Left open
+
+**Two players assisted at once** — the reason the per-session highlight id exists, and the one thing
+the mocks can only pretend to cover. Everything else in the definition of done was exercised in
+flight: starting and stopping from the F10 menu, the contextual entries appearing and disappearing
+with the session, and the module staying inert when disabled.

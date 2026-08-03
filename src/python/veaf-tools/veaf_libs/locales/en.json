@@ -900,5 +900,13 @@
   "weather.injector.solar_times_failed": "Failed to calculate solar times: {error}",
   "weather.injector.time_update_failed": "Failed to update mission time/date: {error}",
   "weather.injector.weather_inject_failed": "Failed to inject weather: {error}",
-  "progress.done": "✓ Done {msg}!"
+  "progress.done": "✓ Done {msg}!",
+  "checklist.invalid": "Invalid checklist '{source}': {details}",
+  "checklist.unreadable": "Cannot read checklist '{source}': {details}",
+  "checklist.duplicate_id": "Two checklists declare the id '{id}': '{first}' and '{second}'. Ids must be unique within a folder.",
+  "checklist.units_catalogue_unavailable": "DCS unit catalogue unavailable: checklist aircraft types will not be validated.",
+  "checklist.images_generated": "Generated {n} checklist image(s), {size} KB embedded in the mission.",
+  "checklist.unknown_id": "mission.yaml activates unknown checklist(s): {ids}. Known: {known}.",
+  "checklist.unknown_display": "modules.ASSIST.display is '{value}'; expected one of: {valid}.",
+  "checklist.text_mode": "Guided checklists in text mode: {n} checklist(s) registered, no image generated."
 }

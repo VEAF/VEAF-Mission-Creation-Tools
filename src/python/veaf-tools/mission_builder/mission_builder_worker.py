@@ -31,6 +31,8 @@ from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import pipeline_step_enabled_anywhere, resolve_profile
 from veaf_libs.build_stamp import get_build_stamp
+from veaf_libs.checklist_images import ChecklistImages, render_all
+from veaf_libs.checklists import Checklist, load_checklists, load_mission_checklists, select_activated
 from veaf_libs.config_override import (
     OVERRIDE_SCRIPT_NAME,
     find_unknown_segments,
@@ -39,9 +41,10 @@ from veaf_libs.config_override import (
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, CTLD_USER_CONFIG_FILENAME
-from veaf_libs.i18n import t, tn
+from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.logger import logger
-from veaf_libs.lua_config_generator import find_undefined_lua_functions, generate_config_lua
+from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
+from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
@@ -151,6 +154,18 @@ _VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
     "VEAF_DictKey_ActionText_12005",
     "VEAF_DictKey_ActionText_12006",
 )
+
+#: Module id of the guided-assistance module, whose config selects the checklists to
+#: activate and therefore the images to render into the ``.miz``.
+_ASSIST_MODULE_ID = "ASSIST"
+
+#: How a mission wants its checklists shown. ``picture`` renders one image per progress
+#: state and embeds them — nice, and the F-16C's six steps already cost 68 KB. ``text``
+#: renders **nothing**: the engine sends the current instruction as a message instead,
+#: which is the whole reason the option exists.
+_ASSIST_DISPLAY_PICTURE = "picture"
+_ASSIST_DISPLAY_TEXT = "text"
+_ASSIST_DISPLAY_MODES = frozenset({_ASSIST_DISPLAY_PICTURE, _ASSIST_DISPLAY_TEXT})
 
 
 def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
@@ -630,6 +645,10 @@ class MissionBuilderWorker(BaseWorker):
         self.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
         self.dcs_bridge_lua_path: str | None = dcsb_cfg.get("lua_path")
         self.dcs_bridge_bytes: bytes | None = None
+
+        # Guided checklists (FEAT-ASSIST-CHECKLISTS): resolved in write_config_lua, then
+        # embedded as .miz resources. Empty when the ASSIST module activates none.
+        self.checklist_images: list[ChecklistImages] = []
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
@@ -1542,11 +1561,14 @@ class MissionBuilderWorker(BaseWorker):
             new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 
-        # merge the new mapResource with the mission mapResource
+        # merge the new mapResource with the mission mapResource. The checklist pictures
+        # go in the same member — DCS resolves getValueResourceByKey against
+        # l10n/DEFAULT/mapResource, not the mission table (see FIX-MAPRESOURCE-KEY).
         assert self.dcs_mission is not None
         self.dcs_mission.map_resource_content = (
             new_map_resource_script_files
             | new_map_resource_mission_script_files
+            | self._checklist_resources()
             | (self.dcs_mission.map_resource_content or {})
         )
 
@@ -1826,10 +1848,14 @@ class MissionBuilderWorker(BaseWorker):
         logger.debug("Writing mission file")
         assert self.dcs_mission is not None
         additional_files: dict[str, bytes] = {}
-        if self.dcs_bridge_bytes is not None:
+        if self.dcs_bridge_bytes is not None or self.checklist_images:
             from mission_tools import DEFAULT_SCRIPTS_LOCATION
 
-            additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/dcs-bridge.lua"] = self.dcs_bridge_bytes
+            if self.dcs_bridge_bytes is not None:
+                additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/dcs-bridge.lua"] = self.dcs_bridge_bytes
+            for entry in self.checklist_images:
+                for filename, payload in entry.files.items():
+                    additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/{filename}"] = payload
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
@@ -1898,10 +1924,71 @@ class MissionBuilderWorker(BaseWorker):
                 exception_type=RuntimeError,
             )
 
+        checklists = self._resolve_checklists(yaml_dict)
+        image_keys = {entry.checklist_id: entry.resource_keys for entry in self.checklist_images}
+
         config_file = scripts_dir / "veaf-config.lua"
-        content = generate_config_lua(yaml_dict)
+        content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
+
+    def _resolve_checklists(self, yaml_dict: dict) -> list[Checklist]:
+        """Resolve the guided checklists this mission activates, and render their images.
+
+        The rendering happens here rather than at write time because the emitted Lua has
+        to carry the resource keys the images will be embedded under, and both come from
+        the same resolution.
+
+        Args:
+            yaml_dict: The effective ``mission.yaml`` mapping.
+
+        Returns:
+            The activated checklists (empty when the ASSIST module is off or activates
+            none). :attr:`checklist_images` is filled to match.
+        """
+        self.checklist_images = []
+        assist_cfg = enabled_module_config(yaml_dict, _ASSIST_MODULE_ID)
+        if assist_cfg is None:
+            return []
+
+        available = load_checklists(mission_folder=self.mission_folder)
+        mission_ids = load_mission_checklists(self.mission_folder)
+        configured = assist_cfg.get("checklists")
+        checklists = select_activated(available, configured, mission_ids)
+        if not checklists:
+            return []
+
+        display = str(assist_cfg.get("display") or _ASSIST_DISPLAY_PICTURE).lower()
+        if display not in _ASSIST_DISPLAY_MODES:
+            logger.error(
+                t("checklist.unknown_display", value=display, valid=", ".join(sorted(_ASSIST_DISPLAY_MODES))),
+                exception_type=ValueError,
+            )
+        if display == _ASSIST_DISPLAY_TEXT:
+            # The whole point of text mode: nothing rendered, nothing embedded, nothing in
+            # mapResource. The engine reads a checklist with no `images` as a text one.
+            logger.info(t("checklist.text_mode", n=len(checklists)))
+            return checklists
+
+        # The picture's text must read like the pilot's messages, so it is resolved through
+        # the runtime catalog, in the mission's language — the same resolution veaf.t()
+        # will do in game.
+        scripts_root = self.scripts_path or (self.mission_folder / "published")
+        catalog = load_runtime_catalog(scripts_root)
+        language = (yaml_dict.get("mission") or {}).get("language") or current_language()
+        self.checklist_images = render_all(checklists, catalog, language)
+        return checklists
+
+    def _checklist_resources(self) -> dict[str, str]:
+        """Return the ``mapResource`` entries of the rendered checklist images.
+
+        Returns:
+            Mapping of resource key to file name, empty when no checklist is activated.
+        """
+        resources: dict[str, str] = {}
+        for entry in self.checklist_images:
+            resources.update(entry.resources())
+        return resources
 
     def work(self, silent: bool = False) -> Path:
         """Main work function."""

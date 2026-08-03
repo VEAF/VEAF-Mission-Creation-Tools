@@ -22,7 +22,9 @@ Sections handled
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 
+from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_module_scanner import get_modules
@@ -55,6 +57,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "AIRBASES",
     "MARKERS",
     "MISSILEGUARDIAN",
+    "ASSIST",
     "TIME",
     "UNITS",
     "CACHE",
@@ -96,6 +99,11 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zones",
         "airwave_zones",
         "password_mm_hashes",
+        # ASSIST: build-time choices, not runtime settings — the engine only ever sees
+        # the checklists the build chose to emit, and infers the display mode from
+        # whether they carry images.
+        "checklists",
+        "display",
     }
 )
 
@@ -223,6 +231,7 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
         "REMOTE",
         "AIRBASES",
         "MISSILEGUARDIAN",
+        "ASSIST",
         "INTERPRETER",
     ],
     "Combat": [
@@ -1155,6 +1164,27 @@ def _resolve_deps(effective: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
+    """Return a module's normalised config block, or ``None`` when it is not active.
+
+    Accepts every shape a mission may write (``ID: true``, ``ID:``, ``ID: {enabled: …}``)
+    and applies the same enable rule as the generator itself, so a caller reading a
+    module's settings cannot disagree with what gets emitted.
+
+    Args:
+        mission_yaml: The effective ``mission.yaml`` mapping (internal ``lua_modules`` key).
+        module_id: The module id, e.g. ``"ASSIST"``.
+
+    Returns:
+        The module's settings, or ``None`` when the mission omits or disables it.
+    """
+    modules: dict = mission_yaml.get("lua_modules") or {}
+    if module_id not in modules:
+        return None
+    config = _normalize_module_cfg(modules[module_id])
+    return config if _get_module_enabled(config, True) else None
+
+
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     """Return whether a community script is enabled, matching the build's enable rule.
 
@@ -1177,9 +1207,91 @@ def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     return bool(cfg)
 
 
+def _emit_check_table(check: dict[str, object]) -> str:
+    """Render a step's resolved check descriptor as an inline Lua table.
+
+    ``type`` leads, so a generated checklist reads the way the engine dispatches it.
+    """
+    ordered = ["type", *(key for key in check if key != "type")]
+    fields = [f"{key} = {_emit_lua_value(check[key])}" for key in ordered if key in check]
+    return "{" + ", ".join(fields) + "}"
+
+
+def _emit_lua_value(value: object) -> str:
+    """Render a scalar for embedding in a generated table, strings safely quoted."""
+    return _emit_lua_string(value) if isinstance(value, str) else _to_lua_scalar(value)
+
+
+def _emit_localized(text: str | dict[str, str], language: str) -> str:
+    """Render a label or title as a Lua string literal.
+
+    A **string** is emitted untouched: it may be a catalog key, and a key has to reach
+    the engine as a key so ``veaf.t()`` resolves it in game. **Inline translations** are
+    resolved here, in the mission's language — the same one the picture is rendered in,
+    so the two can never disagree.
+    """
+    if isinstance(text, str):
+        return _emit_lua_string(text)
+    return _emit_lua_string(resolve_text(text, {}, language))
+
+
+def _emit_checklist_step(step: ChecklistStep, language: str) -> str:
+    """Render one checklist step as an inline Lua table."""
+    fields = [f"label = {_emit_localized(step.label, language)}"]
+    if step.element is not None:
+        fields.append(f"element = {_emit_lua_string(step.element)}")
+    for carried in ("device", "command"):
+        value = getattr(step, carried)
+        if value is not None:
+            fields.append(f"{carried} = {_to_lua_scalar(value)}")
+    fields.append(f"check = {_emit_check_table(step.check_table())}")
+    return "{" + ", ".join(fields) + "}"
+
+
+def emit_checklists_lua(
+    checklists: Sequence[Checklist],
+    image_keys: Mapping[str, Sequence[str]] | None = None,
+    indent: str = "    ",
+    language: str | None = None,
+) -> list[str]:
+    """Render one ``veafAssist.registerChecklist()`` call per checklist.
+
+    Args:
+        checklists: The checklists the mission activates, already validated.
+        image_keys: Per checklist id, the resource key of each progress state. Emitted
+            so the engine indexes a list instead of rebuilding a name by concatenation;
+            a checklist with no entry simply displays no picture.
+        indent: Leading whitespace, so the block sits inside its ``if`` guard.
+
+    Returns:
+        The Lua lines (empty when there is nothing to register).
+    """
+    resolved_language = language or current_language()
+    lines: list[str] = []
+    for checklist in checklists:
+        lines.append(f"{indent}veafAssist.registerChecklist({{")
+        lines.append(f"{indent}    id = {_emit_lua_string(checklist.id)},")
+        lines.append(f"{indent}    title = {_emit_localized(checklist.title, resolved_language)},")
+        aircraft = ", ".join(_emit_lua_string(name) for name in checklist.aircraft)
+        lines.append(f"{indent}    aircraft = {{{aircraft}}},")
+        lines.append(f"{indent}    menu = {_emit_lua_string(checklist.menu)},")
+        keys = (image_keys or {}).get(checklist.id)
+        if keys:
+            rendered = ", ".join(_emit_lua_string(key) for key in keys)
+            lines.append(f"{indent}    images = {{{rendered}}},")
+        lines.append(f"{indent}    steps = {{")
+        for step in checklist.steps:
+            lines.append(f"{indent}        {_emit_checklist_step(step, resolved_language)},")
+        lines.append(f"{indent}    }},")
+        lines.append(f"{indent}}})")
+    return lines
+
+
 def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
+    checklists: Sequence[Checklist] | None = None,
+    checklist_images: Mapping[str, Sequence[str]] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -1190,6 +1302,13 @@ def generate_config_lua(
     header:
         Comment text prepended after the separator line. Defaults to the
         localised generated-file header from the i18n catalog.
+    checklists:
+        Guided checklists the mission activates. Emitted **before** the module
+        initialisation block, so ``veafAssist.initialize()`` sees a populated
+        catalogue when it builds its radio menu. Nothing is emitted when empty,
+        which is what keeps a mission that activates none of them free of cost.
+    checklist_images:
+        Per checklist id, the resource key of each rendered progress state.
 
     Returns
     -------
@@ -1262,6 +1381,16 @@ def generate_config_lua(
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
             lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+        lines.append("")
+
+    # ── Guided checklists ─────────────────────────────────────────────────
+    # Registered before the module block: veafAssist.initialize() reads the catalogue
+    # to build its radio menu, so the data has to be there first.
+    if checklists:
+        lines.append("-- ── Guided checklists (assistance) ───────────────────────────────────────────")
+        lines.append("if veafAssist then")
+        lines.extend(emit_checklists_lua(checklists, checklist_images, language=language))
+        lines.append("end")
         lines.append("")
 
     # ── Module configuration + initialization ─────────────────────────────

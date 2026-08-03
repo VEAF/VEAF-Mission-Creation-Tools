@@ -948,5 +948,9 @@
   "cmd.verify_checklist.summary": "{matched} étape(s) confirmées sur {total}.",
   "cmd.verify_checklist.written": "{count} étape(s) marquées vérifiées dans {path}.",
   "tui.cmd.verify_checklist.description": "Vérifier une checklist dans un vrai cockpit",
-  "tui.arg.checklist_write_verified": "Marquer les étapes confirmées comme vérifiées ?"
+  "tui.arg.checklist_write_verified": "Marquer les étapes confirmées comme vérifiées ?",
+  "tui.group.build": "Construire une mission",
+  "tui.group.extraction": "Extraire d'une mission",
+  "tui.group.config": "Configurer et vérifier",
+  "tui.group.assistance": "Checklists guidées"
 }

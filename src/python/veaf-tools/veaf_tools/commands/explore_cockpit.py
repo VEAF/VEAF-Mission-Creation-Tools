@@ -36,7 +36,7 @@ def explore_cockpit(
     Needs DCS running **on this machine**, with the bridge connected.
     """
     from veaf_libs.checklist_resolver import ResolverError, load_control_index, resolve_control
-    from veaf_libs.checklist_verifier import VerificationError, highlight, make_lua_runner
+    from veaf_libs.checklist_verifier import VerificationError, highlight, make_lua_runner, say
     from veaf_libs.cockpit_explorer import arguments_of, identify, read_many
 
     logger.set_verbose(verbose)
@@ -83,6 +83,18 @@ def explore_cockpit(
                     )
                 )
                 console.print(f"[dim]{change.as_step()}[/dim]")
+                # In game too: the person moving the switches is at full screen in a
+                # cockpit and cannot see this console at all.
+                say(
+                    run_lua,
+                    t(
+                        "cmd.explore_cockpit.in_game",
+                        hint=change.hint or change.element,
+                        argument=change.argument,
+                        value=change.value,
+                    ),
+                    seconds=12,
+                )
             previous = current
     except KeyboardInterrupt:
         # Leaving on Ctrl-C is the documented way out; a traceback would be noise.

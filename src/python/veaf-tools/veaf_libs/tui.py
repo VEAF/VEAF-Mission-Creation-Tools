@@ -237,6 +237,20 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="verify-checklist",
+        description=t("tui.cmd.verify_checklist.description"),
+        prompts=[
+            ArgPrompt(
+                "checklist_file",
+                t("tui.arg.checklist_file"),
+                default="checklists/my-checklist.yaml",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt("write", t("tui.arg.checklist_write_verified"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="migrate-config",
         description=t("tui.cmd.migrate_config.description"),
         prompts=[

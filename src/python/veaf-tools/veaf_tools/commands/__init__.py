@@ -15,6 +15,7 @@ from . import (  # noqa: F401
     resolve_checklist,
     user_config,
     validate,
+    verify_checklist,
     waypoints,
     weather,
 )

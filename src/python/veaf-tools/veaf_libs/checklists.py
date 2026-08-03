@@ -285,18 +285,32 @@ class Checklist(BaseModel):
 
 @lru_cache(maxsize=1)
 def _known_unit_types() -> frozenset[str]:
-    """Return the DCS type ids of the shipped unit catalogue.
+    """Return the DCS type ids a checklist may name.
+
+    Two sources, because one is not enough. The unit catalogue is generated from a
+    community datamine at a **pinned** revision, so an aircraft released since that pin
+    is missing from it — the F-14B(U) is, and rejecting a checklist for the aircraft
+    somebody just bought is the wrong answer. An aircraft with a committed cockpit-control
+    index is proof enough: that index was generated from a real installation.
 
     Returns:
-        The known type ids, or an empty set when the catalogue cannot be read — in
-        which case type validation is skipped rather than rejecting every checklist.
+        The known type ids, or an empty set when neither source can be read — in which
+        case type validation is skipped rather than rejecting every checklist.
     """
     try:
         raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml")) or {}
+        catalogued = frozenset(str(entry["type"]) for entry in (raw.get("units") or []) if entry.get("type"))
     except (OSError, ModuleNotFoundError, yaml.YAMLError):
         logger.warning(t("checklist.units_catalogue_unavailable"))
-        return frozenset()
-    return frozenset(str(entry["type"]) for entry in (raw.get("units") or []) if entry.get("type"))
+        catalogued = frozenset()
+
+    try:
+        indexes = bundled_dir("veaf_libs", "data", "cockpit-controls")
+        indexed = frozenset(path.stem for path in indexes.glob("*.yaml")) if indexes.is_dir() else frozenset()
+    except (OSError, ModuleNotFoundError):
+        indexed = frozenset()
+
+    return catalogued | indexed
 
 
 def _format_validation_error(error: ValidationError) -> str:

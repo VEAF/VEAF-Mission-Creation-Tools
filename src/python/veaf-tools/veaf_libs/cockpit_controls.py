@@ -514,13 +514,17 @@ def read_dcs_version(dcs_path: Path) -> str:
         return ""
 
 
-def read_aircraft(dcs_path: Path, module: str, aircraft: str) -> AircraftControls:
+def read_aircraft(dcs_path: Path, module: str, aircraft: str, cockpit_module: str | None = None) -> AircraftControls:
     """Read one aircraft's controls straight from a DCS installation.
 
     Args:
         dcs_path: Root of the DCS installation.
-        module: Folder name under ``Mods/aircraft``, e.g. ``F-16C``.
+        module: Folder name under ``Mods/aircraft``, e.g. ``F-16C``. Its input bindings
+            are the ones read, since those are per-aircraft.
         aircraft: The DCS **type** name, e.g. ``F-16C_50``.
+        cockpit_module: The module whose cockpit files to read, when it is not *module*.
+            The F-14B(U) needs this: its own ``clickabledata.lua`` is two lines of
+            ``dofile`` pointing at the F-14B's, but it ships its own bindings.
 
     Returns:
         The parsed controls.
@@ -528,21 +532,29 @@ def read_aircraft(dcs_path: Path, module: str, aircraft: str) -> AircraftControl
     Raises:
         FileNotFoundError: when the module ships neither file.
     """
-    folder = cockpit_scripts_folder(dcs_path, module)
+    folder = cockpit_scripts_folder(dcs_path, cockpit_module or module)
     clickabledata = folder / "clickabledata.lua"
     if not clickabledata.is_file():
-        raise FileNotFoundError(f"no clickabledata.lua for module {module} under {folder}")
+        raise FileNotFoundError(f"no clickabledata.lua for module {cockpit_module or module} under {folder}")
 
     def read(name: str) -> str:
         path = folder / name
         return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+
+    # A variant inherits the base module's bindings and adds only its differences: the
+    # F-14B(U)'s own Input folders are stubs that pull the F-14B's profiles in, so reading
+    # them alone yields 4 valued positions where the pair yields 87. Its own come first,
+    # since the first binding of a command wins.
+    bindings = read_input_bindings(dcs_path, module)
+    if cockpit_module and cockpit_module != module:
+        bindings = bindings + "\n" + read_input_bindings(dcs_path, cockpit_module)
 
     return parse_aircraft(
         aircraft,
         clickabledata.read_text(encoding="utf-8", errors="replace"),
         read("clickable_defs.lua"),
         read("draw_args.lua"),
-        read_input_bindings(dcs_path, module),
+        bindings,
     )
 
 

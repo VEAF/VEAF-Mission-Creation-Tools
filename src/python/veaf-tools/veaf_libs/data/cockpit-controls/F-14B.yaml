@@ -219,6 +219,39 @@ controls:
     values: {}
     range: null
     readable: true
+  PNT_2106:
+    argument: 2106
+    hint: DFCS Stability Augmentation - Pitch
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.AFCS_Stability_Pitch
+    values:
+      'On': 1.0
+      'Off': -1.0
+    range: null
+    readable: true
+  PNT_2107:
+    argument: 2107
+    hint: DFCS Stability Augmentation - Roll
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.AFCS_Stability_Roll
+    values:
+      'On': 1.0
+      'Off': -1.0
+    range: null
+    readable: true
+  PNT_2108:
+    argument: 2108
+    hint: DFCS Stability Augmentation - Yaw
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.AFCS_Stability_Yaw
+    values:
+      'On': 1.0
+      'Off': -1.0
+    range: null
+    readable: true
   PNT_2109:
     argument: 2109
     hint: Autopilot - Vector / Automatic Carrier Landing
@@ -351,6 +384,15 @@ controls:
     prototype: default_2_position_tumb
     positions: []
     command: device_commands.ENGINE_Right_Mode
+    values: {}
+    range: null
+    readable: true
+  PNT_MCB:
+    argument: 13132
+    hint: Mid Compression Bypass Test
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ENGINE_Mid_Compression_Bypass_Test
     values: {}
     range: null
     readable: true
@@ -539,6 +581,15 @@ controls:
     prototype: default_animated_lever
     positions: []
     command: device_commands.CANOPY_Drop_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_HUDCAM:
+    argument: 3490
+    hint: Show/Hide HUD camera
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.HUD_ShowHide
     values: {}
     range: null
     readable: true
@@ -755,6 +806,18 @@ controls:
       'ON': 1.0
     range: null
     readable: true
+  PNT_924:
+    argument: 924
+    hint: NVG Flood Light
+    prototype: default_axis
+    positions: []
+    command: device_commands.LIGHTS_RedFlood
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
+    range: null
+    readable: true
   PNT_921:
     argument: 921
     hint: White Flood Light
@@ -856,6 +919,18 @@ controls:
     positions: []
     command: device_commands.LIGHTS_Formation
     values: {}
+    range: null
+    readable: true
+  PNT_194:
+    argument: 194
+    hint: NVG Flood Light
+    prototype: default_axis
+    positions: []
+    command: device_commands.LIGHTS_RedFlood_RIO
+    values:
+      'OFF': 0.0
+      BRT: 1.0
+      DIM: -1.0
     range: null
     readable: true
   PNT_159:
@@ -1043,6 +1118,161 @@ controls:
     values: {}
     range: null
     readable: false
+  PNT_ECMD_CORR:
+    argument: 0
+    hint: ECM Display Automatic Correlation
+    prototype: default_springloaded_3pos_switch
+    positions: []
+    command: device_commands.ECMD_Corr_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ECMD_ORIDE:
+    argument: 4101
+    hint: ECM Display Override
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.ECMD_Override_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ECMD_MODE:
+    argument: 4102
+    hint: ECM Display Mode
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ECMD_Mode_Cycle
+    values:
+      NAV: 0.0
+      ECM: 1.0
+    range: null
+    readable: true
+  PNT_ECMD_DATA:
+    argument: 4103
+    hint: ECM Display Data/ADF
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.ECMD_Data_ADF_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_LOW:
+    argument: 0
+    hint: LOW Band Switch
+    prototype: default_springloaded_up_3pos_switch
+    positions: []
+    command: device_commands.ALR45_BAND_LOW
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_MID:
+    argument: 0
+    hint: MID Band Switch
+    prototype: default_springloaded_up_3pos_switch
+    positions: []
+    command: device_commands.ALR45_BAND_MID
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_HIGH:
+    argument: 0
+    hint: HIGH Band Switch
+    prototype: default_springloaded_up_3pos_switch
+    positions: []
+    command: device_commands.ALR45_BAND_HIGH
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_AAA:
+    argument: 173
+    hint: AAA Switch
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ALR45_AAA_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ALR_45_VOL:
+    argument: 158
+    hint: ALR-45 Volume
+    prototype: default_axis
+    positions: []
+    command: device_commands.ALR45_Volume_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_ALR_50_VOL:
+    argument: 157
+    hint: ALR-50 Volume
+    prototype: default_axis
+    positions: []
+    command: device_commands.ALR50_Volume_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_PWR:
+    argument: 174
+    hint: ALR-45/50 Power
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ALR45_Power_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_TEST_MID:
+    argument: 0
+    hint: LOW/MID Band Test
+    prototype: default_springloaded_3pos_switch
+    positions: []
+    command: device_commands.ALR45_Test_LowMid
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_TEST_HIGH:
+    argument: 170
+    hint: HIGH Band Test
+    prototype: default_springloaded_up_2pos_switch
+    positions: []
+    command: device_commands.ALR45_Test_High
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_TEST_LOW:
+    argument: 171
+    hint: ML Test
+    prototype: default_springloaded_up_2pos_switch
+    positions: []
+    command: device_commands.ALR45_Test_ML
+    values: {}
+    range: null
+    readable: true
+  PNT_ECM_TEST_DISPLAY:
+    argument: 172
+    hint: Display Unknown
+    prototype: default_springloaded_up_2pos_switch
+    positions: []
+    command: device_commands.ALR45_Unknown
+    values: {}
+    range: null
+    readable: true
+  PNT_PLT_ALR_45:
+    argument: 2046
+    hint: ALR-45 Volume
+    prototype: default_axis
+    positions: []
+    command: device_commands.RADIO_ICS_Vol_ALR45
+    values: {}
+    range: null
+    readable: true
+  PNT_PLT_ALR_50:
+    argument: 2050
+    hint: ALR-50 Volume
+    prototype: default_axis
+    positions: []
+    command: device_commands.RADIO_ICS_Vol_ALR50
+    values: {}
+    range: null
+    readable: true
   PNT_292:
     argument: 292
     hint: TACAN CMD Button
@@ -1128,6 +1358,69 @@ controls:
     prototype: multiposition_switch_limited
     positions: []
     command: device_commands.TACAN_Knob_Chnl_Ones_Pilot
+    values: {}
+    range: null
+    readable: true
+  PNT_374:
+    argument: 374
+    hint: TACAN Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TACAN_Knob_Func_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_375:
+    argument: 375
+    hint: TACAN Volume
+    prototype: default_axis
+    positions: []
+    command: device_commands.TACAN_Knob_Vol_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_373:
+    argument: 373
+    hint: TACAN Mode Normal/Inverse
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.TACAN_Mode_Norm_Inv_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_372:
+    argument: 372
+    hint: TACAN Channel X/Y
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.TACAN_Mode_X_Y_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_371:
+    argument: 371
+    hint: TACAN BIT
+    prototype: default_button
+    positions: []
+    command: device_commands.TACAN_Btn_BIT_RIO
+    values: {}
+    range: null
+    readable: false
+  PNT_TACAN_OUTER_TWIST_RIO:
+    argument: 8891
+    hint: TACAN Channel Wheel (Tens)
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TACAN_Knob_Chnl_Tens_RIO
+    values: {}
+    range: null
+    readable: true
+  PNT_8890:
+    argument: 8890
+    hint: TACAN Channel Lever (Ones)
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TACAN_Knob_Chnl_Ones_RIO
     values: {}
     range: null
     readable: true
@@ -1660,6 +1953,15 @@ controls:
     values: {}
     range: null
     readable: true
+  PNT_376:
+    argument: 376
+    hint: AN/ALR-67 Display Brightness
+    prototype: default_axis
+    positions: []
+    command: device_commands.RWR_Brightness_RIO
+    values: {}
+    range: null
+    readable: true
   PNT_2136:
     argument: 2136
     hint: AN/ALR-67 Display Type
@@ -1712,6 +2014,264 @@ controls:
     values: {}
     range: null
     readable: true
+  PNT_390:
+    argument: 390
+    hint: AN/ALE-37 Power/Mode
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.CMDS_Master_Mode_SW
+    values:
+      AUTO: 1.0
+      MAN: 0.0
+      'OFF': -1.0
+    range: null
+    readable: true
+  PNT_389:
+    argument: 0
+    hint: AN/ALE-37 Chaff Dispense
+    prototype: default_springloaded_3pos_switch
+    positions: []
+    command: device_commands.CMDS_Chaff_Oper_SW
+    values: {}
+    range: null
+    readable: true
+  PNT_388:
+    argument: 0
+    hint: AN/ALE-37 Flare Dispense
+    prototype: default_springloaded_3pos_switch
+    positions: []
+    command: device_commands.CMDS_Flare_Oper_SW
+    values: {}
+    range: null
+    readable: true
+  PNT_387:
+    argument: 0
+    hint: AN/ALE-37 Jammer Dispense
+    prototype: default_springloaded_3pos_switch
+    positions: []
+    command: device_commands.CMDS_Jammer_Oper_SW
+    values: {}
+    range: null
+    readable: true
+  PNT_398:
+    argument: 398
+    hint: AN/ALE-37 Flare Mode
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.CMDS_Flare_Mode_SW
+    values:
+      MULT: 1.0
+      NORM: 0.0
+      PILOT: -1.0
+    range: null
+    readable: true
+  PNT_391:
+    argument: 391
+    hint: AN/ALE-37 Flare Salvo
+    prototype: default_button
+    positions: []
+    command: device_commands.CMDS_Flare_Salvo_SW
+    values: {}
+    range: null
+    readable: false
+  PNT_386:
+    argument: 386
+    hint: AN/ALE-37 Chaff Counter
+    prototype: default_axis
+    positions: []
+    command: device_commands.CMDS_Chaff_Counter_Control
+    values: {}
+    range: null
+    readable: true
+  PNT_385:
+    argument: 385
+    hint: AN/ALE-37 Flare Counter
+    prototype: default_axis
+    positions: []
+    command: device_commands.CMDS_Flare_Counter_Control
+    values: {}
+    range: null
+    readable: true
+  PNT_399:
+    argument: 399
+    hint: AN/ALE-37 Jammer Counter
+    prototype: default_axis
+    positions: []
+    command: device_commands.CMDS_Jammer_Counter_Control
+    values: {}
+    range: null
+    readable: true
+  PNT_206:
+    argument: 206
+    hint: AN/ALE-37 L10 Load Type
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_L10_Wheel
+    values:
+      Chaff: 0.0
+      Flare: 0.5
+      Jammer: 1.0
+    range: null
+    readable: true
+  PNT_207:
+    argument: 207
+    hint: AN/ALE-37 L20 Load Type
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_L20_Wheel
+    values:
+      Chaff: 0.0
+      Flare: 0.5
+      Jammer: 1.0
+    range: null
+    readable: true
+  PNT_209:
+    argument: 209
+    hint: AN/ALE-37 R10 Load Type
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_R10_Wheel
+    values:
+      Chaff: 0.0
+      Flare: 0.5
+      Jammer: 1.0
+    range: null
+    readable: true
+  PNT_208:
+    argument: 208
+    hint: AN/ALE-37 R20 Load Type
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_R20_Wheel
+    values:
+      Chaff: 0.0
+      Flare: 0.5
+      Jammer: 1.0
+    range: null
+    readable: true
+  PNT_214:
+    argument: 214
+    hint: AN/ALE-37 Chaff Burst Quantity
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Chaff_Burst_Qty_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_215:
+    argument: 215
+    hint: AN/ALE-37 Chaff Burst Interval
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Chaff_Burst_Intv_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_203:
+    argument: 203
+    hint: AN/ALE-37 Chaff Salvo Quantity
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Chaff_Salvo_Qty_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_202:
+    argument: 202
+    hint: AN/ALE-37 Chaff Salvo Interval
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Chaff_Salvo_Intv_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_205:
+    argument: 205
+    hint: AN/ALE-37 Flare Quantity
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Flare_Qty_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_210:
+    argument: 210
+    hint: AN/ALE-37 Flare Interval
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_Flare_Intv_Wheel
+    values: {}
+    range: null
+    readable: true
+  PNT_204:
+    argument: 4
+    hint: AN/ALE-37 Jammer Quantity
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_JAMR_Qty
+    values: {}
+    range: null
+    readable: true
+  PNT_211:
+    argument: 10
+    hint: AN/ALE-37 Jammer Interval Units
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_JAMR_Intv_1
+    values: {}
+    range: null
+    readable: true
+  PNT_212:
+    argument: 10
+    hint: AN/ALE-37 Jammer Interval Tens
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_JAMR_Intv_10
+    values: {}
+    range: null
+    readable: true
+  PNT_213:
+    argument: 10
+    hint: AN/ALE-37 Jammer Interval Hundreds
+    prototype: multiposition_roller_limited
+    positions: []
+    command: device_commands.CMDS_JAMR_Intv_100
+    values: {}
+    range: null
+    readable: true
+  PNT_50:
+    argument: 50
+    hint: Navigation Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TID_nav_mode
+    values:
+      'Off': 0.0
+      GND ALIGN: 0.1666667
+      CVA ALIGN: 0.3333334
+      CAT ALIGN: 0.5000001
+      INS: 0.6666668
+      AHRS: 0.8333335
+      IMU: 1.0
+    range: null
+    readable: true
+  PNT_51:
+    argument: 51
+    hint: Destination Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TID_dest_mode
+    values:
+      '1': 0.0
+      '2': 0.142857
+      '3': 0.285714
+      FP: 0.428571
+      IP: 0.571428
+      ST: 0.714285
+      HB: 0.857142
+      MAN: 1.0
+    range: null
+    readable: true
   PNT_905:
     argument: 905
     hint: Compass Mode
@@ -1744,6 +2304,42 @@ controls:
     values: {}
     range: null
     readable: true
+  PNT_902:
+    argument: 902
+    hint: Inboard Spoiler Override Cover
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.SPOIL_Inboard_Override_Cover
+    values: {}
+    range: null
+    readable: true
+  PNT_903:
+    argument: 903
+    hint: Outboard Spoiler Override Cover
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.SPOIL_Outboard_Override_Cover
+    values: {}
+    range: null
+    readable: true
+  PNT_908:
+    argument: 908
+    hint: Inboard Spoiler Override
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.SPOIL_Inboard_Override
+    values: {}
+    range: null
+    readable: true
+  PNT_907:
+    argument: 907
+    hint: Outboard Spoiler Override
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.SPOIL_Outboard_Override
+    values: {}
+    range: null
+    readable: true
   PNT_1022:
     argument: 1022
     hint: Gun Ammunition Counter Adjustment
@@ -1762,6 +2358,48 @@ controls:
     values:
       TV: 1.0
       Norm: 0.0
+    range: null
+    readable: true
+  PNT_1007:
+    argument: 1007
+    hint: Test Step
+    prototype: default_axis
+    positions: []
+    command: device_commands.DISP_HUD_pitch_bright
+    values: {}
+    range: null
+    readable: true
+  PNT_1018:
+    argument: 1018
+    hint: HUD MODE
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.DISP_VDI_landing_mode
+    values:
+      ILS: 1.0
+      ACL: 0.0
+    range: null
+    readable: true
+  PNT_1021:
+    argument: 1021
+    hint: HUD Analog / Digital
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.DISP_HUD_declutter
+    values:
+      'On': 1.0
+      'Off': 0.0
+    range: null
+    readable: true
+  PNT_1020:
+    argument: 1020
+    hint: HUD Baro / Radar Altimeter
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.DISP_HUD_AWL_mode
+    values:
+      ILS: 1.0
+      ACL: 0.0
     range: null
     readable: true
   PNT_1015:
@@ -1818,6 +2456,33 @@ controls:
     values: {}
     range: null
     readable: false
+  PNT_1033:
+    argument: 1033
+    hint: HUD filter
+    prototype: default_animated_lever
+    positions: []
+    command: device_commands.VDIG_VDI_handle
+    values: {}
+    range: null
+    readable: true
+  PNT_1034:
+    argument: 1034
+    hint: HUD Trim
+    prototype: default_axis
+    positions: []
+    command: device_commands.VDIG_HUD_trim
+    values: {}
+    range: null
+    readable: true
+  PNT_1035:
+    argument: 1035
+    hint: VDI Trim
+    prototype: default_axis
+    positions: []
+    command: device_commands.VDIG_VSDI_trim
+    values: {}
+    range: null
+    readable: true
   PNT_1038:
     argument: 1038
     hint: VDI Screen Contrast
@@ -1915,12 +2580,39 @@ controls:
     values: {}
     range: null
     readable: false
+  PNT_760:
+    argument: 760
+    hint: Master Caution Reset
+    prototype: default_button
+    positions: []
+    command: device_commands.WLP_Master_Caution_Pilot
+    values: {}
+    range: null
+    readable: false
+  PNT_9199:
+    argument: 9199
+    hint: Master Caution Reset
+    prototype: default_button
+    positions: []
+    command: device_commands.WLP_Master_Caution_Pilot
+    values: {}
+    range: null
+    readable: false
   PNT_RIO_MCAUTION:
     argument: 9229
     hint: Master Caution Reset
     prototype: default_button
     positions: []
     command: device_commands.WLP_Master_Caution_RIO
+    values: {}
+    range: null
+    readable: false
+  PNT_GUN_RATE:
+    argument: 16000
+    hint: Gun rate
+    prototype: default_button_big
+    positions: []
+    command: device_commands.WEAP_Gun_Rate
     values: {}
     range: null
     readable: false
@@ -1987,12 +2679,84 @@ controls:
     values: {}
     range: null
     readable: false
+  PNT_2005:
+    argument: 2005
+    hint: TID Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TID_mode_knob
+    values:
+      GND STAB: 0.0
+      AC STAB: 0.3333
+      ATTK: 0.6666
+      TV: 1.0
+    range: null
+    readable: true
+  PNT_2006:
+    argument: 2006
+    hint: TID Range
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TID_range_knob
+    values:
+      '25': -1.0
+      '50': -0.5
+      '100': 0.0
+      '200': 0.5
+      '400': 1.0
+    range: null
+    readable: true
+  PNT_226:
+    argument: 226
+    hint: TID Non attack
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_NON_ATTK
+    values: {}
+    range: null
+    readable: false
   PNT_1118:
     argument: 1118
     hint: TID Jam strobe
     prototype: default_button
     positions: []
     command: device_commands.TID_JAM_STROBE
+    values: {}
+    range: null
+    readable: false
+  PNT_1117:
+    argument: 1117
+    hint: TID Data link
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_DATA_LINK
+    values: {}
+    range: null
+    readable: false
+  PNT_1116:
+    argument: 1116
+    hint: TID Sym Elem
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_SYM_ELEM
+    values: {}
+    range: null
+    readable: false
+  PNT_1115:
+    argument: 1115
+    hint: TID Alt num
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_ALT_NUM
+    values: {}
+    range: null
+    readable: false
+  PNT_2004:
+    argument: 2004
+    hint: TID Expand mode
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_RID_DSBL
     values: {}
     range: null
     readable: false
@@ -2005,6 +2769,51 @@ controls:
     values: {}
     range: null
     readable: false
+  PNT_2114:
+    argument: 2114
+    hint: TID Velocity vector
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_VEL_VECTOR
+    values: {}
+    range: null
+    readable: false
+  PNT_52:
+    argument: 52
+    hint: collision steering
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_CLSN
+    values: {}
+    range: null
+    readable: false
+  PNT_53:
+    argument: 53
+    hint: TID track hold
+    prototype: default_button
+    positions: []
+    command: device_commands.TID_trackhold
+    values: {}
+    range: null
+    readable: false
+  PNT_48:
+    argument: 771
+    hint: PTID Stroke Brightness
+    prototype: default_axis
+    positions: []
+    command: device_commands.TID_bright
+    values: {}
+    range: null
+    readable: true
+  PNT_49:
+    argument: 772
+    hint: PTID Contrast
+    prototype: default_axis
+    positions: []
+    command: device_commands.TID_contrast
+    values: {}
+    range: null
+    readable: true
   PNT_2007:
     argument: 2007
     hint: HCU TCS mode
@@ -2536,6 +3345,15 @@ controls:
       Slave Radar: 1.0
     range: null
     readable: true
+  PNT_90:
+    argument: 90
+    hint: Record power
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.RECORD_power
+    values: {}
+    range: null
+    readable: true
   PNT_91:
     argument: 91
     hint: Record mode (no function)
@@ -2551,6 +3369,15 @@ controls:
     prototype: default_axis
     positions: []
     command: device_commands.RECORD_Knob_Reset
+    values: {}
+    range: null
+    readable: true
+  PNT_59:
+    argument: 59
+    hint: Weapon type wheel
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.WEAP_Type_Wheel
     values: {}
     range: null
     readable: true
@@ -3519,3 +4346,1101 @@ controls:
     values: {}
     range: null
     readable: true
+  PNT_HUD_CAGE:
+    argument: 759
+    hint: HUD Cage
+    prototype: default_button_big
+    positions: []
+    command: device_commands.HUD_Cage
+    values: {}
+    range: null
+    readable: false
+  PNT_2131:
+    argument: 2131
+    hint: DFCS Fault Decrease
+    prototype: default_button
+    positions: []
+    command: device_commands.DFCS_BIT_DEC
+    values: {}
+    range: null
+    readable: false
+  PNT_2132:
+    argument: 2132
+    hint: DFCS Fault Increase
+    prototype: default_button
+    positions: []
+    command: device_commands.DFCS_BIT_INC
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_1:
+    argument: 775
+    hint: PTID PB20
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB20
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_2:
+    argument: 776
+    hint: PTID PB19
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB19
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_3:
+    argument: 777
+    hint: PTID PB18
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB18
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_4:
+    argument: 778
+    hint: PTID PB17
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB17
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_5:
+    argument: 779
+    hint: PTID PB16
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB16
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_6:
+    argument: 780
+    hint: PTID PB15
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB15
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_LSK_7:
+    argument: 781
+    hint: PTID PB14
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB14
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_1:
+    argument: 782
+    hint: PTID PB1
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB1
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_2:
+    argument: 783
+    hint: PTID PB2
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB2
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_3:
+    argument: 784
+    hint: PTID PB3
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB3
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_4:
+    argument: 785
+    hint: PTID PB4
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB4
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_5:
+    argument: 786
+    hint: PTID PB5
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB5
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_6:
+    argument: 787
+    hint: PTID PB6
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB6
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_RSK_7:
+    argument: 788
+    hint: PTID PB7
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB7
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_1:
+    argument: 789
+    hint: PTID PB13
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB13
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_2:
+    argument: 790
+    hint: PTID PB12
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB12
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_3:
+    argument: 791
+    hint: PTID PB11
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB11
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_4:
+    argument: 792
+    hint: PTID PB10
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB10
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_5:
+    argument: 793
+    hint: PTID PB9
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB9
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_BSK_6:
+    argument: 794
+    hint: PTID PB8
+    prototype: default_button
+    positions: []
+    command: device_commands.PTID_PB8
+    values: {}
+    range: null
+    readable: false
+  PNT_PTID_knob_nav_mode:
+    argument: 769
+    hint: Navigation Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.TID_nav_mode
+    values:
+      'Off': 0.0
+      GND ALIGN: 0.1666667
+      CVA ALIGN: 0.3333334
+      CAT ALIGN: 0.5000001
+      INS: 0.6666668
+      AHRS: 0.8333335
+      IMU: 1.0
+    range: null
+    readable: true
+  PNT_PTID_knob_mode:
+    argument: 773
+    hint: PTID Power Switch
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.PTID_power
+    values: {}
+    range: null
+    readable: true
+  PNT_PTID_knob_brt_rast:
+    argument: 770
+    hint: PTID Raster Brightness
+    prototype: default_axis
+    positions: []
+    command: device_commands.PTID_bright_rast
+    values: {}
+    range: null
+    readable: true
+  PNT_CDU_BRT:
+    argument: 806
+    hint: CDNU Brightness
+    prototype: default_axis
+    positions: []
+    command: device_commands.CDNU_BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  PNT_CDU_PWR:
+    argument: 797
+    hint: CDNU Power
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.CDNU_PWR_KNOB
+    values: {}
+    range: null
+    readable: true
+  PNT_KEY_F1:
+    argument: 807
+    hint: CDNU F1
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F1
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F2:
+    argument: 808
+    hint: CDNU F2
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F2
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F3:
+    argument: 809
+    hint: CDNU F3
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F3
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F4:
+    argument: 810
+    hint: CDNU F4
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F4
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F5:
+    argument: 811
+    hint: CDNU F5
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F5
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F6:
+    argument: 812
+    hint: CDNU F6
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F6
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F7:
+    argument: 813
+    hint: CDNU F7
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_F7
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_MENU:
+    argument: 814
+    hint: CDNU MENU
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_MENU
+    values: {}
+    range: null
+    readable: false
+  PNT_LSK_1:
+    argument: 798
+    hint: CDNU LSK1
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_LSK1
+    values: {}
+    range: null
+    readable: false
+  PNT_LSK_2:
+    argument: 799
+    hint: CDNU LSK2
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_LSK2
+    values: {}
+    range: null
+    readable: false
+  PNT_LSK_3:
+    argument: 800
+    hint: CDNU LSK3
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_LSK3
+    values: {}
+    range: null
+    readable: false
+  PNT_LSK_4:
+    argument: 801
+    hint: CDNU LSK4
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_LSK4
+    values: {}
+    range: null
+    readable: false
+  PNT_RSK_1:
+    argument: 802
+    hint: CDNU LSK5
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_RSK1
+    values: {}
+    range: null
+    readable: false
+  PNT_RSK_2:
+    argument: 803
+    hint: CDNU LSK6
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_RSK2
+    values: {}
+    range: null
+    readable: false
+  PNT_RSK_3:
+    argument: 804
+    hint: CDNU LSK7
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_RSK3
+    values: {}
+    range: null
+    readable: false
+  PNT_RSK_4:
+    argument: 805
+    hint: CDNU LSK8
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_RSK4
+    values: {}
+    range: null
+    readable: false
+  PNT_ARROW_LEFT:
+    argument: 853
+    hint: CDNU ARROW LEFT
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_ARROW_LEFT
+    values: {}
+    range: null
+    readable: false
+  PNT_ARROW_RIGHT:
+    argument: 854
+    hint: CDNU ARROW RIGHT
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_ARROW_RIGHT
+    values: {}
+    range: null
+    readable: false
+  PNT_ARROW_UP:
+    argument: 851
+    hint: CDNU ARROW UP
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_ARROW_UP
+    values: {}
+    range: null
+    readable: false
+  PNT_ARROW_DOWN:
+    argument: 852
+    hint: CDNU ARROW DOWN
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_ARROW_DOWN
+    values: {}
+    range: null
+    readable: false
+  PNT_SPEC_PERIOD:
+    argument: 855
+    hint: CDNU PERIOD
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_PERIOD
+    values: {}
+    range: null
+    readable: false
+  PNT_SPEC_HYPHEN:
+    argument: 856
+    hint: CDNU HYPHEN
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_HIFEN
+    values: {}
+    range: null
+    readable: false
+  PNT_SPEC_SLASH:
+    argument: 857
+    hint: CDNU SLASH
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_SLASH
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_RNAV:
+    argument: 858
+    hint: CDNU RNAV
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_RNAV
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_STAT:
+    argument: 859
+    hint: CDNU STAT
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_STAT
+    values: {}
+    range: null
+    readable: false
+  PNT_SPEC_CLR:
+    argument: 860
+    hint: CDNU CLR
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_CLR
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_IDX:
+    argument: 861
+    hint: CDNU IDX
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_IDX
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_FPLN:
+    argument: 862
+    hint: CDNU FPLAN
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_FPLAN
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_PROG:
+    argument: 863
+    hint: CDNU PROG
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_PROG
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_DIR:
+    argument: 864
+    hint: CDNU DIR
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_DIR
+    values: {}
+    range: null
+    readable: false
+  PNT_FUNC_MARK:
+    argument: 865
+    hint: CDNU MARK
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_MARK
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_0:
+    argument: 815
+    hint: CDNU 0
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_0
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_1:
+    argument: 816
+    hint: CDNU 1
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_1
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_2:
+    argument: 817
+    hint: CDNU 2
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_2
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_3:
+    argument: 818
+    hint: CDNU 3
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_3
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_4:
+    argument: 819
+    hint: CDNU 4
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_4
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_5:
+    argument: 820
+    hint: CDNU 5
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_5
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_6:
+    argument: 821
+    hint: CDNU 6
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_6
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_7:
+    argument: 822
+    hint: CDNU 7
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_7
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_8:
+    argument: 823
+    hint: CDNU 8
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_8
+    values: {}
+    range: null
+    readable: false
+  PNT_NUM_9:
+    argument: 824
+    hint: CDNU 9
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_NUM_9
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_A:
+    argument: 825
+    hint: CDNU A
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_A
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_B:
+    argument: 826
+    hint: CDNU B
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_B
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_C:
+    argument: 827
+    hint: CDNU C
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_C
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_D:
+    argument: 828
+    hint: CDNU D
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_D
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_E:
+    argument: 829
+    hint: CDNU E
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_E
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_F:
+    argument: 830
+    hint: CDNU F
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_F
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_G:
+    argument: 831
+    hint: CDNU G
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_G
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_H:
+    argument: 832
+    hint: CDNU H
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_H
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_I:
+    argument: 833
+    hint: CDNU I
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_I
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_J:
+    argument: 834
+    hint: CDNU J
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_J
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_K:
+    argument: 835
+    hint: CDNU K
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_K
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_L:
+    argument: 836
+    hint: CDNU L
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_L
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_M:
+    argument: 837
+    hint: CDNU M
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_M
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_N:
+    argument: 838
+    hint: CDNU N
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_N
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_O:
+    argument: 839
+    hint: CDNU O
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_O
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_P:
+    argument: 840
+    hint: CDNU P
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_P
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_Q:
+    argument: 841
+    hint: CDNU Q
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_Q
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_R:
+    argument: 842
+    hint: CDNU R
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_R
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_S:
+    argument: 843
+    hint: CDNU S
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_S
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_T:
+    argument: 844
+    hint: CDNU T
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_T
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_U:
+    argument: 845
+    hint: CDNU U
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_U
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_V:
+    argument: 846
+    hint: CDNU V
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_V
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_W:
+    argument: 847
+    hint: CDNU W
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_W
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_X:
+    argument: 848
+    hint: CDNU X
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_X
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_Y:
+    argument: 849
+    hint: CDNU Y
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_Y
+    values: {}
+    range: null
+    readable: false
+  PNT_KEY_Z:
+    argument: 850
+    hint: CDNU Z
+    prototype: default_button
+    positions: []
+    command: device_commands.CDNU_KEY_Z
+    values: {}
+    range: null
+    readable: false
+  PNT_ecm:
+    argument: 869
+    hint: ECM Display Lethal Rings
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ECMD_Corr_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ecm_oride:
+    argument: 867
+    hint: ECM Display Override
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.ECMD_Override_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_ecm_mode:
+    argument: 866
+    hint: ECM Display Mode
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.ECMD_Mode_Cycle
+    values:
+      NAV: 0.0
+      ECM: 1.0
+    range: null
+    readable: true
+  PNT_ecm_option:
+    argument: 868
+    hint: ECM Display Option
+    prototype: default_3_position_tumb
+    positions: []
+    command: device_commands.ECMD_Data_ADF_Cycle
+    values: {}
+    range: null
+    readable: true
+  PNT_CMDS_01:
+    argument: 872
+    hint: Inhibit O1
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitO1
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_02:
+    argument: 873
+    hint: Inhibit O2
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitO2
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_CH:
+    argument: 874
+    hint: Inhibit Chaff
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitChaff
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_FL:
+    argument: 875
+    hint: Inhibit Flare
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitFlare
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_RWR:
+    argument: 876
+    hint: Inhibit RWR
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitRWR
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_MWS:
+    argument: 877
+    hint: Inhibit MWS
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitMWS
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_JMR:
+    argument: 878
+    hint: Inhibit JMR
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_InhibitJammer
+    values: {}
+    range: null
+    readable: false
+  PNT_CMDS_ENT_BIT:
+    argument: 879
+    hint: Enter / BIT
+    prototype: default_button
+    positions: []
+    command: device_commands.ALE47_Enter
+    values: {}
+    range: null
+    readable: false
+  PNT_682:
+    argument: 682
+    hint: Toggle TCS Video
+    prototype: default_button
+    positions: []
+    command: device_commands.TCS_Toggle
+    values: {}
+    range: null
+    readable: false
+  PNT_ALE47_KNOB_MODE:
+    argument: 880
+    hint: CMDS Mode
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.ALE47_Mode
+    values: {}
+    range: null
+    readable: true
+  PNT_ALE47_KNOB_MANUAL:
+    argument: 881
+    hint: CMDS Manual Program
+    prototype: multiposition_switch_limited
+    positions: []
+    command: device_commands.ALE47_ManualProgram
+    values: {}
+    range: null
+    readable: true
+  PNT_ALE47_BRT:
+    argument: 882
+    hint: CMDS Brightness
+    prototype: default_axis
+    positions: []
+    command: device_commands.ALE47_BRT
+    values: {}
+    range: null
+    readable: true
+  PNT_ALE47_COVER:
+    argument: 883
+    hint: CMDS Ground Test Cover
+    prototype: default_flipcover
+    positions: []
+    command: device_commands.ALE47_GndTestCover
+    values: {}
+    range: null
+    readable: true
+  PNT_ALE47_TEST:
+    argument: 884
+    hint: CMDS Ground Test
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ALE47_GndTest
+    values: {}
+    range: null
+    readable: true
+  PNT_CMDS_JETT_COVER:
+    argument: 870
+    hint: CMDS Jettison Cover
+    prototype: default_flipcover
+    positions: []
+    command: device_commands.ALE47_JettisonCover
+    values: {}
+    range: null
+    readable: true
+  PNT_CMDS_JETT:
+    argument: 871
+    hint: CMDS Jettison
+    prototype: default_2_position_tumb
+    positions: []
+    command: device_commands.ALE47_Jettison
+    values: {}
+    range: null
+    readable: true
+  PNT_RCU_SK_1:
+    argument: 885
+    hint: TIS RCU 1
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU1
+    values: {}
+    range: null
+    readable: false
+  PNT_RCU_SK_2:
+    argument: 886
+    hint: TIS RCU 2
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU2
+    values: {}
+    range: null
+    readable: false
+  PNT_RCU_SK_3:
+    argument: 887
+    hint: TIS RCU 3
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU3
+    values: {}
+    range: null
+    readable: false
+  PNT_RCU_SK_4:
+    argument: 888
+    hint: TIS RCU 4
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU4
+    values: {}
+    range: null
+    readable: false
+  PNT_RCU_SK_5:
+    argument: 889
+    hint: TIS RCU 5
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU5
+    values: {}
+    range: null
+    readable: false
+  PNT_RCU_SK_6:
+    argument: 890
+    hint: TIS RCU 6
+    prototype: default_button
+    positions: []
+    command: device_commands.RCU6
+    values: {}
+    range: null
+    readable: false

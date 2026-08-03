@@ -2165,6 +2165,21 @@ controls:
     - 0.0
     - 1.0
     readable: true
+  PTR-AUXCOM-TMB-CNI-542:
+    argument: 542
+    hint: C & I Knob, UFC/BACKUP
+    prototype: multiposition_switch
+    positions:
+    - UFC
+    - BACKUP
+    command: iff_commands.CNI_Knob
+    values:
+      BACKUP: 0.0
+      UFC: 1.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
   PTR-AUXCOM-LVR-MODE-540:
     argument: 539
     hint: IFF MASTER Knob, OFF/STBY/LOW/NORM/EMER

@@ -6,8 +6,8 @@ live in Lua inside a DCS installation — ``clickabledata.lua`` for the elements
 ``clickable_defs.lua`` for the prototypes they are built from. This turns them into data
 the tools can query with DCS nowhere in sight.
 
-Measured: 284 elements on the F-16C, 470 on the A-10C II, 478 on the AH-64D, 360 on the
-F-14B. Naming the positions in the hint, though, is a recent ED habit rather than a rule —
+Measured: 285 elements on the F-16C, 280 on the F/A-18C, 470 on the A-10C II, 478 on the
+AH-64D, 579 on the F-14B and the F-14B(U). Naming the positions in the hint, though, is a recent ED habit rather than a rule —
 127 of the F-16C's controls do it, 123 of the AH-64D's, 8 of the A-10C's, and none at all
 of the F-14's. A caller cannot assume the names are there.
 
@@ -32,16 +32,18 @@ from pathlib import Path
 #: crew station before the hint (``mpd_button(CREW.PLT, _('…'), …)``) and quotes it with
 #: apostrophes; the A-10C's UFC keypad passes a bare ``""``. So anything up to the hint is
 #: allowed and ignored, both quote styles are accepted, and the ``_()`` around the hint is
-#: optional — the argument is looked for after it either way.
+#: optional — the argument is looked for after it either way. **Leading whitespace is
+#: allowed**: Heatblur declares whole panels inside `if` blocks, so the F-14's DFCS
+#: stability switches are indented, and anchoring at column zero silently lost them.
 _ELEMENT_RE = re.compile(
-    r'^elements\[\s*"(?P<element>[^"]+)"\s*\]\s*=\s*(?P<prototype>\w+)\('
+    r'^[ 	]*elements\[\s*"(?P<element>[^"]+)"\s*\]\s*=\s*(?P<prototype>\w+)\('
     r"""[^)]*?(?:_\(\s*)?["'](?P<hint>[^"']*)["']\s*\)?\s*,(?P<args>.*)$""",
     re.MULTILINE,
 )
 
 #: Any element the file builds, whatever shape the call takes — the denominator the skip
 #: count is measured against. ``elements["X"].sound = {…}`` sets a property and is not one.
-_ASSIGNMENT_RE = re.compile(r'^elements\[\s*"[^"]+"\s*\]\s*=\s*\w+\(', re.MULTILINE)
+_ASSIGNMENT_RE = re.compile(r'^[ 	]*elements\[\s*"[^"]+"\s*\]\s*=\s*\w+\(', re.MULTILINE)
 
 #: The call's remaining arguments, split shallowly — enough to find the numeric ones
 #: without parsing Lua. Nested tables are rare here and only follow the argument.

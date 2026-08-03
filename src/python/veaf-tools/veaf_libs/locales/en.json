@@ -969,5 +969,6 @@
   "tui.arg.explore_control": "Control to box first (optional)",
   "verifier.in_game.ok": "OK ({value}) - next step",
   "verifier.in_game.nothing": "Nothing read - step skipped",
-  "verifier.in_game.mismatch": "Read {measured}, expected {expected} - check this"
+  "verifier.in_game.mismatch": "Read {measured}, expected {expected} - check this",
+  "cmd.explore_cockpit.in_game": "{hint} - argument {argument} = {value}"
 }

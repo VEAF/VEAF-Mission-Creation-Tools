@@ -969,5 +969,6 @@
   "tui.arg.explore_control": "Contrôle à encadrer d'abord (facultatif)",
   "verifier.in_game.ok": "OK ({value}) - etape suivante",
   "verifier.in_game.nothing": "Rien lu - etape passee",
-  "verifier.in_game.mismatch": "Lu {measured}, attendu {expected} - a verifier"
+  "verifier.in_game.mismatch": "Lu {measured}, attendu {expected} - a verifier",
+  "cmd.explore_cockpit.in_game": "{hint} - argument {argument} = {value}"
 }

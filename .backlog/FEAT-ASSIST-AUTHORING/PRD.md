@@ -1,6 +1,6 @@
 # FEAT-ASSIST-AUTHORING — checklists an instructor can write without knowing DCS internals
 
-**Status:** ⬜ ready — opened 2026-08-02, scoped with David the same day.
+**Status:** 🔄 in-progress — opened 2026-08-02, scoped with David the same day. Tickets 01, 02, 03, 06 and 07 done as of 2026-08-03; 04 needs a running DCS and 05 needs modules nobody here owns.
 
 ## The problem
 

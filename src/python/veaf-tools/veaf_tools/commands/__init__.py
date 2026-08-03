@@ -7,6 +7,7 @@ from . import (  # noqa: F401
     config,
     convert_other,
     convert_v5,
+    explore_cockpit,
     export,
     extract,
     inject_presets,

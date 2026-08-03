@@ -147,6 +147,29 @@ Finally, a control with **no readable position** — a button, or a spring-loade
 F-16C's JFS — resolves to a pilot-confirmed step, and the tool tells you so. That is not a
 shortcoming: those controls are back at rest before anything can read them, by any means.
 
+#### Exploring a cockpit {#explore}
+
+Writing a checklist means knowing three things about a control: its element, its animation argument,
+and the value of the position you want. This command gives you all three **by handling the
+cockpit**, with nothing to read:
+
+```bash
+veaf-tools explore-cockpit F-14BU
+```
+
+Move a switch: the tool names it, and prints the step ready to paste into your file. The value is
+**measured**, not inferred. Ctrl-C to stop.
+
+This is what unblocks the aircraft the resolver cannot help with: on the AH-64D, 7 controls out of
+478 have a position value known to the files — handling them gives you all the others.
+
+The other way round, `--control "transfer pump"` boxes the control in your cockpit before it starts
+watching, so you can check at a glance that your wording points at the right thing — or simply find
+it.
+
+Same conditions as verification: DCS on this machine, `dcs-serve` running, the bridge in the
+mission. And like it, **the tool never moves anything**: it boxes, you handle.
+
 #### Verifying a checklist in the cockpit {#verify}
 
 A value the resolver wrote stays a hypothesis until the control has been read with the switch

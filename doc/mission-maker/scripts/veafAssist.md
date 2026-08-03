@@ -149,6 +149,29 @@ Enfin, un contrôle **sans position lisible** — un bouton, un interrupteur à 
 F-16C — est résolu en étape validée par le pilote, et l'outil vous le dit. Ce n'est pas un défaut :
 ces contrôles sont revenus au repos avant qu'on puisse les lire, quel que soit le moyen employé.
 
+#### Explorer un cockpit {#explore}
+
+Pour écrire une checklist il faut savoir trois choses d'une commande : son élément, son numéro
+d'animation, et la valeur de la position voulue. Cette commande vous les donne **en manipulant le
+cockpit**, sans rien lire :
+
+```bash
+veaf-tools explore-cockpit F-14BU
+```
+
+Bougez un interrupteur : l'outil vous dit lequel c'est, et vous affiche l'étape toute prête à coller
+dans votre fichier. La valeur est **mesurée**, pas déduite. Ctrl-C pour arrêter.
+
+C'est ce qui débloque les appareils que le résolveur ne sait pas aider : sur l'AH-64D, 7 commandes
+sur 478 ont une valeur de position connue des fichiers — en manipulant, vous les obtenez toutes.
+
+Dans l'autre sens, `--control "pompe de transfert"` encadre la commande dans votre cockpit avant de
+se mettre à l'écoute, pour vérifier d'un coup d'œil que votre formulation désigne bien la bonne
+chose — ou tout simplement pour la trouver.
+
+Mêmes conditions que la vérification : DCS sur cette machine, `dcs-serve` lancé, le pont dans la
+mission. Et comme elle, **l'outil ne manœuvre jamais rien** : il encadre, vous manipulez.
+
 #### Vérifier une checklist dans le cockpit {#verify}
 
 Une valeur écrite par le résolveur reste une hypothèse tant qu'on n'a pas lu le contrôle avec

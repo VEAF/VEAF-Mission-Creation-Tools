@@ -521,7 +521,7 @@ class TestCommandGroups(unittest.TestCase):
     def test_the_assistance_commands_are_together(self):
         # David's point: they are one workflow and were scattered across the menu.
         assistance = {c.cli_name for c in tui.COMMANDS if c.group == tui.GROUP_ASSISTANCE}
-        self.assertEqual({"resolve-checklist", "verify-checklist"}, assistance)
+        self.assertEqual({"resolve-checklist", "verify-checklist", "explore-cockpit"}, assistance)
 
     def test_no_group_is_left_empty(self):
         # An empty heading in the menu is a promise the tool does not keep.

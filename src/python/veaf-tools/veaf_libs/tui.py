@@ -265,6 +265,15 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="explore-cockpit",
+        group=GROUP_ASSISTANCE,
+        description=t("tui.cmd.explore_cockpit.description"),
+        prompts=[
+            ArgPrompt("aircraft", t("tui.arg.explore_aircraft"), default="F-16C_50", is_option=False, required=True),
+            ArgPrompt("control", t("tui.arg.explore_control"), default=""),
+        ],
+    ),
+    CommandSpec(
         cli_name="verify-checklist",
         group=GROUP_ASSISTANCE,
         description=t("tui.cmd.verify_checklist.description"),

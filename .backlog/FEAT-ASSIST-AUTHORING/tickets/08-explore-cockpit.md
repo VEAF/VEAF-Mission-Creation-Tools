@@ -1,6 +1,6 @@
 # 08 — explore a cockpit, both ways, in a loop
 
-**Status:** ⬜ ready — depends on 03, 04. Asked for by David after using the highlight by hand.
+**Status:** 🧑 waiting-human — built and unit-tested; wants one real cockpit run.
 
 The thing that turned out to be useful during ticket 04's session was not the verification. It was
 **the box**: David could not find the hydraulic transfer pump, boxing it answered instantly. That is
@@ -47,9 +47,14 @@ command has a `CommandSpec` — must keep holding.
 
 ## Definition of done
 
-- Both directions work in a live cockpit, in a loop, leaving on `Ctrl-C` without a traceback.
-- `move → name` identifies a control on an aircraft whose hints name no positions (the A-10C is the
-  test case).
-- The value it reports is written in a form an author can paste into a step.
-- `CommandSpec` carries a group and the wizard shows it; the three assistance commands sit together.
-- Documented on the instructor page, next to writing a checklist.
+- [x] Both directions in one loop, leaving on `Ctrl-C` without a traceback and taking the box out of
+      the cockpit on the way.
+- [x] `move → name` reports the **measured** value, so it works on a control whose position nothing
+      in the files names — which is the AH-64D's whole cockpit.
+- [x] The reading is printed as a step an author can paste.
+- [x] `CommandSpec` carries a group, the wizard shows four headings, and the three assistance
+      commands sit together. Two tests guard it: an unassigned command would vanish from the menu
+      now that the selector iterates groups.
+- [x] Documented on the instructor page, next to verification.
+- [ ] **One real cockpit run.** The loop is unit-tested against a fake cockpit; nobody has thrown a
+      switch at it yet.

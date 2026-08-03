@@ -952,5 +952,19 @@
   "tui.group.build": "Construire une mission",
   "tui.group.extraction": "Extraire d'une mission",
   "tui.group.config": "Configurer et vérifier",
-  "tui.group.assistance": "Checklists guidées"
+  "tui.group.assistance": "Checklists guidées",
+  "cmd.explore_cockpit.help": "Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer.",
+  "cmd.explore_cockpit.opt.aircraft": "Type DCS de l'appareil dans lequel vous êtes, ex. F-14BU.",
+  "cmd.explore_cockpit.opt.control": "Encadrer ce contrôle avant de surveiller, décrit en langage courant.",
+  "cmd.explore_cockpit.opt.serve_url": "URL de base de dcs-serve.",
+  "cmd.explore_cockpit.opt.api_key": "Jeton Bearer superuser de dcs-serve.",
+  "cmd.explore_cockpit.title": "veaf-tools v{version} — exploration d'un cockpit",
+  "cmd.explore_cockpit.boxed": "{element} encadré ({hint})",
+  "cmd.explore_cockpit.watching": "{count} contrôles du {aircraft} sous surveillance. Bougez-en un et je vous dis lequel c'est. Ctrl-C pour arrêter.",
+  "cmd.explore_cockpit.moved": "{element} ({hint}) → {position}, valeur {value}",
+  "cmd.explore_cockpit.unnamed_position": "position sans nom dans les fichiers",
+  "cmd.explore_cockpit.stopped": "Arrêté.",
+  "tui.cmd.explore_cockpit.description": "Explorer un cockpit et nommer ses contrôles",
+  "tui.arg.explore_aircraft": "Type d'appareil dans lequel vous êtes",
+  "tui.arg.explore_control": "Contrôle à encadrer d'abord (facultatif)"
 }

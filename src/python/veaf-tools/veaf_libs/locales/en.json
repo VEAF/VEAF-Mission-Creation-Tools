@@ -952,5 +952,19 @@
   "tui.group.build": "Build a mission",
   "tui.group.extraction": "Extract from a mission",
   "tui.group.config": "Set up and check",
-  "tui.group.assistance": "Guided checklists"
+  "tui.group.assistance": "Guided checklists",
+  "cmd.explore_cockpit.help": "Explore a live cockpit: name a control to see it, or move one to name it.",
+  "cmd.explore_cockpit.opt.aircraft": "DCS type name of the aircraft you are sitting in, e.g. F-14BU.",
+  "cmd.explore_cockpit.opt.control": "Box this control before watching, described in plain words.",
+  "cmd.explore_cockpit.opt.serve_url": "dcs-serve base URL.",
+  "cmd.explore_cockpit.opt.api_key": "dcs-serve superuser Bearer token.",
+  "cmd.explore_cockpit.title": "veaf-tools v{version} — exploring a cockpit",
+  "cmd.explore_cockpit.boxed": "boxed {element} ({hint})",
+  "cmd.explore_cockpit.watching": "Watching {count} controls of the {aircraft}. Move one and I will name it. Ctrl-C to stop.",
+  "cmd.explore_cockpit.moved": "{element} ({hint}) → {position}, value {value}",
+  "cmd.explore_cockpit.unnamed_position": "position with no name in the files",
+  "cmd.explore_cockpit.stopped": "Stopped.",
+  "tui.cmd.explore_cockpit.description": "Explore a live cockpit and name its controls",
+  "tui.arg.explore_aircraft": "Aircraft type you are sitting in",
+  "tui.arg.explore_control": "Control to box first (optional)"
 }

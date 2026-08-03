@@ -1,10 +1,13 @@
 """Tests for veaf_libs.tui."""
 
 import sys
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from veaf_libs import tui
+from veaf_libs.i18n import t
 from veaf_libs.tui import (
     _COMMAND_MAP,
     COMMANDS,
@@ -504,3 +507,28 @@ class TestConvertOtherCommandSpec:
                 result = maybe_bridge_to_tui(["convert-other"])
         rw.assert_called_once()
         assert result == ["convert-other", "m.miz", "."]
+
+
+class TestCommandGroups(unittest.TestCase):
+    """The wizard's headings. Twenty commands in a flat list is a wall of text."""
+
+    def test_every_command_is_in_a_known_group(self):
+        # A command whose group is not in GROUP_ORDER would vanish from the menu, since
+        # the selector iterates the groups rather than the commands.
+        for command in tui.COMMANDS:
+            self.assertIn(command.group, tui.GROUP_ORDER, command.cli_name)
+
+    def test_the_assistance_commands_are_together(self):
+        # David's point: they are one workflow and were scattered across the menu.
+        assistance = {c.cli_name for c in tui.COMMANDS if c.group == tui.GROUP_ASSISTANCE}
+        self.assertEqual({"resolve-checklist", "verify-checklist", "explore-cockpit"}, assistance)
+
+    def test_no_group_is_left_empty(self):
+        # An empty heading in the menu is a promise the tool does not keep.
+        used = {command.group for command in tui.COMMANDS}
+        self.assertEqual(set(tui.GROUP_ORDER), used)
+
+    def test_every_group_has_a_translated_heading(self):
+        for group in tui.GROUP_ORDER:
+            heading = t(f"tui.group.{group}")
+            self.assertNotEqual(f"tui.group.{group}", heading, group)

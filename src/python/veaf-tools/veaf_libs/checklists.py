@@ -70,6 +70,11 @@ def resolve_text(text: LocalizedText, catalog: dict[str, dict[str, str]], langua
     return text.get(language) or text.get(RUNTIME_DEFAULT_LANGUAGE) or next(iter(text.values()), "")
 
 
+def _normalise_control(text: str) -> str:
+    """Return *text* in the form two control descriptions are compared in."""
+    return " ".join(text.lower().split())
+
+
 def _validate_localized(value: LocalizedText, field: str) -> LocalizedText:
     """Reject a translations mapping that carries nothing usable."""
     if isinstance(value, str):
@@ -123,11 +128,25 @@ class ChecklistStep(BaseModel):
         check: ``{type: <name>, …}`` — a named check with its parameters.
         device: DCS cockpit device id, carried for a future demonstration mode.
         command: DCS cockpit command id, carried for a future demonstration mode.
+        control: What an **instructor** writes instead of the technical fields: the
+            control and the position it should be in, in their own words — ``throttle sur
+            idle``. A resolution pass turns it into ``element``/``argument``/``equals``
+            beside it, in this same file.
+        verified: Written by ``verify-checklist`` once the value has been read from a real
+            cockpit with the control in position. Design-time only: the engine never sees
+            it, and its absence means nothing more than "not checked yet".
+        resolved_from: The ``control`` text those technical fields were derived from.
+            Written by the resolver, read by nothing else. It is the whole
+            synchronisation mechanism: no timestamps, no hashes, no second file — an
+            instructor can see the state of their own checklist by reading it.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     label: LocalizedText
+    control: str | None = None
+    resolved_from: str | None = None
+    verified: bool = False
     element: str | None = None
     param: str | None = None
     equals: float | None = None
@@ -177,9 +196,24 @@ class ChecklistStep(BaseModel):
         if self.check is not None and not str(self.check.get("type") or "").strip():
             raise ValueError("a named check needs a type")
 
-        if self.element is None and not declared:
+        # `control` says something, even before anything technical exists: it is exactly
+        # the state a checklist is in between the instructor writing it and the resolver
+        # running. Refusing it here would mean the resolver could not read its own input.
+        if self.element is None and not declared and self.control is None:
             raise ValueError("a step with no element and no validation mode says nothing")
         return self
+
+    @property
+    def needs_resolution(self) -> bool:
+        """Whether this step's technical fields are missing or older than its ``control``.
+
+        A step is stale when an instructor has written or edited ``control`` and the
+        resolver has not caught up. Comparison ignores case and runs of whitespace, so
+        re-indenting a file does not invalidate every step in it.
+        """
+        if self.control is None:
+            return False
+        return _normalise_control(self.control) != _normalise_control(self.resolved_from or "")
 
     def check_table(self) -> dict[str, Any]:
         """Return the check the engine runs for this step, windows already resolved.
@@ -231,6 +265,15 @@ class Checklist(BaseModel):
     def _usable_title(cls, value: LocalizedText) -> LocalizedText:
         return _validate_localized(value, "title")
 
+    def unresolved_steps(self) -> list[tuple[int, ChecklistStep]]:
+        """Return the steps still waiting on the resolver, numbered as a pilot sees them.
+
+        Returns:
+            ``(step number, step)`` pairs, 1-based — the number is what makes a build
+            error actionable, since a ``control`` text may well appear twice.
+        """
+        return [(number, step) for number, step in enumerate(self.steps, start=1) if step.needs_resolution]
+
     @field_validator("aircraft")
     @classmethod
     def _known_aircraft_types(cls, value: list[str]) -> list[str]:
@@ -246,18 +289,32 @@ class Checklist(BaseModel):
 
 @lru_cache(maxsize=1)
 def _known_unit_types() -> frozenset[str]:
-    """Return the DCS type ids of the shipped unit catalogue.
+    """Return the DCS type ids a checklist may name.
+
+    Two sources, because one is not enough. The unit catalogue is generated from a
+    community datamine at a **pinned** revision, so an aircraft released since that pin
+    is missing from it — the F-14B(U) is, and rejecting a checklist for the aircraft
+    somebody just bought is the wrong answer. An aircraft with a committed cockpit-control
+    index is proof enough: that index was generated from a real installation.
 
     Returns:
-        The known type ids, or an empty set when the catalogue cannot be read — in
-        which case type validation is skipped rather than rejecting every checklist.
+        The known type ids, or an empty set when neither source can be read — in which
+        case type validation is skipped rather than rejecting every checklist.
     """
     try:
         raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml")) or {}
+        catalogued = frozenset(str(entry["type"]) for entry in (raw.get("units") or []) if entry.get("type"))
     except (OSError, ModuleNotFoundError, yaml.YAMLError):
         logger.warning(t("checklist.units_catalogue_unavailable"))
-        return frozenset()
-    return frozenset(str(entry["type"]) for entry in (raw.get("units") or []) if entry.get("type"))
+        catalogued = frozenset()
+
+    try:
+        indexes = bundled_dir("veaf_libs", "data", "cockpit-controls")
+        indexed = frozenset(path.stem for path in indexes.glob("*.yaml")) if indexes.is_dir() else frozenset()
+    except (OSError, ModuleNotFoundError):
+        indexed = frozenset()
+
+    return catalogued | indexed
 
 
 def _format_validation_error(error: ValidationError) -> str:
@@ -363,7 +420,9 @@ def select_activated(
         The activated checklists, sorted by id.
 
     Raises:
-        ChecklistError: when the configured list names an unknown id.
+        ChecklistError: when the configured list names an unknown id, or when an
+            activated checklist still has a step the resolver has not filled in — such a
+            step would box nothing and never validate, silently.
     """
     if configured_ids is None:
         chosen = {str(entry) for entry in mission_ids}
@@ -374,7 +433,28 @@ def select_activated(
             raise ChecklistError(
                 t("checklist.unknown_id", ids=", ".join(unknown), known=", ".join(sorted(available)) or "none")
             )
-    return [available[checklist_id] for checklist_id in sorted(chosen) if checklist_id in available]
+    activated = [available[checklist_id] for checklist_id in sorted(chosen) if checklist_id in available]
+    _refuse_unresolved(activated)
+    return activated
+
+
+def _refuse_unresolved(checklists: Sequence[Checklist]) -> None:
+    """Fail the build on any step whose ``control`` the resolver has not caught up with.
+
+    Args:
+        checklists: The activated checklists.
+
+    Raises:
+        ChecklistError: naming every stale step, so one run says everything there is to
+            fix rather than one thing per build.
+    """
+    stale = [
+        f"{checklist.id} step {number} ({step.control})"
+        for checklist in checklists
+        for number, step in checklist.unresolved_steps()
+    ]
+    if stale:
+        raise ChecklistError(t("checklist.unresolved_steps", steps="; ".join(stale)))
 
 
 def load_checklists(mission_folder: Path | None = None, catalogue_dir: Path | None = None) -> dict[str, Checklist]:

@@ -4,12 +4,14 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import yaml
 from veaf_libs.checklists import (
     CHECKLISTS_FOLDER_NAME,
     ChecklistError,
     load_checklists,
     parse_checklist,
     resolve_text,
+    select_activated,
 )
 from veaf_libs.lua_config_generator import generate_config_lua
 
@@ -197,6 +199,13 @@ class TestChecklistRejections(unittest.TestCase):
     def test_unknown_aircraft_type_is_rejected(self):
         self._assert_rejected({**VALID_CHECKLIST, "aircraft": ["F-16C_51"]}, "F-16C_51")
 
+    def test_an_aircraft_too_recent_for_the_catalogue_is_accepted_if_indexed(self):
+        # The unit catalogue is generated from a datamine at a pinned revision, so it does
+        # not know the F-14B(U). Refusing a checklist for the aircraft somebody just bought
+        # would be the wrong answer; its committed cockpit index proves it exists.
+        checklist = parse_checklist({**VALID_CHECKLIST, "aircraft": ["F-14BU"]}, "s")
+        self.assertEqual(["F-14BU"], checklist.aircraft)
+
     def test_param_and_check_together_are_rejected(self):
         self._assert_rejected(
             _with_steps({"label": "l", "param": "P", "equals": 1.0, "check": {"type": "x"}}),
@@ -353,6 +362,192 @@ class TestChecklistEmission(unittest.TestCase):
         lua = generate_config_lua({"lua_modules": {"ASSIST": {}}}, checklists=[])
         self.assertNotIn("registerChecklist", lua)
         self.assertNotIn("registerChecklist", generate_config_lua({"lua_modules": {"ASSIST": {}}}))
+
+
+class TestInstructorControl(unittest.TestCase):
+    """`control` — the free text an instructor writes, and `resolved_from`, its witness.
+
+    The point of the pair is that an instructor keeps owning one file: they write the
+    control in their own words, a resolution pass fills the technical fields beside it,
+    and a later edit of the text is visible because `resolved_from` no longer matches.
+    """
+
+    def test_a_step_may_carry_only_a_control(self):
+        # The resolver has to be able to load its own input; refusing here would mean an
+        # instructor could not write a checklist at all before resolving it.
+        checklist = parse_checklist(_with_steps({"label": "l", "control": "throttle sur idle"}), "s")
+        self.assertEqual("throttle sur idle", checklist.steps[0].control)
+
+    def test_a_control_alone_is_unresolved(self):
+        step = parse_checklist(_with_steps({"label": "l", "control": "throttle sur idle"}), "s").steps[0]
+        self.assertTrue(step.needs_resolution)
+
+    def test_a_control_matching_its_witness_is_resolved(self):
+        step = parse_checklist(
+            _with_steps(
+                {
+                    "label": "l",
+                    "control": "main pwr sur batt",
+                    "resolved_from": "main pwr sur batt",
+                    "element": "PTR-ELEC-TMB-MPWR-510",
+                    "argument": 510,
+                    "equals": 0.0,
+                }
+            ),
+            "s",
+        ).steps[0]
+        self.assertFalse(step.needs_resolution)
+
+    def test_an_edited_control_goes_stale(self):
+        step = parse_checklist(
+            _with_steps(
+                {
+                    "label": "l",
+                    "control": "main pwr sur main pwr",
+                    "resolved_from": "main pwr sur batt",
+                    "element": "PTR-ELEC-TMB-MPWR-510",
+                    "argument": 510,
+                    "equals": 0.0,
+                }
+            ),
+            "s",
+        ).steps[0]
+        self.assertTrue(step.needs_resolution)
+
+    def test_matching_ignores_case_and_spacing(self):
+        # Re-resolving every step because someone fixed an indent would make the witness
+        # useless noise.
+        step = parse_checklist(
+            _with_steps(
+                {
+                    "label": "l",
+                    "control": "  Throttle  sur IDLE ",
+                    "resolved_from": "throttle sur idle",
+                    "element": "PTR-THRTL-RLS-757",
+                    "confirm": True,
+                }
+            ),
+            "s",
+        ).steps[0]
+        self.assertFalse(step.needs_resolution)
+
+    def test_a_witness_without_a_control_is_not_stale(self):
+        # Someone deleted the source text; the technical fields are still valid.
+        step = parse_checklist(
+            _with_steps(
+                {
+                    "label": "l",
+                    "resolved_from": "main pwr sur batt",
+                    "element": "PTR-ELEC-TMB-MPWR-510",
+                    "argument": 510,
+                    "equals": 0.0,
+                }
+            ),
+            "s",
+        ).steps[0]
+        self.assertFalse(step.needs_resolution)
+
+    def test_a_technical_step_is_never_stale(self):
+        step = parse_checklist(_with_steps({"label": "l", "element": "PTR-X", "confirm": True}), "s").steps[0]
+        self.assertFalse(step.needs_resolution)
+
+    def test_a_checklist_reports_its_unresolved_steps_by_number(self):
+        checklist = parse_checklist(
+            _with_steps(
+                {"label": "one", "element": "PTR-X", "confirm": True},
+                {"label": "two", "control": "throttle sur idle"},
+                {"label": "three", "control": "gear up", "resolved_from": "gear down", "element": "PTR-Y"},
+            ),
+            "s",
+        )
+        self.assertEqual([2, 3], [number for number, _step in checklist.unresolved_steps()])
+
+
+class TestUnresolvedChecklistIsRefused(unittest.TestCase):
+    """A build must not ship a checklist whose steps do not say what they check."""
+
+    def _mission_with(self, step: dict) -> Path:
+        folder = Path(self._dir.name)
+        (folder / CHECKLISTS_FOLDER_NAME).mkdir()
+        (folder / CHECKLISTS_FOLDER_NAME / "own.yaml").write_text(
+            yaml.safe_dump({**VALID_CHECKLIST, "id": "own", "steps": [step]}),
+            encoding="utf-8",
+        )
+        return folder
+
+    def setUp(self):
+        self._dir = TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+
+    def test_an_unresolved_step_fails_the_activation(self):
+        folder = self._mission_with({"label": "l", "control": "throttle sur idle"})
+        available = load_checklists(folder, catalogue_dir=folder / "no-catalogue")
+        with self.assertRaises(ChecklistError) as raised:
+            select_activated(available, None, mission_ids=["own"])
+        # Naming the step is the whole point: "run the resolver" with no idea where.
+        self.assertIn("own", str(raised.exception))
+        self.assertIn("throttle sur idle", str(raised.exception))
+
+    def test_a_resolved_checklist_activates(self):
+        folder = self._mission_with(
+            {
+                "label": "l",
+                "control": "throttle sur idle",
+                "resolved_from": "throttle sur idle",
+                "element": "PTR-THRTL-RLS-757",
+                "confirm": True,
+            }
+        )
+        available = load_checklists(folder, catalogue_dir=folder / "no-catalogue")
+        self.assertEqual(1, len(select_activated(available, None, mission_ids=["own"])))
+
+
+class TestControlStaysDesignTime(unittest.TestCase):
+    """The engine has no use for the instructor's text, so it must not travel."""
+
+    def test_control_and_witness_do_not_reach_the_lua(self):
+        lua = generate_config_lua(
+            {"lua_modules": {"ASSIST": {}}},
+            checklists=[
+                parse_checklist(
+                    _with_steps(
+                        {
+                            "label": "l",
+                            "control": "throttle sur idle",
+                            "resolved_from": "throttle sur idle",
+                            "element": "PTR-THRTL-RLS-757",
+                            "confirm": True,
+                        }
+                    ),
+                    "s",
+                )
+            ],
+        )
+        self.assertIn("PTR-THRTL-RLS-757", lua)
+        self.assertNotIn("throttle sur idle", lua)
+        self.assertNotIn("resolved_from", lua)
+
+
+class TestShippedCatalogue(unittest.TestCase):
+    """Every checklist this project ships has to load, and be fully resolved."""
+
+    def test_the_shipped_checklists_load(self):
+        shipped = load_checklists()
+        self.assertIn("f16c-cold-start", shipped)
+        self.assertIn("f14bu-engine-start", shipped)
+
+    def test_no_shipped_checklist_has_an_unresolved_step(self):
+        # A shipped checklist with a stale `control` would fail the build of any mission
+        # that activates it — found here rather than by a mission maker.
+        for identifier, checklist in load_checklists().items():
+            self.assertEqual([], checklist.unresolved_steps(), identifier)
+
+    def test_the_f14bu_checklist_checks_the_switches_it_can(self):
+        steps = load_checklists()["f14bu-engine-start"].steps
+        switches = [step.check_table() for step in steps if step.check_table()["type"] == "switch"]
+        # The two transfer-pump steps and the two engine-crank ones; the throttles are
+        # axes and the air-source selector is five separate buttons.
+        self.assertEqual(4, len(switches))
 
 
 if __name__ == "__main__":

@@ -197,3 +197,58 @@ that make a coherent slice easy to pick.
 `clickabledata.lua` names the **clickable** elements. Gauges and warning lights are not clickable and
 have no entry there, so there is nothing to pass `a_cockpit_highlight`. A step about a gauge either
 boxes the nearest clickable control on the same panel, or boxes nothing.
+
+## 8. A position's value is written down — in the aircraft's input bindings
+
+Section 3 says a hint lists position names in an order that is not value order, and concludes the
+mapping has to be measured in game. That is true of the hint. It is **not** true of the install:
+every aircraft states the mapping outright in `Mods/aircraft/<Module>/Input/**/default.lua`.
+
+```lua
+{down = elec_commands.MainPwrSw, value_down = -1.0, name = _('MAIN PWR Switch - OFF')},
+{down = elec_commands.MainPwrSw, value_down =  0.0, name = _('MAIN PWR Switch - BATT')},
+{down = elec_commands.MainPwrSw, value_down =  1.0, name = _('MAIN PWR Switch - MAIN PWR')},
+```
+
+That matches the in-game measurement of 2026-08-02 to the digit, and `OFF/BACKUP` → 0/1 matches the
+other one. **Confirmed again on 2026-08-03, on a different vendor's aircraft**: in a live F-14B(U)
+cockpit, argument 629 read 0 with the hydraulic transfer pump at NORMAL and 1 at SHUTOFF, and
+argument 2102 read −1 with Engine Crank at Right and +1 at Left — four for four against what the
+bindings said. That aircraft's hints name no positions whatsoever, so the bindings were the only
+possible source and there had been nothing to cross-check them against. A control is tied to its bindings by the **command** it drives, which `clickabledata.lua`
+passes right after the device.
+
+Two things to know before relying on it:
+
+- **A binding that also carries `up =` is not a position.** It is a joystick convenience setting one
+  value on press and another on release — `MAIN PWR Switch (special) - MAIN PWR/BATT`. Taking it for
+  a position invents one. On the AH-64D, 1027 of 1486 bindings are of this kind.
+- **Coverage varies enormously.** F-16C: 104 of 284 controls have values; F-14B: 87 of 360 — an
+  aircraft whose hints name *no* positions at all, so bindings are the only source it has; A-10C II:
+  91 of 470; AH-64D: **7 of 478**, because its panels and its bindings do not share commands.
+
+## 9. Every module writes `clickabledata.lua` in its own dialect
+
+Four aircraft, four shapes. Each was found by indexing a real cockpit and noticing the count was
+absurd, never by reading a spec:
+
+| Module | What it does differently | Cost of not handling it |
+|---|---|---|
+| AH-64D | names the crew station before the hint (`mpd_button(CREW.PLT, _('…'), …)`) and quotes it with apostrophes | 0 of 478 controls |
+| A-10C II | passes a bare `""` for the UFC keypad's hint | 53 missing |
+| F-14B | names its arguments (`cockpit_args.HYD_ISOLATION_Switch`) in `draw_args.lua` instead of writing them out | 114 instead of 360 |
+| F-14B(U) | has no cockpit of its own: two lines of `dofile` into the F-14B's | 0 |
+
+The F-14B(U) is worth its own line: it **does** ship its own input bindings, but they are stubs
+pulling the F-14B's profiles in, so reading them alone yields 4 valued positions where reading both
+yields 87. Whose cockpit and whose bindings are two separate questions.
+
+Heatblur also puts `clickabledata.lua` in `Cockpit/`, not `Cockpit/Scripts/`.
+
+## 10. The unit catalogue lags behind the store
+
+`veaf_libs/data/dcsUnits.yaml` is generated from a community datamine at a **pinned** revision, so an
+aircraft released since that pin is simply absent from it — the F-14B(U) (`F-14BU`) is. Anything
+validating a type name against that catalogue alone will reject the aircraft somebody just bought.
+A committed cockpit-control index is the second proof of existence: it was generated from a real
+installation.

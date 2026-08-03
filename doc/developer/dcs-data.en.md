@@ -14,7 +14,7 @@ interchangeable:
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
 | **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airdrome name→id table, weapons |
-| **DCS install files** | read terrain files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies |
+| **DCS install files** | read files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies, cockpit controls |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
 data VEAF needs at build/runtime. The in-DCS export now only covers data the
@@ -32,9 +32,9 @@ veaf-build update-dcs-data --radio
 veaf-build update-dcs-data --airdromes    # merges the committed runtime dumps
 ```
 
-`--radio`, `--airdromes` and `--airfield-freqs` are excluded from the no-flag /
-`--all` run: radio has manual overlays, airdromes merges committed runtime dumps, and
-airfield-freqs needs a local DCS install path (`--dcs-path`).
+`--radio`, `--airdromes`, `--airfield-freqs` and `--cockpit-controls` are excluded from
+the no-flag / `--all` run: radio has manual overlays, airdromes merges committed runtime
+dumps, and the last two need a local DCS install path (`--dcs-path`).
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -213,3 +213,46 @@ veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle D
 ```
 
 It only covers **installed** theatres.
+
+## The cockpit-control indexes {#cockpit-controls}
+
+`src/python/veaf-tools/veaf_libs/data/cockpit-controls/<type>.yaml` describes, for one
+aircraft, each of its **clickable controls**: the animation argument to read, the hint DCS
+shows on mouse-over, the named positions, the value window, and whether the control has a
+**readable** position. This is what the guided-checklist resolver reads to turn an
+instructor's `throttle sur idle` into technical fields, without anyone opening a DCS
+install.
+
+Source: `Mods/aircraft/<Module>/Cockpit/Scripts/clickabledata.lua` (or `Cockpit/` for
+Heatblur), plus `clickable_defs.lua` for the value window and `draw_args.lua` when the
+module names its arguments. **Install-dependent**, so **not CI-guarded**:
+
+```bash
+veaf-build update-dcs-data --cockpit-controls --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+`--aircraft F-16C` restricts generation to one module. A module the install does not have
+is skipped; the number of elements the parser could not read is **printed**, never
+swallowed.
+
+### What the index says, and what it does not
+
+Three traps, all measured on real cockpits:
+
+- **`positions` is in hint order, not value order.** The F-16C's `MAIN PWR Switch, MAIN
+  PWR/BATT/OFF` runs +1 / 0 / -1 in that order, while `DIGITAL BACKUP, OFF/BACKUP` runs
+  0 / 1. Inferring a value from a rank is wrong half the time, silently.
+- **Naming positions in the hint is a recent ED habit, not a rule.** Across the cockpits
+  indexed here: F-16C 127 controls out of 284, AH-64D 123 of 478, A-10C 8 of 470, F-14B
+  **none** (Heatblur writes `Hydraulic Transfer Pump Switch`, with no positions). A
+  resolver that assumes named positions only works on ED aircraft.
+- **`readable: false` is not a gap in the index.** A button has no position, and a
+  spring-loaded switch is back at neutral before anything can poll it; a step on one of
+  those has to be pilot-confirmed.
+
+Every module has its own dialect, and each was found by indexing a real cockpit: the
+AH-64D, a two-seater, names the crew station before the hint (`mpd_button(CREW.PLT,
+_("..."), ...)`) and uses single quotes; the A-10C's UFC keypad passes an empty hint;
+Heatblur names its arguments (`cockpit_args.HYD_ISOLATION_Switch`) instead of writing them
+out. The F-14B(U) has no cockpit of its own: its `clickabledata.lua` is two lines of
+`dofile` pointing at the F-14B's, so both aircraft share one index.

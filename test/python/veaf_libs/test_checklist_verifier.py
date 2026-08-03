@@ -167,10 +167,14 @@ steps:
 
     def _run(self, measured, *extra):
         reading = StepReading(number=1, element="PNT_629", argument=629, expected=1.0, measured=measured)
+        # Patch where the command *looks them up*, not where they are defined: the command
+        # imports resolve_api_key at module level, so patching the source module leaves the
+        # real one in place — which passed locally, where a dcs-serve.yaml holds a key, and
+        # failed in CI, where none exists.
         with (
             mock.patch("veaf_libs.checklist_verifier.make_lua_runner", return_value=lambda code: "ok"),
             mock.patch("veaf_libs.checklist_verifier.verify_step", return_value=reading),
-            mock.patch("veaf_libs.dcs_bridge_capture.resolve_api_key", return_value="key"),
+            mock.patch("veaf_tools.commands.verify_checklist.resolve_api_key", return_value="key"),
         ):
             return self.runner.invoke(self.app, ["verify-checklist", str(self.path), *extra])
 

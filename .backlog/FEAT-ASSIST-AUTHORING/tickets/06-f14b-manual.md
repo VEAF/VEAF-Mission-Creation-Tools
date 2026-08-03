@@ -57,5 +57,5 @@ selector is five separate buttons, so those steps are pilot-confirmed.
 - [x] Pilot startup checklist for the F-14B(U), written the instructor way and resolved.
 - [x] Its source recorded in the file: the manual URL and the date it was read, with the labels
       written in our own words rather than Heatblur's.
-- [ ] **Verified in game** — needs a running DCS, so it waits for David.
+- [x] **Verified in game** (2026-08-03): all four automatic steps read the value the resolver wrote — 629 is 0 at NORMAL and 1 at SHUTOFF, 2102 is −1 at Right and +1 at Left.
 - [ ] David flies it and says whether it matches what he does.

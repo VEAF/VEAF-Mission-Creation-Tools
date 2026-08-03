@@ -1,6 +1,6 @@
 # 04 — verify a resolved checklist in game
 
-**Status:** ⬜ ready — depends on 03. Needs DCS running with the bridge.
+**Status:** 🔄 in-progress — the reading is proven in game (2026-08-03); the assisted and automatic *modes* are not built yet.
 
 A resolved value is a hypothesis until the argument has been read with the control in the wanted
 position. [Ticket 10](../../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md) made that reading
@@ -31,7 +31,33 @@ later run does not redo it.
 - A value that comes back different from the resolver's guess is the interesting case. Report it
   loudly: it means the hint order ran the other way.
 
+## What the first session established (2026-08-03)
+
+Done by hand through the bridge, in a F-14B(U) cockpit, before any of the tooling below exists:
+
+| Argument | Control | Position | Read | Inferred from bindings |
+|---|---|---|---|---|
+| 629 | Hydraulic Transfer Pump | NORMAL | `0` | 0.0 ✅ |
+| 629 | Hydraulic Transfer Pump | SHUTOFF | `1` | 1.0 ✅ |
+| 2102 | Engine Crank | Right | `-1` | −1.0 ✅ |
+| 2102 | Engine Crank | Left | `1` | +1.0 ✅ |
+
+**Four for four.** This is the first confirmation of the binding-derived values on a *third-party*
+aircraft, and on one whose hints name no positions at all — the bindings were the only possible
+source, so there was nothing to cross-check them against until now.
+
+Two things also proved themselves in passing:
+
+- `a_cockpit_highlight(id, element)` through `net.dostring_in("mission", …)` boxed `PNT_629` in a
+  live cockpit on request. David could not find the control; boxing it answered the question
+  instantly. **That is the assisted mode, minus the loop** — the hard part already works.
+- The `export` read works on a Heatblur module, not just on ED's.
+
 ## Definition of done
 
-- The F-16C's two MAIN PWR steps verified this way, confirming the measured −1 / 0 / +1.
-- Assisted mode documented for an instructor, automatic mode as the developer path.
+- [x] Values verified by reading the argument with the control in the wanted position — done on the
+      F-14B(U) rather than the F-16C, whose MAIN PWR was already measured on 2026-08-02.
+- [ ] Assisted mode as a command: name a step, box the control, wait for the pilot, record the value.
+- [ ] Automatic mode via `a_cockpit_perform_clickable_action`, behind an explicit opt-in.
+- [ ] `verified: true` written back so a later run does not redo it.
+- [ ] Assisted mode documented for an instructor, automatic mode as the developer path.

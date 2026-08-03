@@ -132,6 +132,9 @@ class ChecklistStep(BaseModel):
             control and the position it should be in, in their own words — ``throttle sur
             idle``. A resolution pass turns it into ``element``/``argument``/``equals``
             beside it, in this same file.
+        verified: Written by ``verify-checklist`` once the value has been read from a real
+            cockpit with the control in position. Design-time only: the engine never sees
+            it, and its absence means nothing more than "not checked yet".
         resolved_from: The ``control`` text those technical fields were derived from.
             Written by the resolver, read by nothing else. It is the whole
             synchronisation mechanism: no timestamps, no hashes, no second file — an
@@ -143,6 +146,7 @@ class ChecklistStep(BaseModel):
     label: LocalizedText
     control: str | None = None
     resolved_from: str | None = None
+    verified: bool = False
     element: str | None = None
     param: str | None = None
     equals: float | None = None

@@ -1,0 +1,3322 @@
+# Clickable cockpit controls of the FA-18C_hornet.
+# Generated from FA-18C/Cockpit/Scripts/clickabledata.lua in a DCS install.
+# `positions` is in HINT order, which is not value order: a switch whose hint
+# reads MAIN PWR/BATT/OFF runs +1/0/-1. Never infer a value from a rank here.
+# `readable` is false for buttons and spring-loaded switches: they have no
+# position to poll, so a step on one has to be pilot-confirmed.
+# Install-dependent, so NOT CI-guarded. Re-run
+# `veaf-build update-dcs-data --cockpit-controls --dcs-path <DCS>` after a DCS update.
+
+aircraft: FA-18C_hornet
+module: FA-18C
+source: clickabledata.lua
+dcs_version: 2.9.28.26385
+controls:
+  pnt_345:
+    argument: 345
+    hint: RUD TRIM Control
+    prototype: default_axis_limited
+    positions: []
+    command: ctrl_commands.RudderTrim
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_346:
+    argument: 346
+    hint: T/O TRIM Button
+    prototype: default_button
+    positions: []
+    command: ctrl_commands.TOTrimSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_349:
+    argument: 349
+    hint: FCS RESET Button
+    prototype: default_button
+    positions: []
+    command: ctrl_commands.ResetSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_348:
+    argument: 348
+    hint: GAIN Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: ctrl_commands.GainSwCover
+    values:
+      OPEN: 1.0
+      CLOSE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_347:
+    argument: 347
+    hint: GAIN Switch, NORM/ORIDE
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - ORIDE
+    command: ctrl_commands.GainSw
+    values:
+      ORIDE: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_234:
+    argument: 234
+    hint: FLAP Switch, AUTO/HALF/FULL
+    prototype: default_3_position_tumb
+    positions:
+    - AUTO
+    - HALF
+    - FULL
+    command: ctrl_commands.FlapSw
+    values:
+      AUTO: 1.0
+      HALF: 0.0
+      FULL: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_139:
+    argument: 139
+    hint: Spin Recovery Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: ctrl_commands.SpinRecCover
+    values:
+      OPEN: 1.0
+      CLOSE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_138:
+    argument: 138
+    hint: Spin Recovery Switch, RCVY/NORM
+    prototype: default_2_position_tumb
+    positions:
+    - RCVY
+    - NORM
+    command: ctrl_commands.SpinRec
+    values:
+      RCVY: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_470:
+    argument: 470
+    hint: FCS BIT Switch
+    prototype: default_button2
+    positions: []
+    command: ctrl_commands.FcsBitSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_504:
+    argument: 504
+    hint: Throttles Friction Adjusting Lever
+    prototype: default_movable_axis
+    positions: []
+    command: ctrl_commands.FrictionLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_404:
+    argument: 404
+    hint: Battery Switch, ON/OFF/ORIDE
+    prototype: default_3_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    - ORIDE
+    command: elec_commands.BattSw
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      ORIDE: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_402:
+    argument: 402
+    hint: Left Generator Control Switch, NORM/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - 'OFF'
+    command: elec_commands.LGenSw
+    values:
+      NORM: 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_403:
+    argument: 403
+    hint: Right Generator Control Switch, NORM/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - 'OFF'
+    command: elec_commands.RGenSw
+    values:
+      NORM: 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_379:
+    argument: 379
+    hint: Generator TIE Control Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: elec_commands.GenTieControlSwCover
+    values:
+      OPEN: 1.0
+      CLOSE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_378:
+    argument: 378
+    hint: Generator TIE Control Switch, NORM/RESET
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - RESET
+    command: elec_commands.GenTieControlSw
+    values:
+      RESET: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_336:
+    argument: 336
+    hint: External Power Switch, RESET/NORM/OFF
+    prototype: default_button_tumb_v2
+    positions:
+    - RESET
+    - NORM
+    - 'OFF'
+    command: elec_commands.ExtPwrSw
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: false
+  pnt_332:
+    argument: 332
+    hint: Ground Power Switch 1, A ON/AUTO/B ON
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - A ON
+    - AUTO
+    - B ON
+    command: elec_commands.GndPwr1SwB
+    values: {}
+    range: null
+    readable: false
+  pnt_333:
+    argument: 333
+    hint: Ground Power Switch 2, A ON/AUTO/B ON
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - A ON
+    - AUTO
+    - B ON
+    command: elec_commands.GndPwr2SwB
+    values: {}
+    range: null
+    readable: false
+  pnt_334:
+    argument: 334
+    hint: Ground Power Switch 3, A ON/AUTO/B ON
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - A ON
+    - AUTO
+    - B ON
+    command: elec_commands.GndPwr3SwB
+    values: {}
+    range: null
+    readable: false
+  pnt_335:
+    argument: 335
+    hint: Ground Power Switch 4, A ON/AUTO/B ON
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - A ON
+    - AUTO
+    - B ON
+    command: elec_commands.GndPwr4SwB
+    values: {}
+    range: null
+    readable: false
+  pnt_409:
+    argument: 409
+    hint: Pitot Heater Switch, ON/AUTO
+    prototype: springloaded_2_pos_tumb2
+    positions:
+    - 'ON'
+    - AUTO
+    command: elec_commands.PitotHeater
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_410:
+    argument: 410
+    hint: Engine Anti-Ice Switch, ON/OFF/TEST
+    prototype: default_3_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    - TEST
+    command: engines_commands.AntiIceSw
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+      TEST: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_381:
+    argument: 381
+    hint: CB FCS CHAN 1, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_FCS_CHAN1
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_382:
+    argument: 382
+    hint: CB FCS CHAN 2, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_FCS_CHAN2
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_383:
+    argument: 383
+    hint: CB SPD BRK, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_SPD_BRK
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_384:
+    argument: 384
+    hint: CB LAUNCH BAR, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_LAUNCH_BAR
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_454:
+    argument: 454
+    hint: CB FCS CHAN 3, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_FCS_CHAN3
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_455:
+    argument: 455
+    hint: CB FCS CHAN 4, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_FCS_CHAN4
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_456:
+    argument: 456
+    hint: CB HOOK, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_HOOK
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_457:
+    argument: 457
+    hint: CB LG, ON/OFF
+    prototype: default_CB_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: elec_commands.CB_LG
+    values:
+      'OFF': 1.0
+      'ON': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_368:
+    argument: 368
+    hint: MC Switch, 1 OFF/NORM/2 OFF
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - 1 OFF
+    - NORM
+    - 2 OFF
+    command: elec_commands.MC2OffSw
+    values: {}
+    range: null
+    readable: false
+  pnt_375:
+    argument: 375
+    hint: APU Control Switch, ON/OFF
+    prototype: default_button2
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: engines_commands.APU_ControlSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_377:
+    argument: 377
+    hint: Engine Crank Switch, LEFT/OFF/RIGHT
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - LEFT
+    - 'OFF'
+    - RIGHT
+    command: engines_commands.EngineCrankLSw
+    values: {}
+    range: null
+    readable: false
+  pnt_331:
+    argument: 331
+    hint: Fire and Bleed Air Test Switch, (RMB) TEST A/(LMB) TEST B
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - (RMB) TEST A
+    - (LMB) TEST B
+    command: engines_commands.FireTestBSw
+    values: {}
+    range: null
+    readable: false
+  pnt_369:
+    argument: 369
+    hint: Hydraulic Isolate Override Switch, NORM/ORIDE
+    prototype: default_2_position_tumb
+    positions:
+    - NORM
+    - ORIDE
+    command: hydro_commands.HydIsolSw
+    values:
+      ORIDE: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_226:
+    argument: 226
+    hint: Landing Gear Control Handle, (RMB)UP/(LMB)DOWN/(MW)EMERGENCY DOWN
+    prototype: LDG_Gear_Control_Handle
+    positions:
+    - (RMB)UP
+    - (LMB)DOWN
+    - (MW)EMERGENCY DOWN
+    command: gear_commands.GearHandle
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_229:
+    argument: 229
+    hint: Down Lock Override Button - Push to unlock
+    prototype: default_button
+    positions: []
+    command: gear_commands.DownLockOverrideBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_238:
+    argument: 238
+    hint: Anti Skid Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: gear_commands.AntiSkidSw
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_233:
+    argument: 233
+    hint: Launch Bar Control Switch, EXTEND/RETRACT
+    prototype: default_button2
+    positions:
+    - EXTEND
+    - RETRACT
+    command: gear_commands.LaunchBarSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_293:
+    argument: 293
+    hint: Arresting Hook Handle, UP/DOWN
+    prototype: default_2_position_tumb
+    positions:
+    - UP
+    - DOWN
+    command: gear_commands.HookHandle
+    values:
+      Up: 1.0
+      Down: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_340:
+    argument: 340
+    hint: Internal Wing Tank Fuel Control Switch, INHIBIT/NORM
+    prototype: default_2_position_tumb
+    positions:
+    - INHIBIT
+    - NORM
+    command: fuel_commands.IntrWingInhibitSw
+    values:
+      INHIBIT: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_341:
+    argument: 341
+    hint: Probe Control Switch, EXTEND/RETRACT/EMERG EXTD
+    prototype: default_3_position_tumb
+    positions:
+    - EXTEND
+    - RETRACT
+    - EMERG EXTD
+    command: fuel_commands.ProbeControlSw
+    values:
+      EXTEND: 1.0
+      RETRACT: 0.0
+      EMERG EXTD: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_344:
+    argument: 344
+    hint: Fuel Dump Switch, ON/OFF
+    prototype: default_button2
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: fuel_commands.DumpSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_343:
+    argument: 343
+    hint: External Centerline Tank Fuel Control Switch, STOP/NORM/ORIDE
+    prototype: default_3_position_tumb
+    positions:
+    - STOP
+    - NORM
+    - ORIDE
+    command: fuel_commands.ExtTanksCtrSw
+    values:
+      ORIDE: 1.0
+      NORM: 0.0
+      STOP: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_342:
+    argument: 342
+    hint: External Wing Tanks Fuel Control Switch, STOP/NORM/ORIDE
+    prototype: default_3_position_tumb
+    positions:
+    - STOP
+    - NORM
+    - ORIDE
+    command: fuel_commands.ExtTanksWingSw
+    values:
+      ORIDE: 1.0
+      NORM: 0.0
+      STOP: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_453:
+    argument: 453
+    hint: Canopy Control Switch, OPEN/HOLD/CLOSE
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - OPEN
+    - HOLD
+    - CLOSE
+    command: cpt_commands.CanopySwitchClose
+    values: {}
+    range: null
+    readable: false
+  pnt_43:
+    argument: 43
+    hint: Canopy Jettison Handle Unlock Button - Press to unlock
+    prototype: default_button
+    positions: []
+    command: cpt_commands.CanopyJettLeverButton
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_42:
+    argument: 42
+    hint: Canopy Jettison Handle - Pull to jettison
+    prototype: default_2_position_tumb
+    positions: []
+    command: cpt_commands.CanopyJettLever
+    values:
+      PULL: 1.0
+      PUSH: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_510:
+    argument: 510
+    hint: Ejection Control Handle (3 times)
+    prototype: default_button
+    positions: []
+    command: cpt_commands.SeatEjectionControlHandle
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_511:
+    argument: 511
+    hint: Ejection Seat SAFE/ARMED Handle, SAFE/ARMED
+    prototype: default_2_position_tumb
+    positions:
+    - SAFE
+    - ARMED
+    command: cpt_commands.EjectionSeatSafeArmedHandle
+    values:
+      SAFE: 1.0
+      ARMED: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_512:
+    argument: 512
+    hint: Ejection Seat Manual Override Handle, PULL/PUSH
+    prototype: default_2_position_tumb
+    positions:
+    - PULL
+    - PUSH
+    command: cpt_commands.EjectionSeatManualOverrideHandle
+    values:
+      PULL: 1.0
+      PUSH: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_513:
+    argument: 513
+    hint: Shoulder Harness Control Handle, LOCK/UNLOCK
+    prototype: default_2_position_tumb
+    positions:
+    - LOCK
+    - UNLOCK
+    command: cpt_commands.ShoulderHarnessControlHandle
+    values:
+      LOCK: 1.0
+      UNLOCK: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_514:
+    argument: 514
+    hint: Seat Height Adjustment Switch, UP/HOLD/DOWN
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - UP
+    - HOLD
+    - DOWN
+    command: cpt_commands.SeatHeightAdjustmentSwitchUp
+    values: {}
+    range: null
+    readable: false
+  pnt_260:
+    argument: 260
+    hint: Rudder Pedal Adjust Lever
+    prototype: default_button
+    positions: []
+    command: cpt_commands.RudderPedalAdjustLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_575:
+    argument: 575
+    hint: Hide Stick toggle
+    prototype: default_2_position_tumb
+    positions: []
+    command: cpt_commands.StickHide
+    values:
+      HIDE: 1.0
+      SHOW: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_497:
+    argument: 0
+    hint: Toggle Mirrors
+    prototype: default_2_position_tumb
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_498:
+    argument: 0
+    hint: Toggle Mirrors
+    prototype: default_2_position_tumb
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_499:
+    argument: 0
+    hint: Toggle Mirrors
+    prototype: default_2_position_tumb
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_338:
+    argument: 338
+    hint: POSITION Lights Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: extlights_commands.Position
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_337:
+    argument: 337
+    hint: FORMATION Lights Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: extlights_commands.Formation
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_339:
+    argument: 339
+    hint: STROBE Lights Switch, BRT/OFF/DIM
+    prototype: default_3_position_tumb
+    positions:
+    - BRT
+    - 'OFF'
+    - DIM
+    command: extlights_commands.Strobe
+    values:
+      BRT: 1.0
+      'OFF': 0.0
+      DIM: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_237:
+    argument: 237
+    hint: LDG/TAXI LIGHT Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: extlights_commands.LdgTaxi
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_413:
+    argument: 413
+    hint: CONSOLES Lights Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: cptlights_commands.Consoles
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_414:
+    argument: 414
+    hint: INST PNL Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: cptlights_commands.InstPnl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_415:
+    argument: 415
+    hint: FLOOD Light Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: cptlights_commands.Flood
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_419:
+    argument: 419
+    hint: MODE Switch, NVG/NITE/DAY
+    prototype: default_3_position_tumb
+    positions:
+    - NVG
+    - NITE
+    - DAY
+    command: cptlights_commands.ModeSw
+    values:
+      NVG: 1.0
+      NITE: 0.0
+      DAY: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_418:
+    argument: 418
+    hint: CHART Light Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: cptlights_commands.Chart
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_417:
+    argument: 417
+    hint: WARN/CAUTION Dimmer Control
+    prototype: default_axis_limited
+    positions: []
+    command: cptlights_commands.WarnCaution
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_416:
+    argument: 416
+    hint: Lights Test Switch, TEST/OFF
+    prototype: springloaded_2_pos_tumb2
+    positions:
+    - TEST
+    - 'OFF'
+    command: cptlights_commands.LtTestSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_14:
+    argument: 14
+    hint: MASTER CAUTION Reset Button - Press to reset
+    prototype: default_button
+    positions: []
+    command: cptlights_commands.MasterCaution
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_239:
+    argument: 239
+    hint: HOOK BYPASS Switch, FIELD/CARRIER
+    prototype: springloaded_2_pos_tumb2
+    positions:
+    - FIELD
+    - CARRIER
+    command: cptlights_commands.HookBypass
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_365:
+    argument: 365
+    hint: OBOGS Control Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: oxygen_commands.OBOGS_ControlSw
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_366:
+    argument: 366
+    hint: OXY Flow Knob
+    prototype: default_axis_limited
+    positions: []
+    command: oxygen_commands.OxyFlowControlValve
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_411:
+    argument: 411
+    hint: Bleed Air Knob, R OFF/NORM/L OFF/OFF
+    prototype: multiposition_switch_cl
+    positions:
+    - R OFF
+    - NORM
+    - L OFF
+    - 'OFF'
+    command: ECS_commands.BleedAirSw
+    values:
+      'OFF': 0.0
+      L OFF: 0.1
+      NORM: 0.2
+      R OFF: 0.3
+    range: null
+    readable: true
+  pnt_412:
+    argument: 412
+    hint: Bleed Air Knob, AUG PULL
+    prototype: default_button
+    positions: []
+    command: ECS_commands.BleedAirSwAugPull
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_405:
+    argument: 405
+    hint: ECS Mode Switch, AUTO/MAN/ OFF/RAM
+    prototype: default_3_position_tumb
+    positions:
+    - AUTO
+    - MAN
+    - 'OFF'
+    - RAM
+    command: ECS_commands.ECSModeSw
+    values:
+      AUTO: 1.0
+      MAN: 0.0
+      OFF/RAM: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_408:
+    argument: 408
+    hint: Cabin Pressure Switch, NORM/DUMP/ RAM/DUMP
+    prototype: default_3_position_tumb
+    positions:
+    - NORM
+    - DUMP
+    - RAM
+    - DUMP
+    command: ECS_commands.CabinPressSw
+    values:
+      NORM: 1.0
+      DUMP: 0.0
+      RAM/DUMP: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_451:
+    argument: 451
+    hint: Defog Handle
+    prototype: default_movable_axis
+    positions: []
+    command: ECS_commands.DefogHandle
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_407:
+    argument: 407
+    hint: Cabin Temperature Knob
+    prototype: default_axis_limited
+    positions: []
+    command: ECS_commands.CabinTemperatureRst
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_406:
+    argument: 406
+    hint: Suit Temperature Knob
+    prototype: default_axis_limited
+    positions: []
+    command: ECS_commands.SuitTemperatureRst
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_297:
+    argument: 297
+    hint: AV COOL Switch, NORM/EMERG
+    prototype: default_button2
+    positions:
+    - NORM
+    - EMERG
+    command: ECS_commands.AV_COOL_Sw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_452:
+    argument: 452
+    hint: Windshield Anti-Ice/Rain Switch, ANTI ICE/OFF/RAIN
+    prototype: default_3_position_tumb
+    positions:
+    - ANTI ICE
+    - 'OFF'
+    - RAIN
+    command: ECS_commands.WindshieldSw
+    values:
+      ANTI ICE: 1.0
+      'OFF': 0.0
+      RAIN: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_505:
+    argument: 505
+    hint: Left Louver
+    prototype: default_axis_limited
+    positions: []
+    command: ECS_commands.LeftLouver
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_506:
+    argument: 506
+    hint: Right Louver
+    prototype: default_axis_limited
+    positions: []
+    command: ECS_commands.RightLouver
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_475:
+    argument: 475
+    hint: Weapon Release Button
+    prototype: limit_button
+    positions: []
+    command: hotas_commands.STICK_WEAPON_RELEASE
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_477:
+    argument: 477
+    hint: RECCE Event Mark Switch
+    prototype: limit_button
+    positions: []
+    command: hotas_commands.STICK_RECCE_EVENT_MARK
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_482:
+    argument: 482
+    hint: Autopilot/Nosewheel Steering Disengage (Paddle) Switch
+    prototype: limit_button
+    positions: []
+    command: hotas_commands.STICK_PADDLE
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_480:
+    argument: 480
+    hint: Undesignate/Nose Wheel Steer Switch
+    prototype: limit_button
+    positions: []
+    command: hotas_commands.STICK_UNDESIGNATE
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_494:
+    argument: 494
+    hint: Exterior Lights Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: hotas_commands.THROTTLE_EXTERIOR_LIGHTS
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_458:
+    argument: 458
+    hint: Master Mode Button, A/A
+    prototype: default_button
+    positions:
+    - A
+    - A
+    command: SMS_commands.AA_MasterModeSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_459:
+    argument: 459
+    hint: Master Mode Button, A/G
+    prototype: default_button
+    positions:
+    - A
+    - G
+    command: SMS_commands.AG_MasterModeSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_49:
+    argument: 49
+    hint: Master Arm Switch, ARM/SAFE
+    prototype: default_2_position_tumb
+    positions:
+    - ARM
+    - SAFE
+    command: SMS_commands.MasterArmSw
+    values:
+      ARM: 1.0
+      SAFE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_50:
+    argument: 50
+    hint: Emergency Jettison Button
+    prototype: default_button
+    positions: []
+    command: SMS_commands.EmerJettSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_258:
+    argument: 258
+    hint: Auxiliary Release Switch, ENABLE/NORM
+    prototype: default_2_position_tumb
+    positions:
+    - ENABLE
+    - NORM
+    command: SMS_commands.AuxRelSw
+    values:
+      ENABLE: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_153:
+    argument: 153
+    hint: Station Jettison Select Button, CENTER
+    prototype: push_button_tumb
+    positions: []
+    command: SMS_commands.JettStationCntrBtn
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_155:
+    argument: 155
+    hint: Station Jettison Select Button, LEFT IN
+    prototype: push_button_tumb
+    positions: []
+    command: SMS_commands.JettStationLIBtn
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_157:
+    argument: 157
+    hint: Station Jettison Select Button, LEFT OUT
+    prototype: push_button_tumb
+    positions: []
+    command: SMS_commands.JettStationLOBtn
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_159:
+    argument: 159
+    hint: Station Jettison Select Button, RIGHT IN
+    prototype: push_button_tumb
+    positions: []
+    command: SMS_commands.JettStationRIBtn
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_161:
+    argument: 161
+    hint: Station Jettison Select Button, RIGHT OUT
+    prototype: push_button_tumb
+    positions: []
+    command: SMS_commands.JettStationROBtn
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_235:
+    argument: 235
+    hint: Selective Jettison Pushbutton
+    prototype: default_button
+    positions: []
+    command: SMS_commands.SelJettBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_236:
+    argument: 236
+    hint: Selective Jettison Knob, L FUS MSL/SAFE/R FUS MSL/ RACK/LCHR /STORES
+    prototype: multiposition_switch
+    positions:
+    - L FUS MSL
+    - SAFE
+    - R FUS MSL
+    - RACK
+    - LCHR
+    - STORES
+    command: SMS_commands.SelJettLvr
+    values:
+      L FUS MSL: -0.1
+      SAFE: 0.0
+      R FUS MSL: 0.1
+      RACK/LCHR: 0.2
+      STORES: 0.3
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  pnt_135:
+    argument: 135
+    hint: IR Cooling Switch, ORIDE/NORM/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - ORIDE
+    - NORM
+    - 'OFF'
+    command: SMS_commands.IRCoolingSw
+    values:
+      ORIDE: 0.2
+      NORM: 0.1
+      'OFF': 0.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_46:
+    argument: 46
+    hint: Fire Extinguisher Pushbutton
+    prototype: default_button
+    positions: []
+    command: engines_commands.FireExtghDischSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_30:
+    argument: 30
+    hint: APU Fire Warning/Extinguisher Light
+    prototype: push_button_tumb
+    positions: []
+    command: engines_commands.APU_FireSw
+    values:
+      PRESS: 1.0
+      RELEASE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_11:
+    argument: 11
+    hint: Left Engine/AMAD Fire Warning/Extinguisher Light - (LMB) depress/(RMB) cover
+      control
+    prototype: default_double_tumb
+    positions: []
+    command: engines_commands.LENG_FireSw
+    values:
+      PRESS: 1.0
+      RELEASE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_27:
+    argument: 27
+    hint: Right Engine/AMAD Fire Warning/Extinguisher Light - (LMB) depress/(RMB)
+      cover control
+    prototype: default_double_tumb
+    positions: []
+    command: engines_commands.RENG_FireSw
+    values:
+      PRESS: 1.0
+      RELEASE: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_140:
+    argument: 140
+    hint: HUD Symbology Reject Switch, NORM/REJ 1/REJ 2
+    prototype: default_3_position_tumb
+    positions:
+    - NORM
+    - REJ 1
+    - REJ 2
+    command: HUD_commands.HUD_SymbRejectSw
+    values:
+      NORM: 0.2
+      REJ 1: 0.1
+      REJ 2: 0.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_141:
+    argument: 141
+    hint: HUD Symbology Brightness Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: HUD_commands.HUD_SymbBrightCtrl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_142:
+    argument: 142
+    hint: HUD Symbology Brightness Selector Knob, DAY/NIGHT
+    prototype: default_2_position_tumb
+    positions:
+    - DAY
+    - NIGHT
+    command: HUD_commands.HUD_SymbBrightSelKnob
+    values:
+      DAY: 1.0
+      NIGHT: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_143:
+    argument: 143
+    hint: Black Level Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: HUD_commands.HUD_BlackLevelCtrl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_144:
+    argument: 144
+    hint: HUD Video Control Switch, W/B /VID/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - W
+    - B
+    - VID
+    - 'OFF'
+    command: HUD_commands.HUD_VideoCtrlSw
+    values:
+      W/B: 0.2
+      VID: 0.1
+      'OFF': 0.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_145:
+    argument: 145
+    hint: Balance Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: HUD_commands.HUD_BalanceCtrl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_146:
+    argument: 146
+    hint: AOA Indexer Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: HUD_commands.HUD_AoA_IndexerCtrl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_147:
+    argument: 147
+    hint: Altitude Switch, BARO/RDR
+    prototype: default_2_position_tumb
+    positions:
+    - BARO
+    - RDR
+    command: HUD_commands.HUD_AltitudeSw
+    values:
+      BARO: 1.0
+      RDR: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_148:
+    argument: 148
+    hint: Attitude Selector Switch, INS/AUTO/STBY
+    prototype: default_3_position_tumb
+    positions:
+    - INS
+    - AUTO
+    - STBY
+    command: HUD_commands.HUD_AttitudeSelSw
+    values:
+      INS: 1.0
+      AUTO: 0.0
+      STBY: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_51:
+    argument: 51
+    hint: Left MDI Brightness Selector Knob, OFF/NIGHT/DAY
+    prototype: default_3_position_tumb
+    positions:
+    - 'OFF'
+    - NIGHT
+    - DAY
+    command: MDI_commands.MDI_off_night_day
+    values:
+      Left MDI Brightness Selector Knob - OFF: 0.0
+      Left MDI Brightness Selector Knob - NIGHT: 0.1
+      Left MDI Brightness Selector Knob - DAY: 0.2
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_52:
+    argument: 52
+    hint: Left MDI Brightness Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: MDI_commands.MDI_brightness
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_53:
+    argument: 53
+    hint: Left MDI Contrast Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: MDI_commands.MDI_contrast
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_54:
+    argument: 54
+    hint: Left MDI PB 1
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_1
+    values: {}
+    range: null
+    readable: false
+  pnt_55:
+    argument: 55
+    hint: Left MDI PB 2
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_2
+    values: {}
+    range: null
+    readable: false
+  pnt_56:
+    argument: 56
+    hint: Left MDI PB 3
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_3
+    values: {}
+    range: null
+    readable: false
+  pnt_57:
+    argument: 57
+    hint: Left MDI PB 4
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_4
+    values: {}
+    range: null
+    readable: false
+  pnt_58:
+    argument: 58
+    hint: Left MDI PB 5
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_5
+    values: {}
+    range: null
+    readable: false
+  pnt_59:
+    argument: 59
+    hint: Left MDI PB 6
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_6
+    values: {}
+    range: null
+    readable: false
+  pnt_60:
+    argument: 60
+    hint: Left MDI PB 7
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_7
+    values: {}
+    range: null
+    readable: false
+  pnt_61:
+    argument: 61
+    hint: Left MDI PB 8
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_8
+    values: {}
+    range: null
+    readable: false
+  pnt_62:
+    argument: 62
+    hint: Left MDI PB 9
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_9
+    values: {}
+    range: null
+    readable: false
+  pnt_63:
+    argument: 63
+    hint: Left MDI PB 10
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_10
+    values: {}
+    range: null
+    readable: false
+  pnt_64:
+    argument: 64
+    hint: Left MDI PB 11
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_11
+    values: {}
+    range: null
+    readable: false
+  pnt_65:
+    argument: 65
+    hint: Left MDI PB 12
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_12
+    values: {}
+    range: null
+    readable: false
+  pnt_66:
+    argument: 66
+    hint: Left MDI PB 13
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_13
+    values: {}
+    range: null
+    readable: false
+  pnt_67:
+    argument: 67
+    hint: Left MDI PB 14
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_14
+    values: {}
+    range: null
+    readable: false
+  pnt_68:
+    argument: 68
+    hint: Left MDI PB 15
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_15
+    values: {}
+    range: null
+    readable: false
+  pnt_69:
+    argument: 69
+    hint: Left MDI PB 16
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_16
+    values: {}
+    range: null
+    readable: false
+  pnt_70:
+    argument: 70
+    hint: Left MDI PB 17
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_17
+    values: {}
+    range: null
+    readable: false
+  pnt_72:
+    argument: 72
+    hint: Left MDI PB 18
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_18
+    values: {}
+    range: null
+    readable: false
+  pnt_73:
+    argument: 73
+    hint: Left MDI PB 19
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_19
+    values: {}
+    range: null
+    readable: false
+  pnt_75:
+    argument: 75
+    hint: Left MDI PB 20
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_20
+    values: {}
+    range: null
+    readable: false
+  pnt_312:
+    argument: 312
+    hint: Heading Set Switch
+    prototype: springloaded_3_pos_tumb2
+    positions: []
+    command: MDI_commands.MDI_Left_HDG_Negative
+    values: {}
+    range: null
+    readable: false
+  pnt_313:
+    argument: 313
+    hint: Course Set Switch
+    prototype: springloaded_3_pos_tumb
+    positions: []
+    command: MDI_commands.MDI_Left_CRS_Negative
+    values: {}
+    range: null
+    readable: false
+  pnt_76:
+    argument: 76
+    hint: Right MDI Brightness Selector Knob, OFF/NIGHT/DAY
+    prototype: default_3_position_tumb
+    positions:
+    - 'OFF'
+    - NIGHT
+    - DAY
+    command: MDI_commands.MDI_off_night_day
+    values:
+      Left MDI Brightness Selector Knob - OFF: 0.0
+      Left MDI Brightness Selector Knob - NIGHT: 0.1
+      Left MDI Brightness Selector Knob - DAY: 0.2
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_77:
+    argument: 77
+    hint: Right MDI Brightness Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: MDI_commands.MDI_brightness
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_78:
+    argument: 78
+    hint: Right MDI Contrast Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: MDI_commands.MDI_contrast
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_79:
+    argument: 79
+    hint: Right MDI PB 1
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_1
+    values: {}
+    range: null
+    readable: false
+  pnt_80:
+    argument: 80
+    hint: Right MDI PB 2
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_2
+    values: {}
+    range: null
+    readable: false
+  pnt_81:
+    argument: 81
+    hint: Right MDI PB 3
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_3
+    values: {}
+    range: null
+    readable: false
+  pnt_82:
+    argument: 82
+    hint: Right MDI PB 4
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_4
+    values: {}
+    range: null
+    readable: false
+  pnt_83:
+    argument: 83
+    hint: Right MDI PB 5
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_5
+    values: {}
+    range: null
+    readable: false
+  pnt_84:
+    argument: 84
+    hint: Right MDI PB 6
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_6
+    values: {}
+    range: null
+    readable: false
+  pnt_85:
+    argument: 85
+    hint: Right MDI PB 7
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_7
+    values: {}
+    range: null
+    readable: false
+  pnt_86:
+    argument: 86
+    hint: Right MDI PB 8
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_8
+    values: {}
+    range: null
+    readable: false
+  pnt_87:
+    argument: 87
+    hint: Right MDI PB 9
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_9
+    values: {}
+    range: null
+    readable: false
+  pnt_88:
+    argument: 88
+    hint: Right MDI PB 10
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_10
+    values: {}
+    range: null
+    readable: false
+  pnt_89:
+    argument: 89
+    hint: Right MDI PB 11
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_11
+    values: {}
+    range: null
+    readable: false
+  pnt_90:
+    argument: 90
+    hint: Right MDI PB 12
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_12
+    values: {}
+    range: null
+    readable: false
+  pnt_91:
+    argument: 91
+    hint: Right MDI PB 13
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_13
+    values: {}
+    range: null
+    readable: false
+  pnt_92:
+    argument: 92
+    hint: Right MDI PB 14
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_14
+    values: {}
+    range: null
+    readable: false
+  pnt_93:
+    argument: 93
+    hint: Right MDI PB 15
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_15
+    values: {}
+    range: null
+    readable: false
+  pnt_94:
+    argument: 94
+    hint: Right MDI PB 16
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_16
+    values: {}
+    range: null
+    readable: false
+  pnt_95:
+    argument: 95
+    hint: Right MDI PB 17
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_17
+    values: {}
+    range: null
+    readable: false
+  pnt_96:
+    argument: 96
+    hint: Right MDI PB 18
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_18
+    values: {}
+    range: null
+    readable: false
+  pnt_97:
+    argument: 97
+    hint: Right MDI PB 19
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_19
+    values: {}
+    range: null
+    readable: false
+  pnt_98:
+    argument: 98
+    hint: Right MDI PB 20
+    prototype: short_way_button
+    positions: []
+    command: MDI_commands.MDI_PB_20
+    values: {}
+    range: null
+    readable: false
+  pnt_203:
+    argument: 203
+    hint: AMPCD Off/Brightness Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: AMPCD_commands.AMPCD_off_brightness
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_177_2:
+    argument: 177
+    hint: AMPCD Night/Day Brightness Selector, DAY
+    prototype: AMPCD_switch_positive
+    positions: []
+    command: AMPCD_commands.AMPCD_nite_day_DAY
+    values: {}
+    range: null
+    readable: true
+  pnt_177_1:
+    argument: 177
+    hint: AMPCD Night/Day Brightness Selector, NGT
+    prototype: AMPCD_switch_negative
+    positions: []
+    command: AMPCD_commands.AMPCD_nite_day_NGT
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_179_2:
+    argument: 179
+    hint: AMPCD Symbology Control Switch, UP
+    prototype: AMPCD_switch_positive
+    positions: []
+    command: AMPCD_commands.AMPCD_symbology_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_179_1:
+    argument: 179
+    hint: AMPCD Symbology Control Switch, DOWN
+    prototype: AMPCD_switch_negative
+    positions: []
+    command: AMPCD_commands.AMPCD_symbology_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_182_2:
+    argument: 182
+    hint: AMPCD Contrast Control Switch, UP
+    prototype: AMPCD_switch_positive
+    positions: []
+    command: AMPCD_commands.AMPCD_contrast_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_182_1:
+    argument: 182
+    hint: AMPCD Contrast Control Switch, DOWN
+    prototype: AMPCD_switch_negative
+    positions: []
+    command: AMPCD_commands.AMPCD_contrast_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_180_2:
+    argument: 180
+    hint: AMPCD Gain Control Switch, UP
+    prototype: AMPCD_switch_positive
+    positions: []
+    command: AMPCD_commands.AMPCD_gain_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_180_1:
+    argument: 180
+    hint: AMPCD Gain Control Switch, DOWN
+    prototype: AMPCD_switch_negative
+    positions: []
+    command: AMPCD_commands.AMPCD_gain_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_183:
+    argument: 183
+    hint: AMPCD PB 1
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_1
+    values: {}
+    range: null
+    readable: false
+  pnt_184:
+    argument: 184
+    hint: AMPCD PB 2
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_2
+    values: {}
+    range: null
+    readable: false
+  pnt_185:
+    argument: 185
+    hint: AMPCD PB 3
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_3
+    values: {}
+    range: null
+    readable: false
+  pnt_186:
+    argument: 186
+    hint: AMPCD PB 4
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_4
+    values: {}
+    range: null
+    readable: false
+  pnt_187:
+    argument: 187
+    hint: AMPCD PB 5
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_5
+    values: {}
+    range: null
+    readable: false
+  pnt_188:
+    argument: 188
+    hint: AMPCD PB 6
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_6
+    values: {}
+    range: null
+    readable: false
+  pnt_189:
+    argument: 189
+    hint: AMPCD PB 7
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_7
+    values: {}
+    range: null
+    readable: false
+  pnt_190:
+    argument: 190
+    hint: AMPCD PB 8
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_8
+    values: {}
+    range: null
+    readable: false
+  pnt_191:
+    argument: 191
+    hint: AMPCD PB 9
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_9
+    values: {}
+    range: null
+    readable: false
+  pnt_192:
+    argument: 192
+    hint: AMPCD PB 10
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_10
+    values: {}
+    range: null
+    readable: false
+  pnt_193:
+    argument: 193
+    hint: AMPCD PB 11
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_11
+    values: {}
+    range: null
+    readable: false
+  pnt_194:
+    argument: 194
+    hint: AMPCD PB 12
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_12
+    values: {}
+    range: null
+    readable: false
+  pnt_195:
+    argument: 195
+    hint: AMPCD PB 13
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_13
+    values: {}
+    range: null
+    readable: false
+  pnt_196:
+    argument: 196
+    hint: AMPCD PB 14
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_14
+    values: {}
+    range: null
+    readable: false
+  pnt_197:
+    argument: 197
+    hint: AMPCD PB 15
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_15
+    values: {}
+    range: null
+    readable: false
+  pnt_198:
+    argument: 198
+    hint: AMPCD PB 16
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_16
+    values: {}
+    range: null
+    readable: false
+  pnt_199:
+    argument: 199
+    hint: AMPCD PB 17
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_17
+    values: {}
+    range: null
+    readable: false
+  pnt_200:
+    argument: 200
+    hint: AMPCD PB 18
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_18
+    values: {}
+    range: null
+    readable: false
+  pnt_201:
+    argument: 201
+    hint: AMPCD PB 19
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_19
+    values: {}
+    range: null
+    readable: false
+  pnt_202:
+    argument: 202
+    hint: AMPCD PB 20
+    prototype: short_way_button
+    positions: []
+    command: AMPCD_commands.AMPCD_PB_20
+    values: {}
+    range: null
+    readable: false
+  pnt_224:
+    argument: 224
+    hint: AAU-52 Altimeter Pressure Setting Knob
+    prototype: default_axis
+    positions: []
+    command: aau52_commands.AAU52_ClkCmd_ZeroSetting
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_291:
+    argument: 292
+    hint: Push to Test Switch, (LMB) activate BIT checks/(MW) rotate clockwise to
+      apply power and set low altitude index pointer
+    prototype: default_button_axis_extended
+    positions:
+    - (LMB) activate BIT checks
+    - (MW) rotate clockwise to apply power and set low altitude index pointer
+    command: id2163a_commands.ID2163A_PushToTest
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_215:
+    argument: 215
+    hint: SAI Test Button - Push to test
+    prototype: default_button
+    positions: []
+    command: sai_commands.SAI_test
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_168:
+    argument: 168
+    hint: IFEI Mode Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_MODE
+    values: {}
+    range: null
+    readable: false
+  pnt_169:
+    argument: 169
+    hint: IFEI QTY Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_QTY
+    values: {}
+    range: null
+    readable: false
+  pnt_170:
+    argument: 170
+    hint: IFEI Up Arrow Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_UP_ARROW
+    values: {}
+    range: null
+    readable: false
+  pnt_171:
+    argument: 171
+    hint: IFEI Down Arrow Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_DOWN_ARROW
+    values: {}
+    range: null
+    readable: false
+  pnt_172:
+    argument: 172
+    hint: IFEI ZONE Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_ZONE
+    values: {}
+    range: null
+    readable: false
+  pnt_173:
+    argument: 173
+    hint: IFEI ET Button
+    prototype: short_way_button
+    positions: []
+    command: IFEI_commands.IFEI_BTN_ET
+    values: {}
+    range: null
+    readable: false
+  pnt_174:
+    argument: 174
+    hint: IFEI Brightness Control Knob
+    prototype: default_axis
+    positions: []
+    command: IFEI_commands.IFEI_Brightness
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_128:
+    argument: 128
+    hint: UFC Function Selector Pushbutton, A/P
+    prototype: short_way_button
+    positions:
+    - A
+    - P
+    command: UFC_commands.FuncSwAP
+    values: {}
+    range: null
+    readable: false
+  pnt_129:
+    argument: 129
+    hint: UFC Function Selector Pushbutton, IFF
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.FuncSwIFF
+    values: {}
+    range: null
+    readable: false
+  pnt_130:
+    argument: 130
+    hint: UFC Function Selector Pushbutton, TCN
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.FuncSwTCN
+    values: {}
+    range: null
+    readable: false
+  pnt_131:
+    argument: 131
+    hint: UFC Function Selector Pushbutton, ILS
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.FuncSwILS
+    values: {}
+    range: null
+    readable: false
+  pnt_132:
+    argument: 132
+    hint: UFC Function Selector Pushbutton, D/L
+    prototype: short_way_button
+    positions:
+    - D
+    - L
+    command: UFC_commands.FuncSwDL
+    values: {}
+    range: null
+    readable: false
+  pnt_133:
+    argument: 133
+    hint: UFC Function Selector Pushbutton, BCN
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.FuncSwBCN
+    values: {}
+    range: null
+    readable: false
+  pnt_134:
+    argument: 134
+    hint: UFC Function Selector Pushbutton, ON/OFF
+    prototype: short_way_button
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: UFC_commands.FuncSwOnOff
+    values: {}
+    range: null
+    readable: false
+  pnt_100:
+    argument: 100
+    hint: UFC Option Select Pushbutton 1
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.OptSw1
+    values: {}
+    range: null
+    readable: false
+  pnt_101:
+    argument: 101
+    hint: UFC Option Select Pushbutton 2
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.OptSw2
+    values: {}
+    range: null
+    readable: false
+  pnt_102:
+    argument: 102
+    hint: UFC Option Select Pushbutton 3
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.OptSw3
+    values: {}
+    range: null
+    readable: false
+  pnt_103:
+    argument: 103
+    hint: UFC Option Select Pushbutton 4
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.OptSw4
+    values: {}
+    range: null
+    readable: false
+  pnt_106:
+    argument: 106
+    hint: UFC Option Select Pushbutton 5
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.OptSw5
+    values: {}
+    range: null
+    readable: false
+  pnt_111:
+    argument: 111
+    hint: UFC Keyboard Pushbutton, 1
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw1
+    values: {}
+    range: null
+    readable: false
+  pnt_112:
+    argument: 112
+    hint: UFC Keyboard Pushbutton, 2
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw2
+    values: {}
+    range: null
+    readable: false
+  pnt_113:
+    argument: 113
+    hint: UFC Keyboard Pushbutton, 3
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw3
+    values: {}
+    range: null
+    readable: false
+  pnt_114:
+    argument: 114
+    hint: UFC Keyboard Pushbutton, 4
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw4
+    values: {}
+    range: null
+    readable: false
+  pnt_115:
+    argument: 115
+    hint: UFC Keyboard Pushbutton, 5
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw5
+    values: {}
+    range: null
+    readable: false
+  pnt_116:
+    argument: 116
+    hint: UFC Keyboard Pushbutton, 6
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw6
+    values: {}
+    range: null
+    readable: false
+  pnt_117:
+    argument: 117
+    hint: UFC Keyboard Pushbutton, 7
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw7
+    values: {}
+    range: null
+    readable: false
+  pnt_118:
+    argument: 118
+    hint: UFC Keyboard Pushbutton, 8
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw8
+    values: {}
+    range: null
+    readable: false
+  pnt_119:
+    argument: 119
+    hint: UFC Keyboard Pushbutton, 9
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw9
+    values: {}
+    range: null
+    readable: false
+  pnt_120:
+    argument: 120
+    hint: UFC Keyboard Pushbutton, 0
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSw0
+    values: {}
+    range: null
+    readable: false
+  pnt_47_121:
+    argument: 121
+    hint: UFC Keyboard Pushbutton, CLR
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSwCLR
+    values: {}
+    range: null
+    readable: false
+  pnt_47_122:
+    argument: 122
+    hint: UFC Keyboard Pushbutton, ENT
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.KbdSwENT
+    values: {}
+    range: null
+    readable: false
+  pnt_99:
+    argument: 99
+    hint: UFC I/P Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.SwIP
+    values: {}
+    range: null
+    readable: false
+  pnt_110:
+    argument: 110
+    hint: UFC Emission Control Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: UFC_commands.SwEMCON
+    values: {}
+    range: null
+    readable: false
+  pnt_107:
+    argument: 107
+    hint: UFC ADF Function Select Switch, 1/OFF/2
+    prototype: default_3_position_tumb
+    positions:
+    - '1'
+    - 'OFF'
+    - '2'
+    command: UFC_commands.SwADF
+    values:
+      '1': 1.0
+      'OFF': 0.0
+      '2': -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_108:
+    argument: 108
+    hint: UFC COMM 1 Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: UFC_commands.Comm1Vol
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_123:
+    argument: 123
+    hint: UFC COMM 2 Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: UFC_commands.Comm2Vol
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_109:
+    argument: 109
+    hint: UFC Brightness Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: UFC_commands.BrtDim
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_124:
+    argument: 125
+    hint: UFC COMM 1 Channel Selector Knob
+    prototype: default_button_axis_tumb
+    positions: []
+    command: UFC_commands.Comm1Fcn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_126:
+    argument: 127
+    hint: UFC COMM 2 Channel Selector Knob
+    prototype: default_button_axis_tumb
+    positions: []
+    command: UFC_commands.Comm2Fcn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_357:
+    argument: 357
+    hint: VOX Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.VOX_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_358:
+    argument: 358
+    hint: ICS Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.ICS_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_359:
+    argument: 359
+    hint: RWR Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.RWR_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_360:
+    argument: 360
+    hint: WPN Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.WPN_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_361:
+    argument: 361
+    hint: MIDS B Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.MIDS_B_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_362:
+    argument: 362
+    hint: MIDS A Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.MIDS_A_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_363:
+    argument: 363
+    hint: TACAN Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.TCN_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_364:
+    argument: 364
+    hint: AUX Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: intercom_commands.AUX_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_350:
+    argument: 350
+    hint: Comm Relay Switch, CIPHER/OFF/PLAIN
+    prototype: default_3_position_tumb
+    positions:
+    - CIPHER
+    - 'OFF'
+    - PLAIN
+    command: intercom_commands.COMM_RLY_Sw
+    values:
+      CIPHER: 1.0
+      'OFF': 0.0
+      PLAIN: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_351:
+    argument: 351
+    hint: COMM G XMT Switch, COMM 1/OFF/COMM 2
+    prototype: default_3_position_tumb
+    positions:
+    - COMM 1
+    - 'OFF'
+    - COMM 2
+    command: intercom_commands.G_XMT_Sw
+    values:
+      COMM 1: 1.0
+      'OFF': 0.0
+      COMM 2: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_356:
+    argument: 356
+    hint: IFF Master Switch, EMER/NORM
+    prototype: default_2_position_tumb
+    positions:
+    - EMER
+    - NORM
+    command: intercom_commands.IFF_MasterSw
+    values:
+      EMER: 1.0
+      NORM: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_355:
+    argument: 355
+    hint: IFF Mode 4 Switch, DIS/AUD /DIS/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - DIS
+    - AUD
+    - DIS
+    - 'OFF'
+    command: intercom_commands.IFF_Mode4Sw
+    values:
+      DIS/AUD: 1.0
+      DIS: 0.0
+      'OFF': -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_354:
+    argument: 354
+    hint: CRYPTO Switch, HOLD/NORM/ZERO
+    prototype: springloaded_3_pos_tumb2
+    positions:
+    - HOLD
+    - NORM
+    - ZERO
+    command: intercom_commands.IFF_CryptoSw_Zero
+    values: {}
+    range: null
+    readable: false
+  pnt_353:
+    argument: 353
+    hint: ILS UFC/MAN Switch, UFC/MAN
+    prototype: default_2_position_tumb
+    positions:
+    - UFC
+    - MAN
+    command: intercom_commands.ILS_UFC_MAN_Sw
+    values:
+      UFC: 1.0
+      MAN: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_352:
+    argument: 352
+    hint: ILS Channel Selector Switch
+    prototype: multiposition_switch
+    positions: []
+    command: intercom_commands.ILS_ChannelSelector
+    values: {}
+    range:
+    - 0.0
+    - 0.9500000000000001
+    readable: true
+  pnt_444:
+    argument: 444
+    hint: KY-58 Mode Select Knob, P/C/LD/RV
+    prototype: multiposition_switch
+    positions:
+    - P
+    - C
+    - LD
+    - RV
+    command: ky58_commands.KY58_ModeSw
+    values:
+      P: 0.0
+      C: 0.1
+      LD: 0.2
+      RV: 0.3
+    range:
+    - 0.0
+    - 0.30000000000000004
+    readable: true
+  pnt_445:
+    argument: 445
+    hint: KY-58 Volume Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: ky58_commands.KY58_Volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_446:
+    argument: 446
+    hint: KY-58 Fill Select Knob, Z 1-5/1/2/3/4/5/6/Z ALL
+    prototype: multiposition_switch
+    positions:
+    - Z 1-5
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    - Z ALL
+    command: ky58_commands.KY58_FillSw
+    values:
+      '1': 0.0
+      '2': 0.1
+      '3': 0.2
+      '4': 0.3
+      '5': 0.4
+      '6': 0.5
+    range:
+    - 0.0
+    - 0.7000000000000001
+    readable: true
+  pnt_447:
+    argument: 447
+    hint: KY-58 Power Select Knob, OFF/ON/TD
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - 'ON'
+    - TD
+    command: ky58_commands.KY58_PowerSw
+    values:
+      'OFF': 0.0
+      'ON': 0.1
+      TD: 0.2
+    range:
+    - 0.0
+    - 0.2
+    readable: true
+  pnt_230:
+    argument: 230
+    hint: Warning Tone Silence Button - Push to silence
+    prototype: default_button
+    positions: []
+    command: intercom_commands.WarnToneSilBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_373:
+    argument: 373
+    hint: COMM 1 Antenna Selector Switch, UPPER/AUTO/LOWER
+    prototype: default_3_position_tumb
+    positions:
+    - UPPER
+    - AUTO
+    - LOWER
+    command: antsel_commands.Comm1AntSelSw
+    values:
+      UPPER: 1.0
+      AUTO: 0.0
+      LOWER: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_374:
+    argument: 374
+    hint: IFF Antenna Selector Switch, UPPER/BOTH/LOWER
+    prototype: default_3_position_tumb
+    positions:
+    - UPPER
+    - BOTH
+    - LOWER
+    command: antsel_commands.AntSelIFFSw
+    values:
+      UPPER: 1.0
+      BOTH: 0.0
+      LOWER: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_277:
+    argument: 277
+    hint: ALR-67 POWER Pushbutton
+    prototype: default_2_position_tumb
+    positions: []
+    command: rwr_commands.Power
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_275:
+    argument: 275
+    hint: ALR-67 DISPLAY Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: rwr_commands.Display
+    values: {}
+    range: null
+    readable: false
+  pnt_272:
+    argument: 272
+    hint: ALR-67 SPECIAL Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: rwr_commands.Special
+    values: {}
+    range: null
+    readable: false
+  pnt_269:
+    argument: 269
+    hint: ALR-67 OFFSET Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: rwr_commands.Offset
+    values: {}
+    range: null
+    readable: false
+  pnt_266:
+    argument: 266
+    hint: ALR-67 BIT Pushbutton
+    prototype: short_way_button
+    positions: []
+    command: rwr_commands.Bit
+    values: {}
+    range: null
+    readable: false
+  pnt_263:
+    argument: 263
+    hint: ALR-67 DMR Control Knob
+    prototype: default_axis_limited
+    positions: []
+    command: rwr_commands.DmrControl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_262:
+    argument: 0
+    hint: ALR-67 AUDIO Control Knob (no function)
+    prototype: default_axis_limited
+    positions: []
+    command: '0.1'
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_261:
+    argument: 261
+    hint: ALR-67 DIS TYPE Switch, N/I/A/U/F
+    prototype: multiposition_switch
+    positions:
+    - N
+    - I
+    - A
+    - U
+    - F
+    command: rwr_commands.DisType
+    values:
+      N: 0.0
+      I: 0.1
+      A: 0.2
+      U: 0.3
+      F: 0.4
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  pnt_216:
+    argument: 216
+    hint: RWR Intensity Knob
+    prototype: default_axis_limited
+    positions: []
+    command: rwr_commands.IntControl
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_380:
+    argument: 380
+    hint: Dispense Button - Push to dispense flares and chaff
+    prototype: default_button
+    positions: []
+    command: cmds_commands.EcmDisp
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_517:
+    argument: 517
+    hint: DISPENSER Switch, BYPASS/ON/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - BYPASS
+    - 'ON'
+    - 'OFF'
+    command: cmds_commands.Dispenser
+    values:
+      BYPASS: 0.2
+      'ON': 0.1
+      'OFF': 0.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_515:
+    argument: 515
+    hint: ECM JETT JETT SEL Button - Push to jettison
+    prototype: push_button_tumb
+    positions: []
+    command: cmds_commands.EcmJett
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_248:
+    argument: 248
+    hint: ECM Mode Switch, XMIT/REC/BIT/STBY/OFF
+    prototype: multiposition_switch
+    positions:
+    - XMIT
+    - REC
+    - BIT
+    - STBY
+    - 'OFF'
+    command: ASPJ_commands.ASPJ_SwitchChange
+    values:
+      XMIT: 0.4
+      REC: 0.3
+      BIT: 0.2
+      STBY: 0.1
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 0.4
+    readable: true
+  pnt_439:
+    argument: 439
+    hint: FLIR Switch, ON/STBY/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - 'ON'
+    - STBY
+    - 'OFF'
+    command: tgp_commands.Flir
+    values:
+      'ON': 1.0
+      STBY: 0.0
+      'OFF': -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_441:
+    argument: 441
+    hint: LTD/R Switch, ARM/SAFE
+    prototype: springloaded_2_pos_tumb
+    positions:
+    - ARM
+    - SAFE
+    command: tgp_commands.LtdrArm
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_442:
+    argument: 442
+    hint: LST/NFLR Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: tgp_commands.Lst
+    values:
+      'ON': 1.0
+      'OFF': 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_136:
+    argument: 136
+    hint: HMD OFF/BRT Knob
+    prototype: default_axis_limited
+    positions: []
+    command: hmd_commands.BrtKnob
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_507:
+    argument: 0
+    hint: NUC WPN Switch, ENABLE/DISABLE (no function)
+    prototype: default_2_position_tumb
+    positions:
+    - ENABLE
+    - DISABLE (no function)
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_175:
+    argument: 0
+    hint: Selector Switch, HMD/LDDI/RDDI
+    prototype: default_3_position_tumb
+    positions:
+    - HMD
+    - LDDI
+    - RDDI
+    command: ''
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_176:
+    argument: 0
+    hint: Selector Switch, HUD/LDIR/RDDI
+    prototype: default_3_position_tumb
+    positions:
+    - HUD
+    - LDIR
+    - RDDI
+    command: ''
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_314:
+    argument: 0
+    hint: Mode Selector Switch, MAN/OFF/AUTO
+    prototype: default_3_position_tumb
+    positions:
+    - MAN
+    - 'OFF'
+    - AUTO
+    command: ''
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_07:
+    argument: 0
+    hint: HUD Video BIT Initiate Pushbutton - Push to initiate BIT
+    prototype: default_button
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_315:
+    argument: 0
+    hint: Left Video Sensor BIT Initiate Pushbutton - Push to initiate BIT
+    prototype: default_button
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_318:
+    argument: 0
+    hint: Right Video Sensor BIT Initiate Pushbutton - Push to initiate BIT
+    prototype: default_button
+    positions: []
+    command: ''
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false

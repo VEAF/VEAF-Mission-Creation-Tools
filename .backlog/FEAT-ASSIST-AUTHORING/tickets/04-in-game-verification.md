@@ -1,6 +1,6 @@
 # 04 — verify a resolved checklist in game
 
-**Status:** 🔄 in-progress — the reading is proven in game (2026-08-03); the assisted and automatic *modes* are not built yet.
+**Status:** 🧑 waiting-human — assisted mode built and unit-tested; it wants one real run in a cockpit.
 
 A resolved value is a hypothesis until the argument has been read with the control in the wanted
 position. [Ticket 10](../../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md) made that reading
@@ -57,7 +57,14 @@ Two things also proved themselves in passing:
 
 - [x] Values verified by reading the argument with the control in the wanted position — done on the
       F-14B(U) rather than the F-16C, whose MAIN PWR was already measured on 2026-08-02.
-- [ ] Assisted mode as a command: name a step, box the control, wait for the pilot, record the value.
-- [ ] Automatic mode via `a_cockpit_perform_clickable_action`, behind an explicit opt-in.
-- [ ] `verified: true` written back so a later run does not redo it.
-- [ ] Assisted mode documented for an instructor, automatic mode as the developer path.
+- [x] Assisted mode as a command: `veaf-tools verify-checklist <file> --write`. It boxes each
+      measurable step's control, **waits for the value to change and settle** rather than for a
+      keypress — nobody holds a keyboard in a cockpit — reads it, and compares.
+- [x] `verified: true` written back so a later run does not redo it.
+- [x] Assisted mode documented for an instructor.
+- [ ] **One real run** through the command, rather than the hand-driven session that proved the
+      mechanism. Needs a cockpit.
+- [ ] ~~Automatic mode via `a_cockpit_perform_clickable_action`~~ — **dropped, with a reason**. It
+      needs the numeric device and command ids, and those are not in a module's readable files:
+      searching the A-10C's entire `Cockpit/Scripts` tree for the ids its own autostart uses returns
+      the autostart and nothing else. Reopen this only if a way to resolve those ids turns up.

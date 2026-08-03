@@ -149,6 +149,27 @@ Enfin, un contrôle **sans position lisible** — un bouton, un interrupteur à 
 F-16C — est résolu en étape validée par le pilote, et l'outil vous le dit. Ce n'est pas un défaut :
 ces contrôles sont revenus au repos avant qu'on puisse les lire, quel que soit le moyen employé.
 
+#### Vérifier une checklist dans le cockpit {#verify}
+
+Une valeur écrite par le résolveur reste une hypothèse tant qu'on n'a pas lu le contrôle avec
+l'interrupteur physiquement dans la bonne position. Cette commande le fait, avec vous aux commandes :
+
+```bash
+veaf-tools verify-checklist checklists/ma-checklist.yaml --write
+```
+
+Pour chaque étape mesurable, l'outil **encadre le contrôle dans votre cockpit** et attend que vous le
+bougiez. Dès que la valeur change et se stabilise, il la lit et la compare à celle de la checklist.
+Vous restez aux commandes du début à la fin : **l'outil ne manœuvre jamais rien lui-même**, il ne
+fait qu'encadrer — ce qui est aussi bien pratique quand on ne sait pas où se trouve la commande.
+
+`--write` marque `verified: true` les étapes confirmées, pour ne pas les refaire ensuite.
+
+Trois conditions : DCS tourne **sur cette machine** (la lecture passe par `Export.lua`, qui est
+local), `dcs-serve` est lancé, et la mission embarque le pont. Une valeur lue différente de celle
+attendue est signalée en rouge : c'est le cas intéressant, il veut dire que la checklist a la
+mauvaise valeur.
+
 ### Quel mode de validation choisir {#validation-modes}
 
 Une étape se valide de trois façons, et le choix dépend d'abord de **où votre mission va tourner**.

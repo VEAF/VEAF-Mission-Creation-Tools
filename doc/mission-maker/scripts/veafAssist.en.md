@@ -147,6 +147,26 @@ Finally, a control with **no readable position** — a button, or a spring-loade
 F-16C's JFS — resolves to a pilot-confirmed step, and the tool tells you so. That is not a
 shortcoming: those controls are back at rest before anything can read them, by any means.
 
+#### Verifying a checklist in the cockpit {#verify}
+
+A value the resolver wrote stays a hypothesis until the control has been read with the switch
+physically in the wanted position. This command does that, with you at the controls:
+
+```bash
+veaf-tools verify-checklist checklists/my-checklist.yaml --write
+```
+
+For each measurable step the tool **boxes the control in your cockpit** and waits for you to move
+it. As soon as the value changes and settles, it reads it and compares it with the checklist's. You
+stay at the controls throughout: **the tool never throws anything itself**, it only boxes — which is
+also handy when you cannot find the control.
+
+`--write` marks the confirmed steps `verified: true`, so a later run does not redo them.
+
+Three conditions: DCS runs **on this machine** (the read goes through `Export.lua`, which is local),
+`dcs-serve` is running, and the mission embeds the bridge. A value read different from the expected
+one is flagged in red: that is the interesting case, and it means the checklist has the wrong value.
+
 ### Which validation mode to choose {#validation-modes}
 
 A step validates in one of three ways, and the choice depends first on **where your mission will

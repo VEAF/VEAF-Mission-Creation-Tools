@@ -12,6 +12,7 @@ from . import (  # noqa: F401
     inject_presets,
     mcp,
     prepare,
+    resolve_checklist,
     user_config,
     validate,
     waypoints,

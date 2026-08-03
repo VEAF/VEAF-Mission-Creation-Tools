@@ -79,6 +79,74 @@ unrecognised value fails the build — a typo must not quietly fall back to the 
 Concretely, the shipped F-16C checklist weighs 68 KB as `picture` and 0 as `text`. At forty steps the
 difference passes half a megabyte.
 
+### Without knowing the technical names {#instructor-path}
+
+A step needs the cockpit element, the animation argument and the value that means "in position".
+All three are buried in the Lua files of a DCS install — nobody should have to go and find them.
+
+Describe the control **in your own words** instead, beside the label:
+
+```yaml
+steps:
+  - label: Battery
+    control: MAIN PWR sur BATT      # the control, then the position you want
+
+  - label: Throttle
+    control: throttle sur IDLE
+```
+
+Then run:
+
+```bash
+veaf-tools resolve-checklist checklists/my-checklist.yaml
+```
+
+It fills in the technical fields **in your own file**, under each `control`, and adds a
+`resolved_from` recording the text they came from:
+
+```yaml
+  - label: Battery
+    control: MAIN PWR sur BATT
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510
+    equals: 0.0
+    resolved_from: MAIN PWR sur BATT
+```
+
+Your comments, your indentation and your blank lines survive: it is your file.
+
+**One file to maintain.** Edit a `control`, run the command again: only the steps whose text changed
+are touched — that is what `resolved_from` is for. A step whose `control` no longer matches its
+`resolved_from` **fails the mission build**, rather than shipping a step that would check the old
+control with nobody the wiser.
+
+`--dry-run` shows what would be written without touching the file.
+
+#### Writing a good `control` {#good-control}
+
+Name the control **as the cockpit names it**, then the position: `throttle sur idle`, not "throttle
+up". Filler words (`sur`, `the`, `button`, `switch`, `position`…) are ignored, in English and in
+French alike, and accents and case do not matter.
+
+#### A refusal is not a failure {#refusals}
+
+The tool **refuses rather than guesses**, because a wrong resolution produces a checklist that looks
+finished and never validates — and you only find out sitting in the cockpit. It refuses, saying what
+it found, when:
+
+- no control matches;
+- several match equally well (`MAIN PWR` and `MAIN PWR Test`): only you know which;
+- the position named does not exist on that control — it then lists the ones that do;
+- that control's position values are unknown. Most of the AH-64D's controls are like this: write
+  `argument` and `equals` by hand, or measure the position in game.
+
+If a single step is refused, **nothing is written**: a half-resolved file is worse than an unresolved
+one.
+
+Finally, a control with **no readable position** — a button, or a spring-loaded switch like the
+F-16C's JFS — resolves to a pilot-confirmed step, and the tool tells you so. That is not a
+shortcoming: those controls are back at rest before anything can read them, by any means.
+
 ### Write a checklist {#write-a-checklist}
 
 One file per checklist, in `checklists/` beside your `mission.yaml`. An `id` that matches a shipped

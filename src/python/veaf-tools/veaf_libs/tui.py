@@ -49,6 +49,17 @@ class ArgPrompt:
         return "--" + self.key.replace("_", "-")
 
 
+#: The wizard's headings, in display order. Four rather than one flat list of twenty:
+#: David's call, made when the three assistance commands turned out to be one workflow
+#: scattered across the menu.
+GROUP_BUILD = "build"
+GROUP_EXTRACTION = "extraction"
+GROUP_CONFIG = "config"
+GROUP_ASSISTANCE = "assistance"
+
+GROUP_ORDER: tuple[str, ...] = (GROUP_BUILD, GROUP_EXTRACTION, GROUP_CONFIG, GROUP_ASSISTANCE)
+
+
 @dataclass
 class CommandSpec:
     """Describes one veaf-tools command exposed in the wizard."""
@@ -59,6 +70,9 @@ class CommandSpec:
     """One-line description shown in the command selector."""
     prompts: list[ArgPrompt] = field(default_factory=list)
     """Ordered list of prompts — positional args first, then options."""
+    group: str = GROUP_BUILD
+    """Which heading the wizard files this command under. Commands that form one
+    workflow have to be next to each other: the assistance ones are useless apart."""
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +83,7 @@ COMMANDS: list[CommandSpec] = [
     # ── Most frequent: daily build/inject loop ──────────────────────────────
     CommandSpec(
         cli_name="build",
+        group=GROUP_BUILD,
         description=t("tui.cmd.build.description"),
         prompts=[
             ArgPrompt(
@@ -79,6 +94,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-presets",
+        group=GROUP_BUILD,
         description=t("tui.cmd.inject_presets.description"),
         prompts=[
             ArgPrompt(
@@ -89,6 +105,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-weather",
+        group=GROUP_BUILD,
         description=t("tui.cmd.inject_weather.description"),
         prompts=[
             ArgPrompt(
@@ -98,6 +115,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-aircraft-groups",
+        group=GROUP_BUILD,
         description=t("tui.cmd.inject_aircraft.description"),
         prompts=[
             ArgPrompt(
@@ -108,6 +126,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-waypoints",
+        group=GROUP_BUILD,
         description=t("tui.cmd.inject_waypoints.description"),
         prompts=[
             ArgPrompt(
@@ -118,6 +137,7 @@ COMMANDS: list[CommandSpec] = [
     # ── Occasional: extraction ──────────────────────────────────────────────
     CommandSpec(
         cli_name="extract",
+        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract.description"),
         prompts=[
             ArgPrompt(
@@ -130,6 +150,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="extract-aircraft-groups",
+        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract_aircraft.description"),
         prompts=[
             ArgPrompt(
@@ -140,6 +161,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="extract-waypoints",
+        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract_waypoints.description"),
         prompts=[
             ArgPrompt(
@@ -150,6 +172,7 @@ COMMANDS: list[CommandSpec] = [
     # ── Rare: project setup / one-time migration ────────────────────────────
     CommandSpec(
         cli_name="convert-v5",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.convert_v5.description"),
         prompts=[
             ArgPrompt(
@@ -161,6 +184,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="convert-other",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.convert_other.description"),
         prompts=[
             ArgPrompt(
@@ -182,6 +206,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="prepare",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.prepare.description"),
         prompts=[
             ArgPrompt(
@@ -204,6 +229,7 @@ COMMANDS: list[CommandSpec] = [
     # ── Config / validation utilities ───────────────────────────────────────
     CommandSpec(
         cli_name="export",
+        group=GROUP_EXTRACTION,
         description=t("tui.cmd.export.description"),
         prompts=[
             ArgPrompt(
@@ -214,6 +240,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="validate",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.validate.description"),
         prompts=[
             ArgPrompt(
@@ -224,6 +251,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="resolve-checklist",
+        group=GROUP_ASSISTANCE,
         description=t("tui.cmd.resolve_checklist.description"),
         prompts=[
             ArgPrompt(
@@ -238,6 +266,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="verify-checklist",
+        group=GROUP_ASSISTANCE,
         description=t("tui.cmd.verify_checklist.description"),
         prompts=[
             ArgPrompt(
@@ -252,6 +281,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="migrate-config",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.migrate_config.description"),
         prompts=[
             ArgPrompt("input_file", t("tui.arg.migrate_config_input"), default="", is_option=False, required=True),
@@ -259,6 +289,7 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="generate-config",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.generate_config.description"),
         prompts=[
             ArgPrompt("output", t("tui.arg.generate_config_output"), default="."),
@@ -266,22 +297,48 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="user-config",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.user_config.description"),
         prompts=[],
     ),
     CommandSpec(
         cli_name="ask",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.ask.description"),
         prompts=[],
     ),
     CommandSpec(
         cli_name="about",
+        group=GROUP_CONFIG,
         description=t("tui.cmd.about.description"),
         prompts=[],
     ),
 ]
 
 _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}
+
+
+def _grouped_choices() -> list[Any]:
+    """Return the command selector's entries, under one heading per group.
+
+    Twenty commands in a flat list is a wall of text, and the three assistance ones are a
+    workflow that only makes sense read together. A group with no installed command
+    simply does not appear.
+    """
+    from InquirerPy.base.control import Choice  # noqa: PLC0415 - optional dependency
+    from InquirerPy.separator import Separator  # noqa: PLC0415 - optional dependency
+
+    entries: list[Any] = []
+    for group in GROUP_ORDER:
+        commands = [cmd for cmd in COMMANDS if cmd.group == group]
+        if not commands:
+            continue
+        if entries:
+            entries.append(Separator(" "))
+        entries.append(Separator(f"── {t(f'tui.group.{group}')} ──"))
+        entries.extend(Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in commands)
+    return entries
+
 
 # Prompt keys that should default to the ``mission.name`` field of a detected
 # ``mission.yaml``.  Both the ``build``/``extract`` positional and the
@@ -593,7 +650,6 @@ def run_wizard(preselected: str | None = None, provided: dict[str, str] | None =
 
     try:
         from InquirerPy import inquirer
-        from InquirerPy.base.control import Choice
 
         from veaf_libs.preferences import get_last_args, get_last_command, save_invocation
     except ImportError:
@@ -612,9 +668,7 @@ def run_wizard(preselected: str | None = None, provided: dict[str, str] | None =
             if preselected and preselected in _COMMAND_MAP:
                 selected = preselected
             else:
-                choices = [
-                    Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS
-                ]
+                choices = _grouped_choices()
                 default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
                 _touch_prompt_shown()
                 selected = inquirer.select(  # type: ignore[attr-defined]

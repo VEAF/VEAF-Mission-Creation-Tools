@@ -1,6 +1,6 @@
 # 04 — verify a resolved checklist in game
 
-**Status:** 🧑 waiting-human — assisted mode built and unit-tested; it wants one real run in a cockpit.
+**Status:** ✅ done — 4 of 4 steps confirmed in a live F-14B(U) on 2026-08-03, after the first run found three defects.
 
 A resolved value is a hypothesis until the argument has been read with the control in the wanted
 position. [Ticket 10](../../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md) made that reading
@@ -62,8 +62,17 @@ Two things also proved themselves in passing:
       keypress — nobody holds a keyboard in a cockpit — reads it, and compares.
 - [x] `verified: true` written back so a later run does not redo it.
 - [x] Assisted mode documented for an instructor.
-- [ ] **One real run** through the command, rather than the hand-driven session that proved the
-      mechanism. Needs a cockpit.
+- [x] **One real run**, and it earned its keep: the first attempt confirmed **1 step of 4** and
+      exposed three defects no unit test could have found.
+      1. Everything the command said went to a console the pilot cannot see, at full screen in a
+         cockpit. Instructions and outcomes now go through `trigger.action.outText` — measured on the
+         bridge, `a_out_text_delay` in the trigger environment does *not* reach the screen.
+      2. It prompted with the step's label — "Lancer le moteur droit" — which names neither the
+         control nor the position. It now shows the instructor's own `control` text.
+      3. Told to move a switch back and forth, it took the first half of the trip for the answer and
+         announced the checklist had the wrong value. It now waits for the **wanted** value, and
+         confirms a control already in position instead of waiting for a move that will not come.
+      Second run: **4 of 4**, each step announced in game, boxed, awaited and confirmed.
 - [ ] ~~Automatic mode via `a_cockpit_perform_clickable_action`~~ — **dropped, with a reason**. It
       needs the numeric device and command ids, and those are not in a module's readable files:
       searching the A-10C's entire `Cockpit/Scripts` tree for the ids its own autostart uses returns

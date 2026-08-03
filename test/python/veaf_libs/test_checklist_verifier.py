@@ -12,7 +12,8 @@ from veaf_libs.checklist_verifier import (
     VerificationError,
     highlight,
     read_argument,
-    wait_for_change,
+    say,
+    wait_for_value,
 )
 
 
@@ -63,6 +64,19 @@ class TestHighlighting(unittest.TestCase):
         highlight(cockpit.run, "PNT_629")
         self.assertIn('a_cockpit_highlight(1, "PNT_629")', cockpit.calls[0])
 
+    def test_an_instruction_reaches_the_game_not_the_console(self):
+        # The pilot is at full screen in a cockpit; a console line is invisible to the
+        # only person who can act on it.
+        cockpit = FakeCockpit([0.0])
+        say(cockpit.run, "2. Pompe sur SHUTOFF")
+        self.assertIn("outText", cockpit.calls[0])
+        self.assertIn("Pompe sur SHUTOFF", cockpit.calls[0])
+
+    def test_a_quote_in_a_message_does_not_break_the_lua(self):
+        cockpit = FakeCockpit([0.0])
+        say(cockpit.run, 'mettre "MAIN PWR"')
+        self.assertNotIn('""', cockpit.calls[0].replace('\\"', ""))
+
     def test_none_clears_the_box(self):
         cockpit = FakeCockpit([0.0])
         highlight(cockpit.run, None)
@@ -72,24 +86,29 @@ class TestHighlighting(unittest.TestCase):
 class TestWaitingForThePilot(unittest.TestCase):
     """Waiting on the control moving, not on a keypress: nobody holds a keyboard in a cockpit."""
 
-    def _wait(self, readings, timeout=60.0):
+    def _wait(self, readings, expected=1.0, timeout=60.0):
         cockpit = FakeCockpit(readings)
-        return wait_for_change(cockpit.run, 629, timeout=timeout, sleep=cockpit.sleep, now=cockpit.now)
+        return wait_for_value(cockpit.run, 629, expected, timeout=timeout, sleep=cockpit.sleep, now=cockpit.now)
 
-    def test_a_settled_change_is_returned(self):
-        # Starts at 0, moves to 1, holds there.
-        self.assertEqual(1.0, self._wait([0.0, 1.0, 1.0, 1.0, 1.0, 1.0]))
+    def test_reaching_the_wanted_value_ends_the_wait(self):
+        self.assertEqual(1.0, self._wait([0.0, 1.0, 1.0]))
+
+    def test_a_control_already_in_position_is_confirmed_at_once(self):
+        # Asking someone to move a switch that is already correct reads as a broken tool.
+        self.assertEqual(1.0, self._wait([1.0]))
+
+    def test_passing_through_another_position_does_not_end_the_wait(self):
+        # Told to put a switch back and forth, the first version caught the first half of
+        # the trip and announced the checklist had the wrong value. It had not.
+        self.assertEqual(1.0, self._wait([1.0, 0.0, 0.0, 0.0, 1.0, 1.0], expected=1.0))
 
     def test_a_value_that_never_moves_times_out(self):
         self.assertIsNone(self._wait([0.0] * 40, timeout=2.0))
 
-    def test_a_control_still_in_travel_is_not_taken(self):
-        # 0 -> 0.4 (mid-animation) -> 1 -> holds. Taking the first reading after the
-        # change would record 0.4, which is not a position at all.
-        self.assertEqual(1.0, self._wait([0.0, 0.4, 1.0, 1.0, 1.0, 1.0, 1.0]))
-
-    def test_a_control_moved_back_to_where_it_started_does_not_count(self):
-        self.assertIsNone(self._wait([0.0, 1.0, 0.0, 0.0, 0.0], timeout=1.2))
+    def test_settling_on_the_wrong_position_reports_it(self):
+        # The interesting answer: the pilot put it where the step says, and the number
+        # disagrees — so the checklist is wrong.
+        self.assertEqual(-1.0, self._wait([0.0, -1.0, -1.0, -1.0, -1.0, -1.0], expected=1.0, timeout=3.0))
 
 
 class TestStepReading(unittest.TestCase):
@@ -191,3 +210,30 @@ steps:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestWhatTheCommandTellsYouToDo(unittest.TestCase):
+    """The prompt has to name the control and the position, not the step."""
+
+    def test_the_instructors_own_words_are_used_when_present(self):
+        from veaf_libs.checklists import ChecklistStep
+        from veaf_tools.commands.verify_checklist import _what_to_do
+
+        step = ChecklistStep(
+            label="Lancer le moteur droit",  # a pilot's label: says neither what nor where
+            control="Engine Crank sur Right Engine",
+            resolved_from="Engine Crank sur Right Engine",
+            element="PNT_2102",
+            argument=2102,
+            equals=-1.0,
+        )
+        self.assertEqual("Engine Crank sur Right Engine", _what_to_do(step))
+
+    def test_a_technical_step_falls_back_to_element_and_value(self):
+        from veaf_libs.checklists import ChecklistStep
+        from veaf_tools.commands.verify_checklist import _what_to_do
+
+        step = ChecklistStep(label="Batterie", element="PNT_629", argument=629, equals=1.0)
+        told = _what_to_do(step)
+        self.assertIn("PNT_629", told)
+        self.assertIn("1.0", told)

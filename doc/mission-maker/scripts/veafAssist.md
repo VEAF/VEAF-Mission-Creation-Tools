@@ -149,7 +149,32 @@ Enfin, un contrôle **sans position lisible** — un bouton, un interrupteur à 
 F-16C — est résolu en étape validée par le pilote, et l'outil vous le dit. Ce n'est pas un défaut :
 ces contrôles sont revenus au repos avant qu'on puisse les lire, quel que soit le moyen employé.
 
-### Écrire une checklist {#write-a-checklist}
+### Quel mode de validation choisir {#validation-modes}
+
+Une étape se valide de trois façons, et le choix dépend d'abord de **où votre mission va tourner**.
+
+| Mode | Ce qui est lu | Multijoueur |
+|---|---|---|
+| `argument` | la position d'une commande du cockpit | **solo et entraînement local seulement** |
+| `param` | une grandeur publiée par l'appareil (altitude, vitesse, train) | partout |
+| `confirm` | rien : le pilote coche lui-même | partout |
+
+**La règle, en une phrase : si votre mission est destinée au serveur, n'utilisez pas `argument`.**
+Cette lecture passe par l'environnement d'`Export.lua`, qui tourne sur la machine du pilote ; depuis
+un serveur dédié elle ne fonctionnera probablement pas — ce n'est pas encore vérifié. Rien ne casse
+pour autant : l'étape ne se coche jamais toute seule et le pilote utilise « Passer ».
+
+Le résolveur produit `argument` quand il le peut, parce qu'une checklist de démarrage se vole
+d'abord seul. Pour une mission de serveur, remplacez ces étapes par `confirm` — il suffit de
+supprimer les lignes `argument` et `equals` et d'écrire `confirm: true`.
+
+## Référence du format {#format-reference}
+
+Cette partie décrit les champs techniques. Vous n'avez pas besoin de la lire pour écrire une
+checklist : elle sert à relire un fichier résolu, ou à écrire à la main une étape que le résolveur a
+refusée.
+
+### Les champs d'une étape {#write-a-checklist}
 
 Un fichier par checklist, dans `checklists/` à côté de votre `mission.yaml`. Un `id` identique à
 celui d'une checklist livrée **remplace** cette dernière.
@@ -213,16 +238,17 @@ Points à retenir :
     tolerance: 0.05
 ```
 
-Le nombre en fin de nom d'élément **est** l'argument : `PTR-ELEC-TMB-MPWR-510` → `510`. Les positions
-se lisent dans le prototype de l'interrupteur, dans
-`<DCS>\Mods\aircraft\<Appareil>\Cockpit\Scripts\clickable_defs.lua` — un
-`default_3_position_tumb` a `arg_lim = {-1, 1}`, donc −1 / 0 / +1. Mesuré sur le MAIN PWR du F-16C :
-−1 = OFF, 0 = BATT, +1 = MAIN PWR.
+Le nombre en fin de nom d'élément **est** l'argument : `PTR-ELEC-TMB-MPWR-510` → `510`.
 
-**⚠️ Réserve multijoueur.** Cette lecture passe par l'environnement d'`Export.lua`, qui tourne sur la
-machine du pilote. Depuis un **serveur dédié**, elle ne fonctionnera probablement pas — ce n'est pas
-encore vérifié. Dans ce cas l'étape ne se coche jamais toute seule et le pilote utilise « Passer » ;
-rien ne casse. Si votre mission est destinée à un serveur, préférez `param` ou `confirm`.
+**Quelle valeur pour quelle position ?** Elle n'est pas déductible du libellé : le MAIN PWR du
+F-16C affiche `MAIN PWR/BATT/OFF` et vaut +1 / 0 / −1 — dans l'ordre inverse — tandis que
+`OFF/BACKUP` vaut 0 / 1. La seule source fiable, ce sont les **raccourcis clavier et joystick** de
+l'appareil, qui donnent le couple position-valeur noir sur blanc :
+`MAIN PWR Switch - OFF` met −1, `- BATT` met 0, `- MAIN PWR` met +1. C'est exactement ce que le
+[résolveur](#instructor-path) lit à votre place ; écrire un `control` vous évite tout ce paragraphe.
+
+**⚠️ Réserve multijoueur** : ce mode est réservé au solo et à l'entraînement local — voir
+[Quel mode de validation choisir](#validation-modes).
 
 **Deux cas où `argument` ne marchera de toute façon pas :**
 
@@ -255,13 +281,25 @@ appelez `list_cockpit_params()` dans l'environnement mission — elle renvoie un
 
 ### Trouver l'élément à encadrer {#find-element}
 
-Il se lit dans les fichiers du module d'appareil, dans votre installation DCS :
+**Le plus simple reste d'écrire un `control` et de laisser
+[le résolveur](#instructor-path) le trouver** : il connaît les contrôles des appareils indexés
+(F-16C, A-10C II, AH-64D, F-14B et F-14B(U)) et il vous donne le nom exact.
+
+Pour un appareil qui n'est pas indexé, le nom se lit dans les fichiers du module, dans votre
+installation DCS :
 
 ```text
 <DCS>\Mods\aircraft\<Appareil>\Cockpit\Scripts\clickabledata.lua
 ```
 
 Seuls les éléments **cliquables** y figurent : une jauge ou un voyant n'a pas de nom à encadrer.
+
+Vous pouvez aussi indexer cet appareil une bonne fois, et le résolveur saura le traiter comme les
+autres :
+
+```bash
+veaf-build update-dcs-data --cockpit-controls --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
 
 ---
 

@@ -147,7 +147,32 @@ Finally, a control with **no readable position** — a button, or a spring-loade
 F-16C's JFS — resolves to a pilot-confirmed step, and the tool tells you so. That is not a
 shortcoming: those controls are back at rest before anything can read them, by any means.
 
-### Write a checklist {#write-a-checklist}
+### Which validation mode to choose {#validation-modes}
+
+A step validates in one of three ways, and the choice depends first on **where your mission will
+run**.
+
+| Mode | What is read | Multiplayer |
+|---|---|---|
+| `argument` | the position of a cockpit control | **solo and local training only** |
+| `param` | a value the aircraft publishes (altitude, speed, gear) | anywhere |
+| `confirm` | nothing: the pilot ticks it | anywhere |
+
+**The rule, in one sentence: if your mission is meant for the server, do not use `argument`.** That
+read goes through `Export.lua`'s environment, which runs on the pilot's machine; from a dedicated
+server it probably will not work — this is not verified yet. Nothing breaks either way: the step
+simply never ticks itself and the pilot uses "Skip".
+
+The resolver produces `argument` wherever it can, because a start-up checklist is flown alone first.
+For a server mission, turn those steps into `confirm` — delete the `argument` and `equals` lines and
+write `confirm: true`.
+
+## Format reference {#format-reference}
+
+This part describes the technical fields. You do not need it to write a checklist: it is for reading
+a resolved file, or hand-writing a step the resolver refused.
+
+### The fields of a step {#write-a-checklist}
 
 One file per checklist, in `checklists/` beside your `mission.yaml`. An `id` that matches a shipped
 checklist **overrides** it.
@@ -209,16 +234,17 @@ Things to keep in mind:
     tolerance: 0.05
 ```
 
-The trailing number of an element name **is** the argument: `PTR-ELEC-TMB-MPWR-510` → `510`. The
-positions are read from the switch's prototype in
-`<DCS>\Mods\aircraft\<Aircraft>\Cockpit\Scripts\clickable_defs.lua` — a
-`default_3_position_tumb` has `arg_lim = {-1, 1}`, so −1 / 0 / +1. Measured on the F-16C's MAIN PWR:
-−1 = OFF, 0 = BATT, +1 = MAIN PWR.
+The trailing number of an element name **is** the argument: `PTR-ELEC-TMB-MPWR-510` → `510`.
 
-**⚠️ Multiplayer caveat.** This reading goes through `Export.lua`'s environment, which runs on the
-pilot's machine. From a **dedicated server** it will most likely not work — this is not verified yet.
-The step then simply never ticks itself and the pilot uses "skip"; nothing breaks. If your mission is
-meant for a server, prefer `param` or `confirm`.
+**Which value for which position?** It cannot be worked out from the hint: the F-16C's MAIN PWR
+reads `MAIN PWR/BATT/OFF` and runs +1 / 0 / −1 — the other way round — while `OFF/BACKUP` runs
+0 / 1. The only reliable source is the aircraft's own **keyboard and joystick bindings**, which
+state the position-value pair outright: `MAIN PWR Switch - OFF` sets −1, `- BATT` sets 0,
+`- MAIN PWR` sets +1. That is exactly what the [resolver](#instructor-path) reads for you; writing
+a `control` spares you this whole paragraph.
+
+**⚠️ Multiplayer caveat**: this mode is for solo and local training only — see
+[Which validation mode to choose](#validation-modes).
 
 **Two cases where `argument` will not work anyway:**
 
@@ -251,13 +277,24 @@ The list is per aircraft: each module publishes what it wants. To see yours, cal
 
 ### Find the element to box {#find-element}
 
-It is read from the aircraft module's files, inside your DCS installation:
+**The easy way is to write a `control` and let [the resolver](#instructor-path) find it**: it knows
+the controls of every indexed aircraft (F-16C, A-10C II, AH-64D, F-14B and F-14B(U)) and gives you
+the exact name.
+
+For an aircraft that is not indexed, the name is read from the module's files, inside your DCS
+installation:
 
 ```text
 <DCS>\Mods\aircraft\<Aircraft>\Cockpit\Scripts\clickabledata.lua
 ```
 
 Only **clickable** elements are listed there: a gauge or a warning light has no name to box.
+
+You can also index that aircraft once and for all, and the resolver will handle it like the others:
+
+```bash
+veaf-build update-dcs-data --cockpit-controls --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
 
 ---
 

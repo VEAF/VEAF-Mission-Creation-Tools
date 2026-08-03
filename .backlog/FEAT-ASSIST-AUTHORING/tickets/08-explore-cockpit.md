@@ -1,6 +1,6 @@
 # 08 — explore a cockpit, both ways, in a loop
 
-**Status:** 🧑 waiting-human — built and unit-tested; wants one real cockpit run.
+**Status:** ✅ done — used in a live F-14B(U) on 2026-08-03, and it found a bug worth the whole ticket.
 
 The thing that turned out to be useful during ticket 04's session was not the verification. It was
 **the box**: David could not find the hydraulic transfer pump, boxing it answered instantly. That is
@@ -56,5 +56,17 @@ command has a `CommandSpec` — must keep holding.
       commands sit together. Two tests guard it: an unassigned command would vanish from the menu
       now that the selector iterates groups.
 - [x] Documented on the instructor page, next to verification.
-- [ ] **One real cockpit run.** The loop is unit-tested against a fake cockpit; nobody has thrown a
-      switch at it yet.
+- [x] **One real cockpit run**, and it paid for itself immediately. David threw the DFCS stability
+      augmentation yaw switch; nothing came back. The control was not in the index at all — the
+      element pattern was anchored at column zero and Heatblur declares whole panels inside `if`
+      blocks, so **219 of the F-14's 579 controls were missing**. No unit test could have found that:
+      they feed the parser lines already flush left. Re-run after the fix, the same switch came back
+      named, with argument 2108, a measured value of 1.0, and its position named from the aircraft's
+      own bindings.
+
+**Not yet seen by anyone**, and worth one minute next time a cockpit is open:
+
+- the in-game message for an identified control, added after that run at David's request — the loop
+  timed out before anything moved;
+- the `--control` direction of this command specifically (the boxing itself is proven, ticket 04
+  leant on it throughout).

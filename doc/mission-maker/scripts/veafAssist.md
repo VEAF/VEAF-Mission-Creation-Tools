@@ -80,6 +80,75 @@ retomber en silence sur le mode coûteux.
 Concrètement, la checklist F-16C livrée pèse 68 Ko en `picture` et 0 en `text`. À quarante étapes,
 l'écart dépasse le demi-mégaoctet.
 
+### Sans connaître les noms techniques {#instructor-path}
+
+Une étape a besoin de l'élément du cockpit, du numéro d'animation et de la valeur qui veut dire
+« en position ». Ces trois informations sont enfouies dans les fichiers Lua d'une installation DCS —
+personne ne devrait avoir à les y chercher.
+
+Décrivez plutôt le contrôle **avec vos mots**, à côté du libellé :
+
+```yaml
+steps:
+  - label: Batterie
+    control: MAIN PWR sur BATT      # le contrôle, puis la position voulue
+
+  - label: Manette
+    control: throttle sur IDLE
+```
+
+Puis lancez :
+
+```bash
+veaf-tools resolve-checklist checklists/ma-checklist.yaml
+```
+
+L'outil complète les champs techniques **dans votre fichier**, sous chaque `control`, et ajoute un
+`resolved_from` qui retient le texte dont ils proviennent :
+
+```yaml
+  - label: Batterie
+    control: MAIN PWR sur BATT
+    element: PTR-ELEC-TMB-MPWR-510
+    argument: 510
+    equals: 0.0
+    resolved_from: MAIN PWR sur BATT
+```
+
+Vos commentaires, votre indentation et vos lignes vides sont conservés : c'est votre fichier.
+
+**Un seul fichier à maintenir.** Modifiez un `control`, relancez la commande : seules les étapes dont
+le texte a changé sont retouchées — c'est à ça que sert `resolved_from`. Une étape dont le `control`
+ne correspond plus à son `resolved_from` **fait échouer la construction** de la mission, plutôt que
+d'embarquer une étape qui vérifierait l'ancien contrôle sans que personne ne le voie.
+
+`--dry-run` montre ce qui serait écrit sans toucher au fichier.
+
+#### Écrire un bon `control` {#good-control}
+
+Nommez le contrôle **comme le cockpit le nomme**, puis la position : `throttle sur idle`, pas
+« mettre les gaz ». Les mots de liaison (`sur`, `le`, `bouton`, `interrupteur`, `position`…) sont
+ignorés, en français comme en anglais, et les accents et la casse n'ont pas d'importance.
+
+#### Un refus n'est pas un échec {#refusals}
+
+L'outil **refuse plutôt que de deviner**, parce qu'une mauvaise résolution donne une checklist qui a
+l'air terminée et qui ne se validera jamais — on ne s'en aperçoit qu'une fois assis dans le cockpit.
+Il refuse, en disant ce qu'il a trouvé, quand :
+
+- aucun contrôle ne correspond ;
+- plusieurs contrôles correspondent aussi bien (`MAIN PWR` et `MAIN PWR Test`) : vous seul savez ;
+- la position nommée n'existe pas sur ce contrôle — il liste alors celles qui existent ;
+- les valeurs des positions de ce contrôle sont inconnues. C'est le cas de la plupart des contrôles
+  de l'AH-64D : écrivez `argument` et `equals` à la main, ou mesurez la position en jeu.
+
+Si une seule étape est refusée, **rien n'est écrit** : un fichier à moitié résolu est pire qu'un
+fichier non résolu.
+
+Enfin, un contrôle **sans position lisible** — un bouton, un interrupteur à rappel comme le JFS du
+F-16C — est résolu en étape validée par le pilote, et l'outil vous le dit. Ce n'est pas un défaut :
+ces contrôles sont revenus au repos avant qu'on puisse les lire, quel que soit le moyen employé.
+
 ### Écrire une checklist {#write-a-checklist}
 
 Un fichier par checklist, dans `checklists/` à côté de votre `mission.yaml`. Un `id` identique à

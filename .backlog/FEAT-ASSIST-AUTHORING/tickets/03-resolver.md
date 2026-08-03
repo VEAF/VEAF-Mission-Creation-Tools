@@ -1,6 +1,6 @@
 # 03 — `resolve-checklist`: match, or fail with candidates
 
-**Status:** ⬜ ready — depends on 01, 02. The heart of the lot.
+**Status:** ✅ done. The heart of the lot.
 
 `veaf-tools resolve-checklist <file.yaml>` fills in the technical fields of every stale step, in
 place, and reports what it could not do.
@@ -51,6 +51,15 @@ when any step fails.
 
 ## Definition of done
 
-- The F-16C checklist can be written from `control` texts alone, apart from the ambiguous values.
-- `--dry-run` prints what would change without writing.
-- Quality gate clean, coverage floor bumped.
+- [x] The F-16C checklist can be written from `control` texts alone — **including the values**, which
+      this ticket expected to have to ask for. Run against the six steps of the shipped checklist, the
+      resolver produces exactly what a developer wrote by hand after reading `clickabledata.lua`:
+      `equals: 0.0` and `equals: 1.0` on the two MAIN PWR steps, matching the in-game measurement, and
+      `confirm` on the JFS and the throttle because neither holds a readable position.
+- [x] `--dry-run` prints what would change without writing.
+- [x] Refusals and notes are translated: an instructor reading a refusal in the wrong language cannot
+      act on it.
+- [x] The file keeps its comments, its indentation and its blank lines. Not cosmetic — a run that
+      reindents turns a two-field edit into an unreadable diff, and the instructor stops trusting the
+      tool with their own file.
+- [x] Quality gate clean, coverage floor at 79 (measured 79.20).

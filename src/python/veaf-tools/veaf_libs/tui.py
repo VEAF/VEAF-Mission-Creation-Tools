@@ -223,6 +223,20 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="resolve-checklist",
+        description=t("tui.cmd.resolve_checklist.description"),
+        prompts=[
+            ArgPrompt(
+                "checklist_file",
+                t("tui.arg.checklist_file"),
+                default="checklists/my-checklist.yaml",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt("dry_run", t("tui.arg.checklist_dry_run"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="migrate-config",
         description=t("tui.cmd.migrate_config.description"),
         prompts=[

@@ -211,7 +211,11 @@ every aircraft states the mapping outright in `Mods/aircraft/<Module>/Input/**/d
 ```
 
 That matches the in-game measurement of 2026-08-02 to the digit, and `OFF/BACKUP` → 0/1 matches the
-other one. A control is tied to its bindings by the **command** it drives, which `clickabledata.lua`
+other one. **Confirmed again on 2026-08-03, on a different vendor's aircraft**: in a live F-14B(U)
+cockpit, argument 629 read 0 with the hydraulic transfer pump at NORMAL and 1 at SHUTOFF, and
+argument 2102 read −1 with Engine Crank at Right and +1 at Left — four for four against what the
+bindings said. That aircraft's hints name no positions whatsoever, so the bindings were the only
+possible source and there had been nothing to cross-check them against. A control is tied to its bindings by the **command** it drives, which `clickabledata.lua`
 passes right after the device.
 
 Two things to know before relying on it:

@@ -9,6 +9,14 @@
 #
 # The RIO's part of the procedure is a separate checklist, not extra steps here.
 #
+# Verified in game on 2026-08-03, in a F-14B(U) cockpit, by reading the animation
+# argument through the export environment while the control was in each position:
+#   argument  629 (Hydraulic Transfer Pump) -> NORMAL 0, SHUTOFF 1
+#   argument 2102 (Engine Crank)            -> Right -1, Left +1
+# Every value matches what the input bindings said, which is the first confirmation of
+# that inference on a third-party aircraft — and on one whose hints name no positions at
+# all, so the bindings were the only possible source.
+#
 # Written the instructor way: each step says what to do in plain words, and
 # `veaf-tools resolve-checklist` filled in element/argument/equals from the F-14B(U)
 # cockpit index. Re-run it after editing any `control`.

@@ -151,6 +151,11 @@ Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 scoop install lua51
 ```
 
+> Si une autre version de Lua est déjà installée via scoop, `lua51` **remplace son shim `lua`**
+> (le paquet en déclare un). Le shim `lua51` reste disponible pour les deux, et
+> `poetry run test-lua` sait le trouver — mais la commande `lua` nue de votre terminal aura changé
+> de version.
+
 Alternativement, télécharger un binaire depuis [LuaBinaries](https://luabinaries.sourceforge.net/) (`lua-5.1.x_Win64_bin.zip`), extraire et ajouter le dossier au PATH système.
 
 Vérification :
@@ -158,6 +163,10 @@ Vérification :
 ```powershell
 lua -v   # Lua 5.1.x attendu
 ```
+
+Si ce n'est pas une 5.1, `poetry run test-lua` refuse de s'exécuter et affiche ce qu'il a trouvé :
+lancer la suite sous 5.4 produit des dizaines d'échecs qui ressemblent à des régressions du code
+VEAF et n'en sont pas.
 
 #### 5. StyLua 2.4.0 (qualité du code Lua) {#stylua-setup}
 
@@ -404,7 +413,7 @@ poetry run test-lua
 
 Code de sortie `0` = tous passent, `1` = échecs.
 
-Fonctionne sur Windows, Linux et dans le DevContainer (détection automatique de `lua5.1` / `lua` / chemin Windows de secours).
+Fonctionne sur Windows, Linux et dans le DevContainer (détection automatique de `lua5.1` / `lua51` / `lua` / chemin Windows de secours). Chaque candidat est **interrogé avec `lua -v`** : un interpréteur 5.2+ est refusé, avec les instructions d'installation, plutôt qu'utilisé — sinon les incompatibilités de la 5.4 ressemblent à des régressions du code VEAF.
 
 ### Exécution filtrée
 

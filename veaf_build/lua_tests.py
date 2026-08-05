@@ -262,7 +262,12 @@ def run(
 
     for test_file in test_files:
         console.print(f"\n[cyan]--- {test_file.name} ---[/cyan]")
-        result = subprocess.run([*lua_cmd, str(test_file)], cwd=_PROJECT_ROOT)
+        # Audited, not injectable: `lua` is one of the fixed `_LUA_CANDIDATES` (or the fixed
+        # Windows fallback path) and `test_file` comes from globbing `test/lua/`. No shell is
+        # involved either — this is an argv list, so nothing is re-parsed as a command.
+        result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+            [*lua_cmd, str(test_file)], cwd=_PROJECT_ROOT
+        )
         if result.returncode == 0:
             passed += 1
         else:

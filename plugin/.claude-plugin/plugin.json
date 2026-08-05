@@ -2,7 +2,7 @@
   "name": "veaf-mission-editor",
   "displayName": "VEAF Mission Editor",
   "description": "Author VEAF DCS missions from Claude Code — create, edit, validate and build a mission through the veaf-mission-mcp server, guided by the veaf-mission-authoring skill.",
-  "version": "6.13.17",
+  "version": "6.13.18",
   "author": {
     "name": "VEAF",
     "url": "https://www.veaf.org"

@@ -1870,6 +1870,21 @@ function TestVeafFindSpawnPoint:test_singleton_is_asked_for_several_candidates()
   luaunit.assertEquals(askedFor, veaf.SPAWN_SEARCH_ATTEMPTS)
 end
 
+function TestVeafFindSpawnPoint:test_malformed_candidates_do_not_raise()
+  -- The singleton is undocumented and its return shape unmeasured, so a flat array of
+  -- numbers has to degrade like an empty one. placePointOnLand would raise on these, and
+  -- the pcall only wraps the call to getSimpleZones, not the loop over its result.
+  Disposition = {
+    getSimpleZones = function()
+      return { 1, 2, 3 }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local ok, point = pcall(veaf.findSpawnPoint, { x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertTrue(ok, "a malformed candidate must not propagate out of the helper")
+  luaunit.assertEquals(point.x, 500)
+end
+
 function TestVeafFindSpawnPoint:test_first_clear_candidate_of_several_is_taken()
   self:_waterAt({ 10, 20 })
   Disposition = {

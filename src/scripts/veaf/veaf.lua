@@ -1148,8 +1148,14 @@ veaf.doNotAvoidScenery = false
 -- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
 -- Only WATER is rejected, which is the criterion veafUnits.checkPositionForUnit applies
 -- to a ground unit — SHALLOW_WATER keeps passing, as it does today.
--- @return vec3 placed on land, or nil when the point is unusable
+-- The shape guard is not paranoia: tier 1 candidates come from an undocumented API whose
+-- return shape we have not measured, and veaf.placePointOnLand would raise on a non-table
+-- — outside the pcall, which only wraps the call to the singleton itself.
+-- @return vec3 placed on land, or nil when the candidate is unusable
 local function acceptableGroundPoint(candidate)
+  if type(candidate) ~= "table" then
+    return nil
+  end
   local placed = veaf.placePointOnLand(candidate)
   if land.getSurfaceType({ x = placed.x, y = placed.z }) ~= land.SurfaceType.WATER then
     return placed

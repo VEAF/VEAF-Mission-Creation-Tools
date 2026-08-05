@@ -1,6 +1,6 @@
 # 08 — explore a cockpit, both ways, in a loop
 
-**Status:** ✅ done — used in a live F-14B(U) on 2026-08-03, and it found a bug worth the whole ticket.
+Status: ✅ done — used in a live F-14B(U) on 2026-08-03, and it found a bug worth the whole ticket.
 
 The thing that turned out to be useful during ticket 04's session was not the verification. It was
 **the box**: David could not find the hydraulic transfer pump, boxing it answered instantly. That is

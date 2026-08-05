@@ -1,6 +1,6 @@
 # 06 — F-14B(U), from Heatblur's official manual
 
-**Status:** 🧑 waiting-human — written and resolved; David has to fly it.
+Status: 🧑 waiting-human — written and resolved; David has to fly it.
 
 The F-14B(U) has no usable ED autostart, and David's Chuck's Guide covers the 2023 F-14B, not this
 variant. **Heatblur publishes the official manual as HTML**, and it is already in the right shape:

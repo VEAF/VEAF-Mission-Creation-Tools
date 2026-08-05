@@ -1,6 +1,6 @@
 # 07 — document the prototype and its verdict
 
-**Status:** ✅ done — pages written, and the verdict written after the flight of 2026-08-01 (in the PRD).
+Status: ✅ done — pages written, and the verdict written after the flight of 2026-08-01 (in the PRD).
 
 ## Reference pages
 

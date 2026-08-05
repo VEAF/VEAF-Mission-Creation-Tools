@@ -1,6 +1,6 @@
 # 08 — a build-time choice between the picture and plain text
 
-**Status:** ✅ done — 2026-08-02. Asked for by David after flying ticket 05; not yet seen in game.
+Status: ✅ done — 2026-08-02. Asked for by David after flying ticket 05; not yet seen in game.
 
 The generated picture is the nice version and the expensive one: seven states of the six-step F-16C
 checklist weigh 68 KB, and a forty-step checklist would run past half a megabyte. A mission maker who

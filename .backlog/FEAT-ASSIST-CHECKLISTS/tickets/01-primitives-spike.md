@@ -1,6 +1,6 @@
 # 01 — prove the cockpit primitives from the mission environment
 
-**Status:** ✅ done — 2026-08-01, in game on David's DCS, F-16C cold on the ramp.
+Status: ✅ done — 2026-08-01, in game on David's DCS, F-16C cold on the ramp.
 
 This was the go/no-go gate: the cockpit highlight machinery is an ED **trigger action**, so the question
 was whether it is also reachable as a plain function from the mission scripting environment. If it were

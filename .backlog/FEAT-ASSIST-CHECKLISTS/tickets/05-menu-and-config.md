@@ -1,6 +1,6 @@
 # 05 — radio menu, i18n and `mission.yaml` wiring
 
-**Status:** ✅ done — flown and validated 2026-08-01, except the two-pilot case (see the PRD).
+Status: ✅ done — flown and validated 2026-08-01, except the two-pilot case (see the PRD).
 
 Makes the assistance reachable by a pilot and switchable by a mission maker. Nothing here is specific to
 the F-16C.

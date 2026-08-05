@@ -1,6 +1,6 @@
 # FEAT-ASSIST-CHECKLISTS — guided checklists from YAML, cold start as first client
 
-**Status:** ✅ done — **flown and validated by David on 2026-08-01**. Menu, on-screen checklist,
+Status: ✅ done — **flown and validated by David on 2026-08-01**. Menu, on-screen checklist,
 ticking steps and event texts all work. Four defects were found and fixed during the flight; the
 verdict the prototype existed to produce is written below. What remains is not blocking: multiplayer
 is untested, and the F-16C slice still wants a pilot's review.

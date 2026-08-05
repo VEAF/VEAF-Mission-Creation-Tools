@@ -1,6 +1,7 @@
 # Lot FEAT-COMBATZONE-MENU-COALITION — a combat zone's F10 menu is shown to its own side only
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — ticket 01 is done; what remains is the in-game check that DCS
+accepts a coalition-scoped submenu under a global parent.
 Branch: feature/FEAT-COMBATZONE-MENU-COALITION
 
 ## Problem Statement

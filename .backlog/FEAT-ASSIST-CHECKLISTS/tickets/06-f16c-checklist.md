@@ -1,6 +1,6 @@
 # 06 — F-16C cold-start checklist, six steps
 
-**Status:** 🧑 waiting-human — the checklist is written, loads and renders. It is **pilot-confirmed
+Status: 🧑 waiting-human — the checklist is written, loads and renders. It is **pilot-confirmed
 throughout**: the in-game probe of 2026-08-01 showed a cockpit control's position cannot be read at all,
 so the three automatic steps became confirm steps. What remains is a pilot's review of the slice.
 

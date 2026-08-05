@@ -1,6 +1,6 @@
 # 02 — checklist YAML: schema, loader, Lua emission
 
-**Status:** ✅ done — 2026-08-01.
+Status: ✅ done — 2026-08-01.
 
 Python side. Reads checklist YAML, validates it, and emits the Lua table the engine consumes. DCS has no
 YAML reader: the YAML is design-time only.

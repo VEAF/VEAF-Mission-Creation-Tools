@@ -1,6 +1,6 @@
 # 02 — the instructor format: `control`, enriched in place
 
-**Status:** ✅ done.
+Status: ✅ done.
 
 Two fields on a step, and everything else about the checklist format is unchanged.
 

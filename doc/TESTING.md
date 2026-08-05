@@ -46,8 +46,16 @@ lua test/lua/test_veafSpawn.lua
 ### Prérequis
 
 - `poetry install` doit avoir été exécuté une fois
-- Lua 5.1 dans le PATH (`lua5.1` sous Linux/DevContainer, `lua` ou `C:\Program Files (x86)\Lua\5.1\lua.exe` sous Windows)
+- Lua 5.1 dans le PATH (`lua5.1`, `lua51` ou `lua`, ou `C:\Program Files (x86)\Lua\5.1\lua.exe` sous Windows)
 - Aucune autre dépendance (luaunit est embarqué dans `test/lua/luaunit.lua`)
+
+La version **5.1** est vérifiée : chaque candidat est interrogé avec `lua -v`, et un interpréteur
+5.2+ est refusé au lieu d'être utilisé. C'est délibéré — Lua 5.2 a supprimé `unpack` et rendu
+`string.format('%d', ...)` intolérant aux nombres fractionnaires, donc une exécution sous 5.4
+produit des dizaines d'échecs qui ressemblent à des régressions et n'en sont pas.
+
+Sous Windows, `scoop install lua51` fournit Lua 5.1.5. Attention : son shim `lua` remplace celui
+d'une autre version de Lua déjà installée par scoop ; le shim `lua51` permet de garder les deux.
 
 ---
 

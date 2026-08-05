@@ -24,20 +24,82 @@ _COVERAGE_LINE_RE = re.compile(r"^(.+?)\s+(\d+)\s+(\d+)\s+([\d.]+%)\s*$")
 _VEAF_SRC = _PROJECT_ROOT / "src" / "scripts" / "veaf"
 
 
+# `lua -v` prints e.g. "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio" — on stderr
+# for 5.1 and on stdout for later versions, so both streams are inspected.
+_LUA_51_RE = re.compile(r"\bLua 5\.1(\.\d+)?\b")
+
+_LUA_CANDIDATES = ["lua5.1", "lua51", "lua"]
+_WINDOWS_LUA_FALLBACK = Path(r"C:\Program Files (x86)\Lua\5.1\lua.exe")
+
+_LUA_INSTALL_HELP = (
+    "DCS runs Lua 5.1 and the VEAF scripts target it and nothing else.\n"
+    "A 5.2+ interpreter dropped `unpack` and made string.format('%d')\n"
+    "reject a fractional number, so the suite fails in dozens of places\n"
+    "that are not regressions. Refusing to run rather than report those.\n"
+    "\n"
+    "Install Lua 5.1:\n"
+    "  Windows  scoop install lua51  (5.1.5; its `lua` shim replaces any\n"
+    "           other Lua on PATH — use the `lua51` shim to keep both)\n"
+    "           or https://luabinaries.sourceforge.net/, extracted to\n"
+    "           " + str(_WINDOWS_LUA_FALLBACK) + "\n"
+    "  Linux    apt install lua5.1\n"
+    "  macOS    brew install lua@5.1"
+)
+
+
+def _lua_version_banner(executable: str) -> str:
+    """Return the `-v` banner of a Lua interpreter.
+
+    Args:
+        executable: Interpreter name on PATH, or an absolute path to it.
+
+    Returns:
+        The combined stdout/stderr banner, or an empty string when the
+        interpreter cannot be run at all.
+    """
+    try:
+        result = subprocess.run(
+            [executable, "-v"],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return f"{result.stdout}\n{result.stderr}".strip()
+
+
 def _find_lua() -> str:
-    """Return the path to a Lua 5.1 interpreter, or raise if none found."""
-    for candidate in ["lua5.1", "lua"]:
-        if shutil.which(candidate):
+    """Return the path to a Lua **5.1** interpreter, or raise if none is found.
+
+    Every candidate is version-checked with `lua -v`: a `lua` that turns out to be
+    5.4 is rejected, not used. Silently falling back to it produces failures that
+    look like regressions in the VEAF scripts and are not.
+
+    Returns:
+        The name or absolute path of an interpreter reporting Lua 5.1.
+
+    Raises:
+        typer.BadParameter: When no candidate reports Lua 5.1, listing what was
+            found and how to install the right interpreter.
+    """
+    candidates = [c for c in _LUA_CANDIDATES if shutil.which(c)]
+    if sys.platform == "win32" and _WINDOWS_LUA_FALLBACK.exists():
+        candidates.append(str(_WINDOWS_LUA_FALLBACK))
+
+    rejected: list[str] = []
+    for candidate in candidates:
+        banner = _lua_version_banner(candidate)
+        if _LUA_51_RE.search(banner):
             return candidate
-    if sys.platform == "win32":
-        fallback = Path(r"C:\Program Files (x86)\Lua\5.1\lua.exe")
-        if fallback.exists():
-            return str(fallback)
-    raise typer.BadParameter(
-        "Lua 5.1 interpreter not found. Install lua5.1 (Linux/macOS) "
-        r"or Lua 5.1 from https://luabinaries.sourceforge.net/ (Windows, "
-        r"default path: C:\Program Files (x86)\Lua\5.1\lua.exe)."
-    )
+        rejected.append(f"  {candidate} -> {banner.splitlines()[0] if banner else 'not a usable Lua interpreter'}")
+
+    if rejected:
+        found = "Found, but not Lua 5.1:\n" + "\n".join(rejected)
+    else:
+        found = "No Lua interpreter found on PATH."
+    raise typer.BadParameter(f"No Lua 5.1 interpreter available.\n\n{found}\n\n{_LUA_INSTALL_HELP}")
 
 
 def _luacov_module_available(lua: str) -> bool:

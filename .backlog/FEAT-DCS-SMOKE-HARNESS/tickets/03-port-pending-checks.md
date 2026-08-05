@@ -1,6 +1,6 @@
 # 03 — Port the four pending in-game checks
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feat
 Files: the assertion list from 02, plus status updates on the four lots
 
@@ -34,6 +34,26 @@ every adopted mission and jumps the queue.
 Already validated, but **by hand, in flight**. Porting even a subset turns a one-off human sign-off
 into a regression guard, which matters because that engine reads live cockpit state through
 `net.dostring_in` and a DCS patch could break it silently.
+
+## Written 2026-08-05, none of them run
+
+Six checks in `CHECKS`, covering two of the four questions:
+
+- **`Disposition`** (3 checks): does the singleton exist, does `getSimpleZones` exist, and what
+  does it return when called. The avoidance itself is not among them — that needs a mission
+  placed beside a village, which is ticket 01's outstanding half.
+- **Coalition-scoped submenu** (1 check): does DCS accept `addSubMenuForCoalition` under a global
+  parent. This is the whole of what `FEAT-COMBATZONE-MENU-COALITION` has been waiting on.
+- **Two sanity checks**: that `veaf` and `veaf.findSpawnPoint` are actually loaded, so a stale
+  script bundle cannot make every other check vacuously pass.
+
+Writing them surfaced a bug worth recording: the snippets return truthy **sentinel strings**
+(`veaf-absent`, `no-singleton`) rather than raising, so an expectation written as a plain
+truthiness test passed in exactly the case it existed to catch. A test now sweeps every check
+against every sentinel.
+
+**Not done: running them.** Foothold's staggered loading and the guided checklists have no checks
+yet either.
 
 ## Tasks
 

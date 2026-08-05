@@ -14,6 +14,7 @@ from . import (  # noqa: F401
     mcp,
     prepare,
     resolve_checklist,
+    smoke_test,
     user_config,
     validate,
     verify_checklist,

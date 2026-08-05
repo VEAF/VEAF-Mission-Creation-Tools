@@ -1706,6 +1706,269 @@ function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
 end
 
 -- ---------------------------------------------------------------------------
+-- veaf.findSpawnPoint — three-tier search (FEAT-SCENERY-AWARE-SPAWN)
+--
+-- Tier 1 asks the undocumented Disposition singleton for scenery-clear points,
+-- tier 2 jitters with mist.getRandPointInCircle, tier 3 gives up and returns nil.
+-- Every degradation path is pinned here, the "singleton absent" one above all:
+-- it is what ships to any DCS install that does not expose Disposition.
+-- ---------------------------------------------------------------------------
+TestVeafFindSpawnPoint = {}
+
+function TestVeafFindSpawnPoint:setUp()
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+  -- Land everywhere unless a test says otherwise.
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+  self._jitterCalls = 0
+end
+
+function TestVeafFindSpawnPoint:tearDown()
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+--- Makes land.getSurfaceType answer WATER for every point whose x is in `waterXs`.
+function TestVeafFindSpawnPoint:_waterAt(waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+end
+
+--- Makes the jitter walk a fixed list of x offsets, one per call.
+function TestVeafFindSpawnPoint:_jitterSequence(xs)
+  local calls = 0
+  mist.getRandPointInCircle = function(spot, _r)
+    calls = calls + 1
+    self._jitterCalls = calls
+    local x = xs[calls] or xs[#xs]
+    return { x = x, y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafFindSpawnPoint:test_singleton_absent_falls_through_to_the_jitter()
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNotNil(point)
+  luaunit.assertEquals(point.x, 500)
+  luaunit.assertEquals(self._jitterCalls, 1)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_absent_result_is_placed_on_land()
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  -- placePointOnLand puts the terrain height in y; the mock's getHeight + 1 m margin.
+  luaunit.assertEquals(point.y, math.floor(land.getHeight({ x = 500, y = 0 }) + 1))
+end
+
+function TestVeafFindSpawnPoint:test_jitter_retries_until_it_finds_land()
+  self:_waterAt({ 100, 200 })
+  self:_jitterSequence({ 100, 200, 300 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNotNil(point)
+  luaunit.assertEquals(point.x, 300, "must skip the two water candidates")
+  luaunit.assertEquals(self._jitterCalls, 3)
+end
+
+function TestVeafFindSpawnPoint:test_no_acceptable_point_anywhere_returns_nil()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+  self:_jitterSequence({ 100 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNil(point)
+  luaunit.assertEquals(self._jitterCalls, veaf.SPAWN_SEARCH_ATTEMPTS, "the jitter tier must be bounded")
+end
+
+function TestVeafFindSpawnPoint:test_singleton_proposal_wins_over_the_jitter()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 42, y = 0, z = 7 } }
+    end,
+  }
+  self:_jitterSequence({ 999 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 42)
+  luaunit.assertEquals(point.z, 7)
+  luaunit.assertEquals(self._jitterCalls, 0, "the jitter tier must not run when tier 1 succeeds")
+end
+
+function TestVeafFindSpawnPoint:test_singleton_returning_nothing_falls_through()
+  Disposition = {
+    getSimpleZones = function()
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_throwing_falls_through_without_propagating()
+  Disposition = {
+    getSimpleZones = function()
+      error("undocumented API changed its signature")
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local ok, point = pcall(veaf.findSpawnPoint, { x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertTrue(ok, "a broken singleton must never propagate out of the helper")
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_proposing_water_is_rejected()
+  self:_waterAt({ 42 })
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500, "Disposition is not guaranteed to respect water")
+end
+
+function TestVeafFindSpawnPoint:test_opt_out_skips_the_singleton_entirely()
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  veaf.doNotAvoidScenery = true
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertFalse(called)
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_is_asked_for_several_candidates()
+  local askedFor
+  Disposition = {
+    getSimpleZones = function(_centre, _searchRadius, _exclusionRadius, count)
+      askedFor = count
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(askedFor, veaf.SPAWN_SEARCH_ATTEMPTS)
+end
+
+function TestVeafFindSpawnPoint:test_first_clear_candidate_of_several_is_taken()
+  self:_waterAt({ 10, 20 })
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 10, y = 0, z = 0 }, { x = 20, y = 0, z = 0 }, { x = 30, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 30)
+  luaunit.assertEquals(self._jitterCalls, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- Trigger-zone properties (FEAT-SCENERY-AWARE-SPAWN ticket 04)
+--
+-- DCS hands properties over as an array of string pairs, so a caller would otherwise
+-- write its own linear scan plus its own tonumber / "true" comparison every time.
+-- ---------------------------------------------------------------------------
+TestVeafZoneProperties = {}
+
+function TestVeafZoneProperties:setUp()
+  self._saved = veaf.triggerZones
+  veaf.triggerZones = {
+    ["Alpha"] = {
+      name = "Alpha",
+      properties = {
+        { key = "smoke", value = "true" },
+        { key = "hidden", value = "FALSE" },
+        { key = "radius", value = "800" },
+        { key = "ratio", value = "1.5" },
+        { key = "label", value = "not a number" },
+      },
+    },
+    ["Bare"] = { name = "Bare" },
+  }
+end
+
+function TestVeafZoneProperties:tearDown()
+  veaf.triggerZones = self._saved
+end
+
+function TestVeafZoneProperties:test_raw_property_is_returned_as_a_string()
+  luaunit.assertEquals(veaf.getZoneProperty("Alpha", "radius"), "800")
+end
+
+function TestVeafZoneProperties:test_missing_key_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Alpha", "nope"))
+end
+
+function TestVeafZoneProperties:test_missing_zone_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Ghost", "radius"))
+end
+
+function TestVeafZoneProperties:test_zone_without_properties_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Bare", "radius"))
+end
+
+function TestVeafZoneProperties:test_boolean_true()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "smoke", false))
+end
+
+function TestVeafZoneProperties:test_boolean_is_case_insensitive()
+  luaunit.assertFalse(veaf.getZonePropertyBoolean("Alpha", "hidden", true))
+end
+
+function TestVeafZoneProperties:test_boolean_junk_falls_back_to_the_default_not_to_false()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "label", true))
+end
+
+function TestVeafZoneProperties:test_boolean_missing_key_returns_the_default()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "nope", true))
+end
+
+function TestVeafZoneProperties:test_number_is_parsed()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0), 800)
+end
+
+function TestVeafZoneProperties:test_number_accepts_decimals()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "ratio", 0), 1.5)
+end
+
+function TestVeafZoneProperties:test_number_junk_returns_the_default()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "label", 42), 42)
+end
+
+function TestVeafZoneProperties:test_number_is_clamped_to_the_upper_bound()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 0, 500), 500)
+end
+
+function TestVeafZoneProperties:test_number_is_clamped_to_the_lower_bound()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 1000, 2000), 1000)
+end
+
+function TestVeafZoneProperties:test_number_within_bounds_is_untouched()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 0, 1000), 800)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

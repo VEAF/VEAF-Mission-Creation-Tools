@@ -1131,6 +1131,84 @@ function veaf.placePointOnLand(vec3)
   return result
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- spawn point search
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Number of candidate points examined per search tier in veaf.findSpawnPoint
+veaf.SPAWN_SEARCH_ATTEMPTS = 10
+
+--- Default clearance from scenery, in metres, requested for a spawned group
+veaf.DEFAULT_SPAWN_CLEARANCE = 100
+
+--- Set to true to skip the scenery-aware tier of veaf.findSpawnPoint
+veaf.doNotAvoidScenery = false
+
+--- Places a candidate on the terrain and tells whether a ground unit can stand there
+-- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
+-- Only WATER is rejected, which is the criterion veafUnits.checkPositionForUnit applies
+-- to a ground unit — SHALLOW_WATER keeps passing, as it does today.
+-- @return vec3 placed on land, or nil when the point is unusable
+local function acceptableGroundPoint(candidate)
+  local placed = veaf.placePointOnLand(candidate)
+  if land.getSurfaceType({ x = placed.x, y = placed.z }) ~= land.SurfaceType.WATER then
+    return placed
+  end
+  return nil
+end
+
+--- Searches for an acceptable ground spawn point near a centre
+-- Three bounded tiers, degrading in order: every criterion including clearance from
+-- scenery, then every criterion except that clearance, then failure. Callers used to
+-- jitter once and use the result unvalidated, so a centre could land in the sea and the
+-- units were dropped one by one downstream.
+-- @param vec3 centre point
+-- @param radius search radius in metres, used by the random tier
+-- @param safeRadius required clearance from scenery (default veaf.DEFAULT_SPAWN_CLEARANCE)
+-- @return vec3 placed on land, or nil when no acceptable point was found
+function veaf.findSpawnPoint(vec3, radius, safeRadius)
+  safeRadius = safeRadius or veaf.DEFAULT_SPAWN_CLEARANCE
+
+  -- Tier 1 — every criterion, clearance from buildings and forests included.
+  -- Disposition is a native but *undocumented* DCS singleton, found in TUM and not yet
+  -- verified in game (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md).
+  -- Hence the guard and the pcall: a singleton that is absent on this DCS version or map,
+  -- or whose signature changed under us, must degrade to tier 2 and never kill a spawn.
+  if not veaf.doNotAvoidScenery and Disposition and Disposition.getSimpleZones then
+    -- One call yields several candidates, which is cheaper than one call each and matters
+    -- because the per-call cost is still unmeasured. The 1852 m floor (one nautical mile)
+    -- is TUM's, and keeps the search area usable when safeRadius is small.
+    local searchRadius = math.max(1852, safeRadius * 5)
+    local ok, candidates = pcall(Disposition.getSimpleZones, vec3, searchRadius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
+    if ok and type(candidates) == "table" then
+      for _, candidate in ipairs(candidates) do
+        local placed = acceptableGroundPoint(candidate)
+        if placed then
+          veaf.loggers.get(veaf.Id):trace("findSpawnPoint: scenery-aware point found")
+          return placed
+        end
+      end
+      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point, dropping the scenery criterion")
+    else
+      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition.getSimpleZones unusable, dropping the scenery criterion")
+    end
+  end
+
+  -- Tier 2 — every criterion except clearance from scenery.
+  for _ = 1, veaf.SPAWN_SEARCH_ATTEMPTS do
+    local placed = acceptableGroundPoint(mist.getRandPointInCircle(vec3, radius))
+    if placed then
+      return placed
+    end
+  end
+
+  -- Tier 3 — nothing acceptable anywhere. The caller reports it and aborts the spawn.
+  veaf.loggers
+    .get(veaf.Id)
+    :info(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
+  return nil
+end
+
 --- Trim a string
 function veaf.trim(s)
   local a = s:match("^%s*()")
@@ -4388,6 +4466,91 @@ end
 
 function veaf.getTriggerZone(zoneName)
   return veaf.triggerZones[zoneName]
+end
+
+--- Reads a raw trigger-zone property, as typed by the mission maker in the editor
+-- DCS stores them as an array of { key = "…", value = "…" } pairs, never a map, and every
+-- value is a string. Discovered zones have carried them since veaf._discoverTriggerZones,
+-- but nothing read them until FEAT-SCENERY-AWARE-SPAWN.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @return string, or nil when the zone, its properties or the key are missing
+function veaf.getZoneProperty(zoneName, key)
+  local zone = veaf.getTriggerZone(zoneName)
+  if not zone or not zone.properties then
+    return nil
+  end
+  for _, property in pairs(zone.properties) do
+    if property.key == key then
+      return property.value
+    end
+  end
+  return nil
+end
+
+--- Reads a trigger-zone property as a boolean
+-- Accepts "true"/"false" in any case; anything else is a miss and yields the default, so a
+-- mission maker's typo cannot silently read as false.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @param default value returned when absent or unparseable
+-- @return boolean
+function veaf.getZonePropertyBoolean(zoneName, key, default)
+  local raw = veaf.getZoneProperty(zoneName, key)
+  if raw == nil then
+    return default
+  end
+  local text = tostring(raw):lower()
+  if text == "true" then
+    return true
+  elseif text == "false" then
+    return false
+  end
+  veaf.loggers.get(veaf.Id):warn(
+    string.format(
+      "getZonePropertyBoolean: zone [%s] property [%s] is not a boolean: [%s]",
+      tostring(zoneName),
+      tostring(key),
+      tostring(raw)
+    )
+  )
+  return default
+end
+
+--- Reads a trigger-zone property as a number, clamped into an optional range
+-- Clamps rather than rejects, so a mission maker who types an absurd value gets the bound
+-- instead of a dead module. Lua 5.1 has a single number type, hence one accessor and not
+-- the float/int pair the source of this pattern exposes.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @param default value returned when absent or not a number
+-- @param min optional lower bound
+-- @param max optional upper bound
+-- @return number
+function veaf.getZonePropertyNumber(zoneName, key, default, min, max)
+  local raw = veaf.getZoneProperty(zoneName, key)
+  if raw == nil then
+    return default
+  end
+  local value = tonumber(raw)
+  if not value then
+    veaf.loggers.get(veaf.Id):warn(
+      string.format(
+        "getZonePropertyNumber: zone [%s] property [%s] is not a number: [%s]",
+        tostring(zoneName),
+        tostring(key),
+        tostring(raw)
+      )
+    )
+    return default
+  end
+  if min and value < min then
+    value = min
+  end
+  if max and value > max then
+    value = max
+  end
+  return value
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

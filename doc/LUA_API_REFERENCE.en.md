@@ -407,6 +407,36 @@ Place point on land surface (adjusts Y altitude).
 
 **Returns:** `vec3` - Position on land surface
 
+##### `veaf.findSpawnPoint(vec3, radius, safeRadius)`
+
+Searches for an acceptable ground spawn point near a centre. Where `placePointOnLand` moves a
+point **vertically**, this one **searches** for one.
+
+The search degrades in three bounded tiers:
+
+1. **Every criterion, clearance from scenery included** - through the `Disposition` DCS
+   singleton, which returns points clear of buildings and forests.
+2. **Every criterion except that clearance** - validated random draws within the radius.
+3. **Failure** - returns `nil`; the caller reports it and aborts the spawn.
+
+**Parameters:**
+
+- `vec3` (vec3) - Centre of the search
+- `radius` (number) - Search radius in metres, used by the random tier
+- `safeRadius` (number, optional) - Required clearance (default `veaf.DEFAULT_SPAWN_CLEARANCE`)
+
+**Returns:** `vec3` placed on land, or `nil` when no acceptable point was found
+
+**Settings:**
+
+- `veaf.SPAWN_SEARCH_ATTEMPTS` (default 10) - candidates examined per tier
+- `veaf.DEFAULT_SPAWN_CLEARANCE` (default 100) - requested clearance, in metres
+- `veaf.doNotAvoidScenery` (default `false`) - when `true`, skips tier 1
+
+> **Note:** `Disposition` is a **native but undocumented** DCS API, absent from
+> `dcs-world-schema`. The call is guarded and `pcall`-wrapped: if the singleton is missing on
+> this DCS version or map, the search falls through to tier 2 instead of failing.
+
 ##### `veaf.getLandHeight(vec3)`
 
 Get terrain height at coordinates.
@@ -1028,6 +1058,49 @@ Get trigger zone by name.
 - `zoneName` (string) - Zone name
 
 **Returns:** `DCS Zone` - Zone object or nil
+
+##### `veaf.getZoneProperty(zoneName, key)`
+
+Reads a trigger-zone property, as typed by the mission maker in the editor.
+
+DCS stores these as an **array of pairs** `{ key = "…", value = "…" }`, never a map, and **every
+value is a string**. These three accessors replace the linear scan and the `tonumber` every
+caller would otherwise write.
+
+**Parameters:**
+
+- `zoneName` (string) - Zone name
+- `key` (string) - Property name
+
+**Returns:** `string` - or `nil` when the zone, its properties or the key are missing
+
+##### `veaf.getZonePropertyBoolean(zoneName, key, default)`
+
+Reads a property as a boolean. Accepts `true`/`false` in any case; anything else is a failed
+read and yields `default` - so a typo cannot silently read as `false`.
+
+**Parameters:**
+
+- `zoneName` (string) - Zone name
+- `key` (string) - Property name
+- `default` (boolean) - Value returned when absent or unparseable
+
+**Returns:** `boolean`
+
+##### `veaf.getZonePropertyNumber(zoneName, key, default, min, max)`
+
+Reads a property as a number, **clamped** into an optional range. Clamps rather than rejects: a
+mission maker who types an absurd value gets the bound, not a dead module.
+
+**Parameters:**
+
+- `zoneName` (string) - Zone name
+- `key` (string) - Property name
+- `default` (number) - Value returned when absent or not a number
+- `min` (number, optional) - Lower bound
+- `max` (number, optional) - Upper bound
+
+**Returns:** `number`
 
 #### Mission Control Functions
 

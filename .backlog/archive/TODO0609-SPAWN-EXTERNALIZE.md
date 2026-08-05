@@ -8,7 +8,7 @@ Status: ✅ done
 
 **Branch**: `feat/spawn-externalize` → PR → `develop`
 
-**Spike result (001 ✅)** — see [ADR 0005](docs/adr/0005-spawn-data-externalization.md):
+**Spike result (001 ✅)** — see [ADR 0005](../../docs/adr/0005-spawn-data-externalization.md):
 
 - Source of truth = **YAML**; the Lua tables (`veafUnits.UnitsDatabase` / `GroupsDatabase`) are **generated**. Two sources: shipped `veaf-units.yaml` (framework) + per-mission `src/spawn-groups.yaml`.
 - Generation happens at the **mission build (`veaf-tools build`)** — a new pipeline step merges framework + mission YAML, renders a Lua data module, injects it into the `.miz`. (Differs from `dcsUnits`, which `veaf-build` regenerates into a committed file — here the per-mission overrides only exist at mission-build time.) DCS can't parse YAML at runtime, so the injected module assigns the Lua tables, loaded after the framework bundle (which now defaults them empty).

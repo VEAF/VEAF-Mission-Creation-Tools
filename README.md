@@ -153,18 +153,18 @@ Choisissez le guide correspondant à votre rôle :
 
 | Rôle | Guide | Description |
 |------|-------|-------------|
-| **Joueur / Pilote** | [Guide du pilote](doc/pilot/README.fr.md) | Menus F10, commandes marqueurs, assets, zones de combat |
-| **Créateur de missions** | [Guide créateur de missions](doc/mission-maker/README.fr.md) | Installation, configuration, build — tous les scripts documentés |
-| **Développeur** | [Guide du développeur](doc/developer/README.fr.md) | Architecture, pipeline de build, qualité, contribution |
+| **Joueur / Pilote** | [Guide du pilote](doc/pilot/README.md) | Menus F10, commandes marqueurs, assets, zones de combat |
+| **Créateur de missions** | [Guide créateur de missions](doc/mission-maker/README.md) | Installation, configuration, build — tous les scripts documentés |
+| **Développeur** | [Guide du développeur](doc/developer/README.md) | Architecture, pipeline de build, qualité, contribution |
 
 ### Références détaillées
 
 | Référence | Description |
 |-----------|-------------|
-| [Référence API Lua](doc/LUA_API_REFERENCE.fr.md) | API complète des 34 modules Lua runtime |
-| [Référence CLI des outils](doc/TOOLS_REFERENCE.fr.md) | `veaf-tools.exe` et `veaf-tools-updater.exe` |
-| [Guide de tests](doc/TESTING.fr.md) | Suite de tests Lua unitaires, pipeline CI/CD |
-| [Feuille de route](doc/ROADMAP.fr.md) | Fonctionnalités prévues et limitations connues |
+| [Référence API Lua](doc/LUA_API_REFERENCE.md) | API complète des 34 modules Lua runtime |
+| [Référence CLI des outils](doc/TOOLS_REFERENCE.md) | `veaf-tools.exe` et `veaf-tools-updater.exe` |
+| [Guide de tests](doc/TESTING.md) | Suite de tests Lua unitaires, pipeline CI/CD |
+| [Feuille de route](doc/ROADMAP.md) | Fonctionnalités prévues et limitations connues |
 
 ---
 
@@ -172,7 +172,7 @@ Choisissez le guide correspondant à votre rôle :
 
 ### Joueurs et pilotes
 
-Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande (ex : `_spawn unit T-80` ou `_cas`). Voir le [Guide du pilote](doc/pilot/README.fr.md) pour toutes les commandes disponibles.
+Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande (ex : `_spawn unit T-80` ou `_cas`). Voir le [Guide du pilote](doc/pilot/README.md) pour toutes les commandes disponibles.
 
 ### Créateurs de missions
 
@@ -196,7 +196,7 @@ veaf-tools.exe extract ma-mission.miz
 veaf-tools.exe build
 ```
 
-Guide complet : [Guide créateur de missions](doc/mission-maker/README.fr.md)
+Guide complet : [Guide créateur de missions](doc/mission-maker/README.md)
 
 ### Développeurs
 
@@ -214,7 +214,7 @@ poetry run test-lua
 poetry run veaf-build publish --version 6.0.5
 ```
 
-Référence complète : [Guide du développeur](doc/developer/README.fr.md)
+Référence complète : [Guide du développeur](doc/developer/README.md)
 
 ---
 

@@ -46,7 +46,7 @@ the maker's problem, and out-of-band channels stop being produced at all.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Rewrite the Foothold presets as a preset plan](tickets/01-rewrite-as-preset-plan.md) | ✅ |
+| 01 | Rewrite the Foothold presets as a preset plan | ✅ |
 
 ## Result
 
@@ -107,7 +107,7 @@ Type: feat
 
 ### Why
 
-See the [PRD](../PRD.md): the current file works, but hands ten aircraft types channels their
+See the PRD: the current file works, but hands ten aircraft types channels their
 radios cannot receive, and needs a hand-written collection per airframe quirk. The preset-plan
 model removes both problems.
 

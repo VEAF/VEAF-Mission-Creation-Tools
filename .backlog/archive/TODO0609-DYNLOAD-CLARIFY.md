@@ -10,7 +10,7 @@ Status: ✅ done
 |---|--------|-------|------|--------|
 | DYNLOAD-CLARIFY-001 (spike) | Trace and document both files' roles and the static/dynamic loading flow; identify any obsolete artifact and propose its removal; document the conversion behaviour for legacy dynamic-loading triggers. Deliverable: doc update + cleanup tickets if needed. | `src/defaults/mission-folder/src/scripts/veafDynamicConfig.lua`, `src/scripts/VeafDynamicLoader.lua`, `mission_builder/mission_builder_worker.py`, `doc/` | spike | ✅ |
 
-**Spike result (DYNLOAD-CLARIFY-001)** — see [ADR 0004](docs/adr/0004-dynamic-script-loading.md):
+**Spike result (DYNLOAD-CLARIFY-001)** — see [ADR 0004](../../docs/adr/0004-dynamic-script-loading.md):
 
 - **Neither file is obsolete.** They are two layers of the same dynamic-loading mechanism: `VeafDynamicLoader.lua` (`src/scripts/`) loads the **VEAF framework** modules (`src/scripts/veaf/*.lua`) from `VEAF_DYNAMIC_SCRIPTSPATH`; `veafDynamicConfig.lua` (mission scaffold) loads the **mission's** scripts from `VEAF_DYNAMIC_MISSIONPATH`. Both are referenced by the build's injected triggers (3 and 5 respectively).
 - **Loading flow**: the build injects six paired triggers (set-path ×2, dynamic/static for VEAF scripts, dynamic/static for mission scripts). Dynamic mode `loadfile`s from disk (dev/test, live iteration); static mode `a_do_script_file`s scripts embedded as `.miz` map resources (distribution) and bypasses both loader files.

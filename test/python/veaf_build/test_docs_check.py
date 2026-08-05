@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from veaf_build.docs_check import EXEMPT, check_docs, format_report, slugify
+from veaf_build.docs_check import EXEMPT, Report, check_docs, check_repo_links, format_report, slugify
 
 
 @pytest.fixture
@@ -159,3 +159,80 @@ class TestReport:
         assert "target file does not exist" in text
         assert "no English counterpart" in text
         assert "absent from the mkdocs nav" in text
+
+
+class TestRepoLinkPass:
+    """The pass over markdown outside ``doc/`` — ``.backlog/``, ``docs/``, the root pages.
+
+    It exists because PR #655 folded 258 backlog files into 226 archives and broke 68 relative links
+    doing it, with nothing to notice: the gate stopped at ``doc/``. The first test is that exact
+    regression, so it cannot be reintroduced silently.
+    """
+
+    def test_the_655_depth_shift_is_reported(self, tmp_path: Path):
+        # A ticket at .backlog/L/tickets/01.md is three levels below the root, so it correctly says
+        # ../../../target.md. Folded into .backlog/archive/L.md — two levels below — that path
+        # climbs one level too far and resolves above the repo.
+        (tmp_path / "target.md").write_text("# T\n", encoding="utf-8")
+        archive = tmp_path / ".backlog" / "archive"
+        archive.mkdir(parents=True)
+        (archive / "L.md").write_text("# Lot L\n\n[t](../../../target.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == [".backlog/archive/L.md -> ../../../target.md"]
+
+    def test_the_same_link_at_the_original_depth_passes(self, tmp_path: Path):
+        (tmp_path / "target.md").write_text("# T\n", encoding="utf-8")
+        tickets = tmp_path / ".backlog" / "L" / "tickets"
+        tickets.mkdir(parents=True)
+        (tickets / "01.md").write_text("[t](../../../target.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_the_repaired_depth_passes(self, tmp_path: Path):
+        # What ticket 02 rewrote them to: one fewer level, matching the archive's own depth.
+        (tmp_path / "target.md").write_text("# T\n", encoding="utf-8")
+        archive = tmp_path / ".backlog" / "archive"
+        archive.mkdir(parents=True)
+        (archive / "L.md").write_text("[t](../../target.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_non_markdown_targets_are_checked_too(self, tmp_path: Path):
+        # check_docs skips these, which is right for a published site. Here a link to a .spec or a
+        # .conf rots just as readily — one did, at the wrong depth.
+        (tmp_path / "a.md").write_text("[s](tool.spec)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == ["a.md -> tool.spec"]
+        (tmp_path / "tool.spec").write_text("x\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_an_ellipsis_is_not_a_link(self, tmp_path: Path):
+        # CHANGELOG.md carries an ellipsis followed by "png" in prose, which the link regex captures
+        # happily. A gate that reports prose as a defect is a gate people switch off.
+        (tmp_path / "CHANGELOG.md").write_text("- a shot [x](…png) somewhere\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_external_and_anchor_targets_are_ignored(self, tmp_path: Path):
+        (tmp_path / "a.md").write_text(
+            "[h](https://x.test) [m](mailto:a@b.test) [s](#section) [abs](/x/y.md)\n",
+            encoding="utf-8",
+        )
+        assert check_repo_links(tmp_path) == []
+
+    def test_doc_dir_is_left_to_check_docs(self, tmp_path: Path):
+        # Otherwise every doc/ link would be reported twice, and by the looser of the two rules.
+        doc = tmp_path / "doc"
+        doc.mkdir()
+        (doc / "a.md").write_text("[gone](missing.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_the_exemption_is_load_bearing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # An exemption that is not doing anything is worse than none: it reads as coverage.
+        import veaf_build.docs_check as mod
+
+        (tmp_path / "hist.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
+        monkeypatch.setattr(mod, "_REPO_LINK_EXEMPT", frozenset({"hist.md"}))
+        assert mod.check_repo_links(tmp_path) == []
+        monkeypatch.setattr(mod, "_REPO_LINK_EXEMPT", frozenset())
+        assert mod.check_repo_links(tmp_path) == ["hist.md -> nowhere.md"]
+
+    def test_findings_reach_the_report_text(self):
+        report = Report(repo_broken_links=["x.md -> y.md"])
+        assert report.total == 1
+        assert "outside doc/" in format_report(report)

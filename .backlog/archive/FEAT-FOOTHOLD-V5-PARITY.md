@@ -61,10 +61,10 @@ David's decision: **keep the menu hidden**, and restore the passwords.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [`security`: set passwords at L1, not just L9](tickets/01-security-l1-passwords.md) | ✅ |
-| 02 | [RADIO: expose `create_menus`](tickets/02-radio-create-menus.md) | ✅ |
-| 03 | [Apply to the ten Foothold missions](tickets/03-apply-to-foothold.md) | ✅ |
-| 04 | [`_ICAO_<code>` in the mission file name (server real weather)](tickets/04-icao-mission-naming.md) | ✅ |
+| 01 | `security`: set passwords at L1, not just L9 | ✅ |
+| 02 | RADIO: expose `create_menus` | ✅ |
+| 03 | Apply to the ten Foothold missions | ✅ |
+| 04 | `_ICAO_<code>` in the mission file name (server real weather) | ✅ |
 
 ## Note on the hash algorithm
 
@@ -84,7 +84,7 @@ Type: fix
 
 ### Why
 
-See the [PRD](../PRD.md), gap 1. `security.password_hashes` emitted `veafSecurity.password_L9`
+See the PRD, gap 1. `security.password_hashes` emitted `veafSecurity.password_L9`
 only, and L9 is the weakest level: the gates that matter — marker authentication
 (`checkPassword_L1`), the sensitive spawns (`veafSpawnCore:142`), transport missions — accept
 **L1 or L0 only**. A mission configured through `mission.yaml` therefore had a password that
@@ -119,7 +119,7 @@ Type: feat
 
 ### Why
 
-See the [PRD](../PRD.md), gap 2. `veafRadio.initialize` takes
+See the PRD, gap 2. `veafRadio.initialize` takes
 `(skipHelpMenus, dontCreateMenus)`, but the RADIO module exposed only `help_menus`, so a mission
 could not suppress the VEAF F10 menu. The v5 Foothold called `initialize(true, true)`: no menu,
 commands reachable only through password-protected map markers.

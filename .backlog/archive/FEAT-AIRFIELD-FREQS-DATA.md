@@ -4,7 +4,7 @@ Status: ✅ done
 Branch: feat/airfield-freqs-data → PR → develop
 
 > Lot 2/3 of the convert-v5 preset-aliasing plan. Prerequisite for
-> [FEAT-CONVERTV5-FREQ-ALIASING](../FEAT-CONVERTV5-FREQ-ALIASING/PRD.md) (lot 3).
+> [FEAT-CONVERTV5-FREQ-ALIASING](FEAT-CONVERTV5-FREQ-ALIASING.md) (lot 3).
 > Lot 1 (FEAT-CONVERTV5-PLAN-PRESETS, ADR 0010) is done.
 
 ## Problem Statement

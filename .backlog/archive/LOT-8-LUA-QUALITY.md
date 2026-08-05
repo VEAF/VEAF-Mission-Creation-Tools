@@ -52,4 +52,4 @@ Remplacer tous les accès directs par ces wrappers.
 
 ## Lots archivés le 2026-05-29
 
-→ [Backlog actif](backlog.md)
+→ Backlog actif

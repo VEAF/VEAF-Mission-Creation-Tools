@@ -79,7 +79,7 @@ a_out_picture_u(unitId, file, seconds, clearview, startDelay, horzAlignment, ver
 `file` is **not** a path: it is a resource embedded in the `.miz`, resolved through
 `getValueResourceByKey("<key>")`. The key has to sit in the `l10n/DEFAULT/mapResource` archive
 member, **not** in the mission table — putting it in the wrong one fails silently and only shows in
-game. That trap has its own lot, [FIX-MAPRESOURCE-KEY](../../.backlog/FIX-MAPRESOURCE-KEY/PRD.md).
+game. That trap has its own lot, [FIX-MAPRESOURCE-KEY](../../.backlog/archive/FIX-MAPRESOURCE-KEY.md).
 
 Two more things about `size`, both learned the hard way:
 

@@ -16,8 +16,14 @@ positives — both were verified against the published HTML during the audit:
   ``#étape-1--préréglages-radio-presetsyaml`` is a valid id. An ASCII-folding slugifier reports
   every accented anchor as broken.
 
+A **second, narrower pass** (:func:`check_repo_links`) covers the markdown the first one never saw:
+``.backlog/``, ``docs/``, the root pages. It checks one thing — that a relative link's target
+exists — because that is all that transfers. It was added after PR #655 folded 258 backlog files into
+226 archives and broke 68 relative links doing it, with nothing to notice: the gate stopped at
+``doc/``. Its verification had been line-level, and line fidelity is not link validity.
+
 Run with ``poetry run docs-check`` (or ``veaf-build docs-check``); the CI ``docs-check`` job runs
-the same entry point.
+the same entry point and both passes.
 """
 
 from __future__ import annotations
@@ -31,6 +37,29 @@ from pathlib import Path
 #: Pages that legitimately sit outside the nav and have no translation: repo notes about the
 #: documentation itself, not documentation pages.
 EXEMPT: frozenset[str] = frozenset({"assets/img/README.md"})
+
+#: Directories the repo-wide link pass never walks. ``doc`` is excluded because
+#: :func:`check_docs` already covers it with the stricter published-site rules.
+_REPO_SKIP_DIRS: frozenset[str] = frozenset(
+    {".git", "doc", "node_modules", ".mypy_cache", ".venv", "__pycache__", ".pytest_cache"}
+)
+
+#: Files whose relative links describe a **past** state of the repo and are expected not to resolve.
+#: Each entry needs its reason: an exemption nobody can justify is indistinguishable from neglect.
+#: TOOLING-REPO-LINK-GATE ticket 04 puts the keep/fix/delete question to David; until then the gate
+#: stays green rather than blocking on a decision that is not the gate's to make.
+_REPO_LINK_EXEMPT: frozenset[str] = frozenset(
+    {
+        # The plan *for* the backlog restructure, and its design spec: both describe the flat
+        # `backlog.md` era they replaced, so their links resolved when written. Repointing them would
+        # rewrite a record of a real past state into one that never existed.
+        "docs/superpowers/plans/2026-06-24-backlog-restructure.md",
+        "docs/superpowers/specs/2026-06-24-backlog-restructure-design.md",
+        # A dated review whose links were written relative to `doc/`. Its findings appear to have been
+        # actioned (see .backlog/archive/DOC-REVIEW.md), so it may simply be deletable.
+        "CODE_DOC_REVIEW_2026-07-01.md",
+    }
+)
 
 _LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+?)(?:\s+\"[^\"]*\")?\)")
 _HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$", re.MULTILINE)
@@ -94,6 +123,7 @@ class Report:
     missing_translations: list[str] = field(default_factory=list)
     nav_orphans: list[str] = field(default_factory=list)
     nav_dangling: list[str] = field(default_factory=list)
+    repo_broken_links: list[str] = field(default_factory=list)
 
     @property
     def total(self) -> int:
@@ -162,6 +192,49 @@ def check_docs(doc_dir: Path, mkdocs_yml: Path, require_explicit_anchors: bool =
     return report
 
 
+#: A link target only counts as a path when it is plain ASCII path characters. This is what keeps an
+#: ellipsis out of the results: ``CHANGELOG.md`` contains ``…png`` in prose, which the link regex
+#: happily captures. Erring this way can only *miss* a broken link with an accented name — a false
+#: negative — and a gate that reports prose as a defect is a gate people switch off.
+_PATHLIKE = re.compile(r"^[A-Za-z0-9._/~%+-]+$")
+
+
+def check_repo_links(repo_root: Path) -> list[str]:
+    """Check that every relative link outside ``doc/`` points at something that exists.
+
+    A deliberately narrow pass, and narrow for reasons rather than convenience. It does **not**
+    validate anchors: outside ``doc/`` the renderer is GitHub, whose slugifier differs from the
+    ``pymdownx`` one :func:`check_docs` mirrors, so checking them would produce confident false
+    positives. It does not check translations or nav either — a backlog ticket has no English twin and
+    belongs in no menu.
+
+    Unlike :func:`check_docs` it **does** check non-``.md`` targets: a link to a ``.spec`` or a
+    ``.conf`` rots exactly as readily, and one did.
+
+    Args:
+        repo_root: Repository root.
+
+    Returns:
+        One ``"file -> target"`` string per broken link, sorted.
+    """
+    findings: list[str] = []
+    for page in sorted(repo_root.rglob("*.md")):
+        if _REPO_SKIP_DIRS & set(page.relative_to(repo_root).parts):
+            continue
+        rel = page.relative_to(repo_root).as_posix()
+        if rel in _REPO_LINK_EXEMPT:
+            continue
+        for target in _LINK.findall(page.read_text(encoding="utf-8", errors="replace")):
+            if target.startswith(("http://", "https://", "mailto:", "#", "<", "/")):
+                continue
+            path_part = target.partition("#")[0]
+            if not path_part or not _PATHLIKE.match(path_part):
+                continue
+            if not (page.parent / path_part).resolve().exists():
+                findings.append(f"{rel} -> {target}")
+    return findings
+
+
 _LABELS = {
     "broken_links": "Links whose target file does not exist",
     "dead_anchors": "Links pointing at an anchor the target does not expose",
@@ -169,6 +242,7 @@ _LABELS = {
     "missing_translations": "French pages with no English counterpart",
     "nav_orphans": "Pages absent from the mkdocs nav (unreachable by menu)",
     "nav_dangling": "Nav entries pointing at a file that does not exist",
+    "repo_broken_links": "Relative links outside doc/ whose target does not exist",
 }
 
 
@@ -207,14 +281,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check the documentation for rot.")
     parser.add_argument("--doc-dir", type=Path, default=repo_root / "doc")
     parser.add_argument("--mkdocs", type=Path, default=repo_root / "mkdocs.yml")
+    parser.add_argument("--repo-root", type=Path, default=repo_root)
     parser.add_argument(
         "--allow-implicit-anchors",
         action="store_true",
         help="Do not report cross-page links that rely on a heading-derived anchor.",
     )
+    parser.add_argument(
+        "--skip-repo-links",
+        action="store_true",
+        help="Only audit doc/; skip the relative-link pass over .backlog/, docs/ and the root pages.",
+    )
     args = parser.parse_args(argv)
 
     report = check_docs(args.doc_dir, args.mkdocs, require_explicit_anchors=not args.allow_implicit_anchors)
+    if not args.skip_repo_links:
+        report.repo_broken_links = check_repo_links(args.repo_root)
     print(format_report(report))
     return 1 if report.total else 0
 

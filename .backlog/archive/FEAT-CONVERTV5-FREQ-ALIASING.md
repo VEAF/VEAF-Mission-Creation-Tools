@@ -5,7 +5,7 @@ Branch: feat/convertv5-freq-aliasing → PR → develop
 ADR: extends [0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 > Lot 3/3 of the convert-v5 preset-aliasing plan. Needs
-> [FEAT-AIRFIELD-FREQS-DATA](../FEAT-AIRFIELD-FREQS-DATA/PRD.md) (lot 2) merged;
+> [FEAT-AIRFIELD-FREQS-DATA](FEAT-AIRFIELD-FREQS-DATA.md) (lot 2) merged;
 > lot 1 (FEAT-CONVERTV5-PLAN-PRESETS, ADR 0010) is done.
 
 ## Problem Statement

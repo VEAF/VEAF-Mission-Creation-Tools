@@ -105,7 +105,7 @@ No dependency. Do this first: ticket 02 reads the default catalogue out of the v
 - Replace `src/scripts/community/CTLD.lua` with the `CTLD.lua` asset of the target VEAF/CTLD release
   (1.1 MB, single file, i18n dictionaries already merged in by its build). Verbatim — no VEAF edit
   of any kind, that is the point of the rewrite.
-- Rewrite the `ctld` entry in [vendored.yaml](../../../vendored.yaml):
+- Rewrite the `ctld` entry in [vendored.yaml](../../vendored.yaml):
   - `source: https://github.com/VEAF/CTLD`
   - **drop `upstream`** and the `ciribob/DCS-CTLD` watch. CTLD 2 is a rewrite, not a fork: "did the
     origin ship something to port?" no longer has an answer. Say so in a comment — the file's header
@@ -145,7 +145,7 @@ Depends on 01.
 ### What changes
 
 **A versioned VEAF patch.** A short YAML file in the repo holding *only* VEAF's deviations from the
-CTLD defaults — the settings hardcoded in [veaf.lua:4536-4587](../../../src/scripts/veaf/veaf.lua)
+CTLD defaults — the settings hardcoded in [veaf.lua:4536-4587](../../src/scripts/veaf/veaf.lua)
 today. Never a full snapshot (see PRD decision 4).
 
 | Hardcoded today | Where it goes in the CTLD 2 catalogue |
@@ -220,13 +220,13 @@ is enabled **and** the mission carries a `ctld-config.yaml`; when the file is ab
 `dontInitialize` alone — VEAF owns the init either way.
 
 **`lua_config_generator`.** Delete the CTLD block
-([lua_config_generator.py:1380-1388](../../../src/python/veaf-tools/veaf_libs/lua_config_generator.py)):
+([lua_config_generator.py:1380-1388](../../src/python/veaf-tools/veaf_libs/lua_config_generator.py)):
 no more `ctld.<key> = value`, no more `ctld.initialize()`. The `external_modules["ctld"]` internal
 representation keeps only `enabled`. CSAR and Skynet are untouched — they still use that channel.
 
 **`mission.yaml`.** `CTLD:` becomes a plain boolean. Remove the
 `# extended: CTLD -> { enabled: true, settings: … }` comment from
-[src/defaults/mission-folder/mission.yaml](../../../src/defaults/mission-folder/mission.yaml) — the
+[src/defaults/mission-folder/mission.yaml](../../src/defaults/mission-folder/mission.yaml) — the
 defaults-lockstep rule of `CLAUDE.md` §9.7 — and replace it with a pointer to `ctld-config.yaml`.
 
 **`validate`.** A `CTLD:` entry carrying `settings:` is an **error**, not a warning and not a silent
@@ -259,7 +259,7 @@ Depends on 03.
 
 ### What changes
 
-Delete [veaf.lua:4490-4674](../../../src/scripts/veaf/veaf.lua) — the whole "changes to CTLD" block,
+Delete [veaf.lua:4490-4674](../../src/scripts/veaf/veaf.lua) — the whole "changes to CTLD" block,
 ~185 lines — and put back, in its place:
 
 ```lua
@@ -287,7 +287,7 @@ The `veaf.ctld_initialize` / `veaf.ctld_initialized` globals go with the block. 
 migration guide (ticket 06).
 
 Also fix the two stale help messages in
-[veafTransportMission.lua:715](../../../src/scripts/veaf/veafTransportMission.lua), which tell the
+[veafTransportMission.lua:715](../../src/scripts/veaf/veafTransportMission.lua), which tell the
 user to call `ctld.autoInitializeAllHumanTransports` / `autoInitializeAllLogistic` — both gone.
 
 ### Acceptance
@@ -317,12 +317,12 @@ shipping in a rc3. Do not start before: the beacon API does not exist yet.
 
 | Site | v1 | v2 |
 |---|---|---|
-| [veafSpawnAircraft.lua:289](../../../src/scripts/veaf/veafSpawnAircraft.lua) | `ctld.JTACAutoLase(g, code, false, "all", nil, radio)` | `CTLDJTACManager.getInstance():autoLase(…)` — same signature |
-| [veafSpawnAircraft.lua:223](../../../src/scripts/veaf/veafSpawnAircraft.lua), `:669` | `ctld.cleanupJTAC(g)` | `CTLDJTACManager.getInstance():stopAutoLase(g)` |
-| [veafGrass.lua:1000](../../../src/scripts/veaf/veafGrass.lua) | `builtFOBS` + `logisticUnits` inserts | `CTLDZoneManager.getInstance():registerFOBAsLogistic(name, point, radius, coalition)` |
-| [veafSpawnGround.lua:186](../../../src/scripts/veaf/veafSpawnGround.lua) | same, plus beacon + `fobBeacons` | `registerFOBAsLogistic` + the new beacon API |
-| [veafSpawnEffects.lua:32](../../../src/scripts/veaf/veafSpawnEffects.lua) | `logisticUnits` insert | `registerFOBAsLogistic` |
-| [veafGrass.lua:1302](../../../src/scripts/veaf/veafGrass.lua) | `spawnRadioBeaconUnit` + `createRadioBeacon` | `CTLDBeaconManager.getInstance():createAtPoint(point, coalition, country, opts)` |
+| [veafSpawnAircraft.lua:289](../../src/scripts/veaf/veafSpawnAircraft.lua) | `ctld.JTACAutoLase(g, code, false, "all", nil, radio)` | `CTLDJTACManager.getInstance():autoLase(…)` — same signature |
+| [veafSpawnAircraft.lua:223](../../src/scripts/veaf/veafSpawnAircraft.lua), `:669` | `ctld.cleanupJTAC(g)` | `CTLDJTACManager.getInstance():stopAutoLase(g)` |
+| [veafGrass.lua:1000](../../src/scripts/veaf/veafGrass.lua) | `builtFOBS` + `logisticUnits` inserts | `CTLDZoneManager.getInstance():registerFOBAsLogistic(name, point, radius, coalition)` |
+| [veafSpawnGround.lua:186](../../src/scripts/veaf/veafSpawnGround.lua) | same, plus beacon + `fobBeacons` | `registerFOBAsLogistic` + the new beacon API |
+| [veafSpawnEffects.lua:32](../../src/scripts/veaf/veafSpawnEffects.lua) | `logisticUnits` insert | `registerFOBAsLogistic` |
+| [veafGrass.lua:1302](../../src/scripts/veaf/veafGrass.lua) | `spawnRadioBeaconUnit` + `createRadioBeacon` | `CTLDBeaconManager.getInstance():createAtPoint(point, coalition, country, opts)` |
 
 Use the **v2 APIs, never `legacy_api.lua`** (PRD decision 8): each wrapper logs a `DEPRECATED` line
 on every call, and `JTACAutoLase` is called on every JTAC spawn.

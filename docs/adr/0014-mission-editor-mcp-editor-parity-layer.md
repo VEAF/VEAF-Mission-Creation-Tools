@@ -4,7 +4,7 @@ status: accepted
 
 # Mission-editing MCP: a separate editor-parity layer, mutating the source `.miz` in place
 
-We are building an MCP server (VMCT-owned, see [FEAT-MCP-MISSION-EDITOR](../../.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md))
+We are building an MCP server (VMCT-owned, see [FEAT-MCP-MISSION-EDITOR](../../.backlog/archive/FEAT-MCP-MISSION-EDITOR.md))
 so an LLM can edit a DCS mission on a Mission Maker's behalf, and eventually generate one
 from a natural-language prompt (`NL-MISSION-GEN`, see `ROADMAP.md` §4).
 

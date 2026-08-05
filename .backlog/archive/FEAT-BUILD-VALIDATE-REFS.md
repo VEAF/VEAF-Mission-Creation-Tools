@@ -4,7 +4,7 @@ Status: ✅ done
 
 **Goal**: A `mission.yaml` references many objects the maker must have placed in the Mission Editor (trigger zones, groups, units, airfields). Today most missing references only fail at **runtime** inside DCS (an ERROR in `dcs.log`, or a silently broken feature). Surface them at **build time** instead, with a **fail-at-end** policy: run every check, log all warnings, collect all errors, let the build go to the end, then **abort** if ≥1 error — so a single run reports *everything*.
 
-Infra reuse: [mission_validator.py](src/python/veaf-tools/veaf_libs/mission_validator.py) already aggregates `ValidationIssue(ERROR/WARNING)` and reads trigger zones (`_zone_names`); [group_validation.py](src/python/veaf-tools/mission_builder/group_validation.py) already collects group references. Airfields: [dcs_airdromes.py](src/python/veaf-tools/veaf_libs/dcs_airdromes.py) (`airdromes_for_theatre`). The build aborts via `logger.error(..., exception_type=...)` (note: `logger.error` raises `typer.Abort` by default → log non-fatally with `exception_type=None`).
+Infra reuse: [mission_validator.py](../../src/python/veaf-tools/veaf_libs/mission_validator.py) already aggregates `ValidationIssue(ERROR/WARNING)` and reads trigger zones (`_zone_names`); [group_validation.py](../../src/python/veaf-tools/mission_builder/group_validation.py) already collects group references. Airfields: [dcs_airdromes.py](../../src/python/veaf-tools/veaf_libs/dcs_airdromes.py) (`airdromes_for_theatre`). The build aborts via `logger.error(..., exception_type=...)` (note: `logger.error` raises `typer.Abort` by default → log non-fatally with `exception_type=None`).
 
 **Validation rules** (the agreed list):
 

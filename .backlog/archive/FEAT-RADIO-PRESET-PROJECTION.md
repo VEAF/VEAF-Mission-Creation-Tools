@@ -175,7 +175,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -242,7 +242,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -308,7 +308,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -402,7 +402,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -500,7 +500,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -596,7 +596,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -710,7 +710,7 @@ Type: feat · Phase: 1 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 
@@ -791,7 +791,7 @@ Type: feat · Phase: 2 · AFK
 
 ### Parent
 
-Lot [FEAT-RADIO-PRESET-PROJECTION](../PRD.md) · [ADR 0010](../../../docs/adr/0010-per-type-radio-preset-projection.md)
+Lot FEAT-RADIO-PRESET-PROJECTION · [ADR 0010](../../docs/adr/0010-per-type-radio-preset-projection.md)
 
 ### What to build
 

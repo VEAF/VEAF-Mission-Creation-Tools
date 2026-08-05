@@ -31,7 +31,7 @@ the folder, so a stale file inflated the count and looked like a successful extr
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Compare the built `.miz` names with `mission.name`](tickets/01-compare-miz-names.md) | ✅ |
+| 01 | Compare the built `.miz` names with `mission.name` | ✅ |
 
 ## Why it belongs in the script rather than in the product
 

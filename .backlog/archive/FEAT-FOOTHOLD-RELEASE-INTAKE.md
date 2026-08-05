@@ -84,11 +84,11 @@ pre-existing defects, both fixed here (ticket 05):
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale`](tickets/01-profile-name-rules-and-locale.md) | ✅ |
-| 02 | [`convert-other` accepts a release `.zip`](tickets/02-convert-other-accepts-zip.md) | ✅ |
-| 03 | [Document the new release channel, external config and `Era` values](tickets/03-doc-release-channel.md) | ✅ |
-| 04 | [`foothold-ww2` profile for Normandy](tickets/04-foothold-ww2-profile.md) | ✅ |
-| 05 | [Bundle the profiles, and validate `config_override.target`](tickets/05-validate-config-override-target.md) | ✅ |
+| 01 | Profile: normalise `Splash_Damage_*`, scaffold `FootholdLocale` | ✅ |
+| 02 | `convert-other` accepts a release `.zip` | ✅ |
+| 03 | Document the new release channel, external config and `Era` values | ✅ |
+| 04 | `foothold-ww2` profile for Normandy | ✅ |
+| 05 | Bundle the profiles, and validate `config_override.target` | ✅ |
 
 ## Out of scope
 
@@ -278,7 +278,7 @@ does not have, plus one wrong incompatibility.
 
 > **Correction.** This ticket first claimed the wrong profile "fails `validate`". It did not:
 > it validated cleanly, built, and produced an override loaded too late to do anything. That
-> silent failure is fixed in [ticket 05](05-validate-config-override-target.md), which makes
+> silent failure is fixed in ticket 05, which makes
 > an unresolvable `config_override.target` an error — so the claim is true *now*, because of
 > 05, not because it ever was.
 

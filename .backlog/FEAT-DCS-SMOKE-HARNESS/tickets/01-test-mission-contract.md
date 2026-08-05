@@ -1,6 +1,6 @@
 # 01 — The test mission, and its documented contract
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feat
 Files: a committed test `.miz` (or its `mission.yaml` + build recipe), `docs/` contract page
 
@@ -27,6 +27,16 @@ that must not be skipped.
 - [ ] Minimal but not empty: a human-playable slot (a mission with no client slot behaves
       differently), a small ground group, a trigger zone, and whatever the first assertions need.
 - [ ] The VEAF scripts injected the normal way, so what runs is what ships.
+
+## Delivered 2026-08-05: the contract page
+
+`doc/developer/smoke-harness.{md,en.md}`, both languages, in the mkdocs nav. It carries the
+theatre, the anchor, and the open-water counter-example as the stated reason — plus an explicit
+warning that **these coordinates are not verified here**, credited to dcs-sms, with the note that
+this repo has already found two claims in their docs to be false.
+
+**Outstanding**: the mission artefact itself, and killing a unit at that anchor to watch the
+event arrive. Both need a DCS install.
 
 ## The contract page
 

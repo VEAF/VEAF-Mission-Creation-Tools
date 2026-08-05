@@ -1,6 +1,19 @@
 # FEAT-DCS-SMOKE-HARNESS — assert VEAF behaviour inside a real DCS, unattended
 
-Status: ⬜ ready
+Status: 🔄 in-progress
+
+> **First slice delivered 2026-08-05, and it stops short of the lot's own Definition of Done.**
+> The transport, the probe, the data-driven check runner and the documented contract are in. What is
+> **not** in is any evidence: no DCS was available on the machine that wrote this — no install, no
+> `Saved Games` — so not one check has actually run. By this lot's own DoD ("at least one of the four
+> pending checks is answered by it, not by a person") that means a framework and no evidence, which is
+> exactly the failure mode ticket 03 was written to prevent. The next step is one command on a machine
+> with DCS: `veaf-tools smoke-test --probe-only`.
+>
+> Two things were also deliberately cut from this slice, not forgotten: **launching and quitting DCS**
+> (the DCS-side calls have never been made here, so the probe reports whether they exist rather than
+> code being written blind against them), and **the committed test mission** (the contract is written,
+> the artefact is not).
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §2.
 
@@ -51,9 +64,9 @@ it must degrade to a clear "no DCS found, skipped" rather than a failure when ru
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) | ⬜ |
-| 02 | [The runner: launch, load, assert, quit](tickets/02-runner.md) | ⬜ |
-| 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) | ⬜ |
+| 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) — contract written, mission artefact and the in-game anchor check outstanding | 🔄 |
+| 02 | [The runner](tickets/02-runner.md) — probe, transport and data-driven checks delivered; launch/load/quit deliberately deferred | 🔄 |
+| 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) — six checks written for two of the four questions; **none has run** | 🔄 |
 
 ## Steal their test-mission contract, especially the counter-example
 

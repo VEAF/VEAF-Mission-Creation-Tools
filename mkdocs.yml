@@ -141,6 +141,7 @@ nav:
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md
+    - Smoke harness (in-DCS): developer/smoke-harness.md
     - Testing: TESTING.md
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md

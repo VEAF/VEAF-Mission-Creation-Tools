@@ -1,12 +1,27 @@
 # 02 — The runner: launch, load, assert, quit
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feat
 Files: `veaf_build/` or a new `veaf-tools` machine-only command, `test/python/`
 
 Depends on: 01
 
-## Behaviour
+## Delivered 2026-08-05, and what was cut
+
+**In**: `veaf_libs/dcs_fiddle_client.py` (the transport, both environments, read out of the hook
+script rather than assumed), `probe()` reporting what a running DCS actually allows,
+`veaf_libs/dcs_smoke.py` with assertions as **data**, and `veaf-tools smoke-test`
+(machine-only, `--probe-only`). Skips with an explanation and exit 0 when there is no hook or no
+mission — the path that had to work on a machine without DCS, and the only one that could be
+exercised here.
+
+**Cut, deliberately**: steps 1, 3, 4 and 6 below — locating DCS, launching it, loading the
+mission, quitting. They rest on `net.load_mission` and `DCS.exitProcess`, which this repository
+has never called and which no DCS was available to try. Writing that blind is how you ship
+plausible code that does not work; `--probe-only` now answers whether those two functions exist,
+so whoever finishes this starts from a fact.
+
+## Behaviour (original scope, for the remainder)
 
 One command, unattended, exiting non-zero on a failed assertion:
 

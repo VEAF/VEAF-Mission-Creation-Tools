@@ -1,6 +1,6 @@
 # FEAT-ASSIST-AUTHORING — checklists an instructor can write without knowing DCS internals
 
-**Status:** ⏸ paused — opened 2026-08-02, delivered 2026-08-03 (PR #651). Tickets 01, 02, 03, 04, 06, 07 and 08 done; **05 paused** on David's call — no further aircraft checklist for now. Left over: a pilot's verdict on the F-14B(U) procedure.
+Status: ⏸ paused — opened 2026-08-02, delivered 2026-08-03 (PR #651). Tickets 01, 02, 03, 04, 06, 07 and 08 done; **05 paused** on David's call — no further aircraft checklist for now. Left over: a pilot's verdict on the F-14B(U) procedure.
 
 ## The problem
 

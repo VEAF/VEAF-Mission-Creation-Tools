@@ -1,6 +1,6 @@
 # 07 — document it for instructors
 
-**Status:** ✅ done.
+Status: ✅ done.
 
 [`veafAssist.md`](../../../doc/mission-maker/scripts/veafAssist.md) documents the technical format.
 This lot exists so an instructor never has to read that section — the page has to reflect that, not

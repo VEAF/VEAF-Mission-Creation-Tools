@@ -1,6 +1,6 @@
 # 09 — translations written straight into the checklist
 
-**Status:** ✅ done — 2026-08-02.
+Status: ✅ done — 2026-08-02.
 
 A mission maker writing their own checklist has no way to make it bilingual. The labels are catalog
 keys, the catalog is `veafI18n.lua`, and that file belongs to the framework — adding entries to it

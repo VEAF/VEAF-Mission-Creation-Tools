@@ -6,15 +6,18 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 ## Legend
 
-- **Status**: ⬜ ready · 🔄 in-progress · 🧑 waiting-human · ✅ done · 🚫 wontfix
+- **Status**: ⬜ ready · 🔄 in-progress · 🧑 waiting-human · ⏸ paused · ✅ done · 🚫 wontfix
+- ⏸ **paused** is *deliberately parked*, not blocked: unlike 🧑 nothing is expected of
+  anyone, and unlike ⬜ an agent should not pick it up. See
+  [`docs/agents/triage-labels.md`](../docs/agents/triage-labels.md).
 
 ## Active lots
 
 | Lot | Status |
 |-----|--------|
 | [FEAT-SCENERY-AWARE-SPAWN](FEAT-SCENERY-AWARE-SPAWN/PRD.md) — VEAF places ground units knowing only **water or land**: the single placement test, `veafUnits.checkPositionForUnit`, asks `land.getSurfaceType` and nothing else, so a marker spawn over a village or a pine forest drops a platoon inside buildings and trees, and `veaf.placePointOnLand` only lowers a point onto the terrain, never moves it aside. The 🟢 native tier of [TUM-EXPLOIT](../docs/exploration/TUM-EXPLOIT.md): TUM found **`Disposition`**, an *undocumented native DCS singleton* whose `getSimpleZones` returns ground points clear of buildings and forests — no unsanitize, no `net.dostring_in`, no external dependency, plausibly what ED's own quick-action generator uses. The evidence is one unguarded call site (`TheUniversalMission.lua:3060`) plus its author's r/hoggit claim, and **nothing measured by us** — absent from `dcs-world-schema` — so ticket 01 probes signature, real avoidance behaviour against a village and a forest, the empty case, cross-theatre presence including WWII, and per-call cost. David **deferred that probe** and had the code land first, which is safe because the assumption is load-bearing in one direction only; so the avoidance is *asserted, not measured*, and [ADR 0018](../docs/adr/0018-undocumented-dcs-api-dependency.md) says so and sets the three conditions under which VMCT may depend on an undocumented DCS API at all — guarded, quality-only-never-correctness, and the fallback being the tested default. The obvious move is the wrong one and the PRD says why: `checkPositionForUnit` is a boolean **validator**, `getSimpleZones` a point **finder** — folding one into the other would either reject positions it has no alternative for or make a validator mutate its input, so the finder is a new helper called where a point is *chosen*, per group and not per unit (`placeGroup` lays the formation out around that centre), and the validator is not touched. Every call site is a judgement stated in the PR — "somewhere sensible near here" takes the helper, "exactly here, the mission maker means it" does not — no sweep for symmetry. The search David specified is not a plain fallback but **three bounded tiers**: all criteria including scenery, then every criterion except scenery, then explicit failure with one message. Which forced an honest correction — the fallback is *not* "today's behaviour": the five callers jittered **once** and used the point unvalidated, so a centre could land in the sea and the units were dropped one at a time downstream, meaning tier 2 makes those spawns *work* and tier 3 replaces N per-unit messages with one. Structural mitigation rather than optimism: guarded and `pcall`-wrapped, so a DCS patch that drops the singleton degrades instead of killing a spawn, and `Disposition` is deliberately **absent from the DCS mocks** so all 35 Lua suites keep exercising the path that does not need it — putting it in the mocks would have flipped every existing spawn test onto tier 1, pinning the wrong thing. Carries a rider with no dependency on the probe, deliberately so the lot cannot land empty: `veaf._discoverTriggerZones` already copies each zone's `properties` into the cache (`veaf.lua:4375`) and **nothing has ever read it** — DCS hands them over as an array of string pairs, so three typed accessors replace the linear scan plus `tonumber` every future caller would otherwise write, clamping rather than rejecting out-of-range values. TUM's 🔴 server tier stays out (`net.dostring_in` + `a_*`: needs an `autoexec.cfg` unsanitize on the *player's* install, so incompatible with a distributed mission, and collides with the SECREV no-arbitrary-Lua policy) and belongs to PERSISTENCE; no `veafTum.lua` wrapper either — we borrow a DCS call, we do not open a dialogue with a 30k-line black box whose bundled file carries **no licence header at all**. A negative probe is now a deletion of tier 1, not a debugging session — tier 2 stands on its own. **Code delivered 2026-08-05** (tickets 02–05, 33 new tests, `luacheck` and `docs-check` clean); the lot stays open on the in-game probe alone | 🧑 |
-| [FEAT-ASSIST-CHECKLISTS](FEAT-ASSIST-CHECKLISTS/PRD.md) — a **guided-checklist engine** driven by YAML, reached from an `Assistance` F10 submenu, with F-16C cold start as its first client (bomb run later). The mission displays the checklist, boxes the cockpit control the current step needs, and ticks the line as soon as that control reaches the right position — or as soon as the pilot confirms it for a "check that…" step. Ticket 01 proved in game that the machinery ED's own training missions use (`a_cockpit_highlight`, `a_cockpit_remove_highlight`, `a_cockpit_perform_clickable_action`) is reachable from a script — though **not** from the mission environment itself: they live in the trigger environment, one `net.dostring_in` away — so this is a runtime module emitting **zero trigger rules**. The first draft's two-rules-per-step scheme was killed by David for burying the mission maker's own trigger panel under hundreds of ours across forty steps and several aircraft. Checks read real state, so steps already done are ticked at start and a pilot who pre-flipped a switch passes instantly — though *how* took three reversals: `Unit:getDrawArgumentValue` reads the external model, not the cockpit, and a control's position turned out to be readable only through **Export.lua's** environment (`GetDevice(0):get_argument_value`), which runs on the pilot's machine and so probably not on a dedicated server; a step can also be skipped, since a mis-measured window would otherwise strand the whole checklist. Display is a **generated image**, one PNG per progress state, embedded and shown with `a_out_picture_u` at duration 0 (ED keeps a picture up until `a_out_picture_stop`, DCSCORE-2754) — Pillow is already a dependency and the kneeboard generator is the pattern to reuse; short texts carry the events the image cannot (step skipped, complete), and progress is linear so a skipped step renders as ticked, accepted. Only checklists the mission activates are converted, so build cost tracks actual use. Extensibility for bomb run is one named-check registry, not a condition language. Checklists are sidecar files (VMCT catalogue + mission-folder override by id) per ADR 0016, never blocks of `mission.yaml`. Step order must be reviewed by someone who flies the module — a wrong order strands a pilot with no way to know why | ⬜ |
-| [FEAT-ASSIST-AUTHORING](FEAT-ASSIST-AUTHORING/PRD.md) — make a guided checklist writable by an **instructor** rather than a developer. Today a step needs `element: PTR-ELEC-TMB-MPWR-510`, `argument: 510` and `equals: 1.0`, which means opening `clickabledata.lua` inside a DCS install and reading Lua: the engine treats checklists as data, but only one person can write that data. An instructor instead writes `control: bouton power sur main pwr` beside the label, and a resolution pass fills the technical fields **in the same file**, keyed by a `resolved_from` witness so a re-run only touches steps whose text changed — one file the instructor owns, not a generated second one to keep in sync. Resolvable because `clickabledata.lua` is regular: 284 F-16C elements, all with their argument, 131 naming their positions in their own hint. The hard spot, measured: hint order is **not** value order (`MAIN PWR/BATT/OFF` runs +1/0/−1 while `OFF/BACKUP` runs 0/1), so a resolver inferring the value from the rank is wrong half the time, silently. Hence three layers, and **the build never depends on a language model**: a deterministic matcher, an explicit refusal listing candidates when it cannot be sure, and in-game verification reading the real argument — which ticket 10 of the previous lot just made possible. Procedures come from ED's `Macro_sequencies.lua` where a module ships an autostart, and from the aircraft's official manual otherwise — Heatblur publishes the F-14B(U)'s as HTML, already in `CONTROL — POSITION` form | ⬜ |
+| [FEAT-ASSIST-CHECKLISTS](FEAT-ASSIST-CHECKLISTS/PRD.md) — a **guided-checklist engine** driven by YAML, reached from an `Assistance` F10 submenu, with F-16C cold start as its first client (bomb run later). The mission displays the checklist, boxes the cockpit control the current step needs, and ticks the line as soon as that control reaches the right position — or as soon as the pilot confirms it for a "check that…" step. Ticket 01 proved in game that the machinery ED's own training missions use (`a_cockpit_highlight`, `a_cockpit_remove_highlight`, `a_cockpit_perform_clickable_action`) is reachable from a script — though **not** from the mission environment itself: they live in the trigger environment, one `net.dostring_in` away — so this is a runtime module emitting **zero trigger rules**. The first draft's two-rules-per-step scheme was killed by David for burying the mission maker's own trigger panel under hundreds of ours across forty steps and several aircraft. Checks read real state, so steps already done are ticked at start and a pilot who pre-flipped a switch passes instantly — though *how* took three reversals: `Unit:getDrawArgumentValue` reads the external model, not the cockpit, and a control's position turned out to be readable only through **Export.lua's** environment (`GetDevice(0):get_argument_value`), which runs on the pilot's machine and so probably not on a dedicated server; a step can also be skipped, since a mis-measured window would otherwise strand the whole checklist. Display is a **generated image**, one PNG per progress state, embedded and shown with `a_out_picture_u` at duration 0 (ED keeps a picture up until `a_out_picture_stop`, DCSCORE-2754) — Pillow is already a dependency and the kneeboard generator is the pattern to reuse; short texts carry the events the image cannot (step skipped, complete), and progress is linear so a skipped step renders as ticked, accepted. Only checklists the mission activates are converted, so build cost tracks actual use. Extensibility for bomb run is one named-check registry, not a condition language. Checklists are sidecar files (VMCT catalogue + mission-folder override by id) per ADR 0016, never blocks of `mission.yaml`. Step order must be reviewed by someone who flies the module — a wrong order strands a pilot with no way to know why | ✅ |
+| [FEAT-ASSIST-AUTHORING](FEAT-ASSIST-AUTHORING/PRD.md) — make a guided checklist writable by an **instructor** rather than a developer. Today a step needs `element: PTR-ELEC-TMB-MPWR-510`, `argument: 510` and `equals: 1.0`, which means opening `clickabledata.lua` inside a DCS install and reading Lua: the engine treats checklists as data, but only one person can write that data. An instructor instead writes `control: bouton power sur main pwr` beside the label, and a resolution pass fills the technical fields **in the same file**, keyed by a `resolved_from` witness so a re-run only touches steps whose text changed — one file the instructor owns, not a generated second one to keep in sync. Resolvable because `clickabledata.lua` is regular: 284 F-16C elements, all with their argument, 131 naming their positions in their own hint. The hard spot, measured: hint order is **not** value order (`MAIN PWR/BATT/OFF` runs +1/0/−1 while `OFF/BACKUP` runs 0/1), so a resolver inferring the value from the rank is wrong half the time, silently. Hence three layers, and **the build never depends on a language model**: a deterministic matcher, an explicit refusal listing candidates when it cannot be sure, and in-game verification reading the real argument — which ticket 10 of the previous lot just made possible. Procedures come from ED's `Macro_sequencies.lua` where a module ships an autostart, and from the aircraft's official manual otherwise — Heatblur publishes the F-14B(U)'s as HTML, already in `CONTROL — POSITION` form | ⏸ |
 | [FEAT-COMBATZONE-MENU-COALITION](FEAT-COMBATZONE-MENU-COALITION/PRD.md) — every combat zone's F10 submenu was **global**: both coalitions saw every zone. That menu is not read-only — it is how a zone gets *activated*, its smoke popped — so with red-side zones now possible, either side could trigger the other's. DCS supports this natively (`addSubMenuForCoalition`), but `veafRadio`'s builder only ever used the global and per-group variants. `veafRadio` gains coalition-scoped nodes, with the side **inherited** by child submenus, commands and the pagination pages (ADR 0013), a per-group command in a scoped subtree emitted only for that side's groups (`humanGroups` now records each group's coalition), and explicit removal of scoped nodes on `rebuild()` — the global `removeItem` is not guaranteed to reach them, and the menu is rebuilt on every join, so leftovers would stack one duplicate per join. A zone defaults to the side playing it; `radio_menu_coalition: RED \| BLUE \| ALL` overrides. **Changes existing missions** (a zone with no `enemy_coalition` now shows to blue only); `ALL` restores the old behaviour. Whether DCS accepts a scoped submenu under a global parent still needs an in-game check | 🧑 |
 | [FEAT-CUSTOM-SCRIPT-LOAD-DELAY](FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) — adopting a third-party mission flattens its **staggered** script loading. Checking whether Foothold's `strip_native_triggers` threw away real behaviour showed it does not — those four trigrules hold nothing but `a_do_script_file` — but it surfaced what the adoption *does* lose: upstream loads in four waves (two `triggerStart`, then `c_time_after` **3 s**, then AIEN at **12 s**), and the built `.miz` fires all fourteen scripts in a single `triggerStart`. Declared order is preserved and each `a_do_script_file` is synchronous, so a purely sequential dependency still holds; what is gone is **wall-clock delay**, and AIEN's 12 seconds are hard to read as anything but "let the rest finish initialising". `custom_scripts` cannot express it — the only knob is `generate_load_trigger` — so the workaround pushes the mission maker into Lua behind a timer for something upstream said declaratively. **Open question first, deliberately**: run the built Foothold and read `dcs.log` for AIEN/CTLD init errors. Nothing broken → a fidelity nicety, low priority; something broken → a correctness bug for every adopted mission that staggers loading, and it jumps the queue | ⬜ |
 | [FIX-RADIO-LAYOUT-GAPS](FIX-RADIO-LAYOUT-GAPS/PRD.md) — three gaps in the preset-plan's radio data, all surfaced by converting the Foothold presets over a 32-type fleet. **01**: a radio-compass is classified as an FM radio, so a 30-channel FM list lands on an ADF (`MiG-29 Fulcrum`, `Ka-50`, `Ka-50_3`, `Yak-52` — none has an explicit layout, so the default classification is what is wrong). **02**: the AJS-37 layout hard-codes two `trailing_specials` at 33/34 MHz, below its radio's 103 MHz floor — either the specials are wrong or the FR24 is missing from the specs. **03**: `dcs-radio-specs.yaml` covers 87 types and **no Flaming Cliffs aircraft**, so every FC3 type silently gets no presets under the plan model — which is why the Foothold file still needs a legacy override layer | ⬜ |
@@ -23,4 +26,234 @@ lots are compacted into `.backlog/archive/<LOT-ID>.md`. Sequencing lives in
 
 ## Archived lots
 
-See [`archive/`](archive/). Index rows are added here as lots are archived.
+One row per closed lot, oldest scope preserved in its file. A lot lands here once it has
+been closed for more than 3 days; the archive holds its PRD and every ticket in full.
+
+| Lot | Status |
+|-----|--------|
+| [BUILD-AUTOVERSION](archive/BUILD-AUTOVERSION.md) — auto-compute the release build number | ✅ |
+| [BUILD-COMMUNITY-SOUNDS](archive/BUILD-COMMUNITY-SOUNDS.md) — Build owns CTLD/CSAR sound preloading | ✅ |
+| [BUILD-PUBLISH-LOCAL](archive/BUILD-PUBLISH-LOCAL.md) — local publish mode for `veaf-build` | ✅ |
+| [CHATBOT-CLI-WORKER](archive/CHATBOT-CLI-WORKER.md) — `ask` proxies the Worker (no user key) | ✅ |
+| [CHATBOT-CLI](archive/CHATBOT-CLI.md) — doc chatbot as a `veaf-tools` CLI command + TUI entry | ✅ |
+| [CHORE-RENAME-DEVELOP](archive/CHORE-RENAME-DEVELOP.md) — `develop-v6` → `develop` + canonical gitflow for releases | ✅ |
+| [CI-NODE24](archive/CI-NODE24.md) — Migrate GitHub Actions off deprecated Node.js 20 | ✅ |
+| [CLEANUP-LUPA](archive/CLEANUP-LUPA.md) — remove the dead `lupa` dependency | ✅ |
+| [CLI-TUI-BRIDGE](archive/CLI-TUI-BRIDGE.md) — fall back to the TUI for missing options | ✅ |
+| [CMT-YAML-DOCS](archive/CMT-YAML-DOCS.md) — doc comments and links in generated `mission.yaml` files | ✅ |
+| [CONVERT-CUSTOM-LOADER-HINT](archive/CONVERT-CUSTOM-LOADER-HINT.md) — guide custom Lua loaders to v6 `custom_scripts:` | ✅ |
+| [CONVERT-V5-UX](archive/CONVERT-V5-UX.md) — Two convert-v5 output/UX improvements (both in `v5_converter.py`). | ✅ |
+| [CUSTOM-SCRIPTS-TRIGGERS](archive/CUSTOM-SCRIPTS-TRIGGERS.md) — unify trigger emission, fix custom_scripts loading | ✅ |
+| [DCS-UPDATE-VERIFY](archive/DCS-UPDATE-VERIFY.md) — post-DCS-update verification campaign | ✅ |
+| [DCSDATA](archive/DCSDATA.md) — DCS country data pipeline, missing-id crash fix, and generator consolidation | ✅ |
+| [DOC-AUDIT-PASS](archive/DOC-AUDIT-PASS.md) — full documentation audit: coverage, correctness, both languages, no orphans | ✅ |
+| [DOC-CHATBOT](archive/DOC-CHATBOT.md) — free RAG documentation chatbot embedded in the MkDocs site | ✅ |
+| [DOC-DEV-MODE](archive/DOC-DEV-MODE.md) — documenter dev_mode + scripts_path ✅ | ✅ |
+| [DOC-GUIDE-ANCHORS](archive/DOC-GUIDE-ANCHORS.md) — The `# Doc:` links in a generated `mission.yaml` (from `convert-v5`) did not resolve: | ✅ |
+| [DOC-OVERHAUL](archive/DOC-OVERHAUL.md) — Complete, detailed, bilingual, ELI5 documentation | ✅ |
+| [DOC-QUALITY-GATE](archive/DOC-QUALITY-GATE.md) — the documentation gets the gate every other artifact already had | ✅ |
+| [DOC-REVIEW](archive/DOC-REVIEW.md) — full documentation proofreading pass | ✅ |
+| [DOC-TRIPACK-FEEDBACK](archive/DOC-TRIPACK-FEEDBACK.md) — Documentation-only lot from Tripack's feedback. No code changes, no PR — direct | ✅ |
+| [DYNSLOT-WAREHOUSE](archive/DYNSLOT-WAREHOUSE.md) — Wire dynamic-slot templates into the `.miz` warehouses | ✅ |
+| [ENRICH-PREPARE-TEMPLATE](archive/ENRICH-PREPARE-TEMPLATE.md) — `prepare` generates the same rich mission.yaml preamble as convert-v5 | ✅ |
+| [FEAT-ACTIVATION-CONTROLS](archive/FEAT-ACTIVATION-CONTROLS.md) — QRA start state + combat-zone completability in YAML | ✅ |
+| [FEAT-AIRBASE-DUMPS-ALL-THEATRES](archive/FEAT-AIRBASE-DUMPS-ALL-THEATRES.md) — the last 7 theatres, captured by Reaper | ✅ |
+| [FEAT-AIRDROMES-RUNTIME-SOURCE](archive/FEAT-AIRDROMES-RUNTIME-SOURCE.md) — Airdrome table from runtime dumps | ✅ |
+| [FEAT-AIRFIELD-FREQS-DATA](archive/FEAT-AIRFIELD-FREQS-DATA.md) — bundle DCS airfield ATC frequencies per theatre | ✅ |
+| [FEAT-ALL-THEATRE-COORDS](archive/FEAT-ALL-THEATRE-COORDS.md) — all DCS theatres for coordinate conversion (source: VEAF/dcs-maps) | ✅ |
+| [FEAT-BLANK-MISSION-THEATRE](archive/FEAT-BLANK-MISSION-THEATRE.md) — synthesize a blank mission per theatre | ✅ |
+| [FEAT-BUILD-VALIDATE-REFS](archive/FEAT-BUILD-VALIDATE-REFS.md) — build-time validation of mission.yaml references to Mission-Editor objects | ✅ |
+| [FEAT-COMBATZONE-ACTIVATE](archive/FEAT-COMBATZONE-ACTIVATE.md) — declaratively activate combat zones at mission start | ✅ |
+| [FEAT-COMBATZONE-RADIO-GROUPS](archive/FEAT-COMBATZONE-RADIO-GROUPS.md) — combat-zone radio grouping + global menu pagination | ✅ |
+| [FEAT-COMBATZONE-RED-SIDE](archive/FEAT-COMBATZONE-RED-SIDE.md) — a combat zone can be played from the red side | ✅ |
+| [FEAT-COMMUNITY-TOGGLE](archive/FEAT-COMMUNITY-TOGGLE.md) — Enable/disable community scripts from mission.yaml | ✅ |
+| [FEAT-CONVERTV5-FREQ-ALIASING](archive/FEAT-CONVERTV5-FREQ-ALIASING.md) — replace hardcoded preset freqs with readable aliases | ✅ |
+| [FEAT-CONVERTV5-PLAN-PRESETS](archive/FEAT-CONVERTV5-PLAN-PRESETS.md) — Type: feat · ADR 0010 | ✅ |
+| [FEAT-CROSSPLATFORM-BINARIES](archive/FEAT-CROSSPLATFORM-BINARIES.md) — The release only ships Windows executables (`veaf-tools.exe`, `veaf-tools-updater.exe`) | ✅ |
+| [FEAT-CTLD2-INTEGRATION](archive/FEAT-CTLD2-INTEGRATION.md) — replace the bundled CTLD v1 with CTLD 2 | ✅ |
+| [FEAT-CUSTOM-SCRIPTS](archive/FEAT-CUSTOM-SCRIPTS.md) — custom_scripts section in mission.yaml | ✅ |
+| [FEAT-DCS-BRIDGE](archive/FEAT-DCS-BRIDGE.md) — Optional dcs-bridge.lua injection | ✅ |
+| [FEAT-EXPORT-BFR-PARSER](archive/FEAT-EXPORT-BFR-PARSER.md) — `veaf-tools export` as the safe mission parser for the BFR plugin | ✅ |
+| [FEAT-EXPORT-MISSION](archive/FEAT-EXPORT-MISSION.md) — safe `.miz` export (JSON / YAML / Markdown) for interop & the BFR plugin | ✅ |
+| [FEAT-FOOTHOLD-PRESETS-PLAN](archive/FEAT-FOOTHOLD-PRESETS-PLAN.md) — move the Foothold `presets.yaml` to the preset-plan model | ✅ |
+| [FEAT-FOOTHOLD-RELEASE-INTAKE](archive/FEAT-FOOTHOLD-RELEASE-INTAKE.md) — adopt Lekaa's new release channel | ✅ |
+| [FEAT-FOOTHOLD-V5-PARITY](archive/FEAT-FOOTHOLD-V5-PARITY.md) — two mission.yaml gaps the v5 Foothold relied on | ✅ |
+| [FEAT-GEO-PLACEMENT](archive/FEAT-GEO-PLACEMENT.md) — place things by real-world geography | ✅ |
+| [FEAT-GITIGNORE](archive/FEAT-GITIGNORE.md) — Template `.gitignore` VEAF MCT dans les defaults ✅ | ✅ |
+| [FEAT-LUA-BUILD-STAMP](archive/FEAT-LUA-BUILD-STAMP.md) — single build stamp in the DCS log instead of per-module versions | ✅ |
+| [FEAT-MCP-ADD-GROUP-FOLDER](archive/FEAT-MCP-ADD-GROUP-FOLDER.md) — make `add_group` write durably to the mission folder | ✅ |
+| [FEAT-MCP-AIRBASES-WAREHOUSES](archive/FEAT-MCP-AIRBASES-WAREHOUSES.md) — airbase coalition, dynamic slots, alias-first | ✅ |
+| [FEAT-MCP-MISSION-EDITOR](archive/FEAT-MCP-MISSION-EDITOR.md) — MCP server for LLM-assisted mission editing (v1: groups/units) | ✅ |
+| [FEAT-MCP-ORACLE-COMMANDS](archive/FEAT-MCP-ORACLE-COMMANDS.md) — expose VEAF `#command` aliases in the oracle + fix binary bundling | ✅ |
+| [FEAT-MCP-PLUGIN](archive/FEAT-MCP-PLUGIN.md) — ship veaf-mission-mcp as a self-hosted Claude plugin | ✅ |
+| [FEAT-MIGRATE-MISSION-V6](archive/FEAT-MIGRATE-MISSION-V6.md) — promote `src/mission/` (the exploded `.miz`) from v5 to v6 on disk | ✅ |
+| [FEAT-MODULE-UX](archive/FEAT-MODULE-UX.md) — Catégories, modules obligatoires, dépendances ✅ | ✅ |
+| [FEAT-PRESETS-KNEEBOARD-TOGGLE](archive/FEAT-PRESETS-KNEEBOARD-TOGGLE.md) — disable preset kneeboard generation (with Tripack) | ✅ |
+| [FEAT-PRESETS-PRIORITY-COLOR](archive/FEAT-PRESETS-PRIORITY-COLOR.md) — channel priority, colour & AJS-37 packing | ✅ |
+| [FEAT-PROFILES](archive/FEAT-PROFILES.md) — profils de build dans mission.yaml ✅ | ✅ |
+| [FEAT-RADIO-PRESET-PROJECTION](archive/FEAT-RADIO-PRESET-PROJECTION.md) — per-type radio-preset projection (preset plan model) | ✅ |
+| [FEAT-RADIO-YAML-MENUS](archive/FEAT-RADIO-YAML-MENUS.md) — declare F10 radio menus in YAML (with Tripack) | ✅ |
+| [FEAT-THIRD-PARTY-MODS](archive/FEAT-THIRD-PARTY-MODS.md) — strip third-party mod requirements at build | ✅ |
+| [FEAT-YAML-MODULE-UX](archive/FEAT-YAML-MODULE-UX.md) — Module shorthand, uppercase community IDs, category sort | ✅ |
+| [FIX-AIRCRAFT-DUPLICATE](archive/FIX-AIRCRAFT-DUPLICATE.md) — Duplicate aircraft groups in "add" injection mode | ✅ |
+| [FIX-AIRCRAFT-INJECT-DICT-GROUP](archive/FIX-AIRCRAFT-INJECT-DICT-GROUP.md) — aircraft-group injection crashes when the group container is a dict | ✅ |
+| [FIX-AIRCRAFT-ORPHAN](archive/FIX-AIRCRAFT-ORPHAN.md) — alerte fichier orphelin aircraft-templates.yaml ✅ | ✅ |
+| [FIX-AIRWAVES-GENERATOR](archive/FIX-AIRWAVES-GENERATOR.md) — generated AirWaves configs call non-existent setters | ✅ |
+| [FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE](archive/FIX-AIRWAVES-OPTIONAL-TRIGGER-ZONE.md) — trigger zone optional when center/radius are configured | ✅ |
+| [FIX-ASSETS-NEWLINE](archive/FIX-ASSETS-NEWLINE.md) — ASSETS newline in Lua string ✅ | ✅ |
+| [FIX-BATCH-MIZ-NAMING-CHECK](archive/FIX-BATCH-MIZ-NAMING-CHECK.md) — flag a built `.miz` whose name no longer matches mission.yaml | ✅ |
+| [FIX-BRIEFING-MULTILINE](archive/FIX-BRIEFING-MULTILINE.md) — convert-v5 truncates multi-line Lua briefings | ✅ |
+| [FIX-BUILD-BARE-NAME-PATH](archive/FIX-BUILD-BARE-NAME-PATH.md) — `build` with a bare mission name produces a relative output path | ✅ |
+| [FIX-BUILD-COPY-DEFAULTS](archive/FIX-BUILD-COPY-DEFAULTS.md) — copy default mission.yaml before reading config | ✅ |
+| [FIX-BUILD-PROFILES](archive/FIX-BUILD-PROFILES.md) — Two build-profile irritants, bundled (both touch profile resolution). | ✅ |
+| [FIX-BUILD-VALIDATE-NONBLOCKING](archive/FIX-BUILD-VALIDATE-NONBLOCKING.md) — build references summary is non-blocking; operation zone_name not checked | ✅ |
+| [FIX-BUNDLE](archive/FIX-BUNDLE.md) — VEAFCOMMANDS MISSING ✅ | ✅ |
+| [FIX-CAP-MISSION-PREFIX](archive/FIX-CAP-MISSION-PREFIX.md) — cap_missions group validation must account for the OnDemand- prefix | ✅ |
+| [FIX-CLEANUP-EXCLUDE-TOOLCHAIN](archive/FIX-CLEANUP-EXCLUDE-TOOLCHAIN.md) — The `convert-v5` leftover-file triage (CONVERT-V5-CLEANUP-FILES) listed | ✅ |
+| [FIX-CLI-UTF8-ASK-STREAMING](archive/FIX-CLI-UTF8-ASK-STREAMING.md) — `veaf-tools ask` returned a **truncated** answer on Windows — cut off mid-sentence. | ✅ |
+| [FIX-CONVERT-SPAWNABLES-FLAT-FORMAT](archive/FIX-CONVERT-SPAWNABLES-FLAT-FORMAT.md) — `convert-v5` generates an **empty** `spawnables.yaml` (and `dynamic-slot-templates.yaml`) | ✅ |
+| [FIX-CONVERT-V5-COMMENTS](archive/FIX-CONVERT-V5-COMMENTS.md) — convert-v5 must ignore Lua comments | ✅ |
+| [FIX-CONVERT-V5-DEFAULT-CWD](archive/FIX-CONVERT-V5-DEFAULT-CWD.md) — `convert-v5` uses current directory by default | ✅ |
+| [FIX-CONVERT-V5-DEPS](archive/FIX-CONVERT-V5-DEPS.md) — Resolve module dependencies when generating mission.yaml | ✅ |
+| [FIX-CONVERT-V5-INVALID-YAML](archive/FIX-CONVERT-V5-INVALID-YAML.md) — convert-v5 emits unparseable mission.yaml | ✅ |
+| [FIX-CONVERT-V5-LOG-DEFAULT](archive/FIX-CONVERT-V5-LOG-DEFAULT.md) — convert-v5 defaults global_log_level to debug instead of info | ✅ |
+| [FIX-CONVERT-V5-OPERATION-SUBZONES](archive/FIX-CONVERT-V5-OPERATION-SUBZONES.md) — convert-v5 loses a combat operation's sub-zones | ✅ |
+| [FIX-CONVERT-V5-PRESETS](archive/FIX-CONVERT-V5-PRESETS.md) — Per-aircraft radio assignments in convert-v5 presets | ✅ |
+| [FIX-CONVERT-WEATHER-I18N](archive/FIX-CONVERT-WEATHER-I18N.md) — Three `convert-v5` pipeline-conversion warnings in `v5_pipeline_converters.py` were | ✅ |
+| [FIX-CONVERTER-YAML-I18N](archive/FIX-CONVERTER-YAML-I18N.md) — Syntax header + i18n comments in convert-v5 output | ✅ |
+| [FIX-CONVERTV5-ICAO-MESSAGE](archive/FIX-CONVERTV5-ICAO-MESSAGE.md) — When `convert-v5` runs without `--icao` on a mission that uses realweather, it prints | ✅ |
+| [FIX-CONVERTV5-PRESETS-OUTPUT](archive/FIX-CONVERTV5-PRESETS-OUTPUT.md) — cleaner convert-v5 presets.yaml (with David) | ✅ |
+| [FIX-CTLD-NIL](archive/FIX-CTLD-NIL.md) — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ✅ |
+| [FIX-CTLD-REPACK-NIL-GROUP](archive/FIX-CTLD-REPACK-NIL-GROUP.md) — Reported by Tripack. A standalone technical analysis was produced as a deliverable for | ✅ |
+| [FIX-DCS-MOCKS-COMPLETION](archive/FIX-DCS-MOCKS-COMPLETION.md) — fill the DCS-mock gaps surfaced by `audit-dcs-mocks` | ✅ |
+| [FIX-DEFAULT-MODULES-ACTIVE](archive/FIX-DEFAULT-MODULES-ACTIVE.md) — default mission.yaml ships an active modules block | ✅ |
+| [FIX-DEFAULTS-MODULES](archive/FIX-DEFAULTS-MODULES.md) — MiST mandatory, drop WEATHERMARK from default | ✅ |
+| [FIX-DOCS-DEPLOY-CONCURRENCY](archive/FIX-DOCS-DEPLOY-CONCURRENCY.md) — two concurrent docs deployments knock each other out | ✅ |
+| [FIX-DOCS-LATEST-ALIAS](archive/FIX-DOCS-LATEST-ALIAS.md) — released documentation was never published | ✅ |
+| [FIX-DYNLOAD-PUBLISHED](archive/FIX-DYNLOAD-PUBLISHED.md) — make dynamic loading work in DEV and PROD | ✅ |
+| [FIX-DYNSLOT-RADIO-UNITS](archive/FIX-DYNSLOT-RADIO-UNITS.md) — radio frequencies mis-scaled for kHz/ADF radios | ✅ |
+| [FIX-DYNSLOT-TEMPLATE-CATEGORY](archive/FIX-DYNSLOT-TEMPLATE-CATEGORY.md) — airplane dynamic-slot templates miscategorized as helicopters | ✅ |
+| [FIX-EMPTY-COALITION-COUNTRY](archive/FIX-EMPTY-COALITION-COUNTRY.md) — build crash on an empty coalition side | ✅ |
+| [FIX-EVENTHANDLER-UNITCATEGORY](archive/FIX-EVENTHANDLER-UNITCATEGORY.md) — dynamic-slot airplane still treated as a helicopter by the QRA | ✅ |
+| [FIX-EXTRACT-COMMUNITY-DICT](archive/FIX-EXTRACT-COMMUNITY-DICT.md) — `extract` crashes with KeyError on community script dicts | ✅ |
+| [FIX-I18N-DEBT](archive/FIX-I18N-DEBT.md) — Clear remaining hardcoded-string debt | ✅ |
+| [FIX-I18N-HARDCODED](archive/FIX-I18N-HARDCODED.md) — AST test + fix hardcoded strings in aircrafts_injector + lua_config_generator | ✅ |
+| [FIX-LONG-FILENAMES-WINDOWS](archive/FIX-LONG-FILENAMES-WINDOWS.md) — long fixture filenames break the Windows marketplace clone | ✅ |
+| [FIX-LUADATA-NIL](archive/FIX-LUADATA-NIL.md) — pure-Python luadata parser rejects `nil` values | ✅ |
+| [FIX-MANDATORY-ENABLE](archive/FIX-MANDATORY-ENABLE.md) — block enable on mandatory modules | ✅ |
+| [FIX-MANDATORY-YAML](archive/FIX-MANDATORY-YAML.md) — YAML generators: emit `{}` for mandatory modules instead of `enable: true` | ✅ |
+| [FIX-MAPRESOURCE-KEY](archive/FIX-MAPRESOURCE-KEY.md) — embedded scripts never loaded (resource key in the wrong table) | ✅ |
+| [FIX-MARKERS-INIT](archive/FIX-MARKERS-INIT.md) — add missing `veafMarkers.initialize()` | ✅ |
+| [FIX-MCP-INTERPRETER-DOC](archive/FIX-MCP-INTERPRETER-DOC.md) — teach the skill the `#veafInterpreter` idiom | ✅ |
+| [FIX-MCP-SCAFFOLD-THEATRE-HINT](archive/FIX-MCP-SCAFFOLD-THEATRE-HINT.md) — steer the LLM to pass `theatre` to scaffold_mission | ✅ |
+| [FIX-MCP-STDOUT-POLLUTION](archive/FIX-MCP-STDOUT-POLLUTION.md) — the MCP server pollutes its stdio JSON-RPC stream | ✅ |
+| [FIX-MCP-TEST-FEEDBACK](archive/FIX-MCP-TEST-FEEDBACK.md) — two real-usage fixes from the plugin test session | ✅ |
+| [FIX-MIG15-PRIMARY-FREQ](archive/FIX-MIG15-PRIMARY-FREQ.md) — build wrongly rejects the MiG-15bis HF primary frequency | ✅ |
+| [FIX-MISSILEGUARDIAN-INIT-CRASH](archive/FIX-MISSILEGUARDIAN-INIT-CRASH.md) — Reported by Tripack: with `MISSILEGUARDIAN: true` in `mission.yaml`, F10 marker | ✅ |
+| [FIX-MISSING-INIT](archive/FIX-MISSING-INIT.md) — missing `initialize()` on 4 Lua modules | ✅ |
+| [FIX-MISSIONCONFIG-BAK](archive/FIX-MISSIONCONFIG-BAK.md) — supprimer extension .bak inutile ✅ | ✅ |
+| [FIX-MISSIONCONFIG-REFS](archive/FIX-MISSIONCONFIG-REFS.md) — references to `missionConfig.lua` in doc and code | ✅ |
+| [FIX-MISSIONYAML-MISSION-SECTION](archive/FIX-MISSIONYAML-MISSION-SECTION.md) — `mission:` block mislabeled + migrated-field provenance | ✅ |
+| [FIX-OLDSCRIPTS](archive/FIX-OLDSCRIPTS.md) — detect residual .lua files in src/scripts/ | ✅ |
+| [FIX-PRESETS-RADIO-COMPAT](archive/FIX-PRESETS-RADIO-COMPAT.md) — skip presets incompatible with an aircraft's radio | ✅ |
+| [FIX-PRIMARY-FREQ-HUMANRADIO](archive/FIX-PRIMARY-FREQ-HUMANRADIO.md) — a promoted preset frequency can fall outside the aircraft's tunable range | ✅ |
+| [FIX-PYINSTALLER-RADIO-LAYOUT-DATA](archive/FIX-PYINSTALLER-RADIO-LAYOUT-DATA.md) — Running the packaged `veaf-tools.exe` (built via PyInstaller from `veaf-tools.spec`), | ✅ |
+| [FIX-QRA-DYNSLOT-CATEGORY](archive/FIX-QRA-DYNSLOT-CATEGORY.md) — Fixes [#299](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/299) (reported by Tripack). | ✅ |
+| [FIX-README-COPY](archive/FIX-README-COPY.md) — Stop copying presets.md into src/ ✅ | ✅ |
+| [FIX-RELEASE-WORKFLOW-PRERELEASE](archive/FIX-RELEASE-WORKFLOW-PRERELEASE.md) — make pre-releases actually safe | ✅ |
+| [FIX-REMOVE-CONVERT](archive/FIX-REMOVE-CONVERT.md) — remove the `convert` command | ✅ |
+| [FIX-SECRET-SCANNING-GITLEAKS-CLI](archive/FIX-SECRET-SCANNING-GITLEAKS-CLI.md) — The `Secret Scanning` workflow (`.github/workflows/secret-scanning.yml`, added | ✅ |
+| [FIX-SERVERHOOK-CHAT-SIM-LOGGER](archive/FIX-SERVERHOOK-CHAT-SIM-LOGGER.md) — logger `Sim` crash + dead server-hook chat callback | ✅ |
+| [FIX-SERVERHOOK-UNKNOWN-PILOT-PARSE](archive/FIX-SERVERHOOK-UNKNOWN-PILOT-PARSE.md) — shared pilots list not loaded + crash on unlisted pilot | ✅ |
+| [FIX-SORT](archive/FIX-SORT.md) — LUADATA FIX: Crash tri clés mixtes int/str ✅ | ✅ |
+| [FIX-SPAWNABLES-CATEGORY](archive/FIX-SPAWNABLES-CATEGORY.md) — default spawnables mis-categorize planes as helicopters | ✅ |
+| [FIX-SRS-WARN](archive/FIX-SRS-WARN.md) — false warning when SRS config file is absent | ✅ |
+| [FIX-TEMPLATE-SLOTS-VISIBLE](archive/FIX-TEMPLATE-SLOTS-VISIBLE.md) — injected aircraft templates pollute the multiplayer slot list | ✅ |
+| [FIX-TUI-MISSING-COMMANDS](archive/FIX-TUI-MISSING-COMMANDS.md) — every CLI command must appear in the interactive TUI | ✅ |
+| [FIX-UPDATER-PAUSE-HANG](archive/FIX-UPDATER-PAUSE-HANG.md) — plugin bootstrap / scaffold hang on the updater's pause | ✅ |
+| [FIX-V5-NUDGE-FALSE-POSITIVE](archive/FIX-V5-NUDGE-FALSE-POSITIVE.md) — After `convert-v5` promotes `src/mission/` to v6, the next `build` still emits the | ✅ |
+| [FIX-VEAF-BUILD-RADIO-LAYOUT-DATA](archive/FIX-VEAF-BUILD-RADIO-LAYOUT-DATA.md) — FIX-PYINSTALLER-RADIO-LAYOUT-DATA (previous lot) added `dcs-radio-layouts.yaml` to the | ✅ |
+| [FIX-VEAF-MODULE-GATING](archive/FIX-VEAF-MODULE-GATING.md) — VEAF integration must gate on enabled, not on global existence | ✅ |
+| [FIX-VERSION-PY-EOL](archive/FIX-VERSION-PY-EOL.md) — generated `_version.py` always shows as modified | ✅ |
+| [FIX-VERSIONS-YAML-ONLY](archive/FIX-VERSIONS-YAML-ONLY.md) — drop missions.yaml alias for weather pipeline | ✅ |
+| [FIX-WAYPOINTS-ETA-LOCKED](archive/FIX-WAYPOINTS-ETA-LOCKED.md) — injected routes have no locked-ETA waypoint | ✅ |
+| [FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE](archive/FIX-WAYPOINTS-INJECT-PRESERVE-ROUTE.md) — waypoint injection wipes the takeoff | ✅ |
+| [FIX-WEATHER-ALIAS](archive/FIX-WEATHER-ALIAS.md) — missions.yaml + versions.yaml coexistence ✅ | ✅ |
+| [FIX-WORKFLOWS-MAIN-TO-MASTER](archive/FIX-WORKFLOWS-MAIN-TO-MASTER.md) — Every CI workflow triggers on the branch `main`, but the repository has **no `main` | ✅ |
+| [FIX-YAML-SYNTAX](archive/FIX-YAML-SYNTAX.md) — unhandled YAML error in build and mission_builder_worker | ✅ |
+| [FOOTHOLD-V6](archive/FOOTHOLD-V6.md) — adopt the third-party Foothold mission onto the v6 toolchain | ✅ |
+| [I18N-COVERAGE](archive/I18N-COVERAGE.md) — i18n coverage tests + fix remaining hardcoded English strings | ✅ |
+| [IMC-FEEDBACK-2](archive/IMC-FEEDBACK-2.md) — Second-round IMC-Day user feedback (6.4.0) | ✅ |
+| [INVESTIGATE-REDFOR-ZONES](archive/INVESTIGATE-REDFOR-ZONES.md) — "red has no territory zones / no airfields" error | ✅ |
+| [LOT-1-INFRA](archive/LOT-1-INFRA.md) — 1 — INFRA: Python quality gate + CI | ✅ |
+| [LOT-10-YAML-CONFIG](archive/LOT-10-YAML-CONFIG.md) — 10 — YAML-CONFIG: mission.yaml source de vérité | ✅ |
+| [LOT-11-I18N](archive/LOT-11-I18N.md) — 11 — I18N: Internationalisation (EN + FR) | ✅ |
+| [LOT-12-QUALITY](archive/LOT-12-QUALITY.md) — 12 — QUALITY: Nettoyage, consolidation et qualité du code | ✅ |
+| [LOT-13-DISCUSS](archive/LOT-13-DISCUSS.md) — 13 — DISCUSS: Standards industrie — à évaluer et décider | ✅ |
+| [LOT-14-ARCH-COMMANDS](archive/LOT-14-ARCH-COMMANDS.md) — 14 — ARCH-COMMANDS: Refactoring de l'infrastructure commandes/marqueurs | ✅ |
+| [LOT-15-DOC](archive/LOT-15-DOC.md) — 15 — DOC: Restructuration et mise à jour de la documentation | ✅ |
+| [LOT-16-LUA-COVERAGE](archive/LOT-16-LUA-COVERAGE.md) — 16 — LUA-COVERAGE: Couverture de tests ≥ 50 % par module | ✅ |
+| [LOT-17-USER-CONFIG](archive/LOT-17-USER-CONFIG.md) — 17 — USER-CONFIG: Configuration globale utilisateur + i18n complète | ✅ |
+| [LOT-18-VERSIONING](archive/LOT-18-VERSIONING.md) — 18 — VERSIONING: Single source of truth pour la version ✅ | ✅ |
+| [LOT-19-MIGRATOR](archive/LOT-19-MIGRATOR.md) — 19 — MIGRATOR: Audit et complétion de la conversion missionConfig.lua ✅ | ✅ |
+| [LOT-2-CLI](archive/LOT-2-CLI.md) — 2 — CLI: veaf-tools improvements | ✅ |
+| [LOT-20-DEEPENING](archive/LOT-20-DEEPENING.md) — 20 — DEEPENING: Architecture deepening Python + Lua ✅ | ✅ |
+| [LOT-21-TYPING](archive/LOT-21-TYPING.md) — 21 — TYPING: Migrate `Optional[T]` to `X | Y` syntax ✅ | ✅ |
+| [LOT-22-TEST-LAYOUT](archive/LOT-22-TEST-LAYOUT.md) — 22 — TEST-LAYOUT: Move Python tests to `test/python/` ✅ | ✅ |
+| [LOT-23-DOC-YAML](archive/LOT-23-DOC-YAML.md) — 23 — DOC-YAML: Référence YAML complète ✅ | ✅ |
+| [LOT-24-DOC-REVIEW-2](archive/LOT-24-DOC-REVIEW-2.md) — 24 — DOC-REVIEW: Klogg profile (REV-002) | ✅ |
+| [LOT-24-DOC-REVIEW](archive/LOT-24-DOC-REVIEW.md) — 24 — DOC-REVIEW: Corrections issues du doc-review ✅ (REV-002 différé) | ✅ |
+| [LOT-25-EXT-YAML](archive/LOT-25-EXT-YAML.md) — 25 — EXT-YAML: Support YAML pour les modules externes (CTLD/CSAR) ✅ | ✅ |
+| [LOT-26-IMC-FEEDBACK](archive/LOT-26-IMC-FEEDBACK.md) — 26 — IMC-FEEDBACK: Retours utilisateur tests IMC-Day (v6.2.0) ✅ | ✅ |
+| [LOT-27-DOC-FR-MERGE](archive/LOT-27-DOC-FR-MERGE.md) — 27 — DOC-FR-MERGE: French as default language + v5 content merge | ✅ |
+| [LOT-3-TUI](archive/LOT-3-TUI.md) — 3 — TUI: InquirerPy interactive mode | ✅ |
+| [LOT-4-LUA-CONFIG](archive/LOT-4-LUA-CONFIG.md) — 4 — LUA-CONFIG: Lua configuration system | ✅ |
+| [LOT-6-BONUS](archive/LOT-6-BONUS.md) — 6 — BONUS: Logger filter + DCSUnits doc | ✅ |
+| [LOT-7-LUA](archive/LOT-7-LUA.md) — 7 — LUA FIXES: High-priority bug fixes from issue triage | ✅ |
+| [LOT-8-LUA-QUALITY](archive/LOT-8-LUA-QUALITY.md) — 8 — LUA-QUALITY: Code quality quick wins | ✅ |
+| [LOT-9-LUA-REFACTOR](archive/LOT-9-LUA-REFACTOR.md) — 9 — LUA-REFACTOR: Refactoring structurel des modules majeurs | ✅ |
+| [LUA-COVERAGE](archive/LUA-COVERAGE.md) — Lua test-coverage objective for runtime modules | ✅ |
+| [LUA-I18N-CAS](archive/LUA-I18N-CAS.md) — localize `_cas` user-facing messages | ✅ |
+| [LUA-I18N-SWEEP](archive/LUA-I18N-SWEEP.md) — localize all remaining VEAF on-screen messages | ✅ |
+| [LUA-I18N-WEATHER](archive/LUA-I18N-WEATHER.md) — localize the `veafWeatherData` report | ✅ |
+| [LUA-I18N](archive/LUA-I18N.md) — Localize in-game VEAF messages (Lua runtime; FR default + EN) | ✅ |
+| [LUACHECK-CI](archive/LUACHECK-CI.md) — add luacheck to the CI Lua quality gate | ✅ |
+| [PERF-LUADATA-PARSER](archive/PERF-LUADATA-PARSER.md) — speed up the pure-Python Lua parser on large missions | ✅ |
+| [PHASE-0](archive/PHASE-0.md) — Phase 0 — Restart | ✅ |
+| [PHASE-0B](archive/PHASE-0B.md) — Phase 0b — GitHub cleanup | ✅ |
+| [PREREL-BUGS](archive/PREREL-BUGS.md) — Pre-release code review findings | ✅ |
+| [QUALITY-GATE-FINISH](archive/QUALITY-GATE-FINISH.md) — erode the remaining mypy exclusions | ✅ |
+| [QUALITY-GATE](archive/QUALITY-GATE.md) — Erode mypy exclusions and ratchet the coverage gate | ✅ |
+| [RADIO-SPECS](archive/RADIO-SPECS.md) — DCS radio frequency validation in inject-presets | ✅ |
+| [RC](archive/RC.md) — v6.1.0 RC bug fixes | ✅ |
+| [REFACTOR-SERVER-HOOK-CANONICAL](archive/REFACTOR-SERVER-HOOK-CANONICAL.md) — hook serveur = source déployable unique | ✅ |
+| [RELEASE](archive/RELEASE.md) — v6.10.0 | ✅ |
+| [SCAFFOLD](archive/SCAFFOLD.md) — `veaf-tools new` (mission folder scaffolding) | ✅ |
+| [SECREV](archive/SECREV.md) — Full-repo code review findings | ✅ |
+| [SPAWN-REFACTOR](archive/SPAWN-REFACTOR.md) — Characterize then de-duplicate the spawn subsystem | ✅ |
+| [TEST-PHASE-6-4-X](archive/TEST-PHASE-6-4-X.md) — TEST-PHASE-6.4.x — manual test-campaign fixes | ✅ |
+| [TODO0609-AIRCRAFT-INJECT](archive/TODO0609-AIRCRAFT-INJECT.md) — Split aircraft-group injection (spawnable vs dynamic-slot template) | ✅ |
+| [TODO0609-CONVERT-FIDELITY](archive/TODO0609-CONVERT-FIDELITY.md) — convert-v5 report & extraction fidelity | ✅ |
+| [TODO0609-DEFAULTS-AUDIT](archive/TODO0609-DEFAULTS-AUDIT.md) — Audit the defaults mission-folder for dead files | ✅ |
+| [TODO0609-DYNLOAD-CLARIFY](archive/TODO0609-DYNLOAD-CLARIFY.md) — Clarify dynamic script loading | ✅ |
+| [TODO0609-ERA-AUTODETECT](archive/TODO0609-ERA-AUTODETECT.md) — Automatic mission era detection | ✅ |
+| [TODO0609-MODULES-UNIFY](archive/TODO0609-MODULES-UNIFY.md) — Single `modules:` block as the source of truth | ✅ |
+| [TODO0609-PRESETS-FIDELITY](archive/TODO0609-PRESETS-FIDELITY.md) — Iso-functional radio presets conversion | ✅ |
+| [TODO0609-SPAWN-EXTERNALIZE](archive/TODO0609-SPAWN-EXTERNALIZE.md) — Externalize spawn group definitions to YAML | ✅ |
+| [TODO0609-TRIGGERS-VERIFY](archive/TODO0609-TRIGGERS-VERIFY.md) — Verify trigger migration for custom scripts | ✅ |
+| [TODO0609-TUI-FOLDER-HINT](archive/TODO0609-TUI-FOLDER-HINT.md) — Clarify the TUI mission-folder default | ✅ |
+| [TOOLING-DCS-MOCK-COVERAGE](archive/TOOLING-DCS-MOCK-COVERAGE.md) — audit DCS-mock coverage against a vendored API schema | ✅ |
+| [TUI-YAML-DEFAULTS](archive/TUI-YAML-DEFAULTS.md) — TUI defaults aware of an existing mission.yaml | ✅ |
+| [TUM-AUTOINIT](archive/TUM-AUTOINIT.md) — auto-init TheUniversalMission when selected | ✅ |
+| [TUM-INIT](archive/TUM-INIT.md) — initialize TheUniversalMission from config | ✅ |
+| [UI-OUTPUT](archive/UI-OUTPUT.md) — Declutter CLI output (transient status line + chapter/technical tiers) | ✅ |
+| [UPDATER-CROSSPLATFORM](archive/UPDATER-CROSSPLATFORM.md) — `veaf-tools-updater` is Windows-only. It extracts `published.zip` and moves | ✅ |
+| [UPDATER-FIX](archive/UPDATER-FIX.md) — Séparation updater / prepare / workflow v5 | ✅ |
+| [UX-AIRCRAFT-SKIPPED-REPORT](archive/UX-AIRCRAFT-SKIPPED-REPORT.md) — Two small `build` console-output issues, surfaced while diagnosing Tripack's mission: | ✅ |
+| [UX-PIPELINE-OUTPUT-POLISH](archive/UX-PIPELINE-OUTPUT-POLISH.md) — The `build` "pipeline" output is hard to read: | ✅ |
+| [UX-PLURAL-SWEEP](archive/UX-PLURAL-SWEEP.md) — Apply the `tn()` natural-plural mechanic (introduced in UX-PIPELINE-OUTPUT-POLISH) to the | ✅ |
+| [UXPILOT-FEEDBACK](archive/UXPILOT-FEEDBACK.md) — Surface command errors to pilots | ✅ |
+| [VALIDATE](archive/VALIDATE.md) — `veaf-tools validate` (pre-build linter) | ✅ |
+| [VENDORED-DRIFT-WATCH](archive/VENDORED-DRIFT-WATCH.md) — scheduled drift-watch for all vendored artifacts | ✅ |
+| [WEATHERMARK-REMOVE](archive/WEATHERMARK-REMOVE.md) — retire the WeatherMark community script | ✅ |
+| [YAML-UX](archive/YAML-UX.md) — Simplification syntaxe mission.yaml | ✅ |

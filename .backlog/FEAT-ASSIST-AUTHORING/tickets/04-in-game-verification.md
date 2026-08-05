@@ -1,6 +1,6 @@
 # 04 — verify a resolved checklist in game
 
-**Status:** ✅ done — 4 of 4 steps confirmed in a live F-14B(U) on 2026-08-03, after the first run found three defects.
+Status: ✅ done — 4 of 4 steps confirmed in a live F-14B(U) on 2026-08-03, after the first run found three defects.
 
 A resolved value is a hypothesis until the argument has been read with the control in the wanted
 position. [Ticket 10](../../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md) made that reading

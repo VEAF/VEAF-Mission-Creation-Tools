@@ -1,6 +1,6 @@
 # 04 — `veafAssist.lua`, the engine
 
-**Status:** ✅ done — 2026-08-01, except the two ticket 01 probes, which need a live DCS (see below).
+Status: ✅ done — 2026-08-01, except the two ticket 01 probes, which need a live DCS (see below).
 
 New runtime module following the house pattern (`veafAssist = {}`, `.Id = "ASSIST"`,
 `veaf.loggers.new(...)`, constants in caps, i18n keys resolved through `veaf.t()` at send time — see

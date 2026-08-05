@@ -1,6 +1,6 @@
 # 05 — the five aircraft that ship an autostart
 
-**Status:** ⏸ paused — David's call on 2026-08-03: no further checklist for now.
+Status: ⏸ paused — David's call on 2026-08-03: no further checklist for now.
 
 `Macro_sequencies.lua` gives ED's own start-up sequence, with labels, for every module shipping an
 autostart. FEAT-ASSIST-CHECKLISTS used the F-16C's; this generalises to the others.

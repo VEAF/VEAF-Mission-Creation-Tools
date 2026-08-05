@@ -1,6 +1,6 @@
 # 03 — checklist image generator
 
-**Status:** ✅ done — 2026-08-01, legibility confirmed in the cockpit after two corrections (below).
+Status: ✅ done — 2026-08-01, legibility confirmed in the cockpit after two corrections (below).
 
 Python side. For each activated checklist, render **one PNG per progress state** and embed them in the
 `.miz` as resources the engine can display.

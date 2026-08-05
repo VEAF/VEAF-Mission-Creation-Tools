@@ -1,6 +1,6 @@
 # 10 — read a cockpit switch after all, through the export environment
 
-**Status:** ✅ done — 2026-08-02, not yet flown. Opened after David asked whether a server hook or one of TUM's
+Status: ✅ done — 2026-08-02, not yet flown. Opened after David asked whether a server hook or one of TUM's
 tricks could get past the "a control's position cannot be read" wall. One of them can.
 
 ## What was measured

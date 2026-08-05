@@ -1,6 +1,6 @@
 # 01 — extract the cockpit-control index, per aircraft
 
-**Status:** ✅ done.
+Status: ✅ done.
 
 Everything else in this lot reads this index. It turns `clickabledata.lua` — Lua source living inside
 a DCS installation — into versioned data the tools can query without DCS being present.

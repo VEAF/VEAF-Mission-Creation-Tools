@@ -1,6 +1,6 @@
 # 03 — `resolve-checklist`: match, or fail with candidates
 
-**Status:** ✅ done. The heart of the lot.
+Status: ✅ done. The heart of the lot.
 
 `veaf-tools resolve-checklist <file.yaml>` fills in the technical fields of every stale step, in
 place, and reports what it could not do.

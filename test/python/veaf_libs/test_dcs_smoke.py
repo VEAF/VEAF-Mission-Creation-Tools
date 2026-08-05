@@ -214,9 +214,15 @@ class TestCheckExpectations:
             for bad in list(smoke.SENTINELS) + ["raised: bad argument #2"]:
                 assert check.expect(bad) is False, f"{check.name} accepts the sentinel {bad!r}"
 
-    def test_the_submenu_check_rejects_a_raise(self):
+    def test_the_submenu_check_demands_the_submenu_was_actually_created(self):
+        # The bug this pins (found by Sourcery on PR #659): the check used to return a constant
+        # 'accepted' whenever pcall did not raise, discarding the inner result. So DCS quietly handing
+        # back nil read as a pass — on the single question FEAT-COMBATZONE-MENU-COALITION has been
+        # waiting on since July, which it would have unblocked in the wrong direction.
         check = self._check("coalition-scoped-submenu-accepted")
-        assert check.expect("accepted") is True
+        assert check.expect(True) is True
+        assert check.expect(False) is False, "a quietly rejected submenu must not pass"
+        assert check.expect("accepted") is False, "the old constant must no longer satisfy it"
         assert check.expect("raised: invalid parent") is False
 
     def test_every_check_records_why_it_exists(self):

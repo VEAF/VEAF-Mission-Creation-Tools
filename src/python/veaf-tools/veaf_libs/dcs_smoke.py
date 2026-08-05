@@ -34,6 +34,7 @@ from veaf_libs.dcs_fiddle_client import (
     exec_lua,
     probe,
 )
+from veaf_libs.i18n import t
 
 
 @dataclass(frozen=True)
@@ -148,17 +149,23 @@ CHECKS: tuple[Check, ...] = (
     ),
     Check(
         name="coalition-scoped-submenu-accepted",
+        # The result of the inner function is what carries the answer, so it must be *returned*, not
+        # discarded. An earlier version bound pcall's second value to `err`, ignored it on success and
+        # returned a constant 'accepted' — so DCS quietly handing back nil would have read as a pass,
+        # on the single question FEAT-COMBATZONE-MENU-COALITION has been waiting on. A check that
+        # passes when the thing it checks failed is worse than no check: it would have unblocked that
+        # lot in the wrong direction. Caught in review (Sourcery, PR #659).
         lua=(
-            "local ok, err = pcall(function() "
+            "local ok, created = pcall(function() "
             "local root = missionCommands.addSubMenu('VEAF-SMOKE-ROOT') "
             "local scoped = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "
             "'VEAF-SMOKE-SCOPED', root) "
             "missionCommands.removeItem(root) "
             "return scoped ~= nil end) "
-            "if not ok then return 'raised: ' .. tostring(err) end "
-            "return 'accepted'"
+            "if not ok then return 'raised: ' .. tostring(created) end "
+            "return created"
         ),
-        expect=lambda v: v == "accepted",
+        expect=lambda v: v is True,
         why="FEAT-COMBATZONE-MENU-COALITION has been waiting-human since July on exactly this: does "
         "DCS accept a coalition-scoped submenu under a global parent? The unit tests pin which API "
         "is called, not DCS's reaction.",
@@ -189,19 +196,14 @@ def run(
 
     if not caps.hook_alive:
         result.skipped = True
-        result.skip_reason = (
-            "no DCS hook answered. Start DCS (the main menu is enough) with "
-            "dcs-fiddle-server.lua in Saved Games/DCS/Scripts/Hooks/."
-        )
+        result.skip_reason = t("smoke.skip.no_hook")
         return result
 
     if not caps.mission_env_reachable:
         result.skipped = True
-        result.skip_reason = (
-            "the hook answered but no mission is loaded, so there is nothing to assert against. "
-            "Load the smoke mission (see doc/developer/SMOKE_HARNESS.md) and run this again. "
-            f"net.load_mission is {'available' if caps.can_load_mission else 'NOT available'} for the "
-            "follow-up that loads it automatically."
+        result.skip_reason = t(
+            "smoke.skip.no_mission",
+            load_mission=t("smoke.available") if caps.can_load_mission else t("smoke.not_available"),
         )
         return result
 
@@ -226,19 +228,18 @@ def format_result(result: Result) -> str:
         A human-readable multi-line report.
     """
     if result.skipped:
-        return f"smoke: skipped — {result.skip_reason}"
+        return t("smoke.skipped", reason=result.skip_reason)
 
     lines = []
     if result.capabilities:
-        lines.append("What DCS reported it can do:")
+        lines.append(t("smoke.capabilities"))
         lines += [f"  - {note}" for note in result.capabilities.notes]
         lines.append("")
 
-    lines.append(f"{len(result.outcomes) - len(result.failed)}/{len(result.outcomes)} checks passed.")
+    lines.append(t("smoke.passed", passed=len(result.outcomes) - len(result.failed), total=len(result.outcomes)))
     for outcome in result.outcomes:
         lines.append(f"  [{'ok' if outcome.passed else 'FAIL'}] {outcome.name}: {outcome.detail}")
     if result.failed:
         lines.append("")
-        lines.append("A failure here is a measurement, not necessarily a defect — read the check's")
-        lines.append("`why` in veaf_libs/dcs_smoke.py before concluding anything about the code.")
+        lines.append(t("smoke.failure_is_a_measurement"))
     return "\n".join(lines)

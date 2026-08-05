@@ -1,6 +1,6 @@
 # Lot FIX-LUA-RUNNER-VERSION-CHECK — `test-lua` silently runs on the wrong interpreter
 
-Status: 🔄 in-progress
+Status: ✅ done
 Branch: `fix/lua-runner-version-check`
 
 ## Problem Statement

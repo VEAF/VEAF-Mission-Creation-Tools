@@ -316,7 +316,10 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Infantry Section", czName)
   local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side, size)
@@ -367,9 +370,10 @@ function veafSpawn.spawnArmoredPlatoon(
     hiddenOnMFD
   )
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
-  local randSpot = mist.getRandPointInCircle(spawnSpot, radius)
-  veaf.loggers.get(veafSpawn.Id):trace("randSpot=%s", randSpot)
-  local spawnSpot = veaf.placePointOnLand(randSpot)
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Armored Platoon", czName)
   veaf.loggers.get(veafSpawn.Id):trace("groupName=%s", groupName)
@@ -408,7 +412,10 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Air Defense Battery", czName)
   local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
@@ -460,7 +467,10 @@ function veafSpawn.spawnTransportCompany(
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Transport Company", czName)
   local group = veafCasMission.generateTransportCompany(groupName, defense, side, size)
@@ -633,6 +643,9 @@ function veafSpawn.spawnConvoy(
 
   if groupUnits.units then
     -- place its units
+    -- Deliberately NOT using veaf.findSpawnPoint here: spawnSpot is the convoy's departure
+    -- point, and generateVehiclesRoute below builds the route *from that same point*, so
+    -- moving the spawn laterally would desync the route origin from where the vehicles are.
     local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), spacing, heading, true)
     veafUnits.traceGroup(groupUnits, cells)
 

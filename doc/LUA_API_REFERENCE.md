@@ -407,6 +407,36 @@ Place un point sur la surface terrestre (ajuste l'altitude Y).
 
 **Retourne :** `vec3` — Position sur la surface
 
+##### `veaf.findSpawnPoint(vec3, radius, safeRadius)`
+
+Cherche un point d'apparition au sol acceptable près d'un centre. Là où `placePointOnLand`
+déplace un point **verticalement**, celle-ci en **cherche** un.
+
+La recherche dégrade en trois paliers bornés :
+
+1. **Tous les critères, dégagement du décor inclus** — via le singleton DCS `Disposition`, qui
+   rend des points à l'écart des bâtiments et des forêts.
+2. **Tous les critères sauf le dégagement** — tirages aléatoires validés dans le rayon.
+3. **Échec** — retourne `nil` ; l'appelant signale et abandonne l'apparition.
+
+**Paramètres :**
+
+- `vec3` (vec3) — Centre de la recherche
+- `radius` (number) — Rayon de recherche en mètres, utilisé par le palier aléatoire
+- `safeRadius` (number, optionnel) — Dégagement exigé (défaut `veaf.DEFAULT_SPAWN_CLEARANCE`)
+
+**Retourne :** `vec3` posé sur le sol, ou `nil` si aucun point acceptable n'a été trouvé
+
+**Réglages :**
+
+- `veaf.SPAWN_SEARCH_ATTEMPTS` (défaut 10) — nombre de candidats examinés par palier
+- `veaf.DEFAULT_SPAWN_CLEARANCE` (défaut 100) — dégagement demandé, en mètres
+- `veaf.doNotAvoidScenery` (défaut `false`) — à `true`, saute le palier 1
+
+> **Note :** `Disposition` est une API DCS **native mais non documentée**, absente de
+> `dcs-world-schema`. L'appel est gardé et protégé par `pcall` : si le singleton est absent de
+> cette version de DCS ou de cette carte, la recherche passe au palier 2 au lieu d'échouer.
+
 ##### `veaf.getLandHeight(vec3)`
 
 Obtient la hauteur du terrain aux coordonnées.
@@ -1028,6 +1058,50 @@ Obtient une zone trigger par nom.
 - `zoneName` (string) — Nom de la zone
 
 **Retourne :** `DCS Zone` — Objet zone ou nil
+
+##### `veaf.getZoneProperty(zoneName, key)`
+
+Lit une propriété de zone trigger, telle que saisie par le mission maker dans l'éditeur.
+
+DCS stocke ces propriétés sous forme de **tableau de paires** `{ key = "…", value = "…" }`,
+jamais de dictionnaire, et **toute valeur est une chaîne**. Ces trois accesseurs remplacent le
+parcours linéaire et le `tonumber` que chaque appelant devrait écrire.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+
+**Retourne :** `string` — ou `nil` si la zone, ses propriétés ou la clé sont absentes
+
+##### `veaf.getZonePropertyBoolean(zoneName, key, default)`
+
+Lit une propriété comme booléen. Accepte `true`/`false` sans distinction de casse ; toute autre
+valeur est un échec de lecture et rend `default` — une coquille ne peut donc pas se lire
+silencieusement comme `false`.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+- `default` (boolean) — Valeur rendue si absente ou illisible
+
+**Retourne :** `boolean`
+
+##### `veaf.getZonePropertyNumber(zoneName, key, default, min, max)`
+
+Lit une propriété comme nombre, **borné** dans un intervalle optionnel. Borne au lieu de
+rejeter : un mission maker qui saisit une valeur absurde obtient la borne, pas un module mort.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+- `default` (number) — Valeur rendue si absente ou non numérique
+- `min` (number, optionnel) — Borne basse
+- `max` (number, optionnel) — Borne haute
+
+**Retourne :** `number`
 
 #### Fonctions de contrôle de mission
 

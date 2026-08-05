@@ -726,6 +726,145 @@ function TestVeafSpawnGround:test_spawnFullCombatGroup()
   luaunit.assertIsString(result)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnGroundSceneryAware — FEAT-SCENERY-AWARE-SPAWN
+--
+-- The four dynamic ground spawners and the generic doSpawnGroup now pick their
+-- group centre through veaf.findSpawnPoint instead of jittering once and using the
+-- result unvalidated. What is pinned here is the wiring, not the search itself
+-- (that lives in test_veaf.lua): the centre that reaches placeGroup, and the
+-- single abort-with-one-message when no point works anywhere.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnGroundSceneryAware = {}
+
+function TestVeafSpawnGroundSceneryAware:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedPlaceGroup = veafUnits.placeGroup
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+  -- Record the centre every spawn hands to placeGroup, then delegate.
+  self.centres = {}
+  veafUnits.placeGroup = function(group, spawnPoint, spacing, hdg, hasDest)
+    table.insert(self.centres, { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z })
+    return self._savedPlaceGroup(group, spawnPoint, spacing, hdg, hasDest)
+  end
+end
+
+function TestVeafSpawnGroundSceneryAware:tearDown()
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  veafUnits.placeGroup = self._savedPlaceGroup
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+--- All water, so every tier is exhausted.
+function TestVeafSpawnGroundSceneryAware:_allWater()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+end
+
+--- Jitter walks the given x offsets, one per call; water is decided by x.
+function TestVeafSpawnGroundSceneryAware:_jitter(xs, waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs or {}) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+  local calls = 0
+  mist.getRandPointInCircle = function(spot, _r)
+    calls = calls + 1
+    return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_the_spawn_still_happens()
+  -- Before this lot the first jitter was used as-is, so this spawn put its centre in
+  -- the sea and every unit was dropped downstream one by one.
+  self:_jitter({ 100, 700 }, { 100 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(#self.centres, 1)
+  luaunit.assertEquals(self.centres[1].x, 700, "the water candidate must not become the group centre")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_no_position_anywhere_aborts_before_placing_anything()
+  self:_allWater()
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0, "placeGroup must not run when no centre was found")
+  -- veafI18n is not loaded by this suite, so veaf.t echoes the key — same convention as
+  -- test_veafAssist.lua asserting on "step.one".
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("spawn.no_position_group"), 1, "exactly one message, not one per unit")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_silent_failure_says_nothing_to_the_players()
+  self:_allWater()
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_armored_platoon_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnArmoredPlatoon({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_air_defense_battery_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnAirDefenseBattery({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_transport_company_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnTransportCompany({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 3, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_scenery_aware_point_becomes_the_group_centre()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 4200, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(self.centres[1].x, 4200)
+  luaunit.assertEquals(self.centres[1].z, 77)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_opt_out_ignores_the_singleton()
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 4200, y = 0, z = 77 } }
+    end,
+  }
+  veaf.doNotAvoidScenery = true
+  self:_jitter({ 100 })
+  veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertFalse(called)
+  luaunit.assertEquals(self.centres[1].x, 100)
+end
+
 function TestVeafSpawnGround:test_stopClosestConvoy_nil_unit()
   -- pass a string so string.format doesn't crash; veafRadio.getHumanUnitOrWingman returns nil
   veafSpawn.stopClosestConvoy("TestUnit")

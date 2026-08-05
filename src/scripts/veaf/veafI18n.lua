@@ -197,6 +197,10 @@ veaf.i18nCatalog = {
     fr = "impossible de trouver une position adéquate pour faire apparaître l'unité %s",
     en = "cannot find a suitable position for spawning unit %s",
   },
+  ["spawn.no_position_group"] = {
+    fr = "impossible de trouver une position adéquate pour faire apparaître le groupe",
+    en = "cannot find a suitable position for spawning the group",
+  },
   ["spawn.no_position_cargo"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître la cargaison %s",
     en = "cannot find a suitable position for spawning cargo %s",

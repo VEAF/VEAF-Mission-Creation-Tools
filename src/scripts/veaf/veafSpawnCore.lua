@@ -603,6 +603,20 @@ end
 -- Group spawn command
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Reports that no acceptable position was found for a whole group, and aborts the spawn
+-- Shared by every caller of veaf.findSpawnPoint, in this module and in veafSpawnGround.
+-- Before FEAT-SCENERY-AWARE-SPAWN such a spawn ran to completion and dropped its units one
+-- by one downstream, emitting one message per unit; it now stops once, with one message.
+-- @param silent when true, log only — a scripted spawn must not spam the players
+-- @return nil always, so a caller can `return veafSpawn._reportNoGroupPosition(silent)`
+function veafSpawn._reportNoGroupPosition(silent)
+  veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning the group")
+  if not silent then
+    trigger.action.outText(veaf.t("spawn.no_position_group"), 5)
+  end
+  return nil
+end
+
 --- Spawn a specific group at a specific spot
 function veafSpawn.doSpawnGroup(
   spawnSpot,
@@ -633,7 +647,10 @@ function veafSpawn.doSpawnGroup(
     shuffle
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
   veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1

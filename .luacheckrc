@@ -48,6 +48,12 @@ globals = {
   -- .backlog/FEAT-ASSIST-CHECKLISTS/tickets/01-primitives-spike.md).
   "a_cockpit_highlight", "a_cockpit_remove_highlight", "a_cockpit_perform_clickable_action",
   "a_out_picture_u", "a_out_picture_stop", "getValueResourceByKey",
+  -- Undocumented native DCS singleton for scenery-aware ground placement, used by
+  -- veaf.findSpawnPoint. Unlike the a_* entries above, this one is NOT verified in game:
+  -- it comes from TUM's single call site and its author's claim. See
+  -- .backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md (deferred).
+  -- Absent from dcs-world-schema, hence guarded and pcall-ed at the call site.
+  "Disposition",
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals

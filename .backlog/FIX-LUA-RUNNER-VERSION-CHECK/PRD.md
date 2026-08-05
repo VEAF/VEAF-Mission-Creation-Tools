@@ -67,8 +67,9 @@ shim keeps both reachable, and the runner now knows that name.
 - [x] unit tests in `test/python/veaf_build/test_lua_interpreter_check.py`
 - [x] `doc/TESTING.md` + `.en.md` and `doc/developer/GUIDE.md` + `.en.md` updated (both languages)
 - [x] `CHANGELOG.md` entry, PATCH version bumped in `pyproject.toml` + `plugin/.claude-plugin/plugin.json`
-- [ ] verified on a real Lua 5.1 install that the suite is green (needs `scoop install lua51` on
-      this machine — pending David's go, since it shadows the existing `lua` shim)
+- [x] refusal path verified live on the 5.4-only machine (the message in *Solution* is real output)
+- [x] green-suite-under-5.1 path left to CI's `lua-unit-tests` job — **David declined the local
+      `scoop install lua51`**, which would have replaced his `lua` shim for a one-off check
 
 ## Out of Scope
 

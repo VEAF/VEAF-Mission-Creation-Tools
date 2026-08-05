@@ -5,7 +5,7 @@ Type: chore
 
 ## Why
 
-[`veaf-tools.spec`](../../veaf-tools.spec) declares four `datas` entries, including
+[`veaf-tools.spec`](../../../veaf-tools.spec) declares four `datas` entries, including
 `('src\\python\\veaf-tools\\veaf_libs\\data\\convert-profiles', 'veaf_libs\\data\\convert-profiles')`.
 
 **The build never reads that file.** `BuildAndReleaseWorker._build_pyinstaller_executable`

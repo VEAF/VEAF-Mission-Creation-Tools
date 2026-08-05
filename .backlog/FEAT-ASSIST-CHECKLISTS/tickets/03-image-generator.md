@@ -25,7 +25,7 @@ the text baked into the image matches what the pilot's messages will say.
 
 One resource per state, named deterministically (`assist-<id>-<k>.png`), embedded through the same
 resource-key path the build already uses for scripts — see
-[FIX-MAPRESOURCE-KEY](../../FIX-MAPRESOURCE-KEY/PRD.md) for the trap that lot fixed: the key has to land
+[FIX-MAPRESOURCE-KEY](../../archive/FIX-MAPRESOURCE-KEY.md) for the trap that lot fixed: the key has to land
 in the right table or the resource resolves to nothing, silently, and the failure only shows in game.
 
 **Emit the resource names into the Lua data** so the engine displays state `k` without reconstructing a

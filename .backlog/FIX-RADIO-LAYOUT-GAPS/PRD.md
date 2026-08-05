@@ -5,7 +5,7 @@ Status: ⬜ ready
 ## Context
 
 Converting the Foothold `presets.yaml` to the preset-plan model
-([FEAT-FOOTHOLD-PRESETS-PLAN](../FEAT-FOOTHOLD-PRESETS-PLAN/PRD.md)) exercised the packer over a
+([FEAT-FOOTHOLD-PRESETS-PLAN](../archive/FEAT-FOOTHOLD-PRESETS-PLAN.md)) exercised the packer over a
 large, varied fleet — 32 aircraft types on one map alone. Three data gaps surfaced. None is a bug
 in the packer's logic; all three are **VEAF-maintained data** being incomplete, and each degrades
 a mission silently.

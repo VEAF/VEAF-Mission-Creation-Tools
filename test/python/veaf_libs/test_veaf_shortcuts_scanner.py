@@ -129,3 +129,35 @@ class TestGetShortcutsAgainstRealFile(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLocalArtefactIsFresh(unittest.TestCase):
+    """A leftover ``veaf-shortcuts.json`` must not disagree with the Lua it came from.
+
+    The file is **gitignored** — a local build artefact, absent from a clean checkout and from CI, where
+    ``get_shortcuts()`` therefore falls through to scanning the Lua. But when it *is* present it wins,
+    and a stale one silently overrides the parser, its exclusion of internal aliases included.
+
+    Not hypothetical: on this workstation it had drifted to 128 entries while the parser produced 123,
+    so ``list_shortcuts`` was offering ``-login`` and ``-logout``, and
+    ``test_surfaces_samlr_not_hidden_login`` failed locally while CI stayed green. That is the worst
+    shape of divergence — it appears only to the person holding the stale file.
+
+    Skipped rather than failed when absent: on CI that is the normal, correct state.
+    """
+
+    def test_a_present_artefact_matches_a_fresh_scan(self):
+        root = Path(__file__).parents[3]
+        artefact = root / "src" / "python" / "veaf-tools" / "veaf_libs" / "veaf-shortcuts.json"
+        if not artefact.is_file():
+            self.skipTest("no local veaf-shortcuts.json — the clean-checkout and CI case")
+
+        fresh = _parse_aliases(
+            (root / "src" / "scripts" / "veaf" / "veafShortcuts.lua").read_text(encoding="utf-8", errors="ignore")
+        )
+        assert json.loads(artefact.read_text(encoding="utf-8")) == fresh, (
+            "the local veaf-shortcuts.json is stale — regenerate it with "
+            "veaf_libs.veaf_shortcuts_scanner.generate_shortcuts_json(), or delete it. It wins over "
+            "scanning, so a stale copy overrides the parser and its internal-alias exclusion, and only "
+            "you will see the difference."
+        )

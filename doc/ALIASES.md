@@ -133,6 +133,17 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | `-arty3_stop` | ARTY-3 : cesser l'écoute |
 | `-arty3_start` | ARTY-3 : reprendre l'écoute |
 
+### Bombardements simulés
+
+Ces trois alias simulent un tir d'artillerie en faisant apparaître des explosions (`_spawn bomb`) :
+le nombre d'obus, le rayon et la puissance sont tirés au hasard dans une fourchette.
+
+| Alias | Description |
+|-------|-------------|
+| `-cesar` | Tir de précision sur une zone, quelques obus HE de faible puissance |
+| `-shell` | Pilonnage d'une petite zone avec beaucoup d'obus HE de faible puissance |
+| `-flak` | Tir anti-aérien : flak à 6 000 pieds au-dessus du marqueur |
+
 ## Support & Utilitaires
 
 | Alias | Description |
@@ -192,6 +203,15 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 |-------|-------------|
 | `-destroy` | Détruire toute unité dans un rayon de 100 m du marqueur |
 | `-ai_set` | Configurer un handler IA pour un groupe terrestre |
+| `-login` | Déverrouiller le système (demande le mot de passe — voir ci-dessous) |
+| `-logout` | Reverrouiller le système |
+
+> 🔐 `-login` et `-logout` pilotent l'authentification VEAF (`_auth`). `-login` attend le mot de
+> passe à la suite, **sans virgule** : `-login monmotdepasse`. Elles portent `:setHidden(true)`, ce qui les
+> retire de la liste que l'action MCP `list_shortcuts` sert à une IA — on ne propose pas une commande
+> d'authentification à un assistant qui construit une mission. Cela ne justifiait pas de les cacher
+> **aussi** à un lecteur humain : le code est public, l'omission ne protégeait rien et privait le
+> mission maker légitime de l'information.
 
 ## Outils cartographiques
 

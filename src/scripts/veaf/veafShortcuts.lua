@@ -56,7 +56,10 @@ function VeafAlias:new(objectToCopy)
   objectToCreate.name = nil
   -- description
   objectToCreate.description = nil
-  -- hidden from HELP
+  -- if true, the alias is internal (auth, debug) and is NOT offered to a mission maker:
+  -- veaf_shortcuts_scanner.py greps `:setHidden(true)` out of this file to build the list the
+  -- `list_shortcuts` MCP action serves to an AI assistant. (Its original consumer, the
+  -- veafShortcuts F10 radio menu, was deleted in ca962e4b — June 2021.)
   objectToCreate.hidden = false
   -- the command that must be substituted to the alias
   objectToCreate.veafCommand = nil

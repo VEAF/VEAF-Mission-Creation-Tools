@@ -133,6 +133,17 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | `-arty3_stop` | ARTY-3: stop listening |
 | `-arty3_start` | ARTY-3: start listening |
 
+### Simulated shelling
+
+These three simulate artillery fire by spawning explosions (`_spawn bomb`); shell count, radius and
+power are each drawn at random from a range.
+
+| Alias | Description |
+|-------|-------------|
+| `-cesar` | Precision shelling of a zone, a few low-yield HE rounds |
+| `-shell` | Shelling of a small zone with lots of low-yield HE |
+| `-flak` | Anti-air artillery: flak at 6,000 ft above the marker |
+
 ## Support & Utility
 
 | Alias | Description |
@@ -192,6 +203,15 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 |-------|-------------|
 | `-destroy` | Destroy any unit within 100 m of marker |
 | `-ai_set` | Configure AI handler for a ground group |
+| `-login` | Unlock the system (takes the password — see below) |
+| `-logout` | Lock the system again |
+
+> 🔐 `-login` and `-logout` drive VEAF authentication (`_auth`). `-login` expects the password right
+> after it, **with no comma**: `-login mypassword`. They carry `:setHidden(true)`, which keeps them out
+> of the list the `list_shortcuts` MCP action serves to an AI — you do not offer an authentication
+> command to an assistant building a mission. That never justified hiding them from a **human**
+> reader too: the code is public, so the omission protected nothing and denied the legitimate mission
+> maker the information.
 
 ## Map Tools
 

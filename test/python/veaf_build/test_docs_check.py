@@ -12,7 +12,17 @@ from pathlib import Path
 
 import pytest
 
-from veaf_build.docs_check import EXEMPT, Report, check_docs, check_repo_links, format_report, slugify
+from veaf_build.docs_check import (
+    COVERAGE_RULES,
+    EXEMPT,
+    CoverageRule,
+    Report,
+    check_doc_coverage,
+    check_docs,
+    check_repo_links,
+    format_report,
+    slugify,
+)
 
 
 @pytest.fixture
@@ -236,3 +246,186 @@ class TestRepoLinkPass:
         report = Report(repo_broken_links=["x.md -> y.md"])
         assert report.total == 1
         assert "outside doc/" in format_report(report)
+
+
+class TestDocCoverage:
+    """The drift check: a capability the code defines must be named by its reference page.
+
+    A **check, not a generator**. Both covered pages carry curated prose — thematic sections,
+    hand-written descriptions — and generating them would destroy what makes them worth reading. It
+    was added after measuring live drift: ``set_airbase_coalition`` shipped with
+    FEAT-MCP-AIRBASES-WAREHOUSES and was never written up.
+    """
+
+    def _rule(self, tmp_path: Path) -> CoverageRule:
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        return CoverageRule(
+            label="thing",
+            source_glob="src/*.py",
+            pattern=r'name="([a-z_]+)"',
+            pages=("doc/ref.md",),
+        )
+
+    def test_a_name_the_page_never_mentions_is_reported(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        rule = self._rule(tmp_path)
+        (tmp_path / "src" / "a.py").write_text('name="documented"\nname="forgotten"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("# Ref\n\nThe documented thing.\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["thing 'forgotten' is not documented in doc/ref.md"]
+
+    def test_a_fully_documented_source_is_silent(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        rule = self._rule(tmp_path)
+        (tmp_path / "src" / "a.py").write_text('name="alpha"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("alpha is here\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_the_mention_format_is_honoured(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # Aliases are written `-sa6` in backticks; a bare mention in prose must not count, or a page
+        # that merely says "sa6" somewhere would satisfy the gate.
+        rule = CoverageRule(
+            label="alias",
+            source_glob="src/*.lua",
+            pattern=r'setName\("([^"]+)"\)',
+            pages=("doc/ref.md",),
+            mention="`{name}`",
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "src" / "a.lua").write_text(':setName("-sa6")\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("we mention -sa6 in prose only\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["alias '-sa6' is not documented in doc/ref.md"]
+        (tmp_path / "doc" / "ref.md").write_text("| `-sa6` | a SAM |\n", encoding="utf-8")
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_every_configured_page_is_checked_not_just_the_first(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # The rules all carry an FR and an EN page; checking only one would let a translation rot.
+        rule = CoverageRule(
+            label="thing",
+            source_glob="src/*.py",
+            pattern=r'name="([a-z_]+)"',
+            pages=("doc/ref.md", "doc/ref.en.md"),
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "src" / "a.py").write_text('name="alpha"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("alpha\n", encoding="utf-8")
+        (tmp_path / "doc" / "ref.en.md").write_text("nothing here\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["thing 'alpha' is not documented in doc/ref.en.md"]
+
+    def test_a_missing_page_is_reported_rather_than_silently_passing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        rule = self._rule(tmp_path)
+        (tmp_path / "src" / "a.py").write_text('name="alpha"\n', encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["thing page missing: doc/ref.md"]
+
+    def test_the_real_rules_point_at_pages_that_exist(self):
+        # A rule whose page was renamed would otherwise report one defect forever and be muted.
+        root = Path(__file__).parents[3]
+        for rule in COVERAGE_RULES:
+            for page in rule.pages:
+                assert (root / page).is_file(), f"{rule.label}: {page} does not exist"
+            assert list(root.glob(rule.source_glob)), f"{rule.label}: {rule.source_glob} matches nothing"
+
+    def test_findings_reach_the_report_text(self):
+        report = Report(undocumented_names=["thing 'x' is not documented in doc/ref.md"])
+        assert report.total == 1
+        assert "reference page never mentions" in format_report(report)
+
+
+class TestCoverageRegexMatchesReality:
+    """The gate greps the source instead of importing it, so something must prove they agree.
+
+    ``docs_check`` is stdlib-only on purpose — the CI job runs it with plain ``python`` and no Poetry
+    install, which is what keeps it seconds long. Importing the MCP catalogue would drag in pydantic.
+    That trade is only safe while the regex sees exactly what the catalogue holds, and this is the
+    test that says so.
+    """
+
+    def test_the_mcp_rule_finds_exactly_what_list_catalog_returns(self):
+        from veaf_build.docs_check import _names_of
+
+        root = Path(__file__).parents[3]
+        rule = next(r for r in COVERAGE_RULES if r.label == "MCP action")
+        regexed = set(_names_of(root, rule))
+
+        import sys
+
+        sys.path.insert(0, str(root / "src" / "python" / "veaf-tools"))
+        from veaf_mission_mcp.server import CATALOG
+
+        imported = {spec.name for spec in CATALOG.list_catalog()}
+        assert regexed == imported, (
+            "the stdlib regex and the real catalogue disagree — the cheap gate has stopped seeing "
+            f"what it guards. only regexed: {sorted(regexed - imported)}; "
+            f"only imported: {sorted(imported - regexed)}"
+        )
+
+
+class TestTheTwoPassesOptOutIndependently:
+    """`--skip-repo-links` must not silently take the coverage gate with it.
+
+    They shared one flag briefly, so asking to skip link validation dropped a gate nobody chose to
+    lose. Caught in review (Sourcery, PR #660).
+    """
+
+    def _repo(self, tmp_path: Path) -> Path:
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "mkdocs.yml").write_text("site_name: t\nnav:\n", encoding="utf-8")
+        (tmp_path / "broken.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "a.py").write_text('name="undocumented"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        return tmp_path
+
+    def _run(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *flags: str) -> str:
+        import contextlib
+        import io
+
+        from veaf_build.docs_check import main
+
+        monkeypatch.setattr(
+            "veaf_build.docs_check.COVERAGE_RULES",
+            (CoverageRule(label="thing", source_glob="src/*.py", pattern=r'name="([a-z_]+)"', pages=("doc/ref.md",)),),
+        )
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            main(
+                [
+                    "--doc-dir",
+                    str(tmp_path / "doc"),
+                    "--mkdocs",
+                    str(tmp_path / "mkdocs.yml"),
+                    "--repo-root",
+                    str(tmp_path),
+                    *flags,
+                ]
+            )
+        return out.getvalue()
+
+    def test_skipping_links_keeps_the_coverage_gate(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        text = self._run(self._repo(tmp_path), monkeypatch, "--skip-repo-links")
+        assert "undocumented" in text, "the coverage gate must survive --skip-repo-links"
+        assert "nowhere.md" not in text
+
+    def test_skipping_coverage_keeps_the_link_pass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        text = self._run(self._repo(tmp_path), monkeypatch, "--skip-coverage")
+        assert "nowhere.md" in text
+        assert "undocumented" not in text
+
+    def test_findings_are_sorted(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # The docstring promises it, and stable output is what makes a diff of two runs readable.
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "src" / "a.py").write_text('name="zulu"\nname="alpha"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr(
+            "veaf_build.docs_check.COVERAGE_RULES",
+            (CoverageRule(label="thing", source_glob="src/*.py", pattern=r'name="([a-z_]+)"', pages=("doc/ref.md",)),),
+        )
+        assert check_doc_coverage(tmp_path) == sorted(check_doc_coverage(tmp_path))

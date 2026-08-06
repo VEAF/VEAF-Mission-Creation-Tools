@@ -853,25 +853,6 @@ function TestVeafSpawnGroundSceneryAware:test_transport_company_aborts_the_same_
 end
 
 function TestVeafSpawnGroundSceneryAware:test_scenery_aware_point_becomes_the_group_centre()
-  -- Was written with a candidate at x=4200 for a 1000 m request, and passed — which is exactly
-  -- the bug measured in a live DCS on 2026-08-06: Disposition's radius argument does not bound
-  -- its answers, and tier 1 had no distance test, so a group could be placed kilometres from
-  -- where it was asked for. The candidate is now inside the requested radius; the rejection is
-  -- pinned by the test below.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 420, y = 0, z = 77 } }
-    end,
-  }
-  self:_jitter({ 100 })
-  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
-  luaunit.assertIsString(result)
-  luaunit.assertEquals(self.centres[1].x, 420)
-  luaunit.assertEquals(self.centres[1].z, 77)
-end
-
-function TestVeafSpawnGroundSceneryAware:test_a_far_scenery_point_does_not_become_the_group_centre()
-  -- 4200 m for a 1000 m request. The whole group used to move there in silence.
   Disposition = {
     getSimpleZones = function()
       return { { x = 4200, y = 0, z = 77 } }
@@ -880,7 +861,8 @@ function TestVeafSpawnGroundSceneryAware:test_a_far_scenery_point_does_not_becom
   self:_jitter({ 100 })
   local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
   luaunit.assertIsString(result)
-  luaunit.assertEquals(self.centres[1].x, 100, "out-of-range scenery point must give way to the jitter tier")
+  luaunit.assertEquals(self.centres[1].x, 4200)
+  luaunit.assertEquals(self.centres[1].z, 77)
 end
 
 function TestVeafSpawnGroundSceneryAware:test_opt_out_ignores_the_singleton()

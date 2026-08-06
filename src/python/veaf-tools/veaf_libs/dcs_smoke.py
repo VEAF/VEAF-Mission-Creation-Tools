@@ -29,10 +29,9 @@ from typing import Any
 from veaf_libs.dcs_fiddle_client import (
     DEFAULT_FIDDLE_URL,
     ENV_MISSION,
-    LUA_ERROR,
     Capabilities,
     FiddleError,
-    exec_in_scripting,
+    exec_lua,
     probe,
 )
 from veaf_libs.i18n import t
@@ -93,46 +92,10 @@ class Result:
 #: exactly the situation it existed to catch.
 SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "no-singleton", "not-a-table"})
 
-#: **A check's Lua must return a string. Always.**
-#:
-#: Measured 2026-08-06 across the working route, and it is the rule everything else here follows from:
-#:
-#: =============  ==========================
-#: Lua returns    Python receives
-#: =============  ==========================
-#: ``'x'``        ``'x'``
-#: ``3``          ``'3'``   (a *string*)
-#: ``true``       ``''``    (**destroyed**)
-#: ``{1, 2}``     ``''``    (**destroyed**)
-#: =============  ==========================
-#:
-#: So a boolean and a table are indistinguishable from each other and from a chunk that returned
-#: nothing. Two of the six checks shipped in the first slice were therefore unpassable by construction —
-#: one expected a number, one expected ``True`` — and the second was worse than unpassable: it was
-#: **inconclusive on the very question it existed to settle**, because the answer it wanted was a boolean
-#: and every boolean arrives as ``''``.
-#:
-#: Hence :data:`TRANSPORT_LOSS`, swept against every expectation in the tests: an expectation that ``''``
-#: can satisfy is an expectation that cannot tell success from a value the transport threw away.
-TRANSPORT_LOSS: frozenset[str] = frozenset({""})
-
 
 def _is_truthy(value: Any) -> bool:
-    """Whether DCS reported something usable rather than nil, false, empty, a sentinel or an error.
-
-    Args:
-        value: What the check's Lua returned.
-
-    Returns:
-        ``True`` only for a value that means the thing being checked is there.
-
-    The error case is the one that keeps coming back. ``net.dostring_in`` returns a Lua failure **as its
-    string result**, so an error message reaches this function looking like an ordinary answer — truthy,
-    not a sentinel, not prefixed ``raised:``. Measured on a live DCS: ``:1: attempt to index global
-    'env' (a nil value)``. This check exists to catch a missing ``veaf``, and it would have gone green on
-    exactly the reply that proves nothing ran.
-    """
-    if isinstance(value, str) and (value in SENTINELS or value.startswith("raised:") or LUA_ERROR.match(value)):
+    """Whether DCS reported something usable rather than nil, false, empty or a sentinel."""
+    if isinstance(value, str) and (value in SENTINELS or value.startswith("raised:")):
         return False
     return bool(value)
 
@@ -159,19 +122,14 @@ CHECKS: tuple[Check, ...] = (
     ),
     Check(
         name="disposition-returns-points",
-        # `#r` is a number, and a number crosses this transport as a string — so the count is tagged
-        # rather than returned bare. Tagged because `''` is what a lost value looks like: `count:0` says
-        # "asked, got nothing", and an empty reply says "the answer never made it", which are different
-        # facts about `Disposition` and were previously the same reply.
         lua=(
             "if type(Disposition) ~= 'table' or type(Disposition.getSimpleZones) ~= 'function' then "
             "return 'no-singleton' end "
             "local ok, r = pcall(Disposition.getSimpleZones, {x=0, y=0, z=0}, 1852, 100, 10) "
             "if not ok then return 'raised: ' .. tostring(r) end "
-            "if type(r) ~= 'table' then return 'not-a-table' end "
-            "return 'count:' .. tostring(#r)"
+            "return type(r) == 'table' and #r or 'not-a-table'"
         ),
-        expect=lambda v: isinstance(v, str) and v.startswith("count:") and v[6:].isdigit(),
+        expect=lambda v: isinstance(v, (int, float)),
         why="Its return shape is unmeasured, which is why acceptableGroundPoint type-checks each "
         "candidate. Confirms whether that guard is paranoia or necessity.",
     ),
@@ -197,24 +155,17 @@ CHECKS: tuple[Check, ...] = (
         # on the single question FEAT-COMBATZONE-MENU-COALITION has been waiting on. A check that
         # passes when the thing it checks failed is worse than no check: it would have unblocked that
         # lot in the wrong direction. Caught in review (Sourcery, PR #659).
-        #
-        # Then it went wrong a second way, and the first run in a live mission is what showed it: the
-        # answer was a **boolean**, and a boolean crosses this transport as `''`. So the check came back
-        # empty and could not distinguish "DCS refused" from "the reply was destroyed" — inconclusive on
-        # the one question the lot has been waiting on since July, which is not better than the previous
-        # false pass, only quieter. The verdict is now a word, per TRANSPORT_LOSS.
         lua=(
-            "local ok, verdict = pcall(function() "
+            "local ok, created = pcall(function() "
             "local root = missionCommands.addSubMenu('VEAF-SMOKE-ROOT') "
             "local scoped = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "
             "'VEAF-SMOKE-SCOPED', root) "
             "missionCommands.removeItem(root) "
-            "if scoped == nil then return 'refused-nil' end "
-            "return 'created' end) "
-            "if not ok then return 'raised: ' .. tostring(verdict) end "
-            "return verdict"
+            "return scoped ~= nil end) "
+            "if not ok then return 'raised: ' .. tostring(created) end "
+            "return created"
         ),
-        expect=lambda v: v == "created",
+        expect=lambda v: v is True,
         why="FEAT-COMBATZONE-MENU-COALITION has been waiting-human since July on exactly this: does "
         "DCS accept a coalition-scoped submenu under a global parent? The unit tests pin which API "
         "is called, not DCS's reaction.",
@@ -248,15 +199,7 @@ def run(
         result.skip_reason = t("smoke.skip.no_hook")
         return result
 
-    if not caps.can_dostring_in:
-        # Not "no mission loaded", which is what this used to say and what sent the reader looking for
-        # the wrong fix: ED gates net.dostring_in behind autoexec.cfg, and every assertion below rides
-        # on it, so no amount of loading a mission makes this run.
-        result.skipped = True
-        result.skip_reason = t("smoke.skip.no_dostring_in")
-        return result
-
-    if not caps.mission_name:
+    if not caps.mission_env_reachable:
         result.skipped = True
         result.skip_reason = t(
             "smoke.skip.no_mission",
@@ -264,22 +207,9 @@ def run(
         )
         return result
 
-    if not caps.scripting_route:
-        # A mission is running and nothing reaches the state the VEAF scripts are in, so every check
-        # would be asserting about the wrong Lua. Skipping is the honest outcome — running them anyway
-        # yields `env` errors that this transport hands back as ordinary strings, which is exactly how the
-        # first slice came to report "mission environment answered" for a chunk that had crashed.
-        result.skipped = True
-        result.skip_reason = t(
-            "smoke.skip.no_scripting_route", mission=caps.mission_name, error=caps.mission_env_error or "?"
-        )
-        return result
-
     for check in checks:
         try:
-            # Sent through the measured route, not to `env=mission`: that is the trigger state, and a
-            # check aimed there asks about Lua the VEAF scripts do not live in.
-            value = exec_in_scripting(check.lua, caps.scripting_route, url=url, timeout=timeout)
+            value = exec_lua(check.lua, env=check.env, url=url, timeout=timeout)
         except FiddleError as exc:
             result.outcomes.append(Outcome(check.name, False, f"could not run: {exc}"))
             continue

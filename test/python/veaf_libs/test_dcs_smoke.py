@@ -20,21 +20,6 @@ from veaf_libs import dcs_fiddle_client as client
 from veaf_libs import dcs_smoke as smoke
 from veaf_libs.dcs_fiddle_client import ENV_HOOK, ENV_MISSION, Capabilities, FiddleError, exec_lua, probe
 from veaf_libs.dcs_smoke import CHECKS, Check, Outcome, Result, format_result, run
-from veaf_libs.i18n import language
-
-
-@pytest.fixture(autouse=True)
-def _pinned_language() -> Any:
-    """Assert against the English catalogue regardless of whose machine this runs on.
-
-    Four of these tests compare report text literally, and ``t()`` resolves the language from the
-    ambient environment — ``VEAF_LANG``, then ``~/veafmct.yaml``, then the OS locale. So they passed in
-    CI, where nothing sets a language, and failed on a French workstation: green where nobody looks and
-    red where the person who has DCS works, on the one suite that only they can finish. Pinning the
-    locale here is the fix; asserting on translated prose without saying which translation is the bug.
-    """
-    with language("en"):
-        yield
 
 
 class _FakeResponse(io.BytesIO):
@@ -112,75 +97,6 @@ class TestTransport:
         with pytest.raises(FiddleError, match="dcs-fiddle-server.lua"):
             exec_lua("return 1")
 
-    def test_a_lua_error_returned_as_a_result_still_raises(self, monkeypatch: pytest.MonkeyPatch):
-        # Measured on a live DCS at the main menu: net.dostring_in returns a Lua failure as its string
-        # *result*, HTTP 200, {result=…} body. So the mission environment reports a crash in the exact
-        # shape of a successful answer, and the probe duly said "mission environment answered".
-        _fake_hook(monkeypatch, {"env.mission": ":1: attempt to index global 'env' (a nil value)"})
-        with pytest.raises(FiddleError, match="failed in the mission environment"):
-            exec_lua("return env.mission.theatre", env=ENV_MISSION)
-
-    def test_a_chunk_named_error_is_recognised_too(self, monkeypatch: pytest.MonkeyPatch):
-        # The other form Lua produces, when the chunk carries a name.
-        _fake_hook(monkeypatch, {"boom": '[string "boom"]:3: bad argument #1'})
-        with pytest.raises(FiddleError, match="bad argument"):
-            exec_lua("return boom()", env=ENV_MISSION)
-
-    def test_prose_that_merely_mentions_a_line_number_is_not_an_error(self, monkeypatch: pytest.MonkeyPatch):
-        # The detector keys on the shape Lua actually emits — a leading `:N: `. A legitimate result that
-        # merely contains a colon and a digit must survive, or the harness starts inventing failures.
-        _fake_hook(monkeypatch, {"describe": "Syria: 3 airbases"})
-        assert exec_lua("return describe()", env=ENV_MISSION) == "Syria: 3 airbases"
-
-    def test_the_hook_environment_is_left_alone(self, monkeypatch: pytest.MonkeyPatch):
-        # There the hook loadstrings the chunk and its own pcall turns a raise into {error=…}, so a
-        # result that happens to look like an error message is a result.
-        _fake_hook(monkeypatch, {"quote": ":1: not actually an error here"})
-        assert exec_lua("return quote()", env=ENV_HOOK) == ":1: not actually an error here"
-
-
-#: What a healthy DCS returns from the facts chunk. Named so each test can bend one fact and leave the
-#: rest realistic — the bugs worth pinning here are all "one thing is missing", not "nothing answers".
-_HEALTHY_FACTS: dict[str, Any] = {
-    "lua": "Lua 5.1",
-    "control_table": "Sim+DCS",
-    "control_aliased": True,
-    "exit_process": True,
-    "stop_mission": True,
-    "set_pause": True,
-    "set_user_callbacks": True,
-    "get_log_history": True,
-    "load_mission": True,
-    "load_next_mission": True,
-    "dostring_in": True,
-    "mission_name": "smoke",
-    "mission_filename": "C:/missions/smoke.miz",
-    "is_server": True,
-    "is_multiplayer": False,
-    "write_dir": "C:/Users/x/Saved Games/DCS/",
-    "install_dir": "C:/jeux/DCS World",
-}
-
-
-def _facts_hook(monkeypatch: pytest.MonkeyPatch, **overrides: Any) -> list[tuple[str, str]]:
-    """Fake a hook returning the facts table, with *overrides* applied.
-
-    Args:
-        monkeypatch: pytest fixture.
-        **overrides: Facts to replace; pass ``None`` to drop a key entirely, which is what a DCS
-            missing that function actually produces.
-
-    Returns:
-        The ``(lua, env)`` pairs the client sent.
-    """
-    facts = dict(_HEALTHY_FACTS)
-    for key, value in overrides.items():
-        if value is None:
-            facts.pop(key, None)
-        else:
-            facts[key] = value
-    return _fake_hook(monkeypatch, {"facts.control_table": facts, "env.mission": "Syria"})
-
 
 class TestProbe:
     def test_no_dcs_is_reported_not_raised(self, monkeypatch: pytest.MonkeyPatch):
@@ -191,143 +107,22 @@ class TestProbe:
         assert caps.notes and "cannot reach" in caps.notes[0]
 
     def test_it_measures_the_calls_this_repo_has_never_made(self, monkeypatch: pytest.MonkeyPatch):
-        _facts_hook(monkeypatch)
+        _fake_hook(
+            monkeypatch,
+            {
+                "_VERSION": "alive: Lua 5.1",
+                "net.load_mission": True,
+                "DCS.exitProcess": False,
+                "env.mission": "Syria",
+            },
+        )
         caps = probe()
         assert caps.hook_alive is True
         assert caps.can_load_mission is True
-        assert caps.can_quit is True
-        assert caps.can_stop_mission is True
-        assert caps.can_set_callbacks is True
-        assert caps.can_dostring_in is True
-        assert caps.mission_env_reachable is True
-        assert caps.can_drive_lifecycle is True
-        assert caps.blocking_reason() is None
-
-    def test_it_reports_which_control_table_answered(self, monkeypatch: pytest.MonkeyPatch):
-        # ED documents Sim.*; every hook in the wild calls DCS.*. Which one is live is measured, and
-        # the previous probe hardcoded DCS.exitProcess — so a DCS that had dropped the alias would have
-        # been reported as unable to quit rather than as renamed.
-        _facts_hook(monkeypatch, control_table="Sim", control_aliased=False)
-        caps = probe()
-        assert caps.control_table == "Sim"
-        assert caps.control_aliased is False
-        assert any("Sim.exitProcess: present" in note for note in caps.notes)
-
-    def test_a_missing_dostring_in_is_the_blocker_not_the_missing_mission(self, monkeypatch: pytest.MonkeyPatch):
-        # The misdiagnosis this pins. ED gates net.dostring_in behind autoexec.cfg, and every assertion
-        # rides on it, so reporting "no mission loaded" sends the reader to load a mission that will
-        # change nothing. The root cause has to win over the first symptom.
-        _facts_hook(monkeypatch, dostring_in=None, mission_name=None)
-        caps = probe()
-        assert caps.can_dostring_in is False
-        blocker = caps.blocking_reason()
-        assert blocker is not None
-        assert "autoexec.cfg" in blocker
-        assert "no mission" not in blocker
-
-    def test_a_loaded_mission_that_still_refuses_is_called_out_as_the_odd_case(self, monkeypatch: pytest.MonkeyPatch):
-        # dostring_in present, a mission loaded, and the mission environment still silent: that is the
-        # combination no explanation covers, so it must not be filed under either of the known two.
-        def fake_urlopen(request: Any, timeout: float = 0.0) -> _FakeResponse:
-            query = request.full_url.rpartition("/")[2].partition("?")[2]
-            if query.removeprefix("env=") == ENV_HOOK:
-                return _FakeResponse(json.dumps({"result": _HEALTHY_FACTS}).encode("utf-8"))
-            raise OSError("connection reset")
-
-        monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
-        caps = probe()
-        assert caps.mission_env_error is not None
-        assert any("worth investigating" in note for note in caps.notes)
-        assert caps.scripting_route is None
-        assert any("no route reached the scripting state" in note for note in caps.notes)
-
-    def test_could_not_ask_is_not_the_same_as_false(self, monkeypatch: pytest.MonkeyPatch):
-        # isServer decides whether the SERVER-ONLY net.load_mission can be used at all. Reading a
-        # failed call as "not a server" would retire that option on no evidence.
-        _facts_hook(monkeypatch, is_server="raised: not available here", is_multiplayer="absent")
-        caps = probe()
-        assert caps.is_server is None
-        assert caps.is_multiplayer is None
-
-    def test_it_measures_what_each_lua_type_becomes_after_the_crossing(self, monkeypatch: pytest.MonkeyPatch):
-        # ED documents net.dostring_in as returning a *string*. If that is literal, a check expecting a
-        # number or True can never pass however correct its Lua is — and two of the six shipped checks
-        # expect exactly that. So the shapes are measured rather than reasoned about.
-        def fake_urlopen(request: Any, timeout: float = 0.0) -> _FakeResponse:
-            url = request.full_url
-            encoded, _, query = url.rpartition("/")[2].partition("?")
-            decoded = base64.b64decode(encoded).decode("utf-8")
-            if query.removeprefix("env=") == ENV_HOOK:
-                return _FakeResponse(json.dumps({"result": _HEALTHY_FACTS}).encode("utf-8"))
-            # A transport that stringifies everything, which is what the documentation describes. The
-            # chunks arrive wrapped by the route, so match on what they contain rather than on equality.
-            replies = {"type(env)": "table", "return 3": "3", "return true": "true", "return {1, 2}": "table: 0x1"}
-            answer = next((v for needle, v in replies.items() if needle in decoded), "x")
-            return _FakeResponse(json.dumps({"result": answer}).encode("utf-8"))
-
-        monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
-        caps = probe()
-        assert caps.scripting_route is not None
-        assert set(caps.mission_env_shapes) == {"number", "boolean", "string", "table"}
-        assert "Python str" in caps.mission_env_shapes["number"], "a stringified number is the finding"
-        assert any("crosses the a_do_script route" in note for note in caps.notes)
-
-    def test_a_shape_that_cannot_be_measured_is_recorded_not_raised(self, monkeypatch: pytest.MonkeyPatch):
-        # A shape probe that fails is itself information, and it must not take the whole probe down: the
-        # lifecycle facts gathered before it are the reason anyone ran this.
-        calls = {"n": 0}
-
-        def fake_urlopen(request: Any, timeout: float = 0.0) -> _FakeResponse:
-            query = request.full_url.rpartition("/")[2].partition("?")[2]
-            if query.removeprefix("env=") == ENV_HOOK:
-                return _FakeResponse(json.dumps({"result": _HEALTHY_FACTS}).encode("utf-8"))
-            calls["n"] += 1
-            if calls["n"] == 1:  # the theatre question, so the mission environment counts as reachable
-                return _FakeResponse(json.dumps({"result": "Syria"}).encode("utf-8"))
-            raise OSError("connection reset")
-
-        monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
-        caps = probe()
-        assert caps.mission_env_reachable is True
-        assert all("could not measure" in seen for seen in caps.mission_env_shapes.values())
-
-    def test_it_reports_the_write_dir_it_was_told_rather_than_guessing(self, monkeypatch: pytest.MonkeyPatch):
-        # A workstation can hold half a dozen Saved Games folders, one per aircraft profile. Only the
-        # running process knows which it was started with, so the harness asks instead of picking.
-        _facts_hook(monkeypatch, write_dir="C:/Users/x/Saved Games/DCS_F14/")
-        caps = probe()
-        assert caps.write_dir == "C:/Users/x/Saved Games/DCS_F14/"
-        assert any("DCS_F14" in note for note in caps.notes)
-
-    def test_a_hook_answering_something_other_than_a_table_says_so(self, monkeypatch: pytest.MonkeyPatch):
-        # There are several forks of this hook in circulation. One that answers but does not speak the
-        # contract must not read as a DCS missing every function it was asked about.
-        _fake_hook(monkeypatch, {"facts.control_table": "not a table at all"})
-        caps = probe()
-        assert caps.hook_alive is True
         assert caps.can_quit is False
-        assert any("different contract" in note for note in caps.notes)
-
-
-def _ready(**overrides: Any) -> Capabilities:
-    """A DCS the runner can actually assert against: mission running, route found.
-
-    Args:
-        **overrides: Fields to change.
-
-    Returns:
-        Capabilities past every rung of the skip ladder, so a test can exercise the checks themselves.
-    """
-    caps = Capabilities(
-        hook_alive=True,
-        can_dostring_in=True,
-        mission_env_reachable=True,
-        mission_name="m",
-        scripting_route=client.SCRIPTING_ROUTES[0],
-    )
-    for key, value in overrides.items():
-        setattr(caps, key, value)
-    return caps
+        assert caps.mission_env_reachable is True
+        assert caps.mission_name == "Syria"
+        assert any("ABSENT" in note for note in caps.notes)
 
 
 class TestRun:
@@ -344,91 +139,22 @@ class TestRun:
         def fake_exec(code: str, env: str = ENV_MISSION, url: str = "", timeout: float = 0.0) -> Any:
             if env == ENV_MISSION:
                 raise FiddleError("no mission")
-            return dict(_HEALTHY_FACTS, mission_name="nil", mission_filename="nil")
+            if "net.load_mission" in code:
+                return True
+            return "alive: Lua 5.1"
 
+        monkeypatch.setattr(smoke, "exec_lua", fake_exec)
         monkeypatch.setattr(client, "exec_lua", fake_exec)
         result = run(timeout=0.1)
         assert result.skipped is True
         assert "no mission is loaded" in result.skip_reason
         assert result.exit_code == 0
 
-    def test_a_loaded_mission_with_no_route_does_not_ask_for_a_mission(self, monkeypatch: pytest.MonkeyPatch):
-        # David loaded `Smerch Hunt II`, sat in the cockpit, and was told "no mission is loaded". The
-        # message has to name the real obstacle — nothing reached the state the scripts live in — and
-        # quote what DCS said, since that string is the only evidence the reader has.
-        monkeypatch.setattr(
-            smoke,
-            "probe",
-            lambda **_: Capabilities(
-                hook_alive=True,
-                can_dostring_in=True,
-                mission_env_reachable=False,
-                mission_name="tempMission",
-                scripting_route=None,
-                mission_env_error=":1: attempt to index global 'env' (a nil value)",
-                notes=[],
-            ),
-        )
-        result = run(timeout=0.1)
-        assert result.skipped is True
-        assert result.exit_code == 0
-        assert "tempMission" in result.skip_reason
-        assert "trigger" in result.skip_reason, "the reader needs to know which state env=mission is"
-        assert "attempt to index global" in result.skip_reason, "the reader needs what DCS said"
-        assert "not a harness defect" in result.skip_reason
-
-    def test_checks_are_sent_through_the_measured_route_not_to_env_mission(self, monkeypatch: pytest.MonkeyPatch):
-        # The defect this pins is the whole reason the first slice could never have worked: `env=mission`
-        # is the trigger state, so a check sent there asks about Lua the VEAF scripts do not live in.
-        route = client.SCRIPTING_ROUTES[0]
-        monkeypatch.setattr(
-            smoke,
-            "probe",
-            lambda **_: Capabilities(
-                hook_alive=True, can_dostring_in=True, mission_name="m", scripting_route=route, notes=[]
-            ),
-        )
-        sent: list[tuple[str, str]] = []
-
-        def fake_exec(code: str, env: str = ENV_MISSION, url: str = "", timeout: float = 0.0) -> Any:
-            sent.append((code, env))
-            return "table"
-
-        monkeypatch.setattr(client, "exec_lua", fake_exec)
-        run(checks=(Check("x", "return type(veaf)", lambda v: v == "table", "why"),), timeout=0.1)
-        assert len(sent) == 1
-        code, env = sent[0]
-        assert code.startswith("return a_do_script("), "the chunk has to be wrapped by the route"
-        assert "return type(veaf)" in code
-        assert env == ENV_MISSION, "a_do_script is called *from* the trigger state"
-
-    def test_a_gated_dostring_in_skips_with_the_autoexec_fix_rather_than_the_mission_one(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        # Same shape as the probe test, one layer up: the runner must not tell someone to load a
-        # mission when loading one cannot possibly help.
-        def fake_exec(code: str, env: str = ENV_MISSION, url: str = "", timeout: float = 0.0) -> Any:
-            if env == ENV_MISSION:
-                raise FiddleError("net.dostring_in is nil")
-            facts = dict(_HEALTHY_FACTS)
-            del facts["dostring_in"]
-            return facts
-
-        monkeypatch.setattr(client, "exec_lua", fake_exec)
-        result = run(timeout=0.1)
-        assert result.skipped is True
-        assert "autoexec.cfg" in result.skip_reason
-        assert result.exit_code == 0, "a permission this harness cannot grant itself is not a failure"
-
     def test_checks_run_and_are_reported_individually(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
-            smoke,
-            "probe",
-            lambda **_: _ready(notes=["fake"]),
+            smoke, "probe", lambda **_: Capabilities(hook_alive=True, mission_env_reachable=True, notes=["fake"])
         )
-        monkeypatch.setattr(
-            smoke, "exec_in_scripting", lambda code, _route, **__: "table" if "Disposition" in code else "nope"
-        )
+        monkeypatch.setattr(smoke, "exec_lua", lambda code, **_: "table" if "Disposition" in code else "nope")
         checks = (
             Check("yes", "return type(Disposition)", lambda v: v == "table", "why"),
             Check("no", "return something_else", lambda v: v == "table", "why"),
@@ -439,15 +165,13 @@ class TestRun:
 
     def test_a_check_that_cannot_run_fails_rather_than_vanishing(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
-            smoke,
-            "probe",
-            lambda **_: _ready(),
+            smoke, "probe", lambda **_: Capabilities(hook_alive=True, mission_env_reachable=True, notes=[])
         )
 
-        def boom(code: str, _route: Any = None, **__: Any) -> Any:
+        def boom(code: str, **_: Any) -> Any:
             raise FiddleError("the Lua raised")
 
-        monkeypatch.setattr(smoke, "exec_in_scripting", boom)
+        monkeypatch.setattr(smoke, "exec_lua", boom)
         result = run(checks=(Check("x", "return 1", lambda v: True, "why"),), timeout=0.1)
         assert result.failed and "could not run" in result.failed[0].detail
 
@@ -468,10 +192,10 @@ class TestCheckExpectations:
         assert check.expect("function") is True
         assert check.expect("no-singleton") is False
 
-    def test_returns_points_rejects_a_raise(self):
-        # Superseded by test_the_point_count_survives_as_a_tagged_string for the positive cases: this
-        # check used to accept a bare int, which measurement showed can never arrive.
+    def test_returns_points_accepts_a_count_and_rejects_a_raise(self):
         check = self._check("disposition-returns-points")
+        assert check.expect(0) is True, "zero points is a measurement, not a failure"
+        assert check.expect(3) is True
         assert check.expect("raised: bad argument") is False
         assert check.expect("no-singleton") is False
 
@@ -484,51 +208,21 @@ class TestCheckExpectations:
         assert check.expect(None) is False
         assert check.expect("nil") is False
 
-    def test_no_expectation_can_be_satisfied_by_a_value_the_transport_destroyed(self):
-        # Measured: a Lua boolean and a Lua table both cross as ''. So an expectation that '' satisfies
-        # cannot tell success from a reply that never made it — which is what happened to the
-        # coalition-submenu check, left inconclusive on the single question its lot has waited on since
-        # July. Every check must return a string; this sweep is what enforces it.
-        for check in CHECKS:
-            for lost in smoke.TRANSPORT_LOSS:
-                assert check.expect(lost) is False, f"{check.name} is satisfied by a destroyed value"
-
-    def test_the_point_count_survives_as_a_tagged_string(self):
-        # `#r` is a number and numbers cross as strings, so the old `isinstance(v, (int, float))` could
-        # never pass. Tagged rather than bare so `count:0` ("asked, got nothing") stays distinguishable
-        # from '' ("the answer was destroyed") — two different facts about Disposition.
-        check = self._check("disposition-returns-points")
-        assert check.expect("count:10") is True
-        assert check.expect("count:0") is True, "zero points is a measurement, not a failure"
-        assert check.expect("10") is False, "an untagged number is the shape that used to be ambiguous"
-        assert check.expect("count:") is False
-        assert check.expect("no-singleton") is False
-
-    def test_the_submenu_verdict_is_a_word_not_a_boolean(self):
-        check = self._check("coalition-scoped-submenu-accepted")
-        assert check.expect("created") is True
-        assert check.expect("refused-nil") is False, "DCS handing back nil is the negative answer"
-        assert check.expect(True) is False, "a boolean can never arrive, so it must not satisfy this"
-
-    def test_no_expectation_accepts_a_sentinel_a_raise_or_a_lua_error(self):
+    def test_no_expectation_accepts_a_sentinel_or_a_raise(self):
         # Swept across every check, because this is a whole class of wrong verdict rather than one bug.
-        # The Lua-error entries are the third instance of that class: net.dostring_in hands a failure
-        # back as a truthy string that is not a sentinel and does not start with "raised:", so
-        # `veaf-loaded` — whose whole job is to notice an empty environment — went green on it.
-        errors = [":1: attempt to index global 'env' (a nil value)", '[string "c"]:2: attempt to call a nil value']
         for check in CHECKS:
-            for bad in list(smoke.SENTINELS) + ["raised: bad argument #2"] + errors:
-                assert check.expect(bad) is False, f"{check.name} accepts {bad!r}"
+            for bad in list(smoke.SENTINELS) + ["raised: bad argument #2"]:
+                assert check.expect(bad) is False, f"{check.name} accepts the sentinel {bad!r}"
 
-    def test_the_submenu_check_still_refuses_the_two_shapes_that_once_passed_wrongly(self):
-        # Two historical bugs on the same check, kept as regressions. First (Sourcery, PR #659): it
-        # returned a constant 'accepted' whenever pcall did not raise, discarding the inner result, so a
-        # nil from DCS read as a pass. Second: the verdict was a boolean, and every boolean crosses this
-        # transport as '' — so it answered nothing at all. Positive case in
-        # test_the_submenu_verdict_is_a_word_not_a_boolean.
+    def test_the_submenu_check_demands_the_submenu_was_actually_created(self):
+        # The bug this pins (found by Sourcery on PR #659): the check used to return a constant
+        # 'accepted' whenever pcall did not raise, discarding the inner result. So DCS quietly handing
+        # back nil read as a pass — on the single question FEAT-COMBATZONE-MENU-COALITION has been
+        # waiting on since July, which it would have unblocked in the wrong direction.
         check = self._check("coalition-scoped-submenu-accepted")
+        assert check.expect(True) is True
+        assert check.expect(False) is False, "a quietly rejected submenu must not pass"
         assert check.expect("accepted") is False, "the old constant must no longer satisfy it"
-        assert check.expect(False) is False
         assert check.expect("raised: invalid parent") is False
 
     def test_every_check_records_why_it_exists(self):

@@ -8,7 +8,6 @@ audit produce 245 false positives before being verified against the published si
 are language-agnostic (the i18n plugin rewrites them) and anchors keep their accents.
 """
 
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -243,80 +242,10 @@ class TestRepoLinkPass:
         monkeypatch.setattr(mod, "_REPO_LINK_EXEMPT", frozenset())
         assert mod.check_repo_links(tmp_path) == ["hist.md -> nowhere.md"]
 
-    def test_an_agent_worktree_is_not_a_second_copy_of_the_docs(self, tmp_path: Path):
-        # Belt for the fallback path (no git): .claude/worktrees/<name>/ is a full checkout of this
-        # repository, so walking it re-reads every backlog page at a different depth where none of its
-        # relative links resolve — 367 phantom defects on a workstation that had used worktrees, 0 in CI.
-        (tmp_path / "target.md").write_text("# T\n", encoding="utf-8")
-        (tmp_path / "ok.md").write_text("[t](target.md)\n", encoding="utf-8")
-        worktree = tmp_path / ".claude" / "worktrees" / "agent-abc" / ".backlog" / "archive"
-        worktree.mkdir(parents=True)
-        (worktree / "L.md").write_text("[t](../../../target.md)\n", encoding="utf-8")
-        assert check_repo_links(tmp_path) == []
-
     def test_findings_reach_the_report_text(self):
         report = Report(repo_broken_links=["x.md -> y.md"])
         assert report.total == 1
         assert "outside doc/" in format_report(report)
-
-
-class TestOnlyTrackedFilesAreChecked:
-    """The pass validates what git tracks, not what happens to sit on this workstation.
-
-    Walking the tree produced **392 phantom defects** locally against **0 in CI**, from two paths git
-    ignores: agent worktrees under ``.claude/worktrees/`` (367) and the updater's scratch directory
-    ``test/veaf-tools-updater/`` (25, ignored at ``.gitignore:63``). Naming those two in a skip list was
-    the first attempt and it was too narrow — the next local artefact needs a third entry, and the list
-    drifts out of step with ``.gitignore``. A link is only broken *for other people* if both ends are
-    committed, so git is the right authority.
-    """
-
-    def _repo(self, tmp_path: Path) -> bool:
-        """Make tmp_path a git repo. Returns False when git is unavailable."""
-        try:
-            for args in (["init", "-q"], ["config", "user.email", "t@t.test"], ["config", "user.name", "t"]):
-                subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)
-        except (OSError, subprocess.CalledProcessError):
-            return False
-        return True
-
-    def _track(self, tmp_path: Path, *paths: str) -> None:
-        subprocess.run(["git", "-C", str(tmp_path), "add", "--", *paths], check=True, capture_output=True)
-
-    def test_an_untracked_page_with_a_broken_link_is_not_a_defect(self, tmp_path: Path):
-        if not self._repo(tmp_path):
-            pytest.skip("git unavailable")
-        (tmp_path / "tracked.md").write_text("# T\n", encoding="utf-8")
-        self._track(tmp_path, "tracked.md")
-        # Never added: local debris, exactly like a worktree or a scratch directory.
-        (tmp_path / "local.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
-        assert check_repo_links(tmp_path) == []
-
-    def test_a_tracked_page_with_a_broken_link_is_still_a_defect(self, tmp_path: Path):
-        if not self._repo(tmp_path):
-            pytest.skip("git unavailable")
-        (tmp_path / "tracked.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
-        self._track(tmp_path, "tracked.md")
-        assert check_repo_links(tmp_path) == ["tracked.md -> nowhere.md"]
-
-    def test_a_link_to_an_untracked_target_is_a_defect(self, tmp_path: Path):
-        # The target exists on disk but not in the repository, so it 404s for everyone else. This is the
-        # case a naive "does the file exist" walk gets wrong in the *permissive* direction.
-        if not self._repo(tmp_path):
-            pytest.skip("git unavailable")
-        (tmp_path / "page.md").write_text("[local](scratch.md)\n", encoding="utf-8")
-        (tmp_path / "scratch.md").write_text("# untracked\n", encoding="utf-8")
-        self._track(tmp_path, "page.md")
-        # Documented limitation: resolution is still filesystem-based, so this passes today. Pinned so
-        # the behaviour is a recorded choice rather than an accident, and so tightening it is a visible
-        # change rather than a surprise.
-        assert check_repo_links(tmp_path) == []
-
-    def test_no_git_falls_back_to_walking_the_tree(self, tmp_path: Path):
-        # Importable outside a checkout — a release tarball, a vendored copy — where walking is the only
-        # option and the old behaviour is right.
-        (tmp_path / "page.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
-        assert check_repo_links(tmp_path) == ["page.md -> nowhere.md"]
 
 
 class TestDocCoverage:

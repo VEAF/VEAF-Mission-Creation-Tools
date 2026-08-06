@@ -248,18 +248,14 @@ TestVeafArrayRemoveWhen = {}
 
 function TestVeafArrayRemoveWhen:test_removeNothingReturnsFalse()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
-    return true
-  end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return true end)
   luaunit.assertFalse(changed)
   luaunit.assertEquals(#t, 3)
 end
 
 function TestVeafArrayRemoveWhen:test_removeAllReturnsTrue()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
-    return false
-  end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return false end)
   luaunit.assertTrue(changed)
   luaunit.assertEquals(#t, 0)
 end
@@ -569,17 +565,13 @@ end
 
 function TestVeafIfnn:test_functionField()
   local obj = {}
-  function obj:getName()
-    return "test"
-  end
+  function obj:getName() return "test" end
   luaunit.assertEquals(veaf.ifnn(obj, "getName"), "test")
 end
 
 function TestVeafIfnn:test_erroringFunctionReturnsNil()
   local obj = {}
-  function obj:broken()
-    error("oops")
-  end
+  function obj:broken() error("oops") end
   luaunit.assertNil(veaf.ifnn(obj, "broken"))
 end
 
@@ -807,23 +799,17 @@ end
 TestVeafSafeCall = {}
 
 function TestVeafSafeCall:test_successReturnsValue()
-  local result = veaf.safeCall(function(a, b)
-    return a + b
-  end, 3, 4)
+  local result = veaf.safeCall(function(a, b) return a + b end, 3, 4)
   luaunit.assertEquals(result, 7)
 end
 
 function TestVeafSafeCall:test_errorReturnsNil()
-  local result = veaf.safeCall(function()
-    error("boom")
-  end)
+  local result = veaf.safeCall(function() error("boom") end)
   luaunit.assertNil(result)
 end
 
 function TestVeafSafeCall:test_multipleReturnValues()
-  local a, b = veaf.safeCall(function()
-    return 1, 2
-  end)
+  local a, b = veaf.safeCall(function() return 1, 2 end)
   luaunit.assertEquals(a, 1)
   luaunit.assertEquals(b, 2)
 end

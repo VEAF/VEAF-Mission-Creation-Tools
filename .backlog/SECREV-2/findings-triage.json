@@ -1,0 +1,1825 @@
+[
+  {
+    "vid": "VMR-005",
+    "title": "dcs-bridge injection shifts trigger indices but leaves funcStartup self-references off by one",
+    "severity": "HIGH",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "869",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-056",
+    "title": "_next_trigger_index assumes every trigger key is integer-convertible",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
+    "line": "80",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-006",
+    "title": "Live METAR fetch never actually fetches; always returns defaults",
+    "severity": "HIGH",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "151",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-069",
+    "title": "Broad `except Exception` around METAR fetch swallows all errors as a warning",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "187",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-009",
+    "title": "read_miz / write_miz decompress untrusted .miz members with no size cap (decompression-bomb gap)",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "124",
+    "status": "review-needed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ]
+  },
+  {
+    "vid": "VMR-010",
+    "title": "Spawn-data Lua emitter only escapes backslash and double-quote, allowing broken/injectable Lua",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
+    "line": "52",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-011",
+    "title": "Checksum verification fails open when release metadata is missing or malformed",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "685",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ]
+  },
+  {
+    "vid": "VMR-057",
+    "title": "Temp verification zip leaks on unexpected exception",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "703",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ]
+  },
+  {
+    "vid": "VMR-012",
+    "title": "mission.yaml string values are interpolated into generated Lua without escaping (Lua injection / broken output)",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "376",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-015",
+    "title": "Lua-to-YAML converter emits numeric `time`, breaking the downstream string parser",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "125",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-068",
+    "title": "`_extract_list` escape handling ignores string state and doubled backslashes",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "207",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-111",
+    "title": "`_get_boolean` helper is dead code",
+    "severity": "LOW",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "261",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-016",
+    "title": "METAR parser silently drops negative (sub-zero) temperatures",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "246",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-070",
+    "title": "Visibility regex matches unrelated 4-digit METAR tokens",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "266",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-034",
+    "title": "dcs-bridge auto-download has no size cap or integrity check (unbounded fetch of executed Lua)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "814",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-049",
+    "title": "Auto-downloaded dcs-bridge.lua temp file is never deleted (handle/file leak)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "819",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-035",
+    "title": "Profile-driven script rename uses replacement verbatim as a filename (path traversal into scripts_dir parent)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/other_converter.py",
+    "line": "502",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-036",
+    "title": "Deferred-update .cmd script interpolates paths without escaping (batch injection)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "328",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ]
+  },
+  {
+    "vid": "VMR-037",
+    "title": "download_asset does not validate the GitHub-provided download URL scheme/host",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "300",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ]
+  },
+  {
+    "vid": "VMR-047",
+    "title": "_max_ids / _coalition_unit_count assume country is always a list and group containers are dicts",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/coalition_placeholder.py",
+    "line": "60",
+    "status": "review-needed",
+    "commits": [
+      "f350da53 feat(mcp): add add_group write action (FEAT-MCP-MISSION-EDITOR-004)"
+    ]
+  },
+  {
+    "vid": "VMR-048",
+    "title": "Combat-mission / assets extraction comments out from call start, not line start, corrupting the leading text",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/config_migrator.py",
+    "line": "1044",
+    "status": "review-needed",
+    "commits": [
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
+    ]
+  },
+  {
+    "vid": "VMR-050",
+    "title": "clear_veaf_triggers deletes trigger indexes without handling the list-shaped trig category",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "1156",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-051",
+    "title": "Weather converter drops a version's weather when position lat/lon keys are present but null",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/v5_pipeline_converters.py",
+    "line": "635",
+    "status": "review-needed",
+    "commits": [
+      "9af588f2 fix(convert-v5): integer channel keys + header comments in generated presets.yaml (FIX-CONVERTV5-PRESETS-OUTPUT) (#567)",
+      "e8db4756 feat(convert-v5): readable channel aliases instead of hardcoded frequencies (FEAT-CONVERTV5-FREQ-ALIASING) (#566)",
+      "e15e7543 feat(convert-v5): simplified preset plan by default + faithful copy (ADR 0010) (#562)",
+      "1dcbcd55 feat(presets): convert-v5 generates a preset plan by default (ADR 0010) (#559)"
+    ]
+  },
+  {
+    "vid": "VMR-052",
+    "title": "Bare print() in extractor worker violates logger-only project rule",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_extractor/mission_extractor_worker.py",
+    "line": "83",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-053",
+    "title": "write_miz temp file left behind and original silently unchanged on partial failure paths",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "247",
+    "status": "review-needed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ]
+  },
+  {
+    "vid": "VMR-054",
+    "title": "read_mission_folder produces a DcsMission whose file_path is a directory, unsafe to pass to write_miz",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "198",
+    "status": "review-needed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ]
+  },
+  {
+    "vid": "VMR-055",
+    "title": "Malformed per-mission spawn YAML raises unguarded KeyError/ValueError in the Lua renderer",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
+    "line": "105",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-058",
+    "title": "respawn_default_offset indexed as a 2-element list with no validation",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "676",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-059",
+    "title": "QRA silence_all guard is a dead branch — always true",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "483",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-060",
+    "title": "NAMEDPOINTS lat/lon passed to coord.LLtoLO as strings and interpolated unescaped",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "456",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-061",
+    "title": "get_modules() loads bundled/pre-generated JSON with no schema validation, trusting it into Lua emission",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_module_scanner.py",
+    "line": "112",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-062",
+    "title": "Source-mission parse swallows all exceptions, silently disabling reference checks",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/mission_validator.py",
+    "line": "194",
+    "status": "review-needed",
+    "commits": [
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-063",
+    "title": "Unparseable current version yields a spurious 'update available' prompt",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/update_checker.py",
+    "line": "37",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-064",
+    "title": "ask REPL only catches RuntimeError, so any other worker error crashes the session",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
+    "line": "85",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-116",
+    "title": "ask history cap constant is named 'turns' but counts messages",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
+    "line": "62",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-065",
+    "title": "Commands rely on the site-provided exit() builtin instead of typer.Exit",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/build.py",
+    "line": "239",
+    "status": "review-needed",
+    "commits": [
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ]
+  },
+  {
+    "vid": "VMR-066",
+    "title": "Mission lookup by name uses raw glob, treating name metacharacters as patterns",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/extract.py",
+    "line": "53",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-067",
+    "title": "extract_from_mission crashes with TypeError on a group that has no 'name'",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/python/veaf-tools/waypoints_injector/waypoints_injector_worker.py",
+    "line": "302",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-104",
+    "title": "GitHub publish can leave a dangling tag with no release when gh CLI is absent",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "veaf_build/github.py",
+    "line": "57",
+    "status": "review-needed",
+    "commits": [
+      "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
+      "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
+    ]
+  },
+  {
+    "vid": "VMR-105",
+    "title": "Force-pushed git tags with swallowed local failures in tag publishing",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/github.py",
+    "line": "79",
+    "status": "review-needed",
+    "commits": [
+      "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
+      "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
+    ]
+  },
+  {
+    "vid": "VMR-106",
+    "title": "Unit-type preset lookup compiles mission-maker regex on every aircraft match",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/presets_injector/presets_manager.py",
+    "line": "482",
+    "status": "review-needed",
+    "commits": [
+      "4fcfadef feat(presets): channel priority/colour, AJS-37 key-based packer, per-type kneeboards (#569)",
+      "58e6b1db feat(presets): add slot capacity primitive + CH-47F radio layout fix (ADR 0010) (#558)",
+      "5e27b016 feat(presets): add reserved head slots primitive + OH-58D layout (ADR 0010) (#557)",
+      "3f8d1e48 feat(presets): add radio fusion, hardcoded specials and modulation (AJS-37) (ADR 0010) (#556)",
+      "a6eecc12 feat(presets): add per-type radio layout + Mi-24P channel-0 rotation (ADR 0010) (#553)",
+      "05349a23 feat(presets): project role-based channel lists onto standard aircraft (ADR 0010) (#552)"
+    ]
+  },
+  {
+    "vid": "VMR-107",
+    "title": "merge_spawn_data recomputes framework alias sets on every mission entry (O(n*m))",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
+    "line": "66",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-108",
+    "title": "build reads and parses mission.yaml multiple times per invocation",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/build.py",
+    "line": "421",
+    "status": "review-needed",
+    "commits": [
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ]
+  },
+  {
+    "vid": "VMR-112",
+    "title": "Dead code: release packager still tries to add removed debug/trace Lua variants",
+    "severity": "LOW",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/worker.py",
+    "line": "686",
+    "status": "review-needed",
+    "commits": [
+      "96d48195 feat(assist): checklists an instructor can write, without knowing DCS internals (#651)",
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "e40869f9 fix(mcp): enum theatre from supported_theatres + bundle map/geo/blank data",
+      "adb8dd6e feat(mcp): expose #command spawn aliases in the oracle + bundle dcsUnits.yaml",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
+      "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
+    ]
+  },
+  {
+    "vid": "VMR-113",
+    "title": "Public helper classes/methods missing -> None return annotations",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py",
+    "line": "83",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-114",
+    "title": "collect_files_from_globs uses untyped logger param and swallows non-existent folders silently",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/mission_constants.py",
+    "line": "139",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-115",
+    "title": "Migration script uses print() throughout, violating the mandatory logger rule",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/migrate_lazy_log.py",
+    "line": "128",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-118",
+    "title": "radio_specs_updater.py uses print() throughout instead of the veaf_libs logger",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/radio_specs_updater.py",
+    "line": "46",
+    "status": "review-needed",
+    "commits": [
+      "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range"
+    ]
+  },
+  {
+    "vid": "VMR-128",
+    "title": "luadata read() silently ignores its multival argument",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/luadata/io/read.py",
+    "line": "25",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-131",
+    "title": "config_file_path() re-scans the filesystem on every user_config.get()",
+    "severity": "INFO",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/user_config.py",
+    "line": "89",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-134",
+    "title": "check_command ignores its display_name argument",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/worker.py",
+    "line": "180",
+    "status": "review-needed",
+    "commits": [
+      "96d48195 feat(assist): checklists an instructor can write, without knowing DCS internals (#651)",
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "e40869f9 fix(mcp): enum theatre from supported_theatres + bundle map/geo/blank data",
+      "adb8dd6e feat(mcp): expose #command spawn aliases in the oracle + bundle dcsUnits.yaml",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
+      "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
+    ]
+  },
+  {
+    "vid": "VMR-135",
+    "title": "_read_db_version truncates the source ref to 8 chars, risking a misleading version label",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/dcs_units_parser.py",
+    "line": "116",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-001",
+    "title": "Lua injection: unescaped player name/command interpolated into executed mission code",
+    "severity": "CRITICAL",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "473",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-002",
+    "title": "Injection via playerName in REGISTER_PLAYER / REGISTER_PLAYER_SLOT before authentication",
+    "severity": "CRITICAL",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "216",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-003",
+    "title": "veafGroundAI marker commands run with no security check",
+    "severity": "HIGH",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafGroundAI.lua",
+    "line": "599",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-004",
+    "title": "Unauthenticated OS command injection via SRS transmit/play marker commands",
+    "severity": "HIGH",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "755",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-013",
+    "title": "dcs-fiddle-server executes arbitrary Lua from unauthenticated HTTP requests",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/other/dcs-fiddle-server.lua",
+    "line": "270",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-017",
+    "title": "onEvent aborts all remaining match managers on a coalition mismatch",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/other/DcssbMatchManager.lua",
+    "line": "417",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-018",
+    "title": "continueCarrierOperations dereferences carrier.tankerData without nil check",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCarrierOperations.lua",
+    "line": "647",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-019",
+    "title": "tonumber(nil) comparison crashes on valueless size/defense/armor/spacing marker keywords",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "515",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-020",
+    "title": "Invalid Lua iteration crashes setAllElementsSkill",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "702",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-021",
+    "title": "Unguarded nil dereference when mist.teleportToPoint returns nil in combat mission activate",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "895",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-022",
+    "title": "Dead type() guards make FARP coalition normalization ineffective",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafGrass.lua",
+    "line": "1012",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-023",
+    "title": "onBirthEvent crashes when dynamic-slot groupId resolves to nil",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "113",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-024",
+    "title": "Point-defence lookup relies on getEarlyWarningRadars(name), but Skynet ignores the argument",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "622",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-096",
+    "title": "removeSkynetElement can nil-deref when the DCS group is gone",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "203",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-138",
+    "title": "Duplicate self.pointDefences = {} and shadowed launchers local",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "423",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-025",
+    "title": "Non-numeric 'multiplier' marker parameter aborts spawn with a runtime error",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafSpawnCore.lua",
+    "line": "305",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)"
+    ]
+  },
+  {
+    "vid": "VMR-038",
+    "title": "dictionaryNormalizer executes an untrusted dictionary file via loadfile/setfenv",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/other/dictionaryNormalizer.lua",
+    "line": "19",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-129",
+    "title": "dictionaryNormalizer and its helpers use print() and leak file handles on error",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/dictionaryNormalizer.lua",
+    "line": "99",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-039",
+    "title": "Remote marker command runs stored Lua via mist.utils.dostring gated by shared static password",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafRemote.lua",
+    "line": "228",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-130",
+    "title": "Empty monitoredCommands makes the remote marker command path dead/unreachable",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRemote.lua",
+    "line": "220",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-040",
+    "title": "Passwords hashed with unsalted single-round SHA-1; shared secrets committed in source",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "51",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-041",
+    "title": "getMarkerSecurityLevel conflates markId and username, weakening marker author trust",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "591",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-042",
+    "title": "Remote fog command indexes veafWeather with attacker-supplied key without whitelisting",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafWeather.lua",
+    "line": "1798",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-071",
+    "title": "get_stat indexed by numeric loop key instead of stat type value",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "350",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-072",
+    "title": "parse() dereferences pilot.level after logging that pilot is unknown (potential nil index)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "390",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-073",
+    "title": "dcs-fiddle create_server references undefined `id`, breaking every request path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/dcs-fiddle-server.lua",
+    "line": "561",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-074",
+    "title": "activateZone/deactivateZone crash on unknown or wrong-case zone name",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/other/trainingSpawnZone.lua",
+    "line": "118",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-075",
+    "title": "trainingSpawnZone.p references undefined veafServerHook on depth overflow",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/trainingSpawnZone.lua",
+    "line": "54",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-076",
+    "title": "Output files written before io.open success is checked, crashing on any open failure",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "524",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-077",
+    "title": "Undefined global logError() crashes the pretty-printer at max recursion depth",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "248",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-078",
+    "title": "Undefined global log used in serialize error branch (log:error)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "427",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-079",
+    "title": "Reliance on the implicit Lua 5.1 'arg' varargs table breaks under Lua 5.2+",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "91",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-080",
+    "title": "skip parameter mutated in place, corrupting caller's list and mixing array/hash keys",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "199",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-081",
+    "title": "exportAsJson writes to a file handle without checking io.open succeeded",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "3228",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-082",
+    "title": "veaf.split / veaf.breakString break when the separator is a Lua pattern magic char",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "1163",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-083",
+    "title": "veaf.serialize emits non-reloadable text for table/function/userdata values",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "656",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-084",
+    "title": "vec3/vec2 pretty-print branch in veaf.p is dead code (#o is always 0)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "821",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ]
+  },
+  {
+    "vid": "VMR-085",
+    "title": "deployWaves/tickActive dereference triggerZone/zoneCenter without full nil handling",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafAirWaves.lua",
+    "line": "1006",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-086",
+    "title": "Remote start-operations duration parsing is dead / uses wrong variable",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCarrierOperations.lua",
+    "line": "1114",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-087",
+    "title": "Unreachable armorBias branch: _actualDefense > 5 never true after clamp",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "609",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-088",
+    "title": "getRemainingEnemies mislabels damaged/dead units due to repeated getUnitLifeRelative calls",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "778",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-089",
+    "title": "veafEventHandler.isEventEnabled returns nil for unknown events, silently letting them through",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafEventHandler.lua",
+    "line": "526",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-090",
+    "title": "veafMissileGuardian remote/list handlers call undefined functions",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafMissileGuardian.lua",
+    "line": "593",
+    "status": "review-needed",
+    "commits": [
+      "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
+    ]
+  },
+  {
+    "vid": "VMR-091",
+    "title": "VeafMG_Guardian:copy corrupts protectedUnits/protectedZone deep copy",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafMissileGuardian.lua",
+    "line": "193",
+    "status": "review-needed",
+    "commits": [
+      "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
+    ]
+  },
+  {
+    "vid": "VMR-092",
+    "title": "Eager string.format(\"%d\", val) on raw marker strings crashes veafMove parser",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafMove.lua",
+    "line": "194",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-093",
+    "title": "Latitude/longitude formatted with %d, truncating fractional degrees",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "736",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-094",
+    "title": "Sanctuary event filter operator-precedence bug lets non-tracked BIRTH/DEAD events register",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSanctuary.lua",
+    "line": "804",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-095",
+    "title": "authenticate() silently ignores malformed timeout and mis-parses embedded digits",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "531",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-097",
+    "title": "CAP speed computation ignores its mach argument, collapsing all leg speeds",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "859",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-098",
+    "title": "AFAC spawn limit check is off-by-one and can index a taken callsign",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "464",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-099",
+    "title": "'afac' command handler inverts the hiddenOnMFD flag relative to every other handler",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "1443",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-100",
+    "title": "In-place mutation of shared DCS unit descriptor when swapping cargo min/max mass",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafSpawnEffects.lua",
+    "line": "89",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-101",
+    "title": "_findClosestConvoy aborts the whole search when one convoy has no position",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnGround.lua",
+    "line": "677",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ]
+  },
+  {
+    "vid": "VMR-102",
+    "title": "convertLaserToFreq accepts codes outside the valid DCS laser range in the low digits",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnParser.lua",
+    "line": "234",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-103",
+    "title": "getAtis new-ATIS detection triggers on any lower date component, not strict chronology",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafWeather.lua",
+    "line": "1131",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-109",
+    "title": "Asset info/dispose/respawn scan the whole list instead of keyed lookup",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafAssets.lua",
+    "line": "91",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-110",
+    "title": "VeafCache.getCachedData never evicts expired entries, growing the table unbounded",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCacheManager.lua",
+    "line": "113",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-117",
+    "title": "Dead / nonsensical double-wrapped _recordAction call in veafSanctuary",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSanctuary.lua",
+    "line": "116",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-132",
+    "title": "Module-level export code runs at load time as a script side effect (poor testability / reuse)",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "523",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-133",
+    "title": "Unused local spawnCapFunction",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "873",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-136",
+    "title": "veafCombatMission password keyword uses string.format with no format specifier",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "508",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-137",
+    "title": "Duplicate 'path' keyword handling in markTextAnalysis",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "235",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-007",
+    "title": "CONVERT_OTHER says conversion profiles are \"coming next\" but foothold already ships",
+    "severity": "HIGH",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/CONVERT_OTHER.en.md",
+    "line": "8",
+    "status": "review-needed",
+    "commits": [
+      "1712b932 feat(convert-other): adopt Lekaa's release channel (zip input, profile refresh, WW2 profile)"
+    ]
+  },
+  {
+    "vid": "VMR-008",
+    "title": "English guides link to French .md pages instead of .en.md",
+    "severity": "HIGH",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/README.en.md",
+    "line": "69",
+    "status": "review-needed",
+    "commits": [
+      "521d1967 docs(plugin): install guide for the AI mission-editing assistant (FEAT-MCP-PLUGIN-003)"
+    ]
+  },
+  {
+    "vid": "VMR-014",
+    "title": "Coalition ID mapping is backwards (1=blue/2=red) — DCS uses RED=1, BLUE=2",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/LUA_API_REFERENCE.en.md",
+    "line": "74",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "19aec92c docs: fix what the documentation audit found"
+    ]
+  },
+  {
+    "vid": "VMR-026",
+    "title": "CONTRIBUTING.md links to a non-existent doc/developer/GUIDE.fr.md",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "CONTRIBUTING.md",
+    "line": "5",
+    "status": "review-needed",
+    "commits": [
+      "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ]
+  },
+  {
+    "vid": "VMR-027",
+    "title": "Developer GUIDE says \"31 test suites\" but there are 34 (contradicts TESTING.md)",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/developer/GUIDE.md",
+    "line": "64",
+    "status": "review-needed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ]
+  },
+  {
+    "vid": "VMR-028",
+    "title": "Developer GUIDE says \"34 files\" for src/scripts/veaf/ but there are 41",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/developer/GUIDE.md",
+    "line": "54",
+    "status": "review-needed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ]
+  },
+  {
+    "vid": "VMR-029",
+    "title": "French GUIDE Table of Contents links are broken (slug vs explicit heading id)",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/GUIDE.md",
+    "line": "15",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ]
+  },
+  {
+    "vid": "VMR-030",
+    "title": "Migration guide says Klogg VEAF profile is \"planned\" but it already ships",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/MIGRATION_GUIDE.en.md",
+    "line": "349",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ]
+  },
+  {
+    "vid": "VMR-031",
+    "title": "Shortcuts config table names the enable field `enable` while examples use `enabled`",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafShortcuts.en.md",
+    "line": "51",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-032",
+    "title": "Weather page Purpose and F10-menu sections diverge between FR and EN",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafWeather.md",
+    "line": "8",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-033",
+    "title": "Warn that a well-known default L1 password ships active",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "doc/mission-maker/scripts/veafSecurity.en.md",
+    "line": "43",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-124",
+    "title": "Security page documents only three levels; Mission-Master (MM) level is undocumented",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafSecurity.en.md",
+    "line": "26",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-043",
+    "title": "GUIDE (EN) tips use invalid `group N` option for `_spawn unit`",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/GUIDE.en.md",
+    "line": "311",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-044",
+    "title": "GUIDE tips use invalid `group N` option for `_spawn unit`",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "311",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-045",
+    "title": "README (EN) advertises non-existent \"CAS Mission → Generate\" menu path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/README.en.md",
+    "line": "22",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-046",
+    "title": "README advertises non-existent \"CAS Mission → Generate\" menu path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/README.md",
+    "line": "22",
+    "status": "untouched",
+    "commits": []
+  },
+  {
+    "vid": "VMR-119",
+    "title": "README claims \"34 Lua modules\" — contradicts the source tree (41) and the API reference (\"33+\")",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "README.md",
+    "line": "28",
+    "status": "review-needed",
+    "commits": [
+      "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)"
+    ]
+  },
+  {
+    "vid": "VMR-120",
+    "title": "MISSION_YAML_REFERENCE.en.md cross-links point at French GUIDE.md instead of .en.md",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/MISSION_YAML_REFERENCE.en.md",
+    "line": "465",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "08061fb3 docs(mission-yaml): Afghanistan takes OAIX, and the doc stops prescribing omission",
+      "1a012488 docs(mission-yaml): document the .miz file name as an interface (_ICAO_ real weather)",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ]
+  },
+  {
+    "vid": "VMR-121",
+    "title": "convert-other missing from the Design-Time Tools command table",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/GUIDE.md",
+    "line": "318",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ]
+  },
+  {
+    "vid": "VMR-122",
+    "title": "dcs-radio-specs reference page has no English version",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/dcs-radio-specs.md",
+    "line": "1",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range",
+      "89c0eeff docs(presets): document per-type radio-preset projection (dev page + MM note)"
+    ]
+  },
+  {
+    "vid": "VMR-123",
+    "title": "veafCombatZone.en.md is missing the \"See Also\" heading",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafCombatZone.en.md",
+    "line": "343",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
+    ]
+  },
+  {
+    "vid": "VMR-125",
+    "title": "FR/EN asset menu labels diverge (Ressources vs Assets) from real 'ASSETS' label",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.en.md",
+    "line": "178",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-126",
+    "title": "Asset menu path documents intermediate submenus that don't exist in-game",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "178",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-127",
+    "title": "Permission table maps to Public/Pilots/Admin, not the code's L0/L1/L9 password model",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "278",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-139",
+    "title": "Overview test count \"~1000 tests\" disagrees with ROADMAP's \"~915 tests\"",
+    "severity": "INFO",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/TESTING.md",
+    "line": "19",
+    "status": "review-needed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  },
+  {
+    "vid": "VMR-140",
+    "title": "Shortcuts security list omits `-point` and `-longsmoke` from the bypass-security aliases",
+    "severity": "INFO",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafShortcuts.en.md",
+    "line": "133",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ]
+  }
+]

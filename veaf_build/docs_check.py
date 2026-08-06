@@ -270,7 +270,9 @@ def check_doc_coverage(repo_root: Path) -> list[str]:
         repo_root: Repository root.
 
     Returns:
-        One ``"<label> '<name>' is not documented in <page>"`` string per gap, sorted.
+        Sorted findings, of two shapes: ``"<label> '<name>' is not documented in <page>"`` for a name
+        the page never mentions, and ``"<label> page missing: <page>"`` when the page itself is gone —
+        which is the more urgent of the two and must not be reported as if it were a single gap.
     """
     findings: list[str] = []
     for rule in COVERAGE_RULES:
@@ -286,7 +288,7 @@ def check_doc_coverage(repo_root: Path) -> list[str]:
                 for name in names
                 if rule.mention.format(name=name) not in text
             ]
-    return findings
+    return sorted(findings)
 
 
 #: A link target only counts as a path when it is plain ASCII path characters. This is what keeps an
@@ -388,13 +390,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--skip-repo-links",
         action="store_true",
-        help="Only audit doc/; skip the relative-link pass over .backlog/, docs/ and the root pages.",
+        help="Skip the relative-link pass over .backlog/, docs/ and the root pages.",
+    )
+    parser.add_argument(
+        "--skip-coverage",
+        action="store_true",
+        help="Skip the check that every capability the code defines is named by its reference page.",
     )
     args = parser.parse_args(argv)
 
     report = check_docs(args.doc_dir, args.mkdocs, require_explicit_anchors=not args.allow_implicit_anchors)
+    # Each pass gets its own opt-out. They were briefly sharing one, which meant asking to skip link
+    # validation silently dropped the coverage gate too — a gate nobody chose to lose.
     if not args.skip_repo_links:
         report.repo_broken_links = check_repo_links(args.repo_root)
+    if not args.skip_coverage:
         report.undocumented_names = check_doc_coverage(args.repo_root)
     print(format_report(report))
     return 1 if report.total else 0

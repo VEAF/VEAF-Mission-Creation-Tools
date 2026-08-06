@@ -365,3 +365,67 @@ class TestCoverageRegexMatchesReality:
             f"what it guards. only regexed: {sorted(regexed - imported)}; "
             f"only imported: {sorted(imported - regexed)}"
         )
+
+
+class TestTheTwoPassesOptOutIndependently:
+    """`--skip-repo-links` must not silently take the coverage gate with it.
+
+    They shared one flag briefly, so asking to skip link validation dropped a gate nobody chose to
+    lose. Caught in review (Sourcery, PR #660).
+    """
+
+    def _repo(self, tmp_path: Path) -> Path:
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "mkdocs.yml").write_text("site_name: t\nnav:\n", encoding="utf-8")
+        (tmp_path / "broken.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "a.py").write_text('name="undocumented"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        return tmp_path
+
+    def _run(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *flags: str) -> str:
+        import contextlib
+        import io
+
+        from veaf_build.docs_check import main
+
+        monkeypatch.setattr(
+            "veaf_build.docs_check.COVERAGE_RULES",
+            (CoverageRule(label="thing", source_glob="src/*.py", pattern=r'name="([a-z_]+)"', pages=("doc/ref.md",)),),
+        )
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            main(
+                [
+                    "--doc-dir",
+                    str(tmp_path / "doc"),
+                    "--mkdocs",
+                    str(tmp_path / "mkdocs.yml"),
+                    "--repo-root",
+                    str(tmp_path),
+                    *flags,
+                ]
+            )
+        return out.getvalue()
+
+    def test_skipping_links_keeps_the_coverage_gate(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        text = self._run(self._repo(tmp_path), monkeypatch, "--skip-repo-links")
+        assert "undocumented" in text, "the coverage gate must survive --skip-repo-links"
+        assert "nowhere.md" not in text
+
+    def test_skipping_coverage_keeps_the_link_pass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        text = self._run(self._repo(tmp_path), monkeypatch, "--skip-coverage")
+        assert "nowhere.md" in text
+        assert "undocumented" not in text
+
+    def test_findings_are_sorted(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # The docstring promises it, and stable output is what makes a diff of two runs readable.
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "src" / "a.py").write_text('name="zulu"\nname="alpha"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr(
+            "veaf_build.docs_check.COVERAGE_RULES",
+            (CoverageRule(label="thing", source_glob="src/*.py", pattern=r'name="([a-z_]+)"', pages=("doc/ref.md",)),),
+        )
+        assert check_doc_coverage(tmp_path) == sorted(check_doc_coverage(tmp_path))

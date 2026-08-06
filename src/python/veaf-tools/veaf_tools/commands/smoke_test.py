@@ -27,6 +27,13 @@ def smoke_test(
         caps = probe(url=url, timeout=timeout)
         for note in caps.notes:
             console.print(f"  - {note}")
+        blocker = caps.blocking_reason()
+        if blocker:
+            # Named explicitly, and after the raw notes rather than instead of them: the notes are the
+            # measurement, this line is the reading of it, and the reading is what people act on.
+            console.print(f"\n[yellow]![/]  {blocker}")
+        elif caps.can_drive_lifecycle:
+            console.print(f"\n[green]✓[/]  {t('cmd.smoke_test.lifecycle_available')}")
         if not caps.hook_alive:
             raise typer.Exit(code=0)  # nothing running is not a failure
         return

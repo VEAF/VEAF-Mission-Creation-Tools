@@ -3,7 +3,7 @@
 Execution order for the open lots in [.backlog/README.md](.backlog/README.md). Source of truth for
 **sequencing**; `.backlog/` stays the source of truth for **scope and status**.
 
-> Refreshed 2026-08-04 after **6.13.0**. The original 2026-06-10 sequencing
+> Refreshed 2026-08-06 after the SECREV-2 security work (§2). The original 2026-06-10 sequencing
 > (CI-NODE24 → SECREV → MODULES-UNIFY → conversion cluster → spawn axis → RELEASE) is
 > **fully delivered** and has been retired from this file; see `.backlog/archive/` for the
 > closed lots.
@@ -38,30 +38,60 @@ extending it:
 - **Combat zones playable from either side** — red-side zones and coalition-scoped F10 menus.
 
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.13.0** (2026-08-01); `develop` is at **6.13.17**.
+release is **6.13.0** (2026-08-01); `develop` is at **6.13.24**.
 
 ---
 
-## 2. Open backlog — the human-gated ones
+## 2. Open backlog — what is blocked, and on what
 
-This table lists only the lots **waiting on a person**. It is not the full open list:
-[.backlog/README.md](.backlog/README.md) is, and it is the source of truth for scope and status.
+[.backlog/README.md](.backlog/README.md) is the full open list and the source of truth for scope
+and status. This section is only about **what is in the way**, because almost everything blocked
+is blocked on the same thing.
+
+### Blocked on a machine with DCS installed
+
+Not on a decision — on hardware. None of these can move from a workstation without DCS.
+
+| Lot | Status | What has to be observed in game |
+|-----|--------|---------------------------------|
+| `FEAT-SCENERY-AWARE-SPAWN` | 🧑 | Ticket 01: does `Disposition.getSimpleZones` really avoid buildings and forests? Code shipped; the avoidance is asserted, not measured. |
+| `FEAT-COMBATZONE-MENU-COALITION` | 🧑 | Does DCS accept a coalition-scoped submenu under a global parent? Open since July. |
+| `FEAT-CUSTOM-SCRIPT-LOAD-DELAY` | ⬜ | Its first task is reading `dcs.log` after running the built Foothold. Labelled ⬜, gated in practice. |
+| `FEAT-DCS-SMOKE-HARNESS` | 🔄 | Its remaining slice — locate, launch, load, quit — rests on `net.load_mission` and `DCS.exitProcess`, which this repository has never called. Deliberately not written blind. |
+
+**`FEAT-DCS-SMOKE-HARNESS` is the lever.** Its six checks are already written and have never run;
+two of them answer the first two rows above outright. Finishing it on a DCS machine converts three
+gates into evidence in one session, and turns `Disposition` from assumed into measured. Start there,
+not with the individual probes.
+
+### Blocked on a person, not on DCS
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| `ENRICH-DEFAULT-PRESETS` | ⬜ | Needs a 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
-| `FEAT-SCENERY-AWARE-SPAWN` | 🧑 | Code shipped; ticket 01 is the in-game `Disposition` probe, which needs a DCS install. |
-| `FEAT-COMBATZONE-MENU-COALITION` | 🧑 | Ticket 01 done; needs the in-game check that DCS accepts a coalition-scoped submenu under a global parent. |
+| `ENRICH-DEFAULT-PRESETS` | ⬜ | A 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
+| `REVIEW-SECURITY-LAYER` | ⬜ | Both tickets end in a decision by David: what a login session should mean, and whether the tier names change (breaking). |
 | `FEAT-ASSIST-AUTHORING` | ⏸ | Parked by David 2026-08-03 — checklists nobody reviews are not worth generating. |
 
-**Not human-gated, and open**: the five lots scoped out of the dcs-sms study on 2026-08-05
-(`FEAT-MCP-MUTATION-ACTIONS`, `FEAT-DCS-SMOKE-HARNESS`, `TOOLING-DOC-AUTOGEN`,
-`FEAT-PORTABLE-PREFABS`, `CHORE-SMS-QUICK-WINS`) plus `CHORE-TOOLING-GATES`,
-`FIX-RADIO-LAYOUT-GAPS` and `FEAT-CUSTOM-SCRIPT-LOAD-DELAY`. Sequencing them is still open — see §4
-for the value order the study suggests. Note that `FEAT-DCS-SMOKE-HARNESS` would **clear three of the
-four gates above**, which is an argument for taking it early.
+### Open, and doable anywhere
 
-`RELEASE` stays as a recurring chore template, not a one-shot lot.
+`SECREV-2` (tickets 04–07: fail-closed integrity, the two correctness bugs, the 24 medium and the
+108 low/info), `FEAT-MCP-MUTATION-ACTIONS`, `FEAT-PORTABLE-PREFABS` (a design decision, and a
+rejection is an acceptable outcome), `CHORE-SMS-QUICK-WINS`, `CHORE-TOOLING-GATES` (2 of 3 left),
+`FIX-RADIO-LAYOUT-GAPS`.
+
+`RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
+**6.13.0 was published 2026-08-01 and `develop` is 24 patch versions ahead.**
+
+### Security work landed 2026-08-06
+
+`SECREV-2` acts on `CODE_DOC_REVIEW_2026-07-01.md`, a 140-finding review that sat untracked at the
+repository root for a month. Tickets 02 and 03 shipped: the two criticals (an unescaped player name
+executing as code on the pre-authentication connect path), the shell command built from marker text,
+the Python Lua-emission sites, and the marker handlers that ran for anyone because declaring a
+security level was optional. **One action is outstanding and belongs to David**: the server hook is
+fixed in the repository and **not deployed**, and `REFACTOR-SERVER-HOOK-CANONICAL` made the
+repository copy the deployable source — so both criticals remain live on the VEAF servers until it
+is copied there.
 
 **Delivered since the last refresh:**
 

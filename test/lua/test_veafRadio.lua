@@ -952,4 +952,98 @@ function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
   veafRadio.delSubmenu("Scoped", nil)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioShellSafety (SECREV-2, finding VMR-004)
+--
+-- _transmitViaSRS builds a Windows command line and hands it to os.execute. Three of
+-- the values it interpolates -- the spoken message, the station name, the frequency
+-- list -- come from the text of an F10 map marker, which any player can write and
+-- which nothing authenticates. A double quote inside one of them ends the argument it
+-- sits in, and what follows is read by cmd as a new command on the server's host.
+-- ---------------------------------------------------------------------------
+TestVeafRadioShellSafety = {}
+
+--- The template puts exactly four values in quotes, so a well-formed command line has
+--- eight double quotes. Any other count means a value opened or closed one of its own.
+local EXPECTED_QUOTES = 8
+
+local function countQuotes(command)
+  local _, n = command:gsub('"', "")
+  return n
+end
+
+function TestVeafRadioShellSafety:setUp()
+  self.savedExecute = os.execute
+  self.commands = {}
+  -- _transmitViaSRS reads the global `os`, so replacing the field is enough.
+  os.execute = function(command)
+    self.commands[#self.commands + 1] = command
+    return 0
+  end
+  STTS = { DIRECTORY = "C:\\SRS", EXECUTABLE = "DCS-SR-ExternalAudio.exe", SRS_PORT = 5002 }
+end
+
+function TestVeafRadioShellSafety:tearDown()
+  os.execute = self.savedExecute
+  STTS = nil
+end
+
+--- The finding itself: a marker message that closes its quote and chains a command.
+function TestVeafRadioShellSafety:test_message_cannot_chain_a_command()
+  veafRadio.transmitMessage('inbound" & calc.exe & rem "', "251", "AM", "SRS", 1, nil, true)
+
+  luaunit.assertEquals(#self.commands, 1)
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "&", 1, true))
+end
+
+--- The station name is interpolated into its own quoted argument, and is just as free.
+function TestVeafRadioShellSafety:test_station_name_cannot_chain_a_command()
+  veafRadio.transmitMessage("hello", "251", "AM", 'SRS" | whoami | rem "', 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "|", 1, true))
+end
+
+--- The MP3 path travels the same way, through a different option.
+function TestVeafRadioShellSafety:test_mp3_path_cannot_chain_a_command()
+  veafRadio.playToRadio('sound.mp3" & calc.exe & rem "', "251", "AM", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "&", 1, true))
+end
+
+--- Values that reach the command line unquoted are validated rather than stripped: a
+--- frequency list that is not one is refused outright.
+function TestVeafRadioShellSafety:test_frequencies_are_validated_not_stripped()
+  veafRadio.transmitMessage("hello", "251 & calc.exe", "AM", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNil(string.find(command, "calc.exe", 1, true))
+  luaunit.assertNotNil(string.find(command, "-f 251 ", 1, true))
+end
+
+function TestVeafRadioShellSafety:test_modulations_are_validated()
+  veafRadio.transmitMessage("hello", "251", "AM|whoami", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNil(string.find(command, "whoami", 1, true))
+  luaunit.assertNotNil(string.find(command, "-m AM ", 1, true))
+end
+
+--- A legitimate transmission must be unchanged -- the point is to keep SRS working.
+function TestVeafRadioShellSafety:test_ordinary_transmission_is_untouched()
+  veafRadio.transmitMessage("Bullseye zero nine zero, forty.", "251,255.5", "AM,FM", "Overlord", 2, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNotNil(string.find(command, "-t \"Bullseye zero nine zero, forty.\"", 1, true))
+  luaunit.assertNotNil(string.find(command, "-f 251,255.5 ", 1, true))
+  luaunit.assertNotNil(string.find(command, "-m AM,FM ", 1, true))
+  luaunit.assertNotNil(string.find(command, "-n \"Overlord\"", 1, true))
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+end
+
 os.exit(luaunit.LuaUnit.run())

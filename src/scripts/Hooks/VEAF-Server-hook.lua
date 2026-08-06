@@ -79,11 +79,22 @@ veafServerHook.DEFAULT_MAX_SERVER_UPTIME = 2 * 60
 -- maximum number of players before allowing restart of the server
 veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART = 1
 
--- scripts injected in the mission
-REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser("%s", "%s", "%s") end ]]
-REGISTER_PLAYER_SLOT =  [[ if veafRemote and veafRemote.registerUserSlot then veafRemote.registerUserSlot("%s", "%s", "%s") end ]]
-RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") end ]]
-SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText("%s", %s) end ]]
+-- Scripts injected in the mission.
+--
+-- Every interpolated value uses %q, never "%s". These templates carry player names and
+-- chat text -- data an attacker chooses -- into a chunk the mission then executes, so a
+-- value wrapped in plain quotes only has to contain a quote of its own to stop being
+-- data and start being code. %q is Lua's own string quoting: it escapes quotes,
+-- backslashes, newlines and carriage returns, so the value can only ever arrive as a
+-- string. Always pass tostring(value): %q rejects nil, and renders a number bare rather
+-- than quoted, which would change the argument's type on the far side.
+--
+-- This is only half of it -- %q does not escape `]`, so it cannot stop a value from
+-- closing the long bracket that injectCode used to wrap the payload in. See injectCode.
+REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser(%q, %q, %q) end ]]
+REGISTER_PLAYER_SLOT =  [[ if veafRemote and veafRemote.registerUserSlot then veafRemote.registerUserSlot(%q, %q, %q) end ]]
+RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote(%q, %q, %q, %q, %q) end ]]
+SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText(%q, %s) end ]]
 
 -- marks the end of a data package sent to the API server socket
 veafServerHook.EOT_MARKER = ">>EOT"
@@ -232,7 +243,7 @@ function veafServerHook.onPlayerConnect(id)
         veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting with UCID [%s]", veafServerHook.p(playerName), veafServerHook.p(ucid)))
     end
     veafServerHook.logTrace(string.format("pilot=%s",veafServerHook.p(pilot)))
-    local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
+    local payload = string.format(REGISTER_PLAYER, tostring(playerName), tostring(pilot.level), tostring(ucid))
     veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
     veafServerHook.injectCode(payload)
 end
@@ -262,7 +273,7 @@ function veafServerHook.onPlayerChangeSlot(id)
     veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
 
     -- set the player current unit name
-    local payload = string.format(REGISTER_PLAYER_SLOT, playerName, ucid, unitName or "nil") -- unitName will be nil if the player is a spectator
+    local payload = string.format(REGISTER_PLAYER_SLOT, tostring(playerName), tostring(ucid), tostring(unitName or "nil")) -- unitName will be nil if the player is a spectator
     veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
     veafServerHook.injectCode(payload)
 end
@@ -418,7 +429,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     veafServerHook.logTrace(string.format("_command=%s",veafServerHook.p(_command)))
     if pilot.level > 0 then
         -- register the player
-        local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
+        local payload = string.format(REGISTER_PLAYER, tostring(playerName), tostring(pilot.level), tostring(ucid))
         veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
         veafServerHook.injectCode(payload)
     end
@@ -538,9 +549,18 @@ function veafServerHook.stopMissionIfNeeded()
     end
 end
 
+--- Run a chunk of Lua inside the mission scripting environment.
+---
+--- The payload is quoted with %q rather than wrapped in a fixed [===[ ]===] bracket.
+--- A long bracket is only opaque until its own closing sequence appears inside it: a
+--- payload containing ]===] ends the string early and the remainder is parsed as code,
+--- which is reachable from a player name even when the templates already quote their
+--- values, because %q escapes quotes and backslashes but not `]`. Choosing a bracket
+--- level that avoids the payload would also work; %q removes the problem instead of
+--- computing around it.
 function veafServerHook.injectCode(payload)
     veafServerHook.logDebug(string.format("veafServerHook.injectCode([%s])",veafServerHook.p(payload)))
-    local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[' .. payload .. ']===]' .. ')')
+    local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. string.format("%q", tostring(payload)) .. ')')
     veafServerHook.logTrace(string.format("_status=%s",veafServerHook.p(_status)))
     veafServerHook.logTrace(string.format("_retValue=%s",veafServerHook.p(_retValue)))
     if not _status then
@@ -552,7 +572,7 @@ end
 
 function veafServerHook.sendMessage(message, duration)
     veafServerHook.logDebug(string.format("veafServerHook.sendMessage([%s, %s])",veafServerHook.p(message), veafServerHook.p(duration)))
-    veafServerHook.injectCode(string.format(SEND_MESSAGE, message, tostring(duration)))
+    veafServerHook.injectCode(string.format(SEND_MESSAGE, tostring(message), tostring(duration)))
 end
 
 -- Load the list of VEAF pilots

@@ -35,3 +35,14 @@ It updates the tool on a mission maker's machine. A change that makes it refuse 
 someone on an old version with an unhelpful message. Every new refusal needs to say what is wrong and
 what to do — and it is worth checking what happens on the very next release after this ships, since a
 fail-closed updater that is wrong about its own metadata format cannot update itself out of the problem.
+
+## Acceptance criteria
+
+- [ ] Every one of the three shapes refuses rather than proceeds when its integrity material is
+      absent or unparseable, each with a test for the missing case and the malformed case.
+- [ ] `read_miz` caps both total and per-member uncompressed size, refusing rather than truncating —
+      and the decision on whether this is new code or routing through `safe_zip.py` is recorded.
+- [ ] Every new refusal message says what is wrong **and** what to do about it, checked by reading them
+      aloud as a mission maker would see them.
+- [ ] The updater's own next release is exercised against the new checks before this ships: a
+      fail-closed updater that is wrong about its metadata format cannot update itself out of trouble.

@@ -845,8 +845,8 @@
     "line": "599",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Fixed structurally rather than per-instance. veafCommands.registerCommandHandler now takes a required security argument and asserts on a missing or unknown one, and the dispatcher enforces it centrally; veafSpawn.registerCommandHandler lost its documented 'legacy 2-arg form = no check'. The inventory the ticket asked for found VMR-003 was one of FOUR ungated handlers: veafGroundAI (reported), plus veafMove, veafNamedPoints and the veafRadio marker path (not reported). Levels set by David 2026-08-06: veafGroundAI L9, veafMove L1, veafRadio L1, veafNamedPoints OPEN. Changes existing missions -- three commands anyone could use now need a pilot level or a login."
   },
   {
     "vid": "VMR-004",
@@ -865,7 +865,7 @@
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
     "outcome": "fixed",
-    "outcome_detail": "veafRadio._transmitViaSRS now strips shell metacharacters from the free-text values (message, station name, file path) and validates the small-shape ones (frequencies, modulations, coalition) against an anchored pattern, falling back with a warning. Reachability was confirmed while fixing: markTextAnalysis reads an F10 marker and nothing on that path authenticates, so any player reached os.execute on the server host. Six tests in test_veafRadio.lua; five of them fail without the fix."
+    "outcome_detail": "veafRadio._transmitViaSRS now strips shell metacharacters from the free-text values (message, station name, file path) and validates the small-shape ones (frequencies, modulations, coalition) against an anchored pattern, falling back with a warning. Reachability was confirmed while fixing: markTextAnalysis reads an F10 marker and nothing on that path authenticates, so any player reached os.execute on the server host. Six tests in test_veafRadio.lua; five of them fail without the fix. Security half closed by ticket 03: the veafRadio marker path now declares L1 and the dispatcher enforces it, so the shell-safety fix is no longer the only thing between a spectator and os.execute."
   },
   {
     "vid": "VMR-013",

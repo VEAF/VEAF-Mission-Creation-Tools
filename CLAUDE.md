@@ -105,6 +105,9 @@ For every action requested by the user, execute these steps in order:
 0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop` (or rebase your branch onto the latest `origin/develop`). Never reason about "what's left to do" or start work from a stale local checkout.
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
+   - **When starting work on a ticket, first restate it in 1–3 sentences.** What it is and what
+     "done" means, before any tool call. The point is that the user can catch a misread before the
+     work is built on it, not after.
 2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add a row to `.backlog/README.md`.
 3. **Create a branch** from `develop` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.

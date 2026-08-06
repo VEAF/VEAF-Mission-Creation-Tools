@@ -1725,7 +1725,7 @@ function veafShortcuts.initialize()
     -- An alias usually expands to a spawn: markers target the opposing side by default.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     return veafShortcuts.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, route)
-  end, veafCommands.PRIORITY_SHORTCUTS)
+  end, veafCommands.PRIORITY_SHORTCUTS, veafCommands.SECURITY_HANDLED)
   veafRemote.registerRemoteModule("alias", veafShortcuts.executeCommandFromRemote)
   veafShortcuts.dumpAliasesList()
 end

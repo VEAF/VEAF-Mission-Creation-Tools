@@ -1279,7 +1279,7 @@ function veafCasMission.initialize()
     -- Markers spawn the CAS target for the opposing side by default.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     return veafCasMission.executeCommand(pos, event.text, spawnSide, event.idx, bypass)
-  end, veafCommands.PRIORITY_CASMISSION)
+  end, veafCommands.PRIORITY_CASMISSION, veafCommands.SECURITY_HANDLED)
 end
 
 veaf.loggers.get(veafCasMission.Id):info(veaf.loggers.get(veafCasMission.Id):getVersionInfo())

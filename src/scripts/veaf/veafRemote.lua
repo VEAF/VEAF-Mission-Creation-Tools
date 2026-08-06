@@ -365,7 +365,7 @@ function veafRemote.initialize()
   veafRemote.buildDefaultList()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     return veafRemote.executeCommand(pos, event.text)
-  end, veafCommands.PRIORITY_REMOTE)
+  end, veafCommands.PRIORITY_REMOTE, veafCommands.SECURITY_HANDLED)
 end
 
 veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo())

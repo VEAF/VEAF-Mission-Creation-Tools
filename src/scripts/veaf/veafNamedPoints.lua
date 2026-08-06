@@ -295,12 +295,14 @@ function veafNamedPoints.initialize(customPoints)
   veafNamedPoints.addCustomPoints(customPoints)
 
   veafNamedPoints.buildRadioMenu()
+  -- OPEN: naming a point is informational and has no side effect, so it stays available to
+  -- everyone -- but as a written decision rather than an omission. Chosen by David.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     -- From the interpreter (fromMarker=false), preserve legacy coalition=-1 so named
     -- points created via unit names are visible to all coalitions (same as before).
     local effectiveEvent = fromMarker and event or { text = event.text, coalition = -1, idx = nil }
     return veafNamedPoints.executeCommand(pos, effectiveEvent, bypass)
-  end, veafCommands.PRIORITY_NAMEDPOINTS)
+  end, veafCommands.PRIORITY_NAMEDPOINTS, "OPEN")
   veafRemote.registerRemoteModule("point", veafNamedPoints.executeCommandFromRemote)
 end
 

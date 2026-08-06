@@ -654,9 +654,11 @@ function veafSecurity.isAuthenticated()
 end
 
 function veafSecurity.initialize()
+  -- OPEN, necessarily: this handler *is* the login command. Gating it behind a level would
+  -- mean needing to be authenticated in order to authenticate.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     return veafSecurity.executeCommand(pos, event.text, bypass)
-  end, veafCommands.PRIORITY_SECURITY)
+  end, veafCommands.PRIORITY_SECURITY, "OPEN")
   veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
   veafSecurity.authenticated = veaf.SecurityDisabled
 end

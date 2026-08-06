@@ -1129,10 +1129,13 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   --mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15) --TODO check if this is still needed (commented out when added the BIRTH event handler)
 
   -- add marker change event handler
+  -- L1: this path transmits audio on a radio frequency, which is spammable. Had no check at
+  -- all before SECREV-2 -- the two isAuthenticated tests in this module guard the F10 menu,
+  -- not the marker. Level chosen by David.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     -- veafRadio uses raw (non-inverted) coalition — pass event.coalition directly
     return veafRadio.executeCommand(pos, event.text, event.coalition, bypass)
-  end, veafCommands.PRIORITY_RADIO)
+  end, veafCommands.PRIORITY_RADIO, "L1")
 
   -- add human birth event handler
   veafEventHandler.addCallback("veafRadio.eventHandler", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafRadio.onBirthEvent)

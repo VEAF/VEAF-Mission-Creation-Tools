@@ -520,12 +520,12 @@ veafSpawn.registerCommandHandler("bomb", "L1", function(eventPos, options, coali
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("smoke", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("smoke", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("flare", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("flare", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   if not options.altitude or options.altitude == 0 then
     options.altitude = 1000
   end
@@ -546,7 +546,7 @@ veafSpawn.registerCommandHandler("flare", function(eventPos, options, coalition,
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("signal", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("signal", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
   return nil, nil, false
 end)

@@ -1,6 +1,6 @@
 # SECREV-2 — act on the 2026-07-01 security review, finding by finding
 
-Status: 🔄 in-progress — ticket 02 delivered 2026-08-06
+Status: 🔄 in-progress — tickets 02 and 03 delivered 2026-08-06
 
 Source: [`CODE_DOC_REVIEW_2026-07-01.md`](../../CODE_DOC_REVIEW_2026-07-01.md) — 2 606 lines, 140
 findings, produced by 20 reviewers with an adversarial verifier that re-read each security/bug
@@ -99,7 +99,7 @@ the uncapped fetches of VMR-009 and the bridge/updater).
 |---|--------|--------|
 | 01 | [Currency triage — method, tooling, and the eight verified](tickets/01-currency-triage.md) | 🔄 |
 | 02 | [Untrusted text into executed code — the five layers](tickets/02-unsafe-interpolation.md) | ✅ |
-| 03 | [Security gates that fail open](tickets/03-fail-open-gates.md) | ⬜ |
+| 03 | [Security gates that fail open](tickets/03-fail-open-gates.md) | ✅ |
 | 04 | [Integrity checks that pass when metadata is missing](tickets/04-fail-closed-integrity.md) | ⬜ |
 | 05 | [The two high-severity correctness bugs](tickets/05-correctness-bugs.md) | ⬜ |
 | 06 | [The 24 medium findings](tickets/06-medium-sweep.md) | ⬜ |

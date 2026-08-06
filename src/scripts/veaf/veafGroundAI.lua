@@ -810,12 +810,15 @@ end
 function veafGroundAI.initialize()
   veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo())
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
+  -- L9: any pilot the server hook lists in veaf-pilots.txt (level >= 1). Spawning and
+  -- commanding ground AI is the same power veafSpawn already gates, and this path had no
+  -- check at all (SECREV-2, VMR-003). David: restrict to VEAF pilots authenticated by the hook.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     if not fromMarker then
       return false
     end
     return veafGroundAI.onEventMarkChange(pos, event)
-  end, veafCommands.PRIORITY_GROUNDAI)
+  end, veafCommands.PRIORITY_GROUNDAI, "L9")
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

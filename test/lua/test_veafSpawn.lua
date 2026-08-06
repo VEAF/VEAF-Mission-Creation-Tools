@@ -416,16 +416,29 @@ end
 
 function TestVeafSpawnCore:test_registerCommandHandler()
   local called = false
-  veafSpawn.registerCommandHandler("testkey", function() called = true end)
+  veafSpawn.registerCommandHandler("testkey", "OPEN", function() called = true end)
   luaunit.assertEquals(#veafSpawn.commandHandlers, 1)
   luaunit.assertEquals(veafSpawn.commandHandlers[1].key, "testkey")
 end
 
-function TestVeafSpawnCore:test_registerCommandHandler_legacy_2arg_has_no_security()
-  local fn = function() end
-  veafSpawn.registerCommandHandler("k", fn)
-  luaunit.assertEquals(veafSpawn.commandHandlers[1].fn, fn)
-  luaunit.assertNil(veafSpawn.commandHandlers[1].security)
+--- The 2-argument form (key, fn) used to mean "no security check", so omitting the level
+--- and forgetting it were indistinguishable. That is the shape SECREV-2 ticket 03 removes:
+--- the call is now refused rather than silently registering an ungated command.
+function TestVeafSpawnCore:test_registerCommandHandler_refuses_the_legacy_2arg_form()
+  local ok, err = pcall(veafSpawn.registerCommandHandler, "k", function() end)
+
+  luaunit.assertFalse(ok)
+  luaunit.assertNotNil(string.find(tostring(err), "2-argument form", 1, true))
+  luaunit.assertEquals(#veafSpawn.commandHandlers, 0)
+end
+
+--- A misspelled level must not be accepted and then quietly deny at dispatch either: it is
+--- a typo in the source, and the place to catch it is registration.
+function TestVeafSpawnCore:test_registerCommandHandler_refuses_an_unknown_level()
+  local ok = pcall(veafSpawn.registerCommandHandler, "k", "BOGUS", function() end)
+
+  luaunit.assertFalse(ok)
+  luaunit.assertEquals(#veafSpawn.commandHandlers, 0)
 end
 
 function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
@@ -438,7 +451,7 @@ end
 function TestVeafSpawnCore:test_unknown_parameter_aborts_without_spawning()
   -- An unrecognized parameter (typo) must abort the command, not spawn anyway.
   local spawned = false
-  veafSpawn.registerCommandHandler("unit", function()
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
     spawned = true
     return nil
   end)
@@ -449,7 +462,7 @@ end
 function TestVeafSpawnCore:test_known_parameters_still_spawn()
   -- A valid command (no unknown parameter) still reaches its handler.
   local spawned = false
-  veafSpawn.registerCommandHandler("unit", function()
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
     spawned = true
     return nil
   end)
@@ -480,8 +493,10 @@ end
 
 function TestVeafSpawnCore:test_security_gate_fail_closed_on_unknown_level()
   local called = false
-  -- an unknown security level must DENY (fail-closed), never silently pass
-  veafSpawn.registerCommandHandler("mmGetFlag", "BOGUS", function() called = true end)
+  -- Registration refuses an unknown level outright now, so it is injected afterwards: this
+  -- pins the *direction* of the dispatcher's fallback, which must deny rather than pass.
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.commandHandlers[1].security = "BOGUS"
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   luaunit.assertFalse(called)
 end

@@ -144,26 +144,35 @@ veafSpawn.SECURITY_CHECKS = {
   MM = function(options, markId)
     return veafSecurity.checkSecurity_MM(options.password)
   end,
+  --- Deliberately available to everyone. Exists so that "open" is something a command
+  --- states, rather than something it achieves by leaving the level out.
+  OPEN = function()
+    return true
+  end,
 }
 
 --- Register a command handler for executeCommand().
 -- @param key       options field name that activates this handler (e.g. "unit", "farp")
--- @param security  optional security level ("L9"/"L1"/"MM") checked centrally before fn;
---                  omit for no check. Accepts the legacy 2-arg form (key, fn).
+-- @param security  REQUIRED level ("L9"/"L1"/"MM"), or "OPEN" for a command deliberately
+--                  available to everyone. The 2-arg form (key, fn) is no longer accepted:
+--                  it meant "no check", so omitting the level and forgetting it looked the
+--                  same, which is the shape SECREV-2 set out to remove.
 -- @param fn        function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
 function veafSpawn.registerCommandHandler(key, security, fn)
-  if fn == nil then
-    -- legacy 2-arg form: (key, fn), no security check
-    fn = security
-    security = nil
-  end
-  -- Catch a mistyped level early: an unknown level is fail-closed by the dispatcher
-  -- (it denies), so warn so the typo doesn't silently lock the command instead.
-  if security ~= nil and veafSpawn.SECURITY_CHECKS[security] == nil then
-    veaf.loggers
-      .get(veafSpawn.Id)
-      :warn(string.format("registerCommandHandler(%s): unknown security level %s", tostring(key), tostring(security)))
-  end
+  assert(
+    type(fn) == "function",
+    "veafSpawn.registerCommandHandler("
+      .. tostring(key)
+      .. "): fn must be a function — the 2-argument form (key, fn) meant 'no security check' and is gone"
+  )
+  assert(
+    veafSpawn.SECURITY_CHECKS[security] ~= nil,
+    "veafSpawn.registerCommandHandler("
+      .. tostring(key)
+      .. "): unknown or missing security level ["
+      .. tostring(security)
+      .. "] — declare one of L9/L1/MM/OPEN"
+  )
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
 
@@ -954,7 +963,7 @@ function veafSpawn.initialize()
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     local requesterCoalition = veaf.getRequesterCoalition(event)
     return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
-  end, veafCommands.PRIORITY_SPAWN)
+  end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
   veafSpawn.dumpSpawnablePlanesList()
 end
 

@@ -280,11 +280,29 @@ modules:
 
 ### Niveaux de sécurité
 
-| Niveau | Constante | Qui peut utiliser |
-|--------|-----------|-------------------|
-| 0 (public) | `veafSecurity.LEVEL_L0` | Tous les joueurs |
-| 1 (pilotes) | `veafSecurity.LEVEL_L1` | Pilotes non-spectateurs |
-| 9 (admin) | `veafSecurity.LEVEL_L9` | Admins authentifiés |
+| Palier | Constante | Passe sans mot de passe si le niveau du pilote est |
+|--------|-----------|-----------------------------------------------------|
+| `L9` | `veafSecurity.LEVEL_L9` = 1 | **≥ 1** — tout pilote inscrit dans le `veaf-pilots.txt` du serveur |
+| `L1` | `veafSecurity.LEVEL_L1` = 10 | **≥ 10** — un pilote confirmé |
+| `L0` | `veafSecurity.LEVEL_L0` = 90 | **≥ 90** — un administrateur du serveur |
+| `MM` | (aucun niveau) | jamais — seul le mot de passe Mission Master ouvre |
+| `OPEN` | (aucun contrôle) | toujours — la commande est délibérément ouverte à tous |
+
+!!! warning "Les paliers ne vont pas dans l'ordre que leurs noms suggèrent"
+
+    `L9` est le palier le plus **permissif** et `L0` le plus **strict**. Lisez ces noms
+    comme des paliers de mot de passe, `L0` étant le plus secret, et non comme des niveaux
+    d'utilisateur. Un contrôle passe quand le niveau du pilote vaut *au moins* la
+    constante, et les constantes décroissent : 1, 10, 90.
+
+    Cette page affirmait l'inverse jusqu'au 2026-08-06 — que `L0` signifiait « tous les
+    joueurs » — ce qui a failli faire verrouiller une commande publique aux administrateurs.
+    Le nommage est en cours de réexamen ; ce tableau décrit ce que fait le code aujourd'hui.
+
+Deux choses satisfont un contrôle. Soit le **niveau de pilote** du joueur, publié par le
+hook serveur depuis `veaf-pilots.txt`, atteint le palier — c'est la voie par l'identité,
+sans mot de passe — soit le **mot de passe** du palier figure dans le texte du marqueur.
+Sans le hook, personne n'a de niveau et tout retombe sur les mots de passe.
 
 Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
 

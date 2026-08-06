@@ -49,15 +49,15 @@ end
 
 function TestVeafCommandsRegistry:test_single_handler_registered()
   local fn = makeHandler(false)
-  veafCommands.registerCommandHandler(fn, 10)
+  veafCommands.registerCommandHandler(fn, 10, veafCommands.SECURITY_HANDLED)
   luaunit.assertEquals(#veafCommands.commandHandlers, 1)
   luaunit.assertEquals(veafCommands.commandHandlers[1].priority, 10)
 end
 
 function TestVeafCommandsRegistry:test_handlers_sorted_ascending()
-  veafCommands.registerCommandHandler(makeHandler(false), 30)
-  veafCommands.registerCommandHandler(makeHandler(false), 10)
-  veafCommands.registerCommandHandler(makeHandler(false), 20)
+  veafCommands.registerCommandHandler(makeHandler(false), 30, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(makeHandler(false), 10, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(makeHandler(false), 20, veafCommands.SECURITY_HANDLED)
   luaunit.assertEquals(veafCommands.commandHandlers[1].priority, 10)
   luaunit.assertEquals(veafCommands.commandHandlers[2].priority, 20)
   luaunit.assertEquals(veafCommands.commandHandlers[3].priority, 30)
@@ -67,8 +67,8 @@ function TestVeafCommandsRegistry:test_equal_priority_preserves_insertion_order(
   local calls = {}
   local fn1 = function() table.insert(calls, 1) return false end
   local fn2 = function() table.insert(calls, 2) return false end
-  veafCommands.registerCommandHandler(fn1, 20)
-  veafCommands.registerCommandHandler(fn2, 20)
+  veafCommands.registerCommandHandler(fn1, 20, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(fn2, 20, veafCommands.SECURITY_HANDLED)
   veafCommands.execute(pos, "ignored", 2, nil, nil)
   luaunit.assertEquals(calls, { 1, 2 })
 end
@@ -84,8 +84,8 @@ end
 
 function TestVeafCommandsDispatch:test_stops_at_first_true()
   local calls = {}
-  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return true end, 10)
-  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return true end, 20)
+  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return true end, 10, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return true end, 20, veafCommands.SECURITY_HANDLED)
   local result = veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertTrue(result)
   luaunit.assertEquals(calls, { 1 })
@@ -93,8 +93,8 @@ end
 
 function TestVeafCommandsDispatch:test_tries_all_when_none_matches()
   local calls = {}
-  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return false end, 10)
-  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return false end, 20)
+  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return false end, 10, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return false end, 20, veafCommands.SECURITY_HANDLED)
   local result = veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertFalse(result)
   luaunit.assertEquals(calls, { 1, 2 })
@@ -102,14 +102,14 @@ end
 
 function TestVeafCommandsDispatch:test_execute_sets_fromMarker_false()
   local captured = {}
-  veafCommands.registerCommandHandler(makeHandler(true, captured), 10)
+  veafCommands.registerCommandHandler(makeHandler(true, captured), 10, veafCommands.SECURITY_HANDLED)
   veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertFalse(captured[1].fromMarker)
 end
 
 function TestVeafCommandsDispatch:test_execute_sets_bypassSecurity_true()
   local captured = {}
-  veafCommands.registerCommandHandler(makeHandler(true, captured), 10)
+  veafCommands.registerCommandHandler(makeHandler(true, captured), 10, veafCommands.SECURITY_HANDLED)
   veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertTrue(captured[1].bypass)
 end
@@ -120,4 +120,146 @@ function TestVeafCommandsDispatch:test_no_handlers_returns_false()
 end
 
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- TestVeafCommandsSecurityDeclaration (SECREV-2 ticket 03, finding VMR-003)
+--
+-- The dispatcher used to delegate the security decision to each handler, so a handler
+-- that simply did not check ran for anyone and nothing noticed. Four of the nine had
+-- drifted that way. The level is now an argument with no default: the point of these
+-- tests is that forgetting it is an error at registration, not an open door at dispatch.
+-- ---------------------------------------------------------------------------
+TestVeafCommandsSecurityDeclaration = {}
+
+function TestVeafCommandsSecurityDeclaration:setUp()
+  resetHandlers()
+  self.savedChecks = veafCommands.SECURITY_CHECKS
+  self.savedSecurity = veafSecurity
+end
+
+function TestVeafCommandsSecurityDeclaration:tearDown()
+  veafCommands.SECURITY_CHECKS = self.savedChecks
+  veafSecurity = self.savedSecurity
+end
+
+--- The acceptance criterion: adding a handler that forgets a level fails a test, not a server.
+function TestVeafCommandsSecurityDeclaration:test_registering_without_a_level_is_refused()
+  local ok, err = pcall(veafCommands.registerCommandHandler, makeHandler(true), 10)
+
+  luaunit.assertFalse(ok)
+  luaunit.assertNotNil(string.find(tostring(err), "security", 1, true))
+  luaunit.assertEquals(#veafCommands.commandHandlers, 0)
+end
+
+--- A misspelled level must not read as "no level, carry on".
+function TestVeafCommandsSecurityDeclaration:test_registering_an_unknown_level_is_refused()
+  local ok = pcall(veafCommands.registerCommandHandler, makeHandler(true), 10, "L99")
+
+  luaunit.assertFalse(ok)
+  luaunit.assertEquals(#veafCommands.commandHandlers, 0)
+end
+
+function TestVeafCommandsSecurityDeclaration:test_every_documented_level_is_accepted()
+  for _, level in ipairs({ "L0", "L1", "L9", "OPEN", veafCommands.SECURITY_HANDLED }) do
+    resetHandlers()
+    veafCommands.registerCommandHandler(makeHandler(true), 10, level)
+    luaunit.assertEquals(#veafCommands.commandHandlers, 1, "level rejected: " .. tostring(level))
+    luaunit.assertEquals(veafCommands.commandHandlers[1].security, level)
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafCommandsSecurityEnforcement — the dispatcher acts on the declaration
+-- ---------------------------------------------------------------------------
+TestVeafCommandsSecurityEnforcement = {}
+
+function TestVeafCommandsSecurityEnforcement:setUp()
+  resetHandlers()
+  self.savedChecks = veafCommands.SECURITY_CHECKS
+  self.ran = {}
+end
+
+function TestVeafCommandsSecurityEnforcement:tearDown()
+  veafCommands.SECURITY_CHECKS = self.savedChecks
+end
+
+--- Replace the real checks so the test states the verdict rather than the password rules.
+function TestVeafCommandsSecurityEnforcement:setVerdict(allowed)
+  veafCommands.SECURITY_CHECKS = {
+    L0 = function() return allowed end,
+    L1 = function() return allowed end,
+    L9 = function() return allowed end,
+    OPEN = function() return true end,
+  }
+end
+
+function TestVeafCommandsSecurityEnforcement:recordingHandler(name)
+  local ran = self.ran
+  return function()
+    table.insert(ran, name)
+    return true
+  end
+end
+
+function TestVeafCommandsSecurityEnforcement:test_a_denied_handler_does_not_run()
+  self:setVerdict(false)
+  veafCommands.registerCommandHandler(self:recordingHandler("gated"), 10, "L9")
+
+  local consumed = veafCommands.dispatchMarker(pos, { text = "-test", idx = 1 })
+
+  luaunit.assertFalse(consumed)
+  luaunit.assertEquals(#self.ran, 0)
+end
+
+function TestVeafCommandsSecurityEnforcement:test_an_allowed_handler_runs()
+  self:setVerdict(true)
+  veafCommands.registerCommandHandler(self:recordingHandler("gated"), 10, "L9")
+
+  local consumed = veafCommands.dispatchMarker(pos, { text = "-test", idx = 1 })
+
+  luaunit.assertTrue(consumed)
+  luaunit.assertEquals(self.ran, { "gated" })
+end
+
+--- Denying one handler must not swallow the event: a later handler still gets its turn.
+function TestVeafCommandsSecurityEnforcement:test_a_denied_handler_does_not_block_the_chain()
+  self:setVerdict(false)
+  veafCommands.registerCommandHandler(self:recordingHandler("gated"), 10, "L9")
+  veafCommands.registerCommandHandler(self:recordingHandler("open"), 20, "OPEN")
+
+  local consumed = veafCommands.dispatchMarker(pos, { text = "-test", idx = 1 })
+
+  luaunit.assertTrue(consumed)
+  luaunit.assertEquals(self.ran, { "open" })
+end
+
+--- A handler that checks itself must not be checked twice -- the dispatcher has no
+--- password to check with, so gating it here would deny everything it protects.
+function TestVeafCommandsSecurityEnforcement:test_a_self_checking_handler_is_not_gated()
+  self:setVerdict(false)
+  veafCommands.registerCommandHandler(self:recordingHandler("own"), 10, veafCommands.SECURITY_HANDLED)
+
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-test", idx = 1 }))
+  luaunit.assertEquals(self.ran, { "own" })
+end
+
+--- The interpreter path runs unit-name commands authored by the mission maker, so it
+--- bypasses the gate by design. Pinned so that a later change has to be deliberate.
+function TestVeafCommandsSecurityEnforcement:test_the_interpreter_path_bypasses_the_gate()
+  self:setVerdict(false)
+  veafCommands.registerCommandHandler(self:recordingHandler("gated"), 10, "L9")
+
+  luaunit.assertTrue(veafCommands.execute(pos, "-test", 2))
+  luaunit.assertEquals(self.ran, { "gated" })
+end
+
+--- An unrecognised level reaching dispatch denies rather than allows. Registration
+--- refuses one, so this pins the direction of the fallback if the table is ever edited.
+function TestVeafCommandsSecurityEnforcement:test_an_unknown_level_at_dispatch_denies()
+  veafCommands.registerCommandHandler(self:recordingHandler("gated"), 10, "L9")
+  veafCommands.commandHandlers[1].security = "L42"
+
+  luaunit.assertFalse(veafCommands.dispatchMarker(pos, { text = "-test", idx = 1 }))
+  luaunit.assertEquals(#self.ran, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

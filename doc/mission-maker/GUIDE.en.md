@@ -281,11 +281,28 @@ modules:
 
 ### Security Levels
 
-| Level | Constant | Who can use |
-|-------|----------|-------------|
-| 0 (public) | `veafSecurity.LEVEL_L0` | All players |
-| 1 (pilots) | `veafSecurity.LEVEL_L1` | Non-spectator pilots |
-| 9 (admin) | `veafSecurity.LEVEL_L9` | Authenticated admins |
+| Tier | Constant | Passes without a password when the pilot's level is |
+|------|----------|------------------------------------------------------|
+| `L9` | `veafSecurity.LEVEL_L9` = 1 | **≥ 1** — any pilot listed in the server's `veaf-pilots.txt` |
+| `L1` | `veafSecurity.LEVEL_L1` = 10 | **≥ 10** — a senior pilot |
+| `L0` | `veafSecurity.LEVEL_L0` = 90 | **≥ 90** — a server administrator |
+| `MM` | (no level) | never — the Mission Master password is the only way in |
+| `OPEN` | (no check) | always — the command is deliberately available to everyone |
+
+!!! warning "The tiers do not run in the order their names suggest"
+
+    `L9` is the **loosest** tier and `L0` the **tightest**. Read the names as password
+    tiers, where `L0` is the most secret one, rather than as user levels. A check passes
+    when the pilot's level is *at least* the constant, and the constants descend: 1, 10, 90.
+
+    This page said the opposite until 2026-08-06 — that `L0` meant "all players" — which
+    is how a lot came within one line of locking a public command to administrators. The
+    naming is being revisited; the behaviour above is what the code does today.
+
+Two things satisfy a check. Either the player's **pilot level**, published by the server
+hook from `veaf-pilots.txt`, is high enough for the tier — that is the identity path, and
+it needs no password — or the correct **password** for that tier appears in the marker
+text. Without the hook there are no pilot levels, so everything falls back to passwords.
 
 Set passwords (SHA-256 hashes) in `mission.yaml`:
 

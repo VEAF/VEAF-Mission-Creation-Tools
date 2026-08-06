@@ -34,7 +34,7 @@ def _rendered_colors(preset: PresetDefinition) -> set[tuple[int, int, int]]:
     generator.radio_count = len(preset.radios)
     generator.draw_preset_image(preset)
     generator.draw_radios_in_preset_image(preset)
-    return set(generator.image.getdata())
+    return set(generator.image.get_flattened_data())
 
 
 class TestColorHelpers(unittest.TestCase):

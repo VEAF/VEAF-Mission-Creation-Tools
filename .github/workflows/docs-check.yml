@@ -25,6 +25,12 @@ on:
       - ".backlog/**"
       - "docs/**"
       - "*.md"
+      # The gate also checks that every capability the code defines is named by its reference page
+      # (TOOLING-DOC-AUTOGEN). The whole point is catching "an action shipped and the doc did not
+      # follow", and that commit touches only the sources below — so without them the gate would be
+      # blind to the exact case it exists for.
+      - "src/python/veaf-tools/veaf_mission_mcp/**"
+      - "src/scripts/veaf/veafShortcuts.lua"
 
 jobs:
   docs-check:

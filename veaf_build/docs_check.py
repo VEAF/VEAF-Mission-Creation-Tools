@@ -124,6 +124,7 @@ class Report:
     nav_orphans: list[str] = field(default_factory=list)
     nav_dangling: list[str] = field(default_factory=list)
     repo_broken_links: list[str] = field(default_factory=list)
+    undocumented_names: list[str] = field(default_factory=list)
 
     @property
     def total(self) -> int:
@@ -192,6 +193,102 @@ def check_docs(doc_dir: Path, mkdocs_yml: Path, require_explicit_anchors: bool =
     return report
 
 
+@dataclass(frozen=True)
+class CoverageRule:
+    """A set of names the code defines, and the pages that must mention every one of them.
+
+    Attributes:
+        label: What the names are, for the report.
+        source_glob: Where they are declared, relative to the repo root.
+        pattern: Regex whose first group captures a name.
+        pages: Pages that must mention every name, relative to the repo root.
+        mention: How a name appears in prose, as a format string.
+    """
+
+    label: str
+    source_glob: str
+    pattern: str
+    pages: tuple[str, ...]
+    mention: str = "{name}"
+
+
+#: What must be documented, and where. Both rules were added after measuring live drift rather than
+#: imagining it: the MCP page was missing ``set_airbase_coalition``, shipped by
+#: FEAT-MCP-AIRBASES-WAREHOUSES and never written up.
+#:
+#: Names are **read out of the source with a regex, not imported**. That is deliberate: the CI job
+#: runs this module with plain ``python`` and no Poetry install, which is what keeps it a few seconds
+#: long, and importing the MCP catalogue would drag in pydantic. A pytest test asserts the regex and
+#: the real ``list_catalog()`` agree, so the cheap gate is itself gated by the expensive one.
+#:
+#: `AI_ASSISTANT_CATALOG.md` is deliberately **not** covered: it is written for mission makers in
+#: natural language and says outright that you do not need to know the technical names, so only 3 of
+#: the 29 appear in it. Requiring them there would be requiring the page to stop doing its job.
+COVERAGE_RULES: tuple[CoverageRule, ...] = (
+    CoverageRule(
+        label="MCP action",
+        source_glob="src/python/veaf-tools/veaf_mission_mcp/*.py",
+        pattern=r'name="([a-z][a-z0-9_]+)"',
+        pages=("doc/developer/mission-editing-mcp.md", "doc/developer/mission-editing-mcp.en.md"),
+    ),
+    CoverageRule(
+        label="marker alias",
+        source_glob="src/scripts/veaf/veafShortcuts.lua",
+        pattern=r'setName\("([^"]+)"\)',
+        pages=("doc/ALIASES.md", "doc/ALIASES.en.md"),
+        mention="`{name}`",
+    ),
+)
+
+
+def _names_of(repo_root: Path, rule: CoverageRule) -> list[str]:
+    """Extract the names *rule* says must be documented.
+
+    Args:
+        repo_root: Repository root.
+        rule: The rule to apply.
+
+    Returns:
+        Sorted names.
+    """
+    names: set[str] = set()
+    compiled = re.compile(rule.pattern)
+    for source in sorted(repo_root.glob(rule.source_glob)):
+        names |= set(compiled.findall(source.read_text(encoding="utf-8", errors="replace")))
+    return sorted(names)
+
+
+def check_doc_coverage(repo_root: Path) -> list[str]:
+    """Check that every name the code defines is mentioned by the pages that document it.
+
+    A **drift check, not a generator**. Both pages this covers carry curated prose — thematic
+    sections, hand-written descriptions, an editorial frequency column — and generating them would
+    destroy exactly what makes them worth reading. What actually needs guarding is narrower: that a
+    capability shipped in code did not silently miss its documentation.
+
+    Args:
+        repo_root: Repository root.
+
+    Returns:
+        One ``"<label> '<name>' is not documented in <page>"`` string per gap, sorted.
+    """
+    findings: list[str] = []
+    for rule in COVERAGE_RULES:
+        names = _names_of(repo_root, rule)
+        for page in rule.pages:
+            path = repo_root / page
+            if not path.is_file():
+                findings.append(f"{rule.label} page missing: {page}")
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            findings += [
+                f"{rule.label} '{name}' is not documented in {page}"
+                for name in names
+                if rule.mention.format(name=name) not in text
+            ]
+    return findings
+
+
 #: A link target only counts as a path when it is plain ASCII path characters. This is what keeps an
 #: ellipsis out of the results: ``CHANGELOG.md`` contains ``…png`` in prose, which the link regex
 #: happily captures. Erring this way can only *miss* a broken link with an accented name — a false
@@ -243,6 +340,7 @@ _LABELS = {
     "nav_orphans": "Pages absent from the mkdocs nav (unreachable by menu)",
     "nav_dangling": "Nav entries pointing at a file that does not exist",
     "repo_broken_links": "Relative links outside doc/ whose target does not exist",
+    "undocumented_names": "Capabilities the code defines that their reference page never mentions",
 }
 
 
@@ -297,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
     report = check_docs(args.doc_dir, args.mkdocs, require_explicit_anchors=not args.allow_implicit_anchors)
     if not args.skip_repo_links:
         report.repo_broken_links = check_repo_links(args.repo_root)
+        report.undocumented_names = check_doc_coverage(args.repo_root)
     print(format_report(report))
     return 1 if report.total else 0
 

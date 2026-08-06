@@ -204,6 +204,17 @@ initialise):
 - `set_security_disabled(disabled)` → `veaf.SecurityDisabled = <bool>`.
 - `set_veaf_config(key, value)` → `veaf.config.<key> = <Lua scalar>`.
 
+### Airfield coalition
+
+- `set_airbase_coalition(folder_path, name, coalition)` — durably assign a DCS airfield to a
+  coalition, in a **mission folder**.
+
+> ⚠️ An airfield's coalition lives in `warehouses.airports[<id>].coalition`, **not** in
+> `mission.coalition`. Placing a unit near a base therefore never turns the base itself — this action
+> is what does. It resolves the airfield name to an id through the mission's theatre, sets the
+> coalition, and **turns on the base's Dynamic Spawn slots** (the build then stocks them). Backed up
+> first, like the other editing actions.
+
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.
 

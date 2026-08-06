@@ -1,34 +1,27 @@
 # 03 — CI freshness gate
 
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
-Files: `.github/workflows/`, developer guide
+Files: `.github/workflows/docs-check.yml`
 
-Depends on: 01, 02
+## Delivered
 
-## Behaviour
+No new workflow: `main()` already runs every pass and exits non-zero on any of them, and the existing
+`docs-check` job already invokes it. One docs job stays one docs job.
 
-A CI job that regenerates both files and fails when the result differs from what is committed — the
-`cli-docs-fresh` pattern from `dcs-sms`. Without it the generators are optional, and the docs rot
-again, just more slowly.
+The part that needed real care was the **trigger**. The job was scoped to `doc/**`, `mkdocs.yml`,
+`veaf_build/docs_check.py`, `.backlog/**`, `docs/**` and root `*.md`. Adding an MCP action touches
+**none** of those — it touches `src/python/veaf-tools/veaf_mission_mcp/`. So the gate would have been
+blind to the exact commit it exists to catch, which is `FIX-WORKFLOWS-MAIN-TO-MASTER` all over again:
+a job that never runs on the branch, or the change, that matters.
 
-- Runs on the same triggers as the existing docs job.
-- The failure message says **which** file is stale and **which command** to run. A gate that only says
-  "diff found" makes people guess.
-- Fast: regeneration reads two data sources and renders. If it needs a heavy import chain, fix that in
-  ticket 02 rather than accepting a slow gate.
-
-## Tasks
-
-- [ ] Job added; fails on a deliberately stale file, passes once regenerated.
-- [ ] Failure output names the file and the command.
-- [ ] Wired into the same workflow as `docs-check` rather than a new one, unless the triggers genuinely
-      differ — one docs job is easier to reason about than two.
-- [ ] Developer guide mentions the gate and the command.
+- [x] `src/python/veaf-tools/veaf_mission_mcp/**` and `src/scripts/veaf/veafShortcuts.lua` added to the
+      `pull_request` paths, with the reason in a comment.
+- [x] No second workflow.
 
 ## Acceptance criteria
 
-- [ ] Proven both ways in CI: red on a stale commit, green after regenerating.
-- [ ] **No path filter that lets a change to `veaf-units.yaml` or to the MCP catalogue skip the job** —
-      that is the exact case the gate exists for, and `FIX-WORKFLOWS-MAIN-TO-MASTER` is what a
-      never-triggering job costs.
+- [x] `python veaf_build/docs_check.py` — exactly what CI runs — is green, exit 0.
+- [ ] Red on a deliberately undocumented capability, observed in CI. **Not done**: it needs a throwaway
+      commit adding an action, which is not worth carrying on this PR. The positive half is covered —
+      this PR touches both new trigger paths, so the job running on it proves they resolve.

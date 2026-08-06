@@ -209,6 +209,17 @@ modules) :
 - `set_security_disabled(disabled)` → `veaf.SecurityDisabled = <bool>`.
 - `set_veaf_config(key, value)` → `veaf.config.<key> = <scalaire Lua>`.
 
+### Coalition d'un aérodrome
+
+- `set_airbase_coalition(folder_path, name, coalition)` — assigne durablement un aérodrome DCS à une
+  coalition, dans un **dossier de mission**.
+
+> ⚠️ La coalition d'un aérodrome vit dans `warehouses.airports[<id>].coalition`, **pas** dans
+> `mission.coalition`. Poser une unité à côté d'une base ne la fait donc jamais changer de camp :
+> c'est cette action qu'il faut. Elle résout le nom de l'aérodrome en identifiant via le théâtre de
+> la mission, pose la coalition, et **active les slots Dynamic Spawn** de la base (le build les
+> approvisionne ensuite). Sauvegarde préalable, comme les autres actions d'édition.
+
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.
 

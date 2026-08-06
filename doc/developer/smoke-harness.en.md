@@ -19,6 +19,19 @@ talk to — otherwise it would be red on every machine and nobody would run it.
    That measurement is what makes unattended driving possible at all.
 2. **The hook installed**: copy `src/scripts/other/dcs-fiddle-server.lua` into
    `Saved Games/DCS/Scripts/Hooks/`. It listens on `127.0.0.1:12081`.
+
+   !!! danger "This hook is an open remote-code-execution port. Remove it when you are done."
+
+       It runs any Lua it is sent, with no token and no origin check, and it answers with
+       `Access-Control-Allow-Origin: *`. The command channel is a `GET`, and a browser sends a
+       cross-origin `GET` without asking first — so **any web page you visit while the hook is
+       installed can run code in your DCS**, and read what it returns. Binding to `127.0.0.1` does
+       not help: your browser is on `127.0.0.1` too.
+
+       Install it to run the harness, take it out afterwards, and **never put it on a server**. See
+       [ADR 0019](../../docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md) for why it
+       is still like this and what replaces it.
+
 3. **A mission loaded** for the assertions — the mission environment does not exist before that.
 
 ## Usage

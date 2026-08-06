@@ -27,6 +27,7 @@ from collections.abc import Mapping, Sequence
 from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
+from veaf_libs.lua_literals import lua_long_string, lua_scalar, lua_string
 from veaf_libs.lua_module_scanner import get_modules
 
 # ---------------------------------------------------------------------------
@@ -384,41 +385,22 @@ def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
 
 
 def _to_lua_scalar(value: object) -> str:
-    """Convert a Python scalar to a Lua literal string."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if value is None:
-        return "nil"
-    return f'"{value}"'
+    """Convert a Python scalar to a Lua literal string.
 
-
-def _lua_long_string(text: str) -> str:
-    """Wrap *text* in a Lua long-string with a dynamically chosen bracket level.
-
-    Chooses the minimum number of ``=`` characters such that the closing
-    bracket sequence does not appear anywhere in *text*, making the result
-    valid for any input.
+    Strings go through the shared quoting helper.  They used to be interpolated into
+    ``"{value}"`` with no escaping at all, two dozen lines above a correct
+    implementation in this same module — the sixteen call sites below meant any
+    ``mission.yaml`` value carrying a quote or a newline generated broken Lua
+    (SECREV-2, VMR-012).
     """
-    level = 0
-    while f"]{('=' * level)}]" in text:
-        level += 1
-    eq = "=" * level
-    return f"[{eq}[{text}]{eq}]"
+    return lua_scalar(value)
 
 
-def _emit_lua_string(value: str) -> str:
-    """Return a valid Lua string literal for *value*.
-
-    Uses a Lua long-string (``[[...]]`` or equivalent) when the value contains
-    a newline, a double-quote, or a backslash — characters that either cannot
-    appear unescaped inside a plain ``"..."`` Lua string or would be silently
-    transformed by Lua's escape processing.  Otherwise wraps in double quotes.
-    """
-    if "\n" in value or '"' in value or "\\" in value:
-        return _lua_long_string(value)
-    return f'"{value}"'
+# Kept as module-private names because this file and its tests use them in some thirty
+# places; the implementations now live in `veaf_libs.lua_literals`, the single helper the
+# security review asked for so that a new emitter cannot quietly invent a fourth scheme.
+_lua_long_string = lua_long_string
+_emit_lua_string = lua_string
 
 
 def _yaml_comment(key: str) -> list[str]:

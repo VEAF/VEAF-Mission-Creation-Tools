@@ -20,6 +20,19 @@ n'y a rien à interroger — sinon il deviendrait rouge sur chaque machine et pe
    C'est cette mesure qui rend le pilotage automatique possible.
 2. **Le hook installé** : copier `src/scripts/other/dcs-fiddle-server.lua` dans
    `Saved Games/DCS/Scripts/Hooks/`. Il écoute sur `127.0.0.1:12081`.
+
+   !!! danger "Ce hook est un port d'exécution de code à distance, ouvert. Retirez-le après usage."
+
+       Il exécute n'importe quel Lua qu'on lui envoie, sans jeton ni contrôle d'origine, et répond
+       avec `Access-Control-Allow-Origin: *`. Le canal de commande est un `GET`, et un navigateur
+       émet un `GET` cross-origin sans rien demander — donc **n'importe quelle page web visitée
+       pendant que le hook est installé peut exécuter du code dans votre DCS**, et en lire le
+       résultat. Écouter sur `127.0.0.1` ne protège pas : votre navigateur y est aussi.
+
+       Installez-le pour lancer le harnais, retirez-le ensuite, et **ne le mettez jamais sur un
+       serveur**. Voir l'[ADR 0019](../../docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
+       pour la raison de cet état et ce qui le remplacera.
+
 3. **Une mission chargée** pour les assertions — l'environnement de mission n'existe qu'à partir de là.
 
 ## Utilisation

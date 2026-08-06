@@ -13,7 +13,9 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-056",
@@ -24,7 +26,9 @@
     "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
     "line": "80",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-006",
@@ -35,7 +39,9 @@
     "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
     "line": "151",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-069",
@@ -46,7 +52,9 @@
     "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
     "line": "187",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-009",
@@ -60,7 +68,9 @@
     "commits": [
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-010",
@@ -71,7 +81,9 @@
     "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
     "line": "52",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "spawn_data_emitter._lua_string delegates to the shared veaf_libs.lua_literals helper. It emits an escaped short string rather than the long string the config generator prefers, because this output is read back by the bundled luadata parser, which implements no long-string syntax -- measured, not assumed."
   },
   {
     "vid": "VMR-011",
@@ -84,7 +96,9 @@
     "status": "review-needed",
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-057",
@@ -97,7 +111,9 @@
     "status": "review-needed",
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-012",
@@ -118,7 +134,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "lua_config_generator._to_lua_scalar routed through the shared helper. Its string branch was a bare f'\"{value}\"' with no escaping at all, feeding sixteen call sites, two dozen lines above a correct implementation in the same module. _emit_lua_string and _lua_long_string are kept as names but now come from veaf_libs.lua_literals."
   },
   {
     "vid": "VMR-015",
@@ -129,7 +147,9 @@
     "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
     "line": "125",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-068",
@@ -140,7 +160,9 @@
     "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
     "line": "207",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-111",
@@ -151,7 +173,9 @@
     "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
     "line": "261",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-016",
@@ -162,7 +186,9 @@
     "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
     "line": "246",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-070",
@@ -173,7 +199,9 @@
     "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
     "line": "266",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-034",
@@ -189,7 +217,9 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-049",
@@ -205,7 +235,9 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-035",
@@ -216,7 +248,9 @@
     "path": "src/python/veaf-tools/mission_builder/other_converter.py",
     "line": "502",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-036",
@@ -229,7 +263,9 @@
     "status": "review-needed",
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-037",
@@ -242,7 +278,9 @@
     "status": "review-needed",
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-047",
@@ -255,7 +293,9 @@
     "status": "review-needed",
     "commits": [
       "f350da53 feat(mcp): add add_group write action (FEAT-MCP-MISSION-EDITOR-004)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-048",
@@ -268,7 +308,9 @@
     "status": "review-needed",
     "commits": [
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-050",
@@ -284,7 +326,9 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-051",
@@ -300,7 +344,9 @@
       "e8db4756 feat(convert-v5): readable channel aliases instead of hardcoded frequencies (FEAT-CONVERTV5-FREQ-ALIASING) (#566)",
       "e15e7543 feat(convert-v5): simplified preset plan by default + faithful copy (ADR 0010) (#562)",
       "1dcbcd55 feat(presets): convert-v5 generates a preset plan by default (ADR 0010) (#559)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-052",
@@ -311,7 +357,9 @@
     "path": "src/python/veaf-tools/mission_extractor/mission_extractor_worker.py",
     "line": "83",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-053",
@@ -325,7 +373,9 @@
     "commits": [
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-054",
@@ -339,7 +389,9 @@
     "commits": [
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-055",
@@ -350,7 +402,9 @@
     "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
     "line": "105",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-058",
@@ -371,7 +425,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-059",
@@ -392,7 +448,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-060",
@@ -413,7 +471,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-061",
@@ -424,7 +484,9 @@
     "path": "src/python/veaf-tools/veaf_libs/lua_module_scanner.py",
     "line": "112",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-062",
@@ -438,7 +500,9 @@
     "commits": [
       "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-063",
@@ -449,7 +513,9 @@
     "path": "src/python/veaf-tools/veaf_libs/update_checker.py",
     "line": "37",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-064",
@@ -460,7 +526,9 @@
     "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
     "line": "85",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-116",
@@ -471,7 +539,9 @@
     "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
     "line": "62",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-065",
@@ -484,7 +554,9 @@
     "status": "review-needed",
     "commits": [
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-066",
@@ -495,7 +567,9 @@
     "path": "src/python/veaf-tools/veaf_tools/commands/extract.py",
     "line": "53",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-067",
@@ -506,7 +580,9 @@
     "path": "src/python/veaf-tools/waypoints_injector/waypoints_injector_worker.py",
     "line": "302",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-104",
@@ -520,7 +596,9 @@
     "commits": [
       "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
       "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-105",
@@ -534,7 +612,9 @@
     "commits": [
       "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
       "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-106",
@@ -552,7 +632,9 @@
       "3f8d1e48 feat(presets): add radio fusion, hardcoded specials and modulation (AJS-37) (ADR 0010) (#556)",
       "a6eecc12 feat(presets): add per-type radio layout + Mi-24P channel-0 rotation (ADR 0010) (#553)",
       "05349a23 feat(presets): project role-based channel lists onto standard aircraft (ADR 0010) (#552)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-107",
@@ -563,7 +645,9 @@
     "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
     "line": "66",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-108",
@@ -576,7 +660,9 @@
     "status": "review-needed",
     "commits": [
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-112",
@@ -596,7 +682,9 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
       "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-113",
@@ -607,7 +695,9 @@
     "path": "src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py",
     "line": "83",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-114",
@@ -618,7 +708,9 @@
     "path": "src/python/veaf-tools/mission_tools/mission_constants.py",
     "line": "139",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-115",
@@ -629,7 +721,9 @@
     "path": "src/python/veaf-tools/veaf_libs/migrate_lazy_log.py",
     "line": "128",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-118",
@@ -642,7 +736,9 @@
     "status": "review-needed",
     "commits": [
       "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-128",
@@ -653,7 +749,9 @@
     "path": "src/python/veaf-tools/luadata/io/read.py",
     "line": "25",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-131",
@@ -664,7 +762,9 @@
     "path": "src/python/veaf-tools/veaf_libs/user_config.py",
     "line": "89",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-134",
@@ -684,7 +784,9 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
       "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-135",
@@ -695,7 +797,9 @@
     "path": "src/python/veaf-tools/veaf_libs/dcs_units_parser.py",
     "line": "116",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-001",
@@ -710,7 +814,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "REGISTER_PLAYER / REGISTER_PLAYER_SLOT / RUN_COMMAND / SEND_MESSAGE now interpolate with %q instead of \"%s\", and every call site passes tostring(value). injectCode quotes the whole payload with %q instead of wrapping it in a fixed [===[ ]===] bracket. Both layers were needed and both are proven: test/lua/test_veafServerHook.lua drives the real onPlayerConnect callback and asserts the crafted name arrives as data. NOT YET DEPLOYED -- the hook only becomes fixed on the VEAF servers."
   },
   {
     "vid": "VMR-002",
@@ -725,7 +831,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Same change as VMR-001; this is the same interpolation on the pre-authentication connect path. Covered by test_connect_with_a_crafted_name_executes_nothing, which goes through onPlayerConnect rather than through the template. NOT YET DEPLOYED."
   },
   {
     "vid": "VMR-003",
@@ -736,7 +844,9 @@
     "path": "src/scripts/veaf/veafGroundAI.lua",
     "line": "599",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-004",
@@ -753,7 +863,9 @@
       "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "veafRadio._transmitViaSRS now strips shell metacharacters from the free-text values (message, station name, file path) and validates the small-shape ones (frequencies, modulations, coalition) against an anchored pattern, falling back with a warning. Reachability was confirmed while fixing: markTextAnalysis reads an F10 marker and nothing on that path authenticates, so any player reached os.execute on the server host. Six tests in test_veafRadio.lua; five of them fail without the fix."
   },
   {
     "vid": "VMR-013",
@@ -764,7 +876,9 @@
     "path": "src/scripts/other/dcs-fiddle-server.lua",
     "line": "270",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "ADR 0019. The port stays open for now because no DCS is available to test a change to the transport FEAT-DCS-SMOKE-HARNESS speaks through, and shipping untested auth there breaks the harness invisibly. Two things did ship: the harness documentation now carries a danger warning where it tells you to install the hook, and the token design is written down to be implemented with the harness's remaining slice, where it can be tested. Severity is understated in the review: cors='*' plus a GET channel means any web page visited while the hook is installed gets code execution, so 'loopback only' is not the protection it sounds like."
   },
   {
     "vid": "VMR-017",
@@ -775,7 +889,9 @@
     "path": "src/scripts/other/DcssbMatchManager.lua",
     "line": "417",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-018",
@@ -786,7 +902,9 @@
     "path": "src/scripts/veaf/veafCarrierOperations.lua",
     "line": "647",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-019",
@@ -797,7 +915,9 @@
     "path": "src/scripts/veaf/veafCasMission.lua",
     "line": "515",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-020",
@@ -808,7 +928,9 @@
     "path": "src/scripts/veaf/veafCombatMission.lua",
     "line": "702",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-021",
@@ -819,7 +941,9 @@
     "path": "src/scripts/veaf/veafCombatMission.lua",
     "line": "895",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-022",
@@ -832,7 +956,9 @@
     "status": "review-needed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-023",
@@ -849,7 +975,9 @@
       "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-024",
@@ -860,7 +988,9 @@
     "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
     "line": "622",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-096",
@@ -871,7 +1001,9 @@
     "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
     "line": "203",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-138",
@@ -882,7 +1014,9 @@
     "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
     "line": "423",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-025",
@@ -895,7 +1029,9 @@
     "status": "review-needed",
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-038",
@@ -906,7 +1042,9 @@
     "path": "src/scripts/other/dictionaryNormalizer.lua",
     "line": "19",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-129",
@@ -917,7 +1055,9 @@
     "path": "src/scripts/other/dictionaryNormalizer.lua",
     "line": "99",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-039",
@@ -928,7 +1068,9 @@
     "path": "src/scripts/veaf/veafRemote.lua",
     "line": "228",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-130",
@@ -939,7 +1081,9 @@
     "path": "src/scripts/veaf/veafRemote.lua",
     "line": "220",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-040",
@@ -950,7 +1094,9 @@
     "path": "src/scripts/veaf/veafSecurity.lua",
     "line": "51",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-041",
@@ -961,7 +1107,9 @@
     "path": "src/scripts/veaf/veafSecurity.lua",
     "line": "591",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-042",
@@ -972,7 +1120,9 @@
     "path": "src/scripts/veaf/veafWeather.lua",
     "line": "1798",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-071",
@@ -987,7 +1137,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-072",
@@ -1002,7 +1154,9 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-073",
@@ -1013,7 +1167,9 @@
     "path": "src/scripts/other/dcs-fiddle-server.lua",
     "line": "561",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-074",
@@ -1024,7 +1180,9 @@
     "path": "src/scripts/other/trainingSpawnZone.lua",
     "line": "118",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-075",
@@ -1035,7 +1193,9 @@
     "path": "src/scripts/other/trainingSpawnZone.lua",
     "line": "54",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-076",
@@ -1046,7 +1206,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "524",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-077",
@@ -1057,7 +1219,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "248",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-078",
@@ -1068,7 +1232,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "427",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-079",
@@ -1079,7 +1245,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "91",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-080",
@@ -1090,7 +1258,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "199",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-081",
@@ -1105,7 +1275,9 @@
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-082",
@@ -1120,7 +1292,9 @@
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-083",
@@ -1135,7 +1309,9 @@
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-084",
@@ -1150,7 +1326,9 @@
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-085",
@@ -1161,7 +1339,9 @@
     "path": "src/scripts/veaf/veafAirWaves.lua",
     "line": "1006",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-086",
@@ -1172,7 +1352,9 @@
     "path": "src/scripts/veaf/veafCarrierOperations.lua",
     "line": "1114",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-087",
@@ -1183,7 +1365,9 @@
     "path": "src/scripts/veaf/veafCasMission.lua",
     "line": "609",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-088",
@@ -1194,7 +1378,9 @@
     "path": "src/scripts/veaf/veafCombatMission.lua",
     "line": "778",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-089",
@@ -1205,7 +1391,9 @@
     "path": "src/scripts/veaf/veafEventHandler.lua",
     "line": "526",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-090",
@@ -1218,7 +1406,9 @@
     "status": "review-needed",
     "commits": [
       "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-091",
@@ -1231,7 +1421,9 @@
     "status": "review-needed",
     "commits": [
       "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-092",
@@ -1242,7 +1434,9 @@
     "path": "src/scripts/veaf/veafMove.lua",
     "line": "194",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-093",
@@ -1259,7 +1453,9 @@
       "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-094",
@@ -1270,7 +1466,9 @@
     "path": "src/scripts/veaf/veafSanctuary.lua",
     "line": "804",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-095",
@@ -1281,7 +1479,9 @@
     "path": "src/scripts/veaf/veafSecurity.lua",
     "line": "531",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-097",
@@ -1294,7 +1494,9 @@
     "status": "review-needed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-098",
@@ -1307,7 +1509,9 @@
     "status": "review-needed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-099",
@@ -1320,7 +1524,9 @@
     "status": "review-needed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-100",
@@ -1333,7 +1539,9 @@
     "status": "review-needed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-101",
@@ -1347,7 +1555,9 @@
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-102",
@@ -1358,7 +1568,9 @@
     "path": "src/scripts/veaf/veafSpawnParser.lua",
     "line": "234",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-103",
@@ -1369,7 +1581,9 @@
     "path": "src/scripts/veaf/veafWeather.lua",
     "line": "1131",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-109",
@@ -1380,7 +1594,9 @@
     "path": "src/scripts/veaf/veafAssets.lua",
     "line": "91",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-110",
@@ -1391,7 +1607,9 @@
     "path": "src/scripts/veaf/veafCacheManager.lua",
     "line": "113",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-117",
@@ -1402,7 +1620,9 @@
     "path": "src/scripts/veaf/veafSanctuary.lua",
     "line": "116",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-132",
@@ -1413,7 +1633,9 @@
     "path": "src/scripts/veaf/dcsDataExport.lua",
     "line": "523",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-133",
@@ -1430,7 +1652,9 @@
       "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-136",
@@ -1441,7 +1665,9 @@
     "path": "src/scripts/veaf/veafCasMission.lua",
     "line": "508",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-137",
@@ -1458,7 +1684,9 @@
       "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-007",
@@ -1471,7 +1699,9 @@
     "status": "review-needed",
     "commits": [
       "1712b932 feat(convert-other): adopt Lekaa's release channel (zip input, profile refresh, WW2 profile)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-008",
@@ -1484,7 +1714,9 @@
     "status": "review-needed",
     "commits": [
       "521d1967 docs(plugin): install guide for the AI mission-editing assistant (FEAT-MCP-PLUGIN-003)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-014",
@@ -1498,7 +1730,9 @@
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "19aec92c docs: fix what the documentation audit found"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-026",
@@ -1512,7 +1746,9 @@
     "commits": [
       "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-027",
@@ -1528,7 +1764,9 @@
       "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-028",
@@ -1544,7 +1782,9 @@
       "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-029",
@@ -1560,7 +1800,9 @@
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-030",
@@ -1574,7 +1816,9 @@
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-031",
@@ -1587,7 +1831,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-032",
@@ -1598,7 +1844,9 @@
     "path": "doc/mission-maker/scripts/veafWeather.md",
     "line": "8",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-033",
@@ -1609,7 +1857,9 @@
     "path": "doc/mission-maker/scripts/veafSecurity.en.md",
     "line": "43",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-124",
@@ -1620,7 +1870,9 @@
     "path": "doc/mission-maker/scripts/veafSecurity.en.md",
     "line": "26",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-043",
@@ -1633,7 +1885,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-044",
@@ -1646,7 +1900,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-045",
@@ -1657,7 +1913,9 @@
     "path": "doc/pilot/README.en.md",
     "line": "22",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-046",
@@ -1668,7 +1926,9 @@
     "path": "doc/pilot/README.md",
     "line": "22",
     "status": "untouched",
-    "commits": []
+    "commits": [],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-119",
@@ -1681,7 +1941,9 @@
     "status": "review-needed",
     "commits": [
       "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-120",
@@ -1704,7 +1966,9 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-121",
@@ -1720,7 +1984,9 @@
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-122",
@@ -1736,7 +2002,9 @@
       "19aec92c docs: fix what the documentation audit found",
       "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range",
       "89c0eeff docs(presets): document per-type radio-preset projection (dev page + MM note)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-123",
@@ -1754,7 +2022,9 @@
       "58b703d4 feat(combatzone): let a combat zone be played from the red side",
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-125",
@@ -1767,7 +2037,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-126",
@@ -1780,7 +2052,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-127",
@@ -1793,7 +2067,9 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-139",
@@ -1807,7 +2083,9 @@
     "commits": [
       "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   },
   {
     "vid": "VMR-140",
@@ -1820,6 +2098,8 @@
     "status": "review-needed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
-    ]
+    ],
+    "outcome": null,
+    "outcome_detail": null
   }
 ]

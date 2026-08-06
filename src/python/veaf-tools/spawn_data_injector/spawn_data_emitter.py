@@ -29,6 +29,7 @@ from typing import Any
 
 import yaml
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.lua_literals import lua_quoted_string
 
 # Canonical order of named keys in a rendered group unit entry.
 _UNIT_KEY_ORDER = ("cell", "hdg", "number", "size", "random", "fitToUnit")
@@ -50,9 +51,17 @@ def load_framework_spawn_data() -> dict[str, Any]:
 
 
 def _lua_string(value: str) -> str:
-    """Quote a string as a Lua double-quoted literal."""
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    """Quote a string as a Lua string literal.
+
+    Delegates to the shared helper.  This used to escape a backslash and a double quote
+    and stop there, which left a newline — legal in a YAML unit name, a syntax error
+    inside a Lua ``"…"`` string — to break the generated file (SECREV-2, VMR-010).
+
+    The escaped short-string form, not the long-string one the mission config generator
+    prefers: this output is read back by the bundled ``luadata`` parser, which does not
+    implement long strings.
+    """
+    return lua_quoted_string(value)
 
 
 def _lua_number(value: int | float) -> str:

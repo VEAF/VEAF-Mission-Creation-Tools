@@ -834,6 +834,57 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- transmit a radio message or play a mp3 file via SRS
+-- Characters that let a value stop being an argument and start being a command once the
+-- string reaches the Windows shell through os.execute. The double quote is the way out of
+-- the argument it sits in; the separators, redirections, cmd's escape character and its
+-- variable-expansion marker are what a value does once it is out. Control characters end
+-- the command line outright.
+--
+-- These are removed rather than escaped, deliberately: cmd's quoting rules are not
+-- composable, so an escaping scheme that is right for one nesting depth is wrong at the
+-- next. None of them is needed to speak a sentence or name a radio station. The cost is a
+-- literal ampersand in a spoken message becoming a space.
+veafRadio.SHELL_UNSAFE_CHARACTERS = '[%c"&|<>%^%%]'
+
+--- Strip everything from *value* that could break out of a quoted shell argument.
+---
+--- For free text that has no small legal shape -- a spoken message, a station name, a
+--- file path -- where validation would have to reject legitimate input.
+---
+---@param value any the untrusted text, or nil
+---@param what string what the value is, named in the warning
+---@return string|nil the text with unsafe characters replaced by spaces, nil if value was nil
+function veafRadio._shellSafeText(value, what)
+  if value == nil then
+    return nil
+  end
+  local cleaned, removed = tostring(value):gsub(veafRadio.SHELL_UNSAFE_CHARACTERS, " ")
+  if removed > 0 then
+    veaf.loggers.get(veafRadio.Id):warn(string.format("removed %d shell-unsafe character(s) from the SRS %s", removed, what))
+  end
+  return cleaned
+end
+
+--- Return *value* when it has the shape it is supposed to have, the fallback otherwise.
+---
+--- For the values that *do* have a small legal shape -- a frequency list, a modulation
+--- list, a coalition id. Validating beats stripping here: a frequency that is not a
+--- frequency is a mistake worth refusing, not text worth cleaning.
+---
+---@param value any the untrusted value, or nil
+---@param pattern string an anchored Lua pattern the value must match
+---@param fallback string used, with a warning, when the value does not match
+---@param what string what the value is, named in the warning
+---@return string
+function veafRadio._shellSafeToken(value, pattern, fallback, what)
+  local text = tostring(value or "")
+  if text:match(pattern) then
+    return text
+  end
+  veaf.loggers.get(veafRadio.Id):warn(string.format("SRS %s [%s] is not a valid %s; falling back to [%s]", what, text, what, fallback))
+  return fallback
+end
+
 function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name, coalition, eventPos)
   veaf.loggers.get(veafRadio.Id):debug(
     "transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, file=%s)",
@@ -851,11 +902,14 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
     posOption = string.format("-L %d -O %d -A %d", lat, lon, alt)
   end
 
+  -- Everything below reaches os.execute. message, file and name come from the text of an
+  -- F10 map marker, which any player can write and which no authentication gates, so they
+  -- are treated as hostile.
   local contentOption = ""
   if message then
-    contentOption = string.format('-t "%s"', message)
+    contentOption = string.format('-t "%s"', veafRadio._shellSafeText(message, "message"))
   elseif file then
-    contentOption = string.format('-i "%s"', file)
+    contentOption = string.format('-i "%s"', veafRadio._shellSafeText(file, "file path"))
   else
     veaf.loggers.get(veafRadio.Id):error("no message nor file for veafRadio._transmitViaSRS()!")
     return
@@ -873,11 +927,11 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
       STTS.DIRECTORY,
       STTS.EXECUTABLE,
       contentOption,
-      frequencies,
-      modulations,
-      coalition,
+      veafRadio._shellSafeToken(frequencies, "^[%d%.,]+$", "251", "frequencies"),
+      veafRadio._shellSafeToken(modulations, "^[%a,]+$", "AM", "modulations"),
+      veafRadio._shellSafeToken(coalition, "^%d+$", "0", "coalition"),
       STTS.SRS_PORT,
-      name,
+      veafRadio._shellSafeText(name, "station name"),
       posOption
     )
     veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))

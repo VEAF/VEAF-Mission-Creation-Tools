@@ -242,6 +242,36 @@ class TestRepoLinkPass:
         monkeypatch.setattr(mod, "_REPO_LINK_EXEMPT", frozenset())
         assert mod.check_repo_links(tmp_path) == ["hist.md -> nowhere.md"]
 
+    def test_an_agent_worktree_is_not_a_second_copy_of_the_docs(self, tmp_path: Path):
+        # .claude/worktrees/<name>/ is a full checkout of this repository. Walking it re-reads every
+        # backlog page at a different depth, where none of its relative links resolve: 367 defects on a
+        # workstation that had used worktrees, 0 in CI, where a fresh clone has none. A gate that only
+        # passes on a clean checkout cannot be run before pushing — which is the hole #655 shipped its
+        # 68 broken links through in the first place.
+        (tmp_path / "target.md").write_text("# T\n", encoding="utf-8")
+        (tmp_path / "ok.md").write_text("[t](target.md)\n", encoding="utf-8")
+        worktree = tmp_path / ".claude" / "worktrees" / "agent-abc" / ".backlog" / "archive"
+        worktree.mkdir(parents=True)
+        (worktree / "L.md").write_text("[t](../../../target.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_updater_fixtures_are_data_under_test_not_documentation(self, tmp_path: Path):
+        # test/veaf-tools-updater/ stands in for a *published release* tree, so its READMEs point at
+        # files that exist in a release and deliberately not here. Making them resolve would corrupt the
+        # fixture to satisfy a gate that has no business reading it.
+        fixture = tmp_path / "test" / "veaf-tools-updater" / "published"
+        fixture.mkdir(parents=True)
+        (fixture / "README.md").write_text("[manual](DETAILED_MANUAL.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == []
+
+    def test_other_test_folders_are_still_checked(self, tmp_path: Path):
+        # The prefix skip is narrow on purpose: only the updater fixture tree is data. A broken link in
+        # any other test folder is still a broken link.
+        other = tmp_path / "test" / "python"
+        other.mkdir(parents=True)
+        (other / "README.md").write_text("[gone](nowhere.md)\n", encoding="utf-8")
+        assert check_repo_links(tmp_path) == ["test/python/README.md -> nowhere.md"]
+
     def test_findings_reach_the_report_text(self):
         report = Report(repo_broken_links=["x.md -> y.md"])
         assert report.total == 1

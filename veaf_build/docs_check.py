@@ -40,9 +40,21 @@ EXEMPT: frozenset[str] = frozenset({"assets/img/README.md"})
 
 #: Directories the repo-wide link pass never walks. ``doc`` is excluded because
 #: :func:`check_docs` already covers it with the stricter published-site rules.
+#:
+#: ``.claude`` matters more than it looks: agent worktrees live in ``.claude/worktrees/``, and each is a
+#: **full checkout of this repository**. Walking them re-reads every backlog and archive page at a
+#: different depth, where none of its relative links resolve — 367 reported defects on this workstation,
+#: 0 in CI, because a fresh clone has no worktrees. A gate that only passes on a clean checkout is a
+#: gate nobody can run before pushing, which is precisely the hole #655 shipped 68 broken links through.
 _REPO_SKIP_DIRS: frozenset[str] = frozenset(
-    {".git", "doc", "node_modules", ".mypy_cache", ".venv", "__pycache__", ".pytest_cache"}
+    {".git", ".claude", "doc", "node_modules", ".mypy_cache", ".venv", "__pycache__", ".pytest_cache"}
 )
+
+#: Directory prefixes holding **fixtures**, not documentation. Their links are part of the data under
+#: test: ``test/veaf-tools-updater/`` is a stand-in for a published release tree, so its READMEs point
+#: at files that exist in a *release* and deliberately not here. Making them resolve would corrupt the
+#: fixture to satisfy a gate that has no business reading it.
+_REPO_SKIP_PREFIXES: tuple[str, ...] = ("test/veaf-tools-updater/",)
 
 #: Files whose relative links describe a **past** state of the repo and are expected not to resolve.
 #: Each entry needs its reason: an exemption nobody can justify is indistinguishable from neglect.
@@ -321,7 +333,7 @@ def check_repo_links(repo_root: Path) -> list[str]:
         if _REPO_SKIP_DIRS & set(page.relative_to(repo_root).parts):
             continue
         rel = page.relative_to(repo_root).as_posix()
-        if rel in _REPO_LINK_EXEMPT:
+        if rel in _REPO_LINK_EXEMPT or rel.startswith(_REPO_SKIP_PREFIXES):
             continue
         for target in _LINK.findall(page.read_text(encoding="utf-8", errors="replace")):
             if target.startswith(("http://", "https://", "mailto:", "#", "<", "/")):

@@ -1163,38 +1163,59 @@ local function acceptableGroundPoint(candidate)
   return nil
 end
 
+--- Horizontal distance between two points, either of which may be a vec2
+-- A vec2's y is the map's z, which is the convention veaf.placePointOnLand applies. Reading
+-- it as an altitude instead is how a distance test ends up comparing the wrong axis.
+-- Horizontal on purpose: placePointOnLand writes the terrain height into y, so measuring in
+-- three dimensions would let a hill push a perfectly good candidate out of range.
+local function horizontalDistance(a, b)
+  local dx = (a.x or 0) - (b.x or 0)
+  local dz = (a.z or a.y or 0) - (b.z or b.y or 0)
+  return math.sqrt(dx * dx + dz * dz)
+end
+
 --- Searches for an acceptable ground spawn point near a centre
 -- Three bounded tiers, degrading in order: every criterion including clearance from
 -- scenery, then every criterion except that clearance, then failure. Callers used to
 -- jitter once and use the result unvalidated, so a centre could land in the sea and the
 -- units were dropped one by one downstream.
 -- @param vec3 centre point
--- @param radius search radius in metres, used by the random tier
+-- @param radius search radius in metres — honoured by **every** tier, see below
 -- @param safeRadius required clearance from scenery (default veaf.DEFAULT_SPAWN_CLEARANCE)
 -- @return vec3 placed on land, or nil when no acceptable point was found
 function veaf.findSpawnPoint(vec3, radius, safeRadius)
   safeRadius = safeRadius or veaf.DEFAULT_SPAWN_CLEARANCE
 
   -- Tier 1 — every criterion, clearance from buildings and forests included.
-  -- Disposition is a native but *undocumented* DCS singleton, found in TUM and not yet
-  -- verified in game (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md).
-  -- Hence the guard and the pcall: a singleton that is absent on this DCS version or map,
-  -- or whose signature changed under us, must degrade to tier 2 and never kill a spawn.
-  if not veaf.doNotAvoidScenery and Disposition and Disposition.getSimpleZones then
+  -- Disposition is a native but *undocumented* DCS singleton, found in TUM. Measured in a live
+  -- DCS on 2026-08-06: it exists, and the points it returns genuinely avoid buildings and
+  -- forests (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md). The guard and
+  -- the pcall stay: a singleton absent on another DCS version or map, or whose signature
+  -- changes under us, must degrade to tier 2 and never kill a spawn.
+  --
+  -- A zero radius means "exactly here, the mission maker means it" — veafSpawn passes it for
+  -- farp, cargo, teleport, bomb, smoke and friends. Tier 1 exists to *move* a point, so it must
+  -- not even be consulted.
+  if not veaf.doNotAvoidScenery and radius and radius > 0 and Disposition and Disposition.getSimpleZones then
     -- One call yields several candidates, which is cheaper than one call each and matters
-    -- because the per-call cost is still unmeasured. The 1852 m floor (one nautical mile)
-    -- is TUM's, and keeps the search area usable when safeRadius is small.
-    local searchRadius = math.max(1852, safeRadius * 5)
-    local ok, candidates = pcall(Disposition.getSimpleZones, vec3, searchRadius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
+    -- because the per-call cost is still unmeasured.
+    local ok, candidates = pcall(Disposition.getSimpleZones, vec3, radius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
     if ok and type(candidates) == "table" then
       for _, candidate in ipairs(candidates) do
         local placed = acceptableGroundPoint(candidate)
-        if placed then
+        -- The distance test is not belt-and-braces: **Disposition's radius argument does not
+        -- bound its answers.** Measured around one centre in wooded terrain — asked for 800 m
+        -- it returned points 2035-2258 m out, and asked for 1600 m with a count of *one* it
+        -- still returned a point 2628 m out, so the overshoot is not the count forcing a wider
+        -- search. Without this test tier 1 took the first candidate that was merely on land, so
+        -- `_spawn group, radius 50` in a forest could place the group kilometres away in
+        -- silence. ADR 0018 requires this dependency to be quality-only and never correctness.
+        if placed and horizontalDistance(placed, vec3) <= radius then
           veaf.loggers.get(veaf.Id):trace("findSpawnPoint: scenery-aware point found")
           return placed
         end
       end
-      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point, dropping the scenery criterion")
+      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point in range, dropping the scenery criterion")
     else
       veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition.getSimpleZones unusable, dropping the scenery criterion")
     end

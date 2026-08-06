@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -39,22 +40,11 @@ from pathlib import Path
 EXEMPT: frozenset[str] = frozenset({"assets/img/README.md"})
 
 #: Directories the repo-wide link pass never walks. ``doc`` is excluded because
-#: :func:`check_docs` already covers it with the stricter published-site rules.
-#:
-#: ``.claude`` matters more than it looks: agent worktrees live in ``.claude/worktrees/``, and each is a
-#: **full checkout of this repository**. Walking them re-reads every backlog and archive page at a
-#: different depth, where none of its relative links resolve — 367 reported defects on this workstation,
-#: 0 in CI, because a fresh clone has no worktrees. A gate that only passes on a clean checkout is a
-#: gate nobody can run before pushing, which is precisely the hole #655 shipped 68 broken links through.
+#: :func:`check_docs` already covers it with the stricter published-site rules. The rest only matter on
+#: the fallback path below, when the file list cannot come from git.
 _REPO_SKIP_DIRS: frozenset[str] = frozenset(
     {".git", ".claude", "doc", "node_modules", ".mypy_cache", ".venv", "__pycache__", ".pytest_cache"}
 )
-
-#: Directory prefixes holding **fixtures**, not documentation. Their links are part of the data under
-#: test: ``test/veaf-tools-updater/`` is a stand-in for a published release tree, so its READMEs point
-#: at files that exist in a *release* and deliberately not here. Making them resolve would corrupt the
-#: fixture to satisfy a gate that has no business reading it.
-_REPO_SKIP_PREFIXES: tuple[str, ...] = ("test/veaf-tools-updater/",)
 
 #: Files whose relative links describe a **past** state of the repo and are expected not to resolve.
 #: Each entry needs its reason: an exemption nobody can justify is indistinguishable from neglect.
@@ -329,11 +319,11 @@ def check_repo_links(repo_root: Path) -> list[str]:
         One ``"file -> target"`` string per broken link, sorted.
     """
     findings: list[str] = []
-    for page in sorted(repo_root.rglob("*.md")):
+    for page in _markdown_to_check(repo_root):
         if _REPO_SKIP_DIRS & set(page.relative_to(repo_root).parts):
             continue
         rel = page.relative_to(repo_root).as_posix()
-        if rel in _REPO_LINK_EXEMPT or rel.startswith(_REPO_SKIP_PREFIXES):
+        if rel in _REPO_LINK_EXEMPT:
             continue
         for target in _LINK.findall(page.read_text(encoding="utf-8", errors="replace")):
             if target.startswith(("http://", "https://", "mailto:", "#", "<", "/")):
@@ -344,6 +334,51 @@ def check_repo_links(repo_root: Path) -> list[str]:
             if not (page.parent / path_part).resolve().exists():
                 findings.append(f"{rel} -> {target}")
     return findings
+
+
+def _markdown_to_check(repo_root: Path) -> list[Path]:
+    """The markdown files this pass is responsible for: the ones **git tracks**.
+
+    Args:
+        repo_root: Repository root.
+
+    Returns:
+        Tracked ``.md`` files, sorted; or every ``.md`` in the tree when git cannot answer.
+
+    Walking the working tree instead was the defect: it reads whatever happens to sit on this
+    workstation. Two local artefacts produced **392 phantom defects** here against **0 in CI**, for the
+    same underlying reason — git ignores both, so a fresh clone has neither:
+
+    - ``.claude/worktrees/<name>/`` — agent worktrees, each a *full checkout of this repository*, so
+      every backlog and archive page got re-read at a different depth where none of its relative links
+      resolve. 367 of the 392.
+    - ``test/veaf-tools-updater/`` — a scratch directory for the updater's tests, ignored at
+      ``.gitignore:63``. The remaining 25.
+
+    Enumerating those two by name was the first fix and it was too narrow: the next local artefact would
+    have needed a third entry, and the list would drift out of step with ``.gitignore``. Asking git is
+    the general answer — the gate exists to guard **committed** documentation, and a link is only broken
+    for other people if both ends are committed.
+
+    The fallback matters: this module is also importable outside a checkout (a release tarball, a
+    vendored copy), where walking the tree is the only option and the old behaviour is correct.
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 - fixed argv, no shell, no user input
+            ["git", "-C", str(repo_root), "ls-files", "-z", "--", "*.md"],  # noqa: S607 - git from PATH
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        result = None  # git is not installed
+    if result is not None and result.returncode == 0:
+        names = [n for n in result.stdout.split("\0") if n]
+        # An empty repository is indistinguishable from "git answered nothing useful", so fall through
+        # rather than silently reporting a clean gate over zero files.
+        if names:
+            return sorted(repo_root / name for name in names)
+    return sorted(repo_root.rglob("*.md"))
 
 
 _LABELS = {

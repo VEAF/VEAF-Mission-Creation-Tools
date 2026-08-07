@@ -24,7 +24,9 @@ Stop each coalition from seeing — and being able to activate — the other sid
 - [x] `mission.yaml` defaults, authoring skill, `CHANGELOG.md`, version 6.11.8
 - [x] Lua coverage floor raised 67 → 69 (measured 70.93%)
 
-## Left to verify in game
+## Verified in game — ✅ 2026-08-06
 
 Whether DCS accepts a coalition-scoped submenu under a global parent (the VEAF root and
-`COMBAT ZONES` stay global). Not provable from the sources or the mocks — see the PRD.
+`COMBAT ZONES` stay global). Not provable from the sources or the mocks — and now measured by
+`FEAT-DCS-SMOKE-HARNESS` rather than by a person: the check returned `created`, so **DCS accepts the
+nesting**. See the PRD for what that answer does and does not cover.

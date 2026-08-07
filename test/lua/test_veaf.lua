@@ -1706,6 +1706,52 @@ function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
 end
 
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- veaf.outTextForUnit — the floor under every pilot-facing message
+--
+-- trigger.action.outText* raises on a nil message, so a caller with nothing to say produced a DCS
+-- scripting error from a *display* call, reading in dcs.log as a bug in whatever feature was talking.
+-- That is how issue #302's crash survived its own fix: the guard went where the value is computed and
+-- the nil travelled one level further (FIX-ATIS-NIL-MESSAGE, from MacFlorent's PR #303).
+-- ---------------------------------------------------------------------------
+TestVeafOutTextFloor = {}
+
+function TestVeafOutTextFloor:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafOutTextFloor:test_a_nil_message_never_reaches_dcs()
+  veaf.outTextForUnit(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0, "a nil message must not be forwarded to DCS")
+end
+
+function TestVeafOutTextFloor:test_a_blank_message_never_reaches_dcs()
+  -- Whitespace only is the same defect wearing a disguise: the pilot sees an empty box and the caller
+  -- looks like it worked.
+  veaf.outTextForUnit(nil, "   \n\t ", 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_the_group_variant_inherits_the_floor()
+  -- It delegates, so one guard covers both — pinned so a future refactor cannot split them apart.
+  veaf.outTextForGroup(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_a_real_message_still_gets_through_untouched()
+  veaf.outTextForUnit(nil, "ATIS Alpha, wind calm", 30)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(dcs_mocks.messages[1].text, "ATIS Alpha, wind calm")
+  luaunit.assertEquals(dcs_mocks.messages[1].duration, 30)
+end
+
+function TestVeafOutTextFloor:test_zero_is_a_message_not_an_absence()
+  -- The guard must key on nil and blank, not on falsiness or emptiness in general: a caller reporting
+  -- a count of 0 has something to say.
+  veaf.outTextForUnit(nil, "0", 5)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+end
+
 -- veaf.findSpawnPoint — three-tier search (FEAT-SCENERY-AWARE-SPAWN)
 --
 -- Tier 1 asks the undocumented Disposition singleton for scenery-clear points,
@@ -1868,6 +1914,133 @@ function TestVeafFindSpawnPoint:test_singleton_is_asked_for_several_candidates()
   }
   veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
   luaunit.assertEquals(askedFor, veaf.SPAWN_SEARCH_ATTEMPTS)
+end
+
+-- ---------------------------------------------------------------------------
+-- The distance filter (measured in a live DCS, 2026-08-06)
+--
+-- Disposition's radius argument is NOT a bound. Measured around one centre in wooded
+-- terrain: asked for 800 m it returned points 2035-2258 m out, and asked for 1600 m with
+-- a count of **one** it still returned a point 2628 m out — so the overshoot is not the
+-- count forcing a wider search, the radius simply does not cap anything.
+--
+-- Tier 1 used to take the first candidate that was on land, with no distance test at all,
+-- so `_spawn group, radius 50` in a forest could place the group kilometres away in
+-- silence. ADR 0018 requires this dependency to be quality-only and never correctness;
+-- moving a group somewhere nobody asked for is a correctness regression.
+-- ---------------------------------------------------------------------------
+
+function TestVeafFindSpawnPoint:test_candidate_beyond_the_caller_radius_is_rejected()
+  -- 2628 m is the real measurement, not a round number invented for the test.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 2628, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500, "a candidate outside the requested radius must not be used")
+  luaunit.assertEquals(self._jitterCalls, 1, "it must fall through to the jitter tier")
+end
+
+function TestVeafFindSpawnPoint:test_candidate_within_the_caller_radius_is_accepted()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 900, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 900)
+  luaunit.assertEquals(self._jitterCalls, 0)
+end
+
+function TestVeafFindSpawnPoint:test_the_nearest_acceptable_candidate_is_not_required_only_a_near_one()
+  -- The far one comes first in the array; the filter must keep looking rather than give up.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 5000, y = 0, z = 0 }, { x = 300, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 300)
+end
+
+function TestVeafFindSpawnPoint:test_distance_is_horizontal_so_terrain_height_cannot_defeat_it()
+  -- placePointOnLand writes the terrain height into y. Measuring in 3D would let a hill
+  -- push a perfectly good candidate out of range.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 0, y = 0, z = 999 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.z, 999)
+end
+
+function TestVeafFindSpawnPoint:test_a_zero_radius_keeps_the_singleton_out_of_it()
+  -- radius 0 is what veafSpawn passes for farp, cargo, teleport, bomb, smoke and friends:
+  -- "exactly here, the mission maker means it". Tier 1 exists to move a point; it must not.
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 0 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertFalse(called, "a zero radius must not even ask")
+  luaunit.assertEquals(point.x, 0)
+end
+
+function TestVeafFindSpawnPoint:test_the_singleton_is_asked_within_the_caller_radius()
+  -- It used to be asked for math.max(1852, safeRadius * 5) regardless of what the caller
+  -- wanted, which is where the silent widening started.
+  local askedRadius
+  Disposition = {
+    getSimpleZones = function(_centre, searchRadius)
+      askedRadius = searchRadius
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 250)
+  luaunit.assertEquals(askedRadius, 250)
+end
+
+function TestVeafFindSpawnPoint:test_the_measured_vec2_shape_is_understood()
+  -- What the real API returns, measured: {x, y, course} — a vec2 plus a heading, no z.
+  -- Its y is the map's z, so reading it as an altitude would put the group 200 m up and
+  -- leave the distance filter comparing the wrong axis.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 100, y = 200, course = 1.57 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 100)
+  luaunit.assertEquals(point.z, 200, "the candidate's y is the map's z")
+end
+
+function TestVeafFindSpawnPoint:test_a_vec2_centre_is_measured_against_the_right_axis()
+  -- Callers do pass vec2 centres. Reading the centre's y as an altitude would make the
+  -- distance nonsense in exactly the case the filter matters.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 0, y = 900, course = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  -- Centre vec2 {x=0, y=1000} means map z=1000; candidate y=900 means map z=900. That is 100 m
+  -- apart, inside the 200 m radius, so it must be accepted. Read the centre's y as an altitude
+  -- instead and the distance becomes 900 — rejected, and the filter would misfire everywhere.
+  local point = veaf.findSpawnPoint({ x = 0, y = 1000 }, 200)
+  luaunit.assertEquals(self._jitterCalls, 0, "100 m apart is inside a 200 m radius")
+  luaunit.assertEquals(point.z, 900)
 end
 
 function TestVeafFindSpawnPoint:test_malformed_candidates_do_not_raise()

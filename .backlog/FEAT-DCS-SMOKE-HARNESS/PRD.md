@@ -14,6 +14,27 @@ Status: 🔄 in-progress
 > (the DCS-side calls have never been made here, so the probe reports whether they exist rather than
 > code being written blind against them), and **the committed test mission** (the contract is written,
 > the artefact is not).
+>
+> **2026-08-06, on the machine that has DCS**: the probe was enriched instead of the lifecycle being
+> written, because **ED's own API documentation ships with DCS** — `<install>/API/Sim_ControlAPI.md` —
+> and had never been opened. It contradicts three of this lot's assumptions: the control table is
+> `Sim.*` and not `DCS.*`, `net.load_mission` is **SERVER ONLY**, and `net.dostring_in` — the only
+> transport every assertion uses — is **obsolete and gated behind `autoexec.cfg`**, which David's
+> install does not enable. So the six checks may have had no transport at all, and the probe would have
+> blamed a missing mission. Details and the resulting decision — "the decision step 4 now needs" — in
+> [ticket 02](tickets/02-runner.md). No anchor on purpose: the gate does not validate anchors outside
+> `doc/`, so linking one would be a link nothing here can check. Nothing was launched either: starting
+> DCS is David's to do on his own session.
+>
+> **The evidence clause of the Definition of Done is met.** Two of the four pending checks are now
+> answered **by the harness and not by a person**: `Disposition` exists and `getSimpleZones` returns
+> points (`FEAT-SCENERY-AWARE-SPAWN` ticket 01, the singleton half), and **DCS accepts a coalition-scoped
+> submenu under a global parent** — which closes `FEAT-COMBATZONE-MENU-COALITION`, open since July. So this
+> lot is no longer "a framework and no evidence". Getting there took four runs and cost three of the
+> harness's own defects, every one of them a variant of the same mistake — *in this transport, "it came
+> back" is not "it worked"*: a Lua error returned as a successful string, six checks aimed at the trigger
+> state instead of the scripting state, and booleans and tables arriving as `''`. All three were invisible
+> to the mocks by construction, which is the argument for this lot existing.
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §2.
 
@@ -25,8 +46,8 @@ it, and that queue is currently four items long:
 
 | Blocked on someone flying it | Where |
 |---|---|
-| Does `Disposition.getSimpleZones` avoid buildings and forests at all? | `FEAT-SCENERY-AWARE-SPAWN` ticket 01, 🧑 |
-| Does DCS accept a coalition-scoped submenu under a global parent? | `FEAT-COMBATZONE-MENU-COALITION`, 🧑 since July |
+| Does `Disposition.getSimpleZones` avoid buildings and forests at all? | `FEAT-SCENERY-AWARE-SPAWN` ticket 01 — **the singleton is measured to exist and return points**; the *avoidance* still needs a mission next to a village |
+| ~~Does DCS accept a coalition-scoped submenu under a global parent?~~ **answered: yes, 2026-08-06** | `FEAT-COMBATZONE-MENU-COALITION`, now ✅ |
 | Does flattening Foothold's staggered script loading break AIEN/CTLD? | `FEAT-CUSTOM-SCRIPT-LOAD-DELAY`'s open question |
 | Do the guided checklists work? | `FEAT-ASSIST-CHECKLISTS` — validated **by hand, in flight** |
 

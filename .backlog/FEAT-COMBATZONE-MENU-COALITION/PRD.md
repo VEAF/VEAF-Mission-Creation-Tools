@@ -1,8 +1,30 @@
 # Lot FEAT-COMBATZONE-MENU-COALITION — a combat zone's F10 menu is shown to its own side only
 
-Status: 🧑 waiting-human — ticket 01 is done; what remains is the in-game check that DCS
-accepts a coalition-scoped submenu under a global parent.
+Status: ✅ done — **the in-game check came back positive 2026-08-06**, answered by the smoke
+harness rather than by a person.
 Branch: feature/FEAT-COMBATZONE-MENU-COALITION
+
+## The gate, answered 2026-08-06
+
+Open since July on one question: **does DCS accept a coalition-scoped submenu under a global parent?**
+`veafRadio` inherits the side down a subtree, so if DCS refused the nesting the whole feature was built
+on sand — and no unit test could tell, because the mocks pin *which API is called*, not DCS's reaction.
+
+`FEAT-DCS-SMOKE-HARNESS` asked it inside a running mission: create a global `addSubMenu`, add an
+`addSubMenuForCoalition` under it, and report what came back.
+
+```
+coalition-scoped-submenu-accepted: returned 'created'
+```
+
+**DCS accepts it.** The nesting is legal and returns a usable handle, so the design stands as shipped.
+
+Two honesty notes on the scope of that answer. It establishes **acceptance** — DCS neither raised nor
+handed back nil — and not that the resulting menu is *displayed* to blue alone; that half is
+`veafRadio`'s own logic, which the unit tests cover. And getting the answer took two repairs to the check
+itself: it first returned a constant whenever `pcall` did not raise (so a nil would have read as a pass,
+unblocking this lot **in the wrong direction**), and then returned a boolean, which that transport
+destroys — leaving it silent on the very question it existed to settle. The verdict is a word now.
 
 ## Problem Statement
 
@@ -42,13 +64,15 @@ its menu to blue only. Chosen deliberately (David, over the two alternatives) �
 where both sides are played, deducing it is what is wanted, and requiring the key on every zone
 would be noise. Missions whose player slots are all blue see no difference.
 
-## Risk to verify in-game
+## Risk verified in-game — ✅ 2026-08-06, DCS accepts it
 
 Whether DCS accepts a coalition-scoped submenu **under a global parent** — the VEAF root menu
-and `COMBAT ZONES` stay global — cannot be proven from the sources or the mocks. The unit tests
-pin which API is called with which arguments, not DCS's reaction. If DCS turns out to require a
-coalition-scoped parent chain, the fallback is to also scope the `COMBAT ZONES` parent per
-coalition, which is a change in `veafCombatZone.buildRadioMenu`, not in this design.
+and `COMBAT ZONES` stay global — could not be proven from the sources or the mocks. The unit tests
+pin which API is called with which arguments, not DCS's reaction.
+
+**Answered by the smoke harness: `created`.** The nesting is legal. The prepared fallback — scoping the
+`COMBAT ZONES` parent per coalition too, a change in `veafCombatZone.buildRadioMenu` rather than in this
+design — is **not needed** and stays on the shelf.
 
 The parent menu stays global on purpose: a `radio_group_name` submenu may hold zones of both
 sides, so a side can see the `COMBAT ZONES` entry without the other side's zones under it.

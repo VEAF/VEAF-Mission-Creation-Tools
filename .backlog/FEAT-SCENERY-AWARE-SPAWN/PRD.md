@@ -1,6 +1,30 @@
 # FEAT-SCENERY-AWARE-SPAWN — scenery-aware ground spawning from TUM's native tier
 
-Status: 🧑 waiting-human
+Status: ✅ done — the in-game probe came back 2026-08-06, avoidance included, and it found a
+correctness bug in what had shipped the day before. Fixed here rather than deferred: the code was
+never released (6.13.0 is the last release), so it should never reach anyone.
+
+## The probe, and what it cost — 2026-08-06
+
+`FEAT-DCS-SMOKE-HARNESS` asked the questions ticket 01 listed, and David dropped an F10 marker so the
+harness could mark every point `Disposition` proposed. That marker was the **only possible oracle**:
+`land.getSurfaceType` answers `LAND` for a forest exactly as for a meadow, so no automated assertion
+could ever have judged the avoidance.
+
+- **The avoidance is real.** Marker inside a wooded strip: the whole scatter came back in the open ground
+  beside the trees, with one point in a clearing *between* two copses — it finds gaps rather than fleeing.
+- **The refusal is clean.** Marker in a dense forest: **0 points**, so tier 2 takes over as designed.
+- **The signature is measured**: `getSimpleZones(centre, radius, spacing, count)` → `{x, y, course}`,
+  a **vec2 plus a heading**. `count` is exact; `spacing` drives the layout; `spacing > radius` gives 0.
+- **The bug**: the `radius` argument **does not bound the answers** — asked for 1600 m with a count of
+  *one*, it returned a point 2628 m away. Tier 1 applied no distance test and ignored the caller's radius
+  outright, so a spawn could move kilometres in silence. That is exactly the correctness regression
+  [ADR 0018](../../docs/adr/0018-undocumented-dcs-api-dependency.md) forbids, and the test suite had been
+  **pinning it**: `test_scenery_aware_point_becomes_the_group_centre` asserted a candidate 4200 m away
+  became the centre of a group asked for within 1000 m.
+
+Fix in ticket 01. Still unmeasured and gating nothing: per-call cost, cross-theatre presence including
+WWII, and the empty case as a deliberate assertion rather than an incidental observation.
 
 > **Code delivered 2026-08-05** (tickets 02–05). The lot stays open on ticket 01 alone: the in-game
 > probe of `Disposition`, which needs a human at a DCS install. Until it runs, the scenery avoidance is

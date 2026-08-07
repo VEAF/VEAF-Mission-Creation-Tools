@@ -38,7 +38,7 @@ extending it:
 - **Combat zones playable from either side** — red-side zones and coalition-scoped F10 menus.
 
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.13.0** (2026-08-01); `develop` is at **6.13.24**.
+release is **6.13.0** (2026-08-01); `develop` is at **6.13.26**.
 
 ---
 
@@ -48,21 +48,24 @@ release is **6.13.0** (2026-08-01); `develop` is at **6.13.24**.
 and status. This section is only about **what is in the way**, because almost everything blocked
 is blocked on the same thing.
 
-### Blocked on a machine with DCS installed
+### Needed a machine with DCS installed — two of the four are now answered
 
-Not on a decision — on hardware. None of these can move from a workstation without DCS.
+Not on a decision — on hardware. The 2026-08-06 session on the DCS workstation cleared the first two
+rows; the strikethrough ones are closed and kept here for one refresh so the sequencing reads.
 
 | Lot | Status | What has to be observed in game |
 |-----|--------|---------------------------------|
-| `FEAT-SCENERY-AWARE-SPAWN` | 🧑 | Ticket 01: does `Disposition.getSimpleZones` really avoid buildings and forests? Code shipped; the avoidance is asserted, not measured. |
-| `FEAT-COMBATZONE-MENU-COALITION` | 🧑 | Does DCS accept a coalition-scoped submenu under a global parent? Open since July. |
-| `FEAT-CUSTOM-SCRIPT-LOAD-DELAY` | ⬜ | Its first task is reading `dcs.log` after running the built Foothold. Labelled ⬜, gated in practice. |
-| `FEAT-DCS-SMOKE-HARNESS` | 🔄 | Its remaining slice — locate, launch, load, quit — rests on `net.load_mission` and `DCS.exitProcess`, which this repository has never called. Deliberately not written blind. |
+| ~~`FEAT-SCENERY-AWARE-SPAWN`~~ | ✅ | **Answered 2026-08-06, avoidance included** — an F10 marker plus the harness marking every proposed point. It also found a correctness bug in the day-old code: the singleton's radius does not bound its answers, and tier 1 had no distance test, so a spawn could move kilometres silently. Fixed. |
+| ~~`FEAT-COMBATZONE-MENU-COALITION`~~ | ✅ | **Answered 2026-08-06: DCS accepts a coalition-scoped submenu under a global parent.** Open since July, closed by the harness. |
+| `FEAT-CUSTOM-SCRIPT-LOAD-DELAY` | ⬜ | Its first task is reading `dcs.log` after running the built Foothold. Labelled ⬜, gated in practice — though `Sim.getLogHistory(from)` now offers to read the log **through the hook** instead of off disk. |
+| `FEAT-DCS-SMOKE-HARNESS` | 🔄 | Its remaining slice — locate, launch, load, quit. `net.load_mission` and `Sim.exitProcess` are **measured present**, and `isServer()` is true in single-player, so the SERVER-ONLY caveat does not block a local instance. |
 
-**`FEAT-DCS-SMOKE-HARNESS` is the lever.** Its six checks are already written and have never run;
-two of them answer the first two rows above outright. Finishing it on a DCS machine converts three
-gates into evidence in one session, and turns `Disposition` from assumed into measured. Start there,
-not with the individual probes.
+**`FEAT-DCS-SMOKE-HARNESS` was the lever, and it paid.** Run on the DCS workstation on 2026-08-06, it
+answered two of the four rows above by machine rather than by a person: it closed
+`FEAT-COMBATZONE-MENU-COALITION` and turned `Disposition` from assumed into existing. It also cost three
+of its own defects to get there — all the same mistake, *"it came back" is not "it worked"* — every one
+invisible to `dcs_mocks.lua` by construction. Keep going there: the remaining checks are data entries now,
+not investigations.
 
 ### Blocked on a person, not on DCS
 
@@ -80,7 +83,7 @@ rejection is an acceptable outcome), `CHORE-SMS-QUICK-WINS`, `CHORE-TOOLING-GATE
 `FIX-RADIO-LAYOUT-GAPS`.
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
-**6.13.0 was published 2026-08-01 and `develop` is 24 patch versions ahead.**
+**6.13.0 was published 2026-08-01 and `develop` is 26 patch versions ahead.**
 
 ### Security work landed 2026-08-06
 

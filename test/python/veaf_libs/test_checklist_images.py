@@ -118,7 +118,7 @@ class TestRendering(unittest.TestCase):
 
     def _green_pixels(self, state: int, labels: list[str]) -> int:
         image = render_state("Cold start", labels, state)
-        return sum(1 for pixel in image.getdata() if pixel == _TICK_COLOR)
+        return sum(1 for pixel in image.get_flattened_data() if pixel == _TICK_COLOR)
 
     def test_n_steps_produce_n_plus_one_images(self):
         images = render_checklist_images(_checklist(4), parse_runtime_catalog(CATALOG_LUA), "en")
@@ -149,7 +149,7 @@ class TestRendering(unittest.TestCase):
         catalog = parse_runtime_catalog(CATALOG_LUA)
         translated = render_state("Cold start", ["MAIN PWR to MAIN PWR"], 0)
         raw = render_state("Cold start", ["assist.step1"], 0)
-        self.assertNotEqual(list(translated.getdata()), list(raw.getdata()))
+        self.assertNotEqual(list(translated.get_flattened_data()), list(raw.get_flattened_data()))
 
         images = render_checklist_images(_checklist(2), catalog, "en")
         expected = render_state("Cold start", ["assist.step0", "MAIN PWR to MAIN PWR"], 0)

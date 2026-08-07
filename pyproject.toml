@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.13.28"
+version = "6.13.29"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -19,7 +19,7 @@ python = "^3.11"
 rich = ">=13.0,<15"
 typer = ">=0.9,<1"
 pyyaml = ">=6.0,<7"
-Pillow = ">=10.0,<12"
+Pillow = ">=12.3,<13"
 astral = ">=3.0,<4"
 pydantic = ">=2.0,<3"
 avwx-engine = ">=1.8,<2"

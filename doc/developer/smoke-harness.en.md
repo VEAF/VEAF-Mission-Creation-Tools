@@ -32,7 +32,13 @@ talk to — otherwise it would be red on every machine and nobody would run it.
        [ADR 0019](../../docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md) for why it
        is still like this and what replaces it.
 
-3. **A mission loaded** for the assertions — the mission environment does not exist before that.
+3. **`net.dostring_in` available** — it is the only path into the mission environment, so without it no
+   assertion can run at all. **Nothing to configure: measured present on a stock install**
+   (2026-08-06), with `autoexec.cfg` listing neither `net.allow_unsafe_api` nor
+   `net.allow_dostring_in`. ED's documentation implies otherwise; see the section on that documentation
+   below. Should it ever be missing, the harness names it precisely instead of blaming the mission.
+
+4. **A mission loaded** for the assertions — the mission environment does not exist before that.
 
 ## Usage
 
@@ -41,8 +47,17 @@ veaf-tools smoke-test --probe-only
 ```
 
 Runs no assertions: reports only **what this DCS allows**. Run it first — the same discipline as the
-`Disposition` probe, measure before building on top. Among other things it answers whether
-`net.load_mission` and `DCS.exitProcess` exist, two calls this repository has **never** made.
+`Disposition` probe, measure before building on top.
+
+What it measures, in one round trip: which control table answers (`Sim`, `DCS`, or both), whether
+`exitProcess` / `stopMission` / `setUserCallbacks` are there, whether `net.load_mission` exists **and**
+whether this instance calls itself a server, whether `net.dostring_in` is permitted, and — the thing
+only the running process knows — **which install and which `Saved Games` folder this instance is
+using**.
+
+It closes with **the one thing to fix first**, and the order matters: "no hook", then "no permission",
+then "no mission". The previous version reported the missing permission as "no mission loaded", which
+sent the reader looking for a mission to load where loading one could not have helped.
 
 ```
 veaf-tools smoke-test
@@ -59,7 +74,27 @@ One transport, the hook's, read out of `dcs-fiddle-server.lua` rather than assum
 | `?env=` | What it reaches | What it is for |
 |---|---|---|
 | `default` | the hook's own environment, via `loadstring` | the only one holding `net.*` — so, driving |
-| `mission` | the mission environment, via `net.dostring_in` | where the VEAF scripts live — so, asserting |
+| `mission` | the **trigger** state, via `net.dostring_in` | where `a_do_script` and the `a_*` actions live |
+
+!!! warning "`env=mission` is not where the VEAF scripts live"
+
+    That was the first slice's assumption and it is wrong — **measured 2026-08-06**, with a mission
+    loaded and a pilot in the cockpit: a chunk sent there returns
+    `:1: attempt to index global 'env' (a nil value)`. The chunk **ran** — that is a Lua runtime error
+    from inside the target state, not a refusal — so that state simply has no `env`. It is the
+    **trigger** state.
+
+    This repository had already established it without drawing the consequence: `FEAT-ASSIST-CHECKLISTS`
+    ticket 01 located `a_cockpit_highlight` "one `net.dostring_in` away". And the hook says it in one
+    line, in its own bootstrap: `net.dostring_in("mission", 'a_do_script("dofile(…)")')` — it reaches the
+    scripting state **through** `a_do_script`, not directly.
+
+    So the six checks in the first slice were aimed one state short. They now go through a **measured
+    route**, which the probe discovers by trying `a_do_script` (the path ED documents as current, and
+    which returns its values directly) then `net.dostring_in("scripting", …)`. The route test is
+    `return type(env)` and the answer must **be** `table`: a route that runs the chunk somewhere else
+    returns a Lua error, which this transport hands back as an ordinary string — "something came back"
+    proves nothing.
 
 This is **not** the bridge `capture-map` uses (`dcs-serve` + `dcs-bridge.lua`): that one lives *inside*
 the mission, so it cannot answer before the mission exists, and cannot be what loads it.
@@ -87,11 +122,55 @@ Assertions are **data**, not code: an entry in `CHECKS` (`veaf_libs/dcs_smoke.py
 snippet, what its result must be, and **why we want to know**. A check whose purpose nobody wrote down
 is a check nobody dares delete.
 
+### The rule: your Lua must return a **string**. Always.
+
+Measured 2026-08-06 in a mission, and everything else follows from it:
+
+| The Lua returns | Python receives |
+|---|---|
+| `'x'` | `'x'` |
+| `3` | `'3'` — a **string** |
+| `true` | `''` — **destroyed** |
+| `{1, 2}` | `''` — **destroyed** |
+
+A boolean and a table are therefore indistinguishable from each other *and* from a chunk that returned
+nothing. Two of the six original checks died of it: one expected a number, the other `True` — and the
+second was worse than unpassable, it was **silent on the one question it existed to settle**.
+
+Practical corollary: **tag** numeric values (`count:10`, not `10`), so that "asked, and there is nothing"
+(`count:0`) stays distinct from "the answer was destroyed" (`''`). A test sweeps every check against `''`:
+an expectation that `''` satisfies is an expectation that cannot tell success from a lost value.
+
 One trap worth knowing: the snippets return **sentinels** (`veaf-absent`, `no-singleton`,
 `not-a-table`, `raised: …`) instead of raising, so a missing prerequisite stays legible. Those are
 **non-empty, therefore truthy** strings — an expectation written as a plain truthiness test passes in
 exactly the case it was meant to catch. That happened while writing this; a test now sweeps every check
 against every sentinel.
+
+## The source that settles it: ED's own documentation, shipped with DCS
+
+`<DCS install>/API/Sim_ControlAPI.md` documents the hook API. **Read it before adding a call here**:
+three of its statements contradict what this module originally assumed.
+
+| What was assumed | What ED documents | Consequence |
+|---|---|---|
+| the control table is `DCS.*` | it is `Sim.*` | **measured: `Sim` and `DCS` are the *same table*** — either name works, but the probe reports it instead of assuming one |
+| `net.load_mission` loads a mission | `net.load_mission` is **SERVER ONLY** | measured: `isServer=true` in single-player, so the call is legitimate on a local instance |
+| `net.dostring_in` is available | **OBSOLETE and UNSAFE**, gated behind `autoexec.cfg` | **the restriction does not hold as written**: measured present with neither key set. The harness therefore checks for the *function*, not for the config |
+
+And one thing no documentation states: **the transport lies about failure.**
+`net.dostring_in(state, string)` returns a Lua error **as its result**, with HTTP 200 and a `{result=…}`
+body — so a failure in the mission environment is shaped exactly like a successful answer. Measured at
+the main menu: `return env.mission.theatre` came back as `:1: attempt to index global 'env' (a nil
+value)`, and the probe concluded "mission environment answered". That is the **third** time this lot has
+been caught by a truthy failure — the sentinels, the submenu check returning a constant, and this. In
+this transport, "it came back" is not "it worked".
+
+Two more useful things are documented there and not yet used:
+`onMissionLoadBegin` / `onMissionLoadProgress(progress, message)` / `onMissionLoadEnd` — an **event**
+signal that a load has finished, far better than watching a frame counter that freezes during the load;
+and `Sim.getLogHistory(from)`, which makes `dcs.log` readable through the hook instead of parsed off
+disk.
 
 ## What is still missing
 

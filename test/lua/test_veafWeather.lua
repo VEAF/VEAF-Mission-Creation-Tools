@@ -805,6 +805,88 @@ function TestVeafWeatherToStringAtis:test_non_cavok_path()
 end
 
 -- ============================================================================
+-- veafWeatherAtis — the vanished-airbase path (FIX-ATIS-NIL-MESSAGE)
+--
+-- Credit: MacFlorent, PR #303. His crash fix for issue #302 landed independently, but the idea kept
+-- here is the other one: when the airbase's DCS object is gone there is no weather to report, and the
+-- pilot must get a sentence rather than a nil travelling on into trigger.action.outTextForUnit.
+--
+-- This path had NO test coverage at all, which is how the gap survived a guard being added next to it.
+-- ============================================================================
+TestVeafWeatherAtisVanishedAirbase = {}
+
+function TestVeafWeatherAtisVanishedAirbase:setUp()
+  dcs_mocks.reset()
+  veafWeatherAtis.ListInEffect = {}
+  -- This suite deliberately loads the minimum (veaf, veafTime, veafI18n, veafWeather), so veafAirbases
+  -- is absent. Stub it rather than pulling the module in: what is under test is what veafWeather does
+  -- with the answer, not how the nearest airbase is found.
+  self._hadAirbases = veafAirbases ~= nil
+  self._savedAirbases = veafAirbases
+  veafAirbases = veafAirbases or {}
+  self._savedGetNearest = veafAirbases.getNearestAirbase
+  dcs_mocks.addUnit("Player1", {})
+end
+
+function TestVeafWeatherAtisVanishedAirbase:tearDown()
+  if self._hadAirbases then
+    veafAirbases.getNearestAirbase = self._savedGetNearest
+  else
+    veafAirbases = self._savedAirbases
+  end
+  veafWeatherAtis.ListInEffect = {}
+end
+
+--- An airbase whose DCS object reports it no longer exists — a sunk carrier is the canonical case.
+function TestVeafWeatherAtisVanishedAirbase:_vanished()
+  return {
+    Name = "CVN-75 Truman",
+    DcsAirbase = {
+      isExist = function()
+        return false
+      end,
+      getPoint = function()
+        error("getPoint on a destroyed airbase — exactly the crash issue #302 reported")
+      end,
+    },
+  }
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_getAtis_returns_nil_rather_than_raising()
+  local ok, result = pcall(veafWeatherAtis.getAtis, self:_vanished())
+  luaunit.assertTrue(ok, "a vanished airbase must not raise out of getAtis")
+  luaunit.assertNil(result)
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_getAtisString_returns_nil()
+  luaunit.assertNil(veafWeatherAtis.getAtisString(self:_vanished()))
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_the_pilot_gets_words_not_nothing()
+  -- The defect this pins: nil used to be handed to veaf.outTextForUnit and on to DCS, which raises.
+  veafAirbases.getNearestAirbase = function()
+    return self:_vanished()
+  end
+  local ok = pcall(veafWeather.messageAtcClosestAirbase, "Player1", true)
+  luaunit.assertTrue(ok, "asking for ATIS at a vanished airbase must not raise")
+  luaunit.assertEquals(#dcs_mocks.messages, 1, "the pilot must be told something")
+  -- Plain find, not assertStrContains: the hyphen in "CVN-75" is a Lua pattern quantifier, and the
+  -- assertion helper matches as a pattern — so it failed on a message that was in fact correct.
+  luaunit.assertNotNil(
+    string.find(dcs_mocks.messages[1].text, "CVN-75 Truman", 1, true),
+    "the message must name the airbase, got: " .. tostring(dcs_mocks.messages[1].text)
+  )
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_the_message_is_translated_not_hardcoded()
+  -- MacFlorent's version hardcoded English. The key must resolve through the catalogue, so a missing
+  -- entry shows up here rather than shipping the raw key to a pilot.
+  local text = veaf.t("weather.atis_unavailable", "Batumi")
+  luaunit.assertNotEquals(text, "weather.atis_unavailable", "the i18n key must exist in the catalogue")
+  luaunit.assertNotNil(string.find(text, "Batumi", 1, true))
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

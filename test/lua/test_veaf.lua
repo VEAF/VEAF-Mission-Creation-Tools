@@ -1706,6 +1706,52 @@ function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
 end
 
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- veaf.outTextForUnit — the floor under every pilot-facing message
+--
+-- trigger.action.outText* raises on a nil message, so a caller with nothing to say produced a DCS
+-- scripting error from a *display* call, reading in dcs.log as a bug in whatever feature was talking.
+-- That is how issue #302's crash survived its own fix: the guard went where the value is computed and
+-- the nil travelled one level further (FIX-ATIS-NIL-MESSAGE, from MacFlorent's PR #303).
+-- ---------------------------------------------------------------------------
+TestVeafOutTextFloor = {}
+
+function TestVeafOutTextFloor:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafOutTextFloor:test_a_nil_message_never_reaches_dcs()
+  veaf.outTextForUnit(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0, "a nil message must not be forwarded to DCS")
+end
+
+function TestVeafOutTextFloor:test_a_blank_message_never_reaches_dcs()
+  -- Whitespace only is the same defect wearing a disguise: the pilot sees an empty box and the caller
+  -- looks like it worked.
+  veaf.outTextForUnit(nil, "   \n\t ", 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_the_group_variant_inherits_the_floor()
+  -- It delegates, so one guard covers both — pinned so a future refactor cannot split them apart.
+  veaf.outTextForGroup(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_a_real_message_still_gets_through_untouched()
+  veaf.outTextForUnit(nil, "ATIS Alpha, wind calm", 30)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(dcs_mocks.messages[1].text, "ATIS Alpha, wind calm")
+  luaunit.assertEquals(dcs_mocks.messages[1].duration, 30)
+end
+
+function TestVeafOutTextFloor:test_zero_is_a_message_not_an_absence()
+  -- The guard must key on nil and blank, not on falsiness or emptiness in general: a caller reporting
+  -- a count of 0 has something to say.
+  veaf.outTextForUnit(nil, "0", 5)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+end
+
 -- veaf.findSpawnPoint — three-tier search (FEAT-SCENERY-AWARE-SPAWN)
 --
 -- Tier 1 asks the undocumented Disposition singleton for scenery-clear points,

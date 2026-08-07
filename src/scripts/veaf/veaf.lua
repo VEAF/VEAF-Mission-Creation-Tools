@@ -2498,7 +2498,21 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
   return result
 end
 
+--- Shows a message to a unit, its group, or everyone
+-- The nil check is a floor under **every** caller, not a fix for one. `trigger.action.outText*`
+-- raises on a nil message, so a caller with nothing to say produced a DCS scripting error from a
+-- *display* call — which reads in `dcs.log` as a bug in whatever feature was talking, not as
+-- "somebody passed nothing". That is how issue #302's crash survived its own fix: the guard was added
+-- where the value is computed, and the nil simply travelled one level further. There are dozens of
+-- callers here, so guarding them one at a time would leave the trap armed.
+-- It **logs** rather than returning quietly: a caller reaching this has a defect, and silence is worse
+-- than a crash for whoever has to diagnose it later.
 function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
+  if message == nil or (type(message) == "string" and message:match("^%s*$")) then
+    veaf.loggers.get(veaf.Id):warn("outTextForUnit: refusing an empty message (unit=%s)", veaf.p(unitName))
+    return
+  end
+
   local unitId = nil
   local groupId = nil
   if unitName then

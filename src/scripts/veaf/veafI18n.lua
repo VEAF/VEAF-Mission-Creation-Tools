@@ -497,6 +497,13 @@ veaf.i18nCatalog = {
     fr = "Vent %s",
     en = "Wind %s",
   },
+  -- Said to a pilot when the airbase's DCS object is gone (a sunk carrier, a despawned base, a
+  -- persistence reload), so there is no weather to report. Before this key the code passed a nil down
+  -- to trigger.action.outTextForUnit, which raises — the display-side twin of issue #302.
+  ["weather.atis_unavailable"] = {
+    fr = "Pas d'ATIS disponible pour %s",
+    en = "No ATIS available for %s",
+  },
   ["weather.atis_cavok"] = {
     fr = "\nPlafond et visibilité OK, CAVOK",
     en = "\nCeiling and visiblity OK, CAVOK",

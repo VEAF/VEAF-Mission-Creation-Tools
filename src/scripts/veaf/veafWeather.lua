@@ -1258,7 +1258,11 @@ function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
   local dcsUnit = Unit.getByName(unitName)
   local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
   if veafAirbase then
-    local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase)
+    -- getAtisString returns nil when the airbase's DCS object is gone — the guard that fixed issue
+    -- #302 upstream of here. Passing that nil on would raise inside trigger.action.outTextForUnit,
+    -- which is the same crash one level later, so the pilot gets a sentence instead. The idea is
+    -- MacFlorent's, from PR #303; the translation is ours (his version hardcoded English).
+    local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase) or veaf.t("weather.atis_unavailable", veafAirbase.Name)
     if forUnit then
       veaf.outTextForUnit(dcsUnit:getName(), sAtcReport, 30)
     else

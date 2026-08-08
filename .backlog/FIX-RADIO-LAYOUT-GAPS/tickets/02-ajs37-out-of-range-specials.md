@@ -1,6 +1,6 @@
 # 02 — AJS-37: two trailing specials below the radio's floor
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the measurement narrows it to one question for David
 Type: fix
 
 ## Why
@@ -32,3 +32,21 @@ truth 2, and likely shares a root with gap 3.
 - [ ] Keep the priority-driven specials (`Sp1`/`Sp2`/`Sp3`/`H`) working — they are the reason
       `priority` exists on a channel (ADR 0012).
 - [ ] CHANGELOG.
+
+
+## Measured 2026-08-08 — the FR24 is absent upstream, so this is a data decision
+
+Parsed the AJS-37 straight out of the pinned datamine: it declares **one** radio,
+`Radio frequencies`, `103.0–400.0 MHz AM/FM`. The shipped specs carry exactly that, so nothing was
+lost in generation — the FR24 FM set simply is not modelled upstream.
+
+That rules out "regenerate and it appears" and leaves a genuine choice, which is David's:
+
+1. **The two specials are wrong** — drop `{freq: 33, label: E}` and `{freq: 34, label: F}` from the
+   AJS-37's `trailing_specials`. Cheapest, and correct if nobody uses them.
+2. **The FR24 is real and missing** — add it as hand-written data. `mod: 1` on both entries says
+   the author meant FM, which supports this reading, and it is the *same shape of work* as ticket
+   03's FC3 gap: a VEAF overlay for radios DCS has but the datamine does not model.
+
+Option 2 only makes sense together with ticket 03; option 1 stands alone. Either way the current
+state — two channels reported dropped on every single build — should not survive.

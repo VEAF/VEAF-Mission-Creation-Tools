@@ -667,6 +667,15 @@ def _build_role_list(
 _FM_CEILING_MHZ = 95.0
 _UHF_FLOOR_MHZ = 195.0
 
+#: Below this, a "radio" is not a communication set at all — it is a radio-compass (ADF) or an
+#: HF beacon receiver. 2 MHz separates them cleanly from the 20 MHz bottom of any FM comm radio,
+#: so the threshold needs no per-type tuning. Without it, an ARK-19 or ARK-22 attracted the FM
+#: role and had a 30-channel list projected onto it: every channel then reported out of range and
+#: dropped, while the kneeboard advertised a radio the aircraft does not have.
+#: `FIX-DYNSLOT-RADIO-UNITS` reasons about the same hazard from the other end — a primary
+#: frequency below the VHF floor makes DCS refuse to save the mission.
+_COMM_FLOOR_MHZ = 2.0
+
 
 def _classify_radio(ranges: list[FrequencyRange]) -> str | None:
     """Classify one physical radio's role band from its frequency ranges.
@@ -676,10 +685,12 @@ def _classify_radio(ranges: list[FrequencyRange]) -> str | None:
     combo radios like the ARC-210, or on single-range radios spanning both
     windows like the Mi-8MT's R-863 or a warbird's FuG16 — the packer falls back
     to physical position for the former, and this range naturally resolves to a
-    single band for the latter two), or None when the radio never reaches above
-    the FM ceiling (an FM radio, or an unrelated low-band set like an HF/ADF
-    radio — see the packer's module docstring for how that degrades safely).
+    single band for the latter two), "non_comm" when every range sits below the
+    comm floor (a radio-compass or HF beacon receiver, which must get no role at
+    all), or None when the radio is a genuine FM set.
     """
+    if ranges and all(r.max_mhz < _COMM_FLOOR_MHZ for r in ranges):
+        return "non_comm"
     has_uhf = any(r.max_mhz >= _UHF_FLOOR_MHZ for r in ranges)
     has_vhf = any(r.min_mhz < _UHF_FLOOR_MHZ and r.max_mhz > _FM_CEILING_MHZ for r in ranges)
     if has_uhf and has_vhf:

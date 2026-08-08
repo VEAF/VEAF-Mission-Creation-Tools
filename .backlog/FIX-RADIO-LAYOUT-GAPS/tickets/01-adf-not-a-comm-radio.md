@@ -1,6 +1,6 @@
 # 01 — Never assign a comm role to a radio-compass (ADF)
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Why
@@ -14,16 +14,22 @@ layout entry — so the fix belongs in the **default classification**, not in pe
 
 ## Tasks
 
-- [ ] In the default role assignment, exclude any radio whose every range sits below a comm floor
-      (2 MHz separates an ADF from the 20 MHz FM bottom cleanly; `FIX-DYNSLOT-RADIO-UNITS` already
-      reasons about a VHF floor — reuse its constant if there is one).
-- [ ] Such a radio gets **no role**: no channels projected, no kneeboard column.
-- [ ] Unit test per affected type: the `Ka-50`'s `ARK-22` and the `MiG-29 Fulcrum`'s `ARK-19` get
-      no channel list, while radio 1 keeps its role.
-- [ ] Check the radio-count guard (the packer cross-checks the layout's radio count against the
-      specs) does not now report these types as drift.
-- [ ] Rebuild a Foothold mission and confirm `MiG-29 Fulcrum` leaves the out-of-range report.
-- [ ] CHANGELOG + version bump.
+- [x] `_classify_radio` returns a new `"non_comm"` band when **every** range sits below
+      `_COMM_FLOOR_MHZ = 2.0`. No existing constant fitted: `FIX-DYNSLOT-RADIO-UNITS` reasons about
+      a *primary frequency* against a VHF floor, which is a different question from classifying a
+      whole radio, so reusing it would have coupled two unrelated rules.
+- [x] Such a radio gets **no role**. The change turned out to be one branch: the role groups are
+      built by filtering on `band is None`, and `"non_comm"` is not `None`, so these radios fall
+      out of every group by construction rather than by a second exclusion rule.
+- [x] 9 tests, written first and confirmed failing. Real ranges from `dcs-radio-specs.yaml` for
+      the ARK-22, ARK-19 and ARK-15M, plus **two guard tests** that a genuine FM set still attracts
+      the FM role and a V/UHF radio is untouched — the risk of this fix is over-reach, not under.
+- [x] No drift reported: the full `presets_injector` suite (252 tests) is green, including the
+      radio-count cross-check.
+- [ ] Rebuilding a Foothold mission to see `MiG-29 Fulcrum` leave the out-of-range report — not
+      done, it needs a Foothold mission folder that is not in this repository. The unit tests
+      assert the behaviour the report reflects.
+- [x] CHANGELOG + version bump.
 
 ## Notes
 

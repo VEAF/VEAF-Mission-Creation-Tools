@@ -2,6 +2,12 @@ name = "veaf-docs-chatbot"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
+# Wrangler 4 (bumped from 3.90 on 2026-08-08 to close 11 Dependabot alerts, all of them in
+# wrangler's own dev-only dependency tree). Nothing in this file had to change: `deploy --dry-run`
+# accepts it as-is, the CHAT_KV binding resolves, and the `wrangler kv key put` form the
+# docs-chatbot-index workflow calls still exists. Keep `compatibility_date` as it is — moving it
+# changes Workers runtime semantics, which is unrelated to the tooling version.
+
 # KV namespace: per-IP rate-limit counters AND the embeddings index (binary vectors + texts).
 # The similarity search runs in the Worker, so no paid vector DB is needed. Load the index with:
 #   node scripts/build-index.mjs   # writes vec-{lang}.bin + txt-{lang}.json

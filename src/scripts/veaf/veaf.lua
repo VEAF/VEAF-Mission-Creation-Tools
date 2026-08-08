@@ -3122,6 +3122,35 @@ function veaf.randomlyChooseFrom(aTable, bias)
   return aTable[index]
 end
 
+--- Convert a marker parameter to a number, never raising, optionally clamped.
+---
+--- SECREV-2 group A. Marker text is player input: a keyword can arrive with no value at all, or
+--- with something that is not a number, and the handlers were converting it inline. Two crash
+--- shapes came out of that repeatedly — `string.format("%d", nil)` on a valueless keyword, and
+--- `tonumber(val) <= 5`, which compares nil with a number and takes the whole handler down.
+---
+--- The review asked for this to live in "the shared marker parser". There is no such thing: ten
+--- modules carry their own `markTextAnalysis`, and unifying them is a different lot. What *can*
+--- be shared is the conversion, which is the part that was being written wrong each time.
+---
+--- @param value the raw parameter (string, number, or anything a player managed to produce)
+--- @param options optional table: `default` when the value is unusable, `min`/`max` to clamp
+--- @return number|nil the converted value, the clamped value, or `options.default`
+function veaf.safeNumber(value, options)
+  options = options or {}
+  local _number = tonumber(value)
+  if _number == nil then
+    return options.default
+  end
+  if options.min and _number < options.min then
+    return options.min
+  end
+  if options.max and _number > options.max then
+    return options.max
+  end
+  return _number
+end
+
 function veaf.safeUnpack(package)
   if type(package) == "table" then
     return (unpack or table.unpack)(package) -- luacheck: ignore 143

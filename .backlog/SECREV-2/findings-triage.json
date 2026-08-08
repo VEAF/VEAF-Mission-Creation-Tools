@@ -916,8 +916,8 @@
     "line": "515",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group A / PR #677 — the four valueless numeric keywords (size, defense, armor, spacing) each crashed twice: string.format('%d', nil) and tonumber(nil) <= 5. Both go through veaf.safeNumber now. The review asked for this in 'the shared marker parser'; there is none — ten modules carry their own markTextAnalysis — so the shared piece is the conversion, which is what was being written wrong each time. Out-of-range values stay ignored rather than clamped, preserving existing behaviour."
   },
   {
     "vid": "VMR-020",

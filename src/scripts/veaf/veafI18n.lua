@@ -87,6 +87,10 @@ veaf.i18nCatalog = {
     fr = "Le système était déjà verrouillé",
     en = "The system was already locked down",
   },
+  ["security.group_elevated"] = {
+    fr = "Votre groupe dispose de vos droits pendant %d secondes",
+    en = "Your group has your privileges for %d seconds",
+  },
   ["security.locked"] = {
     fr = "Le système a été verrouillé",
     en = "The system has been locked down",

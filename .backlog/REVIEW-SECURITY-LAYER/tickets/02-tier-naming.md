@@ -1,6 +1,6 @@
 # 02 — Decide whether the tier names change
 
-Status: ⬜ ready
+Status: ✅ done — option 2, renamed with deprecated aliases
 Type: chore
 
 ## The state of it

@@ -283,21 +283,21 @@ modules:
 
 | Tier | Constant | Passes without a password when the pilot's level is |
 |------|----------|------------------------------------------------------|
-| `L9` | `veafSecurity.LEVEL_L9` = 1 | **≥ 1** — any pilot listed in the server's `veaf-pilots.txt` |
-| `L1` | `veafSecurity.LEVEL_L1` = 10 | **≥ 10** — a senior pilot |
-| `L0` | `veafSecurity.LEVEL_L0` = 90 | **≥ 90** — a server administrator |
+| `KNOWN_PILOT` | `veafSecurity.LEVEL_KNOWN_PILOT` = 1 | **≥ 1** — any pilot listed in the server's `veaf-pilots.txt` |
+| `SENIOR_PILOT` | `veafSecurity.LEVEL_SENIOR_PILOT` = 10 | **≥ 10** — a trusted member |
+| `ADMIN` | `veafSecurity.LEVEL_ADMIN` = 90 | **≥ 90** — a server administrator |
 | `MM` | (no level) | never — the Mission Master password is the only way in |
 | `OPEN` | (no check) | always — the command is deliberately available to everyone |
 
-!!! warning "The tiers do not run in the order their names suggest"
+!!! info "These tiers were called `L9`, `L1` and `L0` until 6.13.37"
 
-    `L9` is the **loosest** tier and `L0` the **tightest**. Read the names as password
-    tiers, where `L0` is the most secret one, rather than as user levels. A check passes
-    when the pilot's level is *at least* the constant, and the constants descend: 1, 10, 90.
+    The old names read backwards — `L0` was the **tightest** tier, not the loosest — and
+    this page said the opposite until 2026-08-06, which is how a change came within one
+    line of locking a deliberately public command to administrators.
 
-    This page said the opposite until 2026-08-06 — that `L0` meant "all players" — which
-    is how a lot came within one line of locking a public command to administrators. The
-    naming is being revisited; the behaviour above is what the code does today.
+    `L9`, `L1` and `L0` still work as **deprecated aliases** and will be removed in a
+    future release. **The values are unchanged** (1, 10, 90), so renaming them changes no
+    mission's behaviour — only what you write.
 
 Two things satisfy a check. Either the player's **pilot level**, published by the server
 hook from `veaf-pilots.txt`, is high enough for the tier — that is the identity path, and

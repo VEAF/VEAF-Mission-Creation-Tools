@@ -49,6 +49,12 @@ timer = {
     return dcs_mocks.currentTime
   end,
   scheduleFunction = function(fn, args, t) end,
+  --- Test-only: move mission time forward. Not a DCS API — DCS has no setter — but anything
+  --- with an expiry (a timed security elevation, a cooldown) needs a way to reach the far side
+  --- of it without the suite actually waiting.
+  setTime = function(t)
+    dcs_mocks.currentTime = t
+  end,
 }
 
 -- ---------------------------------------------------------------------------

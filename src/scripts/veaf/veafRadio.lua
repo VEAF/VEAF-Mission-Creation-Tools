@@ -268,15 +268,50 @@ end
 -- Radio menu methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Run a secured menu command, or refuse it, based on **the group the entry was posted for**.
+---
+--- REVIEW-SECURITY-LAYER ticket 01. This used to consult `veafSecurity.isAuthenticated()` — one
+--- boolean for the entire server — and had no idea who was asking, because `missionCommands`
+--- passes only the argument fixed at registration. The identity is therefore captured *at
+--- registration*: the group id travels inside `parameters`, and the check compares that group's
+--- effective level (the lowest of its occupants, or an active temporary elevation) against what
+--- the command requires.
+---
+--- No group means no identity, and that is refused rather than waved through: a secured command
+--- may only be posted per group, never for a whole coalition.
 function veafRadio._proxyMethod(parameters)
   veaf.loggers.get(veafRadio.Id):trace("parameters=%s", veaf.lp(parameters))
-  local realMethod, realParameters = veaf.safeUnpack(parameters)
+  -- A **named** table, not a positional one. `veaf.safeUnpack` is `unpack`, which stops at the
+  -- first hole, so `{method, nil, groupId, level}` — a secured command that takes no parameters,
+  -- which is common — would have dropped the group id and been refused for lack of identity.
+  -- Caught by a test before it shipped.
+  local realMethod = parameters and parameters.method
+  local realParameters = parameters and parameters.parameters
+  local groupId = parameters and parameters.groupId
+  local requiredLevel = parameters and parameters.level
   veaf.loggers.get(veafRadio.Id):trace("realMethod=%s", veaf.lp(realMethod))
   veaf.loggers.get(veafRadio.Id):trace("realParameters=%s", veaf.lp(realParameters))
-  if veafSecurity.isAuthenticated() then
+  veaf.loggers.get(veafRadio.Id):trace("groupId=%s requiredLevel=%s", veaf.lp(groupId), veaf.lp(requiredLevel))
+
+  if veaf.SecurityDisabled then
+    realMethod(realParameters)
+    return
+  end
+
+  local _required = requiredLevel or veafSecurity.LEVEL_SENIOR_PILOT
+  if not groupId then
+    veaf.loggers.get(veafRadio.Id):warn("refusing a secured command posted without a group")
+    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    return
+  end
+
+  local _level = veafSecurity.getEffectiveGroupLevel(groupId)
+  if _level >= _required then
     realMethod(realParameters)
   else
-    veaf.loggers.get(veafRadio.Id):error("Your radio has to be authenticated for '+'' commands")
+    veaf.loggers
+      .get(veafRadio.Id)
+      :warn(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
     trigger.action.outText(veaf.t("radio.auth_required"), 5)
   end
 end
@@ -540,13 +575,19 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
   local _parameters = parameters
   if command.isSecured then
     veaf.loggers.get(veafRadio.Id):trace("adding secured command")
+    -- The group id is captured **here**, at registration, because that is the only identity the
+    -- DCS menu API will ever carry: `missionCommands` hands the callback the argument fixed now
+    -- and nothing about who clicked. A secured command therefore only makes sense per group —
+    -- posting one for a whole coalition would leave `_proxyMethod` unable to say who is asking,
+    -- and it refuses in that case (REVIEW-SECURITY-LAYER ticket 01).
     _method = veafRadio._proxyMethod
-    _parameters = { command.method, _parameters }
-    if veafSecurity.isAuthenticated() then
-      _title = "-" .. title
-    else
-      _title = "+" .. title
-    end
+    _parameters = {
+      method = command.method,
+      parameters = _parameters,
+      groupId = groupId,
+      level = command.securityLevel or veafSecurity.LEVEL_SENIOR_PILOT,
+    }
+    _title = "+" .. title
   end
   veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
   veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))

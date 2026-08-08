@@ -4,6 +4,8 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- veafRadio consults veafSecurity for secured menu commands (REVIEW-SECURITY-LAYER 01)
+dofile(src .. "/veafSecurity.lua")
 dofile(src .. "/veafRadio.lua")
 
 -- ---------------------------------------------------------------------------
@@ -1045,5 +1047,68 @@ function TestVeafRadioShellSafety:test_ordinary_transmission_is_untouched()
   luaunit.assertNotNil(string.find(command, "-n \"Overlord\"", 1, true))
   luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
 end
+
+
+-------------------------------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 01 — a secured menu command checks the group, not a global flag
+--
+-- `_proxyMethod` used to consult `veafSecurity.isAuthenticated()`, one boolean for the whole
+-- server, and received no identity at all. It now receives the group the menu entry was posted
+-- for -- the finest grain DCS offers on this channel -- and compares that group's effective
+-- level against what the command requires.
+-------------------------------------------------------------------------------------------------
+
+TestVeafRadioSecuredCommands = {}
+
+function TestVeafRadioSecuredCommands:setUp()
+  self.called = false
+  self.originalEffective = veafSecurity.getEffectiveGroupLevel
+  veafSecurity.getEffectiveGroupLevel = function(groupId)
+    return self.groupLevels and self.groupLevels[groupId] or 0
+  end
+  self.groupLevels = {}
+end
+
+function TestVeafRadioSecuredCommands:tearDown()
+  veafSecurity.getEffectiveGroupLevel = self.originalEffective
+end
+
+function TestVeafRadioSecuredCommands:_run(groupId, requiredLevel)
+  local method = function()
+    self.called = true
+  end
+  veafRadio._proxyMethod({ method = method, parameters = nil, groupId = groupId, level = requiredLevel })
+end
+
+function TestVeafRadioSecuredCommands:test_group_at_the_required_level_runs_the_command()
+  self.groupLevels[7] = veafSecurity.LEVEL_ADMIN
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertTrue(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_group_below_the_required_level_is_refused()
+  self.groupLevels[7] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_no_group_is_refused()
+  -- Fail closed: a command posted without a group cannot say who is asking.
+  self:_run(nil, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_unknown_group_is_refused()
+  self:_run(999, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_exact_level_passes()
+  -- "at least the constant" -- equality must be enough, or every tier is off by one.
+  self.groupLevels[7] = veafSecurity.LEVEL_SENIOR_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertTrue(self.called)
+end
+
 
 os.exit(luaunit.LuaUnit.run())

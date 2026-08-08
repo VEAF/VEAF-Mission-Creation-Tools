@@ -1,6 +1,6 @@
 # 01 — Make authentication per-player instead of global
 
-Status: ⬜ ready
+Status: 🔄 in-progress — group-scoped menus, elevation and the rename shipped; the marker-path signatures remain
 Type: feat
 
 ## The problem, measured

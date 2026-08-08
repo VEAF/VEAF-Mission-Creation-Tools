@@ -847,7 +847,11 @@ class BuildAndReleaseWorker:
                 json.dump(metadata, f, indent=2)
             logger.debug(f"Metadata file created: {metadata_file}")
         except Exception as e:
-            logger.warning(f"Failed to create metadata file: {e}")
+            # Not a warning any more (SECREV-2 ticket 04): the updater now refuses to install a
+            # release whose checksum metadata is missing, so a build that quietly skips this file
+            # ships something nobody can install — and the failure would only surface on a user's
+            # machine. The checksum is a deliverable, not a nicety.
+            logger.error(f"Failed to create the checksum metadata file, which the updater requires: {e}")
 
         return {
             "path": output_file,

@@ -14,7 +14,7 @@ from typing import IO, Any
 
 import luadata
 from veaf_libs.logger import logger
-from veaf_libs.safe_zip import safe_extract_all
+from veaf_libs.safe_zip import safe_extract_all, safe_read_member
 
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
@@ -121,11 +121,13 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         not_lua: bool = False,
     ) -> dict[str, Any] | str | None:
         if file_name in zip_file.namelist():
-            with zip_file.open(file_name) as file:
-                if not_lua:
-                    return file.read().decode("utf-8")
-                else:
-                    return unserialize(file, keep_as_dict=keep_as_dict)
+            # VMR-009: capped read. A `.miz` is untrusted input, and this path pulls the
+            # member straight into memory, so an unbounded `.read()` here is a zip bomb
+            # that never has to touch the disk `safe_extract_all` protects.
+            raw = safe_read_member(zip_file, file_name)
+            if not_lua:
+                return raw.decode("utf-8")
+            return unserialize(io.BytesIO(raw), keep_as_dict=keep_as_dict)
         else:
             missing_components.append(file_name)
             return None

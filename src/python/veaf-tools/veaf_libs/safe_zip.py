@@ -23,6 +23,12 @@ from pathlib import Path
 MAX_ARCHIVE_ENTRIES = 100_000
 MAX_ARCHIVE_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB
 
+#: Cap for a single member read straight into memory (``read_miz`` and friends).
+#: Deliberately far smaller than the on-disk cap: a `mission` file is a Lua table, and the
+#: largest real ones seen in this project are tens of megabytes, so 256 MiB is generous
+#: while still bounding what an untrusted `.miz` can make us allocate.
+MAX_MEMBER_UNCOMPRESSED_BYTES = 256 * 1024 * 1024  # 256 MiB
+
 _CHUNK_SIZE = 64 * 1024
 
 
@@ -88,3 +94,50 @@ def safe_extract_all(
                     target.unlink(missing_ok=True)
                     raise ValueError(f"archive decompressed size exceeds the {max_total_bytes}-byte limit")
                 out.write(chunk)
+
+
+def safe_read_member(
+    zip_ref: zipfile.ZipFile,
+    name: str,
+    *,
+    max_bytes: int = MAX_MEMBER_UNCOMPRESSED_BYTES,
+) -> bytes:
+    """Read one archive member into memory, refusing anything over ``max_bytes``.
+
+    ``safe_extract_all`` protects the disk; this protects memory. ``read_miz`` pulls
+    ``mission``, ``options``, ``warehouses`` and friends in with a bare
+    ``zip_file.open(name).read()``, so a small archive declaring — or streaming — a huge
+    member could exhaust RAM without ever writing a file (VMR-009).
+
+    Both the declared size and the real stream are checked. The header check refuses
+    cheaply, before allocating; the streaming check is what actually holds, because
+    ``ZipInfo.file_size`` comes from the archive and can be spoofed.
+
+    Args:
+        zip_ref: An open ``ZipFile``.
+        name: Member to read.
+        max_bytes: Maximum uncompressed size accepted for this member.
+
+    Returns:
+        The member's uncompressed bytes.
+
+    Raises:
+        KeyError: If the member is not in the archive. Absence is not a cap violation,
+            and callers already distinguish the two (a `.miz` legitimately lacks members).
+        ValueError: If the member exceeds ``max_bytes``, by header or by stream.
+    """
+    info = zip_ref.getinfo(name)  # raises KeyError when absent
+    if info.file_size > max_bytes:
+        raise ValueError(
+            f"archive member {name!r} declares {info.file_size} bytes, which exceeds the {max_bytes}-byte limit"
+        )
+
+    chunks: list[bytes] = []
+    total = 0
+    with zip_ref.open(info) as member:
+        while chunk := member.read(_CHUNK_SIZE):
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"archive member {name!r} decompresses past the {max_bytes}-byte limit")
+            chunks.append(chunk)
+    return b"".join(chunks)

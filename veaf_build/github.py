@@ -243,17 +243,28 @@ class GitHubPublisher:
                 logger.error(f"GitHub asset upload failed: {result.stderr}")
                 return
 
-            # Upload metadata file for checksum verification
+            # Upload metadata file for checksum verification.
+            # SECREV-2 ticket 04: the updater refuses to install a release with no checksum
+            # metadata, so neither a missing file nor a failed upload may pass quietly here —
+            # either one publishes a release nobody can install, discovered by a user rather
+            # than by us. Both are now errors, like the main asset upload above.
             metadata_file = self.output_path / "published-metadata.json"
-            if metadata_file.exists():
-                subprocess.run(
-                    ["gh", "release", "upload", tag_name, str(metadata_file)],
-                    cwd=str(self.script_root),
-                    env=env,
-                    capture_output=True,
-                    text=True,
+            if not metadata_file.exists():
+                logger.error(f"Checksum metadata is missing, the release would be uninstallable: {metadata_file}")
+                return
+            metadata_result = subprocess.run(
+                ["gh", "release", "upload", tag_name, str(metadata_file)],
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            if metadata_result.returncode != 0:
+                logger.error(
+                    f"Checksum metadata upload failed, the release would be uninstallable: {metadata_result.stderr}"
                 )
-                logger.debug("Uploaded published-metadata.json to release")
+                return
+            logger.debug("Uploaded published-metadata.json to release")
 
             # Delete auto-generated source archives
             for source_asset in ["Source code (zip)", "Source code (tar.gz)"]:

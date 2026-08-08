@@ -71,7 +71,19 @@ Modules must be loaded in dependency order:
 - `table` - Lua table/array
 - `vec3` - 3D vector: `{x=number, y=number, z=number}`
 - `function` - Callback function
-- `coalition` - Coalition ID: 0=neutral, 1=blue, 2=red
+- `coalition` - Coalition ID: 0=neutral, **1=red, 2=blue** (`coalition.side.RED` is 1 — see the note below)
+
+!!! danger "`coalition.side` is RED=1, BLUE=2 — and this page said the opposite until 6.13.38"
+
+    ```lua
+    coalition.side = { NEUTRAL = 0, RED = 1, BLUE = 2 }
+    ```
+
+    The inversion matters because nothing catches it: code written from the wrong mapping
+    compiles, runs, and quietly targets **the other side**. It was found by the 2026-07-01
+    security review (VMR-014) and fixed on 2026-08-08; the repository's own Lua never used
+    the wrong values, so nothing had to be corrected beyond this page and its French twin.
+
 
 **Return Values:**
 
@@ -1709,7 +1721,7 @@ Marker events received by handlers contain:
   id = number,              -- Marker ID
   time = number,            -- Mission time
   initiator = DCS_Unit,     -- Unit that created marker (if applicable)
-  coalition = coalition,    -- Coalition (-1 for all, 0=neutral, 1=blue, 2=red)
+  coalition = coalition,    -- Coalition (-1 for all, 0=neutral, 1=red, 2=blue)
   groupID = number,         -- Group ID
   text = string,            -- Marker text
   pos = vec3                -- Marker position

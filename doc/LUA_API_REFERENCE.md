@@ -71,7 +71,20 @@ Les modules doivent être chargés dans l'ordre de dépendance :
 - `table` — Table/tableau Lua
 - `vec3` — Vecteur 3D : `{x=number, y=number, z=number}`
 - `function` — Fonction callback
-- `coalition` — ID de coalition : 0=neutre, 1=bleu, 2=rouge
+- `coalition` — ID de coalition : 0=neutre, **1=rouge, 2=bleu** (`coalition.side.RED` vaut 1 — voir la note ci-dessous)
+
+!!! danger "`coalition.side` vaut RED=1, BLUE=2 — et cette page affirmait l'inverse jusqu'à la 6.13.38"
+
+    ```lua
+    coalition.side = { NEUTRAL = 0, RED = 1, BLUE = 2 }
+    ```
+
+    L'inversion est dangereuse parce que rien ne l'attrape : du code écrit d'après le mauvais
+    tableau compile, s'exécute, et vise silencieusement **le camp adverse**. Défaut relevé par
+    la revue de sécurité du 2026-07-01 (VMR-014) et corrigé le 2026-08-08 ; le Lua du dépôt
+    n'a jamais utilisé les mauvaises valeurs, donc rien d'autre que cette page et sa jumelle
+    anglaise n'était à corriger.
+
 
 **Valeurs de retour :**
 

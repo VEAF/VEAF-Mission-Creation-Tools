@@ -69,8 +69,8 @@
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 04 / PR #673 — safe_read_member caps every member read into memory; new code rather than routing through safe_extract_all, which guards the disk this path never touches."
   },
   {
     "vid": "VMR-010",
@@ -97,8 +97,8 @@
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 04 / PR #673 — four fall-through paths (no metadata asset, undownloadable, unparseable, checksum-less) all refuse now; the publish side was hardened with them."
   },
   {
     "vid": "VMR-057",
@@ -187,8 +187,8 @@
     "line": "246",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / this PR — a METAR spells a negative temperature `M05`, not `-05`, so every sub-zero reading was dropped and the configured default survived silently. An existing test, test_temperature_negative_M_prefix_not_parsed, was pinning the defect as intended behaviour and had to be flipped."
   },
   {
     "vid": "VMR-070",
@@ -1731,8 +1731,8 @@
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "19aec92c docs: fix what the documentation audit found"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / this PR — the coalition mapping was inverted in both LUA_API_REFERENCE pages (said 1=blue/2=red; DCS is RED=1, BLUE=2). Verified against dcs_mocks and veaf.lua: the repository's own Lua never used the wrong values, so nothing else needed correcting."
   },
   {
     "vid": "VMR-026",

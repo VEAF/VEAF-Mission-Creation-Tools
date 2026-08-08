@@ -253,6 +253,14 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
         # Temperature/Dewpoint: "15/10" format
         if "/" in part and i > 0:
             with_temp = part.split("/")[0]
+            # VMR-016: a METAR marks a negative temperature with an `M` prefix, not a minus
+            # sign — `M05/M10` is -5 °C with a -10 °C dewpoint. Testing `lstrip("-").isdigit()`
+            # therefore rejected every sub-zero reading and left the default in place
+            # **silently**, so a winter mission quietly flew at whatever temperature happened to
+            # be configured. Both spellings are accepted now; the `-` form is not valid METAR but
+            # was already tolerated here, and removing tolerance would be a second change.
+            if with_temp.upper().startswith("M"):
+                with_temp = "-" + with_temp[1:]
             if with_temp.lstrip("-").isdigit():
                 try:
                     result["temperature"] = float(with_temp)

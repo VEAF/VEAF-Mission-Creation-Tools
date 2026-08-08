@@ -273,8 +273,14 @@ function TestVeafSecurityGroupLevel:test_elevation_expires()
   luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(1), veafSecurity.LEVEL_KNOWN_PILOT)
 end
 
+--- Pins the **product decision**, not an implementation detail: David asked for two minutes.
+---
+--- Every other test here reads the constant instead of the number, so tuning the window breaks
+--- only this one -- which is the intent. A shorter or longer elevation changes how long a group
+--- carries borrowed privileges, so it should be a deliberate edit with a reviewer, not something
+--- that slides through green.
 function TestVeafSecurityGroupLevel:test_elevation_lasts_two_minutes()
-  luaunit.assertEquals(veafSecurity.ELEVATION_DURATION_SECONDS, 120)
+  luaunit.assertEquals(veafSecurity.ELEVATION_DURATION_SECONDS, 2 * 60)
 end
 
 function TestVeafSecurityGroupLevel:test_elevation_is_capped_at_the_requester_level()

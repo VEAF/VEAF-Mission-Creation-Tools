@@ -309,9 +309,13 @@ function veafRadio._proxyMethod(parameters)
   if _level >= _required then
     realMethod(realParameters)
   else
+    -- `debug`, not `warn`: a refused click is player-driven and repeatable at will, so a pilot
+    -- tapping the menu would flood a busy server's log with something entirely benign. The pilot
+    -- already gets the on-screen message, which is the feedback that matters. The *misconfigured*
+    -- case above stays at `warn` — that one is a mission bug and happens once.
     veaf.loggers
       .get(veafRadio.Id)
-      :warn(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
+      :debug(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
     trigger.action.outText(veaf.t("radio.auth_required"), 5)
   end
 end

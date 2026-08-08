@@ -86,7 +86,7 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 - **Architecture**: Strictly respect the Worker (`*_worker.py`), Manager (`*_manager.py`), and Data Models (`models.py`) structural pattern.
 - **Environment Management**: Dependencies are managed via Poetry. Activate the virtual environment using `poetry shell`.
 - **Logger**: Only use the logger from `veaf_libs.logger`. Absolute prohibition of using the native `print()` function.
-- **Quality Validation**: Run `poetry run ruff check src/python/ --fix` and `poetry run mypy src/python/veaf-tools/`. Resolve errors rather than adding exclusions.
+- **Quality Validation**: Run `poetry run ruff check src/python/ test/python/ veaf_build/ --fix`, `poetry run ruff format --check src/python/ test/python/ veaf_build/` and `poetry run mypy src/python/veaf-tools/`. Resolve errors rather than adding exclusions. These are the CI commands exactly (`python-quality.yml`) — ruff covers the **whole** Python tree, mypy only the shipped package (tests use loose typing on purpose).
 - **Tests**: Run `poetry run pytest`. Unit tests must match the `test_*.py` pattern and be located in the `test/python/` folder.
 
 ### Lua (`src/scripts/veaf/` or `test/lua/`)
@@ -112,7 +112,7 @@ For every action requested by the user, execute these steps in order:
 3. **Create a branch** from `develop` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
-6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
+6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ test/python/ veaf_build/ --fix && poetry run ruff format --check src/python/ test/python/ veaf_build/ && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.

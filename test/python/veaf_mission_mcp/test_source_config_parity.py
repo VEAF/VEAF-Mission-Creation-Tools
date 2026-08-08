@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 from mission_tools.mission_yaml_editor import load_yaml
-
 from veaf_mission_mcp.edit_mission_yaml import (
     set_mission_log_level,
     set_mission_security,

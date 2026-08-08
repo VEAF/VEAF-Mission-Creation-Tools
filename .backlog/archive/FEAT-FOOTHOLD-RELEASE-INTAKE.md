@@ -359,7 +359,7 @@ FileNotFoundError: unknown conversion profile: foothold
 profiles were **never** bundled into the executable: `git log -S "convert-profiles" --
 veaf_build/worker.py` returns nothing.
 
-The trap is that [`veaf-tools.spec`](../../veaf-tools.spec) *does* list
+The trap is that `veaf-tools.spec` (since deleted by `CHORE-TOOLING-GATES` ticket 02) *did* list
 `veaf_libs\data\convert-profiles` — but that file is a leftover the build does not use. The
 build passes `--add-data` from `BuildAndReleaseWorker._veaf_tools_extra_data`, and the
 directory was missing there. Same family as `FIX-VEAF-BUILD-RADIO-LAYOUT-DATA` and the

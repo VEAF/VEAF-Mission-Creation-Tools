@@ -2,7 +2,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 from mission_tools.miz_tools import read_member
 from veaf_mission_mcp.edit_veaf_config import (
     VEAF_CONFIG_ARCNAME,

@@ -2,7 +2,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 from mission_tools.miz_tools import read_member
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 

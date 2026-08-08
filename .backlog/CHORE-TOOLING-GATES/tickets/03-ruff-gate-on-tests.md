@@ -1,6 +1,6 @@
 # 03 — Bring `test/python/` under the ruff gate
 
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 
 ## Why
@@ -29,15 +29,19 @@ changes had to be reverted).
 
 ## Tasks
 
-- [ ] Fix the 9 `I001` findings (`ruff check test/python/ --fix`) and the 2 formatting
-      diffs (`ruff format test/python/`) — mechanical, no logic touched.
-- [ ] Extend the CI gate to the test tree: `ruff check src/python/ test/python/` and
-      `ruff format --check src/python/ test/python/` in `python-quality.yml`.
-- [ ] Note the same in `CLAUDE.md` §7 (Python quality validation) so the documented command and
-      the CI command agree.
-- [ ] Check whether `veaf_build/` deserves the same treatment — it is application code outside
-      `src/python/veaf-tools`, and it is what ticket 02 touches. State the answer either way.
-- [ ] CHANGELOG (developer-facing).
+- [x] Fixed — **12** findings, not the 9 measured when the ticket was written: the drift grew
+      while the gate was open, which is the ticket's own argument made concrete. All `I001`, all
+      auto-fixed, plus the 2 formatting diffs. No logic touched.
+- [x] CI gate widened to `src/python/ test/python/ veaf_build/` for both `ruff check` and
+      `ruff format --check`.
+- [x] **The trigger paths were widened too** — and this is the part that would have made the rest
+      a no-op: `python-quality.yml` only fired on `src/python/**` and `pyproject.toml`, so a change
+      confined to `test/python/` would never have run the job that now lints it.
+- [x] `CLAUDE.md` updated in both places (§7 and the step-6 checklist), with the mypy/ruff scope
+      difference spelled out: ruff covers the whole tree, mypy only the shipped package.
+- [x] `veaf_build/` **does** deserve it, and it was free: `ruff check` and `ruff format --check`
+      both already passed on its 20 files. Included so it cannot drift.
+- [x] CHANGELOG.
 
 ## Verify
 

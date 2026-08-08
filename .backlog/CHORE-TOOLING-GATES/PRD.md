@@ -1,6 +1,6 @@
 # CHORE-TOOLING-GATES — version the Foothold batch script, close two tooling traps
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Context
 

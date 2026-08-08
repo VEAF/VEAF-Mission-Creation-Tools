@@ -1,6 +1,6 @@
 # 03 — Cover Flaming Cliffs aircraft in the radio specs
 
-Status: ⬜ ready
+Status: ⬜ ready — question answered, and it changes the work
 Type: fix
 
 ## Why
@@ -35,3 +35,32 @@ this gap and that layer disappears.
 The acceptance test is the Foothold file **shrinking**: every type removed from its
 `presets_assignments` must keep its kneeboard plate, with the same channels as the legacy override
 produced.
+
+
+## Measured 2026-08-08 — the datamine is not withholding them, it does not model them
+
+The ticket asks "whether the datamine exposes FC3 radios at all, or whether the generator filters
+them out". Measured against the pinned ref, cloning it and parsing directly:
+
+| Type | File in datamine | Declares `panelRadio` |
+|---|---|---|
+| `Su-27`, `Su-25`, `Su-25T`, `Su-33` | yes | **no** |
+| `MiG-29A`, `MiG-29S`, `MiG-29G` | yes | **no** |
+| `J-11A`, `A-10A`, `F-15C` | yes | **no** |
+| `F-14BU` | yes | **yes** (2 radios) |
+
+So the generator is **not** at fault — there is nothing upstream to extract. FC3 modules have no
+clickable cockpit, and the datamine only carries radios that are modelled as panel devices.
+
+Two consequences:
+
+- **`F-14BU` is no longer missing.** It arrived with the datamine pin bump of 2026-08-08 (#669) and
+  is in the shipped specs now, so it should come off this ticket's list.
+- **The remaining 10 need hand-written data**, exactly like ticket 02's AJS-37 FM radio (measured
+  the same day: the datamine declares a *single* radio for the AJS-37, `103.0–400.0 MHz`, so its
+  FR24 FM set is absent upstream too, not lost by us).
+
+That is one shape of work, not two: a **VEAF-maintained overlay** for radios DCS has but the
+datamine does not model, merged over the generated specs the way `dcs_rejects_on_load` already is.
+Worth deciding before either ticket is picked up — and worth deciding *with* David, since the FC3
+radio data has to come from somewhere authoritative.

@@ -273,6 +273,20 @@ Christen Eagle II:
     - max_mhz: 390.0
       min_mhz: 220.0
       modulation: AM/FM
+F-100D:
+  category: plane
+  human_radio:
+    default_mhz: 254.0
+    max_mhz: 399.9
+    min_mhz: 225.0
+    modulation: AM
+  name: F-100D
+  radios:
+  - name: AN/ARC-34
+    ranges:
+    - max_mhz: 399.9
+      min_mhz: 225.0
+      modulation: AM/FM
 F-14A-135-GR:
   category: plane
   human_radio:
@@ -323,6 +337,31 @@ F-14A-135-GR-Early:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
+F-14A-95-GR:
+  category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
+  name: F-14A-95-GR
+  radios:
+  - name: UHF AN/ARC-159
+    ranges:
+    - max_mhz: 399.975
+      min_mhz: 225.0
+      modulation: AM/FM
+  - name: VHF/UHF AN/ARC-182
+    ranges:
+    - max_mhz: 87.975
+      min_mhz: 30.0
+      modulation: AM/FM
+    - max_mhz: 173.975
+      min_mhz: 108.0
+      modulation: AM/FM
+    - max_mhz: 399.975
+      min_mhz: 225.0
+      modulation: AM/FM
 F-14B:
   category: plane
   human_radio:
@@ -331,6 +370,31 @@ F-14B:
     min_mhz: 30.0
     modulation: AM
   name: F-14B
+  radios:
+  - name: UHF AN/ARC-159
+    ranges:
+    - max_mhz: 399.975
+      min_mhz: 225.0
+      modulation: AM/FM
+  - name: VHF/UHF AN/ARC-182
+    ranges:
+    - max_mhz: 87.975
+      min_mhz: 30.0
+      modulation: AM/FM
+    - max_mhz: 173.975
+      min_mhz: 108.0
+      modulation: AM/FM
+    - max_mhz: 399.975
+      min_mhz: 225.0
+      modulation: AM/FM
+F-14BU:
+  category: plane
+  human_radio:
+    default_mhz: 124.0
+    max_mhz: 399.975
+    min_mhz: 30.0
+    modulation: AM
+  name: F-14BU
   radios:
   - name: UHF AN/ARC-159
     ranges:

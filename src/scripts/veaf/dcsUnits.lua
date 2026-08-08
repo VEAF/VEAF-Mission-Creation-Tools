@@ -18,7 +18,7 @@ dcsUnits = {}
 dcsUnits.Id = "DCSUNITS"
 
 --- Version (provenance: the datamine ref the data was generated from).
-dcsUnits.Version = "datamine-dc7d15e8"
+dcsUnits.Version = "datamine-d75d7ac5"
 
 dcsUnits.logger = veaf.loggers.new(dcsUnits.Id, dcsUnits.LogLevel)
 
@@ -3204,6 +3204,23 @@ dcsUnits.DcsUnitsDatabase = {
       ["ski_jump"] = true,
     },
   },
+  ["F-100D"] = {
+    type = "F-100D",
+    name = "F-100D",
+    kind = "air",
+    category = "Plane",
+    description = "F-100D",
+    attribute = {
+      ["Air"] = true,
+      ["All"] = true,
+      ["Battle airplanes"] = true,
+      ["Multirole fighters"] = true,
+      ["NonAndLightArmoredUnits"] = true,
+      ["NonArmoredUnits"] = true,
+      ["Planes"] = true,
+      ["Refuelable"] = true,
+    },
+  },
   ["F-117A"] = {
     type = "F-117A",
     name = "F-117A",
@@ -3240,10 +3257,10 @@ dcsUnits.DcsUnitsDatabase = {
   },
   ["F-14A-135-GR"] = {
     type = "F-14A-135-GR",
-    name = "F-14A-135-GR",
+    name = "F-14A Late",
     kind = "air",
     category = "Plane",
-    description = "F-14A-135-GR",
+    description = "F-14A Late",
     attribute = {
       ["Air"] = true,
       ["All"] = true,
@@ -3258,10 +3275,28 @@ dcsUnits.DcsUnitsDatabase = {
   },
   ["F-14A-135-GR-Early"] = {
     type = "F-14A-135-GR-Early",
-    name = "F-14A-135-GR (Early)",
+    name = "F-14A",
     kind = "air",
     category = "Plane",
-    description = "F-14A-135-GR (Early)",
+    description = "F-14A",
+    attribute = {
+      ["Air"] = true,
+      ["All"] = true,
+      ["Battle airplanes"] = true,
+      ["Datalink"] = true,
+      ["Fighters"] = true,
+      ["NonAndLightArmoredUnits"] = true,
+      ["NonArmoredUnits"] = true,
+      ["Planes"] = true,
+      ["Refuelable"] = true,
+    },
+  },
+  ["F-14A-95-GR"] = {
+    type = "F-14A-95-GR",
+    name = "F-14A Export",
+    kind = "air",
+    category = "Plane",
+    description = "F-14A Export",
     attribute = {
       ["Air"] = true,
       ["All"] = true,
@@ -3280,6 +3315,24 @@ dcsUnits.DcsUnitsDatabase = {
     kind = "air",
     category = "Plane",
     description = "F-14B",
+    attribute = {
+      ["Air"] = true,
+      ["All"] = true,
+      ["Battle airplanes"] = true,
+      ["Datalink"] = true,
+      ["Fighters"] = true,
+      ["NonAndLightArmoredUnits"] = true,
+      ["NonArmoredUnits"] = true,
+      ["Planes"] = true,
+      ["Refuelable"] = true,
+    },
+  },
+  ["F-14BU"] = {
+    type = "F-14BU",
+    name = "F-14B(U)",
+    kind = "air",
+    category = "Plane",
+    description = "F-14B(U)",
     attribute = {
       ["Air"] = true,
       ["All"] = true,
@@ -4274,6 +4327,25 @@ dcsUnits.DcsUnitsDatabase = {
       ["Cargos"] = true,
     },
   },
+  ["GCI_station_MiG29"] = {
+    type = "GCI_station_MiG29",
+    name = "GCI station (KRU)",
+    kind = "vehicle",
+    category = "Unarmed",
+    description = "GCI station (KRU)",
+    attribute = {
+      ["All"] = true,
+      ["GCI"] = true,
+      ["Ground Units"] = true,
+      ["Ground Units Non Airdefence"] = true,
+      ["Ground vehicles"] = true,
+      ["NonAndLightArmoredUnits"] = true,
+      ["NonArmoredUnits"] = true,
+      ["Trucks"] = true,
+      ["Unarmed vehicles"] = true,
+      ["Vehicles"] = true,
+    },
+  },
   ["GD-20"] = {
     type = "GD-20",
     name = "GD-20 Lift Truck",
@@ -4380,10 +4452,10 @@ dcsUnits.DcsUnitsDatabase = {
   },
   ["GPS_Spoofer_Blue"] = {
     type = "GPS_Spoofer_Blue",
-    name = "GPS Spoofer NATO",
+    name = "Radio jammer",
     kind = "vehicle",
     category = "Unarmed",
-    description = "GPS Spoofer NATO",
+    description = "Radio jammer",
     attribute = {
       ["All"] = true,
       ["Ground Units"] = true,
@@ -4399,10 +4471,10 @@ dcsUnits.DcsUnitsDatabase = {
   },
   ["GPS_Spoofer_Red"] = {
     type = "GPS_Spoofer_Red",
-    name = "GPS Spoofer RF",
+    name = "Radio jammer",
     kind = "vehicle",
     category = "Unarmed",
-    description = "GPS Spoofer RF",
+    description = "Radio jammer",
     attribute = {
       ["All"] = true,
       ["Ground Units"] = true,
@@ -7256,8 +7328,7 @@ dcsUnits.DcsUnitsDatabase = {
       ["Helicopters"] = true,
       ["NonAndLightArmoredUnits"] = true,
       ["NonArmoredUnits"] = true,
-      ["Planes"] = true,
-      ["Transports"] = true,
+      ["Transport helicopters"] = true,
     },
   },
   ["Mi-24V"] = {
@@ -7287,9 +7358,7 @@ dcsUnits.DcsUnitsDatabase = {
       ["Helicopters"] = true,
       ["NonAndLightArmoredUnits"] = true,
       ["NonArmoredUnits"] = true,
-      ["Planes"] = true,
       ["Transport helicopters"] = true,
-      ["Transports"] = true,
     },
   },
   ["Mi-28N"] = {
@@ -7320,8 +7389,7 @@ dcsUnits.DcsUnitsDatabase = {
       ["Helicopters"] = true,
       ["NonAndLightArmoredUnits"] = true,
       ["NonArmoredUnits"] = true,
-      ["Planes"] = true,
-      ["Transports"] = true,
+      ["Transport helicopters"] = true,
     },
   },
   ["MiG-15bis"] = {
@@ -7453,10 +7521,10 @@ dcsUnits.DcsUnitsDatabase = {
   },
   ["MiG-29 Fulcrum"] = {
     type = "MiG-29 Fulcrum",
-    name = "MiG-29A Fulcrum",
+    name = "MiG-29A  Fulcrum",
     kind = "air",
     category = "Plane",
-    description = "MiG-29A Fulcrum",
+    description = "MiG-29A  Fulcrum",
     attribute = {
       ["Air"] = true,
       ["All"] = true,
@@ -12638,8 +12706,7 @@ dcsUnits.DcsUnitsDatabase = {
       ["Helicopters"] = true,
       ["NonAndLightArmoredUnits"] = true,
       ["NonArmoredUnits"] = true,
-      ["Planes"] = true,
-      ["Transports"] = true,
+      ["Transport helicopters"] = true,
     },
   },
   ["UH-60A"] = {
@@ -13281,6 +13348,14 @@ dcsUnits.DcsUnitsDatabase = {
       ["NonAndLightArmoredUnits"] = true,
       ["Vehicles"] = true,
     },
+  },
+  ["Zell"] = {
+    type = "Zell",
+    name = "F-100D ZELL",
+    kind = "static",
+    category = "Heliport",
+    description = "F-100D ZELL",
+    attribute = {},
   },
   ["ZiL-131 APA-80"] = {
     type = "ZiL-131 APA-80",

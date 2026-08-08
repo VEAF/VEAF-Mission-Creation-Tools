@@ -122,6 +122,7 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 |  |  | VHF-1/2 | 30.000 | 200.975 | AM |
 | **Christen Eagle II** | `Christen Eagle II` | KY 197A | 118.000 | 140.000 | AM / FM |
 |  |  |  | 220.000 | 390.000 | AM / FM |
+| **F-100D** | `F-100D` | AN/ARC-34 | 225.000 | 399.900 | AM / FM |
 | **F-14A-135-GR** | `F-14A-135-GR` | UHF AN/ARC-159 | 225.000 | 399.975 | AM / FM |
 |  |  | VHF/UHF AN/ARC-182 | 30.000 | 87.975 | AM / FM |
 |  |  |  | 108.000 | 173.975 | AM / FM |
@@ -130,7 +131,15 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 |  |  | VHF/UHF AN/ARC-182 | 30.000 | 87.975 | AM / FM |
 |  |  |  | 108.000 | 173.975 | AM / FM |
 |  |  |  | 225.000 | 399.975 | AM / FM |
+| **F-14A-95-GR** | `F-14A-95-GR` | UHF AN/ARC-159 | 225.000 | 399.975 | AM / FM |
+|  |  | VHF/UHF AN/ARC-182 | 30.000 | 87.975 | AM / FM |
+|  |  |  | 108.000 | 173.975 | AM / FM |
+|  |  |  | 225.000 | 399.975 | AM / FM |
 | **F-14B** | `F-14B` | UHF AN/ARC-159 | 225.000 | 399.975 | AM / FM |
+|  |  | VHF/UHF AN/ARC-182 | 30.000 | 87.975 | AM / FM |
+|  |  |  | 108.000 | 173.975 | AM / FM |
+|  |  |  | 225.000 | 399.975 | AM / FM |
+| **F-14BU** | `F-14BU` | UHF AN/ARC-159 | 225.000 | 399.975 | AM / FM |
 |  |  | VHF/UHF AN/ARC-182 | 30.000 | 87.975 | AM / FM |
 |  |  |  | 108.000 | 173.975 | AM / FM |
 |  |  |  | 225.000 | 399.975 | AM / FM |

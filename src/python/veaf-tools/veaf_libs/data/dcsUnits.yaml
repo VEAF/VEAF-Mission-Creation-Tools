@@ -1,6 +1,6 @@
 # DCS units database (type, kind, category, attributes).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: dc7d15e8e34150441b109346eea4ca18eb0104a7
+# Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
 # Re-run `veaf-build update-dcs-data --units` to regenerate after a pin bump.
 # DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
@@ -2602,6 +2602,20 @@ units:
   - Armed Air Defence
   - HeavyArmoredUnits
   - Heavy armed ships
+- type: F-100D
+  name: F-100D
+  kind: air
+  category: Plane
+  description: F-100D
+  attributes:
+  - Multirole fighters
+  - Refuelable
+  - All
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Air
+  - Planes
+  - Battle airplanes
 - type: F-117A
   name: F-117A
   kind: air
@@ -2631,10 +2645,10 @@ units:
   - Planes
   - Battle airplanes
 - type: F-14A-135-GR
-  name: F-14A-135-GR
+  name: F-14A Late
   kind: air
   category: Plane
-  description: F-14A-135-GR
+  description: F-14A Late
   attributes:
   - Fighters
   - Refuelable
@@ -2646,10 +2660,25 @@ units:
   - Planes
   - Battle airplanes
 - type: F-14A-135-GR-Early
-  name: F-14A-135-GR (Early)
+  name: F-14A
   kind: air
   category: Plane
-  description: F-14A-135-GR (Early)
+  description: F-14A
+  attributes:
+  - Fighters
+  - Refuelable
+  - Datalink
+  - All
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Air
+  - Planes
+  - Battle airplanes
+- type: F-14A-95-GR
+  name: F-14A Export
+  kind: air
+  category: Plane
+  description: F-14A Export
   attributes:
   - Fighters
   - Refuelable
@@ -2665,6 +2694,21 @@ units:
   kind: air
   category: Plane
   description: F-14B
+  attributes:
+  - Fighters
+  - Refuelable
+  - Datalink
+  - All
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Air
+  - Planes
+  - Battle airplanes
+- type: F-14BU
+  name: F-14B(U)
+  kind: air
+  category: Plane
+  description: F-14B(U)
   attributes:
   - Fighters
   - Refuelable
@@ -3475,6 +3519,22 @@ units:
   description: GBU-43 MOAB
   attributes:
   - Cargos
+- type: GCI_station_MiG29
+  name: GCI station (KRU)
+  kind: vehicle
+  category: Unarmed
+  description: GCI station (KRU)
+  attributes:
+  - Trucks
+  - GCI
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
 - type: GD-20
   name: GD-20 Lift Truck
   kind: vehicle
@@ -3563,10 +3623,10 @@ units:
   - NonArmoredUnits
   - RailwayCivilUnits
 - type: GPS_Spoofer_Blue
-  name: GPS Spoofer NATO
+  name: Radio jammer
   kind: vehicle
   category: Unarmed
-  description: GPS Spoofer NATO
+  description: Radio jammer
   attributes:
   - Trucks
   - Jammer
@@ -3579,10 +3639,10 @@ units:
   - NonArmoredUnits
   - Unarmed vehicles
 - type: GPS_Spoofer_Red
-  name: GPS Spoofer RF
+  name: Radio jammer
   kind: vehicle
   category: Unarmed
-  description: GPS Spoofer RF
+  description: Radio jammer
   attributes:
   - Trucks
   - Jammer
@@ -5964,13 +6024,12 @@ units:
   description: Mi-24P
   attributes:
   - Attack helicopters
-  - Transports
+  - Transport helicopters
   - All
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Air
   - Helicopters
-  - Planes
 - type: Mi-24V
   name: Mi-24V
   kind: air
@@ -5990,13 +6049,11 @@ units:
   description: Mi-26
   attributes:
   - Transport helicopters
-  - Transports
   - All
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Air
   - Helicopters
-  - Planes
 - type: Mi-28N
   name: Mi-28N [CH]
   kind: air
@@ -6016,13 +6073,12 @@ units:
   description: Mi-8MTV2
   attributes:
   - Attack helicopters
-  - Transports
+  - Transport helicopters
   - All
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Air
   - Helicopters
-  - Planes
 - type: MiG-15bis
   name: MiG-15bis
   kind: air
@@ -6127,10 +6183,10 @@ units:
   - Planes
   - Battle airplanes
 - type: MiG-29 Fulcrum
-  name: MiG-29A Fulcrum
+  name: MiG-29A  Fulcrum
   kind: air
   category: Plane
-  description: MiG-29A Fulcrum
+  description: MiG-29A  Fulcrum
   attributes:
   - Fighters
   - All
@@ -10418,13 +10474,12 @@ units:
   description: UH-1H
   attributes:
   - Attack helicopters
-  - Transports
+  - Transport helicopters
   - All
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Air
   - Helicopters
-  - Planes
 - type: UH-60A
   name: UH-60A
   kind: air
@@ -10953,6 +11008,12 @@ units:
   - AntiAir Armed Vehicles
   - NonAndLightArmoredUnits
   - LightArmoredUnits
+- type: Zell
+  name: F-100D ZELL
+  kind: static
+  category: Heliport
+  description: F-100D ZELL
+  attributes: []
 - type: ZiL-131 APA-80
   name: GPU APA-80 on ZIL-131
   kind: vehicle

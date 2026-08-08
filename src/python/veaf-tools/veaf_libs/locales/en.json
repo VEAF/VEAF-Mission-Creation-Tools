@@ -944,6 +944,7 @@
   "weather.config_loaded": "Configuration loaded: {count} version(s) to create",
   "weather.converter.avwx_unavailable": "avwx-engine not available. Cannot fetch live METAR. Using defaults.",
   "weather.converter.convert_failed": "Failed to convert weather: {error}",
+  "weather.converter.metar_fetch_empty": "No METAR data came back for {icao}; using default weather instead. Check the ICAO code and your network connection.",
   "weather.converter.metar_fetch_failed": "Failed to fetch live METAR for {icao}: {error}. Using defaults.",
   "weather.created": "Created: {path}",
   "weather.creating_variants": "Creating weather variants...",

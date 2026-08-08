@@ -944,6 +944,7 @@
   "weather.config_loaded": "Configuration chargée : {count} version(s) à créer",
   "weather.converter.avwx_unavailable": "avwx-engine non disponible. Impossible de récupérer le METAR en direct. Utilisation des valeurs par défaut.",
   "weather.converter.convert_failed": "Échec de la conversion météo : {error}",
+  "weather.converter.metar_fetch_empty": "Aucune donnée METAR reçue pour {icao} ; météo par défaut utilisée à la place. Vérifiez le code OACI et votre connexion réseau.",
   "weather.converter.metar_fetch_failed": "Échec de la récupération du METAR en direct pour {icao} : {error}. Utilisation des valeurs par défaut.",
   "weather.created": "Créé : {path}",
   "weather.creating_variants": "Création des variantes météo...",

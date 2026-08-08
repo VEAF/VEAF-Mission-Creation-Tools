@@ -975,11 +975,24 @@ class MissionBuilderWorker(BaseWorker):
         shifted[1] = bridge_trigrule
         self.dcs_mission.mission_content["trigrules"] = shifted
 
-        # Shift all existing trig entries up by 1
+        # Shift all existing trig entries up by 1.
+        #
+        # VMR-005: the shift alone is not enough, and shifting without this rewrite is what the
+        # finding reported. `funcStartup` values are Lua **strings** carrying their own indices —
+        # `if mission.trig.conditions[1]() then mission.trig.actions[1]() end` — so a trigger moved
+        # from key 1 to key 2 kept calling `conditions[1]`, which by then is the bridge's. Every
+        # previously inserted trigger fired the wrong pair. `insert_veaf_triggers` already gets
+        # this right; the same `[old]` → `[new]` substitution is applied here, per entry, so each
+        # string is only ever rewritten with its own key and neighbours cannot collide.
         trig: dict = self.dcs_mission.mission_content["trig"]
         for category_name, category_data in trig.items():
             if isinstance(category_data, dict):
-                trig[category_name] = {k + 1: v for k, v in category_data.items()}
+                trig[category_name] = {
+                    old_key + 1: (
+                        re.sub(f"\\[{old_key}\\]", f"[{old_key + 1}]", value) if isinstance(value, str) else value
+                    )
+                    for old_key, value in category_data.items()
+                }
 
         # Insert the bridge trigger at position 1 in each trig category
         trig["actions"][1] = f'a_do_script_file(getValueResourceByKey("{map_resource_key}"));'

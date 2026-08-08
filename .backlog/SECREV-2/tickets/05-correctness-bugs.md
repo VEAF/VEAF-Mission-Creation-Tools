@@ -1,6 +1,6 @@
 # 05 — The two high-severity correctness bugs
 
-Status: ⬜ ready
+Status: ✅ done — both confirmed by a failing test first, then fixed
 Type: fix
 Findings: VMR-005 🟠 CONFIRMED, VMR-006 🟠 CONFIRMED
 
@@ -18,11 +18,17 @@ same insertion path so the shift and the rewrite stay in one place.
 
 Verified 2026-08-05: the shift is still there, with no rewrite.
 
-- [ ] Reuse the index-rewrite, or route the bridge through `VeafTriggerSpec`.
-- [ ] A test building a mission with an existing trigger **and** the bridge, asserting the existing
-      trigger still references its own condition/action pair.
-- [ ] Impact note: this makes `dcs_bridge.enabled` builds load-broken, so check whether any shipped
-      mission has it on before deciding urgency.
+- [x] **Reused the index-rewrite** rather than routing through `VeafTriggerSpec`. Both were
+      allowed; the rewrite is the smaller change and keeps the bridge's "always index 1" contract
+      explicit, where routing would have had to express that ordering through a spec. The
+      substitution is applied **per entry, with that entry's own key**, so neighbours cannot
+      cross-talk — a blanket `[1]`→`[2]` pass over the whole category would corrupt trigger 2.
+- [x] Test written **first** and confirmed failing on the real defect: the shifted trigger came
+      back as `conditions[1]`, the bridge's own pair. 8 tests, including a three-trigger case
+      that is where a colliding rewrite would show, and a no-op case for `bridge_file=None`.
+- [x] Impact: builds with `dcs_bridge.enabled` **and** at least one pre-existing trigger were
+      load-broken. Missions with no prior trigger were unaffected, which is why this survived —
+      the default mission has none, so the common path never showed it.
 
 ## VMR-006 — the live METAR fetch never fetches
 
@@ -33,8 +39,11 @@ gets canned weather, with no error.
 
 Verified 2026-08-05: there is exactly one `Metar(` in the file and no `.update()` anywhere.
 
-- [ ] Call `.update()` (or the async equivalent) and check its return before reading attributes.
-- [ ] Handle the failure path explicitly: no network, unknown ICAO, avwx absent. Silently falling back
-      to defaults is what hid this for a month — say so in the log at warning level.
-- [ ] A test with a faked avwx asserting that values reach the result, and a second asserting the
-      fallback announces itself.
+- [x] `.update()` is called and **its return value checked**. That second half matters as much as
+      the first: avwx signals a failed fetch by returning `False` rather than raising, so calling
+      `update()` and ignoring the result would have reinstated exactly the same silence.
+- [x] Failure paths are explicit and announced at warning level, each naming the ICAO: fetch
+      returned nothing, and avwx absent. New i18n key in both locales.
+- [x] 7 tests against a faked avwx — no package, no network needed. The fake only populates its
+      attributes inside `update()`, exactly like the real one, so the tests fail structurally
+      without the fix rather than by accident.

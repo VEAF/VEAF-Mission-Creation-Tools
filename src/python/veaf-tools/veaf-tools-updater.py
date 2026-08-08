@@ -228,6 +228,63 @@ class UpdateWorker:
         logger.info(t("updater.checksum_ok", name=file_path.name))
         return True
 
+    def _checksum_verified(self, release_payload: dict, zip_content: bytes, release_version: str) -> bool:
+        """Verify the downloaded archive against the release metadata, failing **closed**.
+
+        VMR-011: this used to warn and continue whenever the material it needed was absent —
+        no metadata asset, an undownloadable one, unparseable JSON, or a missing checksum key
+        all fell through to installing anyway. A verification that is skipped when its input
+        is missing verifies nothing while reading as though it does, and an attacker able to
+        influence release metadata does not need to defeat the checksum: removing it is enough.
+
+        Every one of those four paths now refuses. The escape hatch is explicit and already
+        existed — ``--no-verify-checksum`` — so a mission maker who knowingly accepts the risk
+        is not stranded, which matters because this code updates their tooling.
+
+        Args:
+            release_payload: The GitHub release payload, whose ``assets`` list is searched.
+            zip_content: The downloaded archive bytes to verify.
+            release_version: Used to name the temporary file.
+
+        Returns:
+            ``True`` only when a checksum was found **and** matched.
+        """
+        metadata_asset = next(
+            (a for a in release_payload.get("assets", []) if a.get("name") == PUBLISHED_METADATA_ASSET_NAME),
+            None,
+        )
+        if not metadata_asset:
+            logger.error(t("updater.err.no_metadata"))
+            return False
+
+        metadata_content = self.download_asset(
+            metadata_asset.get("browser_download_url"), PUBLISHED_METADATA_ASSET_NAME
+        )
+        if not metadata_content:
+            logger.error(t("updater.err.metadata_download_failed"))
+            return False
+
+        try:
+            metadata = json.loads(metadata_content)
+        except json.JSONDecodeError:
+            logger.error(t("updater.err.metadata_parse"))
+            return False
+
+        published_checksum = metadata.get("published_zip_sha256")
+        if not published_checksum:
+            logger.error(t("updater.err.no_checksum_in_metadata"))
+            return False
+
+        temp_zip = Path.cwd() / f"published_{release_version}.zip.tmp"
+        temp_zip.write_bytes(zip_content)
+        try:
+            if not self.verify_file_integrity(temp_zip, published_checksum):
+                logger.error(t("updater.err.checksum_failed"))
+                return False
+        finally:
+            temp_zip.unlink(missing_ok=True)
+        return True
+
     def get_installed_version(self, mission_folder: Path) -> str | None:
         """Retrieve the currently installed version from package.json."""
         package_json_path = mission_folder / PUBLISHED_DIR / PACKAGE_JSON_FILE
@@ -684,33 +741,8 @@ exit /b 0
         # Verify checksum if enabled
         if self.verify_checksum:
             with spinner_context(t("updater.verifying")):
-                metadata_asset = None
-                for asset in release_payload.get("assets", []):
-                    if asset.get("name") == PUBLISHED_METADATA_ASSET_NAME:
-                        metadata_asset = asset
-                        break
-
-                if metadata_asset:
-                    metadata_content = self.download_asset(
-                        metadata_asset.get("browser_download_url"), PUBLISHED_METADATA_ASSET_NAME
-                    )
-                    if metadata_content:
-                        try:
-                            metadata = json.loads(metadata_content)
-                            published_checksum = metadata.get("published_zip_sha256")
-                            if published_checksum:
-                                # Save to temp file for verification
-                                temp_zip = Path.cwd() / f"published_{release_version}.zip.tmp"
-                                temp_zip.write_bytes(zip_content)
-                                if not self.verify_file_integrity(temp_zip, published_checksum):
-                                    temp_zip.unlink()
-                                    logger.error(t("updater.err.checksum_failed"))
-                                    return False
-                                temp_zip.unlink()
-                        except json.JSONDecodeError:
-                            logger.warning(t("updater.warn.metadata_parse"))
-                else:
-                    logger.warning(t("updater.warn.no_metadata"))
+                if not self._checksum_verified(release_payload, zip_content, release_version):
+                    return False
 
         # Extract and install (pass the asset list so Unix can fetch its binaries)
         if self.extract_and_install(

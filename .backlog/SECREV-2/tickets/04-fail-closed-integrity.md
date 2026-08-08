@@ -1,6 +1,6 @@
 # 04 — Integrity checks that pass when their metadata is missing
 
-Status: ⬜ ready
+Status: 🔄 in-progress — VMR-011 and VMR-009 delivered; the download caps remain
 Type: fix
 Findings: VMR-011 🟡, VMR-009 🟡, plus the bridge/updater fetch findings
 
@@ -22,12 +22,20 @@ as though it does. The review found three shapes of it:
 Fail **closed**: absent integrity material is a failure, not a pass. Cap every fetch and every
 decompression, and verify what was fetched before using it.
 
-- [ ] Updater: no checksum, or an unparseable one, means refuse — with a message saying which.
-- [ ] `read_miz`: a total-uncompressed-size cap and a per-member cap, both refusing rather than
-      truncating. `safe_zip.py` already exists and the review calls the Python ZIP path well-hardened,
-      so check whether this is a matter of routing `.miz` through it rather than new code.
-- [ ] Cap and verify the bridge and updater downloads.
-- [ ] Tests for each: missing metadata, malformed metadata, an over-cap archive.
+- [x] **Updater fails closed (VMR-011)**. There were **four** fall-through paths, not the two the
+      finding described: no metadata asset, an undownloadable one, unparseable JSON, and a missing
+      checksum key — each warned and installed anyway. All four refuse now, extracted into
+      `_checksum_verified` so they are unit-testable without driving the whole download flow.
+- [x] **`read_miz` reads under a cap (VMR-009)**. The answer to the ticket's question: **new code,
+      not routing**. `safe_zip.py` does exist and `miz_tools` already imports `safe_extract_all`,
+      but that guards *extraction to disk*; `read_file_in_archive` pulls members straight into
+      memory with a bare `.read()`, which no on-disk cap can bound. Added `safe_read_member`
+      alongside it — declared size checked first (cheap), real stream counted while reading (what
+      actually holds).
+- [ ] Cap and verify the bridge and updater **downloads** — still open. This is the network side
+      (`download_asset`, and the Lua bridge's fetch), untouched here.
+- [x] Tests for each delivered part: 5 for the member cap, 12 for the updater — including that a
+      *good* release still installs, which is the failure mode that would strand people.
 
 ## A caution on the updater
 
@@ -38,11 +46,16 @@ fail-closed updater that is wrong about its own metadata format cannot update it
 
 ## Acceptance criteria
 
-- [ ] Every one of the three shapes refuses rather than proceeds when its integrity material is
-      absent or unparseable, each with a test for the missing case and the malformed case.
-- [ ] `read_miz` caps both total and per-member uncompressed size, refusing rather than truncating —
-      and the decision on whether this is new code or routing through `safe_zip.py` is recorded.
-- [ ] Every new refusal message says what is wrong **and** what to do about it, checked by reading them
-      aloud as a mission maker would see them.
-- [ ] The updater's own next release is exercised against the new checks before this ships: a
-      fail-closed updater that is wrong about its metadata format cannot update itself out of trouble.
+- [x] Two of the three shapes refuse, each with a missing-case and a malformed-case test. The
+      third (network downloads) is still open and is the remaining task above.
+- [x] `read_miz` caps per member, refusing rather than truncating. Decision recorded: new code
+      (`safe_read_member`), because `safe_extract_all` guards the disk and this path never touches it.
+- [x] Every refusal names the escape hatch `--no-verify-checksum`, asserted by a test that reads
+      each message in **both** locales rather than trusting that they were written.
+- [x] **The publish side had to be hardened in the same breath**, and this is the criterion that
+      nearly got missed. `veaf-build` produces `published-metadata.json` with `published_zip_sha256`
+      — the exact name and key the updater expects, verified — but it had **two silent failure
+      paths**: `worker.py` warned and continued when the file could not be written, and `github.py`
+      skipped the upload if the file was absent *and* ignored the upload's own return code. With a
+      fail-closed updater, either one publishes a release nobody can install, discovered by a user
+      rather than by us. Both are errors now.

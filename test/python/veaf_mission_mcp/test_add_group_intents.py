@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from mission_tools.miz_tools import read_miz
-
 from veaf_mission_mcp.add_group import add_group, resolve_group_name
 
 _RED = {"coalition": "red", "country_id": 0, "country_name": "Russia", "category": "vehicle"}
@@ -62,8 +61,12 @@ def test_resolve_no_intent_returns_name_unchanged() -> None:
 
 def test_add_group_for_combat_zone_names_and_returns_prefixed(sample_miz: Path) -> None:
     result = add_group(
-        sample_miz, **_RED, name="armor", position={"x": 100.0, "y": 200.0},
-        units=[{"type": "T-72B", "count": 2}], for_combat_zone="combatZone_Test",
+        sample_miz,
+        **_RED,
+        name="armor",
+        position={"x": 100.0, "y": 200.0},
+        units=[{"type": "T-72B", "count": 2}],
+        for_combat_zone="combatZone_Test",
     )
     assert result["name"] == "combatZone_Test-armor"
     group = _find_group(read_miz(sample_miz).mission_content or {}, "combatZone_Test-armor")
@@ -72,8 +75,12 @@ def test_add_group_for_combat_zone_names_and_returns_prefixed(sample_miz: Path) 
 
 def test_add_group_late_activation_sets_flag(sample_miz: Path) -> None:
     add_group(
-        sample_miz, **_RED, name="QRA Su-27", position={"x": 100.0, "y": 200.0},
-        units=[{"type": "Su-27", "count": 1}], late_activation=True,
+        sample_miz,
+        **_RED,
+        name="QRA Su-27",
+        position={"x": 100.0, "y": 200.0},
+        units=[{"type": "Su-27", "count": 1}],
+        late_activation=True,
     )
     group = _find_group(read_miz(sample_miz).mission_content or {}, "QRA Su-27")
     assert group is not None
@@ -82,7 +89,10 @@ def test_add_group_late_activation_sets_flag(sample_miz: Path) -> None:
 
 def test_add_group_default_is_not_late_activation(sample_miz: Path) -> None:
     add_group(
-        sample_miz, **_RED, name="Static Armor", position={"x": 100.0, "y": 200.0},
+        sample_miz,
+        **_RED,
+        name="Static Armor",
+        position={"x": 100.0, "y": 200.0},
         units=[{"type": "T-72B", "count": 1}],
     )
     group = _find_group(read_miz(sample_miz).mission_content or {}, "Static Armor")
@@ -92,8 +102,14 @@ def test_add_group_default_is_not_late_activation(sample_miz: Path) -> None:
 
 def test_add_group_spawn_template_prefixes_name(sample_miz: Path) -> None:
     result = add_group(
-        sample_miz, coalition="blue", country_id=2, country_name="USA", category="plane",
-        name="Viper", position={"x": 100.0, "y": 200.0}, units=[{"type": "F-16C_50", "count": 1}],
+        sample_miz,
+        coalition="blue",
+        country_id=2,
+        country_name="USA",
+        category="plane",
+        name="Viper",
+        position={"x": 100.0, "y": 200.0},
+        units=[{"type": "F-16C_50", "count": 1}],
         as_spawn_template=True,
     )
     assert result["name"] == "veafSpawn-Viper"

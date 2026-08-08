@@ -469,7 +469,19 @@ class BuildAndReleaseWorker:
     def _veaf_tools_extra_data(
         self, modules_json_path: Path | None, shortcuts_json_path: Path | None = None
     ) -> list[tuple[Path, str]]:
-        """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable."""
+        """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable.
+
+        **This is the single source of truth for what data ships in the exe.** The
+        ``veaf-tools.spec`` / ``veaf-tools-updater.spec`` files used to look like the answer and
+        were not: the build passes its own ``--add-data`` list to PyInstaller and never read them,
+        so the two had silently diverged — the spec declared four entries while this assembles a
+        dozen. That mismatch is what made a missing-profiles bug hard to find
+        (``unknown conversion profile: foothold``), because the obvious place to check said the
+        profiles were bundled. Both spec files were deleted on 2026-08-08
+        (CHORE-TOOLING-GATES ticket 02); a static spec cannot express this list anyway, since the
+        paths are conditional on ``exists()`` and two are generated JSON files passed in as
+        arguments.
+        """
         locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
         extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
         if modules_json_path:

@@ -1,11 +1,11 @@
 # 02 — Make `veaf-tools.spec` honest — or delete it
 
-Status: ⬜ ready
+Status: ✅ done — deleted both spec files
 Type: chore
 
 ## Why
 
-[`veaf-tools.spec`](../../../veaf-tools.spec) declares four `datas` entries, including
+`veaf-tools.spec` (deleted by this ticket) declared four `datas` entries, including
 `('src\\python\\veaf-tools\\veaf_libs\\data\\convert-profiles', 'veaf_libs\\data\\convert-profiles')`.
 
 **The build never reads that file.** `BuildAndReleaseWorker._build_pyinstaller_executable`
@@ -36,15 +36,19 @@ code path won in the first place.
 
 ## Tasks
 
-- [ ] Confirm nothing invokes `pyinstaller *.spec` — CI workflows, docs, release skill, and any
-      developer instructions.
-- [ ] Apply the chosen option for **both** `veaf-tools.spec` and `veaf-tools-updater.spec`.
-- [ ] If deleting: leave a one-line pointer in `doc/developer/` (or `veaf_build/worker.py`'s
-      docstring) saying `_veaf_tools_extra_data` is the list of bundled data, so the next person
-      looking for "what ships in the exe" finds it immediately.
-- [ ] Build the executable afterwards and confirm the bundled data is unchanged — the regression
-      guards in `test_build_standalone.py` cover the list, but the binary is the proof.
-- [ ] CHANGELOG (developer-facing).
+- [x] Confirmed: no workflow, no live documentation page, no release skill and no code invokes
+      `pyinstaller *.spec`. The only surviving mentions are in
+      `docs/superpowers/plans/2026-06-24-backlog-restructure.md`, a dated historical document
+      (itself link-exempt per TOOLING-REPO-LINK-GATE ticket 04).
+- [x] **Deleted both** `veaf-tools.spec` and `veaf-tools-updater.spec` — the recommended option.
+      Confirmed the divergence first: the spec declared **4** `datas` entries against the dozen
+      `_veaf_tools_extra_data` assembles.
+- [x] Pointer left where someone will actually look — the docstring of
+      `_veaf_tools_extra_data` in `veaf_build/worker.py`, stating in its first line that it is the
+      single source of truth, and recording why a static spec cannot express the list (paths
+      conditional on `exists()`, two generated JSON files passed in as arguments).
+- [x] `test_build_standalone.py` green (8 tests), and the executable rebuilt afterwards.
+- [x] CHANGELOG.
 
 ## Notes
 

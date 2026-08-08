@@ -66,7 +66,6 @@ class TestApplyVeafOverrides(unittest.TestCase):
 
     def test_fills_both_discovery_lists(self) -> None:
         import yaml
-
         from veaf_libs.ctld_config import VEAF_CONFIG_OVERRIDES, apply_veaf_overrides
 
         result = yaml.safe_load(apply_veaf_overrides(self._CATALOGUE))["mm_facing"]
@@ -75,7 +74,6 @@ class TestApplyVeafOverrides(unittest.TestCase):
 
     def test_leaves_everything_else_alone(self) -> None:
         import yaml
-
         from veaf_libs.ctld_config import apply_veaf_overrides
 
         result = apply_veaf_overrides(self._CATALOGUE)
@@ -85,7 +83,6 @@ class TestApplyVeafOverrides(unittest.TestCase):
     def test_a_key_the_catalogue_does_not_define_is_skipped(self) -> None:
         """An older vendored engine must not gain an invented setting."""
         import yaml
-
         from veaf_libs.ctld_config import apply_veaf_overrides
 
         older = 'configVersion: "2.0.0"\nmm_facing:\n  numberOfTroops: 10\n'

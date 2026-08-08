@@ -5,7 +5,6 @@ from typing import Any
 
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_tools import read_mission_folder
-
 from veaf_mission_mcp.composites import create_cap_mission, create_qra
 
 _MISSION = """\

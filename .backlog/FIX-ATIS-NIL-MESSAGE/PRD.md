@@ -1,6 +1,6 @@
 # FIX-ATIS-NIL-MESSAGE — a pilot asking for ATIS at a vanished airbase must get words, not a nil
 
-Status: 🔄 in-progress
+Status: ✅ done
 Branch: fix/atis-nil-message
 
 Origin: **PR #303 by MacFlorent** (2026-01-20), for issue #302. That PR is closed as superseded —

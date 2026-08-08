@@ -1,6 +1,6 @@
 # 01 — Words instead of a nil, and a floor under every message
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafWeather.lua`, `src/scripts/veaf/veaf.lua`, `src/scripts/veaf/veafI18n.lua`
 (or wherever the ATIS keys live), `test/lua/test_veafWeather.lua`, `test/lua/test_veaf.lua`

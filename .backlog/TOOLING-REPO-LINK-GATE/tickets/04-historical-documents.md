@@ -1,6 +1,6 @@
 # 04 — Decide what to do with the historical documents
 
-Status: 🧑 waiting-human
+Status: ✅ done — decided 2026-08-08: **exempt, do not repair, do not delete yet**
 Type: chore
 Files: `docs/superpowers/plans/`, `docs/superpowers/specs/`, `CODE_DOC_REVIEW_2026-07-01.md`
 
@@ -28,11 +28,15 @@ readable) and delete or archive `CODE_DOC_REVIEW_2026-07-01.md` if its findings 
 
 ## Tasks
 
-- [ ] Put the question to David with the three options.
-- [ ] Apply the answer.
-- [ ] If exempting: each entry in the exemption set gets its own reason comment, so a later reader can
-      tell a deliberate exemption from an abandoned one.
-- [ ] If deleting: check nothing links **to** them first.
+- [x] Put the question to David with the three options.
+- [x] Apply the answer — **option 1, exempt**. Repairing a record of a past state into a state that
+      never existed is worse than a link that does not resolve, and that argument decided it.
+- [x] Each entry in the exemption set carries its own reason comment (`veaf_build/docs_check.py`), so a
+      later reader can tell a deliberate exemption from an abandoned one.
+- [x] Deletion checked and **refused for now**: the split proposed in this ticket — delete
+      `CODE_DOC_REVIEW_2026-07-01.md` since "its findings were all actioned" — was wrong. `SECREV-2`'s
+      PRD sources its tickets from that file and **04 to 07 are still open** (01 in progress). It is
+      live work, not a vestige. The delete-or-archive question reopens when `SECREV-2` closes.
 
 ## Notes
 

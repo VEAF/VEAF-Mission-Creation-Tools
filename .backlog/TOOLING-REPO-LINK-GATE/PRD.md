@@ -1,6 +1,6 @@
 # TOOLING-REPO-LINK-GATE — the link gate stops at `doc/`, and the repo rotted behind it
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 > **Tickets 01, 02, 03 and 05 delivered 2026-08-05**: the pass exists, the 92 links are fixed, CI
 > triggers on the paths it checks. The lot stays open on **ticket 04** alone — whether the three

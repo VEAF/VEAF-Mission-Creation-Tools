@@ -48,8 +48,9 @@ _REPO_SKIP_DIRS: frozenset[str] = frozenset(
 
 #: Files whose relative links describe a **past** state of the repo and are expected not to resolve.
 #: Each entry needs its reason: an exemption nobody can justify is indistinguishable from neglect.
-#: TOOLING-REPO-LINK-GATE ticket 04 puts the keep/fix/delete question to David; until then the gate
-#: stays green rather than blocking on a decision that is not the gate's to make.
+#: Decided by David on 2026-08-08 (TOOLING-REPO-LINK-GATE ticket 04): **exempt, do not repair**.
+#: Repairing the links of a document that records a past state would rewrite it into a state that
+#: never existed, which is worse than a link that does not resolve.
 _REPO_LINK_EXEMPT: frozenset[str] = frozenset(
     {
         # The plan *for* the backlog restructure, and its design spec: both describe the flat
@@ -57,8 +58,9 @@ _REPO_LINK_EXEMPT: frozenset[str] = frozenset(
         # rewrite a record of a real past state into one that never existed.
         "docs/superpowers/plans/2026-06-24-backlog-restructure.md",
         "docs/superpowers/specs/2026-06-24-backlog-restructure-design.md",
-        # A dated review whose links were written relative to `doc/`. Its findings appear to have been
-        # actioned (see .backlog/archive/DOC-REVIEW.md), so it may simply be deletable.
+        # A dated review whose links were written relative to `doc/`. **Still live work**: SECREV-2's
+        # PRD sources its tickets from this file and 04-07 are open, so it is not deletable yet. The
+        # delete-or-archive question reopens when SECREV-2 closes, not before.
         "CODE_DOC_REVIEW_2026-07-01.md",
     }
 )

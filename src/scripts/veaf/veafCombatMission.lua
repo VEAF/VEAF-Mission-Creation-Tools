@@ -699,7 +699,11 @@ function VeafCombatMission:setRadioMenuEnabled(value)
 end
 
 function VeafCombatMission:setAllElementsSkill(skill)
-  for _, element in self.elements do
+  -- VMR-020: `in self.elements` asked Lua to call the table as an iterator, raising
+  -- "attempt to call a table value" on the first invocation. The two sibling loops in this file
+  -- both write `pairs(self.elements)`, so this was a slip rather than a convention — and nothing
+  -- in the repository calls this method, which is exactly why it never surfaced.
+  for _, element in pairs(self.elements) do
     element:setSkill(skill)
   end
   return self
@@ -887,12 +891,16 @@ function VeafCombatMission:activate(silent)
           local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s", veaf.p(spawnedGroupName)))
           local _group = mist.teleportToPoint(vars, true)
+          -- VMR-021: `_group.groupName = ...` used to sit **between** two `if _group then`
+          -- guards, unguarded itself, so a nil return from mist crashed the activation right
+          -- after the code had just finished checking for exactly that. The guards are merged
+          -- rather than a third one added — the assignment belongs with the work it labels.
           if _group then
             for _, unit in pairs(_group.units) do
               unit.skill = missionElement:getSkill()
             end
+            _group.groupName = spawnedGroupName
           end
-          _group.groupName = spawnedGroupName
           if _group then
             for _, unit in pairs(_group.units) do
               local unitName = unit.unitName

@@ -48,7 +48,7 @@ modules:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `shortcuts` | object[] | `[]` | No | Additional custom aliases |
 | `shortcuts[].name` | string | — | Yes | Alias name — players type `-name` in a map marker |

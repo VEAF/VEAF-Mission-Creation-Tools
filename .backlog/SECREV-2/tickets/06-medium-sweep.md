@@ -1,6 +1,6 @@
 # 06 — The 24 medium findings
 
-Status: ⬜ ready
+Status: ✅ done — all 24 carry an outcome
 Type: fix
 Findings: VMR-009 … VMR-032 at 🟡 MEDIUM (see `findings-triage.json`)
 
@@ -59,3 +59,27 @@ diverge).
 - [ ] Every one of the 24 has an outcome recorded in the triage: fixed, elsewhere, or disproved.
 - [ ] Each fix carries a test, except the pure documentation ones.
 - [ ] The three findings routed to other tickets are marked as such rather than silently skipped.
+
+
+## Outcome, 2026-08-08
+
+**All 24 mediums carry an outcome**, which was this ticket's acceptance criterion. 20 fixed
+here or in tickets 04/05, 3 routed to ticket 02, 1 (VMR-026) closed as already-fixed after
+verifying rather than assuming.
+
+Two of the ticket's own premises were wrong, and finding that out was part of the work:
+
+- **"Fix group A in the shared marker parser."** There is none. Ten modules carry their own
+  `markTextAnalysis`, 641 lines between them. The conversion was shared instead
+  (`veaf.safeNumber`), and the structural cure is filed as `REFACTOR-MARKER-PARSER`.
+- **"Group A: all the same shape."** Only VMR-019 and VMR-025 were parameter-parsing crashes.
+  VMR-020, 021 and 023 are independent nil-safety bugs and were done as group B.
+
+Worth recording about group C: the drifting counters were **removed rather than corrected**.
+The guide said 31 test suites and 34 files; the review said 34 and 41; the truth today is 36
+and 42. A number that has been wrong three times will be wrong again, and a directory tree
+does not need to count itself.
+
+Three fixes ship without a test, each said out loud rather than left to be noticed: VMR-021
+and VMR-018 (inside long methods needing broad mocking, both provable by reading the guard
+two lines away) and VMR-024 (provable by reading Skynet's signature).

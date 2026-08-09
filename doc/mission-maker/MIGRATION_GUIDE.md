@@ -345,7 +345,7 @@ Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erre
 
 Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour les trouver rapidement :
 
-- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil Klogg pour VEAF est prévu — une fois disponible, il sera commité dans le dépôt et annoncé sur le [Discord VEAF](https://www.veaf.org/discord).
+- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil de coloration VEAF est livré avec le dépôt, dans `tools/klogg/veaf.conf` — chargez-le via Fichier → Highlighters.
 - **Notepad++** : ouvrez `dcs.log` → Recherche → Rechercher (`Ctrl+F`) → cherchez `VEAF`.
 
 ### Le build échoue avec "VEAF scripts file not found"

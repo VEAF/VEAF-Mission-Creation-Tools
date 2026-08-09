@@ -216,10 +216,16 @@ class TestFallbackMetarParsing(unittest.TestCase):
         r = self._parse("AAAA 0/M02")
         self.assertAlmostEqual(r["temperature"], 0.0)
 
-    def test_temperature_negative_M_prefix_not_parsed(self) -> None:
-        # "M05/M10" — with_temp = "M05", "M05".lstrip("-") = "M05", not isdigit
+    def test_temperature_negative_M_prefix_is_parsed(self) -> None:
+        """SECREV-2 / VMR-016: this test used to pin the bug rather than the behaviour.
+
+        It asserted that `M05/M10` left the default of 15.0 in place, and its comment even
+        explained the mechanism — `"M05".lstrip("-")` is not a digit string — as though that
+        were the intended outcome. `M` is how a METAR spells a minus sign, so the reading was
+        being dropped silently, and a winter mission flew at whatever default was configured.
+        """
         r = self._parse("AAAA M05/M10")
-        self.assertAlmostEqual(r["temperature"], 15.0)  # unchanged default
+        self.assertAlmostEqual(r["temperature"], -5.0)
 
     # Visibility parsing
     def test_visibility_9999(self) -> None:

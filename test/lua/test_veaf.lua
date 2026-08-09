@@ -2159,4 +2159,75 @@ end
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 group A — marker parameters must not be able to crash their handler
+--
+-- The review recommended validating in "the shared marker parser". There is none: ten modules
+-- carry their own `markTextAnalysis`. Rewriting all ten is a different lot, so the shared piece
+-- is the conversion itself -- one tested helper the call sites use -- which is the part that
+-- was being written wrong each time.
+--
+-- The crash shapes seen in the wild: `string.format("%d", nil)` on a valueless keyword, and
+-- `tonumber(val) <= 5` comparing nil with a number.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSafeNumber = {}
+
+function TestVeafSafeNumber:test_parses_a_plain_number()
+  luaunit.assertEquals(veaf.safeNumber("3"), 3)
+end
+
+function TestVeafSafeNumber:test_accepts_a_number_as_is()
+  luaunit.assertEquals(veaf.safeNumber(4), 4)
+end
+
+function TestVeafSafeNumber:test_nil_returns_the_default()
+  -- A player writing "size" with no value: the exact VMR-019 shape.
+  luaunit.assertEquals(veaf.safeNumber(nil, { default = 2 }), 2)
+end
+
+function TestVeafSafeNumber:test_garbage_returns_the_default()
+  luaunit.assertEquals(veaf.safeNumber("banana", { default = 2 }), 2)
+end
+
+function TestVeafSafeNumber:test_nil_without_a_default_is_nil()
+  luaunit.assertNil(veaf.safeNumber(nil))
+end
+
+function TestVeafSafeNumber:test_below_the_minimum_is_clamped()
+  luaunit.assertEquals(veaf.safeNumber("0", { min = 1, max = 5, default = 1 }), 1)
+end
+
+function TestVeafSafeNumber:test_above_the_maximum_is_clamped()
+  luaunit.assertEquals(veaf.safeNumber("9", { min = 1, max = 5, default = 1 }), 5)
+end
+
+function TestVeafSafeNumber:test_inside_the_range_is_untouched()
+  luaunit.assertEquals(veaf.safeNumber("3", { min = 1, max = 5, default = 1 }), 3)
+end
+
+function TestVeafSafeNumber:test_boundaries_are_inclusive()
+  luaunit.assertEquals(veaf.safeNumber("1", { min = 1, max = 5 }), 1)
+  luaunit.assertEquals(veaf.safeNumber("5", { min = 1, max = 5 }), 5)
+end
+
+function TestVeafSafeNumber:test_negative_values_survive_when_allowed()
+  luaunit.assertEquals(veaf.safeNumber("-20", { min = -50, max = 50 }), -20)
+end
+
+function TestVeafSafeNumber:test_decimals_survive()
+  luaunit.assertEquals(veaf.safeNumber("2.5", { min = 0, max = 5 }), 2.5)
+end
+
+function TestVeafSafeNumber:test_a_table_returns_the_default()
+  luaunit.assertEquals(veaf.safeNumber({}, { default = 7 }), 7)
+end
+
+function TestVeafSafeNumber:test_boolean_returns_the_default()
+  -- `true` is what a valueless keyword often becomes before it reaches the conversion.
+  luaunit.assertEquals(veaf.safeNumber(true, { default = 7 }), 7)
+end
+
+
 os.exit(luaunit.LuaUnit.run())

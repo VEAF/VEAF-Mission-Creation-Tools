@@ -511,36 +511,52 @@ function veafCasMission.markTextAnalysis(text)
 
     if switch.casmission and key:lower() == "size" then
       -- Set size.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword size = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
+      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
+      -- and the comparison below used to raise on nil, killing the whole marker handler over a
+      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
+      -- that is the existing behaviour and changing it is not this fix's business.
+      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword size = %s", veaf.p(val)))
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 1 then
         switch.size = nVal
       end
     end
 
     if switch.casmission and key:lower() == "defense" then
       -- Set defense.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword defense = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
+      -- and the comparison below used to raise on nil, killing the whole marker handler over a
+      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
+      -- that is the existing behaviour and changing it is not this fix's business.
+      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword defense = %s", veaf.p(val)))
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 0 then
         switch.defense = nVal
       end
     end
 
     if switch.casmission and key:lower() == "armor" then
       -- Set armor.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword armor = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
+      -- and the comparison below used to raise on nil, killing the whole marker handler over a
+      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
+      -- that is the existing behaviour and changing it is not this fix's business.
+      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword armor = %s", veaf.p(val)))
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 0 then
         switch.armor = nVal
       end
     end
 
     if switch.casmission and key:lower() == "spacing" then
       -- Set spacing.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword spacing = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
+      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
+      -- and the comparison below used to raise on nil, killing the whole marker handler over a
+      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
+      -- that is the existing behaviour and changing it is not this fix's business.
+      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword spacing = %s", veaf.p(val)))
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 1 then
         switch.spacing = nVal
       end
     end

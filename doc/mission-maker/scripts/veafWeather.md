@@ -6,7 +6,12 @@
 
 ## Objectif
 
-Fournit des rapports météo et l'injection de météo dynamique pour les missions DCS. Génère des rapports lisibles au format METAR et s'intègre avec `veaf-tools.exe inject-weather` pour injecter de la météo réelle ou configurée au moment du build.
+Deux rôles distincts :
+
+1. **Au build** : injecter dans un `.miz` une météo réelle ou configurée, avant même que les joueurs chargent la mission. C'est le travail de `veaf-tools.exe inject-weather`.
+2. **En jeu** : les joueurs demandent des rapports météo et des informations ATC via le menu radio F10, et le créateur de mission peut scripter des changements de brouillard dynamiques.
+
+Les rapports sont générés au format METAR, lisible par un pilote.
 
 ---
 
@@ -75,10 +80,12 @@ Les arguments suivants sont optionnels : `getWeatherString(vec3, dcsElementName,
 
 Le sous-menu **WEATHER AND ATC** du menu radio F10 permet aux joueurs d'obtenir des informations détaillées sur la météo et la base aérienne la plus proche.
 
-- **Weather on closest point** — météo locale adaptée au type d'appareil (unités et format conformes à l'avion du joueur)
-- **ATC on closest airbase** — informations ATIS de la base la plus proche (piste en service, QFU, etc.)
-- **ATC and weather in one go** — les deux d'un coup
-- **Fog settings → ...** — Réglages brouillard (modifier les conditions de brouillard, voir plus bas)
+| Entrée | Accessible à | Ce qu'elle affiche |
+|--------|--------------|--------------------|
+| Weather on closest point | Par groupe | Vent, visibilité, QNH, température au point nommé le plus proche — unités et format adaptés à l'appareil du joueur |
+| ATC on closest airbase | Par groupe | Piste en service, QFE/QNH, informations de circuit sur la base la plus proche |
+| ATC and weather in one go | Par groupe | Les deux rapports d'un coup |
+| Fog settings → … | Tous (sécurisé) | Modifier les conditions de brouillard (voir plus bas) |
 
 Ces commandes sont aussi accessibles depuis le chat multijoueur (avec le hook serveur VEAF) : `atc`
 

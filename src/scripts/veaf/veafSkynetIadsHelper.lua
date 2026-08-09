@@ -619,7 +619,18 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
     else
       defended_name = pointDefense
       local defended_SAM = iads:getSAMSiteByGroupName(defended_name)
-      local defended_EWR = iads:getEarlyWarningRadars(defended_name)
+      -- VMR-024: this used to call `getEarlyWarningRadars(defended_name)`. Skynet's signature is
+      -- `getEarlyWarningRadars()` — it takes **no argument** and returns *every* EWR as a table
+      -- delegator, so the name was silently ignored and the result was always truthy. The lookup
+      -- therefore never failed, and `defended_site` became the whole collection rather than the
+      -- radar that was asked for.
+      --
+      -- `getEarlyWarningRadarByUnitName` is the accessor that does what the call meant: it matches
+      -- on `getDCSName()`, exactly as `getSAMSiteByGroupName` does for SAM sites. The asymmetry in
+      -- the two method names is Skynet's — a SAM site's DCS name is its group, an EWR's is its unit
+      -- — so a `defended_name` naming a *group* whose EWR unit is named differently will now
+      -- correctly find nothing instead of incorrectly finding everything.
+      local defended_EWR = iads:getEarlyWarningRadarByUnitName(defended_name)
 
       local defended_site = defended_EWR
       if defended_SAM then

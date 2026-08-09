@@ -148,4 +148,68 @@ function TestVeafCasMissionAirDefense:test_returns_nil_when_group_not_found()
   luaunit.assertNil(result)
 end
 
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-019 — a valueless numeric keyword must not take the handler down
+--
+-- `_cas, size` (no value) reached `string.format("Keyword size = %d", nil)` and then
+-- `tonumber(nil) <= 5`. Either one raises, and the marker handler dies with it -- so a typo
+-- silently killed the command instead of ignoring one parameter.
+-------------------------------------------------------------------------------------------------
+
+TestVeafCasMissionNumericKeywords = {}
+
+function TestVeafCasMissionNumericKeywords:_analyse(text)
+  return veafCasMission.markTextAnalysis(text)
+end
+
+function TestVeafCasMissionNumericKeywords:test_valueless_size_does_not_crash()
+  local ok, result = pcall(function()
+    return self:_analyse("_cas, size")
+  end)
+  luaunit.assertTrue(ok, "a valueless size keyword must not raise")
+  luaunit.assertNotNil(result)
+end
+
+function TestVeafCasMissionNumericKeywords:test_valueless_defense_does_not_crash()
+  local ok = pcall(function()
+    return self:_analyse("_cas, defense")
+  end)
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCasMissionNumericKeywords:test_valueless_armor_does_not_crash()
+  local ok = pcall(function()
+    return self:_analyse("_cas, armor")
+  end)
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCasMissionNumericKeywords:test_valueless_spacing_does_not_crash()
+  local ok = pcall(function()
+    return self:_analyse("_cas, spacing")
+  end)
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCasMissionNumericKeywords:test_garbage_size_does_not_crash()
+  local ok = pcall(function()
+    return self:_analyse("_cas, size banana")
+  end)
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCasMissionNumericKeywords:test_a_valid_size_is_still_honoured()
+  -- Guard: the crash fix must not stop the parameter working.
+  local result = self:_analyse("_cas, size 3")
+  luaunit.assertEquals(result.size, 3)
+end
+
+function TestVeafCasMissionNumericKeywords:test_out_of_range_size_is_still_ignored()
+  -- Behaviour deliberately preserved: an out-of-range value is ignored, not clamped.
+  local result = self:_analyse("_cas, size 9")
+  luaunit.assertNotEquals(result.size, 9)
+end
+
+
 os.exit(luaunit.LuaUnit.run())

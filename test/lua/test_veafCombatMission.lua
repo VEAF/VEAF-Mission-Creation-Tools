@@ -704,4 +704,57 @@ end
 -- ============================================================================
 -- Run
 -- ============================================================================
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-020 — setAllElementsSkill iterated a table without pairs()
+--
+-- `for _, element in self.elements do` asks Lua to call the table as an iterator, which raises
+-- "attempt to call a table value" on the first invocation. The two sibling loops in this same
+-- file (lines 551 and 857) both write `pairs(self.elements)`, so this was a slip rather than a
+-- convention -- and nothing in the repository calls the method, which is why it survived.
+-------------------------------------------------------------------------------------------------
+
+TestVeafCombatMissionSetSkill = {}
+
+function TestVeafCombatMissionSetSkill:_mission()
+  local mission = VeafCombatMission:new()
+  mission.elements = {}
+  return mission
+end
+
+function TestVeafCombatMissionSetSkill:_element()
+  local calls = {}
+  return {
+    setSkill = function(self, skill)
+      table.insert(calls, skill)
+      return self
+    end,
+    calls = calls,
+  }
+end
+
+function TestVeafCombatMissionSetSkill:test_does_not_raise_on_an_empty_mission()
+  local mission = self:_mission()
+  local ok = pcall(function()
+    mission:setAllElementsSkill("High")
+  end)
+  luaunit.assertTrue(ok, "iterating an empty element list must not raise")
+end
+
+function TestVeafCombatMissionSetSkill:test_applies_the_skill_to_every_element()
+  local mission = self:_mission()
+  local a, b = self:_element(), self:_element()
+  table.insert(mission.elements, a)
+  table.insert(mission.elements, b)
+  mission:setAllElementsSkill("Excellent")
+  luaunit.assertEquals(a.calls[1], "Excellent")
+  luaunit.assertEquals(b.calls[1], "Excellent")
+end
+
+function TestVeafCombatMissionSetSkill:test_returns_self_for_chaining()
+  local mission = self:_mission()
+  luaunit.assertEquals(mission:setAllElementsSkill("Average"), mission)
+end
+
+
 os.exit(luaunit.LuaUnit.run())

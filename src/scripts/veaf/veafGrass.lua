@@ -1010,6 +1010,30 @@ function veafGrass.spawnTacanCarrierUnit(point, country, displayName)
 end
 
 ------------------------------------------------------------------------------
+-- Normalize a FARP coalition, given either as a number or as a name.
+--
+-- VMR-022: this lived inline as two guards written `if type(x == "number") then`. The closing
+-- parenthesis is misplaced, so each evaluated `type(boolean)` — always the string "boolean",
+-- always truthy — and **both blocks always ran**.
+--
+-- That was not merely dead code. With both executing in order, a coalition arriving as the
+-- string "red" failed the `== 1` test in the first block, fell into its `else`, and came out
+-- **blue**: the FARP was built for the wrong side. Extracted here so the behaviour is testable
+-- rather than buried in a 200-line builder.
+--
+-- @param coalition number (1 = red) or string ("red"/"blue")
+-- @return string the coalition name, string the coalition number
+------------------------------------------------------------------------------
+function veafGrass._normalizeFarpCoalition(coalition)
+  -- Anything that is not red is blue, for the name as well as the number. The two must agree:
+  -- returning an unrecognised name alongside the blue number would hand the builder a coalition
+  -- string DCS does not know, which is a worse failure than the one being fixed. "Not red means
+  -- blue" is also what the old code did, albeit by accident.
+  local isRed = (coalition == 1) or (coalition == "red")
+  return isRed and "red" or "blue", isRed and 1 or 2
+end
+
+------------------------------------------------------------------------------
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
@@ -1044,22 +1068,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   end
 
   local farpUnitNameCounter = 1
-  local farpCoalition = farp.coalition
-  local farpCoalitionNumber = farp.coalition
-  if type(farpCoalition == "number") then
-    if farpCoalition == 1 then
-      farpCoalition = "red"
-    else
-      farpCoalition = "blue"
-    end
-  end
-  if type(farpCoalition == "string") then
-    if farpCoalition == "red" then
-      farpCoalitionNumber = 1
-    else
-      farpCoalitionNumber = 2
-    end
-  end
+  local farpCoalition, farpCoalitionNumber = veafGrass._normalizeFarpCoalition(farp.coalition)
 
   local farpHeading = farp.heading or 0
   local angle = mist.utils.toDegree(farpHeading)

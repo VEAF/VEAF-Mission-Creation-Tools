@@ -929,8 +929,8 @@
     "line": "702",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `for _, element in self.elements do` asked Lua to call the table as an iterator, raising on the first invocation. The two sibling loops in the same file already write pairs(), so it was a slip, and nothing in the repository calls the method, which is why it survived. 3 tests."
   },
   {
     "vid": "VMR-021",
@@ -942,8 +942,8 @@
     "line": "895",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `_group.groupName = ...` sat between two `if _group then` guards while being unguarded itself, so a nil return from mist.teleportToPoint crashed activation immediately after the code had checked for exactly that. The guards are merged rather than a third added; the assignment belongs with the work it labels."
   },
   {
     "vid": "VMR-022",
@@ -957,8 +957,8 @@
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `if type(x == \"number\")` evaluates type(boolean), always truthy, so both normalisation guards always ran. Not just dead code: a coalition arriving as the string \"red\" failed the `== 1` test, fell into the else, and came out BLUE, building the FARP for the wrong side. Extracted into veafGrass._normalizeFarpCoalition so it is testable; 5 tests."
   },
   {
     "vid": "VMR-023",

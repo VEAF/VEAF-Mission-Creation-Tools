@@ -1,52 +1,81 @@
-# 02 — AJS-37: two trailing specials below the radio's floor
+# 02 — AJS-37: the E and F specials never reach the mission
 
-Status: 🧑 waiting-human — the measurement narrows it to one question for David
+Status: 🧑 waiting-human — one experiment decides it, and only David can run it
 Type: fix
 
-## Why
+## The single symptom
 
-See the [PRD](../PRD.md), gap 2. The `AJS37` layout declares `{freq: 33, mod: 1, label: E}` and
-`{freq: 34, mod: 1, label: F}` among its `trailing_specials`, while the specs give the aircraft
-one radio spanning `103.0–400.0 MHz`. Both are dropped as out of range on every build, reported
-as channels 44/45.
+ADR 0012 gives the AJS-37 seven specials at absolute slots 41–47. **Two of them are removed
+before the mission is written**, on every build:
 
-## Two possible truths — establish which before editing
+```
+specs AJS37 : one radio, 103.0 – 400.0 MHz          (dcs-radio-specs.yaml)
+layout      : slot 44 = 33 MHz FM (E), slot 45 = 34 MHz FM (F)
+injector    : _drop_out_of_range_channels() strips both
+```
 
-1. **The specials are wrong** → correct or remove them from `dcs-radio-layouts.yaml`.
-2. **The specs are incomplete** → the real AJS-37 carries an **FR24** FM radio alongside the
-   FR22; if the datamine omits it, 33/34 MHz are legitimate FM channels on a radio the specs do
-   not know about, and the fix belongs in the specs (or in a layout entry describing the second
-   radio).
+Verified against the shipped data — `validate_frequencies("AJS37", [33.0, 34.0, 127.5, 243.0,
+305.0])` returns `[33.0, 34.0]` today.
 
-ADR 0010 cites the AJS-37's "leading dummy + hardcoded specials + per-channel modulations" as the
-motivating hard case, and `mod: 1` on both entries says the author meant FM — which points at
-truth 2, and likely shares a root with gap 3.
+This is **not** a design question. ADR 0012 decided those seven specials, the packer honours the
+decision (`test_radio_preset_ajs37.py:184` asserts E keeps slot 44), and a layer below silently
+undoes part of it. The design is not being reopened; it is not being **delivered**.
+
+## Why nobody caught it
+
+| Date | |
+|------|--|
+| 2026-06-08 (#376) | radio specs and frequency validation arrive |
+| 2026-06-13 (#468) | `_drop_out_of_range_channels` arrives, from the v6.4.x manual test campaign |
+| 2026-07-09 (#569) | the AJS-37 layout with E/F arrives — **a month later** |
+
+Tripack tested Viggen missions carrying these frequencies and they worked. That is true and it is
+not a contradiction: those missions came from the v5-era `radioSettings.lua`, built when **nothing
+validated**. The layout entries were written afterwards, against a checker that already existed,
+and the two were never put side by side.
+
+## The distinction that resolves it
+
+#468's own message says what the drop is for:
+
+> drop out-of-range radio channels **so the ME can save** […] the DCS Mission Editor refused to
+> save ('Invalid frequency 243 MHz')
+
+observed on a P-51D and an SA342. So:
+
+- DCS rejects an out-of-range frequency **when the Mission Editor saves**.
+- veaf-tools writes the `.miz` directly and never goes through that path.
+
+Both facts hold at once: a mission built with 33 MHz on an AJS-37 **flies** — which is what Tripack
+tested — while DCS would refuse to **re-save** it if anyone opened it in the editor. The guard
+therefore buys re-editability, not playability, and pays for it by deleting channels that work in
+the air.
+
+Whether that trade is right for the AJS-37 is the open question, and nothing measurable in this
+repository answers it.
+
+## The experiment
+
+Build a mission carrying AJS-37 presets, **open it in the Mission Editor, and try to save**.
+
+- **It saves** → the 103–400 spec is incomplete, the FM set is real, and the fix is data: E and F
+  come back and the checker stops eating valid channels. Same shape of work as ticket 03.
+- **It refuses** → the trade is genuine. Then say so in the layout instead of dropping two channels
+  in silence on every build — the current state is the one outcome that is wrong either way.
 
 ## Tasks
 
-- [ ] Check the AJS-37's actual radio fit (FR22 V/UHF, FR24 FM) against `dcs-radio-specs.yaml`,
-      and state plainly which truth holds.
-- [ ] Apply the corresponding fix; if it is the specs, say whether the generator or the datamine
-      is at fault.
+- [ ] Run the experiment above and record the result here.
+- [ ] Apply the corresponding fix.
 - [ ] Rebuild and confirm channels 44/45 leave the report.
-- [ ] Keep the priority-driven specials (`Sp1`/`Sp2`/`Sp3`/`H`) working — they are the reason
-      `priority` exists on a channel (ADR 0012).
+- [ ] Keep the priority-driven specials (`Sp1`/`Sp2`/`Sp3`/`H`) working — they are why `priority`
+      exists on a channel (ADR 0012).
 - [ ] CHANGELOG.
 
+## Explicitly not on the table
 
-## Measured 2026-08-08 — the FR24 is absent upstream, so this is a data decision
-
-Parsed the AJS-37 straight out of the pinned datamine: it declares **one** radio,
-`Radio frequencies`, `103.0–400.0 MHz AM/FM`. The shipped specs carry exactly that, so nothing was
-lost in generation — the FR24 FM set simply is not modelled upstream.
-
-That rules out "regenerate and it appears" and leaves a genuine choice, which is David's:
-
-1. **The two specials are wrong** — drop `{freq: 33, label: E}` and `{freq: 34, label: F}` from the
-   AJS-37's `trailing_specials`. Cheapest, and correct if nobody uses them.
-2. **The FR24 is real and missing** — add it as hand-written data. `mod: 1` on both entries says
-   the author meant FM, which supports this reading, and it is the *same shape of work* as ticket
-   03's FC3 gap: a VEAF overlay for radios DCS has but the datamine does not model.
-
-Option 2 only makes sense together with ticket 03; option 1 stands alone. Either way the current
-state — two channels reported dropped on every single build — should not survive.
+**Deleting `{freq: 33, label: E}` and `{freq: 34, label: F}` from the layout.** An earlier draft of
+this ticket offered that as one of "two possible truths". It is not a truth, it is a reversal:
+those values come from Tripack's own `radioSettings.lua`, ADR 0012 adopted them deliberately as
+airframe constants, and the work was done and shipped in #569. A ticket about a channel not
+arriving must not end with the channel being removed.

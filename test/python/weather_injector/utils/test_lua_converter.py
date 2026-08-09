@@ -193,3 +193,50 @@ weatherAndTime = {
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVersionTimeIsAString:
+    """SECREV-2 / VMR-015 — the converter emitted a numeric `time`, which the parser cannot read.
+
+    `versions[].time` is consumed by `TimeExpressionParser.parse`, whose first act is
+    `expression.strip()`. A number therefore raises `AttributeError: 'int' object has no
+    attribute 'strip'` — and the shipped `versions.yaml` confirms the intended shape is a
+    string (`time: "sunrise"`, `time: "08:30"`).
+    """
+
+    @staticmethod
+    def _convert(lua: str) -> dict:
+        from weather_injector.utils.lua_converter import LuaToYamlConverter
+
+        return LuaToYamlConverter._parse_lua_config(lua)
+
+    def test_numeric_time_becomes_hh_mm(self) -> None:
+        lua = 'targets = { { version = "noon", time = 43200 } }'
+        config = self._convert(lua)
+        version = config["versions"][0]
+        assert version["time"] == "12:00"
+        assert isinstance(version["time"], str)
+
+    def test_midnight_is_kept_rather_than_dropped(self) -> None:
+        """0 is falsy in Python: a naive `if time:` would silently lose midnight."""
+        lua = 'targets = { { version = "midnight", time = 0 } }'
+        config = self._convert(lua)
+        assert config["versions"][0]["time"] == "00:00"
+
+    def test_odd_minutes_survive(self) -> None:
+        lua = 'targets = { { version = "dawn", time = 23460 } }'  # 06:31
+        config = self._convert(lua)
+        assert config["versions"][0]["time"] == "06:31"
+
+    def test_a_version_without_time_has_no_time_key(self) -> None:
+        lua = 'targets = { { version = "any" } }'
+        config = self._convert(lua)
+        assert "time" not in config["versions"][0]
+
+    def test_the_result_is_parseable_by_the_consumer(self) -> None:
+        """The point of the fix: what comes out must go into the parser without raising."""
+        from weather_injector.utils.time_expression_parser import TimeExpressionParser
+
+        lua = 'targets = { { version = "noon", time = 43200 } }'
+        emitted = self._convert(lua)["versions"][0]["time"]
+        assert TimeExpressionParser.parse(emitted) == 43200

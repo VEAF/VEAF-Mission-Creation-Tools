@@ -148,8 +148,8 @@
     "line": "125",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / PR #677 — the converter emitted a numeric `time`, and TimeExpressionParser.parse starts with expression.strip(), so a number raised AttributeError downstream. The shipped versions.yaml confirms the intended shape is a string ('sunrise', '08:30'), so seconds since midnight are now formatted HH:MM. Guarded with `is not None` rather than truthiness: midnight is 0 and would have been dropped silently. 5 tests, one of which feeds the emitted value straight into the consumer."
   },
   {
     "vid": "VMR-068",
@@ -903,8 +903,8 @@
     "line": "647",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — carrier.tankerData was dereferenced twice inside the tanker setup block while a guard further down proved the code knows it can be absent. Added to the block's entry condition rather than as two inner guards: with no tanker data there is nothing the block can usefully set up."
   },
   {
     "vid": "VMR-019",
@@ -976,8 +976,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — both groupId resolution paths can come back empty on a dynamic slot, and the value then reached `veafRadio.humanGroups[groupId] = {}`; assigning at a nil index raises 'table index is nil' and takes the birth handler down. The unit is skipped with a warning, since without a group there is no per-group radio menu to build."
   },
   {
     "vid": "VMR-024",
@@ -1747,8 +1747,8 @@
       "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed without work, as ticket 06 instructed. Verified: CONTRIBUTING.md now links doc/developer/GUIDE.md, not the non-existent GUIDE.fr.md — repaired by TOOLING-REPO-LINK-GATE on 2026-08-05."
   },
   {
     "vid": "VMR-027",
@@ -1765,8 +1765,8 @@
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the counter was removed rather than corrected. Measured 36 suites against the documented 31, and the finding itself said 34: the number has drifted three times, so any value written down is wrong by the next commit. A directory tree does not need to count itself."
   },
   {
     "vid": "VMR-028",
@@ -1783,8 +1783,8 @@
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — same treatment: 42 files against a documented 34, the finding said 41. Counter removed in both languages, plus a third one in the CI table ('All 31 test suites pass' -> 'Every test suite passes')."
   },
   {
     "vid": "VMR-029",
@@ -1801,8 +1801,8 @@
       "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — five French table-of-contents links pointed at slugs derived from the French headings while those headings carry explicit English anchors ({#global-user-configuration} and friends). An explicit anchor wins, so all five were dead. Repointed at the explicit anchors; the English page was already correct."
   },
   {
     "vid": "VMR-030",
@@ -1817,8 +1817,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the migration guide said a Klogg profile 'is planned'; tools/klogg/veaf.conf ships and is 6.5 KB. Both languages now name the path, in code rather than as a link: a link out of doc/ is one of the pre-existing mkdocs --strict warnings."
   },
   {
     "vid": "VMR-031",
@@ -1832,8 +1832,8 @@
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the config table named the field `enable` while the page's own two examples used `enabled`, and the shipped default mission.yaml confirms `enabled`. The table was wrong; fixed in both languages."
   },
   {
     "vid": "VMR-032",
@@ -1845,8 +1845,8 @@
     "line": "8",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the weather page diverged in two places. 'Purpose' was one flat paragraph in French against a two-role split in English, and the F10 section was a bullet list in French against a table in English carrying an 'Available to' column (per group / All secured) that French readers simply did not get. French is the project's default language and was the poorer of the two; both sections now carry the richer content."
   },
   {
     "vid": "VMR-033",

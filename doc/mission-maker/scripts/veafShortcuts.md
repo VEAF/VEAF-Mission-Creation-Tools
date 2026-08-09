@@ -48,7 +48,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `shortcuts` | objet[] | `[]` | Non | Aliases personnalisés supplémentaires |
 | `shortcuts[].name` | string | — | Oui | Nom de l'alias — les joueurs tapent `-nom` dans un marqueur |

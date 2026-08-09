@@ -51,7 +51,7 @@ VEAF-Mission-Creation-Tools/
 ├── veaf_build/                   # CLI veaf-build (orchestrateur build & publication)
 ├── build-and-release.py          # Shim de rétrocompatibilité (utiliser veaf-build à la place)
 ├── src/
-│   ├── scripts/veaf/             # Modules Lua runtime (34 fichiers)
+│   ├── scripts/veaf/             # Modules Lua runtime
 │   └── python/veaf-tools/        # Code source Python CLI
 │       ├── veaf-tools.py         # Point d'entrée
 │       ├── veaf_libs/            # Utilitaires partagés (logger, progress, miz)
@@ -61,7 +61,7 @@ VEAF-Mission-Creation-Tools/
 ├── dist/                         # Sortie .exe PyInstaller
 ├── build/                        # Espace de travail de build temporaire
 ├── test/
-│   └── lua/                      # Tests unitaires Lua (31 suites)
+│   └── lua/                      # Tests unitaires Lua
 ├── doc/                          # Documentation
 ├── openspec/                     # Gestion des changements (workflow OpenSpec)
 └── .github/
@@ -469,7 +469,7 @@ Luacheck est imposé par le job CI `Luacheck`.
 
 | Job | Ce qu'il vérifie |
 |-----|-----------------|
-| `Lua Unit Tests` | Les 31 suites de tests passent |
+| `Lua Unit Tests` | Toutes les suites de tests passent |
 | `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |

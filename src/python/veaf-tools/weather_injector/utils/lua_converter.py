@@ -122,8 +122,17 @@ class LuaToYamlConverter:
                     # Add optional fields
                     if moment := LuaToYamlConverter._get_string(target, "moment"):
                         version["moment"] = moment
-                    if time := LuaToYamlConverter._get_number(target, "time"):
-                        version["time"] = time
+                    # VMR-015: emit `time` as a string, not a number. It is consumed by
+                    # TimeExpressionParser.parse, whose first act is `expression.strip()`, so a
+                    # number raises AttributeError downstream — and the shipped versions.yaml
+                    # confirms the intended shape ("sunrise", "08:30"). The Lua value is seconds
+                    # since midnight, so it becomes HH:MM.
+                    #
+                    # `is not None` rather than a truthiness test: midnight is 0, and `if time:`
+                    # would drop it silently — the same class of bug one line further on.
+                    time_seconds = LuaToYamlConverter._get_number(target, "time")
+                    if time_seconds is not None:
+                        version["time"] = f"{int(time_seconds) // 3600:02d}:{int(time_seconds) % 3600 // 60:02d}"
                     if weather := LuaToYamlConverter._get_string(target, "weather"):
                         version["weather"] = weather
                     if date := LuaToYamlConverter._get_string(target, "date"):

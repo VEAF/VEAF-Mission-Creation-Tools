@@ -100,6 +100,14 @@ function veafRadio.onBirthEvent(event)
           groupId = grp:getID()
         end
       end
+      -- VMR-023: both resolution paths can come back empty on a dynamic slot, and `groupId` then
+      -- reaches `veafRadio.humanGroups[groupId] = {}` a few lines below — assigning at a nil index
+      -- raises "table index is nil" and takes the birth handler down. Without a group there is no
+      -- per-group radio menu to build anyway, so this unit is skipped rather than half-registered.
+      if not groupId then
+        veaf.loggers.get(veafRadio.Id):warn("no group id for human unit %s, skipping its radio menu", unitName)
+        return
+      end
       local callsign = event and event.initiator and event.initiator.unitPilotName
       if not callsign then
         callsign = event and event.initiator and event.initiator.unitCallsign

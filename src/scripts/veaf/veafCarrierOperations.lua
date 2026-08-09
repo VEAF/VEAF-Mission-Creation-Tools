@@ -519,7 +519,12 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
         tankerUnit = Unit.getByName(carrier.tankerUnitName)
         local tankerGroup = Group.getByName(carrier.tankerUnitName) -- group has the same name as the unit
-        if tankerGroup then
+        -- VMR-018: `carrier.tankerData` is dereferenced twice inside this block — for the TACAN
+        -- task and for the radio frequency — and a guard further down (`if carrier.tankerData then`
+        -- before the report) proves the code already knows it can be absent. Added to the entry
+        -- condition rather than as two inner guards: with no tanker data there is nothing this
+        -- block can usefully set up, so skipping it whole is both simpler and the intent.
+        if tankerGroup and carrier.tankerData then
           veaf.loggers.get(veafCarrierOperations.Id):debug("found Tanker group")
           veaf.loggers.get(veafCarrierOperations.Id):trace("groupName=" .. tankerGroup:getName())
 

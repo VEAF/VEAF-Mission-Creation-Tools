@@ -890,8 +890,8 @@
     "line": "417",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — a coalition mismatch used `return`, which leaves the whole onEvent function rather than the iteration, so the first manager of the other side ended the loop and every manager after it never saw the player. Lua 5.1 has no `continue`, so the test became a flag guarding the body. NOTE: the trigger-zone branch has the same `return` and the same effect; left deliberately, since VMR-017 reports the coalition test only and 'a player joins one match at a time' may be intended there. Flagged in a code comment for a decision."
   },
   {
     "vid": "VMR-018",
@@ -989,8 +989,8 @@
     "line": "622",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — confirmed against Skynet's source: getEarlyWarningRadars() takes no argument and returns every EWR as a table delegator, so the name was ignored and the result was always truthy, making the lookup never fail and defended_site the whole collection. Switched to getEarlyWarningRadarByUnitName, which matches on getDCSName() exactly as getSAMSiteByGroupName does. Skynet's naming asymmetry is real (a SAM's DCS name is its group, an EWR's is its unit), so a group-named lookup now correctly finds nothing instead of incorrectly finding everything."
   },
   {
     "vid": "VMR-096",

@@ -409,30 +409,36 @@ function DcssbMatchManager.eventHandler:onEvent(event)
     if eventId == world.event.S_EVENT_PLAYER_ENTER_UNIT then
         -- browse all the known match managers
         for _, matchManager in pairs(DcssbMatchManager.matchManagers) do
-            -- check the coalition of the event initiator
-            if matchManager:getCoalition() then
-                if _event.initiator and _event.initiator.unitName then
-                    local unit = Unit.getByName(_event.initiator.unitName)
-                    if unit then
-                        if unit:getCoalition() ~= matchManager:getCoalition() then
-                            return
-                        end
-                    end
+            -- VMR-017: a coalition mismatch used to `return`, which leaves the whole function and
+            -- not just this iteration -- so the first manager of the other side ended the loop and
+            -- every manager after it never saw the player at all. Lua 5.1 has no `continue`, so the
+            -- test becomes a flag and the body is guarded by it.
+            local _coalitionMatches = true
+            if matchManager:getCoalition() and _event.initiator and _event.initiator.unitName then
+                local unit = Unit.getByName(_event.initiator.unitName)
+                if unit and unit:getCoalition() ~= matchManager:getCoalition() then
+                    _coalitionMatches = false
                 end
             end
-            -- if there is a trigger zone, don't add player to the match now
-            if matchManager:getTriggerZone() then
-                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is waiting to pass in trigger zone", _event.initiator.unitPilotName)) end
-                matchManager:addUnitWaitingToPassInTriggerZoneToBeAdded(_event.initiator.unitName)
-                return
-            end
-            -- if there is a timeout, schedule the player to be added to the match
-            if matchManager:getTimeout() then
-                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s will be added to the match in %s seconds", _event.initiator.unitPilotName, matchManager:getTimeout())) end
-                timer.scheduleFunction(DcssbMatchManager.addPlayerByNameForScheduler, {matchManager, _event.initiator.unitPilotName}, timer.getTime() + matchManager:getTimeout())
-            else
-                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is being added to the match", _event.initiator.unitPilotName)) end
-                matchManager:addPlayerByName(_event.initiator.unitPilotName)
+            if _coalitionMatches then
+                -- if there is a trigger zone, don't add player to the match now
+                if matchManager:getTriggerZone() then
+                    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is waiting to pass in trigger zone", _event.initiator.unitPilotName)) end
+                    matchManager:addUnitWaitingToPassInTriggerZoneToBeAdded(_event.initiator.unitName)
+                    -- NOTE: this `return` also leaves the whole function, so a manager with a trigger
+                    -- zone hides the player from every manager after it. Left as-is deliberately:
+                    -- VMR-017 reports the coalition test only, and "a player joins one match at a
+                    -- time" may well be the intent here. Worth a decision, not a silent change.
+                    return
+                end
+                -- if there is a timeout, schedule the player to be added to the match
+                if matchManager:getTimeout() then
+                    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s will be added to the match in %s seconds", _event.initiator.unitPilotName, matchManager:getTimeout())) end
+                    timer.scheduleFunction(DcssbMatchManager.addPlayerByNameForScheduler, {matchManager, _event.initiator.unitPilotName}, timer.getTime() + matchManager:getTimeout())
+                else
+                    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is being added to the match", _event.initiator.unitPilotName)) end
+                    matchManager:addPlayerByName(_event.initiator.unitPilotName)
+                end
             end
         end
     end

@@ -1,6 +1,6 @@
 # 02 — AJS-37: the E and F specials never reach the mission
 
-Status: 🧑 waiting-human — one experiment decides it, and only David can run it
+Status: ⬜ ready — the experiment ran on 2026-08-09; DCS accepts the frequencies
 Type: fix
 
 ## The single symptom
@@ -54,14 +54,38 @@ the air.
 Whether that trade is right for the AJS-37 is the open question, and nothing measurable in this
 repository answers it.
 
-## The experiment
+## The experiment — run 2026-08-09, and it answered
 
 Build a mission carrying AJS-37 presets, **open it in the Mission Editor, and try to save**.
 
-- **It saves** → the 103–400 spec is incomplete, the FM set is real, and the fix is data: E and F
-  come back and the checker stops eating valid channels. Same shape of work as ticket 03.
-- **It refuses** → the trade is genuine. Then say so in the layout instead of dropping two channels
-  in silence on every build — the current state is the one outcome that is wrong either way.
+Two subjects were built so an unexpected result could not be blamed on the instrument: a **v6**
+mission (format version 23, built the same morning, so no load-time migration) carrying a real
+AJS-37 client group copied verbatim from `VEAF-Missile-Training`, and a control identical to it
+except those five channels moved into the 103–400 band. Both were opened in the Mission Editor and
+saved.
+
+**The editor kept every value, unchanged:**
+
+```
+C  before      slots 41-47 : [30, 31, 32, 33, 34, 127.5, 243]
+C  after ME    slots 41-47 : [30, 31, 32, 33, 34, 127.5, 243]
+```
+
+No refusal, no clamping, no rewrite. The group came back `Client`, in Sweden, intact — so the
+editor did process it rather than skip it.
+
+**Conclusion: `dcs-radio-specs.yaml` is wrong about the AJS-37.** `103.0–400.0 MHz` does not
+describe what DCS accepts on this airframe, and `_drop_out_of_range_channels` has been deleting
+legal channels since July. The fix is data, and there is no trade-off to weigh.
+
+## What to do
+
+- [ ] Correct the AJS-37 entry so 30–34 MHz FM is in range. Say in the file **why** it is
+      hand-corrected and that the pinned datamine disagrees, or the next regeneration silently
+      reverts it — same hazard as ticket 03.
+- [ ] The specs are generated: check whether the generator can carry a hand-written correction at
+      all before writing one. If it cannot, that is the first piece of work, not an afterthought.
+- [ ] Then verify E and F reach a built mission, in the mission — not in a unit test.
 
 ## Tasks
 

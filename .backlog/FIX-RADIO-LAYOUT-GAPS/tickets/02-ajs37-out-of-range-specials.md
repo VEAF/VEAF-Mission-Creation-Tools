@@ -1,6 +1,6 @@
 # 02 — AJS-37: the E and F specials never reach the mission
 
-Status: ⬜ ready — the experiment ran on 2026-08-09; DCS accepts the frequencies
+Status: ✅ done — 2026-08-09, PR #680
 Type: fix
 
 ## The single symptom
@@ -78,14 +78,30 @@ editor did process it rather than skip it.
 describe what DCS accepts on this airframe, and `_drop_out_of_range_channels` has been deleting
 legal channels since July. The fix is data, and there is no trade-off to weigh.
 
-## What to do
+## What was done — PR #680
 
-- [ ] Correct the AJS-37 entry so 30–34 MHz FM is in range. Say in the file **why** it is
-      hand-corrected and that the pinned datamine disagrees, or the next regeneration silently
-      reverts it — same hazard as ticket 03.
-- [ ] The specs are generated: check whether the generator can carry a hand-written correction at
-      all before writing one. If it cannot, that is the first piece of work, not an afterthought.
-- [ ] Then verify E and F reach a built mission, in the mission — not in a unit test.
+- [x] **The generator could not carry a correction at all**, checked first as the ticket asked: it
+      rewrites the file wholesale. So the first piece of work was `dcs-radio-specs-overrides.yaml`,
+      merged in by the generator.
+- [x] The AJS-37's FM band declared there, as a **band on the existing radio** rather than a second
+      radio — DCS keeps the whole Viggen fit in one 47-slot table, and declaring a radio made the
+      build warn on every run that the layout and the specs disagreed. `A-10C_2` is the precedent.
+- [x] **E and F verified in a mission**, not in a unit test: `inject-presets` on a control whose
+      AJS-37 carried 130–134 MHz produced `slots 41-47 : [None, None, None, 33.0, 34.0, 127.5,
+      None]`. Starting from the control is what makes it unambiguous.
+- [x] A test asserts the band against the **shipped data**, so losing the overlay fails a test
+      rather than a mission — everything else about the AJS-37 is tested against fixtures, which
+      is exactly how this lived a month.
+
+## What the work turned up
+
+**The overlay's strictness paid on its first run.** Refusing to silently skip an unknown aircraft
+surfaced that `MiG-15bis` and `MiG-15bis_FC` are hand-written entries the datamine knows nothing
+about — and that the first regeneration to run without them had already deleted both. The drift
+workflow's checklist said only "re-apply the `dcs_rejects_on_load` overlays".
+
+**The doc page is still hybrid and still destructive**: the generator writes the whole French page
+in English, wiping its prose sections. Triggered twice during this ticket. Worth its own lot.
 
 ## Tasks
 

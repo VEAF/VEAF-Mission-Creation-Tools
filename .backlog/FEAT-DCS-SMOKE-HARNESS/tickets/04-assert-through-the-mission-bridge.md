@@ -76,3 +76,34 @@ So a stored `.miz` silently tests whatever VEAF version it was built with. The l
 "committed test mission" item therefore needs one more clause: the mission is **rebuilt from
 source before the run**, or the harness asserts against a snapshot of the past and calls today's
 code broken.
+
+## The transport was exercised end to end on 2026-08-09, after this ticket was written
+
+A mission built from current sources (`veaf.BuildVersion = 6.13.47+4a6d7cbc` — the build stamp
+identifies the commit, so there is no doubt about what ran) with `dcs_bridge.enabled: true`, then
+driven entirely over that bridge. What it answered, none of which the hook transport can reach:
+
+| Asserted live | Result |
+|---------------|--------|
+| `veaf`, `veafSecurity`, `veafRemote` loaded | tables, not `veaf-absent` |
+| `veaf.findSpawnPoint` over open water | `nil` — refuses rather than inventing a point |
+| `findSpawnPoint` with an absurd clearance in a 100 m radius | 95 m — tier 2 degrades, **radius still honoured** |
+| group of a level-10 and a level-1 pilot | acts at **1**, the minimum |
+| the level-10 occupant elevates | 10 |
+| the level-1 occupant elevates | **1** — cannot borrow the other's rights |
+| a pilot with no level elevates | refused, group falls back to its minimum |
+| an elevation past its deadline | dropped from the table, level falls back |
+
+So the transport question is settled by measurement, not argument: `dcs_bridge` reaches the state
+the mission's scripts run in, and everything this lot wants to assert is reachable from it.
+
+### One trap, paid for during the run
+
+A probe crashed midway, **leaving a stubbed `getGroupOccupantUnitNames` behind**. The next probe
+saved-and-restored that stub believing it was the real function, and the fallback silently read 1
+instead of 0. The result looked plausible, which is exactly why it was nearly missed — the same
+*"it came back is not it worked"* mistake this lot has now made four times.
+
+For the harness this is a requirement, not an anecdote: **a check that mutates mission state must
+restore from the source, never from what it found there**, because what it found may be the wreckage
+of an earlier failed check. A crashed probe leaves the state dirty for every probe after it.

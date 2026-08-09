@@ -8,7 +8,7 @@
 -- *   - autorestart at night when no one is connected
 -- *   - listen to chat text and extract commands to be run on the server (WIP)
 -- *   - open a socket to listen to specific commands and push them on the server (TBD)
--- 
+--
 -- Usage:
 -- ---------
 -- *   - Drop this script in the Scripts/Hooks folder of the server ("saved games" !)
@@ -17,11 +17,11 @@
 
 veafSpecificServerHook = {}
 
-base = _G 
-require = base.require 
-io = require('io')
-lfs = require('lfs')
-os = require('os')
+base = _G
+require = base.require
+io = require("io")
+lfs = require("lfs")
+os = require("os")
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global settings. Stores the script constants
@@ -52,61 +52,63 @@ veafSpecificServerHook.Debug = false
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafSpecificServerHook.logError(message)
-    log.write(veafSpecificServerHook.Id, log.ERROR, message)
+  log.write(veafSpecificServerHook.Id, log.ERROR, message)
 end
 
 function veafSpecificServerHook.logWarning(message)
-    log.write(veafSpecificServerHook.Id, log.WARNING, message)
+  log.write(veafSpecificServerHook.Id, log.WARNING, message)
 end
 
 function veafSpecificServerHook.logInfo(message)
-    log.write(veafSpecificServerHook.Id, log.INFO, message)
+  log.write(veafSpecificServerHook.Id, log.INFO, message)
 end
 
 function veafSpecificServerHook.logDebug(message)
-    if message and veafSpecificServerHook.Debug then 
-        log.write(veafSpecificServerHook.Id, log.DEBUG, message)
-    end
+  if message and veafSpecificServerHook.Debug then
+    log.write(veafSpecificServerHook.Id, log.DEBUG, message)
+  end
 end
 
 function veafSpecificServerHook.logTrace(message)
-    if message and veafSpecificServerHook.Trace then 
-        log.write(veafSpecificServerHook.Id, log.TRACE, message)
-    end
+  if message and veafSpecificServerHook.Trace then
+    log.write(veafSpecificServerHook.Id, log.TRACE, message)
+  end
 end
 
 function p(o, level)
-    local MAX_LEVEL = 20
-if level == nil then level = 0 end
-if level > MAX_LEVEL then 
-    veafSpecificServerHook.logError("max depth reached in p : "..tostring(MAX_LEVEL))
+  local MAX_LEVEL = 20
+  if level == nil then
+    level = 0
+  end
+  if level > MAX_LEVEL then
+    veafSpecificServerHook.logError("max depth reached in p : " .. tostring(MAX_LEVEL))
     return ""
-end
-local text = ""
-if (type(o) == "table") then
+  end
+  local text = ""
+  if type(o) == "table" then
     text = "\n"
-    for key,value in pairs(o) do
-        for i=0, level do
-            text = text .. " "
-        end
-        text = text .. ".".. key.."="..p(value, level+1) .. "\n";
+    for key, value in pairs(o) do
+      for i = 0, level do
+        text = text .. " "
+      end
+      text = text .. "." .. key .. "=" .. p(value, level + 1) .. "\n"
     end
-elseif (type(o) == "function") then
-    text = "[function]";
-    elseif (type(o) == "boolean") then
-        if o == true then 
-            text = "[true]";
-        else
-            text = "[false]";
-        end
+  elseif type(o) == "function" then
+    text = "[function]"
+  elseif type(o) == "boolean" then
+    if o == true then
+      text = "[true]"
     else
-        if o == nil then
-            text = "[nil]";    
-        else
-            text = tostring(o);
-        end
+      text = "[false]"
     end
-    return text
+  else
+    if o == nil then
+      text = "[nil]"
+    else
+      text = tostring(o)
+    end
+  end
+  return text
 end
 
 --------------------------------------------------------------------------------------------------------------------------------------
@@ -114,30 +116,45 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafSpecificServerHook.onSimulationStart()
-    veafSpecificServerHook.logDebug(string.format("veafSpecificServerHook.onSimulationStart()"))
+  veafSpecificServerHook.logDebug(string.format("veafSpecificServerHook.onSimulationStart()"))
 
-    if veafSpecificServerHook.serverName then
-        -- set the server name in the mission
-        veafSpecificServerHook.logDebug(string.format("set the server name in the mission"))
-        local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.setServerName then return veaf.setServerName("'.. veafSpecificServerHook.serverName ..'") else return nil end ]===]' .. ')')
-        veafSpecificServerHook.logTrace(string.format("_status=%s",p(_status)))
-        veafSpecificServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
-        if not _status then
-            veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerName()"))
-        end
+  if veafSpecificServerHook.serverName then
+    -- set the server name in the mission
+    veafSpecificServerHook.logDebug(string.format("set the server name in the mission"))
+    local _status, _retValue = pcall(
+      net.dostring_in,
+      "mission",
+      "return a_do_script("
+        .. '[===[ if veaf and veaf.setServerName then return veaf.setServerName("'
+        .. veafSpecificServerHook.serverName
+        .. '") else return nil end ]===]'
+        .. ")"
+    )
+    veafSpecificServerHook.logTrace(string.format("_status=%s", p(_status)))
+    veafSpecificServerHook.logTrace(string.format("_retValue=%s", p(_retValue)))
+    if not _status then
+      veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerName()"))
     end
+  end
 
-    if veafSpecificServerHook.serverBotChannel then
-        -- set the server bot channel in the mission
-        veafSpecificServerHook.logDebug(string.format("set the server bot channel in the mission"))
-        local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.setServerBotChannel then return veaf.setServerBotChannel("'.. veafSpecificServerHook.serverBotChannel ..'") else return nil end ]===]' .. ')')
-        veafSpecificServerHook.logTrace(string.format("_status=%s",p(_status)))
-        veafSpecificServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
-        if not _status then
-            veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerBotChannel()"))
-        end
+  if veafSpecificServerHook.serverBotChannel then
+    -- set the server bot channel in the mission
+    veafSpecificServerHook.logDebug(string.format("set the server bot channel in the mission"))
+    local _status, _retValue = pcall(
+      net.dostring_in,
+      "mission",
+      "return a_do_script("
+        .. '[===[ if veaf and veaf.setServerBotChannel then return veaf.setServerBotChannel("'
+        .. veafSpecificServerHook.serverBotChannel
+        .. '") else return nil end ]===]'
+        .. ")"
+    )
+    veafSpecificServerHook.logTrace(string.format("_status=%s", p(_status)))
+    veafSpecificServerHook.logTrace(string.format("_retValue=%s", p(_retValue)))
+    if not _status then
+      veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerBotChannel()"))
     end
-
+  end
 end
 
 Sim.setUserCallbacks(veafSpecificServerHook)

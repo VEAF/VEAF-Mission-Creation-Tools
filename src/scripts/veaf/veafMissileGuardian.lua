@@ -190,9 +190,14 @@ function VeafMG_Guardian:copy()
   copy.friendlyName = self.friendlyName
 
   -- deep copy the collections
+  --
+  -- VMR-091: this loop used to write into `copy.protectedZone` while iterating
+  -- `self.protectedUnits`, so a copy came back with an **empty** protectedUnits. The block below
+  -- then reassigns `copy.protectedZone = {}`, which wiped the misplaced entries and left
+  -- protectedZone looking correct — which is precisely why nobody noticed the units were gone.
   copy.protectedUnits = {}
   for unitName, value in pairs(self.protectedUnits) do
-    copy.protectedZone[unitName] = value
+    copy.protectedUnits[unitName] = value
   end
 
   copy.protectedZone = {}

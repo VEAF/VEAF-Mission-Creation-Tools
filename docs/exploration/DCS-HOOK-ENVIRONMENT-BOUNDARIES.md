@@ -121,3 +121,41 @@ table, and worse, the probe's own `require('me_mission')` polluted `package.load
 module it then reported on. Both were fixed in the second pass: a positive control
 (`onSimulationFrame`), probes driven from callbacks rather than ticks, and **passive** inspection —
 `rawget` on `package.loaded`, never a `require` of our own.
+
+## Retest, 2026-08-09 — with the Mission Editor actually open
+
+ADR 0017 names one question worth re-asking: *"does ED still overwrite `package.path` in
+`MissionEditor.lua` without consulting `writedir`? If that ever changes, a non-invasive editor
+mod becomes possible."* Measured again on David's machine, twice: DCS at the main menu, then DCS
+with the **Mission Editor open**.
+
+| Field | Main menu | Editor open |
+|---|---|---|
+| `package.path` entries | 40 | **40, byte-identical** |
+| `Saved Games` in `package.path` | yes, **first entry** | yes, first entry |
+| `me_mission` keys | — | **3** |
+| `me_mission.theatre` | — | absent |
+| `me_*` modules registered | — | 30 |
+
+**ADR 0017 stands.** `me_mission` still holds exactly the three keys `module()` registers before a
+file body runs — the husk described on 2026-08-01, unchanged with the editor genuinely open on
+screen. The editor's Lua state is not reachable from a hook, so an editor mod still costs a module
+under `<DCS>\MissionEditor\modules\` plus a patch to `MissionEditor.lua`, re-applied after every
+DCS update.
+
+### The trap this retest walked into first
+
+The initial probe asked **the wrong question**, and it is worth recording because the mistake is
+inviting. It measured `Saved Games` being present in `package.path` and was ready to conclude
+"ED consults writedir, reopen the ADR" — reading `true` and calling it a result.
+
+But that `package.path` belongs to the **hook** environment, which is not the editor's. ADR 0017
+is about `MissionEditor.lua` overwriting `package.path` *inside the editor's own Lua state*, and a
+hook cannot see that state at all — which is the very thing the ADR established. So the field was
+answering a different question from the one being asked, and it happens to answer `true`.
+
+The field that actually decides is `me_mission_keys`: it looks straight at whether the editor's
+state is real or a husk. `package.path` from a hook can never settle it either way.
+
+**Cost of finding out**: two probe runs. **Cost of not finding out**: a lot opened on a false
+positive, against an undocumented GUI toolkit.

@@ -88,6 +88,7 @@ it must degrade to a clear "no DCS found, skipped" rather than a failure when ru
 | 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) — contract written, mission artefact and the in-game anchor check outstanding | 🔄 |
 | 02 | [The runner](tickets/02-runner.md) — probe, transport and data-driven checks delivered; launch/load/quit deliberately deferred | 🔄 |
 | 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) — six checks written for two of the four questions; **none has run** | 🔄 |
+| 04 | [Assert VEAF through the mission bridge, not the hook](tickets/04-assert-through-the-mission-bridge.md) | ⬜ |
 
 ## Steal their test-mission contract, especially the counter-example
 

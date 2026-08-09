@@ -11,7 +11,7 @@ when generating presets from a v5 `settings.lua`. When a file is already there, 
 which is right when it is a v6 file, and wrong when it is a v5 one that happens to share the name
 and the file format.
 
-The schema difference is a single level:
+The schema difference is **not** a single level — see the drift table in the PRD. It starts as one:
 
 ```yaml
 presets_assignments:
@@ -21,6 +21,10 @@ presets_assignments:
 
 ## Tasks
 
+- [ ] **Diff the two schemas first, in full.** Three renames were found by hand before the walk
+      was abandoned (`presets_assignments.coalitions`, `presets_definition` → `presets_collection`,
+      inline `radios` → `radios_collection`) and there is no reason to think that is all of them.
+      Write the mapping down before writing the converter.
 - [ ] Detect the v5 schema by structure, **not** by filename: a `coalitions` key directly under
       `presets_assignments`. A filename says nothing about content, which is the whole reason this
       slipped past.

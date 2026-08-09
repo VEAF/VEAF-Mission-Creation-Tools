@@ -36,6 +36,14 @@ is `"blue"`, `unit_type` is `"plane"`, and the leaf is `{'all': 'modern_blue'}`.
       the v5 schema. Say so, and say what to do — that is the difference between a dead end and
       a five-second fix.
 - [ ] Same treatment for the sibling leaves in this file that assume a string without checking.
+      Two more were hit walking down the demo file: a preset whose `radios` are nested inline
+      instead of named (`'str' object has no attribute 'get'`), and a preset name that resolves to
+      nothing (`not found in any PresetCollection` — accurate, but it accuses the assignments when
+      the cause is upstream).
+- [ ] **Refuse unknown top-level keys.** `read_yaml` is four `if "<key>" in data:` blocks with no
+      `else`: anything else in the file is dropped without a word. That silence is what turned a
+      renamed block (`presets_definition` → `presets_collection`) into a misleading error one step
+      later. List what was ignored, and name the near-miss when there is one.
 - [ ] Tests: the v5 shape, a leaf that is a list, a leaf that is a number, and the happy path
       unchanged.
 

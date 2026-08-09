@@ -14,7 +14,7 @@ Error loading presets from …/src/presets.yaml: 'dict' object has no attribute 
 AttributeError: 'dict' object has no attribute 'lower'
 ```
 
-## The two defects, which are not equally bad
+## The three defects, which are not equally bad
 
 ### 1 — the file was never converted, and nothing noticed
 
@@ -50,6 +50,37 @@ no key, and no expectation. This is the shape `SECREV-2` ticket 07 catalogues as
 raises an unguarded exception"* (VMR-055 is the same defect in the spawn renderer) — and this one
 is worse than the conversion gap, because it will greet anyone whose presets file is off by one
 level, whatever the reason.
+
+### 3 — every unrecognised top-level key is dropped in silence
+
+`PresetsManager.read_yaml` is four `if "<key>" in data:` blocks with no `else` and no final
+check. A key it does not recognise is simply never read. The v5 file names its definitions
+`presets_definition:`; v6 calls that block `presets_collection:`. So the whole catalogue was
+skipped without a word, and the failure surfaced one step later as:
+
+```
+preset name modern_blue in PresetAssignmentCollection was not found in any PresetCollection
+```
+
+which points at the *assignments* — the one part of the file that was correct.
+
+## How far the schema actually drifted
+
+Walked down by hand on the demo mission, each step being a separate build that failed with an
+unattributed `AttributeError`:
+
+| # | v5 | v6 | How it announced itself |
+|---|----|----|-------------------------|
+| 1 | `presets_assignments.coalitions.blue` | `presets_assignments.blue` | `'dict' object has no attribute 'lower'` |
+| 2 | `presets_definition:` | `presets_collection:` | `preset … not found in any PresetCollection` |
+| 3 | `radios:` nested inside each preset | `radios_collection:` referenced by name | `'str' object has no attribute 'get'` |
+
+Three renames deep and still going when the walk was abandoned — so ticket 02 is **not** "lift one
+nesting level", and the mission had to be built with `pipeline.presets: false` to get a `.miz` at
+all. Whoever picks it up should diff the two schemas properly before writing code.
+
+Not one of the three messages names the key it choked on. That is the argument for doing ticket 01
+first, in one line.
 
 ## Scope
 

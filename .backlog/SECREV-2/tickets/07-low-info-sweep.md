@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: ⬜ ready
+Status: 🔄 in-progress — sample done, tail is real, sweep not started
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -41,3 +41,52 @@ this for the 6 the verifier refuted — follow that precedent.
 - [ ] The sample is done and its result is written down **before** any sweep starts.
 - [ ] Every one of the 108 ends with an outcome in the triage — including "does not reproduce".
 - [ ] No file is touched purely for readability unless something else was being changed in it.
+
+
+## Sample result, 2026-08-09
+
+**15 drawn, stratified by `kind`, with a fixed seed (20260809) so the draw is auditable.**
+11 could be decided from the code; 4 needed more context than a sample warrants and were left
+alone rather than guessed at.
+
+| Verdict | Count |
+|---|---|
+| Confirmed, still applies | **10** |
+| Does not reproduce | **1** |
+| Not decided in the sample | 4 |
+
+**~9% did not reproduce, well under the third that would have meant stopping.** So the tail is
+real and a themed sweep is justified — but the ticket's caution was worth honouring: one finding
+in eleven was already dead, and finding that out cost minutes rather than a wasted fix.
+
+The one that did not reproduce, recorded per the ticket's instruction:
+
+- **VMR-072** — an unguarded `pilot.level` dereference in the server hook. The code reads
+  `local pilot = veafServerHook.pilots[ucid]; if pilot then pilotData.level = pilot.level end`.
+  Guarded. The hook was rewritten by `REFACTOR-SERVER-HOOK-CANONICAL` and `SECREV-2` ticket 02
+  after the review was written.
+
+### Two of the sample were fixed on the spot, being Error/bug
+
+The ticket puts error/bug first, and these two were not really "low":
+
+- **VMR-091** — `VeafMG_Guardian:copy` iterated `self.protectedUnits` and wrote each entry into
+  `copy.protectedZone`. The next block then reassigns `copy.protectedZone = {}`, wiping the
+  misplaced entries — so `protectedZone` ended up *looking* right while `protectedUnits` came
+  back **empty**. Every copy silently lost its protected units. 5 tests.
+- **VMR-074** — `activateZone`/`deactivateZone` looked up `zones[zoneName:lower()]` and indexed
+  the result immediately. An unknown zone name crashed the command instead of being refused.
+  Both functions had it; both are guarded now.
+
+### What the sample says about the remaining 97
+
+Worth reading before someone commits to "fix all 108":
+
+- **66 are classed Error/bug.** On this sample's evidence most are real, and some are mislabelled
+  as low — VMR-091 silently drops data and VMR-074 is a crash.
+- **Documentation entries are the likeliest to be already dead**, as the ticket predicted: a month
+  of documentation lots has landed since the review. VMR-119 is the exception and it is the same
+  drifting-counter family that ticket 06 dealt with by *deleting* the counters.
+- **Readability and optimization should stay last**, per the ticket. VMR-115 (11 `print()` calls)
+  is in a one-shot migration script, not shipped code; VMR-108 is a real inefficiency with no
+  wrong behaviour attached.

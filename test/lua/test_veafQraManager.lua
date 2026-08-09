@@ -110,7 +110,7 @@ end
 
 function TestVeafQraOOP:test_setCoalition()
   local q = VeafQRA:new()
-  q:setCoalition(1)  -- RED
+  q:setCoalition(1) -- RED
   luaunit.assertEquals(q.coalition, 1)
 end
 
@@ -174,7 +174,7 @@ end
 
 local function _newSilentQRA()
   local q = VeafQRA:new()
-  q:setSilent(true)           -- suppress outText calls
+  q:setSilent(true) -- suppress outText calls
   q:addEnnemyCoalition(coalition.side.BLUE)
   -- provide a minimal zone so check() doesn't error
   q.zoneCenter = { x = 0, y = 0, z = 0 }
@@ -205,7 +205,7 @@ end
 function TestVeafQraLifecycle:test_stop_schedules_stop_state()
   local q = _newSilentQRA()
   q:start()
-  q:stop(true)  -- silent=true
+  q:stop(true) -- silent=true
   luaunit.assertEquals(q.scheduled_state, veafQraManager.STATUS_STOP)
 end
 
@@ -226,7 +226,9 @@ end
 function TestVeafQraLifecycle:test_onStart_callback_called()
   local called = false
   local q = _newSilentQRA()
-  q:setOnStart(function() called = true end)
+  q:setOnStart(function()
+    called = true
+  end)
   q:start()
   luaunit.assertTrue(called)
 end
@@ -234,7 +236,9 @@ end
 function TestVeafQraLifecycle:test_onReady_callback_called()
   local called = false
   local q = _newSilentQRA()
-  q:setOnReady(function() called = true end)
+  q:setOnReady(function()
+    called = true
+  end)
   q:rearm()
   luaunit.assertTrue(called)
 end
@@ -242,7 +246,9 @@ end
 function TestVeafQraLifecycle:test_onDestroyed_callback_called()
   local called = false
   local q = _newSilentQRA()
-  q:setOnDestroyed(function() called = true end)
+  q:setOnDestroyed(function()
+    called = true
+  end)
   q:destroyed()
   luaunit.assertTrue(called)
 end
@@ -600,7 +606,9 @@ function TestVeafQraLogisticsSetters:test_checkWarehousing_count_zero_schedules_
     silent = true,
     outAnnounced = true,
     onOut = nil,
-    setScheduledState = function(self, s) scheduledState = s end,
+    setScheduledState = function(self, s)
+      scheduledState = s
+    end,
   }
   lg:checkWarehousing(qra)
   luaunit.assertEquals(scheduledState, veafQraManager.STATUS_OUT)
@@ -691,9 +699,15 @@ end
 -- exposing the API getters humanBornEvent relies on.
 local function _dynSlotUnit(name, categoryEx)
   return {
-    getCoalition = function() return coalition.side.RED end,
-    getCategoryEx = function() return categoryEx end,
-    getName = function() return name end,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getCategoryEx = function()
+      return categoryEx
+    end,
+    getName = function()
+      return name
+    end,
   }
 end
 

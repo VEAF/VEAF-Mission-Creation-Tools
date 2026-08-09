@@ -248,14 +248,18 @@ TestVeafArrayRemoveWhen = {}
 
 function TestVeafArrayRemoveWhen:test_removeNothingReturnsFalse()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return true end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
+    return true
+  end)
   luaunit.assertFalse(changed)
   luaunit.assertEquals(#t, 3)
 end
 
 function TestVeafArrayRemoveWhen:test_removeAllReturnsTrue()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return false end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
+    return false
+  end)
   luaunit.assertTrue(changed)
   luaunit.assertEquals(#t, 0)
 end
@@ -565,13 +569,17 @@ end
 
 function TestVeafIfnn:test_functionField()
   local obj = {}
-  function obj:getName() return "test" end
+  function obj:getName()
+    return "test"
+  end
   luaunit.assertEquals(veaf.ifnn(obj, "getName"), "test")
 end
 
 function TestVeafIfnn:test_erroringFunctionReturnsNil()
   local obj = {}
-  function obj:broken() error("oops") end
+  function obj:broken()
+    error("oops")
+  end
   luaunit.assertNil(veaf.ifnn(obj, "broken"))
 end
 
@@ -799,17 +807,23 @@ end
 TestVeafSafeCall = {}
 
 function TestVeafSafeCall:test_successReturnsValue()
-  local result = veaf.safeCall(function(a, b) return a + b end, 3, 4)
+  local result = veaf.safeCall(function(a, b)
+    return a + b
+  end, 3, 4)
   luaunit.assertEquals(result, 7)
 end
 
 function TestVeafSafeCall:test_errorReturnsNil()
-  local result = veaf.safeCall(function() error("boom") end)
+  local result = veaf.safeCall(function()
+    error("boom")
+  end)
   luaunit.assertNil(result)
 end
 
 function TestVeafSafeCall:test_multipleReturnValues()
-  local a, b = veaf.safeCall(function() return 1, 2 end)
+  local a, b = veaf.safeCall(function()
+    return 1, 2
+  end)
   luaunit.assertEquals(a, 1)
   luaunit.assertEquals(b, 2)
 end
@@ -2229,5 +2243,94 @@ function TestVeafSafeNumber:test_boolean_returns_the_default()
   luaunit.assertEquals(veaf.safeNumber(true, { default = 7 }), 7)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-082 — split and breakString built patterns by interpolating the separator
+--
+--     local regex = ("([^%s]+)"):format(sep)
+--
+-- puts `sep` straight inside a character class, so a Lua-magic separator changes what the class
+-- means: "]" closes it early, "%" starts an escape, "^" negates. Every separator used inside this
+-- repository is a comma, a space or a semicolon — all harmless — but both functions are public
+-- API a mission can call with anything.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSplitMagicSeparators = {}
+
+function TestVeafSplitMagicSeparators:test_split_on_a_comma_still_works()
+  local r = veaf.split("a,b,c", ",")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[1], "a")
+  luaunit.assertEquals(r[3], "c")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_space_still_works()
+  luaunit.assertEquals(#veaf.split("a b c", " "), 3)
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_dash()
+  local r = veaf.split("a-b-c", "-")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_percent()
+  local r = veaf.split("a%b%c", "%")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_bracket()
+  local r = veaf.split("a]b]c", "]")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_break_string_on_a_comma_still_works()
+  local r = veaf.breakString("key,value", ",")
+  luaunit.assertEquals(r[1], "key")
+  luaunit.assertEquals(r[2], "value")
+end
+
+function TestVeafSplitMagicSeparators:test_break_string_on_a_dash()
+  local r = veaf.breakString("key-value", "-")
+  luaunit.assertEquals(r[1], "key")
+  luaunit.assertEquals(r[2], "value")
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-084 — the vec3/vec2 pretty-print in veaf.p could never run
+--
+--     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
+--
+-- `#` counts a table's *sequence* part, so a table holding only the named keys x/y/z has #o == 0.
+-- The condition was never true and every vec3 fell through to the generic dump.
+-------------------------------------------------------------------------------------------------
+
+TestVeafPrettyPrintVectors = {}
+
+function TestVeafPrettyPrintVectors:test_vec3_is_pretty_printed()
+  local s = veaf.p({ x = 1, y = 2, z = 3 })
+  luaunit.assertStrContains(s, "x=1")
+  luaunit.assertStrContains(s, "y=2")
+  luaunit.assertStrContains(s, "z=3")
+end
+
+function TestVeafPrettyPrintVectors:test_vec3_is_a_single_line()
+  -- The point of the branch: a coordinate should read as one value, not a multi-line dump.
+  local s = veaf.p({ x = 1, y = 2, z = 3 })
+  luaunit.assertNil(s:find(string.char(10)))
+end
+
+function TestVeafPrettyPrintVectors:test_vec2_is_pretty_printed()
+  local s = veaf.p({ x = 10, y = 20 })
+  luaunit.assertStrContains(s, "x=10")
+  luaunit.assertStrContains(s, "y=20")
+end
+
+function TestVeafPrettyPrintVectors:test_a_normal_table_is_untouched()
+  -- Guard: only coordinate-shaped tables take the short path.
+  local s = veaf.p({ name = "test", value = 1 })
+  luaunit.assertStrContains(s, "name")
+end
 
 os.exit(luaunit.LuaUnit.run())

@@ -129,16 +129,36 @@ local function _makeMockSkynetSite(name)
     dcsName = name,
     typeName = "TestType",
     isAPointDefence = false,
-    dcsRepresentation = { isExist = function() return false end },
+    dcsRepresentation = {
+      isExist = function()
+        return false
+      end,
+    },
     harmSilenceID = nil,
-    getLaunchers = function(self) return {} end,
-    getPointDefences = function(self) return {} end,
-    isActive = function(self) return true end,
-    getAutonomousState = function(self) return false end,
-    getActAsEW = function(self) return false end,
-    hasRemainingAmmo = function(self) return true end,
-    getDetectedTargets = function(self) return {} end,
-    getNatoName = function(self) return "SA-10" end,
+    getLaunchers = function(self)
+      return {}
+    end,
+    getPointDefences = function(self)
+      return {}
+    end,
+    isActive = function(self)
+      return true
+    end,
+    getAutonomousState = function(self)
+      return false
+    end,
+    getActAsEW = function(self)
+      return false
+    end,
+    hasRemainingAmmo = function(self)
+      return true
+    end,
+    getDetectedTargets = function(self)
+      return {}
+    end,
+    getNatoName = function(self)
+      return "SA-10"
+    end,
   }
 end
 
@@ -184,16 +204,24 @@ end
 
 function TestVeafSkynetMonitorDescriptorGetStringSkynetElement:test_existing_dcs_group_includes_id()
   local rep = {
-    isExist = function() return true end,
-    getID = function() return 42 end,
-    getUnits = function() return {} end,
+    isExist = function()
+      return true
+    end,
+    getID = function()
+      return 42
+    end,
+    getUnits = function()
+      return {}
+    end,
   }
   setmetatable(rep, Group)
   local el = {
     dcsName = "TestSite",
     typeName = "SA-6",
     dcsRepresentation = rep,
-    getNatoName = function(self) return "Gainful" end,
+    getNatoName = function(self)
+      return "Gainful"
+    end,
   }
   local s = VeafSkynetMonitorDescriptor:GetStringSkynetElement(el)
   luaunit.assertStrContains(s, "42")
@@ -214,7 +242,9 @@ end
 function TestVeafSkynetMonitorDescriptorGetStringSam:test_inactive_sam_contains_not_active()
   local desc = VeafSkynetMonitorDescriptor:Create(nil, nil)
   local sam = _makeMockSkynetSite("SA10")
-  sam.isActive = function(self) return false end
+  sam.isActive = function(self)
+    return false
+  end
   local s = desc:GetStringSam(sam, 0)
   luaunit.assertStrContains(s, "Not active")
 end
@@ -222,7 +252,9 @@ end
 function TestVeafSkynetMonitorDescriptorGetStringSam:test_sam_no_ammo_contains_no_ammo()
   local desc = VeafSkynetMonitorDescriptor:Create(nil, nil)
   local sam = _makeMockSkynetSite("SA10")
-  sam.hasRemainingAmmo = function(self) return false end
+  sam.hasRemainingAmmo = function(self)
+    return false
+  end
   local s = desc:GetStringSam(sam, 0)
   luaunit.assertStrContains(s, "No ammo")
 end
@@ -230,7 +262,9 @@ end
 function TestVeafSkynetMonitorDescriptorGetStringSam:test_sam_acts_as_ew_contains_acting_as_ew()
   local desc = VeafSkynetMonitorDescriptor:Create(nil, nil)
   local sam = _makeMockSkynetSite("SA10")
-  sam.getActAsEW = function(self) return true end
+  sam.getActAsEW = function(self)
+    return true
+  end
   local s = desc:GetStringSam(sam, 0)
   luaunit.assertStrContains(s, "Acting as EW")
 end
@@ -250,7 +284,9 @@ end
 function TestVeafSkynetMonitorDescriptorGetStringEwr:test_inactive_ewr_contains_not_active()
   local desc = VeafSkynetMonitorDescriptor:Create(nil, nil)
   local ewr = _makeMockSkynetSite("EWR1")
-  ewr.isActive = function(self) return false end
+  ewr.isActive = function(self)
+    return false
+  end
   local s = desc:GetStringEwr(ewr, 0)
   luaunit.assertStrContains(s, "Not active")
 end
@@ -347,9 +383,13 @@ end
 function TestVeafSkynetMonitorExecuteTasks:test_execute_runs_all_tasks()
   local execCount = 0
   local t1 = VeafSkynetMonitorTask:Create("et1")
-  t1.Execute = function(self) execCount = execCount + 1 end
+  t1.Execute = function(self)
+    execCount = execCount + 1
+  end
   local t2 = VeafSkynetMonitorTask:Create("et2")
-  t2.Execute = function(self) execCount = execCount + 1 end
+  t2.Execute = function(self)
+    execCount = execCount + 1
+  end
   veafSkynetMonitor.AddMonitoringTask(t1)
   veafSkynetMonitor.AddMonitoringTask(t2)
   veafSkynetMonitor.ExecuteMonitoringTasks()

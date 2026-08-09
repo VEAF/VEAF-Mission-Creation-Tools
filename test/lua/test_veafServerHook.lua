@@ -19,13 +19,19 @@ dofile(_base .. "/dcs_mocks.lua")
 
 -- The hook calls lfs.writedir() at load time to locate its pilots file. It is never
 -- read here (loadPilots is only called from initialize), so a path is enough.
-package.loaded["lfs"] = { writedir = function() return _base .. "/" end }
+package.loaded["lfs"] = {
+  writedir = function()
+    return _base .. "/"
+  end,
+}
 
 -- Registering the callbacks is the very last thing the file does; in the hook
 -- environment DCS provides this, here it only has to exist.
 Sim = Sim or {}
 Sim.setUserCallbacks = function() end
-Sim.getUnitProperty = function() return "TestUnit" end
+Sim.getUnitProperty = function()
+  return "TestUnit"
+end
 Sim.UNIT_NAME = "UNIT_NAME"
 
 --- Everything the hook hands to net.dostring_in, newest last.
@@ -143,7 +149,7 @@ local ESCAPE_LITERAL = '") PWNED = true; veafRemote.registerUser("'
 -- Closes the transport's long bracket and concatenates a call. Expression form, not
 -- statement form: the transport chunk is `return a_do_script(...)`, and a statement
 -- after a return does not compile -- so only an expression proves execution here.
-local ESCAPE_BRACKET = 'x]===]..tostring(BEACON())..[===[y'
+local ESCAPE_BRACKET = "x]===]..tostring(BEACON())..[===[y"
 
 -- ============================================================================
 -- Test suite

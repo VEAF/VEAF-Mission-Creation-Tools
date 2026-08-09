@@ -818,9 +818,12 @@ function veaf.p(o, level, skip, includeMeta, dontRecurse)
   if _mt and _mt.__tostring then
     return _mt.__tostring(o)
   end
-  if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
+  -- VMR-084: the `#o == 3` / `#o == 2` tests these conditions used to carry could never be true.
+  -- `#` measures a table's *sequence* part, and a coordinate holds only the named keys x/y/z, so
+  -- `#o` is 0 — the branch was dead and every vec3 fell through to the multi-line generic dump.
+  if o and type(o) == "table" and (o.x and o.z and o.y) then
     return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
-  elseif o and type(o) == "table" and (o.x and o.y and #o == 2) then
+  elseif o and type(o) == "table" and (o.x and o.y) then
     return string.format("{x=%s, y=%s}", veaf.p(o.x), veaf.p(o.y))
   end
   local skip = skip
@@ -1263,9 +1266,20 @@ function veaf.splitWithPattern(str, pat)
   return t
 end
 
+--- Escape a separator so it is literal inside a Lua pattern.
+---
+--- VMR-082: `veaf.split` and `veaf.breakString` interpolate the separator straight into a
+--- character class, so a Lua-magic separator changes what the class means. Measured rather than
+--- assumed: `-` and `]` happen to survive, but `%` raises *malformed pattern* outright. Every
+--- separator used inside this repository is a comma, a space or a semicolon — all harmless — but
+--- both functions are public API and a mission can pass anything.
+local function _escapePattern(sep)
+  return (tostring(sep):gsub("(%W)", "%%%1"))
+end
+
 function veaf.split(str, sep)
   local result = {}
-  local regex = ("([^%s]+)"):format(sep)
+  local regex = ("([^%s]+)"):format(_escapePattern(sep))
   for each in str:gmatch(regex) do
     table.insert(result, each)
   end
@@ -1274,7 +1288,8 @@ end
 
 --- Break string around a separator
 function veaf.breakString(str, sep)
-  local regex = ("^([^%s]+)%s(.*)$"):format(sep, sep)
+  local escaped = _escapePattern(sep)
+  local regex = ("^([^%s]+)%s(.*)$"):format(escaped, escaped)
   local a, b = str:match(regex)
   if not a then
     a = str

@@ -1041,13 +1041,12 @@ function TestVeafRadioShellSafety:test_ordinary_transmission_is_untouched()
   veafRadio.transmitMessage("Bullseye zero nine zero, forty.", "251,255.5", "AM,FM", "Overlord", 2, nil, true)
 
   local command = self.commands[1]
-  luaunit.assertNotNil(string.find(command, "-t \"Bullseye zero nine zero, forty.\"", 1, true))
+  luaunit.assertNotNil(string.find(command, '-t "Bullseye zero nine zero, forty."', 1, true))
   luaunit.assertNotNil(string.find(command, "-f 251,255.5 ", 1, true))
   luaunit.assertNotNil(string.find(command, "-m AM,FM ", 1, true))
-  luaunit.assertNotNil(string.find(command, "-n \"Overlord\"", 1, true))
+  luaunit.assertNotNil(string.find(command, '-n "Overlord"', 1, true))
   luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
 end
-
 
 -------------------------------------------------------------------------------------------------
 -- REVIEW-SECURITY-LAYER ticket 01 — a secured menu command checks the group, not a global flag
@@ -1109,6 +1108,5 @@ function TestVeafRadioSecuredCommands:test_exact_level_passes()
   self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
   luaunit.assertTrue(self.called)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

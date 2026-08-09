@@ -55,7 +55,9 @@ function TestVeafCombatMissionObjective:test_setParameters_getParameters_roundtr
 end
 
 function TestVeafCombatMissionObjective:test_setOnCheck_getOnCheck_roundtrip()
-  local fn = function() return VeafCombatMissionObjective.SUCCESS end
+  local fn = function()
+    return VeafCombatMissionObjective.SUCCESS
+  end
   self.obj:setName("obj"):setOnCheck(fn)
   luaunit.assertEquals(self.obj:getOnCheck(), fn)
 end
@@ -361,7 +363,7 @@ function TestVeafCombatMissionRegistry:test_initialize_sets_friendlyName_from_na
   local m = VeafCombatMission:new():setName("golf")
   -- friendlyName is nil at this point
   luaunit.assertNil(m.friendlyName)
-  veafCombatMission.AddMission(m)         -- calls initialize() internally
+  veafCombatMission.AddMission(m) -- calls initialize() internally
   luaunit.assertEquals(m:getFriendlyName(), "golf")
 end
 
@@ -373,7 +375,9 @@ TestVeafCombatMissionObjectiveCopy = {}
 function TestVeafCombatMissionObjectiveCopy:setUp()
   self.obj = VeafCombatMissionObjective:new()
   self.obj:setName("orig"):setDescription("Desc"):setParameters({ k = "v" })
-  local fn = function() return VeafCombatMissionObjective.SUCCESS end
+  local fn = function()
+    return VeafCombatMissionObjective.SUCCESS
+  end
   self.obj:setOnCheck(fn)
   self.copy = self.obj:copy()
 end
@@ -406,7 +410,11 @@ TestVeafCombatMissionObjectiveBehavior = {}
 
 function TestVeafCombatMissionObjectiveBehavior:setUp()
   self.obj = VeafCombatMissionObjective:new():setName("test")
-  self.fakeMission = { getName = function() return "FakeMission" end }
+  self.fakeMission = {
+    getName = function()
+      return "FakeMission"
+    end,
+  }
 end
 
 function TestVeafCombatMissionObjectiveBehavior:test_onCheck_without_function_returns_NOTHING()
@@ -416,13 +424,18 @@ end
 
 function TestVeafCombatMissionObjectiveBehavior:test_onCheck_with_function_calls_it()
   local called = false
-  self.obj:setOnCheck(function(m, p) called = true; return VeafCombatMissionObjective.SUCCESS end)
+  self.obj:setOnCheck(function(m, p)
+    called = true
+    return VeafCombatMissionObjective.SUCCESS
+  end)
   self.obj:onCheck(self.fakeMission)
   luaunit.assertTrue(called)
 end
 
 function TestVeafCombatMissionObjectiveBehavior:test_onCheck_returns_function_result()
-  self.obj:setOnCheck(function(m, p) return VeafCombatMissionObjective.FAILED end)
+  self.obj:setOnCheck(function(m, p)
+    return VeafCombatMissionObjective.FAILED
+  end)
   local result = self.obj:onCheck(self.fakeMission)
   luaunit.assertEquals(result, VeafCombatMissionObjective.FAILED)
 end
@@ -434,7 +447,9 @@ end
 
 function TestVeafCombatMissionObjectiveBehavior:test_onStartup_with_function_calls_it()
   local called = false
-  self.obj:setOnStartup(function(params) called = true end)
+  self.obj:setOnStartup(function(params)
+    called = true
+  end)
   self.obj:onStartup(self.fakeMission)
   luaunit.assertTrue(called)
 end
@@ -447,7 +462,11 @@ TestVeafCombatMissionObjectiveTimedBehavior = {}
 function TestVeafCombatMissionObjectiveTimedBehavior:setUp()
   dcs_mocks.currentTime = 0
   self.obj = VeafCombatMissionObjective:new():setName("timed"):configureAsTimedObjective(60)
-  self.fakeMission = { getName = function() return "FM" end }
+  self.fakeMission = {
+    getName = function()
+      return "FM"
+    end,
+  }
 end
 
 function TestVeafCombatMissionObjectiveTimedBehavior:test_onStartup_sets_startTime_in_parameters()
@@ -456,15 +475,15 @@ function TestVeafCombatMissionObjectiveTimedBehavior:test_onStartup_sets_startTi
 end
 
 function TestVeafCombatMissionObjectiveTimedBehavior:test_onCheck_before_timeout_returns_NOTHING()
-  self.obj:onStartup(self.fakeMission)   -- startTime = 0
-  dcs_mocks.currentTime = 30             -- 30 < 0 + 60 → NOTHING
+  self.obj:onStartup(self.fakeMission) -- startTime = 0
+  dcs_mocks.currentTime = 30 -- 30 < 0 + 60 → NOTHING
   local result = self.obj:onCheck(self.fakeMission)
   luaunit.assertEquals(result, VeafCombatMissionObjective.NOTHING)
 end
 
 function TestVeafCombatMissionObjectiveTimedBehavior:test_onCheck_after_timeout_returns_FAILED()
-  self.obj:onStartup(self.fakeMission)   -- startTime = 0
-  dcs_mocks.currentTime = 100            -- 100 > 0 + 60 → FAILED
+  self.obj:onStartup(self.fakeMission) -- startTime = 0
+  dcs_mocks.currentTime = 100 -- 100 > 0 + 60 → FAILED
   local result = self.obj:onCheck(self.fakeMission)
   luaunit.assertEquals(result, VeafCombatMissionObjective.FAILED)
 end
@@ -477,7 +496,7 @@ TestVeafCombatMissionElementCopy = {}
 function TestVeafCombatMissionElementCopy:setUp()
   self.elem = VeafCombatMissionElement:new()
   self.elem:setName("e"):setSkill("Good"):setScale(2):setSpawnRadius(100):setSpawnChance(80)
-  self.elem:setGroups({})  -- initialises self.spawnPoints = {}
+  self.elem:setGroups({}) -- initialises self.spawnPoints = {}
   self.copy = self.elem:copy()
 end
 
@@ -533,7 +552,13 @@ end
 
 function TestVeafCombatMissionElementGetters:test_setGroups_with_known_group_stores_spawnPoint()
   dcs_mocks.addGroup("g1", {
-    getUnit = function(i) return { getPoint = function() return { x = 1, y = 2, z = 3 } end } end,
+    getUnit = function(i)
+      return {
+        getPoint = function()
+          return { x = 1, y = 2, z = 3 }
+        end,
+      }
+    end,
   })
   self.elem:setGroups({ "g1" })
   luaunit.assertEquals(self.elem:getGroups()[1], "g1")
@@ -755,6 +780,5 @@ function TestVeafCombatMissionSetSkill:test_returns_self_for_chaining()
   local mission = self:_mission()
   luaunit.assertEquals(mission:setAllElementsSkill("Average"), mission)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

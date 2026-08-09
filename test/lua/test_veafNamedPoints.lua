@@ -75,9 +75,9 @@ end
 
 function TestVeafNamedPoints:test_multiple_points_stored_independently()
   veafNamedPoints.addPoint("alpha", { x = 1, y = 0, z = 0 })
-  veafNamedPoints.addPoint("beta",  { x = 2, y = 0, z = 0 })
+  veafNamedPoints.addPoint("beta", { x = 2, y = 0, z = 0 })
   luaunit.assertEquals(veafNamedPoints.getPoint("ALPHA").x, 1)
-  luaunit.assertEquals(veafNamedPoints.getPoint("BETA").x,  2)
+  luaunit.assertEquals(veafNamedPoints.getPoint("BETA").x, 2)
 end
 
 -- -----------------------------------------------------------------------
@@ -97,7 +97,7 @@ end
 
 function TestVeafNamedPoints:test_delPoint_does_not_affect_other_entries()
   veafNamedPoints.addPoint("alpha", { x = 1, y = 0, z = 0 })
-  veafNamedPoints.addPoint("beta",  { x = 2, y = 0, z = 0 })
+  veafNamedPoints.addPoint("beta", { x = 2, y = 0, z = 0 })
   veafNamedPoints.delPoint("alpha")
   luaunit.assertNil(veafNamedPoints.getPoint("ALPHA"))
   luaunit.assertNotNil(veafNamedPoints.getPoint("BETA"))
@@ -163,7 +163,7 @@ end
 -- addDataToPoint
 -- -----------------------------------------------------------------------
 function TestVeafNamedPoints:test_addDataToPoint_merges_new_fields()
-  local pt     = { x = 1, y = 0, z = 2 }
+  local pt = { x = 1, y = 0, z = 2 }
   local result = veafNamedPoints.addDataToPoint(pt, { altitude = 1500, name = "Beirut" })
   luaunit.assertEquals(result.altitude, 1500)
   luaunit.assertEquals(result.name, "Beirut")

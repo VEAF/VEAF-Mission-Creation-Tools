@@ -528,14 +528,18 @@ end
 
 function TestAirWaveZoneSetters:test_setIsEnemyWaveDeadCallback()
   local z = AirWaveZone:new()
-  local cb = function() return true end
+  local cb = function()
+    return true
+  end
   z:setIsEnemyWaveDeadCallback(cb)
   luaunit.assertEquals(z.isEnemyWaveDeadCallback, cb)
 end
 
 function TestAirWaveZoneSetters:test_setIsEnemyGroupDeadCallback()
   local z = AirWaveZone:new()
-  local cb = function() return true end
+  local cb = function()
+    return true
+  end
   z:setIsEnemyGroupDeadCallback(cb)
   luaunit.assertEquals(z.isEnemyGroupDeadCallback, cb)
 end
@@ -645,7 +649,9 @@ function TestAirWaveZoneSignals:test_signalStart_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnStart(function() fired = true end)
+  z:setOnStart(function()
+    fired = true
+  end)
   z:signalStart()
   luaunit.assertTrue(fired)
 end
@@ -662,7 +668,9 @@ function TestAirWaveZoneSignals:test_signalWaitForHumans_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnWaitForHumans(function() fired = true end)
+  z:setOnWaitForHumans(function()
+    fired = true
+  end)
   z:signalWaitForHumans()
   luaunit.assertTrue(fired)
 end
@@ -681,7 +689,9 @@ function TestAirWaveZoneSignals:test_signalWaitToDeploy_callback_fires()
   z.name = "TestZone"
   z.delayBeforeNextWave = 10
   local fired = false
-  z:setOnWaitToDeploy(function() fired = true end)
+  z:setOnWaitToDeploy(function()
+    fired = true
+  end)
   z:signalWaitToDeploy()
   luaunit.assertTrue(fired)
 end
@@ -707,7 +717,9 @@ function TestAirWaveZoneSignals:test_signalDeploy_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnDeploy(function() fired = true end)
+  z:setOnDeploy(function()
+    fired = true
+  end)
   z:signalDeploy()
   luaunit.assertTrue(fired)
 end
@@ -724,7 +736,9 @@ function TestAirWaveZoneSignals:test_signalDestroyed_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnDestroyed(function() fired = true end)
+  z:setOnDestroyed(function()
+    fired = true
+  end)
   z:signalDestroyed()
   luaunit.assertTrue(fired)
 end
@@ -741,7 +755,10 @@ function TestAirWaveZoneSignals:test_signalOutsideOfZone_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local firedUnit, firedSecs
-  z:setOnOutsideOfZone(function(_, unit, secs) firedUnit = unit; firedSecs = secs end)
+  z:setOnOutsideOfZone(function(_, unit, secs)
+    firedUnit = unit
+    firedSecs = secs
+  end)
   z:signalOutsideOfZone("unit1", 10)
   luaunit.assertEquals(firedUnit, "unit1")
   luaunit.assertEquals(firedSecs, 10)
@@ -767,7 +784,9 @@ function TestAirWaveZoneSignals:test_signalWon_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnWon(function() fired = true end)
+  z:setOnWon(function()
+    fired = true
+  end)
   z:signalWon()
   luaunit.assertTrue(fired)
 end
@@ -784,7 +803,9 @@ function TestAirWaveZoneSignals:test_signalLost_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnLost(function() fired = true end)
+  z:setOnLost(function()
+    fired = true
+  end)
   z:signalLost()
   luaunit.assertTrue(fired)
 end
@@ -801,7 +822,9 @@ function TestAirWaveZoneSignals:test_signalStop_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnStop(function() fired = true end)
+  z:setOnStop(function()
+    fired = true
+  end)
   z:signalStop()
   luaunit.assertTrue(fired)
 end
@@ -888,7 +911,9 @@ function TestAirWaveZoneFSMExtended:test_onExitActive_destroys_and_signals_destr
   z:setSilent(true)
   z.name = "TestZone"
   local destroyed_cb_fired = false
-  z:setOnDestroyed(function() destroyed_cb_fired = true end)
+  z:setOnDestroyed(function()
+    destroyed_cb_fired = true
+  end)
   AirWaveZone._onExitActive(z)
   luaunit.assertTrue(destroyed_cb_fired)
 end
@@ -898,7 +923,9 @@ function TestAirWaveZoneFSMExtended:test_onEnterOver_fires_won()
   z:setSilent(true)
   z.name = "TestZone"
   local won_fired = false
-  z:setOnWon(function() won_fired = true end)
+  z:setOnWon(function()
+    won_fired = true
+  end)
   AirWaveZone._onEnterOver(z)
   luaunit.assertTrue(won_fired)
 end
@@ -936,4 +963,3 @@ function TestAirWavesModuleFunctions:test_get_nonexistent_returns_nil()
 end
 
 os.exit(luaunit.LuaUnit.run())
-

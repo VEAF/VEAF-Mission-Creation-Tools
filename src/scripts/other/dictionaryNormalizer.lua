@@ -17,16 +17,16 @@
 -- as these are not available on runtime.
 -- It runs in a really empty environment.
 function loadTable(filePath)
-    local file = assert(loadfile(filePath))
-    if not file then
-        print(string.format("Error while loading mission file [%s]", filePath))
-        return
-    end
+  local file = assert(loadfile(filePath))
+  if not file then
+    print(string.format("Error while loading mission file [%s]", filePath))
+    return
+  end
 
-    local table = {}
-    setfenv(file, table)
-    file()
-    return table
+  local table = {}
+  setfenv(file, table)
+  file()
+  return table
 end
 
 -- serializes some object to the standard output.
@@ -41,31 +41,31 @@ end
 -- indentation and sorting.
 --
 function serialize_sorted(o, indent, cmp)
-    if type(o) == "nil" then
-        -- this should not really happen on recursion, as nil can
-        -- be neither key nor value in a table.
-        io.write("nil")
-    elseif type(o) == "number" then
-        io.write(o)
-    elseif type(o) == "string" then
-        io.write(string.format("%q", o))
-    elseif type(o) == "boolean" then
-        io.write(tostring(o))
-    elseif type(o) == "table" then
-        io.write("{\n")
-        local subindent = indent .. "   "
-        for k, v in pairsByKeys(o) do
-            io.write(subindent)
-            io.write("[")
-            serialize_sorted(k, subindent, cmp)
-            io.write("] = ")
-            serialize_sorted(v, subindent, cmp)
-            io.write(",\n")
-        end
-        io.write(indent .. "}")
-    else
-        error("cannot serialize a " .. type(o))
+  if type(o) == "nil" then
+    -- this should not really happen on recursion, as nil can
+    -- be neither key nor value in a table.
+    io.write("nil")
+  elseif type(o) == "number" then
+    io.write(o)
+  elseif type(o) == "string" then
+    io.write(string.format("%q", o))
+  elseif type(o) == "boolean" then
+    io.write(tostring(o))
+  elseif type(o) == "table" then
+    io.write("{\n")
+    local subindent = indent .. "   "
+    for k, v in pairsByKeys(o) do
+      io.write(subindent)
+      io.write("[")
+      serialize_sorted(k, subindent, cmp)
+      io.write("] = ")
+      serialize_sorted(v, subindent, cmp)
+      io.write(",\n")
     end
+    io.write(indent .. "}")
+  else
+    error("cannot serialize a " .. type(o))
+  end
 end
 
 -- iterates over a table by key order.
@@ -78,40 +78,39 @@ end
 -- from http://www.lua.org/pil/19.3.html
 --
 function pairsByKeys(t, f)
-    local a = {}
-    for n in pairs(t) do
-        table.insert(a, n)
+  local a = {}
+  for n in pairs(t) do
+    table.insert(a, n)
+  end
+  table.sort(a, f)
+  local i = 0 -- iterator counter
+  local iter = function()
+    -- iterator function
+    i = i + 1
+    if a[i] == nil then
+      return nil
+    else
+      return a[i], t[a[i]]
     end
-    table.sort(a, f)
-    local i = 0 -- iterator counter
-    local iter = function()
-        -- iterator function
-        i = i + 1
-        if a[i] == nil then
-            return nil
-        else
-            return a[i], t[a[i]]
-        end
-    end
-    return iter
+  end
+  return iter
 end
 
 function writeFileFile(filePath, tableAsLua)
-  local file, e = io.open(filePath, "w+");
+  local file, e = io.open(filePath, "w+")
   if not file then
-      print(string.format("Error while writing mission to file [%s]",filePath))
-      return error(e);
+    print(string.format("Error while writing mission to file [%s]", filePath))
+    return error(e)
   end
 
   --file:write(string.format("%s = \n%s",tableName, tableAsLua))
   file:write(tableAsLua)
-  file:close();
+  file:close()
 end
 
-
 if #arg < 1 then
-    print("USAGE : dictionaryNormalizer.lua <sourcefile>")
-    return
+  print("USAGE : dictionaryNormalizer.lua <sourcefile>")
+  return
 end
 local sourceFile = arg[1]
 
@@ -120,7 +119,7 @@ local table = loadTable(sourceFile)
 
 -- output everything
 for k, v in pairsByKeys(table) do
-    io.write(k .. " = ")
-    serialize_sorted(v, "")
-    io.write("\n")
+  io.write(k .. " = ")
+  serialize_sorted(v, "")
+  io.write("\n")
 end

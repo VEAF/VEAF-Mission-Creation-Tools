@@ -142,12 +142,15 @@ TestVeafCasMissionAirDefense = {}
 
 function TestVeafCasMissionAirDefense:test_returns_nil_when_group_not_found()
   local savedVeafUnits = veafUnits
-  veafUnits = { findGroup = function() return nil end }
+  veafUnits = {
+    findGroup = function()
+      return nil
+    end,
+  }
   local result = veafCasMission.generateAirDefenseGroup("AD-1", 1, veafCasMission.SIDE_RED)
   veafUnits = savedVeafUnits
   luaunit.assertNil(result)
 end
-
 
 -------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-019 — a valueless numeric keyword must not take the handler down
@@ -210,6 +213,5 @@ function TestVeafCasMissionNumericKeywords:test_out_of_range_size_is_still_ignor
   local result = self:_analyse("_cas, size 9")
   luaunit.assertNotEquals(result.size, 9)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

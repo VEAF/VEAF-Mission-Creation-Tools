@@ -390,8 +390,8 @@
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `DcsMission(file_path=folder_path)` stores a directory in a field every other producer fills with a .miz path."
   },
   {
     "vid": "VMR-055",
@@ -568,8 +568,8 @@
     "line": "53",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: `p_mission_folder.glob(f\"{name}*.miz\")` confirmed: a mission name containing glob metacharacters is treated as a pattern."
   },
   {
     "vid": "VMR-067",
@@ -661,8 +661,8 @@
     "commits": [
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed as plausible: 18 references to mission.yaml in build.py. Optimization only — no behaviour is wrong."
   },
   {
     "vid": "VMR-112",
@@ -722,8 +722,8 @@
     "line": "128",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: 11 print() calls in migrate_lazy_log.py. It is a one-shot migration script rather than shipped code, which is why it survived the logger rule."
   },
   {
     "vid": "VMR-118",
@@ -1155,8 +1155,8 @@
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: the finding describes an unguarded pilot.level dereference after logging an unknown pilot. The code reads `local pilot = veafServerHook.pilots[ucid]; if pilot then pilotData.level = pilot.level end` — guarded. The hook was rewritten by REFACTOR-SERVER-HOOK-CANONICAL and SECREV-2 ticket 02 since the review."
   },
   {
     "vid": "VMR-073",
@@ -1181,8 +1181,8 @@
     "line": "118",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 sample / this PR — activateZone and deactivateZone both looked up zones[name:lower()] and indexed the result immediately, so an unknown zone name (or the right name in a case the table does not hold) crashed instead of being refused. Both guarded, with an error log naming the zone."
   },
   {
     "vid": "VMR-075",
@@ -1293,8 +1293,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the separator was interpolated straight into a character class. Measured rather than assumed: `-` and `]` happen to survive, `%` raises 'malformed pattern' outright, and every separator used inside this repository is a comma, space or semicolon. Fixed anyway because both functions are public API a mission can call with anything. 7 tests."
   },
   {
     "vid": "VMR-083",
@@ -1327,8 +1327,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the vec3/vec2 pretty-print branches tested `#o == 3` / `#o == 2`, and `#` measures a table's sequence part, so a coordinate holding only named keys gives 0. Both branches were dead and every vec3 fell through to the multi-line generic dump. 4 tests."
   },
   {
     "vid": "VMR-085",
@@ -1422,8 +1422,8 @@
     "commits": [
       "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 sample / this PR — copy() iterated self.protectedUnits and wrote into copy.protectedZone; the next block then reassigned copy.protectedZone = {}, wiping the misplaced entries, so protectedZone looked right while protectedUnits came back empty. Every copy silently lost its protected units. 5 tests."
   },
   {
     "vid": "VMR-092",
@@ -1634,8 +1634,8 @@
     "line": "523",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `local file = io.open(...)` runs at module level, so loading the file writes to disk."
   },
   {
     "vid": "VMR-133",
@@ -1901,8 +1901,8 @@
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `group` is a *subcommand* (`_spawn group`), not a parameter of `_spawn unit`. The pilot guide's tip is invalid syntax."
   },
   {
     "vid": "VMR-045",
@@ -1942,8 +1942,8 @@
     "commits": [
       "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: README still claims 34 Lua modules; the tree has 42. Same family as VMR-027/028 — a counter that cannot stay true."
   },
   {
     "vid": "VMR-120",
@@ -2038,8 +2038,8 @@
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: the FR and EN pilot guides label the same menu differently, and neither matches the in-game 'ASSETS' string."
   },
   {
     "vid": "VMR-126",

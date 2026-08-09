@@ -343,16 +343,26 @@ function TestVeafSpawnEffects:test_spawnIlluminationFlare_heading_speed()
 end
 
 function TestVeafSpawnEffects:test_destroyObjectWithFlak_not_exist()
-  local obj = { isExist = function() return false end }
+  local obj = {
+    isExist = function()
+      return false
+    end,
+  }
   veafSpawn.destroyObjectWithFlak(obj, 1, 1)
   luaunit.assertTrue(true)
 end
 
 function TestVeafSpawnEffects:test_destroyObjectWithFlak_exists()
   local obj = {
-    isExist     = function() return true end,
-    getPoint    = function() return { x = 0, y = 100, z = 0 } end,
-    getVelocity = function() return { x = 0, y = 0, z = 0 } end,
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 100, z = 0 }
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
   }
   -- density=0.1 → 3 flak shells fired synchronously (no recursion since scheduleFunction is a stub)
   veafSpawn.destroyObjectWithFlak(obj, 1, 0.1)
@@ -416,7 +426,9 @@ end
 
 function TestVeafSpawnCore:test_registerCommandHandler()
   local called = false
-  veafSpawn.registerCommandHandler("testkey", "OPEN", function() called = true end)
+  veafSpawn.registerCommandHandler("testkey", "OPEN", function()
+    called = true
+  end)
   luaunit.assertEquals(#veafSpawn.commandHandlers, 1)
   luaunit.assertEquals(veafSpawn.commandHandlers[1].key, "testkey")
 end
@@ -472,9 +484,13 @@ end
 
 function TestVeafSpawnCore:test_security_gate_blocks_handler_when_check_fails()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return false end
+  veafSecurity.checkSecurity_MM = function()
+    return false
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   -- check fails -> handler must not run
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
@@ -483,9 +499,13 @@ end
 
 function TestVeafSpawnCore:test_security_gate_allows_handler_when_check_passes()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return true end
+  veafSecurity.checkSecurity_MM = function()
+    return true
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
   luaunit.assertTrue(called)
@@ -495,7 +515,9 @@ function TestVeafSpawnCore:test_security_gate_fail_closed_on_unknown_level()
   local called = false
   -- Registration refuses an unknown level outright now, so it is injected afterwards: this
   -- pins the *direction* of the dispatcher's fallback, which must deny rather than pass.
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   veafSpawn.commandHandlers[1].security = "BOGUS"
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   luaunit.assertFalse(called)
@@ -503,9 +525,13 @@ end
 
 function TestVeafSpawnCore:test_security_gate_bypassed_when_bypassSecurity()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return false end
+  veafSecurity.checkSecurity_MM = function()
+    return false
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   -- bypassSecurity = true -> handler runs even though the check would fail
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, true, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
@@ -567,7 +593,8 @@ end
 
 function TestVeafSpawnCore:test_doSpawnGroup_string_not_found()
   -- veafUnits.findGroup returns nil → doSpawnGroup returns nil
-  local result = veafSpawn.doSpawnGroup({ x = 0, y = 0, z = 0 }, 0, "NonExistentGroup", nil, "usa", 0, 0, 10, nil, true, false, false, false)
+  local result =
+    veafSpawn.doSpawnGroup({ x = 0, y = 0, z = 0 }, 0, "NonExistentGroup", nil, "usa", 0, 0, 10, nil, true, false, false, false)
   luaunit.assertNil(result)
 end
 
@@ -590,7 +617,9 @@ function TestVeafSpawnCore:test_missionMasterSetMessagingMode()
 end
 
 function TestVeafSpawnCore:test_missionMasterAddRunnable()
-  veafSpawn.missionMasterAddRunnable("MYCODE", function() return 42 end, nil)
+  veafSpawn.missionMasterAddRunnable("MYCODE", function()
+    return 42
+  end, nil)
   luaunit.assertNotNil(veafSpawn.missionMasterRunnables["MYCODE"])
 end
 
@@ -605,13 +634,17 @@ function TestVeafSpawnCore:test_missionMasterRun_not_found()
 end
 
 function TestVeafSpawnCore:test_missionMasterRun_success()
-  veafSpawn.missionMasterAddRunnable("OK", function() return 99 end, nil)
+  veafSpawn.missionMasterAddRunnable("OK", function()
+    return 99
+  end, nil)
   veafSpawn.missionMasterRun("OK")
   luaunit.assertTrue(true)
 end
 
 function TestVeafSpawnCore:test_missionMasterRun_error()
-  veafSpawn.missionMasterAddRunnable("ERR", function() error("boom") end, nil)
+  veafSpawn.missionMasterAddRunnable("ERR", function()
+    error("boom")
+  end, nil)
   veafSpawn.missionMasterRun("ERR")
   luaunit.assertTrue(true)
 end
@@ -1063,7 +1096,8 @@ function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_nil_name()
 end
 
 function TestVeafSpawnAircraft:test_spawnAFAC_invalid_country()
-  local result = veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "AFAC1", "invalid_country", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+  local result =
+    veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "AFAC1", "invalid_country", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
   luaunit.assertNil(result)
 end
 
@@ -1073,7 +1107,8 @@ function TestVeafSpawnAircraft:test_spawnAFAC_no_template()
 end
 
 function TestVeafSpawnAircraft:test_spawnCombatAirPatrol_invalid_country()
-  local result = veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "MiG-29", "invalid_country", 0, 0, 0, 20, nil, 60, "random", true, false)
+  local result =
+    veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "MiG-29", "invalid_country", 0, 0, 0, 20, nil, 60, "random", true, false)
   luaunit.assertNil(result)
 end
 
@@ -1108,7 +1143,9 @@ end
 
 function TestVeafSpawnAircraft:test_spawnUnit_not_found()
   local origFind = veafUnits.findUnit
-  veafUnits.findUnit = function(name) return nil end
+  veafUnits.findUnit = function(name)
+    return nil
+  end
   local result = veafSpawn.spawnUnit({ x = 0, y = 0, z = 0 }, 0, "Unknown", nil, "usa", 0, 0, nil, nil, false, nil, nil, nil, true, false)
   veafUnits.findUnit = origFind
   luaunit.assertNil(result)

@@ -8,7 +8,7 @@ dofile(src .. "/veafMarkers.lua")
 
 -- Reset handler state between tests
 local function resetHandlers()
-  veafMarkers.onEventMarkAddEventHandlers    = {}
+  veafMarkers.onEventMarkAddEventHandlers = {}
   veafMarkers.onEventMarkChangeEventHandlers = {}
   veafMarkers.onEventMarkRemoveEventHandlers = {}
   veafMarkers.eventHandlerId = 0
@@ -93,10 +93,10 @@ function TestVeafMarkersRegister:test_register_remove_grows_list()
 end
 
 function TestVeafMarkersRegister:test_register_different_types_independent()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerAdd,    function() end)
+  veafMarkers.registerEventHandler(veafMarkers.MarkerAdd, function() end)
   veafMarkers.registerEventHandler(veafMarkers.MarkerChange, function() end)
   veafMarkers.registerEventHandler(veafMarkers.MarkerRemove, function() end)
-  luaunit.assertEquals(#veafMarkers.onEventMarkAddEventHandlers,    1)
+  luaunit.assertEquals(#veafMarkers.onEventMarkAddEventHandlers, 1)
   luaunit.assertEquals(#veafMarkers.onEventMarkChangeEventHandlers, 1)
   luaunit.assertEquals(#veafMarkers.onEventMarkRemoveEventHandlers, 1)
 end
@@ -147,7 +147,12 @@ function TestVeafMarkersOnEvent:test_handler_error_reports_to_pilot()
   trigger.action.outTextForCoalition = function(side, text, duration)
     captured = { side = side, text = text }
   end
-  local handlers = { { f = function() error("boom") end, id = 1 } }
+  local handlers = { {
+    f = function()
+      error("boom")
+    end,
+    id = 1,
+  } }
   veafMarkers.onEvent({ text = "_spawn x", pos = { x = 0, y = 0, z = 0 }, coalition = 2 }, handlers)
   trigger.action.outTextForCoalition = orig
   luaunit.assertNotNil(captured)

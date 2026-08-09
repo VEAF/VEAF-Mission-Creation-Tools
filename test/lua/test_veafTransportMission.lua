@@ -47,7 +47,9 @@ end
 function TestVeafTransportCargoTypes:test_contains_barrels_cargo()
   local found = false
   for _, v in ipairs(veafTransportMission.CargoTypes) do
-    if v == "barrels_cargo" then found = true end
+    if v == "barrels_cargo" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -55,7 +57,9 @@ end
 function TestVeafTransportCargoTypes:test_contains_uh1h_cargo()
   local found = false
   for _, v in ipairs(veafTransportMission.CargoTypes) do
-    if v == "uh1h_cargo" then found = true end
+    if v == "uh1h_cargo" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -103,7 +107,9 @@ local function hasUnit(groupDef, unitType)
 end
 
 veafNamedPoints = {
-  getPoint = function(name) return nil end,
+  getPoint = function(name)
+    return nil
+  end,
   namePoint = function(...) end,
 }
 
@@ -227,41 +233,51 @@ end
 TestVeafTransportAdvanced = {}
 
 function TestVeafTransportAdvanced:setUp()
-  self._origGetPoint        = veafNamedPoints.getPoint
-  self._origSpawnCargo      = veafSpawn.doSpawnCargo
-  self._origDoSpawnGroup    = veafSpawn.doSpawnGroup
-  self._origAddSecured      = veafRadio.addSecuredCommandToSubmenu
-  self._origRefreshRadio    = veafRadio.refreshRadioMenu
-  self._origDelCommand      = veafRadio.delCommand
-  self._origDelSubmenu      = veafRadio.delSubmenu
-  self._origTaskID          = veafTransportMission.friendlyGroupAliveCheckTaskID
-  self._origRandom          = math.random
-  self._capturedGroupDef    = nil
+  self._origGetPoint = veafNamedPoints.getPoint
+  self._origSpawnCargo = veafSpawn.doSpawnCargo
+  self._origDoSpawnGroup = veafSpawn.doSpawnGroup
+  self._origAddSecured = veafRadio.addSecuredCommandToSubmenu
+  self._origRefreshRadio = veafRadio.refreshRadioMenu
+  self._origDelCommand = veafRadio.delCommand
+  self._origDelSubmenu = veafRadio.delSubmenu
+  self._origTaskID = veafTransportMission.friendlyGroupAliveCheckTaskID
+  self._origRandom = math.random
+  self._capturedGroupDef = nil
 
   -- Provide a real named point far enough from the target spot
-  veafNamedPoints.getPoint = function(name) return { x = 0, z = 0, y = 0 } end
-  veafSpawn.doSpawnCargo   = function(...) end
-  veafSpawn.doSpawnGroup   = function(pos, hdg, groupDef, ...) self._capturedGroupDef = groupDef end
+  veafNamedPoints.getPoint = function(name)
+    return { x = 0, z = 0, y = 0 }
+  end
+  veafSpawn.doSpawnCargo = function(...) end
+  veafSpawn.doSpawnGroup = function(pos, hdg, groupDef, ...)
+    self._capturedGroupDef = groupDef
+  end
 
   veafRadio.addSecuredCommandToSubmenu = function(...) end
-  veafRadio.refreshRadioMenu           = function(...) end
-  veafRadio.delCommand                 = function(...) end
-  veafRadio.delSubmenu                 = function(...) end
+  veafRadio.refreshRadioMenu = function(...) end
+  veafRadio.delCommand = function(...) end
+  veafRadio.delSubmenu = function(...) end
 
   -- Deterministic: math.random(n) → 1, math.random(a,b) → a
   math.random = function(a, b)
-    if not a then return 0.5 elseif not b then return 1 else return a end
+    if not a then
+      return 0.5
+    elseif not b then
+      return 1
+    else
+      return a
+    end
   end
 end
 
 function TestVeafTransportAdvanced:tearDown()
-  veafNamedPoints.getPoint             = self._origGetPoint
-  veafSpawn.doSpawnCargo               = self._origSpawnCargo
-  veafSpawn.doSpawnGroup               = self._origDoSpawnGroup
+  veafNamedPoints.getPoint = self._origGetPoint
+  veafSpawn.doSpawnCargo = self._origSpawnCargo
+  veafSpawn.doSpawnGroup = self._origDoSpawnGroup
   veafRadio.addSecuredCommandToSubmenu = self._origAddSecured
-  veafRadio.refreshRadioMenu           = self._origRefreshRadio
-  veafRadio.delCommand                 = self._origDelCommand
-  veafRadio.delSubmenu                 = self._origDelSubmenu
+  veafRadio.refreshRadioMenu = self._origRefreshRadio
+  veafRadio.delCommand = self._origDelCommand
+  veafRadio.delSubmenu = self._origDelSubmenu
   veafTransportMission.friendlyGroupAliveCheckTaskID = self._origTaskID
   math.random = self._origRandom
 end
@@ -291,7 +307,13 @@ end
 -- Covers SA-18 Igla branch (lines 312-313): defense=3, random(100)=100 so >66.
 function TestVeafTransportAdvanced:test_generate_enemy_defense_igla()
   math.random = function(a, b)
-    if not a then return 0.5 elseif not b then return a else return a end
+    if not a then
+      return 0.5
+    elseif not b then
+      return a
+    else
+      return a
+    end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Igla", 3)
   luaunit.assertNotNil(self._capturedGroupDef)
@@ -301,7 +323,13 @@ end
 -- Covers SA-18 Igla-S (308-309) and ZU-23 (324): defense=4, random(100)=100.
 function TestVeafTransportAdvanced:test_generate_enemy_defense_igla_s_and_zu23()
   math.random = function(a, b)
-    if not a then return 0.5 elseif not b then return a else return a end
+    if not a then
+      return 0.5
+    elseif not b then
+      return a
+    else
+      return a
+    end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_IglaS", 4)
   luaunit.assertNotNil(self._capturedGroupDef)
@@ -312,7 +340,13 @@ end
 -- Covers ZSU-23-4 Shilka branch (line 321): defense=5, random(100)=100.
 function TestVeafTransportAdvanced:test_generate_enemy_defense_shilka()
   math.random = function(a, b)
-    if not a then return 0.5 elseif not b then return a else return a end
+    if not a then
+      return 0.5
+    elseif not b then
+      return a
+    else
+      return a
+    end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Shilka", 5)
   luaunit.assertNotNil(self._capturedGroupDef)

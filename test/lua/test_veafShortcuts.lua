@@ -16,7 +16,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
-dofile(src .. "/veafSecurity.lua")   -- veafShortcuts references sha1 / veafSecurity constants
+dofile(src .. "/veafSecurity.lua") -- veafShortcuts references sha1 / veafSecurity constants
 dofile(src .. "/veafShortcuts.lua")
 
 -- ============================================================================
@@ -64,7 +64,7 @@ function TestVeafShortcuts:test_default_description_is_nil()
 end
 
 function TestVeafShortcuts:test_default_randomParameters_is_empty()
-  local a      = VeafAlias:new()
+  local a = VeafAlias:new()
   local params = a:getRandomParameters()
   luaunit.assertNotNil(params)
   luaunit.assertEquals(#params, 0)
@@ -79,7 +79,7 @@ function TestVeafShortcuts:test_setName_getName_round_trip()
 end
 
 function TestVeafShortcuts:test_setName_returns_self_for_chaining()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:setName("-test")
   luaunit.assertEquals(ret, a)
 end
@@ -111,7 +111,7 @@ function TestVeafShortcuts:test_dontEndWithComma_clears_flag()
 end
 
 function TestVeafShortcuts:test_dontEndWithComma_returns_self()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:dontEndWithComma()
   luaunit.assertEquals(ret, a)
 end
@@ -184,19 +184,19 @@ function TestVeafShortcuts:test_addRandomParameter_single_entry()
   local params = a:getRandomParameters()
   luaunit.assertEquals(#params, 1)
   luaunit.assertEquals(params[1].name, "size")
-  luaunit.assertEquals(params[1].low,  1)
+  luaunit.assertEquals(params[1].low, 1)
   luaunit.assertEquals(params[1].high, 6)
 end
 
 function TestVeafShortcuts:test_addRandomParameter_multiple_entries()
   local a = VeafAlias:new()
   a:addRandomParameter("defense", 2, 5)
-  a:addRandomParameter("size",    1, 3)
+  a:addRandomParameter("size", 1, 3)
   luaunit.assertEquals(#a:getRandomParameters(), 2)
 end
 
 function TestVeafShortcuts:test_addRandomParameter_returns_self()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:addRandomParameter("size", 1, 6)
   luaunit.assertEquals(ret, a)
 end
@@ -213,7 +213,7 @@ function TestVeafShortcuts:test_fluent_chain_all_setters()
     :setHidden(true)
     :dontEndWithComma()
 
-  luaunit.assertEquals(a:getName(),        "-myalias")
+  luaunit.assertEquals(a:getName(), "-myalias")
   luaunit.assertEquals(a:getVeafCommand(), "_spawn test")
   luaunit.assertEquals(a:getDescription(), "A description")
   luaunit.assertTrue(a:isBypassSecurity())
@@ -241,7 +241,7 @@ function TestVeafShortcuts:test_AddAlias_normalises_to_lowercase_key()
 end
 
 function TestVeafShortcuts:test_AddAlias_returns_alias()
-  local a   = VeafAlias:new():setName("-ret")
+  local a = VeafAlias:new():setName("-ret")
   local ret = veafShortcuts.AddAlias(a)
   luaunit.assertEquals(ret, a)
 end
@@ -265,7 +265,7 @@ end
 -- -----------------------------------------------------------------------
 function TestVeafShortcuts:test_markTextAnalysis_alias_with_remainder()
   local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis("-sa6 size 3")
-  luaunit.assertEquals(alias,     "-sa6")
+  luaunit.assertEquals(alias, "-sa6")
   luaunit.assertEquals(remainder, " size 3")
 end
 
@@ -276,9 +276,9 @@ end
 
 function TestVeafShortcuts:test_markTextAnalysis_alias_with_coords_and_delay()
   local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis("-sa6#N45E033!30 extra")
-  luaunit.assertEquals(alias,     "-sa6")
-  luaunit.assertEquals(coords,    "N45E033")
-  luaunit.assertEquals(delay,     "30")
+  luaunit.assertEquals(alias, "-sa6")
+  luaunit.assertEquals(coords, "N45E033")
+  luaunit.assertEquals(delay, "30")
   luaunit.assertEquals(remainder, " extra")
 end
 
@@ -297,7 +297,7 @@ end
 function TestVeafShortcuts:test_markTextAnalysis_comma_in_remainder()
   -- Comma is excluded from alias name by the pattern
   local alias, _, _, remainder = veafShortcuts.markTextAnalysis("-sa6, defense 3")
-  luaunit.assertEquals(alias,     "-sa6")
+  luaunit.assertEquals(alias, "-sa6")
   luaunit.assertEquals(remainder, ", defense 3")
 end
 

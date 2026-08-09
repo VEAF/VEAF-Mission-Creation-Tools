@@ -285,7 +285,6 @@ function TestParserUnknownParams:test_command_keyphrase_not_flagged()
   luaunit.assertNil(r.unknownParameters)
 end
 
-
 -------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-025 — a non-numeric numeric parameter must not abort the spawn
 --
@@ -329,6 +328,5 @@ function TestSpawnParserNumericRobustness:test_a_valid_multiplier_still_applies(
   local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier 3")
   luaunit.assertEquals(options.multiplier, 3)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

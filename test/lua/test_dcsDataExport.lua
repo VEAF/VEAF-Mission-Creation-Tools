@@ -18,24 +18,26 @@ luaunit = dofile(_base .. "/luaunit.lua")
 -- io.open with a no-op and supply the empty database tables it iterates.
 -- ---------------------------------------------------------------------------
 local _origIoOpen = io.open
-local _fakeFile   = { write = function() end, close = function() end }
-io.open = function() return _fakeFile end
+local _fakeFile = { write = function() end, close = function() end }
+io.open = function()
+  return _fakeFile
+end
 
 db = {
   Units = {
-    Animals       = { Animal        = {} },
-    Cargos        = { Cargo         = {} },
-    Cars          = { Car           = {} },
-    Effects       = { Effect        = {} },
-    Fortifications= { Fortification = {} },
-    GrassAirfields= { GrassAirfield = {} },
-    GroundObjects = { GroundObject  = {} },
-    Helicopters   = { Helicopter    = {} },
-    Heliports     = { Heliport      = {} },
-    Personnel     = { Personnel     = {} },
-    Planes        = { Plane         = {} },
-    Ships         = { Ship          = {} },
-    Warehouses    = { Warehouse     = {} },
+    Animals = { Animal = {} },
+    Cargos = { Cargo = {} },
+    Cars = { Car = {} },
+    Effects = { Effect = {} },
+    Fortifications = { Fortification = {} },
+    GrassAirfields = { GrassAirfield = {} },
+    GroundObjects = { GroundObject = {} },
+    Helicopters = { Helicopter = {} },
+    Heliports = { Heliport = {} },
+    Personnel = { Personnel = {} },
+    Planes = { Plane = {} },
+    Ships = { Ship = {} },
+    Warehouses = { Warehouse = {} },
   },
 }
 -- log.error is referenced inside DcsDataExport.serialize's error fallback
@@ -180,7 +182,7 @@ end
 
 function TestDcsDataExportBasicSerialize:test_string_with_quotes_is_escaped()
   local result = DcsDataExport.basicSerialize('say "hi"')
-  luaunit.assertStrContains(result, "\\\"")
+  luaunit.assertStrContains(result, '\\"')
 end
 
 -- ============================================================================

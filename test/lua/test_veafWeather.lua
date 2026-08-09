@@ -43,26 +43,46 @@ TestVeafWeatherUnitSystem = {}
 
 function TestVeafWeatherUnitSystem:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 -- -----------------------------------------------------------------------
 -- defaultForTypeName — known aircraft families
 -- -----------------------------------------------------------------------
-function TestVeafWeatherUnitSystem:test_typeName_FA18_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("FA-18C_hornet"),    veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_A10C_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("A-10C"),             veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_F16_is_Faa()     luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("F-16C_50"),           veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_UH1H_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("UH-1H"),              veafWeatherUnitSystem.Systems.Faa) end
+function TestVeafWeatherUnitSystem:test_typeName_FA18_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("FA-18C_hornet"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_A10C_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("A-10C"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_F16_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("F-16C_50"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_UH1H_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("UH-1H"), veafWeatherUnitSystem.Systems.Faa)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_Ka50_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Ka-50"),   veafWeatherUnitSystem.Systems.MetricEastern) end
-function TestVeafWeatherUnitSystem:test_typeName_Mi24_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Mi-24P"),  veafWeatherUnitSystem.Systems.MetricEastern) end
-function TestVeafWeatherUnitSystem:test_typeName_Su27_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Su-27"),   veafWeatherUnitSystem.Systems.MetricEastern) end
+function TestVeafWeatherUnitSystem:test_typeName_Ka50_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Ka-50"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
+function TestVeafWeatherUnitSystem:test_typeName_Mi24_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Mi-24P"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
+function TestVeafWeatherUnitSystem:test_typeName_Su27_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Su-27"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_SA342L_is_Metric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342L"), veafWeatherUnitSystem.Systems.Metric) end
-function TestVeafWeatherUnitSystem:test_typeName_SA342M_is_Metric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342M"), veafWeatherUnitSystem.Systems.Metric) end
+function TestVeafWeatherUnitSystem:test_typeName_SA342L_is_Metric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342L"), veafWeatherUnitSystem.Systems.Metric)
+end
+function TestVeafWeatherUnitSystem:test_typeName_SA342M_is_Metric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342M"), veafWeatherUnitSystem.Systems.Metric)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_AH64_is_FaaMetric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("AH-64D_BLK_II"), veafWeatherUnitSystem.Systems.FaaMetric) end
+function TestVeafWeatherUnitSystem:test_typeName_AH64_is_FaaMetric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("AH-64D_BLK_II"), veafWeatherUnitSystem.Systems.FaaMetric)
+end
 
 -- unknown type falls back to the default (Icao)
 function TestVeafWeatherUnitSystem:test_typeName_unknown_is_default()
@@ -310,40 +330,82 @@ end
 
 function TestVeafWeatherCavok:test_zero_density_returns_false()
   -- Density <= 0 → getNormalizedCloudBaseMeters returns nil → false
-  local wd = weatherInstance({ Clouds = { Density = 0, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 0, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_clouds_above_5000ft_good_vis_is_cavok()
   -- 3000m AGL → 9842 ft > 5000 ft, vis >= 10000, no precip, no dust → CAVOK
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertTrue(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_clouds_below_5000ft_returns_false()
   -- 1000m → 3280 ft < 5000 ft → false
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 1000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 1000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_altitude_reduces_agl_height()
   -- Cloud ASL 3000, airfield at 2000 → AGL height = 1000m = 3280ft < 5000ft → false
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 2000, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 2000,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_low_visibility_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 8000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 8000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_precipitation_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = true, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = true,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_dust_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = true })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = true,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
@@ -354,15 +416,17 @@ TestVeafWeatherCarrierCase = {}
 
 function TestVeafWeatherCarrierCase:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 -- AbsTime = 0 → midnight UTC at equator → aeronautical night → Case III
 function TestVeafWeatherCarrierCase:test_night_always_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 0,
-    Clouds = nil, VisibilityMeters = 20000,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 0,
+    Clouds = nil,
+    VisibilityMeters = 20000,
   })
   luaunit.assertEquals(wd:getCarrierCase(), 3)
 end
@@ -371,7 +435,8 @@ end
 -- No effective clouds (density ≤ 4), good vis → Case I
 function TestVeafWeatherCarrierCase:test_day_good_conditions_case1()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 3, BaseMeters = 2000 }, -- density ≤ 4, not counted
     VisibilityMeters = 20000,
   })
@@ -381,7 +446,8 @@ end
 -- Daytime, clouds with density 5 at 600m (> feetToMeters(1000)=305m but < feetToMeters(3000)=914m) → Case II
 function TestVeafWeatherCarrierCase:test_day_mid_clouds_case2()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 5, BaseMeters = 600 }, -- 600m > 305 but < 914
     VisibilityMeters = 15000, -- > NMToMeters(5) = 9260m
   })
@@ -391,7 +457,8 @@ end
 -- Daytime, poor visibility → Case III
 function TestVeafWeatherCarrierCase:test_day_poor_vis_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 3, BaseMeters = 2000 },
     VisibilityMeters = 5000, -- < NMToMeters(5) = 9260m
   })
@@ -401,7 +468,8 @@ end
 -- Daytime, clouds low (below feetToMeters(1000) = 305m) → Case III
 function TestVeafWeatherCarrierCase:test_day_low_clouds_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 5, BaseMeters = 200 }, -- 200m < 305m → Case III
     VisibilityMeters = 20000,
   })
@@ -411,7 +479,8 @@ end
 -- Daytime, no clouds at all (nil) → vis OK → Case I
 function TestVeafWeatherCarrierCase:test_day_no_clouds_case1()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = nil,
     VisibilityMeters = 20000,
   })
@@ -429,8 +498,12 @@ end
 
 -- Helper: override atmosphere.getWind to return a fixed vector
 local function setWind(x, z)
-  atmosphere.getWind = function(_) return { x = x, y = 0, z = z } end
-  atmosphere.getWindWithTurbulence = function(_) return { x = x, y = 0, z = z } end
+  atmosphere.getWind = function(_)
+    return { x = x, y = 0, z = z }
+  end
+  atmosphere.getWindWithTurbulence = function(_)
+    return { x = x, y = 0, z = z }
+  end
 end
 
 -- No wind → direction 0 (calm), speed 0
@@ -492,7 +565,9 @@ function TestVeafWeatherGetWind:test_turbulence_flag()
     called = true
     return { x = 1, y = 0, z = 0 }
   end
-  atmosphere.getWind = function(_) return { x = 0, y = 0, z = 0 } end
+  atmosphere.getWind = function(_)
+    return { x = 0, y = 0, z = 0 }
+  end
   veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0, true)
   luaunit.assertTrue(called)
 end
@@ -511,7 +586,7 @@ TestVeafWeatherCloudBase = {}
 
 function TestVeafWeatherCloudBase:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
@@ -659,7 +734,7 @@ TestVeafWeatherSunTime = {}
 
 function TestVeafWeatherSunTime:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
@@ -698,11 +773,11 @@ end
 function TestVeafWeatherSlice:test_toStringSlice_returns_nonempty()
   local w = weatherInstance({ MagneticDeclination = 0 })
   local slice = {
-    AltitudeMeters   = 3000,
-    WindDirection    = 270,
-    WindSpeedMps     = 12,
+    AltitudeMeters = 3000,
+    WindDirection = 270,
+    WindSpeedMps = 12,
     TemperatureCelcius = 5,
-    PressureHpa      = 900,
+    PressureHpa = 900,
   }
   local s = w:toStringSlice(slice, veafWeatherUnitSystem.Systems.Faa, false)
   luaunit.assertTrue(#s > 0)
@@ -715,27 +790,27 @@ TestVeafWeatherToString = {}
 
 function TestVeafWeatherToString:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 function TestVeafWeatherToString:test_toString_returns_nonempty()
   local w = weatherInstance({
-    WindDirection       = 270,
-    WindSpeedMps        = 5,
-    VisibilityMeters    = 10000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 2000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 15,
-    DewPointCelcius     = 8,
-    QnhHpa              = 1013,
-    QfeHpa              = 1010,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    WeatherSlices       = {},
+    WindDirection = 270,
+    WindSpeedMps = 5,
+    VisibilityMeters = 10000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 15,
+    DewPointCelcius = 8,
+    QnhHpa = 1013,
+    QfeHpa = 1010,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    WeatherSlices = {},
     MagneticDeclination = 0,
   })
   local s = w:toString(veafWeatherUnitSystem.Systems.Faa, false)
@@ -751,28 +826,28 @@ TestVeafWeatherToStringAtis = {}
 
 function TestVeafWeatherToStringAtis:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 function TestVeafWeatherToStringAtis:test_cavok_path()
   -- CAVOK: visibility ≥ 10000m, no precipitation, no dust, cloud base ≥ 1524m (≥ 5000ft)
   local w = weatherInstance({
-    WindDirection       = 090,
-    WindSpeedMps        = 8,
-    VisibilityMeters    = 15000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 2000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 20,
-    DewPointCelcius     = 10,
-    QnhHpa              = 1013,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    Vec3                = { x = 0, y = 0, z = 0 },
-    AbsTime             = 43200,
+    WindDirection = 090,
+    WindSpeedMps = 8,
+    VisibilityMeters = 15000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 20,
+    DewPointCelcius = 10,
+    QnhHpa = 1013,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     MagneticDeclination = 0,
   })
   local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)
@@ -782,21 +857,21 @@ end
 function TestVeafWeatherToStringAtis:test_non_cavok_path()
   -- Non-CAVOK: low cloud base (1000m ≈ 3280ft < 5000ft)
   local w = weatherInstance({
-    WindDirection       = 180,
-    WindSpeedMps        = 3,
-    VisibilityMeters    = 3000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 1000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 10,
-    DewPointCelcius     = 8,
-    QnhHpa              = 1005,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    Vec3                = { x = 0, y = 0, z = 0 },
-    AbsTime             = 43200,
+    WindDirection = 180,
+    WindSpeedMps = 3,
+    VisibilityMeters = 3000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 1000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 10,
+    DewPointCelcius = 8,
+    QnhHpa = 1005,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     MagneticDeclination = 0,
   })
   local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)

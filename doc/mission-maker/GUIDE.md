@@ -282,22 +282,21 @@ modules:
 
 | Palier | Constante | Passe sans mot de passe si le niveau du pilote est |
 |--------|-----------|-----------------------------------------------------|
-| `L9` | `veafSecurity.LEVEL_L9` = 1 | **≥ 1** — tout pilote inscrit dans le `veaf-pilots.txt` du serveur |
-| `L1` | `veafSecurity.LEVEL_L1` = 10 | **≥ 10** — un pilote confirmé |
-| `L0` | `veafSecurity.LEVEL_L0` = 90 | **≥ 90** — un administrateur du serveur |
+| `KNOWN_PILOT` | `veafSecurity.LEVEL_KNOWN_PILOT` = 1 | **≥ 1** — tout pilote inscrit dans le `veaf-pilots.txt` du serveur |
+| `SENIOR_PILOT` | `veafSecurity.LEVEL_SENIOR_PILOT` = 10 | **≥ 10** — un membre de confiance |
+| `ADMIN` | `veafSecurity.LEVEL_ADMIN` = 90 | **≥ 90** — un administrateur du serveur |
 | `MM` | (aucun niveau) | jamais — seul le mot de passe Mission Master ouvre |
 | `OPEN` | (aucun contrôle) | toujours — la commande est délibérément ouverte à tous |
 
-!!! warning "Les paliers ne vont pas dans l'ordre que leurs noms suggèrent"
+!!! info "Ces paliers s'appelaient `L9`, `L1` et `L0` jusqu'à la 6.13.37"
 
-    `L9` est le palier le plus **permissif** et `L0` le plus **strict**. Lisez ces noms
-    comme des paliers de mot de passe, `L0` étant le plus secret, et non comme des niveaux
-    d'utilisateur. Un contrôle passe quand le niveau du pilote vaut *au moins* la
-    constante, et les constantes décroissent : 1, 10, 90.
+    Les anciens noms se lisaient à l'envers — `L0` était le palier le plus **strict**, pas
+    le plus permissif — et cette page affirmait l'inverse jusqu'au 2026-08-06, ce qui a
+    failli faire verrouiller aux administrateurs une commande délibérément publique.
 
-    Cette page affirmait l'inverse jusqu'au 2026-08-06 — que `L0` signifiait « tous les
-    joueurs » — ce qui a failli faire verrouiller une commande publique aux administrateurs.
-    Le nommage est en cours de réexamen ; ce tableau décrit ce que fait le code aujourd'hui.
+    `L9`, `L1` et `L0` restent acceptés comme **alias dépréciés** et disparaîtront dans une
+    version ultérieure. **Les valeurs sont inchangées** (1, 10, 90) : renommer ne change le
+    comportement d'aucune mission, seulement ce que vous écrivez.
 
 Deux choses satisfont un contrôle. Soit le **niveau de pilote** du joueur, publié par le
 hook serveur depuis `veaf-pilots.txt`, atteint le palier — c'est la voie par l'identité,

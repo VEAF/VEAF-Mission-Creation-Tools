@@ -193,4 +193,189 @@ function TestVeafSecurity:test_isAuthenticated_true_when_security_disabled()
 end
 
 -- ============================================================================
+
+-------------------------------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 01 — a group's level, and the temporary elevation
+--
+-- DCS offers no per-unit menu API (missionCommands is all/coalition/group), so a secured F10
+-- command cannot know which occupant clicked it. The level applied to a group is therefore the
+-- **minimum** of its occupants: never permissive, exact in the dominant dynamic-slotting case
+-- (1 pilot = 1 unit = 1 group). Taking the maximum would reproduce the very bug being fixed,
+-- one player inheriting another's rights, merely at group scale instead of server scale.
+--
+-- The escape hatch is David's: an identified request elevates the group to the requester's own
+-- level for 2 minutes.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSecurityGroupLevel = {}
+
+function TestVeafSecurityGroupLevel:setUp()
+  veafSecurity.groupElevations = {}
+  self.originalGetLevel = veafSecurity.getPilotLevelForUnit
+  -- Stand in for the pilot registry: unit name -> level.
+  self.levels = {}
+  veafSecurity.getPilotLevelForUnit = function(unitName)
+    return self.levels[unitName]
+  end
+  self.originalOccupants = veafSecurity.getGroupOccupantUnitNames
+  veafSecurity.getGroupOccupantUnitNames = function(groupId)
+    return self.occupants and self.occupants[groupId] or {}
+  end
+  self.occupants = {}
+end
+
+function TestVeafSecurityGroupLevel:tearDown()
+  veafSecurity.getPilotLevelForUnit = self.originalGetLevel
+  veafSecurity.getGroupOccupantUnitNames = self.originalOccupants
+  veafSecurity.groupElevations = {}
+end
+
+function TestVeafSecurityGroupLevel:test_single_occupant_gives_their_level()
+  self.occupants[1] = { "pilot1" }
+  self.levels["pilot1"] = veafSecurity.LEVEL_ADMIN
+  luaunit.assertEquals(veafSecurity.getGroupLevel(1), veafSecurity.LEVEL_ADMIN)
+end
+
+function TestVeafSecurityGroupLevel:test_mixed_group_takes_the_minimum()
+  -- An admin sitting in a four-slot group must not lend their rights to the other three.
+  self.occupants[1] = { "admin", "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  luaunit.assertEquals(veafSecurity.getGroupLevel(1), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityGroupLevel:test_unknown_occupant_drags_the_group_down()
+  -- An unlisted player has no level at all; fail closed rather than ignoring them.
+  self.occupants[1] = { "admin", "stranger" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  luaunit.assertEquals(veafSecurity.getGroupLevel(1), 0)
+end
+
+function TestVeafSecurityGroupLevel:test_empty_group_is_zero()
+  self.occupants[1] = {}
+  luaunit.assertEquals(veafSecurity.getGroupLevel(1), 0)
+end
+
+function TestVeafSecurityGroupLevel:test_elevation_raises_the_group()
+  self.occupants[1] = { "admin", "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  veafSecurity.elevateGroup(1, veafSecurity.LEVEL_ADMIN, "admin")
+  luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(1), veafSecurity.LEVEL_ADMIN)
+end
+
+function TestVeafSecurityGroupLevel:test_elevation_expires()
+  self.occupants[1] = { "admin", "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  veafSecurity.elevateGroup(1, veafSecurity.LEVEL_ADMIN, "admin")
+  timer.setTime(timer.getTime() + veafSecurity.ELEVATION_DURATION_SECONDS + 1)
+  luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(1), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+--- Pins the **product decision**, not an implementation detail: David asked for two minutes.
+---
+--- Every other test here reads the constant instead of the number, so tuning the window breaks
+--- only this one -- which is the intent. A shorter or longer elevation changes how long a group
+--- carries borrowed privileges, so it should be a deliberate edit with a reviewer, not something
+--- that slides through green.
+function TestVeafSecurityGroupLevel:test_elevation_lasts_two_minutes()
+  luaunit.assertEquals(veafSecurity.ELEVATION_DURATION_SECONDS, 2 * 60)
+end
+
+function TestVeafSecurityGroupLevel:test_elevation_is_capped_at_the_requester_level()
+  -- The whole safety of the hatch: a rookie cannot elevate their group to admin.
+  self.occupants[1] = { "admin", "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  local granted = veafSecurity.elevateGroupForPilot(1, veafSecurity.LEVEL_KNOWN_PILOT, "rookie")
+  luaunit.assertEquals(granted, veafSecurity.LEVEL_KNOWN_PILOT)
+  luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(1), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityGroupLevel:test_effective_level_without_elevation_is_the_minimum()
+  self.occupants[1] = { "admin", "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(1), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityGroupLevel:test_elevation_is_per_group()
+  self.occupants[1] = { "admin" }
+  self.occupants[2] = { "rookie" }
+  self.levels["admin"] = veafSecurity.LEVEL_ADMIN
+  self.levels["rookie"] = veafSecurity.LEVEL_KNOWN_PILOT
+  veafSecurity.elevateGroup(1, veafSecurity.LEVEL_ADMIN, "admin")
+  luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(2), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+
+-------------------------------------------------------------------------------------------------
+-- The elevation command, on both channels (REVIEW-SECURITY-LAYER ticket 01)
+--
+-- The minimum-of-the-group rule costs an admin sharing a four-slot group their admin commands.
+-- David's hatch: an identified request raises the group to the requester's own level for two
+-- minutes. Identified is the operative word -- it is offered on the chat/remote channel and on
+-- the marker, both of which carry an author, and never on the menu, which does not.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSecurityElevationCommand = {}
+
+function TestVeafSecurityElevationCommand:setUp()
+  veafSecurity.groupElevations = {}
+  self.originalGroupForUnit = veafSecurity.getGroupIdForUnit
+  veafSecurity.getGroupIdForUnit = function(unitName)
+    return self.groupsByUnit and self.groupsByUnit[unitName]
+  end
+  self.groupsByUnit = { ["admin unit"] = 42, ["rookie unit"] = 43 }
+end
+
+function TestVeafSecurityElevationCommand:tearDown()
+  veafSecurity.getGroupIdForUnit = self.originalGroupForUnit
+  veafSecurity.groupElevations = {}
+end
+
+function TestVeafSecurityElevationCommand:test_chat_elevate_raises_the_requester_group()
+  local pilot = { level = veafSecurity.LEVEL_ADMIN, name = "admin" }
+  local handled = veafSecurity.handleElevationRequest(pilot, "admin", "admin unit")
+  luaunit.assertTrue(handled)
+  luaunit.assertEquals(veafSecurity.groupElevations[42].level, veafSecurity.LEVEL_ADMIN)
+end
+
+function TestVeafSecurityElevationCommand:test_elevation_is_capped_at_requester_level()
+  local pilot = { level = veafSecurity.LEVEL_KNOWN_PILOT, name = "rookie" }
+  veafSecurity.handleElevationRequest(pilot, "rookie", "rookie unit")
+  luaunit.assertEquals(veafSecurity.groupElevations[43].level, veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityElevationCommand:test_pilot_without_a_level_is_refused()
+  local handled = veafSecurity.handleElevationRequest({ level = 0 }, "nobody", "admin unit")
+  luaunit.assertFalse(handled)
+  luaunit.assertNil(veafSecurity.groupElevations[42])
+end
+
+function TestVeafSecurityElevationCommand:test_unknown_unit_is_refused()
+  local pilot = { level = veafSecurity.LEVEL_ADMIN, name = "admin" }
+  local handled = veafSecurity.handleElevationRequest(pilot, "admin", "not a slot")
+  luaunit.assertFalse(handled)
+end
+
+function TestVeafSecurityElevationCommand:test_nil_pilot_is_refused()
+  luaunit.assertFalse(veafSecurity.handleElevationRequest(nil, "x", "admin unit"))
+end
+
+function TestVeafSecurityElevationCommand:test_marker_keyphrase_is_recognised()
+  local options = veafSecurity.markTextAnalysis("_auth elevate")
+  luaunit.assertNotNil(options)
+  luaunit.assertTrue(options.elevate)
+end
+
+function TestVeafSecurityElevationCommand:test_login_still_parses()
+  -- Guard: adding a verb must not break the two that exist.
+  local options = veafSecurity.markTextAnalysis("_auth login")
+  luaunit.assertNotNil(options)
+  luaunit.assertTrue(options.login)
+end
+
+
 os.exit(luaunit.LuaUnit.run())

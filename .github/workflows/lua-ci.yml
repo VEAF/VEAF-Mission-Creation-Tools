@@ -64,12 +64,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # `test/lua/` joins the gate as the pendant of CHORE-TOOLING-GATES ticket 03, which did the
+      # same for ruff on `test/python/`. Its 36 files were formatted in #678 — as an accident,
+      # a whole-tree `stylua` run that reached far beyond the two files being changed. Without a
+      # gate that formatting is not maintained and drifts back on the next hand-written test, so
+      # the honest repair is to make it enforced rather than to revert it.
+      #
+      # `src/scripts/other/` stays out on purpose: those files come from elsewhere (DCSSB, the
+      # fiddle server) and reformatting them would fight their upstream.
       - name: Check formatting with StyLua
         uses: JohnnyMorganz/stylua-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: "2.4.0"
-          args: --check src/scripts/veaf/
+          args: --check src/scripts/veaf/ test/lua/
 
   # ---------------------------------------------------------------------------
   # Lua line coverage (luacov) with a ratchet floor — number only ever goes up

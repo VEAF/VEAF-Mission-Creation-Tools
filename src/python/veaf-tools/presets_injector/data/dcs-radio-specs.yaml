@@ -1,6 +1,7 @@
 # DCS aircraft radio frequency specifications
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Re-run `poetry run update-radio-specs` to update after a DCS patch.
+# Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
+# Re-run `veaf-build update-dcs-data --radio` to update after a pin bump.
 #
 # Structure:
 #   <dcs_unit_type_id>:
@@ -12,12 +13,15 @@
 #           - min_mhz: 30.0
 #             max_mhz: 87.975
 #             modulation: FM | AM | AM/FM
-#     human_radio:              # range the ME accepts as the group's PRIMARY frequency;
-#       min_mhz: 38.4           # narrower than `radios` on some airframes (FW-190: 38.4-42.4
-#       max_mhz: 42.4           # primary vs a 38-156 preset range). A primary outside this
-#       default_mhz: 38.4       # range makes the Mission Editor refuse to save. Absent when
-#       modulation: FM | AM | AM/FM   # the airframe sets no bound.
-#     dcs_rejects_on_load: true # MANUAL overlay — regeneration does not reproduce it
+#     human_radio:            # range the ME accepts as the group's PRIMARY frequency
+#       min_mhz: 38.4         # narrower than `radios` for some airframes (FW-190: 38.4-42.4
+#       max_mhz: 42.4         # vs a 38-156 preset range) — a primary outside it is rejected
+#       default_mhz: 38.4     # DCS's own default, or null
+#       modulation: FM | AM | AM/FM
+#     dcs_rejects_on_load: true   # from dcs-radio-specs-overrides.yaml
+#
+# VEAF corrections live in dcs-radio-specs-overrides.yaml and are merged in here by
+# the generator, so they survive a pin bump. Never edit THIS file by hand.
 
 A-10C:
   category: plane
@@ -141,6 +145,9 @@ AJS37:
     - max_mhz: 400.0
       min_mhz: 103.0
       modulation: AM/FM
+    - max_mhz: 34.0
+      min_mhz: 30.0
+      modulation: FM
 AV8BNA:
   category: plane
   human_radio:

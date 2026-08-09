@@ -11,6 +11,8 @@ from veaf_build.radio_specs_updater import (
     FrequencyRange,
     HumanRadio,
     _primary_frequency_section,
+    apply_overrides,
+    load_overrides,
     parse_human_radio,
     specs_to_yaml_dict,
 )
@@ -130,3 +132,87 @@ class TestPrimaryFrequencySection:
     def test_notes_when_nothing_is_restricted(self) -> None:
         section = "\n".join(_primary_frequency_section([_spec("NoBound", (100.0, 150.0), None)]))
         assert "No aircraft in this dataset restricts its primary frequency." in section
+
+
+class TestOverrides:
+    """The overlay the datamine cannot provide (FIX-RADIO-LAYOUT-GAPS ticket 02).
+
+    Two kinds of correction live here, and neither survived a regeneration before: a radio DCS
+    accepts but the datamine does not model, and the ``dcs_rejects_on_load`` flag that used to be
+    re-applied by hand after every pin bump.
+    """
+
+    def test_extra_band_joins_the_named_radio_without_creating_one(self) -> None:
+        # A second *radio* would contradict the layout, which declares one -- DCS keeps the whole
+        # Viggen fit in a single 47-slot table. So the correction is a band, like A-10C_2's five.
+        spec = _spec("AJS37", (103.0, 400.0), None)
+        apply_overrides(
+            [spec], {"AJS37": {"add_ranges": [{"radio": "R", "min_mhz": 30.0, "max_mhz": 34.0, "modulation": "FM"}]}}
+        )
+        assert len(spec.radios) == 1
+        assert spec.radios[0].ranges[-1] == FrequencyRange(min_mhz=30.0, max_mhz=34.0, modulation="FM")
+
+    def test_band_on_an_unknown_radio_raises(self) -> None:
+        import pytest
+
+        with pytest.raises(KeyError, match="NoSuchRadio"):
+            apply_overrides(
+                [_spec("AJS37", (103.0, 400.0), None)],
+                {"AJS37": {"add_ranges": [{"radio": "NoSuchRadio", "min_mhz": 1.0, "max_mhz": 2.0}]}},
+            )
+
+    def test_rejects_on_load_flag_is_set_and_emitted(self) -> None:
+        spec = _spec("MiG-15bis", (3.75, 5.0), None)
+        apply_overrides([spec], {"MiG-15bis": {"dcs_rejects_on_load": True}})
+        assert specs_to_yaml_dict([spec])["MiG-15bis"]["dcs_rejects_on_load"] is True
+
+    def test_flag_absent_by_default(self) -> None:
+        assert "dcs_rejects_on_load" not in specs_to_yaml_dict([_spec("F-16C_50", (225.0, 400.0), None)])["F-16C_50"]
+
+    def test_whole_aircraft_can_be_declared_when_the_datamine_has_none(self) -> None:
+        # The MiG-15bis case: DCS flies it, the datamine models no radio for it, so the entry is
+        # ours end to end. It used to live directly in the generated file and was deleted by the
+        # first regeneration that ran without it here.
+        specs = [_spec("F-16C_50", (225.0, 400.0), None)]
+        apply_overrides(
+            specs,
+            {
+                "MiG-15bis": {
+                    "add_aircraft": {
+                        "name": "RSI-6K",
+                        "category": "plane",
+                        "radios": [
+                            {"name": "RSI-6K", "ranges": [{"min_mhz": 3.75, "max_mhz": 5.0, "modulation": "AM"}]}
+                        ],
+                    },
+                    "dcs_rejects_on_load": True,
+                }
+            },
+        )
+        added = next(s for s in specs if s.dcs_id == "MiG-15bis")
+        assert added.display_name == "RSI-6K"
+        assert added.dcs_rejects_on_load is True
+        assert added.radios[0].ranges == [FrequencyRange(min_mhz=3.75, max_mhz=5.0, modulation="AM")]
+
+    def test_shipped_overlay_still_declares_both_mig15bis_entries(self) -> None:
+        # Regression guard for the loss this lot found: they are not in the datamine, so nothing
+        # else in the pipeline would notice them disappearing.
+        overrides = load_overrides()
+        for dcs_id in ("MiG-15bis", "MiG-15bis_FC"):
+            assert "add_aircraft" in overrides.get(dcs_id, {}), f"{dcs_id} must be declared in full"
+
+    def test_unknown_aircraft_raises_rather_than_passing_silently(self) -> None:
+        # A typo in the overlay must not be swallowed: silently doing nothing is how an
+        # overlay rots into a lie about data it no longer touches.
+        import pytest
+
+        with pytest.raises(KeyError, match="NotAnAircraft"):
+            apply_overrides([_spec("F-16C_50", (225.0, 400.0), None)], {"NotAnAircraft": {"dcs_rejects_on_load": True}})
+
+    def test_shipped_overlay_covers_the_ajs37_fm_set(self) -> None:
+        overrides = load_overrides()
+        assert "AJS37" in overrides, "the AJS-37 FM correction is the reason this file exists"
+        bands = overrides["AJS37"]["add_ranges"]
+        assert any(b["min_mhz"] <= 33.0 and b["max_mhz"] >= 34.0 for b in bands), (
+            "E (33 MHz) and F (34 MHz) must fall inside the declared band"
+        )

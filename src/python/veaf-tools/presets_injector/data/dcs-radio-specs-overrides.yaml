@@ -1,0 +1,73 @@
+# VEAF corrections to the generated DCS radio specs
+#
+# `dcs-radio-specs.yaml` is generated wholesale from the pinned dcs-lua-datamine. This file is
+# the hand-maintained overlay merged on top of it, so a correction survives the next
+# regeneration instead of having to be re-applied by hand after every pin bump — which is what
+# the drift workflow used to ask for, and what nobody was going to remember.
+#
+# Keys, per DCS unit type:
+#   add_ranges:            bands DCS accepts on an existing radio that the datamine does not
+#                          model — appended to the named radio, never replacing what was
+#                          extracted. Naming a radio the aircraft does not have is an error.
+#   add_aircraft:          a whole entry for an airframe the datamine models no radio for at all.
+#   dcs_rejects_on_load:   DCS refuses to LOAD a mission whose presets are out of range for this
+#                          airframe (not merely to save it), so the injector must treat a bad
+#                          channel as fatal rather than drop it.
+#
+# An entry naming an aircraft the datamine does not know is an error, not a no-op: an overlay
+# that silently stops applying is worse than no overlay.
+
+AJS37:
+  # Measured in DCS on 2026-08-09: a mission carrying 30/31/32/33/34 MHz FM on an AJS-37 loads in
+  # the Mission Editor, saves, and comes back with every value unchanged. The datamine declares a
+  # single 103–400 MHz set, so the Viggen's FR24 FM radio is absent upstream — not lost by us.
+  # Without this, the FR24 E (33 MHz) and F (34 MHz) specials that ADR 0012 defines are stripped
+  # from every build by `_drop_out_of_range_channels`.
+  #
+  # The bounds are what was *measured*, not a datasheet: 30–34 MHz are the values a real Viggen
+  # mission uses (`VEAF-Missile-Training`, slots 41–45) and the ones proven accepted. The set's
+  # true upper limit was not probed — widen this only against evidence, not against a guess.
+  #
+  # Declared as a second *band on the existing radio*, not as a second radio: DCS stores the whole
+  # Viggen fit — FR22 data channels, FR22 specials and FR24 — in **one** 47-slot Radio table
+  # (ADR 0012). Modelling it as a radio made the layout (1 radio) and the specs (2) disagree, and
+  # the build said so on every run. `A-10C_2` is the precedent: one radio, five bands.
+  add_ranges:
+    - radio: Radio frequencies
+      min_mhz: 30.0
+      max_mhz: 34.0
+      modulation: FM
+
+# The MiG-15bis carries an HF set the datamine models for nobody, so this entry is ours end to
+# end (added by SECREV/C9 follow-up, 2026-06). It lived directly in the generated file until
+# 2026-08-09, when the first regeneration to run without it here simply deleted both variants —
+# and the drift workflow's manual checklist said only "re-apply the dcs_rejects_on_load overlays",
+# so nobody would have known to put them back.
+MiG-15bis:
+  add_aircraft:
+    name: RSI-6K
+    category: plane
+    radios:
+      - name: RSI-6K
+        ranges:
+          - min_mhz: 3.75
+            max_mhz: 5.0
+            modulation: AM
+  dcs_rejects_on_load: true
+MiG-15bis_FC:
+  add_aircraft:
+    name: RSI-6K
+    category: plane
+    radios:
+      - name: RSI-6K
+        ranges:
+          - min_mhz: 3.75
+            max_mhz: 5.0
+            modulation: AM
+  dcs_rejects_on_load: true
+
+# Airframes DCS refuses to LOAD, not merely to save, when a preset is out of range.
+MiG-19P:
+  dcs_rejects_on_load: true
+SA342M:
+  dcs_rejects_on_load: true

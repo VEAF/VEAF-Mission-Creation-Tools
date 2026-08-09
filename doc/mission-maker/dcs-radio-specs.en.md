@@ -35,6 +35,8 @@ Currently known critical aircraft:
 
 | Aircraft | DCS ID | Valid range |
 |----------|--------|-------------|
+| MiG-15bis | `MiG-15bis` | 3.75–5 MHz (AM, RSI-6K HF set) |
+| MiG-15bis (FC) | `MiG-15bis_FC` | 3.75–5 MHz (AM, RSI-6K HF set) |
 | MiG-19P | `MiG-19P` | 100–150 MHz |
 | Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM only) |
 
@@ -42,8 +44,9 @@ Every other aircraft stores the frequencies silently without crashing. Such prob
 reported in the `presets-validation-report.md` generated after each build.
 
 If you find another aircraft that makes DCS reject the mission, add `dcs_rejects_on_load: true` to
-its entry in `src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` and open a pull
-request.
+its entry in `src/python/veaf-tools/presets_injector/data/dcs-radio-specs-overrides.yaml` and open
+a pull request. Do not edit `dcs-radio-specs.yaml`: it is regenerated from the datamine, and any
+correction written there is lost on the next run.
 
 ---
 
@@ -107,6 +110,7 @@ An aircraft with no `human_radio` block enforces no bound: the promotion happens
 | **A6E** | `A6E` | UHF AN/ARC-159 #1 | 225.000 | 399.975 | AM / FM |
 |  |  | UHF AN/ARC-159 #2 | 225.000 | 399.975 | AM / FM |
 | **AJS37** | `AJS37` | Radio frequencies | 103.000 | 400.000 | AM / FM |
+|  |  |  | 30.000 | 34.000 | FM |
 | **AV8BNA** | `AV8BNA` | V/UHF Radio 1 | 30.000 | 400.000 | AM / FM |
 |  |  | V/UHF Radio 2 | 30.000 | 400.000 | AM / FM |
 |  |  | V/UHF RCS Presets | 30.000 | 400.000 | AM / FM |

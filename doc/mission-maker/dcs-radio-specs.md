@@ -37,6 +37,8 @@ Appareils critiques actuellement connus :
 
 | Appareil | ID DCS | Plage valide |
 |----------|--------|--------------|
+| MiG-15bis | `MiG-15bis` | 3.75–5 MHz (AM, poste HF RSI-6K) |
+| MiG-15bis (FC) | `MiG-15bis_FC` | 3.75–5 MHz (AM, poste HF RSI-6K) |
 | MiG-19P | `MiG-19P` | 100–150 MHz |
 | Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM uniquement) |
 
@@ -46,7 +48,9 @@ chaque build.
 
 Si vous découvrez un autre appareil qui pousse DCS à rejeter la mission, ajoutez
 `dcs_rejects_on_load: true` à son entrée dans
-`src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml` et ouvrez une pull request.
+`src/python/veaf-tools/presets_injector/data/dcs-radio-specs-overrides.yaml` et ouvrez une pull
+request. Ne modifiez pas `dcs-radio-specs.yaml` : il est régénéré depuis la datamine, et toute
+correction écrite dedans serait perdue au prochain passage.
 
 ---
 
@@ -112,6 +116,7 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 | **A6E** | `A6E` | UHF AN/ARC-159 #1 | 225.000 | 399.975 | AM / FM |
 |  |  | UHF AN/ARC-159 #2 | 225.000 | 399.975 | AM / FM |
 | **AJS37** | `AJS37` | Radio frequencies | 103.000 | 400.000 | AM / FM |
+|  |  |  | 30.000 | 34.000 | FM |
 | **AV8BNA** | `AV8BNA` | V/UHF Radio 1 | 30.000 | 400.000 | AM / FM |
 |  |  | V/UHF Radio 2 | 30.000 | 400.000 | AM / FM |
 |  |  | V/UHF RCS Presets | 30.000 | 400.000 | AM / FM |

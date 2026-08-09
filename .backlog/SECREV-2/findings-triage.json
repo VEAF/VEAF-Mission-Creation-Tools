@@ -1293,8 +1293,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the separator was interpolated straight into a character class. Measured rather than assumed: `-` and `]` happen to survive, `%` raises 'malformed pattern' outright, and every separator used inside this repository is a comma, space or semicolon. Fixed anyway because both functions are public API a mission can call with anything. 7 tests."
   },
   {
     "vid": "VMR-083",
@@ -1327,8 +1327,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the vec3/vec2 pretty-print branches tested `#o == 3` / `#o == 2`, and `#` measures a table's sequence part, so a coordinate holding only named keys gives 0. Both branches were dead and every vec3 fell through to the multi-line generic dump. 4 tests."
   },
   {
     "vid": "VMR-085",

@@ -24,9 +24,9 @@ TestVeafSecurity = {}
 function TestVeafSecurity:setUp()
   dcs_mocks.reset()
   -- Ensure a clean authentication state before each test
-  veaf.SecurityDisabled          = false
-  veafSecurity.authenticated     = false
-  veafSecurity.SecurityDisabled  = nil
+  veaf.SecurityDisabled = false
+  veafSecurity.authenticated = false
+  veafSecurity.SecurityDisabled = nil
   -- Restore pristine password dicts (remove any extra entries added by tests)
   veafSecurity.password_L0 = { [veafSecurity.PASSWORD_L0] = true }
   veafSecurity.password_L1 = { [veafSecurity.PASSWORD_L1] = true }
@@ -44,18 +44,12 @@ function TestVeafSecurity:test_sha1_abc()
 end
 
 function TestVeafSecurity:test_sha1_quick_brown_fox()
-  luaunit.assertEquals(
-    sha1.hex("The quick brown fox jumps over the lazy dog"),
-    "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
-  )
+  luaunit.assertEquals(sha1.hex("The quick brown fox jumps over the lazy dog"), "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12")
 end
 
 function TestVeafSecurity:test_sha1_448_bit_message()
   -- FIPS 180-2 § B.2: SHA-1 of a 448-bit (56-byte) message crosses one padding block
-  luaunit.assertEquals(
-    sha1.hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
-    "84983e441c3bd26ebaae4aa1f95129e5e54670f1"
-  )
+  luaunit.assertEquals(sha1.hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"), "84983e441c3bd26ebaae4aa1f95129e5e54670f1")
 end
 
 function TestVeafSecurity:test_sha1_different_inputs_differ()
@@ -79,10 +73,7 @@ end
 -- Expected = effcdf6ae5eb2fa2d27416d5f184df9c259a7c79
 -- -----------------------------------------------------------------------
 function TestVeafSecurity:test_hmac_rfc2202_tc2()
-  luaunit.assertEquals(
-    sha1.hmacHex("Jefe", "what do ya want for nothing?"),
-    "effcdf6ae5eb2fa2d27416d5f184df9c259a7c79"
-  )
+  luaunit.assertEquals(sha1.hmacHex("Jefe", "what do ya want for nothing?"), "effcdf6ae5eb2fa2d27416d5f184df9c259a7c79")
 end
 
 function TestVeafSecurity:test_hmac_output_length_is_40_hex_chars()
@@ -309,7 +300,6 @@ function TestVeafSecurityGroupLevel:test_elevation_is_per_group()
   luaunit.assertEquals(veafSecurity.getEffectiveGroupLevel(2), veafSecurity.LEVEL_KNOWN_PILOT)
 end
 
-
 -------------------------------------------------------------------------------------------------
 -- The elevation command, on both channels (REVIEW-SECURITY-LAYER ticket 01)
 --
@@ -376,6 +366,5 @@ function TestVeafSecurityElevationCommand:test_login_still_parses()
   luaunit.assertNotNil(options)
   luaunit.assertTrue(options.login)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

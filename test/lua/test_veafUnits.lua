@@ -9,8 +9,20 @@ dofile(src .. "/veaf.lua")
 -- New schema: keyed by DCS type id, with a single `kind` field.
 dcsUnits = {
   DcsUnitsDatabase = {
-    ["ZSU-23-4 Shilka"] = { type = "ZSU-23-4 Shilka", name = "AAA ZSU-23-4 Shilka", category = "Air Defence", kind = "vehicle", description = "AAA ZSU-23-4 Shilka" },
-    ["SA-18 Igla-S manpad"] = { type = "SA-18 Igla-S manpad", name = "MANPAD SA-18 Igla-S", category = "Air Defence", kind = "infantry", description = "MANPAD SA-18 Igla-S" },
+    ["ZSU-23-4 Shilka"] = {
+      type = "ZSU-23-4 Shilka",
+      name = "AAA ZSU-23-4 Shilka",
+      category = "Air Defence",
+      kind = "vehicle",
+      description = "AAA ZSU-23-4 Shilka",
+    },
+    ["SA-18 Igla-S manpad"] = {
+      type = "SA-18 Igla-S manpad",
+      name = "MANPAD SA-18 Igla-S",
+      category = "Air Defence",
+      kind = "infantry",
+      description = "MANPAD SA-18 Igla-S",
+    },
     ["LHA_Tarawa"] = { type = "LHA_Tarawa", name = "LHA Tarawa", category = "Ship", kind = "naval", description = "LHA Tarawa" },
     ["Vulcan"] = { type = "Vulcan", name = "AAA Vulcan M163", category = "Air Defence", kind = "vehicle", description = "AAA Vulcan M163" },
     ["A-10C"] = { type = "A-10C", name = "A-10C Thunderbolt II", category = "Plane", kind = "air", description = "A-10C Thunderbolt II" },
@@ -237,7 +249,7 @@ end
 
 function TestVeafUnitsCheckPositionForUnit:test_air_unit_at_low_alt_returns_false()
   local unit = { air = true }
-  local pos = { x = 0, y = 0, z = 5 }  -- z <= 10
+  local pos = { x = 0, y = 0, z = 5 } -- z <= 10
   luaunit.assertFalse(veafUnits.checkPositionForUnit(pos, unit))
 end
 
@@ -535,10 +547,18 @@ function TestVeafUnitsPlaceGroup:test_units_centered_around_spawnpoint()
   -- their spawn points must straddle the spawn center on both axes.
   local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
   for _, unit in pairs(group.units) do
-    if unit.spawnPoint.x < minX then minX = unit.spawnPoint.x end
-    if unit.spawnPoint.x > maxX then maxX = unit.spawnPoint.x end
-    if unit.spawnPoint.z < minZ then minZ = unit.spawnPoint.z end
-    if unit.spawnPoint.z > maxZ then maxZ = unit.spawnPoint.z end
+    if unit.spawnPoint.x < minX then
+      minX = unit.spawnPoint.x
+    end
+    if unit.spawnPoint.x > maxX then
+      maxX = unit.spawnPoint.x
+    end
+    if unit.spawnPoint.z < minZ then
+      minZ = unit.spawnPoint.z
+    end
+    if unit.spawnPoint.z > maxZ then
+      maxZ = unit.spawnPoint.z
+    end
   end
   -- center is within the bounding box of the placed units
   luaunit.assertTrue(minX <= spawnPoint.x and spawnPoint.x <= maxX)
@@ -641,11 +661,27 @@ end
 function TestVeafUnitsCountInfantryAndVehicles:test_counts_vehicles_and_infantry()
   dcs_mocks.clearUnitsAndGroups()
   local units = {
-    { getTypeName = function() return "ZSU-23-4 Shilka" end },   -- vehicle
-    { getTypeName = function() return "Vulcan" end },            -- vehicle
-    { getTypeName = function() return "SA-18 Igla-S manpad" end }, -- infantry
+    {
+      getTypeName = function()
+        return "ZSU-23-4 Shilka"
+      end,
+    }, -- vehicle
+    {
+      getTypeName = function()
+        return "Vulcan"
+      end,
+    }, -- vehicle
+    {
+      getTypeName = function()
+        return "SA-18 Igla-S manpad"
+      end,
+    }, -- infantry
   }
-  dcs_mocks.addGroup("counted", { getUnits = function() return units end })
+  dcs_mocks.addGroup("counted", {
+    getUnits = function()
+      return units
+    end,
+  })
   local v, i = veafUnits.countInfantryAndVehicles("counted")
   luaunit.assertEquals(v, 2)
   luaunit.assertEquals(i, 1)
@@ -654,10 +690,22 @@ end
 function TestVeafUnitsCountInfantryAndVehicles:test_ignores_unknown_types()
   dcs_mocks.clearUnitsAndGroups()
   local units = {
-    { getTypeName = function() return "ZSU-23-4 Shilka" end },   -- vehicle
-    { getTypeName = function() return "UNKNOWN_TYPE_XYZ" end },  -- not counted
+    {
+      getTypeName = function()
+        return "ZSU-23-4 Shilka"
+      end,
+    }, -- vehicle
+    {
+      getTypeName = function()
+        return "UNKNOWN_TYPE_XYZ"
+      end,
+    }, -- not counted
   }
-  dcs_mocks.addGroup("counted2", { getUnits = function() return units end })
+  dcs_mocks.addGroup("counted2", {
+    getUnits = function()
+      return units
+    end,
+  })
   local v, i = veafUnits.countInfantryAndVehicles("counted2")
   luaunit.assertEquals(v, 1)
   luaunit.assertEquals(i, 0)
@@ -672,13 +720,26 @@ function TestVeafUnitsRemovePathfindingFixUnit:test_destroys_matching_unit()
   dcs_mocks.clearUnitsAndGroups()
   local destroyed = { value = false }
   local units = {
-    { getTypeName = function() return "ZSU-23-4 Shilka" end, destroy = function() end },
     {
-      getTypeName = function() return veafUnits.DefaultPathfindingUnitType end,
-      destroy = function() destroyed.value = true end,
+      getTypeName = function()
+        return "ZSU-23-4 Shilka"
+      end,
+      destroy = function() end,
+    },
+    {
+      getTypeName = function()
+        return veafUnits.DefaultPathfindingUnitType
+      end,
+      destroy = function()
+        destroyed.value = true
+      end,
     },
   }
-  dcs_mocks.addGroup("convoy", { getUnits = function() return units end })
+  dcs_mocks.addGroup("convoy", {
+    getUnits = function()
+      return units
+    end,
+  })
   veafUnits.removePathfindingFixUnit("convoy")
   luaunit.assertTrue(destroyed.value, "the pathfinding fix unit must be destroyed")
 end
@@ -693,9 +754,20 @@ function TestVeafUnitsRemovePathfindingFixUnit:test_leaves_other_units()
   dcs_mocks.clearUnitsAndGroups()
   local destroyedShilka = { value = false }
   local units = {
-    { getTypeName = function() return "ZSU-23-4 Shilka" end, destroy = function() destroyedShilka.value = true end },
+    {
+      getTypeName = function()
+        return "ZSU-23-4 Shilka"
+      end,
+      destroy = function()
+        destroyedShilka.value = true
+      end,
+    },
   }
-  dcs_mocks.addGroup("convoy3", { getUnits = function() return units end })
+  dcs_mocks.addGroup("convoy3", {
+    getUnits = function()
+      return units
+    end,
+  })
   veafUnits.removePathfindingFixUnit("convoy3")
   luaunit.assertFalse(destroyedShilka.value, "non-pathfinding units must be left alone")
 end

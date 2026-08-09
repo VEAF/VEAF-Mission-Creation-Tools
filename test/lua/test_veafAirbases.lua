@@ -22,18 +22,12 @@ dofile(src .. "/veafAirbases.lua")
 --- Create a veafAirbaseRunway instance directly (bypassing :create() which
 --- requires live DCS APIs).  runwayEnd1/2 are {Number, Heading} tables.
 local function makeRunway(num1, hdg1, num2, hdg2)
-  return setmetatable(
-    { [1] = { Number = num1, Heading = hdg1 }, [2] = { Number = num2, Heading = hdg2 } },
-    veafAirbaseRunway
-  )
+  return setmetatable({ [1] = { Number = num1, Heading = hdg1 }, [2] = { Number = num2, Heading = hdg2 } }, veafAirbaseRunway)
 end
 
 --- Create a veafAirbase instance with pre-built runways and no DCS airbase.
 local function makeAirbase(runways, name)
-  return setmetatable(
-    { Name = name or "TestAB", DisplayName = name or "TestAB", Category = 0, Runways = runways },
-    veafAirbase
-  )
+  return setmetatable({ Name = name or "TestAB", DisplayName = name or "TestAB", Category = 0, Runways = runways }, veafAirbase)
 end
 
 -- ============================================================================
@@ -215,7 +209,9 @@ end
 function TestVeafAirbasesLookup:test_getNearestAirbaseList_empty_db()
   -- With empty Airbases table, loop body never executes → returns {}
   local mockUnit = {
-    getPoint = function() return { x = 0, y = 0, z = 0 } end,
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
   }
   local list = veafAirbases.getNearestAirbaseList(mockUnit, 1)
   luaunit.assertIsTable(list)
@@ -246,7 +242,13 @@ end
 TestVeafAirbaseRunwayCreate = {}
 
 -- Minimal DCS airbase/runway mock for create()
-local function makeDcsAirbase(name) return { getName = function() return name end } end
+local function makeDcsAirbase(name)
+  return {
+    getName = function()
+      return name
+    end,
+  }
+end
 local function makeDcsRunway(numberStr, courseDeg)
   -- DCS convention: course stored as negative radians of the True heading
   return { Name = numberStr, course = -math.rad(courseDeg) }
@@ -321,8 +323,12 @@ end
 function TestVeafAirbasesGetNearest:test_getNearestAirbase_empty_db_returns_nil()
   -- Empty Airbases: loop never runs → nearestList={} → return nil
   local mockUnit = {
-    getPoint = function() return { x = 0, y = 0, z = 0 } end,
-    getName = function() return "mockUnit" end,
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getName = function()
+      return "mockUnit"
+    end,
   }
   local ab = veafAirbases.getNearestAirbase(mockUnit)
   luaunit.assertNil(ab)

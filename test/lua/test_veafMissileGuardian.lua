@@ -45,9 +45,15 @@ end
 function TestVeafMGWeapon:test_setDcsWeapon_getDcsWeapon()
   local w = VeafMG_Weapon:new()
   -- dcsWeapon needs getLauncher() so veafMissileGuardian.getUnitName can work
-  local fakeUnit = { getName = function() return "F-16" end }
+  local fakeUnit = {
+    getName = function()
+      return "F-16"
+    end,
+  }
   local fake = {
-    getLauncher = function() return fakeUnit end,
+    getLauncher = function()
+      return fakeUnit
+    end,
     category = 1,
   }
   w:setDcsWeapon(fake)
@@ -123,8 +129,16 @@ end
 TestVeafMGWeaponExtra = {}
 
 function TestVeafMGWeaponExtra:test_setDcsWeapon_populates_shooter()
-  local fakeLauncher = { getName = function() return "F-16C-1" end }
-  local fakeWeapon = { getLauncher = function() return fakeLauncher end }
+  local fakeLauncher = {
+    getName = function()
+      return "F-16C-1"
+    end,
+  }
+  local fakeWeapon = {
+    getLauncher = function()
+      return fakeLauncher
+    end,
+  }
   local w = VeafMG_Weapon:new()
   w:setDcsWeapon(fakeWeapon)
   luaunit.assertEquals(w:getShooter(), fakeLauncher)
@@ -268,7 +282,6 @@ function TestVeafMGInitialize:test_initialize_idempotent()
   luaunit.assertEquals(veafMissileGuardian.rootPath, firstRootPath)
 end
 
-
 -------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-091 — VeafMG_Guardian:copy lost every protected unit
 --
@@ -322,6 +335,5 @@ function TestVeafMissileGuardianCopy:test_scalar_attributes_are_copied()
   luaunit.assertEquals(copy.name, "test")
   luaunit.assertEquals(copy.friendlyName, "Test guardian")
 end
-
 
 os.exit(luaunit.LuaUnit.run())

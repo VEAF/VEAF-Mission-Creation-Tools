@@ -8,8 +8,12 @@ dofile(src .. "/veafRemote.lua")
 
 -- Stub veafSecurity (required by executeRemoteCommand password check)
 veafSecurity = {
-  checkPassword_L1 = function() return true end,
-  checkSecurity_L9 = function() return true end,
+  checkPassword_L1 = function()
+    return true
+  end,
+  checkSecurity_L9 = function()
+    return true
+  end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -177,7 +181,7 @@ function TestVeafRemoteUserSlot:test_slot_reassignment()
   veafRemote.registerUser("Pilot1", 5, "u1")
   veafRemote.registerUser("Pilot2", 5, "u2")
   veafRemote.registerUserSlot("Pilot1", "u1", "F-16C #1")
-  veafRemote.registerUserSlot("Pilot2", "u2", "F-16C #1")  -- same unit, new pilot
+  veafRemote.registerUserSlot("Pilot2", "u2", "F-16C #1") -- same unit, new pilot
   local u = veafRemote.getRemoteUserFromUnit("F-16C #1")
   luaunit.assertNotNil(u)
   -- Should return the last registered pilot
@@ -206,13 +210,18 @@ end
 
 function TestVeafRemoteModuleRegistry:test_registerRemoteModule_stores_handler()
   local called = false
-  local function handler(unitName, args) called = true; return true end
+  local function handler(unitName, args)
+    called = true
+    return true
+  end
   veafRemote.registerRemoteModule("testmod", handler)
   luaunit.assertNotNil(veafRemote.remoteModuleRegistry["testmod"])
 end
 
 function TestVeafRemoteModuleRegistry:test_executeCommandFromRemote_with_registered_handler()
-  local function handler(unitName, args) return true end
+  local function handler(unitName, args)
+    return true
+  end
   veafRemote.registerRemoteModule("mymod", handler)
   -- executeCommandFromRemote(unitName, coalition, posUnit, module, command, args)
   local result = veafRemote.executeCommandFromRemote("pilot", 2, nil, "mymod", "cmd", {})

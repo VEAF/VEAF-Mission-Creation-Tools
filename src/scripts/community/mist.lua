@@ -814,13 +814,10 @@ do -- the main scope
               if zone.verticies then
                 local offset = {}
                 for i = 1, #zone.verticies do
-                  table.insert(
-                    offset,
-                    {
-                      dist = mist.utils.get2DDist(uRef.point, zone.verticies[i]),
-                      heading = mist.getHeadingPoints(uRef.point, zone.verticies[i]) + uRef.heading,
-                    }
-                  )
+                  table.insert(offset, {
+                    dist = mist.utils.get2DDist(uRef.point, zone.verticies[i]),
+                    heading = mist.getHeadingPoints(uRef.point, zone.verticies[i]) + uRef.heading,
+                  })
                 end
                 zone.offset = offset
               else
@@ -3570,7 +3567,8 @@ do
             elseif
               zone_type == "sphere"
               and (
-                ((unit_pos.x - zones[zones_ind].x) ^ 2 + (unit_pos.y - zones[zones_ind].y) ^ 2 + (unit_pos.z - zones[zones_ind].z) ^ 2) ^ 0.5
+                ((unit_pos.x - zones[zones_ind].x) ^ 2 + (unit_pos.y - zones[zones_ind].y) ^ 2 + (unit_pos.z - zones[zones_ind].z) ^ 2)
+                  ^ 0.5
                 <= zones[zones_ind].radius
               )
             then
@@ -6423,23 +6421,19 @@ unitTableDef = table or nil
         (type(trigger.misc.getUserFlag(stopflag)) == "number" and trigger.misc.getUserFlag(stopflag) == 0)
         or (type(trigger.misc.getUserFlag(stopflag)) == "boolean" and trigger.misc.getUserFlag(stopflag) == 0)
       then
-        mist.scheduleFunction(
-          mist.flagFunc.units_in_polygon,
+        mist.scheduleFunction(mist.flagFunc.units_in_polygon, {
           {
-            {
-              units = units,
-              zone = zone,
-              flag = flag,
-              stopflag = stopflag,
-              interval = interval,
-              req_num = req_num,
-              maxalt = maxalt,
-              toggle = toggle,
-              unitTableDef = unitTableDef,
-            },
+            units = units,
+            zone = zone,
+            flag = flag,
+            stopflag = stopflag,
+            interval = interval,
+            req_num = req_num,
+            maxalt = maxalt,
+            toggle = toggle,
+            unitTableDef = unitTableDef,
           },
-          timer.getTime() + interval
-        )
+        }, timer.getTime() + interval)
       end
     end
   end
@@ -6509,23 +6503,19 @@ unitTableDef = table or nil
         (type(trigger.misc.getUserFlag(stopflag)) == "number" and trigger.misc.getUserFlag(stopflag) == 0)
         or (type(trigger.misc.getUserFlag(stopflag)) == "boolean" and trigger.misc.getUserFlag(stopflag) == false)
       then
-        mist.scheduleFunction(
-          mist.flagFunc.units_in_zones,
+        mist.scheduleFunction(mist.flagFunc.units_in_zones, {
           {
-            {
-              units = units,
-              zones = zones,
-              flag = flag,
-              stopflag = stopflag,
-              zone_type = zone_type,
-              req_num = req_num,
-              interval = interval,
-              toggle = toggle,
-              unitTableDef = unitTableDef,
-            },
+            units = units,
+            zones = zones,
+            flag = flag,
+            stopflag = stopflag,
+            zone_type = zone_type,
+            req_num = req_num,
+            interval = interval,
+            toggle = toggle,
+            unitTableDef = unitTableDef,
           },
-          timer.getTime() + interval
-        )
+        }, timer.getTime() + interval)
       end
     end
   end
@@ -6616,25 +6606,21 @@ unitTableDef = table or nil
         (type(trigger.misc.getUserFlag(stopflag)) == "number" and trigger.misc.getUserFlag(stopflag) == 0)
         or (type(trigger.misc.getUserFlag(stopflag)) == "boolean" and trigger.misc.getUserFlag(stopflag) == false)
       then
-        mist.scheduleFunction(
-          mist.flagFunc.units_in_moving_zones,
+        mist.scheduleFunction(mist.flagFunc.units_in_moving_zones, {
           {
-            {
-              units = units,
-              zone_units = zone_units,
-              radius = radius,
-              flag = flag,
-              stopflag = stopflag,
-              zone_type = zone_type,
-              req_num = req_num,
-              interval = interval,
-              toggle = toggle,
-              unitTableDef = unitTableDef,
-              zUnitTableDef = zUnitTableDef,
-            },
+            units = units,
+            zone_units = zone_units,
+            radius = radius,
+            flag = flag,
+            stopflag = stopflag,
+            zone_type = zone_type,
+            req_num = req_num,
+            interval = interval,
+            toggle = toggle,
+            unitTableDef = unitTableDef,
+            zUnitTableDef = zUnitTableDef,
           },
-          timer.getTime() + interval
-        )
+        }, timer.getTime() + interval)
       end
     end
   end
@@ -6722,26 +6708,22 @@ toggle = boolean or nil
         (type(trigger.misc.getUserFlag(stopflag)) == "number" and trigger.misc.getUserFlag(stopflag) == 0)
         or (type(trigger.misc.getUserFlag(stopflag)) == "boolean" and trigger.misc.getUserFlag(stopflag) == false)
       then
-        mist.scheduleFunction(
-          mist.flagFunc.units_LOS,
+        mist.scheduleFunction(mist.flagFunc.units_LOS, {
           {
-            {
-              unitset1 = unitset1,
-              altoffset1 = altoffset1,
-              unitset2 = unitset2,
-              altoffset2 = altoffset2,
-              flag = flag,
-              stopflag = stopflag,
-              radius = radius,
-              req_num = req_num,
-              interval = interval,
-              toggle = toggle,
-              unitTableDef1 = unitTableDef1,
-              unitTableDef2 = unitTableDef2,
-            },
+            unitset1 = unitset1,
+            altoffset1 = altoffset1,
+            unitset2 = unitset2,
+            altoffset2 = altoffset2,
+            flag = flag,
+            stopflag = stopflag,
+            radius = radius,
+            req_num = req_num,
+            interval = interval,
+            toggle = toggle,
+            unitTableDef1 = unitTableDef1,
+            unitTableDef2 = unitTableDef2,
           },
-          timer.getTime() + interval
-        )
+        }, timer.getTime() + interval)
       end
     end
   end

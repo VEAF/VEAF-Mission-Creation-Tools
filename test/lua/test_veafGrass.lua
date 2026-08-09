@@ -39,7 +39,9 @@ end
 function TestVeafGrassHelicopters:test_sa342mistral_present()
   local found = false
   for _, h in ipairs(veafGrass.helicoptersOnFARPs) do
-    if h == "SA342Mistral" then found = true end
+    if h == "SA342Mistral" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -47,7 +49,9 @@ end
 function TestVeafGrassHelicopters:test_uh1h_present()
   local found = false
   for _, h in ipairs(veafGrass.helicoptersOnFARPs) do
-    if h == "UH-1H" then found = true end
+    if h == "UH-1H" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -55,7 +59,9 @@ end
 function TestVeafGrassHelicopters:test_mi24p_present()
   local found = false
   for _, h in ipairs(veafGrass.helicoptersOnFARPs) do
-    if h == "Mi-24P" then found = true end
+    if h == "Mi-24P" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -63,7 +69,9 @@ end
 function TestVeafGrassHelicopters:test_ah64d_present()
   local found = false
   for _, h in ipairs(veafGrass.helicoptersOnFARPs) do
-    if h == "AH-64D_BLK_II" then found = true end
+    if h == "AH-64D_BLK_II" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -75,7 +83,6 @@ end
 function TestVeafGrassHelicopters:test_last_entry_is_ch47()
   luaunit.assertEquals(veafGrass.helicoptersOnFARPs[18], "CH-47Fbl1")
 end
-
 
 -------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-022 — the FARP coalition normalisation had two dead guards
@@ -123,6 +130,5 @@ function TestVeafGrassFarpCoalition:test_unknown_string_defaults_to_blue()
   luaunit.assertEquals(name, "blue")
   luaunit.assertEquals(number, 2)
 end
-
 
 os.exit(luaunit.LuaUnit.run())

@@ -15,7 +15,7 @@
 -- Bootstrap
 -- ---------------------------------------------------------------------------
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
-luaunit = dofile(_base .. "/luaunit.lua")  -- exported as global for test methods
+luaunit = dofile(_base .. "/luaunit.lua") -- exported as global for test methods
 dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafInterpreter.lua")

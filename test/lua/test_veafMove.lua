@@ -30,7 +30,9 @@ end
 
 function TestVeafMoveTankerParameters:test_tanker_params_has_27_entries()
   local count = 0
-  for _ in pairs(veafMove.tankerMissionParameters) do count = count + 1 end
+  for _ in pairs(veafMove.tankerMissionParameters) do
+    count = count + 1
+  end
   luaunit.assertEquals(count, 27)
 end
 
@@ -334,12 +336,14 @@ end
 TestVeafMoveAdvanced = {}
 
 function TestVeafMoveAdvanced:setUp()
-  self._origSchedule    = mist.scheduleFunction
-  self._origCountry     = env.mission.coalition.blue.country
+  self._origSchedule = mist.scheduleFunction
+  self._origCountry = env.mission.coalition.blue.country
   self._origUnitsByName = mist.DBs.unitsByName
 
   -- Execute scheduled functions synchronously (Lua 5.1: unpack, not table.unpack)
-  mist.scheduleFunction = function(fn, params, time) fn(unpack(params)) end
+  mist.scheduleFunction = function(fn, params, time)
+    fn(unpack(params))
+  end
 
   -- KC-135 unit for findAllTankers inner loop
   mist.DBs.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
@@ -351,26 +355,34 @@ function TestVeafMoveAdvanced:setUp()
         group = {
           [1] = {
             groupId = "TKR_NO_ORBIT",
-            name    = "TKR_NO_ORBIT",
-            route   = {
+            name = "TKR_NO_ORBIT",
+            route = {
               points = {
-                { x = 0,      y = 0, speed = 200, alt = 6000 },
-                { x = 100000, y = 0, speed = 200, alt = 6000,
-                  task = { params = { tasks = {} } } },
+                { x = 0, y = 0, speed = 200, alt = 6000 },
+                { x = 100000, y = 0, speed = 200, alt = 6000, task = { params = { tasks = {} } } },
                 { x = 200000, y = 0, speed = 200, alt = 6000 },
               },
             },
           },
           [2] = {
             groupId = "TKR_WITH_ORBIT",
-            name    = "TKR_WITH_ORBIT",
-            route   = {
+            name = "TKR_WITH_ORBIT",
+            route = {
               points = {
-                { x = 0,      y = 0, speed = 200, alt = 6000 },
-                { x = 100000, y = 0, speed = 200, alt = 6000,
-                  task = { params = { tasks = {
-                    { id = "Orbit", params = { speed = 200, altitude = 6000 } },
-                  } } } },
+                { x = 0, y = 0, speed = 200, alt = 6000 },
+                {
+                  x = 100000,
+                  y = 0,
+                  speed = 200,
+                  alt = 6000,
+                  task = {
+                    params = {
+                      tasks = {
+                        { id = "Orbit", params = { speed = 200, altitude = 6000 } },
+                      },
+                    },
+                  },
+                },
                 { x = 200000, y = 0, speed = 200, alt = 6000 },
               },
             },
@@ -389,9 +401,9 @@ function TestVeafMoveAdvanced:setUp()
 end
 
 function TestVeafMoveAdvanced:tearDown()
-  mist.scheduleFunction                  = self._origSchedule
-  env.mission.coalition.blue.country     = self._origCountry
-  mist.DBs.unitsByName                   = self._origUnitsByName
+  mist.scheduleFunction = self._origSchedule
+  env.mission.coalition.blue.country = self._origCountry
+  mist.DBs.unitsByName = self._origUnitsByName
   dcs_mocks.removeGroup("TKR_NO_ORBIT")
   dcs_mocks.removeGroup("TKR_WITH_ORBIT")
 end

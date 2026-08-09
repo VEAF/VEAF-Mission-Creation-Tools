@@ -65,8 +65,14 @@ end
 
 function TestVeafCommandsRegistry:test_equal_priority_preserves_insertion_order()
   local calls = {}
-  local fn1 = function() table.insert(calls, 1) return false end
-  local fn2 = function() table.insert(calls, 2) return false end
+  local fn1 = function()
+    table.insert(calls, 1)
+    return false
+  end
+  local fn2 = function()
+    table.insert(calls, 2)
+    return false
+  end
   veafCommands.registerCommandHandler(fn1, 20, veafCommands.SECURITY_HANDLED)
   veafCommands.registerCommandHandler(fn2, 20, veafCommands.SECURITY_HANDLED)
   veafCommands.execute(pos, "ignored", 2, nil, nil)
@@ -84,8 +90,14 @@ end
 
 function TestVeafCommandsDispatch:test_stops_at_first_true()
   local calls = {}
-  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return true end, 10, veafCommands.SECURITY_HANDLED)
-  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return true end, 20, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function()
+    table.insert(calls, 1)
+    return true
+  end, 10, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function()
+    table.insert(calls, 2)
+    return true
+  end, 20, veafCommands.SECURITY_HANDLED)
   local result = veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertTrue(result)
   luaunit.assertEquals(calls, { 1 })
@@ -93,8 +105,14 @@ end
 
 function TestVeafCommandsDispatch:test_tries_all_when_none_matches()
   local calls = {}
-  veafCommands.registerCommandHandler(function() table.insert(calls, 1) return false end, 10, veafCommands.SECURITY_HANDLED)
-  veafCommands.registerCommandHandler(function() table.insert(calls, 2) return false end, 20, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function()
+    table.insert(calls, 1)
+    return false
+  end, 10, veafCommands.SECURITY_HANDLED)
+  veafCommands.registerCommandHandler(function()
+    table.insert(calls, 2)
+    return false
+  end, 20, veafCommands.SECURITY_HANDLED)
   local result = veafCommands.execute(pos, "cmd", 2, nil, nil)
   luaunit.assertFalse(result)
   luaunit.assertEquals(calls, { 1, 2 })
@@ -185,10 +203,18 @@ end
 --- Replace the real checks so the test states the verdict rather than the password rules.
 function TestVeafCommandsSecurityEnforcement:setVerdict(allowed)
   veafCommands.SECURITY_CHECKS = {
-    L0 = function() return allowed end,
-    L1 = function() return allowed end,
-    L9 = function() return allowed end,
-    OPEN = function() return true end,
+    L0 = function()
+      return allowed
+    end,
+    L1 = function()
+      return allowed
+    end,
+    L9 = function()
+      return allowed
+    end,
+    OPEN = function()
+      return true
+    end,
   }
 end
 

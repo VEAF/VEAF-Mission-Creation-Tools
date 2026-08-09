@@ -56,7 +56,7 @@ end
 
 function TestVeafSanctuaryZoneOOP:test_setCoalition_getCoalition()
   local s = VeafSanctuaryZone:new()
-  s:setCoalition(2)  -- BLUE
+  s:setCoalition(2) -- BLUE
   luaunit.assertEquals(s:getCoalition(), 2)
 end
 
@@ -117,7 +117,7 @@ end
 function TestVeafSanctuaryZoneOOP:test_addSpawnedGroups()
   local s = VeafSanctuaryZone:new()
   -- addSpawnedGroups takes a table of group name strings
-  s:addSpawnedGroups({"group1", "group2"})
+  s:addSpawnedGroups({ "group1", "group2" })
   local sg = s:getSpawnedGroups()
   luaunit.assertIsTable(sg)
   luaunit.assertNotNil(sg["group1"])

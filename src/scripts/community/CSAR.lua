@@ -1670,19 +1670,16 @@ function csar.displayActiveSAR(_unitName)
 
       local _distance = csar.getDistance(_heli:getPoint(), _woundedGroup[1]:getPoint())
 
-      table.insert(
-        _csarList,
-        {
-          dist = _distance,
-          msg = string.format(
-            "%s at %s - %.2f KHz ADF - %.3fKM ",
-            _value.desc,
-            _coordinatesText,
-            _value.frequency / 1000,
-            _distance / 1000.0
-          ),
-        }
-      )
+      table.insert(_csarList, {
+        dist = _distance,
+        msg = string.format(
+          "%s at %s - %.2f KHz ADF - %.3fKM ",
+          _value.desc,
+          _coordinatesText,
+          _value.frequency / 1000,
+          _distance / 1000.0
+        ),
+      })
     end
   end
 

@@ -25,7 +25,9 @@ end
 
 function TestVeafEventHandlerConstants:test_events_is_not_empty()
   local count = 0
-  for _ in pairs(veafEventHandler.EVENTS) do count = count + 1 end
+  for _ in pairs(veafEventHandler.EVENTS) do
+    count = count + 1
+  end
   luaunit.assertTrue(count > 0)
 end
 
@@ -56,7 +58,9 @@ end
 function TestVeafEventHandlerEventsStructure:test_s_event_invalid_exists()
   local found = false
   for _, v in pairs(veafEventHandler.EVENTS) do
-    if v.name == "S_EVENT_INVALID" then found = true end
+    if v.name == "S_EVENT_INVALID" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -64,7 +68,9 @@ end
 function TestVeafEventHandlerEventsStructure:test_s_event_shot_exists()
   local found = false
   for _, v in pairs(veafEventHandler.EVENTS) do
-    if v.name == "S_EVENT_SHOT" then found = true end
+    if v.name == "S_EVENT_SHOT" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -72,7 +78,9 @@ end
 function TestVeafEventHandlerEventsStructure:test_s_event_birth_exists()
   local found = false
   for _, v in pairs(veafEventHandler.EVENTS) do
-    if v.name == "S_EVENT_BIRTH" then found = true end
+    if v.name == "S_EVENT_BIRTH" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -80,7 +88,9 @@ end
 function TestVeafEventHandlerEventsStructure:test_s_event_dead_exists()
   local found = false
   for _, v in pairs(veafEventHandler.EVENTS) do
-    if v.name == "S_EVENT_DEAD" then found = true end
+    if v.name == "S_EVENT_DEAD" then
+      found = true
+    end
   end
   luaunit.assertTrue(found)
 end
@@ -95,7 +105,7 @@ function TestVeafEventHandlerAddCallback:setUp()
 end
 
 -- S_EVENT_SHOT = id 1; S_EVENT_BIRTH = id 15
-local SHOT_ID  = 1
+local SHOT_ID = 1
 local BIRTH_ID = 15
 
 function TestVeafEventHandlerAddCallback:test_valid_callback_returns_true()
@@ -119,7 +129,7 @@ function TestVeafEventHandlerAddCallback:test_empty_name_is_accepted_or_rejected
   local ok = pcall(function()
     veafEventHandler.addCallback("", { SHOT_ID }, function() end)
   end)
-  luaunit.assertTrue(ok)  -- no Lua error raised
+  luaunit.assertTrue(ok) -- no Lua error raised
 end
 
 function TestVeafEventHandlerAddCallback:test_callback_registered_numerically()
@@ -129,7 +139,7 @@ function TestVeafEventHandlerAddCallback:test_callback_registered_numerically()
 end
 
 function TestVeafEventHandlerAddCallback:test_multiple_callbacks_appended()
-  veafEventHandler.addCallback("cb1", { SHOT_ID  }, function() end)
+  veafEventHandler.addCallback("cb1", { SHOT_ID }, function() end)
   veafEventHandler.addCallback("cb2", { BIRTH_ID }, function() end)
   luaunit.assertEquals(#veafEventHandler.callbacks, 2)
   luaunit.assertEquals(veafEventHandler.callbacks[1].name, "cb1")
@@ -164,7 +174,11 @@ TestVeafEventHandlerCompleteUnit = {}
 
 function TestVeafEventHandlerCompleteUnit:setUp()
   -- completeUnitFromName resolves the pilot via veafRemote, not loaded in this suite.
-  veafRemote = { getRemoteUserFromUnit = function() return nil end }
+  veafRemote = {
+    getRemoteUserFromUnit = function()
+      return nil
+    end,
+  }
 end
 
 function TestVeafEventHandlerCompleteUnit:tearDown()
@@ -175,7 +189,9 @@ end
 function TestVeafEventHandlerCompleteUnit:test_unitCategory_is_unit_category_not_object_category()
   dcs_mocks.addUnit("Intruder", {
     _categoryEx = Unit.Category.AIRPLANE,
-    getCategory = function() return Object.Category.UNIT end, -- real DCS units expose this
+    getCategory = function()
+      return Object.Category.UNIT
+    end, -- real DCS units expose this
   })
   local data = veafEventHandler.completeUnitFromName("Intruder")
   luaunit.assertEquals(data.unitCategory, Unit.Category.AIRPLANE)

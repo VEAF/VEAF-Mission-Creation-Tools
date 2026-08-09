@@ -26,25 +26,49 @@ TestVeafTime = {}
 --- Restore a known-good date and theatre before every test.
 function TestVeafTime:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 -- -----------------------------------------------------------------------
 -- determineSeason — Northern Hemisphere (lat 48 N)
 -- -----------------------------------------------------------------------
-function TestVeafTime:test_determineSeason_N_dec()   luaunit.assertEquals(veafTime.determineSeason(12, 48), "winter") end
-function TestVeafTime:test_determineSeason_N_jan()   luaunit.assertEquals(veafTime.determineSeason(1,  48), "winter") end
-function TestVeafTime:test_determineSeason_N_feb()   luaunit.assertEquals(veafTime.determineSeason(2,  48), "winter") end
-function TestVeafTime:test_determineSeason_N_mar()   luaunit.assertEquals(veafTime.determineSeason(3,  48), "spring") end
-function TestVeafTime:test_determineSeason_N_apr()   luaunit.assertEquals(veafTime.determineSeason(4,  48), "spring") end
-function TestVeafTime:test_determineSeason_N_may()   luaunit.assertEquals(veafTime.determineSeason(5,  48), "spring") end
-function TestVeafTime:test_determineSeason_N_jun()   luaunit.assertEquals(veafTime.determineSeason(6,  48), "summer") end
-function TestVeafTime:test_determineSeason_N_jul()   luaunit.assertEquals(veafTime.determineSeason(7,  48), "summer") end
-function TestVeafTime:test_determineSeason_N_aug()   luaunit.assertEquals(veafTime.determineSeason(8,  48), "summer") end
-function TestVeafTime:test_determineSeason_N_sep()   luaunit.assertEquals(veafTime.determineSeason(9,  48), "autumn") end
-function TestVeafTime:test_determineSeason_N_oct()   luaunit.assertEquals(veafTime.determineSeason(10, 48), "autumn") end
-function TestVeafTime:test_determineSeason_N_nov()   luaunit.assertEquals(veafTime.determineSeason(11, 48), "autumn") end
+function TestVeafTime:test_determineSeason_N_dec()
+  luaunit.assertEquals(veafTime.determineSeason(12, 48), "winter")
+end
+function TestVeafTime:test_determineSeason_N_jan()
+  luaunit.assertEquals(veafTime.determineSeason(1, 48), "winter")
+end
+function TestVeafTime:test_determineSeason_N_feb()
+  luaunit.assertEquals(veafTime.determineSeason(2, 48), "winter")
+end
+function TestVeafTime:test_determineSeason_N_mar()
+  luaunit.assertEquals(veafTime.determineSeason(3, 48), "spring")
+end
+function TestVeafTime:test_determineSeason_N_apr()
+  luaunit.assertEquals(veafTime.determineSeason(4, 48), "spring")
+end
+function TestVeafTime:test_determineSeason_N_may()
+  luaunit.assertEquals(veafTime.determineSeason(5, 48), "spring")
+end
+function TestVeafTime:test_determineSeason_N_jun()
+  luaunit.assertEquals(veafTime.determineSeason(6, 48), "summer")
+end
+function TestVeafTime:test_determineSeason_N_jul()
+  luaunit.assertEquals(veafTime.determineSeason(7, 48), "summer")
+end
+function TestVeafTime:test_determineSeason_N_aug()
+  luaunit.assertEquals(veafTime.determineSeason(8, 48), "summer")
+end
+function TestVeafTime:test_determineSeason_N_sep()
+  luaunit.assertEquals(veafTime.determineSeason(9, 48), "autumn")
+end
+function TestVeafTime:test_determineSeason_N_oct()
+  luaunit.assertEquals(veafTime.determineSeason(10, 48), "autumn")
+end
+function TestVeafTime:test_determineSeason_N_nov()
+  luaunit.assertEquals(veafTime.determineSeason(11, 48), "autumn")
+end
 
 -- nil latitude is treated as Northern (>= 0 branch)
 function TestVeafTime:test_determineSeason_nil_lat_summer()
@@ -62,48 +86,60 @@ end
 -- -----------------------------------------------------------------------
 -- determineSeason — Southern Hemisphere (lat -34 S)
 -- -----------------------------------------------------------------------
-function TestVeafTime:test_determineSeason_S_dec()   luaunit.assertEquals(veafTime.determineSeason(12, -34), "summer") end
-function TestVeafTime:test_determineSeason_S_jan()   luaunit.assertEquals(veafTime.determineSeason(1,  -34), "summer") end
-function TestVeafTime:test_determineSeason_S_feb()   luaunit.assertEquals(veafTime.determineSeason(2,  -34), "summer") end
-function TestVeafTime:test_determineSeason_S_mar()   luaunit.assertEquals(veafTime.determineSeason(3,  -34), "autumn") end
-function TestVeafTime:test_determineSeason_S_apr()   luaunit.assertEquals(veafTime.determineSeason(4,  -34), "autumn") end
-function TestVeafTime:test_determineSeason_S_may()   luaunit.assertEquals(veafTime.determineSeason(5,  -34), "autumn") end
-function TestVeafTime:test_determineSeason_S_jun()   luaunit.assertEquals(veafTime.determineSeason(6,  -34), "winter") end
-function TestVeafTime:test_determineSeason_S_jul()   luaunit.assertEquals(veafTime.determineSeason(7,  -34), "winter") end
-function TestVeafTime:test_determineSeason_S_aug()   luaunit.assertEquals(veafTime.determineSeason(8,  -34), "winter") end
-function TestVeafTime:test_determineSeason_S_sep()   luaunit.assertEquals(veafTime.determineSeason(9,  -34), "spring") end
-function TestVeafTime:test_determineSeason_S_oct()   luaunit.assertEquals(veafTime.determineSeason(10, -34), "spring") end
-function TestVeafTime:test_determineSeason_S_nov()   luaunit.assertEquals(veafTime.determineSeason(11, -34), "spring") end
+function TestVeafTime:test_determineSeason_S_dec()
+  luaunit.assertEquals(veafTime.determineSeason(12, -34), "summer")
+end
+function TestVeafTime:test_determineSeason_S_jan()
+  luaunit.assertEquals(veafTime.determineSeason(1, -34), "summer")
+end
+function TestVeafTime:test_determineSeason_S_feb()
+  luaunit.assertEquals(veafTime.determineSeason(2, -34), "summer")
+end
+function TestVeafTime:test_determineSeason_S_mar()
+  luaunit.assertEquals(veafTime.determineSeason(3, -34), "autumn")
+end
+function TestVeafTime:test_determineSeason_S_apr()
+  luaunit.assertEquals(veafTime.determineSeason(4, -34), "autumn")
+end
+function TestVeafTime:test_determineSeason_S_may()
+  luaunit.assertEquals(veafTime.determineSeason(5, -34), "autumn")
+end
+function TestVeafTime:test_determineSeason_S_jun()
+  luaunit.assertEquals(veafTime.determineSeason(6, -34), "winter")
+end
+function TestVeafTime:test_determineSeason_S_jul()
+  luaunit.assertEquals(veafTime.determineSeason(7, -34), "winter")
+end
+function TestVeafTime:test_determineSeason_S_aug()
+  luaunit.assertEquals(veafTime.determineSeason(8, -34), "winter")
+end
+function TestVeafTime:test_determineSeason_S_sep()
+  luaunit.assertEquals(veafTime.determineSeason(9, -34), "spring")
+end
+function TestVeafTime:test_determineSeason_S_oct()
+  luaunit.assertEquals(veafTime.determineSeason(10, -34), "spring")
+end
+function TestVeafTime:test_determineSeason_S_nov()
+  luaunit.assertEquals(veafTime.determineSeason(11, -34), "spring")
+end
 
 -- -----------------------------------------------------------------------
 -- toStringDate
 -- -----------------------------------------------------------------------
 function TestVeafTime:test_toStringDate_pads_single_digit_day_month()
-  luaunit.assertEquals(
-    veafTime.toStringDate({ year = 2024, month = 3, day = 5, yday = 65, hour = 0, min = 0, sec = 0 }),
-    "05/03/2024"
-  )
+  luaunit.assertEquals(veafTime.toStringDate({ year = 2024, month = 3, day = 5, yday = 65, hour = 0, min = 0, sec = 0 }), "05/03/2024")
 end
 
 function TestVeafTime:test_toStringDate_new_year_day()
-  luaunit.assertEquals(
-    veafTime.toStringDate({ year = 2000, month = 1, day = 1, yday = 1, hour = 0, min = 0, sec = 0 }),
-    "01/01/2000"
-  )
+  luaunit.assertEquals(veafTime.toStringDate({ year = 2000, month = 1, day = 1, yday = 1, hour = 0, min = 0, sec = 0 }), "01/01/2000")
 end
 
 function TestVeafTime:test_toStringDate_year_end()
-  luaunit.assertEquals(
-    veafTime.toStringDate({ year = 2023, month = 12, day = 31, yday = 365, hour = 0, min = 0, sec = 0 }),
-    "31/12/2023"
-  )
+  luaunit.assertEquals(veafTime.toStringDate({ year = 2023, month = 12, day = 31, yday = 365, hour = 0, min = 0, sec = 0 }), "31/12/2023")
 end
 
 function TestVeafTime:test_toStringDate_double_digit_day_month()
-  luaunit.assertEquals(
-    veafTime.toStringDate({ year = 2024, month = 11, day = 15, yday = 320, hour = 0, min = 0, sec = 0 }),
-    "15/11/2024"
-  )
+  luaunit.assertEquals(veafTime.toStringDate({ year = 2024, month = 11, day = 15, yday = 320, hour = 0, min = 0, sec = 0 }), "15/11/2024")
 end
 
 -- -----------------------------------------------------------------------
@@ -147,35 +183,35 @@ end
 -- -----------------------------------------------------------------------
 function TestVeafTime:test_getMissionDateTime_midnight_returns_start_date()
   local dt = veafTime.getMissionDateTime(0)
-  luaunit.assertEquals(dt.day,   1)
+  luaunit.assertEquals(dt.day, 1)
   luaunit.assertEquals(dt.month, 1)
-  luaunit.assertEquals(dt.year,  2024)
-  luaunit.assertEquals(dt.hour,  0)
-  luaunit.assertEquals(dt.min,   0)
-  luaunit.assertEquals(dt.sec,   0)
+  luaunit.assertEquals(dt.year, 2024)
+  luaunit.assertEquals(dt.hour, 0)
+  luaunit.assertEquals(dt.min, 0)
+  luaunit.assertEquals(dt.sec, 0)
 end
 
 function TestVeafTime:test_getMissionDateTime_noon()
   -- 12 * 3600 = 43200
   local dt = veafTime.getMissionDateTime(43200)
   luaunit.assertEquals(dt.hour, 12)
-  luaunit.assertEquals(dt.min,  0)
-  luaunit.assertEquals(dt.sec,  0)
-  luaunit.assertEquals(dt.day,  1)
+  luaunit.assertEquals(dt.min, 0)
+  luaunit.assertEquals(dt.sec, 0)
+  luaunit.assertEquals(dt.day, 1)
 end
 
 function TestVeafTime:test_getMissionDateTime_specific_hms()
   -- 10:30:45 = 10*3600 + 30*60 + 45 = 37845
   local dt = veafTime.getMissionDateTime(37845)
   luaunit.assertEquals(dt.hour, 10)
-  luaunit.assertEquals(dt.min,  30)
-  luaunit.assertEquals(dt.sec,  45)
+  luaunit.assertEquals(dt.min, 30)
+  luaunit.assertEquals(dt.sec, 45)
 end
 
 function TestVeafTime:test_getMissionDateTime_day_rollover()
   -- 25 hours = 90000 s → day 2, hour 1
   local dt = veafTime.getMissionDateTime(90000)
-  luaunit.assertEquals(dt.day,  2)
+  luaunit.assertEquals(dt.day, 2)
   luaunit.assertEquals(dt.hour, 1)
 end
 
@@ -183,25 +219,25 @@ function TestVeafTime:test_getMissionDateTime_month_rollover()
   -- Jan 31 + exactly 1 day → Feb 1
   env.mission.date = { Day = 31, Month = 1, Year = 2024 }
   local dt = veafTime.getMissionDateTime(86400)
-  luaunit.assertEquals(dt.day,   1)
+  luaunit.assertEquals(dt.day, 1)
   luaunit.assertEquals(dt.month, 2)
-  luaunit.assertEquals(dt.year,  2024)
+  luaunit.assertEquals(dt.year, 2024)
 end
 
 function TestVeafTime:test_getMissionDateTime_year_rollover()
   -- Dec 31 2023 + 1 day → Jan 1 2024
   env.mission.date = { Day = 31, Month = 12, Year = 2023 }
   local dt = veafTime.getMissionDateTime(86400)
-  luaunit.assertEquals(dt.day,   1)
+  luaunit.assertEquals(dt.day, 1)
   luaunit.assertEquals(dt.month, 1)
-  luaunit.assertEquals(dt.year,  2024)
+  luaunit.assertEquals(dt.year, 2024)
 end
 
 function TestVeafTime:test_getMissionDateTime_leap_year_feb28_plus1()
   -- 2024 is a leap year: Feb 28 + 1 day = Feb 29
   env.mission.date = { Day = 28, Month = 2, Year = 2024 }
   local dt = veafTime.getMissionDateTime(86400)
-  luaunit.assertEquals(dt.day,   29)
+  luaunit.assertEquals(dt.day, 29)
   luaunit.assertEquals(dt.month, 2)
 end
 
@@ -209,9 +245,9 @@ function TestVeafTime:test_getMissionDateTime_non_leap_year_feb28_plus1()
   -- 2023 is NOT a leap year: Feb 28 + 1 day = Mar 1
   env.mission.date = { Day = 28, Month = 2, Year = 2023 }
   local dt = veafTime.getMissionDateTime(86400)
-  luaunit.assertEquals(dt.day,   1)
+  luaunit.assertEquals(dt.day, 1)
   luaunit.assertEquals(dt.month, 3)
-  luaunit.assertEquals(dt.year,  2023)
+  luaunit.assertEquals(dt.year, 2023)
 end
 
 function TestVeafTime:test_getMissionDateTime_yday_march1_leap()
@@ -248,14 +284,14 @@ function TestVeafTime:test_getMissionAbsTime_round_trip()
   -- absTime → dateTime → absTime must be identity
   env.mission.date = { Day = 5, Month = 6, Year = 2024 }
   local originalAbs = 37845
-  local dt  = veafTime.getMissionDateTime(originalAbs)
+  local dt = veafTime.getMissionDateTime(originalAbs)
   local abs = veafTime.getMissionAbsTime(dt)
   luaunit.assertEquals(abs, originalAbs)
 end
 
 function TestVeafTime:test_getMissionAbsTime_round_trip_midnight()
   env.mission.date = { Day = 1, Month = 1, Year = 2024 }
-  local dt  = veafTime.getMissionDateTime(0)
+  local dt = veafTime.getMissionDateTime(0)
   local abs = veafTime.getMissionAbsTime(dt)
   luaunit.assertEquals(abs, 0)
 end
@@ -266,50 +302,50 @@ end
 function TestVeafTime:test_toZulu_subtracts_positive_offset()
   -- 14:00 local at UTC+4 → 10:00 UTC
   local loc = { year = 2024, month = 6, day = 15, yday = 167, hour = 14, min = 0, sec = 0 }
-  local z   = veafTime.toZulu(loc, 4)
+  local z = veafTime.toZulu(loc, 4)
   luaunit.assertEquals(z.hour, 10)
-  luaunit.assertEquals(z.min,  0)
-  luaunit.assertEquals(z.day,  15)
+  luaunit.assertEquals(z.min, 0)
+  luaunit.assertEquals(z.day, 15)
 end
 
 function TestVeafTime:test_toZulu_day_boundary_backward()
   -- 02:00 local at UTC+4 → 22:00 of the previous day UTC
   local loc = { year = 2024, month = 6, day = 15, yday = 167, hour = 2, min = 0, sec = 0 }
-  local z   = veafTime.toZulu(loc, 4)
+  local z = veafTime.toZulu(loc, 4)
   luaunit.assertEquals(z.hour, 22)
-  luaunit.assertEquals(z.day,  14)
+  luaunit.assertEquals(z.day, 14)
 end
 
 function TestVeafTime:test_toZulu_negative_offset_day_boundary_forward()
   -- 22:00 local at UTC-8 → 06:00 of the next day UTC
   local loc = { year = 2024, month = 6, day = 15, yday = 167, hour = 22, min = 0, sec = 0 }
-  local z   = veafTime.toZulu(loc, -8)
+  local z = veafTime.toZulu(loc, -8)
   luaunit.assertEquals(z.hour, 6)
-  luaunit.assertEquals(z.day,  16)
+  luaunit.assertEquals(z.day, 16)
 end
 
 function TestVeafTime:test_toZulu_preserves_minutes()
   -- 08:45 local at UTC+4 → 04:45 UTC
   local loc = { year = 2024, month = 1, day = 1, yday = 1, hour = 8, min = 45, sec = 0 }
-  local z   = veafTime.toZulu(loc, 4)
+  local z = veafTime.toZulu(loc, 4)
   luaunit.assertEquals(z.hour, 4)
-  luaunit.assertEquals(z.min,  45)
+  luaunit.assertEquals(z.min, 45)
 end
 
 function TestVeafTime:test_toZulu_zero_offset_unchanged()
   local loc = { year = 2024, month = 1, day = 1, yday = 1, hour = 12, min = 0, sec = 0 }
-  local z   = veafTime.toZulu(loc, 0)
+  local z = veafTime.toZulu(loc, 0)
   luaunit.assertEquals(z.hour, 12)
-  luaunit.assertEquals(z.day,  1)
+  luaunit.assertEquals(z.day, 1)
 end
 
 function TestVeafTime:test_toLocal_is_inverse_of_toZulu()
   local original = { year = 2024, month = 6, day = 15, yday = 167, hour = 14, min = 30, sec = 0 }
-  local z   = veafTime.toZulu(original, 4)
+  local z = veafTime.toZulu(original, 4)
   local loc = veafTime.toLocal(z, 4)
   luaunit.assertEquals(loc.hour, original.hour)
-  luaunit.assertEquals(loc.min,  original.min)
-  luaunit.assertEquals(loc.day,  original.day)
+  luaunit.assertEquals(loc.min, original.min)
+  luaunit.assertEquals(loc.day, original.day)
 end
 
 function TestVeafTime:test_toLocal_adds_positive_offset()
@@ -317,7 +353,7 @@ function TestVeafTime:test_toLocal_adds_positive_offset()
   local utc = { year = 2024, month = 6, day = 15, yday = 167, hour = 10, min = 0, sec = 0 }
   local loc = veafTime.toLocal(utc, 4)
   luaunit.assertEquals(loc.hour, 14)
-  luaunit.assertEquals(loc.min,  0)
+  luaunit.assertEquals(loc.min, 0)
 end
 
 -- -----------------------------------------------------------------------

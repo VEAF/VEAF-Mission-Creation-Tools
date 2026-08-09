@@ -33635,28 +33635,18 @@ do
       radioCommandEngage,
       { attributes = nil, category = Group.Category.AIRPLANE, radioMessageSuffix = "Bandits", radioTargetName = "bandits" }
     )
-    missionCommands.addCommand(
-      "Fighters",
-      engageSubPath,
-      radioCommandEngage,
-      {
-        attributes = { "Fighters", "Interceptors", "Multirole fighters" },
-        category = Group.Category.AIRPLANE,
-        radioMessageSuffix = "Bandits",
-        radioTargetName = "fighters",
-      }
-    )
-    missionCommands.addCommand(
-      "Bombers and transports",
-      engageSubPath,
-      radioCommandEngage,
-      {
-        attributes = { "Bombers", "Transports", "AWACS" },
-        category = Group.Category.AIRPLANE,
-        radioMessageSuffix = "Bandits",
-        radioTargetName = "strategic aircraft",
-      }
-    )
+    missionCommands.addCommand("Fighters", engageSubPath, radioCommandEngage, {
+      attributes = { "Fighters", "Interceptors", "Multirole fighters" },
+      category = Group.Category.AIRPLANE,
+      radioMessageSuffix = "Bandits",
+      radioTargetName = "fighters",
+    })
+    missionCommands.addCommand("Bombers and transports", engageSubPath, radioCommandEngage, {
+      attributes = { "Bombers", "Transports", "AWACS" },
+      category = Group.Category.AIRPLANE,
+      radioMessageSuffix = "Bandits",
+      radioTargetName = "strategic aircraft",
+    })
     if not isWW2 then
       missionCommands.addCommand(
         "Helicopters",
@@ -33668,17 +33658,12 @@ do
 
     -- Ground -- (radioTargetName must be singular)
     engageSubPath = missionCommands.addSubMenu("Ground", engagePath)
-    missionCommands.addCommand(
-      "Any ground vehicles",
-      engageSubPath,
-      radioCommandEngage,
-      {
-        attributes = { "Tanks", "Trucks", "Artillery", "IFV", "APC" },
-        category = Group.Category.GROUND,
-        radioMessageSuffix = "Ground",
-        radioTargetName = "ground",
-      }
-    )
+    missionCommands.addCommand("Any ground vehicles", engageSubPath, radioCommandEngage, {
+      attributes = { "Tanks", "Trucks", "Artillery", "IFV", "APC" },
+      category = Group.Category.GROUND,
+      radioMessageSuffix = "Ground",
+      radioTargetName = "ground",
+    })
     missionCommands.addCommand(
       "Armor",
       engageSubPath,
@@ -33718,17 +33703,12 @@ do
 
     -- Air defense -- (radioTargetName must be singular)
     engageSubPath = missionCommands.addSubMenu("Air defense", engagePath)
-    missionCommands.addCommand(
-      "Any air defense",
-      engageSubPath,
-      radioCommandEngage,
-      {
-        attributes = { "Air Defence" },
-        category = Group.Category.GROUND,
-        radioMessageSuffix = "AirDefense",
-        radioTargetName = "air defense",
-      }
-    )
+    missionCommands.addCommand("Any air defense", engageSubPath, radioCommandEngage, {
+      attributes = { "Air Defence" },
+      category = Group.Category.GROUND,
+      radioMessageSuffix = "AirDefense",
+      radioTargetName = "air defense",
+    })
     missionCommands.addCommand(
       "AAA",
       engageSubPath,
@@ -33742,22 +33722,22 @@ do
         radioCommandEngage,
         { attributes = { "MANPADS" }, category = Group.Category.GROUND, radioMessageSuffix = "AirDefense", radioTargetName = "MANPADS" }
       )
-      missionCommands.addCommand(
-        "Short range SAMs",
-        engageSubPath,
-        radioCommandEngage,
-        {
-          attributes = { "SR SAM", "IR Guided SAM" },
-          category = Group.Category.GROUND,
-          radioMessageSuffix = "AirDefense",
-          radioTargetName = "short-range SAM",
-        }
-      )
+      missionCommands.addCommand("Short range SAMs", engageSubPath, radioCommandEngage, {
+        attributes = { "SR SAM", "IR Guided SAM" },
+        category = Group.Category.GROUND,
+        radioMessageSuffix = "AirDefense",
+        radioTargetName = "short-range SAM",
+      })
       missionCommands.addCommand(
         "Short range SAMs (IR only)",
         engageSubPath,
         radioCommandEngage,
-        { attributes = { "IR Guided SAM" }, category = Group.Category.GROUND, radioMessageSuffix = "AirDefense", radioTargetName = "IR SAM" }
+        {
+          attributes = { "IR Guided SAM" },
+          category = Group.Category.GROUND,
+          radioMessageSuffix = "AirDefense",
+          radioTargetName = "IR SAM",
+        }
       )
       missionCommands.addCommand(
         "Short range SAMs (radar only)",
@@ -33765,17 +33745,12 @@ do
         radioCommandEngage,
         { attributes = { "SR SAM" }, category = Group.Category.GROUND, radioMessageSuffix = "AirDefense", radioTargetName = "SHORAD" }
       )
-      missionCommands.addCommand(
-        "Long-range SAMs",
-        engageSubPath,
-        radioCommandEngage,
-        {
-          attributes = { "LR SAM", "MR SAM" },
-          category = Group.Category.GROUND,
-          radioMessageSuffix = "AirDefense",
-          radioTargetName = "long-range SAM",
-        }
-      )
+      missionCommands.addCommand("Long-range SAMs", engageSubPath, radioCommandEngage, {
+        attributes = { "LR SAM", "MR SAM" },
+        category = Group.Category.GROUND,
+        radioMessageSuffix = "AirDefense",
+        radioTargetName = "long-range SAM",
+      })
     end
 
     -- Ships -- (radioTargetName must be plural)
@@ -34028,7 +34003,10 @@ do
       if targetPoint3 then
         TUM.radio.playForAll(
           "pilotWingmanEngageStrike",
-          { TUM.wingmen.getFirstWingmanNumber(), DCSEx.dcs.getBRAA(targetPoint3, DCSEx.world.getGroupCenter(TUM.wingmen.getGroup()), false) },
+          {
+            TUM.wingmen.getFirstWingmanNumber(),
+            DCSEx.dcs.getBRAA(targetPoint3, DCSEx.world.getGroupCenter(TUM.wingmen.getGroup()), false),
+          },
           TUM.wingmen.getFirstWingmanCallsign(),
           delayRadioAnswer
         )

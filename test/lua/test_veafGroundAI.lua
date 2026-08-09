@@ -37,9 +37,9 @@ function TestVeafGroundUnitHandlerClass:test_class_exists()
 end
 
 function TestVeafGroundUnitHandlerClass:test_status_constants()
-  luaunit.assertEquals(GroundUnitHandler.STATUS_READY,  1)
+  luaunit.assertEquals(GroundUnitHandler.STATUS_READY, 1)
   luaunit.assertEquals(GroundUnitHandler.STATUS_ACTIVE, 2)
-  luaunit.assertEquals(GroundUnitHandler.STATUS_OVER,   4)
+  luaunit.assertEquals(GroundUnitHandler.STATUS_OVER, 4)
 end
 
 function TestVeafGroundUnitHandlerClass:test_statusToString_ready()
@@ -97,7 +97,7 @@ function TestVeafGroundUnitHandlerOOP:test_setSilent_true()
 end
 
 function TestVeafGroundUnitHandlerOOP:test_setPlayerUnitsNames()
-  self.h:setPlayerUnitsNames({"alpha", "bravo"})
+  self.h:setPlayerUnitsNames({ "alpha", "bravo" })
   luaunit.assertEquals(#self.h:getPlayerUnitsNames(), 2)
 end
 
@@ -120,31 +120,31 @@ function TestVeafGroundUnitHandlerOrders:test_no_orders_getCurrentOrder_nil()
 end
 
 function TestVeafGroundUnitHandlerOrders:test_setOrders_returns_first()
-  self.h:setOrders({"order1", "order2", "order3"})
+  self.h:setOrders({ "order1", "order2", "order3" })
   luaunit.assertEquals(self.h:getCurrentOrder(), "order1")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_advances()
-  self.h:setOrders({"o1", "o2", "o3"})
+  self.h:setOrders({ "o1", "o2", "o3" })
   self.h:completeOrder()
   luaunit.assertEquals(self.h:getCurrentOrder(), "o2")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_twice()
-  self.h:setOrders({"o1", "o2", "o3"})
+  self.h:setOrders({ "o1", "o2", "o3" })
   self.h:completeOrder()
   self.h:completeOrder()
   luaunit.assertEquals(self.h:getCurrentOrder(), "o3")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_beyond_last_returns_nil()
-  self.h:setOrders({"o1"})
+  self.h:setOrders({ "o1" })
   self.h:completeOrder()
   luaunit.assertNil(self.h:getCurrentOrder())
 end
 
 function TestVeafGroundUnitHandlerOrders:test_clearOrders()
-  self.h:setOrders({"o1", "o2"})
+  self.h:setOrders({ "o1", "o2" })
   self.h:clearOrders()
   luaunit.assertNil(self.h:getCurrentOrder())
 end
@@ -322,8 +322,12 @@ function TestArtilleryUnitHandlerOOP:setUp()
     setTask = function(self, task) end,
   }
   self.ah.dcsGroup = {
-    getController = function(self) return mockCtrl end,
-    getName = function(self) return "Art1Group" end,
+    getController = function(self)
+      return mockCtrl
+    end,
+    getName = function(self)
+      return "Art1Group"
+    end,
   }
 end
 

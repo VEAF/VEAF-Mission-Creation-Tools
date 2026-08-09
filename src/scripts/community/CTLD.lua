@@ -13804,20 +13804,15 @@ function CTLDCrateManager:refreshPackEquiptSection(playerObj, overrideInAir, _no
 
   -- Vehicle entries
   for _, v in ipairs(packableVehicles) do
-    menu:addCommand(
-      { root, cratesSub, packSub },
-      v.descriptor.desc,
-      function(arg)
-        CTLDVehicleSpawner.getInstance():packVehicle(arg.transportName, arg.packableUnitName, arg)
-      end,
-      {
-        transportName = playerObj.unitName,
-        packableUnitName = v.unitName,
-        groupId = playerObj.groupId,
-        unitName = playerObj.unitName,
-        coalition = playerObj.coalition,
-      }
-    )
+    menu:addCommand({ root, cratesSub, packSub }, v.descriptor.desc, function(arg)
+      CTLDVehicleSpawner.getInstance():packVehicle(arg.transportName, arg.packableUnitName, arg)
+    end, {
+      transportName = playerObj.unitName,
+      packableUnitName = v.unitName,
+      groupId = playerObj.groupId,
+      unitName = playerObj.unitName,
+      coalition = playerObj.coalition,
+    })
   end
 
   if not _noRefresh then
@@ -15618,20 +15613,14 @@ function CTLDCrateManager:refreshRequestEquipmentSection(playerObj)
             end
           end
           crateOrder = crateOrder + 1
-          menu:addCommand(
-            { root, spawnSub, lgzName, category },
-            sc.desc,
-            spawnFn,
-            {
-              unit = sc.unit,
-              desc = sc.desc,
-              zoneName = lgzName,
-              unitName = playerObj.unitName,
-              coalition = playerObj.coalition,
-              spawnAsVehicle = spawnAsVehicle,
-            },
-            { order = crateOrder }
-          )
+          menu:addCommand({ root, spawnSub, lgzName, category }, sc.desc, spawnFn, {
+            unit = sc.unit,
+            desc = sc.desc,
+            zoneName = lgzName,
+            unitName = playerObj.unitName,
+            coalition = playerObj.coalition,
+            spawnAsVehicle = spawnAsVehicle,
+          }, { order = crateOrder })
 
           local sts = entry.singleTypeSet
           if sts and (not _crateIsJTAC(sts) or jtacOk) then

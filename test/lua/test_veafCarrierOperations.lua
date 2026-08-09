@@ -15,8 +15,12 @@ veaf.config.language = "en"
 -- Mocks required by veafCarrierOperations (not in dcs_mocks.lua)
 -- ---------------------------------------------------------------------------
 
-mist.getHeading = function(unit, degrees) return 0 end
-mist.getAvgPos = function(units) return { x = 0, y = 0, z = 0 } end
+mist.getHeading = function(unit, degrees)
+  return 0
+end
+mist.getAvgPos = function(units)
+  return { x = 0, y = 0, z = 0 }
+end
 mist.goRoute = function(name, route) end
 mist.DBs.groupsByName = {}
 
@@ -24,10 +28,14 @@ veafWeatherUnitSystem = {
   Systems = { FaaNavy = "FaaNavy", MetricEastern = "MetricEastern" },
 }
 veafWeatherData = {
-  getWeatherString = function(...) return "WEATHER: test" end,
+  getWeatherString = function(...)
+    return "WEATHER: test"
+  end,
 }
 veafRadio = {
-  addSubMenu = function(...) return {} end,
+  addSubMenu = function(...)
+    return {}
+  end,
   addCommandToSubmenu = function(...) end,
   addSecuredCommandToSubmenu = function(...) end,
   delSubmenu = function(...) end,
@@ -45,20 +53,42 @@ local function setupMockCarrier()
   veafCarrierOperations.carriers = {}
 
   dcs_mocks.addUnit(CARRIER_UNIT_NAME, {
-    getPosition = function(self) return { p = { x = 0, y = 0, z = 0 } } end,
-    getVelocity = function(self) return { x = 0, y = 0, z = 0 } end,
-    getDesc = function(self) return { typeName = "NotACarrierType" } end,
-    getTypeName = function(self) return "NotACarrierType" end,
-    getID = function(self) return 1 end,
+    getPosition = function(self)
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+    getVelocity = function(self)
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getDesc = function(self)
+      return { typeName = "NotACarrierType" }
+    end,
+    getTypeName = function(self)
+      return "NotACarrierType"
+    end,
+    getID = function(self)
+      return 1
+    end,
   })
 
   dcs_mocks.addGroup(CARRIER_NAME, {
-    getUnits = function(self) return {} end,
-    getSize = function(self) return 0 end,
-    isExist = function(self) return true end,
-    getCoalition = function(self) return coalition.side.BLUE end,
-    getID = function(self) return 99 end,
-    getController = function(self) return { setTask = function() end } end,
+    getUnits = function(self)
+      return {}
+    end,
+    getSize = function(self)
+      return 0
+    end,
+    isExist = function(self)
+      return true
+    end,
+    getCoalition = function(self)
+      return coalition.side.BLUE
+    end,
+    getID = function(self)
+      return 99
+    end,
+    getController = function(self)
+      return { setTask = function() end }
+    end,
   })
 
   veafCarrierOperations.carriers[CARRIER_NAME] = {
@@ -106,7 +136,9 @@ end
 
 function TestVeafAllCarriers:test_all_carriers_has_nine_entries()
   local count = 0
-  for _ in pairs(veafCarrierOperations.AllCarriers) do count = count + 1 end
+  for _ in pairs(veafCarrierOperations.AllCarriers) do
+    count = count + 1
+  end
   luaunit.assertEquals(count, 9)
 end
 
@@ -264,7 +296,9 @@ TestVeafCarrierWithMockCarrier = {}
 function TestVeafCarrierWithMockCarrier:setUp()
   setupMockCarrier()
   -- restore default zero wind
-  atmosphere.getWind = function(point) return { x = 0, y = 0, z = 0 } end
+  atmosphere.getWind = function(point)
+    return { x = 0, y = 0, z = 0 }
+  end
 end
 
 function TestVeafCarrierWithMockCarrier:test_continueCarrierOperations_zero_wind()
@@ -274,7 +308,9 @@ function TestVeafCarrierWithMockCarrier:test_continueCarrierOperations_zero_wind
 end
 
 function TestVeafCarrierWithMockCarrier:test_continueCarrierOperations_with_wind()
-  atmosphere.getWind = function(point) return { x = 3, y = 0, z = 3 } end
+  atmosphere.getWind = function(point)
+    return { x = 3, y = 0, z = 3 }
+  end
   veafCarrierOperations.continueCarrierOperations(CARRIER_NAME)
   -- wind path was taken: heading should differ from 0 (wind from NE pushes to SW heading)
   luaunit.assertIsNumber(veafCarrierOperations.carriers[CARRIER_NAME].heading)
@@ -339,7 +375,7 @@ end
 
 function TestVeafCarrierWithMockCarrier:test_doOperations_expired_timer_calls_stop()
   veafCarrierOperations.carriers[CARRIER_NAME].conductingAirOperations = true
-  veafCarrierOperations.carriers[CARRIER_NAME].airOperationsEndAt = -10  -- definitely in the past
+  veafCarrierOperations.carriers[CARRIER_NAME].airOperationsEndAt = -10 -- definitely in the past
   veafCarrierOperations.doOperations()
   -- stopCarrierOperations was called, so conductingAirOperations should now be false
   luaunit.assertFalse(veafCarrierOperations.carriers[CARRIER_NAME].conductingAirOperations)
@@ -347,7 +383,7 @@ end
 
 function TestVeafCarrierWithMockCarrier:test_doOperations_active_not_expired()
   veafCarrierOperations.carriers[CARRIER_NAME].conductingAirOperations = true
-  veafCarrierOperations.carriers[CARRIER_NAME].airOperationsEndAt = 9999  -- far future
+  veafCarrierOperations.carriers[CARRIER_NAME].airOperationsEndAt = 9999 -- far future
   veafCarrierOperations.doOperations()
   -- should still be conducting (calls continueCarrierOperations)
   luaunit.assertTrue(veafCarrierOperations.carriers[CARRIER_NAME].conductingAirOperations)

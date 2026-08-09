@@ -285,4 +285,50 @@ function TestParserUnknownParams:test_command_keyphrase_not_flagged()
   luaunit.assertNil(r.unknownParameters)
 end
 
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-025 — a non-numeric numeric parameter must not abort the spawn
+--
+-- `multiplier` goes through `_num`, which calls `veaf.getRandomizableNumeric`. That returns nil
+-- for unusable input, so `options.multiplier` became nil and `for i = 1, options.multiplier do`
+-- in veafSpawnCore raised. Worse, a *valueless* keyword reached `string.find(nil, "%-")` inside
+-- the conversion and raised there instead.
+--
+-- Fixed in `_num` rather than on `multiplier`, because every numeric spawn keyword shares it.
+-------------------------------------------------------------------------------------------------
+
+TestSpawnParserNumericRobustness = {}
+
+function TestSpawnParserNumericRobustness:test_garbage_multiplier_does_not_crash()
+  local ok = pcall(function()
+    return veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  end)
+  luaunit.assertTrue(ok, "a non-numeric multiplier must not raise")
+end
+
+function TestSpawnParserNumericRobustness:test_garbage_multiplier_keeps_the_default()
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  luaunit.assertNotNil(options)
+  luaunit.assertEquals(options.multiplier, 1)
+end
+
+function TestSpawnParserNumericRobustness:test_valueless_multiplier_does_not_crash()
+  local ok = pcall(function()
+    return veafSpawn.markTextAnalysis("_spawn group, name test, multiplier")
+  end)
+  luaunit.assertTrue(ok, "a valueless multiplier must not raise")
+end
+
+function TestSpawnParserNumericRobustness:test_multiplier_is_never_nil()
+  -- The crash was downstream: `for i = 1, options.multiplier do` in veafSpawnCore.
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  luaunit.assertNotNil(options.multiplier)
+end
+
+function TestSpawnParserNumericRobustness:test_a_valid_multiplier_still_applies()
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier 3")
+  luaunit.assertEquals(options.multiplier, 3)
+end
+
+
 os.exit(luaunit.LuaUnit.run())

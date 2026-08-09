@@ -17,9 +17,24 @@
 -- original chained-`if` semantics. The recognized-key set (for typo hints,
 -- UXPILOT-003) is derived from these rules, so there is a single source of truth.
 
+--- Apply a numeric marker parameter, **keeping the existing default when it is unusable**.
+---
+--- VMR-025: this used to assign whatever `getRandomizableNumeric` returned, including nil. A
+--- player writing `multiplier banana` therefore set `options.multiplier = nil`, and the spawn
+--- died downstream on `for i = 1, options.multiplier do` — a runtime error from a typo. A
+--- *valueless* keyword was worse: the conversion itself raised, because it reaches
+--- `string.find(val, "%-")` after `tonumber` returns nil.
+---
+--- Fixed here rather than on `multiplier`, since every numeric spawn keyword shares this.
 local function _num(field)
   return function(options, val)
-    options[field] = veaf.getRandomizableNumeric(val)
+    if val == nil then
+      return
+    end
+    local _converted = veaf.getRandomizableNumeric(val)
+    if _converted ~= nil then
+      options[field] = _converted
+    end
   end
 end
 

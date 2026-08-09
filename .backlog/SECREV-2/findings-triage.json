@@ -1030,8 +1030,8 @@
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group A / PR #677 — fixed in veafSpawnParser's shared _num applier rather than on `multiplier`, since every numeric spawn keyword goes through it. Two failure modes: a non-numeric value set options.multiplier = nil and the spawn died downstream on `for i = 1, options.multiplier do`, and a valueless keyword raised inside getRandomizableNumeric itself, which reaches string.find(nil, '%-') after tonumber returns nil. Unusable values now leave the existing default in place."
   },
   {
     "vid": "VMR-038",

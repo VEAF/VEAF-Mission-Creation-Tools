@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — sample done, HIGH tier cleared, sweep started (47/140 decided)
+Status: 🔄 in-progress — sample done, HIGH tier cleared, Security-flaw tier swept (54/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -141,3 +141,78 @@ is being changed anyway.
 Stopped here deliberately rather than pushing further in one sitting: the ticket's own warning is
 that bulk-fixing reviewer-asserted findings is "churn that looks like diligence", and a sweep of
 this size wants reviewable batches.
+
+## Sweep, second pass — the Security-flaw tier, 2026-08-10
+
+**The 10 undecided Security-flaw findings, all of them, taken as one batch.** They were the right
+next group: small enough to finish, and the one tier where being wrong costs more than churn.
+
+Every verdict below came from reading the code, not from the review's wording — and the wording was
+wrong or overstated in three of the ten.
+
+| | Outcome | |
+|---|---|---|
+| VMR-034 | **fixed** | size cap on the bridge download; no host to attack, and pinning a hash would fight the design |
+| VMR-035 | **fixed** | real path traversal, *reproduced* by disabling the new guard |
+| VMR-036 | **fixed** | confirmed, but the reported batch injection is unreachable; the real defect was a failed `cd` |
+| VMR-037 | **fixed** | the URL of an executable we install and run is now checked |
+| VMR-038 | does-not-reproduce | `setfenv(file, {})` — the empty environment the finding missed |
+| VMR-041 | decided-deferred | real, self-documented, belongs to `REVIEW-SECURITY-LAYER` |
+| VMR-042 | does-not-reproduce | `:upper()` narrows the key space to `FOG_*`; fragility removed anyway |
+
+### VMR-035 was the one that mattered, and it was worth proving
+
+The others are hardening. This one moved a file out of the mission folder. `_normalize_script_names`
+joined the profile's replacement string straight onto `scripts_dir`, and `load_profile` accepts a
+**filesystem path** as well as a bundled name — so the replacement is not necessarily one we ship,
+and profiles are exactly the kind of file that gets passed around.
+
+Rather than assert it, the guard was disabled and the run measured: `escaped.lua` appeared in the
+parent folder and `victim.lua` was gone. A security test nobody has watched refuse is a decoration.
+
+### Three of ten were overstated, and saying so is the deliverable
+
+- **VMR-038** claimed a dictionary file is executed untrusted. It runs under `setfenv(file, {})` —
+  an empty environment, no `os`, no `io`, no `require`. The same trap a previous session fell into
+  by taking "RCE" at face value.
+- **VMR-042** claimed a missing whitelist on a player-supplied key. `:upper()` already restricts it
+  to the all-caps keys, and **every** all-caps key on `veafWeather` is a fog preset — measured, not
+  assumed.
+- **VMR-036** named batch injection. Windows forbids `"` in a path, so nothing can escape the
+  quotes. But looking for the real consequence found one: a failed `cd` left every relative
+  `ren`/`del` running in the wrong directory.
+
+### Left for David — the shared-password family
+
+**VMR-039, VMR-040 and VMR-033 are one question, and it is not a technical one.** Two unsalted SHA-1
+password hashes ship in `veafSecurity.lua` as defaults common to all missions, and `veafRemote` will
+run stored Lua for whoever clears the ADMIN tier. The hashes are in a public repository, so an
+offline dictionary attack is available to anyone.
+
+The remedies pull against each other:
+
+- Changing the hashing breaks every server and mission that uses the current passwords.
+- Documenting that the default password is well known is the honest, cheap mitigation — **and it
+  also tells attackers exactly where to look**, on the servers that never changed it.
+
+That trade-off is David's, not mine, so all three stay undecided rather than being quietly resolved
+in a sweep. Nothing else in the tier depends on the answer.
+
+### The first version of the VMR-037 fix had the same hole it was closing
+
+Worth recording, because it is the failure mode this whole ticket is about. The guard checked the URL
+handed to `download_asset` and then called `requests.get` — **which follows redirects to any host by
+default**. A 3xx off GitHub would have been followed regardless of the check. Sourcery caught it on
+the PR.
+
+The chain is now walked one hop at a time, each hop checked before it is requested. Chasing that
+turned up a second problem nobody had reported: walking redirects by hand means `requests` no longer
+strips the `Authorization` header across hosts, so the user's GitHub token would have been handed to
+whatever host the redirect named. Both are covered by tests, including one asserting the untrusted URL
+is **never requested** — refusing after fetching is not refusing.
+
+### Where it stands
+
+**54 of 140 decided. 86 left**, of which 56 Error/bug, 9 Documentation, 3 Security flaw (the family
+above), and 18 readability/optimization/refactoring the ticket says to touch only where a file is
+being changed anyway. The Error/bug tier is the next batch.

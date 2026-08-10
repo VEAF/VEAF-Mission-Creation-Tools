@@ -22,6 +22,7 @@ from mission_tools import read_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.conversion_profile import ConversionProfile, load_profile
 from veaf_libs.i18n import t, tn
+from veaf_libs.logger import logger
 from veaf_libs.mission_template import render_modules_block, tier_modules
 
 from mission_builder.mission_builder_worker import lua_loads_other_scripts
@@ -79,6 +80,27 @@ class ScriptUpdateDiff:
 def _sha256(path: Path) -> str:
     """Return the hex SHA-256 of *path*'s bytes."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _is_plain_filename(name: str) -> bool:
+    """Whether *name* is a bare filename that stays inside the folder it is joined to.
+
+    Used on profile-supplied replacement names before they reach the filesystem (SECREV-2 /
+    VMR-035). ``Path.name`` is the reliable test on both platforms: it strips any directory part,
+    so a value carrying one cannot survive the comparison. A Windows drive prefix (``C:x.lua``)
+    keeps its colon in ``name`` and is rejected the same way.
+
+    Args:
+        name: The candidate filename, as written in the conversion profile.
+
+    Returns:
+        True when joining *name* to a directory yields a direct child of it.
+    """
+    if not name or name in {".", ".."}:
+        return False
+    if "/" in name or "\\" in name or ":" in name:
+        return False
+    return Path(name).name == name
 
 
 def snapshot_scripts(scripts_dir: Path) -> dict[str, str]:
@@ -499,6 +521,14 @@ class OtherMissionConverter:
         for loader in loaders:
             new_name = profile.normalize_script_name(loader.script)
             if new_name != loader.script:
+                if not _is_plain_filename(new_name):
+                    # A profile is data, and it can be supplied by path rather than by bundled name,
+                    # so its replacement string is not necessarily ours (SECREV-2 / VMR-035). Left
+                    # unchecked, `scripts_dir / "../../x.lua"` renames a script outside the mission's
+                    # scripts folder. Refuse and keep the original name rather than guess an intent.
+                    logger.warning(t("convert_other.rename_rejected", name=new_name, original=loader.script))
+                    result.append(loader)
+                    continue
                 src = scripts_dir / loader.script
                 dst = scripts_dir / new_name
                 if src.is_file():

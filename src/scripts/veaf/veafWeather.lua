@@ -1799,8 +1799,13 @@ function veafWeather.executeCommandFromRemote(parameters)
     elseif _action and _action:lower() == "fog" then
       if _name then
         local uName = _name:upper()
+        -- Indexing veafWeather with a player-supplied key is only safe today because :upper()
+        -- narrows it to the all-caps keys, and every one of those is a FOG_* preset (SECREV-2 /
+        -- VMR-042 -- reported as a missing whitelist, and not exploitable as reported). Checking for
+        -- the contract setAndActivateFog is about to use keeps it that way: the first all-caps
+        -- constant that is not a fog object would otherwise turn this command into a Lua error.
         local fogObject = veafWeather[uName]
-        if fogObject then
+        if type(fogObject) == "table" and fogObject.enable then
           veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting fog [%s]", veaf.p(_pilotName), veaf.p(uName)))
           veafWeather.setAndActivateFog(fogObject)
           return true

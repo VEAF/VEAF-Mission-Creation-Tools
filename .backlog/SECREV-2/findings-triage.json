@@ -218,8 +218,8 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part. The URL is a module constant on a VEAF repository over https, so there is no attacker-chosen host, and pinning a hash would defeat the design (the bridge deliberately tracks its develop branch). The missing size bound was real and is now enforced: the read is capped at 2 MiB, measured against the file's actual 13 237 bytes, and an oversized response is refused before anything is written to disk. 2 tests."
   },
   {
     "vid": "VMR-049",
@@ -249,8 +249,8 @@
     "line": "502",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and reproduced: with the new guard disabled, a profile rule replacing a script with '../../escaped.lua' moved the file out of the mission's scripts folder entirely. What makes it real is that load_profile accepts a filesystem path as well as a bundled name, so the replacement string is not necessarily one we ship, and profiles are shared artefacts. A replacement that is not a plain filename is now refused with a localized warning and the original name kept. 6 tests."
   },
   {
     "vid": "VMR-036",
@@ -264,8 +264,8 @@
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, but not for the reported reason: Windows forbids '\"' in a path, so no interpolated directory can escape its quotes and batch injection is not reachable. The real consequence was elsewhere and did bite: every rename and delete in the script is relative, so a cd that failed -- which a path containing '!' or '%' can cause under delayed expansion -- left them running against whatever directory the script started in. The script now aborts on a failed cd. 1 test."
   },
   {
     "vid": "VMR-037",
@@ -279,8 +279,8 @@
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. browser_download_url comes from the GitHub API reply, and the updater installs and then runs what it downloads. The URL is now required to be https on a GitHub host before any request is made. The test loads veaf-tools-updater.py by path rather than copying the function, unlike test_version_constraint.py next to it -- a test over a copy cannot fail when the shipped code regresses. 7 tests."
   },
   {
     "vid": "VMR-047",
@@ -1043,8 +1043,8 @@
     "line": "19",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "The sandbox the finding overlooks is right there: loadTable does setfenv(file, table) with table = {}, so the loaded dictionary runs with an empty environment and reaches no global at all -- no os, no io, no require, not even setmetatable. Arbitrary code execution is not available. A hostile file can still spin or allocate, but this is a developer tool run by hand on one's own files, so that is a denial of service against oneself."
   },
   {
     "vid": "VMR-129",
@@ -1108,8 +1108,8 @@
     "line": "591",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Confirmed as a design defect, and the code says so itself: 'markId may actually be the username if called from veafRemote - yes I know it's ugly'. Not exploitable in practice -- the username fallback only fires when no mark panel carries the id, and it would then have to collide with a registered remote user's name, which are pilot names rather than integers. The fix is a signature split in the authorization layer, which belongs with REVIEW-SECURITY-LAYER and its tests rather than in a LOW sweep touching ten unrelated files."
   },
   {
     "vid": "VMR-042",
@@ -1121,8 +1121,8 @@
     "line": "1798",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Not exploitable as reported. The key is player-supplied but goes through :upper(), and every all-caps key on veafWeather is a FOG_* preset -- measured across the file, there is no other. So the missing whitelist reaches nothing but fog objects. The fragility underneath was real and is removed: the command now checks the contract setAndActivateFog is about to use, so the first all-caps constant that is not a fog object cannot turn a pilot's request into a Lua error. 3 tests."
   },
   {
     "vid": "VMR-071",

@@ -952,7 +952,10 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
   if eventPos then
     veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.p(eventPos)))
     local lat, lon, alt = coord.LOtoLL(eventPos)
-    posOption = string.format("-L %d -O %d -A %d", lat, lon, alt)
+    -- VMR-093: degrees are floating point and %d truncated them toward zero, putting the
+    -- transmission up to ~111 km from the marker it was given. Altitude stays whole: it is in
+    -- metres. (Lua 5.1's %d does not raise on a float, so nothing ever complained.)
+    posOption = string.format("-L %.6f -O %.6f -A %d", lat, lon, alt)
   end
 
   -- Everything below reaches os.execute. message, file and name come from the text of an

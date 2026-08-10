@@ -1002,13 +1002,22 @@ function AirWaveZone:deployWaves()
   until not lastDelay or lastDelay >= 0 or self.currentWaveIndex >= #self.waves
   if groupsToDeployForTheseWaves then
     local zoneCenter = {}
-    if self.triggerZoneName then
-      local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+    -- VMR-085: ask for the trigger zone, then decide — the same shape as AirWaveZone:check().
+    -- Testing `self.triggerZoneName` was not enough: setTriggerZone keeps the name even when the
+    -- zone does not exist (it warns and keeps the configured center instead), so this indexed nil
+    -- and every wave of such a zone raised.
+    local triggerZone = self.triggerZoneName and veaf.getTriggerZone(self.triggerZoneName)
+    if triggerZone then
       zoneCenter.x = triggerZone.x
       zoneCenter.z = triggerZone.y
       zoneCenter.y = 0
     elseif self.zoneCenter then
       zoneCenter = self.zoneCenter
+    else
+      veaf.loggers
+        .get(veafAirWaves.Id)
+        :error("AirWaveZone[%s]:deployWaves(): no trigger zone, and no zone center defined!", veaf.p(self.name))
+      return
     end
     for _, groupNameOrCommand in pairs(groupsToDeployForTheseWaves) do
       -- check if this is a DCS group or a VEAF command

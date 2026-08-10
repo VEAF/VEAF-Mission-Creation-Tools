@@ -639,8 +639,15 @@ end
 
 --- authenticate all radios for a short time
 function veafSecurity.authenticate(minutes, unitName)
-  local actualMinutes = minutes or veafSecurity.authDuration
-  if type(actualMinutes) == "string" and not (actualMinutes:match("%d+")) then
+  -- VMR-095: `minutes` arrives as text a pilot typed after `-auth login`, so it is converted
+  -- rather than pattern-matched. The old guard was `not actualMinutes:match("%d+")`, unanchored:
+  -- "abc5" passed it and `actualMinutes * 60` then raised. A negative or zero value passed too,
+  -- and scheduled the logout in the past — the mission unlocked and relocked without a word.
+  local actualMinutes = tonumber(minutes)
+  if not actualMinutes or actualMinutes <= 0 then
+    if minutes ~= nil then
+      veaf.loggers.get(veafSecurity.Id):warn(string.format("unusable auth duration [%s], using the default", veaf.p(minutes)))
+    end
     actualMinutes = veafSecurity.authDuration
   end
   if not veafSecurity.authenticated then

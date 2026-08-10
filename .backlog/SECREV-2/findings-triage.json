@@ -1000,10 +1000,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
     "line": "203",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `getDcsGroupFromSkynetElement` returns nil once the DCS representation stops existing — the very case `removeSkynetElement` handles — and the caller indexed it anyway, under a `---@diagnostic disable-next-line: need-check-nil` that recorded the defect instead of fixing it. Beyond the raise, the network kept listing a group that no longer exists. Falls back to `skynetElement.dcsName`, which is the group name for the SAM sites this function removes (`addGroupsToNetwork` compares it against one). 4 tests."
   },
   {
     "vid": "VMR-138",
@@ -1338,10 +1338,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafAirWaves.lua",
     "line": "1006",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and reachable precisely because of a deliberate leniency. `setTriggerZone` stores the name before checking the zone, and when a centre is already configured it only warns — so `deployWaves` saw a `triggerZoneName`, got nil from `veaf.getTriggerZone` and indexed it: every wave of such a zone raised. Now asks for the zone and then decides, the same shape as `AirWaveZone:check()` two hundred lines above, with an explicit refusal when neither is usable. 3 tests. Noted in passing, not fixed: `setTriggerZone` writes a vec2 into `zoneCenter` while the documented contract of `setZoneCenter` is a vec3 — harmless today because the vec2 only exists when the trigger zone does."
   },
   {
     "vid": "VMR-086",
@@ -1351,10 +1351,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafCarrierOperations.lua",
     "line": "1114",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `_parameters` comes from `_command:match(RemoteCommandParser)` so it is always a string or nil, and `type(_parameters) == \"number\"` is never true: the duration the caller asked for was dropped and every remote `start` ran for the 45-minute default. The dead branch also read a global `parameters` rather than `_parameters`, which is why nothing ever surfaced. 4 tests. The duration is not bounded, which is unchanged: the radio menu already offers 45 and 90 minutes."
   },
   {
     "vid": "VMR-087",
@@ -1364,10 +1364,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafCasMission.lua",
     "line": "609",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "The branch is reachable, so the finding's premise is wrong. `if _actualDefense > 5 then _actualDefense = 6 end` is not a clamp to 5 — it promotes to 6, which is what makes the `> 5` branch below fire (defense 5 plus a dice roll above 80). The two tiers spawn different units (Roland ADS / Gepard against the level-5 set), so this is a working 'super' tier, not dead code. What remains is the finding's second half — that `_addDefenseForGroups` and `generateAirDefenseGroup` disagree on the ceiling — and removing tier 6 would change mission balance, which is David's call, not a sweep's."
   },
   {
     "vid": "VMR-088",
@@ -1446,7 +1446,7 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafRadio.lua",
     "line": "736",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
       "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
@@ -1454,8 +1454,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and worse than an approximation. Measured in Lua 5.1, `string.format(\"%d\", 41.567)` does not raise — it truncates toward zero — so an SRS positional transmission landed up to ~111 km from the marker, and in the wrong direction in the southern/western hemispheres. Now `%.6f` for latitude and longitude, `%d` kept for altitude (metres). The locale worry that argued for hand-formatting was tested and does not reproduce: `%.6f` keeps the decimal point even after `os.setlocale(\"French_France.1252\")`. 4 tests."
   },
   {
     "vid": "VMR-094",
@@ -1465,10 +1465,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSanctuary.lua",
     "line": "804",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the finding's remedy would have been a regression. `A or B and C and D` parses as `A or (B and C and D)`, so PLAYER_ENTER_UNIT/LEAVE_UNIT skipped the name check and registered under the key `\"\"`. But parenthesising as `(A or B) and C and D`, as proposed, would require the `humanUnits` lookup on PLAYER_ENTER_UNIT — and that table is filled once at initialize() from `mist.DBs.humansByName`, so a **dynamic slot** is not in it and Sanctuary would stop following those players entirely. Proved by applying the proposed remedy and watching the dynamic-slot test fail. The two branches differ: ENTER/LEAVE is a human by definition and needs only a name; BIRTH/DEAD fires for AI too and does need the lookup. 9 tests."
   },
   {
     "vid": "VMR-095",
@@ -1478,10 +1478,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSecurity.lua",
     "line": "531",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it is a crash rather than a silent ignore. `-auth login <duration>` reaches `authenticate` as text a pilot typed, and the guard `not actualMinutes:match(\"%d+\")` was unanchored: \"abc5\" passed it and `actualMinutes * 60` then raised (measured in Lua 5.1). \"-5\" passed too and scheduled the logout in the past, so the mission unlocked and relocked without a word. Now converted with `tonumber` and refused when nil or <= 0, with a warning. 7 tests."
   },
   {
     "vid": "VMR-097",

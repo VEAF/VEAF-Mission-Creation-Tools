@@ -962,4 +962,86 @@ function TestAirWavesModuleFunctions:test_get_nonexistent_returns_nil()
   luaunit.assertNil(veafAirWaves.get("no_such_zone_xyzzy"))
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-085 — a trigger zone name that names nothing must not take deployWaves down
+--
+-- `setTriggerZone` is deliberately lenient: when a center is already configured it keeps it and
+-- only warns (see test_setTriggerZone_missing_keeps_existing_center above). But it stores the
+-- name anyway, so `deployWaves` saw a `triggerZoneName`, called `veaf.getTriggerZone` on it,
+-- got nil and indexed it. That leniency is what makes the crash reachable: the mission maker
+-- gets a warning at configuration time and a raise at the first wave.
+--
+-- `AirWaveZone:check()` already has the right shape — trigger zone, else center, else complain —
+-- so this aligns deployWaves with its neighbour rather than inventing a rule.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2AirWavesZoneCenter = {}
+
+function TestSecrev2AirWavesZoneCenter:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedExecute = veafInterpreter and veafInterpreter.execute
+end
+
+function TestSecrev2AirWavesZoneCenter:tearDown()
+  veaf.triggerZones["AirWaveZoneThatExists"] = nil
+  if veafInterpreter then
+    veafInterpreter.execute = self._savedExecute
+  end
+end
+
+--- A zone that will deploy one VEAF command, recording the position it is given.
+function TestSecrev2AirWavesZoneCenter:_zoneDeployingOneCommand()
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z.chooseGroupsToDeploy = function(_)
+    return { "-shilka" }, nil
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(command, position, _, _, _)
+    table.insert(positions, { command = command, position = position })
+  end
+  return z
+end
+
+function TestSecrev2AirWavesZoneCenter:test_a_missing_trigger_zone_falls_back_to_the_center()
+  local z = self:_zoneDeployingOneCommand()
+  -- A DCS vec3, which is what `setZoneCenter(vec3)` is documented to take and what
+  -- `setZoneCenterFromCoordinates` produces through coord.LLtoLO.
+  z:setZoneCenter({ x = 1000, y = 0, z = 2000 })
+  z:setTriggerZone("NoSuchTriggerZone")
+  local ok, err = pcall(function()
+    z:deployWaves()
+  end)
+  luaunit.assertTrue(ok, "a trigger zone that does not exist must not raise at deploy time: " .. tostring(err))
+  luaunit.assertEquals(#self.deployed, 1)
+end
+
+function TestSecrev2AirWavesZoneCenter:test_an_existing_trigger_zone_is_still_preferred()
+  -- The control: the fallback must not shadow a zone that does exist.
+  veaf.triggerZones["AirWaveZoneThatExists"] = { x = 77, y = 88, radius = 500 }
+  local z = self:_zoneDeployingOneCommand()
+  -- A DCS vec3, which is what `setZoneCenter(vec3)` is documented to take and what
+  -- `setZoneCenterFromCoordinates` produces through coord.LLtoLO.
+  z:setZoneCenter({ x = 1000, y = 0, z = 2000 })
+  z:setTriggerZone("AirWaveZoneThatExists")
+  z:deployWaves()
+  luaunit.assertEquals(#self.deployed, 1)
+  -- The trigger zone's coordinates, not the 1000/2000 centre set just before: with both
+  -- offsets at 0 the deploy position is the zone centre itself (x, and y read into z).
+  luaunit.assertEquals(self.deployed[1].position.x, 77)
+  luaunit.assertEquals(self.deployed[1].position.z, 88)
+end
+
+function TestSecrev2AirWavesZoneCenter:test_neither_zone_nor_center_does_not_raise()
+  local z = self:_zoneDeployingOneCommand()
+  z:setTriggerZone("NoSuchTriggerZone")
+  local ok = pcall(function()
+    z:deployWaves()
+  end)
+  luaunit.assertTrue(ok, "a zone with no usable position must complain, not raise")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 3 done (91/140 decided)
+Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 4 done (98/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -603,3 +603,78 @@ the only difference between this and the findings it repeats.
 **91 of 140 decided. 49 left**: 22 Error/bug (**9 Python, 13 Lua**), 9 Documentation, 18
 readability/optimization/refactoring the ticket says to touch only where a file is being changed
 anyway. No Security flaw, no CONFIRMED finding, and nothing left in `veafSpawnAircraft`.
+
+## Sweep, ninth pass — Error/bug, Lua batch 4 (one defect per module), 2026-08-10
+
+Seven findings across seven modules — six fixed, one disproved. **Two of the seven carried a remedy
+that would have made things worse**, which is now the single most repeated observation of this
+ticket: the finding is usually right that *something* is wrong and often wrong about *what*.
+
+| | Outcome | |
+|---|---|---|
+| VMR-085 | **fixed** | a mistyped trigger-zone name crashed every wave, *because* of a deliberate leniency |
+| VMR-086 | **fixed** | the remote carrier `start` silently ignored the duration asked for |
+| VMR-093 | **fixed** | the SRS position was truncated to whole degrees — up to ~111 km off |
+| VMR-094 | **fixed** | operator precedence; the proposed fix would have dropped dynamic slots |
+| VMR-095 | **fixed** | `-auth login abc5` raised, and `-auth login -5` unlocked then relocked |
+| VMR-096 | **fixed** | the nil dereference was documented by a `@diagnostic disable` and left in |
+| VMR-087 | does-not-reproduce | the "unreachable" branch is reachable; the promotion to 6 is what reaches it |
+
+### VMR-094: the remedy was proved wrong rather than argued about
+
+`A or B and C and D` parses as `A or (B and C and D)`, so PLAYER_ENTER_UNIT never reached the name
+check and Sanctuary registered a follow entry under the key `""` (the `_unitname or ""` next to it
+was quietly absorbing that).
+
+The finding proposes `(A or B) and C and D`. That requires `humanUnits[_unitname]` on
+PLAYER_ENTER_UNIT — and `humanUnits` is filled **once**, at `initialize()`, from
+`mist.DBs.humansByName`. A **dynamic slot** does not exist then, so Sanctuary would have stopped
+following those players altogether: a sanctuary violation with no consequence, which is the opposite
+of what the module is for. Rather than reason about it, the proposed remedy was applied and the
+dynamic-slot test failed. The two branches genuinely differ, and the fix says so.
+
+### VMR-087: the finding's own evidence contradicts its title
+
+"`_actualDefense > 5` never true after clamp" — but the line above is not a clamp:
+`if _actualDefense > 5 then _actualDefense = 6 end` **promotes** to 6, which is exactly what makes
+the branch fire (asking for defense 5 and rolling above 80). The two tiers spawn different units, so
+this is a working "super" tier. What is left of the finding is that `_addDefenseForGroups` and
+`generateAirDefenseGroup` disagree on the ceiling — and removing a difficulty tier is a balance
+decision, not a sweep's call.
+
+### VMR-085: the leniency is what made the crash reachable
+
+`setTriggerZone` stores the name *before* checking the zone, and when a centre is already configured
+it warns and keeps it — behaviour a test already pinned. So a mission maker who mistypes the zone
+name gets a warning at configuration time and a **raise at the first wave**, because `deployWaves`
+tested `self.triggerZoneName` rather than the zone itself. It now asks for the zone and then decides,
+which is the shape `AirWaveZone:check()` has had all along.
+
+Found while writing the test and deliberately not fixed: `setTriggerZone` writes a **vec2** into
+`zoneCenter`, while `setZoneCenter(vec3)` is what the documentation promises. It is harmless today —
+that vec2 only exists when the trigger zone does, and then nothing reads `zoneCenter` — so it is
+recorded rather than papered over.
+
+### VMR-093 and VMR-095: measuring settled both
+
+- **VMR-093** — `string.format("%d", 41.567)` does not raise in Lua 5.1; it truncates *toward zero*.
+  So the SRS broadcast was up to ~111 km from the marker, and wrong in the other direction west of
+  Greenwich. I was about to hand-format the number against a locale that might use a comma; testing
+  `os.setlocale("French_France.1252")` showed `%.6f` keeps the point. A guard against something I
+  could not reproduce is the noise this ticket keeps warning about, so it was dropped.
+- **VMR-095** — the guard `not actualMinutes:match("%d+")` is unanchored, so `abc5` passed it and
+  `actualMinutes * 60` **raised**: measured, not deduced. `-5` passed too and scheduled the logout in
+  the past, so the mission unlocked and relocked without a word. Reachable by any pilot at L1 through
+  `-auth login`.
+
+### Where it stands
+
+**98 of 140 decided. 42 left**: 15 Error/bug (**9 Python, 6 Lua**), 9 Documentation, 18
+readability/optimization/refactoring to touch only where a file is being changed anyway.
+
+The 6 remaining Lua entries are the ones that need a decision rather than a fix, and they are named
+here so the next batch does not have to rediscover it: VMR-073 and VMR-129 are in vendored /
+one-shot tooling (`dcs-fiddle-server.lua`, `dictionaryNormalizer.lua`), VMR-130 asks whether to
+delete the half-wired `monitoredCommands` eval sink or document it — which belongs with
+`REVIEW-SECURITY-LAYER` — and VMR-083, VMR-088 and VMR-089 are contract hardening with no reachable
+failure today (the last one says so itself).

@@ -1115,10 +1115,10 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
       return true
     elseif _action and _action:lower() == "start" and _carrierName then
       ---@type number
-      local _duration = 45
-      if _parameters and type(_parameters) == "number" then
-        _duration = tonumber(parameters) or 45
-      end
+      -- VMR-086: `_parameters` comes from a string match, so it is never a number and the
+      -- duration the caller asked for was dropped on the floor. The dead branch also read a
+      -- global `parameters` instead of `_parameters`, which is why nothing ever noticed.
+      local _duration = tonumber(_parameters) or 45
       local _carrier = findCarrier(_carrierName)
       veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_duration=%s", veaf.p(_duration)))
       veaf.loggers.get(veafCarrierOperations.Id):info(

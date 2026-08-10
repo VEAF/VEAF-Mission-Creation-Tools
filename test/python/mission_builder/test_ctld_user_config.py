@@ -21,21 +21,20 @@ from mission_builder.mission_builder_worker import (
     MissionBuilderWorker,
     _lua_long_bracket,
 )
+from mission_builder_factory import make_worker
 
 _MIZ_FOLDER = "l10n/DEFAULT"
 
 
 def _make_worker(*, ctld_enabled: bool = True) -> MissionBuilderWorker:
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_folder = Path(tempfile.mkdtemp())
-    worker.output_mission = worker.mission_folder / "out.miz"
-    worker.scripts_path = None
-    # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
-    # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
-    worker.collected_community_sound_files = {}
-    worker.collected_mission_data_files = {}
-    worker.dev_mode = True
+    worker = make_worker(
+        mission_folder=Path(tempfile.mkdtemp()),
+        dev_mode=True,
+        # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
+        # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
+        collected_community_sound_files={},
+        collected_mission_data_files={},
+    )
     worker._community_enabled = lambda script_id: ctld_enabled and script_id == "ctld"  # type: ignore[method-assign]
     return worker
 

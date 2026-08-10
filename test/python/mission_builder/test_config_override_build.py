@@ -7,16 +7,13 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 from veaf_libs.config_override import OVERRIDE_SCRIPT_NAME
 
 
 def _bare_worker(target: str | None, values: dict) -> MissionBuilderWorker:
     """A worker shell carrying only the config_override attributes (no __init__)."""
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.config_override_target = target
-    worker.config_override_values = values
-    return worker
+    return make_worker(config_override_target=target, config_override_values=values)
 
 
 class TestRenderConfigOverride(unittest.TestCase):

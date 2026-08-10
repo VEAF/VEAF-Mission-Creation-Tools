@@ -28,6 +28,7 @@ from mission_builder.mission_builder_worker import (
     _emit_trig_action_string,
     _emit_trigrule_actions,
 )
+from mission_builder_factory import make_worker
 
 #: Deterministic build stamp for the golden tests (the real one varies by version/sha).
 _STAMP = "9.9.9+testsha"
@@ -38,16 +39,14 @@ _STATIC_MISSION_DICT_KEY = _VEAF_TRIGGER_DICT_KEYS[5]
 
 
 def _make_worker() -> MissionBuilderWorker:
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_folder = Path(tempfile.mkdtemp())
-    worker.output_mission = worker.mission_folder / "out.miz"
-    worker.scripts_path = None
-    # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
-    # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
-    worker.collected_community_sound_files = {}
-    worker.collected_mission_data_files = {}
-    worker.dev_mode = True
+    worker = make_worker(
+        mission_folder=Path(tempfile.mkdtemp()),
+        dev_mode=True,
+        # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
+        # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
+        collected_community_sound_files={},
+        collected_mission_data_files={},
+    )
     worker.get_collected_community_script_files = lambda: []  # type: ignore[method-assign]
     worker.get_collected_veaf_script_files = lambda: []  # type: ignore[method-assign]
     worker._active_community_scripts = lambda: []  # type: ignore[method-assign]

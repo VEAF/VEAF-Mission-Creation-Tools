@@ -9,6 +9,7 @@ from __future__ import annotations
 import unittest
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 
 
 class _FakeMission:
@@ -18,11 +19,7 @@ class _FakeMission:
 
 class TestReferenceValidationNonBlocking(unittest.TestCase):
     def _worker(self, mission_yaml: dict, mission_content: dict) -> MissionBuilderWorker:
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker._dcs_bridge_temp_file = None
-        worker.mission_yaml = mission_yaml
-        worker.dcs_mission = _FakeMission(mission_content)  # type: ignore[assignment]
-        return worker
+        return make_worker(mission_yaml=mission_yaml, dcs_mission=_FakeMission(mission_content))
 
     def test_validate_references_collects_without_aborting(self) -> None:
         worker = self._worker({"cap_missions": [{"group_name": "Ghost"}]}, {"coalition": {}})

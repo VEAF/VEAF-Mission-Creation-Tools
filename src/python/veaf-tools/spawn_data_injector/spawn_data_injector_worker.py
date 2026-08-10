@@ -74,14 +74,28 @@ def merge_spawn_data(framework: dict[str, Any], mission: dict[str, Any] | None) 
 
 def _next_trigger_index(mission_content: dict) -> int:
     """Return the next free 1-based trigger index (one past the current maximum)."""
+    # int(k) on every key raised ValueError on the first non-numeric one, which is a crash on a
+    # mission we could otherwise handle (SECREV-2 / VMR-056). A key that is not an index cannot
+    # contribute to "the next index", so it is skipped rather than fatal.
     indices: list[int] = []
     trigrules = mission_content.get("trigrules") or {}
-    indices.extend(int(k) for k in trigrules)
+    indices.extend(_numeric_keys(trigrules))
     trig = mission_content.get("trig") or {}
     for category in trig.values():
         if isinstance(category, dict):
-            indices.extend(int(k) for k in category)
+            indices.extend(_numeric_keys(category))
     return (max(indices) + 1) if indices else 1
+
+
+def _numeric_keys(container: dict) -> list[int]:
+    """Return the keys of *container* that are integer indexes, ignoring any that are not."""
+    result: list[int] = []
+    for key in container:
+        try:
+            result.append(int(key))
+        except (TypeError, ValueError):
+            logger.debug(f"ignoring non-numeric trigger key {key!r} when looking for the next index")
+    return result
 
 
 def inject_spawn_data(mission: DcsMission, lua_text: str) -> dict[str, bytes]:

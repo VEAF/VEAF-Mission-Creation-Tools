@@ -2,6 +2,7 @@
 
 import json
 import re
+import traceback
 from typing import Any
 
 from veaf_libs.i18n import t
@@ -194,7 +195,13 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
         logger.debug(f"Successfully fetched METAR for {airport_icao}: {result}")
     except Exception as e:
-        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=str(e)))
+        # Kept broad on purpose: this is a network call to a third-party library, and a build must
+        # not die because a weather service is down. But naming the exception type is what makes a
+        # programming error tellable from an outage (SECREV-2 / VMR-069) — an AttributeError from an
+        # avwx API change used to read exactly like a failed request, and the traceback was lost
+        # entirely. The mission then flies the default weather, so the warning has to be legible.
+        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=f"{type(e).__name__}: {e}"))
+        logger.debug(f"METAR fetch traceback for {airport_icao}:\n{traceback.format_exc()}")
 
     return result
 
@@ -249,6 +256,19 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
 
     parts = metar_string.split()
 
+    # Everything from the first of these words on describes a *forecast* or free-text remarks, not
+    # the current observation (SECREV-2 / VMR-070). The loop used to read straight through them, and
+    # since the visibility branch has no `break`, the last four-digit group won: a report ending in
+    # `TEMPO 3000` was flown at 3000 m even though it was observed at 9999.
+    _NOT_OBSERVED_FROM = ("TEMPO", "BECMG", "NOSIG", "RMK", "PROB30", "PROB40", "FM")
+    for cut, part in enumerate(parts):
+        if part.upper().startswith(_NOT_OBSERVED_FROM):
+            parts = parts[:cut]
+            break
+
+    #: Which single-valued groups have already been read, so a later token cannot overwrite them.
+    seen: set[str] = set()
+
     for i, part in enumerate(parts):
         # Temperature/Dewpoint: "15/10" format
         if "/" in part and i > 0:
@@ -279,12 +299,12 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
                 except ValueError:
                     pass
 
-        # Visibility: "9999" format (meters) or "10SM" (statute miles)
-        if part.isdigit() and len(part) == 4:
-            try:
-                result["visibility"] = float(part)
-            except ValueError:
-                pass
+        # Visibility: "9999" format (meters) or "10SM" (statute miles).
+        # First one only: a METAR carries at most one prevailing visibility, and taking the last
+        # four-digit group let a later one overwrite it (SECREV-2 / VMR-070).
+        if part.isdigit() and len(part) == 4 and "visibility" not in seen:
+            result["visibility"] = float(part)
+            seen.add("visibility")
 
         # Cloud coverage groups: "FEW010", "SCT025", "BKN040", "OVC100"
         cloud_match = re.match(r"(SKC|CLR|FEW|SCT|BKN|OVC)(\d{3})?", part)

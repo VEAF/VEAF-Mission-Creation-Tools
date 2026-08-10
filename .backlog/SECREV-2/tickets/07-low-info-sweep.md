@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — HIGH tier cleared, Security-flaw tier swept, **no CONFIRMED finding left** (64/140 decided)
+Status: 🔄 in-progress — no CONFIRMED finding left; Error/bug tier under way, Python batch 1 done (71/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -278,9 +278,61 @@ for argument 'key'`. It was in the VMR-055 fix, where a test caught it, **and** 
 where no test had reached it yet — it would have failed the first time a mission maker hit the error
 path, which is the worst possible moment for an error message to be broken.
 
-### Where it stands
+### Where it stood after the CONFIRMED sweep
 
 **64 of 140 decided. 76 left**, of which 46 Error/bug, 9 Documentation, 3 Security flaw (the
 shared-password family awaiting David), and 18 readability/optimization/refactoring the ticket says to
 touch only where a file is being changed anyway. **None of the 76 is CONFIRMED** — the rest are
 UNVERIFIED or PLAUSIBLE, so the next batch should expect the sample's ~9% that do not reproduce.
+
+## Sweep, fourth pass — Error/bug, Python batch 1, 2026-08-10
+
+The 39 remaining Error/bug findings split 13 Python / 26 Lua across 35 files, so they go in batches by
+ecosystem rather than one change. This is the first Python batch: **7 findings, all confirmed against
+the code, all fixed.**
+
+| | Outcome | |
+|---|---|---|
+| VMR-070 | **fixed** | a forecast group overwrote the observed visibility |
+| VMR-065 | **fixed** | `exit()` is `site`'s, not the language's — **10** occurrences, not 1 |
+| VMR-060 | **fixed** | coordinates emitted as strings, and the point *name* unescaped |
+| VMR-067 | **fixed** | one nameless group crashed the whole extraction |
+| VMR-056 | **fixed** | a non-numeric trigger key crashed the index search |
+| VMR-059 | **fixed** | a guard whose default made it always true |
+| VMR-069 | **fixed** | an avwx API change was indistinguishable from an outage |
+
+### The regex lied again, and the count went 1 → 8 → 10
+
+VMR-065 named one `exit()`. A regex found 8. The AST-based gate then found **10**: the two `exit(1)`
+forms were not alone on their line, so `^\s*exit\(\)$` skipped them. That is the third time in this
+ticket that a hand-written pattern under-counted what an AST pass sees — the same lesson as the
+`print()` gate this morning, learned again in the same afternoon.
+
+Replacing them turned up dead code for free: `prepare.py` called `exit(1)` **after** `logger.error`,
+which raises `typer.Abort` by default. The line could never run.
+
+### VMR-070's mechanism is worse than its title
+
+"Visibility regex matches unrelated 4-digit tokens" undersells it. The branch has no `break`, so the
+**last** four-digit group won — and everything from `TEMPO`, `BECMG`, `PROB` or `RMK` onwards is a
+*forecast*, not the observation. A report observed at 9999 and ending in `TEMPO 3000` was flown at
+3000 m. The parser now stops at those words and keeps the first prevailing visibility.
+
+### Two findings under-reported their scope, again
+
+- **VMR-060** mentions unescaped coordinates but not the point's **name**, interpolated raw in the
+  same line: a quote in a point name produced Lua that does not parse.
+- **VMR-065**, above.
+
+### And I over-engineered once, caught by the existing tests
+
+My first VMR-070 fix added an `i > 0` guard against reading a numeric station identifier as a
+visibility. ICAO codes are alphabetic, so it protected nothing — and it broke two existing tests that
+parse a bare `"9999"`. Removed. A guard against an impossible input is not caution, it is noise that
+breaks real cases.
+
+### Where it stands
+
+**71 of 140 decided. 69 left**: 39 Error/bug (13 Python, 26 Lua), 9 Documentation, 3 Security flaw
+(awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
+anyway.

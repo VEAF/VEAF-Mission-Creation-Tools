@@ -39,7 +39,7 @@ def extract(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionExtractorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)

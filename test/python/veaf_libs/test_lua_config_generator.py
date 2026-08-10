@@ -990,3 +990,77 @@ def test_a_well_formed_respawn_offset_still_emits_the_call() -> None:
     lua = "\n".join(_emit_airwave_zone({"name": "Z", "respawn_default_offset": [10, -20]}))
 
     assert ":setRespawnDefaultOffset(10, -20)" in lua
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-059 — `qra_section.get("silence_all", False)` meant the `is not None` guard was
+# true whatever the mission said, so every QRA mission emitted ToggleAllSilence(false) even when
+# silence was never mentioned. Harmless at runtime (veafQraManager.AllSilence is already false)
+# but the guard read as "only when configured".
+# --------------------------------------------------------------------------------------------
+
+
+def test_silence_is_not_mentioned_when_the_mission_does_not_ask_for_it() -> None:
+    lua = generate_config_lua(_qra_yaml({"name": "QRA-Nord", "coalition": "RED"}))
+
+    assert "ToggleAllSilence" not in lua
+
+
+def test_silence_all_true_still_emits_the_call() -> None:
+    mission = _qra_yaml({"name": "QRA-Nord", "coalition": "RED"})
+    mission["qra"]["silence_all"] = True
+
+    assert "VeafQRA.ToggleAllSilence(true)" in generate_config_lua(mission)
+
+
+def test_silence_all_false_is_still_honoured_when_written_explicitly() -> None:
+    # An explicit `false` is a statement of intent and must survive the round trip from a v5 mission.
+    mission = _qra_yaml({"name": "QRA-Nord", "coalition": "RED"})
+    mission["qra"]["silence_all"] = False
+
+    assert "VeafQRA.ToggleAllSilence(false)" in generate_config_lua(mission)
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-060 — named-point coordinates were interpolated *quoted*, so coord.LLtoLO got
+# strings and worked only through Lua coercion; and neither they nor the point's name (which the
+# finding does not mention) were escaped, so a quote produced Lua that does not parse.
+# --------------------------------------------------------------------------------------------
+
+
+def _named_points(*points: dict) -> dict:
+    return {
+        "mission": {"name": "Test"},
+        "lua_modules": {"NAMEDPOINTS": {"custom_points": list(points)}},
+    }
+
+
+def test_named_point_coordinates_are_emitted_as_numbers() -> None:
+    lua = generate_config_lua(_named_points({"name": "Alpha", "lat": 41.5, "lon": 42.25}))
+
+    assert "coord.LLtoLO(41.5, 42.25)" in lua
+    assert 'coord.LLtoLO("41.5"' not in lua, "quoted coordinates relied on Lua coercing them"
+
+
+def test_a_numeric_string_coordinate_is_still_accepted() -> None:
+    # mission.yaml is hand-written and YAML happily yields a string here; that must keep working.
+    lua = generate_config_lua(_named_points({"name": "Alpha", "lat": "41.5", "lon": "42.25"}))
+
+    assert "coord.LLtoLO(41.5, 42.25)" in lua
+
+
+def test_a_non_numeric_coordinate_is_refused_naming_the_point() -> None:
+    with pytest.raises(ValueError) as caught:
+        generate_config_lua(_named_points({"name": "Bravo", "lat": "north", "lon": 42.0}))
+
+    message = str(caught.value)
+    assert "Bravo" in message and "lat" in message, message
+
+
+def test_a_quote_in_a_point_name_does_not_break_the_generated_lua() -> None:
+    lua = generate_config_lua(_named_points({"name": 'Point "Zulu"', "lat": 1.0, "lon": 2.0}))
+
+    # `_emit_lua_string` wraps it in a long bracket, which needs no escaping at all. What must not
+    # appear is the old raw interpolation, `name = "Point "Zulu""`, which does not parse as Lua.
+    assert '[[Point "Zulu"]]' in lua, lua
+    assert 'name = "Point "Zulu""' not in lua

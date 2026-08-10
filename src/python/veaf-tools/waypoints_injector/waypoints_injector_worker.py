@@ -298,6 +298,13 @@ class WaypointsExtractorWorker(BaseWorker):
                     for group in groups_list:
                         group_name = group.get("name")
 
+                        # A group with no name reached `pattern.match(None)` and raised TypeError,
+                        # taking the whole extraction down (SECREV-2 / VMR-067). It cannot match a
+                        # name pattern anyway, and it has no usable key, so it is skipped.
+                        if not group_name:
+                            logger.debug(f"skipping a group with no name in {coalition_name}/{country_name}")
+                            continue
+
                         # Check if group name matches pattern
                         if self.group_name_pattern and not self.group_name_pattern.match(group_name):
                             continue

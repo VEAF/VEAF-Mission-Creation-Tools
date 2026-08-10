@@ -57,7 +57,7 @@ def extract_waypoints(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsExtractorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve mission folder and output YAML file
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -126,7 +126,7 @@ def inject_waypoints(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsInjectorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)

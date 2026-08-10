@@ -153,3 +153,40 @@ class TestWorkerEndToEnd:
         with zipfile.ZipFile(miz) as zf:
             lua = zf.read(_RESOURCE_ARCNAME).decode("utf-8")
         assert "CUSTOM_SHILKA" in lua
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-056 — `int(k) for k in trigrules` raised ValueError on the first non-numeric
+# key, crashing on a mission we can otherwise handle. A key that is not an index cannot
+# contribute to "the next index", so it is ignored rather than fatal.
+# --------------------------------------------------------------------------------------------
+
+
+def test_a_non_numeric_trigger_key_does_not_crash_the_index_search() -> None:
+    from spawn_data_injector.spawn_data_injector_worker import _next_trigger_index
+
+    content = {
+        "trigrules": {"1": {}, "2": {}, "somethingElse": {}},
+        "trig": {"func": {"1": "x", "notAnIndex": "y"}},
+    }
+
+    assert _next_trigger_index(content) == 3
+
+
+def test_the_next_index_is_still_one_past_the_maximum() -> None:
+    from spawn_data_injector.spawn_data_injector_worker import _next_trigger_index
+
+    assert _next_trigger_index({"trigrules": {"4": {}, "7": {}}}) == 8
+
+
+def test_an_empty_mission_starts_at_one() -> None:
+    from spawn_data_injector.spawn_data_injector_worker import _next_trigger_index
+
+    assert _next_trigger_index({}) == 1
+
+
+def test_only_non_numeric_keys_still_starts_at_one() -> None:
+    # The degenerate case: ignoring them all must not leave max() on an empty list.
+    from spawn_data_injector.spawn_data_injector_worker import _next_trigger_index
+
+    assert _next_trigger_index({"trigrules": {"a": {}, "b": {}}}) == 1

@@ -35,16 +35,20 @@ Measured over `dcs-radio-specs.yaml` — every "radio" whose ranges all sit belo
 below the VHF floor (it names an `ARK-15M` at 0.625 MHz) makes DCS refuse to save the mission.
 The role classification should apply the same reasoning.
 
-### 2. The AJS-37 layout hard-codes two out-of-range specials
+### 2. Two of the AJS-37's specials never reach the mission
 
-`dcs-radio-layouts.yaml` gives `AJS37` radio 1 (`primary_1`) a `trailing_specials` list
-containing `{freq: 33, mod: 1, label: E}` and `{freq: 34, mod: 1, label: F}`. The specs give the
-AJS-37 a single radio spanning `103.0–400.0 MHz`, so both land below the floor and are dropped —
-reported as channels 44/45 on every build.
+`dcs-radio-layouts.yaml` gives `AJS37` radio 1 a `trailing_specials` list containing
+`{freq: 33, mod: 1, label: E}` and `{freq: 34, mod: 1, label: F}`. The specs give the AJS-37 a
+single radio spanning `103.0-400.0 MHz`, so `_drop_out_of_range_channels` strips both before the
+mission is written -- reported as channels 44/45 on every build.
 
-Either the specials are wrong, or the AJS-37's **FR24 FM radio is missing from the specs** and
-those two belong to it. `mod: 1` on both entries says the author meant FM, which points at the
-second reading.
+**Not a design question.** ADR 0012 decided those seven specials and the packer honours the
+decision; a layer below silently undoes part of it. What is open is narrower, and dated: the drop
+arrived 2026-06-13 (#468) and the AJS-37 layout a month later (#569), so the two were never put
+side by side. #468's own message says the guard exists **so the Mission Editor can save** -- while
+veaf-tools writes the `.miz` directly and never takes that path. A mission with 33 MHz on an AJS-37
+therefore flies, which is what Tripack tested, and would be refused only if someone re-saved it in
+the editor. One experiment decides whether that trade is right here; see the ticket.
 
 ### 3. No Flaming Cliffs aircraft in the specs
 

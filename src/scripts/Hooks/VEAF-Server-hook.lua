@@ -117,7 +117,24 @@ veafServerHook.maxServerUptime = veafServerHook.DEFAULT_MAX_SERVER_UPTIME
 
 veafServerHook.maxPlayersForRestart = veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART
 
-veafServerHook.statisticsTypes = { "ping", "crashes", "vehicules", "aircrafts", "ships", "score", "landings", "ejections" }
+--- Reported statistic name -> the `net.PS_*` constant that identifies it.
+---
+--- This was a plain list, and the loop that reads it passed the **Lua index** (1..8) to
+--- `net.get_stat`, whose second parameter is documented as "one of the `net.PS_*` constants"
+--- (`dcs-world-api.lua`). So every player's statistics were read from whatever ids 1..8 happen to be
+--- and filed under the wrong names (SECREV-2 / VMR-071). The finding proposed passing the list's
+--- *value* instead — a string — which the API does not accept either; naming the constants removes
+--- any assumption about their numeric values.
+veafServerHook.statisticsTypes = {
+  ping = "PS_PING",
+  crashes = "PS_CRASH",
+  vehicules = "PS_CAR",
+  aircrafts = "PS_PLANE",
+  ships = "PS_SHIP",
+  score = "PS_SCORE",
+  landings = "PS_LAND",
+  ejections = "PS_EJECT",
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -413,10 +430,17 @@ function veafServerHook.sendData(timestamp)
       unit = playerDetails.slot,
       stats = {},
     }
-    for key, value in pairs(veafServerHook.statisticsTypes) do
-      local stat = net.get_stat(playerId, key)
-      veafServerHook.logTrace(string.format("stat[%s]=%s", veafServerHook.p(key), veafServerHook.p(stat)))
-      pilotData.stats[value] = stat
+    for statName, constantName in pairs(veafServerHook.statisticsTypes) do
+      local statId = net[constantName]
+      if statId == nil then
+        -- A DCS version that dropped or renamed the constant: skip that one statistic rather than
+        -- call get_stat with nil and take the whole pilot report down.
+        veafServerHook.logWarning(string.format("net.%s is not defined; skipping %s", constantName, statName))
+      else
+        local stat = net.get_stat(playerId, statId)
+        veafServerHook.logTrace(string.format("stat[%s]=%s", statName, veafServerHook.p(stat)))
+        pilotData.stats[statName] = stat
+      end
     end
     local pilot = veafServerHook.pilots[ucid]
     if pilot then

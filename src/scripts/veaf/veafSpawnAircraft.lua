@@ -861,8 +861,12 @@ function veafSpawn.spawnCombatAirPatrol(
   local function convertSpeeds(speed, mach, altitude)
     local result = speed
     if not result then
-      -- compute ground speed in m/s based on MACH and altitude
-      result = veaf.convertMachSpeed(0.3, altitude).TAS_ms
+      -- compute ground speed in m/s based on MACH and altitude.
+      -- `mach` was ignored in favour of a hard 0.3, so the four legs below -- called with 0.3, 0.5,
+      -- 0.63 and 0.63 -- all came out at the same speed, and every CAP spawned without an explicit
+      -- speed flew its whole route at Mach 0.3 (SECREV-2 / VMR-097). `or 0.3` keeps the old value as
+      -- the fallback for a caller that passes nothing.
+      result = veaf.convertMachSpeed(mach or 0.3, altitude).TAS_ms
     else
       -- compute ground speed in m/s based on IAS and altitude
       result = veaf.convertIndicatedAirSpeed(speed, altitude).TAS_ms

@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — **Security-flaw tier fully closed**; Error/bug tier under way (82/140 decided)
+Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 2 done (85/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -476,3 +476,55 @@ that made it urgent.
 **82 of 140 decided. 58 left, and none is a Security flaw** — the tier is closed. What remains: 31
 Error/bug (9 Python, 22 Lua), 9 Documentation, 18 readability/optimization/refactoring to touch only
 where a file is being changed anyway.
+
+## Sweep, seventh pass — Error/bug, Lua batch 2, 2026-08-10
+
+Three findings, and two of them show why reading the code beats reading the finding.
+
+| | Outcome | |
+|---|---|---|
+| VMR-097 | **fixed** | every CAP flew its whole route at Mach 0.3 |
+| VMR-071 | **fixed** | a real defect, but the finding's remedy was inverted |
+| VMR-075 | **fixed** | `veafServerHook` in a script that has never heard of it |
+
+### VMR-097: four different speeds, one result
+
+`convertSpeeds(speed, mach, altitude)` took `mach` and ignored it, using a hard `0.3`:
+
+```lua
+result = veaf.convertMachSpeed(0.3, altitude).TAS_ms   -- mach never read
+```
+
+The four legs are called with **0.3, 0.5, 0.63 and 0.63**. So every CAP spawned without an explicit
+speed flew its entire route at Mach 0.3 — sluggish patrols, in game, for anyone who never passed a
+speed.
+
+### VMR-071: right that it is broken, wrong about why
+
+`statisticsTypes` was a plain list, so `pairs()` handed the loop the **Lua index** (1..8) and the code
+passed that to `net.get_stat` — reading whatever ids 1..8 happen to be and filing them under the wrong
+names.
+
+But the finding proposes passing the list's *value* instead, i.e. the string `"ping"`. The repo's own
+API schema settles it:
+
+> `@param statID number` Statistic identifier (one of the `net.PS_*` constants).
+
+A string would not have worked either. The table now maps each reported name to its **constant name**,
+resolved through `net[...]` at the call — which removes any assumption about the numeric values, since
+the schema documents them only as `number`. A DCS version that drops a constant now skips that one
+statistic with a warning instead of calling `get_stat` with nil.
+
+Worth noting where the answer came from: `src/python/veaf-tools/veaf_libs/data/dcs-schema/`. The
+datamined API schema is in this repository, and it decided a question I could not have settled by
+reasoning.
+
+### Where it stands
+
+**85 of 140 decided. 55 left**: 28 Error/bug (9 Python, 19 Lua), 9 Documentation, 18
+readability/optimization/refactoring to touch only where a file is being changed anyway.
+
+Two findings in `veafSpawnAircraft` were read and deliberately left for the next batch — VMR-098 (AFAC
+limit off-by-one) and VMR-099 (an inverted `hiddenOnMFD` flag) both need the surrounding callsign
+bookkeeping understood before touching it, and guessing at a spawn limit is how you break a working
+feature.

@@ -144,67 +144,23 @@ channel_lists:
   # Foothold's red side is AI-only: no presets to inject.
   red: {}
 
-# ── Legacy override layer — Flaming Cliffs and other types the packer cannot reach ──
+# The legacy override layer that used to sit here is gone (FIX-RADIO-LAYOUT-GAPS ticket 03).
 #
-# The preset plan above projects onto each aircraft's PHYSICAL radios, which the build
-# reads from `dcs-radio-specs.yaml`. That file (auto-generated from the DCS datamine)
-# covers 87 types but **no Flaming Cliffs aircraft** — Su-27, Su-25T, Su-25, MiG-29A/S/G,
-# J-11A, A-10A, F-15C, Su-33 are all absent — so the packer produces nothing for them and
-# they would ship with no radio presets at all.
+# It existed to give the ten Flaming Cliffs types a preset the packer could not build, because
+# `dcs-radio-specs.yaml` had no radio for them — and its own comment told the reader to delete
+# each type "as soon as it appears in dcs-radio-specs.yaml". That instruction described a future
+# that could not arrive: measured across 40 real VEAF missions, 110 FC3 player slots carry no
+# `Radio` table at all, against 2105 non-FC3 slots that do. DCS exposes no settable radio on those
+# airframes; their pilots dial the frequencies into SRS by hand.
 #
-# ADR 0010 keeps the old layers as the manual-override path for exactly this case: an
-# explicit assignment for a type always wins over the projection. The channel lists are
-# reused verbatim through YAML anchors, so there is ONE place to edit a frequency.
+# So the ten types are now declared in the shipped overlay as **kneeboard-only** bands: the packer
+# builds them a plate — which is the only thing that ever reached an FC3 pilot, and exactly what
+# converting this mission to the plan model had cost — and the build writes nothing into their
+# units. `F-14BU` came off the list too: it arrived with the datamine pin bump of 2026-08-08.
 #
-# Remove a type from `presets_assignments` below as soon as it appears in
-# dcs-radio-specs.yaml — the projection then handles it properly, ADF radios included.
-
-radios_collection:
-  blue_radios:
-    radio_uhf:
-      title: UHF
-      type: uhf
-      channels: *uhf_channels
-    radio_vhf:
-      title: VHF
-      type: vhf
-      channels: *vhf_channels
-    radio_fm:
-      title: FM
-      type: fm
-      channels: *fm_channels
-
-presets_collection:
-  blue_presets:
-    legacy_uhf_vhf_fm:
-      title: Blue coalition - UHF/VHF/FM
-      radios:
-        radio_1: radio_uhf
-        radio_2: radio_vhf
-        radio_3: radio_fm
-
-# Manual overrides. An explicit assignment for a type always wins over the
-# channel_lists projection above (ADR 0010) — this block is where an airframe the
-# packer gets wrong would be pinned down. Empty of aircraft entries on purpose:
-# the projection handles the A-10's inverted radios, the Apache, the Gazelles, the
-# CH-47, the OH-58D's second FM and the Mi-24P's channel-0 rotation, all of which
-# previously needed a hand-written collection here.
+# Nothing replaces this block per-mission. If an airframe ever needs pinning down, an explicit
+# `presets_assignments` entry still wins over the projection (ADR 0010).
 presets_assignments:
-  blue:
-    plane:
-      # Flaming Cliffs (absent from dcs-radio-specs.yaml — see above).
-      Su-27: legacy_uhf_vhf_fm
-      Su-25T: legacy_uhf_vhf_fm
-      Su-25: legacy_uhf_vhf_fm
-      Su-33: legacy_uhf_vhf_fm
-      MiG-29A: legacy_uhf_vhf_fm
-      MiG-29S: legacy_uhf_vhf_fm
-      MiG-29G: legacy_uhf_vhf_fm
-      J-11A: legacy_uhf_vhf_fm
-      A-10A: legacy_uhf_vhf_fm
-      F-15C: legacy_uhf_vhf_fm
-      # Also absent from the specs.
-      F-14BU: legacy_uhf_vhf_fm
   red:
     all:
       all: none

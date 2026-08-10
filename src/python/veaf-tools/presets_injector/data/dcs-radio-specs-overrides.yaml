@@ -71,3 +71,247 @@ MiG-19P:
   dcs_rejects_on_load: true
 SA342M:
   dcs_rejects_on_load: true
+
+# ── Flaming Cliffs: bands for the kneeboard, not hardware ────────────────────────────────────────
+#
+# FIX-RADIO-LAYOUT-GAPS ticket 03, David's decision of 2026-08-10: the deliverable for an FC3
+# aircraft is a **kneeboard plate**, on all three bands.
+#
+# These airframes expose **no settable radio**. Measured across 40 real VEAF missions: 110 FC3
+# player slots carry no `Radio` table, against 2105 non-FC3 slots that do. Their pilots dial the
+# frequencies into SRS by hand, so a plate listing them is the only thing the tool has ever
+# delivered to them — and losing that plate is what the Foothold conversion actually measured when
+# it fell back to a per-mission override.
+#
+# `kneeboard_only: true` is what makes this honest. The bands have to be declared here because that
+# is where the packer looks when building a preset at all; the flag stops the result being written
+# into the mission. Nothing describes hardware, and no FC3 unit gains a `Radio` table.
+#
+# The bounds are the conventional DCS band edges, chosen to strictly contain what the **shipped
+# plan** actually puts on each band (measured from src/defaults/mission-folder/src/presets.yaml:
+# fm 30.0–59.0, vhf 118.0–141.0, uhf 225.0–391.7). They bound the plan's own bands; they are not a
+# claim about any radio set.
+#
+# No `type:` here on purpose: a radio's band is classified from its **ranges**
+# (`_assign_roles_by_position`), not from a declared type — `AircraftRadio` has no such field, so
+# writing one would be a key the generator silently drops.
+
+Su-27:
+  kneeboard_only: true
+  add_aircraft:
+    name: Su-27
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+Su-25:
+  kneeboard_only: true
+  add_aircraft:
+    name: Su-25
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+Su-25T:
+  kneeboard_only: true
+  add_aircraft:
+    name: Su-25T
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+Su-33:
+  kneeboard_only: true
+  add_aircraft:
+    name: Su-33
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+MiG-29A:
+  kneeboard_only: true
+  add_aircraft:
+    name: MiG-29A
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+MiG-29S:
+  kneeboard_only: true
+  add_aircraft:
+    name: MiG-29S
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+MiG-29G:
+  kneeboard_only: true
+  add_aircraft:
+    name: MiG-29G
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+J-11A:
+  kneeboard_only: true
+  add_aircraft:
+    name: J-11A
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+A-10A:
+  kneeboard_only: true
+  add_aircraft:
+    name: A-10A
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM
+
+F-15C:
+  kneeboard_only: true
+  add_aircraft:
+    name: F-15C
+    category: plane
+    radios:
+      - name: UHF (SRS)
+        ranges:
+          - min_mhz: 225.0
+            max_mhz: 399.975
+            modulation: AM
+      - name: VHF (SRS)
+        ranges:
+          - min_mhz: 108.0
+            max_mhz: 155.995
+            modulation: AM
+      - name: FM (SRS)
+        ranges:
+          - min_mhz: 30.0
+            max_mhz: 87.975
+            modulation: FM

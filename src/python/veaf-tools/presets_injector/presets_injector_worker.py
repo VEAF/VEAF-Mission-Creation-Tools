@@ -21,6 +21,7 @@ from .radio_frequency_validator import (
     fits_human_radio,
     get_human_radio,
     get_valid_ranges,
+    is_kneeboard_only,
     is_strict,
     validate_frequencies,
     validate_frequency,
@@ -280,6 +281,18 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 # unit_type) so the kneeboard step renders one page per type.
                 if group.unit_type:
                     self._injected_presets[(group.coalition, group.unit_type)] = preset_definition
+                if is_kneeboard_only(group.unit_type or ""):
+                    # Flaming Cliffs: the plate is recorded above, and that is the whole deliverable.
+                    # These airframes expose no settable radio — 110 FC3 player slots across 40 real
+                    # VEAF missions carry no `Radio` table, against 2105 non-FC3 slots that do — so
+                    # writing one would put data in the mission that DCS has nowhere to read
+                    # (FIX-RADIO-LAYOUT-GAPS ticket 03, David's decision of 2026-08-10). Their pilots
+                    # dial these frequencies into SRS by hand, off the plate.
+                    logger.debug(
+                        f"Kneeboard-only preset '{preset_definition}' for group '{group.name}' "
+                        f"(type: {group.unit_type}): plate rendered, nothing written into the mission"
+                    )
+                    continue
                 logger.debug(
                     f"Injecting preset '{preset_definition}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})"
                 )

@@ -70,8 +70,8 @@ at all, or whether the generator filters them out.
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Never assign a comm role to an ADF](tickets/01-adf-not-a-comm-radio.md) | ⬜ |
-| 02 | [AJS-37: out-of-range trailing specials](tickets/02-ajs37-out-of-range-specials.md) | ⬜ |
-| 03 | [Cover Flaming Cliffs in the radio specs](tickets/03-fc3-radio-specs.md) | ⬜ |
+| 02 | [AJS-37: out-of-range trailing specials](tickets/02-ajs37-out-of-range-specials.md) | ✅ |
+| 03 | [Cover Flaming Cliffs in the radio specs](tickets/03-fc3-radio-specs.md) | ✅ |
 
 ## Why it matters beyond Foothold
 

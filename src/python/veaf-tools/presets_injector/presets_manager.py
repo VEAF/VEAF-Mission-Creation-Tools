@@ -17,6 +17,7 @@ This module provides classes to manage radio presets.
 
 # TODO add modulation
 
+import difflib
 import io
 import math
 import re
@@ -28,7 +29,7 @@ import yaml
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 from veaf_libs.bundled_data import read_bundled_text
-from veaf_libs.i18n import t
+from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
 from .radio_frequency_validator import FrequencyRange, RadioSpec, get_radios
@@ -424,17 +425,47 @@ class PresetDefinition:
         """
         radios = data.get("radios")
         if not radios:
-            logger.error(message=f"'radios' is mandatory for PresetDefinition {name}", exception_type=ValueError)
+            logger.error(message=t("presets.schema.radios_mandatory", name=name), exception_type=ValueError)
             return PresetDefinition(name=name)
+        radios = _require_block(radios, f"preset '{name}'.radios", t("presets.schema.expected.radios"))
         result = PresetDefinition(name=name, title=data.get("title") or "")
         for radio_name, radio_alias in radios.items():
+            if not isinstance(radio_alias, str):
+                # The v5 layout defined each radio inline, right here. v6 names a radio declared in
+                # `radios_collection` instead, so what arrives is a whole block rather than a name.
+                logger.error(
+                    message=t(
+                        "presets.schema.radio_inline",
+                        name=name,
+                        slot=radio_name,
+                        found=_describe(radio_alias),
+                    ),
+                    exception_type=ValueError,
+                )
             for radio_collection in radio_collections.values():
                 if radio_alias in radio_collection.radio_definitions:
                     radio_definition = radio_collection.radio_definitions[radio_alias]
                     break
             else:
+                known = sorted(
+                    alias
+                    for radio_collection in radio_collections.values()
+                    for alias in radio_collection.radio_definitions
+                )
+                matches = difflib.get_close_matches(str(radio_alias), known, n=1, cutoff=0.6)
                 logger.error(
-                    message=f"'radio_alias' {radio_alias} in class PresetDefinition {name} was not found in any RadioCollection",
+                    message=t(
+                        "presets.schema.radio_unknown",
+                        name=name,
+                        slot=radio_name,
+                        alias=radio_alias,
+                        near=t("presets.schema.radio_unknown.near", near=matches[0]) if matches else "",
+                        known=(
+                            t("presets.schema.radio_unknown.known", known=", ".join(known))
+                            if known
+                            else t("presets.schema.radio_unknown.none")
+                        ),
+                    ),
                     exception_type=ValueError,
                 )
             result.add_radio(radio_definition)
@@ -477,7 +508,9 @@ class PresetCollection:
         """
 
         result = PresetCollection(name=name)
+        _require_block(data, f"presets_collection.{name}", "a block of named presets")
         for item_name in data:
+            _require_preset_body(data[item_name], f"presets_collection.{name}.{item_name}")
             item = PresetDefinition.from_dict(name=item_name, data=data[item_name], radio_collections=radio_collections)
             result.add_preset_definition(item)
         return result
@@ -493,6 +526,125 @@ class PresetAssignment:
     coalition: str = "all"
     aircraft_type: str = "all"
     unit_type: str = "all"
+
+
+#: Every section `PresetsManager.read_yaml` knows how to read. Anything else in a presets file is
+#: reported rather than dropped (FIX-CONVERT-V5-PRESETS-SCHEMA ticket 01): silently ignoring a key
+#: does not just lose data, it misdirects the diagnosis — a `presets_definition` block skipped
+#: without a word surfaced one step later as "preset … not found in any PresetCollection", an error
+#: accusing the assignments, which were correct.
+PRESETS_SECTIONS: tuple[str, ...] = (
+    "channels_collection",
+    "radios_collection",
+    "presets_collection",
+    "presets_assignments",
+    "channel_lists",
+)
+
+#: v5 section name -> its v6 equivalent. Used to turn "unknown section" into "this is the v5 name".
+_V5_SECTION_RENAMES: dict[str, str] = {
+    "presets_definition": "presets_collection",
+    "presets_definitions": "presets_collection",
+}
+
+
+def _describe(value: Any) -> str:
+    """Describe a YAML value the way a mission maker would read it, not as a Python type.
+
+    Args:
+        value: Any value parsed out of the presets file.
+
+    Returns:
+        A short phrase such as ``a list of 2 items`` or ``a block containing: blue, red``.
+    """
+    if value is None:
+        return t("presets.schema.found.nothing")
+    if isinstance(value, dict):
+        keys = ", ".join(str(k) for k in list(value)[:4])
+        more = ", …" if len(value) > 4 else ""
+        return t("presets.schema.found.block", keys=f"{keys}{more}") if keys else t("presets.schema.found.empty_block")
+    if isinstance(value, (list, tuple)):
+        return tn("presets.schema.found.list", len(value))
+    if isinstance(value, bool):
+        return t("presets.schema.found.bool", value=str(value).lower())
+    if isinstance(value, (int, float)):
+        return t("presets.schema.found.number", value=value)
+    return t("presets.schema.found.text", value=value)
+
+
+def _require_block(value: Any, path: str, expected: str) -> dict:
+    """Return *value* as a mapping, or raise a message naming the key, what was found and what fits.
+
+    Args:
+        value: The value found at *path*.
+        path: Dotted key path inside the presets file, e.g. ``presets_assignments.blue``.
+        expected: What the loader needs there, in plain words.
+
+    Returns:
+        The value, when it is a mapping.
+
+    Raises:
+        ValueError: Always, when it is not — via ``logger.error``, so the message reaches the user.
+    """
+    if isinstance(value, dict):
+        return value
+    logger.error(
+        message=t("presets.schema.expected", path=path, expected=expected, found=_describe(value)),
+        exception_type=ValueError,
+    )
+    raise AssertionError("unreachable")  # pragma: no cover - logger.error always raises
+
+
+def _require_preset_name(value: Any, path: str) -> str:
+    """Return *value* as a preset name, or raise a message a mission maker can act on.
+
+    Args:
+        value: The value found at *path*.
+        path: Dotted key path inside the presets file.
+
+    Returns:
+        The preset name.
+
+    Raises:
+        ValueError: Always, when *value* is not text — via ``logger.error``.
+    """
+    if isinstance(value, str):
+        return value
+    # A block here is the commonest cause by far: the file still has the v5 nesting, so what should
+    # be a preset name is another level of the tree.
+    hint = t("presets.schema.preset_name.hint") if isinstance(value, dict) else ""
+    logger.error(
+        message=t("presets.schema.preset_name", path=path, found=_describe(value), hint=hint),
+        exception_type=ValueError,
+    )
+    raise AssertionError("unreachable")  # pragma: no cover - logger.error always raises
+
+
+def _require_preset_body(value: Any, path: str) -> dict:
+    """Return *value* as a preset definition, or diagnose the v5 layout it usually is.
+
+    `presets_collection` has **two** levels in v6 — a named collection, then the presets in it —
+    where v5's `presets_definition` had one. A v5 file therefore presents a preset's own `title`
+    and `radios` keys where the loader expects preset names, and the first of them is a plain
+    string. That used to surface as ``'str' object has no attribute 'get'``.
+
+    Args:
+        value: The value found at *path*.
+        path: Dotted key path inside the presets file.
+
+    Returns:
+        The preset definition block.
+
+    Raises:
+        ValueError: Always, when *value* is not a block — via ``logger.error``.
+    """
+    if isinstance(value, dict):
+        return value
+    logger.error(
+        message=t("presets.schema.v5_preset_levels", path=path, found=_describe(value)),
+        exception_type=ValueError,
+    )
+    raise AssertionError("unreachable")  # pragma: no cover - logger.error always raises
 
 
 class PresetAssignmentCollection:
@@ -519,9 +671,28 @@ class PresetAssignmentCollection:
         """
 
         result = PresetAssignmentCollection()
+        _require_block(data, "presets_assignments", t("presets.schema.expected.assignments"))
+        if "coalitions" in data:
+            # The v5 layout, and by far the likeliest reason this walk would go wrong. Diagnose it
+            # by name instead of failing one level deeper on a value that is "not a preset name".
+            logger.error(message=t("presets.schema.v5_coalitions"), exception_type=ValueError)
         for coalition, coalition_data in data.items():
+            coalition_data = _require_block(
+                coalition_data,
+                f"presets_assignments.{coalition}",
+                t("presets.schema.expected.coalition"),
+            )
             for aircraft_type, type_data in coalition_data.items():
+                type_data = _require_block(
+                    type_data,
+                    f"presets_assignments.{coalition}.{aircraft_type}",
+                    t("presets.schema.expected.category"),
+                )
                 for unit_type, preset_definition_name in type_data.items():
+                    preset_definition_name = _require_preset_name(
+                        preset_definition_name,
+                        f"presets_assignments.{coalition}.{aircraft_type}.{unit_type}",
+                    )
                     if preset_definition_name.lower() == "none":
                         preset_definition = None
                     elif preset_definition_name.lower() == "empty":
@@ -1534,10 +1705,54 @@ class PresetsManager:
         self.channel_lists: dict[str, dict[str, RadioDefinition]] = {}
         self.channel_lists_dropped: dict[str, dict[str, list[str]]] = {}
 
+    @staticmethod
+    def _check_sections(data: Any) -> None:
+        """Refuse a presets file whose top level is not a set of sections this loader reads.
+
+        The loader used to be four ``if "<section>" in data`` blocks with no ``else``, so a section
+        it did not recognise was never read and never mentioned. That silence is what made a v5
+        ``presets_definition:`` block look like a problem with the *assignments*
+        (FIX-CONVERT-V5-PRESETS-SCHEMA ticket 01).
+
+        Args:
+            data: The parsed YAML document.
+
+        Raises:
+            ValueError: The document is not a block, is empty, or names a section the loader does
+                not read — via ``logger.error``, so the message reaches the user.
+        """
+        sections = ", ".join(PRESETS_SECTIONS)
+        if data is None:
+            logger.error(message=t("presets.schema.file_empty", sections=sections), exception_type=ValueError)
+        _require_block(data, "the file", t("presets.schema.expected.file", sections=sections))
+
+        unknown = [str(key) for key in data if str(key) not in PRESETS_SECTIONS]
+        if not unknown:
+            return
+
+        details: list[str] = []
+        for key in unknown:
+            renamed = _V5_SECTION_RENAMES.get(key)
+            if renamed:
+                details.append(t("presets.schema.unknown.v5_rename", section=key, expected=renamed))
+                continue
+            near = difflib.get_close_matches(key, PRESETS_SECTIONS, n=1, cutoff=0.6)
+            details.append(
+                t("presets.schema.unknown.near", section=key, near=near[0])
+                if near
+                else t("presets.schema.unknown.plain", section=key)
+            )
+        logger.error(
+            message=t("presets.schema.unknown_sections", details="; ".join(details), sections=sections),
+            exception_type=ValueError,
+        )
+
     def read_yaml(self, yaml_path: Path):
         try:
             with open(yaml_path) as file:
                 data = yaml.safe_load(file)
+
+            self._check_sections(data)
 
             # Load channel collections
             if "channels_collection" in data:
@@ -1575,11 +1790,15 @@ class PresetsManager:
                 )
 
         except FileNotFoundError:
-            logger.error(message=f"YAML file not found: {yaml_path}", exception_type=FileNotFoundError)
+            logger.error(message=t("presets.schema.file_not_found", path=yaml_path), exception_type=FileNotFoundError)
         except yaml.YAMLError as e:
-            logger.error(message=f"Error parsing YAML file {yaml_path}: {str(e)}", exception_type=ValueError)
+            logger.error(
+                message=t("presets.schema.yaml_error", path=yaml_path, error=str(e)), exception_type=ValueError
+            )
         except Exception as e:
-            logger.error(message=f"Error loading presets from {yaml_path}: {str(e)}", exception_type=RuntimeError)
+            logger.error(
+                message=t("presets.schema.load_error", path=yaml_path, error=str(e)), exception_type=RuntimeError
+            )
 
     def write_yaml(self, yaml_path: Path):
         # TODO do this later when implementing the GUI editor

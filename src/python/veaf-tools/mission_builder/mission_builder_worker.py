@@ -59,6 +59,10 @@ _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
 )
 
+#: Upper bound on the auto-downloaded bridge (SECREV-2 / VMR-034). Measured at 13 237 bytes on
+#: 2026-08-10, so 2 MiB leaves ~150x for growth while still refusing an absurd response.
+_DCS_BRIDGE_MAX_BYTES = 2 * 1024 * 1024
+
 
 def _lua_long_bracket(text: str) -> str:
     """Wrap *text* in a Lua long-bracket literal, escaping nothing.
@@ -958,9 +962,20 @@ class MissionBuilderWorker(BaseWorker):
         logger.info(t("builder.dcs_bridge_downloading", url=_DCS_BRIDGE_DOWNLOAD_URL))
         try:
             with urllib.request.urlopen(_DCS_BRIDGE_DOWNLOAD_URL) as resp:
-                content: bytes = resp.read()
+                # Read one byte past the cap so an oversized body is detected rather than streamed
+                # into memory whole (SECREV-2 / VMR-034). The URL is a constant on a VEAF repository
+                # over https, so there is no attacker-chosen host here and pinning a hash would
+                # defeat the point — the bridge deliberately tracks its `develop` branch. The size
+                # cap is what remains: this content is Lua that DCS will execute, and a runaway
+                # response should fail with a clear message instead of filling the process.
+                content: bytes = resp.read(_DCS_BRIDGE_MAX_BYTES + 1)
         except urllib.error.URLError as exc:
             raise RuntimeError(f"dcs_bridge: failed to download dcs-bridge.lua: {exc}") from exc
+
+        if len(content) > _DCS_BRIDGE_MAX_BYTES:
+            raise RuntimeError(
+                f"dcs_bridge: dcs-bridge.lua is larger than the {_DCS_BRIDGE_MAX_BYTES} byte limit — refusing it"
+            )
 
         tmp = tempfile.NamedTemporaryFile(suffix=".lua", delete=False)
         tmp.write(content)

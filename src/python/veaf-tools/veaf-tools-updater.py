@@ -26,6 +26,7 @@ from importlib.metadata import version as _pkg_version
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 import typer
@@ -87,6 +88,33 @@ BUILD_SCRIPTS_DIR = "build-scripts"
 PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
 UPDATE_PENDING_DIR = ".veaf-update-pending"
+
+#: Hosts a release asset may legitimately come from (SECREV-2 / VMR-037). GitHub serves
+#: `browser_download_url` from github.com and redirects to its object storage; both are named so a
+#: redirect chain that leaves GitHub entirely is refused.
+_TRUSTED_DOWNLOAD_HOSTS = frozenset({"github.com", "www.github.com", "api.github.com"})
+_TRUSTED_DOWNLOAD_HOST_SUFFIX = ".githubusercontent.com"
+
+
+def _is_trusted_download_url(url: str | None) -> bool:
+    """Whether *url* is an https URL on a GitHub host we are willing to download from.
+
+    The updater installs and then runs what it downloads, so the URL handed back by the GitHub API
+    is worth checking rather than trusting outright (SECREV-2 / VMR-037).
+
+    Args:
+        url: The candidate URL, as returned by the GitHub API (may be missing).
+
+    Returns:
+        True when the URL uses https and its host is GitHub's.
+    """
+    if not url:
+        return False
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        return False
+    host = (parsed.hostname or "").lower()
+    return host in _TRUSTED_DOWNLOAD_HOSTS or host.endswith(_TRUSTED_DOWNLOAD_HOST_SUFFIX)
 
 
 def load_config() -> dict[str, Any]:
@@ -356,6 +384,13 @@ class UpdateWorker:
 
     def download_asset(self, asset_url: str, asset_name: str) -> bytes | None:
         """Download an asset from a GitHub release."""
+        if not _is_trusted_download_url(asset_url):
+            # The URL comes from the GitHub API response, not from us, and what we do with the bytes
+            # is install and run an executable (SECREV-2 / VMR-037). Checking the scheme and host
+            # costs nothing and removes the whole class: a redirected or tampered API reply can no
+            # longer point the updater at an arbitrary server.
+            logger.error(t("updater.err.untrusted_url", url=asset_url, name=asset_name), exception_type=None)
+            return None
         with spinner_context(t("updater.downloading", name=asset_name)):
             response = requests.get(asset_url, headers=self.headers)
 
@@ -386,8 +421,18 @@ class UpdateWorker:
 REM Auto-generated update script for veaf-tools-updater.exe
 REM This script is run after the updater process exits to avoid file locking issues
 
+REM Delayed expansion is needed for !errorlevel! inside the if blocks below, but it also means a
+REM directory name containing ! or % is rewritten as we interpolate it. Windows forbids " in a path,
+REM so no quote can escape the argument and this is a robustness bug rather than the batch injection
+REM SECREV-2 / VMR-036 reported -- but the consequence was real: every rename and delete below is
+REM relative, so a failed cd used to run them against whatever directory the script started in.
+REM Bailing out on a failed cd removes that outcome whatever the cause.
 setlocal enabledelayedexpansion
 cd /d "{current_dir}"
+if errorlevel 1 (
+    echo ERROR: cannot enter "{current_dir}" -- aborting the update
+    exit /b 1
+)
 
 REM Wait for the updater process to finish
 timeout /t 2 /nobreak >nul 2>&1

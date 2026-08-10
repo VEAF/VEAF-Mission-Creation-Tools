@@ -70,5 +70,40 @@ class TestAMissionMakersFileIsNeverDeleted(unittest.TestCase):
         self.assertEqual(worker.dcs_bridge_bytes, b"-- mine")
 
 
+class TestTheDownloadIsCapped(unittest.TestCase):
+    """SECREV-2 / VMR-034 — the fetch had no size bound, and its content is Lua that DCS executes."""
+
+    def test_an_oversized_response_is_refused(self) -> None:
+        worker = _worker("dcs_bridge:\n  enabled: true\n")
+        with (
+            mock.patch.object(mission_builder_worker, "_DCS_BRIDGE_MAX_BYTES", 8),
+            mock.patch.object(mission_builder_worker.urllib.request, "urlopen") as urlopen,
+        ):
+            urlopen.return_value.__enter__.return_value.read.return_value = b"x" * 9
+
+            with self.assertRaises(RuntimeError) as caught:
+                worker.resolve_dcs_bridge_file()
+
+        self.assertIn("larger than", str(caught.exception))
+        self.assertIsNone(
+            worker._dcs_bridge_temp_file,
+            "refusing must happen before anything is written, or the refusal leaks a file",
+        )
+
+    def test_a_response_at_the_limit_is_accepted(self) -> None:
+        # The boundary matters: an off-by-one here would reject the real bridge once it grows into it.
+        worker = _worker("dcs_bridge:\n  enabled: true\n")
+        with (
+            mock.patch.object(mission_builder_worker, "_DCS_BRIDGE_MAX_BYTES", 8),
+            mock.patch.object(mission_builder_worker.urllib.request, "urlopen") as urlopen,
+        ):
+            urlopen.return_value.__enter__.return_value.read.return_value = b"x" * 8
+            path = worker.resolve_dcs_bridge_file()
+
+        assert path is not None
+        self.assertEqual(path.read_bytes(), b"x" * 8)
+        path.unlink(missing_ok=True)
+
+
 if __name__ == "__main__":
     unittest.main()

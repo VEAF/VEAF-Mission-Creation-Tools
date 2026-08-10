@@ -962,6 +962,58 @@ function TestVeafWeatherAtisVanishedAirbase:test_the_message_is_translated_not_h
 end
 
 -- ============================================================================
+-- TestVeafWeatherRemoteFogKey -- SECREV-2 / VMR-042
+-- ============================================================================
+--- The remote `fog` command indexes veafWeather with a key the pilot supplies. It was reported as a
+--- missing whitelist; measured, `:upper()` already narrows the reachable keys to the all-caps ones,
+--- and every all-caps key on veafWeather is a FOG_* preset -- so it was not exploitable as reported.
+--- What these tests pin is the fragility underneath: the first all-caps constant that is not a fog
+--- object would have turned the command into a Lua error on a pilot's request.
+TestVeafWeatherRemoteFogKey = {}
+
+function TestVeafWeatherRemoteFogKey:setUp()
+  self.activated = nil
+  self.originalSetAndActivateFog = veafWeather.setAndActivateFog
+  veafWeather.setAndActivateFog = function(fogObject)
+    self.activated = fogObject
+  end
+end
+
+function TestVeafWeatherRemoteFogKey:tearDown()
+  veafWeather.setAndActivateFog = self.originalSetAndActivateFog
+  veafWeather.NOT_A_FOG = nil
+end
+
+function TestVeafWeatherRemoteFogKey:_run(command)
+  return veafWeather.executeCommandFromRemote({ "pilot", "Player1", "Unit1", command })
+end
+
+function TestVeafWeatherRemoteFogKey:test_a_known_preset_is_still_accepted()
+  local handled = self:_run("fog fog_static_heavy")
+
+  luaunit.assertTrue(handled, "a real preset must still be applied")
+  luaunit.assertEquals(self.activated, veafWeather.FOG_STATIC_HEAVY)
+end
+
+function TestVeafWeatherRemoteFogKey:test_an_unknown_key_is_refused_without_activating_anything()
+  local handled = self:_run("fog no_such_preset")
+
+  luaunit.assertFalse(handled, "an unknown fog name must not be reported as handled")
+  luaunit.assertNil(self.activated)
+end
+
+function TestVeafWeatherRemoteFogKey:test_an_all_caps_key_that_is_not_a_fog_object_is_refused()
+  -- setAndActivateFog is stubbed here, so what this pins is that a non-fog value never *reaches* it
+  -- -- which is the guard's job. The real function would call fogObject:enable() on whatever it got.
+  veafWeather.NOT_A_FOG = { "some other constant" }
+
+  local handled = self:_run("fog not_a_fog")
+
+  luaunit.assertFalse(handled, "an all-caps key that is not a fog preset must not be reported handled")
+  luaunit.assertNil(self.activated, "a non-fog value must never be passed on for activation")
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

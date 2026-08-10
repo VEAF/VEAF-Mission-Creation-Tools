@@ -1664,12 +1664,18 @@ def pack_preset_for_type(
     or reserved head slot(s) (mutually exclusive with each other), radio fusion
     (concatenating several roles into one physical radio), a leading hardcoded
     dummy slot, and trailing hardcoded specials with their own modulations
-    (see :func:`_content_for_radio`). An aircraft with no
-    primary radio at all (single-radio HF/ADF sets, e.g. the MiG-15bis or
-    Yak-52) still gets an ``fm_substitute`` guess on its only radio; since that
-    content will not be in range, the existing frequency validator drops it and
-    reports the mismatch — a safe, actionable degradation rather than a crash,
-    pending an explicit layout entry for that type.
+    (see :func:`_content_for_radio`). An aircraft whose only radio is an **HF**
+    set above the comm floor — the MiG-15bis RSI-6K at 3.75–5.0 MHz — still gets
+    an ``fm_substitute`` guess there; the content will not be in range, so the
+    frequency validator drops it and reports the mismatch, a safe and actionable
+    degradation rather than a crash, pending an explicit layout entry.
+
+    A **radio-compass** is different and gets no role at all: every range below
+    ``_COMM_FLOOR_MHZ`` classifies as ``"non_comm"`` (ticket 01 of
+    `FIX-RADIO-LAYOUT-GAPS`), so the Yak-52's ARK-15M, the Ka-50's ARK-22 and the
+    MiG-29 Fulcrum's ARK-19 attract no channel list. Projecting one onto a
+    navigation instrument produced a full page of dropped channels and a
+    kneeboard advertising a radio the aircraft does not have.
 
     Args:
         channel_lists: Parsed Channel lists, coalition -> role -> RadioDefinition

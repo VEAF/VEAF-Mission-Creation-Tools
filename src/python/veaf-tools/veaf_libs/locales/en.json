@@ -577,6 +577,7 @@
   "help.pause_msg": "Press Enter to exit...",
   "help.readme": "Provide access to the README file.",
   "help.verbose": "If set, the script will output a lot of debug information.",
+  "lua_config.err.not_a_coordinate": "mission.yaml: named point '{point}' has a {axis} that is not a number: {value}",
   "lua_config.err.not_a_number_pair": "mission.yaml: '{setting}' must be a list of exactly two numbers, got {value}",
   "mission_tools.alternative_folder": "Used alternative folder '{alt}' to get '{file}' because nothing was found in '{orig}'",
   "msg.work_done": "[bold blue]Work done![/bold blue]",

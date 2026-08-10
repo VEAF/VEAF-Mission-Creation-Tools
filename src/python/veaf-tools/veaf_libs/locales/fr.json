@@ -577,6 +577,7 @@
   "help.pause_msg": "Appuyez sur Entrée pour quitter...",
   "help.readme": "Affiche le fichier README associé à cette commande.",
   "help.verbose": "Si activé, affiche des informations de débogage détaillées.",
+  "lua_config.err.not_a_coordinate": "mission.yaml : le point nommé « {point} » a une {axis} qui n'est pas un nombre : {value}",
   "lua_config.err.not_a_number_pair": "mission.yaml : « {setting} » doit être une liste d'exactement deux nombres, reçu {value}",
   "mission_tools.alternative_folder": "Dossier alternatif '{alt}' utilisé pour obtenir '{file}' car rien n'a été trouvé dans '{orig}'",
   "msg.work_done": "[bold blue]Traitement terminé ![/bold blue]",

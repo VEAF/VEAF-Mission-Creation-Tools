@@ -36,7 +36,7 @@ def inject_weather(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WeatherInjectorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     p_config_file = resolve_path(path=config_file, should_exist=True)
 

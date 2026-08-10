@@ -515,3 +515,56 @@ class TestExtractFromMission(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestExtractionSurvivesAGroupWithNoName(unittest.TestCase):
+    """SECREV-2 / VMR-067 — `pattern.match(None)` raised TypeError and took the extraction down.
+
+    A group with no `name` cannot match a name pattern and has no usable key, so it is skipped. What
+    matters is that the *other* groups in the same mission still come out.
+    """
+
+    def _worker(self, pattern: str | None = None) -> WaypointsExtractorWorker:
+        worker = WaypointsExtractorWorker(input_mission=Path("dummy.miz"), group_name_pattern=pattern or "")
+        worker.dcs_mission = DcsMission(
+            file_path=Path("dummy.miz"),
+            mission_content={
+                "coalition": {
+                    "blue": {
+                        "country": [
+                            {
+                                "name": "USA",
+                                "plane": {
+                                    "group": [
+                                        {"route": {"points": [{"x": 1, "y": 2}]}},  # no name at all
+                                        {"name": "Alpha", "route": {"points": [{"x": 3, "y": 4}]}},
+                                    ]
+                                },
+                            }
+                        ]
+                    }
+                }
+            },
+            dictionary_content={},
+            map_resource_content={},
+        )
+        return worker
+
+    def test_the_nameless_group_is_skipped_and_the_others_are_kept(self) -> None:
+        worker = self._worker(pattern=".*")
+
+        worker.extract_from_mission()
+
+        keys = list(worker.matched_groups)
+        self.assertEqual(len(keys), 1, f"only the named group may be extracted, got {keys}")
+        self.assertTrue(keys[0].endswith("/Alpha"))
+
+    def test_it_survives_with_no_pattern_at_all(self) -> None:
+        # Without a pattern the old code did not crash, but the nameless group produced a key ending
+        # in "/None" — a group nobody can address.
+        worker = self._worker(pattern=None)
+
+        worker.extract_from_mission()
+
+        self.assertNotIn(None, [key.rsplit("/", 1)[-1] for key in worker.matched_groups])
+        self.assertNotIn("None", [key.rsplit("/", 1)[-1] for key in worker.matched_groups])

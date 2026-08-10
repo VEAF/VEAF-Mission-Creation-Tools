@@ -27,8 +27,8 @@
     "line": "80",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, though it needs an unusual mission: `int(k) for k in trigrules` raised ValueError on the first non-numeric key. A key that is not an index cannot contribute to \"the next index\", so it is now ignored with a debug line instead of being fatal. 4 tests, including the degenerate case where every key is non-numeric and max() would see an empty list."
   },
   {
     "vid": "VMR-006",
@@ -53,8 +53,8 @@
     "line": "187",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part -- 'silently' overstates it, since the handler does warn. The real defect is that `except Exception` made an avwx API change indistinguishable from an outage, and the traceback was dropped entirely; the mission then flies default weather. The breadth is kept on purpose (a build must not die because a weather service is down) but the exception type is now named in the warning and the traceback goes to debug."
   },
   {
     "vid": "VMR-009",
@@ -200,8 +200,8 @@
     "line": "266",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the mechanism is worse than the title suggests: the visibility branch has no break, so the *last* four-digit group won. Everything from TEMPO, BECMG, PROB or RMK onwards is a forecast or free text, not the current observation, so a report observed at 9999 and ending in 'TEMPO 3000' was flown at 3000 m. The parser now stops at those words and takes the first prevailing visibility only. 5 tests. An `i > 0` guard I added first against a numeric station identifier was removed: ICAO codes are alphabetic, so it protected nothing and broke two existing tests that parse a bare token."
   },
   {
     "vid": "VMR-034",
@@ -449,8 +449,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed as a dead guard, with no runtime effect. `qra_section.get(\"silence_all\", False)` made the following `is not None` test true whatever the mission said, so every QRA mission emitted ToggleAllSilence(false) even when silence was never mentioned. Harmless -- veafQraManager.AllSilence is already false, checked in veafQraCore.lua -- but the guard read as \"only when configured\" and did not do that. The default is gone; an explicit true or false is still honoured. 3 tests, and nothing had covered this emission before."
   },
   {
     "vid": "VMR-060",
@@ -472,8 +472,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it hid a third defect. Coordinates were interpolated *quoted*, so coord.LLtoLO received strings and only worked through Lua's implicit coercion, while a genuinely non-numeric value produced Lua that failed at mission start rather than at build time. They are now converted and refused with the point named. The finding mentions escaping for the coordinates but not for the point's **name**, which was interpolated raw too -- a quote in a point name produced Lua that does not parse. It now goes through _emit_lua_string. 4 tests."
   },
   {
     "vid": "VMR-061",
@@ -555,8 +555,8 @@
     "commits": [
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and 10 occurrences across 8 files rather than the one reported. `exit()` is installed by the site module, not part of the language: absent under `python -S` and not guaranteed in the PyInstaller exe this project ships. `typer.Exit` was already the idiom in the same directory (ask.py, capture_map.py, prepare.py), so these were leftovers. Replacing them found dead code as a bonus: prepare.py called exit(1) after logger.error, which raises typer.Abort by default -- the line was unreachable. A gate now parses commands/ with ast; written as a regex first, it missed the two `exit(1)` forms that were not alone on their line, which is how the count went from 8 to 10."
   },
   {
     "vid": "VMR-066",
@@ -581,8 +581,8 @@
     "line": "302",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. A group with no `name` reached `pattern.match(None)` and raised TypeError, taking the whole extraction down rather than skipping one group. It is now skipped -- it cannot match a name pattern and has no addressable key; without a pattern it used to produce a key ending in '/None'. 2 tests."
   },
   {
     "vid": "VMR-104",

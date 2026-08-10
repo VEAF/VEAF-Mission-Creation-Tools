@@ -64,7 +64,7 @@ def extract_aircraft_groups(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(AircraftGroupsExtractorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve output files (default: both families; --kind restricts to one)
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -183,7 +183,7 @@ def inject_aircraft_groups(
         console.print(t("cmd.inject_aircraft.validation_failed"))
         if pause:
             input(t("help.pause_msg"))
-        exit(1)
+        raise typer.Exit(1)
 
     console.print(t("cmd.inject_aircraft.validation_ok") + "\n")
 

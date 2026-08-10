@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from typing import Literal
 
 from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
@@ -458,10 +459,15 @@ def _emit_module_body(
         if custom_points:
             lines.append("    local customPoints = {")
             for pt in custom_points:
-                pt_name = pt.get("name", "")
-                lat = pt.get("lat", "0")
-                lon = pt.get("lon", "0")
-                lines.append(f'        {{name = "{pt_name}", point = coord.LLtoLO("{lat}", "{lon}")}},')
+                # Three problems in one line (SECREV-2 / VMR-060). The coordinates were quoted, so
+                # `coord.LLtoLO` received strings and only worked through Lua's implicit coercion --
+                # and a non-numeric value sailed through to fail at mission start. Neither they nor
+                # the point's *name* (which the finding does not mention) were escaped, so a quote in
+                # either produced Lua that does not parse.
+                pt_name = _emit_lua_string(str(pt.get("name", "")))
+                lat = _coordinate(pt.get("lat", 0), "lat", pt.get("name", ""))
+                lon = _coordinate(pt.get("lon", 0), "lon", pt.get("name", ""))
+                lines.append(f"        {{name = {pt_name}, point = coord.LLtoLO({lat}, {lon})}},")
             lines.append("    }")
             lines.append("    veafNamedPoints.initialize(customPoints)")
         else:
@@ -488,7 +494,11 @@ def _emit_module_body(
     elif mod_id == "QRA":
         lines.append(f"    {var_name}.initialize()")
         if qra_section:
-            silence_all = qra_section.get("silence_all", False)
+            # No `False` default: with one, the guard below was true whatever the mission said, so
+            # every QRA mission emitted `ToggleAllSilence(false)` even when silence was never
+            # mentioned (SECREV-2 / VMR-059). Harmless at runtime -- veafQraManager.AllSilence is
+            # already false -- but the guard read as "only when configured" and did not do that.
+            silence_all = qra_section.get("silence_all")
             if silence_all is not None:
                 lines.append(f"    VeafQRA.ToggleAllSilence({'true' if silence_all else 'false'})")
             for qra_def in qra_section.get("definitions") or []:
@@ -718,6 +728,35 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     lines.append(f"{indent}    :initialize()")
     lines.append(f"{indent})")
     return lines
+
+
+def _coordinate(value: object, axis: Literal["lat", "lon"], point_name: str) -> float:
+    """Return *value* as a number, refusing anything a Lua coordinate call cannot use.
+
+    A named point's latitude and longitude come from a hand-written ``mission.yaml`` and used to be
+    interpolated *quoted*, so ``coord.LLtoLO`` got strings and worked only through Lua's implicit
+    coercion — while a genuinely non-numeric value produced Lua that failed at mission start rather
+    than at build time (SECREV-2 / VMR-060).
+
+    Args:
+        value: The configured coordinate, as parsed from YAML.
+        axis: ``"lat"`` or ``"lon"``, for the error message.
+        point_name: The point's name, so the message says which one is wrong.
+
+    Returns:
+        The coordinate as a float.
+
+    Raises:
+        ValueError: When *value* is not a number, or a string spelling one.
+    """
+    if isinstance(value, bool):
+        raise ValueError(t("lua_config.err.not_a_coordinate", axis=axis, point=point_name, value=value))
+    if isinstance(value, int | float):
+        return float(value)
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(t("lua_config.err.not_a_coordinate", axis=axis, point=point_name, value=value)) from exc
 
 
 def _number_pair(value: object, key: str) -> tuple[float, float]:

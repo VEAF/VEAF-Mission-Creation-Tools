@@ -209,7 +209,7 @@ def prepare(
     if readme:
         console.print(t("cmd.prepare.subtitle"))
         console.print(t("cmd.prepare.readme.intro"))
-        exit()
+        raise typer.Exit()
 
     enabled_modules = _resolve_template_modules(template) if template else None
 
@@ -314,5 +314,7 @@ def prepare(
         console.print(t("cmd.prepare.next_steps"))
 
     except Exception as e:
+        # No exit after this: `logger.error` raises typer.Abort unless told otherwise, so the call
+        # that used to follow was unreachable (found while replacing the exit() builtins for
+        # SECREV-2 / VMR-065).
         logger.error(t("cmd.prepare.failed", error=str(e)))
-        exit(1)

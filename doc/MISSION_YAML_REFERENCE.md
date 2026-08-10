@@ -273,6 +273,8 @@ VEAF génère les affectations `csar.xxx = value` et l'appel `csar.initialize()`
 CTLD 2 se configure **hors de `mission.yaml`**, dans un fichier `ctld-config.yaml` placé à côté et édité avec `ctld-tools.exe`. Un bloc `settings:` sous `CTLD` est **refusé par `validate`** : il n'était plus lu, et le laisser passer en silence est précisément le défaut que ce changement supprime. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#ctld-and-csar-integration).
 
 > **Sons.** CTLD et CSAR jouent leurs sons par nom de fichier au runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). Quand CTLD ou CSAR est activé, le build injecte automatiquement les sons requis qu'il embarque (`src/scripts/community/sounds/`) dans le `l10n/DEFAULT/` de la mission, sans écraser un son déjà fourni par votre mission. Un son requis qui n'est fourni ni par les outils ni par votre mission est signalé par un avertissement de build — ajoutez-le dans `src/mission/l10n/DEFAULT/` (ex. `radiobeep.ogg`, le bip de secours JTAC, n'est pas redistribué).
+>
+> Le build **déclare** ensuite chaque son de la mission dans le `mapResource`, via un déclencheur « Declare mission sounds » qui le joue vers un pays qu'aucune coalition n'utilise — donc inaudible. Sans cette déclaration, l'éditeur de mission DCS considère ces fichiers comme orphelins (il ne peut pas savoir qu'un script les joue par leur nom) et **les supprime dès que vous enregistrez la mission dans l'éditeur**, sans le moindre message.
 
 ---
 

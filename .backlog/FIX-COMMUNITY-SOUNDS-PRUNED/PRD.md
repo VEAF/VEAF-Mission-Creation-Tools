@@ -1,6 +1,6 @@
 # FIX-COMMUNITY-SOUNDS-PRUNED — the editor deletes the CSAR and beacon sounds, silently
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 
 ## Measured, not suspected
 
@@ -56,8 +56,10 @@ emitting it.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Register the sounds so the editor keeps them](tickets/01-register-community-sounds.md) | ⬜ |
-| 02 | [Stop embedding `veafDynamicConfig.lua` in the archive, or register it](tickets/02-orphan-dynamic-config.md) | ⬜ |
+| 01 | [Register the sounds so the editor keeps them](tickets/01-register-community-sounds.md) | ✅ |
+| 02 | [Stop embedding `veafDynamicConfig.lua` in the archive, or register it](tickets/02-orphan-dynamic-config.md) | 🚫 |
+
+Ticket 01 landed with its own scope corrected mid-flight: written as *"when CTLD or CSAR is enabled"* it did **not** fix the reported bug, because the measured sounds came from the mission's own folder with both modules disabled. The rule is about orphan sounds, not about CTLD. Ticket 02 is a documented wontfix.
 
 ## Why it matters
 

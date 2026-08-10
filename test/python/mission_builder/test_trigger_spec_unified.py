@@ -42,6 +42,10 @@ def _make_worker() -> MissionBuilderWorker:
     worker.mission_folder = Path(tempfile.mkdtemp())
     worker.output_mission = worker.mission_folder / "out.miz"
     worker.scripts_path = None
+    # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
+    # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
+    worker.collected_community_sound_files = {}
+    worker.collected_mission_data_files = {}
     worker.dev_mode = True
     worker.get_collected_community_script_files = lambda: []  # type: ignore[method-assign]
     worker.get_collected_veaf_script_files = lambda: []  # type: ignore[method-assign]

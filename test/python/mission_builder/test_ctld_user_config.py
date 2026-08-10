@@ -30,6 +30,10 @@ def _make_worker(*, ctld_enabled: bool = True) -> MissionBuilderWorker:
     worker.mission_folder = Path(tempfile.mkdtemp())
     worker.output_mission = worker.mission_folder / "out.miz"
     worker.scripts_path = None
+    # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
+    # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
+    worker.collected_community_sound_files = {}
+    worker.collected_mission_data_files = {}
     worker.dev_mode = True
     worker._community_enabled = lambda script_id: ctld_enabled and script_id == "ctld"  # type: ignore[method-assign]
     return worker

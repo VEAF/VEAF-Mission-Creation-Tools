@@ -3388,13 +3388,17 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
   footer = footer .. "]\n"
   footer = footer .. "}\n"
 
-  local file = l_io.open(l_export_path .. filename, "w")
+  -- The `if file then` used to sit after the three writes, so an unwritable export directory raised
+  -- inside writeln on a nil handle -- in a script running in DCS (SECREV-2 / VMR-081).
+  local file, fileError = l_io.open(l_export_path .. filename, "w")
+  if not file then
+    veaf.loggers.get(veaf.Id):error(string.format("cannot open %s for writing: %s", veaf.p(l_export_path .. filename), tostring(fileError)))
+    return
+  end
   writeln(file, header)
   writeln(file, table.concat(content, ",\n"))
   writeln(file, footer)
-  if file then
-    file:close()
-  end
+  file:close()
 end
 
 function veaf.isUnitAlive(unit)

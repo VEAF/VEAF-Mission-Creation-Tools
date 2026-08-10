@@ -436,4 +436,47 @@ function TestVeafMoveAdvanced:test_findAllTankers_finds_kc135()
   luaunit.assertEquals(result[1], "TKR_GRP")
 end
 
+-- ============================================================================
+-- TestVeafMoveNonNumericValues -- SECREV-2 / VMR-092
+-- ============================================================================
+--- The keyword handlers logged the value with string.format("%d", val) *before* tonumber(), on the
+--- raw text the pilot typed. In Lua 5.1 that raises on "abc" -- and, measured, %s raises on nil too,
+--- which is what a keyword given with no value at all produces. So a typo in a marker took the whole
+--- parser down instead of being ignored.
+TestVeafMoveNonNumericValues = {}
+
+function TestVeafMoveNonNumericValues:_analyse(text)
+  local ok, result = pcall(veafMove.markTextAnalysis, text)
+  luaunit.assertTrue(ok, "the parser must not raise on: " .. text .. " (" .. tostring(result) .. ")")
+  return result
+end
+
+function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_does_not_crash_the_parser()
+  local r = self:_analyse("_move group, name SomeGroup, speed abc")
+
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.speed, "an unparseable speed must end up unset, not crash")
+end
+
+function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_does_not_crash_the_parser()
+  -- The nil case: string.format("%s", nil) raises in 5.1 just like %d does, so tostring is required.
+  local r = self:_analyse("_move group, name SomeGroup, speed")
+
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.speed)
+end
+
+function TestVeafMoveNonNumericValues:test_every_numeric_keyword_survives_a_bad_value()
+  for _, keyword in ipairs({ "speed", "hdg", "distance", "alt" }) do
+    local r = self:_analyse("_move group, name SomeGroup, " .. keyword .. " notanumber")
+    luaunit.assertNotNil(r, keyword .. " must still return a result")
+  end
+end
+
+function TestVeafMoveNonNumericValues:test_a_numeric_value_is_still_parsed()
+  local r = self:_analyse("_move group, name SomeGroup, speed 250")
+
+  luaunit.assertEquals(r.speed, 250)
+end
+
 os.exit(luaunit.LuaUnit.run())

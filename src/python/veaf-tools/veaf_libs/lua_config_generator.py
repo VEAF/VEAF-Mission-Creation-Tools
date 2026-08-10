@@ -720,6 +720,33 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     return lines
 
 
+def _number_pair(value: object, key: str) -> tuple[float, float]:
+    """Return *value* as a pair of numbers, refusing anything else with a message naming *key*.
+
+    These offsets come from hand-written ``mission.yaml``, and indexing them as ``value[0]`` /
+    ``value[1]`` turned a plain typo into an ``IndexError`` or ``TypeError`` with no hint of which
+    setting was wrong (SECREV-2 / VMR-058). A string is refused on purpose: ``"12"[0]`` is ``"1"``,
+    so it used to emit silently wrong Lua rather than fail.
+
+    Args:
+        value: The configured value, as parsed from YAML.
+        key: The setting's name, for the error message.
+
+    Returns:
+        The two numbers, in order.
+
+    Raises:
+        ValueError: When *value* is not a sequence of exactly two numbers.
+    """
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes) and len(value) == 2:
+        first, second = value
+        if isinstance(first, int | float) and isinstance(second, int | float):
+            if not isinstance(first, bool) and not isinstance(second, bool):
+                return first, second
+    # `setting`, not `key`: `t()`'s own first parameter is named `key`, so passing one collides.
+    raise ValueError(t("lua_config.err.not_a_number_pair", setting=key, value=value))
+
+
 def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     """Emit an AirWaveZone:new():...:start() builder chain."""
     lines: list[str] = []
@@ -741,7 +768,8 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     if "draw_zone" in zone:
         lines.append(f"{indent}    :setDrawZone({'true' if zone['draw_zone'] else 'false'})")
     if ro := zone.get("respawn_default_offset"):
-        lines.append(f"{indent}    :setRespawnDefaultOffset({ro[0]}, {ro[1]})")
+        x, y = _number_pair(ro, "respawn_default_offset")
+        lines.append(f"{indent}    :setRespawnDefaultOffset({x}, {y})")
     if rr := zone.get("respawn_radius"):
         lines.append(f"{indent}    :setRespawnRadius({rr})")
     if da := zone.get("delay_before_activation"):

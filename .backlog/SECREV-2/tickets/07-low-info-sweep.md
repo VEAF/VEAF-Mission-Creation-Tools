@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — sample done, HIGH tier cleared, Security-flaw tier swept (54/140 decided)
+Status: 🔄 in-progress — HIGH tier cleared, Security-flaw tier swept, **no CONFIRMED finding left** (64/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -211,8 +211,76 @@ strips the `Authorization` header across hosts, so the user's GitHub token would
 whatever host the redirect named. Both are covered by tests, including one asserting the untrusted URL
 is **never requested** — refusing after fetching is not refusing.
 
+### Where it stood after the Security-flaw tier
+
+54 of 140 decided, 86 left.
+
+## Sweep, third pass — every remaining CONFIRMED finding, 2026-08-10
+
+**Batched by verdict rather than by theme.** The 56 open Error/bug findings are too many for one
+reviewable change, and the ticket's warning about churn applies. The 10 the review's own verifier had
+marked **CONFIRMED** were the obvious cut: already adversarially checked, so the lowest
+false-positive rate available, and they happened to span all three ecosystems — 3 Python, 4 Lua,
+3 documentation.
+
+**There is now no CONFIRMED finding left undecided anywhere in the triage.**
+
+| | Outcome | |
+|---|---|---|
+| VMR-052 | **fixed** | two bare `print()`, not one — plus a gate so the rule stops drifting |
+| VMR-055 | **fixed** | hand-written spawn YAML gave a bare `KeyError` with no entry named |
+| VMR-058 | **fixed** | `respawn_default_offset` indexed blind; a *string* emitted wrong Lua silently |
+| VMR-076 | **fixed** | two `io.open` written before the guard, not one |
+| VMR-077 | **fixed** | `logError` is defined nowhere — the error path was itself the error |
+| VMR-081 | **fixed** | same shape, but inside DCS |
+| VMR-092 | **fixed** | 7 occurrences across 2 files; `%s` alone would have been a half-fix |
+| VMR-043 | **fixed** | `group N` is not a spawn option at all; both languages were wrong |
+| VMR-045/046 | **fixed** | the CAS menu has no "Generate"; a `_cas` marker starts it |
+
+### Four of the ten under-reported their own scope
+
+The pattern from VMR-008 this morning (one reported link, 239 real) repeated four times:
+
+- **VMR-052** — two `print()` calls, the second unmentioned.
+- **VMR-076** — two unguarded `io.open`, the second unmentioned.
+- **VMR-092** — **7** eager `string.format("%d", val)` across `veafMove` **and**
+  `veafTransportMission`, against one line reported.
+- **VMR-043** — the French `GUIDE.md` carried the same invalid advice as the English page.
+
+Reading the finding and fixing the cited line would have left most of each defect in place.
+
+### Measuring changed two fixes, and my own grep lied
+
+- **VMR-092**: the obvious fix is `%d` → `%s`. Measured in Lua 5.1, `string.format("%s", nil)`
+  **also raises** — and nil is exactly what `_move speed` with no value produces. `tostring()` is
+  required; `%s` alone would have shipped a fix that still crashed on the simpler typo.
+- **VMR-043**: my first rewrite described `spacing` as a distance in hundreds of metres. The code
+  computes `cell.width = default + spacing * default` — it is a multiplier of the vehicle's own
+  footprint. Inventing a unit in pilot-facing documentation is exactly the failure this ticket keeps
+  finding.
+- **VMR-052**: I concluded "zero `print()` left" from `grep -r "^\s*print("`, which finds nothing
+  because `\s` is not BRE without `-E`. The AST-based gate immediately found eleven in
+  `migrate_lazy_log.py`. A broken measurement reads exactly like a clean result.
+
+### The rule that had no gate
+
+CLAUDE.md forbids `print()` outright — `veaf_libs.logger` exists so output can be muted (the MCP
+server silences the console because stdout carries its JSON-RPC stream) and routed to a file. Nothing
+checked it, and it drifted. `test/python/test_no_bare_print.py` now parses the whole shipped package
+with `ast` instead of grepping, since a regex counts `print(` inside comments, docstrings and
+`pprint(`. It has one exemption, named rather than pattern-matched: `migrate_lazy_log.py`, whose
+console output *is* its deliverable (this also settles what VMR-115 was about).
+
+### Writing the tests found a bug in my own fix
+
+`t()`'s first parameter is named `key`, so `t("...", key=...)` raises `TypeError: got multiple values
+for argument 'key'`. It was in the VMR-055 fix, where a test caught it, **and** in the VMR-058 fix,
+where no test had reached it yet — it would have failed the first time a mission maker hit the error
+path, which is the worst possible moment for an error message to be broken.
+
 ### Where it stands
 
-**54 of 140 decided. 86 left**, of which 56 Error/bug, 9 Documentation, 3 Security flaw (the family
-above), and 18 readability/optimization/refactoring the ticket says to touch only where a file is
-being changed anyway. The Error/bug tier is the next batch.
+**64 of 140 decided. 76 left**, of which 46 Error/bug, 9 Documentation, 3 Security flaw (the
+shared-password family awaiting David), and 18 readability/optimization/refactoring the ticket says to
+touch only where a file is being changed anyway. **None of the 76 is CONFIRMED** — the rest are
+UNVERIFIED or PLAUSIBLE, so the next batch should expect the sample's ~9% that do not reproduce.

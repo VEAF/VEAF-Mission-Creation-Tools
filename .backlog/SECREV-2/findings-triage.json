@@ -358,8 +358,8 @@
     "line": "83",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. CLAUDE.md forbids print() outright -- veaf_libs.logger exists so output can be muted (the MCP server silences the console because stdout carries its JSON-RPC stream) and routed to the log file. There were TWO, not the one reported: the delete path and the move path. Both now warn through the logger, localized. A gate was added with them: test_no_bare_print.py parses the whole shipped package with ast rather than grepping, since a regex counts `print(` in comments and in `pprint(`. It caught what a hand grep of mine had missed. One named exemption, migrate_lazy_log.py -- see VMR-115."
   },
   {
     "vid": "VMR-053",
@@ -403,8 +403,8 @@
     "line": "105",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. Half of this data is hand-written per mission and the renderers index required keys directly, so a typo surfaced as a bare `KeyError: 'type'` with a traceback and nothing to say which entry was at fault. Every entry is now rendered through a wrapper that names the section, the index and the missing key. 4 tests. Writing them found a bug in my own fix: `t()`'s first parameter is named `key`, so passing `key=` collided -- and the same mistake was in the VMR-058 fix, where no test had reached it yet."
   },
   {
     "vid": "VMR-058",
@@ -426,8 +426,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. respawn_default_offset came from a hand-written mission.yaml and was indexed as value[0]/value[1] with no check, so a scalar raised TypeError and a short list IndexError, neither naming the setting. A string was worse than a crash: \"12\"[0] is \"1\", so it emitted silently wrong Lua. Now refused with the setting named. 8 tests, including the string and bool cases."
   },
   {
     "vid": "VMR-059",
@@ -723,7 +723,7 @@
     "status": "untouched",
     "commits": [],
     "outcome": "confirmed-open",
-    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: 11 print() calls in migrate_lazy_log.py. It is a one-shot migration script rather than shipped code, which is why it survived the logger rule."
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: 11 print() calls in migrate_lazy_log.py. It is a one-shot migration script rather than shipped code, which is why it survived the logger rule. Revisited while adding the print() gate for VMR-052: migrate_lazy_log.py is exempted from it by name. It is a one-shot migration run by hand as `python -m veaf_libs.migrate_lazy_log`, wired to no CLI command, and its console output IS the deliverable -- it reports the lines it could not migrate. Naming the exemption keeps the choice visible instead of pattern-matching it away. The decision itself is unchanged."
   },
   {
     "vid": "VMR-118",
@@ -1207,8 +1207,8 @@
     "line": "524",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and doubled: two io.open calls in dcsDataExport.lua wrote before the `if file then` guard, not the one reported. An unwritable export path crashed inside writeln on a nil handle. Both now check first and report which file could not be opened."
   },
   {
     "vid": "VMR-077",
@@ -1220,8 +1220,8 @@
     "line": "248",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. logError is defined nowhere in the file or its dependencies, so reaching the recursion depth limit raised 'attempt to call a nil value' instead of reporting it -- the error path was itself the error. The module has its own logger, declared a few lines above."
   },
   {
     "vid": "VMR-078",
@@ -1276,8 +1276,8 @@
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same shape as VMR-076 but worse, because this one runs inside DCS: three writeln calls preceded the `if file then`. An export directory that cannot be opened raised in a mission script. It now returns after logging, and 2 tests cover both sides -- io is the real one in the Lua suite, not a mock, so the failure is genuine."
   },
   {
     "vid": "VMR-082",
@@ -1435,8 +1435,8 @@
     "line": "194",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and 7 occurrences across 2 files rather than the single line reported: 4 in veafMove, 3 in veafTransportMission. string.format(\"%d\", val) ran on the raw marker text before tonumber(), and the format call is evaluated before the logger sees it, so the level made no difference -- `_move speed abc` took the parser down. Measuring Lua 5.1 changed the fix: %s raises on nil too, which is exactly what a keyword with no value produces, so tostring() is required and %s alone would have shipped a half-fix. veafShortcuts has three similar-looking lines that are safe (math.random), and were left alone. 5 tests."
   },
   {
     "vid": "VMR-093",
@@ -1886,8 +1886,8 @@
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Still reproduced. `_spawn unit, name BTR-80, group 5` -- there is no `group` option in the spawn parser at all, so the advice was unusable. Replaced with `_spawn armorgroup, size 5, spacing 8`, which exists. Fixed in BOTH languages: the finding named only the English page, and GUIDE.md carried the same line. My first replacement described spacing as a distance in hundreds of metres, which the code contradicts -- it is a multiplier of each vehicle's footprint."
   },
   {
     "vid": "VMR-044",
@@ -1914,8 +1914,8 @@
     "line": "22",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Still reproduced. There is no 'Generate' item under the CAS menu, and the menu is named 'CAS MISSION'. A CAS mission is started by a `_cas` map marker; the radio menu reports on targets and calls smoke. The table now says that."
   },
   {
     "vid": "VMR-046",
@@ -1927,8 +1927,8 @@
     "line": "22",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Same defect on the French README, fixed with VMR-045."
   },
   {
     "vid": "VMR-119",

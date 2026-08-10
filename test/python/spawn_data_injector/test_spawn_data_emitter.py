@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import luadata
+import pytest
 from spawn_data_injector.spawn_data_emitter import load_framework_spawn_data, render_spawn_data_lua
 
 
@@ -149,3 +150,49 @@ def test_render_escapes_special_chars() -> None:
     parsed = _extract_table(lua, "UnitsDatabase")
     assert parsed[0]["unitType"] == r'Weird "Name" \ thing'
     assert parsed[0]["aliases"][0] == r'a"b\c'
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-055 — half of this data is hand-written per mission, and the renderers index
+# required keys directly. A typo used to surface as a bare `KeyError: 'type'` with a Python
+# traceback and nothing to say which entry was at fault.
+# --------------------------------------------------------------------------------------------
+
+
+def test_a_unit_entry_missing_its_type_names_the_entry() -> None:
+    data = {"units": [], "groups": [{"aliases": ["x"], "disposition": {"h": 1, "w": 1}, "units": [{"cell": 1}]}]}
+
+    with pytest.raises(ValueError) as caught:
+        render_spawn_data_lua(data)
+
+    message = str(caught.value)
+    assert "type" in message, message
+    assert "groups" in message and "0" in message, f"the message must locate the entry: {message}"
+
+
+def test_a_group_entry_missing_its_disposition_names_the_entry() -> None:
+    data = {"units": [], "groups": [{"aliases": ["a"]}, {"aliases": ["b"]}]}
+
+    with pytest.raises(ValueError) as caught:
+        render_spawn_data_lua(data)
+
+    assert "disposition" in str(caught.value)
+
+
+def test_a_unusable_value_is_reported_rather_than_raising_a_bare_valueerror() -> None:
+    # `int("many")` used to escape as ValueError with no context at all.
+    data = {"units": [], "groups": [{"aliases": ["x"], "disposition": {"h": "many", "w": 1}, "units": []}]}
+
+    with pytest.raises(ValueError) as caught:
+        render_spawn_data_lua(data)
+
+    assert "groups" in str(caught.value)
+
+
+def test_a_well_formed_entry_is_untouched() -> None:
+    data = {"units": [], "groups": [{"aliases": ["x"], "disposition": {"h": 1, "w": 1}, "units": [{"type": "T-72B"}]}]}
+
+    lua = render_spawn_data_lua(data)
+
+    # A unit with only a type comes back as a positional list: `{ "T-72B" }`.
+    assert _extract_table(lua, "GroupsDatabase")[0]["group"]["units"][0] == ["T-72B"]

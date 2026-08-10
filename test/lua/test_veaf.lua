@@ -2333,4 +2333,39 @@ function TestVeafPrettyPrintVectors:test_a_normal_table_is_untouched()
   luaunit.assertStrContains(s, "name")
 end
 
+-- ============================================================================
+-- TestVeafExportAsJsonUnwritablePath -- SECREV-2 / VMR-081
+-- ============================================================================
+--- The `if file then` guard used to sit *after* three writeln() calls, so an export directory that
+--- could not be opened raised "attempt to index a nil value" inside a script running in DCS. io is
+--- the real one here, not a mock, so this exercises a genuine open failure.
+TestVeafExportAsJsonUnwritablePath = {}
+
+local function jsonifyPair(key, value)
+  return '    { "' .. tostring(key) .. '": "' .. tostring(value) .. '" }'
+end
+
+function TestVeafExportAsJsonUnwritablePath:test_an_unwritable_directory_is_reported_not_raised()
+  local ok, err = pcall(veaf.exportAsJson, { a = 1 }, "things", jsonifyPair, "things.json", "Z:/veaf-no-such-directory/nested/")
+
+  luaunit.assertTrue(ok, "an unwritable export path must be reported, not raised: " .. tostring(err))
+end
+
+function TestVeafExportAsJsonUnwritablePath:test_a_writable_directory_still_produces_the_file()
+  -- The guard must not have turned the happy path into a silent no-op.
+  local dir = os.getenv("TEMP") or os.getenv("TMPDIR") or "."
+  local filename = "veaf-test-export.json"
+  local path = dir .. "/" .. filename
+  os.remove(path)
+
+  veaf.exportAsJson({ a = 1 }, "things", jsonifyPair, filename, dir .. "/")
+
+  local written = io.open(path, "r")
+  luaunit.assertNotNil(written, "the export must still be written when the directory is writable")
+  local content = written:read("*a")
+  written:close()
+  os.remove(path)
+  luaunit.assertNotNil(string.find(content, "things", 1, true), "the export must name the exported table")
+end
+
 os.exit(luaunit.LuaUnit.run())

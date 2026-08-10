@@ -308,7 +308,9 @@ The password is set by the mission maker or server administrator. Authentication
 ### Helicopters (AH-64D, Ka-50, Mi-24…)
 
 - Keep difficulty between 0 and 2 (minimal AA).
-- Use `_spawn unit, name BTR-80, group 5` for dispersed APC targets.
+- Use `_spawn armorgroup, size 5, spacing 8` for dispersed armour targets — `size` is how many
+  vehicles, and `spacing` widens the gap between them as a multiple of each vehicle's own footprint
+  (so a bigger number spreads the group out).
 - Use terrain masking to approach below AA radar coverage.
 
 ### Transports (C-130, Mi-8, UH-1H…)

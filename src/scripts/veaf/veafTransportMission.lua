@@ -188,7 +188,7 @@ function veafTransportMission.markTextAnalysis(text)
 
     if switch.transportmission and key:lower() == "size" then
       -- Set size.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %d", val))
+      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %s", tostring(val)))
       local nVal = tonumber(val)
       if nVal <= 5 and nVal >= 1 then
         switch.size = nVal
@@ -197,7 +197,7 @@ function veafTransportMission.markTextAnalysis(text)
 
     if switch.transportmission and key:lower() == "defense" then
       -- Set defense.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %d", val))
+      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %s", tostring(val)))
       local nVal = tonumber(val)
       if nVal <= 5 and nVal >= 0 then
         switch.defense = nVal
@@ -206,7 +206,7 @@ function veafTransportMission.markTextAnalysis(text)
 
     if switch.transportmission and key:lower() == "blocade" then
       -- Set blocade.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %d", val))
+      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %s", tostring(val)))
       local nVal = tonumber(val)
       if nVal <= 5 and nVal >= 0 then
         switch.blocade = nVal

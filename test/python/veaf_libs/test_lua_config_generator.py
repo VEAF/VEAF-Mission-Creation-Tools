@@ -1064,3 +1064,48 @@ def test_a_quote_in_a_point_name_does_not_break_the_generated_lua() -> None:
     # appear is the old raw interpolation, `name = "Point "Zulu""`, which does not parse as Lua.
     assert '[[Point "Zulu"]]' in lua, lua
     assert 'name = "Point "Zulu""' not in lua
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-040 — veafSecurity.lua ships two password hashes common to every mission, in a
+# public repository. Declaring your own used to *widen* the accepted set instead of closing it, so
+# the well-known password still opened the mission. password_MM was always replaced rather than
+# extended; there was no reason for the asymmetry.
+# --------------------------------------------------------------------------------------------
+
+
+def _security_yaml(**security: object) -> dict:
+    return {"mission": {"name": "Test"}, "lua_modules": {}, "security": security}
+
+
+def test_declaring_your_own_hashes_clears_the_shipped_ones() -> None:
+    lua = generate_config_lua(_security_yaml(disabled=False, password_hashes=["deadbeef"]))
+
+    assert "veafSecurity.password_L1 = {}" in lua
+    assert 'veafSecurity.password_L1["deadbeef"] = true' in lua
+    # Order matters: clearing after adding would throw the mission's own hash away.
+    assert lua.index("veafSecurity.password_L1 = {}") < lua.index('veafSecurity.password_L1["deadbeef"]')
+
+
+def test_the_admin_table_is_cleared_too() -> None:
+    # checkPassword_L1 accepts L1 *or L0*, so leaving the shipped L0 hash in place would keep opening
+    # every L1 gate and make the whole change decorative.
+    lua = generate_config_lua(_security_yaml(disabled=False, password_hashes=["deadbeef"]))
+
+    assert "veafSecurity.password_L0 = {}" in lua
+    assert "veafSecurity.password_L9 = {}" in lua
+
+
+def test_a_mission_that_declares_nothing_keeps_the_shipped_defaults() -> None:
+    # No silent behaviour change for the missions that never configured a password.
+    lua = generate_config_lua(_security_yaml(disabled=False))
+
+    assert "veafSecurity.password_L0 = {}" not in lua
+    assert "veafSecurity.password_L1 = {}" not in lua
+
+
+def test_mission_master_hashes_are_still_replaced() -> None:
+    lua = generate_config_lua(_security_yaml(disabled=False, password_mm_hashes=["cafe"]))
+
+    assert "veafSecurity.password_MM = {}" in lua
+    assert 'veafSecurity.password_MM["cafe"] = true' in lua

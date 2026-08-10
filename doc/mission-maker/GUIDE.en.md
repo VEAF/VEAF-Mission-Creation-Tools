@@ -304,13 +304,13 @@ hook from `veaf-pilots.txt`, is high enough for the tier — that is the identit
 it needs no password — or the correct **password** for that tier appears in the marker
 text. Without the hook there are no pilot levels, so everything falls back to passwords.
 
-Set passwords (SHA-256 hashes) in `mission.yaml`:
+Set passwords (SHA-1 hashes — that is what `veafSecurity` compares) in `mission.yaml`:
 
 ```yaml
 security:
   disabled: false
   password_hashes:
-    - "<SHA-256 hash of your password>"
+    - "<SHA-1 hash of your password>"
 ```
 
 ---

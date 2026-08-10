@@ -199,8 +199,8 @@ def security_section() -> list[str]:
         *_yaml_comment("generated.mission_yaml.section.security"),
         "# security:",
         "#   disabled: true                # true = no password required (default)",
-        "#   password_hashes:              # add SHA-256 hashes to restrict access",
-        '#     - "<SHA-256 hash>"',
+        "#   password_hashes:              # add SHA-1 hashes to restrict access (sha1.hex of the password)",
+        '#     - "<SHA-1 hash>"',
     ]
 
 
@@ -1408,7 +1408,23 @@ def generate_config_lua(
         # (veafSpawnCore:142), transport missions — accept L1 or L0 only. Emitting L9 alone gave
         # a password that could not authenticate a marker whatever it was set to; the
         # hand-written v5 missions set both for this exact reason.
-        for hash_val in security_cfg.get("password_hashes") or []:
+        own_hashes: list = security_cfg.get("password_hashes") or []
+        if own_hashes:
+            # Replace, do not add (SECREV-2 / VMR-040). `veafSecurity.lua` ships two password hashes
+            # common to every mission, and they live in a public repository — so declaring your own
+            # used to *widen* the set rather than close it: the well-known password still opened the
+            # mission. `password_MM` five lines below has always been replaced rather than extended;
+            # there was no reason for the asymmetry.
+            #
+            # L0 is cleared too, and that is not incidental: `checkPassword_L1` accepts L1 **or L0**,
+            # so leaving the shipped L0 hash in place would keep opening every L1 gate and make this
+            # change decorative. Consequence to know: on a mission that declares its own hashes,
+            # nothing grants the ADMIN tier by password any more — ADMIN comes from the pilot's level
+            # in veaf-pilots.txt, which is how a server identifies its administrators anyway.
+            lines.append("veafSecurity.password_L0 = {}")
+            lines.append("veafSecurity.password_L1 = {}")
+            lines.append("veafSecurity.password_L9 = {}")
+        for hash_val in own_hashes:
             lines.append(f'veafSecurity.password_L1["{hash_val}"] = true')
             lines.append(f'veafSecurity.password_L9["{hash_val}"] = true')
         mm_hashes: list = security_cfg.get("password_mm_hashes") or []

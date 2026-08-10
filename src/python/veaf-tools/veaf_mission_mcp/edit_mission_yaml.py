@@ -157,8 +157,8 @@ def set_mission_security(
     Args:
         mission_yaml_path: Path to the mission's source ``mission.yaml``.
         disabled: ``True`` = no password required.
-        password_hashes: Optional SHA-256 hashes restricting JTF/admin access.
-        password_mm_hashes: Optional SHA-256 hashes restricting Mission Master access.
+        password_hashes: Optional SHA-1 hashes restricting JTF/admin access.
+        password_mm_hashes: Optional SHA-1 hashes restricting Mission Master access.
 
     Returns:
         `{"security": {...}, "backup": <backup path as str>}`.

@@ -8,7 +8,7 @@ registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from veaf_libs.logger import logger
 from veaf_tools.app import VERSION
 
@@ -20,7 +20,7 @@ SERVER_NAME = "veaf-mission-mcp"
 CATALOG = ActionCatalog()
 register_default_actions(CATALOG)
 
-mcp = FastMCP(SERVER_NAME)
+mcp = MCPServer(SERVER_NAME)
 
 
 @mcp.tool()

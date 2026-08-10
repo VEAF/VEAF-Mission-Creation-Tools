@@ -41,6 +41,7 @@ from veaf_libs.config_override import (
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, CTLD_USER_CONFIG_FILENAME
+from veaf_libs.dcs_countries import all_country_ids
 from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
@@ -132,6 +133,21 @@ class FileAction:
 
 
 @dataclass(frozen=True)
+class SoundAction:
+    """Play an embedded sound to one country (``a_out_sound_c``).
+
+    Emitted for one reason only: to make the ``.ogg`` a resource the Mission Editor **declares**.
+    CTLD and CSAR play these by filename at runtime, from a script the editor never reads, so
+    without this the files are orphans and an editor save deletes them
+    (`FIX-COMMUNITY-SOUNDS-PRUNED`). ``country_id`` is deliberately a country the mission does not
+    use, so the sound is never audible.
+    """
+
+    map_key: str
+    country_id: int
+
+
+@dataclass(frozen=True)
 class VeafTriggerSpec:
     """One VEAF trigger, source of truth for both the trig and trigrules forms."""
 
@@ -139,7 +155,7 @@ class VeafTriggerSpec:
     comment: str
     color_item: str
     rule_has_flag: bool
-    actions: list[LuaAction | FileAction]
+    actions: list[LuaAction | FileAction | SoundAction]
 
 
 #: Dictionary keys of the 6 VEAF load triggers, in order. Shared by the dictionary
@@ -153,6 +169,10 @@ _VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
     "VEAF_DictKey_ActionText_12004",
     "VEAF_DictKey_ActionText_12005",
     "VEAF_DictKey_ActionText_12006",
+    # The 7th is the CTLD/CSAR sound declaration, emitted only when sounds are injected
+    # (FIX-COMMUNITY-SOUNDS-PRUNED). Its dictionary entry is written unconditionally, which is
+    # inert when the trigger is absent.
+    "VEAF_DictKey_ActionText_12007",
 )
 
 #: Module id of the guided-assistance module, whose config selects the checklists to
@@ -168,7 +188,7 @@ _ASSIST_DISPLAY_TEXT = "text"
 _ASSIST_DISPLAY_MODES = frozenset({_ASSIST_DISPLAY_PICTURE, _ASSIST_DISPLAY_TEXT})
 
 
-def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
+def _emit_trig_action_string(actions: list[LuaAction | FileAction | SoundAction]) -> str:
     """Emit the compiled ``trig`` form of a trigger's actions: one concatenated string.
 
     Each action becomes a ``;``-terminated Lua call. ``LuaAction`` is wrapped in
@@ -185,13 +205,15 @@ def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
     for action in actions:
         if isinstance(action, FileAction):
             parts.append(f'a_do_script_file(getValueResourceByKey("{action.map_key}"));')
+        elif isinstance(action, SoundAction):
+            parts.append(f'a_out_sound_c({action.country_id}, getValueResourceByKey("{action.map_key}"), 0);')
         else:
             escaped = action.lua.replace('"', '\\"')
             parts.append(f'a_do_script("{escaped}");')
     return "".join(parts)
 
 
-def _emit_trigrule_actions(actions: list[LuaAction | FileAction]) -> list[dict]:
+def _emit_trigrule_actions(actions: list[LuaAction | FileAction | SoundAction]) -> list[dict]:
     """Emit the Mission Editor ``trigrules`` form of a trigger's actions: action dicts.
 
     ``LuaAction`` becomes ``{"predicate": "a_do_script", "text": <raw lua>}``;
@@ -207,6 +229,18 @@ def _emit_trigrule_actions(actions: list[LuaAction | FileAction]) -> list[dict]:
     for action in actions:
         if isinstance(action, FileAction):
             result.append({"predicate": "a_do_script_file", "file": action.map_key})
+        elif isinstance(action, SoundAction):
+            # `meters` and `zone`, which the editor also writes on this predicate, are shared
+            # leftovers from other actions and are omitted: a dangling zone id is worse than an
+            # absent optional field. The compiled call takes three arguments and no zone.
+            result.append(
+                {
+                    "predicate": "a_out_sound_c",
+                    "countrylist": action.country_id,
+                    "file": action.map_key,
+                    "start_delay": 0,
+                }
+            )
         else:
             result.append({"predicate": "a_do_script", "text": action.lua})
     return result
@@ -1341,6 +1375,7 @@ class MissionBuilderWorker(BaseWorker):
             keys[3]: "return VEAF_DYNAMIC_SCRIPTSPATH==nil",
             keys[4]: "return VEAF_DYNAMIC_MISSIONPATH~=nil",
             keys[5]: "return VEAF_DYNAMIC_MISSIONPATH==nil",
+            keys[6]: "return true -- declare the CTLD/CSAR sounds so the Mission Editor keeps them",
         }
 
         # merge the new dictionary with the mission dictionary
@@ -1602,6 +1637,77 @@ class MissionBuilderWorker(BaseWorker):
         mission_path = f"[[{self.output_mission.parent.resolve().as_posix()}/]]"
         return scripts_path, mission_path
 
+    def _unused_country_id(self) -> int:
+        """Return a DCS country id that the mission's coalitions do not contain.
+
+        The CTLD/CSAR sound declaration has to name *some* country. Naming one the mission uses
+        would make its pilots hear beacons at mission start, so the id is chosen by looking at the
+        mission rather than hardcoded — a constant is correct only until someone uses that country.
+
+        Returns:
+            The **highest** known DCS country id absent from every coalition. High deliberately:
+            the low ids are the countries missions actually use — 0 Russia, 1 Ukraine, 2 USA,
+            3 Turkey — so picking the lowest free id would hand out Turkey on a Syria map and play
+            beacons at its pilots. The top of the table (92 New Zealand, 90 Ecuador, 89 Peru) is
+            where nobody is. Falls back to the lowest known id if a mission somehow uses them all,
+            which keeps the build running rather than failing over a cosmetic detail.
+        """
+        used: set[int] = set()
+        content = (self.dcs_mission.mission_content if self.dcs_mission else None) or {}
+        for side in (content.get("coalition") or {}).values():
+            countries = (side or {}).get("country") or []
+            entries = countries.values() if isinstance(countries, dict) else countries
+            for country in entries:
+                if isinstance(country, dict) and country.get("id") is not None:
+                    used.add(int(country["id"]))
+        known = all_country_ids()
+        # `max` over the free ids: deterministic, so two builds of the same mission emit the same
+        # trigger and a rebuild shows no spurious diff, and biased away from the countries missions
+        # actually use.
+        return max(known - used, default=min(known))
+
+    def _build_sound_declaration_actions(self) -> list[SoundAction]:
+        """Declare every sound the mission carries that nothing else references.
+
+        The Mission Editor keeps the resources its own table declares and prunes the rest. A
+        ``.ogg`` played by a script at runtime — CTLD's ``outSound("beacon.ogg")``, CSAR's beacon —
+        is invisible to that scan, so an editor save **deletes** it (measured on the demo mission:
+        four files gone, `FIX-COMMUNITY-SOUNDS-PRUNED`).
+
+        The rule is deliberately about **orphans**, not about CTLD/CSAR: the sounds that triggered
+        this came from the *mission's own* ``src/mission/l10n/DEFAULT/`` with both modules disabled,
+        so keying on the tool-injected set would have missed the very case that was measured. A
+        sound already present in ``mapResource`` — a briefing clip with its own trigger, say — is
+        left alone; it is not an orphan and needs nothing.
+
+        Returns:
+            One :class:`SoundAction` per orphan sound, in file-name order; empty when the mission
+            carries none, in which case no trigger is emitted at all.
+        """
+        candidates = set(self.get_collected_community_sound_files()) | set(self.get_collected_mission_data_files())
+        prefix = f"{DEFAULT_SCRIPTS_LOCATION}/"
+        sounds = sorted(p for p in candidates if p.startswith(prefix) and p.lower().endswith(".ogg"))
+        # Nothing to declare is the common case (a mission with no sound at all), and it must not
+        # need a loaded mission to establish — so the early exit comes before touching dcs_mission.
+        if not sounds:
+            return []
+
+        assert self.dcs_mission is not None
+        already_declared = {str(v) for v in (self.dcs_mission.map_resource_content or {}).values()}
+        orphans = [p for p in sounds if Path(p).name not in already_declared]
+        if not orphans:
+            return []
+
+        self.dcs_mission.map_resource_content = self.dcs_mission.map_resource_content or {}
+        country_id = self._unused_country_id()
+        actions: list[SoundAction] = []
+        for index, path in enumerate(orphans):
+            map_key = f"VEAF_MapKey_Sound_{index}"
+            # The bare file name, not the l10n/DEFAULT/ path: CTLD calls outSound("beacon.ogg").
+            self.dcs_mission.map_resource_content[map_key] = Path(path).name
+            actions.append(SoundAction(map_key=map_key, country_id=country_id))
+        return actions
+
     def _build_veaf_trigger_specs(
         self, new_map_resource_script_files: dict, new_map_resource_mission_script_files: dict
     ) -> list[VeafTriggerSpec]:
@@ -1629,7 +1735,7 @@ class MissionBuilderWorker(BaseWorker):
         # and log it. Set in both load paths (dynamic and static) so it is always present.
         build_stamp_action = LuaAction(f'VEAF_BUILD_VERSION = "{get_build_stamp()}"')
 
-        dynamic_scripts: list[LuaAction | FileAction] = [
+        dynamic_scripts: list[LuaAction | FileAction | SoundAction] = [
             build_stamp_action,
             LuaAction('env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)'),
         ]
@@ -1655,16 +1761,18 @@ class MissionBuilderWorker(BaseWorker):
         # for the first, _ordered_mission_script_files() for the second), and dicts
         # preserve insertion order, so iterating them keeps the scripts in load order
         # (e.g. veaf-config.lua before mission-script.lua).
-        static_scripts: list[LuaAction | FileAction] = [
+        static_scripts: list[LuaAction | FileAction | SoundAction] = [
             build_stamp_action,
             LuaAction('env.info("STATIC VEAF scripts loading")'),
         ]
         static_scripts += [FileAction(key) for key in new_map_resource_script_files]
 
-        static_mission: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC Mission scripts loading")')]
+        static_mission: list[LuaAction | FileAction | SoundAction] = [
+            LuaAction('env.info("STATIC Mission scripts loading")')
+        ]
         static_mission += [FileAction(key) for key in new_map_resource_mission_script_files]
 
-        return [
+        specs = [
             VeafTriggerSpec(
                 keys[0],
                 "VEAF scripts loading method",
@@ -1693,6 +1801,13 @@ class MissionBuilderWorker(BaseWorker):
             ),
             VeafTriggerSpec(keys[5], "Mission scripts loading - static", "0x8080ffff", False, static_mission),
         ]
+
+        # The sound declaration is last and conditional: with no orphan sound there is nothing to
+        # protect from the editor's pruning, and an empty trigger would be noise.
+        sound_actions = self._build_sound_declaration_actions()
+        if sound_actions:
+            specs.append(VeafTriggerSpec(keys[6], "Declare mission sounds", "0xffff00ff", False, list(sound_actions)))
+        return specs
 
     def insert_veaf_triggers(self, specs: list[VeafTriggerSpec]) -> None:
         """Insert the compiled ``trig`` form of the VEAF triggers, derived from *specs*.

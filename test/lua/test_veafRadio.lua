@@ -1109,4 +1109,62 @@ function TestVeafRadioSecuredCommands:test_exact_level_passes()
   luaunit.assertTrue(self.called)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-093 — the SRS position was truncated to whole degrees
+--
+-- coord.LOtoLL returns degrees as floating point, and the -L/-O options were built with %d.
+-- Measured in Lua 5.1, string.format("%d", 41.567) does not raise — it yields "41", truncating
+-- toward zero. One degree of latitude is ~111 km, so a positional transmission landed tens of
+-- kilometres from the marker, which is the whole point of passing eventPos.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2SrsPosition = {}
+
+function TestSecrev2SrsPosition:setUp()
+  self.savedExecute = os.execute
+  self.savedLOtoLL = coord.LOtoLL
+  self.commands = {}
+  os.execute = function(command)
+    self.commands[#self.commands + 1] = command
+    return 0
+  end
+  STTS = { DIRECTORY = "C:\\SRS", EXECUTABLE = "DCS-SR-ExternalAudio.exe", SRS_PORT = 5002 }
+  coord.LOtoLL = function(_)
+    return 41.567891, -73.123456, 1234.5
+  end
+end
+
+function TestSecrev2SrsPosition:tearDown()
+  os.execute = self.savedExecute
+  coord.LOtoLL = self.savedLOtoLL
+  STTS = nil
+end
+
+function TestSecrev2SrsPosition:_transmitWithPosition()
+  veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, { x = 0, y = 0, z = 0 }, true)
+  luaunit.assertEquals(#self.commands, 1)
+  return self.commands[1]
+end
+
+function TestSecrev2SrsPosition:test_latitude_keeps_its_fraction()
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-L 41.567891")
+end
+
+function TestSecrev2SrsPosition:test_a_negative_longitude_keeps_its_fraction()
+  -- Truncation is toward zero, so the western hemisphere was wrong in the other direction.
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-O -73.123456")
+end
+
+function TestSecrev2SrsPosition:test_altitude_stays_a_whole_number()
+  -- Metres: a fraction of one buys nothing, and SRS reads it as a level.
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-A 1234")
+end
+
+function TestSecrev2SrsPosition:test_no_position_means_no_position_options()
+  -- The control: an eventPos-less transmission must not grow an empty -L.
+  veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, nil, true)
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertNil(string.find(self.commands[1], "-L", 1, true))
+end
+
 os.exit(luaunit.LuaUnit.run())

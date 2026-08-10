@@ -716,4 +716,79 @@ function TestVeafSkynetInitialize:test_dynamic_spawn_true_sets_handler()
   luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-096 — removing an element whose DCS group is already gone
+--
+-- `getDcsGroupFromSkynetElement` returns nil when the DCS representation no longer exists — which
+-- is the very situation `removeSkynetElement` is called in — and the caller indexed it anyway,
+-- under a `---@diagnostic disable-next-line: need-check-nil` that recorded the problem instead of
+-- fixing it.
+--
+-- The network's `groups` table is keyed by group name, and for the SAM sites this function
+-- removes, `skynetElement.dcsName` **is** that group name (see the `sam.dcsName == dcsGroupName`
+-- comparison in addGroupsToNetwork). So the entry can still be cleared by name; that matters,
+-- because leaving it behind would keep the group looking present to the network.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2RemoveSkynetElement = {}
+
+--- A Skynet element whose DCS representation is a Group that may or may not still exist.
+local function _skynetElement(dcsName, groupExists)
+  local dcsRepresentation = {
+    isExist = function()
+      return groupExists
+    end,
+    getName = function()
+      return dcsName
+    end,
+    getID = function()
+      return 4242
+    end,
+    enableEmission = function(_) end,
+  }
+  setmetatable(dcsRepresentation, Group)
+  return {
+    dcsName = dcsName,
+    typeName = "SA-6 Kub LN 2P25",
+    dcsRepresentation = dcsRepresentation,
+    cleanUp = function(_) end,
+    getDCSRepresentation = function(_)
+      return dcsRepresentation
+    end,
+  }
+end
+
+local function _network(groupName)
+  return {
+    iads = { samSites = {} },
+    groups = { [groupName] = { forceEwr = false } },
+  }
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_live_group_is_removed_from_the_network()
+  -- The control: the normal path must keep working.
+  local network = _network("SAM-alive")
+  veafSkynet.removeSkynetElement(_skynetElement("SAM-alive", true), network)
+  luaunit.assertNil(network.groups["SAM-alive"])
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_destroyed_group_does_not_raise()
+  local network = _network("SAM-dead")
+  local ok, err = pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertTrue(ok, "removing an element whose group is gone must not raise: " .. tostring(err))
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_destroyed_group_is_still_removed_from_the_network()
+  local network = _network("SAM-dead")
+  pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertNil(network.groups["SAM-dead"], "the network still lists a group that no longer exists")
+end
+
+function TestSecrev2RemoveSkynetElement:test_another_group_is_left_alone()
+  local network = _network("SAM-dead")
+  network.groups["SAM-other"] = { forceEwr = false }
+  pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertNotNil(network.groups["SAM-other"])
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -294,4 +294,93 @@ function TestVeafSanctuaryModule:test_eventHandler_shot_nil_weapon()
   luaunit.assertTrue(true)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-094 — operator precedence in the event filter
+--
+-- `A or B and C and D` parses as `A or (B and C and D)`, so PLAYER_ENTER_UNIT / PLAYER_LEAVE_UNIT
+-- skipped the `_unitname` check entirely and the handler registered under the key `""`.
+--
+-- The finding's remedy — parenthesise as `(A or B) and C and D` — would have been a regression:
+-- `humanUnits` is filled once at initialize() from `mist.DBs.humansByName`, so a **dynamic slot**
+-- is not in it, and requiring the lookup on PLAYER_ENTER_UNIT would stop Sanctuary from
+-- following those players at all. What the two branches actually need is different: ENTER/LEAVE
+-- concerns a human by definition and only needs a unit name; BIRTH/DEAD fires for AI too and
+-- does need the lookup.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2SanctuaryEventFilter = {}
+
+function TestSecrev2SanctuaryEventFilter:setUp()
+  self._savedHumanUnits = veafSanctuary.humanUnits
+  self._savedToFollow = veafSanctuary.humanUnitsToFollow
+  veafSanctuary.humanUnits = { ["known-human"] = true }
+  veafSanctuary.humanUnitsToFollow = {}
+end
+
+function TestSecrev2SanctuaryEventFilter:tearDown()
+  veafSanctuary.humanUnits = self._savedHumanUnits
+  veafSanctuary.humanUnitsToFollow = self._savedToFollow
+end
+
+local function _unitEvent(eventId, unitName)
+  local initiator = nil
+  if unitName then
+    initiator = {
+      getName = function()
+        return unitName
+      end,
+    }
+  else
+    -- An initiator that has no getName: what DCS hands over for some objects.
+    initiator = {}
+  end
+  return { id = eventId, initiator = initiator }
+end
+
+function TestSecrev2SanctuaryEventFilter:test_entering_a_known_slot_is_followed()
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_PLAYER_ENTER_UNIT, "known-human"))
+  luaunit.assertNotNil(veafSanctuary.humanUnitsToFollow["known-human"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_entering_a_dynamic_slot_is_still_followed()
+  -- Not in humanUnits, because dynamic slots do not exist when initialize() reads mist's DB.
+  -- This is the case the finding's own remedy would have broken.
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_PLAYER_ENTER_UNIT, "dynamic-slot"))
+  luaunit.assertNotNil(veafSanctuary.humanUnitsToFollow["dynamic-slot"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_a_nameless_initiator_registers_nothing()
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_PLAYER_ENTER_UNIT, nil))
+  luaunit.assertNil(veafSanctuary.humanUnitsToFollow[""])
+  luaunit.assertEquals(next(veafSanctuary.humanUnitsToFollow), nil)
+end
+
+function TestSecrev2SanctuaryEventFilter:test_birth_of_an_ai_unit_is_not_followed()
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_BIRTH, "some-ai-tank"))
+  luaunit.assertNil(veafSanctuary.humanUnitsToFollow["some-ai-tank"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_birth_of_a_known_human_is_followed()
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_BIRTH, "known-human"))
+  luaunit.assertNotNil(veafSanctuary.humanUnitsToFollow["known-human"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_leaving_stops_the_follow()
+  veafSanctuary.humanUnitsToFollow["known-human"] = { firstInZone = -1 }
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, "known-human"))
+  luaunit.assertNil(veafSanctuary.humanUnitsToFollow["known-human"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_leaving_a_dynamic_slot_stops_the_follow()
+  veafSanctuary.humanUnitsToFollow["dynamic-slot"] = { firstInZone = -1 }
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, "dynamic-slot"))
+  luaunit.assertNil(veafSanctuary.humanUnitsToFollow["dynamic-slot"])
+end
+
+function TestSecrev2SanctuaryEventFilter:test_death_of_an_ai_unit_leaves_the_list_alone()
+  veafSanctuary.humanUnitsToFollow["known-human"] = { firstInZone = -1 }
+  veafSanctuary.eventHandler:onEvent(_unitEvent(world.event.S_EVENT_DEAD, "some-ai-tank"))
+  luaunit.assertNotNil(veafSanctuary.humanUnitsToFollow["known-human"])
+end
+
 os.exit(luaunit.LuaUnit.run())

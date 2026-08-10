@@ -367,4 +367,81 @@ function TestVeafSecurityElevationCommand:test_login_still_parses()
   luaunit.assertTrue(options.login)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-095 — the auth duration reaches authenticate() as text a pilot typed
+--
+-- `-auth login <duration>` goes through `RemoteCommandParser`, so `minutes` is a *string*. The
+-- guard was `not actualMinutes:match("%d+")` — unanchored, so any string with a digit anywhere
+-- passed it, and `actualMinutes * 60` then raised on "abc5". Measured in Lua 5.1: an arithmetic
+-- error, from a pilot's typo. "-5" was worse than an error: it scheduled the logout in the past,
+-- so the mission unlocked and immediately relocked without saying why.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2AuthDuration = {}
+
+function TestSecrev2AuthDuration:setUp()
+  self._savedSchedule = mist.scheduleFunction
+  self._savedRemove = mist.removeFunction
+  self._savedAuthenticated = veafSecurity.authenticated
+  self._savedWatchdog = veafSecurity.logoutWatchdog
+  self.scheduled = {}
+  mist.scheduleFunction = function(fn, args, t)
+    table.insert(self.scheduled, { fn = fn, args = args, time = t })
+    return #self.scheduled
+  end
+  mist.removeFunction = function(_) end
+  veafSecurity.authenticated = false
+  veafSecurity.logoutWatchdog = nil
+end
+
+function TestSecrev2AuthDuration:tearDown()
+  mist.scheduleFunction = self._savedSchedule
+  mist.removeFunction = self._savedRemove
+  veafSecurity.authenticated = self._savedAuthenticated
+  veafSecurity.logoutWatchdog = self._savedWatchdog
+end
+
+--- Minutes the logout was actually scheduled for, relative to now.
+function TestSecrev2AuthDuration:_scheduledMinutes()
+  luaunit.assertEquals(#self.scheduled, 1)
+  return (self.scheduled[1].time - timer.getTime()) / 60
+end
+
+function TestSecrev2AuthDuration:test_a_numeric_string_is_honoured()
+  veafSecurity.authenticate("30", nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), 30)
+end
+
+function TestSecrev2AuthDuration:test_a_number_is_honoured()
+  veafSecurity.authenticate(30, nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), 30)
+end
+
+function TestSecrev2AuthDuration:test_a_digit_buried_in_text_does_not_raise()
+  local ok = pcall(veafSecurity.authenticate, "abc5", nil)
+  luaunit.assertTrue(ok, "a typo in the auth duration must not raise")
+end
+
+function TestSecrev2AuthDuration:test_a_digit_buried_in_text_falls_back_to_the_default()
+  veafSecurity.authenticate("abc5", nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
+end
+
+function TestSecrev2AuthDuration:test_a_negative_duration_falls_back_to_the_default()
+  -- Not merely refused: a negative delay schedules the logout in the past, which unlocks the
+  -- mission and relocks it on the next tick.
+  veafSecurity.authenticate("-5", nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
+end
+
+function TestSecrev2AuthDuration:test_zero_falls_back_to_the_default()
+  veafSecurity.authenticate(0, nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
+end
+
+function TestSecrev2AuthDuration:test_no_duration_at_all_uses_the_default()
+  veafSecurity.authenticate(nil, nil)
+  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
+end
+
 os.exit(luaunit.LuaUnit.run())

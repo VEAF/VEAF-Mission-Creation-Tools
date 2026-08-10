@@ -198,9 +198,18 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
 
   veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list) -- not removed here
 
+  -- VMR-096: getDcsGroupFromSkynetElement returns nil once the DCS representation is gone, which
+  -- is exactly the case this function is called in — so asking the group for its name raised, and
+  -- the network kept listing a group that no longer exists. `dcsName` carries the group name for
+  -- the SAM sites removed here (addGroupsToNetwork compares it against a group name), so the
+  -- entry can still be cleared under the right key.
   local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(skynetElement)
-  ---@diagnostic disable-next-line: need-check-nil
-  veafSkynetNetwork.groups[dcsGroup:getName()] = nil
+  local groupName = (dcsGroup and dcsGroup:getName()) or skynetElement.dcsName
+  if groupName then
+    veafSkynetNetwork.groups[groupName] = nil
+  else
+    veaf.loggers.get(veafSkynet.Id):warn("cannot tell which group to remove from the network for a skynet element with no name")
+  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -800,9 +800,18 @@ function veafSanctuary.eventHandler:onEvent(event)
       _unitname = event.initiator:getName()
     end
     --veaf.loggers.get(veafSanctuary.Id):trace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
+    -- VMR-094: `A or B and C and D` parses as `A or (B and C and D)`, so PLAYER_ENTER_UNIT
+    -- skipped the name check and registered under the key "" (which the `_unitname or ""`
+    -- below was quietly absorbing). The two branches genuinely differ, so parenthesising them
+    -- into one condition would be wrong: PLAYER_ENTER_UNIT is a human by definition and needs
+    -- only a name — requiring the humanUnits lookup there would stop following anyone in a
+    -- **dynamic slot**, since that table is filled once at initialize() from mist's DB. BIRTH
+    -- fires for AI as well, so it does need the lookup.
     if
-      event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT
-      or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
+      _unitname
+      and (
+        event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT or (event.id == world.event.S_EVENT_BIRTH and veafSanctuary.humanUnits[_unitname])
+      )
     then
       veafSanctuary.recordTrace(string.format("event=%s", veaf.p(eventId)))
       if not veafSanctuary.humanUnitsToFollow[_unitname] then
@@ -811,9 +820,11 @@ function veafSanctuary.eventHandler:onEvent(event)
         veafSanctuary.humanUnitsToFollow[_unitname or ""] = { firstInZone = -1 }
       end
     elseif
-      event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT
-      or event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
-    then
+      _unitname
+      and (
+        event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT or (event.id == world.event.S_EVENT_DEAD and veafSanctuary.humanUnits[_unitname])
+      )
+    then -- VMR-094, the same shape as above
       veafSanctuary.recordTrace(string.format("event=%s", veaf.p(eventId)))
       if veafSanctuary.humanUnitsToFollow[_unitname] then
         -- unregister the human unit from the follow-up list when the human gets in the unit

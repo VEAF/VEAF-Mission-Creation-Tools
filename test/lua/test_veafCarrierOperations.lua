@@ -405,4 +405,58 @@ function TestVeafCarrierWithMockCarrier:test_getAtc_unknown_group_returns_nil()
   luaunit.assertNil(veafCarrierOperations.getAtcForCarrierOperations("no-such-carrier"))
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-086 — the remote `start` command ignored the duration it was given
+--
+-- `_parameters` comes out of `_command:match(RemoteCommandParser)`, so it is always a string or
+-- nil. The guard read `type(_parameters) == "number"`, which is therefore never true, and the
+-- duration silently stayed at the 45-minute default. Had the branch ever run it would have read
+-- a global `parameters` that does not exist — two defects covering for each other.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2CarrierRemoteDuration = {}
+
+function TestSecrev2CarrierRemoteDuration:setUp()
+  self._savedStart = veafCarrierOperations.startCarrierOperations
+  self._savedCarriers = veafCarrierOperations.carriers
+  self.started = {}
+  veafCarrierOperations.startCarrierOperations = function(parameters)
+    table.insert(self.started, { carrier = parameters[1], duration = parameters[2] })
+  end
+  veafCarrierOperations.carriers = { ["Stennis"] = {} }
+end
+
+function TestSecrev2CarrierRemoteDuration:tearDown()
+  veafCarrierOperations.startCarrierOperations = self._savedStart
+  veafCarrierOperations.carriers = self._savedCarriers
+end
+
+--- Duration the remote command actually asked for.
+function TestSecrev2CarrierRemoteDuration:_durationFor(command)
+  self.started = {}
+  local pilot = { name = "Zip", level = 9 }
+  veafCarrierOperations.executeCommandFromRemote({ pilot, "Zip", nil, command })
+  luaunit.assertEquals(#self.started, 1, "the command did not reach startCarrierOperations")
+  return self.started[1].duration
+end
+
+function TestSecrev2CarrierRemoteDuration:test_a_duration_is_honoured()
+  luaunit.assertEquals(self:_durationFor("start Stennis 90"), 90)
+end
+
+function TestSecrev2CarrierRemoteDuration:test_no_duration_keeps_the_default()
+  luaunit.assertEquals(self:_durationFor("start Stennis"), 45)
+end
+
+function TestSecrev2CarrierRemoteDuration:test_an_unusable_duration_keeps_the_default()
+  luaunit.assertEquals(self:_durationFor("start Stennis banana"), 45)
+end
+
+function TestSecrev2CarrierRemoteDuration:test_the_carrier_is_still_resolved()
+  -- The control: a test that only watched the duration would pass on a handler that
+  -- never found the carrier at all.
+  self:_durationFor("start Stennis 90")
+  luaunit.assertEquals(self.started[1].carrier, "Stennis")
+end
+
 os.exit(luaunit.LuaUnit.run())

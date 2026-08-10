@@ -345,7 +345,7 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 
 > **Commands are filed by theme.** `veaf-tools mission build`, `veaf-tools content
 > inject-presets`, `veaf-tools convert convert-v5`… `veaf-tools --help` lists the groups, and
-> `veaf-tools <group> --help` what is in one. The `dcs` group is what **needs DCS running**.
+> `veaf-tools <group> --help` shows what is in one. The `dcs` group is what **needs DCS running**.
 > The groups are: `mission`, `convert`, `content`, `cockpit` and `dcs`.
 >
 > **The old short names still work**: `veaf-tools build` does exactly what `veaf-tools mission

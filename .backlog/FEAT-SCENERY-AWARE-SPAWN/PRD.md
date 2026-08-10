@@ -92,7 +92,7 @@ as the GPL fence in `DCS-SMS-EXPLOIT.md`.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | Probe `Disposition` in a running DCS — existence, signature, behaviour, cost, cross-theatre. **Deferred**, no longer a gate | 🧑 |
+| 01 | Probe `Disposition` in a running DCS — existence, signature, behaviour, cost, cross-theatre. **Deferred**, no longer a gate | ✅ |
 | 02 | `veaf.findSpawnPoint` — three-tier search + i18n key + `.luacheckrc` global | ✅ |
 | 03 | Wire it into the five jittering spawn paths; failure aborts with a message | ✅ |
 | 04 | Typed trigger-zone property accessors (independent of 01–03) | ✅ |

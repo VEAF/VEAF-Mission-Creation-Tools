@@ -28,8 +28,8 @@ than product behaviour. Two are traps that already cost time; one is a helper wo
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Version the Foothold batch script under `tools/`](tickets/01-version-foothold-batch-script.md) | ✅ |
-| 02 | [Make `veaf-tools.spec` honest — or delete it](tickets/02-pyinstaller-spec-honesty.md) | ⬜ |
-| 03 | [Bring `test/python/` under the ruff gate](tickets/03-ruff-gate-on-tests.md) | ⬜ |
+| 02 | [Make `veaf-tools.spec` honest — or delete it](tickets/02-pyinstaller-spec-honesty.md) | ✅ |
+| 03 | [Bring `test/python/` under the ruff gate](tickets/03-ruff-gate-on-tests.md) | ✅ |
 | 04 | [Bring `test/lua/` under the StyLua gate](tickets/04-stylua-gate-on-lua-tests.md) | ✅ |
 
 ## Notes

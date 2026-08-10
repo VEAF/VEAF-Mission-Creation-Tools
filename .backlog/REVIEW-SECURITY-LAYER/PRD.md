@@ -1,6 +1,6 @@
 # REVIEW-SECURITY-LAYER — the marker security model, revisited on measurements
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Asked for by David on 2026-08-06, while deciding the levels for
 [`SECREV-2` ticket 03](../SECREV-2/tickets/03-fail-open-gates.md): *"on pourrait en profiter

@@ -32,14 +32,15 @@ from mission_tools.miz_tools import DcsMission
 
 
 def _make_worker(yaml_content: str = "") -> MissionBuilderWorker:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        mission_dir = Path(tmpdir)
-        (mission_dir / "mission.yaml").write_text(yaml_content, encoding="utf-8")
-        return MissionBuilderWorker(
-            mission_folder=mission_dir,
-            output_mission=mission_dir / "out.miz",
-            dynamic_mode=None,
-        )
+    # `mkdtemp`, not `TemporaryDirectory`: the worker keeps its `mission_folder`, so a context
+    # manager that exits before the return would hand back a worker pointing at a deleted path.
+    mission_dir = Path(tempfile.mkdtemp())
+    (mission_dir / "mission.yaml").write_text(yaml_content, encoding="utf-8")
+    return MissionBuilderWorker(
+        mission_folder=mission_dir,
+        output_mission=mission_dir / "out.miz",
+        dynamic_mode=None,
+    )
 
 
 def _mission_using_countries(*country_ids: int) -> DcsMission:

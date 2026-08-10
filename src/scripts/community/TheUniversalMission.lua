@@ -33728,12 +33728,17 @@ do
         radioMessageSuffix = "AirDefense",
         radioTargetName = "short-range SAM",
       })
-      missionCommands.addCommand("Short range SAMs (IR only)", engageSubPath, radioCommandEngage, {
-        attributes = { "IR Guided SAM" },
-        category = Group.Category.GROUND,
-        radioMessageSuffix = "AirDefense",
-        radioTargetName = "IR SAM",
-      })
+      missionCommands.addCommand(
+        "Short range SAMs (IR only)",
+        engageSubPath,
+        radioCommandEngage,
+        {
+          attributes = { "IR Guided SAM" },
+          category = Group.Category.GROUND,
+          radioMessageSuffix = "AirDefense",
+          radioTargetName = "IR SAM",
+        }
+      )
       missionCommands.addCommand(
         "Short range SAMs (radar only)",
         engageSubPath,
@@ -33996,10 +34001,15 @@ do
       local targetPoint3 = doCommandEngageStrikeTargets()
 
       if targetPoint3 then
-        TUM.radio.playForAll("pilotWingmanEngageStrike", {
-          TUM.wingmen.getFirstWingmanNumber(),
-          DCSEx.dcs.getBRAA(targetPoint3, DCSEx.world.getGroupCenter(TUM.wingmen.getGroup()), false),
-        }, TUM.wingmen.getFirstWingmanCallsign(), delayRadioAnswer)
+        TUM.radio.playForAll(
+          "pilotWingmanEngageStrike",
+          {
+            TUM.wingmen.getFirstWingmanNumber(),
+            DCSEx.dcs.getBRAA(targetPoint3, DCSEx.world.getGroupCenter(TUM.wingmen.getGroup()), false),
+          },
+          TUM.wingmen.getFirstWingmanCallsign(),
+          delayRadioAnswer
+        )
         return true
       else
         TUM.radio.playForAll(

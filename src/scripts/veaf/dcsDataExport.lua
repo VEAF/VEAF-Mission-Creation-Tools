@@ -88,8 +88,14 @@ function DcsDataExport.Logger.formatText(text, ...)
   if type(text) ~= "string" then
     text = DcsDataExport.p(text)
   else
-    if arg and #arg > 0 then
-      text = text:format(unpack(arg))
+    -- `arg` is NOT the varargs table inside a vararg function: measured on Lua 5.1, it is nil there
+    -- (the global `arg` holds the script's command-line arguments instead). So this branch never ran,
+    -- and the callers' `unpack(arg)` raised outright unless the interpreter was built with
+    -- LUA_COMPAT_VARARG -- which is a compile-time option of whichever Lua DCS ships, not something
+    -- we can rely on (SECREV-2 / VMR-079). `{...}` removes the dependency entirely.
+    local args = { ... }
+    if #args > 0 then
+      text = text:format(unpack(args))
     end
   end
   local fName = nil
@@ -133,35 +139,35 @@ end
 
 function DcsDataExport.Logger:error(text, ...)
   if self.level >= 1 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(1, text)
   end
 end
 
 function DcsDataExport.Logger:warn(text, ...)
   if self.level >= 2 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(2, text)
   end
 end
 
 function DcsDataExport.Logger:info(text, ...)
   if self.level >= 3 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(3, text)
   end
 end
 
 function DcsDataExport.Logger:debug(text, ...)
   if self.level >= 4 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(4, text)
   end
 end
 
 function DcsDataExport.Logger:trace(text, ...)
   if self.level >= 5 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(5, text)
   end
 end
@@ -195,13 +201,18 @@ function DcsDataExport.loggers.get(loggerId)
 end
 
 function DcsDataExport.p(obj, maxLevel, skip, serializeInLua)
-  local skip = skip
-  if skip and type(skip) == "table" then
+  -- `local skip = skip` rebinds the name but not the table, so writing skip[value] = true wrote into
+  -- the caller's own list -- turning `{"units"}` into `{"units", units = true}` for whoever passed it,
+  -- and leaving a mixed array/hash table behind on every call (SECREV-2 / VMR-080). The lookup set is
+  -- built separately now, and the caller's list is left exactly as it was handed over.
+  local skipByKey = nil
+  if type(skip) == "table" then
+    skipByKey = {}
     for _, value in ipairs(skip) do
-      skip[value] = true
+      skipByKey[value] = true
     end
   end
-  return DcsDataExport._p(nil, obj, maxLevel, 0, skip, serializeInLua)
+  return DcsDataExport._p(nil, obj, maxLevel, 0, skipByKey, serializeInLua)
 end
 
 function DcsDataExport._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
@@ -425,8 +436,10 @@ function DcsDataExport.serialize(name, value, level)
         table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
       end
     else
-      ---@diagnostic disable-next-line: param-type-mismatch
-      log:error("Cannot serialize a $1", type(value))
+      -- `log` is not defined anywhere: this reported an unserializable value by raising "attempt to
+      -- index a nil value" instead (SECREV-2 / VMR-078, the same defect as VMR-077 elsewhere in this
+      -- file). The `$1` placeholder was wrong too -- string.format uses `%s`.
+      DcsDataExport.loggers.get(DcsDataExport.Id):error("Cannot serialize a %s", type(value))
     end
     return var_str_tbl
   end

@@ -1233,8 +1233,8 @@
     "line": "427",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same defect as VMR-077 in the same file: `log` is defined nowhere, so reporting an unserializable value raised 'attempt to index a nil value' instead. The placeholder was wrong too -- `$1` where string.format wants `%s`. Now uses the module's own logger."
   },
   {
     "vid": "VMR-079",
@@ -1246,8 +1246,8 @@
     "line": "91",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and far worse than 'breaks under 5.2+': measured on Lua 5.1, `arg` is nil INSIDE a vararg function -- the global `arg` holds the script's command-line arguments. So formatText's format branch never ran, and the five logger methods called `unpack(arg)` on nil, which raises outright unless the interpreter was built with LUA_COMPAT_VARARG -- a compile-time option of whichever Lua DCS ships, not something we can rely on. All 6 occurrences now use `{...}`, removing the dependency. mist.lua has the same pattern 6 times and was left alone: it is third-party community code."
   },
   {
     "vid": "VMR-080",
@@ -1259,8 +1259,8 @@
     "line": "199",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `local skip = skip` rebinds the name but not the table, so `skip[value] = true` wrote into the caller's own list -- turning {\"units\"} into {\"units\", units = true} for whoever passed it. The lookup set is built separately now and the caller's list is left as handed over."
   },
   {
     "vid": "VMR-081",
@@ -1407,8 +1407,8 @@
     "commits": [
       "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and all three branches were dead, not just one: listAvailableMissions, ActivateMission and DesactivateMission do not exist. The module was renamed mission -> guardian and this remote handler never followed, so every remote command raised. Mapped onto the real listGuardians, ActivateGuardian and DesactivateGuardian. Noted in passing and NOT fixed here: listGuardians itself sorts and iterates an empty local table, so it always prints an empty list -- a separate defect, outside this finding, and it needs someone to say what it should collect."
   },
   {
     "vid": "VMR-091",

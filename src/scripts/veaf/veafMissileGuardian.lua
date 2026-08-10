@@ -595,21 +595,24 @@ function veafMissileGuardian.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "list" then
       veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is listing air missions)", veaf.p(_pilot.name)))
-      veafMissileGuardian.listAvailableMissions()
+      -- listAvailableMissions/ActivateMission/DesactivateMission do not exist: the module was
+      -- renamed mission -> guardian and this remote handler never followed, so all three of its
+      -- branches raised "attempt to call a nil value" (SECREV-2 / VMR-090).
+      veafMissileGuardian.listGuardians()
       return true
     elseif _action and _action:lower() == "start" and _missionName then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafMissileGuardian.Id)
         :info(string.format("[%s] is starting air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-      veafMissileGuardian.ActivateMission(_missionName, _silent)
+      veafMissileGuardian.ActivateGuardian(_missionName, _silent)
       return true
     elseif _action and _action:lower() == "stop" then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafMissileGuardian.Id)
         :info(string.format("[%s] is stopping air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-      veafMissileGuardian.DesactivateMission(_missionName, _silent)
+      veafMissileGuardian.DesactivateGuardian(_missionName, _silent)
       return true
     end
   end

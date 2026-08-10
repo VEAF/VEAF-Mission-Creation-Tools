@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — no CONFIRMED finding left; Error/bug tier under way, Python batches 1-2 done (75/140 decided)
+Status: 🔄 in-progress — Error/bug tier under way: Python done bar 9, Lua started (79/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -370,5 +370,58 @@ the **keys**, so `country.get(...)` ran on a string.
 ### Where it stands
 
 **75 of 140 decided. 65 left**: 35 Error/bug (**9 Python, 26 Lua**), 9 Documentation, 3 Security flaw
+(awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
+anyway.
+
+## Sweep, sixth pass — Error/bug, Lua batch 1 (dcsDataExport + MissileGuardian), 2026-08-10
+
+Four findings, and one of them is the most consequential of the whole ticket.
+
+| | Outcome | |
+|---|---|---|
+| VMR-079 | **fixed** | `arg` is **nil** inside a Lua 5.1 vararg function — every formatted log call was broken |
+| VMR-090 | **fixed** | all three remote commands called functions that do not exist |
+| VMR-080 | **fixed** | the skip list was written into the caller's own table |
+| VMR-078 | **fixed** | `log:error` — the error path was the error, again |
+
+### VMR-079 is not a portability note, it is a live defect
+
+The finding says reliance on `arg` "breaks under Lua 5.2+". Measured on Lua 5.1:
+
+```
+inside a vararg function -> arg type: nil
+inside a plain function  -> arg type: table
+```
+
+`arg` is **nil** inside a vararg function — the global `arg` holds the script's command-line
+arguments, which is why it looks defined from outside. So `formatText`'s format branch never ran, and
+the five logger methods called `unpack(arg)` on **nil**, which raises. The only thing standing between
+that and a crash is `LUA_COMPAT_VARARG`, a compile-time option of whichever Lua DCS ships — not
+something we can rely on, and not something we can check from here.
+
+All six occurrences now use `{...}`. `mist.lua` has the same pattern six more times and was left
+alone: third-party community code.
+
+### VMR-090: all three branches were dead, not one
+
+`listAvailableMissions`, `ActivateMission` and `DesactivateMission` do not exist. The module was
+renamed *mission* → *guardian* and its remote handler never followed, so **every** remote command
+raised. Mapped onto the real `listGuardians`, `ActivateGuardian`, `DesactivateGuardian`.
+
+**Found in passing and deliberately not fixed**: `listGuardians` sorts and iterates an *empty local
+table*, so it always prints an empty list. That is a separate defect, outside this finding, and fixing
+it needs someone to say what it should collect.
+
+### No new tests in this batch, and why
+
+`dcsDataExport.lua` cannot be loaded outside DCS — it indexes a global `db` the sim provides — and
+`veafMissileGuardian`'s remote handler needs a mock fleet this ticket has no business building. The 36
+existing Lua suites pass, `stylua` and the CI `luacheck` gate cover the syntax, and the `arg`
+behaviour was established by direct measurement rather than by assertion. Saying so is better than
+shipping a harness bodged together at the end of a sweep.
+
+### Where it stands
+
+**79 of 140 decided. 61 left**: 31 Error/bug (**9 Python, 22 Lua**), 9 Documentation, 3 Security flaw
 (awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
 anyway.

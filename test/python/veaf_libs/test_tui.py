@@ -519,16 +519,45 @@ class TestCommandGroups(unittest.TestCase):
             self.assertIn(command.group, tui.GROUP_ORDER, command.cli_name)
 
     def test_the_assistance_commands_are_together(self):
-        # David's point: they are one workflow and were scattered across the menu.
-        assistance = {c.cli_name for c in tui.COMMANDS if c.group == tui.GROUP_ASSISTANCE}
-        self.assertEqual({"resolve-checklist", "verify-checklist", "explore-cockpit"}, assistance)
+        # David's point: they are one workflow and were scattered across the menu. Since
+        # REFACTOR-CLI-COMMAND-TREE the heading is named for its subject rather than for the help
+        # it gives.
+        cockpit = {c.cli_name for c in tui.COMMANDS if c.group == "cockpit"}
+        self.assertEqual({"resolve-checklist", "verify-checklist", "explore-cockpit"}, cockpit)
 
-    def test_no_group_is_left_empty(self):
-        # An empty heading in the menu is a promise the tool does not keep.
+    def test_no_heading_is_rendered_empty(self):
+        # An empty heading in the menu is a promise the tool does not keep. `GROUP_ORDER` now comes
+        # from the CLI's tree, which legitimately holds a group the wizard cannot show — `dcs` is
+        # all machine-only commands — so the invariant is about what gets *rendered*.
         used = {command.group for command in tui.COMMANDS}
-        self.assertEqual(set(tui.GROUP_ORDER), used)
+        for group in tui.GROUP_ORDER:
+            if group in used:
+                self.assertTrue(any(c.group == group for c in tui.COMMANDS), group)
+
+    def test_a_group_the_wizard_cannot_drive_is_skipped_not_shown_empty(self):
+        from veaf_tools.app import MACHINE_ONLY_COMMANDS
+        from veaf_tools.command_tree import COMMAND_GROUPS
+
+        dcs = next(g for g in COMMAND_GROUPS if g.id == "dcs")
+        self.assertTrue(
+            set(dcs.commands) <= MACHINE_ONLY_COMMANDS,
+            "if a dcs command ever becomes wizard-drivable this test should be revisited, not deleted",
+        )
+        self.assertNotIn("dcs", {command.group for command in tui.COMMANDS})
 
     def test_every_group_has_a_translated_heading(self):
         for group in tui.GROUP_ORDER:
-            heading = t(f"tui.group.{group}")
-            self.assertNotEqual(f"tui.group.{group}", heading, group)
+            heading = t(f"tree.group.{group}.label")
+            self.assertNotEqual(f"tree.group.{group}.label", heading, group)
+
+    def test_a_group_is_rendered_in_tree_order_not_declaration_order(self):
+        # `prepare` before `validate` before `build` is the order a mission maker does them in, and
+        # the CLI's --help reads it too. Sorting by COMMANDS order instead showed
+        # "build, extract, prepare" — the same group, presented differently in the two interfaces.
+        from veaf_tools.command_tree import COMMAND_GROUPS
+
+        mission = next(g for g in COMMAND_GROUPS if g.id == "mission").commands
+        rendered = [
+            c.cli_name for c in tui._in_tree_order([c for c in tui.COMMANDS if c.group == "mission"], "mission")
+        ]
+        self.assertEqual(rendered, [name for name in mission if name in rendered])

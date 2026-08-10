@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **The backlog status gate no longer lets anything opt out in silence** (follow-up to the check added in #692, on Sourcery's two remarks). It had the very defect it was built to remove: a `Status:` line below the 15-line window it scanned read as *absent*, and an unrecognised icon in a scope-table cell made the row **invisible** — both skipped the comparison instead of failing it. The window is gone, a missing or unreadable status is now reported, and each of the three holes was verified by reopening it and watching the gate refuse. The reliable fix turned out to be neither mine nor the one suggested: reading **the column the table names `Status`** rather than "the last cell". Measured first — a positional rule produced **17 false positives**, because two lots end their table with a *depends on* column holding values like `01, 02` or `—`.
+
 ### Added
 - **A test that the three places a lot's status is written agree.** `.backlog/README.md` carries a row per lot, `<LOT>/PRD.md` a `Status:` header and usually a scope table, and each ticket its own header — and nothing checked they told the same story. That cost **four separate corrections in one day**, the last of them inside the very commit that called the pattern out and still left the index row on ⬜. Naming a pattern is not removing it. The rule is **agreement, not conformity**: several PRDs deliberately carry no scope table, so the test compares the sources that exist rather than imposing one shape. It found **14 drifts** on landing — `TOOLING-REPO-LINK-GATE` had all five tickets done and none of them ticked, `SECREV-2` four, and `REVIEW-SECURITY-LAYER`'s PRD still read `ready` while its index row said in-progress. All aligned, taking the **ticket file** as truth: it is the one edited on finishing the work, so it is the source that drifts last.
 

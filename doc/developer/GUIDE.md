@@ -339,6 +339,34 @@ logger.error("Échec", raise_exception=True)
 3. Enregistrer la commande dans `veaf-tools.py` avec `typer`
 4. Ajouter le schéma de configuration YAML dans `models.py`
 
+### Aides de test partagées {#shared-test-helpers}
+
+`test/python/testlib/` contient les aides utilisées par plusieurs fichiers de test. Le dossier est
+sur le `pythonpath` de pytest, donc ses modules s'importent par leur nom :
+
+```python
+from mission_builder_factory import make_worker
+```
+
+`make_worker(**overrides)` construit un `MissionBuilderWorker` **sans exécuter `__init__`** — celui-ci
+lit `mission.yaml`, résout le chemin des scripts et vérifie la présence du chargeur sur le disque,
+ce qu'un test unitaire d'une seule méthode veut éviter. Tous les attributs que `__init__` affecte
+sont présents avec une valeur neutre ; le test ne nomme que ce qui l'intéresse :
+
+```python
+worker = make_worker(mission_yaml={"dcs_bridge": {"enabled": True}}, dev_mode=True)
+```
+
+Aucun accès disque : `mission_folder` vaut `None` par défaut. Quand un dossier est fourni,
+`output_mission` en dérive (`<mission_folder>/out.miz`). Une clé inconnue est refusée
+(`TypeError`) plutôt que de créer en silence un attribut que personne ne lit ; les remplacements de
+**méthode** s'affectent sur le worker retourné, pas via `make_worker`.
+
+Ajouter un champ à `MissionBuilderWorker.__init__` impose d'ajouter une entrée dans
+`init_field_defaults()`. Ce n'est pas à retenir :
+`test/python/mission_builder/test_mission_builder_factory_contract.py` lit les affectations
+`self.<champ>` de `__init__` et échoue en nommant le champ manquant et le fichier à corriger.
+
 ---
 
 ## Build et publication

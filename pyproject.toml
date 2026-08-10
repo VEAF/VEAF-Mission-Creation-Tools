@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.13.53"
+version = "6.13.54"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -120,7 +120,10 @@ ignore_errors = true
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["test/python"]
-pythonpath = ["src/python/veaf-tools"]
+# test/python/testlib holds shared test helpers (not tests). It needs to be importable
+# by name: with --import-mode=importlib a test module cannot import a sibling file, and
+# a conftest fixture is unreachable from the unittest.TestCase classes that need it.
+pythonpath = ["src/python/veaf-tools", "test/python/testlib"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     "--tb=short",

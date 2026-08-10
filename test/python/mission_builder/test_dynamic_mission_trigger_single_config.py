@@ -14,19 +14,18 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 
 
 def _make_worker() -> MissionBuilderWorker:
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_folder = Path(tempfile.mkdtemp())
-    worker.output_mission = worker.mission_folder / "out.miz"
-    worker.scripts_path = None
-    # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
-    # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
-    worker.collected_community_sound_files = {}
-    worker.collected_mission_data_files = {}
-    worker.dev_mode = True
+    worker = make_worker(
+        mission_folder=Path(tempfile.mkdtemp()),
+        dev_mode=True,
+        # No CTLD/CSAR sound to declare: these hand-built workers exercise the load triggers,
+        # not the sound declaration (FIX-COMMUNITY-SOUNDS-PRUNED).
+        collected_community_sound_files={},
+        collected_mission_data_files={},
+    )
     # Stub the file-collection helpers used by insert_veaf_trigrules.
     worker.get_collected_community_script_files = lambda: []  # type: ignore[method-assign]
     worker.get_collected_veaf_script_files = lambda: []  # type: ignore[method-assign]

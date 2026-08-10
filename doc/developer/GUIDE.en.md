@@ -339,6 +339,34 @@ logger.error("Failed", raise_exception=True)
 3. Register the command in `veaf-tools.py` using `typer`
 4. Add YAML config schema in `models.py`
 
+### Shared Test Helpers {#shared-test-helpers}
+
+`test/python/testlib/` holds the helpers several test files share. The folder is on pytest's
+`pythonpath`, so its modules import by name:
+
+```python
+from mission_builder_factory import make_worker
+```
+
+`make_worker(**overrides)` builds a `MissionBuilderWorker` **without running `__init__`** — that
+reads `mission.yaml`, resolves the scripts path and checks the loader exists on disk, all of which a
+unit test of one method wants to avoid. Every attribute `__init__` assigns is present with a neutral
+value, so the test only names what it actually cares about:
+
+```python
+worker = make_worker(mission_yaml={"dcs_bridge": {"enabled": True}}, dev_mode=True)
+```
+
+No filesystem access: `mission_folder` defaults to `None`. When a folder is given,
+`output_mission` derives from it (`<mission_folder>/out.miz`). An unknown key is rejected
+(`TypeError`) rather than silently creating an attribute nothing reads; **method** stubs are
+assigned on the returned worker, not through `make_worker`.
+
+Adding a field to `MissionBuilderWorker.__init__` requires adding an entry to
+`init_field_defaults()`. That is not something to remember:
+`test/python/mission_builder/test_mission_builder_factory_contract.py` reads the `self.<field>`
+assignments out of `__init__` and fails naming the missing field and the file to fix.
+
 ---
 
 ## Build and Release

@@ -5,18 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from mission_builder_factory import make_worker
 
 
 def _bare_worker() -> MissionBuilderWorker:
     """A worker instance without the heavy __init__ (only the fields the helpers need)."""
-    worker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.custom_scripts = []
-    worker.custom_scripts_generate_load_trigger = True
-    worker.collected_mission_script_files = None
-    worker.config_override_target = None
-    worker.config_override_values = {}
-    return worker
+    return make_worker()
 
 
 class TestDynamicFrameworkLoadPath:

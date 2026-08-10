@@ -9,8 +9,8 @@
 > [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md))
 > and **untouched upstream config + lexically-validated partial override** (see
 > [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0008-foothold-config-override.md)).
-> The per-command detail lives in [CONVERT_OTHER](CONVERT_OTHER.md) and the
-> [mission.yaml reference](../MISSION_YAML_REFERENCE.md).
+> The per-command detail lives in [CONVERT_OTHER](CONVERT_OTHER.en.md) and the
+> [mission.yaml reference](../MISSION_YAML_REFERENCE.en.md).
 
 ## Prerequisites
 
@@ -182,7 +182,7 @@ its *Import MIZ Config* button installs that file. What follows from it:
 Foothold's era is driven by the `Era` global, which accepts four values — `"Modern"`,
 `"Coldwar"`, `"Gulfwar"` (the Cold-War era's name on the Iraq map) and `"Vietnam"`. It is a
 pure **config difference**, so we emit several `.miz` in a single build via
-[`build_variants:`](../MISSION_YAML_REFERENCE.md):
+[`build_variants:`](../MISSION_YAML_REFERENCE.en.md):
 
 ```yaml
 mission:
@@ -233,7 +233,7 @@ variant: untouched upstream config → small `veaf-config-override.lua` reassign
 `custom_scripts` loaded in declaration order → VEAF spawns/data injected.
 
 > For `--profile <X>` alone (a single variant, unsuffixed) or build options, see
-> the [mission.yaml reference](../MISSION_YAML_REFERENCE.md).
+> the [mission.yaml reference](../MISSION_YAML_REFERENCE.en.md).
 
 ## 5. Test in DCS
 

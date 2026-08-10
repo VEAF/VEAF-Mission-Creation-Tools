@@ -72,5 +72,5 @@ The deposited content is defined by the `veafGrass.WAREHOUSE_ITEMS` table. The `
 
 ## See Also
 
-- [veafAssets](veafAssets.md) — for managed tankers and AWACS at regular airbases
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafGrass` API
+- [veafAssets](veafAssets.en.md) — for managed tankers and AWACS at regular airbases
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafGrass` API

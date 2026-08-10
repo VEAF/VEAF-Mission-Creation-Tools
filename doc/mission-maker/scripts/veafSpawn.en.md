@@ -71,7 +71,7 @@ _spawn unit, name T-80, hdg 270, spacing 50
 _spawn group, name [GROUP_NAME]
 ```
 
-The group alias must exist in the **spawn database**: the built-in one (e.g. `sa2`, `sa3`, …) or your optional `src/spawn-groups.yaml`, which extends/overrides it. The database lives in YAML and is injected into the `.miz` at build time (no Lua to edit). See [Pipeline Reference — spawn data](../../PIPELINE_REFERENCE.md).
+The group alias must exist in the **spawn database**: the built-in one (e.g. `sa2`, `sa3`, …) or your optional `src/spawn-groups.yaml`, which extends/overrides it. The database lives in YAML and is injected into the `.miz` at build time (no Lua to edit). See [Pipeline Reference — spawn data](../../PIPELINE_REFERENCE.en.md).
 
 > **Typos abort the command.** If a parameter is not recognized (e.g. `headng` instead of `heading`), the spawn is **not** performed and the pilot gets a hint (*did you mean 'heading'?*). Fix the marker text and try again.
 
@@ -172,7 +172,7 @@ _teleport, name "Viper Flight"
 
 A **spawnable aircraft group** is identified by the **`veafSpawn-` name prefix** (the `veafSpawn` runtime contract). At build time, the `spawnable_aircrafts` pipeline step injects `src/spawnables.yaml` into the `.miz`.
 
-The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups). It is usually produced by extracting from a mission:
+The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.en.md#pipeline-step-3-aircraft-groups). It is usually produced by extracting from a mission:
 
 ```bash
 veaf-tools content extract-aircraft-groups --kind spawnable
@@ -184,5 +184,5 @@ veaf-tools content extract-aircraft-groups --kind spawnable
 
 ## See Also
 
-- [veafMove](veafMove.md) — moving existing groups
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSpawn` API
+- [veafMove](veafMove.en.md) — moving existing groups
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafSpawn` API

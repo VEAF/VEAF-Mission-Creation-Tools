@@ -25,7 +25,7 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 16. [Debug Logging](#debug-logging)
 17. [Resources](#resources)
 
-> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
+> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.en.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
 ---
 
@@ -93,7 +93,7 @@ To pin to a specific version:
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.en.md)
 
 ---
 
@@ -263,7 +263,7 @@ modules:
         information: "Tacan 64Y\nU290.50 (20)"
 ```
 
-> The unified `modules:` block replaces the older `lua_modules:` + `community_scripts:` keys, and `enabled:` replaces `enable:`. The legacy keys still work but emit a deprecation warning. See the [mission.yaml Reference](../MISSION_YAML_REFERENCE.md) for the full syntax.
+> The unified `modules:` block replaces the older `lua_modules:` + `community_scripts:` keys, and `enabled:` replaces `enable:`. The legacy keys still work but emit a deprecation warning. See the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md) for the full syntax.
 
 ### mission-script.lua Example
 
@@ -380,7 +380,7 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 | `smoke-test` | Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook. |
 | `verify-checklist` | Check a resolved checklist against a real cockpit (needs DCS running here). |
 
-Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Full reference: [Tools Reference](../TOOLS_REFERENCE.en.md)
 
 ### Interactive mode (wizard)
 
@@ -470,23 +470,23 @@ veaf-tools.exe mission build
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
 
-See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.md#profiles) for the full field description.
+See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.en.md#profiles) for the full field description.
 
 ---
 
 ## Scripts Reference
 
-All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scripts/README.md](scripts/README.md) for the complete list with configuration guides.
+All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scripts/README.md](scripts/README.en.md) for the complete list with configuration guides.
 
 **Quick navigation by category:**
 
 | Category | Modules |
 |----------|---------|
-| Core | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
-| Mission types | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
-| Assets | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
-| Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
-| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
+| Core | [veafSpawn](scripts/veafSpawn.en.md), [veafMove](scripts/veafMove.en.md), [veafSecurity](scripts/veafSecurity.en.md), [veafNamedPoints](scripts/veafNamedPoints.en.md) |
+| Mission types | [veafCasMission](scripts/veafCasMission.en.md), [veafCombatZone](scripts/veafCombatZone.en.md), [veafTransportMission](scripts/veafTransportMission.en.md), [veafQraManager](scripts/veafQraManager.en.md), [veafAirWaves](scripts/veafAirWaves.en.md) |
+| Assets | [veafAssets](scripts/veafAssets.en.md), [veafCarrierOperations](scripts/veafCarrierOperations.en.md), [veafGrass](scripts/veafGrass.en.md), [veafWeather](scripts/veafWeather.en.md) |
+| Protection | [veafSanctuary](scripts/veafSanctuary.en.md), [veafMissileGuardian](scripts/veafMissileGuardian.en.md) |
+| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.en.md) |
 
 ---
 
@@ -692,9 +692,9 @@ A ready-to-use Klogg highlight profile is included in the repository at [`tools/
 
 ## Resources
 
-- [Scripts Reference](scripts/README.md) — all scripts with configuration details
-- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI full reference
-- [Lua API Reference](../LUA_API_REFERENCE.md) — complete Lua API documentation
+- [Scripts Reference](scripts/README.en.md) — all scripts with configuration details
+- [Tools Reference](../TOOLS_REFERENCE.en.md) — `veaf-tools.exe` CLI full reference
+- [Lua API Reference](../LUA_API_REFERENCE.en.md) — complete Lua API documentation
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
 - [VEAF Discord](https://www.veaf.org/discord) — community help
 

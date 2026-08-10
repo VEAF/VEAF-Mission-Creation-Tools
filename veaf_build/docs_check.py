@@ -112,6 +112,10 @@ def anchors_of(page: Path) -> tuple[set[str], set[str]]:
     return every, explicit
 
 
+#: Marks a deliberate language-switcher link (see `wrong_language_links`).
+_LANGUAGE_FLAG = "🇫🇷"
+
+
 def _twin(page: Path) -> Path:
     """Return the English counterpart of a French page (``x.md`` → ``x.en.md``)."""
     return page.parent / (page.name[:-3] + ".en.md")
@@ -124,6 +128,13 @@ class Report:
     broken_links: list[str] = field(default_factory=list)
     dead_anchors: list[str] = field(default_factory=list)
     implicit_anchors: list[str] = field(default_factory=list)
+    wrong_language_links: list[str] = field(default_factory=list)
+    """An English page linking to the French version of a page that has an English one.
+
+    SECREV-2 / VMR-008. The anchor check below already followed the twin to land on the right
+    page, which quietly compensated for the mistake instead of reporting it — and 239 of them
+    accumulated across 38 pages before anyone counted.
+    """
     missing_translations: list[str] = field(default_factory=list)
     nav_orphans: list[str] = field(default_factory=list)
     nav_dangling: list[str] = field(default_factory=list)
@@ -159,7 +170,13 @@ def check_docs(doc_dir: Path, mkdocs_yml: Path, require_explicit_anchors: bool =
     for page in pages:
         rel = page.relative_to(doc_dir).as_posix()
         is_en = page.name.endswith(".en.md")
-        for target in _LINK.findall(page.read_text(encoding="utf-8")):
+        text = page.read_text(encoding="utf-8")
+        # A language switcher on an English page points at the French one *on purpose*, which is
+        # exactly the shape wrong_language_links reports. The flag emoji is the signal that says
+        # "this link is meant to change language" — found the hard way, when a mass rewrite of 239
+        # links turned two switchers into self-references.
+        switcher_targets = {m for line in text.splitlines() if _LANGUAGE_FLAG in line for m in _LINK.findall(line)}
+        for target in _LINK.findall(text):
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
             path_part, _, anchor = target.partition("#")
@@ -169,6 +186,14 @@ def check_docs(doc_dir: Path, mkdocs_yml: Path, require_explicit_anchors: bool =
             if not resolved.exists():
                 report.broken_links.append(f"{rel} -> {target}")
                 continue
+            if (
+                is_en
+                and not path_part.endswith(".en.md")
+                and target not in switcher_targets
+                and _twin(resolved).exists()
+            ):
+                # An English reader would land on the French page, and an English one exists.
+                report.wrong_language_links.append(f"{rel} -> {target} (use {_twin(resolved).name})")
             if not anchor:
                 continue
             # Anchors are not rewritten by the i18n plugin: check the page the reader lands on.
@@ -402,6 +427,7 @@ _LABELS = {
     "broken_links": "Links whose target file does not exist",
     "dead_anchors": "Links pointing at an anchor the target does not expose",
     "implicit_anchors": "Cross-page links relying on a heading-derived anchor (declare {#anchor})",
+    "wrong_language_links": "English pages linking to the French version of a translated page",
     "missing_translations": "French pages with no English counterpart",
     "nav_orphans": "Pages absent from the mkdocs nav (unreachable by menu)",
     "nav_dangling": "Nav entries pointing at a file that does not exist",

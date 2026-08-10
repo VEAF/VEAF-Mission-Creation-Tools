@@ -65,5 +65,5 @@ The guardian is built with `VeafMG_Guardian:new()`. Each setter returns the guar
 
 ## See Also
 
-- [veafSanctuary](veafSanctuary.md) — unit entry protection
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafMissileGuardian` API
+- [veafSanctuary](veafSanctuary.en.md) — unit entry protection
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafMissileGuardian` API

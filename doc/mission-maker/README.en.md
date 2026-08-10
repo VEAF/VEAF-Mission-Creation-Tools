@@ -17,7 +17,7 @@ Integrate the VEAF Lua framework into your DCS World missions to give players dy
 
 This downloads `veaf-tools.exe` and the VEAF Lua scripts to your working directory.
 
-> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.md#global-user-configuration).
+> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.en.md#global-user-configuration).
 
 ### 2. Create a mission in DCS Editor
 
@@ -49,16 +49,16 @@ The build tool reads the mission folder, **automatically injects** the VEAF load
 
 | Module | Player experience |
 |--------|-------------------|
-| [veafSpawn](scripts/veafSpawn.md) | Spawn any unit via F10 markers |
-| [veafCasMission](scripts/veafCasMission.md) | Procedural CAS training with difficulty levels |
-| [veafCombatZone](scripts/veafCombatZone.md) | Predefined combat areas, activatable on demand |
-| [veafAssets](scripts/veafAssets.md) | Managed tankers, AWACS, carriers with auto-respawn |
-| [veafCarrierOperations](scripts/veafCarrierOperations.md) | Full carrier recovery workflow |
-| [veafQraManager](scripts/veafQraManager.md) | Automatic QRA scramble on intrusion |
-| [veafAirWaves](scripts/veafAirWaves.md) | Wave-based air combat missions |
-| [veafSecurity](scripts/veafSecurity.md) | Password protection for multiplayer servers |
+| [veafSpawn](scripts/veafSpawn.en.md) | Spawn any unit via F10 markers |
+| [veafCasMission](scripts/veafCasMission.en.md) | Procedural CAS training with difficulty levels |
+| [veafCombatZone](scripts/veafCombatZone.en.md) | Predefined combat areas, activatable on demand |
+| [veafAssets](scripts/veafAssets.en.md) | Managed tankers, AWACS, carriers with auto-respawn |
+| [veafCarrierOperations](scripts/veafCarrierOperations.en.md) | Full carrier recovery workflow |
+| [veafQraManager](scripts/veafQraManager.en.md) | Automatic QRA scramble on intrusion |
+| [veafAirWaves](scripts/veafAirWaves.en.md) | Wave-based air combat missions |
+| [veafSecurity](scripts/veafSecurity.en.md) | Password protection for multiplayer servers |
 
-See the [full scripts catalog](scripts/README.md) for all 17+ modules.
+See the [full scripts catalog](scripts/README.en.md) for all 17+ modules.
 
 ---
 
@@ -66,9 +66,9 @@ See the [full scripts catalog](scripts/README.md) for all 17+ modules.
 
 | Document | When to read |
 |----------|--------------|
-| [Full Guide](GUIDE.md) | Detailed setup, configuration, and build workflow |
-| [Migration Guide](MIGRATION_GUIDE.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
-| [Scripts Reference](scripts/README.md) | Per-module documentation with commands and config examples |
+| [Full Guide](GUIDE.en.md) | Detailed setup, configuration, and build workflow |
+| [Migration Guide](MIGRATION_GUIDE.en.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
+| [Scripts Reference](scripts/README.en.md) | Per-module documentation with commands and config examples |
 | [AI assistant — install](AI_ASSISTANT_INSTALL.en.md) | Install the Claude Code plugin to create/edit a mission in natural language |
 | [AI assistant — catalogue](AI_ASSISTANT_CATALOG.en.md) | What you can ask the AI assistant, in plain language |
 

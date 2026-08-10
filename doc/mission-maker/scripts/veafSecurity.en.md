@@ -102,4 +102,4 @@ veafSpawn.defaultSecurity = veafSecurity.LEVEL_L1
 
 ## See Also
 
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSecurity` API
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafSecurity` API

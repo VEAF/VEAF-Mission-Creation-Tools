@@ -14,8 +14,8 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by SECREV-2 ticket 05. The code carries the VMR-005 rationale at mission_builder_worker.py and test_dcs_bridge_trigger_shift.py covers it; only the triage entry had not been updated."
   },
   {
     "vid": "VMR-056",
@@ -40,8 +40,8 @@
     "line": "151",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by SECREV-2 ticket 05. dcs_weather_converter.py now calls metar.update() with the VMR-006 rationale beside it; only the triage entry had not been updated."
   },
   {
     "vid": "VMR-069",
@@ -112,8 +112,8 @@
     "commits": [
       "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Does not reproduce. The temp verification zip in veaf-tools-updater.py already sits in a try/finally with unlink(missing_ok=True); the leak was closed by the updater hardening of SECREV-2 ticket 04."
   },
   {
     "vid": "VMR-012",
@@ -236,8 +236,8 @@
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed and fixed. resolve_dcs_bridge_file wrote the auto-download to a NamedTemporaryFile(delete=False) that nothing ever removed, so every build using the download path left a stray .lua in the temp dir. The worker now remembers which file it created and inject_dcs_bridge_trigger deletes only that one — never a `lua_path` the mission maker supplied, which the same argument also carries. Two tests cover both sides."
   },
   {
     "vid": "VMR-035",
@@ -1700,8 +1700,8 @@
     "commits": [
       "1712b932 feat(convert-other): adopt Lekaa's release channel (zip input, profile refresh, WW2 profile)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Still applied, in BOTH languages: the profile paragraph said 'coming next' / '(à venir)' while veaf_libs/data/convert-profiles/ ships foothold.yaml and foothold-ww2.yaml. Both pages now name the two shipped profiles. Nearly missed on the English page because 'coming next' is split across two lines."
   },
   {
     "vid": "VMR-008",
@@ -1715,8 +1715,8 @@
     "commits": [
       "521d1967 docs(plugin): install guide for the AI mission-editing assistant (FEAT-MCP-PLUGIN-003)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Still applied, and far wider than the one page reported: 239 links across 38 .en.md pages sent an English reader to the French version of a page that has an English one. All rewritten. docs-check gained a wrong_language_links rule — it had been *compensating* for this silently (following the twin to check anchors) instead of reporting it, which is how 239 accumulated. Verified the rule fails on a reintroduced bad link."
   },
   {
     "vid": "VMR-014",

@@ -372,5 +372,5 @@ VeafQRA:new()
 
 ## See Also
 
-- [veafAirWaves](veafAirWaves.md) — wave-based AI attack system (vs QRA which is defensive)
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafQraManager` API
+- [veafAirWaves](veafAirWaves.en.md) — wave-based AI attack system (vs QRA which is defensive)
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafQraManager` API

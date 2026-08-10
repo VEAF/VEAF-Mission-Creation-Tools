@@ -2,7 +2,7 @@
 
 Quick-reference of all built-in marker aliases available in every VEAF MCT mission.
 
-Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.md) for the module documentation and how to create custom aliases.
+Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md) for the module documentation and how to create custom aliases.
 
 ---
 
@@ -228,5 +228,5 @@ power are each drawn at random from a range.
 
 ## See also
 
-- [veafShortcuts module](mission-maker/scripts/veafShortcuts.md) — module documentation, custom alias creation
-- [veafSpawn](mission-maker/scripts/veafSpawn.md) — the underlying spawn engine
+- [veafShortcuts module](mission-maker/scripts/veafShortcuts.en.md) — module documentation, custom alias creation
+- [veafSpawn](mission-maker/scripts/veafSpawn.en.md) — the underlying spawn engine

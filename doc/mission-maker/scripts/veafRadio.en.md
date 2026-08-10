@@ -202,7 +202,7 @@ The **parent** menu is untouched: hang a restricted submenu under a global one a
 still sees the parent, simply without that entry.
 
 > Used by combat zones, which offer their menu to the side playing them — see
-> [veafCombatZone](veafCombatZone.md#f10-menu-audience).
+> [veafCombatZone](veafCombatZone.en.md#f10-menu-audience).
 
 ---
 
@@ -348,5 +348,5 @@ veafRadio.addCommandToSubmenu(
 
 ## See Also
 
-- [veafSecurity](veafSecurity.md) — securing commands with `/secu login`
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafRadio` API
+- [veafSecurity](veafSecurity.en.md) — securing commands with `/secu login`
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafRadio` API

@@ -21,6 +21,7 @@ def _make_worker(
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the attributes
     needed by complete_src_folder_with_defaults()."""
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.mission_folder = mission_folder
     worker.scripts_path = None  # forces defaults_folder resolution via mission_folder/published/src
     worker.mission_yaml = mission_yaml
@@ -414,6 +415,7 @@ class TestCustomScriptsLoadTrigger(unittest.TestCase):
         global_trigger: bool = True,
     ) -> MissionBuilderWorker:
         worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+        worker._dcs_bridge_temp_file = None
         worker.custom_scripts = custom_scripts
         worker.custom_scripts_generate_load_trigger = global_trigger
         return worker

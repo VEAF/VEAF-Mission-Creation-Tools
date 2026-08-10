@@ -10,9 +10,9 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
 | Role | Start Here | What You'll Find |
 |------|------------|-----------------|
-| **Player / Pilot** | [Pilot Guide](pilot/README.md) | F10 menus, marker commands, available assets and combat zones |
-| **Mission Maker** | [Mission Maker Guide](mission-maker/README.md) | Install, configure modules, build and deploy missions |
-| **Developer** | [Developer Guide](developer/README.md) | Architecture, build pipeline, quality gates, contributing |
+| **Player / Pilot** | [Pilot Guide](pilot/README.en.md) | F10 menus, marker commands, available assets and combat zones |
+| **Mission Maker** | [Mission Maker Guide](mission-maker/README.en.md) | Install, configure modules, build and deploy missions |
+| **Developer** | [Developer Guide](developer/README.en.md) | Architecture, build pipeline, quality gates, contributing |
 
 ---
 
@@ -38,10 +38,10 @@ flowchart TD
 
 | Reference | Description |
 |-----------|-------------|
-| [Lua API Reference](LUA_API_REFERENCE.md) | Full API for the Lua runtime modules |
-| [Tools CLI Reference](TOOLS_REFERENCE.md) | `veaf-tools.exe` — all commands and options |
-| [Testing Guide](TESTING.md) | Lua unit test suite and CI/CD pipeline |
-| [Roadmap](ROADMAP.md) | Planned features and known limitations |
+| [Lua API Reference](LUA_API_REFERENCE.en.md) | Full API for the Lua runtime modules |
+| [Tools CLI Reference](TOOLS_REFERENCE.en.md) | `veaf-tools.exe` — all commands and options |
+| [Testing Guide](TESTING.en.md) | Lua unit test suite and CI/CD pipeline |
+| [Roadmap](ROADMAP.en.md) | Planned features and known limitations |
 
 ---
 
@@ -49,7 +49,7 @@ flowchart TD
 
 ### Players and Pilots
 
-You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.md) for all available commands.
+You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.en.md) for all available commands.
 
 ### Mission Makers
 
@@ -73,7 +73,7 @@ veaf-tools.exe mission extract my-mission.miz
 veaf-tools.exe mission build
 ```
 
-Full workflow: [Mission Maker Guide](mission-maker/README.md)
+Full workflow: [Mission Maker Guide](mission-maker/README.en.md)
 
 ### Developers
 
@@ -84,7 +84,7 @@ poetry run test-lua
 poetry run veaf-build publish --version 6.0.5
 ```
 
-Full reference: [Developer Guide](developer/README.md)
+Full reference: [Developer Guide](developer/README.en.md)
 
 ---
 

@@ -54,7 +54,7 @@ The command inside the tag is the same syntax used for F10 map markers — the `
 -arty, rounds 10
 ```
 
-All commands understood by the VEAF marker system work here. See the [VEAF command reference](../../LUA_API_REFERENCE.md) for the full list.
+All commands understood by the VEAF marker system work here. See the [VEAF command reference](../../LUA_API_REFERENCE.en.md) for the full list.
 
 ---
 
@@ -125,6 +125,6 @@ Increase this if your mission has many scripts loading in parallel and the inter
 
 ## See Also
 
-- [veafSpawn](veafSpawn.md) — manual spawn commands
-- [veafCombatZone](veafCombatZone.md) — activatable zones (the `#command` tag in unit names uses the same mechanism)
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafInterpreter` API
+- [veafSpawn](veafSpawn.en.md) — manual spawn commands
+- [veafCombatZone](veafCombatZone.en.md) — activatable zones (the `#command` tag in unit names uses the same mechanism)
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafInterpreter` API

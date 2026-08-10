@@ -402,6 +402,6 @@ STOP ──start()──► READY
 
 ## See Also
 
-- [veafQraManager](veafQraManager.md) — defensive scramble system
-- [veafCombatZone](veafCombatZone.md) — ground-based combat zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAirWaves` API
+- [veafQraManager](veafQraManager.en.md) — defensive scramble system
+- [veafCombatZone](veafCombatZone.en.md) — ground-based combat zones
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafAirWaves` API

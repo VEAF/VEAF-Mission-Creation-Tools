@@ -43,6 +43,9 @@ def worker(tmp_path: Path) -> MissionBuilderWorker:
     w = MissionBuilderWorker.__new__(MissionBuilderWorker)  # no __init__: no mission folder needed
     w.dcs_mission = _mission_with_one_trigger()
     w.dcs_bridge_bytes = None
+    # None: this bridge file is the fixture's own, not one the worker downloaded, so it must survive
+    # (SECREV-2 / VMR-049).
+    w._dcs_bridge_temp_file = None
     return w
 
 
@@ -115,6 +118,7 @@ class TestSeveralTriggersShiftWithoutColliding:
         w = MissionBuilderWorker.__new__(MissionBuilderWorker)
         w.dcs_mission = mission
         w.dcs_bridge_bytes = None
+        w._dcs_bridge_temp_file = None
         return w
 
     def test_every_trigger_points_at_its_own_new_index(

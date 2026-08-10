@@ -8,7 +8,7 @@ mission n'a jamais été construite avec les outils VEAF, on l'**adopte**.
 > Cette commande ne contient aucune connaissance propre à une mission donnée.
 > Le savoir spécifique à une famille de missions (ordre des scripts, triggers à
 > retirer, réglages à surcharger…) est porté par un *profil de conversion*
-> (à venir). Voir l'ADR 0007.
+> Deux profils sont livrés avec l'outil : `foothold` et `foothold-ww2`. Voir l'ADR 0007.
 
 ## Usage
 

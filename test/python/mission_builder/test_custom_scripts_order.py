@@ -17,6 +17,7 @@ from veaf_libs.config_override import OVERRIDE_SCRIPT_NAME
 
 def _worker(declared: list[str], target: str | None = None, values: dict | None = None) -> MissionBuilderWorker:
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.custom_scripts = [CustomScript(path=name) for name in declared]
     worker.config_override_target = target
     worker.config_override_values = values or {}

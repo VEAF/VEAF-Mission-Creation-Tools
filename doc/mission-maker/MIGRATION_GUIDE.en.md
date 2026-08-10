@@ -44,7 +44,7 @@ flowchart TD
 
 3. Have your v5 mission folder on hand
 
-> **Tip — Global User Configuration:** Before starting, create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults for all your VEAF projects on this machine — for example your language preference (`lang: fr`). See [Global User Configuration](GUIDE.md#global-user-configuration) for the full reference and CLI commands.
+> **Tip — Global User Configuration:** Before starting, create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults for all your VEAF projects on this machine — for example your language preference (`lang: fr`). See [Global User Configuration](GUIDE.en.md#global-user-configuration) for the full reference and CLI commands.
 
 ---
 
@@ -229,7 +229,7 @@ modules:
 
 For custom Lua (advanced module calls, custom aliases, etc.), edit `src/scripts/mission-script.lua`.
 
-See the [YAML reference](../MISSION_YAML_REFERENCE.md) and the individual script guides in [scripts/](scripts/README.md) for all options.
+See the [YAML reference](../MISSION_YAML_REFERENCE.en.md) and the individual script guides in [scripts/](scripts/README.en.md) for all options.
 
 #### 6. Keep your existing mission content
 
@@ -306,7 +306,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-Module enable/disable is configured in `mission.yaml` → `modules:` — not in this file. See the [YAML reference](../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
+Module enable/disable is configured in `mission.yaml` → `modules:` — not in this file. See the [YAML reference](../MISSION_YAML_REFERENCE.en.md) for the full `mission.yaml` syntax.
 
 ---
 
@@ -372,6 +372,6 @@ Run `veaf-tools-updater.exe` first — the `published/` folder is missing or out
 
 ## See Also
 
-- [Mission Maker Guide](README.md) — general mission making workflow
-- [Scripts Reference](scripts/README.md) — all available modules
-- [Tools Reference](../TOOLS_REFERENCE.md) — full `veaf-tools.exe` CLI reference
+- [Mission Maker Guide](README.en.md) — general mission making workflow
+- [Scripts Reference](scripts/README.en.md) — all available modules
+- [Tools Reference](../TOOLS_REFERENCE.en.md) — full `veaf-tools.exe` CLI reference

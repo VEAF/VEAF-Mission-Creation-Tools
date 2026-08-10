@@ -128,5 +128,5 @@ Zones are built with `VeafSanctuaryZone:new()` then registered via `veafSanctuar
 
 ## See Also
 
-- [veafMissileGuardian](veafMissileGuardian.md) — missile interception system
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSanctuary` API
+- [veafMissileGuardian](veafMissileGuardian.en.md) — missile interception system
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafSanctuary` API

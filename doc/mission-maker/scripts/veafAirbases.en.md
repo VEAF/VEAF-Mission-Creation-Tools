@@ -48,6 +48,6 @@ You can also get the nearest airbase to a unit with `veafAirbases.getNearestAirb
 
 ## See Also
 
-- [veafNamedPoints](veafNamedPoints.md) — uses airbase data for named points
-- [veafCarrierOperations](veafCarrierOperations.md) — carrier-specific ATC
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAirbases` API
+- [veafNamedPoints](veafNamedPoints.en.md) — uses airbase data for named points
+- [veafCarrierOperations](veafCarrierOperations.en.md) — carrier-specific ATC
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafAirbases` API

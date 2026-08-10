@@ -179,6 +179,29 @@ def is_strict(unit_type: str) -> bool:
     return bool(entry and entry.get("dcs_rejects_on_load", False))
 
 
+def is_kneeboard_only(unit_type: str) -> bool:
+    """Whether this airframe's declared bands describe a kneeboard, not hardware DCS can set.
+
+    Flaming Cliffs aircraft have **no settable radio**: measured across 40 real VEAF missions, 110
+    FC3 player slots carry no ``Radio`` table while 2105 non-FC3 slots do
+    (`FIX-RADIO-LAYOUT-GAPS` ticket 03). Their pilots dial frequencies into SRS by hand, so what the
+    tool owes them is a **plate listing those frequencies** — the only thing that has ever reached
+    them.
+
+    The bands are therefore declared in the specs, because that is where the packer looks when
+    building a preset at all; this flag is what stops the result being written into the mission.
+
+    Args:
+        unit_type: DCS unit type string.
+
+    Returns:
+        True when a preset may be rendered on a kneeboard but must not be injected.
+    """
+    specs = _load_specs()
+    entry = specs.get(_canonical_type(unit_type))
+    return bool(entry and entry.get("kneeboard_only", False))
+
+
 def validate_frequency(unit_type: str, freq_mhz: float) -> bool | None:
     """Check whether freq_mhz is valid for any radio on the given aircraft.
 

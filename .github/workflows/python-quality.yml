@@ -10,6 +10,10 @@ on:
       - "test/python/**"
       - "veaf_build/**"
       - "pyproject.toml"
+      # A bump that fits the existing constraint changes ONLY this file: without it here, the suite
+      # never runs for such a PR, which then reads green off the Lua and docs checks. A *major* is
+      # covered by pyproject.toml above, which is why the gap only ever showed on minors.
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
   pull_request:
     paths:
@@ -17,6 +21,7 @@ on:
       - "test/python/**"
       - "veaf_build/**"
       - "pyproject.toml"
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
 
 jobs:

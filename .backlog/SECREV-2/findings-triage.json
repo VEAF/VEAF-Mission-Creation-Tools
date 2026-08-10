@@ -1138,8 +1138,8 @@
       "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "A real defect, with the finding's remedy inverted. statisticsTypes was a plain list, so pairs() gave the loop the Lua index (1..8) and the code passed that to net.get_stat -- reading whatever ids 1..8 happen to be and filing them under the wrong names. But the finding proposes passing the list's *value* instead, a string, and the repo's own API schema settles it: net.get_stat's second parameter is 'one of the net.PS_* constants', a number. The table now maps each reported name to its constant NAME, resolved through net[...] at the call, which removes any assumption about the numeric values -- and skips a statistic with a warning if a DCS version ever drops one, rather than calling get_stat with nil."
   },
   {
     "vid": "VMR-072",
@@ -1194,8 +1194,8 @@
     "line": "54",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same shape as VMR-077 and VMR-078: `veafServerHook` appears exactly once in trainingSpawnZone.lua -- the call itself, copied from the server hook -- so reaching the depth limit raised 'attempt to index a nil value' instead of reporting it. The file has its own logger thirty lines up."
   },
   {
     "vid": "VMR-076",
@@ -1495,8 +1495,8 @@
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and flagrant: convertSpeeds(speed, mach, altitude) took `mach` and ignored it, using a hard 0.3. The four legs are called with 0.3, 0.5, 0.63 and 0.63, so every CAP spawned without an explicit speed flew its entire route at Mach 0.3 -- visible in game as sluggish patrols. `mach or 0.3` keeps the old value as a fallback for a caller that passes nothing."
   },
   {
     "vid": "VMR-098",

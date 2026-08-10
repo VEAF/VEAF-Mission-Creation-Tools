@@ -49,7 +49,11 @@ function trainingSpawnZone.p(o, level)
   end
 
   if level > MAX_LEVEL then
-    veafServerHook.logError("max depth reached in p : " .. tostring(MAX_LEVEL))
+    -- `veafServerHook` does not exist in this script -- it appears exactly once, right here, copied
+    -- from the server hook. So reaching the depth limit raised "attempt to index a nil value" instead
+    -- of reporting it (SECREV-2 / VMR-075, the same shape as VMR-077 and VMR-078). This file has its
+    -- own logger, thirty lines up.
+    trainingSpawnZone.logError("max depth reached in p : " .. tostring(MAX_LEVEL))
     return ""
   end
 

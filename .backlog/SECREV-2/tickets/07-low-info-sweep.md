@@ -586,7 +586,7 @@ logger has `warn`, not `warning`, so the skip path raised. Exactly VMR-077, VMR-
 VMR-075: the error path being the error. It was caught by the test rather than by a pilot, which is
 the only difference between this and the findings it repeats.
 
-### Two things measuring found that nobody had reported
+### Two things the measurements turned up that nobody had reported
 
 - **An existing test asserted a wrong behaviour.** `test_returns_string` pinned
   `convertLaserToFreq(1500)` as returning a frequency. `1500` carries two `0` digits and is not a

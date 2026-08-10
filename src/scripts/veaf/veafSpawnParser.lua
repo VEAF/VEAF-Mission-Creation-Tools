@@ -258,14 +258,14 @@ end
 function veafSpawn.convertLaserToFreq(laser)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
   local laser = tonumber(laser)
-  if laser and laser >= 1111 and laser <= 1688 and laser % 1 == 0 then
+  if laser and laser >= 1111 and laser <= 1688 and math.floor(laser) == laser then
     local laserB = math.floor((laser - 1000) / 100)
     local laserCD = laser - 1000 - laserB * 100
     -- Only C and D are checked: the 1111..1688 range already pins B to 1..6.
     local laserC = math.floor(laserCD / 10)
     local laserD = laserCD % 10
     if laserC < 1 or laserC > 8 or laserD < 1 or laserD > 8 then
-      veaf.loggers.get(veafSpawn.Id):info(string.format("laser code %s is not dialable: digits must each be 1..8", tostring(laser)))
+      veaf.loggers.get(veafSpawn.Id):warn(string.format("laser code %s is not dialable: digits must each be 1..8", tostring(laser)))
       return nil
     end
     local frequency = tostring(30 + laserB + laserCD * 0.05)

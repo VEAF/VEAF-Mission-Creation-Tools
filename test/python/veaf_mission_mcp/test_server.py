@@ -51,6 +51,9 @@ def test_run_action_dispatches_describe_mission_end_to_end(sample_miz: Path) -> 
 
 
 def test_the_server_registers_the_four_discovery_tools() -> None:
+    # Exact equality on purpose, not a subset: the module docstring commits to a **fixed** discovery
+    # surface rather than one MCP tool per mission-editing action, so a fifth tool appearing is a
+    # design change this test exists to surface. Relaxing this to a subset would let it through.
     names = {tool.name for tool in asyncio.run(server.mcp.list_tools())}
 
     assert names == {"capabilities", "list_catalog", "describe_action", "run_action"}

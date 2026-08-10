@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from typing import Literal
 
 from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
@@ -729,7 +730,7 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     return lines
 
 
-def _coordinate(value: object, axis: str, point_name: str) -> float:
+def _coordinate(value: object, axis: Literal["lat", "lon"], point_name: str) -> float:
     """Return *value* as a number, refusing anything a Lua coordinate call cannot use.
 
     A named point's latitude and longitude come from a hand-written ``mission.yaml`` and used to be

@@ -678,18 +678,21 @@ function veafSpawn._findClosestConvoy(unitName)
   if unit then
     for name, _ in pairs(veafSpawn.spawnedConvoys) do
       local averageGroupPosition = veaf.getAveragePosition(name)
+      -- VMR-101: skip the convoy, do not abandon the search. A destroyed convoy still listed in
+      -- spawnedConvoys has no average position, and returning here hid every live convoy from
+      -- "mark/stop/move closest convoy". The name logged was the player's, not the convoy's.
       if not averageGroupPosition then
-        veaf.loggers.get(veafSpawn.Id):error("cannot get average position of %s", veaf.p(unitName))
-        return nil
-      end
-      local distanceFromPlayer = (
-        (averageGroupPosition.x - unit:getPosition().p.x) ^ 2 + (averageGroupPosition.z - unit:getPosition().p.z) ^ 2
-      ) ^ 0.5
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d", distanceFromPlayer))
-      if distanceFromPlayer < minDistance then
-        minDistance = distanceFromPlayer
-        closestConvoyName = name
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("convoy %s is closest", closestConvoyName))
+        veaf.loggers.get(veafSpawn.Id):warn("cannot get average position of convoy %s, skipping it", veaf.p(name))
+      else
+        local distanceFromPlayer = (
+          (averageGroupPosition.x - unit:getPosition().p.x) ^ 2 + (averageGroupPosition.z - unit:getPosition().p.z) ^ 2
+        ) ^ 0.5
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d", distanceFromPlayer))
+        if distanceFromPlayer < minDistance then
+          minDistance = distanceFromPlayer
+          closestConvoyName = name
+          veaf.loggers.get(veafSpawn.Id):trace(string.format("convoy %s is closest", closestConvoyName))
+        end
       end
     end
   end

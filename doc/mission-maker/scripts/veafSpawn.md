@@ -92,7 +92,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 ### Faire apparaître un AFAC/JTAC
 
 ```
-_spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
+_spawn afac, name A-10C, freq 133.0, mod AM, laser 1688, alt 15000
 ```
 
 **Options :**
@@ -100,7 +100,7 @@ _spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
 - `name` — type d'avion
 - `freq` — fréquence radio
 - `mod` — modulation (`AM` ou `FM`)
-- `code` — code laser
+- `laser` — code laser, entre `1111` et `1688`. Les trois derniers chiffres valent chacun de 1 à 8 (pas de `0`, pas de `9`) : `1688` convient, `1690` non. Un code impossible est ignoré et le code par défaut (`1688`) reste en vigueur.
 - `alt` — altitude d'orbite (pieds)
 - `speed` — vitesse d'orbite (nœuds)
 - `immortal` — unité invulnérable

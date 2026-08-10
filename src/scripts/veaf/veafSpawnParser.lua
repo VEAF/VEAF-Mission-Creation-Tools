@@ -134,11 +134,17 @@ veafSpawn.ParameterRules = {
   { keys = { "password" }, apply = _str("password") },
   { keys = { "power" }, apply = _num("power") },
   {
+    -- VMR-102: an undialable code keeps the command's default (1688 for afac/jtac), the same
+    -- way `_num` keeps a default it cannot parse. Installing the code but not the frequency
+    -- would have left the JTAC lasing on something no aircraft can enter, and silently.
     keys = { "laser" },
     apply = function(options, val)
       local nVal = veaf.getRandomizableNumeric(val)
-      options.freq = veafSpawn.convertLaserToFreq(nVal)
-      options.laserCode = nVal
+      local frequency = veafSpawn.convertLaserToFreq(nVal)
+      if frequency then
+        options.freq = frequency
+        options.laserCode = nVal
+      end
     end,
   },
   { keys = { "freq" }, apply = _str("freq") },
@@ -243,12 +249,25 @@ for _, _rule in ipairs(veafSpawn.ParameterRules) do
   end
 end
 
+--- Convert a DCS laser code to the JTAC radio frequency that carries it.
+---
+--- Returns nil for anything that is not a dialable code. VMR-102: the range check alone
+--- (1111..1688) accepted codes such as 1201, 1210 or 1119, because DCS laser codes are
+--- octal-like — each of the three digits after the leading 1 must be 1..8. Those produced a
+--- plausible frequency, so a JTAC advertised a code no aircraft can enter.
 function veafSpawn.convertLaserToFreq(laser)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
   local laser = tonumber(laser)
-  if laser and laser >= 1111 and laser <= 1688 then
+  if laser and laser >= 1111 and laser <= 1688 and math.floor(laser) == laser then
     local laserB = math.floor((laser - 1000) / 100)
     local laserCD = laser - 1000 - laserB * 100
+    -- Only C and D are checked: the 1111..1688 range already pins B to 1..6.
+    local laserC = math.floor(laserCD / 10)
+    local laserD = laserCD % 10
+    if laserC < 1 or laserC > 8 or laserD < 1 or laserD > 8 then
+      veaf.loggers.get(veafSpawn.Id):warn(string.format("laser code %s is not dialable: digits must each be 1..8", tostring(laser)))
+      return nil
+    end
     local frequency = tostring(30 + laserB + laserCD * 0.05)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("laserB=%s", tostring(laserB)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("laserCD=%s", tostring(laserCD)))

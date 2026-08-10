@@ -329,4 +329,79 @@ function TestSpawnParserNumericRobustness:test_a_valid_multiplier_still_applies(
   luaunit.assertEquals(options.multiplier, 3)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-102 — a laser code no aircraft can dial must be refused
+--
+-- DCS laser codes are octal-like: the three digits after the leading 1 are each 1..8. The
+-- range check (1111..1688) let 1109, 1119, 1190 and friends through, and they came out as a
+-- plausible-looking frequency — so the JTAC lased on a code nobody could enter, and the pilot
+-- had no way to tell that from a JTAC that was simply not lasing.
+--
+-- Handled like every other unusable marker value (VMR-025): keep the default, do not abort.
+-------------------------------------------------------------------------------------------------
+
+TestSpawnParserLaserCodes = {}
+
+function TestSpawnParserLaserCodes:test_valid_code_converts()
+  luaunit.assertEquals(veafSpawn.convertLaserToFreq(1688), "40.4")
+  luaunit.assertEquals(veafSpawn.convertLaserToFreq(1111), "31.55")
+end
+
+function TestSpawnParserLaserCodes:test_units_digit_nine_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1119))
+end
+
+function TestSpawnParserLaserCodes:test_units_digit_zero_is_refused()
+  -- 1210, not 1110: the latter is already below the 1111 floor, so it would pass without
+  -- the digit rule and prove nothing.
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1210))
+end
+
+function TestSpawnParserLaserCodes:test_tens_digit_zero_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1201))
+end
+
+function TestSpawnParserLaserCodes:test_tens_digit_nine_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1191))
+end
+
+function TestSpawnParserLaserCodes:test_a_non_integer_code_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1111.5))
+end
+
+function TestSpawnParserLaserCodes:test_out_of_range_is_still_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1110 - 1000))
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1788))
+  luaunit.assertNil(veafSpawn.convertLaserToFreq("banana"))
+end
+
+function TestSpawnParserLaserCodes:test_every_valid_code_in_range_converts()
+  -- The control: the digit rule must not reject codes that are genuinely dialable.
+  local rejected = {}
+  for b = 1, 6 do
+    for c = 1, 8 do
+      for d = 1, 8 do
+        local code = 1000 + b * 100 + c * 10 + d
+        if code <= 1688 and veafSpawn.convertLaserToFreq(code) == nil then
+          table.insert(rejected, code)
+        end
+      end
+    end
+  end
+  luaunit.assertEquals(#rejected, 0, "refused dialable codes: " .. table.concat(rejected, ", "))
+end
+
+function TestSpawnParserLaserCodes:test_marker_keeps_the_default_code_when_the_value_is_invalid()
+  -- `_spawn afac` defaults to 1688; asking for an impossible code must not install it.
+  local r = analyse("_spawn afac, laser 1119")
+  luaunit.assertEquals(r.laserCode, 1688)
+  luaunit.assertEquals(r.freq, veafSpawn.convertLaserToFreq(1688))
+end
+
+function TestSpawnParserLaserCodes:test_marker_still_accepts_a_valid_code()
+  local r = analyse("_spawn afac, laser 1311")
+  luaunit.assertEquals(r.laserCode, 1311)
+  luaunit.assertEquals(r.freq, veafSpawn.convertLaserToFreq(1311))
+end
+
 os.exit(luaunit.LuaUnit.run())

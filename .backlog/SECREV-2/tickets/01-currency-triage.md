@@ -51,5 +51,8 @@ you can see the shape of.
 
 ## Remaining
 
-- [ ] Verify the 24 MEDIUM the same way (ticket 06 does this as it goes).
-- [ ] Sample the LOW/INFO rather than verifying all 108 individually (ticket 07).
+- [x] Verify the 24 MEDIUM the same way — done by ticket 06 as it went, and all 24 carry an outcome.
+- [ ] Sample the LOW/INFO rather than verifying all 108 individually (ticket 07, in progress: 91 of
+      140 findings decided across the whole review, 49 left).
+
+Nothing else in this ticket is actionable: it closes when ticket 07 does.

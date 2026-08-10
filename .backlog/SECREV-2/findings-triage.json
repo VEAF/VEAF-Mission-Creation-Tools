@@ -1506,12 +1506,12 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSpawnAircraft.lua",
     "line": "464",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part, and the finding's own remedy would have been a regression. The callsign loop fell back to `callsigns[coalition][numberSpawned]` when nothing was free, handing out the callsign of an AFAC that is still flying; spawnAFAC now refuses the spawn instead. The reported off-by-one does NOT apply: `numberSpawned` is pre-incremented (set to 1 before the first spawn), so `> maximumAmount` already refuses the 9th AFAC — `>=` would have capped missions at 7. Both limits are now pinned by tests."
   },
   {
     "vid": "VMR-099",
@@ -1521,12 +1521,12 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSpawnAircraft.lua",
     "line": "1443",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and wider than reported: the `cap` handler passes the same raw `options.showMFD` as `afac`, against `not options.showMFD` in every other handler. Default showMFD=false therefore left AFACs and CAPs visible on every MFD and `-showmfd` hid them. Both negated; 4 tests drive the handlers through the registry."
   },
   {
     "vid": "VMR-100",
@@ -1536,12 +1536,12 @@
     "verdict": "PLAUSIBLE",
     "path": "src/scripts/veaf/veafSpawnEffects.lua",
     "line": "89",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `veafUnits.findDcsUnit` returns the live `dcsUnits.DcsUnitsDatabase` entry, so the min/max swap edited the shared units database for the rest of the mission (dcsDataExport reads those same fields). Bounds are now reordered into locals. 2 tests, including a control that the mass is still computed from the reordered bounds."
   },
   {
     "vid": "VMR-101",
@@ -1551,13 +1551,13 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSpawnGround.lua",
     "line": "677",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `_findClosestConvoy` returned nil as soon as one convoy had no average position, so a despawned convoy still listed in `spawnedConvoys` hid every live one from mark/stop/move closest convoy. Now skipped with a warning. The error message also named the *player*, not the convoy — corrected in the same block. 3 tests."
   },
   {
     "vid": "VMR-102",
@@ -1567,10 +1567,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafSpawnParser.lua",
     "line": "234",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. DCS laser codes are octal-like and the 1111..1688 range check let 1201, 1210, 1119 through, producing a plausible frequency for a code no aircraft can dial. Digits C and D are now validated (B is pinned to 1..6 by the range, so no guard there), and an undialable code keeps the command default instead of installing itself, as `_num` does for unusable numerics. Found on the way: an existing test asserted 1500 produced a frequency, and both GUIDE pages documented the keyword as `code` (which is the TACAN channel) instead of `laser`. 11 tests."
   },
   {
     "vid": "VMR-103",
@@ -1580,10 +1580,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafWeather.lua",
     "line": "1131",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Disproved by enumeration, not by reading. Under a monotonic clock the shipped per-component `or` chain is exactly equivalent to a lexicographic (year, month, day, hour) comparison: 26 304 hour blocks over three years, 345 963 360 ordered pairs, **zero divergence**. The control — the same comparison with the clock allowed to run backwards — does diverge, so the probe is not hollow. `timer.getAbsTime()` never runs backwards, so there is nothing to fix."
   },
   {
     "vid": "VMR-109",

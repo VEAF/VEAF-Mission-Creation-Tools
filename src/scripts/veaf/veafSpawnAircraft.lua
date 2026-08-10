@@ -473,14 +473,25 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
   veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned[coalition])))
 
-  local AFAC_num = veafSpawn.AFAC.numberSpawned[coalition]
-  local newGroupName = veafSpawn.AFAC.callsigns[coalition][AFAC_num].name
+  -- VMR-098: take the first free callsign, and refuse the spawn when there is none. The old
+  -- fallback was `callsigns[coalition][numberSpawned]`, so a counter out of step with the taken
+  -- flags handed out the callsign of an AFAC that is still flying: two aircraft answering to one
+  -- name, and the first watchdog to fire releases a slot the other one is still using.
+  local newGroupName = nil
+  local AFAC_num = nil
   for i = 1, veafSpawn.AFAC.maximumAmount do
     if veafSpawn.AFAC.callsigns[coalition][i].taken == false then
       newGroupName = veafSpawn.AFAC.callsigns[coalition][i].name
       AFAC_num = i
       break
     end
+  end
+  if not newGroupName then
+    veaf.loggers.get(veafSpawn.Id):info("every AFAC callsign is taken, one needs to be destroyed")
+    if not silent then
+      trigger.action.outTextForCoalition(coalition, veaf.t("spawn.afac_limit"), 15)
+    end
+    return false
   end
   veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s", newGroupName)
   veaf.loggers.get(veafSpawn.Id):trace("AFAC_num=%s", AFAC_num)
@@ -1446,7 +1457,10 @@ veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coali
     options.laserCode,
     options.immortal,
     false,
-    options.showMFD
+    -- VMR-099: `hiddenOnMFD`, so the flag is negated here as in every other handler. Passing
+    -- `options.showMFD` straight through left the AFAC visible on every MFD by default and
+    -- hid it when the mission maker asked for it.
+    not options.showMFD
   )
   return g, nil, false
 end)
@@ -1465,7 +1479,7 @@ veafSpawn.registerCommandHandler("cap", "L9", function(eventPos, options, coalit
     options.capradius,
     options.skill,
     bypassSecurity,
-    options.showMFD
+    not options.showMFD -- VMR-099: same inversion as the afac handler above
   )
   return g, nil, false
 end)

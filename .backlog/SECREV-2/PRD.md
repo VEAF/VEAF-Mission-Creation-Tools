@@ -1,6 +1,6 @@
 # SECREV-2 — act on the 2026-07-01 security review, finding by finding
 
-Status: 🔄 in-progress — tickets 02 and 03 delivered 2026-08-06
+Status: 🔄 in-progress — tickets 02, 03, 05 and 06 delivered; 01, 04 and 07 open (91 of 140 findings decided)
 
 Source: [`CODE_DOC_REVIEW_2026-07-01.md`](../../CODE_DOC_REVIEW_2026-07-01.md) — 2 606 lines, 140
 findings, produced by 20 reviewers with an adversarial verifier that re-read each security/bug

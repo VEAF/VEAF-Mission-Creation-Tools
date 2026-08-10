@@ -308,7 +308,9 @@ Le mot de passe est défini par le créateur de la mission ou l'administrateur d
 ### Hélicoptères (AH-64D, Ka-50, Mi-24…)
 
 - Gardez une difficulté de 0 à 2 (DCA minimale).
-- Utilisez `_spawn unit, name BTR-80, group 5` pour des cibles APC dispersées.
+- Utilisez `_spawn armorgroup, size 5, spacing 8` pour des cibles blindées dispersées — `size` est le
+  nombre de véhicules, et `spacing` élargit l'écart entre eux en multiple de l'emprise de chaque
+  véhicule (plus le nombre est grand, plus le groupe est étalé).
 - Profitez du relief pour approcher sous la couverture radar de la DCA.
 
 ### Transports (C-130, Mi-8, UH-1H…)

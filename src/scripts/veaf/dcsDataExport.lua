@@ -245,7 +245,9 @@ function DcsDataExport._p(objKey, objValue, maxLevel, level, skip, serializeInLu
     level = 0
   end
   if level > MAX_LEVEL then
-    logError("max depth reached in p : " .. tostring(MAX_LEVEL))
+    -- logError is not defined anywhere: hitting the depth limit raised "attempt to call a nil value"
+    -- instead of reporting it (SECREV-2 / VMR-077). The module has its own logger, five lines up.
+    DcsDataExport.loggers.get(DcsDataExport.Id):error("max depth reached in p : " .. tostring(MAX_LEVEL))
     return ""
   end
 
@@ -521,10 +523,14 @@ local function browseUnits(out, database, defaultCategory, fullDcsUnit, exportAl
 end
 
 -- export all units as a lua file
-local file = io.open(export_path .. "db.Units.lua", "w")
-writeln(file, 'db={\n    ["Units"] = {' .. DcsDataExport.p(db.Units, nil, nil, true) .. "}\n}")
+-- The `if file then` below used to come *after* the write, so an unwritable export path crashed in
+-- writeln on a nil handle instead of saying which file could not be opened (SECREV-2 / VMR-076).
+local file, fileError = io.open(export_path .. "db.Units.lua", "w")
 if file then
+  writeln(file, 'db={\n    ["Units"] = {' .. DcsDataExport.p(db.Units, nil, nil, true) .. "}\n}")
   file:close()
+else
+  DcsDataExport.loggers.get(DcsDataExport.Id):error("cannot write db.Units.lua : " .. tostring(fileError))
 end
 
 local units = {}
@@ -552,8 +558,11 @@ else
   end
   table.sort(values, _sortUnits)
 end
-file = io.open(export_path .. "dcsUnits.lua", "w")
-writeln(file, DcsDataExport.serialize("units", values))
+-- The second one, which the finding did not mention (SECREV-2 / VMR-076).
+file, fileError = io.open(export_path .. "dcsUnits.lua", "w")
 if file then
+  writeln(file, DcsDataExport.serialize("units", values))
   file:close()
+else
+  DcsDataExport.loggers.get(DcsDataExport.Id):error("cannot write dcsUnits.lua : " .. tostring(fileError))
 end

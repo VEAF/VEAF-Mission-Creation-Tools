@@ -191,28 +191,28 @@ function veafMove.markTextAnalysis(text)
 
     if key:lower() == "speed" or key:lower() == "spd" then
       -- Set speed.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword speed = %d", val))
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword speed = %s", tostring(val)))
       local nVal = tonumber(val)
       switch.speed = nVal
     end
 
     if key:lower() == "heading" or key:lower() == "hdg" then
       -- Set heading.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword hdg = %d", val))
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword hdg = %s", tostring(val)))
       local nVal = tonumber(val)
       switch.hdg = nVal
     end
 
     if key:lower() == "distance" or key:lower() == "dist" then
       -- Set distance.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword distance = %d", val))
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword distance = %s", tostring(val)))
       local nVal = tonumber(val)
       switch.distance = nVal
     end
 
     if key:lower() == "alt" or key:lower() == "altitude" then
       -- Set altitude.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword alt = %d", val))
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword alt = %s", tostring(val)))
       local nVal = tonumber(val)
       switch.altitude = nVal
     end

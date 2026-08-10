@@ -957,3 +957,36 @@ def test_qra_mixed_active_at_start_only_skips_the_flagged_one():
     assert lua.count(":start()") == 1
     # The single :start() belongs to the armed QRA's chain, before the dormant one begins.
     assert lua.index('setName("QRA-Armed")') < lua.index(":start()") < lua.index('setName("QRA-Dormant")')
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-058 — respawn_default_offset was indexed as value[0] / value[1] with no check.
+# These offsets come from a hand-written mission.yaml, so a typo produced an IndexError or a
+# TypeError naming nothing, and a *string* was worse than that: "12"[0] is "1", so it emitted
+# silently wrong Lua instead of failing.
+# --------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        5,  # a scalar where a pair was meant
+        [1],  # one element
+        [1, 2, 3],  # three
+        "12",  # a string, which used to index character-wise
+        {"x": 1, "y": 2},  # a mapping
+        [True, 2],  # bool is an int in Python, but not a coordinate
+        [None, 2],
+    ],
+)
+def test_a_malformed_respawn_offset_is_refused_with_the_setting_name(bad: object) -> None:
+    with pytest.raises(ValueError) as caught:
+        _emit_airwave_zone({"name": "Z", "respawn_default_offset": bad})
+
+    assert "respawn_default_offset" in str(caught.value), str(caught.value)
+
+
+def test_a_well_formed_respawn_offset_still_emits_the_call() -> None:
+    lua = "\n".join(_emit_airwave_zone({"name": "Z", "respawn_default_offset": [10, -20]}))
+
+    assert ":setRespawnDefaultOffset(10, -20)" in lua

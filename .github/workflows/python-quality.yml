@@ -10,6 +10,13 @@ on:
       - "test/python/**"
       - "veaf_build/**"
       - "pyproject.toml"
+      # A dependency bump that fits the existing constraint changes ONLY this file, so without it
+      # here the Python suite never ran for such a PR. Dependabot #687 and #688 raised seven
+      # packages between them and were reported green having executed not one Python test — every
+      # other check (Lua, docs, gitleaks) had run and passed, and none of them can notice a broken
+      # Python dependency. #689 caught the mcp 2.0 breakage only because a *major* forced the
+      # constraint in pyproject.toml to move too.
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
   pull_request:
     paths:
@@ -17,6 +24,7 @@ on:
       - "test/python/**"
       - "veaf_build/**"
       - "pyproject.toml"
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
 
 jobs:

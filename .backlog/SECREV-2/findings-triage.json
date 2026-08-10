@@ -1069,8 +1069,8 @@
     "line": "228",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Inherited from VMR-040 and now materially reduced by it: the remote Lua execution is gated on the ADMIN tier, and a mission that declares its own hashes no longer accepts the public password at any tier. What remains -- that an authenticated admin can run arbitrary Lua -- is the feature, not a defect: it is how a server operator drives their own server. Any further hardening belongs to REVIEW-SECURITY-LAYER with the authorization layer's own tests, not to a LOW sweep."
   },
   {
     "vid": "VMR-130",
@@ -1095,8 +1095,8 @@
     "line": "51",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "David's call, taken on 2026-08-10, and it dissolved the dilemma I had framed. The choice was not between breaking every server and merely documenting: `password_MM` has always been REPLACED by the generator (`veafSecurity.password_MM = {}` before the adds) while `password_L1` was only extended -- three lines apart. So a mission declaring its own hashes widened the accepted set instead of closing it, and the public hash kept opening it. Declaring password_hashes now clears L0/L1/L9 first. L0 too, deliberately: checkPassword_L1 accepts L1 OR L0, so leaving the shipped L0 hash would have made the change decorative. Consequence to know: on a mission that declares its own hashes, nothing grants ADMIN by password any more -- ADMIN comes from the pilot's level in veaf-pilots.txt. Missions that declare nothing keep the shipped defaults, so no silent change. 4 tests. The unsalted SHA-1 itself is untouched: a known password is known whatever the digest, and the fix that matters is being able to turn it off."
   },
   {
     "vid": "VMR-041",
@@ -1858,8 +1858,8 @@
     "line": "43",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "The doc half, and worse than reported: mission.yaml, the generator's template, the MCP action's docstring and both GUIDE pages all said **SHA-256** while `veafSecurity._checkPassword` hashes with `sha1.hex(password)`. A mission maker following the documentation produced a hash that can never match -- believing access was restricted while only the public default still worked. All five corrected. Note: MISSION_YAML_REFERENCE already carried a 'SHA-1, not SHA-256' warning, so the repo had caught this in one place and left it wrong in five others."
   },
   {
     "vid": "VMR-124",

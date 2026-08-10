@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Error/bug tier under way: Python done bar 9, Lua started (79/140 decided)
+Status: 🔄 in-progress — **Security-flaw tier fully closed**; Error/bug tier under way (82/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -425,3 +425,54 @@ shipping a harness bodged together at the end of a sweep.
 **79 of 140 decided. 61 left**: 31 Error/bug (**9 Python, 22 Lua**), 9 Documentation, 3 Security flaw
 (awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
 anyway.
+
+## The shared-password family, decided by David — 2026-08-10
+
+**VMR-039 / VMR-040 / VMR-033, the three findings this ticket deliberately left open.** David's answer
+came with the release plan (release last, FC3 frequencies tested then, central config repo already
+done), and checking the code before asking him **dissolved the dilemma I had put to him**.
+
+I had framed it as a choice between breaking every existing server (change the hashing) and merely
+documenting the weakness (which also tells attackers where to look). Both premises were wrong:
+
+- `password_MM` has **always** been replaced by the generator — `veafSecurity.password_MM = {}` before
+  the adds — while `password_L1` was only *extended*. Three lines apart, same function. So declaring
+  your own passwords **widened** the accepted set instead of closing it, and the hash published in the
+  repository kept opening the mission.
+- The fix is therefore neither destructive nor cosmetic: clear before adding, exactly as Mission
+  Master already did.
+
+`L0` is cleared too, and that is the part worth remembering: `checkPassword_L1` accepts **L1 or L0**,
+so leaving the shipped L0 hash in place would have made the whole change decorative. Consequence: on a
+mission that declares its own hashes, nothing grants ADMIN *by password* any more — ADMIN comes from
+the pilot's level in `veaf-pilots.txt`, which is how a server identifies its administrators anyway.
+Missions that declare nothing keep the shipped defaults, so nothing changes under anyone's feet.
+
+The unsalted SHA-1 is untouched, on purpose: **a known password is known whatever the digest**. Being
+able to turn it off is the fix that matters.
+
+### The documentation said SHA-256 while the code hashes SHA-1
+
+Found while checking whether a mission can define its own passwords at all. `mission.yaml`, the
+generator's template, the MCP action's docstring and **both** GUIDE pages said SHA-256;
+`veafSecurity._checkPassword` calls `sha1.hex(password)`. A mission maker following the documentation
+produced a hash that can never match — believing access was restricted while only the public default
+still worked.
+
+All five corrected. And a nuance I owe: `MISSION_YAML_REFERENCE` **already** carried a "SHA-1, not
+SHA-256" warning saying the page had been fixed. The repo had caught this in one place and left it
+wrong in five others, so this was a half-finished correction, not a discovery.
+
+### SHA-256 support: proposed, then withdrawn on cost
+
+I recommended also accepting SHA-256 so new missions could use it. Then I looked: **there is no SHA-256
+implementation anywhere in the Lua tree**, and Lua 5.1 has no bitwise operators — it would mean
+carrying ~200 lines of hand-written crypto in pure arithmetic. That is not the modest addition I sold
+it as. Split out rather than improvised at the end of a session; the doc fix already removes the trap
+that made it urgent.
+
+### Where it stands
+
+**82 of 140 decided. 58 left, and none is a Security flaw** — the tier is closed. What remains: 31
+Error/bug (9 Python, 22 Lua), 9 Documentation, 18 readability/optimization/refactoring to touch only
+where a file is being changed anyway.

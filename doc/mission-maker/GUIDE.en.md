@@ -310,7 +310,7 @@ Set passwords (SHA-256 hashes) in `mission.yaml`:
 security:
   disabled: false
   password_hashes:
-    - "<SHA-256 hash of your password>"
+    - "<SHA-1 hash of your password>"
 ```
 
 ---

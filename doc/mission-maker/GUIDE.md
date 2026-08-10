@@ -309,7 +309,7 @@ Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
 security:
   disabled: false
   password_hashes:
-    - "<hachage SHA-256 de votre mot de passe>"
+    - "<hachage SHA-1 de votre mot de passe>"
 ```
 
 ---

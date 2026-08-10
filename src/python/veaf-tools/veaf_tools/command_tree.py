@@ -11,15 +11,23 @@ the obvious home, except the four machine-only commands are deliberately absent 
 the wizard cannot drive them — while the CLI needs a group for all 25. Neither list is a superset of
 the other, so neither can own the answer.
 
-Groups are ordered, and so are the commands inside them: the CLI's `--help` and the wizard's menu
-both read in this order, so a reader sees the same shape whichever door they came through.
+Groups are ordered, and so are the commands inside them — `prepare` before `validate` before `build`
+is the order a mission maker does them in. The **wizard** honours that order; the CLI's `--help` does
+not, because Click sorts a group's commands alphabetically and overriding it would mean a custom
+Group class for a cosmetic gain. That is an acceptable difference: a five-entry `--help` panel is a
+reference you scan, where alphabetical is arguably better, while the wizard is a menu read top to
+bottom.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from veaf_libs.i18n import t
+
+if TYPE_CHECKING:
+    import typer
 
 
 @dataclass(frozen=True)
@@ -94,6 +102,54 @@ def group_of(command: str) -> str | None:
     if command in ROOT_COMMANDS:
         return None
     raise KeyError(f"{command}: not placed in the command tree (see veaf_tools/command_tree.py)")
+
+
+def build_cli_tree(app: typer.Typer) -> None:
+    """Reshape a flat Typer app into the tree, keeping every flat name working.
+
+    Each group becomes a sub-command holding its commands; each command **also** stays registered
+    at the root, hidden. So ``veaf-tools mission build`` and ``veaf-tools build`` both run, while
+    ``--help`` lists only the tree — the flat names keep every existing script, forum post and doc
+    page working and can be dropped at a v7.
+
+    Driven by the tree rather than written out 25 times, because a hand-written pairing is how one
+    gets forgotten.
+
+    Args:
+        app: The root app, with every command already registered flat. Modified in place.
+
+    Raises:
+        KeyError: A registered command is absent from the tree — it would vanish from ``--help``.
+    """
+    import copy
+
+    import typer
+
+    groups = {group.id: typer.Typer(no_args_is_help=True, help=group.description) for group in COMMAND_GROUPS}
+
+    for info in app.registered_commands:
+        name = (info.name or (info.callback.__name__ if info.callback else "")).replace("_", "-")
+        group_id = group_of(name)
+        if group_id is None:
+            continue  # a root command: already where it belongs, and visible
+        grouped = copy.copy(info)
+        grouped.name = name
+        groups[group_id].registered_commands.append(grouped)
+        # The flat name survives as an alias, absent from every help screen.
+        info.hidden = True
+
+    for group in COMMAND_GROUPS:
+        # Two panels rather than one list: Typer renders root commands before sub-apps, so without
+        # this the four tool commands would sit above the five groups a reader is actually looking for.
+        app.add_typer(
+            groups[group.id],
+            name=group.id,
+            help=group.description,
+            rich_help_panel=t("tree.panel.groups"),
+        )
+    for info in app.registered_commands:
+        if not info.hidden:
+            info.rich_help_panel = t("tree.panel.root")
 
 
 def all_placed_commands() -> tuple[str, ...]:

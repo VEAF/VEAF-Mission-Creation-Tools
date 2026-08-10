@@ -1,6 +1,6 @@
 # Référence mission.yaml
 
-`mission.yaml` est le fichier de configuration optionnel de build-time pour veaf-tools. Placez-le à la racine de votre dossier mission, à côté de `veaf-tools-updater.exe`. S'il est absent, `veaf-tools build` fonctionne avec les paramètres par défaut.
+`mission.yaml` est le fichier de configuration optionnel de build-time pour veaf-tools. Placez-le à la racine de votre dossier mission, à côté de `veaf-tools-updater.exe`. S'il est absent, `veaf-tools mission build` fonctionne avec les paramètres par défaut.
 
 Cette page couvre les **sections de premier niveau** de `mission.yaml`. La configuration des modules Lua individuels est documentée dans la page de chaque module (voir l'[index par module](#index-par-module) ci-dessous).
 
@@ -12,7 +12,7 @@ Un dossier de mission VEAF utilise **deux catégories distinctes** de fichiers Y
 
 ### Catégorie A — Fichiers de pipeline de build
 
-Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-tools build` effectue avant d'écrire le `.miz` final. Chaque étape lit son propre fichier YAML et injecte des données dans la mission. Ils sont listés sous la section `pipeline:` de `mission.yaml`.
+Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-tools mission build` effectue avant d'écrire le `.miz` final. Chaque étape lit son propre fichier YAML et injecte des données dans la mission. Ils sont listés sous la section `pipeline:` de `mission.yaml`.
 
 | Fichier (dans `src/`) | Étape de pipeline | Rôle |
 |-----------------------|---------------|------|
@@ -23,7 +23,7 @@ Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-t
 | `warehouses.yaml` | `warehouses` | Warehouses Dynamic-Slot : `dynamicSpawn`, stock, carburant, liens de modèle |
 | `versions.yaml` | `weather` | Génère une variante `.miz` par preset météo |
 
-Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools build` puis compilés dans le `.miz`.
+Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools mission build` puis compilés dans le `.miz`.
 
 ### Catégorie B — Configuration des modules runtime (ce fichier)
 
@@ -79,7 +79,7 @@ modules:
 
 ## Erreurs de syntaxe
 
-Si `mission.yaml` contient une erreur de syntaxe YAML (mauvaise indentation, deux-points manquants, caractère de tabulation…), `veaf-tools build` s'arrête immédiatement et affiche un message clair indiquant le nom du fichier, la ligne et la colonne du problème, ainsi qu'une aide en langage courant pour corriger l'erreur :
+Si `mission.yaml` contient une erreur de syntaxe YAML (mauvaise indentation, deux-points manquants, caractère de tabulation…), `veaf-tools mission build` s'arrête immédiatement et affiche un message clair indiquant le nom du fichier, la ligne et la colonne du problème, ainsi qu'une aide en langage courant pour corriger l'erreur :
 
 ```
 Erreur de syntaxe dans mission.yaml, ligne 81, colonne 4.
@@ -493,7 +493,7 @@ profiles:
         - path: src/scripts/FgDebug.lua      # en plus, dev seulement
 ```
 
-Buildez la variante dev avec `veaf-tools build --profile DEV` (elle charge `FgMission.lua` + `FgDebug.lua`) ; le build par défaut ne charge que `FgMission.lua`.
+Buildez la variante dev avec `veaf-tools mission build --profile DEV` (elle charge `FgMission.lua` + `FgDebug.lua`) ; le build par défaut ne charge que `FgMission.lua`.
 
 > ⚠️ **Piège** : le deep-merge des profils **remplace les listes, il ne les concatène pas** (voir [`profiles:`](#profiles)). Le `custom_scripts.scripts` du profil doit donc **répéter** les scripts de base et ajouter celui spécifique à la variante — sinon les scripts de base sont perdus dans ce profil.
 
@@ -529,7 +529,7 @@ pipeline:
 
 ### `build:`
 
-Contrôle la façon dont `veaf-tools build` résout le bundle de scripts VEAF.
+Contrôle la façon dont `veaf-tools mission build` résout le bundle de scripts VEAF.
 Ces paramètres sont normalement définis via la CLI (`--dev-mode`, `--scripts-path`) puis persistés automatiquement.
 
 | Champ | Type | Défaut | Description |
@@ -570,7 +570,7 @@ profiles:
 
 ### `profiles:` {#profiles}
 
-Profils de build nommés. Chaque profil est un ensemble de surcharges qui fusionnent en profondeur sur la `mission.yaml` de base lorsque vous passez `--profile <nom>` à `veaf-tools build`. Les clés absentes du profil conservent leur valeur de base. Les listes sont remplacées intégralement, pas concaténées. La clé `profiles:` elle-même n'est jamais transmise au générateur Lua ni au pipeline.
+Profils de build nommés. Chaque profil est un ensemble de surcharges qui fusionnent en profondeur sur la `mission.yaml` de base lorsque vous passez `--profile <nom>` à `veaf-tools mission build`. Les clés absentes du profil conservent leur valeur de base. Les listes sont remplacées intégralement, pas concaténées. La clé `profiles:` elle-même n'est jamais transmise au générateur Lua ni au pipeline.
 
 | Champ | Type | Description |
 |-------|------|-------------|
@@ -598,8 +598,8 @@ profiles:
 Usage :
 
 ```powershell
-veaf-tools.exe build --profile TEST
-veaf-tools.exe build --profile SERVER
+veaf-tools.exe mission build --profile TEST
+veaf-tools.exe mission build --profile SERVER
 ```
 
 > Si le profil nommé n'existe pas dans `mission.yaml`, un avertissement est émis et la config de base est utilisée sans modification.
@@ -608,7 +608,7 @@ veaf-tools.exe build --profile SERVER
 
 ### `build_variants:`
 
-Liste de profils de build à **émettre ensemble** : un seul `veaf-tools build` produit alors **un `.miz` par variante** (objectif « moulinette » — typiquement Modern et Cold-War d'un même dossier de mission, la variante n'étant qu'une différence de **config**). Chaque variante construit le pipeline complet avec son profil fusionné (voir [`profiles:`](#profiles)) et son `.miz` est suffixé du nom de variante (`<base>_<VARIANT>.miz`).
+Liste de profils de build à **émettre ensemble** : un seul `veaf-tools mission build` produit alors **un `.miz` par variante** (objectif « moulinette » — typiquement Modern et Cold-War d'un même dossier de mission, la variante n'étant qu'une différence de **config**). Chaque variante construit le pipeline complet avec son profil fusionné (voir [`profiles:`](#profiles)) et son `.miz` est suffixé du nom de variante (`<base>_<VARIANT>.miz`).
 
 | Champ | Type | Description |
 |-------|------|-------------|
@@ -634,8 +634,8 @@ build_variants:
 ```
 
 ```powershell
-veaf-tools.exe build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
-veaf-tools.exe build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
+veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
+veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
 ```
 
 ---

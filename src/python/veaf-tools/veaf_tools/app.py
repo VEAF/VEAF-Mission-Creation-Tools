@@ -59,6 +59,11 @@ def main() -> None:
     from veaf_libs.tui import maybe_bridge_to_tui
 
     import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
+    from veaf_tools.command_tree import build_cli_tree
+
+    # Reshape the flat registrations into the themed tree. Every flat name survives as a
+    # hidden alias, so existing scripts and doc pages keep working while --help shows the tree.
+    build_cli_tree(app)
     from veaf_tools.helpers import should_auto_pause
 
     console.print(f"[bold]veaf-tools[/bold] v{VERSION}")

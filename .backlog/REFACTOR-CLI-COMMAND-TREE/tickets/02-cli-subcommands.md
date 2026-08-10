@@ -1,6 +1,6 @@
 # 02 — The CLI grows the tree, and breaks nothing
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 Type: refactor
 Files: `src/python/veaf-tools/veaf_tools/app.py`, `veaf_tools/commands/*.py`
 
@@ -32,3 +32,27 @@ veaf-tools build           ->  runs, exactly as today, absent from every --help
 `should_auto_pause()` and the double-click path exist so a mission maker can run the `.exe` with no
 terminal. Whatever argv shape that produces has to keep working — check it rather than assume, since
 nobody is going to report it broken until a release is out.
+
+## Done
+
+`build_cli_tree` reshapes the flat registrations: one `typer.Typer` per group, and each command also
+left registered at the root with `hidden=True`. Driven by the tree rather than 25 hand-written pairs.
+Both forms were run for real and produce identical output.
+
+**The flagged risk was real.** `maybe_bridge_to_tui` took `tokens[0]` as the command, so
+`veaf-tools mission build` made it see `mission`, find no `CommandSpec`, and let Typer run a command
+that might be missing a required option — precisely the case the bridge exists to catch. It now
+recognises a group id as the first token. A test asserts no group id is also a command name, since a
+collision would make one of the two unreachable and the bridge would guess wrong.
+
+**Two cosmetic limits, stated rather than fought.** Click sorts a group's commands alphabetically, so
+`--help` shows `build, export, extract, prepare, validate` where the tree says
+`prepare, validate, build, extract, export`; overriding it means a custom Group class for no
+functional gain, and a five-entry reference panel is arguably better alphabetical. The wizard, which
+is read top to bottom, does honour the tree order — that was a real bug, found by calling the real
+renderer instead of re-implementing its loop in a probe. And Typer renders root commands before
+sub-apps, so the two are split into named help panels rather than reordered.
+
+**Worth a follow-up, not done here**: `convert convert-v5` and `convert convert-other` stutter.
+Inside the tree they would read better as `convert v5` and `convert other` — but that is a rename,
+which this lot rules out on purpose.

@@ -43,7 +43,7 @@ talk to — otherwise it would be red on every machine and nobody would run it.
 ## Usage
 
 ```
-veaf-tools smoke-test --probe-only
+veaf-tools dcs smoke-test --probe-only
 ```
 
 Runs no assertions: reports only **what this DCS allows**. Run it first — the same discipline as the
@@ -60,7 +60,7 @@ then "no mission". The previous version reported the missing permission as "no m
 sent the reader looking for a mission to load where loading one could not have helped.
 
 ```
-veaf-tools smoke-test
+veaf-tools dcs smoke-test
 ```
 
 Probes, then runs the checks. Exits 1 if any fails, 0 if all pass **or the run was skipped**.

@@ -160,7 +160,7 @@ Le vocabulaire d'actions est **fermé** (v1). Chaque `action` requiert les clés
 | `message` | `text: "<texte affiché>"` | Affiche le texte à l'écran |
 | `lua` | `function: "<nom.de.fonction>"`, `args: [ ... ]` (optionnel) | Appelle une fonction Lua du créateur de mission |
 
-> **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
+> **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools mission validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
 
 ---
 

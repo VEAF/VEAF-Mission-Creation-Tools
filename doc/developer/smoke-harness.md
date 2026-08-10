@@ -44,7 +44,7 @@ n'y a rien à interroger — sinon il deviendrait rouge sur chaque machine et pe
 ## Utilisation
 
 ```
-veaf-tools smoke-test --probe-only
+veaf-tools dcs smoke-test --probe-only
 ```
 
 Ne lance aucune assertion : rapporte seulement **ce que ce DCS autorise**. À lancer en premier, c'est
@@ -61,7 +61,7 @@ permission », puis « pas de mission ». La version précédente rapportait le 
 pouvait rien changer.
 
 ```
-veaf-tools smoke-test
+veaf-tools dcs smoke-test
 ```
 
 Sonde, puis exécute les vérifications. Sort en 1 si l'une échoue, en 0 si tout passe **ou si le run a

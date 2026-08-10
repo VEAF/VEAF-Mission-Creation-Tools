@@ -790,6 +790,8 @@
   "tree.group.mission.label": "Mission",
   "tree.group.tool.description": "About veaf-tools, its documentation and your settings",
   "tree.group.tool.label": "The tool itself",
+  "tree.panel.groups": "Working on a mission",
+  "tree.panel.root": "The tool itself",
   "tui.arg.checklist_dry_run": "Only show what would change?",
   "tui.arg.checklist_file": "Checklist YAML to resolve",
   "tui.arg.checklist_write_verified": "Mark confirmed steps as verified?",

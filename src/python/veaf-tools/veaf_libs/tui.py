@@ -56,6 +56,10 @@ class ArgPrompt:
 #: The root commands come last, under their own heading: the wizard has no root.
 GROUP_ORDER: tuple[str, ...] = tuple(group.id for group in COMMAND_GROUPS) + (ROOT_GROUP_ID,)
 
+#: The CLI's group names, so the bridge can tell `mission build` from a bare command. None of them
+#: is also a command name — asserted by a test, since a collision would make one unreachable.
+_GROUP_IDS: frozenset[str] = frozenset(group.id for group in COMMAND_GROUPS)
+
 
 @dataclass
 class CommandSpec:
@@ -532,6 +536,12 @@ def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
         return wizard_args
 
     command, rest = tokens[0], tokens[1:]
+    if command in _GROUP_IDS and rest:
+        # The grouped form, `veaf-tools mission build …`: the command is the second token. Without
+        # this the bridge saw `mission`, found no CommandSpec, and let Typer run a command that was
+        # missing a required option — the exact case the bridge exists to catch
+        # (REFACTOR-CLI-COMMAND-TREE ticket 02).
+        command, rest = rest[0], rest[1:]
     spec = _COMMAND_MAP.get(command)
     if spec is None:
         return None

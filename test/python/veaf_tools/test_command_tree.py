@@ -89,6 +89,51 @@ class TestTheTreeIsAnImprovement(unittest.TestCase):
         self.assertEqual(group_of("extract"), "mission")
 
 
+class TestBothFormsWork(unittest.TestCase):
+    """`veaf-tools mission build` and `veaf-tools build` must both run (ticket 02, decision b)."""
+
+    def _app(self):
+        # build_cli_tree is idempotent per app instance in practice, but a test must not depend on
+        # whether main() already ran, so it works on a fresh shallow copy of the registrations.
+        import copy
+
+        import typer
+        import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
+        from veaf_tools.app import app
+        from veaf_tools.command_tree import build_cli_tree
+
+        fresh = typer.Typer()
+        fresh.registered_commands = [copy.copy(info) for info in app.registered_commands]
+        build_cli_tree(fresh)
+        return fresh
+
+    def test_a_group_becomes_a_subcommand_holding_its_commands(self) -> None:
+        app = self._app()
+        by_name = {group.name: group for group in app.registered_groups}
+        self.assertEqual(sorted(by_name), sorted(g.id for g in COMMAND_GROUPS))
+        mission = next(g for g in COMMAND_GROUPS if g.id == "mission")
+        held = {
+            (info.name or info.callback.__name__).replace("_", "-")
+            for info in by_name["mission"].typer_instance.registered_commands
+        }
+        self.assertEqual(held, set(mission.commands))
+
+    def test_every_flat_name_survives_as_a_hidden_alias(self) -> None:
+        app = self._app()
+        for info in app.registered_commands:
+            name = (info.name or info.callback.__name__).replace("_", "-")
+            if name in ROOT_COMMANDS:
+                self.assertFalse(info.hidden, f"{name} is a root command and must stay visible")
+            else:
+                self.assertTrue(info.hidden, f"{name} must remain callable but absent from --help")
+
+    def test_no_group_id_collides_with_a_command_name(self) -> None:
+        # A collision would make one of the two unreachable, and the bridge would guess wrong.
+        placed = set(all_placed_commands())
+        for group in COMMAND_GROUPS:
+            self.assertNotIn(group.id, placed, f"'{group.id}' is both a group and a command")
+
+
 class TestRootCommands(unittest.TestCase):
     def test_the_tool_about_itself_stays_at_the_root(self) -> None:
         for command in ("about", "ask", "user-config", "mcp"):

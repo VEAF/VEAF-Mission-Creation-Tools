@@ -72,7 +72,7 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 
 - ✅ **Filtre de logger** (`--log-modules`) — filtrer quels modules Lua écrivent dans le log DCS, pour un débogage plus propre
 - ✅ **Doc DCSUnits** — auto-génération de `doc/DCS_UNITS.md` depuis `dcsUnits.lua` avant chaque publication
-- ⚪ **Validation de mission** — commande `veaf-tools validate` qui vérifie une mission contre les prérequis VEAF connus
+- ⚪ **Validation de mission** — commande `veaf-tools mission validate` qui vérifie une mission contre les prérequis VEAF connus
 - ⚪ **Support multi-carte** — meilleure gestion des missions sur différentes cartes DCS (Caucase, Syrie, Golfe Persique, etc.)
 - ⚪ **Extension VS Code** — coloration syntaxique et validation pour les fichiers de config YAML VEAF
 

@@ -242,6 +242,21 @@ COVERAGE_RULES: tuple[CoverageRule, ...] = (
         pages=("doc/ALIASES.md", "doc/ALIASES.en.md"),
         mention="`{name}`",
     ),
+    # REFACTOR-CLI-COMMAND-TREE ticket 04: every command the tree places must be mentioned by the
+    # page that documents the CLI. This is what stops the next command from shipping undocumented —
+    # the tree already fails a test when a command is not *placed*, and this covers the other half.
+    # Matches every lowercase quoted token in the tree module: the 25 command names **and** the 5
+    # group names, which are equally user-facing (`veaf-tools mission --help`). `ROOT_GROUP_ID` is
+    # excluded because it names a wizard heading, not something anyone types. Note `re.findall` is
+    # applied without MULTILINE here, so a pattern anchored on `$` would silently match nothing —
+    # which is how the first version of this rule passed while extracting zero names.
+    CoverageRule(
+        label="CLI command",
+        source_glob="src/python/veaf-tools/veaf_tools/command_tree.py",
+        pattern=r'(?<!ROOT_GROUP_ID = )"([a-z][a-z0-9]*(?:-[a-z0-9]+)*)"',
+        pages=("doc/mission-maker/GUIDE.md", "doc/mission-maker/GUIDE.en.md"),
+        mention="`{name}`",
+    ),
 )
 
 

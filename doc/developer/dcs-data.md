@@ -188,9 +188,9 @@ veaf-build update-dcs-data --airdromes
 
 ```bash
 # 1. injecter le pont dans n'importe quelle mission du théâtre voulu
-veaf-tools inject-bridge maMission.miz
+veaf-tools dcs inject-bridge maMission.miz
 # 2. lancer maMission.miz dans DCS + démarrer dcs-serve, puis capturer
-veaf-tools capture-map --api-key <token superuser dcs-serve> --out-dir <dossier>
+veaf-tools dcs capture-map --api-key <token superuser dcs-serve> --out-dir <dossier>
 ```
 
 Le `veaf-build update-dcs-data --airdromes` (côté dev) fusionne ensuite les `.json`

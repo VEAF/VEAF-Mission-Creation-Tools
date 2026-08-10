@@ -190,7 +190,7 @@ build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable*
 
 *Le cœur de l'objectif : d'une seule demande, l'IA pose une fonctionnalité VEAF entière sur les
 **deux mondes** (source `src/mission` + `mission.yaml`) d'un **dossier de mission**. Durable : un
-`veaf-tools build` ultérieur produit le `.miz`.*
+`veaf-tools mission build` ultérieur produit le `.miz`.*
 
 ### Créer une combat zone complète {#creer-combat-zone}
 

@@ -184,9 +184,9 @@ in the shipped executable, usable by a non-dev) produce the rich
 
 ```bash
 # 1. inject the bridge into any mission on the target theatre
-veaf-tools inject-bridge myMission.miz
+veaf-tools dcs inject-bridge myMission.miz
 # 2. launch myMission.miz in DCS + start dcs-serve, then capture
-veaf-tools capture-map --api-key <dcs-serve superuser token> --out-dir <folder>
+veaf-tools dcs capture-map --api-key <dcs-serve superuser token> --out-dir <folder>
 ```
 
 On the dev side, `veaf-build update-dcs-data --airdromes` then merges the committed

@@ -9,7 +9,7 @@
 
 Two distinct roles:
 
-1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe inject-weather`.
+1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe content inject-weather`.
 2. **Runtime**: players can request weather reports and ATC information via the F10 radio menu, and the mission maker can script dynamic fog changes.
 
 ---
@@ -36,7 +36,7 @@ No parameters required.
 Weather is injected at build time (before the mission is loaded) using `veaf-tools.exe`:
 
 ```powershell
-veaf-tools.exe inject-weather mission.miz --config-file versions.yaml
+veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
 ### versions.yaml example
@@ -169,5 +169,5 @@ The fog name is case-insensitive. Use the exact constant names listed above (wit
 
 ## See Also
 
-- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe inject-weather` full reference
+- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe content inject-weather` full reference
 - [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafWeather` API

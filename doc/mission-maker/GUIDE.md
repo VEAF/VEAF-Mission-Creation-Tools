@@ -152,7 +152,7 @@ cd my-mission
 1. Créez un dossier pour votre projet de mission (c'est votre dépôt Git)
 2. Copiez votre fichier `.miz` existant dedans
 3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
-4. Extrayez votre mission : `veaf-tools.exe extract ma-mission.miz`
+4. Extrayez votre mission : `veaf-tools.exe mission extract ma-mission.miz`
 5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/mission-script.lua`
 
 Structure de projet recommandée :
@@ -208,7 +208,7 @@ flowchart TD
         SRC[src/mission + src/scripts]
         LUA[Scripts Lua VEAF]
     end
-    YAML --> BUILD[veaf-tools build]
+    YAML --> BUILD[veaf-tools mission build]
     SRC --> BUILD
     LUA --> BUILD
     BUILD --> GEN[Génère veaf-config.lua depuis mission.yaml]
@@ -316,7 +316,7 @@ security:
 
 ## Configurer le pipeline de build {#configuring-pipeline}
 
-Au-delà des modules Lua exécutés dans DCS, `veaf-tools build` peut enchaîner des **étapes de pipeline** au moment du build : elles injectent des données dans le `.miz` (préréglages radio, points de cheminement, groupes d'aéronefs, variantes météo) à partir de fichiers YAML séparés placés dans `src/`. Chaque étape est **auto-détectée** (elle s'exécute si son fichier de config existe) et se pilote depuis la section `pipeline:` de `mission.yaml`.
+Au-delà des modules Lua exécutés dans DCS, `veaf-tools mission build` peut enchaîner des **étapes de pipeline** au moment du build : elles injectent des données dans le `.miz` (préréglages radio, points de cheminement, groupes d'aéronefs, variantes météo) à partir de fichiers YAML séparés placés dans `src/`. Chaque étape est **auto-détectée** (elle s'exécute si son fichier de config existe) et se pilote depuis la section `pipeline:` de `mission.yaml`.
 
 | Étape | Rôle | Schéma détaillé |
 |-------|------|-----------------|
@@ -342,6 +342,15 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 
 `veaf-tools.exe` manipule les fichiers `.miz` au moment du build — avant de les charger dans DCS.
 
+> **Les commandes sont rangées par thème.** `veaf-tools mission build`, `veaf-tools content
+> inject-presets`, `veaf-tools convert convert-v5`… `veaf-tools --help` liste les groupes, et
+> `veaf-tools <groupe> --help` leur contenu. Le groupe `dcs` regroupe ce qui **exige DCS lancé**.
+> Les groupes sont : `mission`, `convert`, `content`, `cockpit` et `dcs`.
+>
+> **Les anciens noms courts fonctionnent toujours** : `veaf-tools build` fait exactement la même
+> chose que `veaf-tools mission build`. Ils ne sont plus affichés dans l'aide et sont considérés
+> comme dépréciés — un script ou un message de forum écrit avant ce changement continue de marcher.
+
 | Commande | Ce qu'elle fait |
 |----------|----------------|
 | `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer) ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
@@ -357,6 +366,18 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
 | `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
+| `about` | Affiche les informations sur VEAF Mission Creation Tools. |
+| `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
+| `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json. |
+| `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
+| `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
+| `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
+| `inject-bridge` | Injecte le dcs-bridge + un trigger de démarrage dans un .miz (mission-pont). |
+| `mcp` | Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor. |
+| `migrate-config` | Migre un fichier missionConfig.lua au format v6 (mission-script.lua). |
+| `resolve-checklist` | Complète les champs techniques d'une checklist guidée écrite en langage courant. |
+| `smoke-test` | Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle. |
+| `verify-checklist` | Vérifie une checklist résolue dans un vrai cockpit (DCS doit tourner ici). |
 
 Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
@@ -365,9 +386,9 @@ Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) plutôt que d'échouer sur une option manquante :
 
 - `veaf-tools.exe` (sans argument) → menu de sélection de commande, puis questions.
-- `veaf-tools.exe prepare` → l'assistant demande le dossier cible **et** le template de modules.
-- `veaf-tools.exe prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
-- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe build --tui`).
+- `veaf-tools.exe mission prepare` → l'assistant demande le dossier cible **et** le template de modules.
+- `veaf-tools.exe mission prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
+- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe mission build --tui`).
 
 Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
 
@@ -379,7 +400,7 @@ Les options déjà passées sur la ligne de commande sont pré-remplies ; les op
 
 ```powershell
 # Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.
@@ -391,13 +412,13 @@ Si vous devez exécuter une seule étape en isolation (ex : injecter la météo 
 
 ```powershell
 # Injecter les préréglages radio uniquement
-veaf-tools.exe inject-presets ma-mission.miz --presets-file src/presets.yaml
+veaf-tools.exe content inject-presets ma-mission.miz --presets-file src/presets.yaml
 
 # Injecter les waypoints bullseye et de navigation uniquement
-veaf-tools.exe inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
+veaf-tools.exe content inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
 # Créer des variantes météo/heure uniquement
-veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
+veaf-tools.exe content inject-weather ma-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -405,7 +426,7 @@ veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
 Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
 ```powershell
-veaf-tools.exe extract ma-mission.miz
+veaf-tools.exe mission extract ma-mission.miz
 ```
 
 ---
@@ -437,13 +458,13 @@ profiles:
 
 ```powershell
 # Build pour les tests (pas de météo, sécurité désactivée, journalisation détaillée)
-veaf-tools.exe build --profile TEST
+veaf-tools.exe mission build --profile TEST
 
 # Build pour le déploiement serveur
-veaf-tools.exe build --profile SERVER
+veaf-tools.exe mission build --profile SERVER
 
 # Build sans profil (config de base)
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
@@ -523,7 +544,7 @@ modules:
 
 Tout le reste — distances, temporisations, caisses, groupes de troupes, zones, capacités par appareil — vit dans un fichier **`ctld-config.yaml`**, à côté de `mission.yaml` dans votre dossier mission. Vous l'éditez avec **`ctld-tools.exe`**, fourni avec CTLD : double-cliquez, l'outil s'ouvre dans votre navigateur, en local, sans installation. Il valide au fil de la saisie et affiche les libellés en clair plutôt que les noms de réglages.
 
-`veaf-tools prepare` crée ce fichier pour vous quand le modèle choisi active CTLD, pré-rempli avec les valeurs par défaut du moteur. Il n'est jamais écrasé ensuite : c'est votre configuration.
+`veaf-tools mission prepare` crée ce fichier pour vous quand le modèle choisi active CTLD, pré-rempli avec les valeurs par défaut du moteur. Il n'est jamais écrasé ensuite : c'est votre configuration.
 
 Au build, VEAF l'injecte dans la mission sous forme d'un `CTLD_userConfig.lua` chargé juste avant `CTLD.lua`.
 
@@ -658,7 +679,7 @@ modules:
     logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
-`veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
+`veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
 
 ### Lire le journal
 

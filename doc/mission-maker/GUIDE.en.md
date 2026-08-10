@@ -347,7 +347,7 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 > inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` lists the groups, and
 > `veaf-tools <group> --help` shows what is in one. The `dcs` group is what **needs DCS running**.
 > The groups are: `mission`, `convert`, `content`, `cockpit` and `dcs`.
-> A command whose name starts with its group's drops it inside: you write
+> A command whose name starts with its group's name drops that word inside: you write
 > `veaf-tools convert v5` and `veaf-tools convert other`, not `convert convert-v5`.
 >
 > **The old short names still work**: `veaf-tools build` does exactly what `veaf-tools mission

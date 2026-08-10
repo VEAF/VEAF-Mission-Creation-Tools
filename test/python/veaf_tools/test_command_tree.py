@@ -134,6 +134,71 @@ class TestBothFormsWork(unittest.TestCase):
             self.assertNotIn(group.id, placed, f"'{group.id}' is both a group and a command")
 
 
+class TestNoStutter(unittest.TestCase):
+    """`convert convert-v5` reads badly; inside the group the command drops the group's word.
+
+    Free of charge because the tree has never been released: the flat `convert-v5` stays registered
+    at the root as a hidden alias, and the stuttering spelling is one nobody has ever been able to
+    type.
+    """
+
+    def test_a_command_starting_with_its_group_drops_it(self) -> None:
+        from veaf_tools.command_tree import in_group_name
+
+        self.assertEqual(in_group_name("convert-v5", "convert"), "v5")
+        self.assertEqual(in_group_name("convert-other", "convert"), "other")
+
+    def test_nothing_else_in_the_tree_is_shortened(self) -> None:
+        from veaf_tools.command_tree import in_group_name
+
+        for group in COMMAND_GROUPS:
+            for command in group.commands:
+                if group.id == "convert" and command.startswith("convert-"):
+                    continue
+                self.assertEqual(in_group_name(command, group.id), command, f"{group.id} {command}")
+
+    def test_a_group_named_after_a_command_prefix_does_not_swallow_a_longer_name(self) -> None:
+        # `content` holds `extract-waypoints`; a naive prefix strip on a different group must not
+        # touch it. Guards the rule rather than the two cases it happens to hit today.
+        from veaf_tools.command_tree import in_group_name
+
+        self.assertEqual(in_group_name("extract-waypoints", "content"), "extract-waypoints")
+
+    def test_the_group_registers_the_short_name(self) -> None:
+        import copy
+
+        import typer
+        import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
+        from veaf_tools.app import app
+        from veaf_tools.command_tree import build_cli_tree
+
+        fresh = typer.Typer()
+        fresh.registered_commands = [copy.copy(info) for info in app.registered_commands]
+        build_cli_tree(fresh)
+        convert = next(g for g in fresh.registered_groups if g.name == "convert")
+        held = {info.name for info in convert.typer_instance.registered_commands}
+        self.assertIn("v5", held)
+        self.assertIn("other", held)
+        self.assertNotIn("convert-v5", held, "the stuttering spelling must be gone from the group")
+
+    def test_the_flat_name_still_resolves_for_the_wizard(self) -> None:
+        # The CLI shows `convert v5` while the wizard looks commands up as `convert-v5`, so the
+        # bridge has to map back — and `convert other` has two required arguments, which is exactly
+        # when a user needs that bridge.
+        from veaf_tools.command_tree import resolve_command
+
+        self.assertEqual(resolve_command("convert", "v5"), "convert-v5")
+        self.assertEqual(resolve_command("convert", "other"), "convert-other")
+        self.assertEqual(resolve_command("convert", "convert-v5"), "convert-v5", "be forgiving on input")
+        self.assertEqual(resolve_command("mission", "build"), "build")
+
+    def test_resolve_command_refuses_what_the_group_does_not_hold(self) -> None:
+        from veaf_tools.command_tree import resolve_command
+
+        self.assertIsNone(resolve_command("convert", "build"))
+        self.assertIsNone(resolve_command("no-such-group", "v5"))
+
+
 class TestRootCommands(unittest.TestCase):
     def test_the_tool_about_itself_stays_at_the_root(self) -> None:
         for command in ("about", "ask", "user-config", "mcp"):

@@ -13,7 +13,7 @@ mission n'a jamais été construite avec les outils VEAF, on l'**adopte**.
 ## Usage
 
 ```bash
-veaf-tools convert convert-other <mission.miz> <dossier-de-sortie>
+veaf-tools convert other <mission.miz> <dossier-de-sortie>
 ```
 
 Sans argument (dans un terminal interactif), la commande ouvre l'assistant TUI
@@ -27,7 +27,7 @@ gestion de configuration, le manuel et un raccourci. Passez l'archive que vous a
 téléchargée, `convert-other` adopte le `.miz` qu'elle contient :
 
 ```bash
-veaf-tools convert convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-de-sortie> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-de-sortie> --profile foothold
 ```
 
 Seul le membre `.miz` est lu ; rien d'autre dans l'archive n'est écrit où que ce soit
@@ -64,7 +64,7 @@ connaissance propre à une famille de missions est appliquée — **données, pa
   échouent** — y compris si vous l'activez à la main plus tard.
 
 ```bash
-veaf-tools convert convert-other <mission.miz> <dossier-de-sortie> --profile foothold
+veaf-tools convert other <mission.miz> <dossier-de-sortie> --profile foothold
 ```
 
 ### Profils livrés
@@ -140,7 +140,7 @@ Quand l'auteur tiers publie une nouvelle version (p. ex. une montée de version
 Foothold de Lekaa), ré-importez-la dans votre dossier déjà adopté avec `--update` :
 
 ```bash
-veaf-tools convert convert-other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
+veaf-tools convert other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
 ```
 
 Le nouvel upstream peut aussi être l'archive `.zip` de release — même règle, exactement un

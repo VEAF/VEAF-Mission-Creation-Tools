@@ -193,10 +193,23 @@ The remedies pull against each other:
 
 - Changing the hashing breaks every server and mission that uses the current passwords.
 - Documenting that the default password is well known is the honest, cheap mitigation — **and it
-  also tells attackers exactly where to look** at servers that never changed it.
+  also tells attackers exactly where to look**, on the servers that never changed it.
 
 That trade-off is David's, not mine, so all three stay undecided rather than being quietly resolved
 in a sweep. Nothing else in the tier depends on the answer.
+
+### The first version of the VMR-037 fix had the same hole it was closing
+
+Worth recording, because it is the failure mode this whole ticket is about. The guard checked the URL
+handed to `download_asset` and then called `requests.get` — **which follows redirects to any host by
+default**. A 3xx off GitHub would have been followed regardless of the check. Sourcery caught it on
+the PR.
+
+The chain is now walked one hop at a time, each hop checked before it is requested. Chasing that
+turned up a second problem nobody had reported: walking redirects by hand means `requests` no longer
+strips the `Authorization` header across hosts, so the user's GitHub token would have been handed to
+whatever host the redirect named. Both are covered by tests, including one asserting the untrusted URL
+is **never requested** — refusing after fetching is not refusing.
 
 ### Where it stands
 

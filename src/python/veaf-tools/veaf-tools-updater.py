@@ -26,7 +26,7 @@ from importlib.metadata import version as _pkg_version
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 import typer
@@ -94,6 +94,10 @@ UPDATE_PENDING_DIR = ".veaf-update-pending"
 #: redirect chain that leaves GitHub entirely is refused.
 _TRUSTED_DOWNLOAD_HOSTS = frozenset({"github.com", "www.github.com", "api.github.com"})
 _TRUSTED_DOWNLOAD_HOST_SUFFIX = ".githubusercontent.com"
+
+#: How many redirects to follow while checking each hop. GitHub uses one (asset -> object storage);
+#: a few more costs nothing and a bounded walk cannot loop.
+_MAX_DOWNLOAD_REDIRECTS = 5
 
 
 def _is_trusted_download_url(url: str | None) -> bool:
@@ -383,16 +387,47 @@ class UpdateWorker:
             return True
 
     def download_asset(self, asset_url: str, asset_name: str) -> bytes | None:
-        """Download an asset from a GitHub release."""
-        if not _is_trusted_download_url(asset_url):
-            # The URL comes from the GitHub API response, not from us, and what we do with the bytes
-            # is install and run an executable (SECREV-2 / VMR-037). Checking the scheme and host
-            # costs nothing and removes the whole class: a redirected or tampered API reply can no
-            # longer point the updater at an arbitrary server.
-            logger.error(t("updater.err.untrusted_url", url=asset_url, name=asset_name), exception_type=None)
-            return None
+        """Download an asset from a GitHub release, refusing any hop off GitHub.
+
+        The URL comes from the GitHub API response, not from us, and what we do with the bytes is
+        install and then *run* an executable (SECREV-2 / VMR-037). Checking only the URL we were
+        handed would not be enough: ``requests`` follows redirects to any host by default, and GitHub
+        does redirect release assets to its object storage. So the redirect chain is walked here, one
+        hop at a time, and every hop has to pass the same check.
+
+        Args:
+            asset_url: The asset URL from the release payload.
+            asset_name: The asset's name, for the progress and error messages.
+
+        Returns:
+            The asset's bytes, or None when a hop is untrusted, the chain is too long, or GitHub
+            answered with an error.
+        """
+        url = asset_url
+        origin_host = (urlparse(asset_url or "").hostname or "").lower()
+
         with spinner_context(t("updater.downloading", name=asset_name)):
-            response = requests.get(asset_url, headers=self.headers)
+            for _ in range(_MAX_DOWNLOAD_REDIRECTS + 1):
+                if not _is_trusted_download_url(url):
+                    logger.error(t("updater.err.untrusted_url", url=url, name=asset_name), exception_type=None)
+                    return None
+
+                headers = dict(self.headers)
+                if (urlparse(url).hostname or "").lower() != origin_host:
+                    # `requests` drops Authorization itself when a redirect changes host; walking the
+                    # chain by hand means doing it here, or the user's GitHub token would be handed to
+                    # whichever host the redirect names.
+                    headers.pop("Authorization", None)
+
+                response = requests.get(url, headers=headers, allow_redirects=False)
+                if not response.is_redirect and not response.is_permanent_redirect:
+                    break
+
+                # A Location may be relative, so resolve it against the URL that produced it.
+                url = urljoin(url, response.headers.get("Location", ""))
+            else:
+                logger.error(t("updater.err.too_many_redirects", url=asset_url, name=asset_name), exception_type=None)
+                return None
 
         if not self.check_github_response(response, t("updater.action.download", name=asset_name)):
             return None

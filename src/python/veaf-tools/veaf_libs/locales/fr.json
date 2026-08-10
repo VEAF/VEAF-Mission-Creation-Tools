@@ -872,6 +872,7 @@
   "updater.err.metadata_download_failed": "Les métadonnées de somme de contrôle n'ont pas pu être téléchargées : le téléchargement ne peut pas être vérifié. Installation refusée. Vérifiez votre connexion, ou relancez avec --no-verify-checksum.",
   "updater.err.metadata_parse": "Les métadonnées de somme de contrôle sont illisibles : le téléchargement ne peut pas être vérifié. Installation refusée. Relancez avec --no-verify-checksum pour installer sans vérification.",
   "updater.err.no_asset": "Aucun asset '{name}' trouvé dans la release",
+  "updater.err.too_many_redirects": "Téléchargement de « {name} » refusé : {url} a redirigé trop de fois. Rien n'a été téléchargé.",
   "updater.err.untrusted_url": "Téléchargement de « {name} » refusé : la release pointe vers {url}, qui n'est pas une URL https hébergée par GitHub. Rien n'a été téléchargé.",
   "updater.err.no_checksum_in_metadata": "Les métadonnées de somme de contrôle ne contiennent aucune somme : le téléchargement ne peut pas être vérifié. Installation refusée. Relancez avec --no-verify-checksum pour installer sans vérification.",
   "updater.err.no_metadata": "Cette version n'a pas de métadonnées de somme de contrôle : le téléchargement ne peut pas être vérifié. Installation refusée. Relancez avec --no-verify-checksum pour installer sans vérification.",

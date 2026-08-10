@@ -9,6 +9,7 @@ replacement is not necessarily one we shipped. Profiles are the kind of file tha
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -47,6 +48,9 @@ class TestIsPlainFilename(unittest.TestCase):
 class TestTheRenameStaysInsideTheScriptsFolder(unittest.TestCase):
     def _run(self, replacement: str) -> tuple[Path, list[DetectedLoader]]:
         root = Path(tempfile.mkdtemp())
+        # addCleanup rather than a `with` block: the assertions run after `_run` returns, so the
+        # directory has to outlive it and still be removed when the test ends.
+        self.addCleanup(shutil.rmtree, root, True)
         scripts = root / "mission" / "scripts"
         scripts.mkdir(parents=True)
         (scripts / "victim.lua").write_text("-- victim", encoding="utf-8")

@@ -14,6 +14,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import ModuleType
+from unittest import mock
 
 _UPDATER_PATH = Path(__file__).parents[2] / "src" / "python" / "veaf-tools" / "veaf-tools-updater.py"
 
@@ -65,6 +66,109 @@ class TestTrustedDownloadUrl(unittest.TestCase):
         # even though the annotation says str.
         self.assertFalse(self._accepts(None))
         self.assertFalse(self._accepts(""))
+
+
+class _FakeResponse:
+    """Minimal stand-in for a `requests.Response` — only what `download_asset` reads."""
+
+    def __init__(self, status_code: int = 200, location: str | None = None, content: bytes = b"payload") -> None:
+        self.status_code = status_code
+        self.headers = {"Location": location} if location else {}
+        self.content = content
+        self.reason = "OK"
+
+    @property
+    def is_redirect(self) -> bool:
+        return self.status_code in {301, 302, 303, 307, 308} and "Location" in self.headers
+
+    @property
+    def is_permanent_redirect(self) -> bool:
+        return self.status_code in {301, 308} and "Location" in self.headers
+
+
+class TestEveryRedirectHopIsChecked(unittest.TestCase):
+    """Validating only the first URL was not enough — `requests` follows redirects anywhere.
+
+    Sourcery caught this on PR #696: the guard checked `asset_url` and then called `requests.get`,
+    which follows a 3xx to any host by default. The chain is now walked one hop at a time.
+    """
+
+    ASSET = "https://github.com/VEAF/repo/releases/download/v1/veaf-tools.exe"
+
+    def setUp(self) -> None:
+        self.updater_module = _load_updater()
+        self.calls: list[tuple[str, dict]] = []
+
+    def _updater(self, token: str | None = "secret-token") -> object:
+        updater = object.__new__(self.updater_module.UpdateWorker)
+        updater.headers = {"Accept": "application/vnd.github.v3+json"}
+        if token:
+            updater.headers["Authorization"] = f"token {token}"
+        return updater
+
+    def _run(self, responses: list[_FakeResponse], token: str | None = "secret-token") -> bytes | None:
+        queued = list(responses)
+
+        def fake_get(url: str, headers: dict | None = None, allow_redirects: bool = True) -> _FakeResponse:
+            self.calls.append((url, dict(headers or {})))
+            return queued.pop(0)
+
+        with (
+            mock.patch.object(self.updater_module.requests, "get", side_effect=fake_get),
+            mock.patch.object(self.updater_module, "spinner_context", mock.MagicMock()),
+        ):
+            return self.updater_module.UpdateWorker.download_asset(self._updater(token), self.ASSET, "veaf-tools.exe")
+
+    def test_a_redirect_to_github_object_storage_is_followed(self) -> None:
+        content = self._run(
+            [
+                _FakeResponse(302, location="https://objects.githubusercontent.com/release/1"),
+                _FakeResponse(200, content=b"the exe"),
+            ]
+        )
+
+        self.assertEqual(content, b"the exe", "the normal GitHub redirect must still work")
+        self.assertEqual(
+            [url for url, _ in self.calls], [self.ASSET, "https://objects.githubusercontent.com/release/1"]
+        )
+
+    def test_a_redirect_off_github_is_refused_and_never_fetched(self) -> None:
+        content = self._run([_FakeResponse(302, location="https://evil.example.com/payload.exe")])
+
+        self.assertIsNone(content, "a hop off GitHub must abandon the download")
+        self.assertEqual(
+            [url for url, _ in self.calls],
+            [self.ASSET],
+            "the untrusted URL must never be requested — refusing after fetching it is not refusing",
+        )
+
+    def test_the_github_token_is_not_forwarded_to_another_host(self) -> None:
+        # `requests` drops Authorization itself across hosts; walking the chain by hand means doing it
+        # here, or the user's token reaches whatever host the redirect names.
+        self._run(
+            [
+                _FakeResponse(302, location="https://objects.githubusercontent.com/release/1"),
+                _FakeResponse(200),
+            ]
+        )
+
+        first_headers, second_headers = self.calls[0][1], self.calls[1][1]
+        self.assertIn("Authorization", first_headers, "the token belongs on the original GitHub host")
+        self.assertNotIn("Authorization", second_headers, "the token must not follow the redirect")
+
+    def test_a_relative_location_resolves_against_the_url_that_sent_it(self) -> None:
+        content = self._run([_FakeResponse(302, location="/other/path.exe"), _FakeResponse(200, content=b"ok")])
+
+        self.assertEqual(content, b"ok")
+        self.assertEqual(self.calls[1][0], "https://github.com/other/path.exe")
+
+    def test_an_endless_redirect_chain_gives_up(self) -> None:
+        loop = [_FakeResponse(302, location=self.ASSET) for _ in range(20)]
+
+        content = self._run(loop)
+
+        self.assertIsNone(content, "a redirect loop must end in a refusal, not spin")
+        self.assertLessEqual(len(self.calls), self.updater_module._MAX_DOWNLOAD_REDIRECTS + 1)
 
 
 class TestTheDeferredUpdateScriptBailsOnAFailedCd(unittest.TestCase):

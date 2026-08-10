@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.13.58"
+version = "6.13.59"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -25,7 +25,7 @@ pydantic = ">=2.0,<3"
 avwx-engine = ">=1.8,<2"
 InquirerPy = ">=0.3,<1"
 requests = ">=2.28,<3"
-mcp = "^1.28.1"
+mcp = "^2.0.0"
 "ruamel.yaml" = ">=0.18,<1.0"
 
 [tool.poetry.scripts]

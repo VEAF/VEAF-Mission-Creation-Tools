@@ -24,6 +24,11 @@ _CHECK_TIMEOUT = 2  # seconds — do not block offline users
 _CACHE_FILE = "update_check_cache.json"
 
 
+#: What `_version_tuple` returns for a string it cannot read. Callers must recognise it rather than
+#: compare it: it sorts below every real release (SECREV-2 / VMR-063).
+_UNPARSEABLE_VERSION: tuple[int, ...] = (0,)
+
+
 def _version_tuple(v: str) -> tuple[int, ...]:
     """Convert a dotted version string to a comparable integer tuple.
 
@@ -35,7 +40,7 @@ def _version_tuple(v: str) -> tuple[int, ...]:
     try:
         return tuple(int(x) for x in v.split("."))
     except ValueError:
-        return (0,)
+        return _UNPARSEABLE_VERSION
 
 
 def _load_cache(veaf_home: Path) -> dict:
@@ -93,7 +98,14 @@ def check_for_updates(current_version: str, console: "Console") -> None:
             latest = data.get("tag_name", "").lstrip("v")
             _save_cache(veaf_home, latest)
 
-        if latest and _version_tuple(latest) > _version_tuple(current_version):
+        # A version we cannot parse must not be treated as "very old". `_version_tuple` falls back to
+        # (0,), which is lower than every release, so an unreadable *current* version produced a
+        # confident "a new version is available" on every single run (SECREV-2 / VMR-063). Saying
+        # nothing is the honest answer when we do not know what is installed.
+        current = _version_tuple(current_version)
+        if current == _UNPARSEABLE_VERSION:
+            return
+        if latest and _version_tuple(latest) > current:
             from veaf_libs.i18n import t
 
             console.print(t("update.new_version", latest=latest, current=current_version))

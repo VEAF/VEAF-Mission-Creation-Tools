@@ -117,3 +117,50 @@ class TestEnsureCoalitionsPopulated(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-047 — a Lua sequence reaches Python as a list only while its keys are 1..n with
+# no gap. Delete a country or a group in the Mission Editor and the same field comes back as a
+# dict keyed by the surviving indexes; iterating that yields the *keys*, so `country.get(...)`
+# was called on a string and raised AttributeError.
+#
+# (The finding also names `_max_ids`, which no longer exists in the module.)
+# --------------------------------------------------------------------------------------------
+
+
+def test_an_indexed_country_table_is_counted_not_crashed_on() -> None:
+    from mission_builder.coalition_placeholder import _coalition_unit_count
+
+    coalition = {
+        "country": {
+            "2": {"vehicle": {"group": [{"units": [{"name": "a"}, {"name": "b"}]}]}},
+        }
+    }
+
+    assert _coalition_unit_count(coalition) == 2
+
+
+def test_indexed_group_and_unit_tables_are_counted_too() -> None:
+    from mission_builder.coalition_placeholder import _coalition_unit_count
+
+    coalition = {
+        "country": {"1": {"vehicle": {"group": {"3": {"units": {"1": {"name": "a"}}}}}}},
+    }
+
+    assert _coalition_unit_count(coalition) == 1
+
+
+def test_a_plain_list_still_works() -> None:
+    from mission_builder.coalition_placeholder import _coalition_unit_count
+
+    coalition = {"country": [{"vehicle": {"group": [{"units": [{"name": "a"}]}]}}]}
+
+    assert _coalition_unit_count(coalition) == 1
+
+
+def test_junk_in_the_tree_counts_as_empty_rather_than_raising() -> None:
+    from mission_builder.coalition_placeholder import _coalition_unit_count
+
+    for coalition in ({"country": "not a table"}, {"country": ["a string"]}, {}, {"country": None}):
+        assert _coalition_unit_count(coalition) == 0, coalition

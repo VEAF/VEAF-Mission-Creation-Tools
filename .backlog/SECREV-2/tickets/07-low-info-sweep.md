@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — no CONFIRMED finding left; Error/bug tier under way, Python batch 1 done (71/140 decided)
+Status: 🔄 in-progress — no CONFIRMED finding left; Error/bug tier under way, Python batches 1-2 done (75/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -334,5 +334,41 @@ breaks real cases.
 ### Where it stands
 
 **71 of 140 decided. 69 left**: 39 Error/bug (13 Python, 26 Lua), 9 Documentation, 3 Security flaw
+(awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
+anyway.
+
+## Sweep, fifth pass — Error/bug, Python batch 2, 2026-08-10
+
+Four more, and one of them taught the sharpest lesson of the ticket.
+
+| | Outcome | |
+|---|---|---|
+| VMR-063 | **fixed** | an unreadable installed version claimed an update on every run |
+| VMR-047 | **fixed** | an indexed DCS table crashed the unit count; half the finding is obsolete |
+| VMR-064 | **fixed** | the `ask` REPL died on any error that was not a RuntimeError |
+| VMR-128 | decided-deferred | vendored third-party code, and we never pass the argument |
+
+### My first three tests for VMR-063 passed for the wrong reason
+
+They asserted that nothing is printed when the installed version is unreadable — and nothing was
+printed, but not because of the fix: my cache mock used `checked_at` where the code reads
+`last_check`, so the cache was ignored, the code went to the network, and the exception was swallowed
+by the surrounding `except Exception: pass`. Three green tests exercising nothing.
+
+What caught it was writing the **control**: a readable *older* version must still prompt. It failed,
+and that failure is what proved the rest was hollow. Same shape as the coverage rule that extracted
+zero names and the grep that reported zero prints — a test that cannot fail is indistinguishable from
+a test that passes.
+
+### VMR-047 was half obsolete
+
+`_max_ids`, one of the two functions named, no longer exists. The other half is real: a Lua sequence
+only reaches Python as a list while its keys are 1..n with no gap, and deleting a country or a group
+in the Mission Editor brings the field back as a dict keyed by the survivors. Iterating that yields
+the **keys**, so `country.get(...)` ran on a string.
+
+### Where it stands
+
+**75 of 140 decided. 65 left**: 35 Error/bug (**9 Python, 26 Lua**), 9 Documentation, 3 Security flaw
 (awaiting David), 18 readability/optimization/refactoring to touch only where a file is being changed
 anyway.

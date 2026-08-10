@@ -294,8 +294,8 @@
     "commits": [
       "f350da53 feat(mcp): add add_group write action (FEAT-MCP-MISSION-EDITOR-004)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Half the finding is obsolete -- `_max_ids` no longer exists in the module. The rest is real: a Lua sequence reaches Python as a list only while its keys are 1..n with no gap, and deleting a country or a group in the Mission Editor brings the same field back as a dict keyed by the surviving indexes. Iterating that yields the *keys*, so `country.get(...)` was called on a string and raised AttributeError. A `_dcs_entries` helper now accepts either shape at all three levels (country, group, units) and treats junk as empty. 4 tests."
   },
   {
     "vid": "VMR-048",
@@ -514,8 +514,8 @@
     "line": "37",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the user-visible effect is exactly as described: `_version_tuple` falls back to (0,), which is lower than every release, so an unreadable *current* version produced a confident 'a new version is available' on every run. The fallback is now a named sentinel the caller recognises, and the check says nothing when it cannot tell what is installed. 4 tests -- and writing the fourth mattered: the first three passed for the wrong reason, because my cache mock used the wrong key ('checked_at' instead of 'last_check'), so the code went to the network and the exception was swallowed. The control test that a readable older version DOES prompt is what caught it."
   },
   {
     "vid": "VMR-064",
@@ -527,8 +527,8 @@
     "line": "85",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. Only RuntimeError was caught, so a JSON decode error or a connection reset ended the whole REPL session on one bad question -- a REPL's job is to survive its inputs. Any exception is now reported and the session continues, with the type named so a real bug stays visible instead of reading like a service hiccup."
   },
   {
     "vid": "VMR-116",
@@ -750,8 +750,8 @@
     "line": "25",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Accurate but out of scope, and it costs us nothing: `luadata` is a vendored third-party library, excluded from ruff and mypy for that reason, and no call site of ours passes `multival` -- measured across the tree, we only ever call `unserialize`. Patching vendored code would make the next upstream refresh harder for a parameter we do not use. It belongs upstream."
   },
   {
     "vid": "VMR-131",

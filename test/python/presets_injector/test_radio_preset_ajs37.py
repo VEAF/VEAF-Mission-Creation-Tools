@@ -264,3 +264,35 @@ class TestBespokeOverrideStillWinsOverAjs37Packer(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAjs37FmBandIsShipped(unittest.TestCase):
+    """The FR24 band, asserted against the **shipped** data (FIX-RADIO-LAYOUT-GAPS ticket 02).
+
+    Everything else about the AJS-37's specials is tested against fixtures, which is why nobody
+    noticed that `_drop_out_of_range_channels` deleted E and F from every real build for a month:
+    the packer put them at the right slots and a layer below removed them. These assertions read
+    `dcs-radio-specs.yaml` itself, so losing the overlay fails here rather than in a mission.
+    """
+
+    def test_e_and_f_are_in_range_for_the_ajs37(self):
+        from presets_injector.radio_frequency_validator import validate_frequencies
+
+        # E = 33 MHz, F = 34 MHz -- the two hard-coded FR24 specials of ADR 0012. DCS accepts
+        # them: measured 2026-08-09 by saving a mission carrying them in the Mission Editor.
+        self.assertEqual(validate_frequencies("AJS37", [33.0, 34.0]), [])
+
+    def test_the_check_still_rejects_a_genuinely_impossible_frequency(self):
+        from presets_injector.radio_frequency_validator import validate_frequencies
+
+        # Widening the band must not amount to switching the guard off.
+        self.assertEqual(validate_frequencies("AJS37", [500.0]), [500.0])
+
+    def test_the_layout_and_the_specs_agree_on_the_radio_count(self):
+        # The FR24 is a *band* on the single 47-slot table, not a second radio. Declaring it as a
+        # radio made the build warn on every run that layout and specs were out of step.
+        from presets_injector.radio_frequency_validator import get_valid_ranges
+
+        ranges = get_valid_ranges("AJS37")
+        assert ranges is not None
+        self.assertEqual(len(ranges), 2, "one radio, two bands")

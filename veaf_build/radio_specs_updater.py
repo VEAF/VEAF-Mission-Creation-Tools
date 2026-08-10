@@ -31,6 +31,7 @@ CATEGORIES = {
 }
 
 OUTPUT_YAML = Path(__file__).parent.parent / "src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml"
+OVERRIDES_YAML = OUTPUT_YAML.with_name("dcs-radio-specs-overrides.yaml")
 OUTPUT_MD = Path(__file__).parent.parent / "doc/mission-maker/dcs-radio-specs.md"
 
 MODULATION_MAP = {0: "AM", 1: "FM", 2: "AM/FM"}
@@ -89,6 +90,89 @@ class AircraftSpec:
     category: str
     radios: list[AircraftRadio] = field(default_factory=list)
     human_radio: HumanRadio | None = None
+    dcs_rejects_on_load: bool = False
+    """DCS refuses to *load* a mission with an out-of-range preset here, not merely to save it.
+
+    Set from the hand-maintained overlay; the datamine says nothing about it.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Hand-maintained overlay
+# ---------------------------------------------------------------------------
+
+
+def load_overrides(path: Path | None = None) -> dict:
+    """Read the VEAF corrections merged over the generated specs.
+
+    Args:
+        path: Overlay file; defaults to the shipped ``dcs-radio-specs-overrides.yaml``.
+
+    Returns:
+        Mapping of DCS unit type to its corrections (empty when the file is absent).
+    """
+    path = path or OVERRIDES_YAML
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def apply_overrides(specs: list[AircraftSpec], overrides: dict) -> None:
+    """Merge the hand-maintained corrections into the extracted specs, in place.
+
+    Applied to the models rather than to the YAML dump so the generated Markdown reference
+    describes the same radios the injector validates against.
+
+    Args:
+        specs: Specs extracted from the datamine.
+        overrides: Mapping from :func:`load_overrides`.
+
+    Raises:
+        KeyError: An override corrects an aircraft absent from the extracted specs without
+            declaring it in full, or adds a band to a radio the aircraft does not have. Both are
+            typos or upstream renames, and doing nothing quietly would leave the overlay claiming
+            to correct data it no longer touches.
+    """
+    by_id = {spec.dcs_id: spec for spec in specs}
+    for dcs_id, correction in overrides.items():
+        spec = by_id.get(dcs_id)
+        if spec is None:
+            declared = correction.get("add_aircraft")
+            if not declared:
+                raise KeyError(f"{dcs_id}: named by the radio-specs overlay but absent from the datamine extraction")
+            spec = AircraftSpec(
+                dcs_id=dcs_id,
+                display_name=declared["name"],
+                category=declared["category"],
+                radios=[
+                    AircraftRadio(
+                        name=radio["name"],
+                        ranges=[
+                            FrequencyRange(
+                                min_mhz=rng["min_mhz"],
+                                max_mhz=rng["max_mhz"],
+                                modulation=rng.get("modulation", "AM/FM"),
+                            )
+                            for rng in radio["ranges"]
+                        ],
+                    )
+                    for radio in declared.get("radios", [])
+                ],
+            )
+            specs.append(spec)
+        for extra in correction.get("add_ranges", []):
+            radio = next((r for r in spec.radios if r.name == extra["radio"]), None)
+            if radio is None:
+                raise KeyError(f"{dcs_id}: the overlay adds a band to radio {extra['radio']!r}, which it does not have")
+            radio.ranges.append(
+                FrequencyRange(
+                    min_mhz=extra["min_mhz"],
+                    max_mhz=extra["max_mhz"],
+                    modulation=extra.get("modulation", "AM/FM"),
+                )
+            )
+        if correction.get("dcs_rejects_on_load"):
+            spec.dcs_rejects_on_load = True
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +364,8 @@ def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
                 for r in spec.radios
             ],
         }
+        if spec.dcs_rejects_on_load:
+            entry["dcs_rejects_on_load"] = True
         if spec.human_radio:
             entry["human_radio"] = {
                 "min_mhz": spec.human_radio.min_mhz,
@@ -315,7 +401,10 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
         f.write("#       max_mhz: 42.4         # vs a 38-156 preset range) — a primary outside it is rejected\n")
         f.write("#       default_mhz: 38.4     # DCS's own default, or null\n")
         f.write("#       modulation: FM | AM | AM/FM\n")
-        f.write("#     dcs_rejects_on_load: true   # MANUAL overlay, not regenerated\n\n")
+        f.write("#     dcs_rejects_on_load: true   # from dcs-radio-specs-overrides.yaml\n")
+        f.write("#\n")
+        f.write("# VEAF corrections live in dcs-radio-specs-overrides.yaml and are merged in here by\n")
+        f.write("# the generator, so they survive a pin bump. Never edit THIS file by hand.\n\n")
         yaml.dump(data, f, allow_unicode=True, sort_keys=True, default_flow_style=False)
     print(f"\nYAML written to {output}")
 
@@ -442,6 +531,10 @@ def main() -> None:
         clone_repo(clone_root)
         specs = extract_all_specs(clone_root)
     print(f"\nTotal aircraft with player radio slots: {len(specs)}")
+    overrides = load_overrides()
+    if overrides:
+        apply_overrides(specs, overrides)
+        print(f"Applied {len(overrides)} VEAF correction(s) from {OVERRIDES_YAML.name}")
     write_yaml(specs, OUTPUT_YAML)
     write_markdown(specs, OUTPUT_MD)
 

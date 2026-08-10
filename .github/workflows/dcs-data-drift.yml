@@ -70,9 +70,13 @@ jobs:
               and the units database (`dcsUnits.yaml` + `dcsUnits.lua`).
 
             **Manual follow-up before merge** (not done automatically, by design):
-            - **Radio** (`dcs-radio-specs.yaml/.md`): hybrid artifact — run
-              `veaf-build update-dcs-data --radio`, then re-apply the
-              `dcs_rejects_on_load` overlays and the bilingual doc section.
+            - **Radio** (`dcs-radio-specs.yaml/.md`): run
+              `veaf-build update-dcs-data --radio`. The VEAF corrections are **no longer
+              manual** — they live in `dcs-radio-specs-overrides.yaml` and the generator
+              merges them in, so `dcs_rejects_on_load` and the hand-written entries survive
+              the run. The **doc page is still hybrid**: the generator writes the whole
+              French page in English, so restore its prose sections and re-add the changed
+              table rows to both `.md` and `.en.md` by hand.
 
             Review the country and units diffs for unexpected changes before merging
             (e.g. a unit changing `kind`, or many units added/removed).

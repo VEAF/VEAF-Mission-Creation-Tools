@@ -6,8 +6,14 @@ Nothing checked that the three tell the same story, and on 2026-08-10 that cost 
 corrections in one day — the last of them inside the very commit that called the pattern out and
 still left the index row on ⬜.
 
-The rule is **agreement, not conformity**. Several PRDs deliberately carry no scope table; this
-compares the sources that exist rather than imposing one shape on every lot.
+The rule is **agreement, not conformity**. Six of the 23 active lots deliberately shape their PRD
+table differently (one has a *depends on* last column, not a status); this compares the sources that
+exist rather than imposing one shape.
+
+Two holes, closed after review: nothing may **silently opt out** of a check. A missing `Status:`
+line and an unrecognised icon both used to make a file or a row invisible, which is the failure mode
+this gate exists to remove — the same one that let a coverage rule pass while extracting zero names
+and a link checker compensate for a defect instead of reporting it.
 """
 
 from __future__ import annotations
@@ -25,21 +31,40 @@ _ICON = re.compile(f"[{STATUS_ICONS}]")
 #: `| [LOT-ID](LOT-ID/PRD.md) — prose … | ✅ |`
 _INDEX_ROW = re.compile(r"^\| \[([A-Z0-9-]+)\]\(")
 
-#: `| 02 | [title](tickets/02-slug.md) | ✅ |` — the trailing cell is the status.
-_SCOPE_ROW = re.compile(r"^\|\s*(\d{2})\s*\|.*\|\s*([" + STATUS_ICONS + r"])\s*\|\s*$")
+#: A data row of a scope table: its first cell is the ticket number.
+_TICKET_ROW = re.compile(r"^\|\s*(\d{2})\s*\|")
+
+#: A markdown table separator, e.g. `|---|:--:|---|`.
+_SEPARATOR = re.compile(r"^\|[\s:|-]+\|$")
 
 
-def _first_icon(text: str) -> str | None:
-    """Return the first status icon in *text*, or None."""
-    found = _ICON.search(text)
-    return found.group(0) if found else None
+def _cells(line: str) -> list[str]:
+    """Split a markdown table row into its trimmed cells."""
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _sole_icon(text: str) -> str | None:
+    """Return the status icon *text* consists of, or None when it is anything else.
+
+    Deliberately strict: a cell holding an icon **plus** other words is not a status cell, and a cell
+    holding an unknown glyph is a typo rather than something to skip.
+    """
+    found = _ICON.findall(text)
+    if len(found) != 1 or _ICON.sub("", text).strip():
+        return None
+    return found[0]
 
 
 def _header_status(path: Path) -> str | None:
-    """Return the icon on a PRD's or ticket's `Status:` line, or None when it has none."""
-    for line in path.read_text(encoding="utf-8").split("\n")[:15]:
+    """Return the icon on a file's first `Status:` line, or None when it has none.
+
+    The whole file is scanned, not a window at the top: a header further down used to read as
+    *absent*, which skipped every comparison for that file instead of failing.
+    """
+    for line in path.read_text(encoding="utf-8").split("\n"):
         if line.startswith("Status:"):
-            return _first_icon(line)
+            found = _ICON.search(line)
+            return found.group(0) if found else None
     return None
 
 
@@ -50,9 +75,8 @@ def _index_statuses() -> dict[str, str | None]:
         match = _INDEX_ROW.match(line)
         if not match:
             continue
-        # The status is the last cell; the prose before it is free to contain icons of its own.
-        cells = line.rstrip().rstrip("|").rsplit("|", 1)
-        result[match.group(1)] = _first_icon(cells[-1]) if len(cells) > 1 else None
+        cells = _cells(line)
+        result[match.group(1)] = _sole_icon(cells[-1]) if cells else None
     return result
 
 
@@ -61,13 +85,39 @@ def _active_lots() -> list[Path]:
     return sorted(p for p in BACKLOG.iterdir() if p.is_dir() and p.name != "archive")
 
 
-def _scope_rows(prd: Path) -> dict[str, str]:
-    """Return the PRD scope table's `{ticket number: status icon}`, empty when it has no table."""
-    rows: dict[str, str] = {}
-    for line in prd.read_text(encoding="utf-8").split("\n"):
-        match = _SCOPE_ROW.match(line)
-        if match:
-            rows[match.group(1)] = match.group(2)
+def _status_column(lines: list[str]) -> int | None:
+    """Return the index of the column a PRD table names `Status`, or None when it has no such table.
+
+    Keying on the **header** rather than on "the last cell" is what makes this reliable:
+    `FEAT-ASSIST-AUTHORING` and `FEAT-ASSIST-CHECKLISTS` end their table with a *depends on* column
+    holding values like `01, 02` or `—`, which a positional rule reads as a broken status.
+    """
+    for index, line in enumerate(lines):
+        if not line.startswith("|") or _SEPARATOR.match(line):
+            continue
+        cells = _cells(line)
+        if any(cell.lower() == "status" for cell in cells):
+            return cells.index(next(c for c in cells if c.lower() == "status"))
+    return None
+
+
+def _scope_rows(prd: Path) -> dict[str, str | None]:
+    """Return `{ticket number: status icon}` from the PRD's scope table.
+
+    Empty when the PRD has no table naming a `Status` column. A cell whose content is not exactly one
+    known icon maps to ``None`` so it is **reported**, not skipped.
+    """
+    lines = prd.read_text(encoding="utf-8").split("\n")
+    column = _status_column(lines)
+    if column is None:
+        return {}
+    rows: dict[str, str | None] = {}
+    for line in lines:
+        match = _TICKET_ROW.match(line)
+        if not match:
+            continue
+        cells = _cells(line)
+        rows[match.group(1)] = _sole_icon(cells[column]) if column < len(cells) else None
     return rows
 
 
@@ -82,6 +132,43 @@ class TestEveryLotIsListed(unittest.TestCase):
         self.assertEqual(missing, [], f"lot directories with no PRD.md: {missing}")
 
 
+class TestNothingOptsOutSilently(unittest.TestCase):
+    """A file or row with no readable status must fail, not disappear from the comparisons."""
+
+    def test_every_prd_and_ticket_declares_a_known_status(self) -> None:
+        offenders = []
+        for lot in _active_lots():
+            paths = [lot / "PRD.md"]
+            if (lot / "tickets").is_dir():
+                paths += sorted((lot / "tickets").glob("*.md"))
+            for path in paths:
+                if not path.exists():
+                    continue
+                if _header_status(path) is None:
+                    offenders.append(path.relative_to(BACKLOG).as_posix())
+        self.assertEqual(
+            offenders,
+            [],
+            "no `Status:` line, or one carrying no known icon — these escape every check below:\n  "
+            + "\n  ".join(offenders),
+        )
+
+    def test_every_index_row_declares_a_known_status(self) -> None:
+        offenders = sorted(lot for lot, icon in _index_statuses().items() if icon is None)
+        self.assertEqual(offenders, [], f"index rows whose status cell is not a lone known icon: {offenders}")
+
+    def test_every_scope_row_declares_a_known_status(self) -> None:
+        offenders = []
+        for lot in _active_lots():
+            prd = lot / "PRD.md"
+            if not prd.exists():
+                continue
+            for number, icon in _scope_rows(prd).items():
+                if icon is None:
+                    offenders.append(f"{lot.name} row {number}")
+        self.assertEqual(offenders, [], f"scope rows whose Status cell is not a lone known icon: {offenders}")
+
+
 class TestTheIndexAgreesWithThePrd(unittest.TestCase):
     def test_the_row_and_the_prd_header_carry_the_same_status(self) -> None:
         index = _index_statuses()
@@ -91,7 +178,7 @@ class TestTheIndexAgreesWithThePrd(unittest.TestCase):
             if not prd.exists():
                 continue
             row, header = index.get(lot.name), _header_status(prd)
-            if row is not None and header is not None and row != header:
+            if row != header:
                 drift.append(f"{lot.name}: index row {row} vs PRD header {header}")
         self.assertEqual(drift, [], "the index and the PRD disagree:\n  " + "\n  ".join(drift))
 
@@ -106,25 +193,22 @@ class TestThePrdAgreesWithItsTickets(unittest.TestCase):
     def test_every_scope_row_matches_its_ticket(self) -> None:
         drift = []
         for lot in _active_lots():
-            prd = lot / "PRD.md"
-            tickets = lot / "tickets"
+            prd, tickets = lot / "PRD.md", lot / "tickets"
             if not prd.exists() or not tickets.is_dir():
                 continue
             rows = _scope_rows(prd)
             for ticket in sorted(tickets.glob("*.md")):
                 number = ticket.name[:2]
                 if number not in rows:
-                    continue  # a PRD without a scope table, or a ticket it does not list
-                declared = _header_status(ticket)
-                if declared is not None and declared != rows[number]:
-                    drift.append(f"{lot.name}/{ticket.name}: PRD row {rows[number]} vs ticket {declared}")
+                    continue  # a PRD with no Status column, or a ticket it does not list
+                if _header_status(ticket) != rows[number]:
+                    drift.append(f"{lot.name}/{ticket.name}: PRD row {rows[number]} vs ticket {_header_status(ticket)}")
         self.assertEqual(drift, [], "a PRD scope table is stale:\n  " + "\n  ".join(drift))
 
     def test_a_scope_row_names_a_ticket_that_exists(self) -> None:
         dangling = []
         for lot in _active_lots():
-            prd = lot / "PRD.md"
-            tickets = lot / "tickets"
+            prd, tickets = lot / "PRD.md", lot / "tickets"
             if not prd.exists():
                 continue
             present = {t.name[:2] for t in tickets.glob("*.md")} if tickets.is_dir() else set()
@@ -132,21 +216,6 @@ class TestThePrdAgreesWithItsTickets(unittest.TestCase):
                 if number not in present:
                     dangling.append(f"{lot.name}: scope row {number} has no ticket file")
         self.assertEqual(dangling, [], "\n  ".join(dangling))
-
-
-class TestTheVocabularyIsTheDocumentedOne(unittest.TestCase):
-    def test_no_status_line_invents_an_icon(self) -> None:
-        # `docs/agents/triage-labels.md` defines one vocabulary; a lot using anything else would slip
-        # past every check above, which only ever compares icons it recognises.
-        offenders = []
-        for lot in _active_lots():
-            for path in [lot / "PRD.md", *sorted((lot / "tickets").glob("*.md"))]:
-                if not path.exists():
-                    continue
-                for line in path.read_text(encoding="utf-8").split("\n")[:15]:
-                    if line.startswith("Status:") and _first_icon(line) is None:
-                        offenders.append(f"{path.relative_to(BACKLOG).as_posix()}: {line[:60]}")
-        self.assertEqual(offenders, [], "Status: lines with no known icon:\n  " + "\n  ".join(offenders))
 
 
 if __name__ == "__main__":

@@ -207,13 +207,25 @@ class LuaToYamlConverter:
         in_string = False
         string_char = None
         table_start = None
+        escape_next = False
 
         i = start
         while i < len(content):
             char = content[i]
 
-            # Handle escape sequences
-            if i > 0 and content[i - 1] == "\\":
+            # Handle escape sequences (VMR-068). This used to look at content[i - 1] regardless of
+            # string state, which broke on the two cases `_extract_table` already handles: a
+            # doubled backslash — an ordinary Windows path, `"C:\\missions\\"` — left the closing
+            # quote looking escaped, so the string never closed and every later brace went
+            # uncounted; and a backslash outside a string skipped whatever followed it, brace
+            # included.
+            if escape_next:
+                escape_next = False
+                i += 1
+                continue
+
+            if char == "\\" and in_string:
+                escape_next = True
                 i += 1
                 continue
 

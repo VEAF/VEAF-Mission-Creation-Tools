@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 4 done (98/140 decided)
+Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Python batch 3 done (103/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -678,3 +678,65 @@ one-shot tooling (`dcs-fiddle-server.lua`, `dictionaryNormalizer.lua`), VMR-130 
 delete the half-wired `monitoredCommands` eval sink or document it — which belongs with
 `REVIEW-SECURITY-LAYER` — and VMR-083, VMR-088 and VMR-089 are contract hardening with no reachable
 failure today (the last one says so itself).
+
+## Sweep, tenth pass — Error/bug, Python batch 3 (the conversion and validation chain), 2026-08-10
+
+Five findings, **all confirmed and all fixed** — the first batch in this ticket where nothing was
+overstated. What varied instead was *where* the damage lands: three of the five do something worse
+than their title claims.
+
+| | Outcome | |
+|---|---|---|
+| VMR-068 | **fixed** | an ordinary Windows path made `_extract_list` return **nothing**, not less |
+| VMR-048 | **fixed** | a statement after the extracted block became a comment — real code lost |
+| VMR-051 | **fixed** | an explicit `"lat": null` silently dropped the coordinate |
+| VMR-062 | **fixed** | a corrupt mission table reported itself as an *absent* one |
+| VMR-050 | **fixed** | by deleting a branch that could only ever have been wrong |
+
+### The three that were worse than reported
+
+- **VMR-068** — `_extract_list` treated any backslash as an escape, ignoring string state, where
+  `_extract_table` ten lines above uses an `escape_next` flag honoured only inside a string. A path
+  like `"C:\\missions\\"` leaves the closing quote preceded by a backslash, so the string never
+  closed and every later brace went uncounted. Measured: **zero** tables returned instead of two, so
+  a weather config with a Windows path in it converted to nothing at all.
+- **VMR-048** — the title says the *leading* text is corrupted. The head is cosmetic; the tail is
+  not. `end` lands just after the table's closing brace, so `} local keep = 1` became
+  `-- [v6 extracted…] } local keep = 1` — a live statement turned into a comment.
+- **VMR-062** — not silence but a **wrong diagnosis**. The caller already warns when the mission
+  table is unavailable; the message says *not found*, which is the one thing guaranteed to send the
+  mission maker looking in the wrong place when the file is right there and simply will not parse.
+
+### VMR-050 was fixed by removing code, and the finding offered that option
+
+The collection loop handled a list-shaped trigger category; the removal loop right below calls
+`.get()` on the same value, which a list has not. So that branch could only ever raise — and it
+could not have been right in any case: **a trigger index is shared across categories**, so mixing
+0-based list positions with Lua's 1-based keys would delete other triggers.
+
+The finding's alternative was "drop the list branch if categories are always dicts in practice".
+They are, by construction: every read of `mission_content` passes `keep_as_dict=["trig",
+"trigrules"]`, and that policy propagates through the subtree. Rather than trust that, it is now
+pinned by a test that reads a real `.miz` — with a control asserting a table *outside* `trig` is
+still a list, so the invariant test cannot pass vacuously. The half-handling is replaced by an
+explicit fail-closed refusal, and a test watches it refuse.
+
+### A test of mine passed for the wrong reason again
+
+The VMR-062 test asserting "an existing file must not be reported as missing" matched only the
+English wording — while the default locale here is French, so it passed against the very message it
+was written to reject. Both locales are matched now. That is the third batch running in which the
+first version of a test proved nothing.
+
+### Where it stands
+
+**103 of 140 decided. 37 left**: 10 Error/bug, 9 Documentation, 18
+readability/optimization/refactoring to touch only where a file is being changed anyway.
+
+The 10 Error/bug entries left are the ones that need a decision rather than a fix. Beyond the 6 Lua
+ones named above: **VMR-104 and VMR-105 are the publish path** (`veaf_build/github.py`) — tags are
+force-pushed before the release exists, so an absent `gh` CLI leaves `published-latest` pointing at a
+commit with no release; that is release tooling and deserves its own lot rather than a sweep,
+especially with a release in preparation. VMR-053 (`write_miz` leaves its temp file and returns
+success on a partial failure) and VMR-061 (bundled JSON trusted without validation) are the
+robustness pair and are a natural lot together.

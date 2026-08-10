@@ -648,10 +648,19 @@ def convert_weather(
     # ── Position ─────────────────────────────────────────────────────────────
     pos = v5_data.get("position") or {}
     if pos:
+        # VMR-051: `pos.get("lat", pos.get("latitude"))` only reaches the fallback when `lat` is
+        # **absent**. A v5 JSON carrying an explicit `"lat": null` next to a real `latitude`
+        # therefore emitted `latitude: null` and lost the coordinate without a word.
+        def _first_set(*keys: str) -> Any:
+            for key in keys:
+                if pos.get(key) is not None:
+                    return pos[key]
+            return None
+
         output["position"] = {
-            "latitude": pos.get("lat", pos.get("latitude")),
-            "longitude": pos.get("lon", pos.get("longitude")),
-            "timezone": pos.get("tz", pos.get("timezone")),
+            "latitude": _first_set("lat", "latitude"),
+            "longitude": _first_set("lon", "longitude"),
+            "timezone": _first_set("tz", "timezone"),
         }
 
     # ── Moments lookup (v5 only) ──────────────────────────────────────────────

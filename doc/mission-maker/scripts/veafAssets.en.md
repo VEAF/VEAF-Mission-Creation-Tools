@@ -120,7 +120,7 @@ veafAssets.Assets = {
 | `information` | string | No | Info text shown to players; non-empty → adds the Info button |
 | `disposable` | boolean | No | Allow authorised players to despawn the asset |
 
-> Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.md) module, not by `veafAssets`.
+> Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.en.md) module, not by `veafAssets`.
 
 ---
 
@@ -144,5 +144,5 @@ For each asset, a submenu is created under **F10 → Assets**:
 
 ## See Also
 
-- [veafCarrierOperations](veafCarrierOperations.md) — carrier recovery management
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAssets` API
+- [veafCarrierOperations](veafCarrierOperations.en.md) — carrier recovery management
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafAssets` API

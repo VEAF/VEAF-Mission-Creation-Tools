@@ -47,25 +47,25 @@ flowchart LR
 
 **You want to modify a Lua script** (add a feature, fix a bug in a module):
 
-1. Read the [Lua Runtime Scripts](GUIDE.md#lua-runtime-scripts) section of the guide
+1. Read the [Lua Runtime Scripts](GUIDE.en.md#lua-runtime-scripts) section of the guide
 2. Edit the file in `src/scripts/veaf/`
 3. Run `poetry run test-lua` to check nothing is broken
 
 **You want to modify the Python tools** (`veaf-tools.exe` CLI, build pipeline):
 
-1. Read the [Python Tools](GUIDE.md#python-tools) section of the guide
+1. Read the [Python Tools](GUIDE.en.md#python-tools) section of the guide
 2. Edit the code in `src/python/veaf-tools/`
 3. Run `poetry run pytest` to check
 
 **You are starting from scratch and have nothing installed:**
 
-→ The [Development Environment](GUIDE.md#development-environment) section walks through every installation step (Python, Poetry, Lua, StyLua).
+→ The [Development Environment](GUIDE.en.md#development-environment) section walks through every installation step (Python, Poetry, Lua, StyLua).
 
 ---
 
 ## Initial environment check
 
-Do this once after following the [setup guide](GUIDE.md#development-environment), to confirm everything is correctly installed:
+Do this once after following the [setup guide](GUIDE.en.md#development-environment), to confirm everything is correctly installed:
 
 ```powershell
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
@@ -88,14 +88,14 @@ These commands must pass without errors before committing. CI also runs them aut
 | Lua files (`src/scripts/veaf/`) | `stylua --check src/scripts/veaf/` then `poetry run test-lua` |
 | Python code (`src/python/`) | `poetry run ruff check src/python` then `poetry run mypy src/python` then `poetry run pytest` |
 
-> On Windows, `stylua` is installed at `~/.local/bin/stylua.exe` by default (see [setup guide](GUIDE.md#stylua-setup)).
+> On Windows, `stylua` is installed at `~/.local/bin/stylua.exe` by default (see [setup guide](GUIDE.en.md#stylua-setup)).
 
 ---
 
 ## Full reference
 
-- [Complete Developer Guide](GUIDE.md) — repository layout, coding conventions, build pipeline, contributing workflow
-- [Testing Guide](../TESTING.md) — Lua and Python test infrastructure in detail
+- [Complete Developer Guide](GUIDE.en.md) — repository layout, coding conventions, build pipeline, contributing workflow
+- [Testing Guide](../TESTING.en.md) — Lua and Python test infrastructure in detail
 - [`export` JSON contract](export-json-contract.en.md) — `veaf-tools mission export` output format consumed by the BFR `dcs-mission-tools` plugin
 - [Per-type radio-preset projection](radio-preset-projection.en.md) — how the build projects `channel_lists` onto each aircraft's radios (channel 0, reserved slots, fusion — AJS-37, OH-58D, Mi-24P…)
 - [Mission-editing MCP server](mission-editing-mcp.en.md) — `veaf-mission-mcp`, editor-parity actions (direct `.miz` mutation) vs VMCT actions, v1 catalog (`describe_mission`, `add_group`)

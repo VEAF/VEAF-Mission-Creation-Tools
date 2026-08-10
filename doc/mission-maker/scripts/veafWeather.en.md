@@ -169,5 +169,5 @@ The fog name is case-insensitive. Use the exact constant names listed above (wit
 
 ## See Also
 
-- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe content inject-weather` full reference
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafWeather` API
+- [Tools Reference](../../TOOLS_REFERENCE.en.md) — `veaf-tools.exe content inject-weather` full reference
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafWeather` API

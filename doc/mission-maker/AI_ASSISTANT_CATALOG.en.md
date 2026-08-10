@@ -3,7 +3,7 @@
 > **Audience**: Mission Makers driving their mission's editing with an AI (Claude) wired to the
 > `veaf-mission-mcp` MCP server.
 >
-> 🇫🇷 [`AI_ASSISTANT_CATALOG.md`](AI_ASSISTANT_CATALOG.md)
+> 🇫🇷 [`AI_ASSISTANT_CATALOG.md`](AI_ASSISTANT_CATALOG.en.md)
 >
 > 📓 Technical doc (developers/integrators): [`developer/mission-editing-mcp.en.md`](../developer/mission-editing-mcp.en.md).
 

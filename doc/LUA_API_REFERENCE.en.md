@@ -4207,7 +4207,7 @@ dcsUnits.NavalStatics = {
 }
 ```
 
-> See also [dcs-data.md](developer/dcs-data.md) for the detailed schema description.
+> See also [dcs-data.md](developer/dcs-data.en.md) for the detailed schema description.
 
 ---
 

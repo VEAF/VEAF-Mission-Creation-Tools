@@ -76,5 +76,5 @@ Once a mission is generated, it adds:
 
 ## See Also
 
-- [veafCombatZone](veafCombatZone.md) — for combat objective zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafTransportMission` API
+- [veafCombatZone](veafCombatZone.en.md) — for combat objective zones
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafTransportMission` API

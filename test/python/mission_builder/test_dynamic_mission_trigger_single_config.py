@@ -18,6 +18,7 @@ from mission_builder.mission_builder_worker import MissionBuilderWorker
 
 def _make_worker() -> MissionBuilderWorker:
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.mission_folder = Path(tempfile.mkdtemp())
     worker.output_mission = worker.mission_folder / "out.miz"
     worker.scripts_path = None

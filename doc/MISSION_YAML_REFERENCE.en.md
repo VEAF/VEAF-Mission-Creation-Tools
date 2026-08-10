@@ -381,25 +381,25 @@ modules:
 
 | ID | Module | Doc page |
 |----|--------|----------|
-| `RADIO` | veafRadio | [veafRadio](mission-maker/scripts/veafRadio.md) |
-| `SHORTCUTS` | veafShortcuts | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
-| `NAMEDPOINTS` | veafNamedPoints | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
-| `ASSETS` | veafAssets | [veafAssets](mission-maker/scripts/veafAssets.md) |
-| `CARRIER` | veafCarrierOperations | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
-| `ASSIST` | veafAssist | [veafAssist](mission-maker/scripts/veafAssist.md) |
-| `SANCTUARY` | veafSanctuary | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
-| `COMBATZONE` | veafCombatZone | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
-| `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
-| `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
-| `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `RADIO` | veafRadio | [veafRadio](mission-maker/scripts/veafRadio.en.md) |
+| `SHORTCUTS` | veafShortcuts | [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md) |
+| `NAMEDPOINTS` | veafNamedPoints | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.en.md) |
+| `ASSETS` | veafAssets | [veafAssets](mission-maker/scripts/veafAssets.en.md) |
+| `CARRIER` | veafCarrierOperations | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.en.md) |
+| `ASSIST` | veafAssist | [veafAssist](mission-maker/scripts/veafAssist.en.md) |
+| `SANCTUARY` | veafSanctuary | [veafSanctuary](mission-maker/scripts/veafSanctuary.en.md) |
+| `COMBATZONE` | veafCombatZone | [veafCombatZone](mission-maker/scripts/veafCombatZone.en.md) |
+| `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.en.md) |
+| `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.en.md) |
+| `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.en.md) |
 | `COMBATMISSION` | veafCombatMission | — |
-| `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.md) |
-| `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.md) |
-| `SECURITY` | veafSecurity | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
-| `GRASS` | veafGrass | [veafGrass](mission-maker/scripts/veafGrass.md) |
-| `WEATHER` | veafWeather | [veafWeather](mission-maker/scripts/veafWeather.md) |
-| `INTERPRETER` | veafInterpreter | [veafInterpreter](mission-maker/scripts/veafInterpreter.md) |
-| `MISSILEGUARDIAN` | veafMissileGuardian | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
+| `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.en.md) |
+| `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.en.md) |
+| `SECURITY` | veafSecurity | [veafSecurity](mission-maker/scripts/veafSecurity.en.md) |
+| `GRASS` | veafGrass | [veafGrass](mission-maker/scripts/veafGrass.en.md) |
+| `WEATHER` | veafWeather | [veafWeather](mission-maker/scripts/veafWeather.en.md) |
+| `INTERPRETER` | veafInterpreter | [veafInterpreter](mission-maker/scripts/veafInterpreter.en.md) |
+| `MISSILEGUARDIAN` | veafMissileGuardian | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.en.md) |
 
 ---
 
@@ -432,10 +432,10 @@ See the full schema, the action table and a detailed example in [veafRadio → R
 QRA definitions live under `modules.QRA` (`silence_all` + `definitions:`). The `cap_missions:` / `combat_missions:` sections remain top-level. All require the corresponding modules enabled under `modules:`.
 
 See the respective module pages for full schema:
-- [`modules.QRA`](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) — Quick Reaction Alert definitions
-- [`cap_missions:` and `combat_missions:`](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) — CAP and combat mission definitions
+- [`modules.QRA`](mission-maker/scripts/veafQraManager.en.md#configuration-missionyaml) — Quick Reaction Alert definitions
+- [`cap_missions:` and `combat_missions:`](mission-maker/scripts/veafCasMission.en.md#configuration-missionyaml) — CAP and combat mission definitions
 
-> **Radio menu shortcut (QRA / AirWaves).** A QRA definition (`modules.QRA.definitions[]`) or an AirWave zone (`modules.AIRWAVES.airwave_zones[]`) accepts `radio_menu: true` (and the optional `radio_menu_restrict_to_group: "<DCS group>"`) to automatically generate an F10 control submenu (start/stop, plus reset for AirWaves). See [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) and [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml).
+> **Radio menu shortcut (QRA / AirWaves).** A QRA definition (`modules.QRA.definitions[]`) or an AirWave zone (`modules.AIRWAVES.airwave_zones[]`) accepts `radio_menu: true` (and the optional `radio_menu_restrict_to_group: "<DCS group>"`) to automatically generate an F10 control submenu (start/stop, plus reset for AirWaves). See [veafQraManager](mission-maker/scripts/veafQraManager.en.md#configuration-missionyaml) and [veafAirWaves](mission-maker/scripts/veafAirWaves.en.md#configuration-missionyaml).
 
 ---
 
@@ -499,7 +499,7 @@ Build the dev variant with `veaf-tools mission build --profile DEV` (it loads `F
 
 ### `pipeline:` {#pipeline}
 
-Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELINE_REFERENCE.md) for the full schema of each step's config file.
+Controls the optional build pipeline steps. See the [Pipeline Reference](PIPELINE_REFERENCE.en.md) for the full schema of each step's config file.
 
 Each step accepts either a **scalar** value (`true`/`false` to enable or skip the step) or a **mapping** of detailed options.
 
@@ -562,7 +562,7 @@ profiles:
       dynamic_loading: true   # dynamic loading for the test profile
 ```
 
-> See the [Developer Mode](developer/GUIDE.md#developer-mode) section of the Developer Guide for the full workflow.
+> See the [Developer Mode](developer/GUIDE.en.md#developer-mode) section of the Developer Guide for the full workflow.
 
 ---
 
@@ -654,7 +654,7 @@ veaf-tools.exe mission build --profile MODERN   # produces only the MODERN varia
 | Section / Field | Description |
 |-----------------|-------------|
 | [`security:`](#security) | Enable/disable security, password hashes |
-| `modules.SECURITY` | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
+| `modules.SECURITY` | [veafSecurity](mission-maker/scripts/veafSecurity.en.md) |
 
 ### Combat
 
@@ -663,39 +663,39 @@ veaf-tools.exe mission build --profile MODERN   # produces only the MODERN varia
 | [`modules.QRA`](#modulesqra-cap_missions-combat_missions) | QRA definitions |
 | [`cap_missions:`](#modulesqra-cap_missions-combat_missions) | CAP mission definitions |
 | [`combat_missions:`](#modulesqra-cap_missions-combat_missions) | Combat mission definitions |
-| `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
-| `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
-| `modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.en.md) |
+| `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.en.md) |
+| `modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.en.md) |
 
 ### Air Defense
 
 | Section / Field | Description |
 |-----------------|-------------|
 | `modules.SKYNET` | Skynet IADS integration |
-| `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
-| `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
-| `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
+| `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.en.md) |
+| `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.en.md) |
+| `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.en.md) |
 
 ### Assets & Support
 
 | Section / Field | Description |
 |-----------------|-------------|
-| `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
-| `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
-| `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
-| `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
+| `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.en.md) |
+| `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.en.md) |
+| `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.en.md) |
+| `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.en.md) |
 | [`modules.RADIO.user_menus`](#modulesradiouser_menus--f10-radio-menus-in-yaml) | F10 radio menus declared in YAML |
-| `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
+| `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md) |
 
 ### Build Pipeline
 
 | Section / Field | Description |
 |-----------------|-------------|
 | [`pipeline:`](#pipeline) | Pipeline step control |
-| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
-| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
-| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
-| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
+| `pipeline.presets` | [presets.yaml schema](PIPELINE_REFERENCE.en.md#pipeline-step-1-presets) |
+| `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.en.md#pipeline-step-2-waypoints) |
+| `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.en.md#pipeline-step-3-aircraft-groups) |
+| `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.en.md#pipeline-step-6-versions) |
 | [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |
@@ -708,22 +708,22 @@ veaf-tools.exe mission build --profile MODERN   # produces only the MODERN varia
 
 | Module | mission.yaml key | Doc page |
 |--------|-----------------|----------|
-| veafRadio | `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md#configuration-missionyaml) |
-| veafShortcuts | `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md#configuration-missionyaml) |
-| veafNamedPoints | `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md#configuration-missionyaml) |
-| veafCarrierOperations | `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md#configuration-missionyaml) |
-| veafAssets | `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md#configuration-missionyaml) |
-| veafAssist | `modules.ASSIST` | [veafAssist](mission-maker/scripts/veafAssist.md#enable) |
-| veafSanctuary | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md#configuration-missionyaml) |
-| veafCombatZone | `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md#configuration-missionyaml) |
-| veafAirWaves | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md#configuration-missionyaml) |
-| veafQraManager | `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.md#configuration-missionyaml) |
-| veafCasMission | `cap_missions:` + `combat_missions:` | [veafCasMission](mission-maker/scripts/veafCasMission.md#configuration-missionyaml) |
+| veafRadio | `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.en.md#configuration-missionyaml) |
+| veafShortcuts | `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md#configuration-missionyaml) |
+| veafNamedPoints | `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.en.md#configuration-missionyaml) |
+| veafCarrierOperations | `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.en.md#configuration-missionyaml) |
+| veafAssets | `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.en.md#configuration-missionyaml) |
+| veafAssist | `modules.ASSIST` | [veafAssist](mission-maker/scripts/veafAssist.en.md#enable) |
+| veafSanctuary | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.en.md#configuration-missionyaml) |
+| veafCombatZone | `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.en.md#configuration-missionyaml) |
+| veafAirWaves | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.en.md#configuration-missionyaml) |
+| veafQraManager | `modules.QRA` | [veafQraManager](mission-maker/scripts/veafQraManager.en.md#configuration-missionyaml) |
+| veafCasMission | `cap_missions:` + `combat_missions:` | [veafCasMission](mission-maker/scripts/veafCasMission.en.md#configuration-missionyaml) |
 
 ---
 
 ## See Also
 
-- [Pipeline Reference](PIPELINE_REFERENCE.md) — YAML schemas for presets, waypoints, spawnables, dynamic-slot-templates, warehouses, spawn-groups, versions
-- [Mission Maker Guide](mission-maker/GUIDE.md) — complete workflow
-- [Lua API Reference](LUA_API_REFERENCE.md) — Lua builder chain API for advanced use
+- [Pipeline Reference](PIPELINE_REFERENCE.en.md) — YAML schemas for presets, waypoints, spawnables, dynamic-slot-templates, warehouses, spawn-groups, versions
+- [Mission Maker Guide](mission-maker/GUIDE.en.md) — complete workflow
+- [Lua API Reference](LUA_API_REFERENCE.en.md) — Lua builder chain API for advanced use

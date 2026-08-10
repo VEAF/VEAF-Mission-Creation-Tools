@@ -19,6 +19,7 @@ class _FakeMission:
 class TestReferenceValidationNonBlocking(unittest.TestCase):
     def _worker(self, mission_yaml: dict, mission_content: dict) -> MissionBuilderWorker:
         worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+        worker._dcs_bridge_temp_file = None
         worker.mission_yaml = mission_yaml
         worker.dcs_mission = _FakeMission(mission_content)  # type: ignore[assignment]
         return worker

@@ -12,7 +12,7 @@ target aircraft's radio hardware.
 ## Per-type quirks — handled for you
 
 With the recommended `channel_lists` format (see
-[the `presets.yaml` formats](../PIPELINE_REFERENCE.md#two-authoring-formats)), you declare your
+[the `presets.yaml` formats](../PIPELINE_REFERENCE.en.md#two-authoring-formats)), you declare your
 channel lists **once per coalition**, per radio role (primary UHF, primary VHF, FM…). The build
 then projects them onto **each** aircraft's physical radios, handling that airframe's hardware
 quirks on its own: the Mi-24P and CH-47 channel 0, the OH-58D's reserved "M"/"C" slots, the
@@ -21,7 +21,7 @@ Viggen's (AJS-37) single radio with its hard-coded FR22/FR24 special channels, a
 
 > The per-type projection rules (which aircraft has which quirk, and how they are encoded) are
 > documented on the developer side:
-> [Per-type radio preset projection](../developer/radio-preset-projection.md).
+> [Per-type radio preset projection](../developer/radio-preset-projection.en.md).
 
 ---
 

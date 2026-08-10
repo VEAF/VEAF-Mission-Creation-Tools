@@ -27,6 +27,7 @@ _MIZ_FOLDER = "l10n/DEFAULT"
 
 def _make_worker(*, ctld_enabled: bool = True) -> MissionBuilderWorker:
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.mission_folder = Path(tempfile.mkdtemp())
     worker.output_mission = worker.mission_folder / "out.miz"
     worker.scripts_path = None

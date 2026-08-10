@@ -10,6 +10,7 @@ from mission_builder.mission_builder_worker import CustomScript, MissionBuilderW
 def _bare_worker() -> MissionBuilderWorker:
     """A worker instance without the heavy __init__ (only the fields the helpers need)."""
     worker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.custom_scripts = []
     worker.custom_scripts_generate_load_trigger = True
     worker.collected_mission_script_files = None

@@ -679,6 +679,9 @@ class MissionBuilderWorker(BaseWorker):
         self.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
         self.dcs_bridge_lua_path: str | None = dcsb_cfg.get("lua_path")
         self.dcs_bridge_bytes: bytes | None = None
+        #: Set only when the bridge was auto-downloaded, so it can be cleaned up without ever
+        #: touching a `lua_path` the mission maker supplied (SECREV-2 / VMR-049).
+        self._dcs_bridge_temp_file: Path | None = None
 
         # Guided checklists (FEAT-ASSIST-CHECKLISTS): resolved in write_config_lua, then
         # embedded as .miz resources. Empty when the ASSIST module activates none.
@@ -963,7 +966,12 @@ class MissionBuilderWorker(BaseWorker):
         tmp.write(content)
         tmp.flush()
         tmp.close()
-        return Path(tmp.name)
+        # Remembered so `inject_dcs_bridge_trigger` can remove it once its bytes are read
+        # (SECREV-2 / VMR-049 — every auto-download used to leave a stray .lua behind). Recording
+        # *which* file we created is the point: the same argument also carries a `lua_path` the
+        # mission maker provided, and deleting that would be a data-loss bug.
+        self._dcs_bridge_temp_file = Path(tmp.name)
+        return self._dcs_bridge_temp_file
 
     def inject_dcs_bridge_trigger(self, bridge_file: Path | None) -> None:
         """Inject a DO SCRIPT FILE trigger for dcs-bridge.lua at position 1 in the mission.
@@ -985,6 +993,12 @@ class MissionBuilderWorker(BaseWorker):
 
         bridge_bytes = bridge_file.read_bytes()
         self.dcs_bridge_bytes = bridge_bytes
+        # The content now lives in memory and goes into the .miz from there, so a file we
+        # downloaded ourselves has no reason to survive (SECREV-2 / VMR-049). Only ours —
+        # never a path the mission maker gave us.
+        if self._dcs_bridge_temp_file is not None and bridge_file == self._dcs_bridge_temp_file:
+            self._dcs_bridge_temp_file.unlink(missing_ok=True)
+            self._dcs_bridge_temp_file = None
 
         # Register in mapResource
         map_resource_key = "VEAF_MapKey_DcsBridge"

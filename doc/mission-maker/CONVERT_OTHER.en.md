@@ -7,8 +7,8 @@ the mission was never built with the VEAF tools, so we **adopt** it.
 
 > This command holds no knowledge specific to any given mission. The
 > author-specific knowledge for a mission family (script order, triggers to
-> strip, settings to override…) is carried by a *conversion profile* (coming
-> next). See ADR 0007.
+> strip, settings to override…) is carried by a *conversion profile*. Two ship
+> with the tool: `foothold` and `foothold-ww2`. See ADR 0007.
 
 ## Usage
 

@@ -10,6 +10,7 @@ from mission_builder.mission_builder_worker import MissionBuilderWorker
 def _worker(mission_content: dict, mission_yaml: dict) -> MissionBuilderWorker:
     """A worker shell carrying only what strip_third_party_mod_requirements needs."""
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.dcs_mission = SimpleNamespace(mission_content=mission_content)
     worker.mission_yaml = mission_yaml
     return worker
@@ -34,6 +35,7 @@ class TestStripThirdPartyModRequirementsWiring:
 
     def test_no_dcs_mission_is_a_noop(self) -> None:
         worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+        worker._dcs_bridge_temp_file = None
         worker.dcs_mission = None
         worker.mission_yaml = {}
 

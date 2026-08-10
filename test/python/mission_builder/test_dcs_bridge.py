@@ -14,6 +14,7 @@ def _make_worker(mission_yaml: dict, mission_folder: Path | None = None) -> Miss
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the
     attributes needed by dcs-bridge methods."""
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.mission_yaml = mission_yaml
     worker.mission_folder = mission_folder or Path(tempfile.mkdtemp())
     worker.scripts_path = None

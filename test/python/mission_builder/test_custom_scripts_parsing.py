@@ -12,6 +12,7 @@ from mission_builder.mission_builder_worker import CustomScript, MissionBuilderW
 def _make_worker_from_yaml(yaml_dict: dict) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without __init__, injecting custom_scripts parsing attributes."""
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+    worker._dcs_bridge_temp_file = None
     worker.mission_yaml = yaml_dict
     # Replicate the parsing logic from __init__
     worker.custom_scripts = []

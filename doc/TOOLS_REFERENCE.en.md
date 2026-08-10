@@ -867,4 +867,4 @@ For more technical details, see the source code or GitHub repository.
 4. OS locale (Windows registry / system locale on Linux–macOS)
 5. `en` (built-in fallback)
 
-Supported languages: English (`en`), French (`fr`). See [Language Configuration](mission-maker/GUIDE.md#global-user-configuration) for full details.
+Supported languages: English (`en`), French (`fr`). See [Language Configuration](mission-maker/GUIDE.en.md#global-user-configuration) for full details.

@@ -3,7 +3,7 @@
 > **Audience**: developers evolving the mission-editing MCP server, or wiring an MCP client
 > (Claude Code, an agent) to it.
 >
-> 🇫🇷 [`mission-editing-mcp.md`](mission-editing-mcp.md).
+> 🇫🇷 [`mission-editing-mcp.md`](mission-editing-mcp.en.md).
 >
 > 🎯 Mission-Maker side (plain-language catalogue):
 > [`mission-maker/AI_ASSISTANT_CATALOG.en.md`](../mission-maker/AI_ASSISTANT_CATALOG.en.md).

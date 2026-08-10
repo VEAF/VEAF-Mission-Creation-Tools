@@ -137,7 +137,7 @@ radio is **split across two columns**.
 1. Identify the aircraft's physical radios in
    [`dcs-radio-specs.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml)
    (index, bands) — see also the readable table
-   [`dcs-radio-specs.md`](../mission-maker/dcs-radio-specs.md).
+   [`dcs-radio-specs.md`](../mission-maker/dcs-radio-specs.en.md).
 2. Check whether the band-based default is enough (often yes). If not, add an
    entry in `dcs-radio-layouts.yaml` with the index → role mapping and the
    needed primitives; comment each radio (name + band).

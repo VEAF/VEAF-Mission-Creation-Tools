@@ -91,7 +91,7 @@ veafShortcuts.AddAlias(
 
 ## Default Aliases Reference {#default-aliases-reference}
 
-The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
+The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.en.md)** for the complete list of all built-in aliases.
 
 ### Air Missions
 
@@ -136,7 +136,7 @@ Most aliases respect the security system (`veafSecurity`). Some utility aliases 
 
 ## See Also
 
-- [Pilot Guide — Marker Commands](../../pilot/GUIDE.md#marker-commands) — player-facing usage instructions
-- [Aliases Reference](../../ALIASES.md) — complete list of all built-in aliases
-- [veafSpawn](veafSpawn.md) — the underlying spawn engine
-- [veafSecurity](veafSecurity.md) — permission system
+- [Pilot Guide — Marker Commands](../../pilot/GUIDE.en.md#marker-commands) — player-facing usage instructions
+- [Aliases Reference](../../ALIASES.en.md) — complete list of all built-in aliases
+- [veafSpawn](veafSpawn.en.md) — the underlying spawn engine
+- [veafSecurity](veafSecurity.en.md) — permission system

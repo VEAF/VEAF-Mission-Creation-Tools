@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — sample done, tail is real, sweep not started
+Status: 🔄 in-progress — sample done, HIGH tier cleared, sweep started (47/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -90,3 +90,54 @@ Worth reading before someone commits to "fix all 108":
 - **Readability and optimization should stay last**, per the ticket. VMR-115 (11 `print()` calls)
   is in a one-shot migration script, not shipped code; VMR-108 is a real inefficiency with no
   wrong behaviour attached.
+
+## Sweep, first pass — 2026-08-10
+
+**Every HIGH and CRITICAL finding now has an outcome.** Four were still marked undecided, and
+checking them against the code rather than against the PRD is what this pass was for:
+
+| | Outcome | |
+|---|---|---|
+| VMR-005 | already-fixed | closed by ticket 05; only the triage entry had not been updated |
+| VMR-006 | already-fixed | idem — `metar.update()` is there, with the VMR-006 rationale beside it |
+| VMR-007 | **fixed** | still applied, and in **both** languages |
+| VMR-008 | **fixed** | still applied, and **far wider** than reported |
+
+### VMR-008 was one finding hiding 239
+
+The review reported one English page linking to a French one. Measured across the tree: **239 links
+on 38 `.en.md` pages** sent an English reader to the French version of a page that *has* an English
+one. All rewritten.
+
+The reason it accumulated is the interesting part. `docs_check` already knew about the situation — it
+**followed the twin** to check anchors on the page the reader would land on — and thereby compensated
+for the mistake in silence instead of reporting it. It now reports it, and the rule was verified by
+reintroducing a bad link and watching it fail. A checker that quietly works around a defect is worse
+than one that ignores it, because it makes the defect invisible.
+
+### VMR-007 was nearly missed for a stupid reason
+
+`grep "coming next"` on the English page found nothing, so it looked fixed. The phrase is split
+across two lines. It said "(coming next)" while `veaf_libs/data/convert-profiles/` has shipped
+`foothold.yaml` and `foothold-ww2.yaml` for months. Both pages now name them.
+
+### Error/bug tail, two of the same shape
+
+| | Outcome | |
+|---|---|---|
+| VMR-049 | **fixed** | the auto-downloaded `dcs-bridge.lua` temp file was never deleted |
+| VMR-057 | already-fixed | the updater's temp zip is already in a `try/finally` |
+
+VMR-049 carried a trap worth recording: the caller cannot simply delete what it is handed, because
+the same argument also carries a `lua_path` the mission maker supplied. The worker remembers which
+file *it* created; two tests cover both sides.
+
+### Where it stands
+
+**47 of 140 decided. 93 left — all LOW or INFO**, of which 56 Error/bug, 10 Security flaw, 9
+Documentation, and 18 readability/optimization/refactoring the ticket says to touch only where a file
+is being changed anyway.
+
+Stopped here deliberately rather than pushing further in one sitting: the ticket's own warning is
+that bulk-fixing reviewer-asserted findings is "churn that looks like diligence", and a sweep of
+this size wants reviewable batches.

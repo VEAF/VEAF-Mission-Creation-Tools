@@ -169,5 +169,5 @@ The **CAS MISSION** submenu only appears once a mission has been generated (via 
 
 ## See Also
 
-- [veafCombatZone](veafCombatZone.md) — for persistent, replayable zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafCasMission` API
+- [veafCombatZone](veafCombatZone.en.md) — for persistent, replayable zones
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafCasMission` API

@@ -38,13 +38,38 @@ def _templates() -> dict:
     return json.loads(read_bundled_text("mission_builder", "data", "placeholder_groups.json"))
 
 
+def _dcs_entries(container: object) -> list:
+    """Return *container*'s entries whether DCS stored them as a list or an indexed table.
+
+    A Lua sequence reaches Python as a list only while its keys are 1..n with no gap; delete a
+    country or a group in the Mission Editor and the same field comes back as a dict keyed by the
+    surviving indexes. Iterating that yields the **keys**, so `country.get(...)` was called on a
+    string and raised AttributeError (SECREV-2 / VMR-047).
+
+    Args:
+        container: The value DCS stored — a list, an indexed dict, or something unusable.
+
+    Returns:
+        The entries, or an empty list when there is nothing iterable.
+    """
+    if isinstance(container, dict):
+        return list(container.values())
+    if isinstance(container, list):
+        return container
+    return []
+
+
 def _coalition_unit_count(coalition: dict) -> int:
     """Count every unit across every country/category of a coalition."""
     total = 0
-    for country in coalition.get("country", []):
+    for country in _dcs_entries(coalition.get("country")):
+        if not isinstance(country, dict):
+            continue
         for category in _UNIT_CATEGORIES:
-            for group in country.get(category, {}).get("group", []):
-                total += len(group.get("units", []))
+            groups = country.get(category)
+            for group in _dcs_entries(groups.get("group") if isinstance(groups, dict) else None):
+                if isinstance(group, dict):
+                    total += len(_dcs_entries(group.get("units")))
     return total
 
 

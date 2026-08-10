@@ -84,5 +84,10 @@ def ask(
             break
         try:
             _answer(line)
-        except RuntimeError as exc:
-            console.print(str(exc), style="red")
+        except Exception as exc:
+            # Only RuntimeError used to be caught, so anything else -- a JSON decode error, a
+            # connection reset -- ended the whole session on one bad question (SECREV-2 / VMR-064).
+            # A REPL's job is to survive its inputs. The type is named so a real bug stays visible
+            # rather than reading like a service hiccup.
+            label = str(exc) if isinstance(exc, RuntimeError) else f"{type(exc).__name__}: {exc}"
+            console.print(label, style="red")

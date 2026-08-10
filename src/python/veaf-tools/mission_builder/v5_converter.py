@@ -41,7 +41,30 @@ from veaf_libs.lua_config_generator import (
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
+from mission_builder.presets_schema_migrator import is_v5_schema as _presets_is_v5_schema
+from mission_builder.presets_schema_migrator import migrate as migrate_presets_schema
 from mission_builder.v5_pipeline_converters import convert_pipeline_file
+
+
+def _holds_v5_schema(step: str, path: Path) -> bool:
+    """Whether a file sitting at its v6 path actually holds the v5 schema.
+
+    Args:
+        step: Pipeline step key, e.g. ``"presets"``.
+        path: The file at the v6 path.
+
+    Returns:
+        ``True`` when the file must be rewritten in place. Unreadable files answer ``False`` — the
+        loader reports them far better than a scan can, and guessing here would turn a parse error
+        into a migration attempt.
+    """
+    if step != "presets":
+        return False
+    try:
+        return _presets_is_v5_schema(yaml.safe_load(path.read_text(encoding="utf-8")))
+    except Exception:
+        return False
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -194,6 +217,15 @@ class PipelineFile:
 
     v5_source: str = ""
     """Original v5 relative path, saved before ``relative`` is updated post-conversion."""
+
+    needs_schema_migration: bool = False
+    """``True`` when the file already sits at its v6 **path** but holds the v5 **schema**.
+
+    Distinct from ``needs_conversion``, which means "a v5 source file has to be turned into a v6
+    one". Here the file is the right file in the right place and the right format; only its inner
+    layout is v5, so it is rewritten where it is (FIX-CONVERT-V5-PRESETS-SCHEMA ticket 02). This
+    used to go unnoticed: the path existed, so the step was reported as already converted.
+    """
 
 
 @dataclass
@@ -780,6 +812,8 @@ class V5Converter:
         # Step 1.5 — Convert v5 pipeline files (before mission.yaml generation)
         if convert_pipeline:
             self._convert_pipeline_files(report, icao_callback=icao_callback)
+            # …and upgrade the ones already at their v6 path but still holding the v5 schema.
+            self._migrate_pipeline_schemas(report, backup=backup)
 
         # Step 2 — Migrate missionConfig.lua
         if report.missionconfig_path:
@@ -927,6 +961,39 @@ class V5Converter:
         # double call never repeats an entry in the report/console.
         report.unrecognized_files = list(dict.fromkeys(report.unrecognized_files))
 
+    def _migrate_pipeline_schemas(self, report: ConversionReport, backup: bool) -> None:
+        """Rewrite pipeline files that sit at their v6 path but hold the v5 schema.
+
+        Only ``presets`` has such a case today. The original is kept beside the mission as
+        ``backup_v5/src/presets.yaml`` when *backup* is on, so a maker can compare.
+
+        Args:
+            report: The conversion report, updated in place with actions and warnings.
+            backup: Whether to keep the pre-migration copy under ``backup_v5/``.
+        """
+        for pf in report.pipeline_files:
+            if not pf.needs_schema_migration:
+                continue
+            label = t(f"pipeline.label.{pf.step}")
+            try:
+                data = yaml.safe_load(pf.path.read_text(encoding="utf-8"))
+                migrated, warnings = migrate_presets_schema(data)
+                if backup:
+                    backup_path = report.mission_folder / "backup_v5" / pf.relative
+                    backup_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(pf.path, backup_path)
+                pf.path.write_text(
+                    yaml.safe_dump(migrated, allow_unicode=True, sort_keys=False, default_flow_style=False),
+                    encoding="utf-8",
+                )
+                pf.needs_schema_migration = False
+                pf.converted = True
+                report.actions.append(t("convert_v5.action.pipeline_schema_migrated", label=label, target=pf.relative))
+                for w in warnings:
+                    report.warnings.append(f"{label}: {w}")
+            except Exception as exc:
+                report.warnings.append(t("convert_v5.action.pipeline_convert_failed", label=label, exc=exc))
+
     def _convert_pipeline_files(
         self,
         report: ConversionReport,
@@ -985,7 +1052,17 @@ class V5Converter:
             for rel in v6_candidates:
                 p = folder / rel
                 if p.exists():
-                    report.pipeline_files.append(PipelineFile(step=step, path=p, relative=rel))
+                    # Being at the v6 path is not the same as being at the v6 schema. Detected by
+                    # **structure**, never by file name: a name says nothing about content, which is
+                    # exactly how a v5 presets.yaml used to pass for converted.
+                    report.pipeline_files.append(
+                        PipelineFile(
+                            step=step,
+                            path=p,
+                            relative=rel,
+                            needs_schema_migration=_holds_v5_schema(step, p),
+                        )
+                    )
                     break
             else:
                 # Not found as v6 — check v5 source paths

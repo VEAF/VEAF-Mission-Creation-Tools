@@ -430,6 +430,7 @@
   "convert_v5.action.modules_detected": "missionConfig.lua : {count} module(s) activé(s) détecté(s) : {list}",
   "convert_v5.action.pipeline_convert_failed": "{label} : conversion échouée — {exc}. Convertissez manuellement (voir le guide de migration).",
   "convert_v5.action.pipeline_converted": "{label} : converti vers {target}",
+  "convert_v5.action.pipeline_schema_migrated": "{label} : {target} était déjà au bon emplacement v6 mais contenait le schéma v5 — réécrit sur place (original conservé dans backup_v5/)",
   "convert_v5.action.pipeline_steps_ready": "{count} étape(s) de pipeline prête(s)",
   "convert_v5.action.pipeline_steps_v5": "{count} étape(s) détectée(s) au format v5 (conversion nécessaire)",
   "convert_v5.action.qra_extracted": "mission.yaml : {count} définition(s) QRA extraite(s)",

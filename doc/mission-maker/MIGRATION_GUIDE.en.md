@@ -312,6 +312,21 @@ Module enable/disable is configured in `mission.yaml` → `modules:` — not in 
 
 ## Common Issues
 
+### "cannot load the presets file" after a conversion
+
+A `src/presets.yaml` already present before the conversion could be written against the **v5
+schema**: same name, same file format, but a different inner layout (`presets_definition:` instead
+of `presets_collection:`, one extra `coalitions:` level, radios defined inline inside each preset).
+`convert-v5` left it alone — it was in the right place — and the build then failed on the next step.
+
+`convert-v5` now detects that case **by the file's structure** and rewrites it in place, keeping the
+original as `backup_v5/src/presets.yaml`. The conversion report says so, with a warning for anything
+it could not settle on its own (a radio whose channels straddle two bands, for instance).
+
+If you edit that file by hand, note that the loader now refuses a section it does not recognise
+instead of ignoring it in silence, and names the offending key, what it found there and what it
+expected.
+
 ### "VEAF scripts loader" trigger appears twice
 
 You have both an old manual `DO SCRIPT FILE` trigger and the v6 auto-injected one. Remove the manual trigger from the DCS Mission Editor (open the `.miz`, edit triggers, delete the old one, save), then re-extract and rebuild.

@@ -12,6 +12,7 @@ from pathlib import Path
 
 import yaml
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 from veaf_libs.checklists import CHECKLISTS_FOLDER_NAME
 
 _MIZ_FOLDER = "l10n/DEFAULT"
@@ -29,13 +30,7 @@ _CHECKLIST = {
 
 
 def _make_worker(with_mission_checklist: bool = True) -> MissionBuilderWorker:
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_folder = Path(tempfile.mkdtemp())
-    worker.output_mission = worker.mission_folder / "out.miz"
-    worker.scripts_path = None
-    worker.dev_mode = True
-    worker.checklist_images = []
+    worker = make_worker(mission_folder=Path(tempfile.mkdtemp()), dev_mode=True)
     if with_mission_checklist:
         folder = worker.mission_folder / CHECKLISTS_FOLDER_NAME
         folder.mkdir(parents=True)

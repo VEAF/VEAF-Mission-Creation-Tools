@@ -100,10 +100,10 @@ the uncapped fetches of VMR-009 and the bridge/updater).
 | 01 | [Currency triage — method, tooling, and the eight verified](tickets/01-currency-triage.md) | 🔄 |
 | 02 | [Untrusted text into executed code — the five layers](tickets/02-unsafe-interpolation.md) | ✅ |
 | 03 | [Security gates that fail open](tickets/03-fail-open-gates.md) | ✅ |
-| 04 | [Integrity checks that pass when metadata is missing](tickets/04-fail-closed-integrity.md) | ⬜ |
-| 05 | [The two high-severity correctness bugs](tickets/05-correctness-bugs.md) | ⬜ |
-| 06 | [The 24 medium findings](tickets/06-medium-sweep.md) | ⬜ |
-| 07 | [The 108 low and info findings](tickets/07-low-info-sweep.md) | ⬜ |
+| 04 | [Integrity checks that pass when metadata is missing](tickets/04-fail-closed-integrity.md) | 🔄 |
+| 05 | [The two high-severity correctness bugs](tickets/05-correctness-bugs.md) | ✅ |
+| 06 | [The 24 medium findings](tickets/06-medium-sweep.md) | ✅ |
+| 07 | [The 108 low and info findings](tickets/07-low-info-sweep.md) | 🔄 |
 
 ## What this lot will not do
 

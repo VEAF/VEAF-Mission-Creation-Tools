@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from mission_builder_factory import make_worker
 from veaf_libs.i18n import set_language
 
 
@@ -20,18 +21,18 @@ def _make_worker(
 ) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the attributes
     needed by complete_src_folder_with_defaults()."""
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_folder = mission_folder
-    worker.scripts_path = None  # forces defaults_folder resolution via mission_folder/published/src
-    worker.mission_yaml = mission_yaml
-    worker.pipeline_cfg = mission_yaml.get("pipeline") or {}
-    # Raw (pre-profile) yaml: in these unit tests the same dict doubles as the raw
-    # config (it carries the pipeline + any profiles the orphan check reasons about).
-    worker._raw_yaml = mission_yaml
-    worker.custom_scripts = custom_scripts or []
-    worker.custom_scripts_generate_load_trigger = custom_scripts_generate_load_trigger
-    return worker
+    # scripts_path stays None (the factory default): that forces defaults_folder resolution
+    # via mission_folder/published/src.
+    return make_worker(
+        mission_folder=mission_folder,
+        mission_yaml=mission_yaml,
+        pipeline_cfg=mission_yaml.get("pipeline") or {},
+        # Raw (pre-profile) yaml: in these unit tests the same dict doubles as the raw
+        # config (it carries the pipeline + any profiles the orphan check reasons about).
+        _raw_yaml=mission_yaml,
+        custom_scripts=custom_scripts or [],
+        custom_scripts_generate_load_trigger=custom_scripts_generate_load_trigger,
+    )
 
 
 def _seed_defaults(defaults_folder: Path, *filenames: str) -> None:
@@ -414,11 +415,10 @@ class TestCustomScriptsLoadTrigger(unittest.TestCase):
         custom_scripts: list[CustomScript],
         global_trigger: bool = True,
     ) -> MissionBuilderWorker:
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker._dcs_bridge_temp_file = None
-        worker.custom_scripts = custom_scripts
-        worker.custom_scripts_generate_load_trigger = global_trigger
-        return worker
+        return make_worker(
+            custom_scripts=custom_scripts,
+            custom_scripts_generate_load_trigger=global_trigger,
+        )
 
     def test_undeclared_file_always_triggers(self) -> None:
         """A file not in custom_scripts always gets a load trigger."""

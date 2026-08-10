@@ -7,16 +7,13 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from mission_builder_factory import make_worker
 
 
 def _make_worker_from_yaml(yaml_dict: dict) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without __init__, injecting custom_scripts parsing attributes."""
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker._dcs_bridge_temp_file = None
-    worker.mission_yaml = yaml_dict
+    worker = make_worker(mission_yaml=yaml_dict)
     # Replicate the parsing logic from __init__
-    worker.custom_scripts = []
-    worker.custom_scripts_generate_load_trigger = True
     cs_section: dict = yaml_dict.get("custom_scripts") or {}
     if cs_section:
         worker.custom_scripts_generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))

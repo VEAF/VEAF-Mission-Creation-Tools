@@ -70,11 +70,11 @@ meantime.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Repo-wide relative-link pass in `docs_check`](tickets/01-repo-link-pass.md) | ⬜ |
-| 02 | [Fix the 68 links PR #655 broke](tickets/02-fix-655-regression.md) | ⬜ |
-| 03 | [Fix the `.fr.md` links](tickets/03-fix-fr-md-links.md) | ⬜ |
-| 04 | [Decide what to do with the historical documents](tickets/04-historical-documents.md) | ⬜ |
-| 05 | [Wire the pass into CI](tickets/05-ci-wiring.md) | ⬜ |
+| 01 | [Repo-wide relative-link pass in `docs_check`](tickets/01-repo-link-pass.md) | ✅ |
+| 02 | [Fix the 68 links PR #655 broke](tickets/02-fix-655-regression.md) | ✅ |
+| 03 | [Fix the `.fr.md` links](tickets/03-fix-fr-md-links.md) | ✅ |
+| 04 | [Decide what to do with the historical documents](tickets/04-historical-documents.md) | ✅ |
+| 05 | [Wire the pass into CI](tickets/05-ci-wiring.md) | ✅ |
 
 ## What this pass does not check, deliberately
 

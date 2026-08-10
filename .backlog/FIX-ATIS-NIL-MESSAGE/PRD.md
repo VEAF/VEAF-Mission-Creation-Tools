@@ -42,7 +42,7 @@ own — one leaks a `nil`, the other bypasses i18n.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Words instead of a nil, and a floor under every message](tickets/01-atis-fallback-message.md) | 🔄 |
+| 01 | [Words instead of a nil, and a floor under every message](tickets/01-atis-fallback-message.md) | ✅ |
 
 ## Two fixes, deliberately, at two levels
 

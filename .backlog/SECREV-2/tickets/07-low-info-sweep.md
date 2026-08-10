@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 2 done (85/140 decided)
+Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Lua batch 3 done (91/140 decided)
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -528,3 +528,78 @@ Two findings in `veafSpawnAircraft` were read and deliberately left for the next
 limit off-by-one) and VMR-099 (an inverted `hiddenOnMFD` flag) both need the surrounding callsign
 bookkeeping understood before touching it, and guessing at a spawn limit is how you break a working
 feature.
+
+## Sweep, eighth pass — Error/bug, Lua batch 3 (the spawn family), 2026-08-10
+
+The two findings the last batch deferred, plus the four remaining spawn/weather Error/bug entries.
+**Six findings; five fixed, one disproved.** Reading the callsign bookkeeping first — the reason
+they were deferred — is what showed that half of one finding's remedy was a regression.
+
+| | Outcome | |
+|---|---|---|
+| VMR-098 | **fixed** | a taken callsign was handed out twice; but the reported `>=` would have capped missions at 7 |
+| VMR-099 | **fixed** | `-showmfd` inverted — on **two** handlers, not the one reported |
+| VMR-100 | **fixed** | a cargo spawn edited the shared DCS units database |
+| VMR-101 | **fixed** | one positionless convoy hid every live one |
+| VMR-102 | **fixed** | laser codes no aircraft can dial produced a plausible frequency |
+| VMR-103 | does-not-reproduce | proved by enumerating 346 million ordered pairs |
+
+### VMR-098: right about the symptom, wrong about the fix
+
+The finding asked for `>` → `>=` on `numberSpawned > maximumAmount`. Applying it would have broken a
+working feature: `numberSpawned` is a **pre-incremented** counter — set to 1 *before* the first spawn
+— so `>` already refuses the ninth AFAC, and `>=` would have refused the eighth. Both bounds are now
+pinned by tests so the next reader does not have to re-derive it.
+
+The real defect is the other half, and it is a name collision. When the callsign loop found nothing
+free it kept its initial value, `callsigns[coalition][numberSpawned].name` — a callsign that may
+belong to an AFAC still flying. Two aircraft answer to one name, and the first watchdog to fire
+releases a slot the other one is still using. The spawn is now refused instead.
+
+### VMR-099 was two handlers, and VMR-100 was invisible for a good reason
+
+- **VMR-099** — `cap` passes the same raw `options.showMFD` as `afac`, against `not options.showMFD`
+  in every other handler. Fixing only the cited line would have left half the defect. The
+  consequence is backwards in game: the default hid nothing and `-showmfd` hid the aircraft.
+- **VMR-100** — `veafUnits.findDcsUnit` returns the live `dcsUnits.DcsUnitsDatabase` entry, so the
+  min/max swap wrote into the shared database. Nothing *observable* changes today, because this is
+  the only code that reads `minMass`/`maxMass` besides the `dcsDataExport` dump — worth saying
+  plainly rather than dressing it up: the fix is three lines and removes a global write, not a
+  reproducible bug.
+
+### VMR-103: disproved by enumeration, with a control
+
+The claim is that the per-component `or` chain is not a chronological comparison. Rather than argue
+it, enumerate: 26 304 hour blocks across three years, **345 963 360 ordered pairs**, and the shipped
+predicate never once disagreed with a lexicographic `(year, month, day, hour)` comparison. Under a
+monotonic clock the two are equivalent — if every component were less-or-equal, the instant could not
+be later.
+
+The control is the part that makes the number mean something: the same comparison with the clock
+allowed to run backwards **does** diverge. Without it, a probe that enumerates nothing looks
+identical to a probe that proves the point. `timer.getAbsTime()` never runs backwards.
+
+### I reintroduced the defect this ticket has now fixed four times
+
+The convoy fix logs a skipped convoy — and I wrote `veaf.loggers.get(...):warning(...)`. The VEAF
+logger has `warn`, not `warning`, so the skip path raised. Exactly VMR-077, VMR-078, VMR-081 and
+VMR-075: the error path being the error. It was caught by the test rather than by a pilot, which is
+the only difference between this and the findings it repeats.
+
+### Two things measuring found that nobody had reported
+
+- **An existing test asserted a wrong behaviour.** `test_returns_string` pinned
+  `convertLaserToFreq(1500)` as returning a frequency. `1500` carries two `0` digits and is not a
+  dialable DCS code — the test was defending the defect. And two of my own new tests passed before
+  the fix, because `1110` and `1101` fall below the 1111 floor and never reached the digit rule;
+  replaced with 1210 and 1201, which do.
+- **The documentation named the wrong keyword.** Both GUIDE pages show `_spawn afac, … code 1688`.
+  `code` is the **TACAN** channel; the laser keyword is `laser`. The example appears to work only
+  because `1688` is already the default. Corrected in French and English, with the digit rule written
+  down for the first time.
+
+### Where it stands
+
+**91 of 140 decided. 49 left**: 22 Error/bug (**9 Python, 13 Lua**), 9 Documentation, 18
+readability/optimization/refactoring the ticket says to touch only where a file is being changed
+anyway. No Security flaw, no CONFIRMED finding, and nothing left in `veafSpawnAircraft`.

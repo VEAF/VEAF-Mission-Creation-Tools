@@ -93,9 +93,12 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_radio_lua_functions(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
-    mission = _read_source_mission(folder)
+    mission, mission_error = _read_source_mission(folder)
     if mission is None:
-        issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
+        if mission_error:
+            issues.append(ValidationIssue(ERROR, t("validate.source_mission_unreadable", error=mission_error)))
+        else:
+            issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
         return issues
 
     issues += validate_mission_content(yaml_data, mission)
@@ -289,18 +292,33 @@ def _check_config_override_target(scripts_dir: Path, target: object) -> list[Val
     return [ValidationIssue(ERROR, t("validate.config_override_target_missing", target=name))]
 
 
-def _read_source_mission(folder: Path) -> dict | None:
-    """Parse the unpacked source mission table (``src/mission/mission``); ``None`` if absent/unreadable."""
+def _read_source_mission(folder: Path) -> tuple[dict | None, str | None]:
+    """Parse the unpacked source mission table (``src/mission/mission``).
+
+    VMR-062: this used to answer ``None`` for both "the file is not there" and "the file is there
+    and will not parse", and the caller turned that into the *not found* warning — so a corrupt
+    mission table disabled the reference checks while pointing the mission maker at a missing file.
+
+    Args:
+        folder: The mission folder to read from.
+
+    Returns:
+        ``(mission, error)``. ``mission`` is the parsed table, or ``None`` when it could not be
+        read; ``error`` describes why when the file exists but is unusable, and is ``None`` when
+        the file is simply absent.
+    """
     mission_file = folder / "src" / "mission" / "mission"
     if not mission_file.is_file():
-        return None
+        return None, None
     try:
         import luadata  # type: ignore[import-untyped]
 
         content = luadata.unserialize(mission_file.read_text(encoding="utf-8"), keep_as_dict=["trig", "trigrules"])
-    except Exception:  # noqa: BLE001 - a parse failure just disables the mission-content checks
-        return None
-    return content if isinstance(content, dict) else None
+    except Exception as exc:  # noqa: BLE001 - reported to the caller rather than silently skipped
+        return None, str(exc) or exc.__class__.__name__
+    if not isinstance(content, dict):
+        return None, f"expected a table, got {type(content).__name__}"
+    return content, None
 
 
 def _aircraft_counts(mission: dict) -> tuple[int, int]:

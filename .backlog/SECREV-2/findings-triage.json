@@ -159,10 +159,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
     "line": "207",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it empties the list rather than truncating it. `_extract_list` tested `content[i - 1] == chr(92)` regardless of string state, where `_extract_table` ten lines above uses an `escape_next` flag honoured only inside a string. So an ordinary Windows path in a Lua string left the closing quote looking escaped, the string never closed, and no brace after it was counted — measured: zero tables returned instead of two. Aligned with `_extract_table`. 6 tests."
   },
   {
     "vid": "VMR-111",
@@ -305,12 +305,12 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/mission_builder/config_migrator.py",
     "line": "1044",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the consequence is at the tail rather than the head the title names. `_comment_out_span` receives the offsets of a regex match, which need not sit on a line boundary — unlike `_extract_inline_value`, which expands to the whole line first. So a statement sharing the **last** line with the table's closing brace ended up behind the `--` marker and stopped being code (measured: `} local keep = 1` became a comment), and a statement sharing the first line read as though it had been extracted too. The span is now isolated onto its own lines. 5 tests."
   },
   {
     "vid": "VMR-050",
@@ -320,15 +320,15 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
     "line": "1156",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed as an inconsistency, and the fix is the opposite of what the title suggests. The collection loop handled a list-shaped category; the removal loop calls `.get()` on the same value, which a list has not — so that branch could only ever raise. It could not have been right either way: a trigger index is shared across categories, so mixing 0-based list positions with Lua's 1-based keys would delete *other* triggers. Measured that the shape cannot occur — every read of `mission_content` passes `keep_as_dict=[\"trig\", \"trigrules\"]` and the policy covers the subtree — so the half-handling is gone and replaced by an explicit fail-closed check. 6 tests, including a control that a non-`trig` table is still allowed to be a list (so the invariant test is not vacuous) and one that watches the new guard refuse."
   },
   {
     "vid": "VMR-051",
@@ -338,15 +338,15 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/mission_builder/v5_pipeline_converters.py",
     "line": "635",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "9af588f2 fix(convert-v5): integer channel keys + header comments in generated presets.yaml (FIX-CONVERTV5-PRESETS-OUTPUT) (#567)",
       "e8db4756 feat(convert-v5): readable channel aliases instead of hardcoded frequencies (FEAT-CONVERTV5-FREQ-ALIASING) (#566)",
       "e15e7543 feat(convert-v5): simplified preset plan by default + faithful copy (ADR 0010) (#562)",
       "1dcbcd55 feat(presets): convert-v5 generates a preset plan by default (ADR 0010) (#559)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `pos.get(\"lat\", pos.get(\"latitude\"))` only reaches the fallback when the key is absent, so a v5 JSON with an explicit `\"lat\": null` beside a real `latitude` emitted `latitude: null` and lost the coordinate silently. Replaced by a first-non-None lookup for all three keys. 5 tests, including a control that a genuinely absent coordinate still comes out None rather than being invented."
   },
   {
     "vid": "VMR-052",
@@ -496,13 +496,13 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/veaf_libs/mission_validator.py",
     "line": "194",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, but the defect is a misleading diagnosis rather than silence: `_read_source_mission` returned None both for 'absent' and for 'present but unparseable', and the caller turns None into the *not found* warning — so a corrupt mission table disabled the group / preset / waypoint / TUM checks while pointing the mission maker at a missing file. It now returns the reason, and an unreadable table is an ERROR naming the parse failure. New i18n key in both locales. 4 tests — and one of them first passed for the wrong reason, matching only the English wording while the default locale is French."
   },
   {
     "vid": "VMR-063",

@@ -563,12 +563,33 @@ class ConfigMigrator:
     # ------------------------------------------------------------------
 
     def _comment_out_span(self, content: str, start: int, end: int, label: str) -> str:
-        """Replace content[start:end] with commented-out lines tagged with *label*."""
+        """Replace content[start:end] with commented-out lines tagged with *label*.
+
+        VMR-048: the caller passes the offsets of a regex match, which need not sit at a line
+        boundary. The span is therefore isolated onto its own lines first — otherwise a statement
+        sharing the last line with the closing brace ended up **behind** the comment marker and
+        stopped being code, and one sharing the first line read as though it had been extracted too.
+
+        Args:
+            content: The whole Lua config being migrated.
+            start: Offset of the first character to comment out.
+            end: Offset just past the last character to comment out.
+            label: What was extracted, for the caller's own bookkeeping.
+
+        Returns:
+            The content with that span commented out, everything around it left executable.
+        """
         chunk = content[start:end]
         commented = "\n".join(
             f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
         ) + ("\n" if chunk.endswith("\n") else "")
-        return content[:start] + commented + content[end:]
+        head = content[:start]
+        tail = content[end:]
+        if head and not head.endswith("\n"):
+            head = head.rstrip(" \t") + "\n"
+        if tail and not commented.endswith("\n") and not tail.startswith("\n"):
+            tail = "\n" + tail
+        return head + commented + tail
 
     def _extract_inline_value(self, pattern: re.Pattern[str], content: str) -> tuple[str, str | None]:
         """Find the first match of *pattern*, comment out that line, return (new_content, captured_group_1).

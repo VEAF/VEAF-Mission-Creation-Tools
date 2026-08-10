@@ -1334,23 +1334,31 @@ class MissionBuilderWorker(BaseWorker):
         if self.dcs_mission and self.dcs_mission.mission_content:
             mission_triggers: dict = self.dcs_mission.mission_content.get("trig", {})
             trigger_indexes_to_remove = []
-            for trigger_category_value in mission_triggers.values():
-                if isinstance(trigger_category_value, list):
-                    trigger_indexes_to_remove.extend(
-                        [
-                            trigger_index
-                            for trigger_index, value in enumerate(trigger_category_value)
-                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
-                        ]
+            # VMR-050: every category is a dict, by construction — each read of mission_content
+            # passes keep_as_dict=["trig", "trigrules"], and that policy covers the whole subtree
+            # (pinned by test_secrev_trigger_categories_are_dicts.py). The collection loop used to
+            # also handle a list-shaped category, which the removal loop below would have raised on
+            # (`list.get`) — and which could never have been right anyway: a trigger index is shared
+            # across categories, so mixing 0-based list positions with Lua's 1-based keys would
+            # delete other triggers. So the shape is checked rather than half-handled.
+            for trigger_category_name, trigger_category_value in mission_triggers.items():
+                if not isinstance(trigger_category_value, dict):
+                    # Fail closed: `logger.error` raises typer.Abort. Carrying on would leave the
+                    # mission's VEAF triggers half-removed, which is worse than refusing to build.
+                    logger.error(
+                        t(
+                            "builder.trig_category_not_a_dict",
+                            category=trigger_category_name,
+                            kind=type(trigger_category_value).__name__,
+                        )
                     )
-                elif isinstance(trigger_category_value, dict):
-                    trigger_indexes_to_remove.extend(
-                        [
-                            trigger_key
-                            for trigger_key, value in trigger_category_value.items()
-                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
-                        ]
-                    )
+                trigger_indexes_to_remove.extend(
+                    [
+                        trigger_key
+                        for trigger_key, value in trigger_category_value.items()
+                        if any(s in str(value) for s in veaf_dict_keys_to_remove)
+                    ]
+                )
 
             # remove duplicates
             trigger_indexes_to_remove = list(set(trigger_indexes_to_remove))

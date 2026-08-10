@@ -303,7 +303,7 @@ hook serveur depuis `veaf-pilots.txt`, atteint le palier — c'est la voie par l
 sans mot de passe — soit le **mot de passe** du palier figure dans le texte du marqueur.
 Sans le hook, personne n'a de niveau et tout retombe sur les mots de passe.
 
-Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
+Définissez les mots de passe (hachages SHA-1 — c'est ce que `veafSecurity` compare) dans `mission.yaml` :
 
 ```yaml
 security:

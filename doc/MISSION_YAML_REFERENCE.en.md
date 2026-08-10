@@ -1,6 +1,6 @@
 # mission.yaml Reference
 
-`mission.yaml` is the optional build-time configuration file for veaf-tools. Place it at the root of your mission folder, next to `veaf-tools-updater.exe`. If absent, `veaf-tools build` works with default settings.
+`mission.yaml` is the optional build-time configuration file for veaf-tools. Place it at the root of your mission folder, next to `veaf-tools-updater.exe`. If absent, `veaf-tools mission build` works with default settings.
 
 This page covers the **top-level sections** of `mission.yaml`. Configuration for individual Lua modules is documented in each module's own page (see the [index by module](#index-by-module) below).
 
@@ -12,7 +12,7 @@ A VEAF mission folder uses **two distinct categories** of YAML files. Understand
 
 ### Category A — Build pipeline files
 
-These files drive the **design-time injection** steps that `veaf-tools build` performs before writing the final `.miz`. Each step reads its own YAML file and injects data into the mission. They are listed under the `pipeline:` section of `mission.yaml`.
+These files drive the **design-time injection** steps that `veaf-tools mission build` performs before writing the final `.miz`. Each step reads its own YAML file and injects data into the mission. They are listed under the `pipeline:` section of `mission.yaml`.
 
 | File (in `src/`) | Pipeline step | What it does |
 |------------------|--------------|--------------|
@@ -23,7 +23,7 @@ These files drive the **design-time injection** steps that `veaf-tools build` pe
 | `warehouses.yaml` | `warehouses` | Dynamic-Slot warehouses: `dynamicSpawn`, stock, fuel, template links |
 | `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
 
-These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools build` and then compiled into the `.miz`.
+These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools mission build` and then compiled into the `.miz`.
 
 ### Category B — Runtime module configuration (this file)
 
@@ -79,7 +79,7 @@ modules:
 
 ## Syntax errors
 
-If `mission.yaml` contains a YAML syntax error (wrong indentation, a missing colon, a tab character…), `veaf-tools build` stops immediately and displays a clear message indicating the file name, the line and column of the problem, and a plain-language hint on how to fix it:
+If `mission.yaml` contains a YAML syntax error (wrong indentation, a missing colon, a tab character…), `veaf-tools mission build` stops immediately and displays a clear message indicating the file name, the line and column of the problem, and a plain-language hint on how to fix it:
 
 ```
 Syntax error in mission.yaml, line 81, column 4.
@@ -491,7 +491,7 @@ profiles:
         - path: src/scripts/FgDebug.lua      # extra, dev-only
 ```
 
-Build the dev variant with `veaf-tools build --profile DEV` (it loads `FgMission.lua` + `FgDebug.lua`); the default build loads only `FgMission.lua`.
+Build the dev variant with `veaf-tools mission build --profile DEV` (it loads `FgMission.lua` + `FgDebug.lua`); the default build loads only `FgMission.lua`.
 
 > ⚠️ **Pitfall**: profile deep-merge **replaces lists, it does not concatenate them** (see [`profiles:`](#profiles)). The profile's `custom_scripts.scripts` must therefore **repeat** the base scripts and add the variant-specific one — otherwise the base scripts are lost in that profile.
 
@@ -527,7 +527,7 @@ pipeline:
 
 ### `build:`
 
-Controls how `veaf-tools build` resolves the VEAF scripts bundle.
+Controls how `veaf-tools mission build` resolves the VEAF scripts bundle.
 These settings are normally set via the CLI (`--dev-mode`, `--scripts-path`) and then persisted here automatically.
 
 | Field | Type | Default | Description |
@@ -568,7 +568,7 @@ profiles:
 
 ### `profiles:` {#profiles}
 
-Named build profiles. Each profile is a set of config overrides that deep-merge onto the base `mission.yaml` when you pass `--profile <name>` to `veaf-tools build`. Keys absent from the profile retain their base values. Lists are replaced, not concatenated. The `profiles:` key itself is never written to the built mission.
+Named build profiles. Each profile is a set of config overrides that deep-merge onto the base `mission.yaml` when you pass `--profile <name>` to `veaf-tools mission build`. Keys absent from the profile retain their base values. Lists are replaced, not concatenated. The `profiles:` key itself is never written to the built mission.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -596,8 +596,8 @@ profiles:
 Usage:
 
 ```powershell
-veaf-tools.exe build --profile TEST
-veaf-tools.exe build --profile SERVER
+veaf-tools.exe mission build --profile TEST
+veaf-tools.exe mission build --profile SERVER
 ```
 
 > If the named profile does not exist in `mission.yaml`, a warning is emitted and the base config is used unchanged.
@@ -606,7 +606,7 @@ veaf-tools.exe build --profile SERVER
 
 ### `build_variants:`
 
-A list of build profiles to **emit together**: a single `veaf-tools build` then produces **one `.miz` per variant** (the "moulinette" goal — typically Modern and Cold-War from one mission folder, the variant being only a **config** difference). Each variant builds the full pipeline with its merged profile (see [`profiles:`](#profiles)) and its `.miz` is suffixed with the variant name (`<base>_<VARIANT>.miz`).
+A list of build profiles to **emit together**: a single `veaf-tools mission build` then produces **one `.miz` per variant** (the "moulinette" goal — typically Modern and Cold-War from one mission folder, the variant being only a **config** difference). Each variant builds the full pipeline with its merged profile (see [`profiles:`](#profiles)) and its `.miz` is suffixed with the variant name (`<base>_<VARIANT>.miz`).
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -632,8 +632,8 @@ build_variants:
 ```
 
 ```powershell
-veaf-tools.exe build          # produces <base>_MODERN.miz AND <base>_COLD_WAR.miz
-veaf-tools.exe build --profile MODERN   # produces only the MODERN variant (unsuffixed)
+veaf-tools.exe mission build          # produces <base>_MODERN.miz AND <base>_COLD_WAR.miz
+veaf-tools.exe mission build --profile MODERN   # produces only the MODERN variant (unsuffixed)
 ```
 
 ---

@@ -20,16 +20,16 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
 ```mermaid
 flowchart TD
-    A["Base .miz\n(DCS Editor)"] -->|veaf-tools extract| B["Mission folder\n(src/ + mission.yaml)"]
+    A["Base .miz\n(DCS Editor)"] -->|veaf-tools mission extract| B["Mission folder\n(src/ + mission.yaml)"]
     B --- C["published/\n(VEAF scripts)"]
-    B -->|veaf-tools build| D[".miz ready to fly"]
+    B -->|veaf-tools mission build| D[".miz ready to fly"]
     D -->|DCS loads| E["30+ Lua modules active"]
     E -->|Players use| F["F10 markers · Radio menus"]
 ```
 
 1. **Extract** — Create a base mission in DCS Editor and extract it into version-controllable source files
 2. **Configure** — `mission.yaml` declares active modules; `published/` provides the VEAF Lua scripts
-3. **Build** — `veaf-tools build` assembles everything into a final `.miz`
+3. **Build** — `veaf-tools mission build` assembles everything into a final `.miz`
 4. **Runtime** — DCS loads the `.miz`; players interact via F10 markers and radio menus
 
 ---
@@ -63,14 +63,14 @@ Then, depending on your starting point:
 
 **You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
 ```powershell
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 **You only have a `.miz` file:**
 ```powershell
-veaf-tools.exe extract my-mission.miz
+veaf-tools.exe mission extract my-mission.miz
 # → edit mission.yaml to enable the modules you want
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 Full workflow: [Mission Maker Guide](mission-maker/README.md)

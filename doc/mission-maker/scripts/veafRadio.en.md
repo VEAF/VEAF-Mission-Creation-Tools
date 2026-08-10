@@ -160,7 +160,7 @@ The action vocabulary is **closed** (v1). Each `action` requires the listed keys
 | `message` | `text: "<displayed text>"` | Displays the text on screen |
 | `lua` | `function: "<name.of.function>"`, `args: [ ... ]` (optional) | Calls a mission-maker Lua function |
 
-> **The `lua` action is the bridge to your Lua.** The function referenced by `function:` must be defined by the mission maker in `mission-script.lua`. If it is referenced in YAML but **missing** from the mission's Lua, **the build fails** (and `veaf-tools validate` flags it). This is how you attach a custom Lua function to a menu declared in YAML.
+> **The `lua` action is the bridge to your Lua.** The function referenced by `function:` must be defined by the mission maker in `mission-script.lua`. If it is referenced in YAML but **missing** from the mission's Lua, **the build fails** (and `veaf-tools mission validate` flags it). This is how you attach a custom Lua function to a menu declared in YAML.
 
 ---
 

@@ -100,7 +100,7 @@ steps:
 Puis lancez :
 
 ```bash
-veaf-tools resolve-checklist checklists/ma-checklist.yaml
+veaf-tools cockpit resolve-checklist checklists/ma-checklist.yaml
 ```
 
 L'outil complète les champs techniques **dans votre fichier**, sous chaque `control`, et ajoute un
@@ -156,7 +156,7 @@ d'animation, et la valeur de la position voulue. Cette commande vous les donne *
 cockpit**, sans rien lire :
 
 ```bash
-veaf-tools explore-cockpit F-14BU
+veaf-tools cockpit explore-cockpit F-14BU
 ```
 
 Bougez un interrupteur : l'outil vous dit lequel c'est, et vous affiche l'étape toute prête à coller
@@ -178,7 +178,7 @@ Une valeur écrite par le résolveur reste une hypothèse tant qu'on n'a pas lu 
 l'interrupteur physiquement dans la bonne position. Cette commande le fait, avec vous aux commandes :
 
 ```bash
-veaf-tools verify-checklist checklists/ma-checklist.yaml --write
+veaf-tools cockpit verify-checklist checklists/ma-checklist.yaml --write
 ```
 
 Pour chaque étape mesurable, l'outil **encadre le contrôle dans votre cockpit** et attend que vous le

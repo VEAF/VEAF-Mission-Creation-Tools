@@ -319,7 +319,7 @@ given — its enabled state. Each module's config keys live in its doc page.
 
 High-level actions that lay down a **complete feature** in one call, on a **mission folder**: they
 edit the **durable source** (the exploded `src/mission/` — zones/groups — via `mission_folder`,
-**and** `mission.yaml`), without triggering a build (a later `veaf-tools build` produces the
+**and** `mission.yaml`), without triggering a build (a later `veaf-tools mission build` produces the
 `.miz`). They orchestrate the wave-1..7 primitives (`insert_trigger_zone`,
 `insert_group_into_content`, the `mission.yaml` editor). Implementation: `veaf_mission_mcp/composites.py`.
 
@@ -353,7 +353,7 @@ Write. On an **empty** target folder:
    `veaf-tools-updater-<os>-<arch>` on Unix) and download it from the **stable release-download
    URL** (`…/releases/download/<tag>/<asset>` — no GitHub API, no rate limit).
 2. Run the updater in the folder (it fetches and installs the VEAF tools + `published/`).
-3. Run `veaf-tools prepare --template <tier> --force` in the folder.
+3. Run `veaf-tools mission prepare --template <tier> --force` in the folder.
 
 ```json
 {
@@ -424,7 +424,7 @@ named places work, vague terrain does not.
 ## Build & validate (wave 11)
 
 The earlier actions create, orient and edit a **mission folder**, but nothing produced the playable
-`.miz` — the maker still ran `veaf-tools build` by hand. Wave 11 makes the server **self-sufficient
+`.miz` — the maker still ran `veaf-tools mission build` by hand. Wave 11 makes the server **self-sufficient
 end-to-end**: empty folder → scaffold → theatre blank → composites/placement → **validate → build →
 playable `.miz`**, without leaving the assistant.
 
@@ -439,7 +439,7 @@ Read-only. Lints a **folder** before build: reuses `veaf_libs.mission_validator`
 
 ### `build_mission`
 
-Write. Builds the folder into a playable `.miz` by driving **`veaf-tools build`** in the folder (the
+Write. Builds the folder into a playable `.miz` by driving **`veaf-tools mission build`** in the folder (the
 binary `scaffold_mission` installed, or `veaf-tools` on PATH). The build pipeline lives in the CLI
 command and is re-run as-is. A build failure is surfaced (`RuntimeError`).
 

@@ -1,6 +1,6 @@
 # Pipeline Reference
 
-This page documents the optional **build pipeline** steps that `veaf-tools build` can run after generating `veaf-config.lua`. Each step injects data into the `.miz` file from a separate YAML configuration file.
+This page documents the optional **build pipeline** steps that `veaf-tools mission build` can run after generating `veaf-config.lua`. Each step injects data into the `.miz` file from a separate YAML configuration file.
 
 ---
 

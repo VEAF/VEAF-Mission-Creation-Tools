@@ -60,7 +60,7 @@ close it until you're done).
 - **Copy-paste** this line, then Enter:
 
   ```
-  veaf-tools.exe capture-map --out-dir .
+  veaf-tools.exe dcs capture-map --out-dir .
   ```
 
 - → A **`<Map>.json`** file appears in the folder (e.g. `Syria.json`). 🎉
@@ -106,7 +106,7 @@ Tick as you go. **No need to redo a map already ticked.**
 5. In the terminal (like step 3), type *(use your mission's real path)*:
 
    ```
-   veaf-tools.exe inject-bridge "C:\...\my-mission.miz"
+   veaf-tools.exe dcs inject-bridge "C:\...\my-mission.miz"
    ```
 
    → Your mission is ready (a backup copy is created automatically next to it).

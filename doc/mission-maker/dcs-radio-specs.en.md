@@ -29,7 +29,7 @@ Viggen's (AJS-37) single radio with its hard-coded FR22/FR24 special channels, a
 
 Some aircraft make DCS raise a blocking error when the mission loads if a preset frequency falls
 outside their valid radio range. They carry `dcs_rejects_on_load: true` in `dcs-radio-specs.yaml`
-and always emit a `WARNING` during `veaf-tools build`.
+and always emit a `WARNING` during `veaf-tools mission build`.
 
 Currently known critical aircraft:
 

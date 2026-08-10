@@ -1,6 +1,6 @@
 # REFACTOR-CLI-COMMAND-TREE — 25 commands, filed by subject instead of by verb
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 
 Asked for by David on 2026-08-09: *"j'aimerais qu'on fasse une passe pour ranger les commandes
 dans un arbre, par thème ; ça serait plus pratique pour le TUI, et aussi (dans une moindre mesure)
@@ -69,10 +69,10 @@ puts `presets` and `weather` in groups of one, and costs a third level of depth.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [One source of truth for the tree, and a guard against drift](tickets/01-tree-source-of-truth.md) | ⬜ |
-| 02 | [The CLI grows the tree, and breaks nothing](tickets/02-cli-subcommands.md) | ⬜ |
-| 03 | [The wizard follows the same tree](tickets/03-tui-groups.md) | ⬜ |
-| 04 | [Forty pages still name the flat commands](tickets/04-documentation.md) | ⬜ |
+| 01 | [One source of truth for the tree, and a guard against drift](tickets/01-tree-source-of-truth.md) | ✅ |
+| 02 | [The CLI grows the tree, and breaks nothing](tickets/02-cli-subcommands.md) | ✅ |
+| 03 | [The wizard follows the same tree](tickets/03-tui-groups.md) | ✅ |
+| 04 | [Forty pages still name the flat commands](tickets/04-documentation.md) | ✅ |
 
 Ticket 01 first: both 02 and 03 read from what it defines, and writing the map twice is how the
 wizard and the CLI would drift apart again.

@@ -98,7 +98,7 @@ steps:
 Then run:
 
 ```bash
-veaf-tools resolve-checklist checklists/my-checklist.yaml
+veaf-tools cockpit resolve-checklist checklists/my-checklist.yaml
 ```
 
 It fills in the technical fields **in your own file**, under each `control`, and adds a
@@ -154,7 +154,7 @@ and the value of the position you want. This command gives you all three **by ha
 cockpit**, with nothing to read:
 
 ```bash
-veaf-tools explore-cockpit F-14BU
+veaf-tools cockpit explore-cockpit F-14BU
 ```
 
 Move a switch: the tool names it, and prints the step ready to paste into your file. The value is
@@ -176,7 +176,7 @@ A value the resolver wrote stays a hypothesis until the control has been read wi
 physically in the wanted position. This command does that, with you at the controls:
 
 ```bash
-veaf-tools verify-checklist checklists/my-checklist.yaml --write
+veaf-tools cockpit verify-checklist checklists/my-checklist.yaml --write
 ```
 
 For each measurable step the tool **boxes the control in your cockpit** and waits for you to move

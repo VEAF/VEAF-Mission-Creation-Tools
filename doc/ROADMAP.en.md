@@ -61,7 +61,7 @@ This document describes the intended direction for the project. Items are ordere
 
 - ✅ **Logger filter** (`--log-modules`) — filter which Lua modules write to the DCS log, for cleaner debugging
 - ✅ **DCSUnits doc** — auto-generate `doc/DCS_UNITS.md` from `dcsUnits.lua` before each publish
-- ⚪ **Mission validation** — `veaf-tools validate` command that checks a mission against known VEAF requirements
+- ⚪ **Mission validation** — `veaf-tools mission validate` command that checks a mission against known VEAF requirements
 - ⚪ **Multi-map support** — better handling of missions across different DCS maps (Caucasus, Syria, Persian Gulf, etc.)
 - ⚪ **VS Code extension** — syntax highlighting and validation for VEAF YAML config files
 

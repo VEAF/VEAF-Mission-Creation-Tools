@@ -179,7 +179,7 @@ warnings. Do this before building.
 
 ### Build the playable .miz {#build-mission}
 
-*Folder · 🔥* — Builds the folder into a `.miz` ready to play in DCS (runs `veaf-tools build`). The
+*Folder · 🔥* — Builds the folder into a `.miz` ready to play in DCS (runs `veaf-tools mission build`). The
 payoff: empty folder → content → **playable mission**.
 
 > 💬 *"Build the mission."*
@@ -187,7 +187,7 @@ payoff: empty folder → content → **playable mission**.
 ## 🏗️ Composites — create a full feature (one pass)
 
 *The core goal: from a single request, the AI lays down a whole VEAF feature across **both worlds**
-(source `src/mission` + `mission.yaml`) of a **mission folder**. Durable: a later `veaf-tools build`
+(source `src/mission` + `mission.yaml`) of a **mission folder**. Durable: a later `veaf-tools mission build`
 produces the `.miz`.*
 
 ### Create a full combat zone {#create-combat-zone}

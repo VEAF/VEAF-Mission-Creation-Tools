@@ -31,7 +31,7 @@ une modification de fréquence se propage à toute la flotte.
 
 Certains appareils provoquent une erreur DCS bloquante au chargement de la mission si une fréquence
 de preset se trouve hors de leur plage radio valide. Ils sont marqués `dcs_rejects_on_load: true`
-dans `dcs-radio-specs.yaml` et émettent toujours un `WARNING` pendant `veaf-tools build`.
+dans `dcs-radio-specs.yaml` et émettent toujours un `WARNING` pendant `veaf-tools mission build`.
 
 Appareils critiques actuellement connus :
 

@@ -536,7 +536,7 @@ git push origin published-v6.1.0
 ## Developer Mode {#developer-mode}
 
 Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
-When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone
+When enabled, `veaf-tools mission build` reads scripts from a local VEAF-Mission-Creation-Tools clone
 instead of the `published/` folder shipped with veaf-tools.
 
 ### Prerequisites
@@ -548,7 +548,7 @@ instead of the `published/` folder shipped with veaf-tools.
 
 | Priority | Method | Effect |
 |----------|--------|--------|
-| 1 | `veaf-tools build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
+| 1 | `veaf-tools mission build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
 | 2 | `mission.yaml build.dev_mode: true` | Persisted config — applies every build |
 | 3 | *(default)* | `false` — uses published scripts |
 
@@ -580,7 +580,7 @@ poetry run veaf-build build
 
 # 3. Build a test mission using the local scripts
 cd path/to/my-mission
-veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
+veaf-tools mission build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
 ```
 
 ---

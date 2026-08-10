@@ -175,7 +175,7 @@ A **spawnable aircraft group** is identified by the **`veafSpawn-` name prefix**
 The file uses the **full DCS aircraft-group schema** (`airplanes`/`helicopters` → `coalitions` → country → group), identical to the one described in the [Pipeline Reference — Step 3](../../PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups). It is usually produced by extracting from a mission:
 
 ```bash
-veaf-tools extract-aircraft-groups --kind spawnable
+veaf-tools content extract-aircraft-groups --kind spawnable
 ```
 
 **Dynamic-slot templates** (`dynSpawnTemplate = true`, DCS Dynamic Slots) are a separate family, in `src/dynamic-slot-templates.yaml` (step `dynamic_slot_templates`) — see [ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md).

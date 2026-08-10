@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
 
+from veaf_tools.command_tree import COMMAND_GROUPS, ROOT_COMMANDS, ROOT_GROUP_ID, group_of
+
 from veaf_libs.i18n import t
 
 # ---------------------------------------------------------------------------
@@ -49,15 +51,14 @@ class ArgPrompt:
         return "--" + self.key.replace("_", "-")
 
 
-#: The wizard's headings, in display order. Four rather than one flat list of twenty:
-#: David's call, made when the three assistance commands turned out to be one workflow
-#: scattered across the menu.
-GROUP_BUILD = "build"
-GROUP_EXTRACTION = "extraction"
-GROUP_CONFIG = "config"
-GROUP_ASSISTANCE = "assistance"
+#: The wizard's headings, in display order, taken from the command tree — the CLI reads the same one,
+#: so the two interfaces cannot disagree about where a command lives (REFACTOR-CLI-COMMAND-TREE).
+#: The root commands come last, under their own heading: the wizard has no root.
+GROUP_ORDER: tuple[str, ...] = tuple(group.id for group in COMMAND_GROUPS) + (ROOT_GROUP_ID,)
 
-GROUP_ORDER: tuple[str, ...] = (GROUP_BUILD, GROUP_EXTRACTION, GROUP_CONFIG, GROUP_ASSISTANCE)
+#: The CLI's group names, so the bridge can tell `mission build` from a bare command. None of them
+#: is also a command name — asserted by a test, since a collision would make one unreachable.
+_GROUP_IDS: frozenset[str] = frozenset(group.id for group in COMMAND_GROUPS)
 
 
 @dataclass
@@ -70,9 +71,15 @@ class CommandSpec:
     """One-line description shown in the command selector."""
     prompts: list[ArgPrompt] = field(default_factory=list)
     """Ordered list of prompts — positional args first, then options."""
-    group: str = GROUP_BUILD
-    """Which heading the wizard files this command under. Commands that form one
-    workflow have to be next to each other: the assistance ones are useless apart."""
+
+    @property
+    def group(self) -> str:
+        """The heading this command is filed under, read from the command tree.
+
+        Derived rather than declared: the tree is the only place a command's group is written, so
+        the wizard and the CLI cannot drift apart.
+        """
+        return group_of(self.cli_name) or ROOT_GROUP_ID
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +90,6 @@ COMMANDS: list[CommandSpec] = [
     # ── Most frequent: daily build/inject loop ──────────────────────────────
     CommandSpec(
         cli_name="build",
-        group=GROUP_BUILD,
         description=t("tui.cmd.build.description"),
         prompts=[
             ArgPrompt(
@@ -94,7 +100,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-presets",
-        group=GROUP_BUILD,
         description=t("tui.cmd.inject_presets.description"),
         prompts=[
             ArgPrompt(
@@ -105,7 +110,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-weather",
-        group=GROUP_BUILD,
         description=t("tui.cmd.inject_weather.description"),
         prompts=[
             ArgPrompt(
@@ -115,7 +119,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-aircraft-groups",
-        group=GROUP_BUILD,
         description=t("tui.cmd.inject_aircraft.description"),
         prompts=[
             ArgPrompt(
@@ -126,7 +129,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="inject-waypoints",
-        group=GROUP_BUILD,
         description=t("tui.cmd.inject_waypoints.description"),
         prompts=[
             ArgPrompt(
@@ -137,7 +139,6 @@ COMMANDS: list[CommandSpec] = [
     # ── Occasional: extraction ──────────────────────────────────────────────
     CommandSpec(
         cli_name="extract",
-        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract.description"),
         prompts=[
             ArgPrompt(
@@ -150,7 +151,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="extract-aircraft-groups",
-        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract_aircraft.description"),
         prompts=[
             ArgPrompt(
@@ -161,7 +161,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="extract-waypoints",
-        group=GROUP_EXTRACTION,
         description=t("tui.cmd.extract_waypoints.description"),
         prompts=[
             ArgPrompt(
@@ -172,7 +171,6 @@ COMMANDS: list[CommandSpec] = [
     # ── Rare: project setup / one-time migration ────────────────────────────
     CommandSpec(
         cli_name="convert-v5",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.convert_v5.description"),
         prompts=[
             ArgPrompt(
@@ -184,7 +182,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="convert-other",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.convert_other.description"),
         prompts=[
             ArgPrompt(
@@ -206,7 +203,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="prepare",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.prepare.description"),
         prompts=[
             ArgPrompt(
@@ -229,7 +225,6 @@ COMMANDS: list[CommandSpec] = [
     # ── Config / validation utilities ───────────────────────────────────────
     CommandSpec(
         cli_name="export",
-        group=GROUP_EXTRACTION,
         description=t("tui.cmd.export.description"),
         prompts=[
             ArgPrompt(
@@ -240,7 +235,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="validate",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.validate.description"),
         prompts=[
             ArgPrompt(
@@ -251,7 +245,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="resolve-checklist",
-        group=GROUP_ASSISTANCE,
         description=t("tui.cmd.resolve_checklist.description"),
         prompts=[
             ArgPrompt(
@@ -266,7 +259,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="explore-cockpit",
-        group=GROUP_ASSISTANCE,
         description=t("tui.cmd.explore_cockpit.description"),
         prompts=[
             ArgPrompt("aircraft", t("tui.arg.explore_aircraft"), default="F-16C_50", is_option=False, required=True),
@@ -275,7 +267,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="verify-checklist",
-        group=GROUP_ASSISTANCE,
         description=t("tui.cmd.verify_checklist.description"),
         prompts=[
             ArgPrompt(
@@ -290,7 +281,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="migrate-config",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.migrate_config.description"),
         prompts=[
             ArgPrompt("input_file", t("tui.arg.migrate_config_input"), default="", is_option=False, required=True),
@@ -298,7 +288,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="generate-config",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.generate_config.description"),
         prompts=[
             ArgPrompt("output", t("tui.arg.generate_config_output"), default="."),
@@ -306,25 +295,41 @@ COMMANDS: list[CommandSpec] = [
     ),
     CommandSpec(
         cli_name="user-config",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.user_config.description"),
         prompts=[],
     ),
     CommandSpec(
         cli_name="ask",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.ask.description"),
         prompts=[],
     ),
     CommandSpec(
         cli_name="about",
-        group=GROUP_CONFIG,
         description=t("tui.cmd.about.description"),
         prompts=[],
     ),
 ]
 
 _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}
+
+
+def _in_tree_order(commands: list[CommandSpec], group: str) -> list[CommandSpec]:
+    """Order a group's commands the way the tree lists them, not the way COMMANDS declares them.
+
+    The tree's intra-group order is deliberate — `prepare` before `validate` before `build` is the
+    order a mission maker does them in — and the CLI's ``--help`` reads it too, so the wizard has to
+    as well or the two interfaces show the same group differently.
+
+    Args:
+        commands: The group's commands, in declaration order.
+        group: The group id, or the root pseudo-group.
+
+    Returns:
+        The same commands, in tree order; anything the tree does not list keeps its relative place
+        at the end rather than disappearing.
+    """
+    listed = next((g.commands for g in COMMAND_GROUPS if g.id == group), ROOT_COMMANDS)
+    return sorted(commands, key=lambda cmd: listed.index(cmd.cli_name) if cmd.cli_name in listed else len(listed))
 
 
 def _grouped_choices() -> list[Any]:
@@ -339,12 +344,12 @@ def _grouped_choices() -> list[Any]:
 
     entries: list[Any] = []
     for group in GROUP_ORDER:
-        commands = [cmd for cmd in COMMANDS if cmd.group == group]
+        commands = _in_tree_order([cmd for cmd in COMMANDS if cmd.group == group], group)
         if not commands:
             continue
         if entries:
             entries.append(Separator(" "))
-        entries.append(Separator(f"── {t(f'tui.group.{group}')} ──"))
+        entries.append(Separator(f"── {t(f'tree.group.{group}.label')} ──"))
         entries.extend(Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in commands)
     return entries
 
@@ -531,6 +536,12 @@ def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
         return wizard_args
 
     command, rest = tokens[0], tokens[1:]
+    if command in _GROUP_IDS and rest:
+        # The grouped form, `veaf-tools mission build …`: the command is the second token. Without
+        # this the bridge saw `mission`, found no CommandSpec, and let Typer run a command that was
+        # missing a required option — the exact case the bridge exists to catch
+        # (REFACTOR-CLI-COMMAND-TREE ticket 02).
+        command, rest = rest[0], rest[1:]
     spec = _COMMAND_MAP.get(command)
     if spec is None:
         return None

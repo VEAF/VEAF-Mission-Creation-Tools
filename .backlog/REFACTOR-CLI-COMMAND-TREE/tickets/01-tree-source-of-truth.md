@@ -1,6 +1,6 @@
 # 01 — One source of truth for the tree, and a guard against drift
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 Type: refactor
 Files: `src/python/veaf-tools/veaf_tools/command_tree.py` (new), `test/python/…`
 
@@ -28,3 +28,16 @@ needs prompts for 21. Neither list is a superset of the other, so the tree has t
 
 - [ ] Adding a command without placing it in the tree fails a test, naming the command.
 - [ ] The wizard and the CLI cannot disagree about a group, because neither owns the answer.
+
+## Done
+
+`veaf_tools/command_tree.py` holds the placement; `tui.py` derives `CommandSpec.group` from it as a
+property, and the 21 hand-written `group=` arguments are gone, so neither side owns the answer.
+`MACHINE_ONLY_COMMANDS` is untouched, as the ticket asked — it answers a different question.
+
+The guard fails on a registered command that is not placed, on a tree entry that no longer exists,
+and on a command placed twice.
+
+**One thing the wizard needed that the CLI did not**: it has no root, so every entry needs a
+heading. `ROOT_GROUP_ID` gives the root commands one while the CLI keeps them at the top level —
+the same placement, expressed the way each interface can express it.

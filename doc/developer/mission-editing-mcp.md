@@ -326,7 +326,7 @@ est fourni — son état activé. Les clés de config de chaque module vivent da
 
 Actions haut niveau qui posent une **fonctionnalité complète** en un appel, sur un **dossier de
 mission** : elles éditent la **source durable** (le `src/mission/` exploité — zones/groupes — via
-`mission_folder`, **et** `mission.yaml`), sans déclencher de build (un `veaf-tools build` ultérieur
+`mission_folder`, **et** `mission.yaml`), sans déclencher de build (un `veaf-tools mission build` ultérieur
 produit le `.miz`). Elles orchestrent les primitives des vagues 1-7 (`insert_trigger_zone`,
 `insert_group_into_content`, l'éditeur `mission.yaml`). Implémentation : `veaf_mission_mcp/composites.py`.
 
@@ -360,7 +360,7 @@ ferait un Mission Maker à sa première installation.
    `veaf-tools-updater-<os>-<arch>` sous Unix) et le télécharge depuis l'**URL de release stable**
    (`…/releases/download/<tag>/<asset>` — pas d'API GitHub, donc pas de rate-limit).
 2. Lance l'updater dans le dossier (il télécharge et installe les outils VEAF + `published/`).
-3. Lance `veaf-tools prepare --template <tier> --force` dans le dossier.
+3. Lance `veaf-tools mission prepare --template <tier> --force` dans le dossier.
 
 ```json
 {
@@ -433,7 +433,7 @@ confirmer visuellement ; les lieux nommés marchent, le terrain vague non.
 ## Build & validation (vague 11)
 
 Les actions précédentes créent, orientent et éditent un **dossier de mission**, mais rien ne
-produisait le `.miz` jouable — le maker lançait `veaf-tools build` à la main. La vague 11 rend le
+produisait le `.miz` jouable — le maker lançait `veaf-tools mission build` à la main. La vague 11 rend le
 serveur **autonome de bout en bout** : dossier vide → scaffold → blank théâtre → composites/placement
 → **validation → build → `.miz` jouable**, sans quitter l'assistant.
 
@@ -449,7 +449,7 @@ process. Renvoie `{ok, errors[], warnings[]}` (`ok = false` dès qu'une erreur).
 
 ### `build_mission`
 
-Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools build`** dans le dossier
+Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools mission build`** dans le dossier
 (le binaire installé par `scaffold_mission`, ou `veaf-tools` du PATH). L'orchestration du build vit
 dans la commande CLI, on la réexécute telle quelle. Un échec de build est remonté (`RuntimeError`).
 

@@ -61,7 +61,7 @@ Double-clique sur **`dcs-serve.exe`**.
 - **Copie-colle** cette ligne, puis Entrée :
 
   ```
-  veaf-tools.exe capture-map --out-dir .
+  veaf-tools.exe dcs capture-map --out-dir .
   ```
 
 - → Un fichier **`<Carte>.json`** apparaît dans le dossier (ex. `Syria.json`). 🎉
@@ -107,7 +107,7 @@ Coche au fur et à mesure. **Inutile de refaire une carte déjà cochée.**
 5. Dans le terminal (comme à l'étape 3), tape *(mets le vrai chemin de ta mission)* :
 
    ```
-   veaf-tools.exe inject-bridge "C:\...\ma-mission.miz"
+   veaf-tools.exe dcs inject-bridge "C:\...\ma-mission.miz"
    ```
 
    → Ta mission est prête (une copie de secours est créée automatiquement à côté).

@@ -201,3 +201,8 @@ poc/doc-chatbot/worker/.wrangler/
 dcs-serve.yaml
 dcs-client.yaml
 dcs-tokens.yaml
+
+# dcsDataExport.lua writes its exports next to the current directory when VEAF_EXPORT_DIR is unset.
+# One of these reached a commit that way (SECREV-2 ticket 07); they are generated data, never sources.
+db.Units.lua
+dcsUnits.lua

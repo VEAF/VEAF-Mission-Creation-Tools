@@ -70,11 +70,25 @@ class TestOverrides:
     def test_override_replaces_the_default(self) -> None:
         assert make_worker(dev_mode=True).dev_mode is True
 
-    def test_mutable_defaults_are_not_shared(self) -> None:
-        """Two workers must not share the same list — one test would pollute the next."""
+    def test_no_mutable_default_is_shared(self) -> None:
+        """No two workers may share a mutable default — one test would pollute the next.
+
+        Checked over every mutable field rather than a chosen list and dict, so a default
+        added later is covered without anyone remembering to extend this test.
+        """
+        mutable = {name: value for name, value in init_field_defaults().items() if isinstance(value, (list, dict, set))}
+        assert mutable, "the factory has no mutable default left — this test has become a no-op"
+
         first, second = make_worker(), make_worker()
-        first.custom_scripts.append("x")  # type: ignore[arg-type]
-        assert second.custom_scripts == []
+        for name in mutable:
+            container = getattr(first, name)
+            if isinstance(container, list):
+                container.append("polluted")
+            elif isinstance(container, set):
+                container.add("polluted")
+            else:
+                container["polluted"] = True
+            assert not getattr(second, name), f"{name} is shared between two workers"
 
     def test_unknown_field_is_rejected(self) -> None:
         """A typo must fail here, not silently create an attribute nothing reads."""

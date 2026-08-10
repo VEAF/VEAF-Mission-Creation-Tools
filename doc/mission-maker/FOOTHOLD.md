@@ -83,7 +83,7 @@ Nouvelle version Lekaa ──► convert-other --update ──► (re)validate �
 ## 1. Initialiser (adopter)
 
 ```bash
-veaf-tools convert convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-mission> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-mission> --profile foothold
 ```
 
 `convert-other` extrait le `.miz` (de l'archive si besoin), détecte les scripts chargés par
@@ -251,7 +251,7 @@ Quand Foothold sort une nouvelle release, téléchargez la nouvelle archive et r
 **dans le même dossier** :
 
 ```bash
-veaf-tools convert convert-other <nouvelle_release.zip> <dossier-mission> --profile foothold --update
+veaf-tools convert other <nouvelle_release.zip> <dossier-mission> --profile foothold --update
 ```
 
 `--update` rafraîchit les scripts tiers et la base de mission, **préserve votre

@@ -343,9 +343,11 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 `veaf-tools.exe` manipule les fichiers `.miz` au moment du build — avant de les charger dans DCS.
 
 > **Les commandes sont rangées par thème.** `veaf-tools mission build`, `veaf-tools content
-> inject-presets`, `veaf-tools convert convert-v5`… `veaf-tools --help` liste les groupes, et
+> inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` liste les groupes, et
 > `veaf-tools <groupe> --help` leur contenu. Le groupe `dcs` regroupe ce qui **exige DCS lancé**.
 > Les groupes sont : `mission`, `convert`, `content`, `cockpit` et `dcs`.
+> Une commande dont le nom commence par celui de son groupe le perd à l'intérieur : on écrit
+> `veaf-tools convert v5` et `veaf-tools convert other`, pas `convert convert-v5`.
 >
 > **Les anciens noms courts fonctionnent toujours** : `veaf-tools build` fait exactement la même
 > chose que `veaf-tools mission build`. Ils ne sont plus affichés dans l'aide et sont considérés

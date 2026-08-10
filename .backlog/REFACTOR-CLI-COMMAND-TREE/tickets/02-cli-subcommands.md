@@ -53,6 +53,14 @@ is read top to bottom, does honour the tree order — that was a real bug, found
 renderer instead of re-implementing its loop in a probe. And Typer renders root commands before
 sub-apps, so the two are split into named help panels rather than reordered.
 
-**Worth a follow-up, not done here**: `convert convert-v5` and `convert convert-other` stutter.
-Inside the tree they would read better as `convert v5` and `convert other` — but that is a rename,
-which this lot rules out on purpose.
+**The stutter was fixed straight after, and my reasoning for deferring it was wrong.** I called
+`convert v5` "a rename, which this lot rules out". Two facts I should have checked first: the
+published version is 6.13.0, so the tree had never shipped and nobody could ever have typed
+`convert convert-v5`; and the flat `convert-v5` stays registered at the root as a hidden alias
+regardless of what the group calls it. So it cost nothing — and after a release it would have been a
+genuinely breaking rename.
+
+It was also not the one line I claimed. The wizard looks commands up by canonical name, so the
+bridge has to map `other` back to `convert-other` — a command with **two required arguments**, which
+is precisely when someone needs the wizard rather than Typer's help screen. `in_group_name` and
+`resolve_command` live together in the tree module so the two directions cannot drift.

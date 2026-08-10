@@ -13,7 +13,7 @@ the mission was never built with the VEAF tools, so we **adopt** it.
 ## Usage
 
 ```bash
-veaf-tools convert convert-other <mission.miz> <output-folder>
+veaf-tools convert other <mission.miz> <output-folder>
 ```
 
 With no argument (in an interactive terminal) the command opens the TUI wizard
@@ -27,7 +27,7 @@ manual and a shortcut. Pass the archive you downloaded and `convert-other` adopt
 inside it:
 
 ```bash
-veaf-tools convert convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <output-folder> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <output-folder> --profile foothold
 ```
 
 Only the `.miz` member is read; nothing else in the archive is written anywhere (the bundled
@@ -64,7 +64,7 @@ mission-family-specific knowledge is applied — **data, not code** (see
   if you enable it by hand later.
 
 ```bash
-veaf-tools convert convert-other <mission.miz> <output-folder> --profile foothold
+veaf-tools convert other <mission.miz> <output-folder> --profile foothold
 ```
 
 ### Bundled profiles
@@ -137,7 +137,7 @@ When the third-party author ships a new version (e.g. a Lekaa Foothold bump),
 re-import it into your already-adopted folder with `--update`:
 
 ```bash
-veaf-tools convert convert-other <new-upstream.miz> <output-folder> --profile foothold --update
+veaf-tools convert other <new-upstream.miz> <output-folder> --profile foothold --update
 ```
 
 The new upstream can be the release `.zip` here too — same rule, exactly one `.miz` inside.

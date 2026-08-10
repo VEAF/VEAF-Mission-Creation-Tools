@@ -10,7 +10,7 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 
 ```mermaid
 flowchart TD
-    V5[VEAF MCT v5 mission] -->|veaf-tools convert convert-v5| FOLDER[v6 mission folder]
+    V5[VEAF MCT v5 mission] -->|veaf-tools convert v5| FOLDER[v6 mission folder]
     VAN[Vanilla DCS .miz] -->|veaf-tools mission extract| FOLDER
     FOLDER --> CFG[Edit mission.yaml]
     CFG --> BUILD[veaf-tools mission build]
@@ -64,7 +64,7 @@ flowchart TD
 | **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works in `mission-script.lua`; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
 | **Module init pattern** | Bare `veafXxx.initialize()` calls | Auto-generated into `veaf-config.lua` by `veaf-tools mission build`; no manual `initialize()` calls needed |
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |
-| **Config migration** | Manual rewrite | `veaf-tools.exe convert convert-v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
+| **Config migration** | Manual rewrite | `veaf-tools.exe convert v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
 | **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
 | **Skynet / CTLD / CSAR / QRA** | Separate `external_modules:` and `qra:` sections | All under the `modules:` block (`modules.SKYNET`, `modules.CSAR` with a `settings:` sub-block, `modules.QRA` with `silence_all` + `definitions:`). **`modules.CTLD` is a plain boolean**: CTLD 2 is configured in a `ctld-config.yaml` next to `mission.yaml`, and a `settings:` block there is rejected by `validate`. The `external_modules:` and `qra:` sections no longer exist — see [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md). `convert-v5` emits the new shape directly. |
 
@@ -98,7 +98,7 @@ This creates the `published/` directory with all scripts and tools. Your existin
 Run the all-in-one converter:
 
 ```powershell
-.\veaf-tools.exe convert convert-v5 .
+.\veaf-tools.exe convert v5 .
 ```
 
 This single command handles everything in one pass:
@@ -113,7 +113,7 @@ This single command handles everything in one pass:
 If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the conversion still succeeds: the tool writes `airport_icao: TODO` into the generated config (`versions.yaml`) and prints a warning. Set it afterwards either by editing the `TODO` in `versions.yaml`, or by re-running `convert-v5 --icao UGGG --force`:
 
 ```powershell
-.\veaf-tools.exe convert convert-v5 . --icao UGGG
+.\veaf-tools.exe convert v5 . --icao UGGG
 ```
 
 Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools mission build` in the next step — no manual action needed.

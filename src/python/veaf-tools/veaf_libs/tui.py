@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
 
-from veaf_tools.command_tree import COMMAND_GROUPS, ROOT_COMMANDS, ROOT_GROUP_ID, group_of
+from veaf_tools.command_tree import COMMAND_GROUPS, ROOT_COMMANDS, ROOT_GROUP_ID, group_of, resolve_command
 
 from veaf_libs.i18n import t
 
@@ -541,7 +541,13 @@ def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
         # this the bridge saw `mission`, found no CommandSpec, and let Typer run a command that was
         # missing a required option — the exact case the bridge exists to catch
         # (REFACTOR-CLI-COMMAND-TREE ticket 02).
-        command, rest = rest[0], rest[1:]
+        #
+        # `resolve_command` rather than `rest[0]` because a command whose name starts with its
+        # group's drops it there: the user types `convert other`, the wizard knows `convert-other`.
+        # That command has two required arguments, so getting this wrong would send someone to
+        # Typer's help screen instead of the wizard.
+        resolved = resolve_command(command, rest[0])
+        command, rest = (resolved or rest[0]), rest[1:]
     spec = _COMMAND_MAP.get(command)
     if spec is None:
         return None

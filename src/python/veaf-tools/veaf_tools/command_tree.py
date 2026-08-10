@@ -104,6 +104,53 @@ def group_of(command: str) -> str | None:
     raise KeyError(f"{command}: not placed in the command tree (see veaf_tools/command_tree.py)")
 
 
+def in_group_name(command: str, group_id: str) -> str:
+    """Return what a command is called *inside* its group.
+
+    A command whose name already begins with its group's stutters when the two are read together —
+    ``convert convert-v5``. The group has already said that word, so the command drops it and reads
+    ``convert v5``. Nothing else in the tree is affected: only ``convert-v5`` and ``convert-other``
+    start with their group's name.
+
+    The flat name is unchanged and stays registered at the root as a hidden alias, so
+    ``veaf-tools convert-v5`` keeps working. Only the grouped spelling is shortened — and since the
+    tree has never been released, no one has ever typed the stuttering form.
+
+    Args:
+        command: The command's canonical CLI name, e.g. ``convert-v5``.
+        group_id: The group it is filed under.
+
+    Returns:
+        The name to use after the group, e.g. ``v5``.
+    """
+    prefix = f"{group_id}-"
+    return command[len(prefix) :] if command.startswith(prefix) else command
+
+
+def resolve_command(group_id: str, token: str) -> str | None:
+    """Map a token typed after a group back to its canonical command name.
+
+    The inverse of :func:`in_group_name`, and the reason both live here: the CLI registers the short
+    spelling while the wizard looks commands up by their canonical name, so a token like ``other``
+    has to become ``convert-other`` or the CLI↔TUI bridge stops recognising it — and
+    ``convert other`` has two required arguments, so that bridge is exactly what a user needs.
+
+    Args:
+        group_id: The group named by the first token.
+        token: The next token on the command line.
+
+    Returns:
+        The canonical command name, or ``None`` when the group holds no such command.
+    """
+    group = next((g for g in COMMAND_GROUPS if g.id == group_id), None)
+    if group is None:
+        return None
+    for command in group.commands:
+        if token in (command, in_group_name(command, group_id)):
+            return command
+    return None
+
+
 def build_cli_tree(app: typer.Typer) -> None:
     """Reshape a flat Typer app into the tree, keeping every flat name working.
 
@@ -133,7 +180,9 @@ def build_cli_tree(app: typer.Typer) -> None:
         if group_id is None:
             continue  # a root command: already where it belongs, and visible
         grouped = copy.copy(info)
-        grouped.name = name
+        # Shortened when the command name already starts with the group's, so `convert convert-v5`
+        # reads `convert v5`. The flat name below is untouched.
+        grouped.name = in_group_name(name, group_id)
         groups[group_id].registered_commands.append(grouped)
         # The flat name survives as an alias, absent from every help screen.
         info.hidden = True

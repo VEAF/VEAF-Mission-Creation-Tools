@@ -26,12 +26,46 @@ layout entry — so the fix belongs in the **default classification**, not in pe
       the FM role and a V/UHF radio is untouched — the risk of this fix is over-reach, not under.
 - [x] No drift reported: the full `presets_injector` suite (252 tests) is green, including the
       radio-count cross-check.
-- [ ] Rebuilding a Foothold mission to see `MiG-29 Fulcrum` leave the out-of-range report — not
-      done, it needs a Foothold mission folder that is not in this repository. The unit tests
-      assert the behaviour the report reflects.
+- [x] Seeing `MiG-29 Fulcrum` leave the out-of-range report — **done 2026-08-10**, on a real
+      mission rather than a Foothold folder. It did not need one: `Operation-Bluestorm-V2_Part_1`
+      carries 55 `MiG-29 Fulcrum` player slots, and the local missions hold slots for all four
+      affected types (835 Ka-50, 504 Ka-50_3, 437 Yak-52). Looking for the *aircraft* instead of
+      the *mission* is what unblocked it.
 - [x] CHANGELOG + version bump.
 
 ## Notes
 
 Do **not** fix this with four layout entries. The classification is what is wrong, and an
 airframe added by a future DCS patch with an ADF would hit it again.
+
+## Verified end to end, 2026-08-10
+
+`inject-presets` over `Operation-Bluestorm-V2_Part_1_20251216.miz` (302 aircraft groups) with the
+shipped default plan:
+
+```
+out-of-range report mentions:
+  Ka-50            no
+  Ka-50_3          no
+  MiG-29 Fulcrum   no
+  Yak-52           no
+
+radios the MiG-29 Fulcrum's preset ended up with: 1 -> ['radio_1']
+```
+
+One radio, not two: the R-862 V/UHF got the channel list and the ARK-19 got nothing. The specs
+confirm why — ARK-22 `0.15–1.75`, ARK-19 `0.15–1.2995`, ARK-15M `0.1–1.795`, all under the 2.0 MHz
+comm floor.
+
+### And it caught a docstring the fix had made false
+
+`pack_preset_for_type` still claimed that "single-radio HF/ADF sets, e.g. the MiG-15bis **or
+Yak-52**, still get an `fm_substitute` guess". Measured per radio:
+
+| | ranges | band |
+|---|---|---|
+| MiG-15bis RSI-6K | 3.75–5.0 | `None` — **still guessed**, docstring right |
+| Yak-52 ARK-15M | 0.1–1.795 | `non_comm` — **no role**, docstring wrong |
+
+The HF half was still true, which is exactly why the sentence survived the change. Corrected, with
+the two cases separated.

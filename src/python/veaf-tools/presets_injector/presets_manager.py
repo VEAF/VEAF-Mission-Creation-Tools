@@ -442,6 +442,10 @@ class PresetDefinition:
                     ),
                     exception_type=ValueError,
                 )
+                # Same idiom as the _require_* helpers: state that nothing continues past here. A
+                # `continue` would be worse than the raise — it would skip the radio in silence,
+                # which is the failure mode this whole change exists to remove.
+                raise AssertionError("unreachable")  # pragma: no cover - logger.error always raises
             for radio_collection in radio_collections.values():
                 if radio_alias in radio_collection.radio_definitions:
                     radio_definition = radio_collection.radio_definitions[radio_alias]
@@ -468,6 +472,9 @@ class PresetDefinition:
                     ),
                     exception_type=ValueError,
                 )
+                # `radio_definition` is unbound on this branch: the loop never matched. Saying so
+                # explicitly is the point — the original code fell through to add_radio() here.
+                raise AssertionError("unreachable")  # pragma: no cover - logger.error always raises
             result.add_radio(radio_definition)
         return result
 

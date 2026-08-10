@@ -96,6 +96,14 @@ class AircraftSpec:
     Set from the hand-maintained overlay; the datamine says nothing about it.
     """
 
+    kneeboard_only: bool = False
+    """The bands describe what a pilot dials into SRS, not hardware DCS can set.
+
+    Flaming Cliffs airframes expose no settable radio, so a preset built for them belongs on a
+    kneeboard and must never be written into the mission (FIX-RADIO-LAYOUT-GAPS ticket 03). Set from
+    the hand-maintained overlay; the datamine has no radio for these types at all.
+    """
+
 
 # ---------------------------------------------------------------------------
 # Hand-maintained overlay
@@ -173,6 +181,8 @@ def apply_overrides(specs: list[AircraftSpec], overrides: dict) -> None:
             )
         if correction.get("dcs_rejects_on_load"):
             spec.dcs_rejects_on_load = True
+        if correction.get("kneeboard_only"):
+            spec.kneeboard_only = True
 
 
 # ---------------------------------------------------------------------------
@@ -366,6 +376,8 @@ def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
         }
         if spec.dcs_rejects_on_load:
             entry["dcs_rejects_on_load"] = True
+        if spec.kneeboard_only:
+            entry["kneeboard_only"] = True
         if spec.human_radio:
             entry["human_radio"] = {
                 "min_mhz": spec.human_radio.min_mhz,
@@ -402,6 +414,7 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
         f.write("#       default_mhz: 38.4     # DCS's own default, or null\n")
         f.write("#       modulation: FM | AM | AM/FM\n")
         f.write("#     dcs_rejects_on_load: true   # from dcs-radio-specs-overrides.yaml\n")
+        f.write("#     kneeboard_only: true        # bands for the kneeboard only, never injected\n")
         f.write("#\n")
         f.write("# VEAF corrections live in dcs-radio-specs-overrides.yaml and are merged in here by\n")
         f.write("# the generator, so they survive a pin bump. Never edit THIS file by hand.\n\n")

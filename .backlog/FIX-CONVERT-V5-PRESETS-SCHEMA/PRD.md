@@ -1,6 +1,6 @@
 # FIX-CONVERT-V5-PRESETS-SCHEMA — a v5 presets.yaml survives conversion, then kills the build
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 
 ## How it was found
 
@@ -86,8 +86,8 @@ first, in one line.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Say what is wrong instead of dying on `.lower()`](tickets/01-readable-presets-error.md) | ⬜ |
-| 02 | [Detect and convert a v5-schema presets.yaml](tickets/02-convert-v5-schema.md) | ⬜ |
+| 01 | [Say what is wrong instead of dying on `.lower()`](tickets/01-readable-presets-error.md) | ✅ |
+| 02 | [Detect and convert a v5-schema presets.yaml](tickets/02-convert-v5-schema.md) | ✅ |
 
 Ticket 01 first, deliberately: it is smaller, it helps every mission maker rather than only those
 converting, and it turns ticket 02's bug into a legible one while ticket 02 is being written.

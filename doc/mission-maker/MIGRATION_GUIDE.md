@@ -311,6 +311,23 @@ L'activation/désactivation des modules se configure dans `mission.yaml` → `mo
 
 ## Problèmes courants
 
+### « impossible de charger le fichier de préréglages » après une conversion
+
+Un `src/presets.yaml` déjà présent avant la conversion pouvait être écrit selon le **schéma v5** :
+même nom, même format de fichier, mais une structure interne différente (`presets_definition:` au
+lieu de `presets_collection:`, un niveau `coalitions:` en trop, les radios définies en ligne dans
+chaque préréglage). `convert-v5` le laissait alors en place — il était au bon endroit — et le build
+échouait à l'étape suivante.
+
+`convert-v5` détecte désormais ce cas **par la structure du fichier** et le réécrit sur place, en
+conservant l'original dans `backup_v5/src/presets.yaml`. Le rapport de conversion le signale, avec
+un avertissement pour chaque point qu'il n'a pas pu trancher seul (une radio dont les canaux
+couvrent plusieurs bandes, par exemple).
+
+Si vous éditez ce fichier à la main, sachez que le lecteur refuse maintenant une section qu'il ne
+connaît pas au lieu de l'ignorer en silence, et qu'il nomme la clé fautive, ce qu'il y a trouvé et
+ce qu'il attendait.
+
 ### Le trigger "VEAF scripts loader" apparaît deux fois
 
 Vous avez à la fois un ancien trigger `DO SCRIPT FILE` manuel et le nouveau trigger auto-injecté v6. Supprimez le trigger manuel de l'éditeur de missions DCS (ouvrez le `.miz`, éditez les triggers, supprimez l'ancien, enregistrez), puis ré-extrayez et rebuildez.

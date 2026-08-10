@@ -1,6 +1,6 @@
 # 01 — Say what is wrong instead of dying on `.lower()`
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-10
 Type: fix
 Files: `src/python/veaf-tools/presets_injector/presets_manager.py`
 
@@ -52,3 +52,31 @@ is `"blue"`, `unit_type` is `"plane"`, and the leaf is `{'all': 'modern_blue'}`.
 - [ ] No `AttributeError` escapes this loader for any shape of input.
 - [ ] The message is written to be read by a mission maker, not by whoever wrote the parser —
       check it by reading it aloud.
+
+## Done
+
+Every level of the walk is checked and reports the key path, what was found described in plain
+words, and what belongs there. Four v5 shapes are diagnosed **by name** rather than failing one
+level deeper:
+
+| the file has | the message says |
+|---|---|
+| `presets_assignments.coalitions` | the extra level, and how to remove it |
+| `presets_definition:` | it is the v5 name of `presets_collection` |
+| `presets_collection.<preset>` | v6 has two levels there, v5 had one |
+| radios declared inline | v6 names a radio from `radios_collection` |
+
+The third was found while doing this, and is worth recording: renaming the section is **not** enough,
+because `presets_collection` groups presets under a named collection and v5 did not. It surfaced as
+`'str' object has no attribute 'get'`. The fourth surfaced as a lookup failure that dumped the whole
+block into the message and blamed `RadioCollection`.
+
+Unknown top-level sections are refused rather than dropped, with the near-miss named. **This is a
+behaviour change**: a presets file with a stray section used to build and now fails. Deliberate — a
+section that is never read means the maker's intent is silently discarded, and shipping a mission
+whose presets were half-ignored is worse than a build that stops and says why.
+
+All of it goes through `t()`, like the other 138 messages in the file, so it reads in French too —
+including the three wrapper messages around it, which were hardcoded English and made the French
+output bilingual. 33 keys in both catalogues. The tests pin the language, so they assert wording
+rather than the machine's locale.

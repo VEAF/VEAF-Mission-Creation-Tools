@@ -445,7 +445,7 @@ See the respective module pages for full schema:
 
 ---
 
-### `custom_scripts:`
+### `custom_scripts:` {#custom-scripts}
 
 Declares custom Lua scripts present in `src/scripts/` that are not part of the standard VEAF v6 set.  
 A declared script is included in the `.miz` **without** triggering a warning. By default a DCS load trigger is generated for it automatically; setting `generate_load_trigger: false` disables that trigger (useful when the script is loaded manually from `mission-script.lua`).
@@ -455,6 +455,7 @@ A declared script is included in the `.miz` **without** triggering a warning. By
 | `generate_load_trigger` | `bool` | `true` | Global default: generate a DCS trigger for all scripts in the list |
 | `scripts[].path` | `string` | *(required)* | Path to the file, relative to the mission folder (e.g. `src/scripts/FgMission.lua`) |
 | `scripts[].generate_load_trigger` | `bool` | *(global default)* | Per-script override; if absent, the global default applies |
+| `scripts[].delay_seconds` | `number` | *(none)* | Load this script **after** this delay (seconds) instead of with the rest. See below |
 
 **Loading behaviour**
 
@@ -473,6 +474,37 @@ custom_scripts:
 ```
 
 > Any `.lua` file present in `src/scripts/` but **absent** from this section (and not one of the standard files) triggers a build warning with a reminder to declare it here.
+
+**Loading a script after a delay: `delay_seconds`**
+
+By default every mission script is loaded in one go at start-up. Some scripts need time to pass before
+they start — typically because they **inventory the world once** and must let the scripts before them
+create their units first. AIEN in Foothold is exactly that: loaded 12 seconds after the rest.
+
+```yaml
+custom_scripts:
+  scripts:
+    - path: src/scripts/Moose.lua
+    - path: src/scripts/zoneCommander.lua
+    - path: src/scripts/AIEN.lua
+      delay_seconds: 12          # its own trigger, 12 s in
+```
+
+- **Absent** (the default) → loaded in the shared trigger, exactly as before.
+- **Present** → the script leaves the shared trigger for a `triggerOnce` of its own, gated on
+  `c_time_after`. Scripts sharing the **same** delay share one trigger, in declaration order.
+- The delay must be **greater than zero**. A zero, negative or non-numeric value is refused with a build
+  warning and the script loads in the shared trigger instead — it is never lost.
+
+> **The delay decides the order, not the position in the list.** A script at `delay_seconds: 12` loads
+> after **every** undelayed one, wherever it is written. If a delayed script is declared before an
+> undelayed one, the build warns you — the list then reads in a different order from the one it runs in.
+
+**Dynamic builds behave the same way**: `veafDynamicConfig.lua` schedules the load instead of doing it
+inline. Since `generate_load_trigger` governs both modes, a delay could not exist in only one of them.
+
+`convert-other` **detects** these delays in the source mission and writes `delay_seconds:` for you, so an
+adopted mission reproduces the upstream staging without you having to notice it.
 
 **A script only in one variant (e.g. a dynamic-only debug script)**
 

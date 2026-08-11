@@ -73,7 +73,7 @@ for exactly this case — with the channel lists reused through YAML anchors, so
 duplicated.
 
 The two entries still in the report are **not** authoring mistakes; they are filed as
-[FIX-RADIO-LAYOUT-GAPS](../FIX-RADIO-LAYOUT-GAPS/PRD.md): an ADF classified as an FM radio
+[FIX-RADIO-LAYOUT-GAPS](../archive/FIX-RADIO-LAYOUT-GAPS.md): an ADF classified as an FM radio
 (`MiG-29 Fulcrum`, `Ka-50`, `Ka-50_3`, `Yak-52`) and two out-of-range `trailing_specials`
 hard-coded in the AJS-37 layout.
 

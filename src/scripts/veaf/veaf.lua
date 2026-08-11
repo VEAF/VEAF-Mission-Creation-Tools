@@ -3187,6 +3187,193 @@ function veaf.safeNumberInRange(value, min, max)
   return _number
 end
 
+-------------------------------------------------------------------------------------------------
+-- Shared marker-text parser (REFACTOR-MARKER-PARSER)
+--
+-- Every marker command has the same shape: a keyphrase, then separated `key value` pairs. That
+-- loop was copied across the codebase, which is why a fix reached one copy and not its siblings
+-- three times over (VMR-019, VMR-025, and the two FIX-MARKER-PARAM-CRASHES lots).
+--
+-- A module now DECLARES its parameters instead of writing the loop, so a new keyword cannot
+-- reintroduce `tonumber(nil) <= 5`. The specification has to be able to express the quirks
+-- ticket 01 measured, because several are load-bearing and a migration that drops one silently
+-- changes a command in the field:
+--
+--   * `valueWhenAbsent` — a valueless keyword is nil in some modules and "" in others, which
+--     decides whether a bare keyword reads as a flag or as an error.
+--   * `separator` — every module splits on "," except ArtilleryUnitHandler, which uses ";".
+--   * command descriptors seed different defaults per sub-verb, FIRST MATCH WINS: the chain's
+--     order decides, not the text's, so `_move group tanker` is a group move.
+--   * ALL matching parameter rules run, in declaration order, and a repeated keyword therefore
+--     ends on its last occurrence.
+--   * a value keeps everything after the FIRST space and is NOT trimmed: `side  BLUE` with two
+--     spaces really is " BLUE", which is not "BLUE". Trimming here would change behaviour.
+-------------------------------------------------------------------------------------------------
+
+--- Ready-made `apply` functions for the common parameter kinds.
+---
+--- These are the four `veafSpawnParser` had as file-locals. They live here because the crash
+--- family came from every module writing its own: `VMR-025` fixed the nil guard in `_num` and
+--- left the identical hole in `_numNonNegative`, one function below it.
+veaf.markerRules = {}
+
+--- A numeric parameter, keeping the field's existing value when the input is unusable.
+---
+--- Conversion goes through `veaf.getRandomizableNumeric`, which also accepts the `1-5`
+--- random-range syntax markers use — a third numeric kind beyond `safeNumber` and
+--- `safeNumberInRange`, not a mistake.
+function veaf.markerRules.number(field)
+  return function(options, value)
+    if value == nil then
+      return
+    end
+    local _converted = veaf.getRandomizableNumeric(value)
+    if _converted ~= nil then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A numeric parameter that must not go below zero, keeping the existing value otherwise.
+---
+--- Guards nil the same way `number` does. That symmetry is the point: this helper's whole history
+--- is that it did *not* have the guard its sibling had.
+function veaf.markerRules.nonNegativeNumber(field)
+  return function(options, value)
+    if value == nil then
+      return
+    end
+    local _converted = veaf.getRandomizableNumeric(value)
+    if _converted and _converted >= 0 then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A string parameter, stored exactly as typed.
+function veaf.markerRules.text(field)
+  return function(options, value)
+    options[field] = value
+  end
+end
+
+--- A flag: present means true, and any value the pilot typed after it is discarded.
+function veaf.markerRules.flag(field)
+  return function(options)
+    options[field] = true
+  end
+end
+
+--- Build the lookup tables a specification needs, once, in place.
+---
+--- Mutates `spec` so the work is not redone on every marker: each rule gets a `_keyset` for O(1)
+--- matching, and the spec gets the recognised-key list that powers the "did you mean" hint.
+--- Idempotent, so a module may call it explicitly at load time or leave it to the first parse.
+--- @param spec table the specification to prepare
+--- @return table the same spec, prepared
+function veaf.prepareMarkerSpec(spec)
+  if spec._prepared then
+    return spec
+  end
+  spec.knownKeys = {}
+  spec._knownKeySet = {}
+  for _, rule in ipairs(spec.parameters or {}) do
+    rule._keyset = {}
+    for _, key in ipairs(rule.keys) do
+      rule._keyset[key] = true
+      if not spec._knownKeySet[key] then
+        spec._knownKeySet[key] = true
+        table.insert(spec.knownKeys, key)
+      end
+    end
+  end
+  spec._prepared = true
+  return spec
+end
+
+--- Parse marker text into an options table, following a module's declared specification.
+---
+--- @param text the raw marker text a player typed
+--- @param spec table the module's specification:
+---   * `defaults` — function(options) seeding the fields every command shares, or a table copied
+---     field by field. Runs before the command descriptors.
+---   * `commands` — list of `{ match = <lowercase substring>, init = function(options) }`. The
+---     first whose `match` is found in the lowercased text wins and seeds its defaults; if none
+---     matches, the text is not this module's command and `nil` is returned.
+---   * `parameters` — list of `{ keys = {...}, apply = function(options, value), when = function(options) }`.
+---     Every rule whose key matches runs, in order; `when` gates context-specific rules.
+---   * `separator` — defaults to `","`.
+---   * `valueWhenAbsent` — what a keyword with no value passes to `apply`. Defaults to `nil`;
+---     pass `""` for the modules that read `str[2] or ""`.
+---   * `reportUnknownKeys` — when true, unrecognised keys are collected into
+---     `options.unknownParameters` with a nearest-match `suggestion`, so the caller can hint the
+---     pilot about a typo. Keys starting with `_` are skipped: that is the command keyphrase.
+---   * `validate` — function(options) run after the loop; returning false rejects the command,
+---     which is how a mandatory parameter is enforced.
+--- @return table|nil the options table, or nil when the text is not this module's command
+function veaf.parseMarkerText(text, spec)
+  if type(text) ~= "string" then
+    return nil
+  end
+  veaf.prepareMarkerSpec(spec)
+
+  local options = {}
+  if type(spec.defaults) == "function" then
+    spec.defaults(options)
+  elseif type(spec.defaults) == "table" then
+    for field, value in pairs(spec.defaults) do
+      options[field] = value
+    end
+  end
+
+  -- Detect the command keyphrase and seed its defaults. First match wins.
+  local textLower = text:lower()
+  local matched = false
+  for _, command in ipairs(spec.commands or {}) do
+    if textLower:find(command.match, 1, true) then
+      if command.init then
+        command.init(options)
+      end
+      matched = true
+      break
+    end
+  end
+  if not matched then
+    return nil
+  end
+
+  for _, keyphrase in pairs(veaf.split(text, spec.separator or ",")) do
+    -- The first space separates key from value; everything after it IS the value, untrimmed.
+    local parts = veaf.breakString(veaf.trim(keyphrase), " ")
+    local key = parts[1]
+    local value = parts[2]
+    if value == nil then
+      value = spec.valueWhenAbsent
+    end
+    local keyLower = key:lower()
+
+    if spec.reportUnknownKeys and keyLower ~= "" and keyLower:sub(1, 1) ~= "_" and not spec._knownKeySet[keyLower] then
+      options.unknownParameters = options.unknownParameters or {}
+      table.insert(options.unknownParameters, {
+        key = key,
+        suggestion = veaf.nearestMatch(keyLower, spec.knownKeys, 3),
+      })
+    end
+
+    -- ALL matching rules run, in declaration order.
+    for _, rule in ipairs(spec.parameters or {}) do
+      if rule._keyset[keyLower] and (not rule.when or rule.when(options)) then
+        rule.apply(options, value)
+      end
+    end
+  end
+
+  if spec.validate and not spec.validate(options) then
+    return nil
+  end
+  return options
+end
+
 function veaf.safeUnpack(package)
   if type(package) == "table" then
     return (unpack or table.unpack)(package) -- luacheck: ignore 143
@@ -3215,6 +3402,14 @@ function veaf.getRandomizableNumeric_random(val)
   local nVal = tonumber(val)
   veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.lp(nVal))
   if nVal == nil then
+    -- REFACTOR-MARKER-PARSER ticket 02: return nil rather than raising on something that is not
+    -- a string. `string.find(nil, ...)` below is the crash VMR-025 described and then guarded
+    -- against **in its caller** (`_num`), which left the hole reachable from every other caller
+    -- — and `_numNonNegative`, one function away, walked straight into it. Fixed at the source
+    -- this time, so the guard cannot be forgotten again. `_norandom` never had the problem.
+    if type(val) ~= "string" then
+      return nil
+    end
     local dashPos = string.find(val, "%-")
     veaf.loggers.get(veaf.Id):trace("dashPos=%s", veaf.lp(dashPos))
     if dashPos then

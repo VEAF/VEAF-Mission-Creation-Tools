@@ -100,7 +100,7 @@ and only meeting the hardest case at the end is how you discover too late that i
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Characterise the parsers before touching them](tickets/01-characterise.md) | ✅ |
-| 02 | [Lift veafSpawnParser's machine into veaf.lua](tickets/02-shared-parser.md) | ⬜ |
+| 02 | [Lift veafSpawnParser's machine into veaf.lua](tickets/02-shared-parser.md) | ✅ |
 | 03 | [Migrate the remaining modules, one per commit](tickets/03-migrate.md) | ⬜ |
 
 ## Why it is worth doing, and why it is no longer urgent
@@ -142,6 +142,19 @@ fixed in `veafMove`, and which the `veafShortcuts` loops get right), and `veafRa
 default when a *recognised* keyword has no value — `_radio transmit, freq` leaves `frequencies`
 nil, and `executeCommand` requires it, so the command does nothing at all without telling the
 pilot.
+
+## What ticket 02 delivered
+
+`veaf.parseMarkerText(text, spec)` exists, `veafSpawnParser` is its first client with its 71 tests
+**unedited**, and the four `apply` kinds are shared as `veaf.markerRules`. Ticket 03 migrates the
+rest against a differential harness that is already written.
+
+One root cause fixed on the way, and it is the lot's own thesis for the fourth time:
+`veaf.getRandomizableNumeric_random(nil)` raised on `string.find(nil, "%-")`. `VMR-025` described
+that crash **in a comment** and then guarded against it **in its caller** — which is precisely why
+`_numNonNegative`, one function below, walked into it, and why `FIX-MARKER-PARAM-CRASHES-2` was
+needed. It returns nil at the source now. Found because sharing the helper made the old hole
+reachable again, and a new test caught it before the merge rather than a pilot after it.
 
 ## Risks
 

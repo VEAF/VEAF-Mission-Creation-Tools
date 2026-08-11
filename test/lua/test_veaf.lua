@@ -2416,4 +2416,208 @@ function TestVeafExportAsJsonUnwritablePath:test_a_writable_directory_still_prod
   luaunit.assertNotNil(string.find(content, "things", 1, true), "the export must name the exported table")
 end
 
+-------------------------------------------------------------------------------------------------
+-- REFACTOR-MARKER-PARSER ticket 02 — veaf.parseMarkerText
+--
+-- The specification has to be able to express the quirks ticket 01 measured, because several
+-- are load-bearing: a migration that silently drops one changes a command in the field. Each
+-- test below pins one of those quirks against the shared machine.
+-------------------------------------------------------------------------------------------------
+
+TestVeafParseMarkerText = {}
+
+-- A minimal spec: one command, a few parameter kinds.
+local function simpleSpec(overrides)
+  local spec = {
+    defaults = function(options)
+      options.size = 1
+      options.label = nil
+      options.loud = false
+    end,
+    commands = {
+      {
+        match = "_probe deep",
+        init = function(options)
+          options.deep = true
+          options.size = 9
+        end,
+      },
+      {
+        match = "_probe",
+        init = function(options)
+          options.shallow = true
+        end,
+      },
+    },
+    parameters = {
+      { keys = { "size" }, apply = veaf.markerRules.number("size") },
+      { keys = { "label", "name" }, apply = veaf.markerRules.text("label") },
+      { keys = { "loud" }, apply = veaf.markerRules.flag("loud") },
+      { keys = { "floor" }, apply = veaf.markerRules.nonNegativeNumber("floor") },
+    },
+  }
+  for field, value in pairs(overrides or {}) do
+    spec[field] = value
+  end
+  return spec
+end
+
+function TestVeafParseMarkerText:test_text_without_any_command_returns_nil()
+  luaunit.assertNil(veaf.parseMarkerText("hello world", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_a_non_string_returns_nil()
+  luaunit.assertNil(veaf.parseMarkerText(nil, simpleSpec()))
+  luaunit.assertNil(veaf.parseMarkerText(42, simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_defaults_are_seeded()
+  local r = veaf.parseMarkerText("_probe", simpleSpec())
+  luaunit.assertEquals(r.size, 1)
+  luaunit.assertFalse(r.loud)
+end
+
+-- Quirk 8: the command descriptor seeds its own defaults, over the common ones.
+function TestVeafParseMarkerText:test_a_command_overrides_the_common_defaults()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe deep", simpleSpec()).size, 9)
+end
+
+-- Quirk 17: FIRST MATCH WINS, decided by the chain's order and not the text's.
+function TestVeafParseMarkerText:test_the_first_matching_command_wins()
+  local r = veaf.parseMarkerText("_probe deep", simpleSpec())
+  luaunit.assertTrue(r.deep)
+  luaunit.assertNil(r.shallow)
+end
+
+function TestVeafParseMarkerText:test_the_keyphrase_match_is_case_insensitive()
+  luaunit.assertNotNil(veaf.parseMarkerText("_PROBE", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_the_keyphrase_is_found_anywhere_in_the_text()
+  luaunit.assertNotNil(veaf.parseMarkerText("please _probe now", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_parameters_are_applied()
+  local r = veaf.parseMarkerText("_probe, size 4, label alpha, loud", simpleSpec())
+  luaunit.assertEquals(r.size, 4)
+  luaunit.assertEquals(r.label, "alpha")
+  luaunit.assertTrue(r.loud)
+end
+
+function TestVeafParseMarkerText:test_aliases_share_one_rule()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, name beta", simpleSpec()).label, "beta")
+end
+
+-- Quirk 12: every matching rule runs as the loop walks, so the last occurrence wins.
+function TestVeafParseMarkerText:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size 2, size 5", simpleSpec()).size, 5)
+end
+
+-- Quirk 11: the value keeps everything after the FIRST space, untrimmed. Trimming here would
+-- change veafCasMission's behaviour, where `side  BLUE` resolves to RED because of it.
+function TestVeafParseMarkerText:test_the_value_is_everything_after_the_first_space_untrimmed()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label two words", simpleSpec()).label, "two words")
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label  padded", simpleSpec()).label, " padded")
+end
+
+-- Quirk 1: a valueless keyword is nil by default, and "" for the modules that need it.
+function TestVeafParseMarkerText:test_a_valueless_keyword_is_nil_by_default()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label", simpleSpec()).label)
+end
+
+function TestVeafParseMarkerText:test_valueWhenAbsent_makes_a_valueless_keyword_an_empty_string()
+  local spec = simpleSpec({ valueWhenAbsent = "" })
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label", spec).label, "")
+end
+
+-- Quirk 15: a flag discards any value handed to it.
+function TestVeafParseMarkerText:test_a_flag_ignores_its_value()
+  luaunit.assertTrue(veaf.parseMarkerText("_probe, loud false", simpleSpec()).loud)
+end
+
+-- A bad parameter must never take the command down: this is the whole crash family.
+function TestVeafParseMarkerText:test_a_valueless_numeric_keyword_keeps_the_default()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size", simpleSpec()).size, 1)
+end
+
+function TestVeafParseMarkerText:test_a_non_numeric_value_keeps_the_default()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size banana", simpleSpec()).size, 1)
+end
+
+function TestVeafParseMarkerText:test_a_valueless_non_negative_keyword_does_not_raise()
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, floor", simpleSpec()))
+end
+
+-- Quirk 2 (separator): every module splits on "," except ArtilleryUnitHandler, on ";".
+function TestVeafParseMarkerText:test_the_separator_is_configurable()
+  local spec = simpleSpec({ separator = ";" })
+  luaunit.assertEquals(veaf.parseMarkerText("_probe; size 3", spec).size, 3)
+  -- With ";" declared, a comma is no longer a separator.
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size 3", spec).size, 1)
+end
+
+-- Quirk 3: unknown keys are silent unless the module asks for the report.
+function TestVeafParseMarkerText:test_unknown_keys_are_silent_by_default()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, banana 3", simpleSpec()).unknownParameters)
+end
+
+function TestVeafParseMarkerText:test_unknown_keys_are_reported_with_a_suggestion_when_asked()
+  local r = veaf.parseMarkerText("_probe, labl alpha", simpleSpec({ reportUnknownKeys = true }))
+  luaunit.assertIsTable(r.unknownParameters)
+  luaunit.assertEquals(#r.unknownParameters, 1)
+  luaunit.assertEquals(r.unknownParameters[1].key, "labl")
+  luaunit.assertEquals(r.unknownParameters[1].suggestion, "label")
+end
+
+-- The command keyphrase itself must not be reported as an unknown parameter.
+function TestVeafParseMarkerText:test_the_keyphrase_is_not_reported_as_unknown()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, size 3", simpleSpec({ reportUnknownKeys = true })).unknownParameters)
+end
+
+-- Quirk 9: mandatory parameters are enforced after the loop, by refusing the command.
+function TestVeafParseMarkerText:test_validate_can_refuse_the_command()
+  local spec = simpleSpec({
+    validate = function(options)
+      return options.label ~= nil
+    end,
+  })
+  luaunit.assertNil(veaf.parseMarkerText("_probe", spec))
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, label alpha", spec))
+end
+
+-- `when` gates a rule on the options built so far, which is how one key means two things.
+function TestVeafParseMarkerText:test_when_gates_a_rule()
+  local spec = simpleSpec()
+  table.insert(spec.parameters, {
+    keys = { "label" },
+    when = function(options)
+      return options.deep
+    end,
+    apply = veaf.markerRules.text("deepLabel"),
+  })
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label alpha", spec).deepLabel)
+  luaunit.assertEquals(veaf.parseMarkerText("_probe deep, label alpha", spec).deepLabel, "alpha")
+end
+
+-- A keyphrase containing a Lua pattern character must be matched literally, not as a pattern.
+function TestVeafParseMarkerText:test_the_command_match_is_literal_not_a_pattern()
+  local spec = simpleSpec({ commands = { {
+    match = "_a.b",
+    init = function(options)
+      options.hit = true
+    end,
+  } } })
+  luaunit.assertNotNil(veaf.parseMarkerText("_a.b", spec))
+  luaunit.assertNil(veaf.parseMarkerText("_axb", spec))
+end
+
+-- prepareMarkerSpec is idempotent, so a module may call it at load time or not at all.
+function TestVeafParseMarkerText:test_prepareMarkerSpec_is_idempotent()
+  local spec = simpleSpec()
+  veaf.prepareMarkerSpec(spec)
+  local firstCount = #spec.knownKeys
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertEquals(#spec.knownKeys, firstCount)
+end
+
 os.exit(luaunit.LuaUnit.run())

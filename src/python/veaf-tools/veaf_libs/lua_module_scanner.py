@@ -19,6 +19,8 @@ import sys
 from pathlib import Path
 from typing import TypedDict
 
+from veaf_libs.i18n import t
+
 _BUNDLED_JSON_NAME = "veaf_modules_list.json"
 _LUA_SCRIPTS_SUBPATH = Path("src") / "scripts" / "veaf"
 
@@ -98,6 +100,45 @@ def _scan_lua_directory(lua_dir: Path) -> list[LuaModule]:
 # ---------------------------------------------------------------------------
 
 
+def _validated_modules(raw: object, source: Path) -> list[LuaModule]:
+    """Check a decoded module list and normalise its optional fields.
+
+    VMR-061: the JSON was handed straight to the callers, so a stale or truncated file surfaced as a
+    ``KeyError`` deep inside Lua emission instead of as a complaint about the file. The consumers did
+    not even agree on the shape — ``lua_config_generator`` reads ``var_name`` directly where
+    ``config_migrator`` treats it as optional — so it is normalised here and both see the same thing.
+
+    Args:
+        raw: Whatever ``json.loads`` produced.
+        source: The file it came from, named in any error.
+
+    Returns:
+        The module list, with ``version`` and ``var_name`` filled in when absent.
+
+    Raises:
+        ValueError: If the payload is not a list of entries carrying an ``id`` and a ``filename``.
+    """
+    if not isinstance(raw, list):
+        raise ValueError(t("modules.list_not_a_list", source=str(source), kind=type(raw).__name__))
+    modules: list[LuaModule] = []
+    for index, entry in enumerate(raw):
+        if not isinstance(entry, dict):
+            raise ValueError(t("modules.entry_not_a_table", source=str(source), index=index, kind=type(entry).__name__))
+        for key in ("id", "filename"):
+            if not entry.get(key):
+                raise ValueError(t("modules.entry_missing_key", source=str(source), index=index, field=key))
+        filename = str(entry["filename"])
+        modules.append(
+            LuaModule(
+                id=str(entry["id"]),
+                version=str(entry.get("version") or ""),
+                filename=filename,
+                var_name=str(entry.get("var_name") or filename.removesuffix(".lua")),
+            )
+        )
+    return modules
+
+
 def get_modules() -> list[LuaModule]:
     """Return the list of VEAF Lua modules.
 
@@ -105,16 +146,19 @@ def get_modules() -> list[LuaModule]:
     1. Bundled JSON (PyInstaller bundle at ``sys._MEIPASS``).
     2. Pre-generated JSON next to this module.
     3. Live scan of ``src/scripts/veaf/`` (repo checkout).
+
+    Raises:
+        ValueError: If a JSON source exists but does not hold a usable module list.
     """
     # 1. PyInstaller bundle
     path = _bundled_json_path()
     if path:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return _validated_modules(json.loads(path.read_text(encoding="utf-8")), path)
 
     # 2. Pre-generated JSON
     path = _pregenerated_json_path()
     if path:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return _validated_modules(json.loads(path.read_text(encoding="utf-8")), path)
 
     # 3. Live scan
     lua_dir = _find_lua_scripts_dir()

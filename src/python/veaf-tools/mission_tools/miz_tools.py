@@ -275,16 +275,24 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
     # Normalize additional_files to avoid None errors
     additional_files = additional_files or {}
 
-    # Use NamedTemporaryFile for automatic cleanup
-    temp_zip_path: str | None = None
-    with tempfile.NamedTemporaryFile(
+    # VMR-053: the temp file is created and its handle closed straight away. It used to be held
+    # open by a `NamedTemporaryFile` context while `zipfile.ZipFile` wrote to that same path, and on
+    # Windows that made the cleanup impossible: `os.unlink` on a file we still have open fails with a
+    # sharing violation, the surrounding `suppress(OSError)` swallowed it, and every failed build
+    # left a `veaf_mission_*.miz` in the mission folder. The write stays atomic — same directory as
+    # the target, then `os.replace`.
+    temp_fd, temp_name = tempfile.mkstemp(
         suffix=".miz",  # Proper extension
         prefix="veaf_mission_",  # Identifiable prefix
-        delete=False,  # Keep file after context manager exits
         dir=miz_file_path.parent,  # Same directory as target (for atomic moves)
-    ) as temp_file:
-        temp_zip_path = temp_file.name
+    )
+    os.close(temp_fd)
+    temp_zip_path = temp_name
+    # Separate from the path above, because it answers a different question: is there still
+    # something on disk that we own and must remove?
+    path_to_clean_up: str | None = temp_name
 
+    try:
         try:
             # Read all files from the original mission file
             with zipfile.ZipFile(mission.file_path, "r") as zip_read:
@@ -360,15 +368,21 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
                         zip_write.writestr(additional_file_name, additional_file_content)
 
         except Exception as e:
-            # Clean up temp file on error
-            with contextlib.suppress(OSError):
-                os.unlink(temp_zip_path)
+            # `logger.exception` re-raises the same exception type, so the caller learns the write
+            # failed rather than getting a mission object back as if it had worked. That was already
+            # the behaviour; what the old code added below it — clearing `temp_zip_path` to "prevent
+            # replacing the original with a broken temp file" — was unreachable, and the cleanup now
+            # lives in the `finally` so it also covers a failing `os.replace`.
             logger.exception(e)
-            temp_zip_path = None  # Prevent replacing the original with a broken temp file
 
-    # Move temp file to final location (only if write succeeded)
-    if temp_zip_path:
+        # Move the temp file to its final location. Once it is renamed there is nothing of ours
+        # left on disk.
         os.replace(temp_zip_path, miz_file_path)
+        path_to_clean_up = None
+    finally:
+        if path_to_clean_up:
+            with contextlib.suppress(OSError):
+                os.unlink(path_to_clean_up)
 
     return mission
 

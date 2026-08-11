@@ -369,13 +369,13 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
     "line": "247",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
       "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Half confirmed, and the half that reproduces has a different cause than the finding gives. 'Original silently unchanged' does NOT apply: `logger.exception` calls `error(..., exception_type=type(e))`, which **re-raises**, so the failure has always reached the caller — and that makes the `temp_zip_path = None` line below it, commented 'prevent replacing the original with a broken temp file', unreachable code. What does reproduce is the leaked temp file, and the cause is the aside the finding mentions last: the `NamedTemporaryFile` handle stayed open while `zipfile.ZipFile` wrote to that same path, so on Windows `os.unlink` failed with a sharing violation and the surrounding `suppress(OSError)` swallowed it. Every failed build left a `veaf_mission_*.miz` in the mission folder. Now `mkstemp` + immediate close, with cleanup in a `finally` that also covers a failing `os.replace`. Proved by re-opening the handle and watching 6 of the 9 tests fail — including one *control*, because `os.replace` cannot rename an open file either. 9 tests."
   },
   {
     "vid": "VMR-054",
@@ -483,10 +483,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/python/veaf-tools/veaf_libs/lua_module_scanner.py",
     "line": "112",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the shape was worse than 'no validation': the consumers disagreed. `lua_config_generator` reads `mod[\"var_name\"]` directly while `config_migrator` uses `.get(\"var_name\")` with a comment saying old bundled JSON lacks it — so a JSON one accepts, the other raises on, which is exactly the downstream `KeyError` the finding predicts. `get_modules()` now validates the decoded payload (a list of tables each carrying a non-empty `id` and `filename`) and normalises `version` / `var_name`, so both consumers see one shape. Refusals are localized and name the file. 9 tests, including a control that the live repo scan is unaffected. Recorded because it repeats: my first version passed `key=` to `t()`, whose own first parameter is named `key` — the identical TypeError this ticket hit in the CONFIRMED sweep."
   },
   {
     "vid": "VMR-062",

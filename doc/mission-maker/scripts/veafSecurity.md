@@ -106,8 +106,8 @@ En cas de succès : l'accès est accordé pour `authDuration` minutes. Aucun mes
 
     **Maintenant** : chaque commande sécurisée vérifie qui demande.
 
-    - **Un pilote listé dans `veaf-pilots.txt` ne change rien à ses habitudes** : son niveau suffit,
-      et il n'a jamais eu besoin du mot de passe.
+    - **Pour un pilote listé dans `veaf-pilots.txt`, rien ne change** : son niveau suffit, et il n'a
+      jamais eu besoin du mot de passe.
     - **Un pilote non listé** doit fournir le mot de passe **à chaque commande** : il n'y a plus de
       session ouverte de dix minutes.
     - Pour le **menu radio F10**, DCS ne permet pas de savoir *quel* occupant d'un groupe a cliqué.

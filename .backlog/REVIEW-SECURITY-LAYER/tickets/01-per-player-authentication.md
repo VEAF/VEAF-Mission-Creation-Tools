@@ -127,7 +127,7 @@ and it is also a change people will feel mid-mission if nobody tells them.
 > En principe on est souvent seul dans un groupe alors ça va, mais si jamais on est avec un élève
 > pilote le renversement du calcul est censé résoudre la situation."*
 
-So `max(group)` and `requester's level` are not in conflict. In the case the mechanism exists for —
+So `max(group)` and `requester's level` are not in conflict. In the case this mechanism is designed for —
 an instructor flying with a student — **the instructor is the one typing `_auth`**, so the group rises
 to the instructor's level, which is the maximum. The cap only bites when a *lower*-graded occupant
 asks, and there it is the safer answer: the student cannot grant themselves the instructor's rights.
@@ -153,7 +153,7 @@ What that does and does not change, measured:
 - `checkSecurity_MM` never had the short-circuit; a test now pins that it refuses with no password and
   is unaffected by anyone's login, since it takes no actor at all.
 
-7 tests, including a wrong-password case so the password test is not passing on the absence of a check.
+7 tests, including a wrong-password case so the password test cannot pass merely because the check is missing.
 Documented in both languages as a **behaviour change**, with the instructor/student case spelled out.
 
 ### Still open: the three `veafShortcuts` sites

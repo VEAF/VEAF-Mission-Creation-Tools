@@ -664,6 +664,7 @@ end
 function TestVeafSecurityNoGlobalShortCircuit:tearDown()
   veafSecurity.authenticated = self.savedAuth
   veaf.SecurityDisabled = self.savedDisabled
+  veafSecurity.SecurityDisabled = self.savedModuleDisabled
   veafSecurity.getMarkerSecurityLevel = self.savedLevel
 end
 
@@ -729,6 +730,8 @@ TestVeafSecurityMissionMaster = {}
 function TestVeafSecurityMissionMaster:setUp()
   self.savedAuth = veafSecurity.authenticated
   self.savedDisabled = veaf.SecurityDisabled
+  -- Saved too, or nilling it here leaks into whatever ran before (Sourcery, #716).
+  self.savedModuleDisabled = veafSecurity.SecurityDisabled
   veaf.SecurityDisabled = nil
   veafSecurity.SecurityDisabled = nil
 end
@@ -736,6 +739,7 @@ end
 function TestVeafSecurityMissionMaster:tearDown()
   veafSecurity.authenticated = self.savedAuth
   veaf.SecurityDisabled = self.savedDisabled
+  veafSecurity.SecurityDisabled = self.savedModuleDisabled
 end
 
 function TestVeafSecurityMissionMaster:test_no_password_is_refused()

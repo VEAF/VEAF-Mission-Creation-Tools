@@ -3,7 +3,7 @@
 Status: ✅ done — 4 of 4 steps confirmed in a live F-14B(U) on 2026-08-03, after the first run found three defects.
 
 A resolved value is a hypothesis until the argument has been read with the control in the wanted
-position. [Ticket 10](../../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md) made that reading
+position. [Ticket 10](../../archive/FEAT-ASSIST-CHECKLISTS.md) (ticket 10 (switch position)) made that reading
 possible: `GetDevice(0):get_argument_value(arg)` through the **export** environment.
 
 This is also what closes ticket 03's ambiguous-value refusal: rather than asking the instructor to

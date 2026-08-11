@@ -12,7 +12,7 @@ autostart. FEAT-ASSIST-CHECKLISTS used the F-16C's; this generalises to the othe
    keep ED's wording for the labels.
 3. Write the checklist with `control` texts, run the resolver, verify the values (ticket 04).
 4. FR + EN labels — inline
-   ([ticket 09](../../FEAT-ASSIST-CHECKLISTS/tickets/09-inline-translations.md)) or as catalog keys
+   (FEAT-ASSIST-CHECKLISTS ticket 09, [archived](../../archive/FEAT-ASSIST-CHECKLISTS.md)) or as catalog keys
    for the shipped ones. Decide once and stay consistent.
 
 ## Which five — established: eleven, not five

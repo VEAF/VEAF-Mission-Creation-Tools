@@ -4,7 +4,7 @@ Status: ⏸ paused — opened 2026-08-02, delivered 2026-08-03 (PR #651). Ticket
 
 ## The problem
 
-[FEAT-ASSIST-CHECKLISTS](../FEAT-ASSIST-CHECKLISTS/PRD.md) shipped an engine that works. Writing a
+[FEAT-ASSIST-CHECKLISTS](../archive/FEAT-ASSIST-CHECKLISTS.md) shipped an engine that works. Writing a
 checklist for it does not: a step needs `element: PTR-ELEC-TMB-MPWR-510` and `argument: 510` and
 `equals: 1.0`, and getting those three right means opening `clickabledata.lua` and `clickable_defs.lua`
 inside a DCS installation and reading Lua. An instructor who knows the aircraft cold has no reason to
@@ -75,7 +75,7 @@ Three layers, and **the build never depends on a language model**:
    cannot be derived. "bouton power" matches no hint containing "power"; that is a question for a
    human or an assistant, once, not a guess.
 3. **In-game verification** settles what neither can: reading the real argument with the control in
-   the wanted position, which [ticket 10](../FEAT-ASSIST-CHECKLISTS/tickets/10-switch-position.md)
+   the wanted position, which [ticket 10](../archive/FEAT-ASSIST-CHECKLISTS.md) (ticket 10 (switch position))
    made possible. `a_cockpit_perform_clickable_action` can even throw the switch, so the loop can run
    without a pilot touching anything.
 
@@ -97,7 +97,7 @@ official manual is better and covers the exact variant.
   data, versioned like `dcsUnits.yaml`, and only grows when someone with the module regenerates it.
 - Translating an instructor's `control` text. It is a lookup key, not pilot-facing; `label` is what
   the pilot reads and it already takes inline translations
-  ([ticket 09](../FEAT-ASSIST-CHECKLISTS/tickets/09-inline-translations.md)).
+  ([ticket 09](../archive/FEAT-ASSIST-CHECKLISTS.md) (ticket 09 (inline translations))).
 
 ## Known limit carried over
 

@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 
 from veaf_libs.checklist_images import (
     _TICK_COLOR,
+    ChecklistImages,
     _encode,
     image_filename,
     line_states,
@@ -328,3 +329,34 @@ class TestContentAddressedNames(unittest.TestCase):
         before = set(self._render(["one", "two"]).files)
         after = set(self._render(["ONE", "TWO"]).files)
         self.assertEqual(set(), before & after)
+
+
+class TestPairingInvariant(unittest.TestCase):
+    """A ChecklistImages that cannot be paired must not exist — Sourcery on #718.
+
+    `resources()` indexes `file_names` by the position of a key. Two lists of different lengths
+    either raise deep inside a caller or, worse, pair a state with another state's picture and say
+    nothing — which is how `mapResource` comes to name the wrong file.
+    """
+
+    def test_a_mismatched_pair_is_refused_at_construction(self):
+        with self.assertRaises(ValueError) as caught:
+            ChecklistImages(
+                checklist_id="f16c-cold-start",
+                resource_keys=["k0", "k1"],
+                file_names=["only-one.png"],
+                files={"only-one.png": b"x"},
+            )
+        # The message has to name the checklist and both counts, or it sends the reader hunting.
+        self.assertIn("f16c-cold-start", str(caught.exception))
+        self.assertIn("2 resource keys", str(caught.exception))
+        self.assertIn("1 file names", str(caught.exception))
+
+    def test_a_matched_pair_is_accepted(self):
+        images = ChecklistImages(
+            checklist_id="f16c-cold-start",
+            resource_keys=["k0"],
+            file_names=["a.png"],
+            files={"a.png": b"x"},
+        )
+        self.assertEqual({"k0": "a.png"}, images.resources())

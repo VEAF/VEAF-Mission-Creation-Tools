@@ -82,6 +82,23 @@ class ChecklistImages:
     file_names: list[str]
     files: dict[str, bytes]
 
+    def __post_init__(self) -> None:
+        """Refuse a mapping that cannot be paired.
+
+        :meth:`resources` indexes ``file_names`` by the position of a key, so two lists of
+        different lengths either raise deep inside the caller or — worse — pair a state with
+        another state's picture and say nothing. Checked at construction rather than in
+        :meth:`resources`, so a wrong object cannot exist to be asked twice (Sourcery, #718).
+
+        Raises:
+            ValueError: if there is not exactly one file name per resource key.
+        """
+        if len(self.file_names) != len(self.resource_keys):
+            raise ValueError(
+                f"checklist '{self.checklist_id}': {len(self.resource_keys)} resource keys "
+                f"but {len(self.file_names)} file names — they are paired by state index"
+            )
+
     @property
     def total_bytes(self) -> int:
         """Total weight the checklist adds to the ``.miz``."""
@@ -122,8 +139,18 @@ def resource_key(checklist_id: str, state: int) -> str:
     return f"VEAF_MapKey_Assist_{_KEY_SAFE_RE.sub('_', checklist_id)}_{state}"
 
 
-#: Hex characters of the content digest kept in a file name. Eight is 32 bits — ample to tell one
-#: rendering of a state from another, and short enough to leave the name readable in ``mapResource``.
+#: Hex characters of the content digest kept in a file name.
+#:
+#: Eight, i.e. 32 bits, and the reason it is enough is that **the digest is not a global identifier**:
+#: the name already carries the checklist id and the state, so a collision would have to be between
+#: two *different renderings of the same state of the same checklist*. That population is the handful
+#: of times a mission maker edits one step — tens, not millions. At a hundred renderings of one state
+#: the birthday probability is around 1e-6, and the consequence is one stale bitmap, which is the bug
+#: this already fixes at a millionth of its former rate.
+#:
+#: Reviewed on #718, where a longer digest was suggested. Left at eight deliberately: lengthening it
+#: costs nothing but buys nothing measurable either, and a constant nobody can justify is how the next
+#: reader loses the reasoning.
 _DIGEST_LENGTH = 8
 
 

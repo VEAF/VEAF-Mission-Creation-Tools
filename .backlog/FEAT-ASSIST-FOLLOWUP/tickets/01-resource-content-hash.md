@@ -106,6 +106,23 @@ carries `file_names` per state now, and `resources()` pairs by index.
 Coverage 80.42 % against a 79 gate — 1.42 points, inside the ~2-point band, so the ratchet does not
 move. The mypy `ignore_errors` list holds only `luadata` (third-party), so nothing to erode there.
 
+### Review (#718) — one remark taken, one refused
+
+**Taken: the pairing is now an invariant, not a coincidence.** `resources()` indexes `file_names` by
+the position of a key, so two lists of different lengths would either raise deep inside a caller or —
+worse — pair a state with another state's picture and say nothing. `__post_init__` refuses such an
+object at construction, naming the checklist and both counts. Checked there rather than in
+`resources()` so a wrong object cannot exist to be asked twice.
+
+**Refused: 8 hex characters stay.** The suggestion was 12–16 to cut collision risk, and it reads
+reasonably until you notice **the digest is not a global identifier**. The name already carries the
+checklist id and the state, so a collision has to happen between two *different renderings of the same
+state of the same checklist* — the handful of times a mission maker edits one step. At a hundred
+renderings of one state the birthday probability is about 1e-6, and the consequence is one stale
+bitmap: this bug, at a millionth of its former rate. Lengthening it costs nothing but buys nothing
+measurable, and a constant nobody can justify is how the next reader loses the reasoning. The
+reasoning is now in the comment on `_DIGEST_LENGTH` instead.
+
 ## Still open: the part no unit test can reach
 
 The trap itself is DCS's cache, and no test here can see it. The real check is one flight: **change a

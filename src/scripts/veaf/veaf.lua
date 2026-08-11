@@ -3250,6 +3250,23 @@ function veaf.markerRules.nonNegativeNumber(field)
   end
 end
 
+--- A numeric parameter accepted only inside `min`..`max`, keeping the default otherwise.
+---
+--- Goes through `veaf.safeNumberInRange`, which **rejects** rather than clamps — `size 42` keeps
+--- the command's default instead of silently becoming 5, the behaviour `VMR-019` settled on.
+---
+--- Deliberately not `getRandomizableNumeric`: the modules using bounded parameters never accepted
+--- the `1-5` random-range syntax, and adding it here would be a behaviour change wearing a
+--- refactor's clothes.
+function veaf.markerRules.boundedNumber(field, min, max)
+  return function(options, value)
+    local _converted = veaf.safeNumberInRange(value, min, max)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
 --- A string parameter, stored exactly as typed.
 function veaf.markerRules.text(field)
   return function(options, value)

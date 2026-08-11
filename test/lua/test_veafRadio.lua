@@ -215,63 +215,22 @@ function TestVeafRadioCharacterisation:test_value_keeps_everything_after_the_fir
 end
 
 -- ---------------------------------------------------------------------------
--- TestVeafRadioSharedParserEquivalence
+-- TestVeafRadioMigratedParser
 --
--- REFACTOR-MARKER-PARSER ticket 02, second acceptance criterion: prove the shared
--- specification can express a module OTHER than veafSpawnParser, before the migration proper
--- starts in ticket 03.
+-- REFACTOR-MARKER-PARSER ticket 03. This block replaces the differential equivalence test that
+-- ticket 02 used to prove the specification BEFORE migrating. Once veafRadio.markTextAnalysis
+-- became `veaf.parseMarkerText(text, veafRadio.MarkerSpec)`, that test compared the shared parser
+-- to itself through a spec duplicated in the test file — tautological, and carrying the very
+-- second-source-of-truth defect this lot exists to remove. A test that can no longer fail is
+-- worse than an absent one, so it is gone rather than kept for reassurance.
 --
--- This is a DIFFERENTIAL test — it runs the live parser and the shared parser over the same
--- corpus and compares field by field, so equivalence is measured rather than argued. Ticket 03
--- reuses this harness per module: build the spec, run the corpus, migrate only once it matches.
---
--- veafRadio is the interesting first case because its keyword chain uses `elseif` where every
--- other module uses separate `if`s. Ticket 01 measured that this is not observable — no key is
--- claimed by two live branches — and the equivalence below is what turns that measurement into
--- a check.
+-- The values it used to guard are pinned by TestVeafRadioCharacterisation above, written before
+-- any of this moved. What is still worth asserting is that the corpus of hostile and degenerate
+-- inputs cannot take the parser down, and that the module really does drive the shared machine.
 -- ---------------------------------------------------------------------------
-TestVeafRadioSharedParserEquivalence = {}
+TestVeafRadioMigratedParser = {}
 
-local radioSpec = {
-  defaults = function(options)
-    options.transmit = false
-    options.playmp3 = false
-    options.message = nil
-    options.frequencies = "251"
-    options.modulations = "AM"
-    options.name = "SRS"
-    options.quiet = false
-    options.path = nil
-  end,
-  commands = {
-    {
-      match = veafRadio.Keyphrase .. " transmit",
-      init = function(options)
-        options.transmit = true
-      end,
-    },
-    {
-      match = veafRadio.Keyphrase .. " play",
-      init = function(options)
-        options.playmp3 = true
-      end,
-    },
-  },
-  parameters = {
-    { keys = { "message" }, apply = veaf.markerRules.text("message") },
-    { keys = { "path" }, apply = veaf.markerRules.text("path") },
-    { keys = { "name" }, apply = veaf.markerRules.text("name") },
-    { keys = { "quiet" }, apply = veaf.markerRules.flag("quiet") },
-    { keys = { "freq", "freqs", "frequency", "frequencies" }, apply = veaf.markerRules.text("frequencies") },
-    { keys = { "mod", "mods", "modulation", "modulations" }, apply = veaf.markerRules.text("modulations") },
-  },
-  -- veafRadio reads `str[2]` without an `or ""`, so an absent value stays nil. That is what
-  -- makes `freq` with no value destroy the "251" default, which ticket 01 recorded as a defect
-  -- and this equivalence deliberately reproduces rather than quietly repairs.
-  valueWhenAbsent = nil,
-}
-
--- Every input ticket 01 pinned, plus hostile shapes.
+-- Every input ticket 01 pinned, plus hostile and degenerate shapes.
 local RADIO_CORPUS = {
   "_radio",
   "_radio transmit",
@@ -312,54 +271,41 @@ local RADIO_CORPUS = {
   "_spawn group, name A",
 }
 
-local RADIO_FIELDS = { "transmit", "playmp3", "message", "frequencies", "modulations", "name", "quiet", "path" }
-
-function TestVeafRadioSharedParserEquivalence:test_the_corpus_is_not_empty()
-  -- Without this, an empty corpus would make the equivalence test pass while comparing nothing.
+function TestVeafRadioMigratedParser:test_the_corpus_is_not_empty()
+  -- Without this, an empty corpus would make the test below pass while checking nothing.
   luaunit.assertTrue(#RADIO_CORPUS > 30)
 end
 
-function TestVeafRadioSharedParserEquivalence:test_the_shared_parser_matches_the_live_one_on_every_input()
-  local mismatches = {}
+function TestVeafRadioMigratedParser:test_no_input_in_the_corpus_raises()
+  local raised = {}
   for _, text in ipairs(RADIO_CORPUS) do
-    local liveOk, live = pcall(veafRadio.markTextAnalysis, text)
-    local sharedOk, shared = pcall(veaf.parseMarkerText, text, radioSpec)
+    local ok, err = pcall(veafRadio.markTextAnalysis, text)
+    if not ok then
+      table.insert(raised, string.format("[%s] %s", text, tostring(err)))
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "inputs raising: " .. table.concat(raised, " | "))
+end
 
-    if not liveOk or not sharedOk then
-      table.insert(mismatches, string.format("[%s] raised (live=%s shared=%s)", text, tostring(liveOk), tostring(sharedOk)))
-    elseif (live == nil) ~= (shared == nil) then
-      table.insert(mismatches, string.format("[%s] nil disagreement (live=%s shared=%s)", text, tostring(live), tostring(shared)))
-    elseif live ~= nil then
-      for _, field in ipairs(RADIO_FIELDS) do
-        if live[field] ~= shared[field] then
-          table.insert(mismatches, string.format("[%s] %s: live=%s shared=%s", text, field, tostring(live[field]), tostring(shared[field])))
-        end
+-- The module drives the shared machine rather than carrying its own loop.
+function TestVeafRadioMigratedParser:test_the_module_declares_a_marker_specification()
+  luaunit.assertIsTable(veafRadio.MarkerSpec)
+  luaunit.assertIsTable(veafRadio.MarkerSpec.commands)
+  luaunit.assertIsTable(veafRadio.MarkerSpec.parameters)
+end
+
+-- The unreachable duplicate `path` branch of the old elseif chain is gone, not translated:
+-- one rule claims that key now.
+function TestVeafRadioMigratedParser:test_only_one_rule_claims_the_path_key()
+  local claiming = 0
+  for _, rule in ipairs(veafRadio.MarkerSpec.parameters) do
+    for _, key in ipairs(rule.keys) do
+      if key == "path" then
+        claiming = claiming + 1
       end
     end
   end
-  luaunit.assertEquals(#mismatches, 0, "shared parser diverges:\n  " .. table.concat(mismatches, "\n  "))
-end
-
--- The harness has to be able to fail, or it proves nothing. A deliberately wrong default must
--- be caught by the same comparison.
-function TestVeafRadioSharedParserEquivalence:test_the_comparison_catches_a_wrong_specification()
-  local brokenSpec = {}
-  for field, value in pairs(radioSpec) do
-    brokenSpec[field] = value
-  end
-  brokenSpec.defaults = function(options)
-    options.transmit = false
-    options.playmp3 = false
-    options.frequencies = "WRONG"
-    options.modulations = "AM"
-    options.name = "SRS"
-    options.quiet = false
-  end
-  brokenSpec._prepared = nil
-
-  local live = veafRadio.markTextAnalysis("_radio transmit")
-  local shared = veaf.parseMarkerText("_radio transmit", brokenSpec)
-  luaunit.assertNotEquals(live.frequencies, shared.frequencies)
+  luaunit.assertEquals(claiming, 1)
 end
 
 -- ---------------------------------------------------------------------------

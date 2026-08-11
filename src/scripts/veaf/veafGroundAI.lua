@@ -358,61 +358,73 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- METHODS
 
+ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
+ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
+
+--- The artillery order specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, group B. This is the only parser in the codebase that splits
+--- on `";"` rather than `","`, which is why the shared parser takes the separator as a parameter.
+---
+--- Two other things are specific to it. The verbs are matched anywhere in the text and the chain's
+--- order decides, so `fire aim` is an *aim*. And `target` is the only parameter rule in the
+--- codebase that **validates its own input**, dropping a coordinate string `computeLLFromString`
+--- cannot read instead of storing it.
+ArtilleryUnitHandler.OrderSpec = {
+  defaults = function(options)
+    options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
+    options.target = nil -- the coordinates of the target
+    options.shells = nil -- the number of shells to fire
+    options.radius = nil -- the precision of the shelling
+  end,
+  commands = {
+    {
+      match = "aim",
+      init = function(options)
+        options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
+      end,
+    },
+    {
+      match = "fire",
+      init = function(options)
+        options.verb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
+      end,
+    },
+  },
+  parameters = {
+    {
+      keys = { "target" },
+      apply = function(options, value)
+        if veaf.computeLLFromString(value) then -- check target string validity
+          options.target = value
+        end
+      end,
+    },
+    -- These assign whatever the conversion returns, nil included, which is the existing
+    -- behaviour: an unreadable `shells` clears it, and fireForAim then applies its own default.
+    {
+      keys = { "shells" },
+      apply = function(options, value)
+        options.shells = veaf.getRandomizableNumeric(value)
+      end,
+    },
+    {
+      keys = { "radius" },
+      apply = function(options, value)
+        options.radius = veaf.getRandomizableNumeric(value)
+      end,
+    },
+  },
+  separator = ";",
+  valueWhenAbsent = "",
+}
+
 function ArtilleryUnitHandler:orderTextAnalysis(text)
   veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.lp(self:getName()), veaf.lp(text))
 
-  -- analyze the string for an acceptable order
-  ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
-  ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-  options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM -- can be "aim", "fire"
-  options.target = nil -- the coordinates of the target
-  options.shells = nil -- the number of shells to fire
-  options.radius = nil -- the precision of the shelling
-
-  -- Check for correct keywords.
-  if text:lower():find("aim") then
-    options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
-  elseif text:lower():find("fire") then
-    options.verb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
-  else
+  local options = veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
+  if not options then
     return nil
-  end
-
-  -- keywords are split by ";"
-  local keywords = veaf.split(text, ";")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "target" then
-      -- Set the target
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword target = %s", veaf.lp(val))
-      if veaf.computeLLFromString(val) then -- check target string validity
-        options.target = val
-      end
-    end
-
-    if key:lower() == "shells" then
-      -- Set the number of shells
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword shells = %s", veaf.lp(val))
-      local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("shells = %s", veaf.lp(nVal))
-      options.shells = nVal
-    end
-
-    if key:lower() == "radius" then
-      -- Set the radius of the shelling
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword radius = %s", veaf.lp(val))
-      local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("radius = %s", veaf.lp(nVal))
-      options.radius = nVal
-    end
   end
 
   if options.verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then

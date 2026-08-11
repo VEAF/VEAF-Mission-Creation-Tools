@@ -3267,10 +3267,28 @@ function veaf.markerRules.boundedNumber(field, min, max)
   end
 end
 
---- A string parameter, stored exactly as typed.
+--- A string parameter, stored exactly as typed — including nil, which clears the field.
+---
+--- Use `textKeepingDefault` instead whenever the field has a default worth surviving a mistyped
+--- keyword.
 function veaf.markerRules.text(field)
   return function(options, value)
     options[field] = value
+  end
+end
+
+--- A string parameter that leaves the field alone when the keyword carries no value.
+---
+--- The difference matters wherever a default exists: `_radio transmit, freq` used to set
+--- `frequencies` to nil, and `executeCommand` requires that field, so the command did nothing at
+--- all and said nothing to the pilot. An *unknown* keyword was harmless by comparison, since it
+--- left the default intact — a mistyped recognised keyword should not be worse than an
+--- unrecognised one.
+function veaf.markerRules.textKeepingDefault(field)
+  return function(options, value)
+    if value ~= nil and value ~= "" then
+      options[field] = value
+    end
   end
 end
 

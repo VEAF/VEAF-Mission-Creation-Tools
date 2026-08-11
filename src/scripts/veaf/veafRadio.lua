@@ -230,12 +230,15 @@ veafRadio.MarkerSpec = {
     },
   },
   parameters = {
+    -- `message` and `path` default to nil, so there is nothing for a valueless keyword to destroy.
     { keys = { "message" }, apply = veaf.markerRules.text("message") },
     { keys = { "path" }, apply = veaf.markerRules.text("path") },
-    { keys = { "name" }, apply = veaf.markerRules.text("name") },
+    -- These three carry defaults that must survive a mistyped keyword: `executeCommand` requires
+    -- `frequencies` and `name`, so clearing either made the command do nothing, silently.
+    { keys = { "name" }, apply = veaf.markerRules.textKeepingDefault("name") },
     { keys = { "quiet" }, apply = veaf.markerRules.flag("quiet") },
-    { keys = { "freq", "freqs", "frequency", "frequencies" }, apply = veaf.markerRules.text("frequencies") },
-    { keys = { "mod", "mods", "modulation", "modulations" }, apply = veaf.markerRules.text("modulations") },
+    { keys = { "freq", "freqs", "frequency", "frequencies" }, apply = veaf.markerRules.textKeepingDefault("frequencies") },
+    { keys = { "mod", "mods", "modulation", "modulations" }, apply = veaf.markerRules.textKeepingDefault("modulations") },
   },
   valueWhenAbsent = nil,
 }

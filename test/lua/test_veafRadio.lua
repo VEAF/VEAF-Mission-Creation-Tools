@@ -165,20 +165,29 @@ function TestVeafRadioCharacterisation:test_unknown_keyword_is_ignored_silently(
   luaunit.assertNil(r.unknownParameters)
 end
 
--- DEFECT, recorded not fixed: a *recognised* keyword with no value overwrites its default
--- with nil. `executeCommand` requires `options.frequencies`, so this command silently does
--- nothing at all — no transmission, no message to the pilot. Compare with the unknown-keyword
--- test above, which keeps "251".
-function TestVeafRadioCharacterisation:test_valueless_freq_destroys_the_default()
+-- FIXED (ticket 03): a *recognised* keyword with no value used to overwrite its default with
+-- nil. `executeCommand` requires `options.frequencies`, so the command did nothing at all — no
+-- transmission, no message to the pilot — while an *unknown* keyword was harmless because it
+-- left "251" intact. A mistyped recognised keyword should not be worse than an unrecognised one.
+function TestVeafRadioCharacterisation:test_valueless_freq_keeps_the_default()
   local r = veafRadio.markTextAnalysis("_radio transmit, freq")
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.frequencies)
+  luaunit.assertEquals(r.frequencies, "251")
 end
 
-function TestVeafRadioCharacterisation:test_valueless_name_destroys_the_default()
+function TestVeafRadioCharacterisation:test_valueless_name_keeps_the_default()
   local r = veafRadio.markTextAnalysis("_radio transmit, name")
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.name)
+  luaunit.assertEquals(r.name, "SRS")
+end
+
+function TestVeafRadioCharacterisation:test_valueless_modulation_keeps_the_default()
+  luaunit.assertEquals(veafRadio.markTextAnalysis("_radio transmit, mod").modulations, "AM")
+end
+
+-- `message` and `path` default to nil, so a valueless keyword has nothing to destroy there.
+function TestVeafRadioCharacterisation:test_valueless_message_stays_nil()
+  luaunit.assertNil(veafRadio.markTextAnalysis("_radio transmit, message").message)
 end
 
 -- `quiet` is a pure flag: a value is accepted and discarded rather than parsed.

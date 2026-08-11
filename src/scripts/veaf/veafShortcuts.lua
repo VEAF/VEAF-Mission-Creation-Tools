@@ -336,7 +336,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   local missionName = _options.name
   local password = _options.password
 
-  if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+  if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
@@ -424,7 +424,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   local zoneName = _options.name
   local password = _options.password
 
-  if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+  if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
@@ -517,7 +517,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
       -- the batch aliases are always password protected by a Mission Master password, so search for one
       local password = veafShortcuts.parseAliasParameters(remainingCommand).password
 
-      if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+      if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
         veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
         local hash = nil
         if password then

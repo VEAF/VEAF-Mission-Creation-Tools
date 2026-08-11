@@ -1,6 +1,6 @@
 # 01 — Make authentication per-player instead of global
 
-Status: 🔄 in-progress — **the mechanism is built and tested; the global short-circuit that bypasses it is still in place.** Measured 2026-08-11, see *State, measured* below. What remains is wiring plus one decision, not design
+Status: ✅ done — the global boolean has **no readers left**. The three `checkSecurity_Lx` check who is asking, and the three `veafShortcuts` alias gates ask whether the marker's author is a known pilot (David's option 1, 2026-08-11)
 Type: feat
 
 ## The problem, measured
@@ -36,22 +36,22 @@ call sites have to supply an actor. Two candidate sources, both already present:
 
 ## Tasks
 
-- [ ] Establish which entry points can supply an actor and which genuinely cannot; the ones that
+- [x] Establish which entry points can supply an actor and which genuinely cannot; the ones that
       cannot decide the shape of the fallback.
-- [ ] Decide with David what a logged-in session should mean: one player, one player in one slot,
+- [x] Decide with David what a logged-in session should mean: one player, one player in one slot,
       or a UCID for a duration.
-- [ ] Change `isAuthenticated` and the `checkSecurity_*` family to take an actor, keeping the
+- [x] Change `isAuthenticated` and the `checkSecurity_*` family to take an actor, keeping the
       no-actor case **fail-closed** rather than falling back to the global flag.
-- [ ] Migrate the F10 radio menu's two `isAuthenticated` sites (`veafRadio.lua`), which gate
+- [x] Migrate the F10 radio menu's two `isAuthenticated` sites (`veafRadio.lua`), which gate
       secured menu commands and have a different notion of "who" — the menu is per-group.
-- [ ] Tests: one player logging in does not authenticate another; a logged-in player's session
+- [x] Tests: one player logging in does not authenticate another; a logged-in player's session
       does not survive a slot change if the decision above says it should not.
 
 ## Acceptance criteria
 
-- [ ] No code path grants a second player access because a first one authenticated.
-- [ ] Every `checkSecurity_*` either knows who is asking or denies.
-- [ ] The behaviour change is written down for server admins: this **will** stop working the way
+- [x] No code path grants a second player access because a first one authenticated.
+- [x] Every `checkSecurity_*` either knows who is asking or denies.
+- [x] The behaviour change is written down for server admins: this **will** stop working the way
       VEAF staff currently rely on, and that has to be announced rather than discovered in flight.
 
 ## State, measured 2026-08-11
@@ -120,3 +120,88 @@ This ticket already says it and it bears repeating at the point of execution: **
 the way VEAF staff currently rely on.** Today one login unlocks the server for everyone for ten
 minutes. Afterwards it unlocks one group, for two minutes, at one level. That is the point of the lot,
 and it is also a change people will feel mid-mission if nobody tells them.
+
+## The ceiling question, answered by David — 2026-08-11
+
+> *"on ne connait pas le 'demandeur' dans le menu radio, uniquement son groupe ; d'où ce subterfuge.
+> En principe on est souvent seul dans un groupe alors ça va, mais si jamais on est avec un élève
+> pilote le renversement du calcul est censé résoudre la situation."*
+
+So `max(group)` and `requester's level` are not in conflict. In the case this mechanism is designed for —
+an instructor flying with a student — **the instructor is the one typing `_auth`**, so the group rises
+to the instructor's level, which is the maximum. The cap only bites when a *lower*-graded occupant
+asks, and there it is the safer answer: the student cannot grant themselves the instructor's rights.
+
+The description stated the effect, the code states the mechanism, and the code is stricter in the only
+case where they differ. **No change needed** — the question is closed.
+
+## Delivered — 2026-08-11
+
+The global short-circuit is removed from `checkSecurity_L0`, `checkSecurity_L1` and
+`checkSecurity_L9`. Each opened with `if veafSecurity.isAuthenticated() then return true end`, so one
+`/login` granted every secured command to every player for `authDuration`, and the per-pilot path
+below was unreachable while anyone was logged in.
+
+What that does and does not change, measured:
+
+- **A pilot listed in `veaf-pilots.txt` notices nothing.** Their level satisfies
+  `getMarkerSecurityLevel(markId)` and they never needed a password.
+- **A pilot who is not listed must supply the password on every command.** There is no ten-minute
+  session any more. That is the point of the lot, and it is what has to be announced.
+- `veaf.SecurityDisabled` still short-circuits everything — it is a mission-wide switch, not an
+  authentication path, and a test pins that it survived.
+- `checkSecurity_MM` never had the short-circuit; a test now pins that it refuses with no password and
+  is unaffected by anyone's login, since it takes no actor at all.
+
+7 tests, including a wrong-password case so the password test cannot pass merely because the check is missing.
+Documented in both languages as a **behaviour change**, with the instructor/student case spelled out.
+
+### Still open: the three `veafShortcuts` sites
+
+`veafShortcuts.lua:339`, `:427` and `:520` still read `veafSecurity.isAuthenticated()`, and they are
+now its **only** readers. They are not the same problem: they gate an **alias** password
+(`alias:hasPassword(hash)`), not the L0/L1/L9 tiers, and the short-circuit means *"if you are logged
+in, you need not give the alias password"*.
+
+Replacing it needs a decision this ticket does not contain: **which pilot level should excuse an alias
+password?** The tiers answer that question for tier-secured commands; an alias password is a
+per-alias secret with no level attached. Candidates:
+
+1. any known pilot level (i.e. being in `veaf-pilots.txt` at all) excuses it;
+2. a specific tier — but nothing currently associates a tier with an alias;
+3. nothing excuses it: the alias password is always required unless `bypassSecurity`.
+
+Option 3 is the most defensible and the most disruptive. Worth asking David rather than picking, since
+the three sites already have `markId` available and any of the three is a small change once chosen.
+
+### The alias gate, decided by David — option 1
+
+> *"option 1"* — being in `veaf-pilots.txt` at all excuses an alias password, whatever the level.
+
+`veafSecurity.isKnownPilot(markId)` is that gate, and the three `veafShortcuts` sites use it. All
+three already had `markId` in scope, so the change is one expression each. `getMarkerSecurityLevel`
+returns -1 for an author the server cannot resolve, so an unknown author still has to give the
+password — and `SecurityDisabled` (either spelling) still excuses everything, since a solo mission
+turning the layer off must not keep demanding alias passwords.
+
+**The global boolean now has no readers at all.** `veafSecurity.authenticated` is still written by
+`authenticate()`/`logout()` and still drives the `/login` message and its watchdog, but nothing
+consults it to grant anything.
+
+### Wiring it found a raise waiting inside a security check
+
+`getMarkerSecurityLevel` indexed `veafRemote` unconditionally — unlike `getPilotLevelForUnit` three
+functions below, which guards. Harmless while every caller happened to load that module; a **raise
+inside a security check** as soon as one did not, which is exactly what widening the callers exposed.
+
+Guarded now, returning -1 (unknown author), so the failure mode is a refusal rather than a crashed
+handler. Found by a test that had nothing to do with security: the `veafShortcuts` characterisation
+suite does not load `veafRemote`.
+
+## Acceptance criteria — met
+
+- [x] No code path grants a second player access because a first one authenticated.
+- [x] Every `checkSecurity_*` either knows who is asking or denies — `checkSecurity_MM` takes no
+      actor and refuses without a password, pinned by a test.
+- [x] The behaviour change is documented for server admins, in both languages, including the
+      instructor/student case the elevation exists for.

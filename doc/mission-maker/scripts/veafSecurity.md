@@ -99,6 +99,24 @@ _auth [MOT_DE_PASSE]
 
 En cas de succès : l'accès est accordé pour `authDuration` minutes. Aucun message n'est affiché aux autres joueurs.
 
+!!! danger "Changement de comportement — l'authentification n'est plus globale"
+    **Avant** : un seul `_auth` réussi ouvrait toutes les commandes sécurisées à **tous les joueurs
+    du serveur** pendant `authDuration` minutes. Tant que quelqu'un était authentifié, le niveau
+    réel des pilotes n'était même plus consulté : le mécanisme grossier désactivait le précis.
+
+    **Maintenant** : chaque commande sécurisée vérifie qui demande.
+
+    - **Pour un pilote listé dans `veaf-pilots.txt`, rien ne change** : son niveau suffit, et il n'a
+      jamais eu besoin du mot de passe.
+    - **Un pilote non listé** doit fournir le mot de passe **à chaque commande** : il n'y a plus de
+      session ouverte de dix minutes.
+    - Pour le **menu radio F10**, DCS ne permet pas de savoir *quel* occupant d'un groupe a cliqué.
+      Le groupe agit donc au niveau du **moins gradé** de ses occupants. `_auth` ou `/login` depuis
+      un canal identifié (marqueur ou tchat) élève le groupe au niveau **du demandeur** pendant
+      2 minutes — ce qui résout le cas de l'instructeur volant avec un élève.
+
+    Prévenez vos pilotes : c'est un changement qui se remarque en pleine mission.
+
 ---
 
 ## Désactiver la sécurité (développement / solo)

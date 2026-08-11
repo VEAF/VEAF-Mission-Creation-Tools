@@ -786,7 +786,11 @@ function veafSecurity.getMarkerSecurityLevel(markId)
     _author = markId
   end
   veaf.loggers.get(veafSecurity.Id):trace("_author=%s", _author)
-  local _user = veafRemote.getRemoteUser(_author)
+  -- Guarded like `getPilotLevelForUnit` below, which this function was not: it indexed `veafRemote`
+  -- unconditionally. Harmless while every caller happened to load that module, and a **raise inside
+  -- a security check** as soon as one did not. Returning -1 means "unknown author", so the failure
+  -- mode is a refusal rather than a crashed handler.
+  local _user = veafRemote and veafRemote.getRemoteUser and veafRemote.getRemoteUser(_author)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.p(_user)))
   if _user then
     return _user.level
@@ -794,11 +798,20 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   return -1
 end
 
+-- REVIEW-SECURITY-LAYER ticket 01. These three used to open with
+--
+--     if veafSecurity.isAuthenticated() then return true end
+--
+-- a module-level boolean, so one `/login` granted every secured command to **every player on the
+-- server** for `authDuration` — and while anyone was logged in the per-pilot path below was never
+-- reached, the blunt mechanism disabling the precise one.
+--
+-- Removing it does not remove password access: `checkPassword_Lx` is still in the condition, so
+-- "your own level suffices OR you give the password" holds. What went is the convenience of one
+-- login covering everyone, replaced by an elevation scoped to a single group for two minutes
+-- (`elevateGroupForPilot`). `veaf.SecurityDisabled` still short-circuits everything, because it is a
+-- mission-wide switch and not an authentication path.
 function veafSecurity.checkSecurity_L0(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L0 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L0"), 5)
@@ -808,10 +821,6 @@ function veafSecurity.checkSecurity_L0(password, markId)
 end
 
 function veafSecurity.checkSecurity_L1(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L1 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L1"), 5)
@@ -821,10 +830,6 @@ function veafSecurity.checkSecurity_L1(password, markId)
 end
 
 function veafSecurity.checkSecurity_L9(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L9 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L9"), 5)
@@ -844,6 +849,24 @@ end
 
 function veafSecurity.isAuthenticated()
   return veafSecurity.authenticated or veafSecurity.isSecurityDisabled()
+end
+
+--- Is the author of `markId` a pilot this server knows at all?
+---
+--- REVIEW-SECURITY-LAYER ticket 01, David's option 1. This is the gate for an **alias** password,
+--- which is a per-alias secret with no tier attached — so "which level excuses it?" had no answer in
+--- the tier model. The answer chosen: **being in `veaf-pilots.txt` excuses it**, whatever the level.
+---
+--- It replaces `isAuthenticated()`, whose global boolean meant one player's login excused the alias
+--- password for everybody. `getMarkerSecurityLevel` returns -1 for an author the server cannot
+--- resolve, so an unknown author still has to give the password.
+--- @param markId the mark panel id, or a username when called from veafRemote
+--- @return boolean true when the author has a known pilot level
+function veafSecurity.isKnownPilot(markId)
+  if veafSecurity.isSecurityDisabled() then
+    return true
+  end
+  return veafSecurity.getMarkerSecurityLevel(markId) >= veafSecurity.LEVEL_KNOWN_PILOT
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

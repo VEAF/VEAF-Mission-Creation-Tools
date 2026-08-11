@@ -100,6 +100,24 @@ _auth [PASSWORD]
 
 On success: access is granted for `authDuration` minutes. No message is displayed to other players.
 
+!!! danger "Behaviour change — authentication is no longer global"
+    **Before**: one successful `_auth` opened every secured command to **every player on the server**
+    for `authDuration` minutes. While anyone was authenticated the pilots' real levels were not even
+    consulted: the blunt mechanism disabled the precise one.
+
+    **Now**: every secured command checks who is asking.
+
+    - **A pilot listed in `veaf-pilots.txt` notices nothing**: their own level suffices, and they
+      never needed the password.
+    - **A pilot who is not listed** must supply the password **on every command**: there is no
+      ten-minute session any more.
+    - For the **F10 radio menu**, DCS cannot tell *which* occupant of a group clicked. The group
+      therefore acts at the level of its **lowest-graded** occupant. `_auth` or `/login` from an
+      identified channel (marker or chat) raises the group to the **requester's** level for
+      2 minutes — which is what solves the instructor-flying-with-a-student case.
+
+    Tell your pilots: this is a change they will notice mid-mission.
+
 ---
 
 ## Disabling Security (Development / Solo)

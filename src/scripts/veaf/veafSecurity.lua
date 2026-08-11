@@ -794,11 +794,20 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   return -1
 end
 
+-- REVIEW-SECURITY-LAYER ticket 01. These three used to open with
+--
+--     if veafSecurity.isAuthenticated() then return true end
+--
+-- a module-level boolean, so one `/login` granted every secured command to **every player on the
+-- server** for `authDuration` — and while anyone was logged in the per-pilot path below was never
+-- reached, the blunt mechanism disabling the precise one.
+--
+-- Removing it does not remove password access: `checkPassword_Lx` is still in the condition, so
+-- "your own level suffices OR you give the password" holds. What went is the convenience of one
+-- login covering everyone, replaced by an elevation scoped to a single group for two minutes
+-- (`elevateGroupForPilot`). `veaf.SecurityDisabled` still short-circuits everything, because it is a
+-- mission-wide switch and not an authentication path.
 function veafSecurity.checkSecurity_L0(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L0 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L0"), 5)
@@ -808,10 +817,6 @@ function veafSecurity.checkSecurity_L0(password, markId)
 end
 
 function veafSecurity.checkSecurity_L1(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L1 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L1"), 5)
@@ -821,10 +826,6 @@ function veafSecurity.checkSecurity_L1(password, markId)
 end
 
 function veafSecurity.checkSecurity_L9(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L9 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L9"), 5)

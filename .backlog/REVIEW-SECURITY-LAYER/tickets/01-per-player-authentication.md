@@ -1,6 +1,6 @@
 # 01 — Make authentication per-player instead of global
 
-Status: 🔄 in-progress — **the mechanism is built and tested; the global short-circuit that bypasses it is still in place.** Measured 2026-08-11, see *State, measured* below. What remains is wiring plus one decision, not design
+Status: 🔄 in-progress — **the global short-circuit is gone from the three `checkSecurity_Lx`, so no login grants another player anything.** Three `veafShortcuts` sites still read the boolean and need a design decision of their own; see *Delivered* at the end
 Type: feat
 
 ## The problem, measured
@@ -120,3 +120,56 @@ This ticket already says it and it bears repeating at the point of execution: **
 the way VEAF staff currently rely on.** Today one login unlocks the server for everyone for ten
 minutes. Afterwards it unlocks one group, for two minutes, at one level. That is the point of the lot,
 and it is also a change people will feel mid-mission if nobody tells them.
+
+## The ceiling question, answered by David — 2026-08-11
+
+> *"on ne connait pas le 'demandeur' dans le menu radio, uniquement son groupe ; d'où ce subterfuge.
+> En principe on est souvent seul dans un groupe alors ça va, mais si jamais on est avec un élève
+> pilote le renversement du calcul est censé résoudre la situation."*
+
+So `max(group)` and `requester's level` are not in conflict. In the case the mechanism exists for —
+an instructor flying with a student — **the instructor is the one typing `_auth`**, so the group rises
+to the instructor's level, which is the maximum. The cap only bites when a *lower*-graded occupant
+asks, and there it is the safer answer: the student cannot grant themselves the instructor's rights.
+
+The description stated the effect, the code states the mechanism, and the code is stricter in the only
+case where they differ. **No change needed** — the question is closed.
+
+## Delivered — 2026-08-11
+
+The global short-circuit is removed from `checkSecurity_L0`, `checkSecurity_L1` and
+`checkSecurity_L9`. Each opened with `if veafSecurity.isAuthenticated() then return true end`, so one
+`/login` granted every secured command to every player for `authDuration`, and the per-pilot path
+below was unreachable while anyone was logged in.
+
+What that does and does not change, measured:
+
+- **A pilot listed in `veaf-pilots.txt` notices nothing.** Their level satisfies
+  `getMarkerSecurityLevel(markId)` and they never needed a password.
+- **A pilot who is not listed must supply the password on every command.** There is no ten-minute
+  session any more. That is the point of the lot, and it is what has to be announced.
+- `veaf.SecurityDisabled` still short-circuits everything — it is a mission-wide switch, not an
+  authentication path, and a test pins that it survived.
+- `checkSecurity_MM` never had the short-circuit; a test now pins that it refuses with no password and
+  is unaffected by anyone's login, since it takes no actor at all.
+
+7 tests, including a wrong-password case so the password test is not passing on the absence of a check.
+Documented in both languages as a **behaviour change**, with the instructor/student case spelled out.
+
+### Still open: the three `veafShortcuts` sites
+
+`veafShortcuts.lua:339`, `:427` and `:520` still read `veafSecurity.isAuthenticated()`, and they are
+now its **only** readers. They are not the same problem: they gate an **alias** password
+(`alias:hasPassword(hash)`), not the L0/L1/L9 tiers, and the short-circuit means *"if you are logged
+in, you need not give the alias password"*.
+
+Replacing it needs a decision this ticket does not contain: **which pilot level should excuse an alias
+password?** The tiers answer that question for tier-secured commands; an alias password is a
+per-alias secret with no level attached. Candidates:
+
+1. any known pilot level (i.e. being in `veaf-pilots.txt` at all) excuses it;
+2. a specific tier — but nothing currently associates a tier with an alias;
+3. nothing excuses it: the alias password is always required unless `bypassSecurity`.
+
+Option 3 is the most defensible and the most disruptive. Worth asking David rather than picking, since
+the three sites already have `markId` available and any of the three is a small change once chosen.

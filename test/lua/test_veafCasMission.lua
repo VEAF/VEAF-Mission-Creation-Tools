@@ -223,11 +223,12 @@ function TestVeafCasCharacterisation:test_a_double_space_before_BLUE_silently_yi
   luaunit.assertEquals(veafCasMission.markTextAnalysis("_cas, side  BLUE").side, veafCasMission.SIDE_RED)
 end
 
--- DEFECT, recorded not fixed: `disperse` alone was written to mean "after 15 seconds"
+-- FIXED (ticket 03): `disperse` alone was written to mean "after 15 seconds"
 -- (`if val ~= "" then tonumber(val) else 15 end`), but veaf.breakString returns nil for a
--- valueless keyword and never "", so the `else` is unreachable and the option stays false.
-function TestVeafCasCharacterisation:test_bare_disperse_never_reaches_its_15_second_default()
-  luaunit.assertFalse(veafCasMission.markTextAnalysis("_cas, disperse").disperseOnAttack)
+-- valueless keyword and never "", so the `else` was unreachable and the option stayed false.
+-- The declared parameter now treats both nil and "" as "the pilot asked for the default".
+function TestVeafCasCharacterisation:test_bare_disperse_means_15_seconds()
+  luaunit.assertEquals(veafCasMission.markTextAnalysis("_cas, disperse").disperseOnAttack, 15)
 end
 
 function TestVeafCasCharacterisation:test_disperse_accepts_zero()

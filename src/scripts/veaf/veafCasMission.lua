@@ -399,6 +399,9 @@ veafCasMission.flareResetTaskID = "none"
 veafCasMission.SIDE_RED = coalition.side.RED
 veafCasMission.SIDE_BLUE = coalition.side.BLUE
 
+--- Seconds a bare `disperse` keyword asks for, when the pilot names no delay.
+veafCasMission.DEFAULT_DISPERSE_DELAY = 15
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -511,18 +514,19 @@ veafCasMission.MarkerSpec = {
       end,
     },
     {
-      -- Reproduced exactly, dead branch included: `val ~= ""` is always true because a valueless
-      -- keyword arrives as nil and never as "", so the `else` that would mean "disperse after 15
-      -- seconds" is unreachable and a bare `disperse` stays false. Recorded defect, own commit.
+      -- A bare `disperse` means "disperse, after the default 15 seconds". The old code expressed
+      -- that as `if val ~= "" then tonumber(val) else 15 end`, but `veaf.breakString` returns nil
+      -- for a valueless keyword and never `""`, so the `else` was unreachable and a bare
+      -- `disperse` silently did nothing at all. Both empty forms now reach the default.
       keys = { "disperse" },
       apply = function(options, value)
-        if value ~= "" then
-          local converted = tonumber(value)
-          if converted then
-            options.disperseOnAttack = converted
-          end
-        else
-          options.disperseOnAttack = 15
+        if value == nil or value == "" then
+          options.disperseOnAttack = veafCasMission.DEFAULT_DISPERSE_DELAY
+          return
+        end
+        local converted = veaf.safeNumber(value)
+        if converted then
+          options.disperseOnAttack = converted
         end
       end,
     },

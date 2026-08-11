@@ -431,46 +431,68 @@ local function everyDeclaredKey()
   return keys
 end
 
--- Guards against the enumeration silently becoming empty, which would make every test below
--- pass while checking nothing.
-function TestSpawnParserEveryKeywordSurvivesBadInput:test_the_enumeration_is_not_empty()
-  luaunit.assertTrue(#everyDeclaredKey() > 40, "expected veafSpawn to declare many parameters")
+-- Runs one marker-text shape over every declared keyword and reports all the failures at once,
+-- named, rather than stopping at the first. Adding a new hostile shape is one call.
+local function assertNoDeclaredKeywordRaises(shape, description)
+  local raised = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    local ok, err = pcall(analyse, "_spawn group, name A, " .. shape(key))
+    if not ok then
+      table.insert(raised, key .. " (" .. tostring(err) .. ")")
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "keywords raising " .. description .. ": " .. table.concat(raised, " | "))
+end
+
+-- Guards against the enumeration degenerating, which would make every test below pass while
+-- checking nothing. Asserted as the invariant rather than as a magic count: **every declared
+-- rule must contribute at least one key**. That cannot go stale when parameters are added or
+-- removed, where a hardcoded threshold would.
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_the_enumeration_covers_every_declared_rule()
+  luaunit.assertTrue(#veafSpawn.ParameterRules > 0, "veafSpawn.ParameterRules is empty")
+
+  local enumerated = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    enumerated[key] = true
+  end
+
+  local uncovered = {}
+  for index, rule in ipairs(veafSpawn.ParameterRules) do
+    local covered = false
+    for _, key in ipairs(rule.keys) do
+      if enumerated[key] then
+        covered = true
+      end
+    end
+    if not covered then
+      table.insert(uncovered, "rule #" .. index)
+    end
+  end
+  luaunit.assertEquals(#uncovered, 0, "rules the sweep would skip: " .. table.concat(uncovered, ", "))
 end
 
 function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_when_bare()
-  local raised = {}
-  for _, key in ipairs(everyDeclaredKey()) do
-    local text = "_spawn group, name A, " .. key
-    local ok, err = pcall(analyse, text)
-    if not ok then
-      table.insert(raised, key .. " (" .. tostring(err) .. ")")
-    end
-  end
-  luaunit.assertEquals(#raised, 0, "keywords raising with no value: " .. table.concat(raised, " | "))
+  assertNoDeclaredKeywordRaises(function(key)
+    return key
+  end, "with no value")
 end
 
 function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_non_numeric_value()
-  local raised = {}
-  for _, key in ipairs(everyDeclaredKey()) do
-    local text = "_spawn group, name A, " .. key .. " banana"
-    local ok, err = pcall(analyse, text)
-    if not ok then
-      table.insert(raised, key .. " (" .. tostring(err) .. ")")
-    end
-  end
-  luaunit.assertEquals(#raised, 0, "keywords raising on a non-numeric value: " .. table.concat(raised, " | "))
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " banana"
+  end, "on a non-numeric value")
 end
 
 function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_negative_value()
-  local raised = {}
-  for _, key in ipairs(everyDeclaredKey()) do
-    local text = "_spawn group, name A, " .. key .. " -1"
-    local ok, err = pcall(analyse, text)
-    if not ok then
-      table.insert(raised, key .. " (" .. tostring(err) .. ")")
-    end
-  end
-  luaunit.assertEquals(#raised, 0, "keywords raising on a negative value: " .. table.concat(raised, " | "))
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " -1"
+  end, "on a negative value")
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_huge_value()
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " 999999"
+  end, "on an out-of-range value")
 end
 
 -- The four that were actually broken, named so a regression reads as itself rather than as a

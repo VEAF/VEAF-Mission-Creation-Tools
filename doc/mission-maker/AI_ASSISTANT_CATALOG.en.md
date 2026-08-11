@@ -41,31 +41,32 @@ The AI can act in two places, and it changes what "survives":
 | # | Action (in plain language) | Theme | Level | Freq. |
 |---|-----------------------------|-------|-------|-------|
 | 1 | [List the groups and zones already present](#list-groups-and-zones) | Mission state | Built mission | 🔥 |
-| 2 | [List VEAF modules and their settings](#list-veaf-modules) | Mission state | Recipe | 🔥 |
-| 3 | [Add a ground / vehicle group](#add-a-group) | Order of battle | Built mission | ⭐ |
-| 4 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
-| 5 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
-| 6 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
-| 7 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
-| 8 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
-| 9 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
-| 10 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
-| 11 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
-| 12 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
-| 13 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
-| 14 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
-| 15 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
-| 16 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
-| 17 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 18 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 19 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
-| 20 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
-| 21 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
-| 22 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
-| 23 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
-| 24 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
-| 25 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
-| 26 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
+| 2 | [Inspect the units, their loadouts and their routes](#inspect-units) | Mission state | Built mission | 🔥 |
+| 3 | [List VEAF modules and their settings](#list-veaf-modules) | Mission state | Recipe | 🔥 |
+| 4 | [Add a ground / vehicle group](#add-a-group) | Order of battle | Built mission | ⭐ |
+| 5 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
+| 6 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
+| 7 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
+| 8 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
+| 9 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
+| 10 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
+| 11 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
+| 12 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
+| 13 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
+| 14 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
+| 15 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
+| 16 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+| 17 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
+| 18 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 19 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 20 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
+| 21 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
+| 22 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
+| 23 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
+| 24 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
+| 25 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
+| 26 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
+| 27 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
 
 ---
 
@@ -239,6 +240,24 @@ zones (name, position, radius) present in the mission.
 
 > 💬 *"What groups are in my mission?"*
 > 💬 *"List the trigger zones for me."*
+
+### Inspect the units, their loadouts and their routes {#inspect-units}
+
+*Built mission · 🔥* — A deeper level of detail than the group list. For every aircraft or vehicle the AI
+gives you its **type**, its **AI skill**, its **livery**, its **callsign**, its side number, position,
+heading, fuel — and its **loadout, pylon by pylon**. Per group: its task, its radio frequency, whether
+it is hidden, whether it starts engines-off or late-activated, and its **full route** with the tasks
+at each waypoint.
+
+This is what to read **before asking for a change**: to alter a loadout the AI first has to see the
+one that is there, and on which stations.
+
+> 💬 *"What is Colt flight carrying, and on which pylons?"*
+> 💬 *"Show me Enfield's route and what it is meant to do at each waypoint."*
+
+> ⚠️ **On a big mission, say what you are after.** An adopted mission (a Foothold, say) holds hundreds
+> of groups — megabytes of detail — so ask for one flight by name ("Colt" is enough), a coalition or a
+> category. Say so if you do not care about the routes; it shortens the answer a lot.
 
 ### List VEAF modules {#list-veaf-modules}
 

@@ -175,12 +175,202 @@ function TestVeafSecurity:test_isAuthenticated_falsy_after_flag_cleared()
   luaunit.assertTrue(not veafSecurity.isAuthenticated())
 end
 
--- SECREV-009: isAuthenticated must fall back to veaf.SecurityDisabled (the real
--- flag), not the never-assigned veafSecurity.SecurityDisabled.
+-- SECREV-009 moved this fallback from `veafSecurity.SecurityDisabled` to `veaf.SecurityDisabled`,
+-- calling the old one "never assigned". That was true inside this repository and false outside it:
+-- it is a **mission-facing config knob**, and the only places that assign it are mission configs —
+-- including our own demo mission. REVIEW-SECURITY-LAYER ticket 03 honours both spellings again.
 function TestVeafSecurity:test_isAuthenticated_true_when_security_disabled()
   veafSecurity.authenticated = false
   veaf.SecurityDisabled = true
   luaunit.assertTrue(veafSecurity.isAuthenticated())
+end
+
+-- ---------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 03 — the retired config field, honoured again
+--
+-- A mission written before 2026-06-10 sets `veafSecurity.SecurityDisabled`. SECREV-009 changed the
+-- read to `veaf.SecurityDisabled` with no alias and no warning, so those missions silently got
+-- security ON while asking for it OFF. Fail-safe, which is why three years went unnoticed — but
+-- every secured command then refuses for everyone, and that reads as "the security layer is
+-- broken" rather than "your config field was retired".
+-- ---------------------------------------------------------------------------
+TestVeafSecurityDisabledSpellings = {}
+
+function TestVeafSecurityDisabledSpellings:setUp()
+  self.savedVeaf = veaf.SecurityDisabled
+  self.savedModule = veafSecurity.SecurityDisabled
+  self.savedAuth = veafSecurity.authenticated
+  veaf.SecurityDisabled = nil
+  veafSecurity.SecurityDisabled = nil
+  veafSecurity.authenticated = false
+  veafSecurity._deprecationWarned = {}
+end
+
+function TestVeafSecurityDisabledSpellings:tearDown()
+  veaf.SecurityDisabled = self.savedVeaf
+  veafSecurity.SecurityDisabled = self.savedModule
+  veafSecurity.authenticated = self.savedAuth
+  veafSecurity._deprecationWarned = {}
+end
+
+function TestVeafSecurityDisabledSpellings:test_neither_spelling_means_security_on()
+  luaunit.assertFalse(veafSecurity.isSecurityDisabled())
+end
+
+function TestVeafSecurityDisabledSpellings:test_the_current_spelling_is_honoured()
+  veaf.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isSecurityDisabled())
+end
+
+-- The whole point of the ticket: a v5-era mission gets the state it asked for.
+function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_is_honoured()
+  veafSecurity.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isSecurityDisabled())
+end
+
+function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_reaches_isAuthenticated()
+  veafSecurity.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isAuthenticated())
+end
+
+-- It has to say so in the log, or the mission maker migrates only after discovering it in flight.
+function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_warns()
+  local warnings = {}
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  local saved = logger.warn
+  logger.warn = function(_, message, ...)
+    table.insert(warnings, tostring(message))
+  end
+
+  veafSecurity.SecurityDisabled = true
+  veafSecurity.isSecurityDisabled()
+
+  logger.warn = saved
+  luaunit.assertEquals(#warnings, 1, "expected exactly one deprecation warning")
+  luaunit.assertStrContains(warnings[1], "veafSecurity.SecurityDisabled")
+  luaunit.assertStrContains(warnings[1], "veaf.SecurityDisabled")
+end
+
+-- Once, not once per check: the flag is read on every secured command.
+function TestVeafSecurityDisabledSpellings:test_the_warning_fires_only_once()
+  local count = 0
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  local saved = logger.warn
+  logger.warn = function()
+    count = count + 1
+  end
+
+  veafSecurity.SecurityDisabled = true
+  for _ = 1, 5 do
+    veafSecurity.isSecurityDisabled()
+  end
+
+  logger.warn = saved
+  luaunit.assertEquals(count, 1)
+end
+
+-- The current spelling must not warn, or the log tells everyone to migrate away from what they use.
+function TestVeafSecurityDisabledSpellings:test_the_current_spelling_does_not_warn()
+  local count = 0
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  local saved = logger.warn
+  logger.warn = function()
+    count = count + 1
+  end
+
+  veaf.SecurityDisabled = true
+  veafSecurity.isSecurityDisabled()
+
+  logger.warn = saved
+  luaunit.assertEquals(count, 0)
+end
+
+-- Every secured gate has to see it, not just isAuthenticated.
+function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_reaches_the_password_gates()
+  veafSecurity.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.checkPassword_L0(nil))
+  luaunit.assertTrue(veafSecurity.checkPassword_L1(nil))
+  luaunit.assertTrue(veafSecurity.checkPassword_L9(nil))
+end
+
+-- ---------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 02, finished — the by-name path had no reader
+--
+-- Ticket 02 renamed the tiers and shipped `LEVELS_BY_NAME` and `DEPRECATED_LEVEL_NAMES`. Measured
+-- 2026-08-11: **neither table had a single reader**. The rename worked anyway, because callers write
+-- `veafSecurity.LEVEL_ADMIN` directly — but the by-name resolution and its deprecation warning were
+-- declared and never wired up. `levelForName` is that wiring.
+-- ---------------------------------------------------------------------------
+TestVeafSecurityLevelForName = {}
+
+function TestVeafSecurityLevelForName:setUp()
+  veafSecurity._deprecationWarned = {}
+end
+
+function TestVeafSecurityLevelForName:tearDown()
+  veafSecurity._deprecationWarned = {}
+end
+
+function TestVeafSecurityLevelForName:test_current_names_resolve()
+  luaunit.assertEquals(veafSecurity.levelForName("ADMIN"), veafSecurity.LEVEL_ADMIN)
+  luaunit.assertEquals(veafSecurity.levelForName("SENIOR_PILOT"), veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(veafSecurity.levelForName("KNOWN_PILOT"), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+-- The old names keep working; that is what "deprecated, not removed" has to mean.
+function TestVeafSecurityLevelForName:test_deprecated_names_still_resolve_to_the_same_level()
+  luaunit.assertEquals(veafSecurity.levelForName("L0"), veafSecurity.LEVEL_ADMIN)
+  luaunit.assertEquals(veafSecurity.levelForName("L1"), veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(veafSecurity.levelForName("L9"), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityLevelForName:test_names_are_case_insensitive()
+  luaunit.assertEquals(veafSecurity.levelForName("admin"), veafSecurity.LEVEL_ADMIN)
+  luaunit.assertEquals(veafSecurity.levelForName("l9"), veafSecurity.LEVEL_KNOWN_PILOT)
+end
+
+function TestVeafSecurityLevelForName:test_a_deprecated_name_warns_and_names_its_replacement()
+  local warnings = {}
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  local saved = logger.warn
+  logger.warn = function(_, message)
+    table.insert(warnings, tostring(message))
+  end
+
+  veafSecurity.levelForName("L0")
+
+  logger.warn = saved
+  luaunit.assertEquals(#warnings, 1)
+  luaunit.assertStrContains(warnings[1], "L0")
+  luaunit.assertStrContains(warnings[1], "ADMIN")
+end
+
+function TestVeafSecurityLevelForName:test_a_current_name_does_not_warn()
+  local count = 0
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  local saved = logger.warn
+  logger.warn = function()
+    count = count + 1
+  end
+
+  veafSecurity.levelForName("ADMIN")
+
+  logger.warn = saved
+  luaunit.assertEquals(count, 0)
+end
+
+-- "OPEN" means *no check* rather than a level, and the dispatcher treats it separately.
+function TestVeafSecurityLevelForName:test_open_is_not_a_level()
+  luaunit.assertNil(veafSecurity.levelForName("OPEN"))
+end
+
+function TestVeafSecurityLevelForName:test_an_unknown_name_is_nil_rather_than_a_default()
+  luaunit.assertNil(veafSecurity.levelForName("BANANA"))
+end
+
+function TestVeafSecurityLevelForName:test_a_non_string_is_nil_rather_than_raising()
+  luaunit.assertNil(veafSecurity.levelForName(nil))
+  luaunit.assertNil(veafSecurity.levelForName(90))
 end
 
 -- ============================================================================

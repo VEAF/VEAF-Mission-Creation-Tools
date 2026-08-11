@@ -69,7 +69,7 @@ panel's `author` string, matched by name.
 |---|--------|--------|
 | 01 | [Make authentication per-player instead of global](tickets/01-per-player-authentication.md) | 🔄 |
 | 02 | [Decide whether the tier names change](tickets/02-tier-naming.md) | ✅ |
-| 03 | [`veafSecurity.SecurityDisabled` was a public config field, retired as dead code](tickets/03-securitydisabled-compat-break.md) | ⬜ |
+| 03 | [`veafSecurity.SecurityDisabled` was a public config field, retired as dead code](tickets/03-securitydisabled-compat-break.md) | ✅ |
 
 PR #676 delivered ticket 02 in full — the tiers are `ADMIN` / `SENIOR_PILOT` / `KNOWN_PILOT` with deprecated `L0`/`L1`/`L9` aliases — and ticket 01 **in part**: the global boolean no longer short-circuits the per-pilot path, authentication is per group, and an elevation is bounded to the requester's own level. What remains of 01 is the `checkSecurity_*` signatures.
 

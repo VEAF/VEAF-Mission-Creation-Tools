@@ -1,6 +1,6 @@
 # 03 — `veafSecurity.SecurityDisabled` was a public config field, retired as dead code
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafSecurity.lua`, `CHANGELOG.md`
 
@@ -54,16 +54,56 @@ because the first reading of this bug blamed the converter.
 
 ## Tasks
 
-- [ ] Honour `veafSecurity.SecurityDisabled` again when it is set, and **warn** that it is
+- [x] Honour `veafSecurity.SecurityDisabled` again when it is set, and **warn** that it is
       deprecated in favour of `veaf.SecurityDisabled` — the same deprecation shape ticket 02 used
       for the `L0`/`L1`/`L9` tier names, which is the precedent to copy.
-- [ ] Correct the two places that assert the field is never assigned: the `CHANGELOG.md` entry for
+- [x] Correct the two places that assert the field is never assigned: the `CHANGELOG.md` entry for
       SECREV-009 and the comment at `test/lua/test_veafSecurity.lua:179`.
-- [ ] A test for each spelling, asserting the deprecation warning fires for the old one.
-- [ ] Document the field in the security page as deprecated-but-honoured, with the version that
+- [x] A test for each spelling, asserting the deprecation warning fires for the old one.
+- [x] Document the field in the security page as deprecated-but-honoured, with the version that
       retires it for good.
 
 ## Acceptance criteria
 
-- [ ] A v5-era mission config setting only the old spelling gets the security state it asked for.
-- [ ] It says so in the log, once, so the mission maker can migrate rather than discover it later.
+- [x] A v5-era mission config setting only the old spelling gets the security state it asked for.
+- [x] It says so in the log, once, so the mission maker can migrate rather than discover it later.
+
+## Delivered — 2026-08-11
+
+`veafSecurity.isSecurityDisabled()` resolves the switch, honouring both spellings and warning **once**
+for the old one. All six reads of `veaf.SecurityDisabled` go through it: `isAuthenticated`, the three
+`checkPassword_Lx` gates, and the two assignments to `veafSecurity.authenticated`.
+
+The warning fires once rather than per read, because the flag is consulted by every secured command —
+warning each time would bury the log it exists to inform. A test pins that (`5` calls, `1` warning).
+
+Documented in `doc/mission-maker/scripts/veafSecurity.{md,en.md}` as deprecated-but-honoured, naming
+**v7** as the release that retires it for good. The two false claims are corrected: the `CHANGELOG`
+entry for SECREV-009 and the comment in `test_veafSecurity.lua`.
+
+### The precedent this ticket said to copy did not exist
+
+The task list said to use *"the same deprecation shape ticket 02 used for the `L0`/`L1`/`L9` tier
+names, which is the precedent to copy."* Measured before copying it — there was nothing to copy:
+
+- **`veafSecurity.LEVELS_BY_NAME` had no reader.** Declared by ticket 02, never read, anywhere.
+- **`veafSecurity.DEPRECATED_LEVEL_NAMES` had no reader either.** It exists *for* the warning, and
+  the warning was never written.
+- **The comment above the aliases named a function that does not exist**: it claimed
+  `veafSecurity.registerCommandHandler` warns when a deprecated name is used.
+  `registerCommandHandler` lives in `veafCommands`, and `veafSecurity` has no such function.
+
+The rename itself works, which is why nobody noticed: callers write `veafSecurity.LEVEL_ADMIN`
+directly and the alias constants resolve correctly. It is the **by-name** path — the one a YAML or
+config string would use — that was declared and left unwired.
+
+So ticket 02's warning is now real: `veafSecurity.levelForName(name)` resolves a tier name, applies
+the deprecation warning through the same `warnDeprecated` helper, is case-insensitive, returns nil for
+`OPEN` (which means *no check*, not a level) and nil rather than a default for an unknown name. 9
+tests. The comment describing the non-existent function is corrected rather than deleted, because a
+future reader should know it was wrong.
+
+**Note for whoever finishes ticket 01**: `checkSecurity_L0/L1/L9` still compare against
+`veafSecurity.LEVEL_L0/L1/L9` — the repository has not migrated its own API off the names it
+deprecates. Harmless (same values) but it means the aliases cannot be removed in v7 without touching
+those three functions first.

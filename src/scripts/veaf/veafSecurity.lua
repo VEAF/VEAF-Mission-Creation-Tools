@@ -42,14 +42,21 @@ veafSecurity.LEVEL_ADMIN = 90 -- server administrators
 veafSecurity.LEVEL_SENIOR_PILOT = 10 -- trusted members
 veafSecurity.LEVEL_KNOWN_PILOT = 1 -- anyone listed in veaf-pilots.txt (e.g. VEAF members)
 
--- Deprecated aliases, kept for one release so missions and third-party scripts written against
--- the old names keep working. `veafSecurity.registerCommandHandler` warns when one is used.
+-- Deprecated aliases, kept for one release so missions and third-party scripts written against the
+-- old names keep working.
+--
+-- This comment used to claim `veafSecurity.registerCommandHandler` warns when one is used. It does
+-- not, and it never could: **there is no such function** — `registerCommandHandler` lives in
+-- `veafCommands`. Corrected 2026-08-11 rather than left describing a mechanism that does not exist.
 veafSecurity.LEVEL_L0 = veafSecurity.LEVEL_ADMIN
 veafSecurity.LEVEL_L1 = veafSecurity.LEVEL_SENIOR_PILOT
 veafSecurity.LEVEL_L9 = veafSecurity.LEVEL_KNOWN_PILOT
 
 --- Maps every accepted tier name to its level. "OPEN" is absent on purpose: it means *no check*
 --- rather than a level, and the dispatcher treats it separately.
+---
+--- Resolve a name through `veafSecurity.levelForName`, which is what applies the deprecation
+--- warning; reading this table directly bypasses it.
 veafSecurity.LEVELS_BY_NAME = {
   ADMIN = veafSecurity.LEVEL_ADMIN,
   SENIOR_PILOT = veafSecurity.LEVEL_SENIOR_PILOT,
@@ -65,6 +72,71 @@ veafSecurity.DEPRECATED_LEVEL_NAMES = {
   L1 = "SENIOR_PILOT",
   L9 = "KNOWN_PILOT",
 }
+
+--- Deprecated names already warned about, so a flag read on every secured command warns once.
+veafSecurity._deprecationWarned = {}
+
+--- Resolve a tier name to its level, warning once when a deprecated name is used.
+---
+--- `LEVELS_BY_NAME` and `DEPRECATED_LEVEL_NAMES` were both added by ticket 02 and **neither had a
+--- single reader** — measured 2026-08-11. The rename shipped and worked, because callers write
+--- `veafSecurity.LEVEL_ADMIN` directly, but the by-name path and its warning were declared and never
+--- wired up. This is that wiring.
+--- @param name a tier name, current or deprecated
+--- @return number|nil the level, or nil when the name is not a tier
+function veafSecurity.levelForName(name)
+  if type(name) ~= "string" then
+    return nil
+  end
+  local _upper = name:upper()
+  local _current = veafSecurity.DEPRECATED_LEVEL_NAMES[_upper]
+  if _current then
+    veafSecurity.warnDeprecated("security level " .. _upper, _current)
+  end
+  return veafSecurity.LEVELS_BY_NAME[_upper]
+end
+
+--- Warn once that `oldName` is deprecated in favour of `newName`.
+---
+--- Once, not once per read: `isSecurityDisabled` is consulted by every secured gate, so warning on
+--- each call would bury the log it is trying to inform.
+--- @param oldName the deprecated spelling a mission used
+--- @param newName what to write instead
+function veafSecurity.warnDeprecated(oldName, newName)
+  if veafSecurity._deprecationWarned[oldName] then
+    return
+  end
+  veafSecurity._deprecationWarned[oldName] = true
+  veaf.loggers
+    .get(veafSecurity.Id)
+    :warn(string.format("%s is deprecated and will be removed in a future release; use %s instead", oldName, newName))
+end
+
+--- Is security switched off by the mission's configuration?
+---
+--- REVIEW-SECURITY-LAYER ticket 03. Honours both spellings, because `veafSecurity.SecurityDisabled`
+--- is a **mission-facing config knob** and not library state. `SECREV-009` moved the read to
+--- `veaf.SecurityDisabled` on the grounds that the old name was "never assigned" — true inside this
+--- repository, false outside it, since the only places that assign it are mission configs. Including
+--- our own demo mission, at `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua:633`.
+---
+--- The breakage was fail-safe, which is why three years of it went unnoticed: a mission asking for
+--- security **off** got it **on**. Nobody was over-privileged — but every secured command then
+--- refused for everyone, and that reads as "the security layer is broken" rather than "your config
+--- field was retired".
+---
+--- For a config field, "nothing in the repository assigns it" is evidence of nothing.
+--- @return boolean true when either spelling asks for security to be off
+function veafSecurity.isSecurityDisabled()
+  if veaf.SecurityDisabled then
+    return true
+  end
+  if veafSecurity.SecurityDisabled then
+    veafSecurity.warnDeprecated("veafSecurity.SecurityDisabled", "veaf.SecurityDisabled")
+    return true
+  end
+  return false
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -85,7 +157,9 @@ veafSecurity.PASSWORD_L1 = "bdc82f5ef92369919a3a53515023ce19f68656cc"
 veafSecurity.password_L0[veafSecurity.PASSWORD_L0] = true
 veafSecurity.password_L1[veafSecurity.PASSWORD_L1] = true
 
-veafSecurity.authenticated = veaf.SecurityDisabled
+-- Runs at module load, i.e. before any mission config is read, so this can only ever see nil.
+-- Harmless, and kept because `initialize()` sets it again once the config has been applied.
+veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- SHA-1 pure LUA implementation
@@ -678,24 +752,24 @@ function veafSecurity._checkPassword(password, level)
 end
 
 function veafSecurity.checkPassword_L0(password)
-  return veaf.SecurityDisabled or veafSecurity._checkPassword(password, veafSecurity.password_L0)
+  return veafSecurity.isSecurityDisabled() or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_L1(password)
-  return veaf.SecurityDisabled
+  return veafSecurity.isSecurityDisabled()
     or veafSecurity._checkPassword(password, veafSecurity.password_L1)
     or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_L9(password)
-  return veaf.SecurityDisabled
+  return veafSecurity.isSecurityDisabled()
     or veafSecurity._checkPassword(password, veafSecurity.password_L9)
     or veafSecurity._checkPassword(password, veafSecurity.password_L1)
     or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_MM(password)
-  return veaf.SecurityDisabled or veafSecurity._checkPassword(password, veafSecurity.password_MM)
+  return veafSecurity.isSecurityDisabled() or veafSecurity._checkPassword(password, veafSecurity.password_MM)
 end
 
 function veafSecurity.getMarkerSecurityLevel(markId)
@@ -769,7 +843,7 @@ function veafSecurity.checkSecurity_MM(password)
 end
 
 function veafSecurity.isAuthenticated()
-  return veafSecurity.authenticated or veaf.SecurityDisabled
+  return veafSecurity.authenticated or veafSecurity.isSecurityDisabled()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -902,7 +976,9 @@ function veafSecurity.initialize()
     return veafSecurity.executeCommand(pos, event.text, bypass, event and event.author)
   end, veafCommands.PRIORITY_SECURITY, "OPEN")
   veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
-  veafSecurity.authenticated = veaf.SecurityDisabled
+  -- Read here rather than at module load: the mission config has been applied by now, so this is
+  -- where the deprecated spelling can actually be seen (and warned about).
+  veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
 end
 
 veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo())

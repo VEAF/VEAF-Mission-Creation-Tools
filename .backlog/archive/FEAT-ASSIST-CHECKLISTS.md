@@ -7,7 +7,8 @@ steps and event texts all work. Four defects were found and fixed during the fli
 (the authoring follow-up is [#651](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/651), `FEAT-ASSIST-AUTHORING`)
 
 ⚠️ **Three items were still open when this was archived** — see *Still open* at the bottom. None is
-blocking, and none is tracked anywhere else.
+blocking. They are now tracked by [`FEAT-ASSIST-FOLLOWUP`](../FEAT-ASSIST-FOLLOWUP/PRD.md), created for
+exactly that reason: an archive is not a backlog.
 
 | # | Ticket | Status |
 |---|--------|--------|
@@ -88,7 +89,7 @@ the design. The linear-progress compromise was never even noticed in flight.
 — the PRD's own second client — is fully automatic on that basis. An engine start is not: it is a
 *guided and confirmed* checklist.
 
-## Still open — nothing tracks these now
+## Still open — now tracked by FEAT-ASSIST-FOLLOWUP
 
 1. **Two pilots at once**, and whether a highlight leaks into another cockpit. The per-session highlight
    id exists for this; it has never been exercised.

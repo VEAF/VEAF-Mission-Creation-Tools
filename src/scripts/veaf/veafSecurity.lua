@@ -786,7 +786,11 @@ function veafSecurity.getMarkerSecurityLevel(markId)
     _author = markId
   end
   veaf.loggers.get(veafSecurity.Id):trace("_author=%s", _author)
-  local _user = veafRemote.getRemoteUser(_author)
+  -- Guarded like `getPilotLevelForUnit` below, which this function was not: it indexed `veafRemote`
+  -- unconditionally. Harmless while every caller happened to load that module, and a **raise inside
+  -- a security check** as soon as one did not. Returning -1 means "unknown author", so the failure
+  -- mode is a refusal rather than a crashed handler.
+  local _user = veafRemote and veafRemote.getRemoteUser and veafRemote.getRemoteUser(_author)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.p(_user)))
   if _user then
     return _user.level
@@ -845,6 +849,24 @@ end
 
 function veafSecurity.isAuthenticated()
   return veafSecurity.authenticated or veafSecurity.isSecurityDisabled()
+end
+
+--- Is the author of `markId` a pilot this server knows at all?
+---
+--- REVIEW-SECURITY-LAYER ticket 01, David's option 1. This is the gate for an **alias** password,
+--- which is a per-alias secret with no tier attached — so "which level excuses it?" had no answer in
+--- the tier model. The answer chosen: **being in `veaf-pilots.txt` excuses it**, whatever the level.
+---
+--- It replaces `isAuthenticated()`, whose global boolean meant one player's login excused the alias
+--- password for everybody. `getMarkerSecurityLevel` returns -1 for an author the server cannot
+--- resolve, so an unknown author still has to give the password.
+--- @param markId the mark panel id, or a username when called from veafRemote
+--- @return boolean true when the author has a known pilot level
+function veafSecurity.isKnownPilot(markId)
+  if veafSecurity.isSecurityDisabled() then
+    return true
+  end
+  return veafSecurity.getMarkerSecurityLevel(markId) >= veafSecurity.LEVEL_KNOWN_PILOT
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

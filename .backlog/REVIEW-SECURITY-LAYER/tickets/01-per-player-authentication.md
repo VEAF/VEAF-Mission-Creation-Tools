@@ -1,6 +1,6 @@
 # 01 — Make authentication per-player instead of global
 
-Status: 🔄 in-progress — **the global short-circuit is gone from the three `checkSecurity_Lx`, so no login grants another player anything.** Three `veafShortcuts` sites still read the boolean and need a design decision of their own; see *Delivered* at the end
+Status: ✅ done — the global boolean has **no readers left**. The three `checkSecurity_Lx` check who is asking, and the three `veafShortcuts` alias gates ask whether the marker's author is a known pilot (David's option 1, 2026-08-11)
 Type: feat
 
 ## The problem, measured
@@ -36,22 +36,22 @@ call sites have to supply an actor. Two candidate sources, both already present:
 
 ## Tasks
 
-- [ ] Establish which entry points can supply an actor and which genuinely cannot; the ones that
+- [x] Establish which entry points can supply an actor and which genuinely cannot; the ones that
       cannot decide the shape of the fallback.
-- [ ] Decide with David what a logged-in session should mean: one player, one player in one slot,
+- [x] Decide with David what a logged-in session should mean: one player, one player in one slot,
       or a UCID for a duration.
-- [ ] Change `isAuthenticated` and the `checkSecurity_*` family to take an actor, keeping the
+- [x] Change `isAuthenticated` and the `checkSecurity_*` family to take an actor, keeping the
       no-actor case **fail-closed** rather than falling back to the global flag.
-- [ ] Migrate the F10 radio menu's two `isAuthenticated` sites (`veafRadio.lua`), which gate
+- [x] Migrate the F10 radio menu's two `isAuthenticated` sites (`veafRadio.lua`), which gate
       secured menu commands and have a different notion of "who" — the menu is per-group.
-- [ ] Tests: one player logging in does not authenticate another; a logged-in player's session
+- [x] Tests: one player logging in does not authenticate another; a logged-in player's session
       does not survive a slot change if the decision above says it should not.
 
 ## Acceptance criteria
 
-- [ ] No code path grants a second player access because a first one authenticated.
-- [ ] Every `checkSecurity_*` either knows who is asking or denies.
-- [ ] The behaviour change is written down for server admins: this **will** stop working the way
+- [x] No code path grants a second player access because a first one authenticated.
+- [x] Every `checkSecurity_*` either knows who is asking or denies.
+- [x] The behaviour change is written down for server admins: this **will** stop working the way
       VEAF staff currently rely on, and that has to be announced rather than discovered in flight.
 
 ## State, measured 2026-08-11
@@ -173,3 +173,35 @@ per-alias secret with no level attached. Candidates:
 
 Option 3 is the most defensible and the most disruptive. Worth asking David rather than picking, since
 the three sites already have `markId` available and any of the three is a small change once chosen.
+
+### The alias gate, decided by David — option 1
+
+> *"option 1"* — being in `veaf-pilots.txt` at all excuses an alias password, whatever the level.
+
+`veafSecurity.isKnownPilot(markId)` is that gate, and the three `veafShortcuts` sites use it. All
+three already had `markId` in scope, so the change is one expression each. `getMarkerSecurityLevel`
+returns -1 for an author the server cannot resolve, so an unknown author still has to give the
+password — and `SecurityDisabled` (either spelling) still excuses everything, since a solo mission
+turning the layer off must not keep demanding alias passwords.
+
+**The global boolean now has no readers at all.** `veafSecurity.authenticated` is still written by
+`authenticate()`/`logout()` and still drives the `/login` message and its watchdog, but nothing
+consults it to grant anything.
+
+### Wiring it found a raise waiting inside a security check
+
+`getMarkerSecurityLevel` indexed `veafRemote` unconditionally — unlike `getPilotLevelForUnit` three
+functions below, which guards. Harmless while every caller happened to load that module; a **raise
+inside a security check** as soon as one did not, which is exactly what widening the callers exposed.
+
+Guarded now, returning -1 (unknown author), so the failure mode is a refusal rather than a crashed
+handler. Found by a test that had nothing to do with security: the `veafShortcuts` characterisation
+suite does not load `veafRemote`.
+
+## Acceptance criteria — met
+
+- [x] No code path grants a second player access because a first one authenticated.
+- [x] Every `checkSecurity_*` either knows who is asking or denies — `checkSecurity_MM` takes no
+      actor and refuses without a password, pinned by a test.
+- [x] The behaviour change is documented for server admins, in both languages, including the
+      instructor/student case the elevation exists for.

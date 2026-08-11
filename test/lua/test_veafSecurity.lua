@@ -753,4 +753,88 @@ function TestVeafSecurityMissionMaster:test_a_login_elsewhere_does_not_pass_it()
   luaunit.assertFalse(veafSecurity.checkSecurity_MM(nil))
 end
 
+-- ---------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 01 — isKnownPilot, the alias-password gate
+--
+-- An alias password is a **per-alias secret with no tier attached**, so "which level excuses it?"
+-- had no answer in the tier model. David chose option 1: being in `veaf-pilots.txt` at all excuses
+-- it, whatever the level. That replaces `isAuthenticated()`, whose global boolean meant one player's
+-- login excused the alias password for everybody.
+-- ---------------------------------------------------------------------------
+TestVeafSecurityIsKnownPilot = {}
+
+function TestVeafSecurityIsKnownPilot:setUp()
+  self.savedDisabled = veaf.SecurityDisabled
+  self.savedModuleDisabled = veafSecurity.SecurityDisabled
+  self.savedLevel = veafSecurity.getMarkerSecurityLevel
+  veaf.SecurityDisabled = nil
+  veafSecurity.SecurityDisabled = nil
+end
+
+function TestVeafSecurityIsKnownPilot:tearDown()
+  veaf.SecurityDisabled = self.savedDisabled
+  veafSecurity.SecurityDisabled = self.savedModuleDisabled
+  veafSecurity.getMarkerSecurityLevel = self.savedLevel
+end
+
+-- The lowest tier is enough: the question is "known at all", not "senior enough".
+function TestVeafSecurityIsKnownPilot:test_the_lowest_known_level_is_enough()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return veafSecurity.LEVEL_KNOWN_PILOT
+  end
+  luaunit.assertTrue(veafSecurity.isKnownPilot("a-pilot"))
+end
+
+function TestVeafSecurityIsKnownPilot:test_a_higher_level_is_enough_too()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return veafSecurity.LEVEL_ADMIN
+  end
+  luaunit.assertTrue(veafSecurity.isKnownPilot("an-admin"))
+end
+
+-- getMarkerSecurityLevel returns -1 for an author the server cannot resolve.
+function TestVeafSecurityIsKnownPilot:test_an_unresolvable_author_is_not_known()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return -1
+  end
+  luaunit.assertFalse(veafSecurity.isKnownPilot("a-stranger"))
+end
+
+-- 0 is what an occupant with no level yields elsewhere in this module; it must not pass either.
+function TestVeafSecurityIsKnownPilot:test_level_zero_is_not_known()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return 0
+  end
+  luaunit.assertFalse(veafSecurity.isKnownPilot("nobody"))
+end
+
+-- A solo or test mission turns the whole layer off, and that includes alias passwords.
+function TestVeafSecurityIsKnownPilot:test_security_disabled_makes_everyone_known()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return -1
+  end
+  veaf.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isKnownPilot("a-stranger"))
+end
+
+-- The deprecated spelling has to work here too, or a v5-era mission still demands passwords.
+function TestVeafSecurityIsKnownPilot:test_the_deprecated_disabled_spelling_also_applies()
+  veafSecurity.getMarkerSecurityLevel = function()
+    return -1
+  end
+  veafSecurity.SecurityDisabled = true
+  luaunit.assertTrue(veafSecurity.isKnownPilot("a-stranger"))
+end
+
+-- The defect it replaces: another player's login must not excuse the alias password.
+function TestVeafSecurityIsKnownPilot:test_a_login_elsewhere_does_not_make_a_stranger_known()
+  local savedAuth = veafSecurity.authenticated
+  veafSecurity.authenticated = true
+  veafSecurity.getMarkerSecurityLevel = function()
+    return -1
+  end
+  luaunit.assertFalse(veafSecurity.isKnownPilot("a-stranger"))
+  veafSecurity.authenticated = savedAuth
+end
+
 os.exit(luaunit.LuaUnit.run())

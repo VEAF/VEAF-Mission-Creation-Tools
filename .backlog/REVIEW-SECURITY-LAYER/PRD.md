@@ -1,6 +1,6 @@
 # REVIEW-SECURITY-LAYER — the marker security model, revisited on measurements
 
-Status: 🔄 in-progress
+Status: ✅ done — all three findings closed. Authentication is **per group** (its lowest-graded occupant, raised to the requester's own level for two minutes from an identified channel, since DCS cannot tell which occupant clicked an F10 command), the tiers say what they mean with deprecated aliases that now actually warn, and `veafSecurity.SecurityDisabled` is honoured again. **The global boolean has no readers left.** Announced to admins in both languages: a pilot in `veaf-pilots.txt` notices nothing, a pilot who is not listed must give the password on every command
 
 Asked for by David on 2026-08-06, while deciding the levels for
 [`SECREV-2` ticket 03](../SECREV-2/tickets/03-fail-open-gates.md): *"on pourrait en profiter
@@ -67,7 +67,7 @@ panel's `author` string, matched by name.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Make authentication per-player instead of global](tickets/01-per-player-authentication.md) | 🔄 |
+| 01 | [Make authentication per-player instead of global](tickets/01-per-player-authentication.md) | ✅ |
 | 02 | [Decide whether the tier names change](tickets/02-tier-naming.md) | ✅ |
 | 03 | [`veafSecurity.SecurityDisabled` was a public config field, retired as dead code](tickets/03-securitydisabled-compat-break.md) | ✅ |
 

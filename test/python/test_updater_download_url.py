@@ -71,11 +71,34 @@ class TestTrustedDownloadUrl(unittest.TestCase):
 class _FakeResponse:
     """Minimal stand-in for a `requests.Response` — only what `download_asset` reads."""
 
-    def __init__(self, status_code: int = 200, location: str | None = None, content: bytes = b"payload") -> None:
+    def __init__(
+        self,
+        status_code: int = 200,
+        location: str | None = None,
+        content: bytes = b"payload",
+        *,
+        declared_length: int | None = None,
+        endless: bool = False,
+    ) -> None:
         self.status_code = status_code
         self.headers = {"Location": location} if location else {}
+        if declared_length is not None:
+            self.headers["Content-Length"] = str(declared_length)
         self.content = content
         self.reason = "OK"
+        # `endless` streams for ever, which is what an unbounded read has to survive: a response
+        # with no Content-Length that simply never stops (SECREV-2, ticket 04's network half).
+        self._endless = endless
+
+    def iter_content(self, chunk_size: int = 8192):  # noqa: ANN201
+        if self._endless:
+            while True:
+                yield b"x" * chunk_size
+        for start in range(0, len(self.content), chunk_size):
+            yield self.content[start : start + chunk_size]
+
+    def close(self) -> None:
+        pass
 
     @property
     def is_redirect(self) -> bool:
@@ -109,7 +132,10 @@ class TestEveryRedirectHopIsChecked(unittest.TestCase):
     def _run(self, responses: list[_FakeResponse], token: str | None = "secret-token") -> bytes | None:
         queued = list(responses)
 
-        def fake_get(url: str, headers: dict | None = None, allow_redirects: bool = True) -> _FakeResponse:
+        def fake_get(
+            url: str, headers: dict | None = None, allow_redirects: bool = True, stream: bool = False
+        ) -> _FakeResponse:
+            # `stream` since the body is read chunk by chunk to honour the size cap.
             self.calls.append((url, dict(headers or {})))
             return queued.pop(0)
 
@@ -169,6 +195,63 @@ class TestEveryRedirectHopIsChecked(unittest.TestCase):
 
         self.assertIsNone(content, "a redirect loop must end in a refusal, not spin")
         self.assertLessEqual(len(self.calls), self.updater_module._MAX_DOWNLOAD_REDIRECTS + 1)
+
+
+class TestTheDownloadIsCapped(unittest.TestCase):
+    """SECREV-2 ticket 04 — the last of its integrity findings: the network side had no bound.
+
+    `download_asset` read the whole response into memory with `response.content`. The updater
+    installs and then *runs* what it downloads, and the size comes from whatever answered — so a
+    response with no `Content-Length` that simply never ends filled the machine's memory.
+
+    The cap is 256 MiB against a largest real asset of 61 MiB (`published.zip`, measured on the
+    published release), and it matches `safe_zip.MAX_MEMBER_UNCOMPRESSED_BYTES` so the two bounds in
+    the codebase agree.
+    """
+
+    ASSET = "https://github.com/VEAF/repo/releases/download/v1/veaf-tools.exe"
+
+    def setUp(self) -> None:
+        self.updater_module = _load_updater()
+
+    def _updater(self) -> object:
+        updater = object.__new__(self.updater_module.UpdateWorker)
+        updater.headers = {"Accept": "application/vnd.github.v3+json"}
+        return updater
+
+    def _run(self, response: _FakeResponse, cap: int | None = None) -> bytes | None:
+        def fake_get(url: str, headers: dict | None = None, allow_redirects: bool = True, stream: bool = False):  # noqa: ANN202, ARG001
+            return response
+
+        patches = [
+            mock.patch.object(self.updater_module.requests, "get", side_effect=fake_get),
+            mock.patch.object(self.updater_module, "spinner_context", mock.MagicMock()),
+        ]
+        if cap is not None:
+            patches.append(mock.patch.object(self.updater_module, "_MAX_ASSET_BYTES", cap))
+        with patches[0], patches[1], patches[2] if cap is not None else mock.MagicMock():
+            return self.updater_module.UpdateWorker.download_asset(self._updater(), self.ASSET, "veaf-tools.exe")
+
+    def test_the_cap_leaves_room_for_the_largest_real_asset(self) -> None:
+        # 61 MiB measured on the published release; a cap below that would break every update.
+        self.assertGreater(self.updater_module._MAX_ASSET_BYTES, 64_109_838)
+
+    def test_an_asset_under_the_cap_is_returned(self) -> None:
+        # The control: the cap must not get in the way of a normal download.
+        self.assertEqual(self._run(_FakeResponse(200, content=b"payload" * 100)), b"payload" * 100)
+
+    def test_a_declared_length_over_the_cap_is_refused(self) -> None:
+        response = _FakeResponse(200, content=b"x" * 10, declared_length=999_999_999)
+        self.assertIsNone(self._run(response, cap=1024), "a declared oversize must be refused")
+
+    def test_an_endless_response_is_refused_rather_than_read(self) -> None:
+        # No Content-Length, no end: this is the case `response.content` could not survive.
+        self.assertIsNone(self._run(_FakeResponse(200, endless=True), cap=4096))
+
+    def test_a_response_exactly_at_the_cap_is_accepted(self) -> None:
+        # The boundary matters both ways: an off-by-one here would refuse a legitimate asset.
+        payload = b"x" * 4096
+        self.assertEqual(self._run(_FakeResponse(200, content=payload), cap=4096), payload)
 
 
 class TestTheDeferredUpdateScriptBailsOnAFailedCd(unittest.TestCase):

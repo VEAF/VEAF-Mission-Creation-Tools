@@ -866,6 +866,7 @@
   "updater.deferred_pending": "L'exécutable de mise à jour sera mis à jour dans quelques secondes",
   "updater.deferred_prepared": "{name} préparé pour la mise à jour différée",
   "updater.downloading": "Téléchargement de {name} depuis GitHub...",
+  "updater.err.asset_too_large": "Téléchargement de '{name}' refusé : {size} octets, au-delà de la limite de {limit} octets. Rien n'a été installé.",
   "updater.err.binary_download_failed": "Échec du téléchargement du binaire de la release : {name}",
   "updater.err.checksum_actual": "  Obtenu :  {checksum}",
   "updater.err.checksum_expected": "  Attendu : {checksum}",

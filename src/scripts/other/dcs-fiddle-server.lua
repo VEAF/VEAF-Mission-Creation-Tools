@@ -617,11 +617,15 @@ local function create_server(address, port)
   return function()
     local client = tcp_server:accept()
     if client then
-      local success, res = handle_client_connection(client)
-      if not success then
-        __error("Failed to run client handler " .. res)
-      else
-        clients[id].receive_patten = res
+      -- VEAF (SECREV-2 / VMR-073): `handle_client_connection` returns nothing, so `success` was
+      -- always nil — the failure branch concatenated a nil `res` and raised on every request, and
+      -- the other branch indexed `clients[id]` where `id` does not exist in this scope and
+      -- `clients` is never filled. The response itself had already been sent, which is why this
+      -- looked harmless: each request answered, then the server loop errored. Wrapped in pcall so
+      -- a handler error is reported instead of taking the loop down with it.
+      local ok, err = pcall(handle_client_connection, client)
+      if not ok then
+        __error("Failed to run client handler: " .. tostring(err))
       end
     end
   end

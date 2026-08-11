@@ -21,10 +21,6 @@ veafSecurity = {
 -- ---------------------------------------------------------------------------
 TestVeafRemoteConstants = {}
 
-function TestVeafRemoteConstants:test_commandStarter()
-  luaunit.assertEquals(veafRemote.CommandStarter, "_remote")
-end
-
 function TestVeafRemoteConstants:test_minLevelForMarker()
   luaunit.assertEquals(veafRemote.MIN_LEVEL_FOR_MARKER, 10)
 end
@@ -35,56 +31,6 @@ end
 
 function TestVeafRemoteConstants:test_remoteUsers_table_exists()
   luaunit.assertIsTable(veafRemote.remoteUsers)
-end
-
--- ---------------------------------------------------------------------------
--- TestVeafRemoteMarkTextAnalysis
--- ---------------------------------------------------------------------------
-TestVeafRemoteMarkTextAnalysis = {}
-
-function TestVeafRemoteMarkTextAnalysis:test_simple_command()
-  local cmd, pwd = veafRemote.markTextAnalysis("_remote some command")
-  luaunit.assertEquals(cmd, "some command")
-  luaunit.assertEquals(pwd, "")
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_command_with_password()
-  local cmd, pwd = veafRemote.markTextAnalysis("_remote#myPass doThing arg")
-  luaunit.assertEquals(cmd, "doThing arg")
-  luaunit.assertEquals(pwd, "myPass")
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_command_with_numeric_password()
-  local cmd, pwd = veafRemote.markTextAnalysis("_remote#1234 status")
-  luaunit.assertEquals(cmd, "status")
-  luaunit.assertEquals(pwd, "1234")
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_no_match_returns_nil()
-  local cmd = veafRemote.markTextAnalysis("hello world")
-  luaunit.assertNil(cmd)
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_empty_string_returns_nil()
-  local cmd = veafRemote.markTextAnalysis("")
-  luaunit.assertNil(cmd)
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_wrong_starter_returns_nil()
-  local cmd = veafRemote.markTextAnalysis("_radio transmit hello")
-  luaunit.assertNil(cmd)
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_command_multiword()
-  local cmd, pwd = veafRemote.markTextAnalysis("_remote activate qra red")
-  luaunit.assertEquals(cmd, "activate qra red")
-  luaunit.assertEquals(pwd, "")
-end
-
-function TestVeafRemoteMarkTextAnalysis:test_password_with_special_chars()
-  local cmd, pwd = veafRemote.markTextAnalysis("_remote#p@ss123 exec")
-  luaunit.assertEquals(cmd, "exec")
-  luaunit.assertEquals(pwd, "p@ss123")
 end
 
 -- ---------------------------------------------------------------------------
@@ -229,31 +175,23 @@ function TestVeafRemoteModuleRegistry:test_executeCommandFromRemote_with_registe
 end
 
 -- ============================================================================
--- TestVeafRemoteExecuteCommand
+-- The `_remote` marker command and executeRemoteCommand were removed (VMR-130):
+-- they read a `monitoredCommands` table nothing had filled since the SLMOD bridge
+-- was deleted in 2021. Their tests go with them; the two below assert they are gone.
 -- ============================================================================
-TestVeafRemoteExecuteCommand = {}
+TestVeafRemoteDeadPathIsGone = {}
 
-function TestVeafRemoteExecuteCommand:test_no_remote_prefix_returns_nil()
-  -- Text without "_remote" prefix → executeCommand returns nil
-  local result = veafRemote.executeCommand(nil, "plain text")
-  luaunit.assertNil(result)
+function TestVeafRemoteDeadPathIsGone:test_executeRemoteCommand_no_longer_exists()
+  luaunit.assertNil(veafRemote.executeRemoteCommand)
 end
 
-function TestVeafRemoteExecuteCommand:test_remote_prefix_no_command_returns_nil()
-  -- "_remote " with nothing after → returns nil
-  local result = veafRemote.executeCommand(nil, "_remote ")
-  luaunit.assertNil(result)
+function TestVeafRemoteDeadPathIsGone:test_monitoredCommands_no_longer_exists()
+  luaunit.assertNil(veafRemote.monitoredCommands)
 end
 
--- ============================================================================
--- TestVeafRemoteExecuteRemoteCommand
--- ============================================================================
-TestVeafRemoteExecuteRemoteCommand = {}
-
-function TestVeafRemoteExecuteRemoteCommand:test_unknown_command_returns_false()
-  -- password check passes (stubbed), but command not in registry → returns false
-  local result = veafRemote.executeRemoteCommand("unknown-cmd-xyz", "")
-  luaunit.assertFalse(result)
+function TestVeafRemoteDeadPathIsGone:test_the_marker_entry_point_no_longer_exists()
+  -- veafShortcuts no longer routes markers here either.
+  luaunit.assertNil(veafRemote.executeCommand)
 end
 
 -- ============================================================================

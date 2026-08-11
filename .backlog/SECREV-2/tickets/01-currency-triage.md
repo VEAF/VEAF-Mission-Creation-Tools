@@ -1,6 +1,6 @@
 # 01 — Currency triage: method, tooling, and the eight verified
 
-Status: 🔄 in-progress
+Status: 🔄 in-progress — nothing left of its own; closes with ticket 07
 Type: chore
 Files: [`findings-triage.json`](../findings-triage.json)
 

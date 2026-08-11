@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw and Documentation tiers closed; 114/140 decided, and every remaining Error/bug awaits a decision
+Status: 🔄 in-progress — Security-flaw, Documentation and **Error/bug** tiers all closed; 122/140 decided, only the 18 cosmetic findings remain and this ticket's own policy reserves them for files being changed anyway
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -867,3 +867,70 @@ Error/bug that each need a decision — VMR-104/105 (the publish path, and a rel
 VMR-073 and VMR-129 (vendored / one-shot tooling), VMR-130 (delete the half-wired `monitoredCommands`
 eval sink or document it — `REVIEW-SECURITY-LAYER`'s call), and VMR-083 / VMR-088 / VMR-089 (contract
 hardening with no reachable failure today).
+
+## Sweep, thirteenth pass — the Error/bug tier closed, 2026-08-11
+
+**The last 8 Error/bug findings, all decided by David** rather than by a sweep, since each needed a
+call rather than a fix. **The tier is closed: 122 of 140 decided, and nothing that remains is a bug.**
+
+| | Outcome | |
+|---|---|---|
+| VMR-104 | **fixed** | tags reached the remote before the release existed |
+| VMR-105 | **fixed** | with 104; its "swallowed failures" half does not reproduce |
+| VMR-073 | **fixed** | every request errored, and the branch the finding names was unreachable |
+| VMR-129 | **wontfix** | legacy one-shot tool, deleted rather than repaired |
+| VMR-130 | **fixed** | the SLMOD bridge's remains, deleted |
+| VMR-083 | **wontfix** | `veaf.serialize` has three call sites, all debug traces |
+| VMR-088 | decided-deferred | one instance of a 794-site family → `REFACTOR-MARKER-PARSER` |
+| VMR-089 | decided-deferred | contract hardening the finding itself calls unreachable |
+
+### VMR-130: the history is what made the decision easy
+
+`monitoredCommands` was filled by `veafRemote.monitorWithSlMod(command, script, …)` — the
+mission-facing half of the **SLMOD** bridge. That API was deleted on **2021-08-24** (`067495be`,
+*"removed slmod monitoring altogether"*, 103 lines), and it left behind a table nothing could fill, a
+consumer that could only ever warn, and a `mist.utils.dostring` of arbitrary Lua gated by a password
+that ships in a public repository. Four years of a loaded gun with no trigger attached.
+
+Deleted: `executeRemoteCommand`, `markTextAnalysis`, the `_remote` marker entry point,
+`monitoredCommands`, `CommandStarter`, the two orphaned `USE_SLMOD*` flags, and the `veafShortcuts`
+branch that routed markers there. Nothing to document, because `_remote` was documented nowhere —
+which is itself telling.
+
+### VMR-104: the ordering was the bug, and the tests pin the order
+
+`publish` pushed tags first, created the release second. So an unusable `gh` left `published-v<x>` on
+the remote with no release, and for a full release **`published-latest` was force-moved onto that same
+commit** — the tag the updater and every "latest" link resolve. Now `gh` is checked before anything
+reaches the remote, and the floating tag moves only after the release exists.
+
+Worth recording: the "swallowed local failures" of VMR-105 do not reproduce. `logger.error` raises
+`typer.Abort`, so a failed push or release creation already aborted the publish — and that is exactly
+what keeps the floating tag where it was. One test asserts both properties together.
+
+### VMR-073 was unreachable where the finding pointed
+
+`handle_client_connection` returns **nothing**, so `success` was always nil: the failure branch
+concatenated a nil and raised on *every* request, and the `clients[id]` branch the finding names
+could never run. The response is sent before any of it, which is why the smoke harness worked while
+its server errored each time.
+
+### What David decided not to fix, and why it is the right call
+
+- **VMR-083** — measured before deciding: `veaf.serialize` has three call sites in the whole tree and
+  all three are debug traces. Nothing reloads its output as Lua, which is the finding's entire
+  argument.
+- **VMR-088** — the logging refactor he remembered is real and it works (`Logger:trace` checks the
+  level before formatting; `veaf.lp` defers serialisation through `__tostring`, 726 uses). This site
+  defeats both by pre-formatting *and* by calling a DCS API to build its argument — and there are
+  **794** pre-formatted trace/debug calls left in `src/scripts/veaf/`. That is a lot, not a finding.
+
+### Where it stands
+
+**122 of 140 decided. 18 left, and not one of them is a bug**: 9 Readability, 5 Optimization, 4
+Refactoring. This ticket's own policy — *"No file is touched purely for readability unless something
+else was being changed in it"* — reserves them for `REFACTOR-MARKER-PARSER`, which rewrites exactly
+those files and will absorb VMR-088 with them.
+
+**Ticket 04 closes with this pass** (its remaining item was the network download cap) and **ticket 01
+has nothing left of its own**.

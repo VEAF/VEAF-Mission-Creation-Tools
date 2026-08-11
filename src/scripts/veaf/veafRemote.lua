@@ -23,21 +23,12 @@ veafRemote.Id = "REMOTE"
 
 veaf.loggers.new(veafRemote.Id, veafRemote.LogLevel)
 
--- if false, SLMOD will not be called for regular commands
-veafRemote.USE_SLMOD = false
-
--- if false, SLMOD will never be called
-veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = false
-
-veafRemote.CommandStarter = "_remote"
-
 veafRemote.MIN_LEVEL_FOR_MARKER = 10
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafRemote.monitoredCommands = {}
 veafRemote.remoteUsers = {}
 veafRemote.remoteUnitsPilots = {}
 -- Registry for executeCommandFromRemote() — maps lowercase module name to handler function.
@@ -174,75 +165,17 @@ function veafRemote.buildDefaultList()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Event handler functions.
+-- Remote command execution
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafRemote.executeCommand(eventPos, eventText)
-  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
-
-  -- Check if marker has a text and the veafRemote.CommandStarter keyphrase.
-  if eventText ~= nil and eventText:lower():find(veafRemote.CommandStarter) then
-    -- Analyse the mark point text and extract the keywords.
-    local command, password = veafRemote.markTextAnalysis(eventText)
-
-    if command then
-      -- do the magic
-      return veafRemote.executeRemoteCommand(command, password)
-    end
-  end
-end
-
---- Extract keywords from mark text.
-function veafRemote.markTextAnalysis(text)
-  veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.markTextAnalysis(text=[%s])", tostring(text)))
-
-  if text then
-    -- extract command and password
-    local password, command = text:match(veafRemote.CommandStarter .. "#?([^%s]*)%s+(.+)")
-    if command then
-      veaf.loggers.get(veafRemote.Id):trace(string.format("command = [%s]", command))
-      return command, password
-    end
-  end
-  return nil
-end
-
--- execute a command
-function veafRemote.executeRemoteCommand(command, password)
-  local command = command or ""
-  local password = password or ""
-  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeRemoteCommand([%s])", command))
-  if not (veafSecurity.checkPassword_L1(password)) then
-    veaf.loggers.get(veafRemote.Id):error(string.format("veafRemote.executeRemoteCommand([%s]) - bad or missing password", command))
-    trigger.action.outText(veaf.t("remote.bad_password"), 5)
-    return false
-  end
-  local commandData = veafRemote.monitoredCommands[command:lower()]
-  if commandData then
-    local scriptToExecute = commandData.script
-    veaf.loggers.get(veafRemote.Id):trace(string.format("found script [%s] for command [%s]", scriptToExecute, command))
-    local authorized = (not commandData.requireAdmin) or (veafSecurity.checkSecurity_L9(password))
-    if not authorized then
-      return false
-    else
-      local result, err = mist.utils.dostring(scriptToExecute)
-      if result then
-        veaf.loggers
-          .get(veafRemote.Id)
-          :debug(string.format("veafRemote.executeRemoteCommand() - lua code was successfully called for script [%s]", scriptToExecute))
-        return true
-      else
-        veaf.loggers
-          .get(veafRemote.Id)
-          :error(string.format("veafRemote.executeRemoteCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
-        return false
-      end
-    end
-  else
-    veaf.loggers.get(veafRemote.Id):warn(string.format("veafRemote.executeRemoteCommand : cannot find command [%s]", command or ""))
-  end
-  return false
-end
+-- VMR-130: the `_remote` marker command, `markTextAnalysis`, `executeRemoteCommand` and the
+-- `monitoredCommands` table it read are gone. They were the mission-facing half of the SLMOD
+-- bridge: `veafRemote.monitorWithSlMod(command, script, …)` registered a command with SLMOD *and*
+-- filled `monitoredCommands` so the script could be run. That registration API was deleted in
+-- August 2021 ("removed slmod monitoring altogether"), which left a table nothing could fill, a
+-- consumer that could only ever warn, and a `mist.utils.dostring` of arbitrary Lua behind a
+-- shared password. `registerRemoteModule` / `executeCommandFromRemote` below is the supported
+-- route, and the only one the server hook calls.
 
 -- execute command from the remote interface (see VEAF-server-hook.lua)
 function veafRemote.executeCommandFromRemote(username, level, unitName, veafModule, command)

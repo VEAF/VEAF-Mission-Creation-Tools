@@ -134,16 +134,27 @@ class TestRendering(unittest.TestCase):
         # Ticks are identical, so their pixel count is exactly proportional.
         self.assertEqual(counts[1] * 3, counts[3])
 
-    def test_resource_names_are_deterministic(self):
-        self.assertEqual("VEAF_MapKey_Assist_f16c_cold_start_0", resource_key("f16c-cold-start", 0))
-        self.assertEqual("assist-f16c-cold-start-2.png", image_filename("f16c-cold-start", 2))
+    def test_the_resource_key_is_deterministic_and_carries_no_digest(self):
+        """The key the Lua asks for must not move when a label changes.
 
-    def test_file_names_match_the_states(self):
+        Only the file name carries the content digest; the key is the stable handle
+        ``a_out_picture`` is given, so a checklist edit must not touch the emitted Lua.
+        """
+        self.assertEqual("VEAF_MapKey_Assist_f16c_cold_start_0", resource_key("f16c-cold-start", 0))
+
+    def test_the_file_name_carries_a_content_digest(self):
+        name = image_filename("f16c-cold-start", 2, b"some png bytes")
+        self.assertTrue(name.startswith("assist-f16c-cold-start-2-"), name)
+        self.assertTrue(name.endswith(".png"), name)
+
+    def test_file_names_are_one_per_state(self):
         images = render_checklist_images(_checklist(2), parse_runtime_catalog(CATALOG_LUA), "en")
-        self.assertEqual(
-            ["assist-f16c-cold-start-0.png", "assist-f16c-cold-start-1.png", "assist-f16c-cold-start-2.png"],
-            sorted(images.files),
-        )
+        self.assertEqual(3, len(images.files))
+        for state in range(3):
+            self.assertTrue(
+                any(name.startswith(f"assist-f16c-cold-start-{state}-") for name in images.files),
+                f"no file for state {state} in {sorted(images.files)}",
+            )
 
     def test_labels_are_resolved_through_i18n_not_emitted_as_keys(self):
         catalog = parse_runtime_catalog(CATALOG_LUA)
@@ -156,7 +167,9 @@ class TestRendering(unittest.TestCase):
         # step0 is not in the catalogue and stays literal; step1 is translated.
         from veaf_libs.checklist_images import _encode  # noqa: PLC0415
 
-        self.assertEqual(_encode(expected), images.files["assist-f16c-cold-start-0.png"])
+        # Reached through `file_names` rather than a literal: the name carries a digest of its own
+        # bytes now, so hard-coding it would pin this test to the rendering rather than to the text.
+        self.assertEqual(_encode(expected), images.files[images.file_names[0]])
 
     def test_width_follows_the_longest_line_within_bounds(self):
         from veaf_libs.checklist_images import MAX_IMAGE_WIDTH, MIN_IMAGE_WIDTH, image_width
@@ -194,9 +207,9 @@ class TestRendering(unittest.TestCase):
         )
         english = render_checklist_images(checklist, {}, "en")
         french = render_checklist_images(checklist, {}, "fr")
-        self.assertNotEqual(english.files["assist-inline-0.png"], french.files["assist-inline-0.png"])
+        self.assertNotEqual(english.files[english.file_names[0]], french.files[french.file_names[0]])
         # And neither renders the mapping itself.
-        self.assertEqual(english.files["assist-inline-0.png"], _encode(render_state("Title", ["Battery"], 0)))
+        self.assertEqual(english.files[english.file_names[0]], _encode(render_state("Title", ["Battery"], 0)))
 
     def test_indexed_png_stays_small(self):
         images = render_checklist_images(_checklist(12), parse_runtime_catalog(CATALOG_LUA), "en")
@@ -237,3 +250,81 @@ class TestImageKeysEmission(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestContentAddressedNames(unittest.TestCase):
+    """The file name changes when the picture does — FEAT-ASSIST-FOLLOWUP ticket 01.
+
+    DCS caches embedded resources **by name**. During the first checklist flight the image for
+    state 0 showed raw i18n keys while every later state was translated: the ``.miz`` was innocent
+    (all seven PNGs matched a fresh render byte for byte), but state 0 was the only one already
+    *displayed* under an earlier build, so DCS served its cached bitmap. A full restart cleared it.
+
+    The symptom — "the text is wrong, but only on the first image" — points nowhere near the cause,
+    and it hits any mission maker iterating on a checklist, not just whoever wrote the engine.
+    """
+
+    def _render(self, labels: list[str]):
+        checklist = parse_checklist(
+            {
+                "id": "f16c-cold-start",
+                "title": "Cold start",
+                "aircraft": ["F-16C_50"],
+                "menu": "cold-start",
+                "steps": [{"label": label, "element": "PTR-X"} for label in labels],
+            },
+            source="test.yaml",
+        )
+        return render_checklist_images(checklist, parse_runtime_catalog(CATALOG_LUA), "en")
+
+    def test_identical_content_gives_identical_names(self):
+        """No churn in the .miz when nothing changed."""
+        first = self._render(["one", "two"])
+        second = self._render(["one", "two"])
+        self.assertEqual(sorted(first.files), sorted(second.files))
+
+    def test_a_changed_label_changes_the_name(self):
+        """The whole point: DCS cannot serve a stale bitmap under a new name."""
+        before = self._render(["one", "two"])
+        after = self._render(["one", "CHANGED"])
+        self.assertNotEqual(sorted(before.files), sorted(after.files))
+
+    def test_the_resource_keys_do_not_move_when_a_label_changes(self):
+        """The Lua side is untouched by a checklist edit."""
+        before = self._render(["one", "two"])
+        after = self._render(["one", "CHANGED"])
+        self.assertEqual(before.resource_keys, after.resource_keys)
+
+    def test_the_mapping_points_at_the_files_that_exist(self):
+        """`resources()` used to rebuild names from the id and state, which a digest makes impossible.
+
+        If it drifts from ``files``, ``mapResource`` names a file the archive does not contain — and
+        the DCS editor prunes what its resource table does not declare, which is the shape
+        FIX-COMMUNITY-SOUNDS-PRUNED had to repair.
+        """
+        images = self._render(["one", "two", "three"])
+        self.assertEqual(sorted(images.resources().values()), sorted(images.files))
+
+    def test_every_state_maps_to_its_own_picture(self):
+        """Pairing by state index, not by sorted name: ...-10 must not land between ...-1 and ...-2."""
+        images = self._render([f"step {index}" for index in range(11)])
+        mapping = images.resources()
+        self.assertEqual(12, len(mapping))
+        for state, key in enumerate(images.resource_keys):
+            self.assertTrue(
+                mapping[key].startswith(f"assist-f16c-cold-start-{state}-"),
+                f"state {state} maps to {mapping[key]}",
+            )
+
+    def test_two_builds_with_different_labels_share_no_file_name(self):
+        """The orphan question, asserted rather than assumed.
+
+        A per-build name would leave the previous picture behind if the archive were written on top
+        of itself. It is not: ``create_miz`` rebuilds the ``.miz`` from ``src/`` on every build, and
+        the images only enter afterwards through ``write_miz``'s ``additional_files`` — so the file
+        names of a previous build are never in the archive being copied. This asserts the premise
+        that makes that safe, namely that a changed label really does produce a distinct name.
+        """
+        before = set(self._render(["one", "two"]).files)
+        after = set(self._render(["ONE", "TWO"]).files)
+        self.assertEqual(set(), before & after)

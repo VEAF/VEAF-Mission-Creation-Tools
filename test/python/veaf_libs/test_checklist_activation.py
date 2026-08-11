@@ -139,12 +139,16 @@ class TestResourceMapping(unittest.TestCase):
         self.assertEqual(set(images.files), set(resources.values()))
 
     def test_state_ten_is_not_paired_with_state_one(self):
-        # Sorting file names lexicographically would put "-10.png" between "-1.png" and
-        # "-2.png" and mis-pair every state of a long checklist.
+        # Sorting file names lexicographically would put state 10 between states 1 and 2 and
+        # mis-pair every state of a long checklist.
+        #
+        # Asserted on the state prefix rather than the whole name: the name now ends in a digest
+        # of its own bytes (FEAT-ASSIST-FOLLOWUP ticket 01), and pinning that here would make this
+        # test fail whenever the *rendering* changes, which is not what it is about.
         images = self._images(12)
         resources = images.resources()
-        self.assertEqual("assist-f16c-cold-start-10.png", resources[images.resource_keys[10]])
-        self.assertEqual("assist-f16c-cold-start-1.png", resources[images.resource_keys[1]])
+        self.assertTrue(resources[images.resource_keys[10]].startswith("assist-f16c-cold-start-10-"))
+        self.assertTrue(resources[images.resource_keys[1]].startswith("assist-f16c-cold-start-1-"))
 
 
 if __name__ == "__main__":

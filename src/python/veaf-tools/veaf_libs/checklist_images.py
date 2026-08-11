@@ -16,6 +16,7 @@ guarantee ``☐`` or ``✓`` and a missing glyph renders as a blank or a tofu bo
 
 from __future__ import annotations
 
+import hashlib
 import io
 import re
 from dataclasses import dataclass
@@ -72,11 +73,13 @@ class ChecklistImages:
     Attributes:
         checklist_id: The checklist these images belong to.
         resource_keys: One DCS resource key per progress state, indexed by state.
+        file_names: One embedded file name per progress state, indexed by state.
         files: Mapping of file name to PNG bytes, to embed in the ``.miz``.
     """
 
     checklist_id: str
     resource_keys: list[str]
+    file_names: list[str]
     files: dict[str, bytes]
 
     @property
@@ -87,14 +90,20 @@ class ChecklistImages:
     def resources(self) -> dict[str, str]:
         """Return the ``mapResource`` entries: resource key → embedded file name.
 
-        Built by state index rather than by sorting the file names, which would put
-        ``…-10.png`` between ``…-1.png`` and ``…-2.png`` and silently pair every state
-        of a ten-step-or-longer checklist with the wrong picture.
+        Paired by state index rather than by sorting the file names, which would put
+        ``…-10…`` between ``…-1…`` and ``…-2…`` and silently pair every state of a
+        ten-step-or-longer checklist with the wrong picture.
+
+        Reads :attr:`file_names` rather than rebuilding them: a name carries a digest of its
+        own bytes, so it cannot be recomputed from the id and the state alone. Rebuilding it
+        here is how ``mapResource`` would come to name a file the archive does not contain —
+        and the DCS editor prunes what its resource table does not declare, which is exactly
+        the shape ``FIX-COMMUNITY-SOUNDS-PRUNED`` had to repair.
 
         Returns:
             One entry per progress state.
         """
-        return {key: image_filename(self.checklist_id, state) for state, key in enumerate(self.resource_keys)}
+        return {key: self.file_names[state] for state, key in enumerate(self.resource_keys)}
 
 
 def resource_key(checklist_id: str, state: int) -> str:
@@ -113,9 +122,37 @@ def resource_key(checklist_id: str, state: int) -> str:
     return f"VEAF_MapKey_Assist_{_KEY_SAFE_RE.sub('_', checklist_id)}_{state}"
 
 
-def image_filename(checklist_id: str, state: int) -> str:
-    """Return the ``.miz`` file name of one progress state."""
-    return f"assist-{checklist_id}-{state}.png"
+#: Hex characters of the content digest kept in a file name. Eight is 32 bits — ample to tell one
+#: rendering of a state from another, and short enough to leave the name readable in ``mapResource``.
+_DIGEST_LENGTH = 8
+
+
+def image_filename(checklist_id: str, state: int, payload: bytes) -> str:
+    """Return the ``.miz`` file name of one progress state, digest included.
+
+    **DCS caches embedded resources by name.** During the first checklist flight the picture for
+    state 0 showed raw i18n keys while every later state was translated: the ``.miz`` was innocent —
+    all seven PNGs matched a fresh render byte for byte — but state 0 was the only one already
+    *displayed* under an earlier, untranslated build, so DCS served its cached bitmap. Only a full
+    restart cleared it.
+
+    The symptom, *"the text is wrong, but only on the first image"*, points nowhere near the cause,
+    and it hits any mission maker iterating on a checklist. Naming the file after its content means
+    a changed picture cannot arrive under a name DCS already holds.
+
+    The **resource key** deliberately carries no digest (see :func:`resource_key`): it is the stable
+    handle the emitted Lua asks for, so editing a label must not change the mission's scripts.
+
+    Args:
+        checklist_id: The checklist id.
+        state: Number of steps already ticked (``0`` … ``len(steps)``).
+        payload: The rendered PNG bytes this name identifies.
+
+    Returns:
+        The file name.
+    """
+    digest = hashlib.sha256(payload).hexdigest()[:_DIGEST_LENGTH]
+    return f"assist-{checklist_id}-{state}-{digest}.png"
 
 
 def line_states(step_count: int, state: int) -> list[str]:
@@ -267,10 +304,14 @@ def render_checklist_images(
 
     files: dict[str, bytes] = {}
     keys: list[str] = []
+    names: list[str] = []
     for state in range(len(checklist.steps) + 1):
-        files[image_filename(checklist.id, state)] = _encode(render_state(title, labels, state))
+        payload = _encode(render_state(title, labels, state))
+        name = image_filename(checklist.id, state, payload)
+        files[name] = payload
+        names.append(name)
         keys.append(resource_key(checklist.id, state))
-    return ChecklistImages(checklist_id=checklist.id, resource_keys=keys, files=files)
+    return ChecklistImages(checklist_id=checklist.id, resource_keys=keys, file_names=names, files=files)
 
 
 def render_all(

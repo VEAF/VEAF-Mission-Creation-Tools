@@ -272,6 +272,41 @@ Points à retenir :
 - Une erreur dans le fichier **fait échouer la construction** avec un message qui nomme le fichier
   fautif, plutôt que de produire une erreur Lua en jeu.
 
+### Mettre au point une checklist sans refaire tout le démarrage {#dev-condition}
+
+Vérifier l'étape 30 d'un démarrage moteur suppose normalement d'avoir fait les 29 précédentes, dans le
+cockpit. C'est ce qui rend l'itération sur une checklist assez pénible pour décourager de corriger un
+détail.
+
+D'où `dev_condition`, une **trappe de mise au point** : l'étape se valide d'office, sans que le cockpit
+soit dans l'état demandé.
+
+```yaml
+- label: MAIN PWR sur BATT
+  element: PTR-ELEC-TMB-MPWR-510
+  argument: 510
+  equals: 1.0
+  dev_condition: true    # absente d'une checklist livrée
+```
+
+Mettez-la sur les étapes que vous voulez sauter — typiquement 1 à 29 — et laissez celle que vous testez
+telle quelle : à l'ouverture de la session, l'assistance cochera les étapes truquées et s'arrêtera sur
+la vôtre.
+
+**Ce n'est pas un mode de validation** : l'étape garde son `argument`/`param`/`confirm`. La trappe
+court-circuite l'évaluation, elle ne remplace pas la mesure — vous pouvez donc la retirer sans rien
+réécrire.
+
+Trois garde-fous, parce qu'une checklist truquée qui partirait en production dirait à un pilote qu'il a
+fait une action qu'il n'a pas faite :
+
+- **Absente = comportement normal**, exactement. Et `dev_condition: yes` ou `dev_condition: 1` sont
+  **refusés** : seuls `true` et `false` sont acceptés, pour qu'une faute de frappe n'ouvre pas la trappe.
+- **La construction vous avertit**, en nommant la checklist et le numéro de chaque étape concernée. Elle
+  ne refuse pas : sinon vous ne pourriez pas construire la mission que vous voulez justement essayer.
+- **Le pilote le voit à l'écran** au démarrage de la checklist : « ⚠ N étape(s) se valident d'office ».
+  C'est le garde-fou qui ne dépend de la lecture d'aucun journal.
+
 ### Lire la position d'un interrupteur : `argument` {#switch-reading}
 
 ```yaml

@@ -121,6 +121,7 @@
   "checklist.unknown_id": "mission.yaml activates unknown checklist(s): {ids}. Known: {known}.",
   "checklist.unreadable": "Cannot read checklist '{source}': {details}",
   "checklist.unresolved_steps": "checklist step(s) still describe their control in plain words and have not been resolved: {steps}. Run `veaf-tools resolve-checklists` to fill in the technical fields, or write them by hand.",
+  "checklist.dev_condition_active": "DEVELOPMENT HATCH ACTIVE: {checklists} auto-pass without the cockpit being in the required state (dev_condition). Remove it before shipping — a pilot flying this is told they did something they did not.",
   "cmd.about.help": "Show information about VEAF Mission Creation Tools.",
   "cmd.about.no_modules": "[yellow]No module information available (run from a full repo checkout or built exe).[/yellow]",
   "cmd.about.open_website": "Do you want to open the VEAF website in your browser?",

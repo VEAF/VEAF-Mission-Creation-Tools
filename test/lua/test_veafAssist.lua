@@ -754,4 +754,87 @@ function TestVeafAssistRadioMenu:test_radioStart_unpacks_the_builder_parameters(
   luaunit.assertNotNil(veafAssist.sessions["Pilot #1"])
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafAssistDevCondition
+--
+-- The development hatch: a step marked `devCondition` passes without the cockpit
+-- ever being in the required state, so an author can reach step 30 without
+-- performing steps 1 to 29. It bypasses the real gate, so what is asserted here
+-- is that it is OFF unless asked, and never silent when it is on.
+-- ---------------------------------------------------------------------------
+TestVeafAssistDevCondition = {}
+
+--- Register a checklist whose step 1 carries the hatch. Step 1's window is
+--- deliberately one the parameter is NOT in, so a pass can only come from the hatch.
+local function registerHatched()
+  local def = definition("hatched")
+  def.steps[1].devCondition = true
+  veafAssist.registerChecklist(def)
+end
+
+function TestVeafAssistDevCondition:test_a_step_without_the_hatch_is_unchanged()
+  -- The regression guard that matters: the ordinary checklist still gates on the value.
+  setUpEngine({ P1 = -1.0 })
+  veafAssist.start("Pilot #1", "test-checklist")
+  luaunit.assertNil(session("Pilot #1").done[1])
+  luaunit.assertEquals(session("Pilot #1").displayedIndex, 1)
+end
+
+function TestVeafAssistDevCondition:test_a_hatched_step_passes_with_the_cockpit_untouched()
+  setUpEngine({ P1 = -1.0 })
+  registerHatched()
+  veafAssist.start("Pilot #1", "hatched")
+  -- P1 = -1.0 is outside step 1's [-0.05, 0.05] window, so only the hatch can explain this.
+  luaunit.assertTrue(session("Pilot #1").done[1])
+  luaunit.assertEquals(session("Pilot #1").displayedIndex, 2)
+end
+
+function TestVeafAssistDevCondition:test_the_hatch_does_not_leak_to_the_other_steps()
+  setUpEngine({ P1 = -1.0 })
+  registerHatched()
+  veafAssist.start("Pilot #1", "hatched")
+  -- Step 2 has no hatch and its own window is not satisfied either: it must still wait.
+  luaunit.assertNil(session("Pilot #1").done[2])
+  setParamAndTick("Pilot #1", "P1", 1.0)
+  luaunit.assertTrue(session("Pilot #1").done[2])
+end
+
+function TestVeafAssistDevCondition:test_it_works_on_a_confirm_step_too()
+  -- A confirm step is the one an author cannot fake by setting a parameter, so the hatch
+  -- is most useful precisely there.
+  setUpEngine({ P1 = -1.0 })
+  local def = definition("hatched-confirm")
+  def.steps[3].devCondition = true
+  veafAssist.registerChecklist(def)
+  veafAssist.start("Pilot #1", "hatched-confirm")
+  luaunit.assertTrue(session("Pilot #1").done[3])
+end
+
+function TestVeafAssistDevCondition:test_the_pilot_is_told_on_screen()
+  -- A silent bypass is how someone debugs the wrong thing for an hour, and in a training
+  -- tool it tells a pilot they did something they did not.
+  setUpEngine({ P1 = -1.0 })
+  registerHatched()
+  veafAssist.start("Pilot #1", "hatched")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("devCondition"), 1)
+end
+
+function TestVeafAssistDevCondition:test_an_ordinary_checklist_says_nothing_about_the_hatch()
+  setUpEngine({ P1 = -1.0 })
+  veafAssist.start("Pilot #1", "test-checklist")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("devCondition"), 0)
+end
+
+function TestVeafAssistDevCondition:test_a_non_boolean_hatch_does_not_open_it()
+  -- Lua has no schema: the emitter only ever writes `true`, but a hand-edited generated
+  -- file could carry anything, and in Lua every non-nil value is truthy — including the
+  -- string "false". An explicit `== true` is what keeps that from opening the hatch.
+  setUpEngine({ P1 = -1.0 })
+  local def = definition("hatched-string")
+  def.steps[1].devCondition = "false"
+  veafAssist.registerChecklist(def)
+  veafAssist.start("Pilot #1", "hatched-string")
+  luaunit.assertNil(session("Pilot #1").done[1])
+end
+
 os.exit(luaunit.LuaUnit.run())

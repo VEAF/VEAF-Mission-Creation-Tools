@@ -552,3 +552,91 @@ class TestShippedCatalogue(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDevConditionHatch(unittest.TestCase):
+    """`dev_condition` — the hatch that lets an author see step 30 without doing 1 to 29.
+
+    It bypasses the real gate, so every test here is about it being **off unless asked** and
+    **impossible to ship unnoticed**. A shipped checklist that auto-ticks tells a pilot they did
+    something they did not, in a training tool whose whole value is telling them the truth.
+    """
+
+    def _emit(self, *raw: dict) -> str:
+        checklists = [parse_checklist(entry, source="test.yaml") for entry in raw]
+        return generate_config_lua({"lua_modules": {"ASSIST": {}}}, checklists=checklists)
+
+    def test_absent_means_exactly_todays_behaviour(self):
+        # The regression guard that matters: nothing about the emitted step changes.
+        self.assertNotIn("devCondition", self._emit(VALID_CHECKLIST))
+
+    def test_declared_false_emits_nothing_either(self):
+        lua = self._emit(_with_steps({"label": "l", "element": "PTR-X", "dev_condition": False}))
+        self.assertNotIn("devCondition", lua)
+
+    def test_declared_true_reaches_the_engine(self):
+        lua = self._emit(_with_steps({"label": "l", "element": "PTR-X", "dev_condition": True}))
+        self.assertIn("devCondition = true", lua)
+
+    def test_it_does_not_disturb_the_validation_mode(self):
+        # A dev step keeps whatever check it declared: the hatch is a short-circuit at
+        # evaluation time, not a third validation mode replacing the real one.
+        lua = self._emit(_with_steps({**VALID_CHECKLIST["steps"][0], "dev_condition": True}))
+        self.assertIn('type = "cockpit_param"', lua)
+        self.assertIn("devCondition = true", lua)
+
+    def test_a_non_boolean_is_rejected(self):
+        for bad in ("yes", 1, 0, "true", [], {}):
+            with self.subTest(value=bad):
+                with self.assertRaises(ChecklistError):
+                    parse_checklist(
+                        _with_steps({"label": "l", "element": "PTR-X", "dev_condition": bad}),
+                        source="test.yaml",
+                    )
+
+    def test_the_step_counts_are_reported_for_the_build_warning(self):
+        checklist = parse_checklist(
+            {
+                **VALID_CHECKLIST,
+                "steps": [
+                    {"label": "a", "element": "PTR-X", "dev_condition": True},
+                    {"label": "b", "element": "PTR-Y"},
+                    {"label": "c", "element": "PTR-Z", "dev_condition": True},
+                ],
+            },
+            source="test.yaml",
+        )
+        # Numbered as a pilot sees them, like `unresolved_steps`, so the warning is actionable.
+        self.assertEqual([1, 3], [number for number, _ in checklist.dev_condition_steps()])
+
+    def test_a_checklist_without_the_hatch_reports_nothing(self):
+        self.assertEqual([], parse_checklist(VALID_CHECKLIST, source="test.yaml").dev_condition_steps())
+
+
+class TestDevConditionCannotShipSilently(unittest.TestCase):
+    """Proven by a test rather than left to a convention, as the ticket asked."""
+
+    def _activate(self, *raw: dict):
+        available = {entry["id"]: parse_checklist(entry, source="test.yaml") for entry in raw}
+        return select_activated(available, list(available))
+
+    def test_activating_a_dev_checklist_warns_and_names_the_steps(self):
+        dev = {
+            **VALID_CHECKLIST,
+            "id": "dev-one",
+            "steps": [
+                {"label": "a", "element": "PTR-X", "dev_condition": True},
+                {"label": "b", "element": "PTR-Y"},
+            ],
+        }
+        with self.assertLogs("veaf-tools", level="WARNING") as captured:
+            self._activate(dev)
+        logged = " ".join(captured.output)
+        self.assertIn("dev-one", logged)
+        self.assertIn("1", logged)
+
+    def test_a_clean_build_warns_about_nothing(self):
+        with self.assertRaises(AssertionError):
+            # assertLogs fails when nothing is logged, which is the assertion here.
+            with self.assertLogs("veaf-tools", level="WARNING"):
+                self._activate(VALID_CHECKLIST)

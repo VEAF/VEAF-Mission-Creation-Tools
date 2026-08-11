@@ -304,6 +304,14 @@ end
 
 --- Run the check a step declares. An unknown check type never passes.
 local function stepIsSatisfied(unit, step, session)
+  -- Development hatch (`dev_condition: true` in the YAML): satisfied without reading the
+  -- cockpit at all, so an author can reach step 30 without performing steps 1 to 29. The
+  -- comparison is `== true` rather than a plain truth test on purpose: in Lua every non-nil
+  -- value is truthy, the string "false" included, and a hand-edited generated file is exactly
+  -- where such a value would come from. The pilot is told at session start, in `start`.
+  if step.devCondition == true then
+    return true
+  end
   local check = step.check
   if not check or not check.type then
     return false
@@ -348,6 +356,24 @@ end
 --- Send one of the module's short event texts to the assisted pilot.
 local function tell(session, key, ...)
   veaf.outTextForUnit(session.unitName, veaf.t(key, ...), veafAssist.MESSAGE_TIME)
+end
+
+--- Tell the pilot, once per session, that some steps of this checklist tick themselves.
+---
+--- A silent bypass is how someone debugs the wrong thing for an hour — and in a tool whose
+--- whole value is telling a pilot the truth, an auto-ticked step otherwise reports an action
+--- they never performed. Said at session start rather than per step: it is a property of the
+--- checklist they are about to walk, and repeating it on every tick would bury the step texts.
+local function announceDevConditions(session)
+  local count = 0
+  for _, step in ipairs(session.checklist.steps) do
+    if step.devCondition == true then
+      count = count + 1
+    end
+  end
+  if count > 0 then
+    tell(session, "assist.dev_condition", count)
+  end
 end
 
 --- Label of a step, resolved through the runtime catalog at send time.
@@ -493,6 +519,7 @@ function veafAssist.start(unitName, checklistId)
 
   tickAlreadySatisfiedSteps(unit, session)
   tell(session, "assist.started", veaf.t(checklist.title))
+  announceDevConditions(session)
   refreshSession(unit, session)
   refreshMenu()
   return true

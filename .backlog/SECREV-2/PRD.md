@@ -1,6 +1,6 @@
 # SECREV-2 — act on the 2026-07-01 security review, finding by finding
 
-Status: 🔄 in-progress — tickets 02, 03, 04, 05 and 06 delivered; **122 of 140 findings decided and every Critical / High / Medium / Security-flaw / Documentation / Error-bug tier closed**. What is left: 18 readability / optimization / refactoring findings that ticket 07's own policy reserves for files being changed anyway (→ `REFACTOR-MARKER-PARSER`), and **the server hook is still not deployed**, so both criticals remain live on the VEAF servers until it is
+Status: 🔄 in-progress — tickets 02, 03, 04, 05 and 06 delivered; **122 of 140 findings decided and every Critical / High / Medium / Security-flaw / Documentation / Error-bug tier closed**. What is left: 18 readability / optimization / refactoring findings that ticket 07's own policy reserves for files being changed anyway (→ `REFACTOR-MARKER-PARSER`). **The server hook was deployed on 2026-08-11**, so the two criticals are closed in production, not only in the repository
 
 Source: [`CODE_DOC_REVIEW_2026-07-01.md`](../../CODE_DOC_REVIEW_2026-07-01.md) — 2 606 lines, 140
 findings, produced by 20 reviewers with an adversarial verifier that re-read each security/bug

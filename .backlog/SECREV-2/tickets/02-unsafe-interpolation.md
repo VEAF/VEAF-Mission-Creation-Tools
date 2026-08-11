@@ -1,6 +1,6 @@
 # 02 — Untrusted text into executed code, at five layers
 
-Status: ✅ done — delivered 2026-08-06, except the hook deployment
+Status: ✅ done — delivered 2026-08-06; the server hook was deployed on 2026-08-11, so nothing is outstanding
 Type: fix
 Findings: VMR-001 🔴, VMR-002 🔴, VMR-004 🟠, VMR-010 🟡, VMR-012 🟡, VMR-013 🟡
 
@@ -12,7 +12,7 @@ without a shared helper leaves a sixth to be written next month.
 
 | Layer | Finding | Outcome 2026-08-06 |
 |---|---|---|
-| Server hook builds Lua from a player name | **VMR-001, VMR-002** 🔴 | ✅ fixed, **not yet deployed** |
+| Server hook builds Lua from a player name | **VMR-001, VMR-002** 🔴 | ✅ fixed and **deployed 2026-08-11** |
 | `veafRadio` builds a shell command from marker text | **VMR-004** 🟠 | ✅ fixed |
 | `lua_config_generator` interpolates `mission.yaml` into generated Lua | VMR-012 🟡 | ✅ fixed |
 | `spawn_data_emitter` escapes only `\` and `"` | VMR-010 🟡 | ✅ fixed |
@@ -65,8 +65,11 @@ rather than writing a third escaping scheme.
 
 ## Acceptance criteria
 
-- [ ] A player name carrying quotes/backslashes/newlines cannot execute code — proven by test, and the
-      hook change **deployed**, since the repo copy is only the source of what runs.
+- [x] A player name carrying quotes/backslashes/newlines cannot execute code — proven by test, and the
+      hook change **deployed on 2026-08-11** by David, since the repo copy is only the source of what
+      runs. Version 2.7.1 carries both halves of the fix: `%q` in the `REGISTER_PLAYER` format, and
+      `%q` around the whole payload in `injectCode` — the first alone was not enough, because `%q`
+      does not escape `]` and the payload used to be wrapped in a long bracket.
 - [ ] Every Python Lua-emission site routes through one helper; adding a sixth site without it should
       be visibly wrong.
 - [ ] The VMR-013 decision is written down, whichever way it goes, with its effect on the harness.
@@ -115,9 +118,13 @@ harness slice that can test it.
 
 ## What is left on this ticket
 
-- [ ] **Deploy the hook to the VEAF servers.** The repository copy is the deployable source since
-      `REFACTOR-SERVER-HOOK-CANONICAL`, so until it is copied there, the two criticals are fixed
-      here and live in production.
+- [x] **Deploy the hook to the VEAF servers** — done 2026-08-11. Checked before asking, because the
+      concern raised was that a v6 hook would break v5 missions: it does not. The three functions the
+      hook calls mission-side (`registerUser`, `registerUserSlot`, `executeCommandFromRemote`) have
+      carried the same signatures since v5, and every payload is wrapped in an existence test, so an
+      older mission is a no-op rather than a crash. The real deployment risk was elsewhere and worth
+      recording: the pilots list moved to the shared `Saved Games/` root (one level above the server
+      folder), and without it the hook denies every command — which its own error message states.
 - [ ] `src/scripts/Hooks/` is under **no** `luacheck` or `stylua` gate — both CI jobs are scoped to
       `src/scripts/veaf/`. The one file in the repository carrying two critical findings is the one
       file nothing lints. Out of scope here; worth its own change.

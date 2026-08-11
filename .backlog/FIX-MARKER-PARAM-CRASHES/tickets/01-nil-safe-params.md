@@ -22,7 +22,9 @@ Type: fix
 ## Acceptance criteria
 
 - [x] The six inputs return an options table with the parameter left at its default.
-- [x] No `tonumber` left in these three parsers' numeric paths.
+- [x] No unguarded `tonumber` left in these parsers' **bounded** numeric paths. `veafCasMission`'s
+      `disperse` keeps its `tonumber`: it is already guarded by `if nVal then`, has no bounds, and
+      never raised — touching it would be adjacent code, not this fix.
 - [x] `poetry run test-lua` green across all suites.
 
 ## What the tests measured on the way

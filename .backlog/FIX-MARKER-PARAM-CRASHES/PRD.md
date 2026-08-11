@@ -50,7 +50,17 @@ what the pinning exists to avoid.
 
 ## Out of scope
 
-- The `elseif`-chain duplicate of the `path` rule in `veafRadio` (dead code, no crash).
+None of these raises, so none belongs in a lot whose subject is "stop the six crashes". All are
+recorded for `REFACTOR-MARKER-PARSER`, whose parameter declarations are where they get expressed
+rather than patched.
+
+- **`veafCasMission`'s `disperse` never becomes the flag it was written to be.** The code reads
+  `if val ~= "" then tonumber(val) else 15 end`, so a bare `disperse` was meant to mean "disperse
+  after 15 seconds". But `veaf.breakString` returns **nil** for a valueless keyword, never `""`,
+  so the `else` is dead: `_cas, disperse` leaves `disperseOnAttack` at `false`. Proven with a
+  probe. The declarative parser expresses this as a keyword with a *flag default*, which is the
+  fix — a patch here would just move the dead branch.
+- The `elseif`-chain duplicate of the `path` rule in `veafRadio` (unreachable, no crash).
 - `Group.getByName("")` on a valueless `groupname` in `veafGroundAI` (returns nil, no crash).
 - `veafMove` overwriting its `-1` sentinel with nil on an unreadable `speed`/`hdg`/`alt`/`dist`
-  (no crash at parse time; a nil flows downstream). Recorded for `REFACTOR-MARKER-PARSER`.
+  (no crash at parse time; a nil flows downstream).

@@ -2244,6 +2244,54 @@ function TestVeafSafeNumber:test_boolean_returns_the_default()
 end
 
 -------------------------------------------------------------------------------------------------
+-- FIX-MARKER-PARAM-CRASHES — safeNumberInRange rejects out-of-range values where safeNumber
+-- clamps them. Marker keywords need the rejecting form: an out-of-range `size` keeps the
+-- command's default instead of silently becoming the nearest bound.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSafeNumberInRange = {}
+
+function TestVeafSafeNumberInRange:test_accepts_a_value_in_range()
+  luaunit.assertEquals(veaf.safeNumberInRange("3", 1, 5), 3)
+end
+
+function TestVeafSafeNumberInRange:test_bounds_are_inclusive()
+  luaunit.assertEquals(veaf.safeNumberInRange("1", 1, 5), 1)
+  luaunit.assertEquals(veaf.safeNumberInRange("5", 1, 5), 5)
+end
+
+function TestVeafSafeNumberInRange:test_rejects_below_min()
+  luaunit.assertNil(veaf.safeNumberInRange("0", 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_rejects_above_max()
+  luaunit.assertNil(veaf.safeNumberInRange("42", 1, 5))
+end
+
+-- The distinction from safeNumber that justifies a second function.
+function TestVeafSafeNumberInRange:test_out_of_range_is_rejected_not_clamped()
+  luaunit.assertNil(veaf.safeNumberInRange("42", 1, 5))
+  luaunit.assertEquals(veaf.safeNumber("42", { min = 1, max = 5 }), 5)
+end
+
+function TestVeafSafeNumberInRange:test_rejects_a_valueless_keyword()
+  luaunit.assertNil(veaf.safeNumberInRange(nil, 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_rejects_a_non_numeric_value()
+  luaunit.assertNil(veaf.safeNumberInRange("banana", 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_accepts_zero_when_min_is_zero()
+  -- `defense` and `blocade` accept 0 where `size` and `spacing` start at 1.
+  luaunit.assertEquals(veaf.safeNumberInRange("0", 0, 5), 0)
+end
+
+function TestVeafSafeNumberInRange:test_accepts_a_decimal_in_range()
+  luaunit.assertEquals(veaf.safeNumberInRange("2.5", 0, 5), 2.5)
+end
+
+-------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-082 — split and breakString built patterns by interpolating the separator
 --
 --     local regex = ("([^%s]+)"):format(sep)

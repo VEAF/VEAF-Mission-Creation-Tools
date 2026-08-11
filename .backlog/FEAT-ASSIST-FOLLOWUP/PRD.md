@@ -1,6 +1,6 @@
 # FEAT-ASSIST-FOLLOWUP — the three things the first checklist flight could not close
 
-Status: ⬜ ready
+Status: 🔄 in-progress — ticket 01 delivered; 02 and 03 need cockpit time, 04 is deferred on purpose
 
 ## Why this lot exists
 
@@ -15,15 +15,15 @@ and one of those needs *two*.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Resource names should carry a content hash](tickets/01-resource-content-hash.md) | ⬜ |
+| 01 | [Resource names should carry a content hash](tickets/01-resource-content-hash.md) | ✅ |
 | 02 | [Two pilots at once, and whether a highlight leaks](tickets/02-two-pilots-at-once.md) | 🧑 |
 | 03 | [A pilot review of the F-16C slice](tickets/03-f16c-pilot-review.md) | 🧑 |
 | 04 | [Probe `c_cockpit_param_in_range`, then decide](tickets/04-cockpit-param-in-range-probe.md) | ⬜ |
 
 The four are independent of each other, and only one is worth doing now:
 
-- **01 is the one to do** — a cheap fix for a trap that already cost an evening and would hit any
-  mission maker iterating on a checklist.
+- **01 is done** (2026-08-11). One flight still has to confirm it, since no unit test can see DCS's
+  cache — change a label, rebuild, fly **without restarting DCS**.
 - **02 and 03 are `🧑 waiting-human`**, blocked on a resource David holds: cockpit time, and for 02 a
   second pilot. An agent should not pick them up.
 - **04 is ready but deliberately deferred.** It is an optimisation whose first step is finding out

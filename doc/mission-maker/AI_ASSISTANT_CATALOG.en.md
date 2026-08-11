@@ -243,7 +243,7 @@ zones (name, position, radius) present in the mission.
 
 ### Inspect the units, their loadouts and their routes {#inspect-units}
 
-*Built mission · 🔥* — One level of detail below the group list. For every aircraft or vehicle the AI
+*Built mission · 🔥* — A deeper level of detail than the group list. For every aircraft or vehicle the AI
 gives you its **type**, its **AI skill**, its **livery**, its **callsign**, its side number, position,
 heading, fuel — and its **loadout, pylon by pylon**. Per group: its task, its radio frequency, whether
 it is hidden, whether it starts engines-off or late-activated, and its **full route** with the tasks

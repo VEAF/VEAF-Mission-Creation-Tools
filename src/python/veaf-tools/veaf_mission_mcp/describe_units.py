@@ -102,7 +102,12 @@ def _callsign(raw: Any) -> str | None:
     if isinstance(raw, dict):
         name = raw.get("name")
         return str(name) if name is not None else None
-    return str(raw) if isinstance(raw, str) and raw else None
+    if raw is None or raw == "":
+        return None
+    # Any other scalar is stringified rather than dropped: a ground unit's callsign is a plain
+    # number, and restricting this to `str` silently lost it — the docstring said one thing and the
+    # code did another (Sourcery, #724).
+    return str(raw)
 
 
 def _tasks(waypoint: dict[str, Any]) -> list[dict[str, Any]]:

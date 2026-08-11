@@ -384,3 +384,36 @@ class TestRouteCanBeLeftOut:
 
     def test_the_route_is_there_by_default(self, rich_miz: Path) -> None:
         assert len(_group(describe_units(rich_miz), "Colt 1-1")["route"]) == 2
+
+
+class TestCallsignShapes:
+    """A callsign is a table for aircraft and a plain number for a ground unit (Sourcery, #724).
+
+    The first version returned a value only for a dict or a non-empty `str`, so a numeric callsign
+    came back as `None` — the docstring promised one thing and the code did another. A dropped
+    callsign is invisible: the field is simply absent, and nothing says it was there.
+    """
+
+    def test_an_aircraft_callsign_uses_its_name(self, rich_miz: Path) -> None:
+        assert _group(describe_units(rich_miz), "Colt 1-1")["units"][0]["callsign"] == "Enfield11"
+
+    def test_a_numeric_callsign_is_kept_as_text(self) -> None:
+        from veaf_mission_mcp.describe_units import _callsign
+
+        assert _callsign(101) == "101"
+
+    def test_a_string_callsign_is_kept(self) -> None:
+        from veaf_mission_mcp.describe_units import _callsign
+
+        assert _callsign("Springfield") == "Springfield"
+
+    def test_absent_and_empty_are_none(self) -> None:
+        from veaf_mission_mcp.describe_units import _callsign
+
+        assert _callsign(None) is None
+        assert _callsign("") is None
+
+    def test_a_table_without_a_name_is_none(self) -> None:
+        from veaf_mission_mcp.describe_units import _callsign
+
+        assert _callsign({1: 1, 2: 1}) is None

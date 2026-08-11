@@ -245,7 +245,7 @@ zones de déclenchement (nom, position, rayon) présents dans la mission.
 
 ### Inspecter les unités, leurs emports et leurs routes {#inspecter-unites}
 
-*Mission construite · 🔥* — Le cran de détail au-dessus de la liste des groupes. L'IA te donne, pour
+*Mission construite · 🔥* — Un niveau de détail plus fin que la liste des groupes. L'IA te donne, pour
 chaque appareil ou véhicule : son **type**, son **niveau d'IA**, sa **livrée**, son **indicatif**, son
 numéro de flanc, sa position, son cap, son carburant — et son **emport, pylône par pylône**. Pour
 chaque groupe : sa tâche, sa fréquence radio, s'il est masqué, s'il démarre moteurs coupés ou en

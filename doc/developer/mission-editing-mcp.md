@@ -68,7 +68,7 @@ nouveau parsing.
 
 ### `describe_units`
 
-Lecture seule. Le cran de détail que `describe_mission` ne donne pas : les **unités** de chaque
+Lecture seule. Le niveau de détail que `describe_mission` ne donne pas : les **unités** de chaque
 groupe (type, `skill`, livrée, indicatif, numéro de flanc, position, cap, altitude, carburant,
 leurres/canon), leur **emport** et la **route** du groupe avec les tâches de chaque point.
 

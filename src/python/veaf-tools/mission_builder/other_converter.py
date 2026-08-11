@@ -26,7 +26,7 @@ from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.mission_template import render_modules_block, tier_modules
 
-from mission_builder.mission_builder_worker import lua_loads_other_scripts
+from mission_builder.mission_builder_worker import format_delay_seconds, lua_loads_other_scripts
 from mission_builder.v5_converter import ConversionReport
 
 #: Lua filename extension of a loaded script resource.
@@ -184,11 +184,6 @@ def detect_native_script_loaders(dcs_mission: DcsMission) -> list[DetectedLoader
     return loaders
 
 
-def _format_scaffold_delay(delay: float) -> str:
-    """Render a detected delay for the scaffold: ``12`` rather than ``12.0``."""
-    return str(int(delay)) if float(delay).is_integer() else str(delay)
-
-
 def _declared_delays(mission_yaml_path: Path | None) -> dict[str, float | None]:
     """Read the ``delay_seconds`` a tuned ``mission.yaml`` declares, keyed by script base name.
 
@@ -248,8 +243,8 @@ def _delay_changes(mission_yaml_path: Path | None, loaders: list[DetectedLoader]
             t(
                 "convert_other.update.delay_changed",
                 script=loader.script,
-                declared="none" if was is None else _format_scaffold_delay(was),
-                upstream="none" if now is None else _format_scaffold_delay(now),
+                declared="none" if was is None else format_delay_seconds(was),
+                upstream="none" if now is None else format_delay_seconds(now),
             )
         )
     return changes
@@ -434,7 +429,7 @@ def build_scaffold_yaml(
         if loader.delay_seconds is not None:
             # The upstream trigger was gated on c_time_after, so reproduce the staging rather
             # than flattening it into the shared triggerStart.
-            lines.append(f"      delay_seconds: {_format_scaffold_delay(loader.delay_seconds)}")
+            lines.append(f"      delay_seconds: {format_delay_seconds(loader.delay_seconds)}")
     lines.append("")
 
     lines += [

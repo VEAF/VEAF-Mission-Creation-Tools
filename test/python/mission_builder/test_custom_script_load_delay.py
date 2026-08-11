@@ -24,11 +24,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import typer
 from mission_builder import mission_builder_worker
 from mission_builder.mission_builder_worker import (
     CustomScript,
     MissionBuilderWorker,
     _parse_custom_scripts,
+    format_delay_seconds,
 )
 from mission_builder_factory import make_worker
 
@@ -328,6 +330,61 @@ class TestDynamicModeHonoursTheDelayToo(unittest.TestCase):
     def test_a_fractional_delay_is_emitted_readably(self):
         content = self._generated([CustomScript(path="late.lua", delay_seconds=0.5)])
         self.assertIn("delay = 0.5", content)
+
+
+class TestTooManyDelaysAbortsRatherThanDrifting(unittest.TestCase):
+    """Sourcery on #720 read the group-limit check as a log line that falls through.
+
+    It is not: `veaf_libs.logger.error` raises `typer.Abort` (its `exception_type` defaults to it),
+    so the build stops. The distinction matters — if it *did* fall through, the extra groups would
+    get dictionary keys past the range `update_dictionary_with_veaf_entries` writes, i.e. triggers
+    whose condition body does not exist. Pinned here so nobody has to read the logger to know.
+    """
+
+    def _worker_with(self, delay_count: int) -> MissionBuilderWorker:
+        files = {f"VEAF_MapKey_ActionText_12{index:03}": f"s{index}.lua" for index in range(delay_count)}
+        worker = _make_worker(
+            [CustomScript(path=name, delay_seconds=index + 1) for index, name in enumerate(files.values())]
+        )
+        worker.dcs_mission = mock.MagicMock()
+        worker.dcs_mission.dictionary_content = {}
+        return worker, files
+
+    def test_the_supported_number_of_groups_builds(self):
+        worker, files = self._worker_with(12)
+        with mock.patch.object(mission_builder_worker, "get_build_stamp", return_value=_STAMP):
+            specs = worker._build_veaf_trigger_specs({}, files)
+        self.assertEqual(12, len([spec for spec in specs if spec.delay_seconds is not None]))
+
+    def test_one_group_too_many_aborts_the_build(self):
+        worker, files = self._worker_with(13)
+        with mock.patch.object(mission_builder_worker, "get_build_stamp", return_value=_STAMP):
+            with self.assertRaises(typer.Abort):
+                worker._build_veaf_trigger_specs({}, files)
+
+    def test_no_spec_can_reference_a_dictionary_key_that_is_never_written(self):
+        # The invariant behind the limit, asserted directly: every key a spec uses must be one the
+        # dictionary declares. This is what would break if the limit were merely logged.
+        worker, files = self._worker_with(12)
+        with mock.patch.object(mission_builder_worker, "get_build_stamp", return_value=_STAMP):
+            specs = worker._build_veaf_trigger_specs({}, files)
+            declared = worker.update_dictionary_with_veaf_entries()
+        self.assertEqual([], [spec.dict_key for spec in specs if spec.dict_key not in declared])
+
+
+class TestOneFormatterForBothSides(unittest.TestCase):
+    """The build comment and the scaffolded YAML must render a delay the same way (Sourcery, #720)."""
+
+    def test_the_converter_uses_the_builder_formatter(self):
+        from mission_builder import other_converter
+
+        self.assertIs(other_converter.format_delay_seconds, format_delay_seconds)
+
+    def test_an_integral_delay_loses_its_decimal_point(self):
+        self.assertEqual("12", format_delay_seconds(12.0))
+
+    def test_a_fractional_delay_keeps_it(self):
+        self.assertEqual("0.5", format_delay_seconds(0.5))
 
 
 if __name__ == "__main__":

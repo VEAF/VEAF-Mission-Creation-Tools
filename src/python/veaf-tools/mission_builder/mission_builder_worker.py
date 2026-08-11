@@ -283,8 +283,19 @@ def _delay_trigger_dict_key(group_index: int) -> str:
     return f"VEAF_DictKey_ActionText_{_VEAF_DELAY_TRIGGER_DICT_KEY_BASE + group_index}"
 
 
-def _format_delay(delay: float) -> str:
-    """Render a delay for a human-facing comment: ``12`` rather than ``12.0``, ``0.5`` kept."""
+def format_delay_seconds(delay: float) -> str:
+    """Render a delay for a human to read: ``12`` rather than ``12.0``, ``0.5`` kept.
+
+    Public and shared with :mod:`mission_builder.other_converter`, which scaffolds the same value
+    into a ``mission.yaml``. Two copies would let the build and the scaffold render one delay two
+    ways, and the pair only has to disagree once to be confusing (Sourcery, #720).
+
+    Args:
+        delay: The delay in seconds.
+
+    Returns:
+        The shortest faithful rendering.
+    """
     return str(int(delay)) if float(delay).is_integer() else str(delay)
 
 
@@ -307,7 +318,7 @@ def _emit_trig_condition(spec: VeafTriggerSpec) -> str:
     # Named rather than returned inline: this is generated Lua, but the i18n gate flags any
     # returned literal over 15 characters containing a space as untranslated user prose, and
     # exempting this file would grow a list the quality policy only ever shrinks.
-    condition = f"return({predicate} and c_time_after({_format_delay(spec.delay_seconds)}) )"
+    condition = f"return({predicate} and c_time_after({format_delay_seconds(spec.delay_seconds)}) )"
     return condition
 
 
@@ -1729,7 +1740,7 @@ class MissionBuilderWorker(BaseWorker):
             script.path: script.delay_seconds for script in self.custom_scripts if script.delay_seconds is not None
         }
         scripts_lua = "\n".join(
-            f'    {{ name = "{name}", delay = {_format_delay(delay_by_name[name])} }},'
+            f'    {{ name = "{name}", delay = {format_delay_seconds(delay_by_name[name])} }},'
             if name in delay_by_name
             else f'    {{ name = "{name}" }},'
             for name in scripts
@@ -1993,11 +2004,13 @@ class MissionBuilderWorker(BaseWorker):
             specs.append(
                 VeafTriggerSpec(
                     _delay_trigger_dict_key(group_index),
-                    f"Mission scripts loading - static, delayed {_format_delay(delay)}s",
+                    f"Mission scripts loading - static, delayed {format_delay_seconds(delay)}s",
                     "0x8080ffff",
                     False,
                     [
-                        LuaAction(f'env.info("STATIC Mission scripts loading - delayed {_format_delay(delay)}s")'),
+                        LuaAction(
+                            f'env.info("STATIC Mission scripts loading - delayed {format_delay_seconds(delay)}s")'
+                        ),
                         *(FileAction(key) for key in group_keys),
                     ],
                     delay_seconds=delay,
@@ -2055,6 +2068,13 @@ class MissionBuilderWorker(BaseWorker):
             logger.warning(t("builder.custom_script_delay_out_of_order", pairs=pairs))
 
         if len(groups) > _VEAF_MAX_DELAY_GROUPS:
+            # This ABORTS the build: `veaf_libs.logger.error` raises `typer.Abort`, it does not merely
+            # log (see its `exception_type` default). Spelled out because the line reads like a log
+            # line that falls through to the `return` below — Sourcery read it that way on #720 and
+            # reported orphan triggers. Aborting is the right outcome and the alternative is worse:
+            # truncating would build a mission quietly missing scripts the maker declared. A test
+            # pins that a 13th group raises rather than emitting a spec whose dictionary key is
+            # absent.
             logger.error(t("builder.custom_script_delay_too_many", count=len(groups), maximum=_VEAF_MAX_DELAY_GROUPS))
         return immediate, groups
 

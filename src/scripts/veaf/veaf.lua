@@ -3250,6 +3250,19 @@ function veaf.markerRules.nonNegativeNumber(field)
   end
 end
 
+--- A plain numeric parameter, keeping the field's existing value when the input is unusable.
+---
+--- Converts with `veaf.safeNumber` — plain `tonumber` semantics — for the modules that never
+--- accepted the `1-5` random-range syntax `veaf.markerRules.number` allows.
+function veaf.markerRules.plainNumber(field)
+  return function(options, value)
+    local _converted = veaf.safeNumber(value)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
 --- A numeric parameter accepted only inside `min`..`max`, keeping the default otherwise.
 ---
 --- Goes through `veaf.safeNumberInRange`, which **rejects** rather than clamps — `size 42` keeps

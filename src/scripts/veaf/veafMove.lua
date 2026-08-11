@@ -121,19 +121,6 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Assign a numeric parameter **including nil**, wiping the field's sentinel default.
----
---- Reproduces this module's behaviour exactly, and it is a recorded defect: an unreadable
---- `speed`/`hdg`/`alt`/`dist` assigns nil over the `-1` that means "keep the original", so a nil
---- travels downstream to moveTanker instead of the sentinel. Kept as-is here so the migration
---- changes nothing; replaced by `veaf.markerRules.number` in its own named commit, where the
---- behaviour change is visible on its own.
-local function _assignRawNumber(field)
-  return function(options, value)
-    options[field] = tonumber(value)
-  end
-end
-
 --- The move module's marker specification, read by `veaf.parseMarkerText`.
 ---
 --- REFACTOR-MARKER-PARSER ticket 03. The per-sub-verb defaults are the quirk that most needed
@@ -190,10 +177,14 @@ veafMove.MarkerSpec = {
   },
   parameters = {
     { keys = { "name" }, apply = veaf.markerRules.text("groupName") },
-    { keys = { "speed", "spd" }, apply = _assignRawNumber("speed") },
-    { keys = { "heading", "hdg" }, apply = _assignRawNumber("hdg") },
-    { keys = { "distance", "dist" }, apply = _assignRawNumber("distance") },
-    { keys = { "alt", "altitude" }, apply = _assignRawNumber("altitude") },
+    -- `plainNumber` keeps the field when the value will not convert, which is what protects the
+    -- `-1` sentinel meaning "keep the tanker's original speed or altitude". The old code assigned
+    -- `tonumber(val)` unconditionally, so `speed banana` sent nil downstream instead.
+    -- `plainNumber` and not `number`: this module never accepted the `1-5` random-range syntax.
+    { keys = { "speed", "spd" }, apply = veaf.markerRules.plainNumber("speed") },
+    { keys = { "heading", "hdg" }, apply = veaf.markerRules.plainNumber("hdg") },
+    { keys = { "distance", "dist" }, apply = veaf.markerRules.plainNumber("distance") },
+    { keys = { "alt", "altitude" }, apply = veaf.markerRules.plainNumber("altitude") },
     { keys = { "teleport" }, apply = veaf.markerRules.flag("teleport") },
     { keys = { "silent" }, apply = veaf.markerRules.flag("silent") },
     { keys = { "immortal" }, apply = veaf.markerRules.flag("immortal") },

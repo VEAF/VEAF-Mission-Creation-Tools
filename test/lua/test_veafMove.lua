@@ -263,11 +263,20 @@ function TestVeafMoveCharacterisation:test_speed_zero_is_accepted()
   luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed 0").speed, 0)
 end
 
--- DEFECT, recorded not fixed: an unreadable numeric value assigns nil, wiping the sentinel
--- that meant "keep the original". A nil then travels to moveTanker instead of -1.
-function TestVeafMoveCharacterisation:test_an_unreadable_speed_wipes_the_sentinel_to_nil()
-  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed").speed)
-  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed)
+-- FIXED (ticket 03): an unreadable numeric value used to assign nil, wiping the sentinel that
+-- means "keep the original speed or altitude", so a nil travelled to moveTanker instead of -1.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed").speed, -1)
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed, -1)
+end
+
+function TestVeafMoveCharacterisation:test_an_unreadable_altitude_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, alt banana").altitude, -1)
+end
+
+-- A group move seeds speed 20, so that is what an unreadable speed falls back to there.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_group_default()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed banana").speed, 20)
 end
 
 -- An unknown keyword is ignored in silence and leaves the seeded defaults alone.

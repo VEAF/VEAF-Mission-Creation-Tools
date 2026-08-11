@@ -111,6 +111,20 @@ veaf.SecurityDisabled = true
 
 Cela contourne toutes les vérifications de sécurité globalement.
 
+!!! warning "`veafSecurity.SecurityDisabled` : ancienne orthographe, encore honorée"
+    Les missions écrites avant juin 2026 utilisent `veafSecurity.SecurityDisabled` (avec le préfixe
+    du module). Ce nom a été retiré par erreur : il était considéré comme jamais assigné, alors
+    qu'il s'agit d'un réglage **de mission** — les seuls endroits qui l'assignent sont donc les
+    configurations de mission, hors du dépôt.
+
+    Conséquence pendant trois ans : une mission demandant la sécurité **désactivée** l'obtenait
+    **activée**. Le sens de la panne est rassurant — personne n'a eu trop de droits — mais toutes
+    les commandes sécurisées refusaient pour tout le monde, ce qui ressemble à « la couche de
+    sécurité est cassée » plutôt qu'à « votre réglage a été retiré ».
+
+    Les deux orthographes fonctionnent à nouveau. L'ancienne écrit un avertissement dans le log,
+    une seule fois par mission, et **sera retirée en v7** : migrez vers `veaf.SecurityDisabled`.
+
 ---
 
 ## Sécurité au niveau du module

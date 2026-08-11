@@ -112,6 +112,20 @@ veaf.SecurityDisabled = true
 
 This bypasses all security checks globally.
 
+!!! warning "`veafSecurity.SecurityDisabled`: the old spelling, still honoured"
+    Missions written before June 2026 use `veafSecurity.SecurityDisabled` (with the module prefix).
+    That name was retired by mistake: it was believed never to be assigned, when it is in fact a
+    **mission-facing** setting — so the only places that assign it are mission configs, outside this
+    repository.
+
+    The consequence, for three years: a mission asking for security **off** got it **on**. The
+    direction is reassuring — nobody was over-privileged — but every secured command then refused
+    for everyone, which reads as "the security layer is broken" rather than "your setting was
+    retired".
+
+    Both spellings work again. The old one logs a warning, once per mission, and **will be removed
+    in v7**: migrate to `veaf.SecurityDisabled`.
+
 ---
 
 ## Module-Level Security

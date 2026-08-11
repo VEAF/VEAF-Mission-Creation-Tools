@@ -1097,8 +1097,6 @@ function veafRadio.createUserMenu(configuration, groupId)
 end
 
 -- helper functions for user menus
-local spawnCapFunction = function() end
-
 function veafRadio.menu(name, ...)
   return {
     "menu",

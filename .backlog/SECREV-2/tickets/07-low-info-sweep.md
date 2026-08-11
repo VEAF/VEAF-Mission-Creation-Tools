@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw, Documentation and **Error/bug** tiers all closed; 122/140 decided, only the 18 cosmetic findings remain and this ticket's own policy reserves them for files being changed anyway
+Status: ✅ done — **140 of 140 decided.** REFACTOR-MARKER-PARSER absorbed the three cosmetic findings that were in its files; the other 15 are `decided-deferred` by this ticket's own policy, listed by file below so they resurface when someone edits one
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -934,3 +934,69 @@ those files and will absorb VMR-088 with them.
 
 **Ticket 04 closes with this pass** (its remaining item was the network download cap) and **ticket 01
 has nothing left of its own**.
+
+## Sweep, fourteenth pass — the cosmetic tail, and the ticket closes — 2026-08-11
+
+The 18 that were left were reserved, in writing, for `REFACTOR-MARKER-PARSER` — *"which rewrites
+exactly those files"*. That lot shipped today ([#711](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/711),
+[#712](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/712),
+[#713](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/713)), so the reservation came due.
+
+Crossing the 18 against the files that lot actually rewrote: **3 hit, 15 did not.** That is the whole
+of this pass — no bulk sweep, because the policy that produced these 18 is the same policy that says
+not to touch the other 15.
+
+### The three in the rewritten files
+
+| | Outcome | |
+|---|---|---|
+| VMR-137 | **already-fixed** | `path` handled twice in veafRadio's `elseif` chain (lines 233 and 253). The second branch was **unreachable and never ran**, so the migration deleted it rather than translating it. `test_only_one_rule_claims_the_path_key` now asserts exactly one rule claims that key. |
+| VMR-136 | **already-fixed** | `string.format("Keyword password", val)` — a format string with **no specifier**, so `val` was silently discarded. Gone with the hand-rolled password branch it lived in, replaced by `veaf.markerRules.text("password")`. |
+| VMR-133 | **fixed** | `local spawnCapFunction = function() end` at veafRadio.lua:1100 — assigned an empty function, referenced nowhere, and unreachable from any other module by construction since it is a `local`. Removed. |
+
+**Two corrections to VMR-136 as reported.** It names `veafCombatMission` while its path is
+`veafCasMission.lua` — the module name in the finding is simply wrong. And the identical line existed
+a **second** time, at `veafTransportMission.lua:185`, which the review did not report. Both are gone.
+
+Worth recording because it inverts the finding's own severity: the bug was **accidentally
+protective**. Classed Readability, but a *working* `%s` there would have written a marker password
+into the log. The broken format is what stopped it. Fixing it as reported — adding the specifier —
+would have created a security problem out of a cosmetic one. Deleting the call was the right answer
+for a reason the finding does not contain.
+
+### The 15 that were not reached, and where to find them
+
+`decided-deferred`, not fixed. Each is Readability, Optimization or Refactoring, none has wrong
+behaviour attached, and nothing is currently changing its file. They become eligible the next time a
+lot edits one — which is why they are listed by file rather than left as a count:
+
+| Kind | Finding | File |
+|---|---|---|
+| Optimization | VMR-106 | `presets_injector/presets_manager.py` |
+| Optimization | VMR-107 | `spawn_data_injector/spawn_data_injector_worker.py` |
+| Optimization | VMR-109 | `veafAssets.lua` |
+| Optimization | VMR-110 | `veafCacheManager.lua` |
+| Optimization | VMR-131 | `veaf_libs/user_config.py` |
+| Readability | VMR-113 | `aircrafts_injector/aircrafts_injector_worker.py` |
+| Readability | VMR-114 | `mission_tools/mission_constants.py` |
+| Readability | VMR-116 | `veaf_tools/commands/ask.py` |
+| Readability | VMR-117 | `veafSanctuary.lua` |
+| Readability | VMR-118 | `veaf_build/radio_specs_updater.py` |
+| Readability | VMR-135 | `veaf_libs/dcs_units_parser.py` |
+| Readability | VMR-138 | `veafSkynetIadsHelper.lua` |
+| Refactoring | VMR-111 | `weather_injector/utils/lua_converter.py` |
+| Refactoring | VMR-112 | `veaf_build/worker.py` |
+| Refactoring | VMR-134 | `veaf_build/worker.py` |
+
+**This is a decision, not a completion**, and the distinction matters: marking 15 findings deferred to
+close a ticket would be window dressing if the reason were not already written into the ticket that
+produced them. It is — *"A readability fix in a file nobody is working in is a diff with no reader."*
+Two of the 15 share a file (`veaf_build/worker.py`), so touching it would retire two at once.
+
+### Where it stands
+
+**140 of 140 decided**: 95 fixed, 9 already-fixed, 21 decided-deferred, 8 confirmed-open,
+5 does-not-reproduce, 2 wontfix. Nothing in the triage is undecided.
+
+The 8 `confirmed-open` are the shared-password family David ruled on, tracked in
+[`REVIEW-SECURITY-LAYER`](../../REVIEW-SECURITY-LAYER/PRD.md) rather than here.

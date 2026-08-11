@@ -2,7 +2,7 @@
 
 Status: ✅ done — **all 140 findings decided**, 2026-08-11.
 
-Source: `CODE_DOC_REVIEW_2026-07-01.md` — 2 606 lines, 140 findings, produced by 20 reviewers with an
+Source: [`SECREV-2-review.md`](SECREV-2-review.md) — the 2026-07-01 review, 2 606 lines, 140 findings, produced by 20 reviewers with an
 adversarial verifier that re-read each security/bug finding and **refuted 6**, which were dropped.
 
 > **Nothing in this review was ever tracked.** It sat at the repository root for a month. The archived
@@ -70,6 +70,12 @@ Security flaws. Their reasoning is in the triage's `outcome_detail`; the short v
 | VMR-088 | Error / bug / LOW | `src/scripts/veaf/veafCombatMission.lua` |
 | VMR-089 | Error / bug / LOW | `src/scripts/veaf/veafEventHandler.lua` |
 | VMR-128 | Error / bug / INFO | `src/python/veaf-tools/luadata/io/read.py` |
+
+For a finding's own text — the reviewer's reasoning, not just the title — see
+[`SECREV-2-review.md`](SECREV-2-review.md) beside this file. **That is why the review is kept rather than
+deleted**: the triage records each decision, but only the review carries the argument behind it, and 21
+findings still have to be acted on. It moved here from the repository root on 2026-08-11, once this lot
+closing made the delete-or-archive question due.
 
 ⚠️ **Two of those conditions have since come due:**
 

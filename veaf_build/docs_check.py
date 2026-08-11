@@ -58,10 +58,18 @@ _REPO_LINK_EXEMPT: frozenset[str] = frozenset(
         # rewrite a record of a real past state into one that never existed.
         "docs/superpowers/plans/2026-06-24-backlog-restructure.md",
         "docs/superpowers/specs/2026-06-24-backlog-restructure-design.md",
-        # A dated review whose links were written relative to `doc/`. **Still live work**: SECREV-2's
-        # PRD sources its tickets from this file and 04-07 are open, so it is not deletable yet. The
-        # delete-or-archive question reopens when SECREV-2 closes, not before.
-        "CODE_DOC_REVIEW_2026-07-01.md",
+        # A dated review whose links were written relative to `doc/`. The exemption stands; what
+        # changed is where the file lives.
+        #
+        # SECREV-2 closed on 2026-08-11 with all 140 findings decided, which is the condition the
+        # previous version of this comment set for reopening the delete-or-archive question. Answered:
+        # **kept, and moved out of the repository root** to sit beside its own triage and archive
+        # (`SECREV-2.md`, `SECREV-2-findings-triage.json`). Kept rather than deleted because 21
+        # findings are `decided-deferred` — they resurface the next time a lot edits their file, and
+        # the triage records the decision while only this document carries the reviewer's reasoning.
+        # Deleting it would have left those 21 undecidable, and git keeping the blob is not the same
+        # as someone being able to find it.
+        ".backlog/archive/SECREV-2-review.md",
     }
 )
 

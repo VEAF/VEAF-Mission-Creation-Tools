@@ -39,5 +39,12 @@ Deletion was refused *for a stated reason with an expiry*:
 > *`SECREV-2`'s live work sources findings from `CODE_DOC_REVIEW_2026-07-01.md`, so it is live work, not
 > a vestige. **The delete-or-archive question reopens when `SECREV-2` closes.***
 
-**`SECREV-2` closed on 2026-08-11**, with all 140 findings decided. So that condition is now met, and
-the question is open again — which is worth knowing, because this archive is where it is written down.
+**`SECREV-2` closed on 2026-08-11** with all 140 findings decided, so the condition came due the same
+day — and it was answered: **kept, and moved out of the repository root** to
+[`SECREV-2-review.md`](SECREV-2-review.md), beside its own triage and archive.
+
+Kept rather than deleted because 21 findings are still `decided-deferred`: the triage records each
+decision, but only the review carries the reviewer's *reasoning*, and that is what whoever next edits one
+of those files will need. Moved because sitting unwatched at the repository root is precisely what this
+lot was about. The `docs_check` exemption follows the new path, with the decision written into the code
+rather than left implicit.

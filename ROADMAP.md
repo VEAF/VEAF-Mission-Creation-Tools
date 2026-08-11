@@ -85,16 +85,22 @@ rejection is an acceptable outcome), `CHORE-SMS-QUICK-WINS`, `CHORE-TOOLING-GATE
 `RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
 **6.13.0 was published 2026-08-01 and `develop` is 26 patch versions ahead.**
 
-### Security work landed 2026-08-06
+### Security work closed 2026-08-11
 
-`SECREV-2` acts on `CODE_DOC_REVIEW_2026-07-01.md`, a 140-finding review that sat untracked at the
-repository root for a month. Tickets 02 and 03 shipped: the two criticals (an unescaped player name
-executing as code on the pre-authentication connect path), the shell command built from marker text,
-the Python Lua-emission sites, and the marker handlers that ran for anyone because declaring a
-security level was optional. **One action is outstanding and belongs to David**: the server hook is
-fixed in the repository and **not deployed**, and `REFACTOR-SERVER-HOOK-CANONICAL` made the
-repository copy the deployable source — so both criticals remain live on the VEAF servers until it
-is copied there.
+`SECREV-2` acted on the 2026-07-01 review — 140 findings that sat untracked at the repository root for
+a month — and **closed with every one decided**: 95 fixed, 9 already fixed, 21 deferred with their
+reasons, 8 confirmed-open and delegated to `REVIEW-SECURITY-LAYER`, 5 not reproducing, 2 wontfix. The
+review now lives beside its own triage and archive at
+[`.backlog/archive/SECREV-2-review.md`](.backlog/archive/SECREV-2-review.md), kept rather than deleted
+because those 21 deferred findings still need the reviewer's reasoning when a lot next edits their file.
+
+**Both criticals are closed in production.** David deployed the server hook on 2026-08-11, which was
+the outstanding action this section used to name — until then the fix existed only in the repository
+and the criticals were live on the VEAF servers.
+
+`REVIEW-SECURITY-LAYER` closed the same day, and it carries a change to announce: **`/login` no longer
+unlocks the mission for everybody.** A pilot listed in `veaf-pilots.txt` notices nothing; a pilot who is
+not listed must give the password on every command. See the top of the changelog.
 
 **Delivered since the last refresh:**
 

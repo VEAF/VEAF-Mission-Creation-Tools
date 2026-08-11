@@ -592,13 +592,13 @@
     "verdict": "PLAUSIBLE",
     "path": "veaf_build/github.py",
     "line": "57",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
       "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `publish` pushed the tags first and created the release second, so an unusable `gh` left `published-v<x>` on the remote with no release behind it — and for a full release the floating `published-latest` force-moved onto that same commit, which is what the updater and every 'latest' link resolve. Reordered: `gh` is checked before anything reaches the remote, and `published-latest` moves only once the release exists (`_move_latest_tag`, split out of `_publish_with_git_tags`). 13 tests, including the ordering itself and a control that a normal publish still pushes both tags."
   },
   {
     "vid": "VMR-105",
@@ -608,13 +608,13 @@
     "verdict": "UNVERIFIED",
     "path": "veaf_build/github.py",
     "line": "79",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
       "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Handled with VMR-104, and the 'swallowed local failures' half does not reproduce the way the finding reads it: `logger.error` raises typer.Abort, so a failed tag push or release creation already aborted the publish. The `git tag -d` that runs without `check` is deliberate — it is how re-publishing the same version is allowed — and it is now in one place (`_force_tag`) rather than duplicated four times, with a comment saying why. What was genuinely wrong was the ordering, which VMR-104 covers."
   },
   {
     "vid": "VMR-106",
@@ -1054,10 +1054,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/other/dictionaryNormalizer.lua",
     "line": "99",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "wontfix",
+    "outcome_detail": "David's call: legacy one-shot tool, replaced in v6 by the Python pipeline (`luadata.serialize(…, sort=True)` writes the normalised dictionary). `src/scripts/other/dictionaryNormalizer.lua` is deleted rather than repaired — nothing in the repository referenced it. This also makes VMR-038 moot (already recorded as does-not-reproduce)."
   },
   {
     "vid": "VMR-039",
@@ -1080,10 +1080,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafRemote.lua",
     "line": "220",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Removed rather than documented, on David's call, and the history says why: `monitoredCommands` was filled by `veafRemote.monitorWithSlMod(command, script, …)`, the mission-facing half of the **SLMOD** bridge. That registration API was deleted on 2021-08-24 (`067495be` — 'removed slmod monitoring altogether'), leaving a table nothing could fill, a consumer that could only warn, and a `mist.utils.dostring` of arbitrary Lua behind a password published in a public repository. Gone: `executeRemoteCommand`, `markTextAnalysis`, the `_remote` marker entry point, `monitoredCommands`, `CommandStarter`, and the two orphaned `USE_SLMOD*` flags — plus the veafShortcuts branch that routed markers there. `registerRemoteModule` / `executeCommandFromRemote` is the supported route and the only one the server hook uses. No documentation to update: `_remote` was documented nowhere. Tests replaced by three asserting the path is gone."
   },
   {
     "vid": "VMR-040",
@@ -1166,10 +1166,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/other/dcs-fiddle-server.lua",
     "line": "561",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and worse than reported: `handle_client_connection` returns **nothing**, so `success` was always nil, the failure branch concatenated a nil `res` and raised — on *every* request. The `else` branch the finding names (`clients[id]`, with `id` undefined and `clients` never filled) was therefore unreachable. The response is sent before all this, which is why the smoke harness worked while its server errored each time. Now a `pcall` around the handler, reporting the error instead of taking the loop down. Vendored file, kept to the minimum; `clients` and `get_client_id` were already orphaned before this change and are left alone."
   },
   {
     "vid": "VMR-074",
@@ -1304,14 +1304,14 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veaf.lua",
     "line": "656",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "wontfix",
+    "outcome_detail": "David's call — 'osef des fonctions'. Measured first: `veaf.serialize` has three call sites in the whole tree and all three are debug traces (two in veafCombatZone, one commented out in veafCombatMission). Nothing reloads its output as Lua, which is the finding's entire argument, so a `function: 0x…` in a trace has never misled anyone."
   },
   {
     "vid": "VMR-084",
@@ -1377,10 +1377,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafCombatMission.lua",
     "line": "778",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Real but deferred to `REFACTOR-MARKER-PARSER`, on David's call, because it is one instance of a family. The logging refactor he remembered is there and it works: `Logger:trace` checks the level before formatting, and `veaf.lp` defers serialisation through a `__tostring` metatable (726 uses). This call site defeats both — it calls `string.format` itself, and its argument is a DCS API call, so the work happens whatever the log level. There are **four** such calls per unit here, not the three reported (the fourth hides inside the trace). Measured across `src/scripts/veaf/`: **794** pre-formatted trace/debug calls remain, which is the size of the real chantier."
   },
   {
     "vid": "VMR-089",
@@ -1390,10 +1390,10 @@
     "verdict": "UNVERIFIED",
     "path": "src/scripts/veaf/veafEventHandler.lua",
     "line": "526",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Contract hardening with no reachable failure — the finding says so itself: `onEvent` filters unknown events before `isEventEnabled` sees them. Two `return false` to add, deferred to whichever lot next touches `veafEventHandler`."
   },
   {
     "vid": "VMR-090",

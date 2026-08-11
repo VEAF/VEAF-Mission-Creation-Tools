@@ -69,69 +69,81 @@ class GitHubPublisher:
             )
             logger.info("Proceeding with git tags only (release assets must be uploaded manually)", no_console=True)
 
+        # VMR-104: the order matters. The tags used to be pushed first, so an unusable `gh` — or a
+        # release creation that failed — left `published-v<x>` on the remote with no release behind
+        # it, and `published-latest` force-moved onto that same commit. Anything resolving the
+        # floating tag then pointed at a release GitHub cannot serve. So: refuse before touching the
+        # remote, and move the floating tag only once the release exists.
+        if self.token and not self._gh_cli_available():
+            logger.warning(
+                "GitHub CLI (gh) not found, so no release can be created: nothing was pushed. "
+                "Install it from https://cli.github.com/ or re-run with --skip-git-tags to push tags only."
+            )
+            return
+
         try:
             if not self.skip_git_tags:
                 self._publish_with_git_tags(package_path)
             if self.token:
                 self._publish_with_gh_cli(package_path, package_hash, force=force)
+            # Only now is there a release for the floating tag to point at. Without a token there is
+            # no release to wait for, so the tags-only path moves it as it always did.
+            if not self.skip_git_tags:
+                self._move_latest_tag()
         except subprocess.CalledProcessError as e:
             logger.error(f"GitHub publishing failed: {e}")
 
-    def _publish_with_git_tags(self, package_path: Path) -> None:  # sourcery skip: extract-duplicate-method
-        """Create and push versioned and latest git tags."""
+    def _gh_cli_available(self) -> bool:
+        """Whether the `gh` CLI can be run at all.
+
+        Returns:
+            True when ``gh --version`` succeeds.
+        """
+        try:
+            subprocess.run(["gh", "--version"], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+        return True
+
+    def _force_tag(self, tag_name: str) -> None:
+        """Recreate *tag_name* locally and force-push it to origin.
+
+        Args:
+            tag_name: The tag to (re)create.
+        """
+        # Deleting first is how a re-publish of the same version is allowed; a tag that does not
+        # exist yet makes this fail harmlessly, hence no `check`.
+        subprocess.run(["git", "tag", "-d", tag_name], cwd=str(self.script_root), capture_output=True)
+        subprocess.run(["git", "tag", tag_name], cwd=str(self.script_root), capture_output=True, check=True)
+        subprocess.run(
+            ["git", "push", "origin", "-f", tag_name],
+            cwd=str(self.script_root),
+            capture_output=True,
+            check=True,
+        )
+
+    def _publish_with_git_tags(self, package_path: Path) -> None:
+        """Create and push the versioned git tag.
+
+        VMR-104: the floating ``published-latest`` tag is **not** moved here any more —
+        :meth:`_move_latest_tag` does it once the release exists.
+        """
         try:
             tag_name = f"published-v{self.version}"
-            latest_tag_name = "published-latest"
+            self._force_tag(tag_name)
+            logger.debug(f"Git tag created and pushed: {tag_name}", no_console=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Git operation failed: {e}")
 
-            # Delete old versioned tag if it exists
-            subprocess.run(
-                ["git", "tag", "-d", tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-            )
-
-            # Create new versioned tag
-            subprocess.run(
-                ["git", "tag", tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-                check=True,
-            )
-
-            # Push versioned tag
-            subprocess.run(
-                ["git", "push", "origin", "-f", tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-                check=True,
-            )
-
-            if self._is_prerelease:
-                logger.debug(f"Pre-release: skipping {latest_tag_name} tag update", no_console=True)
-                logger.debug(f"Git tag created and pushed: {tag_name}", no_console=True)
-                return
-
-            # For full releases: also move the published-latest tag
-            subprocess.run(
-                ["git", "tag", "-d", latest_tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "tag", latest_tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-                check=True,
-            )
-            subprocess.run(
-                ["git", "push", "origin", "-f", latest_tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-                check=True,
-            )
-
-            logger.debug(f"Git tags created and pushed: {tag_name}, {latest_tag_name}", no_console=True)
-
+    def _move_latest_tag(self) -> None:
+        """Move the floating ``published-latest`` tag onto this release, for a full release only."""
+        latest_tag_name = "published-latest"
+        if self._is_prerelease:
+            logger.debug(f"Pre-release: skipping {latest_tag_name} tag update", no_console=True)
+            return
+        try:
+            self._force_tag(latest_tag_name)
+            logger.debug(f"Git tag moved: {latest_tag_name}", no_console=True)
         except subprocess.CalledProcessError as e:
             logger.error(f"Git operation failed: {e}")
 

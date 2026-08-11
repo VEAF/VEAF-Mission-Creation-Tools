@@ -99,6 +99,14 @@ _TRUSTED_DOWNLOAD_HOST_SUFFIX = ".githubusercontent.com"
 #: a few more costs nothing and a bounded walk cannot loop.
 _MAX_DOWNLOAD_REDIRECTS = 5
 
+#: Upper bound on a downloaded release asset (SECREV-2 ticket 04, the network half of its integrity
+#: findings). `response.content` read whatever answered straight into memory, so a reply with no
+#: `Content-Length` that never ends had no bound at all — and this updater installs and then *runs*
+#: what it downloads. 256 MiB against a largest real asset of 61 MiB (`published.zip`, measured on
+#: the published release), and the same number as `safe_zip.MAX_MEMBER_UNCOMPRESSED_BYTES` so the
+#: two bounds in the codebase agree.
+_MAX_ASSET_BYTES = 256 * 1024 * 1024
+
 
 def _is_trusted_download_url(url: str | None) -> bool:
     """Whether *url* is an https URL on a GitHub host we are willing to download from.
@@ -419,7 +427,8 @@ class UpdateWorker:
                     # whichever host the redirect names.
                     headers.pop("Authorization", None)
 
-                response = requests.get(url, headers=headers, allow_redirects=False)
+                # `stream=True` so the body is not pulled into memory before its size is known.
+                response = requests.get(url, headers=headers, allow_redirects=False, stream=True)
                 if not response.is_redirect and not response.is_permanent_redirect:
                     break
 
@@ -432,7 +441,44 @@ class UpdateWorker:
         if not self.check_github_response(response, t("updater.action.download", name=asset_name)):
             return None
 
-        return response.content
+        return self._read_capped(response, asset_name)
+
+    def _read_capped(self, response: Any, asset_name: str) -> bytes | None:
+        """Read a response body, refusing anything past ``_MAX_ASSET_BYTES``.
+
+        The declared length is checked first because it is free; the stream is then counted while it
+        is read, which is what actually holds — a reply may declare nothing and never end.
+
+        Args:
+            response: The (streaming) response to read.
+            asset_name: The asset's name, for the error message.
+
+        Returns:
+            The asset's bytes, or None when it is over the cap.
+        """
+        declared = response.headers.get("Content-Length")
+        if declared and declared.isdigit() and int(declared) > _MAX_ASSET_BYTES:
+            logger.error(
+                t("updater.err.asset_too_large", name=asset_name, size=int(declared), limit=_MAX_ASSET_BYTES),
+                exception_type=None,
+            )
+            return None
+
+        chunks: list[bytes] = []
+        total = 0
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            total += len(chunk)
+            if total > _MAX_ASSET_BYTES:
+                response.close()
+                logger.error(
+                    t("updater.err.asset_too_large", name=asset_name, size=total, limit=_MAX_ASSET_BYTES),
+                    exception_type=None,
+                )
+                return None
+            chunks.append(chunk)
+        return b"".join(chunks)
 
     def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
         """

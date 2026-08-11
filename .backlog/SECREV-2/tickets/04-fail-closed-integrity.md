@@ -1,6 +1,6 @@
 # 04 — Integrity checks that pass when their metadata is missing
 
-Status: 🔄 in-progress — VMR-011 and VMR-009 delivered; the download caps remain
+Status: ✅ done — all three shapes refuse: VMR-011 (updater metadata), VMR-009 (archive members), and the network download cap (2026-08-11)
 Type: fix
 Findings: VMR-011 🟡, VMR-009 🟡, plus the bridge/updater fetch findings
 
@@ -32,8 +32,18 @@ decompression, and verify what was fetched before using it.
       memory with a bare `.read()`, which no on-disk cap can bound. Added `safe_read_member`
       alongside it — declared size checked first (cheap), real stream counted while reading (what
       actually holds).
-- [ ] Cap and verify the bridge and updater **downloads** — still open. This is the network side
-      (`download_asset`, and the Lua bridge's fetch), untouched here.
+- [x] **Cap and verify the bridge and updater downloads.** Both halves are in, and they landed in
+      different lots, which is why this line stayed open longer than it should have. The *verify*
+      half came with `SECREV-2` ticket 07: the bridge fetch is capped at 2 MiB (VMR-034, measured
+      against its real 13 237 bytes) and every hop of a release-asset download must be https on a
+      GitHub host (VMR-037) — a fix whose first version had the very hole it was closing, since
+      `requests` follows redirects anywhere by default. The *cap* half is this pass:
+      `download_asset` streamed nothing and read `response.content` whole, so a reply with no
+      `Content-Length` that never ends had no bound at all — on an updater that installs and then
+      **runs** what it downloads. Now read in 64 KiB chunks against `_MAX_ASSET_BYTES` = 256 MiB,
+      a bound chosen from measurement (largest real asset: `published.zip` at 61 MiB) and matching
+      `safe_zip.MAX_MEMBER_UNCOMPRESSED_BYTES` so the two agree. 5 tests, including an endless
+      response and both sides of the boundary.
 - [x] Tests for each delivered part: 5 for the member cap, 12 for the updater — including that a
       *good* release still installs, which is the failure mode that would strand people.
 
@@ -46,8 +56,7 @@ fail-closed updater that is wrong about its own metadata format cannot update it
 
 ## Acceptance criteria
 
-- [x] Two of the three shapes refuse, each with a missing-case and a malformed-case test. The
-      third (network downloads) is still open and is the remaining task above.
+- [x] All three shapes refuse, each with a missing-case and a malformed-case test.
 - [x] `read_miz` caps per member, refusing rather than truncating. Decision recorded: new code
       (`safe_read_member`), because `safe_extract_all` guards the disk and this path never touches it.
 - [x] Every refusal names the escape hatch `--no-verify-checksum`, asserted by a test that reads

@@ -233,8 +233,10 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   elseif logDebug("checking in veafGroundAI") and veafGroundAI.executeCommand(position, command, coalition, _bypassSecurity) then
     return true
-  elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
-    return true
+  -- VMR-130: veafRemote had a marker command here (`_remote`). It has been removed — it read a
+  -- `monitoredCommands` table that nothing had been able to fill since the SLMOD bridge was
+  -- deleted in 2021, so it could only ever refuse. Remote execution goes through the server hook
+  -- and `veafRemote.executeCommandFromRemote`, not through a marker.
   else
     return false
   end

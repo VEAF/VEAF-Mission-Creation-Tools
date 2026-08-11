@@ -866,6 +866,7 @@
   "updater.deferred_pending": "The updater executable will be updated in a few seconds",
   "updater.deferred_prepared": "Prepared {name} for deferred update",
   "updater.downloading": "Downloading {name} from GitHub...",
+  "updater.err.asset_too_large": "Refusing to download '{name}': it is {size} bytes, over the {limit} byte limit. Nothing was installed.",
   "updater.err.binary_download_failed": "Failed to download release binary: {name}",
   "updater.err.checksum_actual": "  Actual:   {checksum}",
   "updater.err.checksum_expected": "  Expected: {checksum}",

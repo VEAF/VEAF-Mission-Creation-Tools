@@ -30,8 +30,55 @@ adversarial verifier that re-read each security/bug finding and **refuted 6**, w
 | wontfix | 2 |
 
 The 8 `confirmed-open` are the shared-password family David ruled on, tracked in
-[`REVIEW-SECURITY-LAYER`](REVIEW-SECURITY-LAYER.md). The 21 deferred are cosmetic findings reserved for
-files being changed anyway, each listed by file in ticket 07 so they resurface when a lot edits one.
+[`REVIEW-SECURITY-LAYER`](REVIEW-SECURITY-LAYER.md). The 21 deferred are findings reserved for files being changed
+anyway. **They are listed below rather than in the deleted ticket**, and the full triage sits beside this
+archive as [`SECREV-2-findings-triage.json`](SECREV-2-findings-triage.json) — 140 entries with every
+outcome and its reasoning, because 21 of them still have to resurface.
+
+## The 21 deferred are not one thing — 15 + 6
+
+**15 are cosmetic, deferred by ticket 07's own policy**: *"No file is touched purely for
+readability unless something else was being changed in it."* Each becomes eligible the next time a lot
+edits its file. `veaf_build/worker.py` carries two, so touching it retires both.
+
+| Finding | Kind | File |
+|---|---|---|
+| VMR-113 | Readability | `src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py` |
+| VMR-114 | Readability | `src/python/veaf-tools/mission_tools/mission_constants.py` |
+| VMR-106 | Optimization | `src/python/veaf-tools/presets_injector/presets_manager.py` |
+| VMR-107 | Optimization | `src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py` |
+| VMR-135 | Readability | `src/python/veaf-tools/veaf_libs/dcs_units_parser.py` |
+| VMR-131 | Optimization | `src/python/veaf-tools/veaf_libs/user_config.py` |
+| VMR-116 | Readability | `src/python/veaf-tools/veaf_tools/commands/ask.py` |
+| VMR-111 | Refactoring | `src/python/veaf-tools/weather_injector/utils/lua_converter.py` |
+| VMR-109 | Optimization | `src/scripts/veaf/veafAssets.lua` |
+| VMR-110 | Optimization | `src/scripts/veaf/veafCacheManager.lua` |
+| VMR-117 | Readability | `src/scripts/veaf/veafSanctuary.lua` |
+| VMR-138 | Readability | `src/scripts/veaf/veafSkynetIadsHelper.lua` |
+| VMR-118 | Readability | `veaf_build/radio_specs_updater.py` |
+| VMR-112 | Refactoring | `veaf_build/worker.py` |
+| VMR-134 | Refactoring | `veaf_build/worker.py` |
+
+**6 were deferred earlier, each for its own reason**, and they are *not* cosmetic — three are
+Security flaws. Their reasoning is in the triage's `outcome_detail`; the short version:
+
+| Finding | Kind | File |
+|---|---|---|
+| VMR-013 | Security flaw / MEDIUM | `src/scripts/other/dcs-fiddle-server.lua` |
+| VMR-039 | Security flaw / LOW | `src/scripts/veaf/veafRemote.lua` |
+| VMR-041 | Security flaw / LOW | `src/scripts/veaf/veafSecurity.lua` |
+| VMR-088 | Error / bug / LOW | `src/scripts/veaf/veafCombatMission.lua` |
+| VMR-089 | Error / bug / LOW | `src/scripts/veaf/veafEventHandler.lua` |
+| VMR-128 | Error / bug / INFO | `src/python/veaf-tools/luadata/io/read.py` |
+
+⚠️ **Two of those conditions have since come due:**
+
+- **VMR-088** was deferred *"to `REFACTOR-MARKER-PARSER`, on David's call, because it is one instance of
+  a family"*. **That lot closed on 2026-08-11 without touching it** — `veafCombatMission.lua` is not one
+  of the marker parsers it migrated. So this one is now deferred to a lot that no longer exists.
+- **VMR-013** keeps the fiddle-server port open *"because no DCS is available to test a change to the
+  transport `FEAT-DCS-SMOKE-HARNESS` speaks through"*. That harness has since run in game, so the
+  premise is worth re-checking.
 
 **Both criticals are closed in production, not only in the repository** — David deployed the server hook
 on 2026-08-11.

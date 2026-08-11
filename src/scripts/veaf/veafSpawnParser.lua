@@ -50,10 +50,16 @@ local function _flag(field)
   end
 end
 
+--- Apply a numeric parameter that must not go below zero, keeping the default when unusable.
+---
+--- FIX-MARKER-PARAM-CRASHES-2: this is `_num`'s sibling, and it carried the very defect VMR-025
+--- fixed there — `getRandomizableNumeric` returns nil for a valueless or non-numeric parameter,
+--- and `nil >= 0` takes the whole spawn down. It sits one function below the comment explaining
+--- that crash, which is how it survived: the fix reached the copy it was written against.
 local function _numNonNegative(field)
   return function(options, val)
     local nVal = veaf.getRandomizableNumeric(val)
-    if nVal >= 0 then
+    if nVal and nVal >= 0 then
       options[field] = nVal
     end
   end
@@ -219,10 +225,13 @@ veafSpawn.ParameterRules = {
   { keys = { "static" }, apply = _flag("forceStatic") },
   { keys = { "immortal" }, apply = _flag("immortal") },
   {
+    -- An unreadable value falls into the `else`, which already handles a negative one: a bare
+    -- `delayed` therefore means the minimum delay, not no delay. Without the nil guard the
+    -- comparison raised (FIX-MARKER-PARAM-CRASHES-2).
     keys = { "delayed" },
     apply = function(options, val)
       local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
+      if nVal and nVal >= 0 then
         options.delayedStart = nVal
       else
         options.delayedStart = veafSpawn.MIN_REPEAT_DELAY

@@ -404,4 +404,106 @@ function TestSpawnParserLaserCodes:test_marker_still_accepts_a_valid_code()
   luaunit.assertEquals(r.freq, veafSpawn.convertLaserToFreq(1311))
 end
 
+-- ---------------------------------------------------------------------------
+-- TestSpawnParserEveryKeywordSurvivesBadInput
+--
+-- FIX-MARKER-PARAM-CRASHES-2. The previous lot closed six crashes and declared the family
+-- closed on the strength of thirteen hand-picked cases. Four more were living here, in the
+-- module the refactor plan calls the healthy one: `_numNonNegative` and the inline `delayed`
+-- carry the very nil-comparison VMR-025 fixed in `_num`, one function above them.
+--
+-- So this suite does not list keywords. It reads them from `veafSpawn.ParameterRules`, which
+-- means a parameter added tomorrow with an unguarded conversion fails here rather than in a
+-- pilot's mission. That is the point: coverage that is enumerated, not asserted.
+-- ---------------------------------------------------------------------------
+TestSpawnParserEveryKeywordSurvivesBadInput = {}
+
+local function everyDeclaredKey()
+  local keys, seen = {}, {}
+  for _, rule in ipairs(veafSpawn.ParameterRules) do
+    for _, k in ipairs(rule.keys) do
+      if not seen[k] then
+        seen[k] = true
+        table.insert(keys, k)
+      end
+    end
+  end
+  return keys
+end
+
+-- Guards against the enumeration silently becoming empty, which would make every test below
+-- pass while checking nothing.
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_the_enumeration_is_not_empty()
+  luaunit.assertTrue(#everyDeclaredKey() > 40, "expected veafSpawn to declare many parameters")
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_when_bare()
+  local raised = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    local text = "_spawn group, name A, " .. key
+    local ok, err = pcall(analyse, text)
+    if not ok then
+      table.insert(raised, key .. " (" .. tostring(err) .. ")")
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "keywords raising with no value: " .. table.concat(raised, " | "))
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_non_numeric_value()
+  local raised = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    local text = "_spawn group, name A, " .. key .. " banana"
+    local ok, err = pcall(analyse, text)
+    if not ok then
+      table.insert(raised, key .. " (" .. tostring(err) .. ")")
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "keywords raising on a non-numeric value: " .. table.concat(raised, " | "))
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_negative_value()
+  local raised = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    local text = "_spawn group, name A, " .. key .. " -1"
+    local ok, err = pcall(analyse, text)
+    if not ok then
+      table.insert(raised, key .. " (" .. tostring(err) .. ")")
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "keywords raising on a negative value: " .. table.concat(raised, " | "))
+end
+
+-- The four that were actually broken, named so a regression reads as itself rather than as a
+-- line in the sweep's failure list.
+TestSpawnParserNonNegativeKeywords = {}
+
+function TestSpawnParserNonNegativeKeywords:test_bare_defense_keeps_the_default()
+  local r = analyse("_spawn group, name A, defense")
+  luaunit.assertNotNil(r)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_non_numeric_armor_keeps_the_default()
+  local r = analyse("_spawn group, name A, armor banana")
+  luaunit.assertNotNil(r)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_bare_disperse_keeps_the_default()
+  local r = analyse("_spawn group, name A, disperse")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.disperse, 15)
+end
+
+-- An unreadable `delayed` falls into the branch that already handles a negative value, so it
+-- means "the minimum" rather than "no delay" — which is what a bare `delayed` asks for.
+function TestSpawnParserNonNegativeKeywords:test_bare_delayed_means_the_minimum_delay()
+  local r = analyse("_spawn group, name A, delayed")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.delayedStart, veafSpawn.MIN_REPEAT_DELAY)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_a_readable_delayed_is_honoured()
+  local r = analyse("_spawn group, name A, delayed 30")
+  luaunit.assertEquals(r.delayedStart, 30)
+end
+
 os.exit(luaunit.LuaUnit.run())

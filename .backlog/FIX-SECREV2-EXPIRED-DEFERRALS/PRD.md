@@ -1,6 +1,6 @@
 # FIX-SECREV2-EXPIRED-DEFERRALS — two deferred findings whose condition came due
 
-Status: ⬜ ready
+Status: 🔄 in-progress — ticket 01 delivered; ticket 02 needs a DCS session
 
 ## Why this lot exists
 
@@ -23,7 +23,7 @@ else, and both would have gone quiet.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Read a unit's life once, not four times](tickets/01-vmr088-unit-life-read-once.md) | ⬜ |
+| 01 | [Read a unit's life once, not four times](tickets/01-vmr088-unit-life-read-once.md) | ✅ |
 | 02 | [The fiddle-server port: re-anchor the deferral or close it](tickets/02-vmr013-fiddle-port.md) | 🧑 |
 
 **01 is a small, self-contained correctness fix** and can be done now. **02 needs a DCS session** and is

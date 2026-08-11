@@ -625,6 +625,111 @@ function TestVeafCombatMissionBehavior:test_getRemainingEnemiesString_when_empty
   luaunit.assertTrue(s:find("0 alive") ~= nil)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCombatMissionUnitLifeReadOnce — SECREV-2 / VMR-088
+--
+-- `getRemainingEnemies` read `veaf.getUnitLifeRelative(unit)` **four times per unit**: once for a
+-- trace, once for `== 1.0`, once for `> whatsInAKill`, and once inside the "damaged" trace. The
+-- review reported three; the fourth hides in a log line.
+--
+-- A unit under fire changes between reads, so the classification could disagree with itself: fail
+-- `== 1.0`, then read back at full health on the next line and be counted alive anyway — or drop past
+-- the kill threshold between two reads and land in the `else`, the branch whose own comment says
+-- "should never come to that". The counts feed the remaining-enemies message a player trusts.
+-- ---------------------------------------------------------------------------
+TestVeafCombatMissionUnitLifeReadOnce = {}
+
+function TestVeafCombatMissionUnitLifeReadOnce:setUp()
+  self.savedLife = veaf.getUnitLifeRelative
+  self.calls = 0
+  self.mission = VeafCombatMission:new():setName("m"):setFriendlyName("Mission Alpha")
+end
+
+function TestVeafCombatMissionUnitLifeReadOnce:tearDown()
+  veaf.getUnitLifeRelative = self.savedLife
+end
+
+--- One group holding one unit, with `values` handed out one per call to getUnitLifeRelative.
+function TestVeafCombatMissionUnitLifeReadOnce:_missionWithOneUnit(values)
+  local unit = {
+    getName = function()
+      return "unit1"
+    end,
+  }
+  local group = {
+    getName = function()
+      return "group1"
+    end,
+    getUnits = function()
+      return { unit }
+    end,
+  }
+  self.mission.spawnedGroups = { group }
+  self.mission.spawnedUnitsCountByGroup = { group1 = 1 }
+  veaf.getUnitLifeRelative = function()
+    self.calls = self.calls + 1
+    return values[math.min(self.calls, #values)]
+  end
+end
+
+-- The fix, stated as a measurement: one call per unit per pass.
+function TestVeafCombatMissionUnitLifeReadOnce:test_the_unit_life_is_read_once_per_unit()
+  self:_missionWithOneUnit({ 1.0 })
+  self.mission:getRemainingEnemies()
+  luaunit.assertEquals(self.calls, 1, "getUnitLifeRelative must be called once per unit, not per test")
+end
+
+-- The defect: a unit that drops between the first and second read used to be classified against two
+-- different values. With one read it is counted exactly once, whichever value that read returns.
+function TestVeafCombatMissionUnitLifeReadOnce:test_a_unit_whose_life_changes_is_counted_exactly_once()
+  -- Full health first, then dead: the old code failed `== 1.0` on a later read and could fall through.
+  self:_missionWithOneUnit({ 1.0, 0.0, 0.0, 0.0 })
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+
+  luaunit.assertEquals(live + dead, 1, "the unit must be counted exactly once")
+  luaunit.assertEquals(live, 1, "the single read said 1.0, so the unit is alive")
+  luaunit.assertEquals(damaged, 0)
+  luaunit.assertEquals(dead, 0)
+end
+
+function TestVeafCombatMissionUnitLifeReadOnce:test_a_unit_recovering_between_reads_is_still_counted_once()
+  -- The mirror case: damaged on the first read, full health afterwards.
+  self:_missionWithOneUnit({ 0.5, 1.0, 1.0, 1.0 })
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+
+  luaunit.assertEquals(live, 1, "a damaged unit is alive too")
+  luaunit.assertEquals(damaged, 1)
+  luaunit.assertEquals(dead, 0)
+end
+
+-- The classification itself must not change: these pin it against the single read.
+function TestVeafCombatMissionUnitLifeReadOnce:test_full_health_is_alive_and_not_damaged()
+  self:_missionWithOneUnit({ 1.0 })
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+  luaunit.assertEquals({ live, damaged, dead }, { 1, 0, 0 })
+end
+
+function TestVeafCombatMissionUnitLifeReadOnce:test_a_damaged_unit_counts_as_alive_and_damaged()
+  self:_missionWithOneUnit({ 0.5 })
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+  luaunit.assertEquals({ live, damaged, dead }, { 1, 1, 0 })
+end
+
+-- Below the kill threshold the unit counts as neither live nor damaged, so the group's spawned count
+-- turns it into a dead one.
+function TestVeafCombatMissionUnitLifeReadOnce:test_below_the_kill_threshold_the_unit_is_dead()
+  self:_missionWithOneUnit({ 0.0 })
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+  luaunit.assertEquals({ live, damaged, dead }, { 0, 0, 1 })
+end
+
+function TestVeafCombatMissionUnitLifeReadOnce:test_the_kill_threshold_is_honoured()
+  self:_missionWithOneUnit({ 0.5 })
+  local live, damaged = self.mission:getRemainingEnemies(0.9)
+  luaunit.assertEquals(live, 0, "0.5 is below a 0.9 threshold, so not alive")
+  luaunit.assertEquals(damaged, 0)
+end
+
 function TestVeafCombatMissionBehavior:test_getInformation_inactive_no_briefing()
   self.mission:setBriefing(nil)
   local info = self.mission:getInformation()

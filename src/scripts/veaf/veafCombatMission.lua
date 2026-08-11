@@ -778,19 +778,25 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
     if group and group:getUnits() then
       for _, unit in pairs(group:getUnits()) do
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("processing unit [%s]", unit:getName()))
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("veaf.getUnitLifeRelative(unit) = %f", veaf.getUnitLifeRelative(unit)))
-        if veaf.getUnitLifeRelative(unit) == 1.0 then
+        -- SECREV-2 / VMR-088: read once. This asked DCS for the same unit's life up to **four** times
+        -- per pass — one trace, the `== 1.0` test, the threshold test, and a fourth hidden inside the
+        -- "damaged" trace. A unit under fire changes between reads, so the classification could
+        -- disagree with itself: fail `== 1.0`, read back at full health on the next line, or drop past
+        -- the threshold and land in the `else` below whose own comment says it never happens. These
+        -- counts feed the remaining-enemies message a player has no way to check.
+        local unitLife = veaf.getUnitLifeRelative(unit)
+        veaf.loggers.get(veafCombatMission.Id):trace(string.format("veaf.getUnitLifeRelative(unit) = %f", unitLife))
+        if unitLife == 1.0 then
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is alive", unit:getName()))
           groupLiveUnits = groupLiveUnits + 1
-        elseif veaf.getUnitLifeRelative(unit) > whatsInAKill then
-          veaf.loggers
-            .get(veafCombatMission.Id)
-            :trace(string.format("unit[%s] is damaged (%d %%)", unit:getName(), veaf.getUnitLifeRelative(unit) * 100))
+        elseif unitLife > whatsInAKill then
+          veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is damaged (%d %%)", unit:getName(), unitLife * 100))
           groupDamagedUnits = groupDamagedUnits + 1
           groupLiveUnits = groupLiveUnits + 1
         else
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is dead", unit:getName()))
-          -- should never come to that, Moose do not return dead units in getUnits()
+          -- Reachable now that one read decides: a unit at or below `whatsInAKill` lands here, and is
+          -- counted as dead through the group's spawned count below rather than incremented here.
         end
       end
     else

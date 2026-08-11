@@ -555,19 +555,42 @@ function TestVeafMoveNonNumericValues:_analyse(text)
   return result
 end
 
-function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_does_not_crash_the_parser()
+-- REFACTOR-MARKER-PARSER ticket 03 changed the expectation of the next two tests, and the reason
+-- is worth stating because "unset, not crash" looked like the safe answer when VMR-092 wrote it.
+--
+-- Unset moved the crash rather than removing it. `veafMove.moveGroup` opens with
+-- `"... speed = " .. speed`, and concatenating nil raises — measured, for both `speed` and
+-- `altitude`. So `_move group, name SomeGroup, speed abc` parsed cleanly and then took the command
+-- down one call later. The other three consumers happen to tolerate nil (`moveTanker` tests
+-- `speed == nil or speed < 0`), which is why this stayed invisible.
+--
+-- Keeping the seeded default is what actually removes the crash: the parameter is ignored, the
+-- command runs, and the pilot loses the parameter rather than the order.
+function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_keeps_the_default_rather_than_unsetting()
   local r = self:_analyse("_move group, name SomeGroup, speed abc")
 
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.speed, "an unparseable speed must end up unset, not crash")
+  luaunit.assertEquals(r.speed, 20, "an unparseable speed must keep the sub-command's default")
 end
 
-function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_does_not_crash_the_parser()
-  -- The nil case: string.format("%s", nil) raises in 5.1 just like %d does, so tostring is required.
+function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_keeps_the_default()
   local r = self:_analyse("_move group, name SomeGroup, speed")
 
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.speed)
+  luaunit.assertEquals(r.speed, 20)
+end
+
+-- The crash this now prevents, asserted on the whole command path rather than on the parser:
+-- an unreadable numeric parameter must not take the order down downstream either.
+function TestVeafMoveNonNumericValues:test_the_whole_command_survives_an_unreadable_number()
+  for _, text in ipairs({
+    "_move group, name SomeGroup, speed abc",
+    "_move group, name SomeGroup, speed",
+    "_move group, name SomeGroup, alt abc",
+  }) do
+    local ok, err = pcall(veafMove.executeCommand, { x = 0, y = 0, z = 0 }, text, true)
+    luaunit.assertTrue(ok, text .. " raised: " .. tostring(err))
+  end
 end
 
 function TestVeafMoveNonNumericValues:test_every_numeric_keyword_survives_a_bad_value()

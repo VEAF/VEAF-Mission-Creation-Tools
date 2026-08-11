@@ -338,14 +338,55 @@ function TestVeafGroundAICharacterisation:test_a_missing_name_refuses_the_comman
   luaunit.assertNil(analyse("_ground status"))
 end
 
--- DEFECT, recorded not fixed: this parser reads `str[2] or ""`, so a valueless `name` becomes
--- the EMPTY STRING, and `if not options.name` does not catch it because "" is truthy in Lua.
--- The command proceeds with a nameless handler. This is exactly the bug SECREV-010 fixed in
--- veafMove, which guards with `not name or name == ""`.
-function TestVeafGroundAICharacterisation:test_a_valueless_name_passes_the_guard_as_an_empty_string()
-  local r = analyse("_ground status, name")
-  luaunit.assertNotNil(r)
-  luaunit.assertEquals(r.name, "")
+-- FIXED (ticket 03): this parser reads `str[2] or ""`, so a valueless `name` becomes the EMPTY
+-- STRING, and the old `if not options.name` guard did not catch it because "" is truthy in Lua —
+-- the command proceeded with a nameless handler. Exactly the bug SECREV-010 fixed in veafMove,
+-- and which the veafShortcuts loops got right by testing `#name == 0`.
+function TestVeafGroundAICharacterisation:test_a_valueless_name_is_refused()
+  luaunit.assertNil(analyse("_ground status, name"))
+end
+
+-- Measured, not assumed: `name` followed only by spaces is refused too, because `veaf.trim` runs
+-- BEFORE the key/value split (quirk 13), so trailing whitespace never becomes a value. A name of
+-- pure whitespace is therefore unreachable through a marker.
+function TestVeafGroundAICharacterisation:test_a_name_followed_only_by_spaces_is_refused_too()
+  luaunit.assertNil(analyse("_ground status, name  "))
+end
+
+-- But a SECOND space is part of the value, since only the first one separates (quirk 11).
+function TestVeafGroundAICharacterisation:test_a_second_space_becomes_part_of_the_name()
+  luaunit.assertEquals(analyse("_ground status, name  Alpha").name, " Alpha")
+end
+
+-- FIXED (ticket 03): a valueless `groupname` used to reach `Group.getByName("")`. An empty name
+-- cannot identify a group, and leaving `group` nil is what lets the nearest-allied-group search
+-- run — which is the intended answer when the pilot named no group.
+function TestVeafGroundAICharacterisation:test_a_valueless_groupname_does_not_query_dcs()
+  local queried = {}
+  local savedGetByName = Group.getByName
+  Group.getByName = function(name)
+    table.insert(queried, name)
+    return savedGetByName(name)
+  end
+
+  analyse("_ground status, name H, groupname")
+
+  Group.getByName = savedGetByName
+  luaunit.assertEquals(#queried, 0, "queried DCS with: " .. table.concat(queried, ", "))
+end
+
+function TestVeafGroundAICharacterisation:test_a_named_groupname_still_queries_dcs()
+  local queried = {}
+  local savedGetByName = Group.getByName
+  Group.getByName = function(name)
+    table.insert(queried, name)
+    return savedGetByName(name)
+  end
+
+  analyse("_ground status, name H, groupname Alpha")
+
+  Group.getByName = savedGetByName
+  luaunit.assertEquals(queried, { "Alpha" })
 end
 
 -- Unlike veafCasMission and veafMove, an absent value here is "" rather than nil. That is the

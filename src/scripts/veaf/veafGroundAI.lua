@@ -765,9 +765,14 @@ veafGroundAI.MarkerSpec = {
   },
   parameters = {
     {
+      -- A valueless `groupname` arrives as "" and used to be handed to `Group.getByName("")`.
+      -- Skipped now: an empty name cannot identify a group, and leaving `options.group` nil is
+      -- what lets the nearest-allied-group search below do its job.
       keys = { "groupname" },
       apply = function(options, value)
-        options.group = Group.getByName(value)
+        if value ~= nil and value ~= "" then
+          options.group = Group.getByName(value)
+        end
       end,
     },
     { keys = { "name" }, apply = veaf.markerRules.text("name") },
@@ -775,8 +780,11 @@ veafGroundAI.MarkerSpec = {
   },
   valueWhenAbsent = "",
   validate = function(options)
-    -- `name` is mandatory for every verb.
-    return options.name ~= nil
+    -- `name` is mandatory for every verb, and the empty string has to be rejected explicitly:
+    -- values arrive as "" rather than nil in this module, and `""` is truthy in Lua, so the old
+    -- `if not options.name` guard let `_ground status, name` through with a nameless handler.
+    -- Same bug shape SECREV-010 fixed in veafMove, and which the veafShortcuts loops got right.
+    return options.name ~= nil and options.name ~= ""
   end,
 }
 

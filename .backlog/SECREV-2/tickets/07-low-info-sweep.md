@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw and Documentation tiers closed; 112/140 decided, and every remaining Error/bug awaits a decision
+Status: 🔄 in-progress — Security-flaw and Documentation tiers closed; 114/140 decided, and every remaining Error/bug awaits a decision
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -810,3 +810,60 @@ touch only where a file is being changed anyway.
 
 **Both remaining tiers are decision-gated, so the next move on this ticket is David's, not a
 sweeper's.**
+
+## Sweep, twelfth pass — the robustness pair, 2026-08-10
+
+**VMR-053 and VMR-061**, the two Error/bug findings that needed no decision from David — the rest of
+the tier does. Both confirmed, both fixed, and both misattributed by the review.
+
+| | Outcome | |
+|---|---|---|
+| VMR-053 | **fixed** | the leak is real; the cause is the aside, not the headline |
+| VMR-061 | **fixed** | not merely unvalidated — the two consumers disagreed on the shape |
+
+### VMR-053: the failure was never swallowed, and that made a line unreachable
+
+The finding says a partial failure leaves the original silently unchanged and returns success.
+Measured: it does not. `logger.exception` is `error(str(e), exception_type=type(e))`, and
+`veaf_libs.logger.error` **raises** — so the failure has always reached the caller. Which means the
+line right below it, `temp_zip_path = None`, commented *"prevent replacing the original with a broken
+temp file"*, could never run. A guard against a case its own neighbour had already made impossible.
+
+What does reproduce is the leaked temp file, and its cause is the point the finding raises last: the
+`NamedTemporaryFile` handle stayed **open** while `zipfile.ZipFile` wrote to that same path. On
+Windows `os.unlink` on a file we still hold fails with a sharing violation, and the surrounding
+`contextlib.suppress(OSError)` swallowed exactly that — so every failed build left a
+`veaf_mission_*.miz` beside the mission.
+
+`mkstemp` + an immediate `os.close` replaces it, with the cleanup moved into a `finally` so it also
+covers a failing `os.replace` (which the old code did not). **Proved by putting the open handle
+back**: 6 of the 9 tests fail, including one from the *control* group — because `os.replace` cannot
+rename an open file either, so the leak was never the only consequence.
+
+### VMR-061: the two consumers did not agree
+
+"No schema validation" undersells it. `lua_config_generator` reads `mod["var_name"]` directly;
+`config_migrator` reads `mod.get("var_name")` with a comment explaining that old bundled JSON does
+not have it. So a module list that one accepts, the other raises on — which is precisely the
+downstream `KeyError` the finding predicts, and it was reachable through the *pre-generated* JSON path
+as much as the bundled one.
+
+`get_modules()` now validates what it decoded — a list of tables each carrying a non-empty `id` and
+`filename` — and normalises `version` and `var_name`, so both consumers see one shape. Refusals are
+localized and name the file at fault, because the reader's next move is to regenerate or reinstall.
+
+### The same TypeError as three passes ago
+
+My first version wrote `t("modules.entry_missing_key", …, key=key)`. `t()`'s own first parameter is
+named `key`, so it raised `TypeError: got multiple values for argument 'key'` — the identical mistake
+recorded in the CONFIRMED sweep above. Caught by the tests this time as well; the placeholder is
+`{field}` now.
+
+### Where it stands
+
+**114 of 140 decided. 26 left, none of them a fix a sweep may write**: 18
+readability / optimization / refactoring the ticket reserves for files being changed anyway, and 8
+Error/bug that each need a decision — VMR-104/105 (the publish path, and a release is in preparation),
+VMR-073 and VMR-129 (vendored / one-shot tooling), VMR-130 (delete the half-wired `monitoredCommands`
+eval sink or document it — `REVIEW-SECURITY-LAYER`'s call), and VMR-083 / VMR-088 / VMR-089 (contract
+hardening with no reachable failure today).

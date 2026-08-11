@@ -142,6 +142,20 @@ function TestVeafTransportMarkTextAnalysisKeywords:test_from_keyword()
   luaunit.assertEquals(r.from, "HOME")
 end
 
+-- FIX-MARKER-PARAM-CRASHES-2: the string keywords were never probed by the first lot, which
+-- tried the numeric ones and stopped. `from` raised in its own log line.
+function TestVeafTransportMarkTextAnalysisKeywords:test_valueless_from_leaves_the_field_nil()
+  local r = veafTransportMission.markTextAnalysis("_transport, from")
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.from)
+end
+
+function TestVeafTransportMarkTextAnalysisKeywords:test_valueless_password_leaves_the_field_nil()
+  local r = veafTransportMission.markTextAnalysis("_transport, password")
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.password)
+end
+
 -- ---------------------------------------------------------------------------
 -- TestVeafTransportMarkTextAnalysisBadParameters
 --

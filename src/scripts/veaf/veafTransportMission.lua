@@ -217,8 +217,9 @@ function veafTransportMission.markTextAnalysis(text)
     end
 
     if switch.transportmission and key:lower() == "from" then
-      -- Set armor.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword from = %s", val))
+      -- Set the departure named point. `veaf.p` because the field already tolerates nil, so a
+      -- valueless `from` only ever raised in this log line (FIX-MARKER-PARAM-CRASHES-2).
+      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword from = %s", veaf.p(val)))
       switch.from = val
     end
   end

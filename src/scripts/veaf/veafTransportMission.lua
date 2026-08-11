@@ -143,88 +143,47 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The transport module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. The bounds are asymmetric on purpose and unchanged: `size`
+--- counts cargo so it starts at 1, while `defense` and `blocade` describe cover and blockade
+--- strength where 0 means none. Out-of-range values stay *ignored* rather than clamped, which is
+--- what `veaf.markerRules.boundedNumber` provides and what `VMR-019` settled on for the twin
+--- parameters in veafCasMission.
+---
+--- The four `if switch.transportmission and ...` guards the old loop carried are gone rather than
+--- translated into `when` predicates: the flag is set before the loop and the function returns nil
+--- when the keyphrase is absent, so all four were always true.
+veafTransportMission.MarkerSpec = {
+  defaults = function(options)
+    options.transportmission = false
+    options.size = 1 -- number of cargo to be transported
+    options.defense = 0 -- air defense cover on the way (1 = light, 5 = heavy)
+    options.blocade = 0 -- enemy blocade around the drop zone (1 = light, 5 = heavy)
+    options.from = nil -- start position, named point
+    options.password = nil
+  end,
+  commands = {
+    {
+      match = veafTransportMission.Keyphrase,
+      init = function(options)
+        options.transportmission = true
+      end,
+    },
+  },
+  parameters = {
+    { keys = { "password" }, apply = veaf.markerRules.text("password") },
+    { keys = { "size" }, apply = veaf.markerRules.boundedNumber("size", 1, 5) },
+    { keys = { "defense" }, apply = veaf.markerRules.boundedNumber("defense", 0, 5) },
+    { keys = { "blocade" }, apply = veaf.markerRules.boundedNumber("blocade", 0, 5) },
+    { keys = { "from" }, apply = veaf.markerRules.text("from") },
+  },
+  valueWhenAbsent = nil,
+}
+
 --- Extract keywords from mark text.
 function veafTransportMission.markTextAnalysis(text)
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.transportmission = false
-
-  -- size ; number of cargo to be transported
-  switch.size = 1
-
-  -- defense [1-5] : air defense cover on the way (1 = light, 5 = heavy)
-  switch.defense = 0
-
-  -- blocade [1-5] : enemy blocade around the drop zone (1 = light, 5 = heavy)
-  switch.blocade = 0
-
-  -- start position, named point
-  switch.from = nil
-
-  -- password
-  switch.password = nil
-
-  -- Check for correct keywords.
-  if text:lower():find(veafTransportMission.Keyphrase) then
-    switch.transportmission = true
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "password" then
-      -- Unlock the command
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword password", val))
-      switch.password = val
-    end
-
-    -- These three carried `tonumber(val) <= 5`, which compares nil with a number and takes the
-    -- whole handler down on a missing or non-numeric value. Same rule as veafCasMission's twins:
-    -- convert, and ignore anything out of range rather than clamping it.
-    if switch.transportmission and key:lower() == "size" then
-      -- Set size.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %s", tostring(val)))
-      local nVal = veaf.safeNumberInRange(val, 1, 5)
-      if nVal then
-        switch.size = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "defense" then
-      -- Set defense.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %s", tostring(val)))
-      local nVal = veaf.safeNumberInRange(val, 0, 5)
-      if nVal then
-        switch.defense = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "blocade" then
-      -- Set blocade.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %s", tostring(val)))
-      local nVal = veaf.safeNumberInRange(val, 0, 5)
-      if nVal then
-        switch.blocade = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "from" then
-      -- Set the departure named point. `veaf.p` because the field already tolerates nil, so a
-      -- valueless `from` only ever raised in this log line (FIX-MARKER-PARAM-CRASHES-2).
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword from = %s", veaf.p(val)))
-      switch.from = val
-    end
-  end
-
-  return switch
+  return veaf.parseMarkerText(text, veafTransportMission.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

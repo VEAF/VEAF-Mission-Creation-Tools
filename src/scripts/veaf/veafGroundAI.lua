@@ -682,75 +682,98 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
   return false
 end
 
+veafGroundAI.VERB_SET = 1
+veafGroundAI.VERB_UNSET = 2
+veafGroundAI.VERB_ORDER = 3
+veafGroundAI.VERB_START = 4
+veafGroundAI.VERB_STOP = 5
+veafGroundAI.VERB_CLEAR = 6
+veafGroundAI.VERB_STATUS = 7
+
+--- The ground-AI module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. `valueWhenAbsent = ""` is load-bearing and reproduced as-is:
+--- it is also why a valueless `name` is accepted as an empty string, since the mandatory check
+--- below is `not options.name` and `""` is truthy in Lua. That is a recorded defect and it gets
+--- its own named commit rather than being repaired inside this move.
+---
+--- What deliberately stays OUT of the specification is the nearest-allied-group search: it needs
+--- the marker's position and coalition and it reads the game world, which a text parser has no
+--- business doing. The shared parser handles the text; `markTextAnalysis` handles the world.
+veafGroundAI.MarkerSpec = {
+  defaults = function(options)
+    options.verb = veafGroundAI.VERB_SET
+    options.group = nil -- the DCS group concerned by "set" and "unset"
+    options.order = nil -- the order given by "order"
+    options.name = nil -- the handler name, concerned by every verb
+  end,
+  commands = {
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " set",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_SET
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " unset",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_UNSET
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " order",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_ORDER
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " start",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_START
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " stop",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_STOP
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " clear",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_CLEAR
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " status",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_STATUS
+      end,
+    },
+  },
+  parameters = {
+    {
+      keys = { "groupname" },
+      apply = function(options, value)
+        options.group = Group.getByName(value)
+      end,
+    },
+    { keys = { "name" }, apply = veaf.markerRules.text("name") },
+    { keys = { "order" }, apply = veaf.markerRules.text("order") },
+  },
+  valueWhenAbsent = "",
+  validate = function(options)
+    -- `name` is mandatory for every verb.
+    return options.name ~= nil
+  end,
+}
+
 --- Extract keywords from mark text.
 function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
   veaf.loggers.get(veafGroundAI.Id):trace("veafGroundAI.markTextAnalysis(text=%s)", veaf.lp(text))
 
-  veafGroundAI.VERB_SET = 1
-  veafGroundAI.VERB_UNSET = 2
-  veafGroundAI.VERB_ORDER = 3
-  veafGroundAI.VERB_START = 4
-  veafGroundAI.VERB_STOP = 5
-  veafGroundAI.VERB_CLEAR = 6
-  veafGroundAI.VERB_STATUS = 7
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-  options.verb = veafGroundAI.VERB_SET -- can be "set", "unset", "order", "start", "stop", "status"
-  options.group = nil -- the DCS group that is concerned by "set" and "unset" verbs
-  options.order = nil -- the order that is given by "order" verb
-  options.name = nil -- the name of the handler that is concerned by all verbs
-
-  -- Check for correct keywords.
-  if text:lower():find(veafGroundAI.MarkerKeyphrase .. " set") then
-    options.verb = veafGroundAI.VERB_SET
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " unset") then
-    options.verb = veafGroundAI.VERB_UNSET
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " order") then
-    options.verb = veafGroundAI.VERB_ORDER
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " start") then
-    options.verb = veafGroundAI.VERB_START
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " stop") then
-    options.verb = veafGroundAI.VERB_STOP
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " clear") then
-    options.verb = veafGroundAI.VERB_CLEAR
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " status") then
-    options.verb = veafGroundAI.VERB_STATUS
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "groupname" then
-      -- Set dcs group name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword groupname = %s", veaf.lp(val))
-      -- search for the DCS group
-      options.group = Group.getByName(val)
-    end
-
-    if key:lower() == "name" then
-      -- Set AI handler name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword name = %s", veaf.lp(val))
-      options.name = val
-    end
-
-    if key:lower() == "order" then
-      -- Set order
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword order = %s", veaf.lp(val))
-      options.order = val
-    end
-  end
-
-  -- check mandatory parameter "name" for all commands
-  if not options.name then
+  local options = veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+  if not options then
     return nil
   end
 

@@ -1,6 +1,6 @@
 # SECREV-2 — act on the 2026-07-01 security review, finding by finding
 
-Status: 🔄 in-progress — tickets 02, 03, 04, 05 and 06 delivered; **122 of 140 findings decided and every Critical / High / Medium / Security-flaw / Documentation / Error-bug tier closed**. What is left: 18 readability / optimization / refactoring findings that ticket 07's own policy reserves for files being changed anyway (→ `REFACTOR-MARKER-PARSER`). **The server hook was deployed on 2026-08-11**, so the two criticals are closed in production, not only in the repository
+Status: ✅ done — **all 140 findings decided**: 95 fixed, 9 already-fixed, 21 decided-deferred, 8 confirmed-open (the shared-password family David ruled on, tracked in `REVIEW-SECURITY-LAYER`), 5 does-not-reproduce, 2 wontfix. Every Critical / High / Medium / Security-flaw / Documentation / Error-bug tier is closed, **the server hook was deployed on 2026-08-11** so the two criticals are closed in production and not only in the repository, and ticket 07's cosmetic tail came due when `REFACTOR-MARKER-PARSER` shipped — it absorbed the 3 findings in its files, and the other 15 are deferred by that ticket's own written policy, listed by file so they resurface when someone edits one
 
 Source: [`CODE_DOC_REVIEW_2026-07-01.md`](../../CODE_DOC_REVIEW_2026-07-01.md) — 2 606 lines, 140
 findings, produced by 20 reviewers with an adversarial verifier that re-read each security/bug
@@ -97,13 +97,13 @@ the uncapped fetches of VMR-009 and the bridge/updater).
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Currency triage — method, tooling, and the eight verified](tickets/01-currency-triage.md) | 🔄 |
+| 01 | [Currency triage — method, tooling, and the eight verified](tickets/01-currency-triage.md) | ✅ |
 | 02 | [Untrusted text into executed code — the five layers](tickets/02-unsafe-interpolation.md) | ✅ |
 | 03 | [Security gates that fail open](tickets/03-fail-open-gates.md) | ✅ |
 | 04 | [Integrity checks that pass when metadata is missing](tickets/04-fail-closed-integrity.md) | ✅ |
 | 05 | [The two high-severity correctness bugs](tickets/05-correctness-bugs.md) | ✅ |
 | 06 | [The 24 medium findings](tickets/06-medium-sweep.md) | ✅ |
-| 07 | [The 108 low and info findings](tickets/07-low-info-sweep.md) | 🔄 |
+| 07 | [The 108 low and info findings](tickets/07-low-info-sweep.md) | ✅ |
 
 ## What this lot will not do
 

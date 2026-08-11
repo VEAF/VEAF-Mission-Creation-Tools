@@ -174,8 +174,8 @@
     "line": "261",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/weather_injector/utils/lua_converter.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-016",
@@ -540,8 +540,8 @@
     "line": "62",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_tools/commands/ask.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-065",
@@ -633,8 +633,8 @@
       "a6eecc12 feat(presets): add per-type radio layout + Mi-24P channel-0 rotation (ADR 0010) (#553)",
       "05349a23 feat(presets): project role-based channel lists onto standard aircraft (ADR 0010) (#552)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/presets_injector/presets_manager.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-107",
@@ -646,8 +646,8 @@
     "line": "66",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-108",
@@ -683,8 +683,8 @@
       "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
       "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-113",
@@ -696,8 +696,8 @@
     "line": "83",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-114",
@@ -709,8 +709,8 @@
     "line": "139",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/mission_tools/mission_constants.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-115",
@@ -737,8 +737,8 @@
     "commits": [
       "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/radio_specs_updater.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-128",
@@ -763,8 +763,8 @@
     "line": "89",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_libs/user_config.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-134",
@@ -785,8 +785,8 @@
       "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
       "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-135",
@@ -798,8 +798,8 @@
     "line": "116",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_libs/dcs_units_parser.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-001",
@@ -1015,8 +1015,8 @@
     "line": "423",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafSkynetIadsHelper.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-025",
@@ -1595,8 +1595,8 @@
     "line": "91",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafAssets.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-110",
@@ -1608,8 +1608,8 @@
     "line": "113",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafCacheManager.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-117",
@@ -1621,8 +1621,8 @@
     "line": "116",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafSanctuary.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
   },
   {
     "vid": "VMR-132",
@@ -1653,8 +1653,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed dead and removed. `local spawnCapFunction = function() end` at veafRadio.lua:1100, assigned an empty function and referenced nowhere; being a `local`, it was unreachable from any other module by construction. Eligible under this ticket's own policy because REFACTOR-MARKER-PARSER was rewriting the file anyway."
   },
   {
     "vid": "VMR-136",
@@ -1666,8 +1666,8 @@
     "line": "508",
     "status": "untouched",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Removed by REFACTOR-MARKER-PARSER. The site was `string.format(\"Keyword password\", val)` — a format string with no specifier, so `val` was silently discarded and the log never showed it. The migration replaced the whole hand-rolled password branch with `veaf.markerRules.text(\"password\")`, so the call is gone. Two corrections to the finding: it names `veafCombatMission` while the path is `veafCasMission.lua`, and the same line existed a second time at veafTransportMission.lua:185, which the review did not report. Both are gone. Worth noting the bug was accidentally protective — a working %s would have logged a password."
   },
   {
     "vid": "VMR-137",
@@ -1685,8 +1685,8 @@
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Removed by REFACTOR-MARKER-PARSER. `path` appeared twice in veafRadio's `elseif` keyword chain (lines 233 and 253); the second branch was unreachable and never ran. The migration to the shared parser deleted it rather than translating it, and `test_only_one_rule_claims_the_path_key` now asserts exactly one rule claims that key."
   },
   {
     "vid": "VMR-007",

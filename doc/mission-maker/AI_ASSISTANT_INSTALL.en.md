@@ -1,19 +1,22 @@
 # Install the AI mission-editing assistant
 
 > **Audience**: VEAF mission makers who want to create and edit a mission in natural language
-> through an AI assistant (Claude Code) wired to the `veaf-mission-mcp` server.
+> through an AI assistant (Claude Code or Gemini CLI) wired to the `veaf-mission-mcp` server.
 
-The **veaf-mission-editor** plugin gives Claude Code the VEAF tools (the MCP server — the "hands")
+The **veaf-mission-editor** plugin gives your assistant the VEAF tools (the MCP server — the "hands")
 and the authoring know-how (the skill — the "brain"). Once installed, you ask for a mission in
 plain language and the assistant runs it end to end: create → edit → validate → build. See
 [AI_ASSISTANT_CATALOG.en.md](AI_ASSISTANT_CATALOG.en.md) for what you can ask.
 
+It works with **two assistants**, and the know-how is the same for both — one instruction file, not a
+copy per assistant. Follow the section that matches yours.
+
 ## Requirements
 
-- **Claude Code** installed.
+- **Claude Code** or **Gemini CLI** installed.
 - **Windows** (the plugin is Windows-first; DCS mission makers run Windows).
 
-## Install
+## Install with Claude Code
 
 In a terminal — or via the `/plugin …` slash commands inside Claude Code:
 
@@ -30,7 +33,32 @@ Then **restart Claude Code**. (Public repo: no authentication needed.)
 > `~/.claude/plugins/marketplaces/` and retry. On a fresh machine that refuses the SSH host key,
 > force HTTPS: `git config --global url."https://github.com/".insteadOf "git@github.com:"`.
 
-## First launch
+## Install with Gemini CLI
+
+Gemini installs an extension from a folder on your disk, and it expects to find the extension file at
+the root of that folder — ours lives in the `plugin` subfolder. Hence: clone first, install second:
+
+```powershell
+git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+gemini extensions install VEAF-Mission-Creation-Tools/plugin
+```
+
+Then **restart Gemini CLI**: extensions are only picked up when a new session starts.
+
+Gemini copies the extension **into your home folder**, under
+`%USERPROFILE%\.gemini\extensionseaf-mission-editor\`. Nothing is written anywhere else. To remove
+it:
+
+```powershell
+gemini extensions uninstall veaf-mission-editor
+```
+
+> **One difference worth knowing**: with Claude Code, the `veaf-tools` tool installs and updates
+> itself (see the next section). **With Gemini it does not**: `veaf-tools` must already be installed on
+> your machine and reachable from a terminal — run `veaf-tools --help` to check. If the command is not
+> recognised, install the VEAF tools before using the assistant.
+
+## First launch (Claude Code)
 
 On first launch the plugin **installs `veaf-tools` by itself** (via `veaf-tools-updater`) into its
 data dir — nothing to copy by hand. The assistant may be **unavailable for a few seconds** while
@@ -52,7 +80,7 @@ validates and builds the `.miz` — without you leaving the conversation.
 
 ## Update the plugin
 
-When a new plugin version ships:
+When a new plugin version ships, with Claude Code:
 
 ```powershell
 claude plugin marketplace update veaf
@@ -60,6 +88,13 @@ claude plugin update veaf-mission-editor@veaf
 ```
 
 (Updating `veaf-tools` itself is **automatic** and independent of the plugin update.)
+
+With Gemini CLI, update the clone then the extension:
+
+```powershell
+git -C VEAF-Mission-Creation-Tools pull
+gemini extensions update veaf-mission-editor
+```
 
 ## Test a pre-release (advanced)
 
@@ -78,4 +113,11 @@ The plugin then installs that version instead of stable. Remove the variable to 
 claude plugin list                                # installed plugins
 claude plugin marketplace list                    # registered marketplaces
 claude plugin disable veaf-mission-editor@veaf    # disable without uninstalling
+```
+
+On the Gemini CLI side:
+
+```powershell
+gemini extensions list                            # installed extensions
+gemini extensions uninstall veaf-mission-editor   # remove the extension
 ```

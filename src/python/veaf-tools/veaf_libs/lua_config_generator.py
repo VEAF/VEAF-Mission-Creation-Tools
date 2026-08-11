@@ -1294,6 +1294,10 @@ def _emit_checklist_step(step: ChecklistStep, language: str) -> str:
         if value is not None:
             fields.append(f"{carried} = {_to_lua_scalar(value)}")
     fields.append(f"check = {_emit_check_table(step.check_table())}")
+    # Emitted only when set, so an ordinary checklist's Lua is byte-for-byte what it was before
+    # the hatch existed — and so `devCondition` in a generated file is always a real one.
+    if step.dev_condition:
+        fields.append("devCondition = true")
     return "{" + ", ".join(fields) + "}"
 
 

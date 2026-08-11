@@ -121,6 +121,7 @@
   "checklist.unknown_id": "mission.yaml active une ou des checklists inconnues : {ids}. Connues : {known}.",
   "checklist.unreadable": "Checklist '{source}' illisible : {details}",
   "checklist.unresolved_steps": "une ou des étapes de checklist décrivent encore leur contrôle en langage courant et n'ont pas été résolues : {steps}. Lancez `veaf-tools resolve-checklists` pour compléter les champs techniques, ou écrivez-les à la main.",
+  "checklist.dev_condition_active": "TRAPPE DE DÉVELOPPEMENT ACTIVE : {checklists} se valident sans que le cockpit soit dans l'état requis (dev_condition). À retirer avant livraison — un pilote qui vole ça s'entend dire qu'il a fait une action qu'il n'a pas faite.",
   "cmd.about.help": "Affiche les informations sur VEAF Mission Creation Tools.",
   "cmd.about.no_modules": "[yellow]Aucune information de module disponible (lancez depuis un checkout complet ou l'exe compilé).[/yellow]",
   "cmd.about.open_website": "Voulez-vous ouvrir le site web de la VEAF dans votre navigateur ?",

@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError, field_validator, model_validator
 
 from veaf_libs.bundled_data import bundled_dir, read_bundled_text
 from veaf_libs.i18n import t
@@ -139,6 +139,13 @@ class ChecklistStep(BaseModel):
             Written by the resolver, read by nothing else. It is the whole
             synchronisation mechanism: no timestamps, no hashes, no second file — an
             instructor can see the state of their own checklist by reading it.
+        dev_condition: **Development hatch.** Makes this step's check pass without the
+            cockpit ever being in the required state, so an author can reach step 30
+            without performing steps 1 to 29. Absent means today's behaviour exactly, it
+            is ``StrictBool`` so a stray ``dev_condition: yes`` is refused rather than
+            coerced, and a checklist carrying it warns at build time and says so on
+            screen in game — a silent auto-tick would tell a pilot they did something
+            they did not.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -157,6 +164,7 @@ class ChecklistStep(BaseModel):
     argument: int | None = None
     device: int | None = None
     command: int | None = None
+    dev_condition: StrictBool = False
 
     @field_validator("label")
     @classmethod
@@ -273,6 +281,16 @@ class Checklist(BaseModel):
             error actionable, since a ``control`` text may well appear twice.
         """
         return [(number, step) for number, step in enumerate(self.steps, start=1) if step.needs_resolution]
+
+    def dev_condition_steps(self) -> list[tuple[int, ChecklistStep]]:
+        """Return the steps carrying the development hatch, numbered as a pilot sees them.
+
+        Returns:
+            ``(step number, step)`` pairs, 1-based — the numbering matches
+            :meth:`unresolved_steps` so a build message reads the same way whichever
+            problem it is reporting.
+        """
+        return [(number, step) for number, step in enumerate(self.steps, start=1) if step.dev_condition]
 
     @field_validator("aircraft")
     @classmethod
@@ -435,7 +453,34 @@ def select_activated(
             )
     activated = [available[checklist_id] for checklist_id in sorted(chosen) if checklist_id in available]
     _refuse_unresolved(activated)
+    _warn_about_dev_conditions(activated)
     return activated
+
+
+def _warn_about_dev_conditions(checklists: Sequence[Checklist]) -> None:
+    """Say loudly, per build, that an activated checklist carries the development hatch.
+
+    **Warns rather than refuses, deliberately.** The hatch exists to iterate on a mission you
+    are about to fly, so a build that refused it would make the feature unusable — you could
+    never produce the `.miz` you wanted to test. The real risk is not building with the hatch,
+    it is *forgetting* it and shipping. Two things cover that, and neither depends on anyone
+    reading a log: this line names the checklist and the exact step numbers, and the engine tells
+    the pilot on screen while a step is being auto-passed.
+
+    No strict flag either: an option that has to be remembered protects nobody, and the on-screen
+    notice reaches the one person who would otherwise be misled. Reopen this if a release ever
+    ships a hatched checklist despite both.
+
+    Args:
+        checklists: The activated checklists.
+    """
+    hatched = [
+        f"{checklist.id} step(s) {', '.join(str(number) for number, _ in steps)}"
+        for checklist in checklists
+        if (steps := checklist.dev_condition_steps())
+    ]
+    if hatched:
+        logger.warning(t("checklist.dev_condition_active", checklists="; ".join(hatched)))
 
 
 def _refuse_unresolved(checklists: Sequence[Checklist]) -> None:

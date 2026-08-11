@@ -1184,6 +1184,14 @@ veaf.i18nCatalog = {
     fr = "Étape %d/%d : %s",
     en = "Step %d/%d: %s",
   },
+  -- The development hatch, said out loud on purpose: %d steps of this checklist tick
+  -- themselves without the cockpit being in the required state. Keeping the technical word
+  -- `devCondition` is deliberate — it is what a pilot can quote back to whoever built the
+  -- mission, and what an author greps for.
+  ["assist.dev_condition"] = {
+    fr = "⚠ %d étape(s) se valident d'office (devCondition) — checklist de mise au point",
+    en = "⚠ %d step(s) tick themselves (devCondition) — this is a checklist under development",
+  },
 
   -- veafAssist — radio menu. "assist.menu.<slot>" labels a checklist's `menu` slot; an
   -- unknown slot resolves to itself, so a mission maker's own checklist still reads.

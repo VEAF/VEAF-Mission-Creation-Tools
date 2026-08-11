@@ -267,6 +267,39 @@ Things to keep in mind:
 - A mistake in the file **fails the build** with a message naming the offending file, rather than
   producing a Lua error in game.
 
+### Iterating on a checklist without redoing the whole start-up {#dev-condition}
+
+Checking step 30 of an engine start normally means performing the 29 before it, in a cockpit. That is
+what makes iterating on a checklist tedious enough to discourage fixing small things.
+
+Hence `dev_condition`, a **development hatch**: the step passes without the cockpit ever being in the
+required state.
+
+```yaml
+- label: MAIN PWR to BATT
+  element: PTR-ELEC-TMB-MPWR-510
+  argument: 510
+  equals: 1.0
+  dev_condition: true    # absent from a shipped checklist
+```
+
+Put it on the steps you want to skip — typically 1 to 29 — and leave the one you are testing alone: when
+the session opens, the assistance ticks the hatched steps and stops on yours.
+
+**It is not a validation mode**: the step keeps its `argument`/`param`/`confirm`. The hatch
+short-circuits the evaluation rather than replacing the measurement, so you can remove it without
+rewriting anything.
+
+Three guards, because a hatched checklist reaching production would tell a pilot they did something they
+did not:
+
+- **Absent means today's behaviour**, exactly. And `dev_condition: yes` or `dev_condition: 1` are
+  **refused**: only `true` and `false` are accepted, so a typo cannot open the hatch.
+- **The build warns you**, naming the checklist and the number of every step involved. It does not
+  refuse: otherwise you could not build the mission you wanted to try in the first place.
+- **The pilot sees it on screen** when the checklist starts: "⚠ N step(s) tick themselves". That is the
+  guard which depends on nobody reading a log.
+
 ### Reading a switch position: `argument` {#switch-reading}
 
 ```yaml

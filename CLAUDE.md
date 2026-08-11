@@ -92,6 +92,7 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 ### Lua (`src/scripts/veaf/` or `test/lua/`)
 
 - **Environment**: Code written in pure Lua 5.1 executing inside the DCS World environment, without external dependencies.
+- **Positions**: before writing anything that places an object, read `docs/agents/dcs-coordinates.md` — the runtime is not even internally consistent about what `y` means.
 - **Naming Conventions**: Files named as `veafFeature.lua`, global module table in camelCase (`veafFeature = {}`), and class definitions in PascalCase (`VeafFeature`).
 - **Quality Validation**: Run `luacheck --config .luacheckrc src/scripts/veaf/` and `stylua --check src/scripts/veaf/ test/lua/`.
 - **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`. Line coverage is available via `poetry run test-lua --coverage` (luacov); the CI `lua-coverage` job enforces a ratchet floor with `--cov-fail-under` — like the Python coverage gate, the number only ever goes up.
@@ -164,3 +165,9 @@ mapped to Matt's triage roles. See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+
+### DCS coordinates
+
+`x`/`y`/`z` mean **different things** in a mission table and in the runtime scripting API, and getting
+them confused raises no error — only a wrong position. Read `docs/agents/dcs-coordinates.md` before
+writing code that places anything.

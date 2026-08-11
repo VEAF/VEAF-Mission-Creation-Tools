@@ -9,6 +9,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### ⚠️ Behaviour change — tell your pilots before you ship this
+
+**`/login` and `_auth` no longer unlock the mission for everybody.**
+
+Until now, one successful authentication opened every secured command to **every player on the
+server** for `authDuration` minutes. That was the whole point of the password, and it is now gone:
+each secured command checks who is asking.
+
+What your pilots will notice:
+
+| | |
+|---|---|
+| **A pilot listed in `veaf-pilots.txt`** | nothing changes — their own level already granted them their commands, and they never needed the password |
+| **A pilot who is not listed** | must give the password **on every command**. There is no ten-minute session any more |
+| **The F10 radio menu** | DCS cannot tell *which* occupant of a group clicked, so a group acts at the level of its **lowest-graded** occupant. `_auth` or `/login` from a marker or the chat raises that group to the **requester's** level for 2 minutes |
+
+That last line is what solves flying with someone less privileged — an instructor with a student
+keeps their own commands by authenticating, without lending the student anything.
+
+Alias passwords follow the same principle: being listed in `veaf-pilots.txt` at all excuses them,
+whatever your level. An unknown author still has to type the password.
+
+`veaf.SecurityDisabled = true` still turns the whole layer off for a solo or test mission.
+
+See [`doc/mission-maker/scripts/veafSecurity.md`](doc/mission-maker/scripts/veafSecurity.md).
+
 ### Added
 - **The marker-text loop that was copied across the codebase now exists once** (`REFACTOR-MARKER-PARSER`, tickets 02-03 complete). Six modules and four further inline loops declare their parameters to `veaf.parseMarkerText`; **547 lines deleted against 497 added** under `src/scripts/veaf/`. The win is not bulk and pretending otherwise would be dressing it up — most added lines are declarations plus comments recording why a quirk survives — it is that a fix now reaches every caller instead of the copy it was written against. Nine always-true `if switch.casmission and …` / `if switch.transportmission and …` conditions went with it, and the three `veafShortcuts` loops (two of them identical but for one local's name) became one specification. **The six recorded defects are fixed, each in its own named commit**: `disperse` never reached the 15-second default its `else` branch promised, because a valueless keyword arrives as nil and never `""`; `veafRadio`'s duplicate `path` rule was unreachable; a *recognised* radio keyword with no value destroyed its default so `_radio transmit, freq` did nothing at all without telling the pilot, where an *unknown* keyword was harmless; `veafGroundAI` accepted a nameless handler because `if not options.name` cannot catch `""`, the same bug `SECREV-010` fixed in `veafMove`; and it no longer asks DCS for `Group.getByName("")`. **The lot's premise was demonstrated four times while doing the work**, three of them in code already believed fixed — including `veaf.getRandomizableNumeric`, where `VMR-025` described the crash in a comment and then guarded its *caller*, which is exactly why its sibling walked into it. The most useful finding came last: `veafMove`'s defect was recorded as "a nil travels downstream instead of the sentinel", which reads as harmless. Two pre-existing `VMR-092` tests asserted that outcome, and measuring rather than editing them showed `moveGroup` concatenates its speed into a log line, so a nil raised one call after a clean parse — "unset, not crash" had only moved the crash. That was a twelfth crash in the family and it exposed a real gap: all 485 sweep cases probed **parsers**, never the whole command path. An `executeCommand`-level assertion now covers it. `veafSecurity`, `veafNamedPoints` and `veafShortcuts.markTextAnalysis` stay deliberately untouched.
 - **One shared marker-text parser, and the module declares its parameters instead of writing the loop** (`REFACTOR-MARKER-PARSER` ticket 02). `veaf.parseMarkerText(text, spec)` in `veaf.lua`, with the four `apply` kinds as `veaf.markerRules.{number, nonNegativeNumber, text, flag}`. The machine was **moved, not invented**: `veafSpawnParser` had already been rewritten into this shape, so the ticket lifts it rather than reimplementing a generic loop and meeting the hardest case last. That module now declares `veafSpawn.MarkerSpec` and its `markTextAnalysis` is two lines — **its 71 tests pass with the file unedited**, which is what makes the move reviewable. The specification expresses every load-bearing quirk ticket 01 measured: a valueless keyword being nil in some modules and `""` in others, `,` versus `;` separators, first-match-wins command descriptors seeding per-sub-verb defaults, all-matching-rules-run with `when` gating, values kept untrimmed (so `side  BLUE` with two spaces still resolves to RED, as it does today), opt-in unknown-key reporting with a "did you mean" suggestion, and a post-loop `validate` for mandatory parameters. **A root cause fixed rather than worked around a fourth time**: sharing `nonNegativeNumber` made an old hole reachable again — inside `veafSpawnParser`, `valueWhenAbsent = ""` had guaranteed a string — and a new test caught it before the merge. The guard is back in the helper, but the real defect was a level down, in `veaf.getRandomizableNumeric_random(nil)` raising on `string.find(nil, "%-")`. `VMR-025` described that crash in a comment and then guarded against it **in its caller**, which is exactly why `_numNonNegative` one function below walked into it and why `FIX-MARKER-PARAM-CRASHES-2` was needed; it returns nil at the source now. Ticket 02's second criterion — that the spec express a module other than `veafSpawnParser` — is met by a **differential test** rather than an argument: the live `veafRadio` parser and the shared parser run the same 37-input corpus and are compared field by field, with one guard asserting the corpus is non-empty and another proving a deliberately wrong spec is caught. Ticket 03 reuses that harness per module.

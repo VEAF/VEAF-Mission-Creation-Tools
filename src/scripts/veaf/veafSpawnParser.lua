@@ -202,20 +202,6 @@ veafSpawn.ParameterRules = {
   { keys = { "disperse" }, apply = _numNonNegative("disperse") },
 }
 
---- Recognised parameter keys, derived from ParameterRules by the shared parser so there is one
---- source of truth. Kept as module fields because veafSpawnCore reports them to the pilot.
-veaf.prepareMarkerSpec({ parameters = veafSpawn.ParameterRules })
-veafSpawn.KnownParameterKeys = {}
-veafSpawn._knownParameterKeySet = {}
-for _, _rule in ipairs(veafSpawn.ParameterRules) do
-  for _, _k in ipairs(_rule.keys) do
-    if not veafSpawn._knownParameterKeySet[_k] then
-      veafSpawn._knownParameterKeySet[_k] = true
-      table.insert(veafSpawn.KnownParameterKeys, _k)
-    end
-  end
-end
-
 --- Convert a DCS laser code to the JTAC radio frequency that carries it.
 ---
 --- Returns nil for anything that is not a dialable code. VMR-102: the range check alone
@@ -585,6 +571,14 @@ veafSpawn.MarkerSpec = {
     return true
   end,
 }
+
+--- Recognised parameter keys, kept as module fields because they are public API a mission could
+--- read. They are **aliases** of the tables the shared parser derives from `ParameterRules`, not a
+--- second derivation of the same list — maintaining two would be the exact defect this lot exists
+--- to remove.
+veaf.prepareMarkerSpec(veafSpawn.MarkerSpec)
+veafSpawn.KnownParameterKeys = veafSpawn.MarkerSpec.knownKeys
+veafSpawn._knownParameterKeySet = veafSpawn.MarkerSpec._knownKeySet
 
 function veafSpawn.markTextAnalysis(text)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))

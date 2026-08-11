@@ -2611,6 +2611,29 @@ function TestVeafParseMarkerText:test_the_command_match_is_literal_not_a_pattern
   luaunit.assertNil(veaf.parseMarkerText("_axb", spec))
 end
 
+-- On Sourcery's review of #712: keys are stored lower-cased, because the lookup lower-cases the
+-- incoming key. A spec declaring "Size" would otherwise never match AND would be reported to the
+-- pilot as an unknown parameter — a silent trap for the next module to be migrated.
+function TestVeafParseMarkerText:test_a_mixed_case_declared_key_still_matches()
+  local spec = simpleSpec({
+    parameters = { { keys = { "SiZe" }, apply = veaf.markerRules.number("size") } },
+    reportUnknownKeys = true,
+  })
+  local r = veaf.parseMarkerText("_probe, size 4", spec)
+  luaunit.assertEquals(r.size, 4)
+  luaunit.assertNil(r.unknownParameters)
+end
+
+-- Order is load-bearing (a repeated keyword ends on its last occurrence), so the loop must walk
+-- the split result as a sequence. Long input, to make an out-of-order traversal show up.
+function TestVeafParseMarkerText:test_keywords_are_applied_in_text_order()
+  local text = "_probe"
+  for i = 1, 30 do
+    text = text .. ", size " .. i
+  end
+  luaunit.assertEquals(veaf.parseMarkerText(text, simpleSpec()).size, 30)
+end
+
 -- prepareMarkerSpec is idempotent, so a module may call it at load time or not at all.
 function TestVeafParseMarkerText:test_prepareMarkerSpec_is_idempotent()
   local spec = simpleSpec()

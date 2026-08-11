@@ -3275,15 +3275,20 @@ function veaf.prepareMarkerSpec(spec)
   if spec._prepared then
     return spec
   end
+  -- Keys are stored lower-cased because `parseMarkerText` looks them up that way: a spec
+  -- declaring `keys = { "Size" }` would otherwise never match, and — worse — would be reported
+  -- to the pilot as an unknown parameter. Every spec today declares lower-case, so this changes
+  -- nothing now and removes a trap for the next one.
   spec.knownKeys = {}
   spec._knownKeySet = {}
   for _, rule in ipairs(spec.parameters or {}) do
     rule._keyset = {}
     for _, key in ipairs(rule.keys) do
-      rule._keyset[key] = true
-      if not spec._knownKeySet[key] then
-        spec._knownKeySet[key] = true
-        table.insert(spec.knownKeys, key)
+      local keyLower = key:lower()
+      rule._keyset[keyLower] = true
+      if not spec._knownKeySet[keyLower] then
+        spec._knownKeySet[keyLower] = true
+        table.insert(spec.knownKeys, keyLower)
       end
     end
   end
@@ -3342,7 +3347,10 @@ function veaf.parseMarkerText(text, spec)
     return nil
   end
 
-  for _, keyphrase in pairs(veaf.split(text, spec.separator or ",")) do
+  -- `ipairs`, not `pairs`: order is load-bearing here — a repeated keyword must end on its LAST
+  -- occurrence — and Lua does not guarantee `pairs` iterates a sequence in order. Every copied
+  -- parser used `pairs` and got away with it; sharing the loop means fixing that once.
+  for _, keyphrase in ipairs(veaf.split(text, spec.separator or ",")) do
     -- The first space separates key from value; everything after it IS the value, untrimmed.
     local parts = veaf.breakString(veaf.trim(keyphrase), " ")
     local key = parts[1]

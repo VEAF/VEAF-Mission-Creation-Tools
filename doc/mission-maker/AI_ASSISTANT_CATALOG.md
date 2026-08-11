@@ -42,31 +42,32 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | # | Action (en langage courant) | Thème | Niveau | Fréq. |
 |---|------------------------------|-------|--------|-------|
 | 1 | [Lister les groupes et zones déjà présents](#lister-les-groupes-et-zones) | État de la mission | Mission construite | 🔥 |
-| 2 | [Lister les modules VEAF et leur réglage](#lister-les-modules-veaf) | État de la mission | Recette | 🔥 |
-| 3 | [Ajouter un groupe terrestre / véhicules](#ajouter-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
-| 4 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
-| 5 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
-| 6 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Recette + construite | ◽ |
-| 7 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Recette + construite | ◽ |
-| 8 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Recette + construite | ◽ |
-| 9 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
-| 10 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
-| 11 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
-| 12 | [Lister les types d'unités DCS](#lister-unites-dcs) | Connaissance métier | — | ⭐ |
-| 13 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
-| 14 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
-| 15 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
-| 16 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
-| 17 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
-| 18 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
-| 19 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
-| 20 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
-| 21 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
-| 22 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
-| 23 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
-| 24 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
-| 25 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
-| 26 | [Colorer une base et activer ses slots dynamiques](#colorer-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
+| 2 | [Inspecter les unités, leurs emports et leurs routes](#inspecter-unites) | État de la mission | Mission construite | 🔥 |
+| 3 | [Lister les modules VEAF et leur réglage](#lister-les-modules-veaf) | État de la mission | Recette | 🔥 |
+| 4 | [Ajouter un groupe terrestre / véhicules](#ajouter-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
+| 5 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
+| 6 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
+| 7 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Recette + construite | ◽ |
+| 8 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Recette + construite | ◽ |
+| 9 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Recette + construite | ◽ |
+| 10 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
+| 11 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
+| 12 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
+| 13 | [Lister les types d'unités DCS](#lister-unites-dcs) | Connaissance métier | — | ⭐ |
+| 14 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
+| 15 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
+| 16 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
+| 17 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
+| 18 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 19 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 20 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
+| 21 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 22 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 23 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
+| 24 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 25 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
+| 26 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
+| 27 | [Colorer une base et activer ses slots dynamiques](#colorer-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
 
 ---
 
@@ -241,6 +242,25 @@ zones de déclenchement (nom, position, rayon) présents dans la mission.
 
 > 💬 *« Qu'est-ce qu'il y a comme groupes dans ma mission ? »*
 > 💬 *« Liste-moi les zones de déclenchement. »*
+
+### Inspecter les unités, leurs emports et leurs routes {#inspecter-unites}
+
+*Mission construite · 🔥* — Le cran de détail au-dessus de la liste des groupes. L'IA te donne, pour
+chaque appareil ou véhicule : son **type**, son **niveau d'IA**, sa **livrée**, son **indicatif**, son
+numéro de flanc, sa position, son cap, son carburant — et son **emport, pylône par pylône**. Pour
+chaque groupe : sa tâche, sa fréquence radio, s'il est masqué, s'il démarre moteurs coupés ou en
+activation retardée, et sa **route complète** avec les tâches de chaque point de passage.
+
+C'est ce qu'il faut lire **avant de demander une modification** : pour changer un emport, l'IA doit
+d'abord voir celui qui est en place et sur quels pylônes.
+
+> 💬 *« Qu'est-ce que porte le vol Colt, et sur quels pylônes ? »*
+> 💬 *« Montre-moi la route du vol Enfield et ce qu'il doit faire à chaque point. »*
+
+> ⚠️ **Sur une grosse mission, précise ce que tu cherches.** Une mission adoptée (type Foothold)
+> contient des centaines de groupes, soit des mégaoctets de détail : demande un vol par son nom
+> (« Colt » suffit), une coalition ou une catégorie. Dis-le si les routes ne t'intéressent pas, ça
+> allège beaucoup la réponse.
 
 ### Lister les modules VEAF {#lister-les-modules-veaf}
 

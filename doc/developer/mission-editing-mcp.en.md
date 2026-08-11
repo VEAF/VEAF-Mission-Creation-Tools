@@ -64,6 +64,39 @@ the existing pure-Python parser (`mission_tools.miz_tools.read_miz`) — no new 
 {"miz_path": "path/to/mission.miz"}
 ```
 
+### `describe_units`
+
+Read-only. The level of detail `describe_mission` does not give: each group's **units** (type,
+`skill`, livery, callsign, side number, position, heading, altitude, fuel, counters/gun), their
+**loadout**, and the group's **route** with the tasks at each waypoint.
+
+Three shape decisions, each for a reason measured on a real mission (Foothold Caucasus 4.4.1, 357
+armed units):
+
+- **`pylons` is keyed by pylon number, never positional.** DCS numbers stations and the numbers are
+  **not contiguous**: a real FA-18C carries pylons 1, 4, 5, 6 and 9. In that mission 170 of 357
+  units have a gapped layout, and the Lua parser hands those back as a `dict` while it flattens the
+  contiguous ones into a `list`. A reader treating pylons as an ordered list would therefore be
+  right about half the time and silently wrong the rest — which is how a future setter comes to hang
+  a weapon on the wrong station.
+- **The editor's automatic tasks are flagged and stripped.** A waypoint task is a `ComboTask` mixing
+  the task the author added with the options the editor writes by itself (ROE, radar usage,
+  formation), all marked `auto = true`: 1093 automatic entries against 189 authored ones in that
+  mission. Both are reported — hiding them would misrepresent the mission — but only authored tasks
+  carry their `params`.
+- **A cap the caller is told about.** The whole mission is 1.9 MB of JSON and a single 62-waypoint
+  group is 18 KB. Hence the filters (`group_name` by fragment, `coalition`, `category`), the default
+  limit of 50 groups with `truncated`/`matched` in the answer, and `include_route: false`, which
+  **omits the key** rather than returning an empty list ("not asked for" is not "this group has no
+  route").
+
+Booleans come back as booleans: DCS **omits** a key that is false, and a caller reading `null` cannot
+tell "off" from "the reader did not look".
+
+```json
+{"miz_path": "path/to/mission.miz", "group_name": "Colt", "include_route": false}
+```
+
 ### `add_group`
 
 Write. Inserts a ground/vehicle group into the source `.miz`, **in place**, with a systematic

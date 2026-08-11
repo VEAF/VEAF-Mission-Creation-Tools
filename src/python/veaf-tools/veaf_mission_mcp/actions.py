@@ -13,6 +13,7 @@ from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
+from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
     set_mission_log_level,
@@ -62,6 +63,59 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda params: describe_mission(Path(params["miz_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_units",
+            description=(
+                "Describe a mission's groups down to their UNITS, LOADOUTS and ROUTES -- what "
+                "describe_mission does not report. Use this before changing anything about a unit or a "
+                "route: it gives each unit's type, skill, livery, callsign, onboard number, position, "
+                "heading, fuel and its pylons keyed BY PYLON NUMBER (a real FA-18C carries stations 1, "
+                "4, 5, 6 and 9, so the numbering matters), plus each group's task, frequency, hidden "
+                "flags, uncontrolled/late-activation state, and its waypoints with their tasks. "
+                "ALWAYS FILTER on a big mission: an adopted mission is megabytes of JSON, so pass "
+                "group_name (a fragment is enough), coalition or category, and set include_route=false "
+                "when the question is about loadouts. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {
+                        "type": "string",
+                        "description": "Keep only groups whose name contains this (case-insensitive).",
+                    },
+                    "coalition": {
+                        "type": "string",
+                        "enum": ["blue", "red", "neutrals"],
+                        "description": "Keep only this coalition.",
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": ["plane", "helicopter", "vehicle", "ship", "static"],
+                        "description": "Keep only this group category.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum groups returned (default 50). 'truncated' says whether it bit.",
+                    },
+                    "include_route": {
+                        "type": "boolean",
+                        "description": "Include each group's waypoints (default true). False omits the key.",
+                    },
+                },
+                "required": ["miz_path"],
+            },
+        ),
+        handler=lambda params: describe_units(
+            Path(params["miz_path"]),
+            group_name=params.get("group_name"),
+            coalition=params.get("coalition"),
+            category=params.get("category"),
+            limit=params.get("limit"),
+            include_route=params.get("include_route", True),
+        ),
     )
     catalog.register(
         ActionSpec(

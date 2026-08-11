@@ -66,6 +66,39 @@ nouveau parsing.
 {"miz_path": "chemin/vers/mission.miz"}
 ```
 
+### `describe_units`
+
+Lecture seule. Le cran de détail que `describe_mission` ne donne pas : les **unités** de chaque
+groupe (type, `skill`, livrée, indicatif, numéro de flanc, position, cap, altitude, carburant,
+leurres/canon), leur **emport** et la **route** du groupe avec les tâches de chaque point.
+
+Trois choix de forme, chacun pour une raison mesurée sur une mission réelle (Foothold Caucasus
+4.4.1, 357 unités armées) :
+
+- **`pylons` est indexé par numéro de pylône, jamais positionnel.** DCS numérote les stations et
+  les numéros ne sont **pas contigus** : un FA-18C réel porte les pylônes 1, 4, 5, 6 et 9. Dans
+  cette mission, 170 unités sur 357 ont une disposition à trous, et le parseur Lua rend celles-ci
+  en `dict` alors qu'il aplatit les contiguës en `list`. Un lecteur qui traiterait les pylônes
+  comme une liste ordonnée aurait donc raison une fois sur deux et tort en silence le reste du
+  temps — c'est ainsi qu'un futur *setter* accrocherait une arme sur la mauvaise station.
+- **Les tâches automatiques de l'éditeur sont signalées et allégées.** Une tâche de point de
+  passage est un `ComboTask` qui mélange la tâche voulue par l'auteur et les options que l'éditeur
+  écrit tout seul (ROE, usage du radar, formation), toutes marquées `auto = true` : 1093 entrées
+  automatiques contre 189 voulues sur cette mission. Les deux sont rapportées — les masquer
+  fausserait la description — mais seules les tâches voulues portent leurs `params`.
+- **Un plafond dont l'appelant est informé.** La mission entière fait 1,9 Mo de JSON, et un seul
+  groupe de 62 points de passage en fait 18 ko. D'où les filtres (`group_name` par fragment,
+  `coalition`, `category`), la limite par défaut de 50 groupes avec `truncated`/`matched` dans la
+  réponse, et `include_route: false` qui **omet la clé** au lieu de renvoyer une liste vide (« pas
+  demandé » n'est pas « ce groupe n'a pas de route »).
+
+Les booléens sont rendus comme des booléens : DCS **omet** une clé qui vaut faux, et un appelant
+qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas regardé ».
+
+```json
+{"miz_path": "chemin/vers/mission.miz", "group_name": "Colt", "include_route": false}
+```
+
 ### `add_group`
 
 Écriture. Insère un groupe terrestre/véhicule dans le `.miz` source, **en place**, avec une

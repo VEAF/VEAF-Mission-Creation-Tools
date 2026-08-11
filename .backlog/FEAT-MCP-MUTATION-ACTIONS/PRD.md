@@ -1,6 +1,6 @@
 # FEAT-MCP-MUTATION-ACTIONS — the MCP can create a mission but cannot change one
 
-Status: 🔄 in-progress — ticket 01 (triage) done 2026-08-11; it adds tickets 05-07 and puts the read action first
+Status: 🔄 in-progress — tickets 01 (triage) and 05 (the read action) done 2026-08-11; 02 and 04 are no longer blind
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §1,
 identified 2026-08-04. The next wave of `NL-MISSION-GEN` ([ROADMAP](../../ROADMAP.md) §4).
@@ -57,7 +57,7 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Triage the 126 verbs by mission-maker intent](tickets/01-triage-by-intent.md) | ✅ |
-| 05 | [Read the units, loadouts and routes](tickets/05-describe-units.md) — **do this first** | ⬜ |
+| 05 | [Read the units, loadouts and routes](tickets/05-describe-units.md) — **do this first** | ✅ |
 | 02 | [Unit setters](tickets/02-unit-setters.md) — loadout, skill, livery, heading, callsign | ⬜ |
 | 03 | [Group setters](tickets/03-group-setters.md) — move, rename, late activation, hide | ⬜ |
 | 04 | [Route and waypoint task editing](tickets/04-route-and-waypoints.md) | ⬜ |

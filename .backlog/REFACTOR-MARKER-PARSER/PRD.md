@@ -1,77 +1,125 @@
-# REFACTOR-MARKER-PARSER — one marker text parser instead of ten
+# REFACTOR-MARKER-PARSER — one marker text parser instead of six
 
 Status: ⬜ ready
 
 ## Why this exists
 
 `SECREV-2` ticket 06 recommended fixing a family of crashes "in the shared marker parser".
-**There is no shared marker parser.** Measured 2026-08-08: ten modules carry their own
-`markTextAnalysis`, totalling **641 lines**.
+**There is no shared marker parser.** Several modules carry their own copy of the same
+keyword loop, and a fix therefore reaches the copy it was written against.
 
-| Module | Lines |
-|---|---:|
-| `veafCasMission` | 125 |
-| `veafMove` | 115 |
-| `veafGroundAI` | 97 |
-| `veafSpawnParser` | 86 |
-| `veafTransportMission` | 76 |
-| `veafRadio` | 64 |
-| `veafSecurity` | 28 |
-| `veafShortcuts` | 20 |
-| `veafNamedPoints` | 19 |
-| `veafRemote` | 11 |
+That is not a tidiness complaint — it is measured. `FIX-MARKER-PARAM-CRASHES` (2026-08-11) found
+**six live crashes** left standing by `VMR-019`, which had fixed this exact crash shape a month
+earlier: it corrected four sites in `veafCasMission`, missed a fifth in the same function, never
+scoped `veafMove`, and never touched `veafTransportMission` at all — whose `size` is the same
+parameter, with the same 1..5 bounds, still carrying the original `tonumber(val) <= 5`.
 
-They parse the same shape of input — a keyphrase, then comma-separated `key value` pairs — and
-each one re-implements the reading, the conversion and the defaulting. That duplication is not a
-tidiness complaint: it is where the bugs are.
+## The inventory, measured 2026-08-11
 
-## The evidence, not the theory
+The first version of this PRD listed "ten modules parsing the same shape of input, 641 lines". It
+was wrong on three counts, and the corrected picture changes what this lot does.
 
-Every one of these came from the same duplication, and each was fixed in one place only:
+### Group A — genuinely the same shape, and the target
 
-- **VMR-019** — `string.format("%d", nil)` and `tonumber(nil) <= 5` on a valueless keyword, in
-  `veafCasMission`, **four times over** in the same function (`size`, `defense`, `armor`,
-  `spacing`). A typo cost the whole command rather than one parameter.
-- **VMR-025** — a non-numeric `multiplier` aborts a spawn, in `veafSpawnParser`.
-- **VMR-004** — the SRS marker path built a shell command from unvalidated marker text.
-- The review's own "siblings in the low tail": the same shape again, in modules nobody has
-  touched yet.
+A keyphrase, then comma-separated `key value` pairs. Six functions named `markTextAnalysis`,
+**575 lines**.
 
-`veaf.safeNumber` (added by SECREV-2 ticket 06) shares the *conversion*. It does not share the
-parsing, the keyword table, or the defaulting — so the next module still gets to reinvent them.
+| Module | Lines | Valueless `val` | Unknown key | Rule chaining |
+|---|---:|---|---|---|
+| `veafCasMission` | 127 | `nil` | ignored | separate `if`s |
+| `veafMove` | 117 | `nil` | ignored | separate `if`s |
+| `veafGroundAI` | 99 | `""` | ignored | separate `if`s |
+| `veafSpawnParser` | 88 | `""` | **reported, with a suggestion** | data-driven, all matching rules |
+| `veafTransportMission` | 78 | `nil` | ignored | separate `if`s |
+| `veafRadio` | 66 | `nil` | ignored | **`elseif`** — only the first rule runs |
+
+### Group B — the same loop under another name, which the first inventory missed
+
+Not called `markTextAnalysis`, so a search for that name did not find them. Same
+`split` → `breakString` → `key`/`val` loop, **~87 lines**.
+
+| Site | Lines | Notes |
+|---|---:|---|
+| `veafGroundAI.lua:385` | ~32 | `ArtilleryUnitHandler:executeCommand` — separator is `;`, not `,` |
+| `veafShortcuts.lua:288` | ~22 | `silent` / `name` / `password` |
+| `veafShortcuts.lua:394` | ~22 | identical to the above **but for one local's name** (`zoneName` vs `missionName`) |
+| `veafShortcuts.lua:509` | ~11 | `password` only |
+
+### Group C — not this shape at all, and deliberately out of scope
+
+Named `markTextAnalysis`, which is the only thing they share with group A. **77 lines, left alone.**
+
+| Function | Lines | Shape |
+|---|---:|---|
+| `veafSecurity.markTextAnalysis` | 34 | positional: the text after the keyphrase is `logout`, `elevate`, or the password |
+| `veafShortcuts.markTextAnalysis` | 22 | one regex: `(-[^#!, ]+)#?([^!,%s]*)!?(%d*)(.*)` |
+| `veafNamedPoints.markTextAnalysis` | 21 | positional: the text after the keyphrase is the name |
+
+Forcing these through a comma-splitting parser would **change behaviour**, not share code: a
+password containing a comma would be truncated, and a point name would stop at its first space.
+Absorbing them would also mean inventing a "take the rest of the text" mode and a "run this
+regex" mode for three functions with no known defect between them.
+
+### Group D — already gone
+
+`veafRemote.markTextAnalysis`, credited 11 lines by the first inventory, was deleted by `VMR-130`.
+`test_veafRemote.lua` asserts its absence. Nine functions existed, not ten.
 
 ## What this lot is
 
-Extract one parser the ten modules call, and delete what it replaces.
+Extract one parser that group A and group B call, and delete what it replaces.
 
 **Not** a rewrite of what each command *does* with its parameters — only how they are read,
-converted and defaulted. The behaviour of every existing marker command must be identical
-afterwards, which is what makes this reviewable at all.
+converted and defaulted. Every existing marker command must behave identically afterwards, which
+is what makes this reviewable at all.
+
+## veafSpawnParser is the source, not a target
+
+`veafSpawnParser` has already been rewritten into the shape ticket 02 asks for. Instead of twenty
+copied `if`s it carries a **list of parameters**:
+
+```lua
+veafSpawn.ParameterRules = {
+  { keys = { "radius" },         apply = _num("radius") },
+  { keys = { "hdg", "heading" }, apply = _num("heading") },
+  { keys = { "patrol" },         apply = _flag("patrol") },
+  ...
+}
+```
+
+A generic loop — already written, already tested, already in production — applies that list. It
+also already does what ticket 02 wants *added*: an unrecognised key is reported to the pilot with
+a "did you mean" suggestion (`spawn.unknown_parameters`, `spawn.did_you_mean`).
+
+So the migration order inverts. The first version put `veafSpawnParser` seventh of ten, smallest
+first; it goes **first**, because it supplies the machine. Rewriting a generic loop from scratch
+and only meeting the hardest case at the end is how you discover too late that it does not fit.
 
 ## Scope
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Characterise the ten parsers before touching them](tickets/01-characterise.md) | ⬜ |
-| 02 | [Build the shared parser against those characterisation tests](tickets/02-shared-parser.md) | ⬜ |
-| 03 | [Migrate the ten modules, one per commit](tickets/03-migrate.md) | ⬜ |
+| 01 | [Characterise the parsers before touching them](tickets/01-characterise.md) | ⬜ |
+| 02 | [Lift veafSpawnParser's machine into veaf.lua](tickets/02-shared-parser.md) | ⬜ |
+| 03 | [Migrate the remaining modules, one per commit](tickets/03-migrate.md) | ⬜ |
 
-## Why it is worth doing, and why it is not urgent
+## Why it is worth doing, and why it is no longer urgent
 
-Worth doing: 641 lines collapse, and the crash family stops recurring by construction rather
+Worth doing: ~660 lines collapse, and the crash family stops recurring by construction rather
 than by remembering. Every marker command in the product goes through this code, so the same
-defect keeps arriving through a different door.
+defect keeps arriving through a different door — twice now, measurably.
 
-Not urgent: `veaf.safeNumber` and the per-site fixes have taken the sharp edges off the known
-instances. This is the structural cure, not the emergency treatment — and it touches every
-marker command in the product, so it wants a quiet moment and a full `test-lua` run, not a
-squeeze between two security tickets.
+No longer urgent, and for a better reason than the first version gave. That version claimed
+`veaf.safeNumber` and the per-site fixes "have taken the sharp edges off the known instances";
+that was **false when written** — `veafTransportMission` had three untouched copies. It is true
+now that `FIX-MARKER-PARAM-CRASHES` has closed all six and named the rule as
+`veaf.safeNumberInRange`. This is the structural cure, and it wants a quiet moment and a full
+`test-lua` run.
 
 ## Risks
 
-- **Behaviour drift.** Ten parsers have ten sets of quirks, and some are load-bearing (a module
-  that accepts a keyword with no value, another that treats `0` as absent). Ticket 01 exists to
-  pin those *before* anything moves.
-- **It is a wide blast radius by definition.** Every marker command depends on it. `test-lua`
-  covers 36 suites and is the gate; a Lua 5.1 interpreter is available on `DAVID-BUREAU`, so a
-  local red/green is reachable — see the note in the agent memory.
+- **Behaviour drift.** Ten parsers have ten sets of quirks, and some are load-bearing. Ticket 01
+  exists to pin those *before* anything moves.
+- **Wide blast radius by definition.** Every marker command depends on it. `test-lua` covers 36
+  suites and is the gate; Lua 5.1.5 is installed on `DAVID-BUREAU`, so a local red/green is
+  reachable.

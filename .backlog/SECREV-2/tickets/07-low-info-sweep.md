@@ -1,6 +1,6 @@
 # 07 — The 108 low and info findings
 
-Status: 🔄 in-progress — Security-flaw tier closed; Error/bug tier under way, Python batch 3 done (103/140 decided)
+Status: 🔄 in-progress — Security-flaw and Documentation tiers closed; 112/140 decided, and every remaining Error/bug awaits a decision
 Type: chore
 Findings: 95 🔵 LOW + 13 ⚪ INFO
 
@@ -740,3 +740,73 @@ commit with no release; that is release tooling and deserves its own lot rather 
 especially with a release in preparation. VMR-053 (`write_miz` leaves its temp file and returns
 success on a partial failure) and VMR-061 (bundled JSON trusted without validation) are the
 robustness pair and are a natural lot together.
+
+## Sweep, eleventh pass — the Documentation tier, closed, 2026-08-10
+
+**All 9 remaining Documentation findings.** The ticket predicted these were the likeliest to be
+already dead, and a third were: three are closed, six were real. **The tier is now closed.**
+
+| | Outcome | |
+|---|---|---|
+| VMR-120 | already-fixed | closed by the VMR-008 sweep, and now *enforced* by `docs_check` |
+| VMR-121 | already-fixed | `convert-other` is in both GUIDE tables |
+| VMR-122 | already-fixed | the English twin exists, and the gate requires it |
+| VMR-123 | **fixed** | the English page had the See Also links with no heading |
+| VMR-124 | **fixed** | the page said `L0` was *public*; in the code it is **ADMIN** |
+| VMR-126 | **fixed** | the ASSETS menu is flat; the documented path had a level that does not exist |
+| VMR-127 | **fixed** | the pilot permission table matched nothing in the code |
+| VMR-139 | **fixed** | two counters, both wrong; deleted rather than refreshed |
+| VMR-140 | **fixed** | 8 aliases bypass security, the docs listed 6 |
+
+### VMR-124 is the one that mattered, and it is the same trap twice
+
+The finding says the Mission-Master tier is undocumented. True, but minor next to what the page
+actually claimed: **`0 (public) | veafSecurity.LEVEL_L0`**. In the code `LEVEL_L0 = LEVEL_ADMIN = 90`
+— the *tightest* tier. `veafSecurity.lua` carries the incident in a comment: someone read "L0 - all
+players" off the documentation and would have locked a deliberately public command to administrators.
+That was fixed in the mission-maker GUIDE on 2026-08-06 and **left standing on this page**, which is
+what a half-finished correction looks like.
+
+Two more traps on the same page, neither reported:
+
+- the key-constants table repeated the inverted meaning (`LEVEL_L0` = "internal weight for public");
+- the password example wrote `myAdminPassword` into `password_L9` — the **loosest** tier. A mission
+  maker following it would have put the admin password on the tier every listed pilot already passes.
+
+The tier table is now identical to the GUIDE's, which meant giving that section an explicit
+`{#security-tiers}` anchor in both languages, per the project's anchor convention.
+
+### VMR-139: the counters were deleted, not refreshed
+
+`TESTING` said 34 suites / ~1000 tests, `ROADMAP` said 31 / ~915, and the tree holds **36**. Both were
+wrong, in different directions. Ticket 06 met this family before and dealt with it by deleting the
+counters; same here, in all four pages. A number nothing checks is wrong again by the next lot.
+
+### VMR-140: my measurement was wrong before the finding's was
+
+A regex over `VeafAlias:new()` chains reported 7 bypassing aliases and told me `-point` was **not**
+among them — so the finding looked half wrong. It was my parse: `-point` is written `VeafAlias` then
+`:new()` on the next line, so the chain never matched. Walking every `setBypassSecurity` call back to
+its nearest `setName` gives 8, `-point` included. Both aliases the finding named were genuinely
+missing from the docs.
+
+That is the fourth time in this ticket that a hand-written pattern under-counted, and the second time
+it nearly made me contradict a finding that was right.
+
+### VMR-126 was wider than the path
+
+The ASSETS menu is flat — `addPaginatedRadioElements` gives each asset its own submenu named after
+the asset — so the documented *Tankers* / *AWACS* steps do not exist. The labels were wrong too: the
+menu is `ASSETS`, in English, in game, and the commands read `Get info on X` / `Respawn X` /
+`Dispose of X`. The F10 tree diagram carried the same invented hierarchy **and** put carriers under
+ASSETS, when `CARRIER OPS - BLUE/RED` is its own menu.
+
+### Where it stands
+
+**112 of 140 decided. 28 left, and none of them is a fix waiting to be written**: 10 Error/bug that
+each need a decision (the publish path VMR-104/105, the robustness pair VMR-053/061, and the 6 Lua
+ones named in the previous pass), plus 18 readability / optimization / refactoring the ticket says to
+touch only where a file is being changed anyway.
+
+**Both remaining tiers are decision-gated, so the next move on this ticket is David's, not a
+sweeper's.**

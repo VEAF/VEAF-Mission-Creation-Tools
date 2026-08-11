@@ -59,7 +59,7 @@ Ce document décrit la direction prévue pour le projet. Les éléments sont cla
 
 ## Qualité & Tests
 
-- ✅ Tests unitaires Lua (31 suites, ~915 tests) — `luaunit` + `dcs_mocks.lua` + `poetry run test-lua`
+- ✅ Tests unitaires Lua — `luaunit` + `dcs_mocks.lua` + `poetry run test-lua`
 - ✅ Vérification de formatage StyLua en CI
 - ✅ Analyse statique Luacheck en CI
 - ✅ CI Lua sur GitHub Actions (`lua-unit-tests` + `luacheck` + `stylua-check`)

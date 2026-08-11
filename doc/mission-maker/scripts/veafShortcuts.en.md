@@ -130,7 +130,7 @@ The most common built-in aliases are grouped below. See the **[Aliases Reference
 
 ## Security
 
-Most aliases respect the security system (`veafSecurity`). Some utility aliases (like `-smoke`, `-signal`, `-light`, `-tacan`, `-jtac`, `-afac`) bypass security and are always available to all players.
+Most aliases respect the security system (`veafSecurity`). Eight utility aliases bypass it and stay available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`, `-afac`.
 
 ---
 

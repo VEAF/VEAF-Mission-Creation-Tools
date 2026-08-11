@@ -279,7 +279,7 @@ modules:
 -- (see CTLD and CSAR Integration)
 ```
 
-### Security Levels
+### Security Levels {#security-tiers}
 
 | Tier | Constant | Passes without a password when the pilot's level is |
 |------|----------|------------------------------------------------------|

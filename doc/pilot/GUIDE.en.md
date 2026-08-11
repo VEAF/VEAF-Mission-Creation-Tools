@@ -52,14 +52,14 @@ All VEAF MCT features are available from **F10 → Other → VEAF**. (The radio 
 ```mermaid
 graph TD
     F10[F10 Radio Menu] --> Other[Other] --> VEAF[VEAF]
-    VEAF --> Res[Assets]
+    VEAF --> Res[ASSETS]
     VEAF --> CAS[CAS Mission]
     VEAF --> CZ[Combat Zones]
     VEAF --> Miss[Missions]
     VEAF --> Help[Help]
-    Res --> Tank[Tankers]
-    Res --> AWACS[AWACS]
-    Res --> Carrier[Carriers]
+    Res --> A1["Arco 1-1 — tanker"]
+    Res --> A2["Overlord — AWACS"]
+    F10 --> Carrier["CARRIER OPS - BLUE / RED"]
 ```
 
 > 📷 *Screenshot coming soon: VEAF submenu in the F10 radio menu.*
@@ -169,23 +169,24 @@ _spawn bomb, power 500, shells 3
 
 ## Assets
 
-**Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and carriers. You find them under **F10 → VEAF → Assets**.
+**Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and ships. You find them under **F10 → VEAF → ASSETS**.
 
-> 📷 *Screenshot coming soon: tankers and AWACS submenus.*
+> 📷 *Screenshot coming soon: the ASSETS menu and one asset's submenu.*
 
-### Tankers
+### Tankers, AWACS and ships
 
-**F10 → VEAF → Assets → Tankers → [Name] → Info**
+**F10 → VEAF → ASSETS → [Asset name] → Get info on [Asset name]**
 
-Shows: position, TACAN channel (navigation beacon), radio frequency and refuelling type.
+The menu does not group assets by category: every tanker, AWACS or ship has its own submenu directly, named after the asset. There is no *Tankers* or *AWACS* step to go through.
 
-If the tanker has been destroyed, the **Respawn** option brings it back (if the mission maker has allowed it).
+What the info shows depends on the asset: for a tanker, its position, TACAN channel (navigation beacon), radio frequency and refuelling type; for an AWACS, its callsign, frequency and position.
 
-### AWACS
+Two more commands may appear in an asset's submenu:
 
-**F10 → VEAF → Assets → AWACS → [Name] → Info**
+- **Respawn [Name]** — brings it back if it has been destroyed. Available to everyone.
+- **Dispose of [Name]** — removes it from the mission. Restricted to authenticated players.
 
-Shows: callsign, frequency and position.
+An asset the mission maker did not make consultable has no submenu at all: its **Respawn [Name]** sits directly in the ASSETS menu.
 
 ### Carriers
 
@@ -275,19 +276,29 @@ Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA l
 
 On multiplayer servers, the mission maker may restrict certain commands according to your permission level:
 
-| Level | Who can use it |
-|-------|----------------|
-| Public | All players — asset info, zone activation, smoke/flare |
-| Pilots | Non-spectator players |
-| Admin | Server administrators |
+There are two ways to be allowed to run a command: **being recognised by the server**, or **giving
+the password**. VEAF servers keep a list of pilots, and your place on that list opens some commands
+without typing anything.
 
-To authenticate, place a marker containing:
+| Tier | Who passes without a password |
+|------|-------------------------------|
+| Known pilot | Any pilot on the server's list |
+| Trusted member | The pilots the server has singled out as such |
+| Administrator | The server's administrators |
+
+Some commands are open to everyone, listed or not: asset info, smoke, signal flares, naming a point.
+Others — spawning a group, destroying a unit — need one of the tiers above.
+
+If you are not recognised, place a marker containing:
 
 ```
 _auth [PASSWORD]
 ```
 
-The password is set by the mission maker or server administrator. Authentication stays valid for a configured duration (10 minutes by default), after which your rights return automatically to the public level.
+The password is set by the mission maker or server administrator, and there is one per tier — the
+administrator's also opens everything below it. Authentication stays valid for a configured duration
+(10 minutes by default), after which your rights return automatically to whatever the server's list
+grants you.
 
 ---
 

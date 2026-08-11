@@ -16,7 +16,7 @@ Documentation for the VEAF Lua unit test suite and CI/CD pipeline.
 
 ## Overview
 
-The project has 34 Lua test suites covering all runtime modules, totalling ~1000 tests. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
+The project covers every runtime module with Lua test suites. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
 
 ---
 

@@ -48,7 +48,7 @@ This document describes the intended direction for the project. Items are ordere
 
 ## Quality & Testing
 
-- ✅ Lua unit tests (31 suites, ~915 tests) — `luaunit` + `dcs_mocks.lua` + `poetry run test-lua`
+- ✅ Lua unit tests — `luaunit` + `dcs_mocks.lua` + `poetry run test-lua`
 - ✅ StyLua formatting check in CI
 - ✅ Luacheck static analysis in CI
 - ✅ Lua CI on GitHub Actions (`lua-unit-tests` + `luacheck` + `stylua-check`)

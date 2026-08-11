@@ -52,14 +52,14 @@ Toutes les fonctions de VEAF MCT sont accessibles depuis **F10 → Autre → VEA
 ```mermaid
 graph TD
     F10[Menu radio F10] --> Autre[Autre] --> VEAF[VEAF]
-    VEAF --> Res[Ressources]
+    VEAF --> Res[ASSETS]
     VEAF --> CAS[Mission CAS]
     VEAF --> CZ[Zones de combat]
     VEAF --> Miss[Missions]
     VEAF --> Aide[Aide]
-    Res --> Tank[Ravitailleurs]
-    Res --> AWACS[AWACS]
-    Res --> Carrier[Porte-avions]
+    Res --> A1["Arco 1-1 — ravitailleur"]
+    Res --> A2["Overlord — AWACS"]
+    F10 --> Carrier["CARRIER OPS - BLUE / RED"]
 ```
 
 > 📷 *Capture à venir : sous-menu VEAF dans le menu radio F10.*
@@ -169,23 +169,24 @@ _spawn bomb, power 500, shells 3
 
 ## Ressources
 
-Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et porte-avions. Vous les retrouvez sous **F10 → VEAF → Ressources**.
+Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et navires. Vous les retrouvez sous **F10 → VEAF → ASSETS** — le menu porte ce nom en anglais dans le jeu.
 
-> 📷 *Capture à venir : sous-menus Ravitailleurs et AWACS.*
+> 📷 *Capture à venir : le menu ASSETS et le sous-menu d'une ressource.*
 
-### Ravitailleurs
+### Ravitailleurs, AWACS et navires
 
-**F10 → VEAF → Ressources → Ravitailleurs → [Nom] → Infos**
+**F10 → VEAF → ASSETS → [Nom de la ressource] → Get info on [Nom de la ressource]**
 
-Affiche : position, canal TACAN (balise de navigation), fréquence radio et type de ravitaillement.
+Le menu ne range pas les ressources par catégorie : chaque ravitailleur, AWACS ou navire a directement son propre sous-menu, portant son nom. Il n'y a donc pas d'étape *Ravitailleurs* ou *AWACS* à traverser.
 
-Si le ravitailleur a été détruit, l'option **Réapparition** le ramène (si le créateur de la mission l'a autorisée).
+Ce que l'info affiche dépend de la ressource : pour un ravitailleur, sa position, son canal TACAN (balise de navigation), sa fréquence radio et son type de ravitaillement ; pour un AWACS, son indicatif radio (*callsign*), sa fréquence et sa position.
 
-### AWACS
+Deux autres commandes peuvent apparaître dans le sous-menu d'une ressource :
 
-**F10 → VEAF → Ressources → AWACS → [Nom] → Infos**
+- **Respawn [Nom]** — la fait réapparaître si elle a été détruite. Disponible pour tout le monde.
+- **Dispose of [Nom]** — la retire de la mission. Réservée aux joueurs authentifiés.
 
-Affiche : indicatif radio (*callsign*), fréquence et position.
+Une ressource que le créateur de la mission n'a pas rendue consultable n'a pas de sous-menu du tout : son **Respawn [Nom]** figure directement dans le menu ASSETS.
 
 ### Porte-avions
 
@@ -275,19 +276,30 @@ Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5
 
 Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission :
 
-| Niveau | Qui peut l'utiliser |
-|--------|---------------------|
-| Public | Tous les joueurs — infos des ressources, activation des zones, fumée/fusée |
-| Pilotes | Joueurs non-spectateurs |
-| Admin | Administrateurs du serveur |
+Il y a deux façons d'avoir le droit d'utiliser une commande : **être reconnu par le serveur**, ou
+**donner le mot de passe**. Les serveurs VEAF tiennent une liste de pilotes ; votre place dans cette
+liste vous ouvre certaines commandes sans rien taper.
 
-Pour vous authentifier, placez un marqueur contenant :
+| Palier | Qui passe sans mot de passe |
+|--------|-----------------------------|
+| Pilote connu | Tout pilote inscrit sur la liste du serveur |
+| Membre de confiance | Les pilotes que le serveur a distingués comme tels |
+| Administrateur | Les administrateurs du serveur |
+
+Certaines commandes sont ouvertes à tout le monde, inscrit ou pas : les infos sur les ressources, la
+fumée, les fusées éclairantes, le marquage d'un point. D'autres, comme faire apparaître un groupe ou
+détruire une unité, demandent un des paliers ci-dessus.
+
+Si vous n'êtes pas reconnu, placez un marqueur contenant :
 
 ```
 _auth [MOT_DE_PASSE]
 ```
 
-Le mot de passe est défini par le créateur de la mission ou l'administrateur du serveur. L'authentification reste valide pendant une durée configurée (10 minutes par défaut), puis vos droits reviennent automatiquement au niveau public.
+Le mot de passe est défini par le créateur de la mission ou l'administrateur du serveur, et il y en a
+un par palier — celui d'administrateur ouvre aussi tout ce qui est en dessous. L'authentification
+reste valide pendant une durée configurée (10 minutes par défaut), puis vos droits reviennent
+automatiquement à ce que la liste du serveur vous accorde.
 
 ---
 

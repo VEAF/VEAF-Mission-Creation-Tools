@@ -411,5 +411,7 @@ Training mode is ideal for BFM / CAS training scenarios where pilots need to kno
 
 ---
 
+## See Also
+
 - [veafCasMission](veafCasMission.en.md) — generated CAS zones (no pre-placed groups needed)
 - [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafCombatZone` API

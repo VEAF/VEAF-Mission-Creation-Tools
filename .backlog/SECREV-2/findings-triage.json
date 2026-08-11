@@ -1869,10 +1869,10 @@
     "verdict": "UNVERIFIED",
     "path": "doc/mission-maker/scripts/veafSecurity.en.md",
     "line": "26",
-    "status": "untouched",
+    "status": "reviewed",
     "commits": [],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and far worse than 'MM is undocumented': the page said `LEVEL_L0` was the **public** tier. In the code `LEVEL_L0 = LEVEL_ADMIN = 90`, the *tightest* tier — the very trap REVIEW-SECURITY-LAYER records as having nearly locked a deliberately public command to administrators. The mission-maker GUIDE already had it right, so both language versions of this page now carry the same tier table (ADMIN / SENIOR_PILOT / KNOWN_PILOT / MM / OPEN), the deprecated-alias warning, the password hierarchy, and a link to the GUIDE — which needed an explicit shared `{#security-tiers}` anchor. Two further traps found on the page and fixed: the key-constants table repeated the inverted meaning, and the password example put `myAdminPassword` into `password_L9`, the **loosest** tier. The example now also clears before adding, with a note on why (#701)."
   },
   {
     "vid": "VMR-043",
@@ -1953,7 +1953,7 @@
     "verdict": "UNVERIFIED",
     "path": "doc/MISSION_YAML_REFERENCE.en.md",
     "line": "465",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
@@ -1967,8 +1967,8 @@
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)",
       "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by the VMR-008 sweep of 2026-08-10, which rewrote 239 cross-language links across 38 English pages, and it cannot come back: `docs_check` now reports an English page linking to a French one that has an English twin. Measured across the whole tree — the only two remaining are deliberate language selectors (the '🇫🇷 version française' line at the top of a page)."
   },
   {
     "vid": "VMR-121",
@@ -1978,15 +1978,15 @@
     "verdict": "UNVERIFIED",
     "path": "doc/mission-maker/GUIDE.md",
     "line": "318",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
       "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "`convert-other` is in the Design-Time Tools table of both GUIDE pages."
   },
   {
     "vid": "VMR-122",
@@ -1996,15 +1996,15 @@
     "verdict": "UNVERIFIED",
     "path": "doc/mission-maker/dcs-radio-specs.md",
     "line": "1",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "19aec92c docs: fix what the documentation audit found",
       "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range",
       "89c0eeff docs(presets): document per-type radio-preset projection (dev page + MM note)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "already-fixed",
+    "outcome_detail": "`dcs-radio-specs.en.md` exists, and `docs-check` would refuse a French page without its English twin, so this one is enforced rather than merely fixed."
   },
   {
     "vid": "VMR-123",
@@ -2014,7 +2014,7 @@
     "verdict": "UNVERIFIED",
     "path": "doc/mission-maker/scripts/veafCombatZone.en.md",
     "line": "343",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
       "19aec92c docs: fix what the documentation audit found",
@@ -2023,8 +2023,8 @@
       "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
       "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed: the English page carried the See Also links with no heading, where the French one has `## Voir aussi`. Heading added."
   },
   {
     "vid": "VMR-125",
@@ -2049,12 +2049,12 @@
     "verdict": "UNVERIFIED",
     "path": "doc/pilot/GUIDE.md",
     "line": "178",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed and wider than reported. The ASSETS menu is flat: `addPaginatedRadioElements` gives each asset its own submenu named after the asset, so the documented *Tankers* / *AWACS* steps do not exist. Beyond the path, the labels were wrong too — the menu is `ASSETS` (in English, in game), and the commands read `Get info on X` / `Respawn X` / `Dispose of X`. The F10 tree diagram carried the same invented hierarchy and put carriers under ASSETS, when CARRIER OPS - BLUE/RED is its own menu. Rewritten in both languages, including the asset with no submenu at all."
   },
   {
     "vid": "VMR-127",
@@ -2064,12 +2064,12 @@
     "verdict": "UNVERIFIED",
     "path": "doc/pilot/GUIDE.md",
     "line": "278",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same family as VMR-124. 'Public / Pilots / Admin' with 'Pilots = non-spectator players' matches nothing in the code: the tiers are KNOWN_PILOT (listed in the server's veaf-pilots.txt), SENIOR_PILOT and ADMIN, and a pilot's level can pass a check with no password at all. Rewritten for a pilot audience in both languages — two ways in (recognised by the server, or the password), which commands are open to everyone, and that the administrator password also opens everything below it."
   },
   {
     "vid": "VMR-139",
@@ -2079,13 +2079,13 @@
     "verdict": "UNVERIFIED",
     "path": "doc/TESTING.md",
     "line": "19",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and both numbers were wrong rather than one: TESTING said 34 suites / ~1000 tests, ROADMAP said 31 / ~915, and the tree holds 36. Handled the way ticket 06 handled this family — by **deleting the counters** rather than refreshing them, in all four pages (TESTING and ROADMAP, both languages). A number nothing checks drifts again by the next lot."
   },
   {
     "vid": "VMR-140",
@@ -2095,11 +2095,11 @@
     "verdict": "UNVERIFIED",
     "path": "doc/mission-maker/scripts/veafShortcuts.en.md",
     "line": "133",
-    "status": "review-needed",
+    "status": "reviewed",
     "commits": [
       "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
     ],
-    "outcome": null,
-    "outcome_detail": null
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and my own first measurement was wrong before the finding's was. A regex over `VeafAlias:new()` chains reported 7 bypassing aliases and no `-point`, because `-point` is written `VeafAlias` / `:new()` across two lines. Walking every `setBypassSecurity` call back to its nearest `setName` gives **8**: -smoke, -longsmoke, -signal, -light, -point, -tacan, -jtac, -afac. The docs listed 6, so both aliases the finding names were genuinely missing. Fixed in both languages."
   }
 ]

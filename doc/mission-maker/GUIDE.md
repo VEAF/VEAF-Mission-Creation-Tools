@@ -278,7 +278,7 @@ modules:
 -- (voir la section Intégration CTLD et CSAR)
 ```
 
-### Niveaux de sécurité
+### Niveaux de sécurité {#security-tiers}
 
 | Palier | Constante | Passe sans mot de passe si le niveau du pilote est |
 |--------|-----------|-----------------------------------------------------|

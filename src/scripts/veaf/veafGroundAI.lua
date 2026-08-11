@@ -779,13 +779,11 @@ veafGroundAI.MarkerSpec = {
     { keys = { "order" }, apply = veaf.markerRules.text("order") },
   },
   valueWhenAbsent = "",
-  validate = function(options)
-    -- `name` is mandatory for every verb, and the empty string has to be rejected explicitly:
-    -- values arrive as "" rather than nil in this module, and `""` is truthy in Lua, so the old
-    -- `if not options.name` guard let `_ground status, name` through with a nameless handler.
-    -- Same bug shape SECREV-010 fixed in veafMove, and which the veafShortcuts loops got right.
-    return options.name ~= nil and options.name ~= ""
-  end,
+  -- `name` is mandatory for every verb, and the empty string has to be rejected explicitly: values
+  -- arrive as "" rather than nil in this module, and `""` is truthy in Lua, so the old
+  -- `if not options.name` guard let `_ground status, name` through with a nameless handler. Same
+  -- bug shape SECREV-010 fixed in veafMove; `requireText` is now the one place it is spelled out.
+  validate = veaf.markerRules.requireText("name"),
 }
 
 --- Extract keywords from mark text.

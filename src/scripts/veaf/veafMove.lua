@@ -190,10 +190,10 @@ veafMove.MarkerSpec = {
     { keys = { "immortal" }, apply = veaf.markerRules.flag("immortal") },
   },
   valueWhenAbsent = nil,
-  validate = function(options)
-    -- SECREV-010: "" is truthy in Lua, so the empty default has to be tested explicitly.
-    return options.groupName ~= nil and options.groupName ~= ""
-  end,
+  -- SECREV-010: "" is truthy in Lua, so the empty default has to be rejected explicitly. The check
+  -- lives in `veaf.markerRules.requireText` now, since three modules were each writing it out and
+  -- the one that wrote it as `if not x` shipped the bug.
+  validate = veaf.markerRules.requireText("groupName"),
 }
 
 --- Extract keywords from mark text.

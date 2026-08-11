@@ -2634,6 +2634,24 @@ function TestVeafParseMarkerText:test_keywords_are_applied_in_text_order()
   luaunit.assertEquals(veaf.parseMarkerText(text, simpleSpec()).size, 30)
 end
 
+-- On Sourcery's review of #713: the "is this parameter really given?" test is shared, because
+-- `""` is truthy in Lua and the module that spelled the check `if not x` shipped the bug twice.
+function TestVeafParseMarkerText:test_isBlank_catches_nil_and_the_empty_string()
+  luaunit.assertTrue(veaf.isBlank(nil))
+  luaunit.assertTrue(veaf.isBlank(""))
+  luaunit.assertFalse(veaf.isBlank("a"))
+  luaunit.assertFalse(veaf.isBlank(" "), "a space is a value, since nothing is trimmed")
+  luaunit.assertFalse(veaf.isBlank(0), "0 is a value, not an absence")
+  luaunit.assertFalse(veaf.isBlank(false), "false is a value, not an absence")
+end
+
+function TestVeafParseMarkerText:test_requireText_refuses_a_blank_mandatory_field()
+  local spec = simpleSpec({ validate = veaf.markerRules.requireText("label") })
+  luaunit.assertNil(veaf.parseMarkerText("_probe", spec))
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label", spec))
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, label alpha", spec))
+end
+
 -- prepareMarkerSpec is idempotent, so a module may call it at load time or not at all.
 function TestVeafParseMarkerText:test_prepareMarkerSpec_is_idempotent()
   local spec = simpleSpec()

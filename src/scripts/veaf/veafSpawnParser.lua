@@ -563,12 +563,10 @@ veafSpawn.MarkerSpec = {
   valueWhenAbsent = "",
   reportUnknownKeys = true,
   validate = function(options)
-    -- `name` is mandatory for group, unit, and every mission-master command.
+    -- `name` is mandatory for group, unit, and every mission-master command. Conditional, so this
+    -- one cannot be `requireText` outright, but the blank test itself is shared.
     local _needsName = options.group or options.unit or options.mmFlagOff or options.mmFlagOn or options.mmRun
-    if _needsName and (not options.name or options.name == "") then
-      return false
-    end
-    return true
+    return not (_needsName and veaf.isBlank(options.name))
   end,
 }
 

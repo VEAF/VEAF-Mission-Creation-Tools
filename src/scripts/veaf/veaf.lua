@@ -3210,6 +3210,17 @@ end
 --     spaces really is " BLUE", which is not "BLUE". Trimming here would change behaviour.
 -------------------------------------------------------------------------------------------------
 
+--- True when a marker parameter is absent or empty.
+---
+--- Worth a name because `""` is **truthy** in Lua, so `if not value` does not catch it — which is
+--- the whole of `SECREV-010` (veafMove accepting an empty group name) and of the same bug found
+--- again in veafGroundAI. Every "is this parameter really given?" test goes through here now.
+--- @param value the parameter as the parser produced it
+--- @return boolean true when nil or the empty string
+function veaf.isBlank(value)
+  return value == nil or value == ""
+end
+
 --- Ready-made `apply` functions for the common parameter kinds.
 ---
 --- These are the four `veafSpawnParser` had as file-locals. They live here because the crash
@@ -3299,9 +3310,19 @@ end
 --- unrecognised one.
 function veaf.markerRules.textKeepingDefault(field)
   return function(options, value)
-    if value ~= nil and value ~= "" then
+    if not veaf.isBlank(value) then
       options[field] = value
     end
+  end
+end
+
+--- A `validate` function refusing the command unless `field` holds a non-empty string.
+---
+--- The mandatory-parameter check, written once. Modules were each spelling out
+--- `x ~= nil and x ~= ""`, and the one that spelled it `if not x` shipped the bug twice.
+function veaf.markerRules.requireText(field)
+  return function(options)
+    return not veaf.isBlank(options[field])
   end
 end
 

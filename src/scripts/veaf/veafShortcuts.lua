@@ -282,7 +282,14 @@ veafShortcuts.AliasParameterSpec = {
 --- @param command the alias command text
 --- @return table with `silent`, `name` and `password`
 function veafShortcuts.parseAliasParameters(command)
-  return veaf.parseMarkerText(command, veafShortcuts.AliasParameterSpec) or { silent = false, name = nil, password = nil }
+  local _options = veaf.parseMarkerText(command, veafShortcuts.AliasParameterSpec)
+  if not _options then
+    -- Seed from the spec rather than repeating its defaults here: two copies of the same list is
+    -- what this whole lot exists to remove, and they would drift the first time one changed.
+    _options = {}
+    veafShortcuts.AliasParameterSpec.defaults(_options)
+  end
+  return _options
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

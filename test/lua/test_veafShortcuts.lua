@@ -454,4 +454,134 @@ function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_silent_true()
   luaunit.assertTrue(veafShortcuts.ExecuteBatchAliasesList({ "hello" }, nil, nil, true))
 end
 
+-- ---------------------------------------------------------------------------
+-- TestShortcutsInlineParserCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01, GROUP B. Three of the four loops the first inventory
+-- missed live here, and unlike every group-A parser they are NOT standalone functions: the
+-- loop is a step in the middle of `execute`, which then runs the mission or zone. So they are
+-- characterised by what they hand downstream — the only observable the parsing produces —
+-- through spies on veafCombatMission / veafCombatZone.
+--
+-- Two of the three (`VeafAliasForCombatMission:execute` at :288 and
+-- `VeafAliasForCombatZone:execute` at :394) are the SAME loop twice, differing only in the
+-- name of one local. Ticket 03 collapses them into one call.
+-- ---------------------------------------------------------------------------
+TestShortcutsInlineParserCharacterisation = {}
+
+function TestShortcutsInlineParserCharacterisation:setUp()
+  self.calls = {}
+  local record = function(what)
+    return function(name, silent)
+      table.insert(self.calls, { what = what, name = name, silent = silent })
+      return true
+    end
+  end
+  veafCombatMission = {
+    GetMission = function(name)
+      return { name = name }
+    end,
+    ActivateMission = record("activateMission"),
+    DesactivateMission = record("desactivateMission"),
+  }
+  veafCombatZone = {
+    GetZone = function(name)
+      return { name = name }
+    end,
+    ActivateZone = record("activateZone"),
+    DesactivateZone = record("desactivateZone"),
+  }
+  self.position = { x = 0, y = 0, z = 0 }
+end
+
+function TestShortcutsInlineParserCharacterisation:tearDown()
+  veafCombatMission = nil
+  veafCombatZone = nil
+end
+
+local function combatMissionAlias()
+  return VeafAliasForCombatMission:new():setName("-testcm"):setVeafCommand("start"):setBypassSecurity(true)
+end
+
+local function combatZoneAlias()
+  return VeafAliasForCombatZone:new():setName("-testcz"):setVeafCommand("start"):setBypassSecurity(true)
+end
+
+-- The loop's `name` reaches the mission layer as the mission to activate.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_name_reaches_the_mission_layer()
+  combatMissionAlias():execute(", name Alpha", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].what, "activateMission")
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
+end
+
+-- `silent` is a flag, and it travels as the second argument.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_silent_flag_travels_downstream()
+  combatMissionAlias():execute(", name Alpha, silent", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, true)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_without_silent_passes_false()
+  combatMissionAlias():execute(", name Alpha", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, false)
+end
+
+-- A missing `name` refuses the command before anything runs — the mandatory-field check that
+-- group A performs after its loop, done here after the loop too.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_without_name_runs_nothing()
+  local result = combatMissionAlias():execute("", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+-- A valueless `name` is "" here (`str[2] or ""`), and unlike veafGroundAI the guard DOES catch
+-- it, because it tests `#zoneName == 0` as well as nil. Same bug shape, opposite outcome.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_valueless_name_is_refused()
+  local result = combatMissionAlias():execute(", name", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_unknown_keyword_is_ignored()
+  combatMissionAlias():execute(", name Alpha, banana 3", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
+end
+
+-- The zone loop is the same code with `zoneName` in place of `missionName`.
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_name_reaches_the_zone_layer()
+  combatZoneAlias():execute(", name Bravo", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].what, "activateZone")
+  luaunit.assertEquals(self.calls[1].name, "Bravo")
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_silent_flag_travels_downstream()
+  combatZoneAlias():execute(", name Bravo, silent", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, true)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_without_name_runs_nothing()
+  luaunit.assertFalse(combatZoneAlias():execute("", self.position, coalition.side.BLUE, nil, true, nil))
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+-- The `password` the loop extracts is what the security check consumes. With bypassSecurity
+-- false and a password set on the alias, a wrong one refuses and the right one proceeds —
+-- which is the only way to observe that the loop read it at all.
+--
+-- Note `setPassword` stores the **hash**, not the clear text: `execute` hashes what the pilot
+-- typed and looks that up, so a test passing clear text here would silently never match.
+function TestShortcutsInlineParserCharacterisation:test_the_parsed_password_is_the_one_checked()
+  local alias = VeafAliasForCombatMission:new():setName("-testcm"):setVeafCommand("start"):setBypassSecurity(false)
+  alias:setPassword(sha1.hex("s3cret"))
+
+  luaunit.assertFalse(alias:execute(", name Alpha, password wrong", self.position, coalition.side.BLUE, nil, false, nil))
+  luaunit.assertEquals(#self.calls, 0)
+
+  alias:execute(", name Alpha, password s3cret", self.position, coalition.side.BLUE, nil, false, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
+end
+
 os.exit(luaunit.LuaUnit.run())

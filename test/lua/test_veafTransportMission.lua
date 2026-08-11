@@ -250,11 +250,8 @@ function TestVeafTransportCharacterisation:test_unknown_keyword_is_ignored_silen
   luaunit.assertNil(r.unknownParameters)
 end
 
--- String keywords accept a nil value without complaint, leaving the field nil.
-function TestVeafTransportCharacterisation:test_valueless_string_keywords_leave_the_field_nil()
-  luaunit.assertNil(veafTransportMission.markTextAnalysis("_transport, from").from)
-  luaunit.assertNil(veafTransportMission.markTextAnalysis("_transport, password").password)
-end
+-- Valueless string keywords are covered by TestVeafTransportMarkTextAnalysisKeywords above,
+-- where FIX-MARKER-PARAM-CRASHES-2 put them: `from` used to raise there.
 
 -- Every matching rule runs: this parser chains with separate `if`s, not `elseif`.
 function TestVeafTransportCharacterisation:test_all_keywords_apply_in_one_command()

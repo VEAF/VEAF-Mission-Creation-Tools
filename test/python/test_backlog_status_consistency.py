@@ -92,13 +92,38 @@ def _status_column(lines: list[str]) -> int | None:
     `FEAT-ASSIST-AUTHORING` and `FEAT-ASSIST-CHECKLISTS` end their table with a *depends on* column
     holding values like `01, 02` or `—`, which a positional rule reads as a broken status.
     """
+    header = _status_header_line(lines)
+    if header is None:
+        return None
+    cells = _cells(lines[header])
+    return cells.index(next(c for c in cells if c.lower() == "status"))
+
+
+def _status_header_line(lines: list[str]) -> int | None:
+    """Return the line index of the header row naming a `Status` column, or None."""
     for index, line in enumerate(lines):
         if not line.startswith("|") or _SEPARATOR.match(line):
             continue
-        cells = _cells(line)
-        if any(cell.lower() == "status" for cell in cells):
-            return cells.index(next(c for c in cells if c.lower() == "status"))
+        if any(cell.lower() == "status" for cell in _cells(line)):
+            return index
     return None
+
+
+def _table_block(lines: list[str], header: int) -> list[str]:
+    """Return the contiguous table rows following the header at *header*.
+
+    Scoping to one table matters because a PRD may hold **several** tables whose first cell is a
+    two-digit number. `FEAT-MCP-MUTATION-ACTIONS` has one: its triage table maps ticket numbers to
+    actions, and reading those rows at the scope table's `Status` column yielded prose instead of an
+    icon — then overwrote the real rows, since a later row wins in the dict. The gate reported the
+    scope table as broken when the scope table was fine.
+    """
+    block: list[str] = []
+    for line in lines[header + 1 :]:
+        if not line.startswith("|"):
+            break
+        block.append(line)
+    return block
 
 
 def _scope_rows(prd: Path) -> dict[str, str | None]:
@@ -108,11 +133,14 @@ def _scope_rows(prd: Path) -> dict[str, str | None]:
     known icon maps to ``None`` so it is **reported**, not skipped.
     """
     lines = prd.read_text(encoding="utf-8").split("\n")
+    header = _status_header_line(lines)
     column = _status_column(lines)
-    if column is None:
+    if header is None or column is None:
         return {}
     rows: dict[str, str | None] = {}
-    for line in lines:
+    # Only this table's rows: another table further down may also start its rows with a two-digit
+    # number, and reading those at this column reports the wrong thing about the right table.
+    for line in _table_block(lines, header):
         match = _TICKET_ROW.match(line)
         if not match:
             continue

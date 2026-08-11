@@ -17,53 +17,13 @@
 -- original chained-`if` semantics. The recognized-key set (for typo hints,
 -- UXPILOT-003) is derived from these rules, so there is a single source of truth.
 
---- Apply a numeric marker parameter, **keeping the existing default when it is unusable**.
----
---- VMR-025: this used to assign whatever `getRandomizableNumeric` returned, including nil. A
---- player writing `multiplier banana` therefore set `options.multiplier = nil`, and the spawn
---- died downstream on `for i = 1, options.multiplier do` — a runtime error from a typo. A
---- *valueless* keyword was worse: the conversion itself raised, because it reaches
---- `string.find(val, "%-")` after `tonumber` returns nil.
----
---- Fixed here rather than on `multiplier`, since every numeric spawn keyword shares this.
-local function _num(field)
-  return function(options, val)
-    if val == nil then
-      return
-    end
-    local _converted = veaf.getRandomizableNumeric(val)
-    if _converted ~= nil then
-      options[field] = _converted
-    end
-  end
-end
-
-local function _str(field)
-  return function(options, val)
-    options[field] = val
-  end
-end
-
-local function _flag(field)
-  return function(options)
-    options[field] = true
-  end
-end
-
---- Apply a numeric parameter that must not go below zero, keeping the default when unusable.
----
---- FIX-MARKER-PARAM-CRASHES-2: this is `_num`'s sibling, and it carried the very defect VMR-025
---- fixed there — `getRandomizableNumeric` returns nil for a valueless or non-numeric parameter,
---- and `nil >= 0` takes the whole spawn down. It sits one function below the comment explaining
---- that crash, which is how it survived: the fix reached the copy it was written against.
-local function _numNonNegative(field)
-  return function(options, val)
-    local nVal = veaf.getRandomizableNumeric(val)
-    if nVal and nVal >= 0 then
-      options[field] = nVal
-    end
-  end
-end
+-- The four `apply` kinds these rules use now live in `veaf.markerRules`, shared with every other
+-- marker parser (REFACTOR-MARKER-PARSER ticket 02). They moved rather than changed: VMR-025's nil
+-- guard on `number`, and FIX-MARKER-PARAM-CRASHES-2's on `nonNegativeNumber`, are both in there.
+local _num = veaf.markerRules.number
+local _str = veaf.markerRules.text
+local _flag = veaf.markerRules.flag
+local _numNonNegative = veaf.markerRules.nonNegativeNumber
 
 veafSpawn.ParameterRules = {
   { keys = { "unitname" }, apply = _str("unitName") },
@@ -241,22 +201,6 @@ veafSpawn.ParameterRules = {
   { keys = { "showmfd" }, apply = _flag("showMFD") },
   { keys = { "disperse" }, apply = _numNonNegative("disperse") },
 }
-
---- All parameter keys the mark-text parser recognizes, derived from ParameterRules
---- (single source of truth) and used to flag typos and suggest the nearest match
---- (UXPILOT-003). Each rule also gets a precomputed `_keyset` for O(1) matching.
-veafSpawn._knownParameterKeySet = {}
-veafSpawn.KnownParameterKeys = {}
-for _, _rule in ipairs(veafSpawn.ParameterRules) do
-  _rule._keyset = {}
-  for _, _k in ipairs(_rule.keys) do
-    _rule._keyset[_k] = true
-    if not veafSpawn._knownParameterKeySet[_k] then
-      veafSpawn._knownParameterKeySet[_k] = true
-      table.insert(veafSpawn.KnownParameterKeys, _k)
-    end
-  end
-end
 
 --- Convert a DCS laser code to the JTAC radio frequency that carries it.
 ---
@@ -588,91 +532,55 @@ veafSpawn.CommandDescriptors = {
   },
 }
 
+--- The spawn module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 02: the loop this module carried is now shared, and the module
+--- declares what it accepts instead. `valueWhenAbsent = ""` is deliberate and load-bearing —
+--- several rules here call `val:lower()` or compare against `""`, so a nil would break them.
+veafSpawn.MarkerSpec = {
+  defaults = function(options)
+    options.czName = nil
+    options.name = ""
+    options.unitName = nil
+    options.country = nil
+    options.side = nil
+    options.altitude = 0
+    options.altitudedelta = 0
+    options.heading = 0
+    options.multiplier = 1
+    options.password = nil
+    options.repeatCount = nil
+    options.repeatDelay = nil
+    options.delayedStart = 0
+    options.showMFD = false
+    options.AlarmState = 2
+    options.disperse = 15
+    options.shells = 1
+    options.power = 100
+  end,
+  commands = veafSpawn.CommandDescriptors,
+  parameters = veafSpawn.ParameterRules,
+  valueWhenAbsent = "",
+  reportUnknownKeys = true,
+  validate = function(options)
+    -- `name` is mandatory for group, unit, and every mission-master command.
+    local _needsName = options.group or options.unit or options.mmFlagOff or options.mmFlagOn or options.mmRun
+    if _needsName and (not options.name or options.name == "") then
+      return false
+    end
+    return true
+  end,
+}
+
+--- Recognised parameter keys, kept as module fields because they are public API a mission could
+--- read. They are **aliases** of the tables the shared parser derives from `ParameterRules`, not a
+--- second derivation of the same list — maintaining two would be the exact defect this lot exists
+--- to remove.
+veaf.prepareMarkerSpec(veafSpawn.MarkerSpec)
+veafSpawn.KnownParameterKeys = veafSpawn.MarkerSpec.knownKeys
+veafSpawn._knownParameterKeySet = veafSpawn.MarkerSpec._knownKeySet
+
 function veafSpawn.markTextAnalysis(text)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-
-  -- common fields
-  options.czName = nil
-  options.name = ""
-  options.unitName = nil
-  options.country = nil
-  options.side = nil
-  options.altitude = 0
-  options.altitudedelta = 0
-  options.heading = 0
-  options.multiplier = 1
-  options.password = nil
-  options.repeatCount = nil
-  options.repeatDelay = nil
-  options.delayedStart = 0
-  options.showMFD = false
-  options.AlarmState = 2
-  options.disperse = 15
-  options.shells = 1
-  options.power = 100
-
-  -- Detect the command keyphrase and seed its defaults (data-driven; see
-  -- CommandDescriptors). First match wins, as the original elseif chain did.
-  local textLower = text:lower()
-  local matched = false
-  for _, cmd in ipairs(veafSpawn.CommandDescriptors) do
-    if textLower:find(cmd.match) then
-      cmd.init(options)
-      matched = true
-      break
-    end
-  end
-  if not matched then
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    -- Flag a parameter key we don't recognize (skip the command keyphrase itself,
-    -- e.g. "_spawn") so the caller can hint the pilot about a likely typo.
-    local keyLower = key:lower()
-    if keyLower ~= "" and keyLower:sub(1, 1) ~= "_" and not veafSpawn._knownParameterKeySet[keyLower] then
-      options.unknownParameters = options.unknownParameters or {}
-      table.insert(options.unknownParameters, {
-        key = key,
-        suggestion = veaf.nearestMatch(keyLower, veafSpawn.KnownParameterKeys, 3),
-      })
-    end
-
-    -- Apply every parameter rule whose key matches (data-driven; see ParameterRules).
-    -- ALL matching rules run, in order, reproducing the original chained-if behaviour.
-    for _, rule in ipairs(veafSpawn.ParameterRules) do
-      if rule._keyset[keyLower] and (not rule.when or rule.when(options)) then
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword %s = %s", keyLower, tostring(val)))
-        rule.apply(options, val)
-      end
-    end
-  end
-
-  -- check mandatory parameter "name" for command "group"
-  if options.group and (not options.name or options.name == "") then
-    return nil
-  end
-
-  -- check mandatory parameter "name" for command "unit"
-  if options.unit and (not options.name or options.name == "") then
-    return nil
-  end
-
-  -- check mandatory parameter "name" for all mission master commands
-  if (options.mmFlagOff or options.mmFlagOn or options.mmRun) and (not options.name or options.name == "") then
-    return nil
-  end
-
-  return options
+  return veaf.parseMarkerText(text, veafSpawn.MarkerSpec)
 end

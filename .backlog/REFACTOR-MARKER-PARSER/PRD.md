@@ -1,6 +1,6 @@
 # REFACTOR-MARKER-PARSER — one marker text parser instead of six
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Why this exists
 
@@ -99,7 +99,7 @@ and only meeting the hardest case at the end is how you discover too late that i
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Characterise the parsers before touching them](tickets/01-characterise.md) | ⬜ |
+| 01 | [Characterise the parsers before touching them](tickets/01-characterise.md) | ✅ |
 | 02 | [Lift veafSpawnParser's machine into veaf.lua](tickets/02-shared-parser.md) | ⬜ |
 | 03 | [Migrate the remaining modules, one per commit](tickets/03-migrate.md) | ⬜ |
 
@@ -115,6 +115,33 @@ that was **false when written** — `veafTransportMission` had three untouched c
 now that `FIX-MARKER-PARAM-CRASHES` has closed all six and named the rule as
 `veaf.safeNumberInRange`. This is the structural cure, and it wants a quiet moment and a full
 `test-lua` run.
+
+## What ticket 01 measured
+
+The characterisation is done: every group A and group B parser has a suite pinning today's
+behaviour, and the quirk inventory grew from 10 items read out of the code to **19 measured**.
+Nine additions were invisible from reading — that a value keeps everything after the *first*
+space (so `side  BLUE` with two spaces silently means RED), that flags discard any value given
+to them, that sub-verb chains are decided by the chain's order rather than the text's, and that
+`ArtilleryUnitHandler`'s `target` is the codebase's only parameter rule which validates its own
+input.
+
+Two findings change the plan rather than just informing it:
+
+- **`veafRadio`'s `elseif` is not observable.** The plan called it the one structural difference
+  and put the module first to prove the spec could express "at most one rule fires". Testing it
+  showed no key is claimed by two live branches, so the permissive form is behaviour-preserving
+  here. That is now pinned by a test instead of argued in a document.
+- **The three `veafShortcuts` group-B loops are not functions.** The loop is a step inside
+  `execute`, which then runs the mission or zone, so they are characterised through spies on
+  what the parsing hands downstream. Ticket 03 has to *extract* before it can migrate.
+
+Two new defects joined the recorded list, both wrong-input-accepted rather than crashes:
+`veafGroundAI` accepts an empty handler name (the same `""`-is-truthy guard bug `SECREV-010`
+fixed in `veafMove`, and which the `veafShortcuts` loops get right), and `veafRadio` destroys a
+default when a *recognised* keyword has no value — `_radio transmit, freq` leaves `frequencies`
+nil, and `executeCommand` requires it, so the command does nothing at all without telling the
+pilot.
 
 ## Risks
 

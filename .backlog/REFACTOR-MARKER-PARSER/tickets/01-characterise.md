@@ -1,6 +1,6 @@
 # 01 — Characterise the parsers before touching them
 
-Status: ⬜ ready
+Status: ✅ done
 Type: test
 
 ## Why first
@@ -16,12 +16,12 @@ out of scope for the whole lot; see the PRD.
 
 ## Tasks
 
-- [ ] For each parser in groups A and B, tests covering: a well-formed command, a keyword with no
+- [x] For each parser in groups A and B, tests covering: a well-formed command, a keyword with no
       value, a keyword with a non-numeric value, an unknown keyword, an empty command, and the
       keyphrase absent.
-- [ ] Extend the quirk inventory below with what the tests reveal, rather than normalising
+- [x] Extend the quirk inventory below with what the tests reveal, rather than normalising
       anything on the spot.
-- [ ] Note anything that looks like a defect. Do **not** fix it here — a characterisation test
+- [x] Note anything that looks like a defect. Do **not** fix it here — a characterisation test
       records what *is*, and a fix in the same commit is invisible.
 
 ## Quirk inventory (started 2026-08-11, from reading; to be confirmed by the tests)
@@ -57,6 +57,34 @@ it.
     `unset` search for the nearest allied unit within 250 m and take its group. A parser that
     reads the game world is worth isolating from one that reads text.
 
+## Confirmed by the tests, and added to the inventory
+
+Measured while writing the suites, none of it visible from reading alone:
+
+11. **A value keeps everything after the FIRST space, and only the first.** So `side  BLUE`
+    (two spaces) is the value `" BLUE"`, which is not `"BLUE"` — and `veafCasMission` silently
+    resolves that to RED. Any shared parser that trims values would *change* behaviour here.
+12. **A repeated keyword ends on the last occurrence** in every group A and B parser, since the
+    loop applies rules as it walks and nothing breaks out.
+13. **`veaf.trim` runs before the split**, so a trailing space is not a value: `password ` gives
+    nil, not `""`. And a comma needs no following space — `_cas,size 3` parses.
+14. **Numeric parameters accept decimals.** `size 2.5` is stored as 2.5; nothing requires an
+    integer, in any module.
+15. **Flags discard any value given to them** rather than interpreting it: `teleport false`
+    teleports, `quiet false` is quiet, `silent 0` is silent.
+16. **`ArtilleryUnitHandler`'s `target` validates before storing** — `veaf.computeLLFromString`
+    must succeed or the parameter is dropped. It is the only parameter rule in the codebase that
+    refuses its own input, and the spec has to be able to express that.
+17. **Sub-verb chains are decided by the chain's order, not the text's.** `_move group tanker`
+    is a group move; `fire aim` is an aim. Reordering the spec's command list changes behaviour.
+18. **Group B's three `veafShortcuts` loops are not standalone functions** — the loop is a step
+    inside `execute`, which then runs the mission or zone. They are characterised through spies
+    on `veafCombatMission` / `veafCombatZone`, by what the parsing hands downstream, which is
+    its only observable. Two of the three are the same loop twice, differing only in one
+    local's name.
+19. **`VeafAlias:setPassword` stores the hash, not the clear text.** Noted because a test that
+    passes clear text there never matches and looks like a parser bug.
+
 ## Looks like a defect — record, do not pin as intended
 
 - **`veafCasMission`'s `disperse` never becomes the flag it was written to be.**
@@ -69,8 +97,38 @@ it.
 - **`veafMove` overwrites its `-1` sentinel with nil** when `speed`/`hdg`/`alt`/`dist` will not
   convert, so a nil travels downstream instead of "keep the original".
 - **`veafShortcuts.lua:288` and `:394` are the same loop twice**, differing only in a local's name.
+- **`veafGroundAI` accepts an empty handler name.** `str[2] or ""` makes a valueless `name` the
+  empty string, and the mandatory-field guard is `if not options.name`, which does not catch it
+  because `""` is truthy in Lua — so `_ground status, name` proceeds with a nameless handler.
+  This is **exactly the bug SECREV-010 fixed in `veafMove`**, whose guard reads
+  `not switch.groupName or switch.groupName == ""`. The `veafShortcuts` loops guard correctly too
+  (`#zoneName == 0`), so `veafGroundAI` is the one that was missed. Recorded, not fixed: it is a
+  wrong-input-accepted bug, not a crash, and a declared mandatory parameter expresses it once
+  instead of three times.
+- **`veafRadio` destroys a default when a recognised keyword has no value.** `_radio transmit,
+  freq` sets `frequencies` to nil, and `executeCommand` requires that field — so the command does
+  **nothing at all, with no message to the pilot**. An *unknown* keyword is harmless by
+  comparison, since it leaves the default intact.
 
 ## Acceptance criteria
 
-- [ ] Every group A and group B parser has tests that pass **before** any refactoring starts.
-- [ ] The inventory above is complete, with deliberate quirks separated from accidental ones.
+- [x] Every group A and group B parser has tests that pass **before** any refactoring starts.
+- [x] The inventory above is complete, with deliberate quirks separated from accidental ones.
+
+## Coverage delivered
+
+| Parser | Suite | Notes |
+|---|---|---|
+| `veafRadio` | `TestVeafRadioCharacterisation` | first to migrate; its `elseif` proven unobservable |
+| `veafTransportMission` | `TestVeafTransportCharacterisation` | |
+| `veafCasMission` | `TestVeafCasCharacterisation` | |
+| `veafMove` | `TestVeafMoveCharacterisation` | sub-command default seeding pinned |
+| `veafGroundAI` | `TestVeafGroundAICharacterisation` | |
+| `veafSpawnParser` | existing suite + `FIX-MARKER-PARAM-CRASHES-2`'s enumerated sweep | already declarative |
+| `ArtilleryUnitHandler` (B) | `TestArtilleryOrderTextCharacterisation` | the `;` separator |
+| `veafShortcuts` ×3 (B) | `TestShortcutsInlineParserCharacterisation` | via spies; not standalone functions |
+
+**One quirk found only because `veafRadio`'s `elseif` was tested rather than argued**: it is not
+observable today, because no key is claimed by two live branches. Ticket 03 may therefore migrate
+that module to the permissive form without changing behaviour — a claim that is now pinned by a
+test instead of asserted in a PRD.

@@ -197,6 +197,92 @@ function TestVeafMoveMarkTextAnalysisKeywords:test_immortal_keyword()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafMoveCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: what this parser does TODAY, measured. The sub-command
+-- defaults below are the quirk that most needs preserving — the shared parser has to be able
+-- to seed different defaults per sub-verb, or moving a tanker starts behaving like moving a
+-- ground group.
+-- ---------------------------------------------------------------------------
+TestVeafMoveCharacterisation = {}
+
+function TestVeafMoveCharacterisation:test_group_seeds_speed_20_and_keeps_altitude()
+  local r = veafMove.markTextAnalysis("_move group, name A")
+  luaunit.assertEquals(r.speed, 20)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+-- -1 is the sentinel for "keep whatever the tanker already had".
+function TestVeafMoveCharacterisation:test_tanker_seeds_both_sentinels()
+  local r = veafMove.markTextAnalysis("_move tanker, name T")
+  luaunit.assertEquals(r.speed, -1)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+function TestVeafMoveCharacterisation:test_tankermission_seeds_both_sentinels()
+  local r = veafMove.markTextAnalysis("_move tankermission, name T")
+  luaunit.assertEquals(r.speed, -1)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+function TestVeafMoveCharacterisation:test_afac_seeds_speed_150_and_altitude_15000()
+  local r = veafMove.markTextAnalysis("_move afac, name F")
+  luaunit.assertEquals(r.speed, 150)
+  luaunit.assertEquals(r.altitude, 15000)
+end
+
+-- The sub-verb chain is tested in order and the FIRST match wins, regardless of where the
+-- words appear in the text. Note "tankermission" is tested before "tanker", otherwise it
+-- could never match.
+function TestVeafMoveCharacterisation:test_the_first_subverb_in_the_chain_wins()
+  local r = veafMove.markTextAnalysis("_move group tanker, name A")
+  luaunit.assertTrue(r.moveGroup)
+  luaunit.assertFalse(r.moveTanker)
+end
+
+function TestVeafMoveCharacterisation:test_subverb_is_case_insensitive()
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move GROUP, name A").moveGroup)
+end
+
+function TestVeafMoveCharacterisation:test_keys_are_case_insensitive()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, NAME A").groupName, "A")
+end
+
+-- Flags ignore any value they are given rather than parsing it: `teleport false` teleports.
+function TestVeafMoveCharacterisation:test_flags_ignore_their_value()
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move group, name A, teleport false").teleport)
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move group, name A, silent 0").silent)
+end
+
+function TestVeafMoveCharacterisation:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, name B").groupName, "B")
+end
+
+-- Zero is a real speed here, not "absent": there is no lower bound on this parameter.
+function TestVeafMoveCharacterisation:test_speed_zero_is_accepted()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed 0").speed, 0)
+end
+
+-- DEFECT, recorded not fixed: an unreadable numeric value assigns nil, wiping the sentinel
+-- that meant "keep the original". A nil then travels to moveTanker instead of -1.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_wipes_the_sentinel_to_nil()
+  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed").speed)
+  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed)
+end
+
+-- An unknown keyword is ignored in silence and leaves the seeded defaults alone.
+function TestVeafMoveCharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = veafMove.markTextAnalysis("_move group, name A, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.speed, 20)
+  luaunit.assertNil(r.unknownParameters)
+end
+
+function TestVeafMoveCharacterisation:test_empty_text_returns_nil()
+  luaunit.assertNil(veafMove.markTextAnalysis(""))
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafMoveHelpers
 -- ---------------------------------------------------------------------------
 TestVeafMoveHelpers = {}

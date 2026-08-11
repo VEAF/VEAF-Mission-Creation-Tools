@@ -308,6 +308,123 @@ function TestVeafGroundAIMarkTextAnalysis:test_unset_without_group_returns_nil()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafGroundAICharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: what this parser does TODAY, measured. This one carries the
+-- inventory's hardest quirk — `set` and `unset` search the game world for the nearest allied
+-- group when `groupname` is absent, from inside the parser. A shared text parser cannot do
+-- that, so ticket 03 has to decide where it goes before migrating this module.
+-- ---------------------------------------------------------------------------
+TestVeafGroundAICharacterisation = {}
+
+local function analyse(text)
+  return veafGroundAI.markTextAnalysis({ x = 0, y = 0, z = 0 }, coalition.side.BLUE, text)
+end
+
+function TestVeafGroundAICharacterisation:test_every_verb_maps_to_its_constant()
+  luaunit.assertEquals(analyse("_ground order, name H, order fire").verb, veafGroundAI.VERB_ORDER)
+  luaunit.assertEquals(analyse("_ground start, name H").verb, veafGroundAI.VERB_START)
+  luaunit.assertEquals(analyse("_ground stop, name H").verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(analyse("_ground clear, name H").verb, veafGroundAI.VERB_CLEAR)
+  luaunit.assertEquals(analyse("_ground status, name H").verb, veafGroundAI.VERB_STATUS)
+end
+
+function TestVeafGroundAICharacterisation:test_the_verb_is_case_insensitive()
+  luaunit.assertEquals(analyse("_ground STATUS, name H").verb, veafGroundAI.VERB_STATUS)
+end
+
+-- `name` is mandatory for every verb, and its absence refuses the command.
+function TestVeafGroundAICharacterisation:test_a_missing_name_refuses_the_command()
+  luaunit.assertNil(analyse("_ground status"))
+end
+
+-- DEFECT, recorded not fixed: this parser reads `str[2] or ""`, so a valueless `name` becomes
+-- the EMPTY STRING, and `if not options.name` does not catch it because "" is truthy in Lua.
+-- The command proceeds with a nameless handler. This is exactly the bug SECREV-010 fixed in
+-- veafMove, which guards with `not name or name == ""`.
+function TestVeafGroundAICharacterisation:test_a_valueless_name_passes_the_guard_as_an_empty_string()
+  local r = analyse("_ground status, name")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.name, "")
+end
+
+-- Unlike veafCasMission and veafMove, an absent value here is "" rather than nil. That is the
+-- inventory's quirk 1, and the shared parser has to express both.
+function TestVeafGroundAICharacterisation:test_a_valueless_order_becomes_an_empty_string()
+  luaunit.assertEquals(analyse("_ground order, name H, order").order, "")
+end
+
+function TestVeafGroundAICharacterisation:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(analyse("_ground status, name H, name J").name, "J")
+end
+
+function TestVeafGroundAICharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = analyse("_ground status, name H, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.name, "H")
+  luaunit.assertNil(r.unknownParameters)
+end
+
+function TestVeafGroundAICharacterisation:test_empty_text_returns_nil()
+  luaunit.assertNil(analyse(""))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestArtilleryOrderTextCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01, GROUP B: the same key/value loop under another name, and
+-- the only one in the codebase splitting on ";" instead of ",". The shared parser therefore
+-- needs the separator as a parameter, not a constant.
+-- ---------------------------------------------------------------------------
+TestArtilleryOrderTextCharacterisation = {}
+
+function TestArtilleryOrderTextCharacterisation:setUp()
+  self.ah = ArtilleryUnitHandler:new()
+end
+
+function TestArtilleryOrderTextCharacterisation:test_the_separator_is_a_semicolon()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("aim; shells 5").shells, 5)
+end
+
+-- A comma is NOT a separator here, so "shells 5" is never seen as a keyword.
+function TestArtilleryOrderTextCharacterisation:test_a_comma_does_not_separate()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim, shells 5").shells)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_several_keywords_apply()
+  local r = self.ah:orderTextAnalysis("aim; shells 5; radius 100")
+  luaunit.assertEquals(r.shells, 5)
+  luaunit.assertEquals(r.radius, 100)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_an_unrecognised_verb_returns_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis("move"))
+end
+
+function TestArtilleryOrderTextCharacterisation:test_the_verb_is_case_insensitive()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("AIM").verb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+end
+
+-- "aim" is tested before "fire", so the chain order wins over the order in the text.
+function TestArtilleryOrderTextCharacterisation:test_the_chain_order_wins_over_the_text_order()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("fire aim").verb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_a_valueless_shells_leaves_the_field_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim; shells").shells)
+end
+
+-- `target` is validated before being stored: an unparseable coordinate is dropped, which is
+-- the one place in the codebase where a parameter rule refuses its own input.
+function TestArtilleryOrderTextCharacterisation:test_an_invalid_target_is_dropped()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim; target banana").target)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_an_empty_order_returns_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis(""))
+end
+
+-- ---------------------------------------------------------------------------
 -- TestArtilleryUnitHandlerOOP
 -- ---------------------------------------------------------------------------
 TestArtilleryUnitHandlerOOP = {}

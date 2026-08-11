@@ -136,6 +136,85 @@ function TestVeafRadioMarkTextAnalysis:test_path_for_play()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafRadioCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: these record what this parser does TODAY, so the shared
+-- parser can be proved to change nothing. Measured, not assumed. Anything here that looks
+-- wrong is recorded rather than fixed — the ticket's inventory says which is which.
+-- ---------------------------------------------------------------------------
+TestVeafRadioCharacterisation = {}
+
+-- The keyphrase alone is not a command: a sub-verb (transmit / play) is required.
+function TestVeafRadioCharacterisation:test_keyphrase_without_subverb_returns_nil()
+  luaunit.assertNil(veafRadio.markTextAnalysis("_radio"))
+end
+
+function TestVeafRadioCharacterisation:test_keyphrase_is_case_insensitive()
+  local r = veafRadio.markTextAnalysis("_RADIO TRANSMIT, message hi")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.transmit)
+end
+
+-- An unrecognised key is ignored in silence, and — unlike a recognised one — leaves the
+-- defaults intact. Only veafSpawn reports unknown keys; generalising that is ticket 02's job.
+function TestVeafRadioCharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = veafRadio.markTextAnalysis("_radio transmit, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.transmit)
+  luaunit.assertEquals(r.frequencies, "251")
+  luaunit.assertNil(r.unknownParameters)
+end
+
+-- DEFECT, recorded not fixed: a *recognised* keyword with no value overwrites its default
+-- with nil. `executeCommand` requires `options.frequencies`, so this command silently does
+-- nothing at all — no transmission, no message to the pilot. Compare with the unknown-keyword
+-- test above, which keeps "251".
+function TestVeafRadioCharacterisation:test_valueless_freq_destroys_the_default()
+  local r = veafRadio.markTextAnalysis("_radio transmit, freq")
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.frequencies)
+end
+
+function TestVeafRadioCharacterisation:test_valueless_name_destroys_the_default()
+  local r = veafRadio.markTextAnalysis("_radio transmit, name")
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.name)
+end
+
+-- `quiet` is a pure flag: a value is accepted and discarded rather than parsed.
+function TestVeafRadioCharacterisation:test_quiet_ignores_any_value()
+  luaunit.assertTrue(veafRadio.markTextAnalysis("_radio transmit, quiet yes").quiet)
+  luaunit.assertTrue(veafRadio.markTextAnalysis("_radio transmit, quiet false").quiet)
+end
+
+-- This parser is the only one chaining its keywords with `elseif`, so at most one rule fires
+-- per key. It is **not observable today**: no key is claimed by two live branches (`path`
+-- appears twice, but the second is unreachable). Recorded because it means ticket 03 may
+-- migrate this module to the permissive form without changing behaviour — pinned here so
+-- that claim is tested rather than argued.
+function TestVeafRadioCharacterisation:test_every_keyword_group_is_independent()
+  local r = veafRadio.markTextAnalysis("_radio transmit, message hi, freq 243, mod FM, name net, quiet")
+  luaunit.assertEquals(r.message, "hi")
+  luaunit.assertEquals(r.frequencies, "243")
+  luaunit.assertEquals(r.modulations, "FM")
+  luaunit.assertEquals(r.name, "net")
+  luaunit.assertTrue(r.quiet)
+end
+
+-- `transmit` wins when both sub-verbs are present: the chain tests it first.
+function TestVeafRadioCharacterisation:test_first_subverb_in_the_chain_wins()
+  local r = veafRadio.markTextAnalysis("_radio transmit, _radio play, message hi")
+  luaunit.assertTrue(r.transmit)
+  luaunit.assertFalse(r.playmp3)
+end
+
+-- A message may contain spaces; only the first space separates key from value.
+function TestVeafRadioCharacterisation:test_value_keeps_everything_after_the_first_space()
+  local r = veafRadio.markTextAnalysis("_radio transmit, message hello there pilot")
+  luaunit.assertEquals(r.message, "hello there pilot")
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafRadioBuilder
 -- ---------------------------------------------------------------------------
 TestVeafRadioBuilder = {}

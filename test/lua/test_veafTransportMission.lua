@@ -210,6 +210,68 @@ function TestVeafTransportMarkTextAnalysisBadParameters:test_size_out_of_range_i
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafTransportCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: what this parser does TODAY, measured, so the shared
+-- parser can be proved to change nothing.
+-- ---------------------------------------------------------------------------
+TestVeafTransportCharacterisation = {}
+
+-- Unlike veafMove or veafRadio, the bare keyphrase IS a command here: no sub-verb.
+function TestVeafTransportCharacterisation:test_bare_keyphrase_is_a_command()
+  local r = veafTransportMission.markTextAnalysis("_transport")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.transportmission)
+end
+
+function TestVeafTransportCharacterisation:test_keyphrase_is_case_insensitive()
+  luaunit.assertNotNil(veafTransportMission.markTextAnalysis("_TRANSPORT"))
+end
+
+-- The keyphrase is matched anywhere in the text, not anchored at the start.
+function TestVeafTransportCharacterisation:test_keyphrase_is_found_anywhere_in_the_text()
+  luaunit.assertNotNil(veafTransportMission.markTextAnalysis("please _transport now"))
+end
+
+function TestVeafTransportCharacterisation:test_empty_text_returns_nil()
+  luaunit.assertNil(veafTransportMission.markTextAnalysis(""))
+end
+
+function TestVeafTransportCharacterisation:test_another_modules_keyphrase_returns_nil()
+  luaunit.assertNil(veafTransportMission.markTextAnalysis("_cas, size 3"))
+end
+
+-- An unknown key is ignored in silence and leaves every default intact.
+function TestVeafTransportCharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = veafTransportMission.markTextAnalysis("_transport, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+  luaunit.assertEquals(r.defense, 0)
+  luaunit.assertNil(r.unknownParameters)
+end
+
+-- String keywords accept a nil value without complaint, leaving the field nil.
+function TestVeafTransportCharacterisation:test_valueless_string_keywords_leave_the_field_nil()
+  luaunit.assertNil(veafTransportMission.markTextAnalysis("_transport, from").from)
+  luaunit.assertNil(veafTransportMission.markTextAnalysis("_transport, password").password)
+end
+
+-- Every matching rule runs: this parser chains with separate `if`s, not `elseif`.
+function TestVeafTransportCharacterisation:test_all_keywords_apply_in_one_command()
+  local r = veafTransportMission.markTextAnalysis("_transport, size 4, defense 2, blocade 3, from BASE")
+  luaunit.assertEquals(r.size, 4)
+  luaunit.assertEquals(r.defense, 2)
+  luaunit.assertEquals(r.blocade, 3)
+  luaunit.assertEquals(r.from, "BASE")
+end
+
+-- `defense` and `blocade` accept 0 where `size` starts at 1 — asymmetric bounds, deliberate.
+function TestVeafTransportCharacterisation:test_zero_is_accepted_by_defense_but_not_by_size()
+  luaunit.assertEquals(veafTransportMission.markTextAnalysis("_transport, defense 0").defense, 0)
+  luaunit.assertEquals(veafTransportMission.markTextAnalysis("_transport, size 0").size, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafTransportGenerateEnemy
 -- ---------------------------------------------------------------------------
 TestVeafTransportGenerateEnemy = {}

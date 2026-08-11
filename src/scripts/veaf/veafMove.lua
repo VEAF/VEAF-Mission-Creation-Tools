@@ -185,7 +185,10 @@ function veafMove.markTextAnalysis(text)
 
     if key:lower() == "name" then
       -- Set group name
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", val))
+      -- The `%s` raised on a valueless `name` before the parser could reach the guard at the
+      -- end of this function, which already refuses the command on an empty group name. The
+      -- refusal is the intended answer; the crash on the way to it was not.
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", veaf.p(val)))
       switch.groupName = val
     end
 

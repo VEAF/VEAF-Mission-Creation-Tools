@@ -136,6 +136,42 @@ function TestVeafCasMarkTextAnalysisKeywords:test_disperse_with_value()
   luaunit.assertEquals(r.disperseOnAttack, 30)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCasMarkTextAnalysisBadParameters
+--
+-- FIX-MARKER-PARAM-CRASHES: a parameter the pilot mistyped costs that parameter,
+-- never the command. `side` was the one site VMR-019 missed here: it fixed the four
+-- `string.format("%d", val)` keywords and left this one's `%s`, which raises on nil
+-- just the same, with `val:upper()` on the next line waiting behind it.
+-- ---------------------------------------------------------------------------
+TestVeafCasMarkTextAnalysisBadParameters = {}
+
+function TestVeafCasMarkTextAnalysisBadParameters:test_side_without_value_does_not_raise()
+  local r = veafCasMission.markTextAnalysis("_cas, side")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.casmission)
+end
+
+-- A valueless `side` must leave the field unset, not fall through to RED: executeCommand
+-- then derives the side from the marker's own coalition, which is the intended path.
+function TestVeafCasMarkTextAnalysisBadParameters:test_side_without_value_leaves_side_unset()
+  local r = veafCasMission.markTextAnalysis("_cas, side")
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(r.side)
+end
+
+function TestVeafCasMarkTextAnalysisBadParameters:test_size_without_value_keeps_default()
+  local r = veafCasMission.markTextAnalysis("_cas, size")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+end
+
+function TestVeafCasMarkTextAnalysisBadParameters:test_size_non_numeric_keeps_default()
+  local r = veafCasMission.markTextAnalysis("_cas, size banana")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+end
+
 -- SECREV-007: generateAirDefenseGroup must return nil (not dereference a nil
 -- group) when the underlying group definition cannot be found.
 TestVeafCasMissionAirDefense = {}

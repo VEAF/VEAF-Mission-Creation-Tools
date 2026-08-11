@@ -563,11 +563,18 @@ function veafCasMission.markTextAnalysis(text)
 
     if key:lower() == "side" then
       -- Set side
-      veaf.loggers.get(veafCasMission.Id):trace(string.format("Keyword side = %s", val))
-      if val:upper() == "BLUE" then
-        switch.side = veafCasMission.SIDE_BLUE
-      else
-        switch.side = veafCasMission.SIDE_RED
+      -- VMR-019 fixed the four `%d` keywords above and left this `%s`, which raises on a
+      -- valueless `side` in exactly the same way, with `val:upper()` waiting behind it. A
+      -- missing value leaves the side *unset* rather than falling through to RED:
+      -- `executeCommand` then derives it from the marker's own coalition, which is the
+      -- intended path when the pilot named no side at all.
+      veaf.loggers.get(veafCasMission.Id):trace(string.format("Keyword side = %s", veaf.p(val)))
+      if val then
+        if val:upper() == "BLUE" then
+          switch.side = veafCasMission.SIDE_BLUE
+        else
+          switch.side = veafCasMission.SIDE_RED
+        end
       end
     end
 

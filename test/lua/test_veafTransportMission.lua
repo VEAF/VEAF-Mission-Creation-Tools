@@ -143,6 +143,59 @@ function TestVeafTransportMarkTextAnalysisKeywords:test_from_keyword()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafTransportMarkTextAnalysisBadParameters
+--
+-- FIX-MARKER-PARAM-CRASHES: this module carried three copies of the `tonumber(val) <= 5`
+-- crash VMR-019 fixed in veafCasMission — the same parameter names, the same bounds, and
+-- none of the fix, because the fix reached one copy of the code and there were several.
+-- ---------------------------------------------------------------------------
+TestVeafTransportMarkTextAnalysisBadParameters = {}
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_size_without_value_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, size")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+end
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_size_non_numeric_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, size banana")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+end
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_defense_without_value_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, defense")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.defense, 0)
+end
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_defense_non_numeric_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, defense banana")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.defense, 0)
+end
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_blocade_without_value_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, blocade")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.blocade, 0)
+end
+
+function TestVeafTransportMarkTextAnalysisBadParameters:test_blocade_non_numeric_keeps_default()
+  local r = veafTransportMission.markTextAnalysis("_transport, blocade banana")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.blocade, 0)
+end
+
+-- Out-of-range values stay *ignored* rather than clamped — VMR-019 decided that for the
+-- same parameters in veafCasMission and this lot does not revisit it.
+function TestVeafTransportMarkTextAnalysisBadParameters:test_size_out_of_range_is_ignored()
+  local r = veafTransportMission.markTextAnalysis("_transport, size 42")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafTransportGenerateEnemy
 -- ---------------------------------------------------------------------------
 TestVeafTransportGenerateEnemy = {}

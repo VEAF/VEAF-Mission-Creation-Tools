@@ -186,11 +186,17 @@ function veafTransportMission.markTextAnalysis(text)
       switch.password = val
     end
 
+    -- `size`, `defense` and `blocade` each carried the crash VMR-019 fixed in veafCasMission:
+    -- `val` is player-typed and may be absent or non-numeric, and `tonumber(val) <= 5` then
+    -- compares nil with a number and takes the whole marker handler down. This module was never
+    -- in that fix's scope, so all three copies survived it — `size` is even the same parameter,
+    -- with the same 1..5 bounds. Out-of-range values stay *ignored* rather than clamped, which
+    -- is what VMR-019 decided for the twin sites.
     if switch.transportmission and key:lower() == "size" then
       -- Set size.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 1 then
         switch.size = nVal
       end
     end
@@ -198,8 +204,8 @@ function veafTransportMission.markTextAnalysis(text)
     if switch.transportmission and key:lower() == "defense" then
       -- Set defense.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 0 then
         switch.defense = nVal
       end
     end
@@ -207,8 +213,8 @@ function veafTransportMission.markTextAnalysis(text)
     if switch.transportmission and key:lower() == "blocade" then
       -- Set blocade.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumber(val)
+      if nVal and nVal <= 5 and nVal >= 0 then
         switch.blocade = nVal
       end
     end

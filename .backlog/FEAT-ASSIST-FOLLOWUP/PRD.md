@@ -18,10 +18,17 @@ and one of those needs *two*.
 | 01 | [Resource names should carry a content hash](tickets/01-resource-content-hash.md) | ⬜ |
 | 02 | [Two pilots at once, and whether a highlight leaks](tickets/02-two-pilots-at-once.md) | 🧑 |
 | 03 | [A pilot review of the F-16C slice](tickets/03-f16c-pilot-review.md) | 🧑 |
+| 04 | [Probe `c_cockpit_param_in_range`, then decide](tickets/04-cockpit-param-in-range-probe.md) | ⬜ |
 
-Ticket 01 is actionable now and does not depend on the other two. Tickets 02 and 03 are
-**blocked on a resource David holds** — cockpit time, and for 02 a second pilot — so they are
-`🧑 waiting-human` rather than ready, and an agent should not pick them up.
+The four are independent of each other, and only one is worth doing now:
+
+- **01 is the one to do** — a cheap fix for a trap that already cost an evening and would hit any
+  mission maker iterating on a checklist.
+- **02 and 03 are `🧑 waiting-human`**, blocked on a resource David holds: cockpit time, and for 02 a
+  second pilot. An agent should not pick them up.
+- **04 is ready but deliberately deferred.** It is an optimisation whose first step is finding out
+  whether the function exists at all. It is `⬜` rather than `🧑` because the probe can be written
+  without DCS, but the ticket says plainly when it becomes worth running — not now.
 
 ## What the parent lot already established
 
@@ -38,8 +45,9 @@ Worth having here so this lot is readable on its own:
 
 ## Out of scope
 
-- **`c_cockpit_param_in_range`.** It exists in the mission environment and would let the engine ask a
-  question instead of parsing a ~19 KB dump once per tick. Its signature was never probed, DCS having
-  been closed by then. A real optimisation, but it is one — not an open defect — and nothing depends
-  on it. Recorded here so it is not lost a second time.
+- Nothing, now that `c_cockpit_param_in_range` has [ticket 04](tickets/04-cockpit-param-in-range-probe.md).
+  It was going to sit in this section as a note; a note in a PRD's out-of-scope list is how it got
+  lost the first time. It is a **deliberately deferred** ticket rather than an urgent one: the
+  existing per-loop cache already absorbs most of the cost, and the ticket says when it becomes worth
+  doing instead of implying it should be done now.
 - Anything from `FEAT-ASSIST-AUTHORING`, which is paused by David and tracked on its own.

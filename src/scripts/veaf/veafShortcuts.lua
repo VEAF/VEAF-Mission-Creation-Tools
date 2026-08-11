@@ -247,6 +247,52 @@ end
 ---
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Alias parameter parsing
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The parameters an alias command carries, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, group B. This loop was written out **three times** in this
+--- file, and two of the three were identical but for the name of one local (`missionName` versus
+--- `zoneName`) — the clearest illustration in the codebase of why this lot exists. One spec now.
+---
+--- There is no keyphrase to detect here: an alias's remaining command is always parsed, so a
+--- single always-matching descriptor stands in for the sub-verb chain the other modules have.
+veafShortcuts.AliasParameterSpec = {
+  defaults = function(options)
+    options.silent = false
+    options.name = nil
+    options.password = nil
+  end,
+  commands = { { match = "" } },
+  parameters = {
+    { keys = { "silent" }, apply = veaf.markerRules.flag("silent") },
+    { keys = { "name" }, apply = veaf.markerRules.text("name") },
+    { keys = { "password" }, apply = veaf.markerRules.text("password") },
+  },
+  valueWhenAbsent = "",
+}
+
+--- Extract `silent`, `name` and `password` from an alias command.
+---
+--- Always returns a table, so callers can read the fields without a nil check. A non-string
+--- command yields the defaults rather than raising, which the `ExecuteAlias` call site relied on
+--- not happening: it passed `remainingCommand` straight to `veaf.split`, so a nil there used to
+--- raise.
+--- @param command the alias command text
+--- @return table with `silent`, `name` and `password`
+function veafShortcuts.parseAliasParameters(command)
+  local _options = veaf.parseMarkerText(command, veafShortcuts.AliasParameterSpec)
+  if not _options then
+    -- Seed from the spec rather than repeating its defaults here: two copies of the same list is
+    -- what this whole lot exists to remove, and they would drift the first time one changed.
+    _options = {}
+    veafShortcuts.AliasParameterSpec.defaults(_options)
+  end
+  return _options
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAliasForCombatMission object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 VeafAliasForCombatMission = {}
@@ -285,28 +331,10 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   local command = command .. (remainingCommand or "")
   veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
-  local keywords = veaf.split(command, ",")
-
-  local silent = false
-  local missionName = nil
-  local password = nil
-  for _, keyphrase in pairs(keywords) do
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "silent" then
-      silent = true
-    end
-
-    if key:lower() == "name" then
-      missionName = val
-    end
-
-    if key:lower() == "password" then
-      password = val
-    end
-  end
+  local _options = veafShortcuts.parseAliasParameters(command)
+  local silent = _options.silent
+  local missionName = _options.name
+  local password = _options.password
 
   if not (bypassSecurity or veafSecurity.isAuthenticated()) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
@@ -391,28 +419,10 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   local command = command .. (remainingCommand or "")
   veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
-  local keywords = veaf.split(command, ",")
-
-  local silent = false
-  local zoneName = nil
-  local password = nil
-  for _, keyphrase in pairs(keywords) do
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "silent" then
-      silent = true
-    end
-
-    if key:lower() == "name" then
-      zoneName = val
-    end
-
-    if key:lower() == "password" then
-      password = val
-    end
-  end
+  local _options = veafShortcuts.parseAliasParameters(command)
+  local silent = _options.silent
+  local zoneName = _options.name
+  local password = _options.password
 
   if not (bypassSecurity or veafSecurity.isAuthenticated()) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
@@ -505,18 +515,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("found VeafAlias[%s]", alias:getName() or ""))
     if alias:getBatchAliases() then -- no alias to actually execute, but instead run a batch
       -- the batch aliases are always password protected by a Mission Master password, so search for one
-      local password = nil
-      local keywords = veaf.split(remainingCommand, ",")
-
-      for _, keyphrase in pairs(keywords) do
-        local str = veaf.breakString(veaf.trim(keyphrase), " ")
-        local key = str[1]
-        local val = str[2] or ""
-
-        if key:lower() == "password" then
-          password = val
-        end
-      end
+      local password = veafShortcuts.parseAliasParameters(remainingCommand).password
 
       if not (bypassSecurity or veafSecurity.isAuthenticated()) then
         veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))

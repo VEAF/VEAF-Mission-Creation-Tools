@@ -192,72 +192,61 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The radio module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, first migration. Two things ticket 01 pinned are reproduced
+--- deliberately rather than tidied up on the way past:
+---
+---   * `valueWhenAbsent` stays nil, because this parser read `str[2]` with no `or ""`. That is what
+---     makes a valueless `freq` destroy the "251" default — a recorded defect, fixed in its own
+---     commit so the behaviour change is visible on its own rather than buried in a move.
+---   * the original chained its keywords with `elseif`, so at most one rule fired per key. Ticket 01
+---     measured that as **unobservable** — no key is claimed by two live branches — which is what
+---     makes the permissive shared loop behaviour-preserving here. The chain's duplicate second
+---     `path` branch is gone rather than translated: it was unreachable and never ran.
+veafRadio.MarkerSpec = {
+  defaults = function(options)
+    options.transmit = false
+    options.playmp3 = false
+    options.message = nil
+    options.frequencies = "251"
+    options.modulations = "AM"
+    options.name = "SRS"
+    options.quiet = false
+    options.path = nil
+  end,
+  commands = {
+    {
+      match = veafRadio.Keyphrase .. " transmit",
+      init = function(options)
+        options.transmit = true
+      end,
+    },
+    {
+      match = veafRadio.Keyphrase .. " play",
+      init = function(options)
+        options.playmp3 = true
+      end,
+    },
+  },
+  parameters = {
+    -- `message` and `path` default to nil, so there is nothing for a valueless keyword to destroy.
+    { keys = { "message" }, apply = veaf.markerRules.text("message") },
+    { keys = { "path" }, apply = veaf.markerRules.text("path") },
+    -- These three carry defaults that must survive a mistyped keyword: `executeCommand` requires
+    -- `frequencies` and `name`, so clearing either made the command do nothing, silently.
+    { keys = { "name" }, apply = veaf.markerRules.textKeepingDefault("name") },
+    { keys = { "quiet" }, apply = veaf.markerRules.flag("quiet") },
+    { keys = { "freq", "freqs", "frequency", "frequencies" }, apply = veaf.markerRules.textKeepingDefault("frequencies") },
+    { keys = { "mod", "mods", "modulation", "modulations" }, apply = veaf.markerRules.textKeepingDefault("modulations") },
+  },
+  valueWhenAbsent = nil,
+}
+
 --- Extract keywords from mark text.
 function veafRadio.markTextAnalysis(text)
   veaf.loggers.get(veafRadio.Id):trace(string.format("markTextAnalysis(%s)", text))
-
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.transmit = false
-  switch.playmp3 = false
-
-  switch.message = nil
-  switch.frequencies = "251"
-  switch.modulations = "AM"
-  switch.name = "SRS"
-  switch.quiet = false
-  switch.path = nil
-
-  -- Check for correct keywords.
-  if text:lower():find(veafRadio.Keyphrase .. " transmit") then
-    switch.transmit = true
-  elseif text:lower():find(veafRadio.Keyphrase .. " play") then
-    switch.playmp3 = true
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "message" then
-      -- Set message.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword message = %s", tostring(val)))
-      switch.message = val
-    elseif key:lower() == "path" then
-      -- Set path.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
-      switch.path = val
-    elseif key:lower() == "name" then
-      -- Set name.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword name = %s", tostring(val)))
-      switch.name = val
-    elseif key:lower() == "quiet" then
-      -- Set quiet.
-      veaf.loggers.get(veafRadio.Id):trace("Keyword quiet found")
-      switch.quiet = true
-    elseif key:lower() == "freq" or key:lower() == "freqs" or key:lower() == "frequency" or key:lower() == "frequencies" then
-      -- Set frequencies.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword frequencies = %s", tostring(val)))
-      switch.frequencies = val
-    elseif key:lower() == "mod" or key:lower() == "mods" or key:lower() == "modulation" or key:lower() == "modulations" then
-      -- Set modulations.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword modulations = %s", tostring(val)))
-      switch.modulations = val
-    elseif key:lower() == "path" then
-      -- Set path.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
-      switch.path = val
-    end
-  end
-
-  return switch
+  return veaf.parseMarkerText(text, veafRadio.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

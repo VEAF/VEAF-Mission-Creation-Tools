@@ -263,11 +263,20 @@ function TestVeafMoveCharacterisation:test_speed_zero_is_accepted()
   luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed 0").speed, 0)
 end
 
--- DEFECT, recorded not fixed: an unreadable numeric value assigns nil, wiping the sentinel
--- that meant "keep the original". A nil then travels to moveTanker instead of -1.
-function TestVeafMoveCharacterisation:test_an_unreadable_speed_wipes_the_sentinel_to_nil()
-  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed").speed)
-  luaunit.assertNil(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed)
+-- FIXED (ticket 03): an unreadable numeric value used to assign nil, wiping the sentinel that
+-- means "keep the original speed or altitude", so a nil travelled to moveTanker instead of -1.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed").speed, -1)
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed, -1)
+end
+
+function TestVeafMoveCharacterisation:test_an_unreadable_altitude_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, alt banana").altitude, -1)
+end
+
+-- A group move seeds speed 20, so that is what an unreadable speed falls back to there.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_group_default()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed banana").speed, 20)
 end
 
 -- An unknown keyword is ignored in silence and leaves the seeded defaults alone.
@@ -546,19 +555,42 @@ function TestVeafMoveNonNumericValues:_analyse(text)
   return result
 end
 
-function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_does_not_crash_the_parser()
+-- REFACTOR-MARKER-PARSER ticket 03 changed the expectation of the next two tests, and the reason
+-- is worth stating because "unset, not crash" looked like the safe answer when VMR-092 wrote it.
+--
+-- Unset moved the crash rather than removing it. `veafMove.moveGroup` opens with
+-- `"... speed = " .. speed`, and concatenating nil raises — measured, for both `speed` and
+-- `altitude`. So `_move group, name SomeGroup, speed abc` parsed cleanly and then took the command
+-- down one call later. The other three consumers happen to tolerate nil (`moveTanker` tests
+-- `speed == nil or speed < 0`), which is why this stayed invisible.
+--
+-- Keeping the seeded default is what actually removes the crash: the parameter is ignored, the
+-- command runs, and the pilot loses the parameter rather than the order.
+function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_keeps_the_default_rather_than_unsetting()
   local r = self:_analyse("_move group, name SomeGroup, speed abc")
 
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.speed, "an unparseable speed must end up unset, not crash")
+  luaunit.assertEquals(r.speed, 20, "an unparseable speed must keep the sub-command's default")
 end
 
-function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_does_not_crash_the_parser()
-  -- The nil case: string.format("%s", nil) raises in 5.1 just like %d does, so tostring is required.
+function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_keeps_the_default()
   local r = self:_analyse("_move group, name SomeGroup, speed")
 
   luaunit.assertNotNil(r)
-  luaunit.assertNil(r.speed)
+  luaunit.assertEquals(r.speed, 20)
+end
+
+-- The crash this now prevents, asserted on the whole command path rather than on the parser:
+-- an unreadable numeric parameter must not take the order down downstream either.
+function TestVeafMoveNonNumericValues:test_the_whole_command_survives_an_unreadable_number()
+  for _, text in ipairs({
+    "_move group, name SomeGroup, speed abc",
+    "_move group, name SomeGroup, speed",
+    "_move group, name SomeGroup, alt abc",
+  }) do
+    local ok, err = pcall(veafMove.executeCommand, { x = 0, y = 0, z = 0 }, text, true)
+    luaunit.assertTrue(ok, text .. " raised: " .. tostring(err))
+  end
 end
 
 function TestVeafMoveNonNumericValues:test_every_numeric_keyword_survives_a_bad_value()

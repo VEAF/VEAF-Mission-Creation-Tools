@@ -1,6 +1,6 @@
 # REFACTOR-MARKER-PARSER — one marker text parser instead of six
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Why this exists
 
@@ -101,7 +101,7 @@ and only meeting the hardest case at the end is how you discover too late that i
 |---|--------|--------|
 | 01 | [Characterise the parsers before touching them](tickets/01-characterise.md) | ✅ |
 | 02 | [Lift veafSpawnParser's machine into veaf.lua](tickets/02-shared-parser.md) | ✅ |
-| 03 | [Migrate the remaining modules, one per commit](tickets/03-migrate.md) | ⬜ |
+| 03 | [Migrate the remaining modules, one per commit](tickets/03-migrate.md) | ✅ |
 
 ## Why it is worth doing, and why it is no longer urgent
 
@@ -155,6 +155,38 @@ that crash **in a comment** and then guarded against it **in its caller** — wh
 `_numNonNegative`, one function below, walked into it, and why `FIX-MARKER-PARAM-CRASHES-2` was
 needed. It returns nil at the source now. Found because sharing the helper made the old hole
 reachable again, and a new test caught it before the merge rather than a pilot after it.
+
+## Outcome
+
+One parser. Six group-A modules and four group-B loops declare their parameters; `veaf.lua` owns
+the loop. **547 lines deleted against 497 added** under `src/scripts/veaf/` — the win is not bulk,
+and saying otherwise would be dressing it up: most added lines are declarations plus comments
+recording why a quirk survives. The win is that the loop exists once, so the next fix reaches every
+caller instead of the copy it was written against.
+
+Measured, not claimed: 36 suites and 2412 tests green, and the 485-case sweep raises nothing across
+all three groups.
+
+### What the lot cost to find, in crashes
+
+The premise was that copying makes a fix reach one copy. That was demonstrated **four times** while
+doing the work, three of them in code already believed fixed:
+
+| Where | What |
+|---|---|
+| `veafTransportMission` ×3, `veafCasMission`, `veafMove` | six live crashes `VMR-019` had missed |
+| `veafSpawnParser` ×4, `veafTransportMission` | three more the first probe missed by sampling |
+| `veaf.getRandomizableNumeric` | `VMR-025` described the crash in a comment, then guarded its *caller* |
+| `veafMove.moveGroup` | a twelfth: "unset, not crash" only moved the crash downstream |
+
+The last one is the most useful. Every sweep tested **parsers**; none tested the whole command
+path, so a nil that parsed cleanly and crashed one call later was invisible to all 485 cases.
+
+### Group C stayed out, and that held
+
+`veafSecurity`, `veafNamedPoints` and `veafShortcuts.markTextAnalysis` are untouched, and the
+decision looks right in hindsight: their 38 sweep cases never raised, they have no recorded defect,
+and forcing a comma-splitting parser on them would have truncated a password containing a comma.
 
 ## Risks
 

@@ -3210,6 +3210,17 @@ end
 --     spaces really is " BLUE", which is not "BLUE". Trimming here would change behaviour.
 -------------------------------------------------------------------------------------------------
 
+--- True when a marker parameter is absent or empty.
+---
+--- Worth a name because `""` is **truthy** in Lua, so `if not value` does not catch it — which is
+--- the whole of `SECREV-010` (veafMove accepting an empty group name) and of the same bug found
+--- again in veafGroundAI. Every "is this parameter really given?" test goes through here now.
+--- @param value the parameter as the parser produced it
+--- @return boolean true when nil or the empty string
+function veaf.isBlank(value)
+  return value == nil or value == ""
+end
+
 --- Ready-made `apply` functions for the common parameter kinds.
 ---
 --- These are the four `veafSpawnParser` had as file-locals. They live here because the crash
@@ -3250,10 +3261,68 @@ function veaf.markerRules.nonNegativeNumber(field)
   end
 end
 
---- A string parameter, stored exactly as typed.
+--- A plain numeric parameter, keeping the field's existing value when the input is unusable.
+---
+--- Converts with `veaf.safeNumber` — plain `tonumber` semantics — for the modules that never
+--- accepted the `1-5` random-range syntax `veaf.markerRules.number` allows.
+function veaf.markerRules.plainNumber(field)
+  return function(options, value)
+    local _converted = veaf.safeNumber(value)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A numeric parameter accepted only inside `min`..`max`, keeping the default otherwise.
+---
+--- Goes through `veaf.safeNumberInRange`, which **rejects** rather than clamps — `size 42` keeps
+--- the command's default instead of silently becoming 5, the behaviour `VMR-019` settled on.
+---
+--- Deliberately not `getRandomizableNumeric`: the modules using bounded parameters never accepted
+--- the `1-5` random-range syntax, and adding it here would be a behaviour change wearing a
+--- refactor's clothes.
+function veaf.markerRules.boundedNumber(field, min, max)
+  return function(options, value)
+    local _converted = veaf.safeNumberInRange(value, min, max)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A string parameter, stored exactly as typed — including nil, which clears the field.
+---
+--- Use `textKeepingDefault` instead whenever the field has a default worth surviving a mistyped
+--- keyword.
 function veaf.markerRules.text(field)
   return function(options, value)
     options[field] = value
+  end
+end
+
+--- A string parameter that leaves the field alone when the keyword carries no value.
+---
+--- The difference matters wherever a default exists: `_radio transmit, freq` used to set
+--- `frequencies` to nil, and `executeCommand` requires that field, so the command did nothing at
+--- all and said nothing to the pilot. An *unknown* keyword was harmless by comparison, since it
+--- left the default intact — a mistyped recognised keyword should not be worse than an
+--- unrecognised one.
+function veaf.markerRules.textKeepingDefault(field)
+  return function(options, value)
+    if not veaf.isBlank(value) then
+      options[field] = value
+    end
+  end
+end
+
+--- A `validate` function refusing the command unless `field` holds a non-empty string.
+---
+--- The mandatory-parameter check, written once. Modules were each spelling out
+--- `x ~= nil and x ~= ""`, and the one that spelled it `if not x` shipped the bug twice.
+function veaf.markerRules.requireText(field)
+  return function(options)
+    return not veaf.isBlank(options[field])
   end
 end
 

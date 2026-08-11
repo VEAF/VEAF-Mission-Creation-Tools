@@ -9,6 +9,7 @@ actions whose ``file`` is a ``mapResource`` key resolving to a ``.lua`` filename
 
 import os
 import tempfile
+import textwrap
 import unittest
 import zipfile
 from pathlib import Path
@@ -350,3 +351,152 @@ class TestDiffScripts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDetectedDelay(unittest.TestCase):
+    """A loader trigger's `c_time_after` seconds, so an adoption reproduces the staging.
+
+    Shapes taken from the real upstream `.miz` (Foothold_CA 4.4.1): a staged loader is a
+    `triggerOnce` whose single rule is `{predicate: c_time_after, seconds: N}` — alongside
+    `coalitionlist`/`unitType`/`zone` leftovers of the editor's form, which are ignored here.
+    Verified end to end against that mission: 6 scripts with no delay, 5 at +3 s, AIEN at +12 s.
+    """
+
+    def _staged(self, rules) -> DcsMission:
+        return _mission(
+            {
+                2: {
+                    "comment": "ScriptLoader 1",
+                    "predicate": "triggerStart",
+                    "actions": [{"predicate": "a_do_script_file", "file": "K1"}],
+                },
+                3: {
+                    "comment": "AIEN",
+                    "predicate": "triggerOnce",
+                    "rules": rules,
+                    "actions": [{"predicate": "a_do_script_file", "file": "K2"}],
+                },
+            },
+            {"K1": "Moose.lua", "K2": "AIEN.lua"},
+        )
+
+    def test_an_undelayed_loader_reports_no_delay(self):
+        loaders = detect_native_script_loaders(self._staged({1: {"predicate": "c_time_after", "seconds": 12}}))
+        self.assertIsNone(loaders[0].delay_seconds)
+
+    def test_a_delayed_loader_reports_its_seconds(self):
+        loaders = detect_native_script_loaders(self._staged({1: {"predicate": "c_time_after", "seconds": 12}}))
+        self.assertEqual(12.0, loaders[1].delay_seconds)
+
+    def test_the_editor_leftovers_beside_the_rule_are_ignored(self):
+        rules = {1: {"coalitionlist": "red", "unitType": "ALL", "zone": 365, "predicate": "c_time_after", "seconds": 3}}
+        self.assertEqual(3.0, detect_native_script_loaders(self._staged(rules))[1].delay_seconds)
+
+    def test_rules_as_a_list_work_too(self):
+        # luadata may hand a 1-based table back as either a dict or a list.
+        rules = [{"predicate": "c_time_after", "seconds": 7}]
+        self.assertEqual(7.0, detect_native_script_loaders(self._staged(rules))[1].delay_seconds)
+
+    def test_a_zero_delay_is_no_delay(self):
+        rules = {1: {"predicate": "c_time_after", "seconds": 0}}
+        self.assertIsNone(detect_native_script_loaders(self._staged(rules))[1].delay_seconds)
+
+    def test_another_predicate_is_not_a_delay(self):
+        rules = {1: {"predicate": "c_flag_is_true", "seconds": 5}}
+        self.assertIsNone(detect_native_script_loaders(self._staged(rules))[1].delay_seconds)
+
+    def test_a_non_numeric_seconds_is_ignored(self):
+        rules = {1: {"predicate": "c_time_after", "seconds": "soon"}}
+        self.assertIsNone(detect_native_script_loaders(self._staged(rules))[1].delay_seconds)
+
+
+class TestScaffoldReproducesTheStaging(unittest.TestCase):
+    """The real prize of the ticket: an adopted mission stages like upstream by default."""
+
+    def test_a_delayed_script_gets_delay_seconds(self):
+        yaml_text = build_scaffold_yaml(
+            [
+                DetectedLoader("Moose.lua", 2, "ScriptLoader 1"),
+                DetectedLoader("AIEN.lua", 5, "AIEN", 12.0),
+            ],
+            [],
+        )
+        # The delay must sit under its own path entry, indented as a mapping key of it — a
+        # `delay_seconds` at the wrong depth would be a sibling entry, not this script's delay.
+        self.assertIn(
+            "\n".join(["    - path: src/scripts/AIEN.lua", "      delay_seconds: 12"]),
+            yaml_text,
+        )
+
+    def test_an_undelayed_script_gets_no_such_key(self):
+        yaml_text = build_scaffold_yaml([DetectedLoader("Moose.lua", 2, "ScriptLoader 1")], [])
+        self.assertNotIn("delay_seconds", yaml_text)
+
+    def test_a_fractional_delay_survives(self):
+        yaml_text = build_scaffold_yaml([DetectedLoader("A.lua", 2, "c", 0.5)], [])
+        self.assertIn("delay_seconds: 0.5", yaml_text)
+
+    def test_the_scaffold_is_still_valid_yaml(self):
+        import yaml as yaml_module
+
+        parsed = yaml_module.safe_load(
+            build_scaffold_yaml(
+                [DetectedLoader("Moose.lua", 2, "c"), DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)],
+                [],
+            )
+        )
+        self.assertEqual(
+            [{"path": "src/scripts/Moose.lua"}, {"path": "src/scripts/AIEN.lua", "delay_seconds": 12}],
+            parsed["custom_scripts"]["scripts"],
+        )
+
+
+class TestUpdateReportsAStagingChange(unittest.TestCase):
+    """`--update` preserves the tuned mission.yaml, so a moved delay has to be said out loud."""
+
+    def _report_for(self, declared_yaml: str, loaders):
+        from mission_builder.other_converter import _delay_changes
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "mission.yaml"
+            path.write_text(declared_yaml, encoding="utf-8")
+            return _delay_changes(path, loaders)
+
+    _DECLARED = textwrap.dedent("""        custom_scripts:
+          scripts:
+            - path: src/scripts/AIEN.lua
+              delay_seconds: 12
+        """)
+
+    def test_an_unchanged_delay_is_silent(self):
+        self.assertEqual([], self._report_for(self._DECLARED, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)]))
+
+    def test_a_changed_delay_is_reported_with_both_values(self):
+        changes = self._report_for(self._DECLARED, [DetectedLoader("AIEN.lua", 5, "AIEN", 20.0)])
+        self.assertEqual(1, len(changes))
+        self.assertIn("AIEN.lua", changes[0])
+        self.assertIn("12", changes[0])
+        self.assertIn("20", changes[0])
+
+    def test_a_delay_dropped_upstream_is_reported(self):
+        changes = self._report_for(self._DECLARED, [DetectedLoader("AIEN.lua", 5, "AIEN", None)])
+        self.assertEqual(1, len(changes))
+
+    def test_a_delay_added_upstream_is_reported(self):
+        declared = textwrap.dedent("""            custom_scripts:
+              scripts:
+                - path: src/scripts/AIEN.lua
+            """)
+        changes = self._report_for(declared, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)])
+        self.assertEqual(1, len(changes))
+
+    def test_a_script_absent_from_the_yaml_is_not_reported(self):
+        # It is an *added* script, which the existing diff already reports; saying it twice with a
+        # confusing "declared none" would just be noise.
+        changes = self._report_for(self._DECLARED, [DetectedLoader("New.lua", 6, "c", 5.0)])
+        self.assertEqual([], changes)
+
+    def test_a_missing_yaml_reports_nothing(self):
+        from mission_builder.other_converter import _delay_changes
+
+        self.assertEqual([], _delay_changes(None, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)]))

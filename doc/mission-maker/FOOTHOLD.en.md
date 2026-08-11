@@ -88,7 +88,11 @@ veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam
 loaded by its native triggers (in order), and generates a `mission.yaml` with:
 
 - an **ordered `custom_scripts:`** block (Moose, zoneCommander, Foothold Config,
-  setup, Foothold CTLD, Splash, AIEN, EWRS… — the original load order);
+  setup, Foothold CTLD, Splash, AIEN, EWRS… — the original load order), **delays
+  included**: Lekaa does not load everything at once — 5 scripts arrive 3 seconds after the
+  first ones, and AIEN 12 seconds later. `convert-other` reads those delays out of the source
+  triggers and writes `delay_seconds:` on the scripts concerned, reproducing the staging
+  (see [`delay_seconds`](../MISSION_YAML_REFERENCE.en.md#custom-scripts));
 - a **`strip_native_triggers:`** list of the native loader triggers (the build
   removes them so nothing is loaded twice);
 - the profile's **VEAF modules** (RADIO, SPAWN, WEATHER, SHORTCUTS, SECURITY,
@@ -96,6 +100,18 @@ loaded by its native triggers (in order), and generates a `mission.yaml` with:
 - a `conversion_profile: foothold` marker (build/validate reject an incompatible
   module — Foothold ships its own CTLD, so the VEAF CTLD stays OFF);
 - a commented **`config_override:`** scaffold targeting `Foothold Config.lua`.
+
+### Why the staging matters {#staging}
+
+This is not fidelity for its own sake. **AIEN inventories ground groups exactly once**, at load
+time (its own comment: "launched once at mission start and collect everything relevant that is
+already there"). Foothold, meanwhile, creates part of its groups afterwards, from scheduled tasks
+starting at around 2 seconds.
+
+Loading AIEN at time zero therefore hands it a world those tasks have not populated yet — and the
+symptom is **silent**: no log error, just ground AI that never manages the groups Foothold created.
+That is what Lekaa's 12 seconds are for, and why a detected `delay_seconds:` should not be removed
+casually.
 
 ## 2. Tune `mission.yaml`
 

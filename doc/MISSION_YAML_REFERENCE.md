@@ -447,7 +447,7 @@ Voir les pages respectives pour le schéma complet :
 
 ---
 
-### `custom_scripts:`
+### `custom_scripts:` {#custom-scripts}
 
 Déclare les scripts Lua custom présents dans `src/scripts/` qui ne font pas partie du jeu standard VEAF v6.  
 Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warning. Par défaut, un trigger DCS de chargement est généré automatiquement pour lui ; positionner `generate_load_trigger: false` désactive ce trigger (utile quand le script est chargé manuellement depuis `mission-script.lua`).
@@ -457,6 +457,7 @@ Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warnin
 | `generate_load_trigger` | `bool` | `true` | Défaut global : générer un trigger DCS pour tous les scripts de la liste |
 | `scripts[].path` | `string` | *(requis)* | Chemin vers le fichier, relatif au dossier de mission (ex : `src/scripts/FgMission.lua`) |
 | `scripts[].generate_load_trigger` | `bool` | *(défaut global)* | Override par script ; si absent, le défaut global s'applique |
+| `scripts[].delay_seconds` | `number` | *(aucun)* | Charge ce script **après** ce délai (en secondes) au lieu du chargement groupé. Voir ci-dessous |
 
 **Comportement de chargement**
 
@@ -475,6 +476,42 @@ custom_scripts:
 ```
 
 > Tout fichier `.lua` présent dans `src/scripts/` mais **absent** de cette section (et ne faisant pas partie des fichiers standards) déclenche un warning au build avec un rappel pour le déclarer ici.
+
+**Charger un script après un délai : `delay_seconds`**
+
+Par défaut, tous les scripts de mission sont chargés d'un bloc au démarrage. Certains scripts ont besoin
+qu'un délai s'écoule avant de démarrer — typiquement parce qu'ils **inventorient le monde une seule
+fois** et doivent laisser aux scripts précédents le temps de créer leurs unités. C'est le cas d'AIEN dans
+Foothold, chargé 12 secondes après les autres.
+
+```yaml
+custom_scripts:
+  scripts:
+    - path: src/scripts/Moose.lua
+    - path: src/scripts/zoneCommander.lua
+    - path: src/scripts/AIEN.lua
+      delay_seconds: 12          # son propre déclencheur, 12 s après le début
+```
+
+- **Absent** (le défaut) → chargement groupé, exactement comme avant.
+- **Présent** → le script quitte le déclencheur commun pour un déclencheur `triggerOnce` qui lui est
+  propre, conditionné à `c_time_after`. Les scripts partageant le **même** délai partagent un
+  déclencheur, dans leur ordre de déclaration.
+- Le délai doit être **strictement positif**. Une valeur nulle, négative ou non numérique est refusée
+  avec un avertissement au build, et le script est alors chargé dans le déclencheur commun — il n'est
+  jamais perdu.
+
+> **C'est le délai qui décide de l'ordre, pas la position dans la liste.** Un script à `delay_seconds: 12`
+> se charge après **tous** les scripts sans délai, où qu'il soit écrit. Si un script différé est déclaré
+> avant un script non différé, le build vous avertit — la liste se lit alors dans un ordre différent de
+> celui d'exécution.
+
+Le comportement est **le même en build dynamique** : `veafDynamicConfig.lua` planifie le chargement au
+lieu de le faire immédiatement. `generate_load_trigger` pilotant les deux modes, un délai ne pouvait pas
+n'exister que dans l'un des deux.
+
+`convert-other` **détecte** ces délais dans la mission d'origine et écrit `delay_seconds:` tout seul :
+une mission adoptée reproduit donc l'étalement de l'amont sans que vous ayez à le remarquer.
 
 **Un script dans une seule variante (ex. un script de debug dynamique-seul)**
 

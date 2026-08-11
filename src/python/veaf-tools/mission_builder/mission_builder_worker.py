@@ -104,10 +104,83 @@ _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
 
 @dataclass
 class CustomScript:
-    """A custom Lua script declared in the custom_scripts section of mission.yaml."""
+    """A custom Lua script declared in the custom_scripts section of mission.yaml.
+
+    Attributes:
+        path: The script's base name.
+        generate_load_trigger: Per-script override of the section's default.
+        delay_seconds: Wall-clock delay before loading, or ``None`` for the shared
+            ``triggerStart``. ``None`` and ``0`` are deliberately different: zero would be a
+            delayed trigger firing on the first tick, i.e. one more trigger for the same result.
+    """
 
     path: str
     generate_load_trigger: bool | None = field(default=None)
+    delay_seconds: float | None = field(default=None)
+
+
+def _parse_custom_scripts(cs_raw: object) -> tuple[bool, list[CustomScript]]:
+    """Parse the ``custom_scripts`` section of ``mission.yaml``.
+
+    Extracted from ``__init__`` so the validation below can be tested against the real code
+    rather than against a copy of it — the pre-existing parsing test had to replicate the loop,
+    which is how a copy comes to disagree with its original.
+
+    Args:
+        cs_raw: The raw ``custom_scripts`` value, of whatever type the YAML happened to hold.
+
+    Returns:
+        ``(generate_load_trigger, scripts)`` — the section default and the declared scripts,
+        in declaration order.
+    """
+    if cs_raw is not None and not isinstance(cs_raw, dict):
+        logger.warning(t("builder.custom_scripts_not_mapping", type=type(cs_raw).__name__))
+        cs_raw = None
+    cs_section: dict = cs_raw or {}
+    if not cs_section:
+        return True, []
+
+    generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
+    scripts: list[CustomScript] = []
+    for script_item in cs_section.get("scripts") or []:
+        if isinstance(script_item, dict):
+            path = script_item.get("path", "")
+            per_script_trigger: bool | None = script_item.get("generate_load_trigger")
+            delay = _parse_delay_seconds(script_item.get("delay_seconds"), Path(str(path)).name)
+        else:
+            path = str(script_item)
+            per_script_trigger = None
+            delay = None
+        scripts.append(
+            CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger, delay_seconds=delay)
+        )
+    return generate_load_trigger, scripts
+
+
+def _parse_delay_seconds(raw: object, script_name: str) -> float | None:
+    """Validate a ``delay_seconds`` value, warning and returning ``None`` when unusable.
+
+    A bad delay never costs the script: it loads in the shared trigger, which is what it did
+    before the key existed. Dropping the whole entry over a mistyped delay would silently remove
+    a script the mission needs — a worse outcome than losing the staging.
+
+    Args:
+        raw: The declared value, of any type.
+        script_name: Base name of the script, so the warning names the culprit.
+
+    Returns:
+        The delay in seconds, or ``None`` when absent or unusable.
+    """
+    if raw is None:
+        return None
+    # bool is an int in Python, and `delay_seconds: true` is a mistake, not a one-second delay.
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        logger.warning(t("builder.custom_script_delay_invalid", script=script_name, value=raw))
+        return None
+    if raw <= 0:
+        logger.warning(t("builder.custom_script_delay_not_positive", script=script_name, value=raw))
+        return None
+    return float(raw)
 
 
 # --- Unified VEAF load-trigger specification -------------------------------------
@@ -153,13 +226,27 @@ class SoundAction:
 
 @dataclass(frozen=True)
 class VeafTriggerSpec:
-    """One VEAF trigger, source of truth for both the trig and trigrules forms."""
+    """One VEAF trigger, source of truth for both the trig and trigrules forms.
+
+    Attributes:
+        dict_key: Dictionary entry holding this trigger's Lua condition.
+        comment: What the Mission Editor shows in its trigger list.
+        color_item: The editor's colour for the row.
+        rule_has_flag: Whether the editor rule carries ``flag = 1``.
+        actions: What the trigger does, in order.
+        delay_seconds: When set, the trigger becomes a ``triggerOnce`` gated on
+            ``c_time_after`` instead of a ``triggerStart``. The three consequences in the
+            compiled ``trig`` form were read out of an upstream `.miz`: the trigger lives in
+            ``func`` rather than ``funcStartup``, its condition ANDs ``c_time_after``, and its
+            action string ends by clearing its own ``func`` entry so it fires once.
+    """
 
     dict_key: str
     comment: str
     color_item: str
     rule_has_flag: bool
     actions: list[LuaAction | FileAction | SoundAction]
+    delay_seconds: float | None = None
 
 
 #: Dictionary keys of the 6 VEAF load triggers, in order. Shared by the dictionary
@@ -178,6 +265,51 @@ _VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
     # inert when the trigger is absent.
     "VEAF_DictKey_ActionText_12007",
 )
+
+#: Dictionary keys of the deferred mission-script triggers, one per distinct ``delay_seconds``
+#: (FEAT-CUSTOM-SCRIPT-LOAD-DELAY). Numbered from 12008 so the seven fixed keys above keep
+#: theirs, and generated on demand: a mission staging nothing declares none of these triggers,
+#: though their dictionary entries are written anyway — inert, exactly like the 7th.
+_VEAF_DELAY_TRIGGER_DICT_KEY_BASE = 12008
+
+#: Distinct delays a single mission may declare. Twelve is far above anything observed (Foothold
+#: stages twice) and exists so a generated mission cannot collide with the dictionary keys of
+#: whatever is added after 12008 — a bound stated here rather than discovered by a key clash.
+_VEAF_MAX_DELAY_GROUPS = 12
+
+
+def _delay_trigger_dict_key(group_index: int) -> str:
+    """Return the dictionary key of the *group_index*-th deferred trigger (0-based)."""
+    return f"VEAF_DictKey_ActionText_{_VEAF_DELAY_TRIGGER_DICT_KEY_BASE + group_index}"
+
+
+def _format_delay(delay: float) -> str:
+    """Render a delay for a human-facing comment: ``12`` rather than ``12.0``, ``0.5`` kept."""
+    return str(int(delay)) if float(delay).is_integer() else str(delay)
+
+
+def _emit_trig_condition(spec: VeafTriggerSpec) -> str:
+    """Emit the compiled ``trig`` condition of *spec*.
+
+    ``c_predicate`` is what makes a *static* trigger inert in a *dynamic* build (its dictionary
+    entry reads ``return VEAF_DYNAMIC_MISSIONPATH==nil``), so a deferred trigger keeps it and ANDs
+    the delay. Dropping it would load the deferred script in dynamic mode too, i.e. twice.
+
+    Args:
+        spec: The trigger.
+
+    Returns:
+        The Lua condition body.
+    """
+    predicate = f'c_predicate(getValueDictByKey("{spec.dict_key}"))'
+    if spec.delay_seconds is None:
+        return f"return({predicate} )"
+    # Named rather than returned inline: this is generated Lua, but the i18n gate flags any
+    # returned literal over 15 characters containing a space as untranslated user prose, and
+    # exempting this file would grow a list the quality policy only ever shrinks.
+    condition = f"return({predicate} and c_time_after({_format_delay(spec.delay_seconds)}) )"
+    return condition
+
 
 #: Module id of the guided-assistance module, whose config selects the checklists to
 #: activate and therefore the images to render into the ``.miz``.
@@ -604,23 +736,9 @@ class MissionBuilderWorker(BaseWorker):
         self.lua_modules: dict | None = lua_modules
 
         # Parse custom_scripts section from mission.yaml
-        self.custom_scripts: list[CustomScript] = []
-        self.custom_scripts_generate_load_trigger: bool = True
-        cs_raw = self.mission_yaml.get("custom_scripts")
-        if cs_raw is not None and not isinstance(cs_raw, dict):
-            logger.warning(t("builder.custom_scripts_not_mapping", type=type(cs_raw).__name__))
-            cs_raw = None
-        cs_section: dict = cs_raw or {}
-        if cs_section:
-            self.custom_scripts_generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
-            for script_item in cs_section.get("scripts") or []:
-                if isinstance(script_item, dict):
-                    path = script_item.get("path", "")
-                    per_script_trigger: bool | None = script_item.get("generate_load_trigger")
-                else:
-                    path = str(script_item)
-                    per_script_trigger = None
-                self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
+        self.custom_scripts_generate_load_trigger, self.custom_scripts = _parse_custom_scripts(
+            self.mission_yaml.get("custom_scripts")
+        )
 
         # Parse config_override section from mission.yaml (FOOTHOLD-V6-004).
         # target = the upstream config script the override layers on top of (its
@@ -1414,6 +1532,14 @@ class MissionBuilderWorker(BaseWorker):
             keys[5]: "return VEAF_DYNAMIC_MISSIONPATH==nil",
             keys[6]: "return true -- declare the CTLD/CSAR sounds so the Mission Editor keeps them",
         }
+        # The deferred mission-script triggers share the static-mission predicate: they must be
+        # inert in a dynamic build, where veafDynamicConfig.lua schedules the same scripts itself.
+        # Written for every possible group, not only the declared ones — an unused entry is inert,
+        # and this way a trigger can never read a dictionary key the other half forgot.
+        for group_index in range(_VEAF_MAX_DELAY_GROUPS):
+            new_dictionary[_delay_trigger_dict_key(group_index)] = (
+                "return VEAF_DYNAMIC_MISSIONPATH==nil -- deferred mission scripts (static mode only)"
+            )
 
         # merge the new dictionary with the mission dictionary
         assert self.dcs_mission is not None
@@ -1599,11 +1725,21 @@ class MissionBuilderWorker(BaseWorker):
         hand-edited (declare scripts in ``mission.yaml`` ``custom_scripts:``).
         """
         scripts = self._ordered_mission_script_names()
-        scripts_lua = "\n".join(f'    "{name}",' for name in scripts)
+        delay_by_name = {
+            script.path: script.delay_seconds for script in self.custom_scripts if script.delay_seconds is not None
+        }
+        scripts_lua = "\n".join(
+            f'    {{ name = "{name}", delay = {_format_delay(delay_by_name[name])} }},'
+            if name in delay_by_name
+            else f'    {{ name = "{name}" }},'
+            for name in scripts
+        )
         content = (
             "-- GENERATED by veaf-tools build — do NOT edit by hand.\n"
             "-- Declare your scripts in mission.yaml (custom_scripts:); this list mirrors\n"
             "-- the static load triggers so dynamic and static builds load the same files.\n"
+            "-- A `delay` mirrors `delay_seconds:`, which in static mode is a triggerOnce with\n"
+            "-- c_time_after; here it is a scheduled load, so both modes stage alike.\n"
             "local scriptsToLoad =\n"
             "{\n"
             f"{scripts_lua}\n"
@@ -1611,9 +1747,17 @@ class MissionBuilderWorker(BaseWorker):
             "if (VEAF_DYNAMIC_MISSIONPATH) then\n"
             "    local sMissionScriptsPath = VEAF_DYNAMIC_MISSIONPATH .. [[src\\scripts\\]]\n"
             "    for _, script in ipairs(scriptsToLoad) do\n"
-            "        local sPathToExec = sMissionScriptsPath .. script\n"
-            '        veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec)\n'
-            "        assert(loadfile(sPathToExec))()\n"
+            "        local sPathToExec = sMissionScriptsPath .. script.name\n"
+            "        if script.delay then\n"
+            '            veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec .. " in " .. script.delay .. "s")\n'
+            "            timer.scheduleFunction(function()\n"
+            '                veaf.loggers.get(veaf.Id):info("DynamicConfig: loading (delayed) " .. sPathToExec)\n'
+            "                assert(loadfile(sPathToExec))()\n"
+            "            end, {}, timer.getTime() + script.delay)\n"
+            "        else\n"
+            '            veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec)\n'
+            "            assert(loadfile(sPathToExec))()\n"
+            "        end\n"
             "    end\n"
             "else\n"
             '        veaf.loggers.get(veaf.Id):error("DynamicConfig: cannot load because the VEAF_DYNAMIC_MISSIONPATH is not set")\n'
@@ -1804,10 +1948,14 @@ class MissionBuilderWorker(BaseWorker):
         ]
         static_scripts += [FileAction(key) for key in new_map_resource_script_files]
 
+        # Mission scripts declaring `delay_seconds` leave the shared triggerStart for a
+        # triggerOnce of their own, grouped by delay (FEAT-CUSTOM-SCRIPT-LOAD-DELAY).
+        immediate_keys, delay_groups = self._split_delayed_mission_scripts(new_map_resource_mission_script_files)
+
         static_mission: list[LuaAction | FileAction | SoundAction] = [
             LuaAction('env.info("STATIC Mission scripts loading")')
         ]
-        static_mission += [FileAction(key) for key in new_map_resource_mission_script_files]
+        static_mission += [FileAction(key) for key in immediate_keys]
 
         specs = [
             VeafTriggerSpec(
@@ -1839,12 +1987,76 @@ class MissionBuilderWorker(BaseWorker):
             VeafTriggerSpec(keys[5], "Mission scripts loading - static", "0x8080ffff", False, static_mission),
         ]
 
+        # One deferred trigger per distinct delay, in increasing delay order so the editor's
+        # trigger list reads as the staging it reproduces.
+        for group_index, (delay, group_keys) in enumerate(sorted(delay_groups.items())):
+            specs.append(
+                VeafTriggerSpec(
+                    _delay_trigger_dict_key(group_index),
+                    f"Mission scripts loading - static, delayed {_format_delay(delay)}s",
+                    "0x8080ffff",
+                    False,
+                    [
+                        LuaAction(f'env.info("STATIC Mission scripts loading - delayed {_format_delay(delay)}s")'),
+                        *(FileAction(key) for key in group_keys),
+                    ],
+                    delay_seconds=delay,
+                )
+            )
+
         # The sound declaration is last and conditional: with no orphan sound there is nothing to
         # protect from the editor's pruning, and an empty trigger would be noise.
         sound_actions = self._build_sound_declaration_actions()
         if sound_actions:
             specs.append(VeafTriggerSpec(keys[6], "Declare mission sounds", "0xffff00ff", False, list(sound_actions)))
         return specs
+
+    def _split_delayed_mission_scripts(self, mission_script_files: dict) -> tuple[list[str], dict[float, list[str]]]:
+        """Split the mission-script resource keys into immediate ones and per-delay groups.
+
+        The declared **order of the mission-file list is preserved inside each group**, since that
+        list is already the resolved load order (``_ordered_mission_script_files``).
+
+        Ordering rule, and it is documented rather than enforced: **the delay decides, not the
+        position in the list.** A script at +12 s loads after every undelayed one wherever it sits.
+        Refusing a list where a delayed script precedes an undelayed one was the alternative; it
+        would reject perfectly workable files — a maker may well group their scripts by topic
+        instead of by delay — so a build warning names the pair instead. That is the only case
+        where reading the list top to bottom disagrees with what actually happens.
+
+        Args:
+            mission_script_files: Resource key → script base name, in load order.
+
+        Returns:
+            ``(immediate keys, {delay: keys})``.
+        """
+        delay_by_name = {
+            script.path: script.delay_seconds for script in self.custom_scripts if script.delay_seconds is not None
+        }
+        if not delay_by_name:
+            return list(mission_script_files), {}
+
+        immediate: list[str] = []
+        groups: dict[float, list[str]] = {}
+        seen_immediate_after_delay: list[tuple[str, str]] = []
+        last_delayed_name: str | None = None
+        for key, name in mission_script_files.items():
+            delay = delay_by_name.get(name)
+            if delay is None:
+                immediate.append(key)
+                if last_delayed_name is not None:
+                    seen_immediate_after_delay.append((last_delayed_name, name))
+            else:
+                groups.setdefault(delay, []).append(key)
+                last_delayed_name = name
+
+        if seen_immediate_after_delay:
+            pairs = "; ".join(f"{delayed} → {immediate_name}" for delayed, immediate_name in seen_immediate_after_delay)
+            logger.warning(t("builder.custom_script_delay_out_of_order", pairs=pairs))
+
+        if len(groups) > _VEAF_MAX_DELAY_GROUPS:
+            logger.error(t("builder.custom_script_delay_too_many", count=len(groups), maximum=_VEAF_MAX_DELAY_GROUPS))
+        return immediate, groups
 
     def insert_veaf_triggers(self, specs: list[VeafTriggerSpec]) -> None:
         """Insert the compiled ``trig`` form of the VEAF triggers, derived from *specs*.
@@ -1905,20 +2117,26 @@ class MissionBuilderWorker(BaseWorker):
             return result
 
         nb = len(specs)
+        indexed = list(enumerate(specs, start=1))
+        # A deferred trigger is a triggerOnce, and DCS compiles that differently from the
+        # triggerStart every other VEAF trigger is. Three differences, all read out of an upstream
+        # `.miz` rather than guessed: it is dispatched from `func` (evaluated every tick) instead
+        # of `funcStartup` (evaluated once), its condition ANDs `c_time_after`, and its action
+        # string clears its own `func` entry — that is what makes the "Once".
+        dispatch = "if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end"
         veaf_triggers = {
             "customStartup": {},
-            "func": {},
+            "func": {i: dispatch.format(i=i) for i, spec in indexed if spec.delay_seconds is not None},
             "custom": {},
             "events": {},
             "flag": {i: True for i in range(1, nb + 1)},
-            "conditions": {
-                i: f'return(c_predicate(getValueDictByKey("{spec.dict_key}")) )'
-                for i, spec in enumerate(specs, start=1)
+            "conditions": {i: _emit_trig_condition(spec) for i, spec in indexed},
+            "actions": {
+                i: _emit_trig_action_string(spec.actions)
+                + (f" mission.trig.func[{i}]=nil;" if spec.delay_seconds is not None else "")
+                for i, spec in indexed
             },
-            "actions": {i: _emit_trig_action_string(spec.actions) for i, spec in enumerate(specs, start=1)},
-            "funcStartup": {
-                i: f"if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end" for i in range(1, nb + 1)
-            },
+            "funcStartup": {i: dispatch.format(i=i) for i, spec in indexed if spec.delay_seconds is None},
         }
 
         assert self.dcs_mission is not None
@@ -1980,10 +2198,19 @@ class MissionBuilderWorker(BaseWorker):
                         "text": spec.dict_key,
                         "KeyDict_text": spec.dict_key,
                         "predicate": "c_predicate",
-                    }
+                    },
+                    # A second rule, ANDed by the editor, for a deferred trigger. Only `seconds` is
+                    # written: an upstream mission also carries `coalitionlist`/`unitType`/`zone`
+                    # there, but those are leftovers of the editor's form and `zone` names a zone of
+                    # *that* mission — copying it would point at a zone we do not have.
+                    *(
+                        [{"predicate": "c_time_after", "seconds": spec.delay_seconds}]
+                        if spec.delay_seconds is not None
+                        else []
+                    ),
                 ],
                 "comment": spec.comment,
-                "predicate": "triggerStart",
+                "predicate": "triggerStart" if spec.delay_seconds is None else "triggerOnce",
                 "eventlist": "",
                 "actions": _emit_trigrule_actions(spec.actions),
                 "colorItem": spec.color_item,

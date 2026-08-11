@@ -17,6 +17,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
+import yaml
 from mission_extractor import MissionExtractorWorker
 from mission_tools import read_miz
 from mission_tools.miz_tools import DcsMission
@@ -138,11 +139,15 @@ class DetectedLoader:
         script: The resolved script filename (e.g. ``"Moose_2026-04-28.lua"``).
         trigger_index: The ``trigrules`` index of the loader trigger.
         trigger_comment: The trigger's editor comment (e.g. ``"ScriptLoader 1"``).
+        delay_seconds: The loader trigger's ``c_time_after`` seconds, when it has one.
+            Upstream missions stage their loading this way — Foothold at +3 s and +12 s —
+            and without recording it the adoption flattens the staging silently.
     """
 
     script: str
     trigger_index: int
     trigger_comment: str
+    delay_seconds: float | None = None
 
 
 def detect_native_script_loaders(dcs_mission: DcsMission) -> list[DetectedLoader]:
@@ -169,13 +174,111 @@ def detect_native_script_loaders(dcs_mission: DcsMission) -> list[DetectedLoader
         if not isinstance(trigrule, dict):
             continue
         comment = str(trigrule.get("comment", ""))
+        delay = _trigrule_delay_seconds(trigrule)
         for action in _ordered_actions(trigrule):
             if action.get("predicate") != "a_do_script_file":
                 continue
             resolved = map_resource.get(action.get("file", ""))
             if resolved and str(resolved).lower().endswith(_LUA_SUFFIX):
-                loaders.append(DetectedLoader(str(resolved), index, comment))
+                loaders.append(DetectedLoader(str(resolved), index, comment, delay))
     return loaders
+
+
+def _format_scaffold_delay(delay: float) -> str:
+    """Render a detected delay for the scaffold: ``12`` rather than ``12.0``."""
+    return str(int(delay)) if float(delay).is_integer() else str(delay)
+
+
+def _declared_delays(mission_yaml_path: Path | None) -> dict[str, float | None]:
+    """Read the ``delay_seconds`` a tuned ``mission.yaml`` declares, keyed by script base name.
+
+    Args:
+        mission_yaml_path: The mission's ``mission.yaml``, or ``None``.
+
+    Returns:
+        ``{script name: delay or None}``, empty when the file is absent or unreadable. An
+        unreadable file is not this function's problem to report — the build and ``validate``
+        both say so far more clearly than an update summary could.
+    """
+    if mission_yaml_path is None or not mission_yaml_path.is_file():
+        return {}
+    try:
+        parsed = yaml.safe_load(mission_yaml_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+    section = parsed.get("custom_scripts") if isinstance(parsed, dict) else None
+    entries = section.get("scripts") if isinstance(section, dict) else None
+    declared: dict[str, float | None] = {}
+    for entry in entries or []:
+        if isinstance(entry, dict):
+            name = Path(str(entry.get("path", ""))).name
+            raw = entry.get("delay_seconds")
+            declared[name] = float(raw) if isinstance(raw, (int, float)) and not isinstance(raw, bool) else None
+        else:
+            declared[Path(str(entry)).name] = None
+    return declared
+
+
+def _delay_changes(mission_yaml_path: Path | None, loaders: list[DetectedLoader]) -> list[str]:
+    """Report upstream staging that no longer matches what ``mission.yaml`` declares.
+
+    ``--update`` deliberately preserves the tuned ``mission.yaml``, which is exactly why this
+    has to be said out loud: a delay that moved upstream would otherwise stay silently wrong,
+    and the consequence is not cosmetic (a script that expects the world to be populated runs
+    against an empty one).
+
+    Args:
+        mission_yaml_path: The preserved ``mission.yaml``, or ``None`` to skip.
+        loaders: The loaders detected in the fresh upstream mission.
+
+    Returns:
+        One human-readable line per differing script, in script-name order.
+    """
+    declared = _declared_delays(mission_yaml_path)
+    if not declared:
+        return []
+    changes: list[str] = []
+    for loader in sorted(loaders, key=lambda item: item.script):
+        if loader.script not in declared:
+            continue
+        was, now = declared[loader.script], loader.delay_seconds
+        if was == now:
+            continue
+        changes.append(
+            t(
+                "convert_other.update.delay_changed",
+                script=loader.script,
+                declared="none" if was is None else _format_scaffold_delay(was),
+                upstream="none" if now is None else _format_scaffold_delay(now),
+            )
+        )
+    return changes
+
+
+def _trigrule_delay_seconds(trigrule: dict) -> float | None:
+    """Return a loader trigger's ``c_time_after`` delay in seconds, or ``None``.
+
+    Only a positive delay is reported: ``c_time_after`` with 0 seconds says the same thing as
+    no rule at all, and emitting ``delay_seconds: 0`` would scaffold a trigger for nothing.
+
+    Args:
+        trigrule: One ``trigrules`` entry.
+
+    Returns:
+        The delay in seconds, or ``None`` when the trigger has no usable time rule.
+    """
+    rules = trigrule.get("rules")
+    if not isinstance(rules, dict):
+        # DCS writes rules as a 1-based table, which luadata may hand back as either shape.
+        rules = dict(enumerate(rules or [], start=1)) if isinstance(rules, list) else {}
+    for rule in rules.values():
+        if isinstance(rule, dict) and rule.get("predicate") == "c_time_after":
+            seconds = rule.get("seconds")
+            if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+                continue
+            if seconds > 0:
+                return float(seconds)
+    return None
 
 
 def _trigrule_loads_script(trigrule: dict, map_resource: dict[str, str]) -> bool:
@@ -328,6 +431,10 @@ def build_scaffold_yaml(
     ]
     for loader in loaders:
         lines.append(f"    - path: {_yaml_path(f'src/scripts/{loader.script}')}")
+        if loader.delay_seconds is not None:
+            # The upstream trigger was gated on c_time_after, so reproduce the staging rather
+            # than flattening it into the shared triggerStart.
+            lines.append(f"      delay_seconds: {_format_scaffold_delay(loader.delay_seconds)}")
     lines.append("")
 
     lines += [
@@ -436,7 +543,7 @@ class OtherMissionConverter:
             loaders = self._normalize_script_names(loaders, profile, scripts_dir, overwrite=update)
 
         if update:
-            self._report_update(report, scripts_dir, before, loaders)
+            self._report_update(report, scripts_dir, before, loaders, output_mission_folder / "mission.yaml")
         else:
             self._scaffold_mission_yaml(report, output_mission_folder, loaders, strip_triggers, profile, force, backup)
 
@@ -482,8 +589,18 @@ class OtherMissionConverter:
         scripts_dir: Path,
         before: dict[str, str],
         loaders: list[DetectedLoader],
+        mission_yaml_path: Path | None = None,
     ) -> None:
-        """Preserve the tuned ``mission.yaml`` and report the upstream script diff."""
+        """Preserve the tuned ``mission.yaml`` and report the upstream script diff.
+
+        Args:
+            report: The report being filled.
+            scripts_dir: Where the extracted scripts landed.
+            before: Script fingerprints taken before the extraction.
+            loaders: The upstream loaders detected in this version.
+            mission_yaml_path: The preserved ``mission.yaml``, read to compare its declared
+                ``delay_seconds`` against upstream's. ``None`` skips that comparison.
+        """
         after = snapshot_scripts(scripts_dir)
         upstream = {loader.script for loader in loaders}
         diff = diff_scripts(before, after, upstream)
@@ -501,6 +618,12 @@ class OtherMissionConverter:
             report.manual_review.append(
                 tn("convert_other.update.removed", len(diff.removed), names=", ".join(diff.removed))
             )
+
+        # A staging change is as much an upstream change as an added script, and it is the one
+        # nothing else would reveal: the tuned mission.yaml is preserved, so an upstream delay
+        # that moved stays silently wrong until someone re-reads the source triggers.
+        for change in _delay_changes(mission_yaml_path, loaders):
+            report.manual_review.append(change)
 
     @staticmethod
     def _normalize_script_names(

@@ -34,11 +34,21 @@ def _fields_assigned_in_init() -> set[str]:
             targets = [node.target]
         else:
             continue
-        for target in targets:
+        # Unpacking (`self.a, self.b = f()`) puts the attributes inside a Tuple/List target, so a
+        # detector reading only the top level misses both. That is a blind spot, not a nuisance: a
+        # field assigned that way would silently escape the factory contract this file enforces.
+        for target in [inner for outer in targets for inner in _flatten_target(outer)]:
             if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name):
                 if target.value.id == "self":
                     names.add(target.attr)
     return names
+
+
+def _flatten_target(target: ast.expr) -> list[ast.expr]:
+    """Return *target* itself, or its elements when it is a tuple/list unpacking target."""
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return [inner for element in target.elts for inner in _flatten_target(element)]
+    return [target]
 
 
 class TestFactoryCoversInit:

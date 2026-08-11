@@ -443,14 +443,15 @@ class UpdateWorker:
 
         return self._read_capped(response, asset_name)
 
-    def _read_capped(self, response: Any, asset_name: str) -> bytes | None:
+    def _read_capped(self, response: requests.Response, asset_name: str) -> bytes | None:
         """Read a response body, refusing anything past ``_MAX_ASSET_BYTES``.
 
         The declared length is checked first because it is free; the stream is then counted while it
         is read, which is what actually holds — a reply may declare nothing and never end.
 
         Args:
-            response: The (streaming) response to read.
+            response: The streaming response to read — only ``headers``, ``iter_content`` and
+                ``close`` are used, so a test double needs no more than those three.
             asset_name: The asset's name, for the error message.
 
         Returns:

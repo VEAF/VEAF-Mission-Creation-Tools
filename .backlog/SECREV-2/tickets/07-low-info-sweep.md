@@ -900,11 +900,11 @@ which is itself telling.
 ### VMR-104: the ordering was the bug, and the tests pin the order
 
 `publish` pushed tags first, created the release second. So an unusable `gh` left `published-v<x>` on
-the remote with no release, and for a full release **`published-latest` force-moved onto that same
+the remote with no release, and for a full release **`published-latest` was force-moved onto that same
 commit** — the tag the updater and every "latest" link resolve. Now `gh` is checked before anything
 reaches the remote, and the floating tag moves only after the release exists.
 
-Worth recording: the "swallowed local failures" of VMR-105 does not reproduce. `logger.error` raises
+Worth recording: the "swallowed local failures" of VMR-105 do not reproduce. `logger.error` raises
 `typer.Abort`, so a failed push or release creation already aborted the publish — and that is exactly
 what keeps the floating tag where it was. One test asserts both properties together.
 

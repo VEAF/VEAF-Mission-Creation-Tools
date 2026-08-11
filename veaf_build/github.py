@@ -75,9 +75,13 @@ class GitHubPublisher:
         # floating tag then pointed at a release GitHub cannot serve. So: refuse before touching the
         # remote, and move the floating tag only once the release exists.
         if self.token and not self._gh_cli_available():
+            # The escape hatch is running *without* a token, which is the tags-only mode above —
+            # not `--skip-git-tags`, which means the opposite (do not push tags at all). Sourcery
+            # caught the first version of this message advising the flag that would do the least.
             logger.warning(
                 "GitHub CLI (gh) not found, so no release can be created: nothing was pushed. "
-                "Install it from https://cli.github.com/ or re-run with --skip-git-tags to push tags only."
+                "Install it from https://cli.github.com/, or re-run without a token to push the tags "
+                "alone and upload the release assets by hand."
             )
             return
 

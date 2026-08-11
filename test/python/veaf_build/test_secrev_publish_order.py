@@ -13,6 +13,7 @@ only once the release is created.
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -22,15 +23,29 @@ import typer
 from veaf_build.github import GitHubPublisher
 
 
+def _prepared_root() -> Path:
+    """A throwaway root holding what the publisher requires, and nothing else.
+
+    Using the repository root instead made these tests pass locally and fail in CI: a
+    `published-metadata.json` left over from a local build is there on this machine and absent on a
+    fresh checkout, and the publisher refuses to create a release without it. Same for
+    `RELEASE_NOTES.md`, which would silently change the command line.
+    """
+    root = Path(tempfile.mkdtemp())
+    (root / "published-metadata.json").write_text('{"published_zip_sha256": "deadbeef"}', encoding="utf-8")
+    return root
+
+
 def _publisher(*, token: str | None = "t0ken", version: str = "6.13.72", prerelease: bool = False) -> GitHubPublisher:
+    root = _prepared_root()
     return GitHubPublisher(
         owner="VEAF",
         repo="VEAF-Mission-Creation-Tools",
         token=token,
         version=version,
-        script_root=Path("."),
-        dist_dir=Path("."),
-        output_path=Path("."),
+        script_root=root,
+        dist_dir=root,
+        output_path=root,
         prerelease=prerelease,
     )
 
@@ -65,8 +80,8 @@ class _Recorder:
 
 
 def _run(recorder: _Recorder, publisher: GitHubPublisher) -> None:
-    # The asset uploads are inline in _publish_with_gh_cli and guarded by `.exists()`; with
-    # dist_dir="." none of the executables is there, so they are skipped without extra mocking.
+    # The asset uploads are inline in _publish_with_gh_cli and guarded by `.exists()`; the prepared
+    # root holds only published-metadata.json, so they are skipped without extra mocking.
     with mock.patch("veaf_build.github.subprocess.run", recorder):
         publisher.publish(Path("pkg.zip"), "deadbeef")
 

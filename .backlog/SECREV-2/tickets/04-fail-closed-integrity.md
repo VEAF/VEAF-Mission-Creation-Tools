@@ -40,7 +40,7 @@ decompression, and verify what was fetched before using it.
       `requests` follows redirects anywhere by default. The *cap* half is this pass:
       `download_asset` streamed nothing and read `response.content` whole, so a reply with no
       `Content-Length` that never ends had no bound at all — on an updater that installs and then
-      **runs** what it downloads. Now read in 64 KiB chunks against `_MAX_ASSET_BYTES` = 256 MiB,
+      **runs** what it downloads. It now reads in 64 KiB chunks against `_MAX_ASSET_BYTES` = 256 MiB,
       a bound chosen from measurement (largest real asset: `published.zip` at 61 MiB) and matching
       `safe_zip.MAX_MEMBER_UNCOMPRESSED_BYTES` so the two agree. 5 tests, including an endless
       response and both sides of the boundary.

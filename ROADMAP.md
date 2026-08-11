@@ -38,52 +38,51 @@ extending it:
 - **Combat zones playable from either side** — red-side zones and coalition-scoped F10 menus.
 
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.13.0** (2026-08-01); `develop` is at **6.13.26**.
+release is **6.13.0** (2026-08-01); `develop` is at **6.13.88**.
 
 ---
 
-## 2. Open backlog — what is blocked, and on what
+## 2. Open backlog — the order, and what is in the way
 
 [.backlog/README.md](.backlog/README.md) is the full open list and the source of truth for scope
-and status. This section is only about **what is in the way**, because almost everything blocked
-is blocked on the same thing.
+and status. This section is the **order**, plus what stands in the way of everything not in it.
 
-### Needed a machine with DCS installed — two of the four are now answered
+### The order, decided 2026-08-11
 
-Not on a decision — on hardware. The 2026-08-06 session on the DCS workstation cleared the first two
-rows; the strikethrough ones are closed and kept here for one refresh so the sequencing reads.
+Nine lots are open. Three of them carry all the work an agent can do alone, and David set their
+sequence:
 
-| Lot | Status | What has to be observed in game |
-|-----|--------|---------------------------------|
-| ~~`FEAT-SCENERY-AWARE-SPAWN`~~ | ✅ | **Answered 2026-08-06, avoidance included** — an F10 marker plus the harness marking every proposed point. It also found a correctness bug in the day-old code: the singleton's radius does not bound its answers, and tier 1 had no distance test, so a spawn could move kilometres silently. Fixed. |
-| ~~`FEAT-COMBATZONE-MENU-COALITION`~~ | ✅ | **Answered 2026-08-06: DCS accepts a coalition-scoped submenu under a global parent.** Open since July, closed by the harness. |
-| `FEAT-CUSTOM-SCRIPT-LOAD-DELAY` | ⬜ | Its first task is reading `dcs.log` after running the built Foothold. Labelled ⬜, gated in practice — though `Sim.getLogHistory(from)` now offers to read the log **through the hook** instead of off disk. |
-| `FEAT-DCS-SMOKE-HARNESS` | 🔄 | Its remaining slice — locate, launch, load, quit. `net.load_mission` and `Sim.exitProcess` are **measured present**, and `isServer()` is true in single-player, so the SERVER-ONLY caveat does not block a local instance. |
+| Order | Lot | Weight | Why here |
+|-------|-----|--------|----------|
+| **1** | [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) | 3 small tickets | Its ticket 03 (`dev_condition`) attacks **the cost that blocks the 🧑 rows below**: verifying step 30 of an engine start means performing the 29 before it, in a cockpit. Worth having *before* the F-16C review, not after. |
+| **2** | [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) | 1 ticket | A real gap found on Foothold: upstream staggers its script loading (3 s, 12 s), the built `.miz` loads all fourteen in one `triggerStart`. The current workaround pushes a mission maker into Lua for something upstream expressed declaratively. |
+| **3** | [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md) | 4 tickets, the big one | "Change this flight's loadout", "move that group 5 km east" are **impossible** through the MCP while every other link in the chain exists. The substantive value of the release, and the only lot whose size can move the date. |
 
-**`FEAT-DCS-SMOKE-HARNESS` was the lever, and it paid.** Run on the DCS workstation on 2026-08-06, it
-answered two of the four rows above by machine rather than by a person: it closed
-`FEAT-COMBATZONE-MENU-COALITION` and turned `Disposition` from assumed into existing. It also cost three
-of its own defects to get there — all the same mistake, *"it came back" is not "it worked"* — every one
-invisible to `dcs_mocks.lua` by construction. Keep going there: the remaining checks are data entries now,
-not investigations.
+[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once 3 is merged — one
+ticket, and it is a design decision where **a rejection is an acceptable outcome**. It adds nothing to
+the release by itself, which is why it is not in the three.
 
-### Blocked on a person, not on DCS
+### Blocked on a person, or on a DCS session
+
+Not on a decision anyone can take at a keyboard here.
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| `ENRICH-DEFAULT-PRESETS` | ⬜ | A 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
-| `REVIEW-SECURITY-LAYER` | ⬜ | Both tickets end in a decision by David: what a login session should mean, and whether the tier names change (breaking). |
-| `FEAT-ASSIST-AUTHORING` | ⏸ | Parked by David 2026-08-03 — checklists nobody reviews are not worth generating. |
+| [`ENRICH-DEFAULT-PRESETS`](.backlog/ENRICH-DEFAULT-PRESETS/PRD.md) | ⬜ | A 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
+| [`FEAT-DCS-SMOKE-HARNESS`](.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) | 🔄 | Its remaining slice — locate, launch, load, quit. `net.load_mission` and `Sim.exitProcess` are **measured present** and `isServer()` is true in single-player, so nothing technical blocks it; **starting DCS is David's to do on his own session.** |
+| [`FEAT-ASSIST-FOLLOWUP`](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11. **Kept for after the release on David's call** — 02 needs a second pilot, 03 needs cockpit time, and 04 is deferred on purpose. Ticket 01 still wants one flight to confirm it, since no unit test can see DCS's resource cache. |
+| [`FEAT-ASSIST-AUTHORING`](.backlog/FEAT-ASSIST-AUTHORING/PRD.md) | ⏸ | Parked by David 2026-08-03 — checklists nobody reviews are not worth generating. Ticket 06 waits on a pilot's verdict on the F-14B(U) procedure. |
+| [`FIX-SECREV2-EXPIRED-DEFERRALS`](.backlog/FIX-SECREV2-EXPIRED-DEFERRALS/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11 (VMR-088, a unit's life read twice). Ticket 02 — the fiddle-server port — needs a DCS session. |
 
-### Open, and doable anywhere
-
-`SECREV-2` (tickets 04–07: fail-closed integrity, the two correctness bugs, the 24 medium and the
-108 low/info), `FEAT-MCP-MUTATION-ACTIONS`, `FEAT-PORTABLE-PREFABS` (a design decision, and a
-rejection is an acceptable outcome), `CHORE-SMS-QUICK-WINS`, `CHORE-TOOLING-GATES` (2 of 3 left),
-`FIX-RADIO-LAYOUT-GAPS`.
+**`FEAT-DCS-SMOKE-HARNESS` was the lever, and it paid.** Run on the DCS workstation on 2026-08-06, it
+answered two pending in-game questions by machine rather than by a person: it closed
+`FEAT-COMBATZONE-MENU-COALITION` (open since July) and turned `Disposition` from assumed into existing.
+It also cost three of its own defects to get there — all the same mistake, *"it came back" is not "it
+worked"* — every one invisible to `dcs_mocks.lua` by construction. Keep going there: the remaining
+checks are data entries now, not investigations.
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
-**6.13.0 was published 2026-08-01 and `develop` is 26 patch versions ahead.**
+**6.13.0 was published 2026-08-01 and `develop` is 88 patch versions ahead.**
 
 ### Security work closed 2026-08-11
 
@@ -116,6 +115,19 @@ not listed must give the password on every command. See the top of the changelog
 - [ADR 0017](docs/adr/0017-no-live-mission-editor-bridge.md) — a **live Mission Editor bridge is
   rejected**, on measurements rather than taste. Closes the question so it is not reopened by the next
   tool that advertises it.
+- `REFACTOR-MARKER-PARSER` and the crash-fix lot before it — one declarative marker-text parser
+  (`veaf.parseMarkerText`) replaces ten hand-written loops, and **13 crashes of one family** were fixed
+  on the way. The lot's premise ("a fix reaches the copy it was written against") proved itself four
+  times *during* the work, three of those in code already believed fixed. The sweep that found the last
+  three enumerates its cases from the rule tables instead of picking them by hand.
+- `FEAT-ASSIST-FOLLOWUP` ticket 01 and `FIX-SECREV2-EXPIRED-DEFERRALS` ticket 01 (2026-08-11) — a
+  checklist picture is named after a digest of its own bytes, so DCS cannot serve a stale bitmap under a
+  name it already cached; and a unit's life is read once instead of twice, so a hit landing between the
+  two reads can no longer be scored as a kill.
+
+**Two lots left the open list by being archived**, not by being reopened elsewhere:
+`CHORE-TOOLING-GATES` and `FIX-RADIO-LAYOUT-GAPS`. This section listed them as open until
+2026-08-11 — worth naming, because a stale sequencing file is read as work remaining.
 
 ---
 

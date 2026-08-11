@@ -3166,6 +3166,27 @@ function veaf.safeNumber(value, options)
   return _number
 end
 
+--- Convert a marker parameter to a number, **rejecting** it when it falls outside `min`..`max`.
+---
+--- The bounded twin of `veaf.safeNumber`, which *clamps* instead. Marker keywords want the
+--- rejecting form: `size 42` keeps the command's default rather than silently becoming 5.
+---
+--- Seven keywords across `veafCasMission` and `veafTransportMission` wrote this out inline, and
+--- three of those copies still carried `tonumber(val) <= 5` because a fix reaches the copy it was
+--- written against. Callers now name the bounds and test one value.
+---
+--- @param value the raw parameter (string, number, or anything a player managed to produce)
+--- @param min lowest accepted value, inclusive
+--- @param max highest accepted value, inclusive
+--- @return number|nil the value when it converts and is in range, `nil` otherwise
+function veaf.safeNumberInRange(value, min, max)
+  local _number = veaf.safeNumber(value)
+  if _number == nil or _number < min or _number > max then
+    return nil
+  end
+  return _number
+end
+
 function veaf.safeUnpack(package)
   if type(package) == "table" then
     return (unpack or table.unpack)(package) -- luacheck: ignore 143

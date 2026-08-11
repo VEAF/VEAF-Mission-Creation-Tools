@@ -186,11 +186,14 @@ function veafTransportMission.markTextAnalysis(text)
       switch.password = val
     end
 
+    -- These three carried `tonumber(val) <= 5`, which compares nil with a number and takes the
+    -- whole handler down on a missing or non-numeric value. Same rule as veafCasMission's twins:
+    -- convert, and ignore anything out of range rather than clamping it.
     if switch.transportmission and key:lower() == "size" then
       -- Set size.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
+      local nVal = veaf.safeNumberInRange(val, 1, 5)
+      if nVal then
         switch.size = nVal
       end
     end
@@ -198,8 +201,8 @@ function veafTransportMission.markTextAnalysis(text)
     if switch.transportmission and key:lower() == "defense" then
       -- Set defense.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumberInRange(val, 0, 5)
+      if nVal then
         switch.defense = nVal
       end
     end
@@ -207,8 +210,8 @@ function veafTransportMission.markTextAnalysis(text)
     if switch.transportmission and key:lower() == "blocade" then
       -- Set blocade.
       veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %s", tostring(val)))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumberInRange(val, 0, 5)
+      if nVal then
         switch.blocade = nVal
       end
     end

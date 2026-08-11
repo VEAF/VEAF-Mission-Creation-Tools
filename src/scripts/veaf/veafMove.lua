@@ -185,7 +185,9 @@ function veafMove.markTextAnalysis(text)
 
     if key:lower() == "name" then
       -- Set group name
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", val))
+      -- `veaf.p` because a valueless `name` raised here, before the guard at the end of this
+      -- function could refuse the command — which is the intended answer.
+      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", veaf.p(val)))
       switch.groupName = val
     end
 

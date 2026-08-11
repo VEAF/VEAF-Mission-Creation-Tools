@@ -89,6 +89,15 @@ function TestVeafMoveMarkTextAnalysis:test_move_group_speed_keyword()
   luaunit.assertEquals(r.speed, 250)
 end
 
+-- FIX-MARKER-PARAM-CRASHES: `name` with no value used to raise inside its own log line
+-- (`string.format("%s", nil)`) before the parser could reach the guard above, which already
+-- refuses the command on an empty group name. The refusal is the intended answer; the crash
+-- was not.
+function TestVeafMoveMarkTextAnalysis:test_move_group_valueless_name_returns_nil()
+  local r = veafMove.markTextAnalysis("_move group, name")
+  luaunit.assertNil(r)
+end
+
 function TestVeafMoveMarkTextAnalysis:test_move_tanker_returns_table()
   local r = veafMove.markTextAnalysis("_move tanker, name TKR1")
   luaunit.assertIsTable(r)

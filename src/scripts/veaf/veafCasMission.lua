@@ -509,65 +509,55 @@ function veafCasMission.markTextAnalysis(text)
       switch.password = val
     end
 
+    -- VMR-019: `val` is player-typed and may be absent or non-numeric, and an out-of-range value
+    -- is ignored rather than clamped. `veaf.safeNumberInRange` is that rule, named once.
     if switch.casmission and key:lower() == "size" then
       -- Set size.
-      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
-      -- and the comparison below used to raise on nil, killing the whole marker handler over a
-      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
-      -- that is the existing behaviour and changing it is not this fix's business.
       veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword size = %s", veaf.p(val)))
-      local nVal = veaf.safeNumber(val)
-      if nVal and nVal <= 5 and nVal >= 1 then
+      local nVal = veaf.safeNumberInRange(val, 1, 5)
+      if nVal then
         switch.size = nVal
       end
     end
 
     if switch.casmission and key:lower() == "defense" then
       -- Set defense.
-      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
-      -- and the comparison below used to raise on nil, killing the whole marker handler over a
-      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
-      -- that is the existing behaviour and changing it is not this fix's business.
       veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword defense = %s", veaf.p(val)))
-      local nVal = veaf.safeNumber(val)
-      if nVal and nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumberInRange(val, 0, 5)
+      if nVal then
         switch.defense = nVal
       end
     end
 
     if switch.casmission and key:lower() == "armor" then
       -- Set armor.
-      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
-      -- and the comparison below used to raise on nil, killing the whole marker handler over a
-      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
-      -- that is the existing behaviour and changing it is not this fix's business.
       veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword armor = %s", veaf.p(val)))
-      local nVal = veaf.safeNumber(val)
-      if nVal and nVal <= 5 and nVal >= 0 then
+      local nVal = veaf.safeNumberInRange(val, 0, 5)
+      if nVal then
         switch.armor = nVal
       end
     end
 
     if switch.casmission and key:lower() == "spacing" then
       -- Set spacing.
-      -- VMR-019: `val` is player-typed and may be absent or non-numeric. Both the `%d` format
-      -- and the comparison below used to raise on nil, killing the whole marker handler over a
-      -- single mistyped parameter. Out-of-range values stay *ignored* rather than clamped —
-      -- that is the existing behaviour and changing it is not this fix's business.
       veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword spacing = %s", veaf.p(val)))
-      local nVal = veaf.safeNumber(val)
-      if nVal and nVal <= 5 and nVal >= 1 then
+      local nVal = veaf.safeNumberInRange(val, 1, 5)
+      if nVal then
         switch.spacing = nVal
       end
     end
 
     if key:lower() == "side" then
       -- Set side
-      veaf.loggers.get(veafCasMission.Id):trace(string.format("Keyword side = %s", val))
-      if val:upper() == "BLUE" then
-        switch.side = veafCasMission.SIDE_BLUE
-      else
-        switch.side = veafCasMission.SIDE_RED
+      -- A valueless `side` leaves the side *unset* rather than falling through to RED, since
+      -- `executeCommand` then derives it from the marker's own coalition.
+      veaf.loggers.get(veafCasMission.Id):trace(string.format("Keyword side = %s", veaf.p(val)))
+      if val then
+        if val:upper() == "BLUE" then
+          switch.side = veafCasMission.SIDE_BLUE
+        else
+          switch.side = veafCasMission.SIDE_RED
+        end
       end
     end
 

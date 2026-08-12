@@ -46,29 +46,32 @@ The AI can act in two places, and it changes what "survives":
 | 4 | [Add a ground / vehicle group](#add-a-group) | Order of battle | Built mission | ⭐ |
 | 5 | [Change an existing aircraft or vehicle](#change-a-unit) | Order of battle | Built mission | ⭐ |
 | 6 | [Move, rename or reconfigure a group](#change-a-group) | Order of battle | Built mission | ⭐ |
-| 7 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
-| 8 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
-| 9 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
-| 10 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
-| 11 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
-| 12 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
-| 13 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
-| 14 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
-| 15 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
-| 16 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
-| 17 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
-| 18 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
-| 19 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
-| 20 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 21 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 22 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
-| 23 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
-| 24 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
-| 25 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
-| 26 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
-| 27 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
-| 28 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
-| 29 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
+| 7 | [Change a flight's route and what it does there](#change-a-route) | Order of battle | Built mission | ⭐ |
+| 8 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
+| 9 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
+| 10 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
+| 11 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
+| 12 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
+| 13 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
+| 14 | [Change a zone (move, resize, polygon)](#change-a-zone) | Zones & triggers | Built mission | ◽ |
+| 15 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
+| 16 | [Draw on the F10 map](#draw-on-the-f10-map) | Zones & triggers | Built mission | ◽ |
+| 17 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
+| 18 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
+| 19 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
+| 20 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
+| 21 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+| 22 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
+| 23 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 24 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 25 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
+| 26 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
+| 27 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
+| 28 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
+| 29 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
+| 30 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
+| 31 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
+| 32 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
 
 ---
 
@@ -335,6 +338,63 @@ instance prefixing a group with a combat zone's name, which makes it *vanish at 
 that is exactly your intent, the AI can go through by saying so explicitly. Finally, **the frequency
 is checked against what the aircraft can actually tune**: out of range, the DCS editor would refuse to
 save the mission.
+
+### Change a flight's route and what it does there {#change-a-route}
+
+*Built mission · ⭐* — Add, insert, remove or reorder a **waypoint**, change its altitude, speed, name
+or type — and above all give it a **task**: orbit, attack a group, bomb a point, engage the targets in
+a zone, land, set a frequency, or loop the route back on itself.
+
+> 💬 *"Add a waypoint after the third, at 20,000 feet."*
+> 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
+> 💬 *"Put an attack task on that group at waypoint 3."*
+> 💬 *"Loop the patrol from the last waypoint back to the second."*
+
+Three things worth knowing:
+
+- **You speak feet and knots**, the tool converts (the mission file itself is in metres and metres per
+  second). Answers give you both.
+- **Tasks are a closed list**, each with its parameters checked. That is deliberate: a made-up task is
+  accepted by the file, **ignored by DCS**, and you only find out in flight when the aircraft does
+  nothing. If a task you need is missing, it can be added — on request, never at random.
+- **DCS refuses to save a mission whose route has no waypoint with a locked time.** Removing or
+  reordering can take out the only locked one: the tool re-locks one and tells you.
+
+### Change a zone: move it, resize it, fit it to the terrain {#change-a-zone}
+
+*Built mission · ◽* — A VEAF combat zone **is** a trigger zone. Until now, adjusting one meant deleting
+it and building it again; now it moves, resizes, gets renamed, changes shape, can **follow a carrier**,
+or go away.
+
+> 💬 *"Shift the combat zone 3 km north."*
+> 💬 *"Have this zone follow the ridge line rather than a circle."*
+> 💬 *"Make the QRA zone bigger."*
+> 💬 *"Attach this zone to the Stennis."*
+
+- **A polygon zone follows the terrain**: you give three points or more. The VEAF runtime handles any
+  polygon — but the DCS editor only **draws** 4-point quads, so beyond that the tool warns you and it
+  needs one check in the editor.
+- **Moving a polygon zone carries its shape** (otherwise the zone would cover terrain nobody chose).
+- ⚠️ **Renaming a zone does not update what references it**: the combat zone's `mission.yaml` entry and
+  its groups' name prefix need doing by hand. The tool reminds you.
+
+### Draw on the F10 map {#draw-on-the-f10-map}
+
+*Built mission · ◽* — A coordination line, an ingress corridor, a no-fly box, a label. **The reason to
+do it here rather than in the editor**: a drawing made by hand is **lost** the moment the mission is
+rebuilt from its folder, while one the AI places is part of the recipe.
+
+> 💬 *"Draw the FSCL and label the ingress corridor on the F10 map."*
+> 💬 *"Draw a no-fly box around Maykop."*
+> 💬 *"Move that label 5 km south."*
+
+- **The layer decides who sees the drawing** — red, blue, neutral, common, or the author's own — and it
+  is never a default: a drawing on the wrong layer is invisible to those who need it and visible to
+  those who should not see it.
+- **Three shapes are available**: the line (two points or more, closed to outline an area), the
+  rectangle, and the text label. DCS's other shapes (circle, oval, arrow, icon) are **refused**: no
+  mission in the repository contains one, so their exact structure is unknown and a guessed drawing
+  would be silently dropped by the editor. They will be added once one can be measured in game.
 
 ---
 

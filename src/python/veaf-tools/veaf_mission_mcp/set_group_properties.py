@@ -36,9 +36,7 @@ from presets_injector.radio_frequency_validator import get_human_radio
 from veaf_libs import coordinates
 
 from veaf_mission_mcp.group_naming import validate_group_name
-
-#: Group categories a mission table may hold, in the order DCS writes them.
-_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
+from veaf_mission_mcp.mission_table import find_group, group_names, indexed
 
 #: DCS stores a group's modulation as an integer; a mission maker says AM or FM.
 _MODULATIONS: dict[str, int] = {"AM": 0, "FM": 1}
@@ -114,7 +112,8 @@ def set_group_properties(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
-    group, existing_names = _find_group(mission.mission_content, group_name)
+    group = find_group(mission.mission_content, group_name)
+    existing_names = group_names(mission.mission_content)
 
     changed: dict[str, Any] = {}
     warnings: list[str] = []
@@ -144,68 +143,6 @@ def set_group_properties(
     write_miz(mission, miz_path)
 
     return {"group": new_name or group_name, "changed": changed, "warnings": warnings}
-
-
-def _indexed(container: Any) -> list[Any]:
-    """Return a DCS 1-based table's values in key order, whether it arrived as a dict or a list."""
-    if isinstance(container, dict):
-        return [container[key] for key in sorted(container, key=_numeric_first)]
-    if isinstance(container, list):
-        return list(container)
-    return []
-
-
-def _numeric_first(key: Any) -> tuple[int, float, str]:
-    """Sort key ordering numeric table keys numerically, before any non-numeric ones."""
-    try:
-        return (0, float(key), "")
-    except (TypeError, ValueError):
-        return (1, 0.0, str(key))
-
-
-def _find_group(mission_content: dict[str, Any], group_name: str) -> tuple[dict[str, Any], list[str]]:
-    """Return the group named `group_name` and every group name in the mission.
-
-    The full name list is returned with it because both callers need it: the error message names
-    what exists, and a rename has to refuse a collision.
-
-    Args:
-        mission_content: The parsed ``mission`` table.
-        group_name: The exact group name to find.
-
-    Returns:
-        ``(group table, all group names)``.
-
-    Raises:
-        ValueError: If no group carries that exact name.
-    """
-    names: list[str] = []
-    found: dict[str, Any] | None = None
-    for coalition in (mission_content.get("coalition") or {}).values():
-        if not isinstance(coalition, dict):
-            continue
-        for country in _indexed(coalition.get("country")):
-            if not isinstance(country, dict):
-                continue
-            for category in _CATEGORIES:
-                for group in _indexed((country.get(category) or {}).get("group")):
-                    if not isinstance(group, dict):
-                        continue
-                    name = str(group.get("name", ""))
-                    names.append(name)
-                    if name == group_name:
-                        found = group
-    if found is None:
-        raise ValueError(f"No group named {group_name!r} in this mission. Groups present: {_listed(names)}")
-    return found, names
-
-
-def _listed(names: list[str], limit: int = 20) -> str:
-    """Render `names` for an error message, capped so a Foothold-sized mission stays readable."""
-    if not names:
-        return "none"
-    shown = ", ".join(repr(name) for name in names[:limit])
-    return shown if len(names) <= limit else f"{shown}, ... ({len(names)} total)"
 
 
 def _apply_rename(
@@ -326,7 +263,7 @@ def _anchor(group: dict[str, Any]) -> tuple[float, float] | None:
     """
     if group.get("x") is not None and group.get("y") is not None:
         return float(group["x"]), float(group["y"])
-    for unit in _indexed(group.get("units")):
+    for unit in indexed(group.get("units")):
         if isinstance(unit, dict) and unit.get("x") is not None and unit.get("y") is not None:
             return float(unit["x"]), float(unit["y"])
     return None
@@ -340,7 +277,7 @@ def _translate(group: dict[str, Any], delta_x: float, delta_y: float) -> None:
         delta_x: Northing delta, in metres.
         delta_y: Easting delta, in metres.
     """
-    for holder in (group, *_indexed(group.get("units")), *_indexed((group.get("route") or {}).get("points"))):
+    for holder in (group, *indexed(group.get("units")), *indexed((group.get("route") or {}).get("points"))):
         if not isinstance(holder, dict):
             continue
         if holder.get("x") is not None:
@@ -363,7 +300,7 @@ def _apply_frequency(group: dict[str, Any], frequency_mhz: float, changed: dict[
     Raises:
         ValueError: If a unit type in the group declares a primary range excluding the frequency.
     """
-    for unit in _indexed(group.get("units")):
+    for unit in indexed(group.get("units")):
         if not isinstance(unit, dict):
             continue
         unit_type = unit.get("type")

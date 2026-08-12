@@ -199,6 +199,137 @@ de valider et de mentir.
 }
 ```
 
+### `edit_route`
+
+Écriture. Deux couches : la **route** (`add`, `insert`, `remove`, `reorder`, `set`) est pour l'essentiel
+une opération de liste sur `route.points` ; les **tâches** d'un point de passage (`add_task`,
+`clear_tasks`) sont ce qui fait qu'un vol fait quelque chose.
+
+**L'invariant qui en fait de la chirurgie et pas de l'édition de liste.**
+`FIX-WAYPOINTS-ETA-LOCKED` a établi que DCS **refuse d'enregistrer** une mission dont une route n'a
+aucun point de passage à heure verrouillée (« Route has no waypoints with locked time! »), et que sa
+propre réparation consiste à verrouiller le premier. Supprimer ou réordonner peut donc produire une
+mission que l'éditeur rejette, loin de l'édition qui l'a causée. Chaque opération rétablit l'invariant
+et **le signale** quand elle a dû le faire.
+
+**Unités.** La table de mission contient des mètres et des mètres par seconde ; un créateur de mission
+parle en pieds et en nœuds. Comme pour le `heading_deg` de `set_unit_properties`, les paramètres portent
+leur unité dans leur nom (`altitude_ft`, `speed_kt`) et la réponse donne les deux, pour que l'appelant
+n'ait jamais à reconvertir.
+
+**Les tâches sont un jeu nommé à signatures vérifiées, pas une table libre** — choix explicite du
+ticket : une action générique « écris cette table de tâche » est un piège, parce qu'un agent produit une
+table plausible, DCS l'ignore en silence, et le créateur de mission le découvre une heure plus tard.
+L'échappatoire démarre **fermée**.
+
+Chaque signature a été lue dans une vraie mission, et trois sont des pièges :
+
+- **`SetFrequency` prend des hertz** (`31000000` pour 31 MHz) alors que la fréquence d'un *groupe* —
+  `set_group_properties` — est en MHz. Deux unités pour la même notion, dans le même fichier. L'action
+  prend des MHz et convertit.
+- **`EngageTargetsInZone` duplique sa liste de cibles** dans une chaîne sérialisée `value`
+  (`"Air;Cruise missiles;"`) à côté du tableau `targetTypes` ; n'écrire que le tableau laisse la mission
+  porter deux versions de la même décision.
+- **`SetFrequency` et `SwitchWaypoint` ne sont pas des tâches** mais des *actions*, portées dans une
+  enveloppe `WrappedAction`. Écrite comme une tâche nue, DCS l'ignore.
+
+Deux détails mesurés qui n'étaient pas dans le ticket : `type` et `action` d'un point de passage sont
+une **paire** (« Land » va avec « Landing »), et un point ajouté **hérite** de l'altitude et de la
+vitesse de son voisin — sinon il s'écrit à l'altitude 0 et le vol plonge au sol pour l'atteindre.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Colt 1-1",
+  "operation": "add_task",
+  "index": 2,
+  "task": "orbit",
+  "task_params": {"pattern": "Race-Track", "altitude_ft": 20000, "speed_kt": 300}
+}
+```
+
+### `edit_zone`
+
+Écriture. `add_trigger_zone` ne crée que des zones **circulaires** et rien n'en modifiait une ensuite,
+donc ajuster une combat zone VEAF — qui *est* une zone de déclenchement — imposait de la supprimer et
+de la refaire.
+
+**Deux mesures avant toute ligne de code**, comme le ticket l'exigeait :
+
+- **La forme réelle d'une zone polygonale**, lue dans `veaf-demo-mission.miz` (`czBatumi`) : `type: 2`
+  plus une liste `verticies` — l'orthographe de DCS, conservée telle quelle parce que corriger la
+  coquille écrirait un champ que DCS ignore — tandis que `x`, `y` et `radius` **restent présents**. Un
+  polygone n'est donc pas un cercle avec des champs en plus.
+- **Ce que le runtime VEAF gère.** `veafCombatZone.lua` ne teste que deux types : `0` →
+  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y a **pas de
+  `else`**, donc une zone d'un autre type ne contiendrait aucune unité, en silence — pire que de ne pas
+  proposer la forme. L'action n'écrit donc que 0 et 2.
+
+**Décision de David sur le nombre de sommets (2026-08-12)** : accepter trois ou plus, puisque « suivre
+la ligne de crête » est le cas d'usage réel et que mist gère un polygone quelconque — mais **avertir**
+dès que le compte n'est pas quatre, l'éditeur DCS ne dessinant que des quadrilatères. Savoir s'il
+préserve davantage est une question de jeu, qu'aucun test unitaire ne tranche.
+
+Deux refus que le ticket laissait ouverts, décidés ici : un **lien vers une unité inexistante** est
+refusé plutôt qu'averti (une zone liée à rien ne suit simplement jamais rien, sans bruit), et une
+**collision de nom** est refusée (les zones sont référencées par nom depuis `mission.yaml`).
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "zone_name": "czBatumi",
+  "vertices": [
+    {"x": -359753.0, "y": 614918.0},
+    {"x": -355602.0, "y": 622688.0},
+    {"x": -352849.0, "y": 617192.0},
+    {"x": -358731.0, "y": 614282.0}
+  ]
+}
+```
+
+### `add_map_drawing` / `edit_map_drawing`
+
+Écriture. Rien dans VMCT ne touchait aux dessins de la carte F10, donc une ligne de briefing, un couloir
+d'entrée ou une boîte interdite se dessinait à la main dans l'éditeur — **et disparaissait dès que la
+mission était reconstruite depuis son dossier**. C'est tout l'argument : un dessin posé par un agent
+fait partie de la recette, un dessin fait à la main non.
+
+**La mesure qui gouverne la conception**, lue dans les fixtures du dépôt :
+
+> Les `points` sont **relatifs à l'ancre `mapX`/`mapY`** du dessin, le premier valant `{0, 0}`.
+
+Un dessin écrit en coordonnées absolues atterrit à des centaines de kilomètres et **rien ne lève
+d'erreur** — la même classe de panne silencieuse que confondre le `{x=nord, y=est}` de la table de
+mission avec un vec3 d'exécution (voir `docs/agents/dcs-coordinates.md`). Les actions prennent donc les
+coordonnées **absolues** dont l'appelant dispose et font l'ancrage elles-mêmes. Le bénéfice apparaît
+dans `edit_map_drawing` : déplacer un dessin, c'est déplacer son ancre, et la forme suit gratuitement.
+
+**Trois formes sont livrées parce que trois formes ont été mesurées** : `Line` (avec `lineMode`
+`segment` ou `segments`, et `closed` pour une forme qui se referme — c'est ainsi qu'on délimite une
+zone libre), `Polygon` en mode `rect` (`width`/`height`/`angle`, **aucun** point), et `TextBox`
+(`text`/`font`/`fontSize`, pas de points non plus ; la police est reprise d'un vrai dessin, une police
+absente de DCS ne s'affichant pas du tout).
+
+Les autres `polygonMode` (`circle`, `oval`, `free`, `arrow`) et `primitiveType: "Icon"` sont **absents
+de toutes les fixtures** du dépôt : leur structure est donc inconnue, et la règle du ticket est de lire
+un vrai `.miz` plutôt que de supposer. Ils sont refusés en le disant — inventer une structure ici
+produirait un dessin que l'éditeur supprime en silence, exactement ce que `FIX-MAPRESOURCE-KEY` et
+`FIX-COMMUNITY-SOUNDS-PRUNED` ont déjà coûté. La mesure est inscrite dans `DCS-SESSION-TODO.md`.
+
+La **couche** est un paramètre de première classe, jamais une valeur par défaut : un dessin sur la
+mauvaise couche est invisible pour les pilotes qui en ont besoin et visible pour ceux qui ne devraient
+pas le voir.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "layer": "Blue",
+  "shape": "line",
+  "name": "FSCL",
+  "points": [{"x": -300000.0, "y": 600000.0}, {"x": -290000.0, "y": 610000.0}]
+}
+```
+
 ### `add_group`
 
 Écriture. Insère un groupe terrestre/véhicule dans le `.miz` source, **en place**, avec une

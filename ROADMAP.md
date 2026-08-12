@@ -64,7 +64,8 @@ the release by itself, which is why it is not in the three.
 
 ### Blocked on a person, or on a DCS session
 
-Not on a decision anyone can take at a keyboard here.
+Not on a decision anyone can take at a keyboard here. The ones needing the game started are collected, in
+running order and with the commands to paste, in [DCS-SESSION-TODO.md](DCS-SESSION-TODO.md).
 
 | Lot | Status | Gate |
 |-----|--------|------|

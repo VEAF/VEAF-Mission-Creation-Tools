@@ -130,6 +130,76 @@ def test_write_airbase_dump_writes_json(tmp_path: Path) -> None:
     assert doc["airbases"][0]["name"] == "Tiyas"
 
 
+# --- capture_parking -------------------------------------------------------
+#
+# Placing an aircraft on a *stand* rather than at coordinates needs the airfield's slot ids, and a
+# parked unit in a real mission carries **two** distinct numbers (`parking` 28 with `parking_id` 24
+# on the same aircraft — `Term_Index` and `Term_Index_0`). Neither can be invented, and the API
+# schema shipped here declares four fields where the runtime returns more, so the snippet dumps
+# **every** key it finds and these tests pin that pass-through rather than a chosen field list.
+
+_PARKING_RESULT = (
+    "Caucasus\n"
+    "12\tTerm_Index=28|Term_Index_0=24|Term_Type=104|vTerminalPos.x=-1000.5|vTerminalPos.z=2000.5\n"
+    "12\tTerm_Index=29|Term_Index_0=25|Term_Type=104\n"
+    "13\tTerm_Index=1|Term_Index_0=1|Term_Type=40"
+)
+
+
+def test_capture_parking_groups_slots_by_airbase() -> None:
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": _PARKING_RESULT})):
+        theatre, slots = C.capture_parking("http://127.0.0.1:8080", "key")
+    assert theatre == "Caucasus"
+    assert sorted(slots) == [12, 13]
+    assert len(slots[12]) == 2
+
+
+def test_capture_parking_keeps_both_terminal_indices() -> None:
+    """The pair is the whole point: they differ, and a mission needs both to park a unit."""
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": _PARKING_RESULT})):
+        _, slots = C.capture_parking("http://127.0.0.1:8080", "key")
+    assert (slots[12][0]["Term_Index"], slots[12][0]["Term_Index_0"]) == ("28", "24")
+
+
+def test_capture_parking_keeps_a_flattened_nested_field() -> None:
+    """A slot's position arrives as a nested table; flattened one level, it survives."""
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": _PARKING_RESULT})):
+        _, slots = C.capture_parking("http://127.0.0.1:8080", "key")
+    assert slots[12][0]["vTerminalPos.x"] == "-1000.5"
+
+
+def test_capture_parking_keeps_keys_it_was_not_written_for() -> None:
+    """Forward compatibility: an unknown key must survive, since the schema is known incomplete."""
+    result = "Caucasus\n12\tTerm_Index=1|SomeFutureField=yes"
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": result})):
+        _, slots = C.capture_parking("http://127.0.0.1:8080", "key")
+    assert slots[12][0]["SomeFutureField"] == "yes"
+
+
+def test_capture_parking_raises_on_lua_error() -> None:
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": "Error: boom"})):
+        with pytest.raises(RuntimeError, match="bridge exec failed"):
+            C.capture_parking("http://127.0.0.1:8080", "key")
+
+
+def test_capture_parking_accepts_a_theatre_with_no_slots_at_all() -> None:
+    """A WWII map's airfields may report none; that is data, not a failure."""
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": "Normandy"})):
+        theatre, slots = C.capture_parking("http://127.0.0.1:8080", "key")
+    assert (theatre, slots) == ("Normandy", {})
+
+
+def test_write_parking_dump_keys_by_airbase_id(tmp_path: Path) -> None:
+    out = C.write_parking_dump("Caucasus", {13: [{"Term_Index": "1"}], 12: [{"Term_Index": "28"}]}, tmp_path)
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert list(doc["parking_by_airbase"]) == ["12", "13"]
+
+
+def test_write_parking_dump_names_the_file_after_the_theatre(tmp_path: Path) -> None:
+    out = C.write_parking_dump("Caucasus", {12: [{"Term_Index": "28"}]}, tmp_path)
+    assert out.name == "Caucasus.json"
+
+
 # --- inject_bridge (thin wrapper over the editor-parity primitive) ---------
 
 

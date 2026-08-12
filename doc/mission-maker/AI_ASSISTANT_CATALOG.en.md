@@ -44,29 +44,31 @@ The AI can act in two places, and it changes what "survives":
 | 2 | [Inspect the units, their loadouts and their routes](#inspect-units) | Mission state | Built mission | 🔥 |
 | 3 | [List VEAF modules and their settings](#list-veaf-modules) | Mission state | Recipe | 🔥 |
 | 4 | [Add a ground / vehicle group](#add-a-group) | Order of battle | Built mission | ⭐ |
-| 5 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
-| 6 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
-| 7 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
-| 8 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
-| 9 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
-| 10 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
-| 11 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
-| 12 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
-| 13 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
-| 14 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
-| 15 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
-| 16 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
-| 17 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
-| 18 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 19 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
-| 20 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
-| 21 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
-| 22 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
-| 23 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
-| 24 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
-| 25 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
-| 26 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
-| 27 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
+| 5 | [Change an existing aircraft or vehicle](#change-a-unit) | Order of battle | Built mission | ⭐ |
+| 6 | [Move, rename or reconfigure a group](#change-a-group) | Order of battle | Built mission | ⭐ |
+| 7 | [Enable / disable / configure a module (recipe)](#configure-a-module-recipe) | Modules & settings | Recipe | ⭐ |
+| 8 | [Enable / disable a module (built mission)](#enable-a-module-built) | Modules & settings | Built mission | ⭐ |
+| 9 | [Change the log level](#log-level) | Modules & settings | Recipe + built | ◽ |
+| 10 | [Enable / disable password security](#password-security) | Modules & settings | Recipe + built | ◽ |
+| 11 | [Set a specific VEAF parameter](#veaf-parameter) | Modules & settings | Recipe + built | ◽ |
+| 12 | [Add a circular trigger zone](#add-a-zone) | Zones & triggers | Built mission | ◽ |
+| 13 | [Add a startup script to the mission](#startup-script) | Zones & triggers | Built mission | ◽ |
+| 14 | [Search-and-replace text in scripts](#search-replace) | Advanced edits | Built mission | 🔧 |
+| 15 | [List DCS unit types](#list-dcs-units) | Domain knowledge | — | ⭐ |
+| 16 | [List VEAF aliases / shortcuts](#list-veaf-aliases) | Domain knowledge | — | ⭐ |
+| 17 | [Explain the naming conventions](#naming-conventions) | Domain knowledge | — | ◽ |
+| 18 | [Look up a VEAF module](#describe-module) | Domain knowledge | — | ◽ |
+| 19 | [Check a group name](#check-group-name) | Domain knowledge | — | ◽ |
+| 20 | [Create a full combat zone (one pass)](#create-combat-zone) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 21 | [Create a full QRA (one pass)](#create-qra) | 🏗️ Composites | Recipe (folder) | 🔥 |
+| 22 | [Create an on-demand CAP mission (one pass)](#create-cap) | 🏗️ Composites | Recipe (folder) | ⭐ |
+| 23 | [Create a mission folder from scratch](#create-mission-folder) | 🏗️ Getting started | Folder | ⭐ |
+| 24 | [Read the map (orientation)](#read-the-map) | 🗺️ Map & coordinates | — | ⭐ |
+| 25 | [Convert coordinates (x/y ↔ lat/lon)](#convert-coordinates) | 🗺️ Map & coordinates | — | ◽ |
+| 26 | [Place by real place name (geocoding)](#geocode) | 🗺️ Map & coordinates | — | ⭐ |
+| 27 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
+| 28 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
+| 29 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
 
 ---
 
@@ -282,6 +284,57 @@ template (`veafSpawn-`).
 > 💬 *"Add a section of 3 T-72s patrolling around this point."*
 > 💬 *"Put two armor groups in the North combat zone."*
 > 💬 *"Place Su-27 interceptors in Late Activation for the QRA."*
+
+### Change an existing aircraft or vehicle {#change-a-unit}
+
+*Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**
+(pylon by pylon), its **AI level**, its **livery**, its **heading**, its **callsign** and its
+**onboard number**. You give the heading in degrees, the AI converts it. Only the settings you ask
+for change, and the AI tells you what was there before.
+
+> 💬 *"Give Colt flight an air-to-ground loadout."*
+> 💬 *"Take the bombs off pylon 4 of Colt 1-1-1."*
+> 💬 *"Set this MiG to Excellent and point it at 270."*
+> 💬 *"Rename this flight's callsign to Colt 2-3."*
+
+Three things worth knowing, because each one saves a surprise:
+
+- **The AI has to look first** ([inspect the units](#inspect-units)): it addresses the unit by its
+  **exact** name, so an edit can never land on the wrong group.
+- **A livery and a weapon cannot be checked** by the tool: DCS shows the default skin, or drops a
+  weapon the airframe cannot carry, **without saying so**. The AI will remind you; verify it in the
+  editor.
+- **Turning an AI unit into a player slot is refused** (and the reverse too): that is not a skill
+  level but a multiplayer slot, which would appear in — or vanish from — the list of available
+  places.
+
+### Move, rename or reconfigure a group {#change-a-group}
+
+*Built mission · ⭐* — Act on a **whole** group: **move** it, **rename** it, change its **radio
+frequency**, put it in **Late Activation**, **hide** it or leave it with **engines off**.
+
+> 💬 *"Move that SAM battery 5 km east."*
+> 💬 *"Rename this group to the VEAF convention."*
+> 💬 *"Put this flight in Late Activation, engines off."*
+> 💬 *"Set this flight's frequency to 305 AM."*
+
+The move is the part that needed the most care, and here is why:
+
+- **A group is not a point.** It is units in a formation, plus possibly a route. The tool moves
+  **every unit, every waypoint and the group's anchor** by the same vector: otherwise the formation
+  shears, or the route detaches from the units — and neither shows until somebody flies it.
+- **A bearing and a distance are computed on the globe**, with the same machinery as placing by a
+  real-world place name, not by adding metres to a coordinate.
+- ⚠️ **The terrain at the destination cannot be checked** at build time: a ground group can end up in
+  the water or on a slope with nothing to say so. That is also why *runtime* placement (a VEAF spawn)
+  is the thing that knows how to avoid villages and forests. Verify it in the editor.
+
+Two useful refusals: **renaming onto a name already taken** is blocked (two groups sharing a name
+make every later edit ambiguous), and so is **a name that triggers a reserved VEAF convention** — for
+instance prefixing a group with a combat zone's name, which makes it *vanish at mission start*. If
+that is exactly your intent, the AI can go through by saying so explicitly. Finally, **the frequency
+is checked against what the aircraft can actually tune**: out of range, the DCS editor would refuse to
+save the mission.
 
 ---
 

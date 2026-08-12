@@ -39,6 +39,8 @@ from veaf_mission_mcp.oracle import (
 )
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
+from veaf_mission_mcp.set_group_properties import set_group_properties
+from veaf_mission_mcp.set_unit_properties import set_unit_properties
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -116,6 +118,134 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             limit=params.get("limit"),
             include_route=params.get("include_route", True),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_unit_properties",
+            description=(
+                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign or "
+                "onboard number. Call describe_units FIRST -- this addresses the unit by its EXACT "
+                "group name and unit name (a fragment is refused, so an edit cannot land on the wrong "
+                "group), and pylons are keyed BY STATION NUMBER, which is not the position in a list. "
+                "Only the fields you pass change; the result reports each previous value so you can "
+                "tell the mission maker what you did. Two refusals worth knowing: skill accepts the "
+                "five AI levels but NOT 'Client'/'Player' (those add or remove a multiplayer slot "
+                "rather than set a skill), and changing a callsign's family needs its spoken name too. "
+                "Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {
+                        "type": "string",
+                        "description": "The group's EXACT name (not a fragment) -- as describe_units reports it.",
+                    },
+                    "unit_name": {"type": "string", "description": "The unit's exact name within that group."},
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "AI competence. 'Client'/'Player' are refused: they are human slots.",
+                    },
+                    "livery": {
+                        "type": "string",
+                        "description": "Livery id. NOT validated -- DCS shows the default skin for an "
+                        "unknown one without any error.",
+                    },
+                    "heading_deg": {
+                        "type": "number",
+                        "description": "Heading in DEGREES (0-360, normalised). Stored as radians for you.",
+                    },
+                    "callsign": {
+                        "description": "Aircraft: an object with any of family/flight/number/name "
+                        "(1..9 each); 'family' requires 'name' since the family->word table is not "
+                        "shipped. Ground unit: the bare number.",
+                    },
+                    "onboard_num": {
+                        "type": "string",
+                        "description": "Tail number, as text so a leading zero survives.",
+                    },
+                    "pylons": {
+                        "type": "object",
+                        "description": "Loadout as {station number: weapon CLSID}. BY STATION, not by "
+                        "position: a real FA-18C carries 1, 4, 5, 6, 9. Omit to leave the loadout "
+                        "alone; pass {} with mode 'replace' for a clean airframe.",
+                    },
+                    "pylons_mode": {
+                        "type": "string",
+                        "enum": ["replace", "merge"],
+                        "default": "replace",
+                        "description": "'replace' writes exactly the stations given; 'merge' updates "
+                        "only those, and an empty CLSID empties that station.",
+                    },
+                },
+                "required": ["miz_path", "group_name", "unit_name"],
+            },
+        ),
+        handler=_handle_set_unit_properties,
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_group_properties",
+            description=(
+                "MOVE, RENAME or reconfigure a group that already exists. A move translates every "
+                "unit, every waypoint AND the group anchor by one delta, so the formation keeps its "
+                "shape and the route stays attached -- give it a bearing + distance (resolved "
+                "geodesically, like geocode) or an explicit target. Frequency is checked against the "
+                "airframe's own primary-frequency range, because the DCS editor REFUSES TO SAVE a "
+                "mission that breaks it. A rename that would trigger a reserved VEAF convention is "
+                "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
+                "zone makes the runtime despawn it at start. Unit names are never renamed with the "
+                "group. WARNING: the destination's surface cannot be checked design-time, so a "
+                "ground group can end up in water. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {"type": "string", "description": "The group's EXACT current name."},
+                    "new_name": {
+                        "type": "string",
+                        "description": "New group name. Refused on a collision, or on a reserved VEAF "
+                        "convention unless acknowledge_conventions is true.",
+                    },
+                    "move_to": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Absolute destination for the group anchor. Not with a bearing.",
+                    },
+                    "move_bearing": {
+                        "type": "number",
+                        "description": "Bearing in degrees clockwise from north; needs move_distance_m.",
+                    },
+                    "move_distance_m": {
+                        "type": "number",
+                        "description": "Distance in METRES along move_bearing.",
+                    },
+                    "frequency_mhz": {
+                        "type": "number",
+                        "description": "Group primary frequency in MHz. Refused when the airframe "
+                        "cannot tune it (the editor would refuse to save the mission).",
+                    },
+                    "modulation": {"type": "string", "enum": ["AM", "FM"]},
+                    "late_activation": {"type": "boolean"},
+                    "hidden": {"type": "boolean"},
+                    "uncontrolled": {
+                        "type": "boolean",
+                        "description": "Aircraft group starts with engines off.",
+                    },
+                    "acknowledge_conventions": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Allow a rename that triggers a reserved VEAF convention. Only "
+                        "pass this when the convention is what the mission maker asked for.",
+                    },
+                },
+                "required": ["miz_path", "group_name"],
+            },
+        ),
+        handler=_handle_set_group_properties,
     )
     catalog.register(
         ActionSpec(
@@ -954,6 +1084,49 @@ def _handle_replace_in_mission_files(params: dict[str, Any]) -> dict[str, Any]:
         replace=params["replace"],
         files=params.get("files", "*.lua"),
         regex=params.get("regex", False),
+    )
+
+
+def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`set_unit_properties`.
+
+    A JSON object's keys are always strings, so ``pylons`` arrives as ``{"4": "..."}``. It is
+    passed through untouched: the action's own station parsing produces the error message that
+    names what a station is, which converting here would replace with `int()`'s.
+    """
+    return set_unit_properties(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        unit_name=params["unit_name"],
+        skill=params.get("skill"),
+        livery=params.get("livery"),
+        heading_deg=params.get("heading_deg"),
+        callsign=params.get("callsign"),
+        onboard_num=params.get("onboard_num"),
+        pylons=params.get("pylons"),
+        pylons_mode=params.get("pylons_mode", "replace"),
+    )
+
+
+def _handle_set_group_properties(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`set_group_properties`.
+
+    The booleans are read with ``.get()`` rather than defaulted: ``None`` means "not given" and
+    ``False`` means "turn it off", and collapsing the two would make a flag impossible to clear.
+    """
+    return set_group_properties(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        new_name=params.get("new_name"),
+        move_to=params.get("move_to"),
+        move_bearing=params.get("move_bearing"),
+        move_distance_m=params.get("move_distance_m"),
+        frequency_mhz=params.get("frequency_mhz"),
+        modulation=params.get("modulation"),
+        late_activation=params.get("late_activation"),
+        hidden=params.get("hidden"),
+        uncontrolled=params.get("uncontrolled"),
+        acknowledge_conventions=params.get("acknowledge_conventions", False),
     )
 
 

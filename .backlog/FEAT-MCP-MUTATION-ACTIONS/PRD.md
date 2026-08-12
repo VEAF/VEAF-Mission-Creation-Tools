@@ -1,6 +1,6 @@
 # FEAT-MCP-MUTATION-ACTIONS — the MCP can create a mission but cannot change one
 
-Status: 🔄 in-progress — tickets 01 (triage) and 05 (the read action) done 2026-08-11; 02 and 04 are no longer blind
+Status: 🔄 in-progress — 01 (triage) and 05 (the read action) done 2026-08-11; **02 and 03 (the setter families) done 2026-08-12**; `add_air_group` split off into 08 + 09 because it needs parking data nobody has captured yet
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §1,
 identified 2026-08-04. The next wave of `NL-MISSION-GEN` ([ROADMAP](../../ROADMAP.md) §4).
@@ -58,15 +58,21 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 |---|--------|--------|
 | 01 | [Triage the 126 verbs by mission-maker intent](tickets/01-triage-by-intent.md) | ✅ |
 | 05 | [Read the units, loadouts and routes](tickets/05-describe-units.md) — **do this first** | ✅ |
-| 02 | [Unit setters](tickets/02-unit-setters.md) — loadout, skill, livery, heading, callsign | ⬜ |
-| 03 | [Group setters](tickets/03-group-setters.md) — move, rename, late activation, hide | ⬜ |
+| 02 | [Unit setters](tickets/02-unit-setters.md) — loadout, skill, livery, heading, callsign | ✅ |
+| 03 | [Group setters](tickets/03-group-setters.md) — move, rename, late activation, hide | ✅ |
 | 04 | [Route and waypoint task editing](tickets/04-route-and-waypoints.md) | ⬜ |
 | 06 | [Zone editing, including polygons](tickets/06-zone-editing.md) | ⬜ |
 | 07 | [F10 map drawings](tickets/07-map-drawings.md) | ⬜ |
+| 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — tooling shipped, capturing needs a DCS session | 🧑 |
+| 09 | [`add_air_group`](tickets/09-add-air-group.md) — was a line in 03; blocked on 08 | ⬜ |
 | — | Arbitrary triggers — **the triage says no**, with its reasoning below. No ticket | 🚫 |
 
 Execution order is **05 → 02 → 03 → 04 → 06 → 07**, not the numbering: the read action is a
-prerequisite, not a convenience. See the triage.
+prerequisite, not a convenience. See the triage. 08 and 09 sit outside that order — 09 cannot start
+before 08's data exists, and 08 cannot finish without a DCS session.
+
+Delivered in **two pull requests** rather than one, on David's call: the two cheap setter families
+first (a reviewable pair), then the route surgery, the zones and the drawings.
 
 ## Borrow their trigger design, not their trigger code
 
@@ -189,9 +195,35 @@ because it alone answers 18 verbs. Then the two cheap setter families, which the
 reaches. Then the route work, which is the real surgery and has the most ways to produce a mission the
 editor opens happily and DCS flies wrong. 06 and 07 are worth having and block nobody.
 
-### One thing this triage did not settle
+### One thing this triage did not settle — answered 2026-08-12
 
 Whether `add_air_group` should exist at all, or whether `create_cap_mission` plus the group-create
-surgery covers it. It is filed under ticket 03 because it is the same `.miz` surgery, but a mission maker
-asking for "a two-ship on the ramp" may well be better served by an existing composite. Decide that when
-03 is picked up, with the composite in front of you rather than from memory.
+surgery covers it. It was filed under ticket 03 because it is the same `.miz` surgery, but a mission maker
+asking for "a two-ship on the ramp" may well be better served by an existing composite.
+
+Picking up 03 answered the *cost* question rather than the design one, and the cost decides the shape: a
+parked aircraft carries **two distinct numbers** — `parking` and `parking_id`, measured at 28 and 24 on
+the same F-14A — which are the runtime's `Term_Index` / `Term_Index_0`. No data in this repository holds
+them: the 15 committed airbase dumps carry `{id, name, lat, lon, coalition}` and nothing more. So "on the
+ramp at Incirlik" is not a setter with a stand parameter, it is a **data capture** first.
+
+David chose to do it properly, with the data. Hence [08](tickets/08-capture-parking-data.md) (the capture
+tooling, shipped — the running is his) and [09](tickets/09-add-air-group.md), which keeps the "is the
+composite enough?" question open where it belongs: in front of the composite.
+
+### What the two setter families cost, against what the triage predicted
+
+Both were classed **cheap** ("the editor-parity layer already reaches that table"), and that held — the
+work was not in reaching the tables but in the shapes the tickets described wrongly. Four corrections
+worth keeping, each found by reading a real mission:
+
+- **`skill` has seven values, not four**, and two of them (`Client`, `Player`) are human slots rather
+  than competence levels. Crossing that line adds or removes a **multiplayer slot** — the
+  `FIX-TEMPLATE-SLOTS-VISIBLE` bug — so both directions are refused.
+- **An aircraft's `callsign` is a structured table**, not a plain field: `name` is the family's word plus
+  the flight and number indices, and writing it alone desynchronises the radio from the display.
+- **A group's own `x`/`y` anchor** has to move with its units and waypoints; ticket 03 listed the first
+  two and not the third, and the editor draws the group from it.
+- **A design-time surface check is impossible** — no terrain data exists on the Python side at all,
+  which is why `FEAT-SCENERY-AWARE-SPAWN` solved that problem at runtime. The move warns instead of
+  pretending.

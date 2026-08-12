@@ -99,6 +99,106 @@ qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas
 {"miz_path": "chemin/vers/mission.miz", "group_name": "Colt", "include_route": false}
 ```
 
+### `set_unit_properties`
+
+Écriture. La **première** action qui modifie un objet déjà présent dans la mission : toutes les
+`set_*` livrées avant elle agissent sur la *configuration* (modules, sécurité, logs, coalition d'une
+base). Sauvegarde horodatée avant écriture, comme ses sœurs.
+
+Adresse l'unité par **nom exact** de groupe et **nom exact** d'unité — pas par fragment, contrairement
+à `describe_units` : un fragment fait porter la modification au premier groupe qui correspond, ce qui
+n'est pas rattrapable. Un nom introuvable liste ce qui existe, pour qu'un appelant réessaie sans
+relire toute la mission.
+
+Trois formes ont été **mesurées** sur de vraies missions plutôt que déduites, et deux contredisent le
+ticket qui les demandait :
+
+- **`skill` a sept valeurs, pas quatre.** `Average`, `Good`, `High`, `Excellent` et `Random` sont des
+  niveaux d'IA ; `Client` et `Player` sont des **slots humains**. Franchir cette limite dans un sens
+  ajoute une place à la liste multijoueur, dans l'autre la supprime — le bug pour lequel
+  `FIX-TEMPLATE-SLOTS-VISIBLE` a été ouvert. Les deux sens sont donc refusés en nommant la raison,
+  au lieu d'être honorés comme un réglage de compétence.
+- **L'indicatif d'un appareil n'est pas un champ simple.** C'est une table
+  `{1: famille, 2: vol, 3: numéro, name: "Colt11"}` où `name` est le mot de la famille suivi des deux
+  indices (`{1:1, 2:1, 3:2}` se lit `Enfield12`). Écrire `name` seul désynchronise ce que DCS annonce
+  à la radio de ce que montre l'éditeur : l'action modifie donc les indices et **reconstruit** `name`
+  à partir du préfixe déjà présent. Changer la *famille* exige la table famille→mot de DCS, que ce
+  dépôt n'embarque pas : c'est refusé sauf si l'appelant fournit lui-même le `name` résultant.
+- **`heading` est en radians** alors qu'un créateur de mission parle en degrés — le piège que
+  `resolve_coordinates` masque ailleurs. Le paramètre s'appelle `heading_deg` pour que l'unité soit
+  impossible à confondre, et la valeur est normalisée sur un tour (−90 vaut 270).
+
+Ce que l'action **ne valide pas**, faute des données pour le faire : le CLSID d'une arme face à
+l'appareil qui la porte, et une livrée face aux peintures installées. DCS retire silencieusement une
+arme impossible et affiche silencieusement la peinture par défaut, donc les deux limites sont
+renvoyées comme `warnings` plutôt que sous-entendues par leur absence.
+
+`pylons` est indexé **par numéro de station**, jamais positionnel, pour la raison mesurée dans
+`describe_units`. `pylons` absent = « ne touche pas à l'emport » ; `{}` en mode `replace` = « ne porte
+rien » ; en mode `merge`, un CLSID vide vide cette station.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Colt 1-1",
+  "unit_name": "Colt 1-1-1",
+  "skill": "Excellent",
+  "heading_deg": 270,
+  "pylons": {"4": ""},
+  "pylons_mode": "merge"
+}
+```
+
+La réponse porte `changed`, qui donne pour chaque champ touché sa valeur **précédente** et la
+nouvelle : un appelant qui ne peut pas dire ce qu'il a remplacé ne peut pas le défaire.
+
+### `set_group_properties`
+
+Écriture. Agit sur le groupe entier : déplacement, renommage, fréquence, modulation, et les trois
+booléens (`lateActivation`, `hidden`, `uncontrolled`). Sauvegarde horodatée avant écriture.
+
+**Le déplacement porte toute la conception de ce module, et ce n'est pas « écrire x et y ».** Un
+groupe, ce sont des unités **en formation** plus éventuellement une **route**. La translation
+s'applique donc à *toutes* les unités, *tous* les points de passage **et** l'ancre `x`/`y` du groupe,
+d'un seul vecteur : autrement la formation se déforme, ou la route se détache des unités auxquelles
+elle appartient — et aucun des deux ne se voit avant qu'on vole la mission. Le test du cisaillement
+(déplacer les unités en laissant les points de passage) est écrit pour tomber sur toute
+implémentation qui l'oublierait, et ça a été vérifié en cassant volontairement la translation.
+
+Le vecteur vient de **l'offset géodésique** de `FEAT-GEO-PLACEMENT`
+([ADR 0015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0015-coordinate-projection-port.md)), pas d'une addition de mètres sur `x` : un théâtre
+DCS est le monde réel projeté, donc « 5 km à l'est » est une question de latitude/longitude. Un
+théâtre sans projection fait **refuser** la forme cap + distance, en invitant à passer `move_to`.
+
+`frequency_mhz` est contrôlée face au `HumanRadio` de l'appareil, en réutilisant le validateur de
+l'injecteur de presets plutôt qu'en le redérivant : `FIX-PRIMARY-FREQ-HUMANRADIO` a établi que
+l'éditeur DCS **refuse d'enregistrer** une mission dont la fréquence primaire sort de cette plage.
+**Tous** les types d'unités du groupe sont vérifiés, pas seulement le premier — un groupe hétérogène
+passerait sinon sur son premier membre pour être refusé par l'éditeur à cause d'un autre.
+
+Le renommage lance la vérification des conventions VEAF réservées (`validate_group_name`) et
+**refuse par défaut** : un groupe renommé avec le nom de la zone de déclenchement d'une combat zone
+est *despawné au démarrage*, en silence. Renommer *vers* une convention est une intention légitime,
+d'où `acknowledge_conventions` — l'important est que ce soit délibéré. Les noms d'**unités** ne
+suivent jamais : ils portent leurs propres marqueurs (`#command=`, `#veafInterpreter[...]`), qu'une
+cascade réécrirait à l'aveugle.
+
+Ce que l'action **ne peut pas** faire, mesuré et non oublié : vérifier la nature du sol à l'arrivée.
+Il n'y a aucune donnée de terrain côté Python — `land.getSurfaceType` est une API d'exécution, seul
+son schéma est livré ici — et c'est exactement pour cette raison que `FEAT-SCENERY-AWARE-SPAWN` a
+résolu le problème à l'exécution. Le déplacement **avertit** donc qu'il n'a pas pu regarder, au lieu
+de valider et de mentir.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Red SAM Battery",
+  "move_bearing": 90,
+  "move_distance_m": 5000,
+  "late_activation": true
+}
+```
+
 ### `add_group`
 
 Écriture. Insère un groupe terrestre/véhicule dans le `.miz` source, **en place**, avec une

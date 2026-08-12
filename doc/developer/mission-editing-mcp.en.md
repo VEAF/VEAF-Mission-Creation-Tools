@@ -97,6 +97,103 @@ tell "off" from "the reader did not look".
 {"miz_path": "path/to/mission.miz", "group_name": "Colt", "include_route": false}
 ```
 
+### `set_unit_properties`
+
+Write. The **first** action that changes an object the mission already contains: every `set_*`
+shipped before it acts on *configuration* (modules, security, logging, an airbase's coalition).
+Timestamped backup before the write, like its siblings.
+
+It addresses the unit by **exact** group name and **exact** unit name — not by fragment, unlike
+`describe_units`: a fragment makes the edit land on whichever group matched first, which is not
+recoverable. A name that misses lists what exists, so a caller can retry without re-reading the
+whole mission.
+
+Three shapes were **measured** on real missions rather than inferred, and two contradict the ticket
+that asked for them:
+
+- **`skill` has seven values, not four.** `Average`, `Good`, `High`, `Excellent` and `Random` are AI
+  levels; `Client` and `Player` are **human slots**. Crossing that line one way adds a place to the
+  multiplayer list, the other way removes one — the bug `FIX-TEMPLATE-SLOTS-VISIBLE` was opened for.
+  Both directions are therefore refused naming the reason, instead of being honoured as a skill
+  setting.
+- **An aircraft's callsign is not a plain field.** It is a table
+  `{1: family, 2: flight, 3: number, name: "Colt11"}` where `name` is the family's word followed by
+  the two indices (`{1:1, 2:1, 3:2}` reads `Enfield12`). Writing `name` alone desynchronises what DCS
+  says on the radio from what the editor shows, so the action edits the indices and **rebuilds**
+  `name` from the prefix already there. Changing the *family* requires DCS's family→word table, which
+  this repository does not ship: that is refused unless the caller supplies the resulting `name`.
+- **`heading` is radians** while a mission maker speaks degrees — the trap `resolve_coordinates`
+  hides elsewhere. The parameter is named `heading_deg` so the unit cannot be mistaken, and the value
+  is normalised onto one turn (−90 is 270).
+
+What the action does **not** validate, for want of the data to do it: a weapon's CLSID against the
+airframe carrying it, and a livery against the skins installed. DCS silently drops an impossible
+weapon and silently shows the default skin, so both limits are returned as `warnings` rather than
+implied by their absence.
+
+`pylons` is keyed **by station number**, never positional, for the reason measured in
+`describe_units`. No `pylons` means "leave the loadout alone"; `{}` in `replace` mode means "carry
+nothing"; in `merge` mode an empty CLSID empties that station.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "group_name": "Colt 1-1",
+  "unit_name": "Colt 1-1-1",
+  "skill": "Excellent",
+  "heading_deg": 270,
+  "pylons": {"4": ""},
+  "pylons_mode": "merge"
+}
+```
+
+The result carries `changed`, giving each touched field its **previous** value and the new one: a
+caller that cannot say what it replaced cannot undo it.
+
+### `set_group_properties`
+
+Write. Acts on the whole group: move, rename, frequency, modulation, and the three booleans
+(`lateActivation`, `hidden`, `uncontrolled`). Timestamped backup before the write.
+
+**The move carries the whole design of this module, and it is not "write x and y".** A group is units
+**in a formation** plus possibly a **route**. The translation therefore applies to *every* unit,
+*every* waypoint **and** the group's own `x`/`y` anchor, by a single vector: otherwise the formation
+shears, or the route detaches from the units it belongs to — and neither shows before somebody flies
+the mission. The shear test (move the units, leave the waypoints) is written to fail on any
+implementation that forgets it, and that was verified by deliberately breaking the translation.
+
+The vector comes from the **geodesic offset** of `FEAT-GEO-PLACEMENT`
+([ADR 0015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0015-coordinate-projection-port.md)), not from adding metres to `x`: a DCS theatre is the
+real world projected, so "5 km east" is a lat/lon question. A theatre with no projection makes the
+bearing + distance form **refuse**, pointing at `move_to` instead.
+
+`frequency_mhz` is checked against the airframe's `HumanRadio`, reusing the presets injector's
+validator rather than re-deriving it: `FIX-PRIMARY-FREQ-HUMANRADIO` established that the DCS editor
+**refuses to save** a mission whose primary frequency falls outside that range. **Every** unit type in
+the group is checked, not just the first — a mixed group would otherwise pass on its first member and
+be refused by the editor because of another.
+
+The rename runs the reserved-convention check (`validate_group_name`) and **refuses by default**: a
+group renamed onto a combat zone's trigger-zone name is *despawned at start*, silently. Renaming
+*into* a convention is a legitimate intent, hence `acknowledge_conventions` — what matters is that it
+be deliberate. **Unit** names never follow: they carry markers of their own (`#command=`,
+`#veafInterpreter[...]`) that a cascade would rewrite blind.
+
+What the action **cannot** do, measured rather than overlooked: check the surface at the destination.
+There is no terrain data on the Python side — `land.getSurfaceType` is a runtime API and only its
+schema ships here — which is exactly why `FEAT-SCENERY-AWARE-SPAWN` solved the problem at runtime. So
+a move **warns** that it could not look, instead of validating and lying.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "group_name": "Red SAM Battery",
+  "move_bearing": 90,
+  "move_distance_m": 5000,
+  "late_activation": true
+}
+```
+
 ### `add_group`
 
 Write. Inserts a ground/vehicle group into the source `.miz`, **in place**, with a systematic

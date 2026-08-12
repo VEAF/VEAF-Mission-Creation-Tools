@@ -45,29 +45,31 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 2 | [Inspecter les unités, leurs emports et leurs routes](#inspecter-unites) | État de la mission | Mission construite | 🔥 |
 | 3 | [Lister les modules VEAF et leur réglage](#lister-les-modules-veaf) | État de la mission | Recette | 🔥 |
 | 4 | [Ajouter un groupe terrestre / véhicules](#ajouter-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
-| 5 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
-| 6 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
-| 7 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Recette + construite | ◽ |
-| 8 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Recette + construite | ◽ |
-| 9 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Recette + construite | ◽ |
-| 10 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
-| 11 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
-| 12 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
-| 13 | [Lister les types d'unités DCS](#lister-unites-dcs) | Connaissance métier | — | ⭐ |
-| 14 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
-| 15 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
-| 16 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
-| 17 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
-| 18 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
-| 19 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
-| 20 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
-| 21 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
-| 22 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
-| 23 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
-| 24 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
-| 25 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
-| 26 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
-| 27 | [Colorer une base et activer ses slots dynamiques](#colorer-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
+| 5 | [Modifier un appareil ou un véhicule existant](#modifier-une-unite) | Ordre de bataille | Mission construite | ⭐ |
+| 6 | [Déplacer, renommer ou reconfigurer un groupe](#modifier-un-groupe) | Ordre de bataille | Mission construite | ⭐ |
+| 7 | [Activer / désactiver / configurer un module (recette)](#configurer-un-module-recette) | Modules & réglages | Recette | ⭐ |
+| 8 | [Activer / désactiver un module (mission construite)](#activer-un-module-construite) | Modules & réglages | Mission construite | ⭐ |
+| 9 | [Changer le niveau de logs](#niveau-de-logs) | Modules & réglages | Recette + construite | ◽ |
+| 10 | [Activer / désactiver la sécurité par mot de passe](#securite-mot-de-passe) | Modules & réglages | Recette + construite | ◽ |
+| 11 | [Régler un paramètre VEAF précis](#parametre-veaf) | Modules & réglages | Recette + construite | ◽ |
+| 12 | [Ajouter une zone de déclenchement circulaire](#ajouter-une-zone) | Zones & déclencheurs | Mission construite | ◽ |
+| 13 | [Ajouter un script au démarrage de la mission](#script-au-demarrage) | Zones & déclencheurs | Mission construite | ◽ |
+| 14 | [Rechercher-remplacer du texte dans les scripts](#rechercher-remplacer) | Retouches avancées | Mission construite | 🔧 |
+| 15 | [Lister les types d'unités DCS](#lister-unites-dcs) | Connaissance métier | — | ⭐ |
+| 16 | [Lister les alias / raccourcis VEAF](#lister-alias-veaf) | Connaissance métier | — | ⭐ |
+| 17 | [Expliquer les conventions de nommage](#conventions-nommage) | Connaissance métier | — | ◽ |
+| 18 | [Renseigner sur un module VEAF](#decrire-module) | Connaissance métier | — | ◽ |
+| 19 | [Vérifier un nom de groupe](#verifier-nom-groupe) | Connaissance métier | — | ◽ |
+| 20 | [Créer une combat zone complète (une passe)](#creer-combat-zone) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 21 | [Créer une QRA complète (une passe)](#creer-qra) | 🏗️ Composites | Recette (dossier) | 🔥 |
+| 22 | [Créer une mission CAP à la demande (une passe)](#creer-cap) | 🏗️ Composites | Recette (dossier) | ⭐ |
+| 23 | [Créer un dossier de mission depuis zéro](#creer-dossier-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 24 | [Lire la carte (repérage)](#lire-la-carte) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 25 | [Convertir des coordonnées (x/y ↔ lat/lon)](#convertir-coordonnees) | 🗺️ Carte & coordonnées | — | ◽ |
+| 26 | [Placer par nom de lieu réel (géocodage)](#geocoder) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 27 | [Valider une mission avant build](#valider-mission) | 🏁 Valider & construire | Dossier | ⭐ |
+| 28 | [Construire le .miz jouable](#construire-mission) | 🏁 Valider & construire | Dossier | 🔥 |
+| 29 | [Colorer une base et activer ses slots dynamiques](#colorer-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
 
 ---
 
@@ -285,6 +287,60 @@ zone), en **Late Activation** pour une QRA, ou template de spawn (`veafSpawn-`).
 > 💬 *« Ajoute une section de 3 T-72 en patrouille autour de ce point. »*
 > 💬 *« Mets deux groupes de blindés dans la combat zone North. »*
 > 💬 *« Place des intercepteurs Su-27 en Late Activation pour la QRA. »*
+
+### Modifier un appareil ou un véhicule existant {#modifier-une-unite}
+
+*Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son
+**emport** (pylône par pylône), son **niveau d'IA**, sa **livrée**, son **cap**, son **indicatif** et
+son **numéro de flanc**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
+tu demandes changent, et l'IA te dit ce qu'il y avait avant.
+
+> 💬 *« Donne au vol Colt un emport air-sol. »*
+> 💬 *« Enlève les bombes du pylône 4 de Colt 1-1-1. »*
+> 💬 *« Mets ce MiG en niveau Excellent et oriente-le au 270. »*
+> 💬 *« Renomme l'indicatif de ce vol en Colt 2-3. »*
+
+Trois choses à savoir, parce qu'elles évitent une surprise :
+
+- **L'IA doit d'abord regarder** ([inspecter les unités](#inspecter-unites)) : elle désigne l'unité
+  par son nom **exact**, pour qu'une modification ne parte jamais sur le mauvais groupe.
+- **La livrée et les armes ne sont pas vérifiables** par l'outil : DCS affiche la peinture par
+  défaut, ou retire une arme que l'appareil ne peut pas porter, **sans le dire**. L'IA te le
+  rappellera ; c'est à vérifier dans l'éditeur.
+- **Transformer une unité IA en slot joueur est refusé** (et l'inverse aussi) : ce n'est pas un
+  niveau de compétence mais un slot multijoueur, qui apparaîtrait ou disparaîtrait de la liste des
+  places disponibles.
+
+### Déplacer, renommer ou reconfigurer un groupe {#modifier-un-groupe}
+
+*Mission construite · ⭐* — Agir sur un groupe **entier** : le **déplacer**, le **renommer**, changer
+sa **fréquence radio**, le passer en **Late Activation**, le **masquer** ou le laisser **moteurs
+coupés**.
+
+> 💬 *« Déplace cette batterie SAM de 5 km vers l'est. »*
+> 💬 *« Renomme ce groupe selon la convention VEAF. »*
+> 💬 *« Mets ce vol en Late Activation et moteurs coupés. »*
+> 💬 *« Passe la fréquence de ce vol sur 305 AM. »*
+
+Le déplacement est la partie qui demandait le plus de soin, et voici pourquoi :
+
+- **Un groupe n'est pas un point.** Ce sont des unités en formation, plus éventuellement une route.
+  L'outil déplace **toutes les unités, tous les points de passage et l'ancre du groupe** du même
+  vecteur : sinon la formation se déforme, ou la route se détache des unités — et ça ne se voit qu'en
+  vol.
+- **Une distance et un cap sont calculés sur le globe**, avec la même mécanique que le placement par
+  nom de lieu réel, pas en ajoutant des mètres à une coordonnée.
+- ⚠️ **La nature du terrain à l'arrivée n'est pas vérifiable** au moment de la construction : un
+  groupe terrestre peut se retrouver dans l'eau ou sur une pente sans que rien ne le signale. C'est
+  aussi pour ça que le placement *à l'exécution* (spawn VEAF) sait éviter les villages et les forêts,
+  lui. À vérifier dans l'éditeur.
+
+Deux refus utiles : **renommer sur un nom déjà pris** est bloqué (deux groupes homonymes rendent
+toute modification ultérieure ambiguë), et **un nom qui déclenche une convention VEAF réservée** l'est
+aussi — par exemple préfixer un groupe du nom d'une combat zone, ce qui le fait *disparaître au
+démarrage*. Si c'est justement ton intention, l'IA peut passer outre en le disant explicitement.
+Enfin, **la fréquence est vérifiée face à ce que l'appareil peut réellement afficher** : hors plage,
+l'éditeur DCS refuserait d'enregistrer la mission.
 
 ---
 

@@ -32,8 +32,7 @@ from typing import Any
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
-#: Group categories a mission table may hold, in the order DCS writes them.
-_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
+from veaf_mission_mcp.mission_table import find_group, indexed, listed
 
 #: The AI competence levels. `Random` is one of them: DCS picks a level at mission start.
 _AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
@@ -102,7 +101,7 @@ def set_unit_properties(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
-    group = _find_group(mission.mission_content, group_name)
+    group = find_group(mission.mission_content, group_name)
     unit = _find_unit(group, group_name, unit_name)
 
     # Everything is validated before anything is stored, so a refusal cannot half-write a mission.
@@ -137,54 +136,6 @@ def set_unit_properties(
     return {"group": group_name, "unit": unit_name, "changed": changed, "warnings": warnings}
 
 
-def _indexed(container: Any) -> list[Any]:
-    """Return a DCS 1-based table's values in key order, whether it arrived as a dict or a list."""
-    if isinstance(container, dict):
-        return [container[key] for key in sorted(container, key=_numeric_first)]
-    if isinstance(container, list):
-        return list(container)
-    return []
-
-
-def _numeric_first(key: Any) -> tuple[int, float, str]:
-    """Sort key ordering numeric table keys numerically, before any non-numeric ones."""
-    try:
-        return (0, float(key), "")
-    except (TypeError, ValueError):
-        return (1, 0.0, str(key))
-
-
-def _find_group(mission_content: dict[str, Any], group_name: str) -> dict[str, Any]:
-    """Return the group named `group_name`, or raise naming what exists.
-
-    Args:
-        mission_content: The parsed ``mission`` table.
-        group_name: The exact group name to find.
-
-    Returns:
-        The group table, so the caller mutates the mission's own dict.
-
-    Raises:
-        ValueError: If no group carries that exact name.
-    """
-    names: list[str] = []
-    for coalition in (mission_content.get("coalition") or {}).values():
-        if not isinstance(coalition, dict):
-            continue
-        for country in _indexed(coalition.get("country")):
-            if not isinstance(country, dict):
-                continue
-            for category in _CATEGORIES:
-                for group in _indexed((country.get(category) or {}).get("group")):
-                    if not isinstance(group, dict):
-                        continue
-                    name = str(group.get("name", ""))
-                    if name == group_name:
-                        return group
-                    names.append(name)
-    raise ValueError(f"No group named {group_name!r} in this mission. Groups present: {_listed(names)}")
-
-
 def _find_unit(group: dict[str, Any], group_name: str, unit_name: str) -> dict[str, Any]:
     """Return the unit named `unit_name` inside `group`, or raise naming the group's units.
 
@@ -194,28 +145,20 @@ def _find_unit(group: dict[str, Any], group_name: str, unit_name: str) -> dict[s
         unit_name: The exact unit name to find.
 
     Returns:
-        The unit table.
+        The unit table, so the caller mutates the mission's own dict.
 
     Raises:
         ValueError: If the group holds no unit with that name.
     """
     names: list[str] = []
-    for unit in _indexed(group.get("units")):
+    for unit in indexed(group.get("units")):
         if not isinstance(unit, dict):
             continue
         name = str(unit.get("name", ""))
         if name == unit_name:
             return unit
         names.append(name)
-    raise ValueError(f"No unit named {unit_name!r} in group {group_name!r}. Units in that group: {_listed(names)}")
-
-
-def _listed(names: list[str], limit: int = 20) -> str:
-    """Render `names` for an error message, capped so a Foothold-sized mission stays readable."""
-    if not names:
-        return "none"
-    shown = ", ".join(repr(name) for name in names[:limit])
-    return shown if len(names) <= limit else f"{shown}, ... ({len(names)} total)"
+    raise ValueError(f"No unit named {unit_name!r} in group {group_name!r}. Units in that group: {listed(names)}")
 
 
 def _apply_skill(unit: dict[str, Any], skill: str, changed: dict[str, Any]) -> None:
@@ -283,7 +226,7 @@ def _apply_callsign(unit: dict[str, Any], callsign: dict[str, int | str] | int |
 
     unknown = set(callsign) - {"family", "flight", "number", "name"}
     if unknown:
-        raise ValueError(f"unknown callsign field(s) {_listed(sorted(unknown))}; expected family, flight, number, name")
+        raise ValueError(f"unknown callsign field(s) {listed(sorted(unknown))}; expected family, flight, number, name")
     for field in ("family", "flight", "number"):
         if field in callsign and int(callsign[field]) not in _CALLSIGN_INDEX_RANGE:
             raise ValueError(f"callsign {field} must be in 1..9, got {callsign[field]!r}")

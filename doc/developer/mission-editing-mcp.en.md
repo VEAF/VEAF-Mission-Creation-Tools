@@ -194,6 +194,133 @@ a move **warns** that it could not look, instead of validating and lying.
 }
 ```
 
+### `edit_route`
+
+Write. Two layers: the **route** (`add`, `insert`, `remove`, `reorder`, `set`) is mostly a list
+operation on `route.points`; a waypoint's **tasks** (`add_task`, `clear_tasks`) are what makes a flight
+do something.
+
+**The invariant that makes this surgery rather than list editing.** `FIX-WAYPOINTS-ETA-LOCKED`
+established that DCS **refuses to save** a mission whose route has no waypoint with a locked time
+("Route has no waypoints with locked time!"), and that its own repair is to lock the first. Removing or
+reordering can therefore produce a mission the editor rejects, far from the edit that caused it. Every
+operation restores the invariant and **says so** when it had to.
+
+**Units.** The mission table holds metres and metres per second; a mission maker speaks feet and knots.
+As with `set_unit_properties`' `heading_deg`, the parameters carry their unit in their name
+(`altitude_ft`, `speed_kt`) and the result reports both, so a caller never converts back.
+
+**Tasks are a named set with validated signatures, not a free-form table** — a deliberate choice from
+the ticket: a generic "write this task table" action is a foot-gun, because an agent produces a
+plausible table, DCS ignores it silently, and the mission maker finds out an hour later. The escape
+hatch starts **closed**.
+
+Every signature was read out of a real mission, and three are traps:
+
+- **`SetFrequency` takes hertz** (`31000000` for 31 MHz) while a *group's* frequency —
+  `set_group_properties` — is in MHz. Two units for the same notion, in the same file. The action takes
+  MHz and converts.
+- **`EngageTargetsInZone` duplicates its target list** into a serialised `value` string
+  (`"Air;Cruise missiles;"`) beside the `targetTypes` array; writing only the array leaves the mission
+  carrying two versions of the same decision.
+- **`SetFrequency` and `SwitchWaypoint` are not tasks** but *actions*, carried inside a `WrappedAction`
+  envelope. Written as a bare task, DCS ignores it.
+
+Two measured details the ticket did not mention: a waypoint's `type` and `action` are a **pair**
+("Land" goes with "Landing"), and an added waypoint **inherits** its neighbour's altitude and speed —
+otherwise it is written at altitude 0 and the flight dives into the ground to reach it.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "group_name": "Colt 1-1",
+  "operation": "add_task",
+  "index": 2,
+  "task": "orbit",
+  "task_params": {"pattern": "Race-Track", "altitude_ft": 20000, "speed_kt": 300}
+}
+```
+
+### `edit_zone`
+
+Write. `add_trigger_zone` only creates **circular** zones and nothing edited one afterwards, so
+adjusting a VEAF combat zone — which *is* a trigger zone — meant deleting it and building it again.
+
+**Two measurements before any code**, as the ticket required:
+
+- **A polygon zone's real shape**, read out of `veaf-demo-mission.miz` (`czBatumi`): `type: 2` plus a
+  `verticies` list — DCS's own spelling, kept verbatim because correcting the typo would write a field
+  DCS ignores — while `x`, `y` and `radius` **stay present**. A polygon is therefore not a circle with
+  extra fields.
+- **What the VEAF runtime handles.** `veafCombatZone.lua` branches on exactly two types: `0` →
+  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. There is **no
+  `else`**, so a zone of any other type would contain no units, in silence — worse than not offering
+  the shape. The action therefore writes only 0 and 2.
+
+**David's call on the vertex count (2026-08-12)**: accept three or more, since "follow the ridge line"
+is the real use case and mist handles an arbitrary polygon — but **warn** whenever the count is not
+four, the DCS editor only drawing quads. Whether it preserves more is an in-game question no unit test
+settles.
+
+Two refusals the ticket left open, decided here: a **link to a unit that does not exist** is refused
+rather than warned (a zone linked to nothing simply never follows anything, silently), and a **name
+collision** is refused (zones are referenced by name from `mission.yaml`).
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "zone_name": "czBatumi",
+  "vertices": [
+    {"x": -359753.0, "y": 614918.0},
+    {"x": -355602.0, "y": 622688.0},
+    {"x": -352849.0, "y": 617192.0},
+    {"x": -358731.0, "y": 614282.0}
+  ]
+}
+```
+
+### `add_map_drawing` / `edit_map_drawing`
+
+Write. Nothing in VMCT touched F10 map drawings, so a briefing line, an ingress corridor or a no-fly
+box was drawn by hand in the editor — **and vanished the moment the mission was rebuilt from its
+folder**. That is the whole argument: a drawing an agent places is part of the recipe, a hand-drawn one
+is not.
+
+**The measurement that governs the design**, read out of this repository's fixtures:
+
+> `points` are **relative to the drawing's `mapX`/`mapY` anchor**, the first one being `{0, 0}`.
+
+A drawing written in absolute coordinates lands hundreds of kilometres away and **nothing errors** —
+the same class of silent failure as confusing the mission table's `{x=north, y=east}` with a runtime
+vec3 (see `docs/agents/dcs-coordinates.md`). So the actions take the absolute coordinates a caller
+actually has and do the anchoring themselves. The payoff shows in `edit_map_drawing`: moving a drawing
+is moving its anchor, and the shape follows for free.
+
+**Three shapes ship because three shapes were measured**: `Line` (with `lineMode` `segment` or
+`segments`, and `closed` for a shape that joins up — that is how a free-form area is outlined),
+`Polygon` in `rect` mode (`width`/`height`/`angle`, **no** points), and `TextBox` (`text`/`font`/
+`fontSize`, no points either; the font is taken from a real drawing, one DCS lacks rendering as
+nothing).
+
+The other `polygonMode` values (`circle`, `oval`, `free`, `arrow`) and `primitiveType: "Icon"` are
+**absent from every fixture** here, so their structure is unknown, and the ticket's rule is to read a
+real `.miz` rather than assume. They are refused by name — inventing a layout would produce a drawing
+the editor silently drops, exactly what `FIX-MAPRESOURCE-KEY` and `FIX-COMMUNITY-SOUNDS-PRUNED` already
+cost. The measurement is listed in `DCS-SESSION-TODO.md`.
+
+The **layer** is a first-class parameter, never a default: a drawing on the wrong layer is invisible to
+the pilots who need it and visible to the ones who should not see it.
+
+```json
+{
+  "miz_path": "path/to/mission.miz",
+  "layer": "Blue",
+  "shape": "line",
+  "name": "FSCL",
+  "points": [{"x": -300000.0, "y": 600000.0}, {"x": -290000.0, "y": 610000.0}]
+}
+```
+
 ### `add_group`
 
 Write. Inserts a ground/vehicle group into the source `.miz`, **in place**, with a systematic

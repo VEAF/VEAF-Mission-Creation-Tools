@@ -1,6 +1,6 @@
 # 06 — Zone editing, including polygons
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-12 — shipped as `edit_zone`; `veafCombatZone` **does** handle a polygon, measured in its source
 Type: feat
 Files: `veaf_mission_mcp/add_trigger_zone.py` (or a sibling), `actions.py`, the catalogue doc, tests
 
@@ -43,17 +43,57 @@ how a zone looks to whoever opens the mission in the ME, not what it does in gam
 - `zone-set-link` needs the linked unit to exist; decide what happens when it does not (refuse, or warn
   and leave unlinked).
 
+## The two measurements this ticket demanded
+
+**A polygon zone's exact shape**, read out of `test/veaf-tools/demo-mission/veaf-demo-mission.miz`
+(`czBatumi`):
+
+```
+{ name = "czBatumi", type = 2, zoneId = 670,
+  x = -356734.48, y = 617270.72, radius = 4572,
+  verticies = { {x = -359753.86, y = 614918.84}, {x = -355602.86, y = 622688.92},
+                {x = -352849.44, y = 617192.50}, {x = -358731.76, y = 614282.63} },
+  color = {1, 1, 1, 0.15}, hidden = false, properties = {} }
+```
+
+Two things follow. The list is spelled **`verticies`** — DCS's own typo, kept verbatim, because
+"correcting" it writes a field DCS ignores. And `x`, `y` and `radius` **stay present** on a polygon, so
+a polygon is not a circle with extra fields and reshaping does not strip the rest.
+
+**`veafCombatZone` does handle a polygon.** `veafCombatZone.lua:1506-1510` branches on the zone type:
+`0` → `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. But there is **no
+`else`**: a zone of any other type leaves `units` empty and the combat zone finds nobody, silently.
+That is worse than not offering the shape, so the action writes only types 0 and 2 — the answer to the
+ticket's "or scope the action to what it handles".
+
+**David's call on the vertex count (2026-08-12)**: accept three or more, since "follow the ridge line"
+is the actual use case and mist handles any polygon — but **warn** whenever the count is not four,
+because the DCS editor only draws quads and whether it preserves more is an in-game question.
+
 ## Tasks
 
-- [ ] Read a real quad/polygon zone from a `.miz` and record its exact shape in this ticket.
-- [ ] Confirm `veafCombatZone` handles a non-circular zone, or scope the action to what it handles.
-- [ ] One `edit_zone` action covering the six kept verbs, backup-before-write like its siblings.
-- [ ] Catalogue doc updated in the same ticket (lockstep).
-- [ ] Tests: circle → polygon, move, resize, rename, link, remove; and the DCS Mission Editor opens the
-      result — a golden-file assertion at minimum.
+- [x] Read a real quad/polygon zone from a `.miz` and record its exact shape in this ticket (above).
+- [x] Confirm `veafCombatZone` handles a non-circular zone — it does, for type 2 only, and the action
+      is scoped to that.
+- [x] One `edit_zone` action covering the six kept verbs, backup-before-write like its siblings.
+- [x] Catalogue doc updated in the same ticket (lockstep), plus the developer reference.
+- [x] Tests: circle → polygon, move, resize, rename, link, remove — 31 cases, each asserting what
+      landed **in the written archive** rather than in memory.
+
+## Two open questions, decided
+
+- **`zone-set-link` when the unit does not exist**: *refused*, not warned. A zone linked to nothing
+  never follows anything, in silence, and the mission maker would be left inspecting the zone instead
+  of the link. DCS links by `unitId`, so the id is resolved from the name here.
+- **Renaming**: refused on a **collision** (zones are referenced by name from `mission.yaml`), and it
+  **warns that references do not follow** — the combat zone's own entry and its member groups' name
+  prefix both need doing by hand. Nothing here can see those references.
 
 ## Acceptance criteria
 
-- [ ] A zone can be reshaped, moved, renamed, linked and removed without deleting and recreating it.
-- [ ] A polygon zone the action creates is one `veafCombatZone` actually handles.
-- [ ] `ruff` / `mypy` / `pytest` green; coverage gate bumped per the ratchet.
+- [x] A zone can be reshaped, moved, renamed, linked and removed without deleting and recreating it.
+      Moving a polygon carries its vertices, or the shape would stay behind while the centre moved.
+- [x] A polygon zone the action creates is one `veafCombatZone` actually handles (type 2, via mist).
+- [ ] 🧑 One editor check that a **non-quad** polygon survives a save, since the ME has no UI for it.
+      Listed in `DCS-SESSION-TODO.md`.
+- [x] `ruff` / `mypy` / `pytest` green; coverage gate bumped per the ratchet.

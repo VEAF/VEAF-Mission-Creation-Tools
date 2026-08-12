@@ -21,14 +21,17 @@ from veaf_mission_mcp.edit_mission_yaml import (
     set_mission_security,
     set_mission_setting,
 )
+from veaf_mission_mcp.edit_route import edit_route
 from veaf_mission_mcp.edit_veaf_config import (
     set_log_level,
     set_module_enabled,
     set_security_disabled,
     set_veaf_config,
 )
+from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -246,6 +249,236 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_set_group_properties,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_route",
+            description=(
+                "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
+                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked), "
+                "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
+                "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
+                "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
+                "Tasks are a CLOSED named set -- orbit, land, attack_group, bombing, "
+                "engage_targets_in_zone, set_frequency, switch_waypoint -- each validating its own "
+                "parameters, because a made-up task table is one DCS ignores in silence while the flight "
+                "does nothing. Note set_frequency takes MHz here even though DCS stores hertz. Every "
+                "operation guarantees at least one waypoint keeps a locked time, since DCS refuses to save "
+                "a route without one. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {"type": "string", "description": "The group's EXACT name."},
+                    "operation": {
+                        "type": "string",
+                        "enum": ["add", "insert", "remove", "reorder", "set", "add_task", "clear_tasks"],
+                    },
+                    "index": {
+                        "type": "integer",
+                        "description": "1-based waypoint the operation acts on (every operation but 'add').",
+                    },
+                    "to_index": {"type": "integer", "description": "Destination index, for 'reorder'."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Coordinates, for 'add' / 'insert'.",
+                    },
+                    "name": {"type": "string", "description": "Waypoint name."},
+                    "altitude_ft": {"type": "number", "description": "Altitude in FEET."},
+                    "speed_kt": {"type": "number", "description": "Speed in KNOTS."},
+                    "waypoint_type": {
+                        "type": "string",
+                        "enum": [
+                            "Turning Point",
+                            "Fly Over Point",
+                            "TakeOff",
+                            "TakeOffParking",
+                            "TakeOffParkingHot",
+                            "TakeOffGround",
+                            "TakeOffGroundHot",
+                            "Land",
+                        ],
+                        "description": "Its matching DCS 'action' is written with it -- they are a pair.",
+                    },
+                    "eta_locked": {"type": "boolean", "description": "Whether this waypoint's time is locked."},
+                    "task": {
+                        "type": "string",
+                        "enum": [
+                            "orbit",
+                            "land",
+                            "attack_group",
+                            "bombing",
+                            "engage_targets_in_zone",
+                            "set_frequency",
+                            "switch_waypoint",
+                        ],
+                        "description": "For 'add_task'. Unknown names are refused rather than guessed.",
+                    },
+                    "task_params": {
+                        "type": "object",
+                        "description": "That task's parameters. orbit: pattern (Race-Track|Circle), "
+                        "altitude_ft, speed_kt. land: position, duration_s. attack_group: group_id. "
+                        "bombing: position, expend, attack_qty. engage_targets_in_zone: position, "
+                        "radius_m, target_types. set_frequency: frequency_mhz, modulation (AM|FM). "
+                        "switch_waypoint: to_index, from_index.",
+                    },
+                },
+                "required": ["miz_path", "group_name", "operation"],
+            },
+        ),
+        handler=_handle_edit_route,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_zone",
+            description=(
+                "RESHAPE, move, resize, rename, link or remove a trigger zone that already exists -- "
+                "add_trigger_zone only creates circular ones. A VEAF combat zone IS a trigger zone, so "
+                "this is how one gets adjusted instead of deleted and rebuilt. Pass 'vertices' (3 or "
+                "more absolute x/y points) to make it a polygon following a ridge line; the VEAF "
+                "runtime handles any polygon, but the DCS editor only DRAWS 4-point quads, so a "
+                "different count is warned about. make_circular turns one back. Moving a polygon "
+                "carries its vertices with it. 'link_unit' makes the zone follow a unit (a carrier) and "
+                "is refused if that unit does not exist. A rename does NOT update what references the "
+                "zone -- mission.yaml and member group prefixes need doing by hand, and the result says "
+                "so. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "zone_name": {"type": "string", "description": "The zone's EXACT current name."},
+                    "new_name": {"type": "string", "description": "New name. Refused on a collision."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "New centre. A polygon's vertices travel with it.",
+                    },
+                    "radius": {"type": "number", "description": "New radius in metres; must be positive."},
+                    "vertices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                        "description": "3+ ABSOLUTE points making the zone a polygon.",
+                    },
+                    "make_circular": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Turn a polygon back into a circle, dropping its vertices.",
+                    },
+                    "link_unit": {
+                        "type": "string",
+                        "description": "Unit name for the zone to follow; empty string unlinks.",
+                    },
+                    "remove": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Delete the zone. Cannot be combined with another change.",
+                    },
+                },
+                "required": ["miz_path", "zone_name"],
+            },
+        ),
+        handler=_handle_edit_zone,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_map_drawing",
+            description=(
+                "DRAW on the F10 map -- an FSCL, an ingress corridor, a no-fly box, a label. Worth doing "
+                "here rather than in the editor because a hand-drawn shape is LOST when the mission is "
+                "rebuilt from its folder, while this one is part of the recipe. Give ABSOLUTE mission "
+                "coordinates; the relative anchoring DCS stores is done for you (getting that wrong puts "
+                "a drawing hundreds of km away with no error). The LAYER decides who sees it and is "
+                "never defaulted. Shapes: 'line' (2+ points, closed=true for an area), 'rect' "
+                "(width/height), 'textbox' (text). Other DCS shapes (circle, oval, arrow, icon) are "
+                "REFUSED: no mission here contains one, so their field layout is unknown and a guess "
+                "produces a drawing the editor silently drops."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "layer": {
+                        "type": "string",
+                        "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
+                        "description": "Who sees it. 'Common' is everyone; 'Author' is the maker's own layer.",
+                    },
+                    "shape": {"type": "string", "enum": ["line", "rect", "textbox"]},
+                    "name": {"type": "string", "description": "Name, used to edit or remove it later."},
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                        "description": "ABSOLUTE coordinates for a line, 2 or more.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "ABSOLUTE anchor for a rect or a textbox.",
+                    },
+                    "text": {"type": "string", "description": "The label, for a textbox."},
+                    "width": {"type": "number", "description": "Width in metres, for a rect."},
+                    "height": {"type": "number", "description": "Height in metres, for a rect."},
+                    "angle": {"type": "number", "default": 0},
+                    "closed": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Join a line back up -- how a free-form area is drawn.",
+                    },
+                    "color": {"type": "string", "description": "Outline colour, DCS 0xRRGGBBAA string."},
+                    "fill_color": {"type": "string", "description": "Fill colour, same format."},
+                    "thickness": {"type": "number"},
+                    "font_size": {"type": "integer", "description": "For a textbox."},
+                },
+                "required": ["miz_path", "layer", "shape", "name"],
+            },
+        ),
+        handler=_handle_add_map_drawing,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_map_drawing",
+            description=(
+                "MOVE, retitle, rename or REMOVE an F10 map drawing that already exists, addressed by "
+                "its layer and name. Moving takes ABSOLUTE coordinates and only shifts the anchor -- the "
+                "shape follows, since DCS stores a drawing's points relative to it. 'text' only works on "
+                "a textbox. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "layer": {
+                        "type": "string",
+                        "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
+                    },
+                    "name": {"type": "string", "description": "The drawing's current name."},
+                    "new_name": {"type": "string"},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "New ABSOLUTE anchor.",
+                    },
+                    "text": {"type": "string", "description": "New text; textbox only."},
+                    "remove": {"type": "boolean", "default": False},
+                },
+                "required": ["miz_path", "layer", "name"],
+            },
+        ),
+        handler=_handle_edit_map_drawing,
     )
     catalog.register(
         ActionSpec(
@@ -1105,6 +1338,74 @@ def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
         onboard_num=params.get("onboard_num"),
         pylons=params.get("pylons"),
         pylons_mode=params.get("pylons_mode", "replace"),
+    )
+
+
+def _handle_edit_zone(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_zone`."""
+    return edit_zone(
+        Path(params["miz_path"]),
+        zone_name=params["zone_name"],
+        new_name=params.get("new_name"),
+        position=params.get("position"),
+        radius=params.get("radius"),
+        vertices=params.get("vertices"),
+        make_circular=params.get("make_circular", False),
+        link_unit=params.get("link_unit"),
+        remove=params.get("remove", False),
+    )
+
+
+def _handle_add_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`add_map_drawing`."""
+    return add_map_drawing(
+        Path(params["miz_path"]),
+        layer=params["layer"],
+        shape=params["shape"],
+        name=params["name"],
+        points=params.get("points"),
+        position=params.get("position"),
+        text=params.get("text"),
+        width=params.get("width"),
+        height=params.get("height"),
+        angle=params.get("angle", 0),
+        closed=params.get("closed", False),
+        color=params.get("color"),
+        fill_color=params.get("fill_color"),
+        thickness=params.get("thickness"),
+        font_size=params.get("font_size"),
+    )
+
+
+def _handle_edit_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_map_drawing`."""
+    return edit_map_drawing(
+        Path(params["miz_path"]),
+        layer=params["layer"],
+        name=params["name"],
+        new_name=params.get("new_name"),
+        position=params.get("position"),
+        text=params.get("text"),
+        remove=params.get("remove", False),
+    )
+
+
+def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_route`."""
+    return edit_route(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        operation=params["operation"],
+        index=params.get("index"),
+        to_index=params.get("to_index"),
+        position=params.get("position"),
+        name=params.get("name"),
+        altitude_ft=params.get("altitude_ft"),
+        speed_kt=params.get("speed_kt"),
+        waypoint_type=params.get("waypoint_type"),
+        eta_locked=params.get("eta_locked"),
+        task=params.get("task"),
+        task_params=params.get("task_params"),
     )
 
 

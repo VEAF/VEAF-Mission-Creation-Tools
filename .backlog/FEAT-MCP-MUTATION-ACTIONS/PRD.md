@@ -1,6 +1,6 @@
 # FEAT-MCP-MUTATION-ACTIONS — the MCP can create a mission but cannot change one
 
-Status: 🔄 in-progress — 01 (triage) and 05 (the read action) done 2026-08-11; **02 and 03 (the setter families) done 2026-08-12**; `add_air_group` split off into 08 + 09 because it needs parking data nobody has captured yet
+Status: 🔄 in-progress — **every ticket an agent can finish alone is done** (01, 05, 02, 03, 04, 06, 07, and 08's tooling). What remains is 08's capture and 09, both of which need a DCS session
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §1,
 identified 2026-08-04. The next wave of `NL-MISSION-GEN` ([ROADMAP](../../ROADMAP.md) §4).
@@ -60,9 +60,9 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 | 05 | [Read the units, loadouts and routes](tickets/05-describe-units.md) — **do this first** | ✅ |
 | 02 | [Unit setters](tickets/02-unit-setters.md) — loadout, skill, livery, heading, callsign | ✅ |
 | 03 | [Group setters](tickets/03-group-setters.md) — move, rename, late activation, hide | ✅ |
-| 04 | [Route and waypoint task editing](tickets/04-route-and-waypoints.md) | ⬜ |
-| 06 | [Zone editing, including polygons](tickets/06-zone-editing.md) | ⬜ |
-| 07 | [F10 map drawings](tickets/07-map-drawings.md) | ⬜ |
+| 04 | [Route and waypoint task editing](tickets/04-route-and-waypoints.md) | ✅ |
+| 06 | [Zone editing, including polygons](tickets/06-zone-editing.md) | ✅ |
+| 07 | [F10 map drawings](tickets/07-map-drawings.md) | ✅ |
 | 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — tooling shipped, capturing needs a DCS session | 🧑 |
 | 09 | [`add_air_group`](tickets/09-add-air-group.md) — was a line in 03; blocked on 08 | ⬜ |
 | — | Arbitrary triggers — **the triage says no**, with its reasoning below. No ticket | 🚫 |
@@ -210,6 +210,31 @@ ramp at Incirlik" is not a setter with a stand parameter, it is a **data capture
 David chose to do it properly, with the data. Hence [08](tickets/08-capture-parking-data.md) (the capture
 tooling, shipped — the running is his) and [09](tickets/09-add-air-group.md), which keeps the "is the
 composite enough?" question open where it belongs: in front of the composite.
+
+### What the second PR measured, and where it reduced its own scope
+
+**Ticket 04** found the invariant that turns route editing into surgery: `FIX-WAYPOINTS-ETA-LOCKED`
+concluded that DCS **refuses to save** a route with no locked-time waypoint, so removing or reordering
+can produce a mission the editor rejects on a different day. Every operation restores it. Its task set
+is seven tasks chosen from what real missions carry, and three of their signatures are traps —
+`SetFrequency` takes **hertz** where a group's frequency is MHz, `EngageTargetsInZone` stores its
+target list **twice**, and `SetFrequency`/`SwitchWaypoint` are *actions* inside a `WrappedAction`
+envelope rather than tasks.
+
+**Ticket 06** answered its own blocking question by reading `veafCombatZone.lua`: the runtime **does**
+handle a polygon (`mist.getUnitsInPolygon`), for type 2 only, and its `if/elseif` has **no `else`** — so
+any other type finds no units at all, in silence. The action is scoped to 0 and 2 for that reason.
+
+**Ticket 07 reduced its own scope deliberately, and it is stated rather than slipped in.** The ticket
+lists nine drawing shapes; only **three** field layouts exist anywhere in this repository (line, rect,
+textbox), so the other six are refused by name. Inventing a layout is what the ticket's own "read a real
+`.miz` first" rule forbids, and it is the failure `FIX-MAPRESOURCE-KEY` already paid for. The functional
+need still lands: a closed line outlines an area, a rect is the no-fly box. Measuring the rest is one
+editor session, listed in `DCS-SESSION-TODO.md`.
+
+One refactor came with them, on the lesson `REFACTOR-MARKER-PARSER` paid for: the mission-table quirks
+every action re-implemented — a 1-based table arriving as a dict *or* a list, numeric key ordering,
+finding a group and naming what exists — now live once in `mission_table.py`, with three callers.
 
 ### What the two setter families cost, against what the triage predicted
 

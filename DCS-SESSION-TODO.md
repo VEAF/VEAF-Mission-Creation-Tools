@@ -44,6 +44,31 @@ Then open it in the ME and **save it**. What to watch for: no complaint on load,
 route still attached to its units, the loadout as asked, and — the one that would be silent — the
 group still where you put it after the save.
 
+Four more edits ship in the same lot and want the same pass, each with one thing that could be
+silently wrong:
+
+- `edit_route` — add a waypoint with an **attack task**, then *fly it*. The editor accepting a task
+  table is not proof DCS runs it, and a flight that quietly does nothing is this ticket's worst case.
+  Also remove the route's only ETA-locked waypoint and check the mission still **saves** (the action
+  re-locks the first, which is what `FIX-WAYPOINTS-ETA-LOCKED` says DCS itself does).
+- `edit_zone` — reshape a combat zone into a polygon with **more than four vertices**, save, reopen.
+  The VEAF runtime handles any polygon through mist, but the ME has **no UI** for a non-quad zone, so
+  whether it preserves or flattens the shape is unknown. If it flattens it, the action should refuse
+  above four rather than warn.
+- `add_map_drawing` — place a line and a textbox on the **Blue** layer, and check red cannot see them.
+- The **rebuild**: build the mission from its folder again and confirm the drawing is still there. That
+  is the entire reason drawings are not left to the editor.
+
+## 2b. Measure the six drawing shapes that no mission here contains
+
+`FEAT-MCP-MUTATION-ACTIONS` ticket 07 ships three shapes — line, rect, textbox — because those are the
+only field layouts present in any `.miz` in this repository. `circle`, `oval`, a free-form `Polygon`,
+`arrow`, `chevron` and `icon` are **refused by name** rather than guessed, since inventing a layout is
+what `FIX-MAPRESOURCE-KEY` and `FIX-COMMUNITY-SOUNDS-PRUNED` both cost.
+
+Five minutes in the editor closes it: draw **one of each** on any layer, save, and send the `.miz` (or
+just its `mission` file). Each shape is then a table entry, not an investigation.
+
 ## 3. Confirm a rebuilt checklist picture is not served stale
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's

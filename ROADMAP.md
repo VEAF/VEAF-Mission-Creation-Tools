@@ -3,7 +3,8 @@
 Execution order for the open lots in [.backlog/README.md](.backlog/README.md). Source of truth for
 **sequencing**; `.backlog/` stays the source of truth for **scope and status**.
 
-> Refreshed 2026-08-06 after the SECREV-2 security work (§2). The original 2026-06-10 sequencing
+> Refreshed 2026-08-13 after the documentation audit (§2), which added three lots.
+> Previously refreshed 2026-08-06 after the SECREV-2 security work. The original 2026-06-10 sequencing
 > (CI-NODE24 → SECREV → MODULES-UNIFY → conversion cluster → spawn axis → RELEASE) is
 > **fully delivered** and has been retired from this file; see `.backlog/archive/` for the
 > closed lots.
@@ -38,7 +39,7 @@ extending it:
 - **Combat zones playable from either side** — red-side zones and coalition-scoped F10 menus.
 
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.13.0** (2026-08-01); `develop` is at **6.13.88**.
+release is **6.13.0** (2026-08-01); `develop` is at **6.13.95**.
 
 ---
 
@@ -47,20 +48,29 @@ release is **6.13.0** (2026-08-01); `develop` is at **6.13.88**.
 [.backlog/README.md](.backlog/README.md) is the full open list and the source of truth for scope
 and status. This section is the **order**, plus what stands in the way of everything not in it.
 
-### The order, decided 2026-08-11
+### The 2026-08-11 order is delivered
 
-Nine lots are open. Three of them carry all the work an agent can do alone, and David set their
-sequence:
+The three lots David sequenced on 2026-08-11 — `CHORE-SMS-QUICK-WINS`,
+`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`, `FEAT-MCP-MUTATION-ACTIONS` — are **done down to what needs the
+game or a person**: 2 shipped in full, and the MCP lot closed every ticket an agent can finish
+alone (01-07 plus 08's tooling; 08's capture and 09 want a DCS session). What is left of them is in
+the table below.
+
+### The order, decided 2026-08-13
+
+Twelve lots are open. **Three of them are new**, born the same day from the five-pass documentation
+audit (~150 defects found while `docs-check` stayed green throughout, because everything that rotted
+is what the gate cannot see: content). They carry most of the remaining agent-only work:
 
 | Order | Lot | Weight | Why here |
 |-------|-----|--------|----------|
-| **1** | [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) | 3 small tickets | Its ticket 03 (`dev_condition`) attacks **the cost that blocks the 🧑 rows below**: verifying step 30 of an engine start means performing the 29 before it, in a cockpit. Worth having *before* the F-16C review, not after. |
-| **2** | [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) | 1 ticket | A real gap found on Foothold: upstream staggers its script loading (3 s, 12 s), the built `.miz` loads all fourteen in one `triggerStart`. The current workaround pushes a mission maker into Lua for something upstream expressed declaratively. |
-| **3** | [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md) | 4 tickets, the big one | "Change this flight's loadout", "move that group 5 km east" are **impossible** through the MCP while every other link in the chain exists. The substantive value of the release, and the only lot whose size can move the date. |
+| **1** | [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) | 6 tickets | The only open lot where the audit proved the **code** wrong, twice on the security surface: the dispatchers refuse the tier names David decided (`ADMIN` fails the registration assert) and `_transport` calls its check without the marker id, so a listed `SENIOR_PILOT` types the password anyway. Its ticket 04 also hardens four `docs-check` blind spots, and that must land **before or with** `DOC-AUDIT-FIXES` 04 for the new CLI reference to be self-enforcing. |
+| **2** | [`DOC-AUDIT-FIXES`](.backlog/DOC-AUDIT-FIXES/PRD.md) 03-04 | 2 tickets | Closes the lot: the holes rather than the lies. The new security model has **no pilot-facing page**, and the CLI has no real reference — David wants full command documentation *in addition to* `--help`. |
+| **3** | [`DOC-MODULE-PAGES`](.backlog/DOC-MODULE-PAGES/PRD.md) | 3 tickets | Five registered modules have no page and no README row, two of them with player-facing surfaces: `veafGroundAI` (whose `-ai_set` alias is already documented, pointing at nothing) and `veafCombatMission` (the F10 `MISSIONS` menu). David's arbitration d: a lot of its own. |
 
-[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once 3 is merged — one
-ticket, and it is a design decision where **a rejection is an acceptable outcome**. It adds nothing to
-the release by itself, which is why it is not in the three.
+[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once those three are
+merged — one ticket, and it is a design decision where **a rejection is an acceptable outcome**. It
+adds nothing to the release by itself, which is why it is not in the three.
 
 ### Blocked on a person, or on a DCS session
 
@@ -69,6 +79,9 @@ running order and with the commands to paste, in [DCS-SESSION-TODO.md](DCS-SESSI
 
 | Lot | Status | Gate |
 |-----|--------|------|
+| [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md) | 🔄 | Everything an agent can finish alone is merged. **Ticket 08's capture needs a DCS session** — `capture-map --parking` over the existing dcs-bridge, five minutes per theatre — and ticket 09 (`add_air_group` on a ramp) is blocked on that data. The editor round trips for the six unmeasured drawing shapes are the same session. |
+| [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) | 🔄 | Ticket 02 is **delivered but unproven**: Gemini CLI is not installed here, so "tested rather than assumed" is unmet. One command validates it. |
+| [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) | ✅ | Delivered 2026-08-11 and verified against the real Foothold Caucasus 4.4.1 `.miz`. One in-game confirmation left, on David. |
 | [`ENRICH-DEFAULT-PRESETS`](.backlog/ENRICH-DEFAULT-PRESETS/PRD.md) | ⬜ | A 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
 | [`FEAT-DCS-SMOKE-HARNESS`](.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) | 🔄 | Its remaining slice — locate, launch, load, quit. `net.load_mission` and `Sim.exitProcess` are **measured present** and `isServer()` is true in single-player, so nothing technical blocks it; **starting DCS is David's to do on his own session.** |
 | [`FEAT-ASSIST-FOLLOWUP`](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11. **Kept for after the release on David's call** — 02 needs a second pilot, 03 needs cockpit time, and 04 is deferred on purpose. Ticket 01 still wants one flight to confirm it, since no unit test can see DCS's resource cache. |
@@ -83,7 +96,7 @@ worked"* — every one invisible to `dcs_mocks.lua` by construction. Keep going 
 checks are data entries now, not investigations.
 
 `RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
-**6.13.0 was published 2026-08-01 and `develop` is 88 patch versions ahead.**
+**6.13.0 was published 2026-08-01 and `develop` is 95 patch versions ahead.**
 
 ### Security work closed 2026-08-11
 

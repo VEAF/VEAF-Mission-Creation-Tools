@@ -198,7 +198,7 @@ def security_section() -> list[str]:
     return [
         *_yaml_comment("generated.mission_yaml.section.security"),
         "# security:",
-        "#   disabled: true                # true = no password required (default)",
+        "#   disabled: true                # true = no password required (default: false — security is active)",
         "#   password_hashes:              # add SHA-1 hashes to restrict access (sha1.hex of the password)",
         '#     - "<SHA-1 hash>"',
     ]

@@ -16,7 +16,9 @@ import pytest
 from veaf_build.docs_check import (
     COVERAGE_RULES,
     EXEMPT,
+    OPTION_RULES,
     CoverageRule,
+    OptionRule,
     Report,
     check_doc_coverage,
     check_docs,
@@ -54,6 +56,15 @@ class TestSlugify:
 
     def test_ignores_a_trailing_explicit_anchor(self):
         assert slugify("Coverage {#coverage}") == "coverage"
+
+    def test_keeps_underscores(self):
+        # FIX-DOCAUDIT-CODE 04-C. The underscore sat in the same character class as the emphasis
+        # markers, so `build_variants:` was registered as "buildvariants" while the published site
+        # uses "build_variants" — `_` is a word character for pymdownx. Roughly a dozen headings in
+        # MISSION_YAML_REFERENCE alone, each making a *correct* link invisible to the gate.
+        # Underscore emphasis in a heading would break this; measured, no page uses any.
+        assert slugify("`build_variants:`") == "build_variants"
+        assert slugify("`global_log_level`") == "global_log_level"
 
 
 class TestBrokenLinks:
@@ -125,6 +136,68 @@ class TestAnchors:
         (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
         _nav(docs.parent, "a.md", "b.md")
         assert _run(docs).dead_anchors == []
+
+    def test_an_explicit_anchor_retires_the_heading_derived_one(self, docs: Path):
+        # FIX-DOCAUDIT-CODE 04-A. mkdocs' attr_list **replaces** the generated id with the explicit
+        # one, so a link to the heading-derived slug 404s on the published site while the gate said
+        # it was fine. Five dead anchors survived exactly this way; `TESTING.md`'s `#couverture`
+        # against `## Couverture {#coverage}` is the cleanest specimen.
+        (docs / "b.md").write_text("# B\n\n## Couverture {#coverage}\n", encoding="utf-8")
+        (docs / "b.en.md").write_text("# B\n\n## Coverage {#coverage}\n", encoding="utf-8")
+        (docs / "a.md").write_text("# A\n\n[old](b.md#couverture)\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md", "b.md")
+        report = _run(docs)
+        assert len(report.dead_anchors) == 1
+        assert "couverture" in report.dead_anchors[0]
+
+
+class TestSamePageAnchors:
+    """FIX-DOCAUDIT-CODE 04-D — the gate validated cross-page anchors only.
+
+    A table-of-contents entry pointing at a heading that carries an explicit anchor passed CI
+    untouched: seven genuinely dead ones were found by hand during the audit
+    (`developer/GUIDE.md` ×4, `veafRadio.md`, `pilot/GUIDE.md`, `TESTING.md`).
+    """
+
+    def test_a_dead_same_page_anchor_is_reported(self, docs: Path):
+        (docs / "a.md").write_text("# A\n\n[toc](#gone)\n\n## Here\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md")
+        report = _run(docs)
+        assert len(report.dead_anchors) == 1
+        assert "#gone" in report.dead_anchors[0]
+
+    def test_a_live_same_page_anchor_passes(self, docs: Path):
+        (docs / "a.md").write_text("# A\n\n[toc](#here)\n\n## Here\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md")
+        assert _run(docs).dead_anchors == []
+
+    def test_the_explicit_anchor_rule_applies_on_the_same_page_too(self, docs: Path):
+        # Same as rule A, one page in: the derived slug is not an id the site serves.
+        (docs / "a.md").write_text("# A\n\n[toc](#couverture)\n\n## Couverture {#coverage}\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md")
+        assert len(_run(docs).dead_anchors) == 1
+
+    def test_an_underscore_heading_is_reachable_on_the_same_page(self, docs: Path):
+        # Rule C is what makes rule D usable: with the underscore stripped, this correct link
+        # would be reported, and the real findings would drown in false positives — which is
+        # exactly what happened to a hand-rolled version of this sweep during the audit.
+        (docs / "a.md").write_text("# A\n\n[v](#build_variants)\n\n### `build_variants:`\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md")
+        assert _run(docs).dead_anchors == []
+
+    def test_a_same_page_anchor_is_never_reported_as_implicit(self, docs: Path):
+        # The explicit-anchor requirement exists because a *cross-page* link breaks on a reword
+        # and differs between languages. Neither applies within one page, and demanding an
+        # explicit anchor for every heading a table of contents lists would be noise.
+        (docs / "a.md").write_text("# A\n\n[toc](#here)\n\n## Here\n", encoding="utf-8")
+        (docs / "a.en.md").write_text("# A\n", encoding="utf-8")
+        _nav(docs.parent, "a.md")
+        assert _run(docs).implicit_anchors == []
 
 
 class TestTranslationsAndNav:
@@ -328,6 +401,12 @@ class TestDocCoverage:
     FEAT-MCP-AIRBASES-WAREHOUSES and was never written up.
     """
 
+    @pytest.fixture(autouse=True)
+    def _no_option_rules(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # check_doc_coverage runs the name rules and the option rules together, so a test isolating
+        # one has to silence the other or the real OPTION_RULES fire against the fixture tree.
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", ())
+
     def _rule(self, tmp_path: Path) -> CoverageRule:
         (tmp_path / "src").mkdir()
         (tmp_path / "doc").mkdir()
@@ -407,6 +486,85 @@ class TestDocCoverage:
         report = Report(undocumented_names=["thing 'x' is not documented in doc/ref.md"])
         assert report.total == 1
         assert "reference page never mentions" in format_report(report)
+
+
+class TestOptionCoverage:
+    """FIX-DOCAUDIT-CODE 04-B — coverage keyed on command *names* only.
+
+    So `capture-map --parking` shipped on 2026-08-12 with zero documentation through a green
+    gate: the command name was already on the page, and nothing looked at what it accepts.
+    Options are read from the typer signatures by AST rather than by regex, because an option
+    with no explicit literal — `verbose: bool = typer.Option(False, help=...)` — still becomes
+    `--verbose`, and a regex hunting for `"--…"` would miss every one of those.
+    """
+
+    def _module(self, tmp_path: Path, body: str) -> OptionRule:
+        (tmp_path / "src").mkdir(exist_ok=True)
+        (tmp_path / "doc").mkdir(exist_ok=True)
+        (tmp_path / "src" / "cmd.py").write_text(body, encoding="utf-8")
+        return OptionRule(label="option", source_glob="src/cmd.py", pages=("doc/ref.md",))
+
+    def test_an_undocumented_option_is_reported(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        rule = self._module(
+            tmp_path,
+            'import typer\ndef run(parking: bool = typer.Option(False, "--parking", help="h")) -> None:\n    pass\n',
+        )
+        (tmp_path / "doc" / "ref.md").write_text("# Ref\n\nRun capture-map.\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["option '--parking' is not documented in doc/ref.md"]
+
+    def test_a_documented_option_passes(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        rule = self._module(
+            tmp_path,
+            'import typer\ndef run(parking: bool = typer.Option(False, "--parking", help="h")) -> None:\n    pass\n',
+        )
+        # A bare mention counts: the reference documents an option inside a shell block, which is
+        # how `--tag` is written today, and demanding inline backticks would report prose that works.
+        (tmp_path / "doc" / "ref.md").write_text("```bash\nveaf-tools capture-map --parking\n```\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_an_option_with_no_literal_is_derived_from_the_parameter_name(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        # typer turns `no_backup` into `--no-backup` with no literal anywhere in the source.
+        rule = self._module(
+            tmp_path, "import typer\ndef run(no_backup: bool = typer.Option(False, help='h')) -> None:\n    pass\n"
+        )
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["option '--no-backup' is not documented in doc/ref.md"]
+
+    def test_an_argument_is_not_an_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # `typer.Argument` is positional — there is no `--` form to document.
+        rule = self._module(
+            tmp_path, 'import typer\ndef run(mission: str = typer.Argument(..., help="h")) -> None:\n    pass\n'
+        )
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_a_syntax_error_is_reported_rather_than_skipped(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # A module the AST cannot read must not silently contribute zero options — that would be a
+        # gate reporting "all documented" about a file it never looked at.
+        rule = self._module(tmp_path, "def run(:\n")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        findings = check_doc_coverage(tmp_path)
+        assert len(findings) == 1
+        assert "cannot be parsed" in findings[0]
+
+    def test_the_real_rules_point_at_pages_and_sources_that_exist(self):
+        root = Path(__file__).parents[3]
+        for rule in OPTION_RULES:
+            for page in rule.pages:
+                assert (root / page).is_file(), f"{rule.label}: {page} does not exist"
+            assert list(root.glob(rule.source_glob)), f"{rule.label}: {rule.source_glob} matches nothing"
 
 
 class TestCoverageRegexMatchesReality:

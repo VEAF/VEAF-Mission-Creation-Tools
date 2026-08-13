@@ -13,9 +13,32 @@ from veaf_build.radio_specs_updater import (
     _primary_frequency_section,
     apply_overrides,
     load_overrides,
+    parse_display_name,
     parse_human_radio,
     specs_to_yaml_dict,
 )
+
+# Condensed from the real datamine dump of F-16C_50 at the pinned ref, keeping the shape that
+# matters: the file is one big table indented by a single tab, the **engine** block carries its own
+# `type` deeper in, and it appears ~600 lines *before* the top-level one. So a `^\s*type` search
+# with re.MULTILINE finds "TurboFan" first — which is how 72 of the reference table's 88 rows came
+# to hold engine types under an "Aircraft" heading (FIX-DOCAUDIT-CODE 06).
+_F16_LUA = """_G["db"]["Units"]["Planes"]["Plane"]["#Index"] = {
+\tAOA_take_off = 0.16,
+\tDisplayName = "F-16CM bl.50",
+\tEngines = {
+\t\tEngine = {
+\t\t\thMaxEng = 19,
+\t\t\ttype = "TurboFan"
+\t\t}
+\t},
+\tPylons = { {
+\t\t\tDisplayName = "5"
+\t\t} },
+\ttype = "F-16C_50",
+\twing_area = 28
+}
+"""
 
 # Verbatim from the datamine dump of FW-190A8: a 38-156 MHz preset range against a
 # 38.4-42.4 MHz primary. Promoting a 134 MHz preset channel here makes DCS refuse to save.
@@ -99,6 +122,31 @@ def _spec(dcs_id: str, radio_range: tuple[float, float], human: HumanRadio | Non
         radios=[AircraftRadio(name="R", ranges=[FrequencyRange(min_mhz=radio_range[0], max_mhz=radio_range[1])])],
         human_radio=human,
     )
+
+
+class TestParseDisplayName:
+    """The aircraft's readable name, which is `DisplayName` and never `type`.
+
+    Measured over all 170 datamine unit files at the pinned ref: every one carries a
+    `DisplayName` at the outermost indentation, and the top-level `type` is the **DCS id**
+    (identical to the file name in 168 of them) rather than a display name — so the old
+    comment claiming otherwise was wrong twice over.
+    """
+
+    def test_the_engine_type_is_not_taken_for_the_aircraft_name(self) -> None:
+        assert parse_display_name(_F16_LUA) == "F-16CM bl.50"
+
+    def test_a_nested_display_name_is_not_taken_either(self) -> None:
+        # A pylon carries `DisplayName = "5"`, deeper in. Only the outermost one is the aircraft.
+        assert parse_display_name(_F16_LUA) != "5"
+
+    def test_the_dcs_id_is_the_last_resort_not_the_first(self) -> None:
+        # A dump with neither DisplayName nor Name still yields something usable rather than "".
+        assert parse_display_name('return {\n\ttype = "SomeJet"\n}\n') == "SomeJet"
+
+    def test_nothing_recognisable_returns_empty(self) -> None:
+        # The caller falls back to the DCS id, so an empty answer must stay distinguishable.
+        assert parse_display_name("return {}") == ""
 
 
 class TestSpecsToYamlDict:

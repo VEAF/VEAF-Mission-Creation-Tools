@@ -112,9 +112,8 @@ An accepted password opens **no session**: secured commands check the password c
 
     **Now**: every secured command checks who is asking.
 
-    - **A pilot listed in `veaf-pilots.txt` notices almost nothing**: their own level suffices, and
-      they never needed the password. Known exception: `_transport` still demands the password from
-      everyone, whatever their level — a bug, pending its fix.
+    - **A pilot listed in `veaf-pilots.txt` notices nothing**: their own level suffices, and they
+      never needed the password.
     - **A pilot who is not listed** must supply the password **on every command**: there is no
       ten-minute session any more.
     - For the **F10 radio menu**, DCS cannot tell *which* occupant of a group clicked. The group

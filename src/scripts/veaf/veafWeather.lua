@@ -1711,7 +1711,7 @@ function veafWeather.buildRadioMenu()
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"].name,
       _path,
       veafWeather.setAndActivateFog,
-      veafWeather.FOG_ANIMATED_5_NO,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"],
       veafRadio.USAGE_ForAll
     )
   end

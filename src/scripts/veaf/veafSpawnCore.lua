@@ -134,12 +134,19 @@ veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ...
 
 --- Security levels recognized by the command dispatcher; mapped to a veafSecurity
 --- check applied centrally before a handler runs (nil = no check needed).
+---
+--- The tier names are the ones REVIEW-SECURITY-LAYER decision b settled on (2026-08-08);
+--- `KNOWN_PILOT` is the loosest and `ADMIN` the tightest. `MM` and `OPEN` are deliberately not
+--- tiers: a Mission Master password carries no level, and OPEN means *no check*.
 veafSpawn.SECURITY_CHECKS = {
-  L9 = function(options, markId)
+  KNOWN_PILOT = function(options, markId)
     return veafSecurity.checkSecurity_L9(options.password, markId)
   end,
-  L1 = function(options, markId)
+  SENIOR_PILOT = function(options, markId)
     return veafSecurity.checkSecurity_L1(options.password, markId)
+  end,
+  ADMIN = function(options, markId)
+    return veafSecurity.checkSecurity_L0(options.password, markId)
   end,
   MM = function(options, markId)
     return veafSecurity.checkSecurity_MM(options.password)
@@ -151,12 +158,20 @@ veafSpawn.SECURITY_CHECKS = {
   end,
 }
 
+--- Deprecated spellings, aliased to the **same** function rather than to a copy of it: two copies
+--- is how one of two paths receives tomorrow's fix. Kept for one release. Listed here rather than
+--- derived from `veafSecurity.DEPRECATED_LEVEL_NAMES`, which would need that module loaded first.
+veafSpawn.SECURITY_CHECKS.L0 = veafSpawn.SECURITY_CHECKS.ADMIN
+veafSpawn.SECURITY_CHECKS.L1 = veafSpawn.SECURITY_CHECKS.SENIOR_PILOT
+veafSpawn.SECURITY_CHECKS.L9 = veafSpawn.SECURITY_CHECKS.KNOWN_PILOT
+
 --- Register a command handler for executeCommand().
 -- @param key       options field name that activates this handler (e.g. "unit", "farp")
--- @param security  REQUIRED level ("L9"/"L1"/"MM"), or "OPEN" for a command deliberately
---                  available to everyone. The 2-arg form (key, fn) is no longer accepted:
---                  it meant "no check", so omitting the level and forgetting it looked the
---                  same, which is the shape SECREV-2 set out to remove.
+-- @param security  REQUIRED level ("KNOWN_PILOT"/"SENIOR_PILOT"/"ADMIN", or the deprecated
+--                  "L9"/"L1"/"L0"), "MM" for the Mission Master password, or "OPEN" for a command
+--                  deliberately available to everyone. The 2-arg form (key, fn) is no longer
+--                  accepted: it meant "no check", so omitting the level and forgetting it looked
+--                  the same, which is the shape SECREV-2 set out to remove.
 -- @param fn        function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
 function veafSpawn.registerCommandHandler(key, security, fn)
   assert(
@@ -171,8 +186,14 @@ function veafSpawn.registerCommandHandler(key, security, fn)
       .. tostring(key)
       .. "): unknown or missing security level ["
       .. tostring(security)
-      .. "] — declare one of L9/L1/MM/OPEN"
+      .. "] — declare one of KNOWN_PILOT/SENIOR_PILOT/ADMIN/MM/OPEN"
   )
+  -- An old spelling still works, and says so once. Guarded on veafSecurity because a handler may
+  -- register before that module is loaded, and a missing deprecation notice must never be the
+  -- reason a mission fails to load.
+  if veafSecurity and veafSecurity.DEPRECATED_LEVEL_NAMES and veafSecurity.DEPRECATED_LEVEL_NAMES[security] then
+    veafSecurity.levelForName(security)
+  end
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
 
@@ -910,22 +931,22 @@ end
 -- Core command handlers (drawing + mission master) — registered at load time
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("addDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("addDrawing", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.addPointToDrawing(eventPos, options.name, options.drawColor, options.drawFillColor, options.type, options.drawArrow)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawSquare", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("drawSquare", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawSquare(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawCircle", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("drawCircle", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawCircle(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("eraseDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("eraseDrawing", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.eraseDrawing(options.name)
   return nil, nil, false
 end)

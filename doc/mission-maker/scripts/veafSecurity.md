@@ -112,9 +112,8 @@ passe commande par commande (mot-clé `password`). En tchat, les mêmes verbes e
 
     **Maintenant** : chaque commande sécurisée vérifie qui demande.
 
-    - **Pour un pilote listé dans `veaf-pilots.txt`, presque rien ne change** : son niveau suffit,
-      et il n'a jamais eu besoin du mot de passe. Exception connue : `_transport` exige encore le
-      mot de passe de tout le monde, quel que soit le niveau — un bug, en attendant son correctif.
+    - **Pour un pilote listé dans `veaf-pilots.txt`, rien ne change** : son niveau suffit, et il
+      n'a jamais eu besoin du mot de passe.
     - **Un pilote non listé** doit fournir le mot de passe **à chaque commande** : il n'y a plus de
       session ouverte de dix minutes.
     - Pour le **menu radio F10**, DCS ne permet pas de savoir *quel* occupant d'un groupe a cliqué.

@@ -1,6 +1,6 @@
 # 01 — Tier names: the dispatchers refuse the decided vocabulary
 
-Status: ⬜ ready
+Status: ✅ done — both dispatchers speak both vocabularies; VEAF's own 24 declarations migrated to the new names (a decision beyond the ticket, see Notes)
 Type: fix
 Files: `src/scripts/veaf/veafCommands.lua`, `src/scripts/veaf/veafSpawnCore.lua`,
 `src/scripts/veaf/veafSecurity.lua`, `test/lua/`

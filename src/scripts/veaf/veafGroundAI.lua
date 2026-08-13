@@ -859,7 +859,7 @@ function veafGroundAI.initialize()
       return false
     end
     return veafGroundAI.onEventMarkChange(pos, event)
-  end, veafCommands.PRIORITY_GROUNDAI, "L9")
+  end, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT")
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

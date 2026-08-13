@@ -75,19 +75,23 @@ veafCommands.SECURITY_HANDLED = "handled-by-handler"
 ---
 --- These carry no password: the handlers using them never parsed one, so the check is on
 --- identity alone — the pilot level the server hook published for whoever placed the mark
---- (`veaf-pilots.txt` via `veafRemote.registerUser`), or a global `/login`.
+--- (`veaf-pilots.txt` via `veafRemote.registerUser`). There is no global `/login` any more:
+--- REVIEW-SECURITY-LAYER removed it, because one player's login opened every secured command
+--- to everybody on the server for `authDuration` minutes.
 ---
---- Note the ordering, which is not what the names suggest: `veafSecurity.LEVEL_L9` is 1
---- and `LEVEL_L0` is 90, and a check passes when the pilot's level is **at least** the
---- constant. L9 is therefore the loosest tier (any listed VEAF pilot) and L0 the tightest.
+--- The names are the ones REVIEW-SECURITY-LAYER decision b settled on (2026-08-08). The old
+--- L0/L1/L9 spellings read backwards — L0 was the *tightest* tier — and are kept as aliases for
+--- one release. `ADMIN` is the tightest, `KNOWN_PILOT` the loosest (any listed VEAF pilot): a
+--- check passes when the pilot's level is **at least** the constant, and `LEVEL_ADMIN` is 90
+--- against `LEVEL_KNOWN_PILOT`'s 1.
 veafCommands.SECURITY_CHECKS = {
-  L0 = function(markId)
+  ADMIN = function(markId)
     return veafSecurity.checkSecurity_L0(nil, markId)
   end,
-  L1 = function(markId)
+  SENIOR_PILOT = function(markId)
     return veafSecurity.checkSecurity_L1(nil, markId)
   end,
-  L9 = function(markId)
+  KNOWN_PILOT = function(markId)
     return veafSecurity.checkSecurity_L9(nil, markId)
   end,
   --- Deliberately open to everyone. Says so, rather than saying nothing.
@@ -95,6 +99,14 @@ veafCommands.SECURITY_CHECKS = {
     return true
   end,
 }
+
+--- Deprecated spellings, aliased to the **same** function rather than to a copy of it: two copies
+--- is how one of two paths receives tomorrow's fix. Listed here rather than derived from
+--- `veafSecurity.DEPRECATED_LEVEL_NAMES` because that table is read at load time, and this file
+--- does not require veafSecurity to be loaded first.
+veafCommands.SECURITY_CHECKS.L0 = veafCommands.SECURITY_CHECKS.ADMIN
+veafCommands.SECURITY_CHECKS.L1 = veafCommands.SECURITY_CHECKS.SENIOR_PILOT
+veafCommands.SECURITY_CHECKS.L9 = veafCommands.SECURITY_CHECKS.KNOWN_PILOT
 
 -- Ordered list of registered command handlers.
 -- Each entry: { fn = function, priority = number, security = string }
@@ -108,17 +120,24 @@ veafCommands.commandHandlers = {}
 -- @param fn       function(pos, event, bypassSecurity, fromMarker, spawnedGroups, route) -> bool
 -- @param priority number — lower values are tried first (use PRIORITY_* constants)
 -- @param security string — REQUIRED. Either veafCommands.SECURITY_HANDLED, or a key of
---                 veafCommands.SECURITY_CHECKS ("L0"/"L1"/"L9"/"OPEN"). There is no default:
---                 a handler that does not say what it needs does not get registered.
+--                 veafCommands.SECURITY_CHECKS ("ADMIN"/"SENIOR_PILOT"/"KNOWN_PILOT"/"OPEN", or
+--                 the deprecated "L0"/"L1"/"L9"). There is no default: a handler that does not
+--                 say what it needs does not get registered.
 function veafCommands.registerCommandHandler(fn, priority, security)
   assert(type(fn) == "function", "veafCommands.registerCommandHandler: fn must be a function")
   assert(type(priority) == "number", "veafCommands.registerCommandHandler: priority must be a number")
   assert(
     security == veafCommands.SECURITY_HANDLED or veafCommands.SECURITY_CHECKS[security] ~= nil,
     "veafCommands.registerCommandHandler: security must be veafCommands.SECURITY_HANDLED or one of "
-      .. "L0/L1/L9/OPEN — a handler with no declared security level is refused, because forgetting "
-      .. "one used to mean the command ran for anyone"
+      .. "ADMIN/SENIOR_PILOT/KNOWN_PILOT/OPEN — a handler with no declared security level is refused, "
+      .. "because forgetting one used to mean the command ran for anyone"
   )
+  -- An old spelling still works, and says so once. Guarded on veafSecurity because a handler may
+  -- register before that module is loaded, and a missing deprecation notice must never be the
+  -- reason a mission fails to load.
+  if veafSecurity and veafSecurity.DEPRECATED_LEVEL_NAMES and veafSecurity.DEPRECATED_LEVEL_NAMES[security] then
+    veafSecurity.levelForName(security)
+  end
   local i = 1
   while i <= #veafCommands.commandHandlers and veafCommands.commandHandlers[i].priority <= priority do
     i = i + 1

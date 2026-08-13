@@ -479,4 +479,62 @@ function TestVeafTransportAdvanced:test_generate_enemy_defense_shilka()
   luaunit.assertTrue(hasUnit(self._capturedGroupDef, "ZSU-23-4 Shilka"), "defense=5 must include ZSU-23-4 Shilka")
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafTransportSecurity — FIX-DOCAUDIT-CODE 02
+--
+-- `onEventMarkChange` called `checkSecurity_L1(options.password)` with **no marker id**, so
+-- `getMarkerSecurityLevel(nil)` returned -1 and the identity path could never grant anything: a
+-- pilot listed as SENIOR_PILOT in `veaf-pilots.txt` — the whole point of the listing — still had
+-- to type the password on every `_transport`. Every other marker command passes its marker id;
+-- this one predates the per-player model and was never rewired, which is why `veafSecurity.md`'s
+-- "nothing changes for a listed pilot" was false precisely here.
+-- ---------------------------------------------------------------------------
+TestVeafTransportSecurity = {}
+
+function TestVeafTransportSecurity:setUp()
+  self.savedCheck = veafSecurity.checkSecurity_L1
+  self.savedGenerate = veafTransportMission.generateTransportMission
+  self.seen = {}
+  self.generated = false
+  local seen = self.seen
+  -- Stand in for the real check: record what it was handed, and grant on identity alone (a
+  -- listed pilot with no password), which is the path the missing marker id disabled.
+  veafSecurity.checkSecurity_L1 = function(password, markId)
+    table.insert(seen, { password = password, markId = markId })
+    return markId ~= nil or password ~= nil
+  end
+  veafTransportMission.generateTransportMission = function()
+    self.generated = true
+  end
+end
+
+function TestVeafTransportSecurity:tearDown()
+  veafSecurity.checkSecurity_L1 = self.savedCheck
+  veafTransportMission.generateTransportMission = self.savedGenerate
+end
+
+function TestVeafTransportSecurity:_fireMarker(text, idx)
+  veafTransportMission.onEventMarkChange({ x = 0, y = 0, z = 0 }, { text = text, idx = idx })
+end
+
+function TestVeafTransportSecurity:test_the_marker_id_reaches_the_security_check()
+  self:_fireMarker("_transport", 4242)
+
+  luaunit.assertEquals(#self.seen, 1, "the security check must be consulted")
+  luaunit.assertEquals(self.seen[1].markId, 4242, "the check cannot identify the author without it")
+end
+
+function TestVeafTransportSecurity:test_a_listed_pilot_needs_no_password()
+  self:_fireMarker("_transport", 4242)
+
+  luaunit.assertTrue(self.generated, "an identified author with a sufficient level must be let through")
+end
+
+function TestVeafTransportSecurity:test_an_unidentified_author_without_password_is_still_refused()
+  -- No marker id at all: nothing identifies the author, and no password was given.
+  self:_fireMarker("_transport", nil)
+
+  luaunit.assertFalse(self.generated, "an unidentified author with no password must be refused")
+end
+
 os.exit(luaunit.LuaUnit.run())

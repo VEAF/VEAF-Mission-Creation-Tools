@@ -836,7 +836,7 @@ end
 -- Ground spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("farp", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("farp", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   if not options.type then
     options.type = "invisible"
   end
@@ -859,7 +859,7 @@ veafSpawn.registerCommandHandler("farp", "L9", function(eventPos, options, coali
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("fob", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("fob", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnFob(
     eventPos,
     options.radius,
@@ -875,7 +875,7 @@ veafSpawn.registerCommandHandler("fob", "L9", function(eventPos, options, coalit
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("group", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnGroup(
     eventPos,
@@ -894,7 +894,7 @@ veafSpawn.registerCommandHandler("group", "L9", function(eventPos, options, coal
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("infantryGroup", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("infantryGroup", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnInfantryGroup(
     eventPos,
     options.radius,
@@ -912,7 +912,7 @@ veafSpawn.registerCommandHandler("infantryGroup", "L9", function(eventPos, optio
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("armoredPlatoon", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("armoredPlatoon", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnArmoredPlatoon(
     eventPos,
@@ -932,7 +932,7 @@ veafSpawn.registerCommandHandler("armoredPlatoon", "L9", function(eventPos, opti
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("airDefenseBattery", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnAirDefenseBattery(
     eventPos,
@@ -950,7 +950,7 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "L9", function(eventPos, o
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("transportCompany", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("transportCompany", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnTransportCompany(
     eventPos,
@@ -969,7 +969,7 @@ veafSpawn.registerCommandHandler("transportCompany", "L9", function(eventPos, op
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("fullCombatGroup", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("fullCombatGroup", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnFullCombatGroup(
     eventPos,
     options.radius,
@@ -987,7 +987,7 @@ veafSpawn.registerCommandHandler("fullCombatGroup", "L9", function(eventPos, opt
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("convoy", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("convoy", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnConvoy(
     eventPos,
     options.name,

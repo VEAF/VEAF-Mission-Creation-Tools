@@ -1,6 +1,6 @@
 # 05 — The generated `mission.yaml` repeats the security lie
 
-Status: ⬜ ready
+Status: ✅ done — corrected, with a lockstep test against the shipped default
 Type: fix
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `test/python/`
 

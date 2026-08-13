@@ -1415,7 +1415,7 @@ end
 -- Aircraft spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("unit", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local code = options.laserCode
   local channel = options.freq
   local band = options.mod
@@ -1444,7 +1444,7 @@ veafSpawn.registerCommandHandler("unit", "L9", function(eventPos, options, coali
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("afac", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnAFAC(
     eventPos,
     options.name,
@@ -1465,7 +1465,7 @@ veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coali
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("cap", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("cap", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCombatAirPatrol(
     eventPos,
     options.radius,

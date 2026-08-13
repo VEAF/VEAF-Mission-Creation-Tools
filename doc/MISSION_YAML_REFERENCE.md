@@ -719,7 +719,7 @@ veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MOD
 | [`veaf_tools:`](#veaf_tools) | Contrainte de version |
 | `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
 | `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
-| [`custom_scripts:`](#custom_scripts) | Scripts Lua custom à inclure dans la mission |
+| [`custom_scripts:`](#custom-scripts) | Scripts Lua custom à inclure dans la mission |
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |
 | `build.scripts_path` | Chemin vers un clone local de VEAF-Mission-Creation-Tools |

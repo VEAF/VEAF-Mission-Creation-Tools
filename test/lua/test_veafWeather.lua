@@ -1014,6 +1014,81 @@ function TestVeafWeatherRemoteFogKey:test_an_all_caps_key_that_is_not_a_fog_obje
 end
 
 -- ============================================================================
+-- TestVeafWeatherFogMenuWiring -- FIX-DOCAUDIT-CODE 03
+-- ============================================================================
+--- The "animated NO fog" entries all passed `veafWeather.FOG_ANIMATED_5_NO` -- a constant that does
+--- not exist, since the generated names carry the `M` (`FOG_ANIMATED_5M_NO`). So seven menu entries
+--- handed `nil` to their handler, and even had the name been right, all seven would have applied the
+--- 5-minute preset.
+---
+--- These assertions are **enumerated from the menu-building code**, not sampled: the real
+--- `buildRadioMenu` runs against a recording stub, and every command it wires to
+--- `setAndActivateFog` is checked. A future entry with a mistyped constant fails here by name.
+TestVeafWeatherFogMenuWiring = {}
+
+function TestVeafWeatherFogMenuWiring:setUp()
+  self.commands = {}
+  local recorded = self.commands
+  local record = function(title, _path, method, parameters)
+    table.insert(recorded, { title = title, method = method, parameters = parameters })
+  end
+  self.originalVeafRadio = veafRadio
+  veafRadio = {
+    USAGE_ForAll = 0,
+    USAGE_ForGroup = 1,
+    addMenu = function(title)
+      return { title = title }
+    end,
+    addSubMenu = function(title)
+      return { title = title }
+    end,
+    addCommandToSubmenu = record,
+    addSecuredCommandToSubmenu = record,
+  }
+end
+
+function TestVeafWeatherFogMenuWiring:tearDown()
+  veafRadio = self.originalVeafRadio
+  veafWeather.rootPath = nil
+end
+
+--- Every command wired to setAndActivateFog, with its declared parameter.
+function TestVeafWeatherFogMenuWiring:_fogCommands()
+  veafWeather.buildRadioMenu()
+  local fogCommands = {}
+  for _, command in ipairs(self.commands) do
+    if command.method == veafWeather.setAndActivateFog then
+      table.insert(fogCommands, command)
+    end
+  end
+  return fogCommands
+end
+
+function TestVeafWeatherFogMenuWiring:test_the_menu_wires_fog_commands_at_all()
+  -- A guard on the harness itself: if the stub stopped recording, the sweep below would pass
+  -- vacuously. 6 static + 4 dynamic + 7 durations x 6 = 52 at the time of writing.
+  luaunit.assertTrue(#self:_fogCommands() >= 40, "the fog menu must wire a fog preset per entry")
+end
+
+function TestVeafWeatherFogMenuWiring:test_every_fog_menu_entry_passes_an_existing_preset()
+  for _, command in ipairs(self:_fogCommands()) do
+    luaunit.assertNotNil(command.parameters, "fog menu entry '" .. tostring(command.title) .. "' passes nil")
+  end
+end
+
+function TestVeafWeatherFogMenuWiring:test_every_fog_menu_entry_passes_the_preset_it_advertises()
+  -- The entry's title is read off the preset, so a title that disagrees with the parameter's own
+  -- name means the entry applies a *different* preset than the one the pilot clicked.
+  for _, command in ipairs(self:_fogCommands()) do
+    luaunit.assertEquals(
+      command.parameters and command.parameters.name,
+      command.title,
+      "fog menu entry '" .. tostring(command.title) .. "' applies another preset"
+    )
+  end
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

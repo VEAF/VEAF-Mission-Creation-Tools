@@ -733,7 +733,7 @@ veaf-tools.exe mission build --profile MODERN   # produces only the MODERN varia
 | `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.en.md#pipeline-step-2-waypoints) |
 | `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [aircraft groups schema](PIPELINE_REFERENCE.en.md#pipeline-step-3-aircraft-groups) |
 | `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.en.md#pipeline-step-6-versions) |
-| [`custom_scripts:`](#custom_scripts) | Custom Lua scripts to include in the mission |
+| [`custom_scripts:`](#custom-scripts) | Custom Lua scripts to include in the mission |
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |
 | `build.scripts_path` | Path to local VEAF-Mission-Creation-Tools clone |

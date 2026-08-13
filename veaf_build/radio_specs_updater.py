@@ -302,14 +302,52 @@ def parse_human_radio(lua_content: str) -> HumanRadio | None:
     )
 
 
+def _outermost_string_field(lua_content: str, field: str) -> str | None:
+    """Value of *field* at the shallowest indentation in the dump, or ``None``.
+
+    A datamine dump is one table indented by tabs, so "outermost" is what "top level" means
+    here — nothing sits in column 0 but the assignment itself. Taking the shallowest
+    occurrence rather than the first is what keeps a nested homonym out: a pylon carries its
+    own ``DisplayName``, and an engine block its own ``type``, hundreds of lines above the
+    aircraft's.
+
+    Args:
+        lua_content: The whole dumped Lua file.
+        field: Field name to look for.
+
+    Returns:
+        The field's value, or ``None`` when the file has no such field.
+    """
+    best: tuple[int, str] | None = None
+    for match in re.finditer(rf'^([ \t]*){field}\s*=\s*"([^"]*)"', lua_content, re.MULTILINE):
+        depth = len(match.group(1).expandtabs(4))
+        if best is None or depth < best[0]:
+            best = (depth, match.group(2))
+    return best[1] if best else None
+
+
 def parse_display_name(lua_content: str) -> str:
-    # 'type = "..."' holds the aircraft's DCS display name at the top level of the file.
-    match = re.search(r'^\s*type\s*=\s*"([^"]+)"', lua_content, re.MULTILINE)
-    if match:
-        return match.group(1)
-    # Fallback: username field
-    match = re.search(r'^\s*username\s*=\s*"([^"]+)"', lua_content, re.MULTILINE)
-    return match.group(1) if match else ""
+    """Extract the aircraft's readable name from a datamine dump.
+
+    ``DisplayName`` is the field DCS shows in the Mission Editor ("F-16CM bl.50"); it is
+    present in all 170 unit dumps at the pinned ref. ``type`` is **not** a display name — it
+    holds the DCS id, identical to the file name in 168 of those 170 — so it is a last resort
+    rather than the primary source. Reading it first, and with a pattern that also matched an
+    indented one, is how the generated reference table came to list "TurboFan" and "TurboJet"
+    under "Aircraft" on 72 of its 88 rows (FIX-DOCAUDIT-CODE 06).
+
+    Args:
+        lua_content: The whole dumped Lua file for one aircraft.
+
+    Returns:
+        The display name, or ``""`` when the dump carries none of the three fields — the
+        caller substitutes the DCS id, so an empty answer must stay distinguishable.
+    """
+    for field_name in ("DisplayName", "Name", "type"):
+        value = _outermost_string_field(lua_content, field_name)
+        if value:
+            return value
+    return ""
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # 02 — `veafCombatMission`: the MISSIONS menu, documented under someone else's page
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — page in both languages; the YAML sections moved out of veafCasMission with a pointer left behind; menu labels quoted verbatim from the code, which is how the pilot guide's invented labels were found
 Type: feat
 Files: new `doc/mission-maker/scripts/veafCombatMission.md` + `.en.md`, a move out of
 `veafCasMission.md`, README row, `mkdocs.yml`

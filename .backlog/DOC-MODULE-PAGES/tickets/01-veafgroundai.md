@@ -1,6 +1,6 @@
 # 01 — `veafGroundAI`: the `_ground` marker command nobody can discover
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — page in both languages, in nav, README row; the two traps only a code read reveals are written down (semicolon-separated orders, the 250 m search)
 Type: feat
 Files: new `doc/mission-maker/scripts/veafGroundAI.md` + `.en.md`, README row, `mkdocs.yml`
 

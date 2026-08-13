@@ -31,82 +31,19 @@ veafCasMission.initialize()
 
 ## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
-`veafCasMission` itself has no YAML-configurable fields. However, **CAP missions** and **Combat missions** (managed by the `COMBATMISSION` module) are declared in top-level `mission.yaml` sections.
+`veafCasMission` has **no configurable YAML fields** of its own: it is enabled like the other modules.
 
 ```yaml
 modules:
   CASMISSION:
     enabled: true          # default: true
-    logLevel: info        # optional log level override
-  COMBATMISSION:
-    enabled: true          # required for cap_missions: and combat_missions:
-
-# ── CAP missions ──────────────────────────────────────────────────────────
-cap_missions:
-  - group_name: "CAP Group"       # REQUIRED — logical name; the DCS group must be named "OnDemand-CAP Group"
-    menu_name: "CAP North"        # label in the F10 menu
-    briefing: "Patrol the northern sector and engage threats."
-    default: false                # true = starts active by default
-    activated: true               # true = immediately activated at mission start
-
-# ── Combat missions ───────────────────────────────────────────────────────
-combat_missions:
-  - name: "Strike-Alpha"          # REQUIRED — internal identifier
-    friendly_name: "Strike Alpha" # label in the F10 menu
-    secured: false                # true = activation restricted to authorised pilots (see veafSecurity)
-    radio_menu_enabled: true      # show in F10 menu
-    briefing: |
-      Destroy the armoured column in grid BQ-123.
-      Expect AAA and MANPADS.
-    elements:
-      - name: "Element Alpha 1"   # internal element name
-        groups:                   # DCS group names included in this element
-          - "STRIKE-GROUP-1"
-          - "STRIKE-GROUP-2"
-        scalable: true            # true = group count scales with skill setting
+    logLevel: info         # optional log-level override
 ```
 
-### `cap_missions[]` fields
-
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `group_name` | string | — | Yes | Logical CAP-flight name. **The DCS group placed in the editor must be named `OnDemand-<group_name>`**: the runtime prefixes `OnDemand-` (since v5). E.g. `group_name: CAP-Alpha` → DCS group `OnDemand-CAP-Alpha` |
-| `menu_name` | string | — | No | F10 menu label |
-| `briefing` | string | — | No | Briefing text shown to players |
-| `default` | boolean | `false` | No | Start as the default active mission |
-| `activated` | boolean | `true` | No | Immediately activate at mission start |
-
-### `combat_missions[]` fields
-
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `name` | string | — | Yes | Internal identifier |
-| `friendly_name` | string | — | No | F10 menu label |
-| `secured` | boolean | `false` | No | Activation is restricted to authorised pilots — on the F10 menu the group acts at the level of its lowest-graded occupant (see [veafSecurity](veafSecurity.en.md)) |
-| `radio_menu_enabled` | boolean | `true` | No | Show this mission in the F10 menu |
-| `briefing` | string | — | No | Multi-line briefing text |
-| `elements` | object[] | `[]` | No | Mission element definitions |
-| `elements[].name` | string | — | No | Element internal name |
-| `elements[].groups` | string[] | — | No | DCS group names in this element |
-| `elements[].scalable` | boolean | `true` | No | Scale group count with difficulty |
-
-### Minimal example
-
-```yaml
-modules:
-  COMBATMISSION:
-    enabled: true
-
-cap_missions:
-  - group_name: "CAP-Alpha"
-    menu_name: "CAP"
-
-combat_missions:
-  - name: "Strike-North"
-    briefing: "Destroy northern targets."
-    elements:
-      - groups: ["Strike-Group-1"]
-```
+> **CAP missions and combat missions are not configured here.** The `cap_missions:` and
+> `combat_missions:` sections belong to the `COMBATMISSION` module, which is a separate module: see
+> [veafCombatMission](veafCombatMission.en.md#configuration-missionyaml). They used to be documented
+> on this page, which sent readers looking for one module's fields in another module's page.
 
 ---
 

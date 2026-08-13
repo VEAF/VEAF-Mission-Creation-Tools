@@ -30,82 +30,19 @@ veafCasMission.initialize()
 
 ## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
-`veafCasMission` lui-même n'a pas de champs configurables en YAML. Cependant, les **missions CAP** et les **missions de combat** (gérées par le module `COMBATMISSION`) sont déclarées dans des sections de premier niveau de `mission.yaml`.
+`veafCasMission` n'a **aucun champ configurable en YAML** : il s'active comme les autres modules.
 
 ```yaml
 modules:
   CASMISSION:
     enabled: true          # défaut : true
-    logLevel: info        # surcharge optionnelle du niveau de log
-  COMBATMISSION:
-    enabled: true          # requis pour cap_missions: et combat_missions:
-
-# ── Missions CAP ──────────────────────────────────────────────────────────────
-cap_missions:
-  - group_name: "Groupe CAP"      # REQUIS — nom logique ; le groupe DCS doit s'appeler "OnDemand-Groupe CAP"
-    menu_name: "CAP Nord"          # libellé dans le menu F10
-    briefing: "Patrouiller le secteur nord et engager les menaces."
-    default: false                # true = actif par défaut
-    activated: true               # true = activé immédiatement au démarrage
-
-# ── Missions de combat ───────────────────────────────────────────────────
-combat_missions:
-  - name: "Frappe-Alpha"          # REQUIS — identifiant interne
-    friendly_name: "Frappe Alpha" # libellé dans le menu F10
-    secured: false                # true = activation réservée aux pilotes autorisés (voir veafSecurity)
-    radio_menu_enabled: true      # afficher dans le menu F10
-    briefing: |
-      Détruire la colonne blindée dans le carré BQ-123.
-      Prévoir de l'AAA et des MANPADS.
-    elements:
-      - name: "Elément Alpha 1"   # nom interne de l'élément
-        groups:                   # noms de groupes DCS inclus dans cet élément
-          - "STRIKE-GROUP-1"
-          - "STRIKE-GROUP-2"
-        scalable: true            # true = le nombre de groupes s'adapte au paramètre de compétence
+    logLevel: info         # surcharge optionnelle du niveau de log
 ```
 
-### Champs de `cap_missions[]`
-
-| Champ | Type | Défaut | Requis | Description |
-|-------|------|--------|--------|-------------|
-| `group_name` | string | — | Oui | Nom logique du vol CAP. **Le groupe DCS placé dans l'éditeur doit être nommé `OnDemand-<group_name>`** : le runtime préfixe `OnDemand-` (depuis la v5). Ex. `group_name: CAP-Alpha` → groupe DCS `OnDemand-CAP-Alpha` |
-| `menu_name` | string | — | Non | Libellé du menu F10 |
-| `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
-| `default` | booléen | `false` | Non | Démarrer comme mission active par défaut |
-| `activated` | booléen | `true` | Non | Activer immédiatement au démarrage de la mission |
-
-### Champs de `combat_missions[]`
-
-| Champ | Type | Défaut | Requis | Description |
-|-------|------|--------|--------|-------------|
-| `name` | string | — | Oui | Identifiant interne |
-| `friendly_name` | string | — | Non | Libellé du menu F10 |
-| `secured` | booléen | `false` | Non | L'activation est réservée aux pilotes autorisés — au menu F10, le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)) |
-| `radio_menu_enabled` | booléen | `true` | Non | Afficher dans le menu F10 |
-| `briefing` | string | — | Non | Texte de briefing multi-ligne |
-| `elements` | objet[] | `[]` | Non | Définitions des éléments de mission |
-| `elements[].name` | string | — | Non | Nom interne de l'élément |
-| `elements[].groups` | string[] | — | Non | Noms de groupes DCS dans cet élément |
-| `elements[].scalable` | booléen | `true` | Non | Adapter le nombre de groupes à la difficulté |
-
-### Exemple minimal
-
-```yaml
-modules:
-  COMBATMISSION:
-    enabled: true
-
-cap_missions:
-  - group_name: "CAP-Alpha"
-    menu_name: "CAP"
-
-combat_missions:
-  - name: "Frappe-Nord"
-    briefing: "Détruire les cibles nord."
-    elements:
-      - groups: ["Strike-Group-1"]
-```
+> **Les missions CAP et les missions de combat ne sont pas configurées ici.** Les sections
+> `cap_missions:` et `combat_missions:` appartiennent au module `COMBATMISSION`, qui est un module
+> distinct : voir [veafCombatMission](veafCombatMission.md#configuration-missionyaml). Elles étaient
+> documentées sur cette page, ce qui envoyait chercher les champs d'un module dans la page d'un autre.
 
 ---
 

@@ -1,6 +1,6 @@
 # 03 — `veafCommands`, `veafI18n`, `veafUnits`: the infrastructure trio
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — three developer-facing pages in both languages, in nav, folded into the README's Foundation row
 Type: feat
 Files: three new page pairs under `doc/mission-maker/scripts/`, README rows, `mkdocs.yml`
 

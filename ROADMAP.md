@@ -58,19 +58,21 @@ the table below.
 
 ### The order, decided 2026-08-13
 
-Twelve lots are open. **Three of them are new**, born the same day from the five-pass documentation
-audit (~150 defects found while `docs-check` stayed green throughout, because everything that rotted
-is what the gate cannot see: content). They carry most of the remaining agent-only work:
+Twelve lots are open, plus one opened by the work below. **Four are new**, all born from the
+five-pass documentation audit of 2026-08-13 (~150 defects found while `docs-check` stayed green
+throughout, because everything that rotted is what the gate cannot see: content). They carry most of
+the remaining agent-only work:
 
 | Order | Lot | Weight | Why here |
 |-------|-----|--------|----------|
-| **1** | [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) | 6 tickets | The only open lot where the audit proved the **code** wrong, twice on the security surface: the dispatchers refuse the tier names David decided (`ADMIN` fails the registration assert) and `_transport` calls its check without the marker id, so a listed `SENIOR_PILOT` types the password anyway. Its ticket 04 also hardens four `docs-check` blind spots, and that must land **before or with** `DOC-AUDIT-FIXES` 04 for the new CLI reference to be self-enforcing. |
-| **2** | [`DOC-AUDIT-FIXES`](.backlog/DOC-AUDIT-FIXES/PRD.md) 03-04 | 2 tickets | Closes the lot: the holes rather than the lies. The new security model has **no pilot-facing page**, and the CLI has no real reference — David wants full command documentation *in addition to* `--help`. |
-| **3** | [`DOC-MODULE-PAGES`](.backlog/DOC-MODULE-PAGES/PRD.md) | 3 tickets | Five registered modules have no page and no README row, two of them with player-facing surfaces: `veafGroundAI` (whose `-ai_set` alias is already documented, pointing at nothing) and `veafCombatMission` (the F10 `MISSIONS` menu). David's arbitration d: a lot of its own. |
+| ✅ | [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) | 6 tickets | **Closed 2026-08-13.** The only lot where the audit proved the **code** wrong, twice on the security surface: the dispatchers refused the tier names David decided (`ADMIN` failed the registration assert) and `_transport` called its check without the marker id, so a listed `SENIOR_PILOT` typed the password anyway. Its ticket 04 hardened four `docs-check` blind spots, which is the *before* half of the sequencing `DOC-AUDIT-FIXES` 04 needs. |
+| **1** | [`DOC-AUDIT-FIXES`](.backlog/DOC-AUDIT-FIXES/PRD.md) 03-04 | 2 tickets | Closes the lot: the holes rather than the lies. The new security model has **no pilot-facing page**, and the CLI has no real reference — David wants full command documentation *in addition to* `--help`. Ticket 04 also carries a debt from the lot above: the hardened option rule is enabled for the updater only, because the mission-maker guide names 4 of the main CLI's 59 long options; the new reference page is what lets it cover the other 59, and enabling it is one tuple entry in `OPTION_RULES`. |
+| **2** | [`DOC-MODULE-PAGES`](.backlog/DOC-MODULE-PAGES/PRD.md) | 3 tickets | Five registered modules have no page and no README row, two of them with player-facing surfaces: `veafGroundAI` (whose `-ai_set` alias is already documented, pointing at nothing) and `veafCombatMission` (the F10 `MISSIONS` menu). David's arbitration d: a lot of its own. |
+| **3** | [`FIX-RADIO-SPECS-GENERATOR-LOCALE`](.backlog/FIX-RADIO-SPECS-GENERATOR-LOCALE/PRD.md) | 1 ticket | Opened by `FIX-DOCAUDIT-CODE` 06, which could not run the generator it was fixing: `update-dcs-data --radio` writes a whole English page over the **French** one and never touches the English page. Measured — 100 lines replaced by 84, `docs-check` green throughout. Small and bounded; last of the four because the manual workaround is documented and works. |
 
-[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once those three are
+[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once those are
 merged — one ticket, and it is a design decision where **a rejection is an acceptable outcome**. It
-adds nothing to the release by itself, which is why it is not in the three.
+adds nothing to the release by itself, which is why it is not in the ordered set.
 
 ### Blocked on a person, or on a DCS session
 

@@ -1,7 +1,7 @@
 # veafCarrierOperations — Carrier Recovery Management
 
 
-**Module ID:** `CARRIER` | **Version:** 1.12.x | **File:** `veafCarrierOperations.lua`
+**Module ID:** `CARRIER` | **File:** `veafCarrierOperations.lua`
 
 ---
 
@@ -45,7 +45,7 @@ modules:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `init.include_carrier_operations_radio` | boolean | `true` | No | Add the carrier operations menu to the F10 radio tree |
 
@@ -116,7 +116,7 @@ While operations are running, the two *Start* items are replaced by:
 
 - **End air operations** — stop recovery and send the carrier back to its initial route
 
-> By default the *Start*/*End* items are secured (require a password). Set `veafCarrierOperations.DisableSecurity = true` to make them open to everyone.
+> By default the *Start*/*End* items are secured: the group acts at the level of its lowest-graded occupant (see [veafSecurity](veafSecurity.en.md)). Set `veafCarrierOperations.DisableSecurity = true` to make them open to everyone.
 
 ---
 

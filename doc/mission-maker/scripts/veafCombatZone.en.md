@@ -1,7 +1,7 @@
 # veafCombatZone — Activatable Combat Zones
 
 
-**Module ID:** `COMBATZONE` | **Version:** 1.22.x | **File:** `veafCombatZone.lua`
+**Module ID:** `COMBATZONE` | **File:** `veafCombatZone.lua`
 
 ---
 
@@ -327,7 +327,7 @@ strikeZone:addZoneElement(element)
 - **Smoke** — mark zone with smoke (cooldown applies)
 - **Flare** — mark zone with flares
 
-> **Security:** activate and deactivate commands require `/secu login` by default. [Training mode](#training-mode) removes this restriction. Info, smoke, and flare requests are always accessible without login.
+> **Security:** activate and deactivate commands are secured by default: the group acts at the level of its lowest-graded occupant (see [veafSecurity](veafSecurity.en.md)). [Training mode](#training-mode) removes this restriction. Info, smoke, and flare requests are always accessible to everyone.
 
 ### Radio menu options
 
@@ -396,7 +396,7 @@ When multiple chained zones are defined, **one is picked at random** — useful 
 
 Setting a zone to training mode changes two things:
 
-- **No security**: any player can activate or deactivate the zone via the radio menu (normally the zone activation is logged and can be restricted by `/secu login`).
+- **No security**: any player can activate or deactivate the zone via the radio menu (normally these commands are restricted to the group's effective level — see [veafSecurity](veafSecurity.en.md)).
 - **Verbose status**: the zone info message lists remaining units and their approximate positions (using smoke or bearings), giving pilots a clear picture of what is left.
 
 ```lua

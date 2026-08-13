@@ -67,7 +67,7 @@ If the primary frequency falls outside the `human_radio` range, the Mission Edit
 save the mission**, with a message such as:
 
 ```
-FW-190D9 Template: Invalid frequency 134 MHz
+FW-190A8 Template: Invalid frequency 134 MHz
 ```
 
 `inject-presets` normally promotes channel 1 of the first radio to the group's primary frequency, so

@@ -100,9 +100,9 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | `-convoy` | Dynamic convoy (needs `, dest POINTNAME`) |
 | `-hv_convoy_red` | Red high-value attack convoy (with Scud) |
 | `-attack_convoy_red` | Red attack convoy |
-| `-QRC_red` | Red Quick Reaction Convoy (fast) |
+| `-QRC_red` | Red Quick Reaction Convoy |
 | `-civilian_convoy_red` | Red civilian convoy |
-| `-QRC_blue` | Blue Quick Reaction Convoy (fast) |
+| `-QRC_blue` | Blue Quick Reaction Convoy |
 
 ## Artillery
 
@@ -209,9 +209,7 @@ power are each drawn at random from a range.
 > 🔐 `-login` and `-logout` drive VEAF authentication (`_auth`). `-login` expects the password right
 > after it, **with no comma**: `-login mypassword`. They carry `:setHidden(true)`, which keeps them out
 > of the list the `list_shortcuts` MCP action serves to an AI — you do not offer an authentication
-> command to an assistant building a mission. That never justified hiding them from a **human**
-> reader too: the code is public, so the omission protected nothing and denied the legitimate mission
-> maker the information.
+> command to an assistant building a mission.
 
 ## Map Tools
 

@@ -62,7 +62,7 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
 Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs contenant au moins un pilote humain (compétence Client/Player). Génère également des images de kneeboard PNG pour chaque préréglage.
 
-> **Désactiver les planchettes (kneeboards)** : la forme mapping de l'étape accepte un sous-champ `kneeboards` (défaut `true`). Passer `pipeline: { presets: { enabled: true, kneeboards: false } }` permet de conserver l'injection des fréquences radio tout en ne générant aucune planchette PNG (`KNEEBOARD/IMAGES/presets-*.png`).
+> **Désactiver les planchettes (kneeboards)** : la forme mapping de l'étape accepte un sous-champ `kneeboards` (défaut `true`). Passer `pipeline: { presets: { enabled: true, kneeboards: false } }` permet de conserver l'injection des fréquences radio tout en ne générant aucune planchette PNG (`KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`).
 
 ### Emplacement par défaut
 
@@ -105,7 +105,7 @@ channel_lists:
       02: Batumi
     fm_supplement:                      # FM en 3e radio, en plus de deux radios primaires (ex: A-10C)
       01: 30
-    fm_substitute:                      # FM en 2e radio, à la place d'un 2e radio primaire (ex: hélicoptères)
+    fm_substitute:                      # FM en 2e radio, à la place d'une 2e radio primaire (ex: hélicoptères)
       01: 30
     fm_secondary:                       # 2e radio FM supplémentaire (ex: OH-58D) ; par défaut, copie de fm_supplement
       01: 31
@@ -117,7 +117,7 @@ channel_lists:
 | --- | --- | --- |
 | `primary_1` | uhf | 1re radio V/UHF |
 | `primary_2` | vhf | 2e radio V/UHF ; radio unique des warbirds |
-| `fm_substitute` | fm | FM à la place d'un 2e radio primaire (hélicoptères à un seul radio primaire) |
+| `fm_substitute` | fm | FM à la place d'une 2e radio primaire (hélicoptères à une seule radio primaire) |
 | `fm_supplement` | fm | FM en plus de deux radios primaires (appareils d'attaque, ex: A-10C) |
 | `fm_secondary` | fm | 2e radio FM supplémentaire (ex: OH-58D) ; par défaut, copie de `fm_supplement` si non déclaré |
 
@@ -140,7 +140,7 @@ radios_collection:
 # ── Définitions de préréglages ────────────────────────────────────────────
 presets_collection:
   <nom-ensemble>:                       # groupe logique de préréglages (ex: blue_presets)
-    <nom-preréglage>:                   # identifiant référencé dans presets_assignments
+    <nom-préréglage>:                   # identifiant référencé dans presets_assignments
       title: "Coalition bleue - UHF/VHF/FM"
       radios:
         radio_1: <nom-radio>            # slot → nom-radio (depuis radios_collection)
@@ -187,7 +187,7 @@ Sur une entrée du plan (forme objet), deux attributs facultatifs enrichissent l
 planchette ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0012-channel-priority-colour-and-ajs37-packing.md)) :
 
 - **`priority: <n>`** — met le canal en évidence sur **toute** planchette
-  (marqueur `Pn` + cellules Name/Freq stabilotées en orange). Sur l'**AJS-37
+  (marqueur `Pn` + cellules Name/Freq surlignées en orange). Sur l'**AJS-37
   (Viggen)** uniquement, les priorités 1 à 4 alimentent en plus les raccourcis
   FR22 Special 1/2/3 et FR24 H. À déclarer **dans `channel_lists`** (une seule
   entrée par valeur de priorité).
@@ -200,7 +200,7 @@ planchette ([ADR 0012](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/
 channel_lists:
   blue:
     primary_1:
-      01: { channel: Guard, priority: 4, color: red }   # Pn + stabilo ; sur Viggen → FR24 H
+      01: { channel: Guard, priority: 4, color: red }   # Pn + surlignage ; sur Viggen → FR24 H
       02: { channel: Texaco-1, priority: 1 }             # sur Viggen → FR22 Special 1
       03: { channel: Batumi, color: "#2E7D32" }          # regroupement visuel (cellule CH)
 ```
@@ -212,7 +212,7 @@ DCS du type (`KNEEBOARD/<type>/IMAGES/`).
 
 Depuis [ADR 0010](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0010-per-type-radio-preset-projection.md), `convert-v5` produit **deux** fichiers de préréglages :
 
-- **`presets.yaml` — plan simplifié (par défaut, chargé par le build)** : `channel_lists` seul (plus, le cas échéant, les rares surcharges que le packer ne peut pas projeter du tout). Le build projette automatiquement la cristallisation sur chaque aéronef, warbirds compris (radios compatibles VHF/FM), en droppant les canaux hors bande. C'est le fichier qui exploite pleinement le modèle preset-plan.
+- **`presets.yaml` — plan simplifié (par défaut, chargé par le build)** : `channel_lists` seul (plus, le cas échéant, les rares surcharges que le packer ne peut pas projeter du tout). Le build projette automatiquement la cristallisation sur chaque aéronef, warbirds compris (radios compatibles VHF/FM), en écartant les canaux hors bande. C'est le fichier qui exploite pleinement le modèle preset-plan.
 - **`presets.v5.yaml` — copie fidèle (référence / repli, non chargée par le build)** : la conversion iso-fonctionnelle complète (`channel_lists` + un préréglage dédié `{coalition}_{aéronef}` par agencement sur mesure, reproduisant exactement la carte canal → fréquence et les `mod`, voir ADR 0003).
 
 **Attention** : le plan peut faire **diverger** certaines fréquences de la mission v5 d'origine — les warbirds passent sur les canaux de la coalition, et les radios fusionnées/à modulations des jets (F-14, AV8B…) sont projetées au mieux (partiellement) tant qu'aucune entrée `dcs-radio-layouts.yaml` dédiée n'existe pour leur type. `convert-v5` avertit quels aéronefs sont projetés au mieux. **Vérifiez et éditez `presets.yaml`** ; en cas de doute, la reproduction exacte du v5 reste dans `presets.v5.yaml` (à copier dans `presets.yaml` pour revenir au comportement iso-fonctionnel).
@@ -247,7 +247,7 @@ presets_assignments:
 
 Une fois les presets corrigés, supprimez la ligne `none` pour réactiver l'injection.
 
-Les specs couvrent 87 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
+Les specs couvrent 100 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
 
 > **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides et liste des appareils critiques.  
 > Pour régénérer après une mise à jour DCS : `poetry run update-radio-specs`
@@ -336,7 +336,7 @@ Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux ét
 - **(B) groupes spawnables** (`src/spawnables.yaml`, étape `spawnable_aircrafts`) : vrais groupes cachés, clonés à la demande en jeu par `veafSpawn`. Marqueur : préfixe de nom `veafSpawn-`.
 - **(C) modèles de slot dynamique** (`src/dynamic-slot-templates.yaml`, étape `dynamic_slot_templates`) : groupes servant de **modèle** aux Dynamic Slots DCS, consommés nativement par le moteur. Marqueur : flag DCS `dynSpawnTemplate = true`.
 
-À l'extraction (`extract-aircraft-groups`), chaque groupe est routé vers l'une des deux familles selon ce critère (le flag prime sur le préfixe) ; les autres groupes sont ignorés. Par défaut, l'extraction produit **les deux** fichiers ; l'option `--kind spawnable|dynamic-template` en restreint un seul. L'ancien tri par nom `.*[tT]emplate.*` est abandonné (il misroutait un spawnable nommé « … Template … »).
+À l'extraction (`extract-aircraft-groups`), chaque groupe est routé vers l'une des deux familles selon ce critère (le flag prime sur le préfixe) ; les autres groupes sont ignorés. Par défaut, l'extraction produit **les deux** fichiers ; l'option `--kind spawnable|dynamic-template` restreint la production à un seul. L'ancien tri par nom `.*[tT]emplate.*` est abandonné (il aiguillait à tort un spawnable nommé « … Template … »).
 
 ### Emplacements par défaut
 
@@ -401,6 +401,96 @@ airplanes:
 
 ---
 
+## Étape 4 — Warehouses Dynamic-Slot (`warehouses.yaml`) {#pipeline-step-4-warehouses}
+
+Configure les **Dynamic Slots** DCS par coalition. S'exécute **après** l'injection
+des aéronefs (pour que les groupes `dynSpawnTemplate` existent déjà) et modifie les
+`warehouses` de la mission : active `dynamicSpawn` sur les aérodromes choisis, fixe
+carburant / munitions et le stock d'aéronefs, et lie chaque type d'aéronef proposé
+à son groupe-modèle via `linkDynTempl`.
+
+### Emplacement par défaut
+
+`src/warehouses.yaml` (auto-activé si présent ; désactiver avec `pipeline: { warehouses: false }`).
+
+### Schéma
+
+```yaml
+<coalition>:                 # blue | red | neutral. Une coalition non déclarée est laissée intacte.
+  defaults:                  # appliqué à chaque aérodrome sélectionné
+    fuel: unlimited          # optionnel -> unlimitedFuel
+    weapons: unlimited       # optionnel -> unlimitedMunitions
+    aircrafts:               # types d'aéronefs proposés en slot dynamique
+      <type DCS>: { amount: unlimited | <entier>, template: "<nom de groupe>" }
+  airports:                  # optionnel. Absent -> TOUS les aérodromes de la coalition reçoivent `defaults`.
+    <nom ou id>: { }                        # defaults seuls
+    <nom ou id>: { aircrafts: { ... } }     # defaults + override par aérodrome
+```
+
+- `template` référence un groupe-modèle par **nom** ; omettez-le pour l'auto-matcher
+  à un groupe-modèle du même **type d'aéronef** (même coalition).
+- Les aérodromes ne peuvent être nommés que sur les théâtres installés présents dans
+  la table versionnée (`veaf-build update-dcs-data --airdromes`) ; sinon utilisez l'id
+  numérique (visible dans les `warehouses` de la mission : `airports[<id>]`).
+
+### Exemple minimal
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+    aircrafts:
+      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
+  airports:
+    Senaki-Kolkhi: {}
+```
+
+---
+
+## Étape 5 — Données de spawn (`spawn-groups.yaml`) {#pipeline-step-5-spawn-data}
+
+Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
+
+### Toujours active
+
+Contrairement aux autres étapes, `spawn_data` s'exécute **toujours** (même sans fichier mission) car la base de spawn du framework doit être embarquée pour que `_spawn` fonctionne. Pour la désactiver entièrement :
+
+```yaml
+pipeline:
+  spawn_data: false
+```
+
+### Étendre la base (`src/spawn-groups.yaml`)
+
+Un fichier `src/spawn-groups.yaml` (optionnel) permet d'ajouter ou de redéfinir des unités/groupes pour une mission donnée. Il est **fusionné par-dessus** les données du framework :
+
+- un alias inédit est **ajouté** ;
+- un alias déjà présent dans le framework **remplace** l'entrée correspondante (override).
+
+### Schéma
+
+```yaml
+units:                              # -> _spawn unit <alias>
+  - aliases: [myaaa]                # un ou plusieurs alias (insensibles à la casse)
+    unitType: ZSU-23-4 Shilka       # un type d'unité DCS
+
+groups:                             # -> _spawn group <alias>
+  - aliases: [mysam]
+    disposition: {h: 3, w: 3}       # grille de placement en cellules (10m x 10m)
+    units:
+      - {type: ZSU-23-4 Shilka, cell: 1}
+      - {type: Ural-375, random: true}                       # placé aléatoirement dans sa cellule
+      - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
+    description: Mon site SAM
+    groupName: MySAM
+```
+
+Champs d'une unité de groupe : `type` (requis), `cell` (cellule préférée), `number` (quantité, ou `{min, max}` aléatoire), `hdg` (cap), `size` (taille de cellule fixe en m), `random` (placement aléatoire dans la cellule), `fitToUnit` (cellule ajustée à l'emprise exacte de l'unité).
+
+La base du framework est définie dans `veaf_libs/data/veaf-units.yaml` (embarqué dans l'outil).
+
+---
+
 ## Étape 6 — Variantes météo & horaire (`versions.yaml`) {#pipeline-step-6-versions}
 
 Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec une configuration de temps et/ou de météo différente.
@@ -427,7 +517,7 @@ base_date: "2024-03-15"                 # ISO 8601 (AAAA-MM-JJ)
 
 # ── Variantes de mission ───────────────────────────────────────────────────
 versions:
-  - name: aube                          # REQUIS — nom du fichier de sortie (sans .miz)
+  - name: aube                          # REQUIS — nom de la variante (suffixe du fichier de sortie)
     time: "sunrise+30*60"               # expression horaire (voir ci-dessous)
     date: "today"                       # expression de date (voir ci-dessous, optionnel)
     metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optionnel
@@ -448,7 +538,7 @@ versions:
 
 | Champ | Type | Requis | Description |
 |-------|------|--------|-------------|
-| `name` | string | Oui | Nom du fichier de sortie (sans `.miz`) ; ex: `aube` → `aube.miz` |
+| `name` | string | Oui | Nom de la variante. Dans `mission build`, la sortie est `missions/<NomDeBase>_<name>.miz` (ex: `aube` → `Ma-Mission_aube.miz`) ; la forme nue `<name>.miz` n'existe qu'avec `inject-weather` autonome |
 | `time` | string | Non | Expression horaire — voir ci-dessous |
 | `date` | string | Non | Expression de date — voir ci-dessous |
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo |
@@ -510,94 +600,6 @@ versions:
 ```
 
 ---
-
-## Étape 4 — Warehouses Dynamic-Slot (`warehouses.yaml`)
-
-Configure les **Dynamic Slots** DCS par coalition. S'exécute **après** l'injection
-des aéronefs (pour que les groupes `dynSpawnTemplate` existent déjà) et modifie les
-`warehouses` de la mission : active `dynamicSpawn` sur les aérodromes choisis, fixe
-carburant / munitions et le stock d'aéronefs, et lie chaque type d'aéronef proposé
-à son groupe-modèle via `linkDynTempl`.
-
-### Emplacement par défaut
-
-`src/warehouses.yaml` (auto-activé si présent ; désactiver avec `pipeline: { warehouses: false }`).
-
-### Schéma
-
-```yaml
-<coalition>:                 # blue | red | neutral. Une coalition non déclarée est laissée intacte.
-  defaults:                  # appliqué à chaque aérodrome sélectionné
-    fuel: unlimited          # optionnel -> unlimitedFuel
-    weapons: unlimited       # optionnel -> unlimitedMunitions
-    aircrafts:               # types d'aéronefs proposés en slot dynamique
-      <type DCS>: { amount: unlimited | <entier>, template: "<nom de groupe>" }
-  airports:                  # optionnel. Absent -> TOUS les aérodromes de la coalition reçoivent `defaults`.
-    <nom ou id>: { }                        # defaults seuls
-    <nom ou id>: { aircrafts: { ... } }     # defaults + override par aérodrome
-```
-
-- `template` référence un groupe-modèle par **nom** ; omettez-le pour l'auto-matcher
-  à un groupe-modèle du même **type d'aéronef** (même coalition).
-- Les aérodromes ne peuvent être nommés que sur les théâtres installés présents dans
-  la table committée (`veaf-build update-dcs-data --airdromes`) ; sinon utilisez l'id
-  numérique (visible dans les `warehouses` de la mission : `airports[<id>]`).
-
-### Exemple minimal
-
-```yaml
-blue:
-  defaults:
-    fuel: unlimited
-    aircrafts:
-      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
-  airports:
-    Senaki-Kolkhi: {}
-```
-
----
-
-## Étape 5 — Données de spawn (`spawn-groups.yaml`)
-
-Les commandes marqueurs `_spawn unit <alias>` et `_spawn group <alias>` s'appuient sur deux tables Lua (`veafUnits.UnitsDatabase` et `veafUnits.GroupsDatabase`). Depuis la v6, ces tables ne sont plus codées en dur dans `veafUnits.lua` : elles proviennent d'un YAML, sont rendues en Lua et **injectées dans le `.miz` au build de la mission** (DCS ne sait pas lire du YAML à l'exécution). Voir [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
-
-### Toujours active
-
-Contrairement aux autres étapes, `spawn_data` s'exécute **toujours** (même sans fichier mission) car la base de spawn du framework doit être embarquée pour que `_spawn` fonctionne. Pour la désactiver entièrement :
-
-```yaml
-pipeline:
-  spawn_data: false
-```
-
-### Étendre la base (`src/spawn-groups.yaml`)
-
-Un fichier `src/spawn-groups.yaml` (optionnel) permet d'ajouter ou de redéfinir des unités/groupes pour une mission donnée. Il est **fusionné par-dessus** les données du framework :
-
-- un alias inédit est **ajouté** ;
-- un alias déjà présent dans le framework **remplace** l'entrée correspondante (override).
-
-### Schéma
-
-```yaml
-units:                              # -> _spawn unit <alias>
-  - aliases: [myaaa]                # un ou plusieurs alias (insensibles à la casse)
-    unitType: ZSU-23-4 Shilka       # un type d'unité DCS
-
-groups:                             # -> _spawn group <alias>
-  - aliases: [mysam]
-    disposition: {h: 3, w: 3}       # grille de placement en cellules (10m x 10m)
-    units:
-      - {type: ZSU-23-4 Shilka, cell: 1}
-      - {type: Ural-375, random: true}                       # placé aléatoirement dans sa cellule
-      - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
-    description: Mon site SAM
-    groupName: MySAM
-```
-
-Champs d'une unité de groupe : `type` (requis), `cell` (cellule préférée), `number` (quantité, ou `{min, max}` aléatoire), `hdg` (cap), `size` (taille de cellule fixe en m), `random` (placement aléatoire dans la cellule), `fitToUnit` (cellule ajustée à l'emprise exacte de l'unité).
-
-La base du framework est définie dans `veaf_libs/data/veaf-units.yaml` (embarqué dans l'outil).
 
 ---
 

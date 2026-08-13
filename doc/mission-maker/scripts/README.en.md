@@ -27,13 +27,13 @@ What will your players experience?
 | Player action | Module | What happens |
 |---------------|--------|--------------|
 | Places a marker with `_spawn ...` | [veafSpawn](veafSpawn.en.md) | Units appear at marker position |
-| Opens F10 → CAS Mission → Generate | [veafCasMission](veafCasMission.en.md) | Random target zone generated |
+| Places a marker with `_cas` | [veafCasMission](veafCasMission.en.md) | Random target zone generated |
 | Opens F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.en.md) | Pre-built combat area activates |
-| Opens F10 → Missions → Activate | [veafAirWaves](veafAirWaves.en.md) | Wave-based air combat starts |
-| Opens F10 → Assets → Tanker/AWACS | [veafAssets](veafAssets.en.md) | Info, respawn, carrier recovery |
-| Opens F10 → Carrier → Start Recovery | [veafCarrierOperations](veafCarrierOperations.en.md) | Carrier turns into wind |
+| Enters an air-waves zone | [veafAirWaves](veafAirWaves.en.md) | Wave-based air combat starts |
+| Opens F10 → ASSETS → [asset] | [veafAssets](veafAssets.en.md) | Info, respawn |
+| Opens F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.en.md) | Carrier turns into wind |
 | Enters a protected zone | [veafQraManager](veafQraManager.en.md) | AI interceptors scramble |
-| Types `_auth [password]` | [veafSecurity](veafSecurity.en.md) | Elevated permissions granted |
+| Types `_auth elevate` | [veafSecurity](veafSecurity.en.md) | The group rises to the requester's level for 2 minutes |
 | Flies in a sanctuary area | [veafSanctuary](veafSanctuary.en.md) | Hostile missiles neutralized |
 
 ### By frequency of use
@@ -97,7 +97,7 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 
 | Component | File | What it does |
 |-----------|------|--------------|
-| [veafServerHook](veafServerHook.en.md) | `VEAF-Server-hook.lua` | Dedicated-server hook: chat commands (`/secu login`, `/send`…), pilots list, opt-in restart/telemetry |
+| [veafServerHook](veafServerHook.en.md) | `VEAF-Server-hook.lua` | Dedicated-server hook: chat commands (`/send`, `/pause`…), pilots list, opt-in restart/telemetry |
 
 ---
 

@@ -8,11 +8,11 @@ Ce guide s'adresse aux développeurs qui souhaitent contribuer au code source de
 
 1. [Vue d'ensemble de l'architecture](#vue-densemble-de-larchitecture)
 2. [Structure du dépôt](#structure-du-dépôt)
-3. [Environnement de développement](#environnement-de-développement)
-4. [Scripts Lua runtime](#scripts-lua-runtime)
-5. [Outils Python](#outils-python)
+3. [Environnement de développement](#development-environment)
+4. [Scripts Lua runtime](#lua-runtime-scripts)
+5. [Outils Python](#python-tools)
 6. [Build et publication](#build-et-publication)
-7. [Mode développeur](#mode-développeur)
+7. [Mode développeur](#developer-mode)
 8. [Tests](#tests)
 9. [Portes de qualité](#portes-de-qualité)
 10. [Contribuer](#contribuer)
@@ -61,9 +61,10 @@ VEAF-Mission-Creation-Tools/
 ├── dist/                         # Sortie .exe PyInstaller
 ├── build/                        # Espace de travail de build temporaire
 ├── test/
-│   └── lua/                      # Tests unitaires Lua
+│   ├── lua/                      # Tests unitaires Lua
+│   └── python/                   # Tests unitaires Python
 ├── doc/                          # Documentation
-├── openspec/                     # Gestion des changements (workflow OpenSpec)
+├── .backlog/                     # Backlog des lots (PRD + tickets)
 └── .github/
     └── workflows/                # CI/CD GitHub Actions
 ```
@@ -375,7 +376,7 @@ Ajouter un champ à `MissionBuilderWorker.__init__` impose d'ajouter une entrée
 
 ```powershell
 # Build (compile Lua + construit les .exe)
-poetry run veaf-build build --version 6.1.0
+poetry run veaf-build build --version <version>
 ```
 
 Ce que cela fait :
@@ -481,10 +482,10 @@ Référence complète des tests : [Guide de tests](../TESTING.md)
 
 ```powershell
 # Vérifier le formatage (équivalent CI)
-~/.local/bin/stylua.exe --check src/scripts/veaf/
+~/.local/bin/stylua.exe --check src/scripts/veaf/ test/lua/
 
 # Corriger automatiquement
-~/.local/bin/stylua.exe src/scripts/veaf/
+~/.local/bin/stylua.exe src/scripts/veaf/ test/lua/
 
 # Analyse statique
 luacheck src/scripts/veaf/ --config .luacheckrc
@@ -499,12 +500,14 @@ Luacheck est imposé par le job CI `Luacheck`.
 |-----|-----------------|
 | `Lua Unit Tests` | Toutes les suites de tests passent |
 | `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
-| `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
-| `python-quality` | ruff lint + format, mypy types, pytest |
+| `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` et `test/lua/` |
+| `Lua Coverage` | Couverture ligne (luacov) au-dessus du plancher de cliquet (`--cov-fail-under`) — bloquant |
+| `python-quality` | ruff lint + format (`src/python/ test/python/ veaf_build/`), mypy (`src/python/veaf-tools`), pytest |
 | `Docs Check` | Liens et ancres de la documentation, versions FR/EN, pages absentes du menu |
 | `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 
-Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
+Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée. Exception :
+`dcs-mock-coverage` est en `continue-on-error` — informatif, il ne bloque pas le merge.
 
 ### Avant un commit qui touche à la documentation {#docs-check}
 
@@ -512,8 +515,12 @@ Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
 poetry run docs-check
 ```
 
-Le job CI `Docs Check` lance exactement la même commande. Il refuse quatre dérives qui, avant son
-existence, s'étaient accumulées silencieusement (voir le lot `DOC-AUDIT-PASS`) :
+Le job CI `Docs Check` lance exactement la même commande, qui enchaîne **trois passes** : la passe
+principale sur `doc/` (le tableau ci-dessous), une passe de liens relatifs sur le reste du dépôt
+(`.backlog/`, `docs/`, les pages racine), et une passe de couverture documentaire (chaque capacité
+définie par le code doit être nommée par sa page de référence). La passe principale refuse quatre
+dérives qui, avant son existence, s'étaient accumulées silencieusement (voir le lot
+`DOC-AUDIT-PASS`) :
 
 | Vérification | Pourquoi |
 |--------------|----------|
@@ -558,8 +565,8 @@ simplement l'alias `dev`.
 Pousser un tag `published-v*` — le workflow CI `Release` fait tout automatiquement :
 
 ```bash
-git tag published-v6.1.0
-git push origin published-v6.1.0
+git tag published-v<version>
+git push origin published-v<version>
 ```
 
 ---
@@ -623,7 +630,7 @@ veaf-tools mission build --dev-mode --scripts-path chemin/vers/VEAF-Mission-Crea
 - **Développement de fonctionnalité :** créer `feature/xxx` depuis `develop`, ouvrir PR → `develop`
 - **Corrections de bugs :** créer `fix/xxx` depuis `develop`, ouvrir PR → `develop`
 - **Hotfixes en production :** `fix/xxx` depuis `master`, PR → `master`
-- **Versions :** `release/vX.Y.Z` depuis `develop`, PR → `master`
+- **Versions :** `release/X.Y.Z` (sans `v`) depuis `develop`, PR → `master`
 
 ### Convention de commit
 

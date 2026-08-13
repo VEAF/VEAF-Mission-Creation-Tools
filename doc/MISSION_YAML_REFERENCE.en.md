@@ -29,7 +29,7 @@ These files are **not** loaded at DCS runtime — they are consumed by `veaf-too
 
 `mission.yaml` itself configures **how VEAF Lua modules behave at DCS runtime**. It is translated at build time into `veaf-config.lua`, which is injected into the mission and executed when DCS loads the mission.
 
-Sections such as `modules:`, `qra:`, `assets:`, and `shortcuts:` all describe runtime module behaviour.
+The `modules:` section describes runtime module behaviour (QRA, assets or shortcuts configuration lives under the relevant module, e.g. `modules.QRA`).
 
 ```
 mission folder/
@@ -184,7 +184,7 @@ behind) — a deliberate choice, not an oversight.
 
 ### `security:`
 
-Controls the VEAF security system. By default, security is disabled (all players have full access).
+Controls the VEAF security system. **Security is active by default** (`veaf.SecurityDisabled = false` in `veaf.lua`): with no `security:` block nothing is emitted and the sensitive commands require a pilot level or a password. `disabled: true` turns it off for the whole mission.
 
 ```yaml
 security:
@@ -197,14 +197,13 @@ security:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `disabled` | boolean | `true` | No | `true` = no password required |
+| `disabled` | boolean | `false` | No | `true` = no password required |
 | `password_hashes` | string[] | `[]` | No | **SHA-1** hashes granting player access. Emitted at levels **L1 and L9**, so the password opens marker authentication and the sensitive spawns, not only the L9 gates |
 | `password_mm_hashes` | string[] | `[]` | No | **SHA-1** hashes granting Mission Master access (its own table, no level cascade) |
 
 > **SHA-1, not SHA-256.** `veafSecurity._checkPassword` hashes what the player types with
 > `sha1.hex(password)` and looks it up in the table, so a SHA-256 hash never matches and the
-> password silently never works. This page said SHA-256 until it was corrected — check any
-> existing mission whose password appears to be ignored.
+> password silently never works.
 >
 > To generate one: `echo -n "yourpassword" | sha1sum` (Linux/macOS), or
 > `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" yourpassword`.
@@ -347,7 +346,7 @@ modules:
       create_menus: false       # no VEAF radio menu; commands via markers only
 ```
 
-**Community scripts** are listed in the same block, using their uppercase IDs. When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it:
+**Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it — except `MIST`, a hard dependency of the VEAF scripts: an explicit `MIST: false` is overridden with a build warning and the script is injected anyway:
 
 ```yaml
 modules:
@@ -358,7 +357,7 @@ modules:
 
 | Community ID | Script |
 |----|--------|
-| `MIST` | MIST (Mission Scripting Tools) |
+| `MIST` | MIST (Mission Scripting Tools) — **mandatory, cannot be disabled** |
 | `STTS` | DCS-SimpleTextToSpeech |
 | `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
 | `AIEN` | AIEN (AI Enhancement) |
@@ -367,7 +366,7 @@ modules:
 | `SKYNET` | Skynet IADS |
 | `TUM` | The Universal Mission (TUM) |
 
-> An unknown identifier triggers a build warning and is ignored.
+> An unknown identifier in `modules:` is a **blocking error**: the build stops with a message naming the offending key.
 
 > **`TUM` (The Universal Mission) — mission prerequisite.** TUM is a self-contained PvE mission generator (third-party community script) that takes over the whole map at start-up: it makes every airbase neutral, then assigns zones and airfields to the coalitions based on the **trigger zones** defined in the mission editor. If you enable `TUM: true` on a mission that was not authored for TUM, the script aborts at start-up with an error such as:
 >
@@ -400,6 +399,12 @@ modules:
 | `WEATHER` | veafWeather | [veafWeather](mission-maker/scripts/veafWeather.en.md) |
 | `INTERPRETER` | veafInterpreter | [veafInterpreter](mission-maker/scripts/veafInterpreter.en.md) |
 | `MISSILEGUARDIAN` | veafMissileGuardian | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.en.md) |
+| `TRANSPORTMISSION` | veafTransportMission | [veafTransportMission](mission-maker/scripts/veafTransportMission.en.md) |
+| `AIRBASES` | veafAirbases | [veafAirbases](mission-maker/scripts/veafAirbases.en.md) |
+| `GROUNDAI` | veafGroundAI | — |
+| `REMOTE` | veafRemote | — |
+| `SKYNET_MONITOR` | veafSkynetMonitor | — |
+| `I18N` | veafI18n | — |
 
 ---
 
@@ -552,7 +557,7 @@ On top of the scalar form, the `presets` step accepts a mapping that keeps the r
 pipeline:
   presets:
     enabled: true       # default true — inject radio presets; false = disable the whole step
-    kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/IMAGES/presets-*.png) is generated
+    kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) is generated
 ```
 
 ---

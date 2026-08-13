@@ -76,7 +76,7 @@ Créez un nouveau dossier vide pour votre projet de mission v6, puis copiez le d
 ```powershell
 # Adaptez ces chemins à votre configuration
 New-Item -ItemType Directory "C:\chemin\vers\ma-nouvelle-mission-v6"
-Copy-Item -Recurse "C:\chemin\vers\mission-v5\src" "C:\chemin\vers\ma-nouvelle-mission-v6\\"
+Copy-Item -Recurse "C:\chemin\vers\mission-v5\src" "C:\chemin\vers\ma-nouvelle-mission-v6"
 Set-Location "C:\chemin\vers\ma-nouvelle-mission-v6"
 ```
 
@@ -123,11 +123,11 @@ Les anciens triggers DCS `DO SCRIPT FILE` sont supprimés automatiquement par `v
 
 #### 4. Vérifier les patterns v5 supprimés
 
-Certaines constructions v5 n'existent plus ou ont été renommées :
+Ce que devient chaque construction v5 — certaines ont été renommées, d'autres sont inchangées et n'ont donc rien à migrer :
 
 | v5 | v6 |
 |----|-----|
-| `veaf.SecurityDisabled = true` | `veafSecurity.SecurityDisabled = true` |
+| `veaf.SecurityDisabled = true` | Les **deux** orthographes fonctionnent : `veafSecurity.SecurityDisabled` est le nom recommandé, `veaf.SecurityDisabled` reste honoré. Rien à changer dans l'urgence |
 | `veafSpawn.Keyphrase` défini au niveau global | Toujours `veafSpawn.Keyphrase` — inchangé |
 | Table `veafAssets.Assets` inline | Même format de table — inchangé |
 | Chargement de fichiers `.lua` individuels via `DO SCRIPT FILE` | Automatique — ne pas ajouter ces triggers manuellement |
@@ -202,7 +202,7 @@ Puis copiez votre `.miz` sous `mission.miz` et exécutez :
 
 ```powershell
 .\veaf-tools.exe mission extract mission.miz .
-.\veaf-tools.exe mission build mission .
+.\veaf-tools.exe mission build
 ```
 
 #### 5. Configurer les modules à activer
@@ -226,7 +226,7 @@ modules:
   #   enabled: true
 ```
 
-Pour du Lua personnalisé (appels de modules avancés, aliases, etc.), éditez `src/scripts/mission-script.lua`.
+Pour du Lua personnalisé (appels de modules avancés, alias, etc.), éditez `src/scripts/mission-script.lua`.
 
 Consultez la [référence YAML](../MISSION_YAML_REFERENCE.md) et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
 
@@ -243,7 +243,7 @@ Vos triggers personnalisés, statiques et groupes sont intacts.
 
 ```powershell
 # Rebuilder après chaque changement de config
-.\veaf-tools.exe mission build mission .
+.\veaf-tools.exe mission build
 ```
 
 Chaque build produit un fichier `.miz` daté (ex. `mission_20260516.miz`). Ouvrez-le dans DCS et testez.
@@ -263,9 +263,9 @@ ma-mission/
 │   │   └── warehouses
 │   ├── scripts/
 │   │   ├── mission-script.lua  ← code Lua personnalisé (à commiter)
-│   │   └── veafDynamicConfig.lua   ← config de slots dynamiques (optionnel)
+│   │   └── veafDynamicConfig.lua   ← config du chargement dynamique des scripts (dev, optionnel)
 │   ├── presets.yaml            ← config des préréglages radio (optionnel)
-│   ├── spawnables.yaml         ← groupes spawnable personnalisés (optionnel)
+│   ├── spawnables.yaml         ← groupes spawnables personnalisés (optionnel)
 │   └── waypoints.yaml          ← waypoints personnalisés (optionnel)
 ├── mission.yaml                ← config des modules et du pipeline (à commiter)
 ├── published/                  ← installé par veaf-tools-updater (NE PAS commiter)
@@ -289,7 +289,7 @@ __pycache__/
 
 ## Référence mission-script.lua
 
-`mission-script.lua` est un fichier optionnel pour du code Lua personnalisé exécuté après l'initialisation de tous les modules VEAF. Utilisez-le pour la configuration avancée qui ne peut pas encore s'exprimer dans `mission.yaml` — aliases personnalisés, surcharges de paramètres de modules, assets, etc.
+`mission-script.lua` est un fichier optionnel pour du code Lua personnalisé exécuté après l'initialisation de tous les modules VEAF. Utilisez-le pour la configuration avancée qui ne peut pas encore s'exprimer dans `mission.yaml` — alias personnalisés, surcharges de paramètres de modules, assets, etc.
 
 Exemple minimal :
 
@@ -330,9 +330,7 @@ ce qu'il attendait.
 
 ### Le trigger "VEAF scripts loader" apparaît deux fois
 
-Vous avez à la fois un ancien trigger `DO SCRIPT FILE` manuel et le nouveau trigger auto-injecté v6. Supprimez le trigger manuel de l'éditeur de missions DCS (ouvrez le `.miz`, éditez les triggers, supprimez l'ancien, enregistrez), puis ré-extrayez et rebuildez.
-
-Alternativement, utilisez `--migrate-from-v5` sur le build pour que les anciens triggers soient supprimés automatiquement (c'est le comportement par défaut).
+Un ancien trigger `DO SCRIPT FILE` manuel coexiste avec le trigger auto-injecté v6. `veaf-tools mission build` supprime les anciens triggers v5 automatiquement (option `--migrate-from-v5`, active par défaut) — relancer le build suffit. Une suppression manuelle dans l'éditeur DCS n'est nécessaire que si vous avez explicitement désactivé cette migration (`--no-migrate-from-v5`).
 
 ### Les menus radio n'apparaissent pas
 
@@ -362,7 +360,7 @@ Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erre
 
 Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour les trouver rapidement :
 
-- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil de coloration VEAF est livré avec le dépôt, dans `tools/klogg/veaf.conf` — chargez-le via Fichier → Highlighters.
+- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil de coloration VEAF est livré avec le dépôt, dans `tools/klogg/veaf.conf` — chargez-le via *Fichier > Importer les surligneurs…*.
 - **Notepad++** : ouvrez `dcs.log` → Recherche → Rechercher (`Ctrl+F`) → cherchez `VEAF`.
 
 ### Le build échoue avec "VEAF scripts file not found"

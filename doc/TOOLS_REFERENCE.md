@@ -9,15 +9,6 @@ Le cycle de vie des releases des VEAF Mission Creation Tools repose sur deux pro
 
 ---
 
-## Table des matières
-
-1. [Pour les utilisateurs : Mise à jour](#pour-les-utilisateurs--mise-à-jour)
-2. [Pour les administrateurs : Publication](#pour-les-administrateurs--publication)
-3. [Architecture du système](#architecture-du-système)
-4. [Dépannage](#dépannage)
-
----
-
 ## Fichier de configuration (optionnel mais recommandé)
 
 Vous pouvez stocker votre token GitHub et d'autres paramètres dans un fichier de configuration au lieu de les passer en arguments de ligne de commande.
@@ -93,7 +84,7 @@ Cela va :
 4. ✅ Télécharger `published.zip` depuis la Release GitHub
 5. ✅ **Vérifier le checksum SHA256** (garantit l'intégrité du fichier)
 6. ✅ Extraire et installer dans votre dossier de mission
-7. ✅ Copier les fichiers clés (`veaf-tools-updater.exe`, scripts de build) dans le répertoire courant
+7. ✅ Déplacer les deux exécutables (`veaf-tools.exe`, `veaf-tools-updater.exe`) dans le répertoire courant
 
 **Résultat :** Vos outils sont à jour avec vérification d'intégrité
 
@@ -175,7 +166,7 @@ La langue des messages est détectée automatiquement — aucune configuration r
 1. Option CLI `--lang` (priorité maximale)
 2. Variable d'environnement `VEAF_LANG`
 3. `~/veafmct.yaml` → clé `lang:`
-4. Locale du système (registre Windows / locale système sur Linux–macOS)
+4. Locale du système (registre Windows / locale système sur Linux et macOS)
 5. `en` (repli intégré)
 
 Pour forcer la langue sur une seule exécution :
@@ -190,7 +181,7 @@ Pour définir une préférence persistante :
 veaf-tools.exe user-config --set lang=fr
 ```
 
-Valeurs supportées : `en`, `fr`.
+Valeurs supportées : `en`, `fr`. Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.
 
 ### Sortie verbeuse (débogage)
 
@@ -291,7 +282,7 @@ veaf-build publish --version 6.0.1 --token ghp_xxxxxxxxxxxx
 **Remarques :**
 
 - `--version` est une option, pas un argument positionnel. Si elle est omise, la version est lue depuis `package.json`.
-- Le token est lu depuis `veaf-tools-config.yaml` (s'il existe), l'option `--token`, ou la variable d'environnement `GITHUB_TOKEN`.
+- Le token est résolu dans cet ordre : l'option `--token`, puis `github.token` dans `veaf-tools-config.yaml`, puis la variable d'environnement `GITHUB_TOKEN`.
 - `published.zip` doit déjà exister dans le répertoire courant (lancez `veaf-build build` d'abord).
 
 **Ce qui se passe :**
@@ -317,13 +308,13 @@ veaf-build publish --version 6.0.1 --force
 ### Pré-release (test sans impacter les utilisateurs)
 
 ```bash
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 ```
 
-`--prerelease` marque la release comme pré-release et laisse le tag `published-latest` intact, de sorte que les utilisateurs en production ne sont pas mis à jour automatiquement. Testez-la explicitement avec :
+`--prerelease` exige une version semver de pré-release (avec un suffixe `-`, ex. `6.0.1-rc1`) : le workflow de release se base sur ce `-` pour laisser le tag `published-latest` en place. Un `--prerelease` sur une version nue (`6.0.1`) est **refusé** par la commande. Avec un suffixe valide, les utilisateurs en production ne sont pas mis à jour automatiquement ; testez explicitement avec :
 
 ```bash
-veaf-tools-updater.exe --tag published-v6.0.1
+veaf-tools-updater.exe --tag published-v6.0.1-rc1
 ```
 
 ### Mode CI
@@ -489,23 +480,17 @@ Résultat :    6.0.1 > 6.0.0 → Mise à jour disponible ✓
 Après mise à jour, les utilisateurs ont :
 
 ```
-Répertoire courant :
-├── veaf-tools-updater.exe            (exécutable)
-├── buildDemoMission.cmd              (script)
-├── buildHelicopterTrainingMission.cmd (script)
-├── buildTRADMission.cmd              (script)
-├── buildOTMission.cmd                (script)
-└── ... autres scripts de build ...
+Répertoire courant (dossier mission) :
+├── veaf-tools.exe                    (exécutable principal, déplacé depuis published/)
+└── veaf-tools-updater.exe            (l'updater lui-même, remplacé en différé s'il tourne)
 
-Dossier mission (spécifié lors de la mise à jour) :
-└── published/
-    ├── veaf-tools-updater.exe
+└── published/                        (le reste du paquet extrait)
+    ├── README.md                     (reste ici volontairement — la doc en ligne fait foi)
     ├── package.json                  (info version)
-    ├── build-scripts/
-    │   ├── buildDemoMission.cmd
-    │   └── ... scripts ...
-    └── ... autres fichiers ...
+    └── ... autres fichiers du paquet ...
 ```
+
+Seuls les deux exécutables sont déplacés dans le répertoire courant ; tout le reste demeure sous `published/`.
 
 ### Ce que GitHub affiche
 
@@ -715,7 +700,7 @@ veaf-build publish --version 6.0.1
 veaf-build publish --version 6.0.1 --token ghp_xxx
 
 # Pre-release / force / CI
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 veaf-build publish --version 6.0.1 --force
 veaf-build publish --version 6.0.1 --ci
 ```
@@ -763,7 +748,7 @@ veaf-build publish --version 6.0.1 --ci
 ### Sûreté du token
 
 Votre Personal Access Token GitHub est comme un mot de passe :
-- ❌ Ne le committez jamais dans git (même dans des fichiers de configuration)
+- ❌ Ne le commitez jamais dans git (même dans des fichiers de configuration)
 - ❌ Ne le partagez jamais par e-mail ou message
 - ❌ Ne le collez jamais sur des forums publics
 - ❌ Ne poussez jamais `veaf-tools-config.yaml` dans git
@@ -807,7 +792,7 @@ R : Aussi souvent que vous avez des changements. Les utilisateurs ne les verront
 R : Sur GitHub, oui. Mais les utilisateurs l'ont peut-être déjà téléchargée.
 
 **Q : Comment publier une beta sans impacter les utilisateurs ?**
-R : Utilisez `veaf-build publish --version <x.y.z> --prerelease`. Le tag `published-latest` reste intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>`.
+R : Utilisez `veaf-build publish --version <x.y.z>-rc1 --prerelease` — la version doit porter un suffixe semver de pré-release (`-rc1`, `-beta`…), sinon la commande refuse. Le tag `published-latest` reste alors intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
 
 **Q : Comment republier par-dessus une release existante ?**
 R : Utilisez `veaf-build publish --version <x.y.z> --force`.
@@ -853,17 +838,3 @@ Si vous rencontrez des problèmes :
 **Bonnes publications !** 🚀
 
 Pour plus de détails techniques, consultez le code source ou le dépôt GitHub.
-
----
-
-## Détection de la langue
-
-`veaf-tools.exe` et `veaf-tools-updater.exe` affichent leurs messages dans la langue du système automatiquement — aucune configuration requise. L'ordre de détection est :
-
-1. Option CLI `--lang`
-2. Variable d'environnement `VEAF_LANG`
-3. `~/veafmct.yaml` → clé `lang:`
-4. Locale du système (registre Windows / locale système sur Linux–macOS)
-5. `en` (repli intégré)
-
-Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.

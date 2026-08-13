@@ -29,7 +29,7 @@ Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont cons
 
 `mission.yaml` lui-même configure **le comportement des modules Lua VEAF lors de l'exécution dans DCS**. Il est traduit au moment du build en `veaf-config.lua`, injecté dans la mission et exécuté au chargement par DCS.
 
-Les sections `modules:`, `qra:`, `assets:`, `shortcuts:` décrivent toutes le comportement des modules à l'exécution.
+La section `modules:` décrit le comportement des modules à l'exécution (la configuration QRA, assets ou shortcuts vit sous le module concerné, ex. `modules.QRA`).
 
 ```
 dossier mission/
@@ -147,7 +147,7 @@ mission:
 #### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
 
 `mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
-`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez au contraire un nom
+`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez plutôt un nom
 terminé par `.miz` et il est repris **tel quel**, sans date.
 
 C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,
@@ -186,7 +186,7 @@ environ un jour de retard) — un choix assumé, pas un oubli.
 
 ### `security:`
 
-Contrôle le système de sécurité VEAF. Par défaut, la sécurité est désactivée (tous les joueurs ont accès complet).
+Contrôle le système de sécurité VEAF. **La sécurité est active par défaut** (`veaf.SecurityDisabled = false` dans `veaf.lua`) : sans bloc `security:`, rien n'est émis et les commandes sensibles exigent un niveau de pilote ou un mot de passe. `disabled: true` la coupe pour toute la mission.
 
 ```yaml
 security:
@@ -199,14 +199,13 @@ security:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `disabled` | booléen | `true` | Non | `true` = aucun mot de passe requis |
+| `disabled` | booléen | `false` | Non | `true` = aucun mot de passe requis |
 | `password_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès joueur. Émis aux niveaux **L1 et L9**, pour que le mot de passe ouvre l'authentification par marqueur et les spawns sensibles, pas seulement les portes L9 |
 | `password_mm_hashes` | string[] | `[]` | Non | Hashes **SHA-1** donnant l'accès Mission Master (table dédiée, sans cascade de niveaux) |
 
 > **SHA-1, pas SHA-256.** `veafSecurity._checkPassword` hashe ce que tape le joueur avec
 > `sha1.hex(password)` puis cherche le résultat dans la table : un hash SHA-256 ne correspondra
-> donc jamais et le mot de passe ne fonctionnera **jamais**, en silence. Cette page indiquait
-> SHA-256 jusqu'à sa correction — vérifiez toute mission dont le mot de passe semble ignoré.
+> donc jamais et le mot de passe ne fonctionnera **jamais**, en silence.
 >
 > Pour en générer un : `echo -n "votremotdepasse" | sha1sum` (Linux/macOS), ou
 > `python -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest())" votremotdepasse`.
@@ -349,7 +348,7 @@ modules:
       create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
 ```
 
-**Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs en majuscules. Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure :
+**Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs (la casse est indifférente : `CTLD:` et `ctld:` sont équivalents). Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure — sauf `MIST`, dépendance obligatoire des scripts VEAF : un `MIST: false` explicite est ignoré avec un avertissement au build, le script est injecté quand même.
 
 ```yaml
 modules:
@@ -360,7 +359,7 @@ modules:
 
 | ID communautaire | Script |
 |----|--------|
-| `MIST` | MIST (Mission Scripting Tools) |
+| `MIST` | MIST (Mission Scripting Tools) — **obligatoire, non désactivable** |
 | `STTS` | DCS-SimpleTextToSpeech |
 | `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
 | `AIEN` | AIEN (AI Enhancement) |
@@ -369,7 +368,7 @@ modules:
 | `SKYNET` | Skynet IADS |
 | `TUM` | The Universal Mission (TUM) |
 
-> Un identifiant inconnu déclenche un avertissement au build et est ignoré.
+> Un identifiant inconnu dans `modules:` est une **erreur bloquante** : le build s'arrête avec un message indiquant la clé fautive.
 
 > **`TUM` (The Universal Mission) — prérequis de mission.** TUM est un générateur de mission PvE autonome (script communautaire tiers) qui prend le contrôle de toute la carte à l'initialisation : il rend tous les aérodromes neutres, puis attribue les zones et aérodromes aux camps d'après les **zones de déclencheur** (*trigger zones*) de l'éditeur de mission. Si vous activez `TUM: true` sur une mission qui n'a pas été conçue pour TUM, le script s'interrompt au démarrage avec une erreur du type :
 >
@@ -402,6 +401,12 @@ modules:
 | `WEATHER` | veafWeather | [veafWeather](mission-maker/scripts/veafWeather.md) |
 | `INTERPRETER` | veafInterpreter | [veafInterpreter](mission-maker/scripts/veafInterpreter.md) |
 | `MISSILEGUARDIAN` | veafMissileGuardian | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
+| `TRANSPORTMISSION` | veafTransportMission | [veafTransportMission](mission-maker/scripts/veafTransportMission.md) |
+| `AIRBASES` | veafAirbases | [veafAirbases](mission-maker/scripts/veafAirbases.md) |
+| `GROUNDAI` | veafGroundAI | — |
+| `REMOTE` | veafRemote | — |
+| `SKYNET_MONITOR` | veafSkynetMonitor | — |
+| `I18N` | veafI18n | — |
 
 ---
 
@@ -559,7 +564,7 @@ L'étape `presets` accepte, en plus de la forme scalaire, un mapping permettant 
 pipeline:
   presets:
     enabled: true       # défaut true — injecte les préréglages radio ; false = désactive toute l'étape
-    kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/IMAGES/presets-*.png) n'est générée
+    kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) n'est générée
 ```
 
 ---

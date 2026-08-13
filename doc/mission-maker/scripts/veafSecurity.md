@@ -1,6 +1,6 @@
 # veafSecurity — Permissions par rôle
 
-**Module ID:** `SECURITY` | **Version:** 1.3.x | **Fichier:** `veafSecurity.lua`
+**Module ID:** `SECURITY` | **Fichier:** `veafSecurity.lua`
 
 ---
 
@@ -46,8 +46,9 @@ Les mots de passe sont hiérarchiques : celui d'`ADMIN` ouvre aussi `SENIOR_PILO
 `KNOWN_PILOT`, celui de `SENIOR_PILOT` ouvre `KNOWN_PILOT`. Le mot de passe Mission Master est
 en dehors de cette hiérarchie : il n'ouvre que les commandes déclarées `MM`.
 
-Le niveau de sécurité par défaut pour les commandes de spawn peut être défini par module. Voir
-aussi le [Guide du créateur de mission](../GUIDE.md#security-tiers).
+Chaque commande sécurisée déclare son palier en littéral au moment de son enregistrement (voir
+« Sécurité au niveau du module » plus bas). Voir aussi le
+[Guide du créateur de mission](../GUIDE.md#security-tiers).
 
 ---
 
@@ -91,13 +92,18 @@ veafSecurity.password_L1[sha1.hex("monMotDePasseMembreDeConfiance")] = true
 
 ## Authentification du joueur
 
-Les joueurs s'authentifient via une commande de marqueur :
+La commande de marqueur `_auth` porte trois verbes :
 
 ```
-_auth [MOT_DE_PASSE]
+_auth [MOT_DE_PASSE]   -- vérifie le mot de passe donné
+_auth elevate          -- élève le groupe de l'auteur à son propre niveau pendant 2 minutes
+_auth logout           -- reverrouille la mission
 ```
 
-En cas de succès : l'accès est accordé pour `authDuration` minutes. Aucun message n'est affiché aux autres joueurs.
+Un mot de passe accepté n'ouvre **pas de session** : les commandes sécurisées vérifient le mot de
+passe commande par commande (mot-clé `password`). En tchat, les mêmes verbes existent sous la forme
+`/secu login|elevate|logout` (voir [veafServerHook](veafServerHook.md)) ; l'alias caché `-login`
+équivaut à `_auth`.
 
 !!! danger "Changement de comportement — l'authentification n'est plus globale"
     **Avant** : un seul `_auth` réussi ouvrait toutes les commandes sécurisées à **tous les joueurs
@@ -106,14 +112,16 @@ En cas de succès : l'accès est accordé pour `authDuration` minutes. Aucun mes
 
     **Maintenant** : chaque commande sécurisée vérifie qui demande.
 
-    - **Pour un pilote listé dans `veaf-pilots.txt`, rien ne change** : son niveau suffit, et il n'a
-      jamais eu besoin du mot de passe.
+    - **Pour un pilote listé dans `veaf-pilots.txt`, presque rien ne change** : son niveau suffit,
+      et il n'a jamais eu besoin du mot de passe. Exception connue : `_transport` exige encore le
+      mot de passe de tout le monde, quel que soit le niveau — un bug, en attendant son correctif.
     - **Un pilote non listé** doit fournir le mot de passe **à chaque commande** : il n'y a plus de
       session ouverte de dix minutes.
     - Pour le **menu radio F10**, DCS ne permet pas de savoir *quel* occupant d'un groupe a cliqué.
-      Le groupe agit donc au niveau du **moins gradé** de ses occupants. `_auth` ou `/login` depuis
-      un canal identifié (marqueur ou tchat) élève le groupe au niveau **du demandeur** pendant
-      2 minutes — ce qui résout le cas de l'instructeur volant avec un élève.
+      Le groupe agit donc au niveau du **moins gradé** de ses occupants. Le verbe explicite
+      `_auth elevate` (marqueur) ou `/secu elevate` (tchat) élève le groupe au niveau **du
+      demandeur** pendant 2 minutes — un simple `_auth [MOT_DE_PASSE]` n'élève rien. C'est ce qui
+      résout le cas de l'instructeur volant avec un élève.
 
     Prévenez vos pilotes : c'est un changement qui se remarque en pleine mission.
 
@@ -147,11 +155,14 @@ Cela contourne toutes les vérifications de sécurité globalement.
 
 ## Sécurité au niveau du module
 
-Chaque module peut définir l'exigence de sécurité par défaut pour ses commandes. Exemple pour spawn :
+Il n'y a pas de réglage global par module : chaque commande déclare son palier en littéral au moment
+de son enregistrement, et le répartiteur applique le contrôle avant d'exécuter. Exemple pour spawn :
 
 ```lua
--- Exiger le palier SENIOR_PILOT pour toutes les commandes de spawn
-veafSpawn.defaultSecurity = veafSecurity.LEVEL_SENIOR_PILOT
+-- Le deuxième argument est le palier exigé : "L9", "L1", "MM" ou "OPEN"
+veafSpawn.registerCommandHandler("smoke", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
+  -- ...
+end)
 ```
 
 ---

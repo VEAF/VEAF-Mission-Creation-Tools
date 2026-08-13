@@ -46,7 +46,7 @@
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:
-#   disabled: true              # true = no password required (default)
+#   disabled: true              # true = no password required (default: false — security is active)
 #   password_hashes:            # SHA-1 hashes to restrict JTF/admin access (sha1.hex of the password)
 #     - "<SHA-1 hash>"
 #   password_mm_hashes:         # SHA-1 hashes to restrict Mission Master access

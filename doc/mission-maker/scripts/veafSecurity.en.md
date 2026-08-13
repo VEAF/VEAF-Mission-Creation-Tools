@@ -1,7 +1,7 @@
 # veafSecurity — Role-Based Permissions
 
 
-**Module ID:** `SECURITY` | **Version:** 1.3.x | **File:** `veafSecurity.lua`
+**Module ID:** `SECURITY` | **File:** `veafSecurity.lua`
 
 ---
 
@@ -47,7 +47,8 @@ Passwords are hierarchical: the `ADMIN` one also opens `SENIOR_PILOT` and `KNOWN
 `SENIOR_PILOT` one opens `KNOWN_PILOT`. The Mission Master password sits outside that hierarchy — it
 opens only the commands declared `MM`.
 
-The default security level for spawn commands can be set per-module. See also the
+Every secured command declares its tier as a literal when it is registered (see
+"Module-Level Security" below). See also the
 [Mission Maker Guide](../GUIDE.en.md#security-tiers).
 
 ---
@@ -92,13 +93,17 @@ veafSecurity.password_L1[sha1.hex("myTrustedMemberPassword")] = true
 
 ## Player Authentication
 
-Players authenticate via a map marker command:
+The `_auth` marker command carries three verbs:
 
 ```
-_auth [PASSWORD]
+_auth [PASSWORD]   -- checks the given password
+_auth elevate      -- raises the author's group to their own level for 2 minutes
+_auth logout       -- locks the mission again
 ```
 
-On success: access is granted for `authDuration` minutes. No message is displayed to other players.
+An accepted password opens **no session**: secured commands check the password command by command
+(`password` keyword). In chat, the same verbs exist as `/secu login|elevate|logout` (see
+[veafServerHook](veafServerHook.en.md)); the hidden `-login` alias is equivalent to `_auth`.
 
 !!! danger "Behaviour change — authentication is no longer global"
     **Before**: one successful `_auth` opened every secured command to **every player on the server**
@@ -107,14 +112,16 @@ On success: access is granted for `authDuration` minutes. No message is displaye
 
     **Now**: every secured command checks who is asking.
 
-    - **A pilot listed in `veaf-pilots.txt` notices nothing**: their own level suffices, and they
-      never needed the password.
+    - **A pilot listed in `veaf-pilots.txt` notices almost nothing**: their own level suffices, and
+      they never needed the password. Known exception: `_transport` still demands the password from
+      everyone, whatever their level — a bug, pending its fix.
     - **A pilot who is not listed** must supply the password **on every command**: there is no
       ten-minute session any more.
     - For the **F10 radio menu**, DCS cannot tell *which* occupant of a group clicked. The group
-      therefore acts at the level of its **lowest-graded** occupant. `_auth` or `/login` from an
-      identified channel (marker or chat) raises the group to the **requester's** level for
-      2 minutes — which is what solves the instructor-flying-with-a-student case.
+      therefore acts at the level of its **lowest-graded** occupant. The explicit verb
+      `_auth elevate` (marker) or `/secu elevate` (chat) raises the group to the **requester's**
+      level for 2 minutes — a plain `_auth [PASSWORD]` elevates nothing. That is what solves the
+      instructor-flying-with-a-student case.
 
     Tell your pilots: this is a change they will notice mid-mission.
 
@@ -148,11 +155,14 @@ This bypasses all security checks globally.
 
 ## Module-Level Security
 
-Each module can set the default security requirement for its commands. Example for spawn:
+There is no per-module global setting: every command declares its tier as a literal when it is
+registered, and the dispatcher applies the check before running it. Example for spawn:
 
 ```lua
--- Require the SENIOR_PILOT tier for all spawn commands
-veafSpawn.defaultSecurity = veafSecurity.LEVEL_SENIOR_PILOT
+-- The second argument is the required tier: "L9", "L1", "MM" or "OPEN"
+veafSpawn.registerCommandHandler("smoke", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
+  -- ...
+end)
 ```
 
 ---

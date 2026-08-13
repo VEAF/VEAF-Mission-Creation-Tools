@@ -16,7 +16,7 @@ n'y a rien à interroger — sinon il deviendrait rouge sur chaque machine et pe
 
 1. **DCS lancé.** Le menu principal suffit : `onSimulationFrame` bat à ~28 Hz **sans mission
    chargée** — 2 305 ticks mesurés avant qu'une mission existe (voir
-   [DCS-HOOK-ENVIRONMENT-BOUNDARIES](../../docs/exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md)).
+   [DCS-HOOK-ENVIRONMENT-BOUNDARIES](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md)).
    C'est cette mesure qui rend le pilotage automatique possible.
 2. **Le hook installé** : copier `src/scripts/other/dcs-fiddle-server.lua` dans
    `Saved Games/DCS/Scripts/Hooks/`. Il écoute sur `127.0.0.1:12081`.
@@ -30,7 +30,7 @@ n'y a rien à interroger — sinon il deviendrait rouge sur chaque machine et pe
        résultat. Écouter sur `127.0.0.1` ne protège pas : votre navigateur y est aussi.
 
        Installez-le pour lancer le harnais, retirez-le ensuite, et **ne le mettez jamais sur un
-       serveur**. Voir l'[ADR 0019](../../docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
+       serveur**. Voir l'[ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
        pour la raison de cet état et ce qui le remplacera.
 
 3. **`net.dostring_in` disponible** — c'est le seul chemin vers l'environnement de mission, donc sans lui
@@ -179,7 +179,7 @@ travers le hook au lieu d'être analysé sur disque.
 
 ## Ce qui reste à faire
 
-Le lot [`FEAT-DCS-SMOKE-HARNESS`](../../.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) porte le détail. En
+Le lot [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) porte le détail. En
 résumé : DCS doit être lancé **à la main** pour l'instant. Le lancer, charger la mission et le quitter
 reste à écrire, et la sonde ci-dessus est ce qui donne les faits pour l'écrire — notamment le point
 `SERVER ONLY`, qui décide si une instance solo suffit ou s'il faut passer par le mode serveur.

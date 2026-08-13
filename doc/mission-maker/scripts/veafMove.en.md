@@ -1,7 +1,7 @@
 # veafMove — Unit Movement and Tanker Route Management
 
 
-**Module ID:** `MOVE` | **Version:** — | **File:** `veafMove.lua`
+**Module ID:** `MOVE` | **File:** `veafMove.lua`
 
 ---
 

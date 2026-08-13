@@ -1,6 +1,6 @@
 # veafCombatZone — Zones de combat activables
 
-**Module ID:** `COMBATZONE` | **Version:** 1.22.x | **Fichier:** `veafCombatZone.lua`
+**Module ID:** `COMBATZONE` | **Fichier:** `veafCombatZone.lua`
 
 ---
 
@@ -182,18 +182,6 @@ Côté Lua : `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` ou `"all
 
 ---
 
-## Constantes du module
-
-| Constante | Valeur par défaut | Description |
-|-----------|-------------------|-------------|
-| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | Fréquence de vérification du watchdog de zone (s) |
-| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Délai entre marquages fumée (s) |
-| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
-| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
-| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
-
----
-
 ## Fonctionnement
 
 Placez toutes les unités qui doivent apparaître dans la zone directement dans l'éditeur de mission DCS, à l'intérieur de la trigger zone. Au démarrage de la mission, VEAF les retire toutes — la zone est vide. Quand un joueur active la zone via le menu F10, toutes les unités réapparaissent à des positions aléatoires dans le rayon de la zone. Quand toutes les unités ennemies sont détruites, la zone est marquée comme terminée (un callback optionnel se déclenche, les zones chaînées optionnelles s'activent).
@@ -255,6 +243,20 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 ```
 
 Cela permet de monter des apparitions complexes (batterie SA-11, convois avec routes IA) sans aucun code Lua.
+
+---
+
+## Constantes du module
+
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | Fréquence de vérification du watchdog de zone (s) |
+| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Délai entre marquages fumée (s) |
+| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
+| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
+| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
+
+---
 
 ---
 
@@ -328,7 +330,7 @@ strikeZone:addZoneElement(element)
 - **Fumée** — marquer la zone avec de la fumée (délai applicable)
 - **Fusée éclairante** — marquer la zone avec des fusées
 
-> **Sécurité :** par défaut, les commandes d'activation/désactivation nécessitent une connexion `/secu login`. Seul le [mode entraînement](#mode-entraînement) supprime cette restriction. Les demandes d'infos, fumée et fusée sont toujours accessibles sans login.
+> **Sécurité :** par défaut, les commandes d'activation/désactivation sont sécurisées : le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)). Seul le [mode entraînement](#mode-entraînement) supprime cette restriction. Les demandes d'infos, fumée et fusée sont toujours accessibles à tous.
 
 ### Options du menu radio
 
@@ -397,7 +399,7 @@ Quand plusieurs zones chaînées sont définies, **une seule est tirée au hasar
 
 Mettre une zone en mode entraînement change deux choses :
 
-- **Pas de sécurité** : n'importe quel joueur peut activer ou désactiver la zone via le menu radio (normalement l'activation de la zone est journalisée et peut être restreinte par `/secu login`).
+- **Pas de sécurité** : n'importe quel joueur peut activer ou désactiver la zone via le menu radio (normalement ces commandes sont réservées au niveau effectif du groupe — voir [veafSecurity](veafSecurity.md)).
 - **État détaillé** : le message d'info de la zone liste les unités restantes et leurs positions approximatives (via fumée ou relèvements), donnant aux pilotes une vue claire de ce qu'il reste.
 
 ```lua

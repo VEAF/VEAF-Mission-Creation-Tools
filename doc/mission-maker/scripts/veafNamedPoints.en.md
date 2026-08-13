@@ -1,7 +1,7 @@
 # veafNamedPoints — Named Map Positions
 
 
-**Module ID:** `NAMED POINTS` | **Version:** 1.16.x | **File:** `veafNamedPoints.lua`
+**Module ID:** `NAMEDPOINTS` | **File:** `veafNamedPoints.lua`
 
 ---
 

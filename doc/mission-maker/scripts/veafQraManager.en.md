@@ -1,7 +1,7 @@
 # veafQraManager — Quick Reaction Alert
 
 
-**Module ID:** `QRA` | **Version:** 1.2.x | **File:** `veafQraManager.lua`
+**Module ID:** `QRA` | **File:** `veafQraManager.lua`
 
 ---
 

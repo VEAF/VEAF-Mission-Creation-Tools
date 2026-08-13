@@ -1,6 +1,6 @@
 # veafCasMission — Générateur d'entraînement CAS
 
-**Module ID:** `CASMISSION` | **Version:** 1.15.x | **Fichier:** `veafCasMission.lua`
+**Module ID:** `CASMISSION` | **Fichier:** `veafCasMission.lua`
 
 ---
 
@@ -52,7 +52,7 @@ cap_missions:
 combat_missions:
   - name: "Frappe-Alpha"          # REQUIS — identifiant interne
     friendly_name: "Frappe Alpha" # libellé dans le menu F10
-    secured: false                # true = nécessite /secu pour activer
+    secured: false                # true = activation réservée aux pilotes autorisés (voir veafSecurity)
     radio_menu_enabled: true      # afficher dans le menu F10
     briefing: |
       Détruire la colonne blindée dans le carré BQ-123.
@@ -81,7 +81,7 @@ combat_missions:
 |-------|------|--------|--------|-------------|
 | `name` | string | — | Oui | Identifiant interne |
 | `friendly_name` | string | — | Non | Libellé du menu F10 |
-| `secured` | booléen | `false` | Non | Nécessite le token de sécurité `/secu` pour activer |
+| `secured` | booléen | `false` | Non | L'activation est réservée aux pilotes autorisés — au menu F10, le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)) |
 | `radio_menu_enabled` | booléen | `true` | Non | Afficher dans le menu F10 |
 | `briefing` | string | — | Non | Texte de briefing multi-ligne |
 | `elements` | objet[] | `[]` | Non | Définitions des éléments de mission |
@@ -133,18 +133,21 @@ _cas, side blue
 
 Options :
 
-| Option | Plage | Description |
-|--------|-------|-------------|
-| `size` | 1–5 | Nombre d'unités cibles |
-| `defense` | 0–5 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
-| `armor` | 0–5 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
-| `side` | blue/red | Coalition des cibles |
+| Option | Plage | Défaut | Description |
+|--------|-------|--------|-------------|
+| `size` | 1–5 | 1 | Nombre d'unités cibles |
+| `defense` | 0–5 | 1 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
+| `armor` | 0–5 | 1 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
+| `spacing` | 1–5 | 1 | Espacement entre les unités du groupe |
+| `side` | blue/red | *(coalition du marqueur)* | Coalition des cibles |
+| `disperse` | secondes | — | Les cibles se dispersent quand elles sont attaquées ; un `disperse` sans valeur = 15 secondes |
+| `password` | texte | — | Mot de passe de sécurité (voir [veafSecurity](veafSecurity.md)) |
 
 ---
 
 ## Menu radio F10
 
-Le sous-menu **CAS MISSION** n'apparaît qu'une fois une mission générée (via le marqueur `_cas`). Il propose alors :
+Le sous-menu **CAS MISSION** est créé dès l'initialisation du module, avec une entrée **HELP**. Une fois une mission générée (via le marqueur `_cas`), il propose en plus :
 
 - **Target information** — afficher position, composition et statut des cibles
 - **Skip current objective** — abandonner la zone courante et en générer une nouvelle (commande sécurisée)

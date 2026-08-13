@@ -35,7 +35,7 @@ Syrie, Cold War Germany, Kola, Irak, Afghanistan, Normandie WWII), chacun conten
 Passez le `.zip` directement à `convert-other` : il adopte le `.miz` qu'il contient et
 ignore le reste. Pas besoin de dézipper à la main.
 
-> **Les dix cartes d'un coup.** Une release contient une archive par carte. Depuis un clone du
+> **Les neuf cartes d'un coup.** Une release contient une archive par carte. Depuis un clone du
 > dépôt, [`tools/Convert-FootholdBatch.ps1`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/Convert-FootholdBatch.ps1)
 > les adopte toutes en une passe, en choisissant le bon profil pour chacune (il regarde dans
 > l'archive, pas son nom) :

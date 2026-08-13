@@ -1,6 +1,6 @@
 # veafAirWaves — Attaques aériennes par vagues
 
-**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **Fichier:** `veafAirWaves.lua`
+**Module ID:** `AIRWAVES` | **Fichier:** `veafAirWaves.lua`
 
 ---
 
@@ -56,10 +56,10 @@ modules:
         delay_between_waves: 120         # délai fixe entre les vagues (ignoré si min/max définis)
         min_seconds_between_waves: 60    # délai inter-vague aléatoire minimum
         max_seconds_between_waves: 180   # délai inter-vague aléatoire maximum
-        max_altitude_ft: 30000          # altitude maximale en pieds — les unités IA au-dessus sont supprimées
-        min_altitude_ft: 1000           # altitude minimale en pieds
+        max_altitude_ft: 30000          # plafond de détection des joueurs en pieds — un joueur au-dessus n'est pas compté dans la zone
+        min_altitude_ft: 1000           # plancher de détection des joueurs en pieds
         max_seconds_outside_ia: 300     # secondes avant de considérer une unité IA hors zone comme perdue
-        minimum_life_percent: 0.1       # supprimer l'unité IA en dessous de cette fraction de vie (0–1)
+        minimum_life_percent: 10        # pourcentage de vie (0–100) sous lequel une unité IA est considérée comme détruite (défaut : 0)
         reset_when_dying: false         # réinitialiser toutes les vagues quand un joueur meurt
         message_start: "Zone active !"  # message personnalisé de début de zone (optionnel)
         message_wait_for_humans: "En attente des joueurs..."
@@ -100,10 +100,10 @@ modules:
 | `delay_between_waves` | entier | `0` | Délai inter-vague fixe (surchargé par min/max) |
 | `min_seconds_between_waves` | entier | — | Délai inter-vague aléatoire minimum |
 | `max_seconds_between_waves` | entier | — | Délai inter-vague aléatoire maximum |
-| `max_altitude_ft` | entier | — | Supprimer les unités IA au-dessus de cette altitude |
-| `min_altitude_ft` | entier | — | Supprimer les unités IA en dessous de cette altitude |
+| `max_altitude_ft` | entier | — | Plafond de détection des joueurs : un joueur au-dessus n'est pas compté dans la zone |
+| `min_altitude_ft` | entier | — | Plancher de détection des joueurs : un joueur en dessous n'est pas compté dans la zone |
 | `max_seconds_outside_ia` | entier | — | Secondes avant qu'un groupe IA hors zone soit éliminé |
-| `minimum_life_percent` | nombre | — | Supprimer l'unité IA quand sa vie passe sous cette fraction |
+| `minimum_life_percent` | nombre | `0` | Pourcentage de vie (0–100, comparé à `100 × vie / vie initiale`) sous lequel une unité IA est considérée comme détruite |
 
 ### Champs de `waves[]`
 
@@ -181,6 +181,7 @@ modules:
 | `:setDelayBeforeActivation(n)` | Secondes après l'entrée des joueurs avant la première vague |
 | `:setMinimumAltitudeInFeet(n)` | Plancher de détection des joueurs (en pieds) |
 | `:setMaximumAltitudeInFeet(n)` | Plafond de détection des joueurs (en pieds) |
+| `:setMinimumLifeForAiInPercent(n)` | Pourcentage de vie (0–100) sous lequel une unité IA est considérée comme détruite (défaut : 0) |
 | `:setResetWhenDying(bool)` | Réinitialiser la zone quand un joueur meurt |
 | `:setSilent(bool)` | Supprimer tous les messages |
 | `:setDrawZone(bool)` | Dessiner le contour de la zone sur la carte |

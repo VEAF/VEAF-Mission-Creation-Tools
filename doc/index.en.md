@@ -79,9 +79,9 @@ Full workflow: [Mission Maker Guide](mission-maker/README.en.md)
 
 ```powershell
 poetry install --with build
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version <version>
 poetry run test-lua
-poetry run veaf-build publish --version 6.0.5
+poetry run veaf-build publish --version <version>
 ```
 
 Full reference: [Developer Guide](developer/README.en.md)

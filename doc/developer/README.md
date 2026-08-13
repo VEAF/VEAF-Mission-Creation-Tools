@@ -85,8 +85,8 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 
 | Ce qui est modifié | Commandes à lancer |
 |--------------------|-------------------|
-| Fichiers Lua (`src/scripts/veaf/`) | `stylua --check src/scripts/veaf/` puis `poetry run test-lua` |
-| Code Python (`src/python/`) | `poetry run ruff check src/python` puis `poetry run mypy src/python` puis `poetry run pytest` |
+| Fichiers Lua (`src/scripts/veaf/`, `test/lua/`) | `stylua --check src/scripts/veaf/ test/lua/` puis `poetry run test-lua` |
+| Code Python (`src/python/`, `test/python/`, `veaf_build/`) | `poetry run ruff check src/python/ test/python/ veaf_build/` puis `poetry run ruff format --check src/python/ test/python/ veaf_build/` puis `poetry run mypy src/python/veaf-tools` puis `poetry run pytest` |
 
 > Sur Windows, `stylua` est installé dans `~/.local/bin/stylua.exe` par défaut (voir [guide de setup](GUIDE.md#stylua-setup)).
 
@@ -95,7 +95,7 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 ## Référence complète
 
 - [Guide développeur complet](GUIDE.md) — organisation du dépôt, conventions de code, pipeline de build, workflow de contribution
-- [Guide de test](../TESTING.md) — infrastructure de test Lua et Python en détail
+- [Guide de test](../TESTING.md) — infrastructure de test **Lua** en détail ; le côté Python (pytest, aides partagées) est couvert dans le [guide développeur](GUIDE.md#shared-test-helpers)
 - [Contrat JSON `export`](export-json-contract.md) — format de sortie de `veaf-tools mission export` consommé par le plugin BFR `dcs-mission-tools`
 - [Projection des presets radio par type](radio-preset-projection.md) — comment le build projette les `channel_lists` sur les radios de chaque appareil (canal 0, slots réservés, fusion — AJS-37, OH-58D, Mi-24P…)
 - [Serveur MCP d'édition de mission](mission-editing-mcp.md) — `veaf-mission-mcp`, actions editor-parity (mutation directe du `.miz`) vs actions VMCT, catalogue v1 (`describe_mission`, `add_group`)

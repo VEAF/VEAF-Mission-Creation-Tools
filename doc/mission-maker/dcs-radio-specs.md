@@ -73,7 +73,7 @@ Si la fréquence principale sort de la plage `human_radio`, l'éditeur de missio
 d'enregistrer la mission** avec un message du type :
 
 ```
-FW-190D9 Template: Fréquence invalide 134 MHz
+FW-190A8 Template: Fréquence invalide 134 MHz
 ```
 
 `inject-presets` promeut normalement le canal 1 de la première radio en fréquence principale du

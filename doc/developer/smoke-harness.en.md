@@ -15,7 +15,7 @@ talk to — otherwise it would be red on every machine and nobody would run it.
 
 1. **DCS running.** The main menu is enough: `onSimulationFrame` fires at ~28 Hz **with no mission
    loaded** — 2,305 ticks measured before any mission existed (see
-   [DCS-HOOK-ENVIRONMENT-BOUNDARIES](../../docs/exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md)).
+   [DCS-HOOK-ENVIRONMENT-BOUNDARIES](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md)).
    That measurement is what makes unattended driving possible at all.
 2. **The hook installed**: copy `src/scripts/other/dcs-fiddle-server.lua` into
    `Saved Games/DCS/Scripts/Hooks/`. It listens on `127.0.0.1:12081`.
@@ -29,7 +29,7 @@ talk to — otherwise it would be red on every machine and nobody would run it.
        not help: your browser is on `127.0.0.1` too.
 
        Install it to run the harness, take it out afterwards, and **never put it on a server**. See
-       [ADR 0019](../../docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md) for why it
+       [ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md) for why it
        is still like this and what replaces it.
 
 3. **`net.dostring_in` available** — it is the only path into the mission environment, so without it no
@@ -174,7 +174,7 @@ disk.
 
 ## What is still missing
 
-The [`FEAT-DCS-SMOKE-HARNESS`](../../.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) lot carries the detail.
+The [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) lot carries the detail.
 In short: DCS has to be started **by hand** for now. Launching and quitting it automatically needs DCS
 calls this repository has never made — `--probe-only` reports whether they are available, which gives
 whoever picks it up facts instead of guesses.

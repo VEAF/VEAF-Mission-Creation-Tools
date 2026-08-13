@@ -1,7 +1,7 @@
 # veafCasMission — CAS Training Generator
 
 
-**Module ID:** `CASMISSION` | **Version:** 1.15.x | **File:** `veafCasMission.lua`
+**Module ID:** `CASMISSION` | **File:** `veafCasMission.lua`
 
 ---
 
@@ -53,7 +53,7 @@ cap_missions:
 combat_missions:
   - name: "Strike-Alpha"          # REQUIRED — internal identifier
     friendly_name: "Strike Alpha" # label in the F10 menu
-    secured: false                # true = requires /secu to activate
+    secured: false                # true = activation restricted to authorised pilots (see veafSecurity)
     radio_menu_enabled: true      # show in F10 menu
     briefing: |
       Destroy the armoured column in grid BQ-123.
@@ -82,7 +82,7 @@ combat_missions:
 |-------|------|---------|----------|-------------|
 | `name` | string | — | Yes | Internal identifier |
 | `friendly_name` | string | — | No | F10 menu label |
-| `secured` | boolean | `false` | No | Requires `/secu` security token to activate |
+| `secured` | boolean | `false` | No | Activation is restricted to authorised pilots — on the F10 menu the group acts at the level of its lowest-graded occupant (see [veafSecurity](veafSecurity.en.md)) |
 | `radio_menu_enabled` | boolean | `true` | No | Show this mission in the F10 menu |
 | `briefing` | string | — | No | Multi-line briefing text |
 | `elements` | object[] | `[]` | No | Mission element definitions |
@@ -134,18 +134,21 @@ _cas, side blue
 
 Options:
 
-| Option | Range | Description |
-|--------|-------|-------------|
-| `size` | 1–5 | Number of target units |
-| `defense` | 0–5 | AA defence level (0=none, 5=heavy SAM) |
-| `armor` | 0–5 | Armour level (0=infantry, 5=heavy MBT) |
-| `side` | blue/red | Coalition of targets |
+| Option | Range | Default | Description |
+|--------|-------|---------|-------------|
+| `size` | 1–5 | 1 | Number of target units |
+| `defense` | 0–5 | 1 | AA defence level (0=none, 5=heavy SAM) |
+| `armor` | 0–5 | 1 | Armour level (0=infantry, 5=heavy MBT) |
+| `spacing` | 1–5 | 1 | Spacing between the group's units |
+| `side` | blue/red | *(marker coalition)* | Coalition of targets |
+| `disperse` | seconds | — | Targets disperse when attacked; a bare `disperse` = 15 seconds |
+| `password` | text | — | Security password (see [veafSecurity](veafSecurity.en.md)) |
 
 ---
 
 ## F10 Radio Menu
 
-The **CAS MISSION** submenu only appears once a mission has been generated (via the `_cas` marker). It then exposes:
+The **CAS MISSION** submenu is created as soon as the module initialises, with a **HELP** entry. Once a mission has been generated (via the `_cas` marker), it additionally exposes:
 
 - **Target information** — display target position, composition, and status
 - **Skip current objective** — abandon the current zone and generate a new one (secured command)

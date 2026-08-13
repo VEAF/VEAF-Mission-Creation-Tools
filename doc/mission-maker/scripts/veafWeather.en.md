@@ -1,7 +1,7 @@
 # veafWeather — Dynamic Weather and ATC Conditions
 
 
-**Module ID:** `WEATHER` | **Version:** — | **File:** `veafWeather.lua`
+**Module ID:** `WEATHER` | **File:** `veafWeather.lua`
 
 ---
 
@@ -154,14 +154,17 @@ end, {}, timer.getTime() + 0)
 
 ## Chat / Remote Commands
 
-Players or administrators can change fog via the chat window (requires `veafRemote`):
+These commands go through the chat window (requires `veafRemote` and the
+[server hook](veafServerHook.en.md)) — this module has no marker command. The three aliases
+`/weather`, `/atc` and `/atis` are interchangeable; the word that follows picks the action:
 
 | Chat command | Effect |
 |-------------|--------|
-| `_weather` | Weather report at current position |
-| `_atc` | ATC report at nearest airbase |
-| `_weather fog FOG_STATIC_MEDIUM` | Activate a named fog constant |
-| `_weather fog FOG_ANIMATED_10M_NO` | Animated fog clear over 10 minutes |
+| `/atis` (or `/weather`, `/atc`, with no argument) | ATC + weather report at current position |
+| `/weather weather` | Weather report only |
+| `/atc atc` | ATIS of the nearest airbase only |
+| `/weather fog FOG_STATIC_MEDIUM` | Activate a named fog constant |
+| `/weather fog FOG_ANIMATED_10M_NO` | Animated fog clear over 10 minutes |
 
 The fog name is case-insensitive. Use the exact constant names listed above (without the `veafWeather.` prefix).
 

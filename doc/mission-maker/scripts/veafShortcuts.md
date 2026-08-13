@@ -43,7 +43,7 @@ modules:
       - name: "smoke"                 # nom de l'alias (tapé en -smoke dans les marqueurs)
         description: "Raccourci fumée" # affiché dans l'aide radio
         command: "/_smoke"            # commande VEAF à exécuter
-        bypass_security: false        # true = toujours disponible, sans /secu
+        bypass_security: false        # true = saute le contrôle de niveau de la commande (toujours disponible)
 ```
 
 | Champ | Type | Défaut | Requis | Description |

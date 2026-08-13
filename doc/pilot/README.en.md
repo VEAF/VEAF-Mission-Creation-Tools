@@ -23,7 +23,7 @@ That's it. You're using VEAF Mission Creation Tools.
 | **Activate missions** | F10 menu → Missions → [Name] → Activate | Pre-built combat scenarios (CAP, strike, SEAD…) |
 | **Combat zones** | F10 menu → Combat Zones → [Zone] → Activate | Persistent combat areas with objectives |
 | **Manage assets** | F10 menu → Assets | Tanker/AWACS info, carrier recovery, respawn |
-| **Authenticate** | F10 marker: `_auth [PASSWORD]` | Unlock restricted commands on multiplayer servers |
+| **Elevate your group** | F10 marker: `_auth elevate` | Raise the group to your own level for 2 minutes (the F10 menu acts at the level of the group's lowest-graded occupant) |
 
 ---
 

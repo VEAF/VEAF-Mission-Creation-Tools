@@ -1,7 +1,7 @@
 # veafTransportMission — Transport and Logistics Missions
 
 
-**Module ID:** `TRANSPORT` | **Version:** — | **File:** `veafTransportMission.lua`
+**Module ID:** `TRANSPORTMISSION` | **File:** `veafTransportMission.lua`
 
 ---
 
@@ -52,7 +52,7 @@ _transport, size 3, defense 2, from FARP London
 |-----------|--------|---------|-------------|
 | `size <n>` | `1`–`5` | `1` | Number of cargo crates to transport |
 | `defense <n>` | `0`–`5` | `0` | Air defense cover along the route (`1` = light, `5` = heavy) |
-| `blocade <n>` | `0`–`5` | `0` | Enemy blockade around the drop zone (`1` = light, `5` = heavy) |
+| `blocade <n>` | `0`–`5` | `0` | **Has no effect**: the parameter is parsed but blockade generation is not implemented (TODO in the code) |
 | `from <named point>` | named point | — | **Mandatory** start point where the cargo is spawned |
 | `password <pwd>` | string | — | Security password unlocking the command |
 

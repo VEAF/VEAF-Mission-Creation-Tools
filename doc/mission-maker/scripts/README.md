@@ -27,13 +27,13 @@ Que vivront vos joueurs ?
 | Action joueur | Module | Ce qui se passe |
 |---------------|--------|-----------------|
 | Place un marqueur avec `_spawn ...` | [veafSpawn](veafSpawn.md) | Des unités apparaissent à la position du marqueur |
-| Ouvre F10 → CAS Mission → Generate | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
+| Place un marqueur avec `_cas` | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
 | Ouvre F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
-| Ouvre F10 → Missions → Activate | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
-| Ouvre F10 → Assets → Tanker/AWACS | [veafAssets](veafAssets.md) | Info, respawn, recovery porte-avions |
-| Ouvre F10 → Carrier → Start Recovery | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
+| Entre dans une zone de vagues aériennes | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
+| Ouvre F10 → ASSETS → [ressource] | [veafAssets](veafAssets.md) | Info, respawn |
+| Ouvre F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
 | Entre dans une zone protégée | [veafQraManager](veafQraManager.md) | Intercepteurs IA décollent |
-| Tape `_auth [mot_de_passe]` | [veafSecurity](veafSecurity.md) | Permissions élevées accordées |
+| Tape `_auth elevate` | [veafSecurity](veafSecurity.md) | Le groupe monte au niveau du demandeur pendant 2 minutes |
 | Vole dans une zone sanctuaire | [veafSanctuary](veafSanctuary.md) | Missiles hostiles neutralisés |
 
 ### Par fréquence d'utilisation
@@ -97,7 +97,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 
 | Composant | Fichier | Rôle |
 |-----------|---------|------|
-| [veafServerHook](veafServerHook.md) | `VEAF-Server-hook.lua` | Hook serveur dédié : commandes chat (`/secu login`, `/send`…), liste des pilotes, restart/télémétrie opt-in |
+| [veafServerHook](veafServerHook.md) | `VEAF-Server-hook.lua` | Hook serveur dédié : commandes chat (`/send`, `/pause`…), liste des pilotes, restart/télémétrie opt-in |
 
 ---
 

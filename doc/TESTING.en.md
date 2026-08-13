@@ -71,7 +71,7 @@ poetry run test-lua -c
 
 After the test run a rich table is printed showing hits, missed lines, and coverage percentage per module. The report file is also written to `luacov.report.out` in the repository root for manual inspection.
 
-### Requirements
+### Requirements (coverage)
 
 luacov must be installed via luarocks:
 

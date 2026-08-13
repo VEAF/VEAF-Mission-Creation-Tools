@@ -15,6 +15,7 @@ the `docs-check` gate itself, proven by the defects that survived it.
 | 03 | [Small dead ends: fog constant, stale CLI help](tickets/03-small-dead-ends.md) | ⬜ |
 | 04 | [Harden the two `docs-check` blind spots](tickets/04-docs-check-blind-spots.md) | ⬜ |
 | 05 | [The generated mission.yaml repeats the security lie](tickets/05-generated-yaml-comment.md) | ⬜ |
+| 06 | [The radio-specs generator writes engine types as aircraft names](tickets/06-radio-specs-display-name.md) | ⬜ |
 
 One branch, one PR. TDD throughout — each fix gets its failing test first.
 

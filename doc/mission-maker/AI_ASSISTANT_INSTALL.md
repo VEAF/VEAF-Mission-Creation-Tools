@@ -19,7 +19,7 @@ fichier de consignes, pas une copie par assistant. Choisissez la section qui cor
 
 ## Installation avec Claude Code
 
-Dans un terminal — ou via les slash commands `/plugin …` directement dans Claude Code :
+Dans un terminal — ou via les commandes `/plugin …` directement dans Claude Code :
 
 ```powershell
 git config --global core.longpaths true   # Windows : autorise les chemins longs au clone du marketplace
@@ -49,7 +49,7 @@ Puis **redémarrez Gemini CLI** : les extensions ne sont prises en compte qu'au 
 nouvelle session.
 
 Gemini recopie l'extension **dans votre dossier personnel**, sous
-`%USERPROFILE%\.gemini\extensionseaf-mission-editor\`. Rien n'est écrit ailleurs. Pour la retirer :
+`%USERPROFILE%\.gemini\extensions\veaf-mission-editor\`. Rien n'est écrit ailleurs. Pour la retirer :
 
 ```powershell
 gemini extensions uninstall veaf-mission-editor

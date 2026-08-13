@@ -9,7 +9,7 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 1. [Qu'est-ce que VEAF MCT ?](#quest-ce-que-veaf-mct)
 2. [Reconnaître une mission VEAF](#reconnaître-une-mission-veaf)
 3. [Le menu radio F10](#le-menu-radio-f10)
-4. [Les commandes par marqueur](#les-commandes-par-marqueur)
+4. [Les commandes par marqueur](#marker-commands)
 5. [Ressources : ravitailleurs, AWACS, porte-avions](#ressources)
 6. [Zones et missions de combat](#zones-et-missions-de-combat)
 7. [Entraînement CAS](#entraînement-cas)
@@ -97,8 +97,8 @@ Un **alias** est un raccourci préparé par le créateur de la mission. Il comme
 | `-sa6` | Batterie SA-6 Gainful (2K12 Kub) |
 | `-sa10` | Batterie SA-10 Grumble (S-300) |
 | `-sa11` | Batterie SA-11 Gadfly (9K37 Buk) |
-| `-sa15` | Véhicule SA-15 Gauntlet (Tor) |
-| `-sa22` | Véhicule SA-22 Greyhound (Pantsir-S1) |
+| `-sa15` | Escouade SA-15 Gauntlet (Tor) |
+| `-sa22` | Escouade SA-22 Greyhound (Pantsir-S1) |
 | `-shilka` | DCA ZSU-23-4 Shilka |
 | `-manpads` | Équipe de MANPADS (missiles sol-air portables) |
 | `-samLR` | Batterie SAM longue portée aléatoire |
@@ -220,7 +220,7 @@ Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** 
 
 ### Zones de combat
 
-Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois toutes détruites, la zone est terminée et peut être rejouée.
+Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois qu'elles sont toutes détruites, la zone est terminée et peut être rejouée.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
@@ -259,7 +259,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Régler la difficulté** par marqueur : `_cas, size 3, defense 2, armor 3`
 
-| Niveau | Composition typique | Pour qui |
+| Niveau (`defense` / `armor`) | Composition typique | Pour qui |
 |--------|---------------------|----------|
 | 0 | Infanterie, jeeps, pas de DCA | Débutants |
 | 1 | Véhicules légers, MANPADS | Facile |
@@ -274,7 +274,7 @@ Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5
 
 ## Sécurité et permissions
 
-Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission :
+Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission.
 
 Il y a deux façons d'avoir le droit d'utiliser une commande : **être reconnu par le serveur**, ou
 **donner le mot de passe**. Les serveurs VEAF tiennent une liste de pilotes ; si vous y êtes inscrit,

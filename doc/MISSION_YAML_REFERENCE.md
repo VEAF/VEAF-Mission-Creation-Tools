@@ -147,7 +147,7 @@ mission:
 #### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
 
 `mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
-`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez au contraire un nom
+`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez plutôt un nom
 terminé par `.miz` et il est repris **tel quel**, sans date.
 
 C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,

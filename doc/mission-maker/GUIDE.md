@@ -34,8 +34,8 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 
 - **Commandes via marqueurs** — les joueurs tapent des commandes sur la carte F10 (faire apparaître des unités, créer des zones CAS, déplacer des groupes…)
 - **Menus radio F10** — menus dynamiques pour chaque fonctionnalité activée
-- **Types de missions préconstruits** — CAS, transport, opérations carrier, QRA, vagues aériennes, zones de combat
-- **Gestion des actifs** — tankers, AWACS, carriers avec suivi d'état automatique et menus radio
+- **Types de missions préconstruits** — CAS, transport, opérations porte-avions, QRA, vagues aériennes, zones de combat
+- **Gestion des ressources** — ravitailleurs, AWACS, porte-avions avec suivi d'état automatique et menus radio
 - **Points nommés** — positions cartographiques réutilisables avec services ATC/TACAN optionnels
 - **Intégrations** — Skynet IADS, CTLD/CSAR
 
@@ -355,7 +355,7 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 | Commande | Ce qu'elle fait |
 |----------|----------------|
 | `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer) ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
-| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que tu puisses corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
+| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que vous puissiez corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
 | `validate` | Vérifie le dossier de mission **avant** le build — signale les erreurs de config et les risques runtime sans builder (sortie non nulle en cas d'erreur ; `--strict` échoue aussi sur les avertissements) |
 | `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
 | `export` | Exporte un `.miz` en **JSON** (défaut), **YAML** ou **Markdown** (résumé lisible) : `export mission.miz out.json --format json`. L'analyse est **purement Python** (parser `luadata`) et **n'exécute jamais de Lua** — alternative sûre à l'interprétation d'un `.miz` non fiable (risque d'exécution de code). Sans fichier de sortie, écrit sur la sortie standard |
@@ -484,7 +484,7 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 |-----------|---------|
 | Cœur | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
 | Types de missions | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
-| Actifs | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
+| Ressources | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
 | Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
 | Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
 
@@ -566,7 +566,7 @@ Si vous montez CTLD de version et que votre fichier a été écrit pour la préc
 | zones nommées `pickzone #001` … `#020` | une zone de l'éditeur nommée `TRZ_…` |
 | `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le framework VEAF initialise CTLD |
 
-Pour attacher une zone logistique à un objet mobile — un porte-avions, par exemple —, liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
+Pour attacher une zone logistique à un objet mobile (un porte-avions, par exemple), liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
 
 ### Configurer CSAR via mission.yaml (YAML-first)
 
@@ -680,13 +680,13 @@ modules:
     logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
-`veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
+`veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. **N'éditez pas `veaf-config.lua` directement** : il est généré, donc toute modification disparaît au prochain build. Pour essayer un réglage sans reconstruire, éditez-le en sachant que le changement est jetable — puis reportez-le dans `mission.yaml` pour qu'il survive.
 
 ### Lire le journal
 
 Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF.
 
-Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](../../tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
+Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
 
 ---
 

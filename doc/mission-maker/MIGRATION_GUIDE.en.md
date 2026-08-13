@@ -124,11 +124,11 @@ Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools missi
 
 #### 4. Check removed v5 patterns
 
-Some v5 constructs no longer exist or have been renamed:
+What each v5 construct becomes — some were renamed, others are unchanged and therefore need no migration at all:
 
 | v5 | v6 |
 |----|-----|
-| `veaf.SecurityDisabled = true` | `veafSecurity.SecurityDisabled = true` |
+| `veaf.SecurityDisabled = true` | **Both** spellings work: `veafSecurity.SecurityDisabled` is the recommended name, `veaf.SecurityDisabled` is still honoured. Nothing urgent to change |
 | `veafSpawn.Keyphrase` set at top-level | Still `veafSpawn.Keyphrase` — unchanged |
 | `veafAssets.Assets` inline table | Same table format — unchanged |
 | Loading individual `.lua` files via `DO SCRIPT FILE` | Automatic — do not add these triggers manually |
@@ -203,7 +203,7 @@ Then copy your `.miz` as `mission.miz` and run:
 
 ```powershell
 .\veaf-tools.exe mission extract mission.miz .
-.\veaf-tools.exe mission build mission .
+.\veaf-tools.exe mission build
 ```
 
 #### 5. Configure which modules to enable
@@ -244,7 +244,7 @@ Your custom triggers, statics, and groups are untouched.
 
 ```powershell
 # Rebuild after every config change
-.\veaf-tools.exe mission build mission .
+.\veaf-tools.exe mission build
 ```
 
 Each build produces a dated `.miz` file (e.g. `mission_20260516.miz`). Open it in DCS and test.
@@ -359,7 +359,7 @@ Then check the DCS log (`Saved Games\DCS\Logs\dcs.log`) for VEAF errors — filt
 
 All VEAF messages go to `Saved Games\DCS\Logs\dcs.log`. To find them quickly:
 
-- **[Klogg](https://klogg.filimonov.dev/)** (recommended): open `dcs.log`, use the search bar to filter on `VEAF`. A VEAF highlight profile ships with the repository at `tools/klogg/veaf.conf` — load it via File → Highlighters.
+- **[Klogg](https://klogg.filimonov.dev/)** (recommended): open `dcs.log`, use the search bar to filter on `VEAF`. A VEAF highlight profile ships with the repository at `tools/klogg/veaf.conf` — load it via *File > Import highlights…*.
 - **Notepad++**: open `dcs.log` → Search → Find (`Ctrl+F`) → search for `VEAF`.
 
 ### Build fails with "VEAF scripts file not found"

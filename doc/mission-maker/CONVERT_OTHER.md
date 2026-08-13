@@ -7,7 +7,7 @@ mission n'a jamais été construite avec les outils VEAF, on l'**adopte**.
 
 > Cette commande ne contient aucune connaissance propre à une mission donnée.
 > Le savoir spécifique à une famille de missions (ordre des scripts, triggers à
-> retirer, réglages à surcharger…) est porté par un *profil de conversion*
+> retirer, réglages à surcharger…) est porté par un *profil de conversion*.
 > Deux profils sont livrés avec l'outil : `foothold` et `foothold-ww2`. Voir l'ADR 0007.
 
 ## Usage
@@ -47,7 +47,7 @@ nomme ce qu'elle a trouvé plutôt que de deviner quelle mission vous visiez.
 
 Sans `--profile`, le scaffold est générique (tier `minimal`). Avec un profil, la
 connaissance propre à une famille de missions est appliquée — **données, pas code**
-(voir [ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). Le profil
+(voir [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md)). Le profil
 `foothold` (livré) :
 
 - **active les modules VEAF** que Foothold utilise (RADIO, SPAWN, WEATHER,

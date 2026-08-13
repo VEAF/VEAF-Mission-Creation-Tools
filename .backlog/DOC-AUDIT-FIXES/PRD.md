@@ -47,7 +47,7 @@ was broken. What rotted is everything the gate cannot see: **content**. Three fa
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Active lies — security cluster + factual inversions](tickets/01-active-lies.md) | ✅ |
-| 02 | [Broken form — rendering, dead anchors, prose](tickets/02-broken-form.md) | ⬜ |
+| 02 | [Broken form — rendering, dead anchors, prose](tickets/02-broken-form.md) | ✅ |
 | 03 | [Holes and structure — new sections, ROADMAP pointer, anchors](tickets/03-holes-and-structure.md) | ⬜ |
 | 04 | [The full CLI reference — 25 commands, options included](tickets/04-cli-reference.md) | ⬜ |
 

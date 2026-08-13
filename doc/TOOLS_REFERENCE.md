@@ -9,15 +9,6 @@ Le cycle de vie des releases des VEAF Mission Creation Tools repose sur deux pro
 
 ---
 
-## Table des matières
-
-1. [Pour les utilisateurs : Mise à jour](#pour-les-utilisateurs--mise-à-jour)
-2. [Pour les administrateurs : Publication](#pour-les-administrateurs--publication)
-3. [Architecture du système](#architecture-du-système)
-4. [Dépannage](#dépannage)
-
----
-
 ## Fichier de configuration (optionnel mais recommandé)
 
 Vous pouvez stocker votre token GitHub et d'autres paramètres dans un fichier de configuration au lieu de les passer en arguments de ligne de commande.
@@ -175,7 +166,7 @@ La langue des messages est détectée automatiquement — aucune configuration r
 1. Option CLI `--lang` (priorité maximale)
 2. Variable d'environnement `VEAF_LANG`
 3. `~/veafmct.yaml` → clé `lang:`
-4. Locale du système (registre Windows / locale système sur Linux–macOS)
+4. Locale du système (registre Windows / locale système sur Linux et macOS)
 5. `en` (repli intégré)
 
 Pour forcer la langue sur une seule exécution :
@@ -190,7 +181,7 @@ Pour définir une préférence persistante :
 veaf-tools.exe user-config --set lang=fr
 ```
 
-Valeurs supportées : `en`, `fr`.
+Valeurs supportées : `en`, `fr`. Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.
 
 ### Sortie verbeuse (débogage)
 
@@ -757,7 +748,7 @@ veaf-build publish --version 6.0.1 --ci
 ### Sûreté du token
 
 Votre Personal Access Token GitHub est comme un mot de passe :
-- ❌ Ne le committez jamais dans git (même dans des fichiers de configuration)
+- ❌ Ne le commitez jamais dans git (même dans des fichiers de configuration)
 - ❌ Ne le partagez jamais par e-mail ou message
 - ❌ Ne le collez jamais sur des forums publics
 - ❌ Ne poussez jamais `veaf-tools-config.yaml` dans git
@@ -847,17 +838,3 @@ Si vous rencontrez des problèmes :
 **Bonnes publications !** 🚀
 
 Pour plus de détails techniques, consultez le code source ou le dépôt GitHub.
-
----
-
-## Détection de la langue
-
-`veaf-tools.exe` et `veaf-tools-updater.exe` affichent leurs messages dans la langue du système automatiquement — aucune configuration requise. L'ordre de détection est :
-
-1. Option CLI `--lang`
-2. Variable d'environnement `VEAF_LANG`
-3. `~/veafmct.yaml` → clé `lang:`
-4. Locale du système (registre Windows / locale système sur Linux–macOS)
-5. `en` (repli intégré)
-
-Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.

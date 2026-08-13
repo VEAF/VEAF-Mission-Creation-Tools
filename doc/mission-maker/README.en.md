@@ -58,7 +58,7 @@ The build tool reads the mission folder, **automatically injects** the VEAF load
 | [veafAirWaves](scripts/veafAirWaves.en.md) | Wave-based air combat missions |
 | [veafSecurity](scripts/veafSecurity.en.md) | Password protection for multiplayer servers |
 
-See the [full scripts catalog](scripts/README.en.md) for all 17+ modules.
+See the [full scripts catalogue](scripts/README.en.md) for all 17+ modules.
 
 ---
 

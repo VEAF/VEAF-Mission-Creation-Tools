@@ -182,18 +182,6 @@ Côté Lua : `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` ou `"all
 
 ---
 
-## Constantes du module
-
-| Constante | Valeur par défaut | Description |
-|-----------|-------------------|-------------|
-| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | Fréquence de vérification du watchdog de zone (s) |
-| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Délai entre marquages fumée (s) |
-| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
-| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
-| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
-
----
-
 ## Fonctionnement
 
 Placez toutes les unités qui doivent apparaître dans la zone directement dans l'éditeur de mission DCS, à l'intérieur de la trigger zone. Au démarrage de la mission, VEAF les retire toutes — la zone est vide. Quand un joueur active la zone via le menu F10, toutes les unités réapparaissent à des positions aléatoires dans le rayon de la zone. Quand toutes les unités ennemies sont détruites, la zone est marquée comme terminée (un callback optionnel se déclenche, les zones chaînées optionnelles s'activent).
@@ -255,6 +243,20 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 ```
 
 Cela permet de monter des apparitions complexes (batterie SA-11, convois avec routes IA) sans aucun code Lua.
+
+---
+
+## Constantes du module
+
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | Fréquence de vérification du watchdog de zone (s) |
+| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Délai entre marquages fumée (s) |
+| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
+| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
+| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
+
+---
 
 ---
 

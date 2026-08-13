@@ -46,7 +46,7 @@ gemini extensions install VEAF-Mission-Creation-Tools/plugin
 Then **restart Gemini CLI**: extensions are only picked up when a new session starts.
 
 Gemini copies the extension **into your home folder**, under
-`%USERPROFILE%\.gemini\extensionseaf-mission-editor\`. Nothing is written anywhere else. To remove
+`%USERPROFILE%\.gemini\extensions\veaf-mission-editor\`. Nothing is written anywhere else. To remove
 it:
 
 ```powershell

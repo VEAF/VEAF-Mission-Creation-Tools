@@ -47,7 +47,7 @@ guessing which mission you meant.
 
 Without `--profile` the scaffold is generic (the `minimal` tier). With a profile,
 mission-family-specific knowledge is applied — **data, not code** (see
-[ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). The bundled
+[ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md)). The bundled
 `foothold` profile:
 
 - **enables the VEAF modules** Foothold uses (RADIO, SPAWN, WEATHER, SHORTCUTS,

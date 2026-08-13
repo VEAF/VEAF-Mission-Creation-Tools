@@ -1,7 +1,9 @@
 # VEAF Lua Modules - Complete API Reference
 
 **Version:** generated for 6.11.x
+
 **Last Updated:** July 2026
+
 **Project:** VEAF Mission Creation Tools
 
 ---
@@ -145,7 +147,7 @@ veaf.loggers.setBaseLevel("info")  -- Global default
 ### veaf.lua
 
 **Module ID:** `VEAF`
-**Version:** 1.56.2
+
 **Purpose:** Root library providing core utilities, constants, and logger system
 
 #### Constants
@@ -1344,7 +1346,7 @@ Add quadrilateral marker.
 ### veafEventHandler.lua
 
 **Module ID:** `EVENTS`
-**Version:** 1.5.3
+
 **Purpose:** DCS World event handling and callback management
 
 #### Constants
@@ -1645,7 +1647,7 @@ end)
 ### veafMarkers.lua
 
 **Module ID:** `MARKERS`
-**Version:** 1.1.1
+
 **Purpose:** Listen to map marker events and execute handlers
 
 #### Constants
@@ -1777,7 +1779,9 @@ end)
 ### veafCommands.lua
 
 **Module ID:** `COMMANDS`
+
 **Init order:** 15 (after veafMarkers, before all command modules)
+
 **Purpose:** Central registry and dispatcher for all text commands (F10 markers and interpreter)
 
 #### Constants
@@ -1832,7 +1836,7 @@ Handle a marker change event. Inverts coalition (marker events report the placer
 ### veafInterpreter.lua
 
 **Module ID:** `INTERPRETER`
-**Version:** 1.6.3
+
 **Purpose:** Interpret and execute commands from unit names and markers
 
 #### Constants
@@ -1999,7 +2003,7 @@ Convert a laser code to a TACAN/radio frequency string.
 ### veafSpawn.lua
 
 **Module ID:** `SPAWN`
-**Version:** 1.59.3
+
 **Purpose:** Dynamic spawning system for units, groups, convoys, and effects
 
 #### Constants
@@ -2790,7 +2794,7 @@ Initialize spawn module.
 ### veafUnits.lua
 
 **Module ID:** `UNITS`
-**Version:** 1.15.0
+
 **Purpose:** Unit/group definitions and utilities
 
 #### Constants
@@ -2849,7 +2853,7 @@ Process and validate group definition.
 ### veafAssets.lua
 
 **Module ID:** `ASSETS`
-**Version:** 1.8.3
+
 **Purpose:** Manage and track mission assets (tankers, AWACS, carriers)
 
 #### Data Structures
@@ -2972,7 +2976,7 @@ Initialize assets module.
 ### veafCombatMission.lua
 
 **Module ID:** `COMBATMISSION`
-**Version:** 2.2.1
+
 **Purpose:** Create and manage combat missions with objectives
 
 #### Constants
@@ -3337,7 +3341,7 @@ Initialize module.
 ### veafCasMission.lua
 
 **Module ID:** `CASMISSION`
-**Version:** 1.15.3
+
 **Purpose:** Create close air support training missions
 
 #### Constants
@@ -3363,7 +3367,9 @@ DEFENSE_TYPES[coalition][era][defense] = {unit_types}
 ```
 
 **Coalition:** `"blue"`, `"red"`
+
 **Era:** `"cold"`, `"modern"`
+
 **Defense:** `0-5` (0=none, 5=heavy)
 
 #### Functions
@@ -3504,7 +3510,7 @@ Initialize CAS module.
 ### veafAirbases.lua
 
 **Module ID:** `AIRBASES`
-**Version:** 1.1.1
+
 **Purpose:** Normalized airbase and runway information
 
 #### Classes
@@ -3630,7 +3636,7 @@ veaf.outTextForUnit("Viper 1-1",
 ### veafCarrierOperations.lua
 
 **Module ID:** `CARRIER`
-**Version:** 1.12.3
+
 **Purpose:** Manage aircraft carrier operations
 
 #### Functions
@@ -3760,7 +3766,7 @@ Initialize carrier operations module.
 ### veafRadio.lua
 
 **Module ID:** `RADIO`
-**Version:** 1.4.1
+
 **Purpose:** Manage F10 radio menus and communications
 
 #### Constants
@@ -3980,7 +3986,9 @@ Initialize radio module.
 ### veafWeather.lua
 
 **Module ID:** `WEATHER`
+
 **Version:** (varies)
+
 **Purpose:** Dynamic weather system
 
 #### Functions
@@ -4091,7 +4099,9 @@ Disables the existing fog (if any) then activates the supplied fog object.
 ### veafTime.lua
 
 **Module ID:** `TIME`
+
 **Version:** (varies)
+
 **Purpose:** Mission time management
 
 > Read-only module: it **computes** date and time information from the mission
@@ -4166,7 +4176,9 @@ Determines the season from the month and latitude (handles both hemispheres).
 ### dcsUnits.lua
 
 **Module ID:** `DCSUNITS`
+
 **Version:** datamine-dc7d15e8
+
 **Purpose:** Complete DCS unit database
 
 > This module exposes no functions: it only provides data tables.
@@ -4212,6 +4224,7 @@ dcsUnits.NavalStatics = {
 ### dcsDataExport.lua
 
 **Module ID:** `DCSEXPORT`
+
 **Purpose:** DCS data export script, to be run in the mission editor
 
 #### Description
@@ -4341,12 +4354,17 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ## Credits
 
 **VEAF Project:** https://www.veaf.org
+
 **Repository:** https://github.com/VEAF/VEAF-Mission-Creation-Tools
+
 **Documentation:** https://veaf.github.io/documentation/
+
 **Lead Developer:** Zip (davidp57)
 
 ---
 
 **Document Version:** 1.0
+
 **Last Updated:** June 2026
+
 **Generated for:** VEAF Mission Creation Tools v6.5.25

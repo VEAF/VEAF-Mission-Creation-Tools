@@ -6,7 +6,7 @@ Documentation de la suite de tests unitaires Lua VEAF et du pipeline CI/CD.
 
 - [Vue d'ensemble](#vue-densemble)
 - [Exécuter les tests](#exécuter-les-tests)
-- [Couverture](#couverture)
+- [Couverture](#coverage)
 - [Infrastructure](#infrastructure)
 - [Suite de tests](#suite-de-tests)
 - [Écrire des tests](#écrire-des-tests)
@@ -61,7 +61,7 @@ d'une autre version de Lua déjà installée par scoop ; le shim `lua51` permet 
 
 ## Couverture {#coverage}
 
-Générez un rapport de couverture ligne par ligne avec [luacov](https://github.com/lunarmodules/luacov) :
+Générez un rapport de couverture par fichier avec [luacov](https://github.com/lunarmodules/luacov) :
 
 ```shell
 poetry run test-lua --coverage
@@ -71,7 +71,7 @@ poetry run test-lua -c
 
 Après l'exécution, un tableau est affiché avec le nombre de lignes couvertes, manquées et le pourcentage de couverture par module. Le rapport est également écrit dans `luacov.report.out` à la racine du dépôt.
 
-### Prérequis
+### Prérequis (couverture)
 
 luacov doit être installé via luarocks :
 
@@ -265,7 +265,7 @@ Le workflow GitHub Actions (`.github/workflows/lua-ci.yml`) s'exécute à chaque
 1. Checkout du dépôt
 2. Installation de `lua5.1` + `luacov` via LuaRocks, puis de Poetry et des dépendances
 3. Exécution de `poetry run test-lua --cov-fail-under 72` (couverture ligne via luacov)
-4. Échec si la couverture passe sous le plancher de cliquet (le nombre ne fait que monter)
+4. Échec si la couverture passe sous le plancher à cliquet (le nombre ne fait que monter)
 
 ### Exécuter StyLua localement
 

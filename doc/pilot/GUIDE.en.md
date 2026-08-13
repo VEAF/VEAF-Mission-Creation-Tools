@@ -22,7 +22,7 @@ This guide is for players flying missions that use the VEAF framework. No techni
 
 ## What is VEAF MCT?
 
-VEAF Mission Creation Tools (VEAF MCT) makes DCS World missions alive and interactive. In a regular mission, everything is fixed in advance. With VEAF MCT, you can act while flying:
+VEAF Mission Creation Tools (VEAF MCT) brings DCS World missions to life and makes them interactive. In a regular mission, everything is fixed in advance. With VEAF MCT, you can act while flying:
 
 - spawn enemy units on demand;
 - request a tanker, an AWACS or a carrier;
@@ -97,8 +97,8 @@ An **alias** is a shortcut prepared by the mission maker. It starts with a hyphe
 | `-sa6` | SA-6 Gainful (2K12 Kub) battery |
 | `-sa10` | SA-10 Grumble (S-300) battery |
 | `-sa11` | SA-11 Gadfly (9K37 Buk) battery |
-| `-sa15` | SA-15 Gauntlet (Tor) vehicle |
-| `-sa22` | SA-22 Greyhound (Pantsir-S1) vehicle |
+| `-sa15` | SA-15 Gauntlet (Tor) squad |
+| `-sa22` | SA-22 Greyhound (Pantsir-S1) squad |
 | `-shilka` | ZSU-23-4 Shilka AAA |
 | `-manpads` | MANPADS squad (man-portable surface-to-air missiles) |
 | `-samLR` | Random long-range SAM battery |
@@ -259,7 +259,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 
 **Set the difficulty** via marker: `_cas, size 3, defense 2, armor 3`
 
-| Level | Typical composition | For whom |
+| Level (`defense` / `armor`) | Typical composition | For whom |
 |-------|---------------------|----------|
 | 0 | Infantry, jeeps, no AA | Beginners |
 | 1 | Light vehicles, MANPADS | Easy |
@@ -274,7 +274,7 @@ Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA l
 
 ## Security and Permissions
 
-On multiplayer servers, the mission maker may restrict certain commands according to your permission level:
+On multiplayer servers, the mission maker may restrict certain commands according to your permission level.
 
 There are two ways to be allowed to run a command: **being recognised by the server**, or **giving
 the password**. VEAF servers keep a list of pilots; if you are on it, your tier applies by itself —

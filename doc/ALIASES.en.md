@@ -100,9 +100,9 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | `-convoy` | Dynamic convoy (needs `, dest POINTNAME`) |
 | `-hv_convoy_red` | Red high-value attack convoy (with Scud) |
 | `-attack_convoy_red` | Red attack convoy |
-| `-QRC_red` | Red Quick Reaction Convoy (fast) |
+| `-QRC_red` | Red Quick Reaction Convoy |
 | `-civilian_convoy_red` | Red civilian convoy |
-| `-QRC_blue` | Blue Quick Reaction Convoy (fast) |
+| `-QRC_blue` | Blue Quick Reaction Convoy |
 
 ## Artillery
 

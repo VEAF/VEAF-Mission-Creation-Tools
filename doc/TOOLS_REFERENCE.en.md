@@ -1,4 +1,4 @@
-# VEAF Tools - User and Administrator Guide
+# VEAF Tools — User and Administrator Guide
 
 ## Overview
 
@@ -6,15 +6,6 @@ The release lifecycle of the VEAF Mission Creation Tools relies on two distinct 
 
 - **`veaf-tools-updater.exe`** - For end users: an update-only tool that downloads and installs the latest tools from GitHub. It has **no subcommands** — you run it directly.
 - **`veaf-build`** - For administrators: the build-and-release tooling (shipped as `veaf-build.exe` / `poetry run veaf-build`) that compiles the tools and publishes new releases to GitHub via its `publish` subcommand.
-
----
-
-## Table of Contents
-
-1. [For End Users: Updating](#for-end-users-updating)
-2. [For Administrators: Publishing](#for-administrators-publishing)
-3. [System Architecture](#system-architecture)
-4. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -40,7 +31,7 @@ You can store your GitHub token and other settings in a configuration file inste
 3. **Keep it secure:**
    - ⚠️ Never commit `veaf-tools-config.yaml` to git
    - It's already in `.gitignore` (default)
-   - The token is your password - keep it secret!
+   - The token is your password — keep it secret!
 
 ### Benefits
 
@@ -72,7 +63,7 @@ veaf-tools ask
 veaf-tools --lang en ask "How are radio presets injected?"
 ```
 
-It is also available from the interactive TUI as **« Ask the documentation »**.
+It is also available from the interactive TUI as **"Ask the documentation"**.
 
 ---
 
@@ -175,7 +166,7 @@ The tool output language is detected automatically — no configuration needed:
 1. `--lang` CLI option (highest priority)
 2. `VEAF_LANG` environment variable
 3. `~/veafmct.yaml` → `lang:` key
-4. OS locale (Windows registry / system locale on Linux–macOS)
+4. OS locale (Windows registry / system locale on Linux and macOS)
 5. `en` (built-in fallback)
 
 To override for a single run:
@@ -190,7 +181,7 @@ To set a persistent preference:
 veaf-tools.exe user-config --set lang=fr
 ```
 
-Supported values: `en`, `fr`.
+Supported values: `en`, `fr`. See [Language configuration](mission-maker/GUIDE.en.md#global-user-configuration) for the full details.
 
 ### Verbose Output (Debugging)
 
@@ -847,18 +838,3 @@ If you encounter issues:
 **Happy releasing!** 🚀
 
 For more technical details, see the source code or GitHub repository.
-
-
----
-
-## Language Detection
-
-`veaf-tools.exe` and `veaf-tools-updater.exe` display messages in your OS language automatically — no setup required. The detection order is:
-
-1. `--lang` CLI option
-2. `VEAF_LANG` environment variable
-3. `~/veafmct.yaml` → `lang:` key
-4. OS locale (Windows registry / system locale on Linux–macOS)
-5. `en` (built-in fallback)
-
-Supported languages: English (`en`), French (`fr`). See [Language Configuration](mission-maker/GUIDE.en.md#global-user-configuration) for full details.

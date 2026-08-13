@@ -736,6 +736,11 @@ veafSecurity = {
   checkPassword_L0 = function(...)
     return true
   end,
+  -- The ADMIN tier's check. Missing here until FIX-DOCAUDIT-CODE 01 wired that tier into the two
+  -- dispatchers, which is when a test could reach it at all.
+  checkSecurity_L0 = function(...)
+    return true
+  end,
   checkSecurity_L9 = function(...)
     return true
   end,

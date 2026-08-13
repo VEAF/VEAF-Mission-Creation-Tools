@@ -462,6 +462,56 @@ function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
   luaunit.assertEquals(veafSpawn.commandHandlers[1].security, "L9")
 end
 
+--- FIX-DOCAUDIT-CODE 01 — the tier names REVIEW-SECURITY-LAYER decision b settled on (2026-08-08)
+--- were refused here too: this dispatcher's table held `L9`/`L1`/`MM`/`OPEN` only, so a handler
+--- declaring `ADMIN` failed the assert. Both vocabularies now, in one sweep. `MM` and `OPEN` are
+--- not tiers — a Mission Master password carries no level, and OPEN means "no check" — so they keep
+--- their own spelling.
+function TestVeafSpawnCore:test_registerCommandHandler_accepts_both_vocabularies()
+  local levels = { "ADMIN", "SENIOR_PILOT", "KNOWN_PILOT", "L0", "L1", "L9", "MM", "OPEN" }
+  for _, level in ipairs(levels) do
+    veafSpawn.commandHandlers = {}
+    veafSpawn.registerCommandHandler("k", level, function() end)
+    luaunit.assertEquals(#veafSpawn.commandHandlers, 1, "level rejected: " .. tostring(level))
+    luaunit.assertEquals(veafSpawn.commandHandlers[1].security, level)
+  end
+end
+
+--- A deprecated name and its replacement share the **same** function, not a copy: two copies is
+--- how one of two paths receives tomorrow's fix.
+function TestVeafSpawnCore:test_a_deprecated_level_shares_its_replacement_check()
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L0, veafSpawn.SECURITY_CHECKS.ADMIN)
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L1, veafSpawn.SECURITY_CHECKS.SENIOR_PILOT)
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L9, veafSpawn.SECURITY_CHECKS.KNOWN_PILOT)
+end
+
+--- The new names must be *enforced*, not merely accepted at registration — and enforced by the
+--- check the name actually means. `ADMIN` is the tightest tier, so it runs `checkSecurity_L0`; the
+--- ticket's own example claimed `ADMIN ≡ L9`, which `veafSecurity.LEVELS_BY_NAME` contradicts.
+--- Stubbing that one function is what pins the wiring: a mis-aliased `ADMIN` would sail through.
+function TestVeafSpawnCore:_runAdminHandlerWith(verdict)
+  local orig = veafSecurity.checkSecurity_L0
+  veafSecurity.checkSecurity_L0 = function()
+    return verdict
+  end
+  local called = false
+  veafSpawn.registerCommandHandler("unit", "ADMIN", function()
+    called = true
+    return nil
+  end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_spawn unit, name shilka", 1, 0, false)
+  veafSecurity.checkSecurity_L0 = orig
+  return called
+end
+
+function TestVeafSpawnCore:test_an_admin_handler_is_blocked_when_the_admin_check_fails()
+  luaunit.assertFalse(self:_runAdminHandlerWith(false))
+end
+
+function TestVeafSpawnCore:test_an_admin_handler_runs_when_the_admin_check_passes()
+  luaunit.assertTrue(self:_runAdminHandlerWith(true))
+end
+
 function TestVeafSpawnCore:test_unknown_parameter_aborts_without_spawning()
   -- An unrecognized parameter (typo) must abort the command, not spawn anyway.
   local spawned = false

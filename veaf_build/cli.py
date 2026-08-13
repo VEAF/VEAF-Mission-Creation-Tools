@@ -235,7 +235,7 @@ def publish(
         False,
         help="Mark as pre-release (e.g. RC). Requires a semver pre-release version "
         "(--version 6.9.21-rc1): the release workflow keys off the '-' suffix to leave "
-        "published-latest untouched. Test with: veaf-tools-updater update --tag published-v<version>",
+        "published-latest untouched. Test with: veaf-tools-updater --tag published-v<version>",
     ),
     ci: bool = typer.Option(
         False,
@@ -254,7 +254,7 @@ def publish(
     For pre-release testing without affecting production users, publish a semver
     pre-release version (e.g. --version 6.9.21-rc1 --prerelease). The release workflow
     keys off the '-' suffix, so published-latest is left untouched; test with:
-        veaf-tools-updater update --tag published-v<version>
+        veaf-tools-updater --tag published-v<version>
     """
     logger.set_verbose(verbose)
     console.print("[bold green]VEAF Tools Publish[/bold green]")

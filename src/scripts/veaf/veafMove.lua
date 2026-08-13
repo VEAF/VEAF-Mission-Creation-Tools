@@ -960,7 +960,7 @@ function veafMove.initialize()
   -- an open one. Had no check at all before SECREV-2. Level chosen by David.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     return veafMove.executeCommand(pos, event.text, bypass)
-  end, veafCommands.PRIORITY_MOVE, "L1")
+  end, veafCommands.PRIORITY_MOVE, "SENIOR_PILOT")
 end
 
 veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo())

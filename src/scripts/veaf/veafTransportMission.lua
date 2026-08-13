@@ -121,8 +121,10 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
     if options then
       -- Check options commands
       if options.transportmission then
-        -- check security
-        if not veafSecurity.checkSecurity_L1(options.password) then
+        -- Check security. The marker id is what identifies the author, so a listed pilot's own
+        -- level can grant the command; without it `getMarkerSecurityLevel` returns -1 and the
+        -- password is the only way through, whoever asks.
+        if not veafSecurity.checkSecurity_L1(options.password, event.idx) then
           return
         end
         -- create the mission

@@ -1178,7 +1178,7 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     -- veafRadio uses raw (non-inverted) coalition — pass event.coalition directly
     return veafRadio.executeCommand(pos, event.text, event.coalition, bypass)
-  end, veafCommands.PRIORITY_RADIO, "L1")
+  end, veafCommands.PRIORITY_RADIO, "SENIOR_PILOT")
 
   -- add human birth event handler
   veafEventHandler.addCallback("veafRadio.eventHandler", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafRadio.onBirthEvent)

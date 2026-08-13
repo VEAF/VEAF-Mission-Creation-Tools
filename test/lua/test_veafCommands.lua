@@ -176,13 +176,57 @@ function TestVeafCommandsSecurityDeclaration:test_registering_an_unknown_level_i
   luaunit.assertEquals(#veafCommands.commandHandlers, 0)
 end
 
+--- Both vocabularies, in one sweep. The new names come from REVIEW-SECURITY-LAYER decision b
+--- (2026-08-08); the old ones stay for one release. FIX-DOCAUDIT-CODE 01: the dispatcher accepted
+--- only the 2021 spellings, so registering a handler with the decided vocabulary hit the assert --
+--- the rename existed in the documentation and in one function nothing called.
 function TestVeafCommandsSecurityDeclaration:test_every_documented_level_is_accepted()
-  for _, level in ipairs({ "L0", "L1", "L9", "OPEN", veafCommands.SECURITY_HANDLED }) do
+  local levels = {
+    "ADMIN",
+    "SENIOR_PILOT",
+    "KNOWN_PILOT",
+    "L0",
+    "L1",
+    "L9",
+    "OPEN",
+    veafCommands.SECURITY_HANDLED,
+  }
+  for _, level in ipairs(levels) do
     resetHandlers()
     veafCommands.registerCommandHandler(makeHandler(true), 10, level)
     luaunit.assertEquals(#veafCommands.commandHandlers, 1, "level rejected: " .. tostring(level))
     luaunit.assertEquals(veafCommands.commandHandlers[1].security, level)
   end
+end
+
+--- A deprecated name and its replacement must be the **same** function, not two copies of it:
+--- a copy is how one of two paths receives tomorrow's fix (the lesson REFACTOR-MARKER-PARSER paid
+--- for). `ADMIN` is the tightest tier and maps to `L0`, not to `L9` -- the ticket's own example had
+--- that backwards, and `veafSecurity.LEVELS_BY_NAME` settles it.
+function TestVeafCommandsSecurityDeclaration:test_a_deprecated_name_shares_its_replacement_check()
+  luaunit.assertIs(veafCommands.SECURITY_CHECKS.L0, veafCommands.SECURITY_CHECKS.ADMIN)
+  luaunit.assertIs(veafCommands.SECURITY_CHECKS.L1, veafCommands.SECURITY_CHECKS.SENIOR_PILOT)
+  luaunit.assertIs(veafCommands.SECURITY_CHECKS.L9, veafCommands.SECURITY_CHECKS.KNOWN_PILOT)
+end
+
+--- Registering with an old name warns, through the function that carries the warning --
+--- `veafSecurity.levelForName`, which had no production caller at all before this.
+function TestVeafCommandsSecurityDeclaration:test_a_deprecated_name_warns_through_levelForName()
+  local resolved = {}
+  veafSecurity = {
+    DEPRECATED_LEVEL_NAMES = { L0 = "ADMIN", L1 = "SENIOR_PILOT", L9 = "KNOWN_PILOT" },
+    levelForName = function(name)
+      table.insert(resolved, name)
+      return 1
+    end,
+  }
+
+  veafCommands.registerCommandHandler(makeHandler(true), 10, "L9")
+  veafCommands.registerCommandHandler(makeHandler(true), 20, "KNOWN_PILOT")
+  veafCommands.registerCommandHandler(makeHandler(true), 30, "OPEN")
+
+  luaunit.assertEquals(resolved, { "L9" }, "only a deprecated spelling goes through the warning path")
+  luaunit.assertEquals(#veafCommands.commandHandlers, 3, "warning about a name must not refuse it")
 end
 
 -- ---------------------------------------------------------------------------

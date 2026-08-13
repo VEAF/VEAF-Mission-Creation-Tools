@@ -484,7 +484,7 @@ end
 -- Effects spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("cargo", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("cargo", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCargo(
     eventPos,
     options.radius,
@@ -499,22 +499,22 @@ veafSpawn.registerCommandHandler("cargo", "L9", function(eventPos, options, coal
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("logistic", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("logistic", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnLogistic(eventPos, options.radius, options.country, bypassSecurity, not options.showMFD)
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("destroy", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("destroy", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.destroy(eventPos, options.radius, options.unitName)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("teleport", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("teleport", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.teleport(eventPos, options.name, bypassSecurity)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("bomb", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("bomb", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.power, options.altitude, options.altitudedelta, options.password)
   return nil, nil, false
 end)

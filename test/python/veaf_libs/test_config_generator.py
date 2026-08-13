@@ -91,6 +91,34 @@ class TestSecurity(unittest.TestCase):
         lua = generate_config_lua({})
         self.assertNotIn("SecurityDisabled", lua)
 
+    def test_generated_yaml_comment_states_the_real_default(self) -> None:
+        # The runtime default is `veaf.SecurityDisabled = false` (veaf.lua) — security is ON.
+        # The generated comment read "(default)" right next to `disabled: true`, so every
+        # scaffolded mission.yaml claimed the password-free state was the default.
+        from veaf_libs.lua_config_generator import security_section
+
+        line = next(entry for entry in security_section() if "disabled:" in entry)
+        self.assertIn("default: false", line)
+        self.assertIn("security is active", line)
+
+    def test_generated_yaml_comment_matches_the_shipped_default(self) -> None:
+        # Defaults lockstep (CLAUDE.md §9.7), seen from the generator's side: the shipped
+        # default mission.yaml and the generated one must make the same claim, or fixing one
+        # leaves the other as the surviving source of the lie.
+        from pathlib import Path
+
+        from veaf_libs.lua_config_generator import security_section
+
+        generated = next(entry for entry in security_section() if "disabled:" in entry)
+        default_file = Path(__file__).resolve().parents[3] / "src" / "defaults" / "mission-folder" / "mission.yaml"
+        shipped = next(
+            line
+            for line in default_file.read_text(encoding="utf-8").splitlines()
+            if "disabled:" in line and line.lstrip().startswith("#")
+        )
+        # Compare the inline comment only — the two files indent their example differently.
+        self.assertEqual(generated.split("#")[-1].strip(), shipped.split("#")[-1].strip())
+
 
 class TestLuaModules(unittest.TestCase):
     def test_enabled_module_gets_initialize(self) -> None:

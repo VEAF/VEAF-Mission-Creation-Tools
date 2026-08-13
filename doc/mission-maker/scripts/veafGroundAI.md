@@ -80,7 +80,7 @@ est découpé par le marqueur avant d'atteindre l'artillerie.
 | `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
 | `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |
 
-**`fire` sans `target` retire sur la dernière cible visée** — c'est ce qui permet d'enchaîner un
+**`fire` sans `target` tire à nouveau sur la dernière cible visée** — c'est ce qui permet d'enchaîner un
 réglage puis l'efficacité sans redonner les coordonnées.
 
 ```

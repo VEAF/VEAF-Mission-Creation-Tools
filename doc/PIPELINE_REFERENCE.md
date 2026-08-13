@@ -62,7 +62,7 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
 Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs contenant au moins un pilote humain (compétence Client/Player). Génère également des images de kneeboard PNG pour chaque préréglage.
 
-> **Désactiver les planchettes (kneeboards)** : la forme mapping de l'étape accepte un sous-champ `kneeboards` (défaut `true`). Passer `pipeline: { presets: { enabled: true, kneeboards: false } }` permet de conserver l'injection des fréquences radio tout en ne générant aucune planchette PNG (`KNEEBOARD/IMAGES/presets-*.png`).
+> **Désactiver les planchettes (kneeboards)** : la forme mapping de l'étape accepte un sous-champ `kneeboards` (défaut `true`). Passer `pipeline: { presets: { enabled: true, kneeboards: false } }` permet de conserver l'injection des fréquences radio tout en ne générant aucune planchette PNG (`KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`).
 
 ### Emplacement par défaut
 
@@ -247,7 +247,7 @@ presets_assignments:
 
 Une fois les presets corrigés, supprimez la ligne `none` pour réactiver l'injection.
 
-Les specs couvrent 87 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
+Les specs couvrent 100 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
 
 > **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides et liste des appareils critiques.  
 > Pour régénérer après une mise à jour DCS : `poetry run update-radio-specs`
@@ -427,7 +427,7 @@ base_date: "2024-03-15"                 # ISO 8601 (AAAA-MM-JJ)
 
 # ── Variantes de mission ───────────────────────────────────────────────────
 versions:
-  - name: aube                          # REQUIS — nom du fichier de sortie (sans .miz)
+  - name: aube                          # REQUIS — nom de la variante (suffixe du fichier de sortie)
     time: "sunrise+30*60"               # expression horaire (voir ci-dessous)
     date: "today"                       # expression de date (voir ci-dessous, optionnel)
     metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optionnel
@@ -448,7 +448,7 @@ versions:
 
 | Champ | Type | Requis | Description |
 |-------|------|--------|-------------|
-| `name` | string | Oui | Nom du fichier de sortie (sans `.miz`) ; ex: `aube` → `aube.miz` |
+| `name` | string | Oui | Nom de la variante. Dans `mission build`, la sortie est `missions/<NomDeBase>_<name>.miz` (ex: `aube` → `Ma-Mission_aube.miz`) ; la forme nue `<name>.miz` n'existe qu'avec `inject-weather` autonome |
 | `time` | string | Non | Expression horaire — voir ci-dessous |
 | `date` | string | Non | Expression de date — voir ci-dessous |
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo |

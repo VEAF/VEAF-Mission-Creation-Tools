@@ -62,9 +62,10 @@ VEAF-Mission-Creation-Tools/
 ├── dist/                         # PyInstaller .exe output
 ├── build/                        # Temporary build workspace
 ├── test/
-│   └── lua/                      # Lua unit tests
+│   ├── lua/                      # Lua unit tests
+│   └── python/                   # Python unit tests
 ├── doc/                          # Documentation
-├── openspec/                     # Change management (OpenSpec workflow)
+├── .backlog/                     # Lot backlog (PRDs + tickets)
 └── .github/
     └── workflows/                # CI/CD GitHub Actions
 ```
@@ -375,7 +376,7 @@ assignments out of `__init__` and fails naming the missing field and the file to
 
 ```powershell
 # Build (compiles Lua + builds .exe)
-poetry run veaf-build build --version 6.1.0
+poetry run veaf-build build --version <version>
 ```
 
 What it does:
@@ -481,10 +482,10 @@ Full testing reference: [Testing Guide](../TESTING.en.md)
 
 ```powershell
 # Check formatting (same as CI)
-~/.local/bin/stylua.exe --check src/scripts/veaf/
+~/.local/bin/stylua.exe --check src/scripts/veaf/ test/lua/
 
 # Auto-fix
-~/.local/bin/stylua.exe src/scripts/veaf/
+~/.local/bin/stylua.exe src/scripts/veaf/ test/lua/
 
 # Static analysis
 luacheck src/scripts/veaf/ --config .luacheckrc
@@ -499,12 +500,14 @@ Luacheck is enforced by the `Luacheck` CI job.
 |-----|---------------|
 | `Lua Unit Tests` | Every test suite passes |
 | `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
-| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
-| `python-quality` | ruff lint + format, mypy types, pytest |
+| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` and `test/lua/` |
+| `Lua Coverage` | Line coverage (luacov) above the ratchet floor (`--cov-fail-under`) — blocking |
+| `python-quality` | ruff lint + format (`src/python/ test/python/ veaf_build/`), mypy (`src/python/veaf-tools`), pytest |
 | `Docs Check` | Documentation links and anchors, FR/EN pairing, pages missing from the menu |
 | `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
 
-All CI jobs must be green before a PR can be merged.
+All CI jobs must be green before a PR can be merged. Exception: `dcs-mock-coverage` is
+`continue-on-error` — informative, it does not block the merge.
 
 ### Before a commit touching the documentation {#docs-check}
 
@@ -512,7 +515,10 @@ All CI jobs must be green before a PR can be merged.
 poetry run docs-check
 ```
 
-The `Docs Check` CI job runs exactly that command. It refuses four kinds of rot that had quietly
+The `Docs Check` CI job runs exactly that command, which chains **three passes**: the main pass
+over `doc/` (the table below), a relative-link pass over the rest of the repository (`.backlog/`,
+`docs/`, the root pages), and a documentation-coverage pass (every capability the code defines
+must be named by its reference page). The main pass refuses four kinds of rot that had quietly
 accumulated before it existed (see the `DOC-AUDIT-PASS` lot):
 
 | Check | Why |
@@ -555,8 +561,8 @@ The version you enter is also the one stamped into the pages — otherwise repub
 Push a `published-v*` tag — the `Release` CI workflow does everything automatically:
 
 ```bash
-git tag published-v6.1.0
-git push origin published-v6.1.0
+git tag published-v<version>
+git push origin published-v<version>
 ```
 
 ---
@@ -620,7 +626,7 @@ veaf-tools mission build --dev-mode --scripts-path path/to/VEAF-Mission-Creation
 - **Feature work:** create `feature/xxx` from `develop`, open PR → `develop`
 - **Bug fixes:** create `fix/xxx` from `develop`, open PR → `develop`
 - **Hotfixes to production:** `fix/xxx` from `master`, PR → `master`
-- **Releases:** `release/vX.Y.Z` from `develop`, PR → `master`
+- **Releases:** `release/X.Y.Z` (no `v`) from `develop`, PR → `master`
 
 ### Commit Convention
 

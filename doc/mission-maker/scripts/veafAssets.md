@@ -1,19 +1,18 @@
 # veafAssets — Ravitailleurs, AWACS et porte-avions
 
-**Module ID:** `ASSETS` | **Version:** 1.8.x | **Fichier:** `veafAssets.lua`
+**Module ID:** `ASSETS` | **Fichier:** `veafAssets.lua`
 
 ---
 
 ## Objectif
 
-Gère les ressources persistantes d'une mission — ravitailleurs, AWACS et porte-avions. Fournit des entrées dans le menu radio F10 pour chaque ressource : informations (position, TACAN, fréquence), réapparition après perte, et désactivation optionnelle.
+Gère les ressources persistantes d'une mission — ravitailleurs, AWACS, JTAC. Fournit des entrées dans le menu radio F10 pour chaque ressource : informations (position, TACAN, fréquence), réapparition après perte, et désactivation optionnelle.
 
 ---
 
 ## Dépendances
 
 - `veafRadio` — menu F10
-- `veafCarrierOperations` — pour les porte-avions (optionnel, intégration automatique)
 - **MiST** — obligatoire : la réapparition (`veafAssets.respawn`) utilise `mist.respawnGroup`.
 
 > ⚠️ **Les assets doivent être des groupes placés dans le Mission Editor.** Le `name` de chaque asset doit correspondre exactement à un groupe présent dans le `.miz` (et chaque entrée `linked`). Un asset spawné dynamiquement ou mal nommé n'est pas dans la base MiST (`mist.DBs.MEgroupsByName`) → la réapparition échoue silencieusement en jeu. Le build émet désormais un **avertissement** si un groupe déclaré (ASSETS, QRA, …) est absent de la mission.
@@ -43,14 +42,14 @@ modules:
         description: "Texaco (KC-135)" # libellé affiché dans le menu F10
         information: 'Tacan 51Y\nU251.00 (21)'  # guillemets simples : \n est conservé tel quel → échappement Lua valide
         linked: null                    # nom d'une ressource liée (optionnel)
-        jtac: false                     # true = la ressource est un JTAC (optionnel)
+        jtac: 1688                      # code laser — la ressource est un JTAC qui illumine avec ce code (optionnel)
         freq: null                      # fréquence de remplacement pour l'affichage infos (optionnel)
         mod: null                       # modulation radio (AM | FM, optionnel)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `assets` | objet[] | `[]` | Non | Liste des ressources à gérer |
 | `assets[].sort` | entier | `0` | Non | Ordre de tri dans le menu F10 (croissant) |
@@ -58,11 +57,11 @@ modules:
 | `assets[].description` | string | — | Oui | Libellé affiché dans le menu F10 |
 | `assets[].information` | string | — | Non | Texte d'info affiché aux joueurs — utiliser du YAML entre guillemets simples `'ligne1\nligné2'` ou `"ligne1\\nligne2"` (double-quoté) pour obtenir un `\n` Lua valide |
 | `assets[].linked` | string | `null` | Non | Nom d'une ressource liée (ex : un porte-avions lié à son escorte) |
-| `assets[].jtac` | booléen | `false` | Non | Marque cette ressource comme JTAC |
+| `assets[].jtac` | nombre | `null` | Non | Code laser : la ressource est un JTAC qui illumine automatiquement avec ce code (nécessite CTLD) |
 | `assets[].freq` | nombre | `null` | Non | Fréquence de remplacement pour l'affichage infos (MHz) |
 | `assets[].mod` | string | `null` | Non | Modulation radio de remplacement (`AM` ou `FM`) |
 
-> Le groupe DCS référencé par `name` doit exister dans l'éditeur de mission. Les ressources porte-avions nécessitent également le module `CARRIER` activé.
+> Le groupe DCS référencé par `name` doit exister dans l'éditeur de mission.
 
 ### Exemple minimal
 
@@ -125,11 +124,11 @@ veafAssets.Assets = {
 
 ## Menu radio F10
 
-Pour chaque ressource, un sous-menu est créé sous **F10 → Ressources** :
+Les ressources apparaissent sous **F10 → ASSETS** (les libellés sont en anglais). Une ressource sans `information` ni `disposable` est une simple commande **Respawn [description]** ; sinon un sous-menu est créé avec :
 
-- **Réapparition [nom]** — fait réapparaître le groupe à sa position d'origine
-- **Infos sur [nom]** — affiche la position, le canal TACAN, la fréquence radio (si `information = true`)
-- **Désactiver [nom]** — désactive la ressource (si `disposable = true`, commande sécurisée)
+- **Respawn [description]** — fait réapparaître le groupe à sa position d'origine
+- **Get info on [description]** — affiche le texte d'information (si `information` est renseigné)
+- **Dispose of [description]** — désactive la ressource (si `disposable = true`, commande sécurisée)
 
 ---
 
@@ -137,7 +136,6 @@ Pour chaque ressource, un sous-menu est créé sous **F10 → Ressources** :
 
 - Le groupe DCS doit exister dans l'éditeur de mission avec exactement le nom utilisé dans `name`
 - Les informations du ravitailleur (TACAN, fréquence) sont lues depuis les paramètres de route/waypoint du groupe DCS
-- Les informations du porte-avions nécessitent que `veafCarrierOperations` soit initialisé
 
 ---
 

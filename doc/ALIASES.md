@@ -209,9 +209,7 @@ le nombre d'obus, le rayon et la puissance sont tirés au hasard dans une fourch
 > 🔐 `-login` et `-logout` pilotent l'authentification VEAF (`_auth`). `-login` attend le mot de
 > passe à la suite, **sans virgule** : `-login monmotdepasse`. Elles portent `:setHidden(true)`, ce qui les
 > retire de la liste que l'action MCP `list_shortcuts` sert à une IA — on ne propose pas une commande
-> d'authentification à un assistant qui construit une mission. Cela ne justifiait pas de les cacher
-> **aussi** à un lecteur humain : le code est public, l'omission ne protégeait rien et privait le
-> mission maker légitime de l'information.
+> d'authentification à un assistant qui construit une mission.
 
 ## Outils cartographiques
 

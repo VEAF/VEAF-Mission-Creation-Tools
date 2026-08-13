@@ -43,7 +43,7 @@ modules:
       - name: "smoke"                 # alias name (used as -smoke in markers)
         description: "Smoke shortcut" # shown in radio help
         command: "/_smoke"            # VEAF command to execute
-        bypass_security: false        # true = always available, no /secu needed
+        bypass_security: false        # true = skips the command's level check (always available)
 ```
 
 | Field | Type | Default | Required | Description |

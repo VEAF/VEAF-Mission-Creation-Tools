@@ -264,7 +264,7 @@ my-mission/
 │   │   └── warehouses
 │   ├── scripts/
 │   │   ├── mission-script.lua  ← custom Lua code (commit this)
-│   │   └── veafDynamicConfig.lua   ← optional dynamic slots config
+│   │   └── veafDynamicConfig.lua   ← optional dynamic script-loading config (dev)
 │   ├── presets.yaml            ← radio presets config (optional)
 │   ├── spawnables.yaml         ← custom spawnable groups (optional)
 │   └── waypoints.yaml          ← custom waypoints (optional)
@@ -329,9 +329,7 @@ expected.
 
 ### "VEAF scripts loader" trigger appears twice
 
-You have both an old manual `DO SCRIPT FILE` trigger and the v6 auto-injected one. Remove the manual trigger from the DCS Mission Editor (open the `.miz`, edit triggers, delete the old one, save), then re-extract and rebuild.
-
-Alternatively, use `--migrate-from-v5` on the build to have the old triggers removed automatically (this is the default).
+An old manual `DO SCRIPT FILE` trigger coexists with the v6 auto-injected one. `veaf-tools mission build` removes the old v5 triggers automatically (`--migrate-from-v5` option, on by default) — rebuilding is enough. Removing the trigger by hand in the DCS Mission Editor is only needed if you explicitly disabled that migration (`--no-migrate-from-v5`).
 
 ### Radio menus don't appear
 

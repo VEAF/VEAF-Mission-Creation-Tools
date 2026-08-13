@@ -1,6 +1,6 @@
 # veafNamedPoints — Points nommés sur la carte
 
-**Module ID:** `NAMED POINTS` | **Version:** 1.16.x | **Fichier:** `veafNamedPoints.lua`
+**Module ID:** `NAMEDPOINTS` | **Fichier:** `veafNamedPoints.lua`
 
 ---
 

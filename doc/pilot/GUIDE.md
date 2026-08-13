@@ -277,29 +277,31 @@ Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5
 Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission :
 
 Il y a deux façons d'avoir le droit d'utiliser une commande : **être reconnu par le serveur**, ou
-**donner le mot de passe**. Les serveurs VEAF tiennent une liste de pilotes ; votre place dans cette
-liste vous ouvre certaines commandes sans rien taper.
+**donner le mot de passe**. Les serveurs VEAF tiennent une liste de pilotes ; si vous y êtes inscrit,
+votre palier s'applique tout seul — aucun mot de passe ne vous est jamais demandé pour les commandes
+de votre palier ou en dessous.
 
 | Palier | Qui passe sans mot de passe |
 |--------|-----------------------------|
+| Ouvert | Tout le monde, inscrit ou pas |
 | Pilote connu | Tout pilote inscrit sur la liste du serveur |
 | Membre de confiance | Les pilotes que le serveur a distingués comme tels |
 | Administrateur | Les administrateurs du serveur |
+| Mission Master | Personne : le mot de passe est exigé de tous, quel que soit le palier |
 
-Certaines commandes sont ouvertes à tout le monde, inscrit ou pas : les infos sur les ressources, la
-fumée, les fusées éclairantes, le marquage d'un point. D'autres, comme faire apparaître un groupe ou
-détruire une unité, demandent un des paliers ci-dessus.
+Les commandes ouvertes : infos sur les ressources, fumée, fusées éclairantes, marquage d'un point.
+D'autres, comme faire apparaître un groupe ou détruire une unité, demandent un palier plus élevé.
 
-Si vous n'êtes pas reconnu, placez un marqueur contenant :
+Si vous n'êtes pas sur la liste, ajoutez le mot de passe du palier voulu à chaque commande protégée
+(mot-clé `password`, par exemple `_spawn group, name ..., password [MOT_DE_PASSE]`) : il est vérifié
+commande par commande. Il n'y a ni session ni durée — rien à ouvrir, rien qui expire. Le mot de passe
+est défini par le créateur de la mission ou l'administrateur du serveur, et il y en a un par palier —
+celui d'administrateur ouvre aussi tout ce qui est en dessous.
 
-```
-_auth [MOT_DE_PASSE]
-```
-
-Le mot de passe est défini par le créateur de la mission ou l'administrateur du serveur, et il y en a
-un par palier — celui d'administrateur ouvre aussi tout ce qui est en dessous. L'authentification
-reste valide pendant une durée configurée (10 minutes par défaut), puis vos droits reviennent
-automatiquement à ce que la liste du serveur vous accorde.
+**Menu F10** : DCS ne sait pas dire quel occupant d'un groupe a cliqué sur une entrée du menu. Les
+commandes protégées du menu F10 fonctionnent donc au niveau du **membre le moins gradé** du groupe.
+Si cela vous bride (appareil multi-places partagé), posez un marqueur contenant `_auth elevate` : le
+groupe monte à votre propre niveau pendant 2 minutes, jamais plus haut.
 
 ---
 
@@ -338,7 +340,7 @@ automatiquement à ce que la liste du serveur vous accorde.
 Appuyez sur F10 : si un sous-menu « VEAF » apparaît sous « Autre », c'est une mission VEAF.
 
 **Mes commandes par marqueur ne fonctionnent pas. Pourquoi ?**
-Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, vous devez peut-être vous authentifier d'abord avec `_auth [MOT_DE_PASSE]`. Vérifiez aussi que le serveur autorise les commandes par marqueur.
+Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, si vous n'êtes pas sur la liste des pilotes du serveur, ajoutez `password [MOT_DE_PASSE]` à la commande. Pour le menu F10, rappelez-vous que le groupe agit au niveau de son membre le moins gradé : `_auth elevate` le monte à votre niveau pendant 2 minutes. Vérifiez aussi que le serveur autorise les commandes par marqueur.
 
 **Quels noms d'unités puis-je utiliser avec `_spawn unit` ?**
 Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Attention, ils sont sensibles à la casse (majuscules/minuscules).

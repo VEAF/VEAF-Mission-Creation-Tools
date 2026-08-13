@@ -66,7 +66,7 @@ nouveau parsing.
 {"miz_path": "chemin/vers/mission.miz"}
 ```
 
-### `describe_units`
+### `describe_units` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Lecture seule. Le niveau de détail que `describe_mission` ne donne pas : les **unités** de chaque
 groupe (type, `skill`, livrée, indicatif, numéro de flanc, position, cap, altitude, carburant,
@@ -99,7 +99,7 @@ qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas
 {"miz_path": "chemin/vers/mission.miz", "group_name": "Colt", "include_route": false}
 ```
 
-### `set_unit_properties`
+### `set_unit_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Écriture. La **première** action qui modifie un objet déjà présent dans la mission : toutes les
 `set_*` livrées avant elle agissent sur la *configuration* (modules, sécurité, logs, coalition d'une
@@ -152,7 +152,7 @@ rien » ; en mode `merge`, un CLSID vide vide cette station.
 La réponse porte `changed`, qui donne pour chaque champ touché sa valeur **précédente** et la
 nouvelle : un appelant qui ne peut pas dire ce qu'il a remplacé ne peut pas le défaire.
 
-### `set_group_properties`
+### `set_group_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Écriture. Agit sur le groupe entier : déplacement, renommage, fréquence, modulation, et les trois
 booléens (`lateActivation`, `hidden`, `uncontrolled`). Sauvegarde horodatée avant écriture.
@@ -199,7 +199,7 @@ de valider et de mentir.
 }
 ```
 
-### `edit_route`
+### `edit_route` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Écriture. Deux couches : la **route** (`add`, `insert`, `remove`, `reorder`, `set`) est pour l'essentiel
 une opération de liste sur `route.points` ; les **tâches** d'un point de passage (`add_task`,
@@ -248,7 +248,7 @@ vitesse de son voisin — sinon il s'écrit à l'altitude 0 et le vol plonge au 
 }
 ```
 
-### `edit_zone`
+### `edit_zone` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Écriture. `add_trigger_zone` ne crée que des zones **circulaires** et rien n'en modifiait une ensuite,
 donc ajuster une combat zone VEAF — qui *est* une zone de déclenchement — imposait de la supprimer et
@@ -287,7 +287,7 @@ refusé plutôt qu'averti (une zone liée à rien ne suit simplement jamais rien
 }
 ```
 
-### `add_map_drawing` / `edit_map_drawing`
+### `add_map_drawing` / `edit_map_drawing` (lot FEAT-MCP-MUTATION-ACTIONS)
 
 Écriture. Rien dans VMCT ne touchait aux dessins de la carte F10, donc une ligne de briefing, un couloir
 d'entrée ou une boîte interdite se dessinait à la main dans l'éditeur — **et disparaissait dès que la
@@ -723,11 +723,10 @@ dans la commande CLI, on la réexécute telle quelle. Un échec de build est rem
 
 ## Prochaines vagues (hors périmètre)
 
-- Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
   se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
 - Un validateur de schéma par module pour `set_mission_module` (la vague 4 reste générique).
-- Composites CAS (pur runtime, pas d'écriture), zones non-circulaires, et génération end-to-end
+- Composites CAS (pur runtime, pas d'écriture) et génération end-to-end
   depuis un prompt (l'objectif NL-MISSION-GEN au-delà de ce lot).
 
-Voir `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` pour le détail.
+Voir `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md` pour le détail.

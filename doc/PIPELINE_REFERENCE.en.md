@@ -62,7 +62,7 @@ When set to an object, the following sub-fields apply:
 
 Injects radio frequency presets into every aircraft group that has at least one human pilot (Client/Player skill). Also generates kneeboard PNG images for each preset.
 
-> **Disabling kneeboards**: the step's mapping form accepts a `kneeboards` sub-flag (default `true`). Setting `pipeline: { presets: { enabled: true, kneeboards: false } }` keeps the radio frequency injection but generates no kneeboard PNG plates (`KNEEBOARD/IMAGES/presets-*.png`).
+> **Disabling kneeboards**: the step's mapping form accepts a `kneeboards` sub-flag (default `true`). Setting `pipeline: { presets: { enabled: true, kneeboards: false } }` keeps the radio frequency injection but generates no kneeboard PNG plates (`KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`).
 
 ### Default file location
 
@@ -246,7 +246,7 @@ presets_assignments:
 
 Once the presets are corrected, remove the `none` line to re-enable injection.
 
-Specs cover 87 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
+Specs cover 100 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
 
 > **See also**: [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.en.md) — full reference table of valid frequency ranges and list of critical aircraft.  
 > To regenerate after a DCS update: `poetry run update-radio-specs`
@@ -426,7 +426,7 @@ base_date: "2024-03-15"                 # ISO 8601 (YYYY-MM-DD)
 
 # ── Mission variants ───────────────────────────────────────────────────────
 versions:
-  - name: dawn                          # REQUIRED — output filename (without .miz)
+  - name: dawn                          # REQUIRED — variant name (output filename suffix)
     time: "sunrise+30*60"               # Time expression (see below)
     date: "today"                       # Date expression (see below, optional)
     metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optional
@@ -447,7 +447,7 @@ versions:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Output filename (no `.miz`); e.g. `dawn` → `dawn.miz` |
+| `name` | string | Yes | Variant name. Inside `mission build`, the output is `missions/<BaseName>_<name>.miz` (e.g. `dawn` → `My-Mission_dawn.miz`); the bare `<name>.miz` form only exists with standalone `inject-weather` |
 | `time` | string | No | Time expression — see below |
 | `date` | string | No | Date expression — see below |
 | `metar` | string | No | Full METAR string — parsed for weather data |

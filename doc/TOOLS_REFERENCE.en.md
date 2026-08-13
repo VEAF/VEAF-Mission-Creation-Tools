@@ -93,7 +93,7 @@ This will:
 4. ✅ Download `published.zip` from GitHub Release
 5. ✅ **Verify SHA256 checksum** (ensures file integrity)
 6. ✅ Extract and install to your mission folder
-7. ✅ Copy key files (`veaf-tools-updater.exe`, build scripts) to current directory
+7. ✅ Move the two executables (`veaf-tools.exe`, `veaf-tools-updater.exe`) to the current directory
 
 **Result:** Your tools are updated with integrity verification
 
@@ -291,7 +291,7 @@ veaf-build publish --version 6.0.1 --token ghp_xxxxxxxxxxxx
 **Notes:**
 
 - `--version` is an option, not a positional argument. If omitted, the version is read from `package.json`.
-- The token is read from `veaf-tools-config.yaml` (if present), the `--token` option, or the `GITHUB_TOKEN` environment variable.
+- The token is resolved in this order: the `--token` option, then `github.token` in `veaf-tools-config.yaml`, then the `GITHUB_TOKEN` environment variable.
 - `published.zip` must already exist in the current directory (run `veaf-build build` first).
 
 **What happens:**
@@ -317,13 +317,13 @@ veaf-build publish --version 6.0.1 --force
 ### Pre-Release (testing without affecting users)
 
 ```bash
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 ```
 
-`--prerelease` marks the release as a pre-release and leaves the `published-latest` tag untouched, so production users are not updated automatically. Test it explicitly with:
+`--prerelease` requires a semver pre-release version (with a `-` suffix, e.g. `6.0.1-rc1`): the release workflow keys off that `-` to leave the `published-latest` tag in place. A `--prerelease` on a plain version (`6.0.1`) is **rejected** by the command. With a valid suffix, production users are not updated automatically; test explicitly with:
 
 ```bash
-veaf-tools-updater.exe --tag published-v6.0.1
+veaf-tools-updater.exe --tag published-v6.0.1-rc1
 ```
 
 ### CI Mode
@@ -489,23 +489,17 @@ Result:    6.0.1 > 6.0.0 → Update available ✓
 After updating, users have:
 
 ```
-Current Directory:
-├── veaf-tools-updater.exe            (executable)
-├── buildDemoMission.cmd              (script)
-├── buildHelicopterTrainingMission.cmd (script)
-├── buildTRADMission.cmd              (script)
-├── buildOTMission.cmd                (script)
-└── ... other build scripts ...
+Current Directory (mission folder):
+├── veaf-tools.exe                    (main executable, moved out of published/)
+└── veaf-tools-updater.exe            (the updater itself, replaced via deferred update when running)
 
-Mission Folder (specified in update):
-└── published/
-    ├── veaf-tools-updater.exe
+└── published/                        (the rest of the extracted package)
+    ├── README.md                     (deliberately kept here — the online docs are the source)
     ├── package.json                  (version info)
-    ├── build-scripts/
-    │   ├── buildDemoMission.cmd
-    │   └── ... scripts ...
-    └── ... other files ...
+    └── ... other package files ...
 ```
+
+Only the two executables are moved to the current directory; everything else stays under `published/`.
 
 ### What GitHub Shows
 
@@ -715,7 +709,7 @@ veaf-build publish --version 6.0.1
 veaf-build publish --version 6.0.1 --token ghp_xxx
 
 # Pre-release / force / CI
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 veaf-build publish --version 6.0.1 --force
 veaf-build publish --version 6.0.1 --ci
 ```
@@ -807,7 +801,7 @@ A: As often as you have changes. Users won't see it unless you tell them.
 A: On GitHub, yes. But users might have already downloaded it.
 
 **Q: How do I publish a beta without affecting users?**
-A: Use `veaf-build publish --version <x.y.z> --prerelease`. It leaves the `published-latest` tag untouched, so production users are not updated; test it with `veaf-tools-updater.exe --tag published-v<x.y.z>`.
+A: Use `veaf-build publish --version <x.y.z>-rc1 --prerelease` — the version must carry a semver pre-release suffix (`-rc1`, `-beta`…), otherwise the command refuses. The `published-latest` tag then stays untouched, so production users are not updated; test it with `veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
 
 **Q: How do I re-publish over an existing release?**
 A: Use `veaf-build publish --version <x.y.z> --force`.

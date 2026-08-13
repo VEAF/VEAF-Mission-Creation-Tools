@@ -73,16 +73,14 @@ Modules must be loaded in dependency order:
 - `function` - Callback function
 - `coalition` - Coalition ID: 0=neutral, **1=red, 2=blue** (`coalition.side.RED` is 1 — see the note below)
 
-!!! danger "`coalition.side` is RED=1, BLUE=2 — and this page said the opposite until 6.13.38"
+!!! danger "`coalition.side` is RED=1, BLUE=2"
 
     ```lua
     coalition.side = { NEUTRAL = 0, RED = 1, BLUE = 2 }
     ```
 
-    The inversion matters because nothing catches it: code written from the wrong mapping
-    compiles, runs, and quietly targets **the other side**. It was found by the 2026-07-01
-    security review (VMR-014) and fixed on 2026-08-08; the repository's own Lua never used
-    the wrong values, so nothing had to be corrected beyond this page and its French twin.
+    An inversion of these values is caught by nothing: code written from a wrong mapping
+    compiles, runs, and quietly targets **the other side**.
 
 
 **Return Values:**
@@ -165,7 +163,7 @@ veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 
 #### Localization (i18n) & pilot feedback
 
-In-game pilot-facing messages are localized (FR/EN). The active language is `veaf.config.language` (set from `mission.language`, else the tools' language, default `fr`); logs always stay in English.
+In-game pilot-facing messages are localized (FR/EN). The active language is `veaf.config.language` (set from `mission.language`, else the tools' resolved language at build time, whose final fallback is `en`); logs always stay in English.
 
 ##### `veaf.t(key, ...)`
 

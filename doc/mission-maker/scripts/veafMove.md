@@ -1,6 +1,6 @@
 # veafMove — Déplacement d'unités et gestion des routes de ravitailleurs
 
-**Module ID:** `MOVE` | **Version:** — | **Fichier:** `veafMove.lua`
+**Module ID:** `MOVE` | **Fichier:** `veafMove.lua`
 
 ---
 

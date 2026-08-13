@@ -93,7 +93,7 @@ Cela va :
 4. ✅ Télécharger `published.zip` depuis la Release GitHub
 5. ✅ **Vérifier le checksum SHA256** (garantit l'intégrité du fichier)
 6. ✅ Extraire et installer dans votre dossier de mission
-7. ✅ Copier les fichiers clés (`veaf-tools-updater.exe`, scripts de build) dans le répertoire courant
+7. ✅ Déplacer les deux exécutables (`veaf-tools.exe`, `veaf-tools-updater.exe`) dans le répertoire courant
 
 **Résultat :** Vos outils sont à jour avec vérification d'intégrité
 
@@ -291,7 +291,7 @@ veaf-build publish --version 6.0.1 --token ghp_xxxxxxxxxxxx
 **Remarques :**
 
 - `--version` est une option, pas un argument positionnel. Si elle est omise, la version est lue depuis `package.json`.
-- Le token est lu depuis `veaf-tools-config.yaml` (s'il existe), l'option `--token`, ou la variable d'environnement `GITHUB_TOKEN`.
+- Le token est résolu dans cet ordre : l'option `--token`, puis `github.token` dans `veaf-tools-config.yaml`, puis la variable d'environnement `GITHUB_TOKEN`.
 - `published.zip` doit déjà exister dans le répertoire courant (lancez `veaf-build build` d'abord).
 
 **Ce qui se passe :**
@@ -317,13 +317,13 @@ veaf-build publish --version 6.0.1 --force
 ### Pré-release (test sans impacter les utilisateurs)
 
 ```bash
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 ```
 
-`--prerelease` marque la release comme pré-release et laisse le tag `published-latest` intact, de sorte que les utilisateurs en production ne sont pas mis à jour automatiquement. Testez-la explicitement avec :
+`--prerelease` exige une version semver de pré-release (avec un suffixe `-`, ex. `6.0.1-rc1`) : le workflow de release se base sur ce `-` pour laisser le tag `published-latest` en place. Un `--prerelease` sur une version nue (`6.0.1`) est **refusé** par la commande. Avec un suffixe valide, les utilisateurs en production ne sont pas mis à jour automatiquement ; testez explicitement avec :
 
 ```bash
-veaf-tools-updater.exe --tag published-v6.0.1
+veaf-tools-updater.exe --tag published-v6.0.1-rc1
 ```
 
 ### Mode CI
@@ -489,23 +489,17 @@ Résultat :    6.0.1 > 6.0.0 → Mise à jour disponible ✓
 Après mise à jour, les utilisateurs ont :
 
 ```
-Répertoire courant :
-├── veaf-tools-updater.exe            (exécutable)
-├── buildDemoMission.cmd              (script)
-├── buildHelicopterTrainingMission.cmd (script)
-├── buildTRADMission.cmd              (script)
-├── buildOTMission.cmd                (script)
-└── ... autres scripts de build ...
+Répertoire courant (dossier mission) :
+├── veaf-tools.exe                    (exécutable principal, déplacé depuis published/)
+└── veaf-tools-updater.exe            (l'updater lui-même, remplacé en différé s'il tourne)
 
-Dossier mission (spécifié lors de la mise à jour) :
-└── published/
-    ├── veaf-tools-updater.exe
+└── published/                        (le reste du paquet extrait)
+    ├── README.md                     (reste ici volontairement — la doc en ligne fait foi)
     ├── package.json                  (info version)
-    ├── build-scripts/
-    │   ├── buildDemoMission.cmd
-    │   └── ... scripts ...
-    └── ... autres fichiers ...
+    └── ... autres fichiers du paquet ...
 ```
+
+Seuls les deux exécutables sont déplacés dans le répertoire courant ; tout le reste demeure sous `published/`.
 
 ### Ce que GitHub affiche
 
@@ -715,7 +709,7 @@ veaf-build publish --version 6.0.1
 veaf-build publish --version 6.0.1 --token ghp_xxx
 
 # Pre-release / force / CI
-veaf-build publish --version 6.0.1 --prerelease
+veaf-build publish --version 6.0.1-rc1 --prerelease
 veaf-build publish --version 6.0.1 --force
 veaf-build publish --version 6.0.1 --ci
 ```
@@ -807,7 +801,7 @@ R : Aussi souvent que vous avez des changements. Les utilisateurs ne les verront
 R : Sur GitHub, oui. Mais les utilisateurs l'ont peut-être déjà téléchargée.
 
 **Q : Comment publier une beta sans impacter les utilisateurs ?**
-R : Utilisez `veaf-build publish --version <x.y.z> --prerelease`. Le tag `published-latest` reste intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>`.
+R : Utilisez `veaf-build publish --version <x.y.z>-rc1 --prerelease` — la version doit porter un suffixe semver de pré-release (`-rc1`, `-beta`…), sinon la commande refuse. Le tag `published-latest` reste alors intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
 
 **Q : Comment republier par-dessus une release existante ?**
 R : Utilisez `veaf-build publish --version <x.y.z> --force`.

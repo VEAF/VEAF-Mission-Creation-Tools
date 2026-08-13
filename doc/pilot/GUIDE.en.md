@@ -277,28 +277,30 @@ Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA l
 On multiplayer servers, the mission maker may restrict certain commands according to your permission level:
 
 There are two ways to be allowed to run a command: **being recognised by the server**, or **giving
-the password**. VEAF servers keep a list of pilots, and your place on that list opens some commands
-without typing anything.
+the password**. VEAF servers keep a list of pilots; if you are on it, your tier applies by itself —
+you are never asked for a password for commands at or below your tier.
 
 | Tier | Who passes without a password |
 |------|-------------------------------|
+| Open | Everyone, listed or not |
 | Known pilot | Any pilot on the server's list |
 | Trusted member | The pilots the server has singled out as such |
 | Administrator | The server's administrators |
+| Mission Master | Nobody: the password is required from everyone, whatever their tier |
 
-Some commands are open to everyone, listed or not: asset info, smoke, signal flares, naming a point.
-Others — spawning a group, destroying a unit — need one of the tiers above.
+The open commands: asset info, smoke, signal flares, naming a point. Others — spawning a group,
+destroying a unit — need a higher tier.
 
-If you are not recognised, place a marker containing:
+If you are not on the list, add the password of the required tier to each protected command
+(`password` keyword, e.g. `_spawn group, name ..., password [PASSWORD]`): it is checked command by
+command. There is no session and no duration — nothing to open, nothing that expires. The password is
+set by the mission maker or server administrator, and there is one per tier — the administrator's
+also opens everything below it.
 
-```
-_auth [PASSWORD]
-```
-
-The password is set by the mission maker or server administrator, and there is one per tier — the
-administrator's also opens everything below it. Authentication stays valid for a configured duration
-(10 minutes by default), after which your rights return automatically to whatever the server's list
-grants you.
+**F10 menu**: DCS cannot tell which occupant of a group clicked a menu entry. Protected F10 menu
+commands therefore work at the level of the group's **lowest-graded occupant**. If that holds you
+back (shared multi-crew aircraft), place a marker containing `_auth elevate`: the group rises to your
+own level for 2 minutes, never higher.
 
 ---
 
@@ -337,7 +339,7 @@ grants you.
 Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 
 **My marker commands don't work. Why?**
-Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer you may need to authenticate first with `_auth [PASSWORD]`. Also check that the server allows marker commands.
+Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer, if you are not on the server's pilot list, add `password [PASSWORD]` to the command. For the F10 menu, remember the group acts at the level of its lowest-graded occupant: `_auth elevate` raises it to your own level for 2 minutes. Also check that the server allows marker commands.
 
 **What unit names can I use with `_spawn unit`?**
 Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.

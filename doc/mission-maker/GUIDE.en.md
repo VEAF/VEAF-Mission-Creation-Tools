@@ -289,11 +289,10 @@ modules:
 | `MM` | (no level) | never — the Mission Master password is the only way in |
 | `OPEN` | (no check) | always — the command is deliberately available to everyone |
 
-!!! info "These tiers were called `L9`, `L1` and `L0` until 6.13.37"
+!!! info "`L9`, `L1` and `L0` are deprecated aliases — and they read backwards"
 
-    The old names read backwards — `L0` was the **tightest** tier, not the loosest — and
-    this page said the opposite until 2026-08-06, which is how a change came within one
-    line of locking a deliberately public command to administrators.
+    The old names read backwards from what they suggest: `L0` is the **tightest** tier
+    (`ADMIN`), not the loosest; `L9` is the most open (`KNOWN_PILOT`).
 
     `L9`, `L1` and `L0` still work as **deprecated aliases** and will be removed in a
     future release. **The values are unchanged** (1, 10, 90), so renaming them changes no

@@ -226,7 +226,7 @@ veafRadio.addCommandToSubmenu(
   veafRadio.USAGE_ForAll
 )
 
--- Ajouter une commande sécurisée (nécessite /secu login)
+-- Ajouter une commande sécurisée (exécutée au niveau effectif du groupe — son occupant le moins gradé)
 veafRadio.addSecuredCommandToSubmenu(
   "Arrêt d'urgence",
   menuMission,
@@ -352,5 +352,5 @@ veafRadio.addCommandToSubmenu(
 
 ## Voir aussi
 
-- [veafSecurity](veafSecurity.md) — sécuriser les commandes avec `/secu login`
+- [veafSecurity](veafSecurity.md) — paliers de sécurité et niveau effectif du groupe
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafRadio`

@@ -1,7 +1,7 @@
 # veafGrass — Grass Airstrip Configuration
 
 
-**Module ID:** — | **File:** `veafGrass.lua`
+**Module ID:** `GRASS` | **File:** `veafGrass.lua`
 
 ---
 
@@ -26,7 +26,7 @@ veafGrass.initialize()
 At startup the module scans every unit in the mission and acts based on its name:
 
 - Static objects whose **name contains `GRASS_RUNWAY`** (case-insensitive) are used as the origin of a grass strip.
-- FARP-type units (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T`, `SINGLE_HELIPAD`) whose **group name starts with `FARP ` (FARP followed by a space)** receive FARP scenery.
+- FARP-type units (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T`, `SINGLE_HELIPAD`) whose **unit name starts with `FARP ` (FARP followed by a space)** receive FARP scenery.
 
 ---
 
@@ -47,7 +47,7 @@ At startup, `veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)` builds th
 To dress up a FARP:
 
 1. Place a FARP-type unit (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T` or `SINGLE_HELIPAD`).
-2. Name its **group** so that it starts with `FARP ` (for example `FARP Whiskey`).
+2. Name the **unit** so that it starts with `FARP ` (for example `FARP Whiskey`).
 3. Call `veafGrass.initialize()`.
 
 At startup, `veafGrass.buildFarpsUnits(hiddenOnMFD)` adds FARP scenery around each recognised unit (via `veafGrass.buildFarpUnits`).

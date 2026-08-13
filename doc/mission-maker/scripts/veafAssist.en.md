@@ -23,12 +23,18 @@ One aircraft ships with a checklist: the **F-16C** (engine start).
 F10 radio menu → `Assistance`. One entry per checklist that applies to your aircraft; if yours has
 none, no entry appears.
 
-Once a checklist is running, the menu offers:
+Once a checklist is running, two entries appear **at the top level of the VEAF menu** — not inside
+`Assistance` — to spare a menu round-trip on every step:
 
 | Entry | Effect |
 |---|---|
 | Confirm this step | Ticks the current step — **only** for steps that wait on your confirmation |
 | Skip this step | Ticks the step without doing it, and moves on |
+
+The `Assistance` submenu keeps the occasional commands:
+
+| Entry | Effect |
+|---|---|
 | Hide / show the checklist | Hides or brings back the picture |
 | Stop the assistance | Ends the session, clears the box and the picture |
 

@@ -1,6 +1,6 @@
 # veafSpawn — Apparition dynamique d'unités
 
-**Module ID:** `SPAWN` | **Version:** 1.59.x | **Fichier:** `veafSpawn.lua`
+**Module ID:** `SPAWN` | **Fichier:** `veafSpawn.lua`
 
 ---
 
@@ -119,7 +119,7 @@ _spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 - `speed` — vitesse du convoi (km/h)
 - `defense [0-5]` — niveau de défense aérienne
 - `armor [0-5]` — niveau de blindage
-- `size [0-5]` — nombre de véhicules
+- `size` — nombre de véhicules (défaut : 10 ; l'alias `-convoy` tire une taille aléatoire entre 6 et 15)
 - `patrol` — retour à la position de départ
 - `offroad` — autoriser le déplacement hors route
 

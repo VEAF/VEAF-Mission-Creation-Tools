@@ -23,7 +23,7 @@ C'est tout. Vous utilisez les VEAF Mission Creation Tools.
 | **Activer des missions** | Menu F10 → Missions → [Nom] → Activate | Scénarios de combat pré-construits (CAP, strike, SEAD…) |
 | **Zones de combat** | Menu F10 → Combat Zones → [Zone] → Activate | Zones de combat persistantes avec objectifs |
 | **Gérer les assets** | Menu F10 → Assets | Info ravitailleur/AWACS, recovery porte-avions, respawn |
-| **S'authentifier** | Marqueur F10 : `_auth [MOT_DE_PASSE]` | Débloquer les commandes restreintes en multijoueur |
+| **Élever son groupe** | Marqueur F10 : `_auth elevate` | Monter le groupe à votre propre niveau pendant 2 minutes (le menu F10 agit au niveau du membre le moins gradé du groupe) |
 
 ---
 

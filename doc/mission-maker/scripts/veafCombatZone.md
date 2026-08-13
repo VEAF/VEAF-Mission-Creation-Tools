@@ -1,6 +1,6 @@
 # veafCombatZone — Zones de combat activables
 
-**Module ID:** `COMBATZONE` | **Version:** 1.22.x | **Fichier:** `veafCombatZone.lua`
+**Module ID:** `COMBATZONE` | **Fichier:** `veafCombatZone.lua`
 
 ---
 
@@ -328,7 +328,7 @@ strikeZone:addZoneElement(element)
 - **Fumée** — marquer la zone avec de la fumée (délai applicable)
 - **Fusée éclairante** — marquer la zone avec des fusées
 
-> **Sécurité :** par défaut, les commandes d'activation/désactivation nécessitent une connexion `/secu login`. Seul le [mode entraînement](#mode-entraînement) supprime cette restriction. Les demandes d'infos, fumée et fusée sont toujours accessibles sans login.
+> **Sécurité :** par défaut, les commandes d'activation/désactivation sont sécurisées : le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)). Seul le [mode entraînement](#mode-entraînement) supprime cette restriction. Les demandes d'infos, fumée et fusée sont toujours accessibles à tous.
 
 ### Options du menu radio
 
@@ -397,7 +397,7 @@ Quand plusieurs zones chaînées sont définies, **une seule est tirée au hasar
 
 Mettre une zone en mode entraînement change deux choses :
 
-- **Pas de sécurité** : n'importe quel joueur peut activer ou désactiver la zone via le menu radio (normalement l'activation de la zone est journalisée et peut être restreinte par `/secu login`).
+- **Pas de sécurité** : n'importe quel joueur peut activer ou désactiver la zone via le menu radio (normalement ces commandes sont réservées au niveau effectif du groupe — voir [veafSecurity](veafSecurity.md)).
 - **État détaillé** : le message d'info de la zone liste les unités restantes et leurs positions approximatives (via fumée ou relèvements), donnant aux pilotes une vue claire de ce qu'il reste.
 
 ```lua

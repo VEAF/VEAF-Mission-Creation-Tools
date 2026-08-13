@@ -73,17 +73,14 @@ Les modules doivent être chargés dans l'ordre de dépendance :
 - `function` — Fonction callback
 - `coalition` — ID de coalition : 0=neutre, **1=rouge, 2=bleu** (`coalition.side.RED` vaut 1 — voir la note ci-dessous)
 
-!!! danger "`coalition.side` vaut RED=1, BLUE=2 — et cette page affirmait l'inverse jusqu'à la 6.13.38"
+!!! danger "`coalition.side` vaut RED=1, BLUE=2"
 
     ```lua
     coalition.side = { NEUTRAL = 0, RED = 1, BLUE = 2 }
     ```
 
-    L'inversion est dangereuse parce que rien ne l'attrape : du code écrit d'après le mauvais
-    tableau compile, s'exécute, et vise silencieusement **le camp adverse**. Défaut relevé par
-    la revue de sécurité du 2026-07-01 (VMR-014) et corrigé le 2026-08-08 ; le Lua du dépôt
-    n'a jamais utilisé les mauvaises valeurs, donc rien d'autre que cette page et sa jumelle
-    anglaise n'était à corriger.
+    Une inversion de ces valeurs n'est attrapée par rien : du code écrit d'après un mauvais
+    tableau compile, s'exécute, et vise silencieusement **le camp adverse**.
 
 
 **Valeurs de retour :**
@@ -166,7 +163,7 @@ veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 
 #### Localisation (i18n) & retour pilote
 
-Les messages en jeu destinés au pilote sont localisés (FR/EN). La langue active est `veaf.config.language` (issue de `mission.language`, sinon la langue des outils, défaut `fr`) ; les logs restent toujours en anglais.
+Les messages en jeu destinés au pilote sont localisés (FR/EN). La langue active est `veaf.config.language` (issue de `mission.language`, sinon la langue résolue des outils au build, dont le repli final est `en`) ; les logs restent toujours en anglais.
 
 ##### `veaf.t(key, ...)`
 

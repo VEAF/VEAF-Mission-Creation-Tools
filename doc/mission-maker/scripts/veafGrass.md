@@ -1,6 +1,6 @@
 # veafGrass — Configuration de pistes en herbe
 
-**Module ID:** — | **Fichier:** `veafGrass.lua`
+**Module ID:** `GRASS` | **Fichier:** `veafGrass.lua`
 
 ---
 
@@ -25,7 +25,7 @@ veafGrass.initialize()
 Au démarrage, le module parcourt toutes les unités de la mission et agit selon leur nom :
 
 - Les objets statiques dont le **nom contient `GRASS_RUNWAY`** (insensible à la casse) servent d'origine à une piste en herbe.
-- Les unités de type FARP (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T`, `SINGLE_HELIPAD`) dont le **nom de groupe commence par `FARP ` (FARP suivi d'une espace)** reçoivent un décor de FARP.
+- Les unités de type FARP (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T`, `SINGLE_HELIPAD`) dont le **nom d'unité commence par `FARP ` (FARP suivi d'une espace)** reçoivent un décor de FARP.
 
 ---
 
@@ -46,7 +46,7 @@ Au démarrage, `veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)` constr
 Pour habiller un FARP :
 
 1. Placez une unité de type FARP (`FARP`, `FARP_SINGLE_01`, `Invisible FARP`, `FARP_T` ou `SINGLE_HELIPAD`).
-2. Nommez son **groupe** en le faisant commencer par `FARP ` (par exemple `FARP Whiskey`).
+2. Nommez l'**unité** en la faisant commencer par `FARP ` (par exemple `FARP Whiskey`).
 3. Appelez `veafGrass.initialize()`.
 
 Au démarrage, `veafGrass.buildFarpsUnits(hiddenOnMFD)` ajoute un décor de FARP autour de chaque unité reconnue (via `veafGrass.buildFarpUnits`).

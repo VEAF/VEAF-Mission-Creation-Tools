@@ -1,6 +1,6 @@
 # veafCarrierOperations — Gestion des récupérations sur porte-avions
 
-**Module ID:** `CARRIER` | **Version:** 1.12.x | **Fichier:** `veafCarrierOperations.lua`
+**Module ID:** `CARRIER` | **Fichier:** `veafCarrierOperations.lua`
 
 ---
 
@@ -44,7 +44,7 @@ modules:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `init.include_carrier_operations_radio` | booléen | `true` | Non | Ajouter le menu des opérations porte-avions au menu radio F10 |
 
@@ -115,7 +115,7 @@ Pendant les opérations, les deux items *Start* sont remplacés par :
 
 - **End air operations** — arrête la récupération et renvoie le porte-avions sur sa route initiale
 
-> Par défaut les items *Start*/*End* sont sécurisés (mot de passe requis). Positionnez `veafCarrierOperations.DisableSecurity = true` pour les rendre accessibles à tous.
+> Par défaut les items *Start*/*End* sont sécurisés : le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)). Positionnez `veafCarrierOperations.DisableSecurity = true` pour les rendre accessibles à tous.
 
 ---
 

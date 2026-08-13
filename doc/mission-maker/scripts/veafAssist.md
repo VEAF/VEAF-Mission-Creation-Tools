@@ -23,12 +23,18 @@ Un seul appareil est livré avec une checklist : le **F-16C** (démarrage moteur
 Menu radio F10 → `Assistance`. Une entrée par checklist applicable à l'appareil : si votre appareil
 n'en a aucune, aucune entrée n'apparaît.
 
-Une fois la checklist lancée, le menu propose :
+Une fois la checklist lancée, deux entrées apparaissent **à la racine du menu VEAF** — pas dans
+`Assistance` — pour épargner un aller-retour de menu à chaque étape :
 
 | Entrée | Effet |
 |---|---|
 | Valider cette étape | Coche l'étape courante — **seulement** pour les étapes qui attendent votre confirmation |
 | Passer cette étape | Coche l'étape sans la faire, et passe à la suivante |
+
+Le sous-menu `Assistance` garde les commandes occasionnelles :
+
+| Entrée | Effet |
+|---|---|
 | Masquer / afficher la checklist | Cache ou remontre l'image |
 | Arrêter l'assistance | Termine la session, efface l'encadré et l'image |
 

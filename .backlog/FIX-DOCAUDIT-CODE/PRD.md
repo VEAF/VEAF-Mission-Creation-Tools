@@ -14,6 +14,7 @@ the `docs-check` gate itself, proven by the defects that survived it.
 | 02 | [`_transport` demands the password from everyone](tickets/02-transport-markid.md) | ⬜ |
 | 03 | [Small dead ends: fog constant, stale CLI help](tickets/03-small-dead-ends.md) | ⬜ |
 | 04 | [Harden the two `docs-check` blind spots](tickets/04-docs-check-blind-spots.md) | ⬜ |
+| 05 | [The generated mission.yaml repeats the security lie](tickets/05-generated-yaml-comment.md) | ⬜ |
 
 One branch, one PR. TDD throughout — each fix gets its failing test first.
 

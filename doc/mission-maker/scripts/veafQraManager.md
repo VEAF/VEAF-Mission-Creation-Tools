@@ -1,6 +1,6 @@
 # veafQraManager — Alerte de réaction rapide (QRA)
 
-**Module ID:** `QRA` | **Version:** 1.2.x | **Fichier:** `veafQraManager.lua`
+**Module ID:** `QRA` | **Fichier:** `veafQraManager.lua`
 
 ---
 
@@ -283,7 +283,7 @@ modules:
           - "MiG-29 QRA North"
 ```
 
-> Il n'y a pas d'équivalent YAML de `:start()` : toute définition listée sous `definitions:` est démarrée automatiquement au chargement de la mission. Pour retarder sa mise en ligne, utilisez `delay_before_activating` ; pour ne pas la démarrer, retirez-la (ou commentez-la) de `definitions:`.
+> Une définition listée sous `definitions:` est démarrée automatiquement au chargement de la mission. Pour retarder sa mise en ligne, utilisez `delay_before_activating` ; pour la déclarer **sans l'armer**, mettez `active_at_start: false` (elle peut ensuite être armée par une commande radio `qra.start` ou un script) ; pour la supprimer complètement, retirez-la de `definitions:`.
 
 **Via `mission-script.lua`** — appelez le builder après `veafQraManager.initialize()`, puis `:start()` explicitement :
 

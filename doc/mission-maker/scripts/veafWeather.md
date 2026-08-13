@@ -1,6 +1,6 @@
 # veafWeather — Météo dynamique et conditions ATC
 
-**Module ID:** `WEATHER` | **Version:** — | **Fichier:** `veafWeather.lua`
+**Module ID:** `WEATHER` | **Fichier:** `veafWeather.lua`
 
 ---
 
@@ -155,12 +155,17 @@ end, {}, timer.getTime() + 0)
 
 ## Commandes chat / à distance
 
+Ces commandes passent par le tchat (nécessite `veafRemote` et le [hook serveur](veafServerHook.md)) —
+il n'existe pas de commande de marqueur pour ce module. Les trois alias `/weather`, `/atc` et `/atis`
+sont interchangeables ; c'est le mot qui suit qui choisit l'action :
+
 | Commande | Effet |
 |----------|-------|
-| `_weather` | Rapport météo à la position courante |
-| `_atc` | ATIS de la base aérienne la plus proche |
-| `_weather fog FOG_STATIC_MEDIUM` | Activer une constante de brouillard |
-| `_weather fog FOG_ANIMATED_10M_NO` | Dissipation animée en 10 minutes |
+| `/atis` (ou `/weather`, `/atc`, sans argument) | Rapport ATC + météo à la position courante |
+| `/weather weather` | Rapport météo seul |
+| `/atc atc` | ATIS de la base aérienne la plus proche seul |
+| `/weather fog FOG_STATIC_MEDIUM` | Activer une constante de brouillard |
+| `/weather fog FOG_ANIMATED_10M_NO` | Dissipation animée en 10 minutes |
 
 Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather.`).
 

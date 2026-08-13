@@ -288,11 +288,10 @@ modules:
 | `MM` | (aucun niveau) | jamais — seul le mot de passe Mission Master ouvre |
 | `OPEN` | (aucun contrôle) | toujours — la commande est délibérément ouverte à tous |
 
-!!! info "Ces paliers s'appelaient `L9`, `L1` et `L0` jusqu'à la 6.13.37"
+!!! info "`L9`, `L1` et `L0` sont des alias dépréciés — et ils se lisent à l'envers"
 
-    Les anciens noms se lisaient à l'envers — `L0` était le palier le plus **strict**, pas
-    le plus permissif — et cette page affirmait l'inverse jusqu'au 2026-08-06, ce qui a
-    failli faire verrouiller aux administrateurs une commande délibérément publique.
+    Les anciens noms se lisent à l'envers de ce qu'ils suggèrent : `L0` est le palier le plus
+    **strict** (`ADMIN`), pas le plus permissif ; `L9` est le plus ouvert (`KNOWN_PILOT`).
 
     `L9`, `L1` et `L0` restent acceptés comme **alias dépréciés** et disparaîtront dans une
     version ultérieure. **Les valeurs sont inchangées** (1, 10, 90) : renommer ne change le

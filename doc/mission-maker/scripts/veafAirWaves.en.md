@@ -1,7 +1,7 @@
 # veafAirWaves — Wave-Based Air Attacks
 
 
-**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **File:** `veafAirWaves.lua`
+**Module ID:** `AIRWAVES` | **File:** `veafAirWaves.lua`
 
 ---
 
@@ -57,10 +57,10 @@ modules:
         delay_between_waves: 120         # fixed delay between waves (ignored if min/max set)
         min_seconds_between_waves: 60    # minimum inter-wave delay (random range)
         max_seconds_between_waves: 180   # maximum inter-wave delay (random range)
-        max_altitude_ft: 30000          # AI units above this altitude are removed
-        min_altitude_ft: 1000           # AI units below this altitude are removed
+        max_altitude_ft: 30000          # player detection ceiling in feet — a player above it is not counted in the zone
+        min_altitude_ft: 1000           # player detection floor in feet
         max_seconds_outside_ia: 300     # seconds before an AI group is considered lost outside zone
-        minimum_life_percent: 0.1       # AI unit removed when below this life fraction (0–1)
+        minimum_life_percent: 10        # life percentage (0–100) below which an AI unit counts as destroyed (default: 0)
         reset_when_dying: false         # reset all waves when a player dies
         message_start: "Zone active!"   # custom zone-start message (optional)
         message_wait_for_humans: "Waiting for players..."
@@ -101,10 +101,10 @@ modules:
 | `delay_between_waves` | integer | `0` | Fixed inter-wave delay (overridden by min/max) |
 | `min_seconds_between_waves` | integer | — | Random minimum inter-wave delay |
 | `max_seconds_between_waves` | integer | — | Random maximum inter-wave delay |
-| `max_altitude_ft` | integer | — | Remove AI units above this altitude |
-| `min_altitude_ft` | integer | — | Remove AI units below this altitude |
+| `max_altitude_ft` | integer | — | Player detection ceiling: a player above it is not counted in the zone |
+| `min_altitude_ft` | integer | — | Player detection floor: a player below it is not counted in the zone |
 | `max_seconds_outside_ia` | integer | — | Seconds before off-zone AI group is discarded |
-| `minimum_life_percent` | number | — | Remove AI unit when life drops below this fraction |
+| `minimum_life_percent` | number | `0` | Life percentage (0–100, compared to `100 × life / initial life`) below which an AI unit counts as destroyed |
 
 ### `waves[]` fields
 
@@ -182,6 +182,7 @@ modules:
 | `:setDelayBeforeActivation(n)` | Seconds after players enter before the first wave |
 | `:setMinimumAltitudeInFeet(n)` | Player detection floor (in feet) |
 | `:setMaximumAltitudeInFeet(n)` | Player detection ceiling (in feet) |
+| `:setMinimumLifeForAiInPercent(n)` | Life percentage (0–100) below which an AI unit counts as destroyed (default: 0) |
 | `:setResetWhenDying(bool)` | Reset the zone when a player dies |
 | `:setSilent(bool)` | Suppress all messages |
 | `:setDrawZone(bool)` | Draw zone outline on map |

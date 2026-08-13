@@ -64,7 +64,7 @@ the existing pure-Python parser (`mission_tools.miz_tools.read_miz`) — no new 
 {"miz_path": "path/to/mission.miz"}
 ```
 
-### `describe_units`
+### `describe_units` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Read-only. The level of detail `describe_mission` does not give: each group's **units** (type,
 `skill`, livery, callsign, side number, position, heading, altitude, fuel, counters/gun), their
@@ -97,7 +97,7 @@ tell "off" from "the reader did not look".
 {"miz_path": "path/to/mission.miz", "group_name": "Colt", "include_route": false}
 ```
 
-### `set_unit_properties`
+### `set_unit_properties` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Write. The **first** action that changes an object the mission already contains: every `set_*`
 shipped before it acts on *configuration* (modules, security, logging, an airbase's coalition).
@@ -150,7 +150,7 @@ nothing"; in `merge` mode an empty CLSID empties that station.
 The result carries `changed`, giving each touched field its **previous** value and the new one: a
 caller that cannot say what it replaced cannot undo it.
 
-### `set_group_properties`
+### `set_group_properties` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Write. Acts on the whole group: move, rename, frequency, modulation, and the three booleans
 (`lateActivation`, `hidden`, `uncontrolled`). Timestamped backup before the write.
@@ -194,7 +194,7 @@ a move **warns** that it could not look, instead of validating and lying.
 }
 ```
 
-### `edit_route`
+### `edit_route` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Write. Two layers: the **route** (`add`, `insert`, `remove`, `reorder`, `set`) is mostly a list
 operation on `route.points`; a waypoint's **tasks** (`add_task`, `clear_tasks`) are what makes a flight
@@ -241,7 +241,7 @@ otherwise it is written at altitude 0 and the flight dives into the ground to re
 }
 ```
 
-### `edit_zone`
+### `edit_zone` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Write. `add_trigger_zone` only creates **circular** zones and nothing edited one afterwards, so
 adjusting a VEAF combat zone — which *is* a trigger zone — meant deleting it and building it again.
@@ -279,7 +279,7 @@ collision** is refused (zones are referenced by name from `mission.yaml`).
 }
 ```
 
-### `add_map_drawing` / `edit_map_drawing`
+### `add_map_drawing` / `edit_map_drawing` (FEAT-MCP-MUTATION-ACTIONS lot)
 
 Write. Nothing in VMCT touched F10 map drawings, so a briefing line, an ingress corridor or a no-fly
 box was drawn by hand in the editor — **and vanished the moment the mission was rebuilt from its
@@ -706,11 +706,10 @@ command and is re-run as-is. A build failure is surfaced (`RuntimeError`).
 
 ## Next waves (out of scope)
 
-- Non-circular (quad/polygon) trigger zones — wave 2 covers circular zones only.
-- A generic SI/ALORS trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
+- A generic IF/THEN trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to
   startup script-loading / Lua-execution triggers.
 - A per-module schema validator for `set_mission_module` (wave 4 stays generic).
-- CAS composites (pure runtime, no authoring), non-circular zones, and end-to-end generation from
+- CAS composites (pure runtime, no authoring) and end-to-end generation from
   a prompt (the NL-MISSION-GEN goal beyond this lot).
 
-See `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` for details.
+See `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md` for details.

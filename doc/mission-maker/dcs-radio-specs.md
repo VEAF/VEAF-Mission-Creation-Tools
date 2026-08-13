@@ -54,6 +54,39 @@ correction écrite dedans serait perdue au prochain passage.
 
 ---
 
+## Appareils Flaming Cliffs : planchette seulement (`kneeboard_only`) {#kneeboard-only}
+
+**Si vous volez en FC3 et que vos préréglages radio sont vides, c'est normal.** Dix appareils
+Flaming Cliffs n'ont **aucune radio réglable** : DCS ne leur donne pas de table `Radio`, donc il n'y
+a rien dans quoi écrire une liste de canaux. Ce n'est pas une limite de VEAF MCT, c'est l'appareil.
+
+La mesure qui a tranché : sur 40 missions réelles, les 110 places joueur de ces types ne portent
+**aucune** table `Radio`, là où 2105 places non-FC3 en portent une. Inventer des spécifications
+matérielles pour eux aurait produit des fréquences que DCS ignore.
+
+Ce que le build fait à la place : il **génère la planchette** (`KNEEBOARD/<type>/IMAGES/presets.png`)
+avec les trois bandes, et n'écrit **rien** dans la mission. Vous réglez vos fréquences à la main dans
+le cockpit, ou vous les utilisez dans SRS, en lisant la planchette.
+
+| Appareil | ID DCS |
+|----------|--------|
+| A-10A | `A-10A` |
+| F-15C | `F-15C` |
+| J-11A | `J-11A` |
+| MiG-29A | `MiG-29A` |
+| MiG-29G | `MiG-29G` |
+| MiG-29S | `MiG-29S` |
+| Su-25 | `Su-25` |
+| Su-25T | `Su-25T` |
+| Su-27 | `Su-27` |
+| Su-33 | `Su-33` |
+
+**Côté créateur de mission** : ces types sont déclarés `kneeboard_only: true` dans
+`dcs-radio-specs-overrides.yaml`. Un préréglage qui les cible n'est pas une erreur — il produit une
+planchette et rien d'autre, sans avertissement, parce que c'est le comportement voulu.
+
+---
+
 ## Fréquence principale du groupe (`human_radio`) {#primary-frequency}
 
 Un appareil DCS impose **deux** contraintes de fréquence différentes, et il est facile de les

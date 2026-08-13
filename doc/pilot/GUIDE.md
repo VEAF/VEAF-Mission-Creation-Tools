@@ -56,7 +56,9 @@ graph TD
     VEAF --> CAS[Mission CAS]
     VEAF --> CZ[Zones de combat]
     VEAF --> Miss[Missions]
+    VEAF --> Assist[Assistance]
     VEAF --> Aide[Aide]
+    Assist --> AS1["Démarrage à froid — F-16C"]
     Res --> A1["Arco 1-1 — ravitailleur"]
     Res --> A2["Overlord — AWACS"]
     F10 --> Carrier["CARRIER OPS - BLUE / RED"]
@@ -229,6 +231,12 @@ Une **zone de combat** est une zone préparée par le créateur de la mission, q
 | Voir l'état de la zone | Zones de combat → [Zone] → Infos |
 | Marquer la zone à la fumée | Zones de combat → [Zone] → Fumée |
 | Désactiver / nettoyer | Zones de combat → [Zone] → Désactiver |
+
+**Vous ne voyez que les zones de votre camp.** Une zone de combat peut être jouée depuis le rouge
+comme depuis le bleu, et son sous-menu n'apparaît que dans le camp auquel elle appartient : deux
+pilotes de camps opposés n'ont donc pas la même liste sous *Zones de combat*, et une zone absente de
+la vôtre n'est pas une zone manquante. Si le créateur de la mission veut l'ancien comportement — tout
+le monde voit tout — il déclare `radio_menu_coalition: ALL` sur la zone.
 
 ### Missions
 

@@ -369,7 +369,7 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 | `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
 | `about` | Affiche les informations sur VEAF Mission Creation Tools. |
 | `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
-| `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json. |
+| `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
 | `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |

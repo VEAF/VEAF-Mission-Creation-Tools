@@ -56,7 +56,9 @@ graph TD
     VEAF --> CAS[CAS Mission]
     VEAF --> CZ[Combat Zones]
     VEAF --> Miss[Missions]
+    VEAF --> Assist[Assistance]
     VEAF --> Help[Help]
+    Assist --> AS1["Cold start — F-16C"]
     Res --> A1["Arco 1-1 — tanker"]
     Res --> A2["Overlord — AWACS"]
     F10 --> Carrier["CARRIER OPS - BLUE / RED"]
@@ -229,6 +231,12 @@ A **combat zone** is an area prepared by the mission maker that you activate on 
 | Check zone status | Combat Zones → [Zone] → Info |
 | Mark the zone with smoke | Combat Zones → [Zone] → Smoke |
 | Deactivate / clean up | Combat Zones → [Zone] → Deactivate |
+
+**You only see your own side's zones.** A combat zone can be played from red as well as from blue,
+and its submenu appears only on the side it belongs to: two pilots on opposing sides therefore see
+different lists under *Combat Zones*, and a zone missing from yours is not a missing zone. A mission
+maker who wants the old behaviour — everybody sees everything — declares
+`radio_menu_coalition: ALL` on the zone.
 
 ### Missions
 

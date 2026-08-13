@@ -50,6 +50,40 @@ correction written there is lost on the next run.
 
 ---
 
+## Flaming Cliffs aircraft: kneeboard only (`kneeboard_only`) {#kneeboard-only}
+
+**If you fly FC3 and your radio presets are empty, that is expected.** Ten Flaming Cliffs aircraft
+have **no settable radio at all**: DCS gives them no `Radio` table, so there is nothing for a channel
+list to be written into. This is not a VEAF MCT limitation, it is the airframe.
+
+The measurement that settled it: across 40 real missions, the 110 player slots of these types carry
+**no** `Radio` table, against 2105 non-FC3 slots that do. Inventing hardware specifications for them
+would have produced frequencies DCS ignores.
+
+What the build does instead: it **renders the kneeboard**
+(`KNEEBOARD/<type>/IMAGES/presets.png`) with all three bands, and writes **nothing** into the
+mission. You set your frequencies by hand in the cockpit, or use them in SRS, reading them off the
+kneeboard.
+
+| Aircraft | DCS ID |
+|----------|--------|
+| A-10A | `A-10A` |
+| F-15C | `F-15C` |
+| J-11A | `J-11A` |
+| MiG-29A | `MiG-29A` |
+| MiG-29G | `MiG-29G` |
+| MiG-29S | `MiG-29S` |
+| Su-25 | `Su-25` |
+| Su-25T | `Su-25T` |
+| Su-27 | `Su-27` |
+| Su-33 | `Su-33` |
+
+**For the mission maker**: these types are declared `kneeboard_only: true` in
+`dcs-radio-specs-overrides.yaml`. A preset targeting one of them is not an error — it produces a
+kneeboard and nothing else, with no warning, because that is the intended behaviour.
+
+---
+
 ## The group's primary frequency (`human_radio`) {#primary-frequency}
 
 A DCS aircraft enforces **two** different frequency constraints, and they are easy to confuse:

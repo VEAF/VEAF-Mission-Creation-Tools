@@ -124,6 +124,9 @@ Two optional attributes the mission-maker sets on a plan entry (`channel_lists`)
 
 ## Per-type kneeboards (ADR 0012)
 
+> Ten Flaming Cliffs aircraft have no settable radio and get a kneeboard **only**: see
+> [`kneeboard_only`](../mission-maker/dcs-radio-specs.en.md#kneeboard-only).
+
 The build renders **one kneeboard per injected `(coalition, type)`**, dropped in
 that type's DCS folder: `KNEEBOARD/<type>/IMAGES/presets.png` (coalition-suffixed
 only when the same type flies for both sides). This replaces the old generic

@@ -68,6 +68,22 @@ close it until you're done).
 > Nothing to configure: the program picks up the access code created by
 > `dcs-serve.exe` on its own (in the `dcs-serve.yaml` file, next to it).
 
+### If David asked you for the parking spots as well
+
+Add `--parking` at the end of the line:
+
+```
+veaf-tools.exe dcs capture-map --out-dir . --parking
+```
+
+That makes **two** files instead of one: the usual `<Map>.json`, plus a `parking/<Map>.json` with
+the spots an aircraft can park on. It takes a little longer (a few tens of seconds more), and the
+airbases are captured **first** — so if the second half stalls, you still have the first, which is
+the useful one.
+
+A map returning no parking spots is not a failure: some simply have none. Send both files in that
+case too.
+
 ## 4 · Send it
 
 Send that `<Map>.json` file to **David**. Done for this map!

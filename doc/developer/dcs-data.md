@@ -203,6 +203,34 @@ table ne couvre que les théâtres **déjà dumpés** ; un théâtre non dumpé 
 aucune entrée — l'appelant retombe alors sur les ids. La résolution est insensible
 à la casse.
 
+## Les places de parking {#parking}
+
+`parking/<theatre>.json` liste, **par théâtre**, les emplacements où un appareil peut se garer.
+Séparé des dumps d'aérodromes plutôt que fusionné avec eux : les 15 théâtres déjà capturés n'ont pas
+besoin d'être refaits, et la capture des aérodromes reste la moitié utile si la seconde échoue.
+
+Capturé en jeu avec le **VEAF dcs-bridge**, `Airbase:getParking(false)` par aérodrome :
+
+```bash
+veaf-tools dcs capture-map --parking
+```
+
+**Un appareil garé porte deux numéros distincts, et confondre les deux met l'avion ailleurs** :
+`parking` et `parking_id`, qui valent par exemple 28 et 24 sur le même F-14A dans les fixtures de ce
+dépôt. Ce sont les `Term_Index` et `Term_Index_0` du runtime. C'est cette paire qui a fait de
+`add_air_group` sur un tarmac une capture de données (ticket 08) puis une écriture (ticket 09) au
+lieu d'une seule tâche : aucune donnée livrée ici ne portait ces numéros — les 15 dumps d'aérodromes
+ne contiennent que `{id, name, lat, lon, coalition}`.
+
+Le dump garde **toutes** les clés que chaque emplacement porte, aplaties d'un niveau et en chaînes de
+caractères : le schéma de l'API livré ici déclare quatre champs alors qu'un fichier de mission en
+prouve davantage, donc la forme vient du runtime et non du schéma. Un test épingle qu'un champ futur
+inconnu survit à la lecture. Un théâtre qui ne renvoie aucun emplacement est une donnée, pas un
+échec.
+
+Pas gardé par la CI, comme les autres tables dépendantes du runtime. Le mode opératoire côté
+opérateur est dans [Récupérer les aérodromes d'une carte](capture-airbases.md).
+
 ## La table des fréquences d'aérodrome
 
 `src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml` associe, **par

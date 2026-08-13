@@ -687,7 +687,9 @@ Options:
 - `build [--version --skip-lua --skip-python --dev --output --verbose --pause]` — compile les outils et produit `published.zip`
 - `build-and-publish [--version --token --skip-lua --skip-python --dev --output --ci --verbose]` — build puis publication en une étape
 - `publish-local <target> [--published-zip --verbose --pause]` — déploie un build dans un dossier de mission local (sans GitHub)
-- `update-dcs-data [--countries --units --radio --airdromes --dcs-path --all]` — régénère les données de référence DCS commitées
+- `update-dcs-data [--countries --units --radio --airdromes --airfield-freqs --cockpit-controls --aircraft --dcs-path --inject-bridge --capture --serve-url --api-key --bridge-lua --all]` — régénère les données de référence DCS commitées ; les six premiers drapeaux choisissent la table, `--dcs-path` vise une install DCS pour les tables qui en dépendent, et `--inject-bridge` / `--capture` / `--serve-url` / `--api-key` / `--bridge-lua` pilotent la capture depuis un DCS en cours (voir [générateurs de données DCS](developer/dcs-data.md))
+- `build-standalone [--version --output --with-updater --verbose --pause]` — compile les binaires pour la plateforme courante sans passer par la chaîne de release (utilisé par les runners Linux/macOS)
+- `build-kit [--version --exe --bridge-zip --bridge-lua --output --verbose]` — assemble le kit de capture distribué à l'opérateur d'une carte (exécutable + mission-pont)
 - `about` — informations sur le système de build
 
 **Exemples :**

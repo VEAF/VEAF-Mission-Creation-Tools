@@ -45,6 +45,7 @@ pipeline:
 | `spawnable_aircrafts` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `dynamic_slot_templates` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `spawn_data` | bool \| object | always | No | `true`/unset = **always runs** (framework data embedded), `false` = disable entirely, object `{file: …}` = non-default mission file |
+| `warehouses` | bool \| object | auto | No | `true`/unset = auto-detect (run if `src/warehouses.yaml` exists), `false` = always skip, object = custom options |
 | `weather` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 
 When set to an object, the following sub-fields apply:
@@ -53,6 +54,8 @@ When set to an object, the following sub-fields apply:
 |-----------|------|---------|-------------|
 | `file` | string | *(see step defaults)* | Path to the config file, relative to the mission folder |
 | `mode` | `add` \| `replace` | `add` | *(group-injection steps only)* `add` keeps existing groups; `replace` updates same-named groups |
+| `enabled` | bool | `true` | Disables the step without losing the other sub-fields — the long form of `<step>: false` |
+| `kneeboards` | bool | `true` | *(`presets` step only)* `false` keeps the frequency injection and renders no kneeboard PNG |
 
 **Auto-detection** (when not set or `true`): the step runs only if its default file is found. Absence of the file silently skips the step.
 

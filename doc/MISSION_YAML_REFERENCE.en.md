@@ -21,6 +21,7 @@ These files drive the **design-time injection** steps that `veaf-tools mission b
 | `spawnables.yaml` | `spawnable_aircrafts` | Spawnable aircraft groups (`veafSpawn-` prefix) |
 | `dynamic-slot-templates.yaml` | `dynamic_slot_templates` | Dynamic-slot templates (`dynSpawnTemplate=true`) |
 | `warehouses.yaml` | `warehouses` | Dynamic-Slot warehouses: `dynamicSpawn`, stock, fuel, template links |
+| `spawn-groups.yaml` | `spawn_data` | Spawn database for `_spawn unit` / `_spawn group` — **optional**: the step always runs, the framework data being embedded, and this file only adds to it |
 | `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
 
 These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools mission build` and then compiled into the `.miz`.
@@ -40,12 +41,15 @@ mission folder/
 │       ├── spawnable_aircrafts: true     ──► src/spawnables.yaml
 │       ├── dynamic_slot_templates: true  ──► src/dynamic-slot-templates.yaml
 │       ├── warehouses: true  ──► src/warehouses.yaml
+│       ├── spawn_data: true  ──► src/spawn-groups.yaml  (optional)
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml
     ├── presets.yaml
     ├── spawnables.yaml
     ├── dynamic-slot-templates.yaml
+    ├── warehouses.yaml
+    ├── spawn-groups.yaml
     └── versions.yaml
 ```
 
@@ -139,7 +143,7 @@ mission:
 |-------|------|---------|----------|-------------|
 | `name` | string | — | No | Mission name shown in menus and logs, **and the name of the built `.miz`** — see the naming note below |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
-| `era` | string | `MODERN` | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups |
+| `era` | string | *inferred* | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups. **When absent it is inferred at every build** from the base mission's content: a WW2 unit type or a year ≤ 1945 gives `WW2`, a year ≤ 1991 `COLD_WAR`, otherwise `MODERN` (`era_detector.py`). The inferred value is **not** written back into your `mission.yaml` — it is recomputed; set the key to pin it. |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
@@ -672,6 +676,20 @@ build_variants:
 veaf-tools.exe mission build          # produces <base>_MODERN.miz AND <base>_COLD_WAR.miz
 veaf-tools.exe mission build --profile MODERN   # produces only the MODERN variant (unsuffixed)
 ```
+
+---
+
+## Keys documented elsewhere {#keys-documented-elsewhere}
+
+Four top-level keys are read by the build but explained on the page that introduced them. They are
+listed here so that reading this reference does not miss them.
+
+| Key | What it does | Page that documents it |
+|-----|--------------|------------------------|
+| `conversion_profile` | Names the adoption profile applied to a third-party mission (imposed modules, incompatibilities refused at validation) | [`convert-other`](mission-maker/CONVERT_OTHER.en.md) |
+| `config_override` | Injects raw configuration values over the ones the profile decided | [`convert-other`](mission-maker/CONVERT_OTHER.en.md) |
+| `strip_native_triggers` | Lists the original mission's load triggers to remove, so the VEAF scripts are not loaded twice | [`convert-other`](mission-maker/CONVERT_OTHER.en.md) |
+| `dcs_bridge` | Injects the `dcs-bridge.lua` bridge into the `.miz` (`enabled`, `lua_path`) — this is what makes data capture from a running DCS possible | [Mission maker's guide](mission-maker/GUIDE.en.md) |
 
 ---
 

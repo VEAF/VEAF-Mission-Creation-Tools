@@ -21,6 +21,7 @@ Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-t
 | `spawnables.yaml` | `spawnable_aircrafts` | Groupes d'avions spawnables (préfixe `veafSpawn-`) |
 | `dynamic-slot-templates.yaml` | `dynamic_slot_templates` | Modèles de slot dynamique (`dynSpawnTemplate=true`) |
 | `warehouses.yaml` | `warehouses` | Warehouses Dynamic-Slot : `dynamicSpawn`, stock, carburant, liens de modèle |
+| `spawn-groups.yaml` | `spawn_data` | Base de données de spawn pour `_spawn unit` / `_spawn group` — **optionnel** : l'étape s'exécute toujours, les données du framework étant embarquées, et ce fichier ne fait que les compléter |
 | `versions.yaml` | `weather` | Génère une variante `.miz` par preset météo |
 
 Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools mission build` puis compilés dans le `.miz`.
@@ -40,12 +41,15 @@ dossier mission/
 │       ├── spawnable_aircrafts: true     ──► src/spawnables.yaml
 │       ├── dynamic_slot_templates: true  ──► src/dynamic-slot-templates.yaml
 │       ├── warehouses: true  ──► src/warehouses.yaml
+│       ├── spawn_data: true  ──► src/spawn-groups.yaml  (optionnel)
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml
     ├── presets.yaml
     ├── spawnables.yaml
     ├── dynamic-slot-templates.yaml
+    ├── warehouses.yaml
+    ├── spawn-groups.yaml
     └── versions.yaml
 ```
 
@@ -139,7 +143,7 @@ mission:
 |-------|------|--------|--------|-------------|
 | `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs, **et nom du `.miz` construit** — voir la note de nommage ci-dessous |
 | `export_path` | string \| null | `null` | Non | Surcharge le chemin d'export DCS Saved Games |
-| `era` | string | `MODERN` | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn |
+| `era` | string | *déduit* | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn. **Absent, il est déduit à chaque build** depuis le contenu de la mission de base : un type d'unité WW2 ou une année ≤ 1945 donne `WW2`, une année ≤ 1991 `COLD_WAR`, sinon `MODERN` (`era_detector.py`). La valeur déduite n'est **pas** écrite dans votre `mission.yaml` — elle est recalculée ; renseignez la clé pour la figer. |
 | `silence_atc_on_all_airbases` | booléen | `false` | Non | Option globale : coupe l'ATC DCS sur tous les aérodromes (émet `veaf.silenceAtcOnAllAirbases()`). `convert-v5` la migre depuis un appel actif et annote sa provenance |
 | `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 | `third_party_mods` | liste de strings | `[]` | Non | Mods DCS **tiers** (avions payants/communautaires) à rendre **non bloquants** : leurs identifiants sont retirés de la table `requiredModules` du `.miz` au build, si bien qu'un pilote qui ne possède pas le mod peut quand même **charger** la mission (le slot correspondant est simplement indisponible). La liste est **unie** à une liste VEAF par défaut couvrant les mods courants (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — n'y déclarer que les mods non déjà pris en charge. À ne pas confondre avec les *Modules* VEAF (bloc `modules:`, qui sont des capacités, pas des add-ons DCS) |
@@ -679,6 +683,20 @@ build_variants:
 veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
 veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
 ```
+
+---
+
+## Clés documentées ailleurs {#keys-documented-elsewhere}
+
+Quatre clés de premier niveau sont lues par le build mais expliquées sur la page qui les a
+introduites. Elles sont listées ici pour qu'une lecture de cette référence ne les manque pas.
+
+| Clé | Ce qu'elle fait | Page qui la documente |
+|-----|-----------------|-----------------------|
+| `conversion_profile` | Nomme le profil d'adoption appliqué à une mission tierce (modules imposés, incompatibilités refusées à la validation) | [`convert-other`](mission-maker/CONVERT_OTHER.md) |
+| `config_override` | Injecte des valeurs de configuration brutes par-dessus celles que le profil a décidées | [`convert-other`](mission-maker/CONVERT_OTHER.md) |
+| `strip_native_triggers` | Liste les triggers de chargement de la mission d'origine à retirer, pour que les scripts VEAF ne soient pas chargés deux fois | [`convert-other`](mission-maker/CONVERT_OTHER.md) |
+| `dcs_bridge` | Injecte le pont `dcs-bridge.lua` dans le `.miz` (`enabled`, `lua_path`) — c'est ce qui permet la capture de données depuis un DCS en cours | [Guide du créateur de mission](mission-maker/GUIDE.md) |
 
 ---
 

@@ -1,6 +1,6 @@
 # 04 — Harden the two `docs-check` blind spots the audit proved
 
-Status: ⬜ ready
+Status: ✅ done — all four rules enforced; each verified by injecting its defect into a real page. The option rule is enabled for the updater only, and why is recorded in the code
 Type: fix
 Files: `veaf_build/docs_check.py`, `test/python/veaf_build/`
 

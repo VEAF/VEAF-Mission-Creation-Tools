@@ -29,6 +29,7 @@ the same entry point and both passes.
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import subprocess
 import sys
@@ -95,7 +96,12 @@ def slugify(title: str) -> str:
         The generated anchor id.
     """
     title = _EXPLICIT_ANCHOR.sub("", title).strip()
-    title = re.sub(r"[`*_]", "", title)
+    # `_` is deliberately absent from this class: it is a word character for pymdownx, so
+    # `### `build_variants:`` really is served as `build_variants`. Stripping it registered a dozen
+    # headings in MISSION_YAML_REFERENCE under names the site does not use, which made a *correct*
+    # link to one of them invisible to this gate (FIX-DOCAUDIT-CODE 04-C). Underscore emphasis in a
+    # heading would break this, and no page uses any — measured, not assumed.
+    title = re.sub(r"[`*]", "", title)
     return re.sub(r"[^\w\- ]", "", title, flags=re.UNICODE).strip().lower().replace(" ", "-")
 
 
@@ -114,8 +120,13 @@ def anchors_of(page: Path) -> tuple[set[str], set[str]]:
     for title in _HEADING.findall(page.read_text(encoding="utf-8")):
         match = _EXPLICIT_ANCHOR.search(title)
         if match:
+            # An explicit anchor **replaces** the generated id (mkdocs' attr_list), it does not add
+            # to it — so the heading-derived slug is not an id the site serves. Registering both is
+            # how five dead anchors passed this gate while 404ing on the published site
+            # (FIX-DOCAUDIT-CODE 04-A).
             every.add(match.group(1))
             explicit.add(match.group(1))
+            continue
         every.add(slugify(title))
     return every, explicit
 
@@ -184,8 +195,18 @@ def check_docs(doc_dir: Path, mkdocs_yml: Path, require_explicit_anchors: bool =
         # "this link is meant to change language" — found the hard way, when a mass rewrite of 239
         # links turned two switchers into self-references.
         switcher_targets = {m for line in text.splitlines() if _LANGUAGE_FLAG in line for m in _LINK.findall(line)}
+        same_page_anchors, _ = anchors_of(page)
         for target in _LINK.findall(text):
-            if target.startswith(("http://", "https://", "mailto:", "#")):
+            if target.startswith("#"):
+                # A same-page anchor — a table-of-contents entry, most often. Checked with the same
+                # rule as a cross-page one (an explicit anchor retires the derived slug), but never
+                # *required* to be explicit: the two reasons for that requirement — a reword
+                # breaking the link, and the anchor differing between languages — are both about
+                # crossing pages (FIX-DOCAUDIT-CODE 04-D, seven dead ones found by hand).
+                if target[1:] and target[1:] not in same_page_anchors:
+                    report.dead_anchors.append(f"{rel} -> {target} (no '{target[1:]}' in this page)")
+                continue
+            if target.startswith(("http://", "https://", "mailto:")):
                 continue
             path_part, _, anchor = target.partition("#")
             if not path_part.endswith(".md"):
@@ -293,6 +314,111 @@ COVERAGE_RULES: tuple[CoverageRule, ...] = (
 )
 
 
+@dataclass(frozen=True)
+class OptionRule:
+    """Long options a reference page must mention, read from typer signatures.
+
+    Attributes:
+        label: What the names are, for the report.
+        source_glob: Modules declaring typer commands, relative to the repo root.
+        pages: Pages that must mention every long option, relative to the repo root.
+    """
+
+    label: str
+    source_glob: str
+    pages: tuple[str, ...]
+
+
+#: Which CLI surfaces have a reference page complete enough to be held to their options.
+#:
+#: `check_doc_coverage` used to key on **command names** only, which is how `capture-map --parking`
+#: shipped undocumented through a green gate (FIX-DOCAUDIT-CODE 04-B).
+#:
+#: Only the updater is enforced so far, and that is a measurement rather than a preference: the
+#: mission-maker GUIDE names 4 of the main CLI's 59 long options, because it is a *guide* and not a
+#: reference. Pointing this rule at it would report 110 defects it is not the right page to fix.
+#: The full CLI reference is `DOC-AUDIT-FIXES` ticket 04; adding its rule here is one tuple entry.
+OPTION_RULES: tuple[OptionRule, ...] = (
+    OptionRule(
+        label="updater option",
+        source_glob="src/python/veaf-tools/veaf-tools-updater.py",
+        pages=("doc/TOOLS_REFERENCE.md", "doc/TOOLS_REFERENCE.en.md"),
+    ),
+)
+
+
+def _long_options_of(source: str) -> set[str]:
+    """Extract every long option a module's typer commands declare.
+
+    Read from the **AST** rather than by regex, and that is load-bearing: typer derives
+    ``--no-backup`` from a parameter named ``no_backup`` with no literal anywhere in the file, so a
+    regex hunting for ``"--…"`` would miss every option that does not spell itself out.
+
+    Args:
+        source: Python source of one module.
+
+    Returns:
+        The long option strings, e.g. ``{"--parking", "--verbose"}``.
+
+    Raises:
+        SyntaxError: The module cannot be parsed. Propagated on purpose — contributing zero
+            options would make the gate report "all documented" about a file it never read.
+    """
+    found: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        args = node.args
+        positional = args.args[len(args.args) - len(args.defaults) :] if args.defaults else []
+        pairs: list[tuple[ast.arg, ast.expr | None]] = list(zip(positional, args.defaults))
+        pairs += list(zip(args.kwonlyargs, args.kw_defaults))
+        for param, default in pairs:
+            # `typer.Option(...)`, however it is imported. `typer.Argument` is positional and has no
+            # long form to document.
+            if not isinstance(default, ast.Call) or not ast.unparse(default.func).endswith("Option"):
+                continue
+            literals = [
+                arg.value
+                for arg in default.args
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and arg.value.startswith("--")
+            ]
+            found.add(literals[0] if literals else "--" + param.arg.replace("_", "-"))
+    return found
+
+
+def _option_findings(repo_root: Path, rule: OptionRule) -> list[str]:
+    """Report every long option *rule*'s pages fail to mention.
+
+    A bare mention counts, not only an inline-code one: the reference writes options inside shell
+    blocks (``veaf-tools-updater.exe --tag published-v6.0.0``), and demanding backticks would report
+    documentation that works.
+
+    Args:
+        repo_root: Repository root.
+        rule: The rule to apply.
+
+    Returns:
+        Findings, unsorted.
+    """
+    options: set[str] = set()
+    findings: list[str] = []
+    for source in sorted(repo_root.glob(rule.source_glob)):
+        try:
+            options |= _long_options_of(source.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError as error:
+            findings.append(f"{rule.label} source cannot be parsed: {source.name} ({error.msg})")
+    for page in rule.pages:
+        path = repo_root / page
+        if not path.is_file():
+            findings.append(f"{rule.label} page missing: {page}")
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        findings += [
+            f"{rule.label} '{option}' is not documented in {page}" for option in sorted(options) if option not in text
+        ]
+    return findings
+
+
 def _names_of(repo_root: Path, rule: CoverageRule) -> list[str]:
     """Extract the names *rule* says must be documented.
 
@@ -340,6 +466,8 @@ def check_doc_coverage(repo_root: Path) -> list[str]:
                 for name in names
                 if rule.mention.format(name=name) not in text
             ]
+    for option_rule in OPTION_RULES:
+        findings += _option_findings(repo_root, option_rule)
     return sorted(findings)
 
 

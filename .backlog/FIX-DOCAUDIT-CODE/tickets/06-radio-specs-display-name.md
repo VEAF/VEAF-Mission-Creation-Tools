@@ -1,6 +1,6 @@
 # 06 — The radio-specs generator writes engine types into its Aircraft column
 
-Status: ⬜ ready
+Status: ✅ done — both artifacts corrected by merge; the ticket's two proposed fixes were disproved by measurement (see Findings)
 Type: fix
 Files: `veaf_build/radio_specs_updater.py`, `test/python/veaf_build/`, then the regenerated
 `doc/mission-maker/dcs-radio-specs.{md,en.md}`

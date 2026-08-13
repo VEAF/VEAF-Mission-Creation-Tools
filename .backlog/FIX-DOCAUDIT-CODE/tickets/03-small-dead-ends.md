@@ -1,6 +1,6 @@
 # 03 — Small dead ends: the fog constant, the stale CLI help
 
-Status: ⬜ ready
+Status: ✅ done — fog constant fixed with an enumerated menu-wiring test; both stale CLI help strings corrected
 Type: fix
 Files: `src/scripts/veaf/veafWeather.lua`, `src/python/veaf-tools/veaf_build/cli.py`, tests
 

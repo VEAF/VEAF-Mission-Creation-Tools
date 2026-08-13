@@ -1,6 +1,6 @@
 # 02 — `_transport` demands the password from everyone, listed or not
 
-Status: ⬜ ready
+Status: ✅ done — the marker id reaches the check; the doc caveat is deleted in both languages
 Type: fix
 Files: `src/scripts/veaf/veafTransportMission.lua`, `test/lua/test_veafTransportMission.lua`
 

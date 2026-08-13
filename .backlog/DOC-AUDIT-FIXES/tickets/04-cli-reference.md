@@ -1,6 +1,6 @@
 # 04 — The full CLI reference: 25 commands, options included
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — `doc/CLI_REFERENCE.{md,en.md}`, 25 commands and 120 option entries per language, enumerated from the typer signatures and now gate-enforced
 Type: feat
 Files: a new `doc/CLI_REFERENCE.md` + `.en.md` (or a rebuilt TOOLS_REFERENCE §), `mkdocs.yml`,
 cross-links from GUIDE / index / MIGRATION_GUIDE

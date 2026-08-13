@@ -12,12 +12,13 @@ Que construisez-vous ? Choisissez l'étape qui correspond.
 
 | Étape | Modules | Objectif |
 |-------|---------|----------|
-| **Fondation** | `veaf.lua`, `veafMarkers`, `veafRadio`, `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
+| **Fondation** | `veaf.lua`, `veafMarkers`, [veafRadio](veafRadio.md), `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
 | **Mise en place** | [veafSecurity](veafSecurity.md), [veafNamedPoints](veafNamedPoints.md), [veafAirbases](veafAirbases.md) | Contrôle d'accès, positions carte, données de bases |
 | **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md) | Permettre aux joueurs de créer et déplacer des unités |
 | **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Scénarios de gameplay structurés |
 | **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Ravitailleurs/AWACS/porte-avions gérés, météo |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Défense anti-missiles, zones sûres |
+| **Assistance en vol** | [veafAssist](veafAssist.md) | Checklists guidées : la mission encadre le bon interrupteur dans le cockpit et coche la ligne |
 | **Intégrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | Systèmes IADS tiers |
 
 ### Par interaction joueur

@@ -151,7 +151,7 @@ mission:
 #### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
 
 `mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
-`_<VARIANTE>` si [`build_variants:`](#build_variants) est utilisé. Donnez plutôt un nom
+`_<VARIANTE>` si [`build_variants:`](#build-variants) est utilisé. Donnez plutôt un nom
 terminé par `.miz` et il est repris **tel quel**, sans date.
 
 C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,
@@ -231,7 +231,7 @@ Chaque clé devient `veaf.config.MON_FLAG_MISSION = 42` dans le `veaf-config.lua
 
 ---
 
-### Modules tiers : `SKYNET` / `CTLD` / `CSAR` (sous `modules:`)
+### Modules tiers : `SKYNET` / `CTLD` / `CSAR` (sous `modules:`) {#third-party-modules}
 
 > **Changement v6 (rupture)** : les sections `external_modules:` et `qra:` n'existent plus. Toute leur configuration vit désormais sous le bloc `modules:`, source unique de vérité. Voir [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md).
 
@@ -300,7 +300,7 @@ veaf_tools:
 
 ---
 
-### `modules:`
+### `modules:` {#modules}
 
 Le bloc unifié `modules:` permet d'activer, de désactiver ou de configurer chaque module Lua VEAF **et** chaque script communautaire au même endroit. Les modules non listés sont activés avec leurs paramètres par défaut.
 
@@ -450,7 +450,7 @@ Voir les pages respectives pour le schéma complet :
 
 ---
 
-### `community_scripts:` *(hérité)*
+### `community_scripts:` *(hérité)* {#community-scripts}
 
 > **Déprécié.** Les scripts communautaires se configurent désormais dans le bloc unifié [`modules:`](#modules) via leurs IDs en majuscules (ex. `CTLD: true`). La section séparée `community_scripts:` fonctionne toujours mais émet un avertissement de dépréciation. Voir [`modules:`](#modules) pour la syntaxe actuelle et la liste des IDs communautaires.
 
@@ -652,7 +652,7 @@ veaf-tools.exe mission build --profile SERVER
 
 ---
 
-### `build_variants:`
+### `build_variants:` {#build-variants}
 
 Liste de profils de build à **émettre ensemble** : un seul `veaf-tools mission build` produit alors **un `.miz` par variante** (objectif « moulinette » — typiquement Modern et Cold-War d'un même dossier de mission, la variante n'étant qu'une différence de **config**). Chaque variante construit le pipeline complet avec son profil fusionné (voir [`profiles:`](#profiles)) et son `.miz` est suffixé du nom de variante (`<base>_<VARIANT>.miz`).
 
@@ -702,46 +702,75 @@ introduites. Elles sont listées ici pour qu'une lecture de cette référence ne
 
 ## Index par catégorie
 
-### Essentiel — toute mission
+Les six domaines sont les mêmes que dans la version anglaise, et chaque section de premier niveau de
+cette page y figure exactement une fois.
+
+### Cœur
 
 | Section / Champ | Description |
 |-----------------|-------------|
 | [`global_log_level`](#global_log_level) | Forcer un niveau de log sur tous les modules |
 | [`mission:`](#mission) | Nom, ère, chemin d'export |
-| [`security:`](#security) | Activer/désactiver la sécurité, hashes de mots de passe |
-| `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
-| [`modules.RADIO.user_menus`](#modulesradiouser_menus--menus-radio-f10-en-yaml) | Menus radio F10 déclarés en YAML |
-| `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
-| `pipeline.presets` | [schéma presets.yaml](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
-| `pipeline.waypoints` | [schéma waypoints.yaml](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
-
-### Courant — la plupart des missions
-
-| Section / Champ | Description |
-|-----------------|-------------|
 | [`settings:`](#settings) | Constantes mission → `veaf.config.XXX` |
-| `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
-| `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
-| [`modules.QRA`](#modulesqra-cap_missions-combat_missions) | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
-| `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
-| `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
+| [`veaf_tools:`](#veaf_tools) | Contrainte de version |
+| [`modules:`](#modules) | Activer, désactiver et configurer chaque module Lua |
+| [Clés documentées ailleurs](#keys-documented-elsewhere) | `conversion_profile`, `config_override`, `strip_native_triggers`, `dcs_bridge` |
 
-### Avancé — cas spécifiques
+### Sécurité
 
 | Section / Champ | Description |
 |-----------------|-------------|
+| [`security:`](#security) | Activer/désactiver la sécurité, hashes de mots de passe |
+| `modules.SECURITY` | [veafSecurity](mission-maker/scripts/veafSecurity.md) |
+
+### Combat
+
+| Section / Champ | Description |
+|-----------------|-------------|
+| [`modules.QRA`](#modulesqra-cap_missions-combat_missions) | Définitions de QRA |
+| [`cap_missions:`](#modulesqra-cap_missions-combat_missions) | Définitions de missions CAP |
+| [`combat_missions:`](#modulesqra-cap_missions-combat_missions) | Définitions de missions de combat |
+| `modules.COMBATZONE` | [veafCombatZone](mission-maker/scripts/veafCombatZone.md) |
 | `modules.AIRWAVES` | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
+| `modules.CASMISSION` | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+
+### Défense aérienne
+
+| Section / Champ | Description |
+|-----------------|-------------|
+| [`modules.SKYNET`](#third-party-modules) | Intégration Skynet IADS |
 | `modules.SANCTUARY` | [veafSanctuary](mission-maker/scripts/veafSanctuary.md) |
 | `modules.MISSILEGUARDIAN` | [veafMissileGuardian](mission-maker/scripts/veafMissileGuardian.md) |
-| [`modules.SKYNET` / `.CTLD` / `.CSAR`](#modules-tiers--skynet--ctld--csar-sous-modules) | Skynet IADS, CTLD, CSAR |
-| [`veaf_tools:`](#veaf_tools) | Contrainte de version |
+
+### Assets & soutien
+
+| Section / Champ | Description |
+|-----------------|-------------|
+| `modules.ASSETS` | [veafAssets](mission-maker/scripts/veafAssets.md) |
+| `modules.CARRIER` | [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
+| `modules.NAMEDPOINTS` | [veafNamedPoints](mission-maker/scripts/veafNamedPoints.md) |
+| `modules.RADIO` | [veafRadio](mission-maker/scripts/veafRadio.md) |
+| [`modules.RADIO.user_menus`](#modulesradiouser_menus--menus-radio-f10-en-yaml) | Menus radio F10 déclarés en YAML |
+| `modules.SHORTCUTS` | [veafShortcuts](mission-maker/scripts/veafShortcuts.md) |
+| `modules.ASSIST` | [veafAssist](mission-maker/scripts/veafAssist.md) |
+| [`modules.CTLD` / `modules.CSAR`](#third-party-modules) | Transport de cargaison et récupération de pilote (sidecars tiers) |
+
+### Pipeline de build
+
+| Section / Champ | Description |
+|-----------------|-------------|
+| [`pipeline:`](#pipeline) | Contrôle des étapes du pipeline |
+| `pipeline.presets` | [schéma presets.yaml](PIPELINE_REFERENCE.md#pipeline-step-1-presets) |
+| `pipeline.waypoints` | [schéma waypoints.yaml](PIPELINE_REFERENCE.md#pipeline-step-2-waypoints) |
 | `pipeline.spawnable_aircrafts` / `pipeline.dynamic_slot_templates` | [schéma groupes d'aéronefs](PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups) |
 | `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#pipeline-step-6-versions) |
 | [`custom_scripts:`](#custom-scripts) | Scripts Lua custom à inclure dans la mission |
+| [`community_scripts:`](#community-scripts) | Scripts communautaires embarqués *(forme héritée)* |
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |
 | `build.scripts_path` | Chemin vers un clone local de VEAF-Mission-Creation-Tools |
 | [`profiles:`](#profiles) | Profils de build nommés (surcharges deep-merge pour `--profile`) |
+| [`build_variants:`](#build-variants) | Produire une variante `.miz` par profil nommé |
 
 ---
 

@@ -81,6 +81,8 @@ plugins:
             CLI Reference: Référence CLI
             Updater & release tools: Mise à jour & publication
             Guided checklists (veafAssist): Checklists guidées (veafAssist)
+            Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
+            Ground AI (veafGroundAI): IA au sol (veafGroundAI)
             Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
             Roadmap: Feuille de route
@@ -120,8 +122,12 @@ nav:
       - Guided checklists (veafAssist): mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
+      - Missions menu (veafCombatMission): mission-maker/scripts/veafCombatMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
+      - veafCommands: mission-maker/scripts/veafCommands.md
       - veafGrass: mission-maker/scripts/veafGrass.md
+      - Ground AI (veafGroundAI): mission-maker/scripts/veafGroundAI.md
+      - veafI18n: mission-maker/scripts/veafI18n.md
       - veafInterpreter: mission-maker/scripts/veafInterpreter.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md
@@ -135,6 +141,7 @@ nav:
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
       - veafSpawn: mission-maker/scripts/veafSpawn.md
       - veafTransportMission: mission-maker/scripts/veafTransportMission.md
+      - veafUnits: mission-maker/scripts/veafUnits.md
       - veafWeather: mission-maker/scripts/veafWeather.md
   - Developer:
     - Overview: developer/README.md

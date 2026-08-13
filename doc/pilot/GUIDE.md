@@ -222,15 +222,19 @@ Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** 
 
 ### Zones de combat
 
+> **Les libellés du menu F10 sont en anglais**, même sur un serveur configuré en français : ce sont
+> des textes écrits en dur dans les scripts. C'est pourquoi ils sont donnés ici tels qu'ils
+> s'affichent, entre `guillemets techniques`.
+
 Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois qu'elles sont toutes détruites, la zone est terminée et peut être rejouée.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les zones disponibles | Zones de combat |
-| Activer une zone | Zones de combat → [Zone] → Activer |
-| Voir l'état de la zone | Zones de combat → [Zone] → Infos |
-| Marquer la zone à la fumée | Zones de combat → [Zone] → Fumée |
-| Désactiver / nettoyer | Zones de combat → [Zone] → Désactiver |
+| Lister les zones disponibles | `Combat Zones` |
+| Activer une zone | `Combat Zones` → [Zone] → `Activate zone` |
+| Voir l'état de la zone | `Combat Zones` → [Zone] → `Get info` |
+| Marquer la zone à la fumée | `Combat Zones` → [Zone] → `Request RED smoke on target` |
+| Désactiver / nettoyer | `Combat Zones` → [Zone] → `Desactivate zone` |
 
 **Vous ne voyez que les zones de votre camp.** Une zone de combat peut être jouée depuis le rouge
 comme depuis le bleu, et son sous-menu n'apparaît que dans le camp auquel elle appartient : deux
@@ -244,10 +248,10 @@ Les **missions** sont des scénarios plus élaborés, avec objectifs et suivi de
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les missions | Missions |
-| Activer | Missions → [Mission] → Activer |
-| Lire l'état et les objectifs | Missions → [Mission] → Infos |
-| Abandonner | Missions → [Mission] → Désactiver |
+| Lister les missions | `MISSIONS` → `List available` |
+| Activer | `MISSIONS` → [Mission] → `Activate mission` |
+| Lire l'état et les objectifs | `MISSIONS` → [Mission] → `Get info` |
+| Abandonner | `MISSIONS` → [Mission] → `Desactivate mission` |
 
 ---
 

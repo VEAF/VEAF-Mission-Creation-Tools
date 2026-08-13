@@ -334,15 +334,20 @@ class OptionRule:
 #: `check_doc_coverage` used to key on **command names** only, which is how `capture-map --parking`
 #: shipped undocumented through a green gate (FIX-DOCAUDIT-CODE 04-B).
 #:
-#: Only the updater is enforced so far, and that is a measurement rather than a preference: the
-#: mission-maker GUIDE names 4 of the main CLI's 59 long options, because it is a *guide* and not a
-#: reference. Pointing this rule at it would report 110 defects it is not the right page to fix.
-#: The full CLI reference is `DOC-AUDIT-FIXES` ticket 04; adding its rule here is one tuple entry.
+#: The main CLI joined on 2026-08-13, when `DOC-AUDIT-FIXES` 04 wrote it a page that can carry the
+#: obligation. Before that the only candidate was the mission-maker GUIDE, which named 4 of the 59
+#: long options because it is a *guide* and not a reference — pointing the rule there would have
+#: reported 110 defects on a page that was not the right place to fix them.
 OPTION_RULES: tuple[OptionRule, ...] = (
     OptionRule(
         label="updater option",
         source_glob="src/python/veaf-tools/veaf-tools-updater.py",
         pages=("doc/TOOLS_REFERENCE.md", "doc/TOOLS_REFERENCE.en.md"),
+    ),
+    OptionRule(
+        label="CLI option",
+        source_glob="src/python/veaf-tools/veaf_tools/commands/*.py",
+        pages=("doc/CLI_REFERENCE.md", "doc/CLI_REFERENCE.en.md"),
     ),
 )
 
@@ -382,8 +387,27 @@ def _long_options_of(source: str) -> set[str]:
                 for arg in default.args
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and arg.value.startswith("--")
             ]
-            found.add(literals[0] if literals else "--" + param.arg.replace("_", "-"))
+            found |= _spellings(literals[0]) if literals else {"--" + param.arg.replace("_", "-")}
     return found
+
+
+def _spellings(literal: str) -> set[str]:
+    """Split a typer option literal into the spellings a reference page should carry.
+
+    ``"--dev-mode/--no-dev-mode"`` is **one** literal declaring a flag and its negation, so taking
+    it whole asked the page to contain that exact string — which no reference writes. The negative
+    twin is a typer convention stated once in the page's preamble, so it is dropped here; two
+    genuine alternatives (``"--foo/--bar"``) are both kept, since neither is implied by the other.
+
+    Args:
+        literal: The option string as written in the source.
+
+    Returns:
+        The spellings to require on the page.
+    """
+    parts = [part for part in literal.split("/") if part.startswith("--")]
+    positives = {part for part in parts if not part.startswith("--no-")}
+    return {part for part in parts if not (part.startswith("--no-") and "--" + part[5:] in positives)}
 
 
 def _option_findings(repo_root: Path, rule: OptionRule) -> list[str]:

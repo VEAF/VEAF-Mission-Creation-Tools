@@ -538,6 +538,32 @@ class TestOptionCoverage:
         monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
         assert check_doc_coverage(tmp_path) == ["option '--no-backup' is not documented in doc/ref.md"]
 
+    def test_a_flag_and_its_negation_count_as_one_spelling(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # `typer.Option(None, "--dev-mode/--no-dev-mode")` is ONE literal declaring both forms.
+        # Taking it whole asked the page to contain that exact string, which no reference writes —
+        # found by pointing this rule at the new CLI reference and watching it report two ghosts.
+        # The negative twin is a typer convention the page states once in its preamble.
+        rule = self._module(
+            tmp_path,
+            'import typer\ndef run(dev_mode: bool = typer.Option(None, "--dev-mode/--no-dev-mode")) -> None:\n'
+            "    pass\n",
+        )
+        (tmp_path / "doc" / "ref.md").write_text("`--dev-mode` builds from a dev checkout.\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_two_genuine_alternatives_are_both_required(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # Neither implies the other, so documenting one is not documenting both.
+        rule = self._module(
+            tmp_path,
+            'import typer\ndef run(mode: str = typer.Option("a", "--fast/--thorough")) -> None:\n    pass\n',
+        )
+        (tmp_path / "doc" / "ref.md").write_text("`--fast` only.\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", ())
+        monkeypatch.setattr("veaf_build.docs_check.OPTION_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["option '--thorough' is not documented in doc/ref.md"]
+
     def test_an_argument_is_not_an_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         # `typer.Argument` is positional — there is no `--` form to document.
         rule = self._module(

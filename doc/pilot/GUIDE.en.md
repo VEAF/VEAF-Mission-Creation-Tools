@@ -13,7 +13,7 @@ This guide is for players flying missions that use the VEAF framework. No techni
 5. [Assets: Tankers, AWACS, Carriers](#assets)
 6. [Combat Zones and Missions](#combat-zones-and-missions)
 7. [CAS Training](#cas-training)
-8. [Security and Permissions](#security-and-permissions)
+8. [Security and Permissions](#security)
 9. [Tips for Your Aircraft](#tips-for-your-aircraft)
 10. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 11. [Community and Support](#community-and-support)
@@ -83,7 +83,7 @@ VEAF detects the marker, runs the command at the marker's location, then removes
 
 > 📷 *Screenshot coming soon: typing a command into an F10 map marker.*
 
-> On multiplayer servers, some commands require a password. See [Security and Permissions](#security-and-permissions).
+> On multiplayer servers, some commands require a password. See [Security and Permissions](#security).
 
 ### Aliases: the simplest method
 
@@ -272,7 +272,7 @@ Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA l
 
 ---
 
-## Security and Permissions
+## Security and Permissions {#security}
 
 On multiplayer servers, the mission maker may restrict certain commands according to your permission level.
 
@@ -301,6 +301,23 @@ also opens everything below it.
 commands therefore work at the level of the group's **lowest-graded occupant**. If that holds you
 back (shared multi-crew aircraft), place a marker containing `_auth elevate`: the group rises to your
 own level for 2 minutes, never higher.
+
+### A worked case: the instructor and the student {#instructor-and-student}
+
+You are a trusted member; your student has just created their account and is on no list at all. You
+both climb into the same L-39.
+
+- **Your marker commands keep working normally.** A marker carries its author's name, so the server
+  knows you placed it, and your tier applies.
+- **Protected F10 menu entries, however, stop responding**: the group acts at the level of its
+  lowest-graded occupant, and that is your student.
+- **To get your rights back**, place an `_auth elevate` marker. For 2 minutes the whole group — you
+  *and* your student — acts at **your** level. After that the group falls back to the student's
+  level. Place the marker again if you still need it.
+
+Two things not to confuse: `_auth elevate` raises the group to **your** level and never higher, and a
+plain `_auth [PASSWORD]` elevates nothing at all — it only clears the password for the command being
+issued.
 
 ---
 

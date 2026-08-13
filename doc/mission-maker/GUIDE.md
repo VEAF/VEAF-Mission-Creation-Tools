@@ -92,7 +92,7 @@ Pour épingler une version spécifique :
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
+Référence CLI complète : [Référence CLI](../CLI_REFERENCE.md)
 
 ---
 
@@ -380,7 +380,7 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 | `smoke-test` | Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle. |
 | `verify-checklist` | Vérifie une checklist résolue dans un vrai cockpit (DCS doit tourner ici). |
 
-Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
+Référence complète : [Référence CLI](../CLI_REFERENCE.md)
 
 ### Mode interactif (assistant)
 
@@ -693,7 +693,7 @@ Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`t
 ## Ressources
 
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — mission d'exemple fonctionnelle
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

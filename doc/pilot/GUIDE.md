@@ -13,7 +13,7 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 5. [Ressources : ravitailleurs, AWACS, porte-avions](#ressources)
 6. [Zones et missions de combat](#zones-et-missions-de-combat)
 7. [Entraînement CAS](#entraînement-cas)
-8. [Sécurité et permissions](#sécurité-et-permissions)
+8. [Sécurité et permissions](#security)
 9. [Conseils selon votre appareil](#conseils-selon-votre-appareil)
 10. [Questions fréquentes (FAQ)](#questions-fréquentes-faq)
 11. [Communauté et support](#communauté-et-support)
@@ -83,7 +83,7 @@ VEAF détecte le marqueur, exécute la commande à l'emplacement du marqueur, pu
 
 > 📷 *Capture à venir : saisie d'une commande dans un marqueur de la carte F10.*
 
-> Sur les serveurs multijoueurs, certaines commandes demandent un mot de passe. Voir [Sécurité et permissions](#sécurité-et-permissions).
+> Sur les serveurs multijoueurs, certaines commandes demandent un mot de passe. Voir [Sécurité et permissions](#security).
 
 ### Les alias : la méthode la plus simple
 
@@ -272,7 +272,7 @@ Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5
 
 ---
 
-## Sécurité et permissions
+## Sécurité et permissions {#security}
 
 Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission.
 
@@ -302,6 +302,23 @@ celui d'administrateur ouvre aussi tout ce qui est en dessous.
 commandes protégées du menu F10 fonctionnent donc au niveau du **membre le moins gradé** du groupe.
 Si cela vous bride (appareil multi-places partagé), posez un marqueur contenant `_auth elevate` : le
 groupe monte à votre propre niveau pendant 2 minutes, jamais plus haut.
+
+### Un cas concret : l'instructeur et l'élève {#instructor-and-student}
+
+Vous êtes membre de confiance, votre élève vient de créer son compte et n'est sur aucune liste. Vous
+montez tous les deux dans le même L-39.
+
+- **Vos commandes par marqueur continuent de marcher normalement.** Un marqueur porte le nom de son
+  auteur, donc le serveur sait que c'est vous qui l'avez posé, et votre palier s'applique.
+- **Les entrées protégées du menu F10, en revanche, ne répondent plus** : le groupe agit au niveau
+  du moins gradé de ses occupants, et c'est votre élève.
+- **Pour récupérer vos droits**, posez un marqueur `_auth elevate`. Pendant 2 minutes, tout le
+  groupe — vous *et* votre élève — agit à **votre** niveau. Passé ce délai, le groupe retombe au
+  niveau de l'élève. Reposez le marqueur si vous en avez encore besoin.
+
+Deux choses à ne pas confondre : `_auth elevate` élève le groupe à **votre** niveau, jamais plus
+haut, et un `_auth [MOT_DE_PASSE]` tout court n'élève rien du tout — il ne fait que valider le mot
+de passe pour la commande en cours.
 
 ---
 

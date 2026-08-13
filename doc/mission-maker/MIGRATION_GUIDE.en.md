@@ -372,4 +372,4 @@ Run `veaf-tools-updater.exe` first — the `published/` folder is missing or out
 
 - [Mission Maker Guide](README.en.md) — general mission making workflow
 - [Scripts Reference](scripts/README.en.md) — all available modules
-- [Tools Reference](../TOOLS_REFERENCE.en.md) — full `veaf-tools.exe` CLI reference
+- [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands, arguments and options

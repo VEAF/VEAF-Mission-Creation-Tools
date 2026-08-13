@@ -1,6 +1,6 @@
 # 03 — Holes and structure: what no user can currently discover
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — A, B and C applied in both languages; four of the ticket's items were contradicted by measurement (see the PRD)
 Type: feat
 Files: `doc/pilot/`, `doc/mission-maker/`, `doc/developer/`, `doc/ROADMAP.*`, `mkdocs.yml`
 

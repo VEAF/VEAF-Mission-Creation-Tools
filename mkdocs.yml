@@ -78,7 +78,10 @@ plugins:
             Developer: Développeur
             Capture a map's airbases: Récupérer les aérodromes d'une carte
             References: Références
-            Tools CLI Reference: Référence CLI des outils
+            CLI Reference: Référence CLI
+            Updater & release tools: Mise à jour & publication
+            Guided checklists (veafAssist): Checklists guidées (veafAssist)
+            Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
             Roadmap: Feuille de route
             Testing: Tests
@@ -114,7 +117,7 @@ nav:
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md
       - veafAirbases: mission-maker/scripts/veafAirbases.md
       - veafAssets: mission-maker/scripts/veafAssets.md
-      - veafAssist: mission-maker/scripts/veafAssist.md
+      - Guided checklists (veafAssist): mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
@@ -126,7 +129,7 @@ nav:
       - veafQraManager: mission-maker/scripts/veafQraManager.md
       - veafRadio: mission-maker/scripts/veafRadio.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
-      - veafSecurity: mission-maker/scripts/veafSecurity.md
+      - Security & permissions (veafSecurity): mission-maker/scripts/veafSecurity.md
       - veafServerHook: mission-maker/scripts/veafServerHook.md
       - veafShortcuts: mission-maker/scripts/veafShortcuts.md
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
@@ -148,5 +151,6 @@ nav:
     - Pipeline Reference: PIPELINE_REFERENCE.md
     - DCS Radio Specs: mission-maker/dcs-radio-specs.md
     - Lua API Reference: LUA_API_REFERENCE.md
-    - Tools CLI Reference: TOOLS_REFERENCE.md
+    - CLI Reference: CLI_REFERENCE.md
+    - Updater & release tools: TOOLS_REFERENCE.md
     - Roadmap: ROADMAP.md

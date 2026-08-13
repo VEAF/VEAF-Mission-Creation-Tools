@@ -12,12 +12,13 @@ What are you building? Pick the step that matches.
 
 | Step | Modules | Purpose |
 |------|---------|---------|
-| **Foundation** | `veaf.lua`, `veafMarkers`, `veafRadio`, `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Core infrastructure (always loaded) |
+| **Foundation** | `veaf.lua`, `veafMarkers`, [veafRadio](veafRadio.en.md), `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Core infrastructure (always loaded) |
 | **Setup** | [veafSecurity](veafSecurity.en.md), [veafNamedPoints](veafNamedPoints.en.md), [veafAirbases](veafAirbases.en.md) | Access control, map positions, airbase data |
 | **Spawning** | [veafSpawn](veafSpawn.en.md), [veafMove](veafMove.en.md) | Let players create and move units |
 | **Mission types** | [veafCasMission](veafCasMission.en.md), [veafCombatZone](veafCombatZone.en.md), [veafTransportMission](veafTransportMission.en.md), [veafQraManager](veafQraManager.en.md), [veafAirWaves](veafAirWaves.en.md) | Structured gameplay scenarios |
 | **Assets & services** | [veafAssets](veafAssets.en.md), [veafCarrierOperations](veafCarrierOperations.en.md), [veafGrass](veafGrass.en.md), [veafWeather](veafWeather.en.md) | Managed tankers/AWACS/carriers, weather |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.en.md), [veafSanctuary](veafSanctuary.en.md) | Missile defense, safe zones |
+| **In-flight assistance** | [veafAssist](veafAssist.en.md) | Guided checklists: the mission boxes the right switch in the cockpit and ticks the line |
 | **Integrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.en.md) | Third-party IADS systems |
 
 ### By player interaction

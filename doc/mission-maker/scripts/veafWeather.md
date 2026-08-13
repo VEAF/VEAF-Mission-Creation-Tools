@@ -173,5 +173,5 @@ Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather
 
 ## Voir aussi
 
-- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe content inject-weather`
+- [Référence CLI](../../CLI_REFERENCE.md#inject-weather) — toutes les options de `veaf-tools content inject-weather`
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafWeather`

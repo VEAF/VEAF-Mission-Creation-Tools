@@ -126,6 +126,9 @@ Deux attributs facultatifs, posés par le mission-maker sur une entrée du plan
 
 ## Planchettes par type (ADR 0012)
 
+> Dix appareils Flaming Cliffs n'ont aucune radio réglable et reçoivent **seulement** une
+> planchette : voir [`kneeboard_only`](../mission-maker/dcs-radio-specs.md#kneeboard-only).
+
 Le build génère **une planchette par `(coalition, type)` réellement injecté**,
 déposée dans le dossier DCS du type : `KNEEBOARD/<type>/IMAGES/presets.png`
 (suffixée `-<coalition>` seulement si le même type vole dans les deux camps).

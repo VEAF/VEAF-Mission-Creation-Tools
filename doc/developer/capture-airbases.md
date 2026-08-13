@@ -69,6 +69,22 @@ Double-clique sur **`dcs-serve.exe`**.
 > Rien à configurer : le programme récupère tout seul le code d'accès créé par
 > `dcs-serve.exe` (dans le fichier `dcs-serve.yaml`, à côté).
 
+### Si David t'a demandé les places de parking en plus
+
+Ajoute `--parking` à la fin de la ligne :
+
+```
+veaf-tools.exe dcs capture-map --out-dir . --parking
+```
+
+Ça fait **deux** fichiers au lieu d'un : le `<Carte>.json` habituel, plus un
+`parking/<Carte>.json` avec les emplacements où un avion peut se garer. C'est un peu plus long
+(quelques dizaines de secondes de plus), et les aérodromes sont récupérés **en premier** — donc si
+la deuxième partie coince, tu as quand même la première, la plus utile.
+
+Une carte qui ne renvoie aucune place de parking, ce n'est pas une panne : certaines n'en ont
+simplement pas. Envoie les deux fichiers dans ce cas aussi.
+
 ## 4 · L'envoyer
 
 Envoie ce fichier `<Carte>.json` à **David**. Fini pour cette carte !

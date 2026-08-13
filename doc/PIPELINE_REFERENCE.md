@@ -45,6 +45,7 @@ pipeline:
 | `spawnable_aircrafts` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `dynamic_slot_templates` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `spawn_data` | bool \| objet | toujours | Non | `true`/non défini = **toujours exécuté** (données framework embarquées), `false` = désactiver complètement, objet `{file: …}` = fichier mission non-standard |
+| `warehouses` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si `src/warehouses.yaml` est trouvé), `false` = toujours ignorer, objet = options personnalisées |
 | `weather` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 
 Quand la valeur est un objet, les sous-champs suivants s'appliquent :
@@ -53,6 +54,8 @@ Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 |------------|------|--------|-------------|
 | `file` | string | *(voir défauts par étape)* | Chemin vers le fichier de config, relatif au dossier mission |
 | `mode` | `add` \| `replace` | `add` | *(étapes d'injection de groupes uniquement)* `add` conserve les groupes existants ; `replace` met à jour les groupes de même nom |
+| `enabled` | bool | `true` | Désactive l'étape sans perdre les autres sous-champs — c'est la forme longue de `<étape>: false` |
+| `kneeboards` | bool | `true` | *(étape `presets` uniquement)* `false` conserve l'injection des fréquences et ne génère aucune planchette PNG |
 
 **Auto-détection** (quand non défini ou `true`) : l'étape ne s'exécute que si son fichier par défaut est trouvé. L'absence du fichier ignore silencieusement l'étape.
 

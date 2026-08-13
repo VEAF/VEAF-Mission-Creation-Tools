@@ -93,7 +93,7 @@ To pin to a specific version:
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.en.md)
+Full CLI reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 ---
 
@@ -370,7 +370,7 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 | `user-config` | Shows or edits the global user config (`~/veafmct.yaml`) |
 | `about` | Show information about VEAF Mission Creation Tools. |
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
-| `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json. |
+| `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |
 | `generate-config` | Generate a documented mission.yaml template for a mission folder. |
@@ -381,7 +381,7 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 | `smoke-test` | Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook. |
 | `verify-checklist` | Check a resolved checklist against a real cockpit (needs DCS running here). |
 
-Full reference: [Tools Reference](../TOOLS_REFERENCE.en.md)
+Full reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 ### Interactive mode (wizard)
 
@@ -694,7 +694,7 @@ A ready-to-use Klogg highlight profile is included in the repository at [`tools/
 ## Resources
 
 - [Scripts Reference](scripts/README.en.md) — all scripts with configuration details
-- [Tools Reference](../TOOLS_REFERENCE.en.md) — `veaf-tools.exe` CLI full reference
+- [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands, arguments and options
 - [Lua API Reference](../LUA_API_REFERENCE.en.md) — complete Lua API documentation
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
 - [VEAF Discord](https://www.veaf.org/discord) — community help

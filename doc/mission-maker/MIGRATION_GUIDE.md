@@ -373,4 +373,4 @@ Exécutez `veaf-tools-updater.exe` d'abord — le dossier `published/` est manqu
 
 - [Guide du créateur de missions](GUIDE.md) — workflow général de création de missions
 - [Référence des scripts](scripts/README.md) — tous les modules disponibles
-- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options

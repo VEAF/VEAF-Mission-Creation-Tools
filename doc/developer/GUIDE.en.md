@@ -655,5 +655,5 @@ docs(api): document veafMove tanker helpers
 
 - [Lua API Reference](../LUA_API_REFERENCE.en.md) — full public API for the modules
 - [Testing Guide](../TESTING.en.md) — test infrastructure details
-- [Tools Reference](../TOOLS_REFERENCE.en.md) — `veaf-tools.exe` CLI
+- [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands and every option
 - [Roadmap](../ROADMAP.en.md) — planned work

@@ -243,6 +243,11 @@ modules:
 #     - path: src/scripts/FgMission.lua
 #     - path: src/scripts/FgTools.lua
 #       generate_load_trigger: false
+#     - path: src/scripts/AIEN.lua
+#       delay_seconds: 12        # load 12 s after mission start, in a trigger of its own.
+#                                # The delay decides the order, not the position in this list;
+#                                # a script that inventories the world at load time needs the
+#                                # scripts that create groups to have run first.
 
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # pipeline:

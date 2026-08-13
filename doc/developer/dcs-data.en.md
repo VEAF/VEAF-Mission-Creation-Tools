@@ -198,6 +198,33 @@ Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
 the table only covers **already-dumped** theatres; an un-dumped theatre yields no
 entries — callers fall back to ids. Resolution is case-insensitive.
 
+## Parking spots {#parking}
+
+`parking/<theatre>.json` lists, **per theatre**, the spots an aircraft can park on. Kept separate
+from the airbase dumps rather than merged into them: the 15 theatres already captured need no
+redoing, and the airbase capture stays the useful half if the second one fails.
+
+Captured in game with the **VEAF dcs-bridge**, `Airbase:getParking(false)` per airbase:
+
+```bash
+veaf-tools dcs capture-map --parking
+```
+
+**A parked aircraft carries two distinct numbers, and confusing them puts the aircraft somewhere
+else**: `parking` and `parking_id`, which are 28 and 24 on the same F-14A in this repository's own
+fixtures. They are the runtime's `Term_Index` and `Term_Index_0`. That pair is what turned
+`add_air_group` on a ramp into a data capture (ticket 08) and then a write (ticket 09) rather than
+one task: no data shipped here carried those numbers — the 15 airbase dumps hold only
+`{id, name, lat, lon, coalition}`.
+
+The dump keeps **every** key each spot carries, flattened one level and kept as strings: the API
+schema shipped here declares four fields where a mission file already proves there are more, so the
+shape comes from the runtime rather than from the schema. A test pins that an unknown future field
+survives the read. A theatre reporting no spots is data, not a failure.
+
+Not guarded by CI, like the other runtime-dependent tables. The operator's procedure is in
+[Capture a map's airbases](capture-airbases.en.md).
+
 ## The airfield-frequency table
 
 `src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml` maps, **per theatre**,

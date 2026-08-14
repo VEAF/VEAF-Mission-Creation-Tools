@@ -14,39 +14,12 @@ code receives half the fixes. Three quirks, each of which has already produced a
 
 from typing import Any
 
-#: Group categories a mission table may hold, in the order DCS writes them.
-CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
+# The three quirk readers moved to `veaf_libs.mission_table` when the mission validator needed
+# them too: the dependency runs MCP -> veaf_libs, and a second copy would receive half the fixes.
+# Re-exported here so every existing import keeps working.
+from veaf_libs.mission_table import CATEGORIES, indexed, numeric_first  # noqa: E402
 
-
-def indexed(container: Any) -> list[Any]:
-    """Return a DCS 1-based table's values in key order, whether it arrived as a dict or a list.
-
-    Args:
-        container: The raw value, of whatever shape the Lua parser produced.
-
-    Returns:
-        The entries in table order (empty when there are none).
-    """
-    if isinstance(container, dict):
-        return [container[key] for key in sorted(container, key=numeric_first)]
-    if isinstance(container, list):
-        return list(container)
-    return []
-
-
-def numeric_first(key: Any) -> tuple[int, float, str]:
-    """Sort key ordering numeric table keys numerically, before any non-numeric ones.
-
-    Args:
-        key: A table key.
-
-    Returns:
-        A sort tuple placing numeric keys first, in numeric order.
-    """
-    try:
-        return (0, float(key), "")
-    except (TypeError, ValueError):
-        return (1, 0.0, str(key))
+__all__ = ["CATEGORIES", "find_group", "group_names", "indexed", "listed", "numeric_first"]
 
 
 def listed(names: list[str], limit: int = 20) -> str:

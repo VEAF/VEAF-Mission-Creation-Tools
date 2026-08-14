@@ -308,7 +308,7 @@ function veafNamedPoints.initialize(customPoints)
     -- points created via unit names are visible to all coalitions (same as before).
     local effectiveEvent = fromMarker and event or { text = event.text, coalition = -1, idx = nil }
     return veafNamedPoints.executeCommand(pos, effectiveEvent, bypass)
-  end, veafCommands.PRIORITY_NAMEDPOINTS, "OPEN")
+  end, veafCommands.PRIORITY_NAMEDPOINTS, "OPEN", veafNamedPoints.Keyphrase)
   veafRemote.registerRemoteModule("point", veafNamedPoints.executeCommandFromRemote)
 end
 

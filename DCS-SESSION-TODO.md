@@ -37,34 +37,50 @@ then from the mission folder:
 veaf-tools mission build TestMenuFR . --dev-mode --scripts-path D:/dev/_VEAF/VEAF-Mission-Creation-Tools
 ```
 
-## 0. Read the F10 menu in French — 2 min, and it gates the release
+## ✅ 0. The F10 menu reads French — verified in game 2026-08-14
 
-[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) (PR #733) localised **90 labels across 12
-modules**. Every pilot sees this on the first mission after the release, so a regression here is the
-most visible thing we could ship.
+David, in front of the game: the labels are correct. The 90 localised labels of
+[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
+longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
-Load the mission, open F10 → VEAF, and check the tree reads:
+## ⏭ Reprendre ici — 2026-08-15
 
-| Expected | Was |
-|---|---|
-| `APPARITION` | SPAWN |
-| `ZONES DE COMBAT` | COMBAT ZONES |
-| `MOYENS` | ASSETS |
-| `MISSION CAS` | CAS MISSION |
-| `MÉTÉO ET ATC` | WEATHER AND ATC |
-| `POINTS NOMMÉS` | NAMED POINTS |
-| `DÉPLACER` | MOVE |
-| `MISSION DE TRANSPORT` | TRANSPORT MISSION |
+### Le slot A-10 posé le 2026-08-14 ne marche pas
 
-Then one submenu deep: a combat zone should offer `Activer la zone`, `Infos`,
-`Demander de la fumée ROUGE sur l'objectif`. `MISSIONS`, `VEAF` and `GUARDIAN` are **deliberately
-identical** in both languages — not an oversight.
+David, en jeu : *"je le prends, et je reste spectateur"*. Il a supprimé ce slot, ajouté un A-10 à la
+main dans l'éditeur, sauvé sous le suffixe **`-david`** — et là ça fonctionne. **Cette mission est le
+témoin**, et le diagnostic est un simple différentiel entre les deux tables.
 
-**What would be silent**: a label showing as `menu.combatzone.root`. That means a key with no
-catalogue entry, and it would only appear for the entry that is missing.
+Ce qui est déjà écarté : la paire `parking` / `parking_id` **a bien été copiée** (`'43'` / `'16'`),
+ainsi que l'`airdromeId` du premier waypoint (24). Donc ce n'est pas la donnée de parking du ticket 08
+qui manque.
 
-**Also worth a glance**: any label carrying a literal `%s`. Five of those shipped in the first commit
-of that lot and were caught in review; the guard that forbids them is new.
+Le suspect restant est de moi : le script de copie a **forcé `groupId = 9001` et `unitId = 9001`**,
+alors que la mission ne déclare ni `maxGroupId` ni `maxUnitId` (les deux valent `None`). Une mission
+vierge synthétisée n'a pas ces compteurs, et un id hors de leur suite — ou en collision avec les
+templates d'avions que le pipeline injecte, tous en `skill: Client` — expliquerait un slot présent
+mais inutilisable.
+
+À faire, dans cet ordre :
+
+1. Récupérer `TestMenuFR-david.miz` (ou son nom exact) depuis `Saved Games\DCS*\Missions`.
+2. Diffé les deux groupes A-10 champ par champ. Le différentiel est la réponse ; ne pas deviner avant
+   de l'avoir lu.
+3. Vérifier en particulier `maxGroupId` / `maxUnitId` dans la mission de David : si l'éditeur les a
+   écrits, c'est la cause.
+4. Ce que ça apprend appartient à
+   [`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md) :
+   l'action qui créera un slot joueur doit gérer ces compteurs, et la lire dans une mission
+   **fabriquée par l'éditeur** est exactement la mesure que ce ticket demande.
+
+### Reste de la session
+
+- **0b** — l'avertissement de dépréciation dans `dcs.log`, qui doit être **absent**.
+- **1** — la capture parking, 5 min par carte. Débloque le ticket 09 *et* la moitié au sol du slot
+  joueur.
+- Les items 2 à 8 inchangés ci-dessous.
+
+---
 
 ## 0b. Check the two security fixes — 5 min, same mission
 

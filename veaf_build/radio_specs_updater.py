@@ -2,7 +2,12 @@
 Extracts DCS aircraft radio frequency specs from the dcs-lua-datamine GitHub repository
 and generates:
   - src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml
-  - doc/mission-maker/dcs-radio-specs.md
+  - the delimited blocks of doc/mission-maker/dcs-radio-specs.md **and** .en.md
+
+The Markdown pages are hand-written and only their marked blocks are rewritten, each in its own
+language. Until FIX-RADIO-SPECS-GENERATOR-LOCALE this module named a single output — the *French*
+page — and wrote a whole page of *English* to it, destroying a hundred lines of hand-written prose
+per run while `docs-check` stayed green.
 
 Run manually whenever the pinned datamine ref is bumped (after a DCS patch):
     veaf-build update-dcs-data --radio   (or the `update-radio-specs` alias)
@@ -32,7 +37,11 @@ CATEGORIES = {
 
 OUTPUT_YAML = Path(__file__).parent.parent / "src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml"
 OVERRIDES_YAML = OUTPUT_YAML.with_name("dcs-radio-specs-overrides.yaml")
-OUTPUT_MD = Path(__file__).parent.parent / "doc/mission-maker/dcs-radio-specs.md"
+#: One page per language. The old single `OUTPUT_MD` was the French page, written in English.
+OUTPUT_PAGES = {
+    "fr": Path(__file__).parent.parent / "doc/mission-maker/dcs-radio-specs.md",
+    "en": Path(__file__).parent.parent / "doc/mission-maker/dcs-radio-specs.en.md",
+}
 
 MODULATION_MAP = {0: "AM", 1: "FM", 2: "AM/FM"}
 
@@ -467,66 +476,144 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
 _MOD_BADGE = {"AM": "AM", "FM": "FM", "AM/FM": "AM / FM"}
 
 
-def write_markdown(specs: list[AircraftSpec], output: Path) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
+#: Where a generated block starts and ends inside a hand-written page. The generator replaces what
+#: sits between them and touches nothing else, which is what lets the pages keep their prose.
+#:
+#: Before FIX-RADIO-SPECS-GENERATOR-LOCALE the generator wrote a *whole page* to a single output —
+#: `doc/mission-maker/dcs-radio-specs.md`, the **French** page — in English, and never opened the
+#: English one. Running it replaced 100 lines of hand-written French prose with 84 of generated
+#: English, and `docs-check` stayed green throughout, because a French page full of English text is
+#: not a defect the gate can express.
+BLOCK_START = "<!-- BEGIN generated: {name} -->"
+BLOCK_END = "<!-- END generated: {name} -->"
 
-    planes = [s for s in specs if s.category == "plane"]
-    helis = [s for s in specs if s.category == "helicopter"]
+#: Per-language wording for everything the generated blocks contain. The tables are data, but their
+#: headings and column names are prose and belong to the page's language.
+LABELS: dict[str, dict[str, str]] = {
+    "fr": {
+        "planes": "Avions",
+        "helicopters": "Hélicoptères",
+        "aircraft": "Appareil",
+        "dcs_id": "ID DCS",
+        "radio": "Radio",
+        "min": "Min (MHz)",
+        "max": "Max (MHz)",
+        "modulation": "Modulation",
+        "restricted": "Appareils dont la fréquence principale est bridée",
+        "primary_min": "Primaire min (MHz)",
+        "primary_max": "Primaire max (MHz)",
+        "default": "Défaut (MHz)",
+        "none_restricted": "*Aucun appareil n'a de fréquence principale plus étroite que ses canaux préréglés.*",
+        "source": "Source",
+        "source_ref": "Révision source",
+        "regenerate": "Régénérer avec `veaf-build update-dcs-data --radio` après un changement de révision.",
+    },
+    "en": {
+        "planes": "Fixed-wing aircraft",
+        "helicopters": "Helicopters",
+        "aircraft": "Aircraft",
+        "dcs_id": "DCS ID",
+        "radio": "Radio",
+        "min": "Min (MHz)",
+        "max": "Max (MHz)",
+        "modulation": "Modulation",
+        "restricted": "Aircraft whose primary frequency is restricted",
+        "primary_min": "Primary min (MHz)",
+        "primary_max": "Primary max (MHz)",
+        "default": "Default (MHz)",
+        "none_restricted": "*No aircraft has a primary frequency narrower than its preset channels.*",
+        "source": "Source",
+        "source_ref": "Source ref",
+        "regenerate": "Re-generate with `veaf-build update-dcs-data --radio` after a pin bump.",
+    },
+}
 
-    lines: list[str] = [
-        "# DCS Radio Frequency Specifications",
-        "",
-        "Reference table of valid radio frequency ranges for all DCS player-flyable aircraft.",
-        "Used by `inject-presets` to validate that frequencies defined in `presets.yaml` are",
-        "compatible with the target aircraft's radio hardware.",
-        "",
-        "> **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  ",
-        f"> Source ref: `{DATAMINE_REF}`  ",
-        "> Re-generate with `veaf-build update-dcs-data --radio` after a pin bump.",
-        "",
-        "---",
-        "",
+
+class MissingBlockError(RuntimeError):
+    """A page does not carry the markers the generator writes between.
+
+    Raised rather than skipped or overwritten whole: a generator that quietly does nothing is how a
+    stale table ships, and overwriting the page is the defect this lot exists to remove.
+    """
+
+
+def _aircraft_table(specs: list[AircraftSpec], labels: dict[str, str]) -> list[str]:
+    """Render the radio-range table for one category."""
+    lines = [
+        f"| {labels['aircraft']} | {labels['dcs_id']} | {labels['radio']} "
+        f"| {labels['min']} | {labels['max']} | {labels['modulation']} |",
+        "|----------|--------|-------|----------:|----------:|------------|",
     ]
-
-    for section_title, section_specs in [("Fixed-wing aircraft", planes), ("Helicopters", helis)]:
-        lines += [f"## {section_title}", ""]
-        lines += [
-            "| Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |",
-            "|----------|--------|-------|----------:|----------:|------------|",
-        ]
-        for spec in section_specs:
-            first = True
-            for radio in spec.radios:
-                for rng in radio.ranges:
-                    name_col = f"**{spec.display_name}**" if first else ""
-                    id_col = f"`{spec.dcs_id}`" if first else ""
-                    radio_name = radio.name if rng == radio.ranges[0] else ""
-                    lines.append(
-                        f"| {name_col} | {id_col} | {radio_name} "
-                        f"| {rng.min_mhz:.3f} | {rng.max_mhz:.3f} | {_MOD_BADGE.get(rng.modulation, rng.modulation)} |"
-                    )
-                    first = False
-        lines.append("")
-
-    lines += _primary_frequency_section(specs)
-
-    output.write_text("\n".join(lines), encoding="utf-8", newline="\n")
-    print(f"Markdown written to {output}")
+    for spec in specs:
+        first = True
+        for radio in spec.radios:
+            for rng in radio.ranges:
+                name_col = f"**{spec.display_name}**" if first else ""
+                id_col = f"`{spec.dcs_id}`" if first else ""
+                radio_name = radio.name if rng == radio.ranges[0] else ""
+                lines.append(
+                    f"| {name_col} | {id_col} | {radio_name} "
+                    f"| {rng.min_mhz:.3f} | {rng.max_mhz:.3f} | {_MOD_BADGE.get(rng.modulation, rng.modulation)} |"
+                )
+                first = False
+    return lines
 
 
-def _primary_frequency_section(specs: list[AircraftSpec]) -> list[str]:
-    """Build the Markdown section listing aircraft whose primary frequency is restricted.
-
-    Only aircraft whose ``human_radio`` range is *narrower* than the span of their preset
-    ranges are listed — those are the ones where a valid preset channel is still an invalid
-    primary frequency, and the only ones a mission maker needs to know about.
+def build_tables_block(specs: list[AircraftSpec], language: str) -> list[str]:
+    """Build the aircraft-tables block, in *language*.
 
     Args:
         specs: All extracted aircraft specs.
+        language: ``"fr"`` or ``"en"``.
 
     Returns:
-        Markdown lines for the section (a note only, when no aircraft is restricted).
+        The Markdown lines to place between the ``aircraft tables`` markers.
     """
+    labels = LABELS[language]
+    planes = [s for s in specs if s.category == "plane"]
+    helis = [s for s in specs if s.category == "helicopter"]
+    lines: list[str] = []
+    for key, section_specs in (("planes", planes), ("helicopters", helis)):
+        lines += [f"## {labels[key]}", ""]
+        lines += _aircraft_table(section_specs, labels)
+        lines.append("")
+    return lines
+
+
+def build_source_block(language: str) -> list[str]:
+    """Build the provenance note, in *language*.
+
+    Generated rather than hand-written because it carries the pinned datamine ref, which changes on
+    every bump — the rule `CLAUDE.md` states for versions in a page header, applied to a ref.
+
+    Args:
+        language: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The Markdown lines to place between the ``source note`` markers.
+    """
+    labels = LABELS[language]
+    return [
+        f"> **{labels['source']}**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  ",
+        f"> {labels['source_ref']}: `{DATAMINE_REF}`  ",
+        f"> {labels['regenerate']}",
+    ]
+
+
+def build_primary_block(specs: list[AircraftSpec], language: str) -> list[str]:
+    """Build the restricted-primary-frequency table, in *language*.
+
+    The surrounding explanation is hand-written on each page and richer than anything generated
+    here; this block is the exhaustive list, which is the part a mission maker cannot write by hand.
+
+    Args:
+        specs: All extracted aircraft specs.
+        language: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The Markdown lines to place between the ``primary frequency`` markers.
+    """
+    labels = LABELS[language]
     restricted: list[tuple[AircraftSpec, HumanRadio]] = []
     for spec in specs:
         hr = spec.human_radio
@@ -537,36 +624,63 @@ def _primary_frequency_section(specs: list[AircraftSpec]) -> list[str]:
             continue
         if hr.min_mhz > min(r.min_mhz for r in all_ranges) or hr.max_mhz < max(r.max_mhz for r in all_ranges):
             restricted.append((spec, hr))
-
-    lines = [
-        "## Primary-frequency limits",
-        "",
-        "A group's **primary frequency** (the `frequency` field on the group in the Mission",
-        "Editor) is validated against a separate, sometimes much narrower range than the preset",
-        "channels above. The aircraft below are those where the two differ: a frequency that is a",
-        "perfectly valid *preset channel* is rejected as a *primary*, and the ME then refuses to",
-        "save the mission (`Invalid frequency <x> MHz`).",
-        "",
-        "`inject-presets` normally promotes channel 1 of the first radio to the primary; for these",
-        "aircraft it skips the promotion instead and leaves DCS's own default in place.",
-        "",
-    ]
     if not restricted:
-        lines += ["*No aircraft in this dataset restricts its primary frequency.*", ""]
-        return lines
-
-    lines += [
-        "| Aircraft | DCS ID | Primary min (MHz) | Primary max (MHz) | Default (MHz) | Modulation |",
+        return [labels["none_restricted"]]
+    lines = [
+        f"### {labels['restricted']}",
+        "",
+        f"| {labels['aircraft']} | {labels['dcs_id']} | {labels['primary_min']} "
+        f"| {labels['primary_max']} | {labels['default']} | {labels['modulation']} |",
         "|----------|--------|------------------:|------------------:|--------------:|------------|",
     ]
-    for spec, hr in restricted:
+    for spec, hr in sorted(restricted, key=lambda pair: pair[0].display_name):
         default = f"{hr.default_mhz:.3f}" if hr.default_mhz is not None else "—"
         lines.append(
-            f"| **{spec.display_name}** | `{spec.dcs_id}` | {hr.min_mhz:.3f} | {hr.max_mhz:.3f} "
-            f"| {default} | {_MOD_BADGE.get(hr.modulation, hr.modulation)} |"
+            f"| **{spec.display_name}** | `{spec.dcs_id}` | {hr.min_mhz:.3f} "
+            f"| {hr.max_mhz:.3f} | {default} | {_MOD_BADGE.get(hr.modulation, hr.modulation)} |"
         )
-    lines.append("")
     return lines
+
+
+def replace_block(page: Path, name: str, body: list[str]) -> None:
+    """Replace one delimited block inside *page*, leaving every other line untouched.
+
+    Args:
+        page: The Markdown page to edit in place.
+        name: The block's name, as it appears in its markers.
+        body: The lines to put between the markers.
+
+    Raises:
+        MissingBlockError: The page has no such block, or only one of its two markers.
+    """
+    text = page.read_text(encoding="utf-8")
+    start, end = BLOCK_START.format(name=name), BLOCK_END.format(name=name)
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise MissingBlockError(f"{page.name}: expected exactly one '{name}' block, marked by {start} / {end}")
+    head, rest = text.split(start, 1)
+    _stale, tail = rest.split(end, 1)
+    page.write_text(
+        head + start + "\n" + "\n".join(body).rstrip("\n") + "\n" + end + tail,
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def write_markdown(specs: list[AircraftSpec], pages: dict[str, Path]) -> None:
+    """Refresh the generated blocks of every language's page.
+
+    Args:
+        specs: All extracted aircraft specs.
+        pages: Language code to page path, e.g. ``{"fr": …, "en": …}``.
+
+    Raises:
+        MissingBlockError: A page is missing one of its blocks.
+    """
+    for language, page in pages.items():
+        replace_block(page, "source note", build_source_block(language))
+        replace_block(page, "aircraft tables", build_tables_block(specs, language))
+        replace_block(page, "primary frequency", build_primary_block(specs, language))
+        print(f"Generated blocks refreshed in {page} ({language})")
 
 
 # ---------------------------------------------------------------------------
@@ -587,7 +701,7 @@ def main() -> None:
         apply_overrides(specs, overrides)
         print(f"Applied {len(overrides)} VEAF correction(s) from {OVERRIDES_YAML.name}")
     write_yaml(specs, OUTPUT_YAML)
-    write_markdown(specs, OUTPUT_MD)
+    write_markdown(specs, OUTPUT_PAGES)
 
 
 if __name__ == "__main__":

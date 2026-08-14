@@ -1,6 +1,6 @@
 # 01 — Generate the table into both pages, and only the table
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-13 — three blocks per page (source note, primary frequency, aircraft tables), both languages; the command was actually run and the diff is table content only
 Type: fix
 Files: `veaf_build/radio_specs_updater.py`, `doc/mission-maker/dcs-radio-specs.{md,en.md}`,
 `test/python/veaf_build/test_dcs_data_radio_specs.py`, `.github/workflows/dcs-data-drift.yml`

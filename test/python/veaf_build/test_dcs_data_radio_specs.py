@@ -5,13 +5,15 @@ distinct — sometimes far narrower — constraint than ``panelRadio.range``
 (FIX-PRIMARY-FREQ-HUMANRADIO).
 """
 
+import pytest
+
 from veaf_build.radio_specs_updater import (
     AircraftRadio,
     AircraftSpec,
     FrequencyRange,
     HumanRadio,
-    _primary_frequency_section,
     apply_overrides,
+    build_primary_block,
     load_overrides,
     parse_display_name,
     parse_human_radio,
@@ -172,14 +174,30 @@ class TestPrimaryFrequencySection:
             _spec("F-16C_50", (225.0, 399.975), HumanRadio(30.0, 399.975, 305.0, "AM")),
             _spec("NoBound", (100.0, 150.0), None),
         ]
-        section = "\n".join(_primary_frequency_section(specs))
+        section = "\n".join(build_primary_block(specs, "en"))
         assert "FW-190A8" in section
         assert "F-16C_50" not in section
         assert "NoBound" not in section
 
-    def test_notes_when_nothing_is_restricted(self) -> None:
-        section = "\n".join(_primary_frequency_section([_spec("NoBound", (100.0, 150.0), None)]))
-        assert "No aircraft in this dataset restricts its primary frequency." in section
+    @pytest.mark.parametrize(
+        ("language", "expected"),
+        [
+            ("en", "No aircraft has a primary frequency narrower than its preset channels."),
+            ("fr", "Aucun appareil n'a de fréquence principale plus étroite que ses canaux préréglés."),
+        ],
+    )
+    def test_notes_when_nothing_is_restricted(self, language: str, expected: str) -> None:
+        # Both languages: the empty case is the one a reader hits on a dataset where nothing is
+        # restricted, and it would be the easiest place for an untranslated string to hide.
+        section = "\n".join(build_primary_block([_spec("NoBound", (100.0, 150.0), None)], language))
+        assert expected in section
+
+    def test_the_table_is_localised(self) -> None:
+        # The block is data, but its heading and column names are prose: they belong to the page's
+        # language. Writing the English wording into the French page is the defect this lot removes.
+        specs = [_spec("FW-190A8", (38.0, 156.0), HumanRadio(38.4, 42.4, 38.4, "AM"))]
+        assert "Appareils dont la fréquence principale est bridée" in "\n".join(build_primary_block(specs, "fr"))
+        assert "Aircraft whose primary frequency is restricted" in "\n".join(build_primary_block(specs, "en"))
 
 
 class TestOverrides:

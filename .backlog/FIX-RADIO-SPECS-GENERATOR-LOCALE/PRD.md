@@ -1,6 +1,6 @@
 # FIX-RADIO-SPECS-GENERATOR-LOCALE — the radio-specs generator writes its English page over the French one
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-13
 
 Origin: `FIX-DOCAUDIT-CODE` ticket 06, which had to merge a single table column by hand because the
 generator cannot be run. Recorded there as an observation, promoted to a lot on David's call
@@ -47,7 +47,7 @@ would need real judgement, on a page whose prose was being destroyed in the same
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Generate the table into both pages, and only the table](tickets/01-generate-the-table-only.md) | ⬜ |
+| 01 | [Generate the table into both pages, and only the table](tickets/01-generate-the-table-only.md) | ✅ |
 
 ## Definition of Done
 
@@ -57,3 +57,31 @@ would need real judgement, on a page whose prose was being destroyed in the same
   the whole point of the lot.
 - `dcs-data-drift.yml`'s manual follow-up paragraph loses the warning it no longer needs.
 - Full Python gate green; `docs-check` green; coverage ratchet respected.
+
+## What reading the pages changed in the plan
+
+The ticket assumed the generator's primary-frequency section was one of the blocks to localise. It is
+not: **that table appears in neither page** (0 occurrences of `Primary min`). Both pages carry a
+hand-written `human_radio` explanation instead — richer than the generated one, with the FW-190A8
+worked through, the editor's error message and a YAML example — and the generated table had simply
+been dropped when the pages were written by hand.
+
+So the generated surface was **the two aircraft tables and nothing else**, and the plan had two
+options: stop generating the primary table, or give it a home. It got a home — a second block under
+the hand-written explanation — because the exhaustive list of restricted aircraft is the one part a
+mission maker cannot write themselves, and it was missing from the documentation entirely. The prose
+explains; the table lists.
+
+A **third** block came out of the first run: the source note carries the pinned datamine ref, so it
+has to be generated, and leaving it inside the tables block put the provenance in the middle of the
+page — and produced two source notes per page on the first attempt. It is now its own block at the
+top. The French one also cited `poetry run update-radio-specs`, a command that no longer exists,
+which is exactly the rot a generated note prevents.
+
+## Verification that matters
+
+`veaf-build update-dcs-data --radio` was **actually run**, twice, on a clean checkout. Final diff:
+**73 insertions, 2 deletions** on the French page and 72/2 on the English one — the insertions are the
+new primary-frequency tables, and the 2 deletions per page are the stale hand-written source note
+replaced by the generated one. **Not one line of prose was lost**, which is what the old generator
+destroyed 100 of.

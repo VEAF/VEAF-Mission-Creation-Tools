@@ -1906,7 +1906,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         .get(veafCombatZone.Id)
         :trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
       veafRadio.addCommandToSubmenu(
-        veaf.t("menu.combatzone.briefing") .. taskingOrder.zone:getFriendlyName(),
+        veaf.t("menu.combatzone.briefing", taskingOrder.zone:getFriendlyName()),
         self.radioRootPath,
         veafCombatZone.GetInformationOnZone,
         taskingOrder.zone:getMissionEditorZoneName(),

@@ -45,7 +45,7 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
   if element.disposable or element.information then -- in this case we need a submenu
     local radioMenu = veafRadio.addSubMenu(element.description, menu)
     veafRadio.addCommandToSubmenu(
-      veaf.t("menu.assets.respawn") .. element.description,
+      veaf.t("menu.assets.respawn", element.description),
       radioMenu,
       veafAssets.respawn,
       element.name,
@@ -53,7 +53,7 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
     )
     if element.information then
       veafRadio.addCommandToSubmenu(
-        veaf.t("menu.assets.info") .. element.description,
+        veaf.t("menu.assets.info", element.description),
         radioMenu,
         veafAssets.info,
         element.name,
@@ -62,7 +62,7 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
     end
     if element.disposable then
       veafRadio.addSecuredCommandToSubmenu(
-        veaf.t("menu.assets.dispose") .. element.description,
+        veaf.t("menu.assets.dispose", element.description),
         radioMenu,
         veafAssets.dispose,
         element.name,
@@ -71,7 +71,7 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
     end
   else
     veafRadio.addCommandToSubmenu(
-      veaf.t("menu.assets.respawn") .. element.description,
+      veaf.t("menu.assets.respawn", element.description),
       menu,
       veafAssets.respawn,
       element.name,

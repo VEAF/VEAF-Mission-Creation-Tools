@@ -58,5 +58,5 @@ does not read them as an oversight.
 
 ## Acceptance criteria
 
-- [ ] The 13 names resolve through `veaf.t` at build time, both languages pinned by tests.
+- [ ] The 14 names resolve through `veaf.t` at build time, both languages pinned by tests.
 - [ ] `test-lua` + stylua green.

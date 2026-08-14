@@ -102,3 +102,51 @@ def test_every_menu_key_has_that_language(language: str) -> None:
     group = 2 if language == "fr" else 3
     missing = [key for key, m in menu_entries.items() if not m.group(group).strip().strip('"')]
     assert missing == [], f"menu keys with no {language} text: {missing}"
+
+
+#: `veaf.t("key")` with no argument — a bug when the key's text carries a %s or %d.
+BARE_CALL = re.compile(r'veaf\.t\(\s*"(menu\.[a-z0-9._]+)"\s*\)')
+
+#: `veaf.t("key") .. something` — the concatenation the conversion left behind.
+CONCATENATED = re.compile(r'veaf\.t\(\s*"(menu\.[a-z0-9._]+)"\s*\)\s*\.\.')
+
+
+def _placeholder_keys() -> set[str]:
+    """Menu keys whose text contains a format placeholder."""
+    text = (VEAF_LUA / "veafI18n.lua").read_text(encoding="utf-8")
+    return {
+        m.group(1)
+        for m in CATALOGUE_ENTRY.finditer(text)
+        if m.group(1).startswith("menu.") and ("%s" in m.group(2) or "%d" in m.group(2))
+    }
+
+
+def test_a_key_with_a_placeholder_is_never_called_bare() -> None:
+    """Sourcery caught this one on review, and it shipped a `%s` to the screen.
+
+    The conversion replaced the literal and left the concatenation:
+    `veaf.t("menu.assets.respawn") .. element.description` rendered
+    "Réapparition de %sArco 1-1". Five sites, all of them visible in game, and the
+    hard-coded-literal sweep could not see them because the literal was gone.
+    """
+    with_placeholder = _placeholder_keys()
+    assert with_placeholder, "no menu key takes a placeholder — the check would be vacuous"
+    offenders: list[str] = []
+    for path in _modules():
+        text = path.read_text(encoding="utf-8")
+        for match in BARE_CALL.finditer(text):
+            if match.group(1) in with_placeholder:
+                line_no = text[: match.start()].count("\n") + 1
+                offenders.append(f"{path.name}:{line_no}: {match.group(1)} needs its argument")
+    assert offenders == [], "keys whose placeholder would print literally:\n  " + "\n  ".join(offenders)
+
+
+def test_no_menu_label_is_built_by_concatenation() -> None:
+    """A label glued together cannot be reordered by a translator, and hides a lost placeholder."""
+    offenders: list[str] = []
+    for path in _modules():
+        text = path.read_text(encoding="utf-8")
+        for match in CONCATENATED.finditer(text):
+            line_no = text[: match.start()].count("\n") + 1
+            offenders.append(f"{path.name}:{line_no}: {match.group(1)} .. ...")
+    assert offenders == [], "pass the value to veaf.t instead of concatenating:\n  " + "\n  ".join(offenders)

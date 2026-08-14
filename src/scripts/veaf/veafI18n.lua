@@ -1507,6 +1507,10 @@ veaf.i18nCatalog = {
     fr = "Infos",
     en = "Get info",
   },
+  ["menu.weather.fog_animated_over"] = {
+    fr = "Brouillard animé sur %d minutes",
+    en = "Animated fog over %d minutes",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

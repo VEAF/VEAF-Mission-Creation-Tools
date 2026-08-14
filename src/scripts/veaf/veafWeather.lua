@@ -1671,7 +1671,7 @@ function veafWeather.buildRadioMenu()
   local animatedFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated"), fogPath)
   for _, minutes in pairs({ 1, 5, 10, 15, 30, 60, 90 }) do
     local overMinutesText = string.format(" over %d minutes", minutes)
-    local _path = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated") .. overMinutesText, animatedFogPath)
+    local _path = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated_over", minutes), animatedFogPath)
     veafRadio.addSecuredCommandToSubmenu(
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"].name,
       _path,

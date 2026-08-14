@@ -8,9 +8,76 @@ unblocks, so a session can be worked through without re-reading the whole backlo
 source of truth for scope and status; this file is only the running order for a session in front of
 the game.
 
-Written 2026-08-12.
+Written 2026-08-12, reordered 2026-08-14 when items 0 and 0b arrived — they gate a release, so they
+come first.
 
 ---
+
+## A mission is ready for items 0 and 0b
+
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-14\TestMenuFR.miz` — Caucasus, `language: fr`, with the modules
+that build menus (RADIO, SPAWN, COMBATZONE, ASSETS, WEATHER, NAMEDPOINTS, MOVE, TRANSPORTMISSION,
+CASMISSION, SHORTCUTS, SECURITY) and security **left on**.
+
+**It embeds the repository's scripts, not the published ones**, and that matters: release 6.13.0 has
+none of these fixes, so a mission built the ordinary way would show the old behaviour and read as
+"the fix does not work". Verified before shipping it here — the embedded bundle contains
+`ZONES DE COMBAT`, `APPARITION`, `Activer la mission` and `menu.combatzone.root`, and its
+`veaf-config.lua` declares `veaf.config.language = "fr"`.
+
+Rebuild it, if needed, with:
+
+```bash
+veaf-build build --version 6.13.100 --skip-python
+```
+
+then from the mission folder:
+
+```bash
+veaf-tools mission build TestMenuFR . --dev-mode --scripts-path D:/dev/_VEAF/VEAF-Mission-Creation-Tools
+```
+
+## 0. Read the F10 menu in French — 2 min, and it gates the release
+
+[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) (PR #733) localised **90 labels across 12
+modules**. Every pilot sees this on the first mission after the release, so a regression here is the
+most visible thing we could ship.
+
+Load the mission, open F10 → VEAF, and check the tree reads:
+
+| Expected | Was |
+|---|---|
+| `APPARITION` | SPAWN |
+| `ZONES DE COMBAT` | COMBAT ZONES |
+| `MOYENS` | ASSETS |
+| `MISSION CAS` | CAS MISSION |
+| `MÉTÉO ET ATC` | WEATHER AND ATC |
+| `POINTS NOMMÉS` | NAMED POINTS |
+| `DÉPLACER` | MOVE |
+| `MISSION DE TRANSPORT` | TRANSPORT MISSION |
+
+Then one submenu deep: a combat zone should offer `Activer la zone`, `Infos`,
+`Demander de la fumée ROUGE sur l'objectif`. `MISSIONS`, `VEAF` and `GUARDIAN` are **deliberately
+identical** in both languages — not an oversight.
+
+**What would be silent**: a label showing as `menu.combatzone.root`. That means a key with no
+catalogue entry, and it would only appear for the entry that is missing.
+
+**Also worth a glance**: any label carrying a literal `%s`. Five of those shipped in the first commit
+of that lot and were caught in review; the guard that forbids them is new.
+
+## 0b. Check the two security fixes — 5 min, same mission
+
+Both from [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) (PR #730), both in the release.
+
+- **`_transport` no longer asks a listed pilot for the password.** Place a `_transport` marker with no
+  `password` while listed in `veaf-pilots.txt`. It used to be refused whatever your tier, because the
+  check was called without the marker id. This is the one place `veafSecurity.md`'s "nothing changes
+  for a listed pilot" was false.
+- **The tier names work.** Nothing to type: if the mission loads and the F10 menus appear, the
+  dispatchers accepted `KNOWN_PILOT` / `SENIOR_PILOT` / `ADMIN`. What to watch in `dcs.log` is the
+  **deprecation notice** — it should be *absent*, since all 24 of our own declarations were migrated.
+  One appearing means a module still declares `L9`.
 
 ## 1. Capture the parking slots — 5 min per map
 
@@ -21,7 +88,7 @@ Same kit as the airbase captures of `FEAT-AIRDROMES-RUNTIME-SOURCE`: load a brid
 `dcs-serve`, then:
 
 ```bash
-veaf-tools capture-map --parking --out-dir veaf_build/dcs_data
+veaf-tools dcs capture-map --parking --out-dir veaf_build/dcs_data
 ```
 
 - Caucasus, Syria and PersianGulf first — they cover most missions.

@@ -151,7 +151,10 @@ function veafCommands.registerCommandHandler(fn, priority, security, keyphrase)
     fn = fn,
     priority = priority,
     security = security,
-    keyphrase = keyphrase and keyphrase:lower() or nil,
+    -- An empty string is normalised to nil rather than kept: `find("", 1, true)` returns 1, so an
+    -- empty keyphrase would match every text while looking like a filter. Same outcome as declaring
+    -- none, but said explicitly instead of reached by accident (Sourcery, PR #735).
+    keyphrase = (type(keyphrase) == "string" and keyphrase ~= "") and keyphrase:lower() or nil,
   })
   veaf.loggers.get(veafCommands.Id):debug("registered handler at priority %d (position %d), security %s", priority, i, security)
 end

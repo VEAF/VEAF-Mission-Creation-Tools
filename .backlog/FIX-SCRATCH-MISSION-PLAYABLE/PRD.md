@@ -19,8 +19,8 @@ states the gap is covered:
 > or the composites (`add_group` populates coalitions/countries on demand) — fills them in.
 
 **No line of the MCP writes that table.** Grepped: the only matches are `enemy_coalitions`, a QRA
-field with nothing to do with it. So the work was deferred to a place that never did it — the shape
-`VMR-088` was — and the comment is what made it invisible.
+field with nothing to do with it. So the work was deferred to a place that never did it, which is the
+same shape as `VMR-088` — and the comment is what made that deferral invisible.
 
 `coalitions` maps **country ids to a side**; `coalition` holds the units. Populating the second
 without the first gives a mission whose units live in a side that does not exist.

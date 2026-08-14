@@ -59,6 +59,14 @@ class TestSideWithoutCountry:
         mission = _mission(coalitions={"blue": [2], "red": [], "neutrals": []})
         assert _messages(validate_mission_content({}, mission), ERROR) == []
 
+    def test_a_side_missing_from_coalitions_entirely_is_an_error(self) -> None:
+        # Not the same input as an empty container: here `assigned.get("blue")` is None. A mission
+        # declaring only red and neutrals is a shape a hand-edited file can reach, and the units are
+        # just as unreachable.
+        mission = _mission(coalitions={"red": [], "neutrals": []})
+        errors = _messages(validate_mission_content({}, mission), ERROR)
+        assert any("blue" in m for m in errors), f"an absent side is as broken as an empty one: {errors}"
+
     def test_the_dict_shape_of_coalitions_is_understood(self) -> None:
         # A Lua table with non-contiguous keys deserialises as a dict, not a list. Reading only one
         # shape is how a check passes on half its inputs.

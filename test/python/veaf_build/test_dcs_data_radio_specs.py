@@ -5,6 +5,8 @@ distinct — sometimes far narrower — constraint than ``panelRadio.range``
 (FIX-PRIMARY-FREQ-HUMANRADIO).
 """
 
+import pytest
+
 from veaf_build.radio_specs_updater import (
     AircraftRadio,
     AircraftSpec,
@@ -177,9 +179,18 @@ class TestPrimaryFrequencySection:
         assert "F-16C_50" not in section
         assert "NoBound" not in section
 
-    def test_notes_when_nothing_is_restricted(self) -> None:
-        section = "\n".join(build_primary_block([_spec("NoBound", (100.0, 150.0), None)], "en"))
-        assert "No aircraft has a primary frequency narrower than its preset channels." in section
+    @pytest.mark.parametrize(
+        ("language", "expected"),
+        [
+            ("en", "No aircraft has a primary frequency narrower than its preset channels."),
+            ("fr", "Aucun appareil n'a de fréquence principale plus étroite que ses canaux préréglés."),
+        ],
+    )
+    def test_notes_when_nothing_is_restricted(self, language: str, expected: str) -> None:
+        # Both languages: the empty case is the one a reader hits on a dataset where nothing is
+        # restricted, and it would be the easiest place for an untranslated string to hide.
+        section = "\n".join(build_primary_block([_spec("NoBound", (100.0, 150.0), None)], language))
+        assert expected in section
 
     def test_the_table_is_localised(self) -> None:
         # The block is data, but its heading and column names are prose: they belong to the page's

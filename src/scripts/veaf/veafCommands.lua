@@ -123,7 +123,12 @@ veafCommands.commandHandlers = {}
 --                 veafCommands.SECURITY_CHECKS ("ADMIN"/"SENIOR_PILOT"/"KNOWN_PILOT"/"OPEN", or
 --                 the deprecated "L0"/"L1"/"L9"). There is no default: a handler that does not
 --                 say what it needs does not get registered.
-function veafCommands.registerCommandHandler(fn, priority, security)
+-- @param keyphrase string — OPTIONAL but strongly advised: the marker text this handler answers to
+--                 (e.g. "_move"). Without it the dispatcher must check this handler's security for
+--                 **every** marker carrying text, so a pilot annotating the map with "RDV ici" was
+--                 told to give the L1 password once per tiered handler. Declaring it lets the
+--                 dispatcher skip the handler before checking anything.
+function veafCommands.registerCommandHandler(fn, priority, security, keyphrase)
   assert(type(fn) == "function", "veafCommands.registerCommandHandler: fn must be a function")
   assert(type(priority) == "number", "veafCommands.registerCommandHandler: priority must be a number")
   assert(
@@ -142,8 +147,28 @@ function veafCommands.registerCommandHandler(fn, priority, security)
   while i <= #veafCommands.commandHandlers and veafCommands.commandHandlers[i].priority <= priority do
     i = i + 1
   end
-  table.insert(veafCommands.commandHandlers, i, { fn = fn, priority = priority, security = security })
+  table.insert(veafCommands.commandHandlers, i, {
+    fn = fn,
+    priority = priority,
+    security = security,
+    keyphrase = keyphrase and keyphrase:lower() or nil,
+  })
   veaf.loggers.get(veafCommands.Id):debug("registered handler at priority %d (position %d), security %s", priority, i, security)
+end
+
+--- Does this handler answer to this marker text?
+---
+--- A handler that declared no keyphrase answers to everything, which is today's behaviour and keeps
+--- the change additive while the callers are migrated one at a time.
+---@return boolean
+function veafCommands.handlesText(entry, text)
+  if not entry.keyphrase then
+    return true
+  end
+  if type(text) ~= "string" then
+    return false
+  end
+  return text:lower():find(entry.keyphrase, 1, true) ~= nil
 end
 
 --- Is this handler allowed to run for this event?
@@ -172,7 +197,15 @@ end
 function veafCommands.dispatchMarker(eventPos, event)
   veaf.loggers.get(veafCommands.Id):debug("dispatchMarker(text=[%s])", tostring(event.text))
   for _, entry in ipairs(veafCommands.commandHandlers) do
-    if veafCommands.isAllowed(entry, event, false) and entry.fn(eventPos, event, false, true, nil, nil) then
+    -- Recognition BEFORE security. Checking first meant every handler whose tier the pilot lacked
+    -- printed a refusal for a command it would never have handled: a marker reading "RDV ici" earned
+    -- two "give the L1 password" messages, and a refused `_transport` three (David, in game
+    -- 2026-08-14). Matching mirrors what the modules do themselves: `text:lower():find(Keyphrase)`.
+    if
+      veafCommands.handlesText(entry, event and event.text)
+      and veafCommands.isAllowed(entry, event, false)
+      and entry.fn(eventPos, event, false, true, nil, nil)
+    then
       return true
     end
   end

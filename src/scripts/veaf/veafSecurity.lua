@@ -997,7 +997,7 @@ function veafSecurity.initialize()
     -- The author travels with the event; it is what lets the elevation verb identify its
     -- requester on this channel (REVIEW-SECURITY-LAYER ticket 01).
     return veafSecurity.executeCommand(pos, event.text, bypass, event and event.author)
-  end, veafCommands.PRIORITY_SECURITY, "OPEN")
+  end, veafCommands.PRIORITY_SECURITY, "OPEN", veafSecurity.Keyphrase)
   veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
   -- Read here rather than at module load: the mission config has been applied by now, so this is
   -- where the deprecated spelling can actually be seen (and warned about).

@@ -332,4 +332,79 @@ function TestVeafCommandsSecurityEnforcement:test_an_unknown_level_at_dispatch_d
   luaunit.assertEquals(#self.ran, 0)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCommandsRecognitionBeforeSecurity — FIX-SECURITY-BEFORE-RECOGNITION
+-- ---------------------------------------------------------------------------
+--- David, in game 2026-08-14: a refused `_transport` printed its message **three times**. The cause
+--- is broader than that command — `isAllowed` ran before the handler said whether it recognised the
+--- text, so every handler whose tier the pilot lacked printed a refusal for a command it would never
+--- have handled. A pilot writing "RDV ici" on a marker got two "give the L1 password" messages.
+---
+--- These tests count *security calls*, not messages: the message is a consequence, the call is the
+--- defect.
+TestVeafCommandsRecognitionBeforeSecurity = {}
+
+function TestVeafCommandsRecognitionBeforeSecurity:setUp()
+  resetHandlers()
+  self.savedChecks = veafCommands.SECURITY_CHECKS
+  self.calls = 0
+  local counter = self
+  veafCommands.SECURITY_CHECKS = {
+    SENIOR_PILOT = function()
+      counter.calls = counter.calls + 1
+      return false
+    end,
+    KNOWN_PILOT = function()
+      counter.calls = counter.calls + 1
+      return false
+    end,
+    OPEN = function()
+      return true
+    end,
+  }
+end
+
+function TestVeafCommandsRecognitionBeforeSecurity:tearDown()
+  veafCommands.SECURITY_CHECKS = self.savedChecks
+end
+
+--- The everyday case: plain text on a marker must not be run past anybody's security.
+function TestVeafCommandsRecognitionBeforeSecurity:test_plain_text_is_never_checked_for_security()
+  veafCommands.registerCommandHandler(makeHandler(false), 60, "SENIOR_PILOT", "_move")
+  veafCommands.registerCommandHandler(makeHandler(false), 70, "SENIOR_PILOT", "_radio")
+
+  veafCommands.dispatchMarker(pos, { text = "RDV ici", idx = 1 })
+
+  luaunit.assertEquals(self.calls, 0, "annotating the map must not ask for a password")
+end
+
+--- The filter must not swallow the real case.
+function TestVeafCommandsRecognitionBeforeSecurity:test_a_matching_keyphrase_still_reaches_security()
+  veafCommands.registerCommandHandler(makeHandler(false), 60, "SENIOR_PILOT", "_move")
+  veafCommands.registerCommandHandler(makeHandler(false), 70, "SENIOR_PILOT", "_radio")
+
+  veafCommands.dispatchMarker(pos, { text = "_move group, name x", idx = 1 })
+
+  luaunit.assertEquals(self.calls, 1, "only the handler whose keyphrase matches is checked")
+end
+
+--- Matching follows what the modules do today: `event.text:lower():find(Keyphrase)`.
+function TestVeafCommandsRecognitionBeforeSecurity:test_matching_is_case_insensitive()
+  veafCommands.registerCommandHandler(makeHandler(false), 60, "SENIOR_PILOT", "_move")
+
+  veafCommands.dispatchMarker(pos, { text = "_MOVE GROUP, name x", idx = 1 })
+
+  luaunit.assertEquals(self.calls, 1, "a pilot typing in capitals is still typing the command")
+end
+
+--- Additive by construction: a handler registered without a keyphrase keeps today's behaviour, so the
+--- five callers can be migrated one at a time.
+function TestVeafCommandsRecognitionBeforeSecurity:test_a_handler_without_a_keyphrase_is_still_checked()
+  veafCommands.registerCommandHandler(makeHandler(false), 60, "SENIOR_PILOT")
+
+  veafCommands.dispatchMarker(pos, { text = "RDV ici", idx = 1 })
+
+  luaunit.assertEquals(self.calls, 1, "no keyphrase declared means no filtering")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -37,34 +37,11 @@ then from the mission folder:
 veaf-tools mission build TestMenuFR . --dev-mode --scripts-path D:/dev/_VEAF/VEAF-Mission-Creation-Tools
 ```
 
-## 0. Read the F10 menu in French — 2 min, and it gates the release
+## ✅ 0. The F10 menu reads French — verified in game 2026-08-14
 
-[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) (PR #733) localised **90 labels across 12
-modules**. Every pilot sees this on the first mission after the release, so a regression here is the
-most visible thing we could ship.
-
-Load the mission, open F10 → VEAF, and check the tree reads:
-
-| Expected | Was |
-|---|---|
-| `APPARITION` | SPAWN |
-| `ZONES DE COMBAT` | COMBAT ZONES |
-| `MOYENS` | ASSETS |
-| `MISSION CAS` | CAS MISSION |
-| `MÉTÉO ET ATC` | WEATHER AND ATC |
-| `POINTS NOMMÉS` | NAMED POINTS |
-| `DÉPLACER` | MOVE |
-| `MISSION DE TRANSPORT` | TRANSPORT MISSION |
-
-Then one submenu deep: a combat zone should offer `Activer la zone`, `Infos`,
-`Demander de la fumée ROUGE sur l'objectif`. `MISSIONS`, `VEAF` and `GUARDIAN` are **deliberately
-identical** in both languages — not an oversight.
-
-**What would be silent**: a label showing as `menu.combatzone.root`. That means a key with no
-catalogue entry, and it would only appear for the entry that is missing.
-
-**Also worth a glance**: any label carrying a literal `%s`. Five of those shipped in the first commit
-of that lot and were caught in review; the guard that forbids them is new.
+David, in front of the game: the labels are correct. The 90 localised labels of
+[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
+longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
 ## 0b. Check the two security fixes — 5 min, same mission
 

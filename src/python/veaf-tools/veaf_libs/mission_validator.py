@@ -30,6 +30,7 @@ import yaml
 from veaf_libs.config_override import find_unknown_segments, read_corpus
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
+from veaf_libs.mission_table import CATEGORIES, indexed
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
 
 ERROR = "error"
@@ -149,6 +150,51 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
 
     for section, subzone, level in find_undeclared_operation_subzones(yaml_data):
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
+
+    issues += _check_mission_is_playable(mission)
+
+    return issues
+
+
+def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
+    """Report a mission DCS would refuse, or that no pilot can enter.
+
+    Added after a mission built for the 2026-08-14 DCS session passed this validator and built
+    cleanly, and DCS then opened CHANGING COALITIONS with every country unassigned: `coalitions` was
+    empty while `coalition` held units. Two tables describe the same fact — which countries a side
+    owns, and what those countries field — and populating only the second gives units in a side that
+    does not exist.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One error per side holding units but owning no country, plus one warning when the mission has
+        no player slot at all.
+    """
+    if not isinstance(mission, dict):
+        return []
+    issues: list[ValidationIssue] = []
+
+    assigned = mission.get("coalitions") or {}
+    for side, side_content in (mission.get("coalition") or {}).items():
+        if not isinstance(side_content, dict):
+            continue
+        countries = indexed(side_content.get("country"))
+        has_units = any(
+            indexed((country.get(category) or {}).get("group"))
+            for country in countries
+            if isinstance(country, dict)
+            for category in CATEGORIES
+        )
+        if has_units and not indexed(assigned.get(side) if isinstance(assigned, dict) else None):
+            issues.append(ValidationIssue(ERROR, t("validate.side_without_country", side=side)))
+
+    # A warning, not an error: a server-side scenario or a template library legitimately has no slot,
+    # so this must never refuse a build. It is said once because it is the other half of what makes a
+    # mission unflyable.
+    if _aircraft_counts(mission)[1] == 0:
+        issues.append(ValidationIssue(WARNING, t("validate.no_player_slot")))
 
     return issues
 

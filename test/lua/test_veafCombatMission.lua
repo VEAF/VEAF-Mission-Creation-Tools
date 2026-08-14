@@ -886,4 +886,45 @@ function TestVeafCombatMissionSetSkill:test_returns_self_for_chaining()
   luaunit.assertEquals(mission:setAllElementsSkill("Average"), mission)
 end
 
+-- ============================================================================
+-- TestCombatMissionMenuI18n — FIX-RADIO-MENU-I18N
+-- ============================================================================
+--- The F10 labels were hard-coded English strings, so a French server showed `Activate mission` and
+--- the pilot guide promised « Activer ». They now go through veaf.t, resolved when the menu is built
+--- rather than when the file loads — `veaf.config.language` is assigned in between, so resolving too
+--- early would pin every server to French with no error to show for it.
+TestCombatMissionMenuI18n = {}
+
+function TestCombatMissionMenuI18n:setUp()
+  self.savedLanguage = veaf.config.language
+end
+
+function TestCombatMissionMenuI18n:tearDown()
+  veaf.config.language = self.savedLanguage
+end
+
+function TestCombatMissionMenuI18n:test_the_labels_follow_the_mission_language()
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("menu.combatmission.activate"), "Activate mission")
+  luaunit.assertEquals(veaf.t("menu.combatmission.get_info"), "Get info")
+  veaf.config.language = "fr"
+  luaunit.assertEquals(veaf.t("menu.combatmission.activate"), "Activer la mission")
+  luaunit.assertEquals(veaf.t("menu.combatmission.get_info"), "Infos")
+end
+
+--- David's arbitration b: the English label carried a typo since it was written. The string was
+--- moving anyway, so it was corrected in the same pass.
+function TestCombatMissionMenuI18n:test_the_english_deactivate_typo_is_gone()
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t("menu.combatmission.deactivate"), "Deactivate mission")
+end
+
+--- The root name holds a key, not a label. A test on the key alone would pass on a stale catalogue,
+--- so both languages are pinned.
+function TestCombatMissionMenuI18n:test_the_root_name_is_a_key_that_resolves()
+  luaunit.assertEquals(veafCombatMission.RadioMenuName, "menu.combatmission.root")
+  veaf.config.language = "fr"
+  luaunit.assertEquals(veaf.t(veafCombatMission.RadioMenuName), "MISSIONS")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -29,7 +29,7 @@ Que vivront vos joueurs ?
 |---------------|--------|-----------------|
 | Place un marqueur avec `_spawn ...` | [veafSpawn](veafSpawn.md) | Des unités apparaissent à la position du marqueur |
 | Place un marqueur avec `_cas` | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
-| Ouvre F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
+| Ouvre F10 → ZONES DE COMBAT → Activer la zone | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
 | Entre dans une zone de vagues aériennes | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
 | Ouvre F10 → ASSETS → [ressource] | [veafAssets](veafAssets.md) | Info, respawn |
 | Ouvre F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |

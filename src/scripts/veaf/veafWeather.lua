@@ -23,7 +23,7 @@ veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafWeather.Keyphrase = "_weather"
 
-veafWeather.RadioMenuName = "WEATHER AND ATC"
+veafWeather.RadioMenuName = "menu.weather.root"
 
 veafWeather.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -1620,32 +1620,32 @@ end
 function veafWeather.buildRadioMenu()
   veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
 
-  veafWeather.rootPath = veafRadio.addMenu(veafWeather.RadioMenuName)
+  veafWeather.rootPath = veafRadio.addMenu(veaf.t(veafWeather.RadioMenuName))
   veafRadio.addCommandToSubmenu(
-    "Weather on closest point",
+    veaf.t("menu.weather.closest_point"),
     veafWeather.rootPath,
     veafWeather.messageWeatherAtClosestPoint,
     nil,
     veafRadio.USAGE_ForGroup
   )
   veafRadio.addCommandToSubmenu(
-    "ATC on closest airbase",
+    veaf.t("menu.weather.closest_atc"),
     veafWeather.rootPath,
     veafWeather.messageAtcClosestAirbase,
     nil,
     veafRadio.USAGE_ForGroup
   )
   veafRadio.addCommandToSubmenu(
-    "ATC and weather in one go",
+    veaf.t("menu.weather.atc_and_weather"),
     veafWeather.rootPath,
     veafWeather.messageAtcAndWeather,
     nil,
     veafRadio.USAGE_ForGroup
   )
 
-  local fogPath = veafRadio.addSubMenu("Fog settings", veafWeather.rootPath)
+  local fogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_settings"), veafWeather.rootPath)
 
-  local dynamicFogPath = veafRadio.addSubMenu("Dynamic fog", fogPath)
+  local dynamicFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_dynamic"), fogPath)
   veafRadio.addSecuredCommandToSubmenu(
     veafWeather.FOG_DYNAMIC_HEAVY.name,
     dynamicFogPath,
@@ -1668,10 +1668,10 @@ function veafWeather.buildRadioMenu()
     veafRadio.USAGE_ForAll
   )
 
-  local animatedFogPath = veafRadio.addSubMenu("Animated fog", fogPath)
+  local animatedFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated"), fogPath)
   for _, minutes in pairs({ 1, 5, 10, 15, 30, 60, 90 }) do
     local overMinutesText = string.format(" over %d minutes", minutes)
-    local _path = veafRadio.addSubMenu("Animated fog" .. overMinutesText, animatedFogPath)
+    local _path = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated_over", minutes), animatedFogPath)
     veafRadio.addSecuredCommandToSubmenu(
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"].name,
       _path,
@@ -1716,7 +1716,7 @@ function veafWeather.buildRadioMenu()
     )
   end
 
-  local staticFogPath = veafRadio.addSubMenu("Static fog", fogPath)
+  local staticFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_static"), fogPath)
   veafRadio.addSecuredCommandToSubmenu(
     veafWeather.FOG_STATIC_HEAVY.name,
     staticFogPath,

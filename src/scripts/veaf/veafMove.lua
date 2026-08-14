@@ -30,7 +30,7 @@ veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
-veafMove.RadioMenuName = "MOVE"
+veafMove.RadioMenuName = "menu.move.root"
 
 veafMove.tankerMissionParameters = {
   ["A-10C"] = { speed = 250, alt = 12000 },
@@ -916,9 +916,9 @@ end
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
   veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.buildRadioMenu()"))
-  veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
+  veafMove.rootPath = veafRadio.addSubMenu(veaf.t(veafMove.RadioMenuName))
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
   end
   for _, tankerUnitName in pairs(veafMove.Tankers) do
     local tankerName = tankerUnitName

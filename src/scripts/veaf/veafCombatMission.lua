@@ -28,7 +28,7 @@ veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
 
-veafCombatMission.RadioMenuName = "MISSIONS"
+veafCombatMission.RadioMenuName = "menu.combatmission.root"
 
 veafCombatMission.MinimumSpacingBetweenClones = 300 -- minimum spawn distance between clones of a group
 
@@ -1036,7 +1036,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
   veaf.loggers.get(veafCombatMission.Id):trace("populate the radio menu")
   -- global commands
   veafRadio.addCommandToSubmenu(
-    "Get info",
+    veaf.t("menu.combatmission.get_info"),
     self.radioRootPath,
     veafCombatMission.GetInformationOnMission,
     self.name,
@@ -1047,7 +1047,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatMission.Id):trace("mission is active")
     if self:isSecured() then
       veafRadio.addSecuredCommandToSubmenu(
-        "Desactivate mission",
+        veaf.t("menu.combatmission.deactivate"),
         self.radioRootPath,
         veafCombatMission.DesactivateMission,
         self.name,
@@ -1055,7 +1055,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
       )
     else
       veafRadio.addCommandToSubmenu(
-        "Desactivate mission",
+        veaf.t("menu.combatmission.deactivate"),
         self.radioRootPath,
         veafCombatMission.DesactivateMission,
         self.name,
@@ -1067,7 +1067,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatMission.Id):trace("mission is not active")
     if self:isSecured() then
       veafRadio.addSecuredCommandToSubmenu(
-        "Activate mission",
+        veaf.t("menu.combatmission.activate"),
         self.radioRootPath,
         veafCombatMission.ActivateMission,
         self.name,
@@ -1075,7 +1075,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
       )
     else
       veafRadio.addCommandToSubmenu(
-        "Activate mission",
+        veaf.t("menu.combatmission.activate"),
         self.radioRootPath,
         veafCombatMission.ActivateMission,
         self.name,
@@ -1344,20 +1344,26 @@ function veafCombatMission.buildRadioMenu()
   if veafCombatMission.rootPath then
     veafRadio.clearSubmenu(veafCombatMission.rootPath)
   else
-    veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
+    veafCombatMission.rootPath = veafRadio.addMenu(veaf.t(veafCombatMission.RadioMenuName))
   end
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCombatMission.rootPath, veafCombatMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafCombatMission.rootPath,
+      veafCombatMission.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
   veafRadio.addCommandToSubmenu(
-    "List available",
+    veaf.t("menu.combatmission.list_available"),
     veafCombatMission.rootPath,
     veafCombatMission.listAvailableMissions,
     nil,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addCommandToSubmenu(
-    "List active",
+    veaf.t("menu.combatmission.list_active"),
     veafCombatMission.rootPath,
     veafCombatMission.listActiveMissions,
     nil,

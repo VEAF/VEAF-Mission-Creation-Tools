@@ -54,7 +54,7 @@ veafTransportMission.RedDefenseGroupName = "Cargo - Enemy Air Defense Group"
 --- Name of the enemy group that blocades the friendlies
 veafTransportMission.RedBlocadeGroupName = "Cargo - Enemy Blocade Group"
 
-veafTransportMission.RadioMenuName = "TRANSPORT MISSION"
+veafTransportMission.RadioMenuName = "menu.transportmission.root"
 
 veafTransportMission.AdfRadioSound = "l10n/DEFAULT/beacon.ogg"
 
@@ -425,7 +425,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
   -- add radio menu for drop zone information (by player group)
   veafRadio.addCommandToSubmenu(
-    "Drop zone information",
+    veaf.t("menu.transportmission.info"),
     veafTransportMission.rootPath,
     veafTransportMission.reportTargetInformation,
     nil,
@@ -433,11 +433,15 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
   )
 
   -- add radio menus for commands
-  veafRadio.addSecuredCommandToSubmenu("Skip current objective", veafTransportMission.rootPath, veafTransportMission.skip)
-  veafTransportMission.targetMarkersPath = veafRadio.addSubMenu("Drop zone markers", veafTransportMission.rootPath)
-  veafRadio.addCommandToSubmenu("Request smoke on drop zone", veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.transportmission.skip"), veafTransportMission.rootPath, veafTransportMission.skip)
+  veafTransportMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.transportmission.markers"), veafTransportMission.rootPath)
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over drop zone",
+    veaf.t("menu.transportmission.request_smoke"),
+    veafTransportMission.targetMarkersPath,
+    veafTransportMission.smokeTarget
+  )
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.transportmission.request_flare"),
     veafTransportMission.targetMarkersPath,
     veafTransportMission.flareTarget
   )
@@ -520,7 +524,7 @@ function veafTransportMission.smokeTarget()
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafTransportMission.BlueGroupName), trigger.smokeColor.Green)
   trigger.action.outText(veaf.t("transport.smoke_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request smoke on drop zone")
-  veafRadio.addCommandToSubmenu("Drop zone is marked with GREEN smoke", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.smoke_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.smokeResetTaskID =
     mist.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
@@ -530,7 +534,11 @@ end
 function veafTransportMission.smokeReset()
   veaf.loggers.get(veafTransportMission.Id):debug("smokeReset()")
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Drop zone is marked with GREEN smoke")
-  veafRadio.addCommandToSubmenu("Request smoke on drop zone", veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.transportmission.request_smoke"),
+    veafTransportMission.targetMarkersPath,
+    veafTransportMission.smokeTarget
+  )
   trigger.action.outText(veaf.t("transport.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
@@ -541,7 +549,7 @@ function veafTransportMission.flareTarget()
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafTransportMission.BlueGroupName))
   trigger.action.outText(veaf.t("transport.illum_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request illumination flare over drop zone")
-  veafRadio.addCommandToSubmenu("Drop zone is lit with illumination flare", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.flare_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.flareResetTaskID =
     mist.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
@@ -552,7 +560,7 @@ function veafTransportMission.flareReset()
   veaf.loggers.get(veafTransportMission.Id):debug("flareReset()")
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Drop zone is lit with illumination flare")
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over drop zone",
+    veaf.t("menu.transportmission.request_flare"),
     veafTransportMission.targetMarkersPath,
     veafTransportMission.flareTarget
   )
@@ -638,8 +646,14 @@ end
 
 --- Build the initial radio menu
 function veafTransportMission.buildRadioMenu()
-  veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
-  veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
+  veafTransportMission.rootPath = veafRadio.addSubMenu(veaf.t(veafTransportMission.RadioMenuName))
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.common.help"),
+    veafTransportMission.rootPath,
+    veafTransportMission.help,
+    nil,
+    veafRadio.USAGE_ForGroup
+  )
   -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
   -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end

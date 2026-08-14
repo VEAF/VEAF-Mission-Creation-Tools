@@ -30,7 +30,7 @@ veafMissileGuardian.SecondsBetweenWideZoneWatchdogChecks = 5
 --- Number of seconds between each check of the DANGER ZONE watchdog function
 veafMissileGuardian.SecondsBetweenDangerZoneWatchdogChecks = 0.5
 
-veafMissileGuardian.RadioMenuName = "GUARDIAN"
+veafMissileGuardian.RadioMenuName = "menu.missileguardian.root"
 
 veafMissileGuardian.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -525,10 +525,16 @@ function veafMissileGuardian.buildRadioMenu()
   if veafMissileGuardian.rootPath then
     veafRadio.clearSubmenu(veafMissileGuardian.rootPath)
   else
-    veafMissileGuardian.rootPath = veafRadio.addMenu(veafMissileGuardian.RadioMenuName)
+    veafMissileGuardian.rootPath = veafRadio.addMenu(veaf.t(veafMissileGuardian.RadioMenuName))
   end
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafMissileGuardian.rootPath, veafMissileGuardian.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafMissileGuardian.rootPath,
+      veafMissileGuardian.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
   veafRadio.refreshRadioMenu()
 end

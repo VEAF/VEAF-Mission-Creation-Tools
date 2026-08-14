@@ -23,8 +23,6 @@ veafShortcuts.Id = "SHORTCUTS"
 
 veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
 
-veafShortcuts.RadioMenuName = "SHORTCUTS"
-
 veafShortcuts.AliasStarter = "-"
 
 veafShortcuts.RemoteCommandParser = "([a-zA-Z0-9:\\.-]+)%s(.*)"

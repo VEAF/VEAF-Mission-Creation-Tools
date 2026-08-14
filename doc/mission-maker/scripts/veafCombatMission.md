@@ -29,25 +29,24 @@ construit **aucun menu** si aucune mission n'est déclarée.
 
 ## Le menu F10 {#radio-menu}
 
-> **Les libellés du menu sont en anglais, y compris sur un serveur configuré en français** : ce sont
-> des chaînes écrites en dur dans le module, pas des textes traduits. C'est ce que le pilote voit à
-> l'écran, donc c'est ce qui est écrit ici.
+> **Le menu suit la langue de la mission** (`mission.language`). Les libellés ci-dessous sont ceux
+> d'une mission en français.
 
 À la racine de `MISSIONS` :
 
 | Entrée | Effet |
 |--------|-------|
-| `HELP` | Rappelle le fonctionnement du menu *(absente si les menus d'aide sont désactivés)* |
-| `List available` | Liste les missions déclarées |
-| `List active` | Liste les missions en cours, avec leur nombre d'ennemis restants |
+| `AIDE` | Rappelle le fonctionnement du menu *(absente si les menus d'aide sont désactivés)* |
+| `Lister les missions disponibles` | Liste les missions déclarées |
+| `Lister les missions en cours` | Liste les missions en cours, avec leur nombre d'ennemis restants |
 
 Puis un sous-menu par mission, et dedans :
 
 | Entrée | Effet |
 |--------|-------|
-| `Get info` | Briefing et état de la mission |
-| `Activate mission` | Démarre la mission *(visible quand elle est inactive)* |
-| `Desactivate mission` | L'arrête *(visible quand elle est active — la faute d'orthographe est dans le libellé du jeu)* |
+| `Infos` | Briefing et état de la mission |
+| `Activer la mission` | Démarre la mission *(visible quand elle est inactive)* |
+| `Désactiver la mission` | L'arrête *(visible quand elle est active)* |
 
 Une mission déclarée `secured: true` voit ses entrées d'activation passer par le contrôle de
 sécurité : au menu F10, le groupe agit au niveau de son occupant **le moins gradé** (voir
@@ -171,7 +170,7 @@ combat_missions:
 |-----------|--------|------|
 | `SecondsBetweenWatchdogChecks` | `30` | Intervalle entre deux vérifications de l'état des missions |
 | `MinimumSpacingBetweenClones` | `300` | Distance minimale, en mètres, entre deux clones d'un même groupe |
-| `RadioMenuName` | `MISSIONS` | Nom du menu F10 |
+| `RadioMenuName` | `menu.combatmission.root` | **Clé** i18n du nom du menu F10, résolue à la construction du menu |
 
 ---
 

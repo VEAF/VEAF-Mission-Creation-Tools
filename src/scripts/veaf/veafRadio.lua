@@ -24,7 +24,7 @@ veafRadio.Id = "RADIO"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
-veafRadio.RadioMenuName = "VEAF"
+veafRadio.RadioMenuName = "menu.radio.root"
 
 -- constants used to determine how the radio menu is set up
 veafRadio.USAGE_ForAll = 0
@@ -55,7 +55,9 @@ veafRadio.humanGroups = {}
 
 --- This structure contains all the radio menus
 veafRadio.radioMenu = {}
-veafRadio.radioMenu.title = veafRadio.RadioMenuName
+-- The title is set in initialize(), not here: `veaf.config.language` is assigned after this file
+-- loads, so resolving the key now would pin every server to French with no error to show for it.
+veafRadio.radioMenu.title = nil
 veafRadio.radioMenu.dcsRadioMenu = nil
 veafRadio.radioMenu.subMenus = {}
 veafRadio.radioMenu.commands = {}
@@ -1123,6 +1125,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
+  -- Resolve the root title now that the mission's language is known (see the declaration above).
+  veafRadio.radioMenu.title = veaf.t(veafRadio.RadioMenuName)
   -- Find the path of the SRS radio configuration script
   -- We're going to need it to define :
   --  STTS.DIRECTORY

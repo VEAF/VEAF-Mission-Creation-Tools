@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from veaf_libs.mission_validator import ERROR, WARNING, validate_mission_content
+from veaf_libs.mission_validator import ERROR, WARNING, _check_has_player_slot, validate_mission_content
 
 
 def _mission(*, coalitions: Any, with_player: bool = True, side: str = "blue") -> dict[str, Any]:
@@ -68,12 +68,12 @@ class TestSideWithoutCountry:
 
 class TestPlayerSlot:
     def test_no_player_slot_warns_rather_than_errors(self) -> None:
+        # Checked at the folder level rather than inside validate_mission_content, which the BUILD also
+        # runs: a template library legitimately has no slot, and warning on every build of one is noise.
         mission = _mission(coalitions={"blue": [2], "red": [], "neutrals": []}, with_player=False)
-        issues = validate_mission_content({}, mission)
-        assert _messages(issues, ERROR) == [], "a mission with no slot is legitimate — it must not refuse"
-        assert _messages(issues, WARNING), "but it is worth saying once"
+        assert _messages(validate_mission_content({}, mission), ERROR) == []
+        assert _messages(_check_has_player_slot(mission), WARNING), "but it is worth saying once"
 
     def test_a_mission_with_a_slot_says_nothing(self) -> None:
         mission = _mission(coalitions={"blue": [2], "red": [], "neutrals": []}, with_player=True)
-        warnings = _messages(validate_mission_content({}, mission), WARNING)
-        assert not any("slot" in w.lower() or "pilote" in w.lower() for w in warnings)
+        assert _check_has_player_slot(mission) == []

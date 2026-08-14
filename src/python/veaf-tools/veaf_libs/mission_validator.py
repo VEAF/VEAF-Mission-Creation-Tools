@@ -103,6 +103,7 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
         return issues
 
     issues += validate_mission_content(yaml_data, mission)
+    issues += _check_has_player_slot(mission)
     issues += _check_presets_waypoints(folder, yaml_data, mission)
     issues += _check_tum_zones(yaml_data, mission)
     return issues
@@ -176,6 +177,11 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
         return []
     issues: list[ValidationIssue] = []
 
+    # Only judge a mission that actually carries the table. A real DCS mission always does — even
+    # empty, which is the broken state — while a partial table written for a test omits it, and
+    # reporting those would be noise about a mission nobody flies.
+    if "coalitions" not in mission:
+        return issues
     assigned = mission.get("coalitions") or {}
     for side, side_content in (mission.get("coalition") or {}).items():
         if not isinstance(side_content, dict):
@@ -190,13 +196,25 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
         if has_units and not indexed(assigned.get(side) if isinstance(assigned, dict) else None):
             issues.append(ValidationIssue(ERROR, t("validate.side_without_country", side=side)))
 
-    # A warning, not an error: a server-side scenario or a template library legitimately has no slot,
-    # so this must never refuse a build. It is said once because it is the other half of what makes a
-    # mission unflyable.
-    if _aircraft_counts(mission)[1] == 0:
-        issues.append(ValidationIssue(WARNING, t("validate.no_player_slot")))
-
     return issues
+
+
+def _check_has_player_slot(mission: dict) -> list[ValidationIssue]:
+    """Warn when no pilot can enter the mission.
+
+    Kept out of :func:`validate_mission_content` on purpose: the **build** runs that function too, and
+    a template library or a server-side scenario legitimately has no slot — warning on every build of
+    one would be noise. This belongs to the `validate` command, where a maker is asking the question.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning, or nothing.
+    """
+    if not isinstance(mission, dict) or _aircraft_counts(mission)[1] > 0:
+        return []
+    return [ValidationIssue(WARNING, t("validate.no_player_slot"))]
 
 
 def _check_radio_menus(yaml_data: dict) -> list[ValidationIssue]:

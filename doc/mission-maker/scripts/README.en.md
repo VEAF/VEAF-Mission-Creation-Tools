@@ -29,7 +29,7 @@ What will your players experience?
 |---------------|--------|--------------|
 | Places a marker with `_spawn ...` | [veafSpawn](veafSpawn.en.md) | Units appear at marker position |
 | Places a marker with `_cas` | [veafCasMission](veafCasMission.en.md) | Random target zone generated |
-| Opens F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.en.md) | Pre-built combat area activates |
+| Opens F10 → Combat Zones → Activate zone | [veafCombatZone](veafCombatZone.en.md) | Pre-built combat area activates |
 | Enters an air-waves zone | [veafAirWaves](veafAirWaves.en.md) | Wave-based air combat starts |
 | Opens F10 → ASSETS → [asset] | [veafAssets](veafAssets.en.md) | Info, respawn |
 | Opens F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.en.md) | Carrier turns into wind |

@@ -27,7 +27,7 @@ veafAssets.Assets = {
   -- list the assets common to all missions below
 }
 
-veafAssets.RadioMenuName = "ASSETS"
+veafAssets.RadioMenuName = "menu.assets.root"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -44,10 +44,16 @@ veafAssets.assets = {}
 function veafAssets._buildAssetRadioMenu(menu, title, element)
   if element.disposable or element.information then -- in this case we need a submenu
     local radioMenu = veafRadio.addSubMenu(element.description, menu)
-    veafRadio.addCommandToSubmenu("Respawn " .. element.description, radioMenu, veafAssets.respawn, element.name, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.assets.respawn") .. element.description,
+      radioMenu,
+      veafAssets.respawn,
+      element.name,
+      veafRadio.USAGE_ForAll
+    )
     if element.information then
       veafRadio.addCommandToSubmenu(
-        "Get info on " .. element.description,
+        veaf.t("menu.assets.info") .. element.description,
         radioMenu,
         veafAssets.info,
         element.name,
@@ -56,7 +62,7 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
     end
     if element.disposable then
       veafRadio.addSecuredCommandToSubmenu(
-        "Dispose of " .. element.description,
+        veaf.t("menu.assets.dispose") .. element.description,
         radioMenu,
         veafAssets.dispose,
         element.name,
@@ -64,7 +70,13 @@ function veafAssets._buildAssetRadioMenu(menu, title, element)
       )
     end
   else
-    veafRadio.addCommandToSubmenu("Respawn " .. element.description, menu, veafAssets.respawn, element.name, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.assets.respawn") .. element.description,
+      menu,
+      veafAssets.respawn,
+      element.name,
+      veafRadio.USAGE_ForAll
+    )
   end
 end
 
@@ -75,9 +87,9 @@ function veafAssets.buildRadioMenu()
     return
   end
 
-  veafAssets.rootPath = veafRadio.addSubMenu(veafAssets.RadioMenuName)
+  veafAssets.rootPath = veafRadio.addSubMenu(veaf.t(veafAssets.RadioMenuName))
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
   end
 
   veafRadio.addPaginatedRadioElements(veafAssets.rootPath, veafAssets._buildAssetRadioMenu, veafAssets.assets, "description", "sort")

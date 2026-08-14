@@ -222,9 +222,8 @@ Carrier air operations have their own **CARRIER OPS** menu (not under *Assets*),
 
 ### Combat Zones
 
-> **The F10 menu labels are quoted verbatim below**, including `Desactivate zone`, whose spelling
-> mistake is in the in-game label itself. They are hard-coded strings, so they read the same on a
-> server configured in any language.
+> **The F10 menu follows the mission's language** (`mission.language`). The labels below are the ones
+> an English mission shows; a French mission shows their French equivalents.
 
 A **combat zone** is an area prepared by the mission maker that you activate on demand. On activation, enemy units spawn; once all are destroyed, the zone is complete and can be replayed.
 
@@ -234,7 +233,7 @@ A **combat zone** is an area prepared by the mission maker that you activate on 
 | Activate a zone | `Combat Zones` → [Zone] → `Activate zone` |
 | Check zone status | `Combat Zones` → [Zone] → `Get info` |
 | Mark the zone with smoke | `Combat Zones` → [Zone] → `Request RED smoke on target` |
-| Deactivate / clean up | `Combat Zones` → [Zone] → `Desactivate zone` |
+| Deactivate / clean up | `Combat Zones` → [Zone] → `Deactivate zone` |
 
 **You only see your own side's zones.** A combat zone can be played from red as well as from blue,
 and its submenu appears only on the side it belongs to: two pilots on opposing sides therefore see
@@ -251,7 +250,7 @@ maker who wants the old behaviour — everybody sees everything — declares
 | List missions | `MISSIONS` → `List available` |
 | Activate | `MISSIONS` → [Mission] → `Activate mission` |
 | Read status and objectives | `MISSIONS` → [Mission] → `Get info` |
-| Abort | `MISSIONS` → [Mission] → `Desactivate mission` |
+| Abort | `MISSIONS` → [Mission] → `Deactivate mission` |
 
 ---
 

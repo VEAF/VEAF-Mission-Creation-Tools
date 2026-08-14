@@ -19,9 +19,9 @@ C'est tout. Vous utilisez les VEAF Mission Creation Tools.
 | Fonctionnalité | Comment | Description |
 |----------------|---------|-------------|
 | **Spawner des unités** | Marqueur F10 : `-alias` (ex : `-sa6`, `-armor`, `-farp`) | Créer des unités à la position du marqueur — voir [liste des raccourcis](../mission-maker/scripts/veafShortcuts.md) |
-| **Entraînement CAS** | Marqueur F10 : `_cas` | Cibles au sol aléatoires avec difficulté configurable ; le menu radio **CAS MISSION** sert ensuite à les renseigner et à demander de la fumée |
+| **Entraînement CAS** | Marqueur F10 : `_cas` | Cibles au sol aléatoires avec difficulté configurable ; le menu radio **MISSION CAS** sert ensuite à les renseigner et à demander de la fumée |
 | **Activer des missions** | Menu F10 → Missions → [Nom] → Activate | Scénarios de combat pré-construits (CAP, strike, SEAD…) |
-| **Zones de combat** | Menu F10 → Combat Zones → [Zone] → Activate | Zones de combat persistantes avec objectifs |
+| **Zones de combat** | Menu F10 → ZONES DE COMBAT → [Zone] → Activer la zone | Zones de combat persistantes avec objectifs |
 | **Gérer les assets** | Menu F10 → Assets | Info ravitailleur/AWACS, recovery porte-avions, respawn |
 | **Élever son groupe** | Marqueur F10 : `_auth elevate` | Monter le groupe à votre propre niveau pendant 2 minutes (le menu F10 agit au niveau du membre le moins gradé du groupe) |
 

@@ -24,7 +24,7 @@ veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
-veafNamedPoints.RadioMenuName = "NAMED POINTS"
+veafNamedPoints.RadioMenuName = "menu.namedpoints.root"
 veafNamedPoints.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -239,8 +239,14 @@ end
 --- Build the initial radio menu
 function veafNamedPoints.buildRadioMenu()
   veaf.loggers.get(veafNamedPoints.Id):debug("buildRadioMenu()")
-  veafNamedPoints.rootPath = veafRadio.addSubMenu(veafNamedPoints.RadioMenuName)
-  veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
+  veafNamedPoints.rootPath = veafRadio.addSubMenu(veaf.t(veafNamedPoints.RadioMenuName))
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.namedpoints.list"),
+    veafNamedPoints.rootPath,
+    veafNamedPoints.listAllPoints,
+    nil,
+    veafRadio.USAGE_ForGroup
+  )
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

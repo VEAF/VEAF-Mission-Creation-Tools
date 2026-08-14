@@ -171,13 +171,13 @@ _spawn bomb, power 500, shells 3
 
 ## Ressources
 
-Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et navires. Vous les retrouvez sous **F10 → VEAF → ASSETS** — le menu porte ce nom en anglais dans le jeu.
+Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et navires. Vous les retrouvez sous **F10 → VEAF → MOYENS**.
 
 > 📷 *Capture à venir : le menu ASSETS et le sous-menu d'une ressource.*
 
 ### Ravitailleurs, AWACS et navires
 
-**F10 → VEAF → ASSETS → [Nom de la ressource] → Get info on [Nom de la ressource]**
+**F10 → VEAF → MOYENS → [Nom de la ressource] → Infos sur [Nom de la ressource]**
 
 Le menu ne range pas les ressources par catégorie : chaque ravitailleur, AWACS ou navire a directement son propre sous-menu, portant son nom. Il n'y a donc pas d'étape *Ravitailleurs* ou *AWACS* à traverser.
 
@@ -192,7 +192,7 @@ Une ressource que le créateur de la mission n'a pas rendue consultable n'a pas 
 
 ### Porte-avions
 
-Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** (et non sous *Ressources*), avec un sous-menu par camp puis par porte-avions.
+Les opérations aériennes du porte-avions ont leur propre menu **OPS PORTE-AVIONS** (et non sous *MOYENS*), avec un sous-menu par camp puis par porte-avions.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
@@ -222,19 +222,18 @@ Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** 
 
 ### Zones de combat
 
-> **Les libellés du menu F10 sont en anglais**, même sur un serveur configuré en français : ce sont
-> des textes écrits en dur dans les scripts. C'est pourquoi ils sont donnés ici tels qu'ils
-> s'affichent, entre `guillemets techniques`.
+> **Le menu F10 suit la langue de la mission** (`mission.language`). Les libellés ci-dessous sont
+> ceux d'une mission en français ; en anglais, ce sont leurs équivalents anglais.
 
 Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois qu'elles sont toutes détruites, la zone est terminée et peut être rejouée.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les zones disponibles | `Combat Zones` |
-| Activer une zone | `Combat Zones` → [Zone] → `Activate zone` |
-| Voir l'état de la zone | `Combat Zones` → [Zone] → `Get info` |
-| Marquer la zone à la fumée | `Combat Zones` → [Zone] → `Request RED smoke on target` |
-| Désactiver / nettoyer | `Combat Zones` → [Zone] → `Desactivate zone` |
+| Lister les zones disponibles | `ZONES DE COMBAT` |
+| Activer une zone | `ZONES DE COMBAT` → [Zone] → `Activer la zone` |
+| Voir l'état de la zone | `ZONES DE COMBAT` → [Zone] → `Infos` |
+| Marquer la zone à la fumée | `ZONES DE COMBAT` → [Zone] → `Demander de la fumée ROUGE sur l'objectif` |
+| Désactiver / nettoyer | `ZONES DE COMBAT` → [Zone] → `Désactiver la zone` |
 
 **Vous ne voyez que les zones de votre camp.** Une zone de combat peut être jouée depuis le rouge
 comme depuis le bleu, et son sous-menu n'apparaît que dans le camp auquel elle appartient : deux
@@ -248,10 +247,10 @@ Les **missions** sont des scénarios plus élaborés, avec objectifs et suivi de
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les missions | `MISSIONS` → `List available` |
-| Activer | `MISSIONS` → [Mission] → `Activate mission` |
-| Lire l'état et les objectifs | `MISSIONS` → [Mission] → `Get info` |
-| Abandonner | `MISSIONS` → [Mission] → `Desactivate mission` |
+| Lister les missions | `MISSIONS` → `Lister les missions disponibles` |
+| Activer | `MISSIONS` → [Mission] → `Activer la mission` |
+| Lire l'état et les objectifs | `MISSIONS` → [Mission] → `Infos` |
+| Abandonner | `MISSIONS` → [Mission] → `Désactiver la mission` |
 
 ---
 
@@ -261,7 +260,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Déroulement :**
 
-1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **CAS MISSION** apparaît alors dans F10 → VEAF.
+1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS** apparaît alors dans F10 → VEAF.
 2. **Marquer la zone** — *Target markers → Request smoke on target area* ou *Request illumination flare over target area* (3 minutes de délai entre deux marquages).
 3. **Obtenir les infos** — *Target information* : position, composition des unités, état.
 4. **Engager** — attaquez les cibles marquées.
@@ -378,7 +377,7 @@ Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6
 Oui, certaines missions imposent une limite de distance (environ 40 à 50 NM) : l'IA est nettoyée si vous vous éloignez trop.
 
 **Comment passer à la cible CAS suivante ?**
-F10 → CAS MISSION → *Skip current objective*. Pour repartir de zéro, posez un nouveau marqueur `_cas`.
+F10 → MISSION CAS → *Passer l'objectif en cours*. Pour repartir de zéro, posez un nouveau marqueur `_cas`.
 
 **Puis-je faire apparaître des unités amies ?**
 Oui : ajoutez `side blue` à votre commande.

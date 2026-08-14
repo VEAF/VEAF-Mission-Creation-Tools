@@ -29,9 +29,8 @@ The module is **enabled by default** (`veaf.registerModule(..., { enable = true 
 
 ## The F10 menu {#radio-menu}
 
-> **The menu labels are in English, even on a server configured in French**: they are strings
-> hard-coded in the module, not translated text. That is what the pilot sees on screen, so that is
-> what is written here.
+> **The menu follows the mission's language** (`mission.language`). The labels below are the ones an
+> English mission shows.
 
 At the root of `MISSIONS`:
 
@@ -47,7 +46,7 @@ Then one submenu per mission, and inside it:
 |-------|--------|
 | `Get info` | The mission's briefing and state |
 | `Activate mission` | Starts the mission *(shown while it is inactive)* |
-| `Desactivate mission` | Stops it *(shown while it is active — the spelling mistake is in the in-game label)* |
+| `Deactivate mission` | Stops it *(shown while it is active)* |
 
 A mission declared `secured: true` has its activation entries routed through the security check: on
 the F10 menu, the group acts at the level of its **lowest-graded** occupant (see
@@ -171,7 +170,7 @@ combat_missions:
 |----------|-------|------|
 | `SecondsBetweenWatchdogChecks` | `30` | Interval between two mission-state checks |
 | `MinimumSpacingBetweenClones` | `300` | Minimum distance, in metres, between two clones of the same group |
-| `RadioMenuName` | `MISSIONS` | Name of the F10 menu |
+| `RadioMenuName` | `menu.combatmission.root` | i18n **key** for the F10 menu's name, resolved when the menu is built |
 
 ---
 

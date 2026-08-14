@@ -42,7 +42,7 @@ veafCasMission.BlueCasGroupName = "Blue CAS Group"
 veafCasMission.casGroupName = veafCasMission.RedCasGroupName
 veafCasMission.afacName = nil
 
-veafCasMission.RadioMenuName = "CAS MISSION"
+veafCasMission.RadioMenuName = "menu.casmission.root"
 
 veafCasMission.TRANSPORT_TYPES = {
   [coalition.side.BLUE] = {
@@ -1045,7 +1045,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
 
   -- build menu for each player
   veafRadio.addCommandToSubmenu(
-    "Target information",
+    veaf.t("menu.casmission.info"),
     veafCasMission.rootPath,
     veafCasMission.reportTargetInformation,
     nil,
@@ -1053,11 +1053,15 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   )
 
   -- add radio menus for commands
-  veafRadio.addSecuredCommandToSubmenu("Skip current objective", veafCasMission.rootPath, veafCasMission.skipCasTarget)
-  veafCasMission.targetMarkersPath = veafRadio.addSubMenu("Target markers", veafCasMission.rootPath)
-  veafRadio.addCommandToSubmenu("Request smoke on target area", veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.casmission.skip"), veafCasMission.rootPath, veafCasMission.skipCasTarget)
+  veafCasMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.casmission.markers"), veafCasMission.rootPath)
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over target area",
+    veaf.t("menu.casmission.request_smoke"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.smokeCasTargetGroup
+  )
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_flare"),
     veafCasMission.targetMarkersPath,
     veafCasMission.flareCasTargetGroup
   )
@@ -1123,7 +1127,7 @@ function veafCasMission.smokeCasTargetGroup()
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.casGroupName), trigger.smokeColor.Red)
   trigger.action.outText(veaf.t("cas.smoke_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
-  veafRadio.addCommandToSubmenu("Target is marked with red smoke", veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.smoke_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.smokeResetTaskID =
     mist.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
@@ -1132,7 +1136,11 @@ end
 --- Reset the smoke request radio menu
 function veafCasMission.smokeReset()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target is marked with red smoke")
-  veafRadio.addCommandToSubmenu("Request smoke on target area", veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_smoke"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.smokeCasTargetGroup
+  )
   trigger.action.outText(veaf.t("cas.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
@@ -1142,7 +1150,7 @@ function veafCasMission.flareCasTargetGroup()
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.casGroupName))
   trigger.action.outText(veaf.t("cas.illum_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
-  veafRadio.addCommandToSubmenu("Target area is marked with illumination flare", veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.flare_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.flareResetTaskID =
     mist.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
@@ -1152,7 +1160,7 @@ end
 function veafCasMission.flareReset()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target area is marked with illumination flare")
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over target area",
+    veaf.t("menu.casmission.request_flare"),
     veafCasMission.targetMarkersPath,
     veafCasMission.flareCasTargetGroup
   )
@@ -1223,9 +1231,9 @@ end
 
 --- Build the initial radio menu
 function veafCasMission.buildRadioMenu()
-  veafCasMission.rootPath = veafRadio.addSubMenu(veafCasMission.RadioMenuName)
+  veafCasMission.rootPath = veafRadio.addSubMenu(veaf.t(veafCasMission.RadioMenuName))
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
   end
 end
 

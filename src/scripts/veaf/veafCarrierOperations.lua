@@ -23,9 +23,9 @@ veafCarrierOperations.Id = "CARRIER"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
-veafCarrierOperations.RadioMenuName = "CARRIER OPS"
-veafCarrierOperations.RadioMenuNameBlue = "CARRIER OPS - BLUE"
-veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"
+veafCarrierOperations.RadioMenuName = "menu.carrier.root"
+veafCarrierOperations.RadioMenuNameBlue = "menu.carrier.root_blue"
+veafCarrierOperations.RadioMenuNameRed = "menu.carrier.root_red"
 veafCarrierOperations.DisableSecurity = false
 
 veafCarrierOperations.AllCarriers = {
@@ -839,7 +839,7 @@ function veafCarrierOperations.rebuildRadioMenu()
       -- add the stop menu
       if veafCarrierOperations.DisableSecurity then
         veafRadio.addCommandToSubmenu(
-          "End air operations",
+          veaf.t("menu.carrier.end_ops"),
           carrier.menuPath,
           veafCarrierOperations.stopCarrierOperations,
           name,
@@ -847,7 +847,7 @@ function veafCarrierOperations.rebuildRadioMenu()
         )
       else
         veafRadio.addSecuredCommandToSubmenu(
-          "End air operations",
+          veaf.t("menu.carrier.end_ops"),
           carrier.menuPath,
           veafCarrierOperations.stopCarrierOperations,
           name,
@@ -898,7 +898,7 @@ function veafCarrierOperations.rebuildRadioMenu()
 
     -- add the ATC menu (by player group)
     veafRadio.addCommandToSubmenu(
-      "ATC - Request informations",
+      veaf.t("menu.carrier.atc_info"),
       carrier.menuPath,
       veafCarrierOperations.atcForCarrierOperations,
       name,
@@ -918,13 +918,19 @@ function veafCarrierOperations.buildRadioMenu()
     return
   end
 
-  veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
-  veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameBlue, veafCarrierOperations.rootPath)
-  veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameRed, veafCarrierOperations.rootPath)
+  veafCarrierOperations.rootPath = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuName))
+  veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameBlue), veafCarrierOperations.rootPath)
+  veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameRed), veafCarrierOperations.rootPath)
 
   -- build HELP menu for each group
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCarrierOperations.rootPath, veafCarrierOperations.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafCarrierOperations.rootPath,
+      veafCarrierOperations.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
 
   veafCarrierOperations.rebuildRadioMenu()

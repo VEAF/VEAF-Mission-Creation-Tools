@@ -1253,6 +1253,260 @@ veaf.i18nCatalog = {
     fr = "Moteur au ralenti — vérifier",
     en = "Engine at idle — check",
   },
+
+  -- Radio-menu root names (FIX-RADIO-MENU-I18N ticket 01). `RadioMenuName` holds the KEY, not the
+  -- label: `veaf.config.language` is set after the module files load, so resolving at declaration
+  -- would always yield French, silently. The call site resolves it at menu-build time.
+  ["menu.radio.root"] = {
+    fr = "VEAF",
+    en = "VEAF",
+  },
+  ["menu.spawn.root"] = {
+    fr = "APPARITION",
+    en = "SPAWN",
+  },
+  ["menu.combatzone.root"] = {
+    fr = "ZONES DE COMBAT",
+    en = "COMBAT ZONES",
+  },
+  ["menu.combatmission.root"] = {
+    fr = "MISSIONS",
+    en = "MISSIONS",
+  },
+  ["menu.casmission.root"] = {
+    fr = "MISSION CAS",
+    en = "CAS MISSION",
+  },
+  ["menu.transportmission.root"] = {
+    fr = "MISSION DE TRANSPORT",
+    en = "TRANSPORT MISSION",
+  },
+  ["menu.assets.root"] = {
+    fr = "MOYENS",
+    en = "ASSETS",
+  },
+  ["menu.carrier.root"] = {
+    fr = "OPS PORTE-AVIONS",
+    en = "CARRIER OPS",
+  },
+  ["menu.carrier.root_blue"] = {
+    fr = "OPS PORTE-AVIONS - BLEU",
+    en = "CARRIER OPS - BLUE",
+  },
+  ["menu.carrier.root_red"] = {
+    fr = "OPS PORTE-AVIONS - ROUGE",
+    en = "CARRIER OPS - RED",
+  },
+  ["menu.weather.root"] = {
+    fr = "MÉTÉO ET ATC",
+    en = "WEATHER AND ATC",
+  },
+  ["menu.namedpoints.root"] = {
+    fr = "POINTS NOMMÉS",
+    en = "NAMED POINTS",
+  },
+  ["menu.move.root"] = {
+    fr = "DÉPLACER",
+    en = "MOVE",
+  },
+  ["menu.missileguardian.root"] = {
+    fr = "GUARDIAN",
+    en = "GUARDIAN",
+  },
+
+  -- Radio-menu entries (FIX-RADIO-MENU-I18N ticket 02). Resolved at menu-build time.
+  ["menu.assets.dispose"] = {
+    fr = "Retirer %s",
+    en = "Dispose of %s",
+  },
+  ["menu.assets.info"] = {
+    fr = "Infos sur %s",
+    en = "Get info on %s",
+  },
+  ["menu.assets.respawn"] = {
+    fr = "Réapparition de %s",
+    en = "Respawn %s",
+  },
+  ["menu.casmission.flare_done"] = {
+    fr = "Objectif éclairé par fusée",
+    en = "Target area is marked with illumination flare",
+  },
+  ["menu.casmission.markers"] = {
+    fr = "Marquage de l'objectif",
+    en = "Target markers",
+  },
+  ["menu.casmission.request_smoke"] = {
+    fr = "Demander de la fumée sur l'objectif",
+    en = "Request smoke on target area",
+  },
+  ["menu.casmission.skip"] = {
+    fr = "Passer l'objectif en cours",
+    en = "Skip current objective",
+  },
+  ["menu.casmission.smoke_done"] = {
+    fr = "Objectif marqué à la fumée rouge",
+    en = "Target is marked with red smoke",
+  },
+  ["menu.combatzone.activate"] = {
+    fr = "Activer la zone",
+    en = "Activate zone",
+  },
+  ["menu.combatzone.deactivate"] = {
+    fr = "Désactiver la zone",
+    en = "Deactivate zone",
+  },
+  ["menu.combatzone.flare_unavailable"] = {
+    fr = "Fusée indisponible",
+    en = "Flare not available",
+  },
+  ["menu.combatzone.request_flare"] = {
+    fr = "Demander une fusée éclairante sur l'objectif",
+    en = "Request illumination flare on target",
+  },
+  ["menu.combatzone.request_smoke"] = {
+    fr = "Demander de la fumée ROUGE sur l'objectif",
+    en = "Request RED smoke on target",
+  },
+  ["menu.combatzone.smoke_unavailable"] = {
+    fr = "Fumée indisponible",
+    en = "Smoke not available",
+  },
+  ["menu.common.help"] = {
+    fr = "AIDE",
+    en = "HELP",
+  },
+  ["menu.namedpoints.list"] = {
+    fr = "Lister tous les points",
+    en = "List all points",
+  },
+  ["menu.spawn.available_aircraft"] = {
+    fr = "Appareils disponibles",
+    en = "Available Aircraft spawns",
+  },
+  ["menu.spawn.convoy_cleanup"] = {
+    fr = "Retirer tous les convois",
+    en = "Cleanup all convoys",
+  },
+  ["menu.spawn.convoy_info_all"] = {
+    fr = "Infos sur tous les convois",
+    en = "Info on all convoys",
+  },
+  ["menu.spawn.convoy_mark"] = {
+    fr = "Marquer le convoi le plus proche",
+    en = "Mark closest convoy",
+  },
+  ["menu.spawn.convoy_mark_route"] = {
+    fr = "Marquer la route du convoi le plus proche",
+    en = "Mark closest convoy route",
+  },
+  ["menu.spawn.convoy_move"] = {
+    fr = "Faire repartir le convoi le plus proche",
+    en = "Make closest convoy move",
+  },
+  ["menu.spawn.convoy_stop"] = {
+    fr = "Arrêter le convoi le plus proche",
+    en = "Stop closest convoy",
+  },
+  ["menu.transportmission.flare_done"] = {
+    fr = "Zone de largage éclairée par fusée",
+    en = "Drop zone is lit with illumination flare",
+  },
+  ["menu.transportmission.info"] = {
+    fr = "Infos sur la zone de largage",
+    en = "Drop zone information",
+  },
+  ["menu.transportmission.markers"] = {
+    fr = "Marquage de la zone de largage",
+    en = "Drop zone markers",
+  },
+  ["menu.transportmission.request_flare"] = {
+    fr = "Demander une fusée éclairante sur la zone de largage",
+    en = "Request illumination flare over drop zone",
+  },
+  ["menu.transportmission.request_smoke"] = {
+    fr = "Demander de la fumée sur la zone de largage",
+    en = "Request smoke on drop zone",
+  },
+  ["menu.transportmission.skip"] = {
+    fr = "Passer l'objectif en cours",
+    en = "Skip current objective",
+  },
+  ["menu.transportmission.smoke_done"] = {
+    fr = "Zone de largage marquée à la fumée VERTE",
+    en = "Drop zone is marked with GREEN smoke",
+  },
+  ["menu.weather.atc_and_weather"] = {
+    fr = "ATC et météo d'un coup",
+    en = "ATC and weather in one go",
+  },
+  ["menu.weather.closest_atc"] = {
+    fr = "ATC de la base la plus proche",
+    en = "ATC on closest airbase",
+  },
+  ["menu.weather.closest_point"] = {
+    fr = "Météo sur le point le plus proche",
+    en = "Weather on closest point",
+  },
+  ["menu.weather.fog_animated"] = {
+    fr = "Brouillard animé",
+    en = "Animated fog",
+  },
+  ["menu.weather.fog_dynamic"] = {
+    fr = "Brouillard dynamique",
+    en = "Dynamic fog",
+  },
+  ["menu.weather.fog_settings"] = {
+    fr = "Réglages du brouillard",
+    en = "Fog settings",
+  },
+  ["menu.weather.fog_static"] = {
+    fr = "Brouillard statique",
+    en = "Static fog",
+  },
+  ["menu.carrier.atc_info"] = {
+    fr = "ATC — Demander les informations",
+    en = "ATC - Request informations",
+  },
+  ["menu.carrier.end_ops"] = {
+    fr = "Fin des opérations aériennes",
+    en = "End air operations",
+  },
+  ["menu.casmission.info"] = {
+    fr = "Infos sur l'objectif",
+    en = "Target information",
+  },
+  ["menu.casmission.request_flare"] = {
+    fr = "Demander une fusée éclairante sur l'objectif",
+    en = "Request illumination flare over target area",
+  },
+  ["menu.combatmission.activate"] = {
+    fr = "Activer la mission",
+    en = "Activate mission",
+  },
+  ["menu.combatmission.deactivate"] = {
+    fr = "Désactiver la mission",
+    en = "Deactivate mission",
+  },
+  ["menu.combatmission.get_info"] = {
+    fr = "Infos",
+    en = "Get info",
+  },
+  ["menu.combatmission.list_active"] = {
+    fr = "Lister les missions en cours",
+    en = "List active",
+  },
+  ["menu.combatmission.list_available"] = {
+    fr = "Lister les missions disponibles",
+    en = "List available",
+  },
+  ["menu.combatzone.briefing"] = {
+    fr = "Briefing %s",
+    en = "Briefing %s",
+  },
+  ["menu.combatzone.get_info"] = {
+    fr = "Infos",
+    en = "Get info",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

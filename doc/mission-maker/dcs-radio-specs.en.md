@@ -4,8 +4,11 @@ Reference table of the valid radio frequency ranges for every player-flyable DCS
 `inject-presets` to check that the frequencies declared in `presets.yaml` are compatible with the
 target aircraft's radio hardware.
 
+<!-- BEGIN generated: source note -->
 > **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Regenerate with `poetry run update-radio-specs` after a DCS patch.
+> Source ref: `d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a`  
+> Re-generate with `veaf-build update-dcs-data --radio` after a pin bump.
+<!-- END generated: source note -->
 
 ---
 
@@ -124,10 +127,44 @@ FW-190A8:
 
 An aircraft with no `human_radio` block enforces no bound: the promotion happens as before.
 
+<!-- BEGIN generated: primary frequency -->
+### Aircraft whose primary frequency is restricted
+
+| Aircraft | DCS ID | Primary min (MHz) | Primary max (MHz) | Default (MHz) | Modulation |
+|----------|--------|------------------:|------------------:|--------------:|------------|
+| **A-6E** | `A6E` | 225.000 | 399.950 | 305.000 | AM |
+| **AJS37** | `AJS37` | 103.000 | 399.950 | 305.000 | AM |
+| **AV-8B N/A** | `AV8BNA` | 30.000 | 399.975 | 243.000 | AM |
+| **F4U-1D** | `F4U-1D` | 118.000 | 390.000 | 124.000 | AM |
+| **F4U-1D Mk.IV** | `F4U-1D_CW` | 118.000 | 390.000 | 124.000 | AM |
+| **Fw 190 A-8** | `FW-190A8` | 38.400 | 42.400 | 38.400 | AM |
+| **Fw 190 D-9** | `FW-190D9` | 38.400 | 42.400 | 38.400 | AM |
+| **Hawk** | `Hawk` | 100.000 | 156.000 | 127.500 | AM |
+| **JF-17** | `JF-17` | 30.000 | 399.975 | 243.000 | AM |
+| **Ka-50** | `Ka-50` | 100.000 | 400.000 | 124.000 | AM |
+| **Ka-50 III** | `Ka-50_3` | 100.000 | 400.000 | 124.000 | AM |
+| **M-2000C** | `M-2000C` | 225.000 | 399.975 | 251.000 | AM |
+| **Mi-24P** | `Mi-24P` | 100.000 | 400.000 | 127.500 | AM |
+| **Mi-8MTV2** | `Mi-8MT` | 100.000 | 400.000 | 127.500 | AM |
+| **MiG-29A  Fulcrum** | `MiG-29 Fulcrum` | 100.000 | 399.975 | 124.000 | AM |
+| **Mosquito FB Mk. VI** | `MosquitoFBMkVI` | 0.200 | 156.000 | 124.000 | AM |
+| **P-47D-30** | `P-47D-30` | 100.000 | 156.000 | 124.000 | AM |
+| **P-47D-30 (Early)** | `P-47D-30bl1` | 100.000 | 156.000 | 124.000 | AM |
+| **P-47D-40** | `P-47D-40` | 100.000 | 156.000 | 124.000 | AM |
+| **P-51D-25-NA** | `P-51D` | 100.000 | 156.000 | 124.000 | AM |
+| **P-51D-30-NA** | `P-51D-30-NA` | 100.000 | 156.000 | 124.000 | AM |
+| **SA342L** | `SA342L` | 118.000 | 143.975 | 124.000 | AM |
+| **SA342M** | `SA342M` | 118.000 | 143.975 | 124.000 | AM |
+| **SA342Minigun** | `SA342Minigun` | 118.000 | 143.975 | 124.000 | AM |
+| **SA342Mistral** | `SA342Mistral` | 118.000 | 143.975 | 124.000 | AM |
+| **TF-51D** | `TF-51D` | 100.000 | 156.000 | 124.000 | AM |
+| **Yak-52** | `Yak-52` | 118.000 | 136.975 | 132.000 | AM |
+<!-- END generated: primary frequency -->
+
 ---
 
+<!-- BEGIN generated: aircraft tables -->
 ## Fixed-wing aircraft
-
 
 | Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |
 |----------|--------|-------|----------:|----------:|------------|
@@ -319,6 +356,38 @@ An aircraft with no `human_radio` block enforces no bound: the promotion happens
 | **TF-51D** | `TF-51D` | SCR-522 | 38.000 | 156.000 | AM / FM |
 |  |  | BC-1206 | 100.000 | 200.000 | AM / FM |
 | **Yak-52** | `Yak-52` | ARK-15M | 0.100 | 1.795 | AM / FM |
+| **RSI-6K** | `MiG-15bis` | RSI-6K | 3.750 | 5.000 | AM |
+| **RSI-6K** | `MiG-15bis_FC` | RSI-6K | 3.750 | 5.000 | AM |
+| **Su-27** | `Su-27` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **Su-25** | `Su-25` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **Su-25T** | `Su-25T` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **Su-33** | `Su-33` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **MiG-29A** | `MiG-29A` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **MiG-29S** | `MiG-29S` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **MiG-29G** | `MiG-29G` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **J-11A** | `J-11A` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **A-10A** | `A-10A` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
+| **F-15C** | `F-15C` | UHF (SRS) | 225.000 | 399.975 | AM |
+|  |  | VHF (SRS) | 108.000 | 155.995 | AM |
+|  |  | FM (SRS) | 30.000 | 87.975 | FM |
 
 ## Helicopters
 
@@ -350,3 +419,4 @@ An aircraft with no `human_radio` block enforces no bound: the promotion happens
 | **SA342Minigun** | `SA342Minigun` | FM Radio | 30.000 | 87.975 | AM / FM |
 | **SA342Mistral** | `SA342Mistral` | FM Radio | 30.000 | 87.975 | AM / FM |
 | **UH-1H** | `UH-1H` | UHF AN/ARC-51 | 225.000 | 399.975 | AM / FM |
+<!-- END generated: aircraft tables -->

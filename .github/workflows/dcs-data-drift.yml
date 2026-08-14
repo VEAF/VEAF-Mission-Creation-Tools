@@ -71,12 +71,12 @@ jobs:
 
             **Manual follow-up before merge** (not done automatically, by design):
             - **Radio** (`dcs-radio-specs.yaml/.md`): run
-              `veaf-build update-dcs-data --radio`. The VEAF corrections are **no longer
-              manual** — they live in `dcs-radio-specs-overrides.yaml` and the generator
-              merges them in, so `dcs_rejects_on_load` and the hand-written entries survive
-              the run. The **doc page is still hybrid**: the generator writes the whole
-              French page in English, so restore its prose sections and re-add the changed
-              table rows to both `.md` and `.en.md` by hand.
+              `veaf-build update-dcs-data --radio`. **Safe to run as-is since
+              FIX-RADIO-SPECS-GENERATOR-LOCALE**: it rewrites only the delimited blocks of both
+              pages, in each page's own language, so the hand-written prose is preserved by
+              construction rather than by remembering to restore it. The VEAF corrections live
+              in `dcs-radio-specs-overrides.yaml` and are merged in, so `dcs_rejects_on_load`
+              and the hand-written entries survive the run too. Review the table diff as usual.
 
             Review the country and units diffs for unexpected changes before merging
             (e.g. a unit changing `kind`, or many units added/removed).

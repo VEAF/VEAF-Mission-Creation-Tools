@@ -43,6 +43,45 @@ David, in front of the game: the labels are correct. The 90 localised labels of
 [`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
 longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
+## ⏭ Reprendre ici — 2026-08-15
+
+### Le slot A-10 posé le 2026-08-14 ne marche pas
+
+David, en jeu : *"je le prends, et je reste spectateur"*. Il a supprimé ce slot, ajouté un A-10 à la
+main dans l'éditeur, sauvé sous le suffixe **`-david`** — et là ça fonctionne. **Cette mission est le
+témoin**, et le diagnostic est un simple différentiel entre les deux tables.
+
+Ce qui est déjà écarté : la paire `parking` / `parking_id` **a bien été copiée** (`'43'` / `'16'`),
+ainsi que l'`airdromeId` du premier waypoint (24). Donc ce n'est pas la donnée de parking du ticket 08
+qui manque.
+
+Le suspect restant est de moi : le script de copie a **forcé `groupId = 9001` et `unitId = 9001`**,
+alors que la mission ne déclare ni `maxGroupId` ni `maxUnitId` (les deux valent `None`). Une mission
+vierge synthétisée n'a pas ces compteurs, et un id hors de leur suite — ou en collision avec les
+templates d'avions que le pipeline injecte, tous en `skill: Client` — expliquerait un slot présent
+mais inutilisable.
+
+À faire, dans cet ordre :
+
+1. Récupérer `TestMenuFR-david.miz` (ou son nom exact) depuis `Saved Games\DCS*\Missions`.
+2. Diffé les deux groupes A-10 champ par champ. Le différentiel est la réponse ; ne pas deviner avant
+   de l'avoir lu.
+3. Vérifier en particulier `maxGroupId` / `maxUnitId` dans la mission de David : si l'éditeur les a
+   écrits, c'est la cause.
+4. Ce que ça apprend appartient à
+   [`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md) :
+   l'action qui créera un slot joueur doit gérer ces compteurs, et la lire dans une mission
+   **fabriquée par l'éditeur** est exactement la mesure que ce ticket demande.
+
+### Reste de la session
+
+- **0b** — l'avertissement de dépréciation dans `dcs.log`, qui doit être **absent**.
+- **1** — la capture parking, 5 min par carte. Débloque le ticket 09 *et* la moitié au sol du slot
+  joueur.
+- Les items 2 à 8 inchangés ci-dessous.
+
+---
+
 ## 0b. Check the two security fixes — 5 min, same mission
 
 Both from [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) (PR #730), both in the release.

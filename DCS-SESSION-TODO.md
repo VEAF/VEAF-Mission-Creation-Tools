@@ -84,18 +84,21 @@ mission est celle à utiliser pour la suite de la session.
 
 ---
 
-## 0b. Check the two security fixes — 5 min, same mission
+## ✅ 0b. Les deux correctifs de sécurité — vérifiés en jeu 2026-08-15
 
-Both from [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) (PR #730), both in the release.
+Tous deux issus de [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) (PR #730). Gardés comme
+preuve de release plutôt que supprimés.
 
-- **`_transport` no longer asks a listed pilot for the password.** Place a `_transport` marker with no
-  `password` while listed in `veaf-pilots.txt`. It used to be refused whatever your tier, because the
-  check was called without the marker id. This is the one place `veafSecurity.md`'s "nothing changes
-  for a listed pilot" was false.
-- **The tier names work.** Nothing to type: if the mission loads and the F10 menus appear, the
-  dispatchers accepted `KNOWN_PILOT` / `SENIOR_PILOT` / `ADMIN`. What to watch in `dcs.log` is the
-  **deprecation notice** — it should be *absent*, since all 24 of our own declarations were migrated.
-  One appearing means a module still declares `L9`.
+- **Les noms de paliers passent.** `dcs.log` ne contient **aucun** avertissement de dépréciation — la
+  migration des 24 déclarations vers `ADMIN` / `SENIOR_PILOT` / `KNOWN_PILOT` est donc complète. Le
+  message qu'on cherchait est celui de [`veafSecurity.lua:112`](src/scripts/veaf/veafSecurity.lua:112),
+  émis une seule fois par ancien nom rencontré.
+- **`_transport` et le pilote listé.** Éprouvé le 2026-08-14 : la commande refuse bien, et l'essai a
+  fait tomber un **second** défaut — le message affiché trois fois — corrigé depuis par la PR #735.
+
+⚠️ **#735 n'est pas dans `TestMenuFR-fixed.miz`** : cette mission embarque les scripts du dépôt tels
+qu'ils étaient le 2026-08-14, donc avant ce correctif. Pour vérifier que le message ne s'affiche plus
+qu'une fois, reconstruire la mission d'abord.
 
 ## 1. Capture the parking slots — 5 min per map
 

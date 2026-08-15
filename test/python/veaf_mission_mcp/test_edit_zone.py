@@ -190,6 +190,14 @@ class TestReshape:
         # It is written, not refused: the shape survives a save.
         assert result["changed"]["vertices"]["to"] == 6
 
+    def test_three_vertices_a_ridge_line_warns_but_is_accepted(self, miz: Path) -> None:
+        # The docstring's ridge-line example: fewer than four is as valid as more, and equally
+        # uneditable by hand in the ME — so it warns and is still written.
+        vertices = [{"x": -328000.0, "y": 631000.0}, {"x": -327000.0, "y": 632000.0}, {"x": -326000.0, "y": 631000.0}]
+        result = edit_zone(miz, zone_name="czKobuleti", vertices=vertices)
+        assert any("editor" in warning.lower() for warning in result["warnings"])
+        assert result["changed"]["vertices"]["to"] == 3
+
     def test_exactly_four_vertices_does_not_warn(self, miz: Path) -> None:
         result = edit_zone(
             miz,

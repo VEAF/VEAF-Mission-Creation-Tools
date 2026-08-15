@@ -22,6 +22,7 @@ too. This action does not touch an existing unit's skill; ``set_unit_properties`
 purpose and this is not a back door to it.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -164,7 +165,7 @@ def _build_slot_group(
     is_ground = start in _GROUND_MODES
     alt_m = 0.0 if is_ground else float(altitude_ft) * _M_PER_FT
     speed_mps = float(speed_kt) * _MPS_PER_KT
-    heading_rad = float(heading_deg) % 360 * 3.141592653589793 / 180.0
+    heading_rad = math.radians(float(heading_deg) % 360)
 
     unit: dict[str, Any] = {
         "name": f"{name}-1",

@@ -32,6 +32,7 @@ Every signature below was read out of a real mission, and three are traps a gene
   ``WrappedAction`` envelope.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -511,7 +512,7 @@ def _attack_common(params: dict[str, Any], task: str) -> dict[str, Any]:
         "groupAttack": bool(params.get("group_attack", False)),
         "altitude": float(params["altitude_ft"]) * _M_PER_FT if altitude_given else 0.0,
         "altitudeEnabled": altitude_given,
-        "direction": float(params["direction_deg"]) % 360 * 3.141592653589793 / 180.0 if direction_given else 0.0,
+        "direction": math.radians(float(params["direction_deg"]) % 360) if direction_given else 0.0,
         "directionEnabled": direction_given,
     }
 

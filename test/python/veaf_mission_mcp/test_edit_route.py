@@ -306,8 +306,11 @@ class TestWaypointFields:
             index=2,
             position={"x": -270000.0, "y": 630000.0},
             altitude_ft=12000,
+            speed_kt=250,
         )
-        assert _points(miz)[1]["alt"] == pytest.approx(3657.6)  # 12000 ft
+        wp = _points(miz)[1]
+        assert wp["alt"] == pytest.approx(3657.6)  # 12000 ft
+        assert wp["speed"] == pytest.approx(128.611)  # 250 kt
 
     def test_add_without_altitude_still_inherits(self, miz: Path) -> None:
         # The inheritance default must survive the fix — omitting the params still copies the neighbour.

@@ -1,6 +1,6 @@
 # 03 — An action that creates a player slot
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — add_player_slot ships; dynSpawnTemplate fix confirmed in game
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/actions.py` and its group writer, the mission-maker
 action catalogue (both languages), tests

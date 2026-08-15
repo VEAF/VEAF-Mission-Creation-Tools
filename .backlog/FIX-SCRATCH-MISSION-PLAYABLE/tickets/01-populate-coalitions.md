@@ -1,6 +1,6 @@
 # 01 — Adding a group assigns its country to its side
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — assign_country_to_side, called from the shared writer; both table shapes handled
 Type: fix
 Files: the group writer shared by `add_group` and the composites under
 `src/python/veaf-tools/veaf_mission_mcp/`, `veaf_libs/blank_mission.py` (its comment), tests

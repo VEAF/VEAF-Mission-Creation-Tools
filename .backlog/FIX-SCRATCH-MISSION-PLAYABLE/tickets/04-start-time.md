@@ -1,6 +1,6 @@
 # 04 — A mission nobody asked to fly at night starts at 03:48
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — shipped versions.yaml reduced to a single noon variant, tutorial kept commented
 Type: fix
 Files: the build chain between `blank_mission` and the produced `.miz` — `weather_injector` is the
 prime suspect; tests

@@ -1,6 +1,6 @@
 # 01 — Free the migration tests from the demo
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — migration tests moved to a frozen v5 fixture; the demo could then convert cleanly.
 Type: refactor
 Files: `test/python/mission_builder/test_config_migrator.py`,
 `test/python/mission_builder/test_presets_schema_migrator.py`, new fixtures under `test/fixtures/`

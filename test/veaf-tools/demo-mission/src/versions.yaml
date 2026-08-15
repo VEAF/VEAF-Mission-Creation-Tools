@@ -1,0 +1,182 @@
+position:
+  latitude: 42.355691
+  longitude: 43.323853
+  timezone: Asia/Tbilisi
+versions:
+- name: night-real
+  time: 02:00
+  airport_icao: TODO
+- name: beforedawn-scattered
+  time: sunrise-90*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: scattered
+    cloud_height: 4000
+- name: dawn-real
+  time: sunrise-15*60
+  airport_icao: TODO
+- name: sunset-real
+  time: sunset+15*60
+  airport_icao: TODO
+- name: dawn-scattered
+  time: sunrise-15*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: scattered
+    cloud_height: 4000
+- name: dawn-broken
+  time: sunrise-15*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: broken
+    cloud_height: 3400
+- name: dawn-overcast
+  time: sunrise-15*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 3000
+- name: dawn-overcast-rain
+  time: sunrise-15*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 2900
+- name: morning-real
+  time: sunrise+45*60
+  airport_icao: TODO
+- name: morning-scattered
+  time: sunrise+45*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: scattered
+    cloud_height: 4000
+- name: morning-broken
+  time: sunrise+45*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: broken
+    cloud_height: 3400
+- name: morning-overcast
+  time: sunrise+45*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 3000
+- name: morning-overcast-rain
+  time: sunrise+45*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 2900
+- name: dawn-crosswind-vaziani
+  time: sunrise-15*60
+  metar: UG27 221130Z 04515KT CAVOK Q1020 NOSIG
+- name: dawn-crosswind-rain-vaziani
+  time: sunrise-15*60
+  metar: UG27 221130Z 04515KT +SHRA BKN008 OVC024 Q1006 NOSIG
+- name: day-real
+  time: '15:00'
+  airport_icao: TODO
+- name: day-scattered
+  time: '15:00'
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: scattered
+    cloud_height: 4000
+- name: day-broken
+  time: '15:00'
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: broken
+    cloud_height: 3400
+- name: day-overcast
+  time: '15:00'
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 3000
+- name: day-overcast-rain
+  time: '15:00'
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 2900
+- name: evening-real
+  time: sunset-90*60
+  airport_icao: TODO
+- name: evening-scattered
+  time: sunset-90*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: scattered
+    cloud_height: 4000
+- name: evening-broken
+  time: sunset-90*60
+  weather:
+    temperature: 23.2
+    wind_speed: 4.5
+    wind_direction: 150.0
+    visibility: 1593
+    cloud_type: broken
+    cloud_height: 3400
+- name: evening-overcast
+  time: sunset-90*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 3000
+- name: evening-overcast-rain
+  time: sunset-90*60
+  weather:
+    temperature: 16.4
+    wind_speed: 1.0
+    wind_direction: 260.0
+    visibility: 80000
+    cloud_type: scattered
+    cloud_height: 2900

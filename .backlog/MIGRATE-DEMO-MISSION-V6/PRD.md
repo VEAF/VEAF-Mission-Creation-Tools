@@ -1,6 +1,8 @@
 # MIGRATE-DEMO-MISSION-V6 — the demonstration mission is still v5
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — both tickets shipped: migration tests own a frozen v5 fixture, the demo is
+v6 (validates clean, builds), and it demonstrates a delayed custom script plus YAML combat zones. A
+validator gap surfaced (SANCTUARY polygon_units accepting group names) was fixed at the root.
 
 Origin: David, 2026-08-14, while preparing the DCS verification session: *"il faudrait la passer en v6
 avant notre release aussi"*. Found the same afternoon from the other side — looking for a v6 mission to
@@ -42,8 +44,8 @@ Recommendation: **a**. The reason the demo is stuck is that it wears two hats.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Free the migration tests from the demo](tickets/01-free-the-migration-tests.md) | ⬜ |
-| 02 | [Convert the demo to v6, and make it demonstrate v6](tickets/02-convert-and-enrich.md) | ⬜ |
+| 01 | [Free the migration tests from the demo](tickets/01-free-the-migration-tests.md) | ✅ |
+| 02 | [Convert the demo to v6, and make it demonstrate v6](tickets/02-convert-and-enrich.md) | ✅ |
 
 ## Definition of Done
 

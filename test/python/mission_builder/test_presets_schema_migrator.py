@@ -175,13 +175,17 @@ class TestInferredRadioType(unittest.TestCase):
 
 
 class TestTheRepositorysOwnDemoMission(unittest.TestCase):
-    """The real fixture that started this, migrated and then read by the real reader."""
+    """The real fixture that started this, migrated and then read by the real reader.
 
-    SOURCE = Path(__file__).parents[3] / "test" / "veaf-tools" / "demo-mission" / "src" / "presets.yaml"
+    A frozen copy of the demo's former v5 presets, owned by this test so the demo could move to v6
+    (MIGRATE-DEMO-MISSION-V6 ticket 01).
+    """
+
+    SOURCE = Path(__file__).parents[3] / "test" / "veaf-tools" / "migration-v5-fixture" / "src" / "presets.yaml"
 
     def test_the_fixture_is_still_v5(self) -> None:
-        # It is also a v5 fixture for test_config_migrator, so it must stay v5. If this fails,
-        # something converted it in place — which convert-v5 does by default.
+        # It must stay v5, or this test stops testing the v5 → v6 path. If this fails, something
+        # converted it in place — which convert-v5 does by default.
         data = yaml.safe_load(self.SOURCE.read_text(encoding="utf-8"))
         self.assertTrue(is_v5_schema(data))
 

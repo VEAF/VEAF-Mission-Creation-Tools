@@ -37,7 +37,9 @@ from veaf_libs.lua_config_generator import MANDATORY_MODULES
 # ---------------------------------------------------------------------------
 _FIXTURE_DIR = pathlib.Path(__file__).parents[2] / "veaf-tools"
 _MB_FIXTURE = _FIXTURE_DIR / "mission-builder" / "src" / "scripts" / "missionConfig.lua"
-_DEMO_FIXTURE = _FIXTURE_DIR / "demo-mission" / "src" / "scripts" / "missionConfig.lua"
+# A frozen copy of the v5 demo config, owned by this test so the demo could move to v6
+# (MIGRATE-DEMO-MISSION-V6 ticket 01). It must stay v5.
+_DEMO_FIXTURE = _FIXTURE_DIR / "migration-v5-fixture" / "src" / "scripts" / "missionConfig.lua"
 
 
 class TestNetDepth(unittest.TestCase):
@@ -1084,7 +1086,7 @@ class TestIntegrationMissionBuilder(_IntegrationMixin, unittest.TestCase):
 
 
 class TestIntegrationDemoMission(_IntegrationMixin, unittest.TestCase):
-    """End-to-end migration of the demo-mission fixture."""
+    """End-to-end migration of the frozen v5 fixture (a copy of the demo's former v5 config)."""
 
     FIXTURE = _DEMO_FIXTURE
 

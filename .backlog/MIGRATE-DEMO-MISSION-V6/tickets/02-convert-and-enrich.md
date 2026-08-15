@@ -1,6 +1,6 @@
 # 02 — Convert the demo to v6, and make it demonstrate v6
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — converted to v6, validates clean, builds; demonstrates a delayed custom script + YAML combat zones/operation; validator SANCTUARY group-name fix.
 Type: feat
 Files: `test/veaf-tools/demo-mission/**`
 

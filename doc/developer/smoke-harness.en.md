@@ -67,7 +67,21 @@ Probes, then runs the checks. Exits 1 if any fails, 0 if all pass **or the run w
 
 ## How it talks to DCS
 
-One transport, the hook's, read out of `dcs-fiddle-server.lua` rather than assumed: the Lua travels
+**Two transports, each for what it reaches** (ticket 04). A check names its own via `Check.transport`:
+
+| Transport | What it sees | Which checks |
+|---|---|---|
+| **hook** (`dcs-fiddle-server.lua`) | a **bare** scripting state: DCS's own globals (`Disposition`, `missionCommands`, `coalition`) are there, the mission's scripts are **not** | DCS-native checks, and driving (load/quit) |
+| **bridge** (`dcs-serve` → `dcs-bridge.lua`, injected **into** the mission) | the state the mission's scripts run in — where `veaf` lives | every **VEAF** assertion (`veaf-loaded`, `findspawnpoint-exists`) |
+
+Why the split: the hook reaches a state where `env` is a table but the mission's scripts never ran, so
+`veaf` is `nil` there. The probe now **measures** that (`type(veaf)` on the hook route) instead of
+inferring it from `env` — `env` exists in *every* scripting state, loaded or bare, which is what made
+"the scripts are here" look true. So a VEAF assertion goes through the bridge, or it reads `veaf-absent`
+forever. When the bridge is absent, the check **fails naming `dcs-serve`**, never reporting
+`veaf-absent`: the bridge is a stated prerequisite, not "nothing to talk to".
+
+The hook's transport, read out of `dcs-fiddle-server.lua` rather than assumed: the Lua travels
 **base64 in the URL path**, the target environment in `?env=`, and the reply is JSON `{result=…}` or
 `{error=…}`.
 
@@ -96,8 +110,9 @@ One transport, the hook's, read out of `dcs-fiddle-server.lua` rather than assum
     returns a Lua error, which this transport hands back as an ordinary string — "something came back"
     proves nothing.
 
-This is **not** the bridge `capture-map` uses (`dcs-serve` + `dcs-bridge.lua`): that one lives *inside*
-the mission, so it cannot answer before the mission exists, and cannot be what loads it.
+It is the **same** bridge `capture-map` uses (`dcs-serve` + `dcs-bridge.lua`): it lives *inside* the
+mission, so it cannot load one and cannot answer before one exists — hence the hook for driving and the
+bridge for VEAF assertions, each where it actually answers.
 
 ## The test-mission contract
 

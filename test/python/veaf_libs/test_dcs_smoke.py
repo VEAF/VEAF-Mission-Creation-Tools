@@ -452,6 +452,72 @@ class TestRun:
         assert result.failed and "could not run" in result.failed[0].detail
 
 
+class TestTransportSplit:
+    """A VEAF assertion rides the mission bridge; a DCS-native one rides the hook (ticket 04)."""
+
+    def test_a_veaf_check_goes_through_the_bridge_not_the_hook(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(smoke, "probe", lambda **_: _ready())
+        monkeypatch.setattr(smoke, "resolve_api_key", lambda *a, **k: "KEY")
+        bridge_calls: list[str] = []
+
+        def fake_bridge(serve_url: str, key: str, code: str, timeout: float = 10.0) -> str:
+            bridge_calls.append(code)
+            return "table" if "'ok'" not in code else "ok"
+
+        # A hook that would answer 'veaf-absent' — the very trap the split removes.
+        monkeypatch.setattr(smoke, "exec_over_bridge", fake_bridge)
+        monkeypatch.setattr(smoke, "exec_in_scripting", lambda *a, **k: "veaf-absent")
+
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
+        result = run(checks=(check,), timeout=0.1)
+        assert result.outcomes[0].passed, "the bridge sees veaf where the hook does not"
+        assert "return type(veaf)" in bridge_calls  # it went to the bridge
+
+    def test_a_veaf_check_fails_naming_dcs_serve_when_the_bridge_is_absent(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(smoke, "probe", lambda **_: _ready())
+        monkeypatch.setattr(smoke, "resolve_api_key", lambda *a, **k: "KEY")
+
+        def unreachable(*a: Any, **k: Any) -> str:
+            raise RuntimeError("cannot reach dcs-serve")
+
+        monkeypatch.setattr(smoke, "exec_over_bridge", unreachable)
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
+        result = run(checks=(check,), timeout=0.1)
+        assert not result.outcomes[0].passed
+        detail = result.outcomes[0].detail
+        assert "dcs-serve" in detail and "veaf-absent" not in detail, "name the transport, not the symptom"
+
+    def test_a_missing_api_key_names_dcs_serve_too(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(smoke, "probe", lambda **_: _ready())
+
+        def no_key(*a: Any, **k: Any) -> str:
+            raise RuntimeError("no API key found")
+
+        monkeypatch.setattr(smoke, "resolve_api_key", no_key)
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
+        result = run(checks=(check,), timeout=0.1)
+        assert not result.outcomes[0].passed and "dcs-serve" in result.outcomes[0].detail
+
+    def test_a_hook_check_never_touches_the_bridge(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(smoke, "probe", lambda **_: _ready())
+        monkeypatch.setattr(smoke, "exec_in_scripting", lambda code, _route, **__: "table")
+
+        def must_not_call(*a: Any, **k: Any) -> str:
+            raise AssertionError("a hook check must not open the bridge")
+
+        monkeypatch.setattr(smoke, "exec_over_bridge", must_not_call)
+        # no VEAF check present, so the bridge is never resolved
+        check = Check("d", "return type(Disposition)", lambda v: v == "table", "why")
+        result = run(checks=(check,), timeout=0.1)
+        assert result.outcomes[0].passed
+
+    def test_the_shipped_veaf_checks_are_tagged_for_the_bridge(self):
+        by_name = {c.name: c for c in CHECKS}
+        assert by_name["veaf-loaded"].transport == smoke.Transport.BRIDGE
+        assert by_name["findspawnpoint-exists"].transport == smoke.Transport.BRIDGE
+        assert by_name["disposition-exists"].transport == smoke.Transport.HOOK
+
+
 class TestCheckExpectations:
     """The expectations themselves, since a wrong one turns a real answer into a wrong verdict."""
 

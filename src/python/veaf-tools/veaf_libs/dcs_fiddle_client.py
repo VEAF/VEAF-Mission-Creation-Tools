@@ -271,6 +271,11 @@ class Capabilities:
     #: How to reach the state the VEAF scripts run in, or ``None`` when nothing reached it. ``env=mission``
     #: is **not** it — that is the trigger state — so this is what a check has to be sent through.
     scripting_route: ScriptingRoute | None = None
+    #: Whether the hook's scripting route can actually see a **VEAF** global (``veaf``). Measured, not
+    #: inferred from ``env``: ``env`` is a table in *every* scripting state, loaded or bare, so it says
+    #: nothing about whether the mission's scripts ran here. They do not — the hook reaches a bare
+    #: scripting state — which is exactly why a VEAF assertion goes through the mission bridge instead.
+    hook_sees_veaf: bool = False
     #: What each Lua type *looks like* once it has crossed the mission-environment transport, keyed by
     #: the type the Lua returned. Measured because ED documents ``net.dostring_in`` as returning a
     #: **string**: if that holds, a check expecting a number or ``True`` can never pass, and two of the
@@ -400,6 +405,19 @@ def probe(url: str = DEFAULT_FIDDLE_URL, timeout: float = 10.0) -> Capabilities:
             caps.mission_env_shapes = _measure_shapes(caps.scripting_route, url=url, timeout=timeout)
             for lua_type, seen in caps.mission_env_shapes.items():
                 caps.notes.append(f"a Lua {lua_type} crosses the {caps.scripting_route.name} route as {seen}")
+            # The honest discriminator: does that route actually see the mission's scripts? `env` being a
+            # table does not answer it (a bare scripting state has `env` too), so probe a VEAF global.
+            # It comes back absent — the hook reaches a bare scripting state — which is why VEAF
+            # assertions ride the mission bridge, not this route.
+            try:
+                veaf_type = exec_in_scripting("return type(veaf)", caps.scripting_route, url=url, timeout=timeout)
+            except FiddleError:
+                veaf_type = "unreachable"
+            caps.hook_sees_veaf = veaf_type == "table"
+            caps.notes.append(
+                f"hook route sees veaf: {caps.hook_sees_veaf} (type(veaf)={veaf_type!r}) — "
+                "a VEAF assertion goes through the mission bridge, not the hook"
+            )
 
     return caps
 
@@ -428,7 +446,9 @@ def _find_scripting_route(url: str, timeout: float) -> tuple[ScriptingRoute | No
             notes.append(f"route {route.name}: refused ({exc})")
             continue
         if value == "table":
-            notes.append(f"route {route.name}: reaches the scripting state — env is a table")
+            # `env` is a table here, but that only proves this is *a* scripting state, not that the
+            # mission's scripts ran in it — probe() checks a VEAF global separately for that.
+            notes.append(f"route {route.name}: reaches a scripting state (env is a table)")
             return route, notes
         notes.append(f"route {route.name}: ran but env is {value!r}, so this is not the scripting state")
     notes.append(

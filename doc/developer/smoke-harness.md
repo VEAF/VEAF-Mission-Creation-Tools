@@ -69,9 +69,25 @@ Sonde, puis exécute les vérifications. Sort en 1 si l'une échoue, en 0 si tou
 
 ## Comment ça parle à DCS
 
-Un seul transport, celui du hook, lu dans `dcs-fiddle-server.lua` plutôt que supposé : le Lua voyage
-**en base64 dans le chemin de l'URL**, l'environnement cible dans `?env=`, et la réponse est un JSON
-`{result=…}` ou `{error=…}`.
+**Deux transports, chacun pour ce qu'il atteint** (ticket 04). Une vérification déclare le sien via
+`Check.transport` :
+
+| Transport | Ce qu'il voit | Pour quelles vérifications |
+|---|---|---|
+| **hook** (`dcs-fiddle-server.lua`) | un état de script **nu** : les globals de DCS (`Disposition`, `missionCommands`, `coalition`) y sont, **pas** les scripts de la mission | les vérifications DCS natives, et le pilotage (charger/quitter) |
+| **bridge** (`dcs-serve` → `dcs-bridge.lua`, injecté **dans** la mission) | l'état où tournent les scripts de la mission — là où vit `veaf` | toute assertion **VEAF** (`veaf-loaded`, `findspawnpoint-exists`) |
+
+Pourquoi le split : le hook atteint un état où `env` est une table mais où les scripts de la mission
+n'ont jamais tourné, donc `veaf` y est `nil`. La sonde le **mesure** désormais (`type(veaf)` sur la
+route du hook) au lieu de le déduire de `env` — car `env` existe dans *tout* état de script, chargé ou
+nu, et c'est ce qui faisait conclure à tort « les scripts sont là ». Une assertion VEAF passe donc par
+le bridge, ou elle lit `veaf-absent` pour toujours. Si le bridge est absent, la vérification **échoue
+en nommant `dcs-serve`**, jamais en rapportant `veaf-absent` : le pont est un prérequis énoncé, pas
+« rien à qui parler ».
+
+Le transport du hook, lu dans `dcs-fiddle-server.lua` plutôt que supposé : le Lua voyage **en base64
+dans le chemin de l'URL**, l'environnement cible dans `?env=`, et la réponse est un JSON `{result=…}`
+ou `{error=…}`.
 
 | `?env=` | Ce que ça atteint | À quoi ça sert |
 |---|---|---|
@@ -99,8 +115,9 @@ Un seul transport, celui du hook, lu dans `dcs-fiddle-server.lua` plutôt que su
     **valoir** `table` : une route qui exécute le chunk ailleurs renvoie une erreur Lua, que ce
     transport rend comme une chaîne ordinaire — « quelque chose est revenu » ne prouve rien.
 
-Ce n'est **pas** le bridge que `capture-map` utilise (`dcs-serve` + `dcs-bridge.lua`) : celui-là vit
-*dans* la mission, il ne peut donc pas répondre avant que la mission existe, ni la charger.
+C'est le **même** bridge que `capture-map` (`dcs-serve` + `dcs-bridge.lua`) : il vit *dans* la mission,
+il ne peut donc ni la charger ni répondre avant qu'elle existe — d'où le hook pour le pilotage et le
+bridge pour les assertions VEAF, chacun là où il répond.
 
 ## Le contrat de la mission de test
 

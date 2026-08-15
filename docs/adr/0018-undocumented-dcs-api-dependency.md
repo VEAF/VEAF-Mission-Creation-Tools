@@ -31,22 +31,32 @@ Depend on it, under three conditions:
    keeps telling us the degradation still works. Tests that want the singleton set it locally and
    restore it, the way `TestVeafCtldIntegration` does with `ctld`.
 
-## Status of the evidence — asserted, not measured
+## Status of the evidence — measured in game, 2026-08-15
 
-This must be stated plainly, because it is unusual for a decision to be taken on someone else's
-observation.
+The decision was originally taken on TUM's author's observation. It has since been **measured** by the
+smoke harness (`FEAT-DCS-SMOKE-HARNESS`), on Syria, and the assumption holds.
 
-What we know: TUM calls `Disposition.getSimpleZones` at `TheUniversalMission.lua:3060`, **bare** — no
-`require`, no `if Disposition then` guard, not even a `pcall` — which is only reasonable if the author
-found it reliably present. And its author states on r/hoggit that it is an undocumented DCS API,
-speculating it is what ED's own quick-action generator uses.
+Context that still stands: TUM calls `Disposition.getSimpleZones` at `TheUniversalMission.lua:3060`,
+**bare** — no `require`, no guard, not even a `pcall` — which is only reasonable if the author found it
+reliably present; the author states on r/hoggit that it is an undocumented DCS API, likely what ED's
+own quick-action generator uses.
 
-What we have **not** done: called it ourselves. The verification — existence, exact signature, whether
-the returned points genuinely avoid scenery, behaviour on a dense city, presence across theatres
-including WWII maps, and per-call cost — is written up as
-`.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md` and was **deliberately deferred**
-by David so the code could land first. Until it runs, the scenery avoidance in this ADR is **asserted,
-not measured**.
+What the harness measured (Syria, in game):
+
+- **It exists and is callable.** `getSimpleZones(centre_vec3, radius_m, arg3, count)` returns an array
+  of `{ x, y, course }` — a 2D point (mission-table convention, `x` northing / `y` easting) plus a
+  heading, **not** a vec3.
+- **The returned points genuinely avoid scenery.** Centred on the airbase Abu al-Duhur — an area
+  carrying **369 scenery objects within 2 km** — all **30** returned points had **zero** scenery within
+  10 m and were all on a `land` surface (`getSurfaceType == LAND`). The avoidance is real, not asserted.
+- **It returns fewer than requested when clear space is scarce**, which is exactly why tier 1's fallback
+  is necessary rather than paranoia: at the airbase, radius 150 m → 2 points, 500 m → 10, 2000 m (req 50)
+  → 50; the open desert anchor (2000 m, req 30) → 30. A caller must handle a short count.
+- **Cost**: ~43 ms per call.
+
+Not measured: `arg3` (passed 100, meaning unconfirmed) and presence on a WWII map — the current maps
+tested are modern. `.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md` carries the full
+question list; the load-bearing one — does it avoid scenery — is answered.
 
 Coding ahead of the measurement is safe precisely because of condition 2: the assumption is
 load-bearing in one direction only. If the probe comes back negative, tier 1 is dead weight to delete,

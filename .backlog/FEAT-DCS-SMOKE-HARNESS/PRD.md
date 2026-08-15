@@ -1,6 +1,6 @@
 # FEAT-DCS-SMOKE-HARNESS — assert VEAF behaviour inside a real DCS, unattended
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-08-15 (all four tickets; unattended single-player load dropped as undocumented, see ticket 02)
 
 > **First slice delivered 2026-08-05, and it stops short of the lot's own Definition of Done.**
 > The transport, the probe, the data-driven check runner and the documented contract are in. What is
@@ -85,9 +85,9 @@ it must degrade to a clear "no DCS found, skipped" rather than a failure when ru
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) — contract written, mission artefact and the in-game anchor check outstanding | 🔄 |
+| 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) — contract page shipped; committed mission `test/veaf-tools/smoke-test-mission/` (Syria anchor, client slot + ground group + combat zone) builds & validates clean; the anchor's event-firing verified in game 2026-08-15 | ✅ |
 | 02 | [The runner](tickets/02-runner.md) — probe, transport, data-driven checks **and** the launch/load/quit lifecycle (`--full`) shipped; validated in game — unattended single-player load dropped (no documented API; server mode not pursued), so `--full` is end-to-end only in a hosted-server context | ✅ |
-| 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) — six checks written for two of the four questions; **none has run** | 🔄 |
+| 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) — questions 1 & 2 answered in game 2026-08-15 (Disposition avoidance measured — 0/30 points on scenery in a 369-scenery area — a `disposition-avoids-scenery` regression check added and passing; submenu re-confirmed); ADR 0018 & TUM-EXPLOIT reconciled from "asserted" to measured. 3 & 4 (Foothold log, checklists) left as stated open questions | ✅ |
 | 04 | [Assert VEAF through the mission bridge, not the hook](tickets/04-assert-through-the-mission-bridge.md) — transport split shipped; sentinel fixed | ✅ |
 
 ## Steal their test-mission contract, especially the counter-example

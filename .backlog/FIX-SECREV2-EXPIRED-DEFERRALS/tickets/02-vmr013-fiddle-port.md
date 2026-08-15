@@ -1,6 +1,6 @@
 # 02 — The fiddle-server port: re-anchor the deferral or close it
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-08-15 (validated in game)
 Type: chore
 Finding: VMR-013 (Security flaw, **MEDIUM**), `src/scripts/other/dcs-fiddle-server.lua:270`
 
@@ -103,9 +103,16 @@ cannot be unit-tested; the client half is (`test/python/veaf_libs/test_dcs_fiddl
 - [x] Read ADR 0019's token design and check it against what the harness actually needs.
 - [x] Pick an outcome and write the reason here. (outcome 2, via adopting the fork)
 - [x] Make sure exactly **one** place names the condition — met and collected, not re-deferred.
-- [ ] Confirm in game that the authenticated transport still answers (`smoke-test --probe-only` with the
+- [x] Confirm in game that the authenticated transport still answers (`smoke-test --probe-only` with the
       vendored hook installed).
 
-## Blocked on
+## Validated in game — 2026-08-15
 
-David: reinstall the vendored hook and run one `--probe-only` to confirm the auth does not break the transport.
+With the vendored hook installed and DCS at the main menu:
+
+- the hook wrote a 40-hex password to `%USERPROFILE%\dcs-fiddle-token.txt`, and `smoke-test --probe-only`
+  **authenticated and answered** (control table, `net.load_mission`, `exitProcess`, write dir all read);
+- `--fiddle-token wrong-password-xxxx` was **rejected with 401** ("the DCS hook rejected the credentials").
+
+So the local bypass is off, auth is enforced, and only the per-session password — which a browser cannot
+read — is accepted. VMR-013 is closed, confirmed both ways rather than assumed.

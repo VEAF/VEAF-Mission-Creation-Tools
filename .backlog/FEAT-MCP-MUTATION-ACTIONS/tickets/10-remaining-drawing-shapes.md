@@ -1,6 +1,8 @@
 # 10 — Ship the drawing shapes now that their layout is measured
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — circle/oval/free ship (measured from bridge-Syria-editeur.miz); arrow and
+icon stay refused, each with its own reason (arrow needs an in-game outline round-trip, icon needs an
+icon-name catalogue).
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/map_drawings.py`, the mission-maker action catalogue
 (both languages), tests
@@ -42,7 +44,10 @@ asserts a shape is either shipped or refused, never both.
 
 ## Acceptance criteria
 
-- [ ] `circle`, `oval`, `free` ship, documented in both locales.
-- [ ] `arrow` ships or gets its own ticket, decided by a round-trip rather than by reasoning.
-- [ ] `icon` stays refused with a reason a maker can act on.
-- [ ] Full Python gate green; coverage ratchet respected.
+- [x] `circle`, `oval`, `free` ship, documented in both locales.
+- [~] `arrow` **deferred** to its own future ticket rather than shipped or guessed: the editor stores a
+      computed 8-point outline beside its `length`/`angle`, and whether DCS recomputes it needs a DCS
+      round-trip nobody has run yet. Refused with that exact reason.
+- [x] `icon` stays refused with a reason a maker can act on (needs a `file` from the editor's icon set,
+      which nothing here enumerates).
+- [x] Full Python gate green; coverage ratchet respected.

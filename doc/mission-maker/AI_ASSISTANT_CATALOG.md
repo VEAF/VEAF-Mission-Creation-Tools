@@ -434,11 +434,12 @@ partie de la recette.
 - **La couche décide qui voit le dessin** — rouge, bleu, neutre, commun, ou la couche de l'auteur — et
   ce n'est jamais un choix par défaut : un dessin sur la mauvaise couche est invisible pour ceux qui en
   ont besoin et visible par ceux qui ne devraient pas le voir.
-- **Trois formes sont disponibles** : la ligne (deux points ou plus, fermée pour délimiter une zone),
-  le rectangle, et l'étiquette de texte. Les autres formes de DCS (cercle, ovale, flèche, icône) sont
-  **refusées** : aucune mission du dépôt n'en contient, donc leur structure exacte est inconnue et un
-  dessin deviné serait silencieusement supprimé par l'éditeur. Elles s'ajouteront quand on aura pu en
-  mesurer une en jeu.
+- **Six formes sont disponibles** : la ligne (deux points ou plus, fermée pour délimiter une zone),
+  le rectangle, l'étiquette de texte, le cercle (un rayon), l'ovale (deux axes et un angle) et le
+  polygone libre rempli (trois points ou plus). La flèche et l'icône restent **refusées, avec une
+  raison** — le contour d'une flèche demande une vérification en jeu, et une icône réclame un nom de
+  fichier du jeu d'icônes de DCS qu'aucune donnée du dépôt ne liste — plutôt qu'un dessin deviné que
+  l'éditeur supprimerait en silence.
 
 ---
 

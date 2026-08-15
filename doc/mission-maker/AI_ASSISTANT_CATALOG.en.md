@@ -423,10 +423,11 @@ rebuilt from its folder, while one the AI places is part of the recipe.
 - **The layer decides who sees the drawing** — red, blue, neutral, common, or the author's own — and it
   is never a default: a drawing on the wrong layer is invisible to those who need it and visible to
   those who should not see it.
-- **Three shapes are available**: the line (two points or more, closed to outline an area), the
-  rectangle, and the text label. DCS's other shapes (circle, oval, arrow, icon) are **refused**: no
-  mission in the repository contains one, so their exact structure is unknown and a guessed drawing
-  would be silently dropped by the editor. They will be added once one can be measured in game.
+- **Six shapes are available**: the line (two points or more, closed to outline an area), the
+  rectangle, the text label, the circle (a radius), the oval (two axes and an angle), and the free-form
+  filled polygon (three points or more). The arrow and the icon are still **refused** with a reason —
+  an arrow's outline needs an in-game check, and an icon needs a file name from DCS's own icon set that
+  nothing here lists — rather than a guess the editor would silently drop.
 
 ---
 

@@ -315,17 +315,18 @@ vec3 (see `docs/agents/dcs-coordinates.md`). So the actions take the absolute co
 actually has and do the anchoring themselves. The payoff shows in `edit_map_drawing`: moving a drawing
 is moving its anchor, and the shape follows for free.
 
-**Three shapes ship because three shapes were measured**: `Line` (with `lineMode` `segment` or
-`segments`, and `closed` for a shape that joins up — that is how a free-form area is outlined),
-`Polygon` in `rect` mode (`width`/`height`/`angle`, **no** points), and `TextBox` (`text`/`font`/
-`fontSize`, no points either; the font is taken from a real drawing, one DCS lacks rendering as
-nothing).
+**Six shapes ship because six shapes were measured**: `Line` (with `lineMode` `segment` or `segments`,
+and `closed` for a shape that joins up), `Polygon` in `rect` mode (`width`/`height`/`angle`, **no**
+points), `TextBox` (`text`/`font`/`fontSize`; the font is taken from a real drawing — one absent from DCS
+renders as nothing), and — added 2026-08-15 from `bridge-Syria-editeur.miz` (ticket 10) — `Polygon`
+in `circle` mode (`radius`, no points or angle), `oval` (`r1`/`r2`/`angle`), and `free` (`points`
+relative to the anchor like a `Line`, a free-form filled area, three or more points).
 
-The other `polygonMode` values (`circle`, `oval`, `free`, `arrow`) and `primitiveType: "Icon"` are
-**absent from every fixture** here, so their structure is unknown, and the ticket's rule is to read a
-real `.miz` rather than assume. They are refused by name — inventing a layout would produce a drawing
-the editor silently drops, exactly what `FIX-MAPRESOURCE-KEY` and `FIX-COMMUNITY-SOUNDS-PRUNED` already
-cost. The measurement is listed in `DCS-SESSION-TODO.md`.
+`arrow` and `icon` were measured but stay **refused, with a reason** rather than a guess: an `arrow`
+stores a computed 8-point outline **beside** its `length`/`angle`, so writing the parameters alone
+needs an in-game round-trip to learn whether DCS recomputes the outline (its own ticket); an `icon`
+needs a `file` from the editor's icon set (e.g. `P91000007.png`), which nothing here enumerates, and an
+unvalidated name renders as nothing. `chevron` was removed — it is not a DCS editor tool.
 
 The **layer** is a first-class parameter, never a default: a drawing on the wrong layer is invisible to
 the pilots who need it and visible to the ones who should not see it.

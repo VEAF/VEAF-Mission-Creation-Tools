@@ -324,17 +324,20 @@ mission avec un vec3 d'exécution (voir `docs/agents/dcs-coordinates.md`). Les a
 coordonnées **absolues** dont l'appelant dispose et font l'ancrage elles-mêmes. Le bénéfice apparaît
 dans `edit_map_drawing` : déplacer un dessin, c'est déplacer son ancre, et la forme suit gratuitement.
 
-**Trois formes sont livrées parce que trois formes ont été mesurées** : `Line` (avec `lineMode`
-`segment` ou `segments`, et `closed` pour une forme qui se referme — c'est ainsi qu'on délimite une
-zone libre), `Polygon` en mode `rect` (`width`/`height`/`angle`, **aucun** point), et `TextBox`
-(`text`/`font`/`fontSize`, pas de points non plus ; la police est reprise d'un vrai dessin, une police
-absente de DCS ne s'affichant pas du tout).
+**Six formes sont livrées parce que six formes ont été mesurées** : `Line` (avec `lineMode`
+`segment` ou `segments`, et `closed` pour une forme qui se referme), `Polygon` en mode `rect`
+(`width`/`height`/`angle`, **aucun** point), `TextBox` (`text`/`font`/`fontSize` ; la police est reprise
+d'un vrai dessin, une police absente de DCS ne s'affichant pas du tout), et — ajoutés le 2026-08-15
+depuis `bridge-Syria-editeur.miz` (ticket 10) — `Polygon` en mode `circle` (`radius`, aucun point ni
+angle), `oval` (`r1`/`r2`/`angle`) et `free` (des `points` relatifs à l'ancre comme une `Line`, une
+zone libre remplie, au moins trois points).
 
-Les autres `polygonMode` (`circle`, `oval`, `free`, `arrow`) et `primitiveType: "Icon"` sont **absents
-de toutes les fixtures** du dépôt : leur structure est donc inconnue, et la règle du ticket est de lire
-un vrai `.miz` plutôt que de supposer. Ils sont refusés en le disant — inventer une structure ici
-produirait un dessin que l'éditeur supprime en silence, exactement ce que `FIX-MAPRESOURCE-KEY` et
-`FIX-COMMUNITY-SOUNDS-PRUNED` ont déjà coûté. La mesure est inscrite dans `DCS-SESSION-TODO.md`.
+`arrow` et `icon` ont été mesurés mais restent **refusés, avec une raison** plutôt qu'une supposition :
+un `arrow` stocke un contour calculé de 8 points **en plus** de ses `length`/`angle`, donc écrire les
+seuls paramètres demande un aller-retour en jeu pour savoir si DCS recalcule le contour (son propre
+ticket) ; un `icon` réclame un `file` du jeu d'icônes de l'éditeur (p. ex. `P91000007.png`), qu'aucune
+donnée du dépôt n'énumère, et un nom non validé ne s'affiche pas. `chevron` a été retiré : il n'existe
+pas dans l'éditeur DCS.
 
 La **couche** est un paramètre de première classe, jamais une valeur par défaut : un dessin sur la
 mauvaise couche est invisible pour les pilotes qui en ont besoin et visible pour ceux qui ne devraient

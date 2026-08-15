@@ -28,7 +28,7 @@ import pytest
 from mission_tools.miz_tools import read_miz
 from veaf_mission_mcp.map_drawings import (
     _MEASURED_SHAPES,
-    _UNMEASURED_SHAPES,
+    _REFUSED_SHAPES,
     add_map_drawing,
     edit_map_drawing,
 )
@@ -266,24 +266,84 @@ class TestRectAndTextBox:
             add_map_drawing(miz, layer="Common", shape="textbox", name="Empty", position={"x": 0.0, "y": 0.0})
 
 
-class TestUnmeasuredShapesAreRefused:
-    """The ticket's own rule: read a real `.miz` rather than assume a field shape."""
+class TestMeasuredPolygonShapes:
+    """circle/oval/free were measured from bridge-Syria-editeur.miz on 2026-08-15 (ticket 10)."""
 
-    @pytest.mark.parametrize("shape", ["circle", "oval", "free", "arrow", "icon"])
-    def test_a_shape_absent_from_every_fixture_is_refused(self, miz: Path, shape: str) -> None:
-        with pytest.raises(ValueError, match="not measured"):
+    def _drawing(self, miz: Path, name: str) -> dict:
+        content = read_miz(miz).mission_content
+        assert content is not None
+        layers = content["drawings"]["layers"]
+        for layer in layers.values() if isinstance(layers, dict) else layers:
+            objects = layer.get("objects") or {}
+            for obj in objects.values() if isinstance(objects, dict) else objects:
+                if obj.get("name") == name:
+                    return obj
+        raise AssertionError(f"drawing {name!r} not found")
+
+    def test_a_circle_carries_its_radius_and_no_points(self, miz: Path) -> None:
+        add_map_drawing(miz, layer="Blue", shape="circle", name="C", position={"x": 100.0, "y": 200.0}, radius=3000)
+        d = self._drawing(miz, "C")
+        assert (d["primitiveType"], d["polygonMode"]) == ("Polygon", "circle")
+        assert d["radius"] == 3000.0 and (d["mapX"], d["mapY"]) == (100.0, 200.0)
+        assert "points" not in d and "angle" not in d
+
+    def test_a_circle_needs_a_positive_radius(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="radius"):
+            add_map_drawing(miz, layer="Blue", shape="circle", name="C", position={"x": 0.0, "y": 0.0})
+
+    def test_an_oval_carries_two_semi_axes_and_an_angle(self, miz: Path) -> None:
+        add_map_drawing(
+            miz, layer="Blue", shape="oval", name="O", position={"x": 0.0, "y": 0.0}, r1=5000, r2=2000, angle=1.5
+        )
+        d = self._drawing(miz, "O")
+        assert (d["primitiveType"], d["polygonMode"]) == ("Polygon", "oval")
+        assert (d["r1"], d["r2"], d["angle"]) == (5000.0, 2000.0, 1.5)
+
+    def test_an_oval_needs_both_semi_axes(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="r1 and r2"):
+            add_map_drawing(miz, layer="Blue", shape="oval", name="O", position={"x": 0.0, "y": 0.0}, r1=5000)
+
+    def test_a_free_polygon_stores_points_relative_to_its_anchor(self, miz: Path) -> None:
+        add_map_drawing(
+            miz,
+            layer="Blue",
+            shape="free",
+            name="F",
+            points=[{"x": 1000.0, "y": 2000.0}, {"x": 1500.0, "y": 2000.0}, {"x": 1250.0, "y": 2500.0}],
+        )
+        d = self._drawing(miz, "F")
+        assert (d["primitiveType"], d["polygonMode"]) == ("Polygon", "free")
+        assert (d["mapX"], d["mapY"]) == (1000.0, 2000.0)
+        pts = d["points"] if isinstance(d["points"], list) else list(d["points"].values())
+        # first point anchored at {0, 0}, the anchoring bug this module exists to prevent
+        assert (pts[0]["x"], pts[0]["y"]) == (0.0, 0.0)
+        assert (pts[1]["x"], pts[1]["y"]) == (500.0, 0.0)
+
+    def test_a_free_polygon_needs_three_points(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="three points"):
+            add_map_drawing(
+                miz, layer="Blue", shape="free", name="F", points=[{"x": 0.0, "y": 0.0}, {"x": 1.0, "y": 1.0}]
+            )
+
+
+class TestRefusedShapes:
+    """arrow and icon are measured but not synthesisable yet — refused with a stated reason, not a guess."""
+
+    @pytest.mark.parametrize("shape", ["arrow", "icon"])
+    def test_a_refused_shape_names_its_reason(self, miz: Path, shape: str) -> None:
+        with pytest.raises(ValueError, match="not available"):
             add_map_drawing(miz, layer="Blue", shape=shape, name="X", position={"x": 0.0, "y": 0.0})
 
-    def test_the_refused_shapes_are_ones_dcs_actually_draws(self) -> None:
-        # `chevron` sat here until 2026-08-15, when David opened the editor and found no such tool.
-        # It came from a table of proposed verbs, never from a measurement — so the list that exists
-        # to stop invented shapes was carrying one. This test is what keeps the next one out.
-        assert "chevron" not in _UNMEASURED_SHAPES
-        assert set(_UNMEASURED_SHAPES).isdisjoint(_MEASURED_SHAPES), "a shape is refused or it ships"
+    def test_chevron_is_neither_shipped_nor_a_refused_dcs_shape(self) -> None:
+        # `chevron` was removed 2026-08-15 — it is not a DCS tool at all, so it is a plain unknown shape.
+        assert "chevron" not in _REFUSED_SHAPES and "chevron" not in _MEASURED_SHAPES
+
+    def test_a_shape_is_shipped_or_refused_never_both(self) -> None:
+        assert set(_REFUSED_SHAPES).isdisjoint(_MEASURED_SHAPES)
 
     def test_the_refusal_names_the_shapes_that_do_work(self, miz: Path) -> None:
-        with pytest.raises(ValueError, match="rect"):
-            add_map_drawing(miz, layer="Blue", shape="circle", name="X", position={"x": 0.0, "y": 0.0})
+        with pytest.raises(ValueError, match="circle"):
+            add_map_drawing(miz, layer="Blue", shape="arrow", name="X", position={"x": 0.0, "y": 0.0})
 
 
 class TestLayers:

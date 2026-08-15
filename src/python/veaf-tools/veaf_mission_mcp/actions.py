@@ -400,9 +400,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "coordinates; the relative anchoring DCS stores is done for you (getting that wrong puts "
                 "a drawing hundreds of km away with no error). The LAYER decides who sees it and is "
                 "never defaulted. Shapes: 'line' (2+ points, closed=true for an area), 'rect' "
-                "(width/height), 'textbox' (text). Other DCS shapes (circle, oval, arrow, icon) are "
-                "REFUSED: no mission here contains one, so their field layout is unknown and a guess "
-                "produces a drawing the editor silently drops."
+                "(width/height), 'textbox' (text), 'circle' (radius), 'oval' (r1/r2/angle), 'free' (3+ "
+                "points, a free-form filled polygon). 'arrow' and 'icon' are REFUSED with a reason "
+                "(an arrow's outline needs an in-game round-trip; an icon needs a file from DCS's icon set)."
             ),
             parameters_schema={
                 "type": "object",
@@ -413,7 +413,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
                         "description": "Who sees it. 'Common' is everyone; 'Author' is the maker's own layer.",
                     },
-                    "shape": {"type": "string", "enum": ["line", "rect", "textbox"]},
+                    "shape": {"type": "string", "enum": ["line", "rect", "textbox", "circle", "oval", "free"]},
                     "name": {"type": "string", "description": "Name, used to edit or remove it later."},
                     "points": {
                         "type": "array",
@@ -422,17 +422,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                             "required": ["x", "y"],
                         },
-                        "description": "ABSOLUTE coordinates for a line, 2 or more.",
+                        "description": "ABSOLUTE coordinates for a 'line' (2+) or a 'free' polygon (3+).",
                     },
                     "position": {
                         "type": "object",
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
-                        "description": "ABSOLUTE anchor for a rect or a textbox.",
+                        "description": "ABSOLUTE anchor for a rect, textbox, circle or oval.",
                     },
                     "text": {"type": "string", "description": "The label, for a textbox."},
                     "width": {"type": "number", "description": "Width in metres, for a rect."},
                     "height": {"type": "number", "description": "Height in metres, for a rect."},
+                    "radius": {"type": "number", "description": "Radius in metres, for a circle."},
+                    "r1": {"type": "number", "description": "Semi-axis in metres along the angle, for an oval."},
+                    "r2": {"type": "number", "description": "The other semi-axis in metres, for an oval."},
                     "angle": {"type": "number", "default": 0},
                     "closed": {
                         "type": "boolean",
@@ -1536,6 +1539,9 @@ def _handle_add_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
         text=params.get("text"),
         width=params.get("width"),
         height=params.get("height"),
+        radius=params.get("radius"),
+        r1=params.get("r1"),
+        r2=params.get("r2"),
         angle=params.get("angle", 0),
         closed=params.get("closed", False),
         color=params.get("color"),

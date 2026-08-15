@@ -1,6 +1,9 @@
 # FEAT-MCP-MUTATION-ACTIONS — the MCP can create a mission but cannot change one
 
-Status: 🔄 in-progress — **every ticket an agent can finish alone is done** (01, 05, 02, 03, 04, 06, 07, and 08's tooling). What remains is 08's capture and 09, both of which need a DCS session
+Status: ✅ done 2026-08-15 — all ten tickets shipped (arbitrary triggers rejected by the triage). 08's
+capture and 09's blocker were both settled in a DCS session; `add_air_group` (09) and the circle/oval/
+free drawing shapes (10) are the last pieces. `arrow`/`icon` are refused with a reason, each awaiting
+its own future measurement — not part of this lot's scope
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §1,
 identified 2026-08-04. The next wave of `NL-MISSION-GEN` ([ROADMAP](../../ROADMAP.md) §4).
@@ -65,7 +68,7 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 | 07 | [F10 map drawings](tickets/07-map-drawings.md) | ✅ |
 | 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — 3 theatres captured 2026-08-15, 6521 slots | ✅ |
 | 09 | [`add_air_group`](tickets/09-add-air-group.md) — flight-on-the-ramp, stands resolved from the bundled capture | ✅ |
-| 10 | [Ship the drawing shapes now measured](tickets/10-remaining-drawing-shapes.md) — circle, oval, free | ⬜ |
+| 10 | [Ship the drawing shapes now measured](tickets/10-remaining-drawing-shapes.md) — circle, oval, free | ✅ |
 | — | Arbitrary triggers — **the triage says no**, with its reasoning below. No ticket | 🚫 |
 
 Execution order is **05 → 02 → 03 → 04 → 06 → 07**, not the numbering: the read action is a

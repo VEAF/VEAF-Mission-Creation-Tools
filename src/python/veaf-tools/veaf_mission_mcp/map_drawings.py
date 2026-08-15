@@ -16,21 +16,24 @@ vec3 (see ``docs/agents/dcs-coordinates.md``). So these actions take the absolut
 actually has, and do the anchoring themselves. The payoff shows up in ``edit_map_drawing``: moving a
 drawing is moving its anchor, and the shape follows for free.
 
-**Three shapes ship because three shapes were measured**:
+**Six shapes ship because six shapes were measured**:
 
 - ``Line`` — ``points``, plus ``lineMode`` (``segment`` for two points, ``segments`` for a polyline)
-  and ``closed`` for a shape that joins up. That last one is how a free-form area gets drawn.
-- ``Polygon`` in ``rect`` mode — ``width``/``height``/``angle`` around the anchor, and **no points at
-  all**.
+  and ``closed`` for a shape that joins up.
+- ``Polygon`` in ``rect`` mode — ``width``/``height``/``angle`` around the anchor, and **no points**.
 - ``TextBox`` — ``text``/``font``/``fontSize``, no points either. The font is taken from a real
   drawing rather than chosen: one DCS does not have renders as nothing.
+- ``Polygon`` in ``circle`` mode — ``radius``, no points or angle. (ticket 10)
+- ``Polygon`` in ``oval`` mode — ``r1``/``r2``/``angle``. (ticket 10)
+- ``Polygon`` in ``free`` mode — ``points`` relative to the anchor like a ``Line``, a free-form filled
+  area. (ticket 10)
 
-The other ``polygonMode`` values (``circle``, ``oval``, ``free``, ``arrow``) and
-``primitiveType: "Icon"`` are **absent from every fixture in this repository**, so their field shapes
-are unknown. The ticket's own rule is to read a real ``.miz`` rather than assume, so they are refused
-by name — inventing a field layout here would produce a drawing the editor silently drops, which is
-exactly the failure ``FIX-MAPRESOURCE-KEY`` and ``FIX-COMMUNITY-SOUNDS-PRUNED`` already cost. The
-measurement is listed in ``DCS-SESSION-TODO.md``.
+``circle``/``oval``/``free`` were measured from ``bridge-Syria-editeur.miz`` on 2026-08-15. ``arrow``
+and ``icon`` stay **refused, each with its own reason** (see ``_REFUSED_SHAPES``): an ``arrow`` stores
+a computed 8-point outline whose recomputation needs an in-game round-trip, and an ``icon`` needs a
+``file`` from the editor's icon set that nothing here enumerates. Inventing either would produce a
+drawing the editor silently drops — the failure ``FIX-MAPRESOURCE-KEY`` and
+``FIX-COMMUNITY-SOUNDS-PRUNED`` already cost.
 """
 
 from pathlib import Path
@@ -45,17 +48,29 @@ from veaf_mission_mcp.mission_table import indexed, listed
 #: pilots who need it and visible to the ones who should not see it, so the layer is never defaulted.
 LAYERS: tuple[str, ...] = ("Red", "Blue", "Neutral", "Common", "Author")
 
-#: Shapes whose field layout was read out of a real mission.
-_MEASURED_SHAPES: tuple[str, ...] = ("line", "rect", "textbox")
+#: Shapes whose field layout was read out of a real mission. ``circle``/``oval``/``free`` were added
+#: 2026-08-15 from `bridge-Syria-editeur.miz`, where David drew one of each (ticket 10).
+_MEASURED_SHAPES: tuple[str, ...] = ("line", "rect", "textbox", "circle", "oval", "free")
 
-#: Shapes DCS supports but which appear in no fixture here, so their fields are unknown.
+#: Shapes DCS draws but which this action still refuses, each for a stated reason rather than a guess.
 #:
-#: ``chevron`` used to sit in this list and does **not** exist in the DCS editor (David, 2026-08-15,
-#: with it open). It came from a table of proposed ``drawing-create-*`` verbs rather than from any
-#: measurement — the exact habit the module docstring above forbids, committed in the module that
-#: forbids it. Removed rather than kept as a harmless alias: a name nobody can draw is one a caller
-#: will eventually ask for.
-_UNMEASURED_SHAPES: tuple[str, ...] = ("circle", "oval", "free", "arrow", "icon")
+#: ``chevron`` used to be here and does **not** exist in the DCS editor (David, 2026-08-15) — removed.
+#: ``arrow`` and ``icon`` were measured but are not synthesisable yet: an ``arrow`` stores its
+#: parameters (``length``/``angle``) **and** a computed 8-point outline, so writing the parameters
+#: alone needs an in-game round-trip to learn whether DCS recomputes the outline; an ``icon`` needs a
+#: ``file`` from the editor's own icon set (e.g. ``P91000007.png``), which nothing here enumerates, so
+#: an unvalidated name would render as nothing.
+_REFUSED_SHAPES: dict[str, str] = {
+    "arrow": (
+        "'arrow' stores a computed 8-point outline beside its length/angle; writing the parameters "
+        "alone needs a DCS round-trip to learn whether the editor recomputes the outline (its own "
+        "ticket, not a guess here)"
+    ),
+    "icon": (
+        "'icon' needs a 'file' from the editor's own icon set (e.g. 'P91000007.png'), which nothing in "
+        "this repository enumerates; an unvalidated name renders as nothing"
+    ),
+}
 
 #: Defaults taken from real drawings rather than invented.
 _DEFAULT_COLOR = "0xff0000ff"
@@ -77,6 +92,9 @@ def add_map_drawing(
     text: str | None = None,
     width: float | None = None,
     height: float | None = None,
+    radius: float | None = None,
+    r1: float | None = None,
+    r2: float | None = None,
     angle: float = 0,
     closed: bool = False,
     color: str | None = None,
@@ -90,15 +108,19 @@ def add_map_drawing(
         miz_path: Path to the mission's source `.miz`.
         layer: Which coalition sees it — ``Red``, ``Blue``, ``Neutral``, ``Common`` or ``Author``.
             Never defaulted: the wrong layer shows the drawing to the wrong side.
-        shape: ``line``, ``rect`` or ``textbox``. Other DCS shapes are refused, their field layout
-            being unmeasured.
+        shape: ``line``, ``rect``, ``textbox``, ``circle``, ``oval`` or ``free``. ``arrow`` and
+            ``icon`` are refused with a reason (see ``_REFUSED_SHAPES``).
         name: The drawing's name, which is how it is addressed later. Must be free on that layer.
-        points: **Absolute** coordinates for a line, two or more. The anchoring is done here.
-        position: **Absolute** anchor for a ``rect`` or a ``textbox``.
+        points: **Absolute** coordinates for a ``line`` (two or more) or a ``free`` polygon (three or
+            more). The anchoring is done here.
+        position: **Absolute** anchor for a ``rect``, ``textbox``, ``circle`` or ``oval``.
         text: The text, for a ``textbox``.
         width: Width in metres, for a ``rect``.
         height: Height in metres, for a ``rect``.
-        angle: Rotation, for a ``rect`` or a ``textbox``.
+        radius: Radius in metres, for a ``circle``.
+        r1: Semi-axis in metres along the oval's angle, for an ``oval``.
+        r2: The other semi-axis in metres, for an ``oval``.
+        angle: Rotation, for a ``rect``, ``textbox`` or ``oval``.
         closed: Whether a line joins back up — how a free-form area is drawn.
         color: Outline colour as DCS's ``0xRRGGBBAA`` string.
         fill_color: Fill colour, for a ``rect`` or a ``textbox``.
@@ -131,6 +153,12 @@ def add_map_drawing(
         drawing, anchor = _build_line(name, layer, points, closed, color, thickness)
     elif shape == "rect":
         drawing, anchor = _build_rect(name, layer, position, width, height, angle, color, fill_color, thickness)
+    elif shape == "circle":
+        drawing, anchor = _build_circle(name, layer, position, radius, color, fill_color, thickness)
+    elif shape == "oval":
+        drawing, anchor = _build_oval(name, layer, position, r1, r2, angle, color, fill_color, thickness)
+    elif shape == "free":
+        drawing, anchor = _build_free(name, layer, points, color, fill_color, thickness)
     else:  # textbox
         drawing, anchor = _build_textbox(name, layer, position, text, angle, color, fill_color, font_size)
 
@@ -237,12 +265,9 @@ def _check_shape(shape: str) -> None:
     """
     if shape in _MEASURED_SHAPES:
         return
-    if shape in _UNMEASURED_SHAPES:
+    if shape in _REFUSED_SHAPES:
         raise ValueError(
-            f"shape {shape!r} is not measured: DCS supports it, but no mission in this repository "
-            f"contains one, so its field layout is unknown and writing a guessed one produces a "
-            f"drawing the editor silently drops. Available: {', '.join(_MEASURED_SHAPES)} "
-            f"(a closed 'line' draws a free-form area). See DCS-SESSION-TODO.md"
+            f"shape {shape!r} is not available: {_REFUSED_SHAPES[shape]}. Available: {', '.join(_MEASURED_SHAPES)}"
         )
     raise ValueError(f"unknown shape {shape!r}; expected one of {', '.join(_MEASURED_SHAPES)}")
 
@@ -412,6 +437,155 @@ def _build_rect(
             "colorString": color or _DEFAULT_COLOR,
             "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
+        }
+    )
+    return drawing, anchor
+
+
+def _build_circle(
+    name: str,
+    layer: str,
+    position: dict[str, float] | None,
+    radius: float | None,
+    color: str | None,
+    fill_color: str | None,
+    thickness: float | None,
+) -> tuple[dict[str, Any], dict[str, float]]:
+    """Build a ``Polygon`` in ``circle`` mode — a radius around an anchor, no point list.
+
+    Fields measured from `bridge-Syria-editeur.miz` (2026-08-15): `radius`, no `angle`, no `points`.
+
+    Args:
+        name: The drawing's name.
+        layer: Its layer.
+        position: Its absolute anchor (the centre).
+        radius: Radius in metres.
+        color: Outline colour.
+        fill_color: Fill colour.
+        thickness: Outline thickness.
+
+    Returns:
+        ``(drawing, anchor)``.
+
+    Raises:
+        ValueError: If the anchor or the radius is missing, or the radius is not positive.
+    """
+    anchor = _anchor_from(position, "circle")
+    if radius is None or radius <= 0:
+        raise ValueError("a circle needs a positive radius, in metres")
+    drawing = _common_fields(name, layer, anchor)
+    drawing.update(
+        {
+            "primitiveType": "Polygon",
+            "polygonMode": "circle",
+            "radius": float(radius),
+            "style": "solid",
+            "colorString": color or _DEFAULT_COLOR,
+            "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
+            "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
+        }
+    )
+    return drawing, anchor
+
+
+def _build_oval(
+    name: str,
+    layer: str,
+    position: dict[str, float] | None,
+    r1: float | None,
+    r2: float | None,
+    angle: float,
+    color: str | None,
+    fill_color: str | None,
+    thickness: float | None,
+) -> tuple[dict[str, Any], dict[str, float]]:
+    """Build a ``Polygon`` in ``oval`` mode — two semi-axes and an angle around an anchor.
+
+    Fields measured from `bridge-Syria-editeur.miz` (2026-08-15): `angle`, `r1`, `r2`, no `points`.
+
+    Args:
+        name: The drawing's name.
+        layer: Its layer.
+        position: Its absolute anchor (the centre).
+        r1: One semi-axis in metres (along `angle`).
+        r2: The other semi-axis in metres.
+        angle: Rotation.
+        color: Outline colour.
+        fill_color: Fill colour.
+        thickness: Outline thickness.
+
+    Returns:
+        ``(drawing, anchor)``.
+
+    Raises:
+        ValueError: If the anchor or a semi-axis is missing, or a semi-axis is not positive.
+    """
+    anchor = _anchor_from(position, "oval")
+    if r1 is None or r2 is None or r1 <= 0 or r2 <= 0:
+        raise ValueError("an oval needs two positive semi-axes r1 and r2, in metres")
+    drawing = _common_fields(name, layer, anchor)
+    drawing.update(
+        {
+            "primitiveType": "Polygon",
+            "polygonMode": "oval",
+            "r1": float(r1),
+            "r2": float(r2),
+            "angle": angle,
+            "style": "solid",
+            "colorString": color or _DEFAULT_COLOR,
+            "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
+            "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
+        }
+    )
+    return drawing, anchor
+
+
+def _build_free(
+    name: str,
+    layer: str,
+    points: list[dict[str, float]] | None,
+    color: str | None,
+    fill_color: str | None,
+    thickness: float | None,
+) -> tuple[dict[str, Any], dict[str, float]]:
+    """Build a ``Polygon`` in ``free`` mode — a free-form filled polygon, points relative to the anchor.
+
+    Fields measured from `bridge-Syria-editeur.miz` (2026-08-15): `points` (the first at ``{0, 0}``),
+    a fill, no `angle`. Anchored on its first point exactly like a ``line``.
+
+    Args:
+        name: The drawing's name.
+        layer: Its layer.
+        points: Absolute coordinates, three or more.
+        color: Outline colour.
+        fill_color: Fill colour.
+        thickness: Outline thickness.
+
+    Returns:
+        ``(drawing, anchor)``.
+
+    Raises:
+        ValueError: If there are fewer than three points, or one lacks a coordinate.
+    """
+    if not points or len(points) < 3:
+        raise ValueError(f"a free polygon needs at least three points, got {len(points or [])}")
+    for number, point in enumerate(points, start=1):
+        if not isinstance(point, dict) or "x" not in point or "y" not in point:
+            raise ValueError(f"point {number} must be an object with x and y, got {point!r}")
+
+    anchor = {"x": float(points[0]["x"]), "y": float(points[0]["y"])}
+    drawing = _common_fields(name, layer, anchor)
+    drawing.update(
+        {
+            "primitiveType": "Polygon",
+            "polygonMode": "free",
+            "style": "solid",
+            "colorString": color or _DEFAULT_COLOR,
+            "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
+            "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
+            "points": [
+                {"x": float(point["x"]) - anchor["x"], "y": float(point["y"]) - anchor["y"]} for point in points
+            ],
         }
     )
     return drawing, anchor

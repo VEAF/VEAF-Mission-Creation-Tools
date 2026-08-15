@@ -100,7 +100,17 @@ preuve de release plutôt que supprimés.
 qu'ils étaient le 2026-08-14, donc avant ce correctif. Pour vérifier que le message ne s'affiche plus
 qu'une fois, reconstruire la mission d'abord.
 
-## 1. Capture the parking slots — 5 min per map
+## 🔄 1. Capture the parking slots — Caucasus fait le 2026-08-15, reste Syria et PersianGulf
+
+**Caucasus est capturé et analysé** (942 places sur 21 aérodromes,
+`veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`). La forme réelle est consignée dans le
+ticket 08, avec une correction : `Term_Index_0` vaut `-1` partout, donc `parking_id` **ne vient pas**
+de cette capture, contrairement à ce que le ticket supposait.
+
+**Les deux missions-pont qui restent sont prêtes** dans `D:\dev\_VEAF\tmp\bridge-maps\collect\` —
+`bridge-PersianGulf.miz` existait, `bridge-Syria.miz` a été fabriquée le 2026-08-15. Même procédure
+que ci-dessous, une carte à la fois.
+
 
 Unblocks [`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/09-add-air-group.md)
 (*"put a two-ship of F-16s on the ramp at Incirlik"*), which cannot start without this data.

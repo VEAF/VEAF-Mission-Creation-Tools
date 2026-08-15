@@ -1,6 +1,7 @@
 # 08 — Capture the parking-slot data an aircraft needs to stand on a ramp
 
-Status: 🧑 waiting-human — the tooling ships (2026-08-12); capturing needs a DCS session, per theatre
+Status: 🔄 in-progress — tooling shipped 2026-08-12; Caucasus captured and analysed 2026-08-15;
+Syria and PersianGulf still want a DCS session
 Type: feat
 Files: `veaf_libs/dcs_bridge_capture.py`, `veaf_tools/commands/capture_map.py`, locales, `test/python/`
 
@@ -55,11 +56,56 @@ map, and **starting DCS is David's**:
 veaf-tools capture-map --parking --out-dir veaf_build/dcs_data
 ```
 
-- [ ] 🧑 Run it on the theatres that matter first — Caucasus, Syria, PersianGulf — with a bridge
-      mission loaded and `dcs-serve` up.
-- [ ] Commit `veaf_build/dcs_data/parking/<theatre>.json` per captured theatre.
-- [ ] **Then** read one real dump and record its actual shape here, before ticket 09 spends it. The
-      table above is a mission-file measurement; the runtime's own field names are still assumed.
+- [x] 🧑 **Caucasus captured 2026-08-15** by David. Syria and PersianGulf remain — the bridge missions
+      for both are ready in `tmp\bridge-maps\collect\` (Syria built the same day).
+- [x] Committed as `veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`, beside the airbase dump
+      rather than in a sibling `parking/` folder, so the two files that share a key sit together.
+- [x] **Shape recorded below, and it contradicts the table above**: `Term_Index_0` is `-1` on every
+      slot, so `parking_id` does not come from this capture.
+
+## The runtime shape, from a real capture — Caucasus, 2026-08-15
+
+Captured by David with a bridge mission loaded, committed as
+`veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`. **21 airfields, 942 slots**, between 7 and
+94 per field. The file is `{theatre, parking_by_airbase}`, keyed by **airbase id as a string** — the
+same ids as the airbase dump beside it (21 of 21 match), so a mission's `airdromeId` indexes straight
+into it. Every value is a **string**, including the numbers.
+
+A slot carries exactly eight keys:
+
+```json
+{"TO_AC": "false", "Term_Index": "43", "Term_Index_0": "-1", "Term_Type": "104",
+ "fDistToRW": "1476.5401611328", "vTerminalPos.x": "-318191.53125",
+ "vTerminalPos.y": "18.01001739502", "vTerminalPos.z": "635663.3125"}
+```
+
+### `parking_id` is **not** `Term_Index_0` — the assumption above is wrong
+
+`Term_Index_0` is **`-1` on all 942 slots**. So is `TO_AC` (`"false"` throughout). Yet the A-10 that
+flies at Kobuleti declares `parking: "43"` **and** `parking_id: "16"`, and David's own declares
+`6` / `"01"` — a zero-padded string, which reads like the sign painted on the ramp rather than an
+index. **Ticket 09 must not derive `parking_id` from this capture**; where it comes from is an open
+question, and guessing it is what puts an aircraft on the grass.
+
+`Term_Index` is the half that is confirmed: slot `43` exists at Kobuleti (airbase 24), which is the
+one the working A-10 sits on.
+
+### The coordinate mapping, confirmed by superposition
+
+The same slot's position matches the flying A-10's group **exactly**:
+
+| | runtime slot | mission group |
+|---|---|---|
+| `vTerminalPos.x` | `-318191.53125` | `x` = `-318191.53125` |
+| `vTerminalPos.z` | `635663.3125` | `y` = `635663.3125` |
+| `vTerminalPos.y` | `18.01001739502` | `alt` = `18` |
+
+So **mission `y` is runtime `z`**, and runtime `y` is the altitude — exactly the trap
+`docs/agents/dcs-coordinates.md` warns about, here confirmed on real data rather than argued.
+
+`Term_Type` takes 5 values across the theatre: `104` (510 slots), `68` (340), `72` (46), `16` (42),
+`40` (4). What they mean is not captured and ticket 09 should not assume — filtering a slot by type
+without knowing which type accepts an A-10 is the next silent failure in line.
 
 ## Careful
 

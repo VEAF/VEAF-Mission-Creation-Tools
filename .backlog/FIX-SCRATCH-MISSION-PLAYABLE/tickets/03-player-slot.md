@@ -14,7 +14,8 @@ missing field makes DCS refuse the mission.
 
 ## What it does, and what it deliberately does not
 
-An action creating an aircraft group whose units carry `skill: "Client"`, with:
+An action creating an aircraft group whose units carry a **playable** skill (see the measurement
+below — `Client` alone is what broke the 2026-08-14 slot), with:
 
 - **an air start** — position, altitude, speed, heading. Needs no runtime data at all.
 - **a ground start when the caller supplies a parking spot.** This action does **not** resolve airfield
@@ -33,9 +34,34 @@ writer. `A-10C Kobuleti  HOT` is an `A-10C_2`, `skill: Client`, `parking: "43"`,
 is `TakeOffParkingHot` / `From Parking Area Hot`. The cold pair is `TakeOffParking` /
 `From Parking Area`, verified by making exactly that edit on 2026-08-14 and loading the result.
 
+### `skill: Client` is what made the 2026-08-14 slot unusable
+
+**Written as `Client` above, this ticket would have shipped the very bug it exists to fix.** The slot
+placed by hand on 2026-08-14 carried `skill: "Client"`; David took it and stayed a spectator. The one
+he added himself in the editor, in the same mission, works — and the differential between the two
+groups (run 2026-08-15) leaves exactly one structural difference:
+
+| | placed by the script | added in the editor |
+|---|---|---|
+| `skill` | **`Client`** | **`Player`** |
+| ids | `groupId`/`unitId` = 9001 | 9003 — *the editor uses 900x too* |
+| parking | `43` / `16`, `airdromeId` 24 | `6` / `01`, `airdromeId` 22 |
+| first waypoint | `TakeOffParking` | `TakeOffParking` — identical |
+
+So the forced ids are **cleared**, and so is the parking pair: both missions carry a complete one. The
+`coalitions` table is populated in both (the copy on disk is the one rebuilt after David's report), so
+that is not it either. `Client` is a **multiplayer** slot; a single-player session offers only `Player`,
+which is why the slot was visible and untakeable.
+
+What the action must therefore do — and the part still to confirm in game, since DCS allows **one**
+`Player` per mission: write `Player` for the first slot of a side and `Client` for the following ones,
+rather than `Client` for all. The 80 VEAF aircraft templates are all `Client` and must stay that way;
+they are templates, not slots.
+
 ## TDD
 
-- A created slot has `skill: "Client"` and shows up in `describe_units`.
+- The first slot created on a side gets `skill: "Player"`, a second one `Client` — the assertion that
+  would have caught the 2026-08-14 defect. Both show up in `describe_units`.
 - Cold and hot write the right `type`/`action` pair — both asserted, since writing one without the
   other is the silent failure here.
 - A ground start with no parking spot is refused, with a message naming ticket 09's data.

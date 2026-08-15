@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-PLAYABLE — a mission built from scratch cannot be flown
 
-Status: 🔄 in-progress — ticket 02 (the guard) done 2026-08-14; 01 and 03 remain
+Status: 🔄 in-progress — ticket 02 (the guard) done 2026-08-14; 01, 03 and 04 remain
 
 Origin: David, 2026-08-14, thirty seconds after loading a mission prepared for the DCS verification
 session — DCS opened **CHANGING COALITIONS** with every country unassigned. Found by starting the
@@ -57,8 +57,13 @@ before the build said nothing. That is the defect that let a and b stay invisibl
 | 01 | [Adding a group assigns its country to its side](tickets/01-populate-coalitions.md) | ⬜ |
 | 02 | [`validate` refuses a mission nobody can fly](tickets/02-validate-playable.md) | ✅ |
 | 03 | [An action that creates a player slot](tickets/03-player-slot.md) | ⬜ |
+| 04 | [A mission nobody asked to fly at night starts at 03:48](tickets/04-start-time.md) | ⬜ |
 
 Order matters: 02 is the guard that proves 01, and it must fail on today's output before 01 lands.
+
+**04 arrived late, on 2026-08-15**, when David listed the three things wrong with that mission and the
+third one — *"en plus tu me la fais démarrer de nuit"* — turned out to be recorded nowhere. Two of
+three defects were ticketed; the one nobody wrote down is the one that needed a ticket most.
 
 ## Definition of Done
 

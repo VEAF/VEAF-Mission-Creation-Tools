@@ -25,6 +25,11 @@ none of these fixes, so a mission built the ordinary way would show the old beha
 `ZONES DE COMBAT`, `APPARITION`, `Activer la mission` and `menu.combatzone.root`, and its
 `veaf-config.lua` declares `veaf.config.language = "fr"`.
 
+**Deux réserves sur ce fichier**, toutes deux mesurées le 2026-08-15 : il démarre à **03:48** (de nuit
+— voir [ticket 04](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/04-start-time.md)) et son slot A-10
+est en `skill: Client`, donc imprenable en solo. Pour un item qui demande seulement de charger la
+mission et de lire les menus, aucune des deux ne gêne ; pour voler, reconstruire d'abord.
+
 Rebuild it, if needed, with:
 
 ```bash
@@ -43,35 +48,31 @@ David, in front of the game: the labels are correct. The 90 localised labels of
 [`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
 longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
-## ⏭ Reprendre ici — 2026-08-15
-
-### Le slot A-10 posé le 2026-08-14 ne marche pas
+## ✅ Le slot A-10 du 2026-08-14 : diagnostiqué le 2026-08-15
 
 David, en jeu : *"je le prends, et je reste spectateur"*. Il a supprimé ce slot, ajouté un A-10 à la
-main dans l'éditeur, sauvé sous le suffixe **`-david`** — et là ça fonctionne. **Cette mission est le
-témoin**, et le diagnostic est un simple différentiel entre les deux tables.
+main dans l'éditeur, sauvé sous le suffixe **`-david`** — et là ça fonctionne. Le différentiel entre
+les deux tables a été fait, et il ne laisse **qu'une** différence de structure :
 
-Ce qui est déjà écarté : la paire `parking` / `parking_id` **a bien été copiée** (`'43'` / `'16'`),
-ainsi que l'`airdromeId` du premier waypoint (24). Donc ce n'est pas la donnée de parking du ticket 08
-qui manque.
+| | posé par mon script | ajouté dans l'éditeur |
+|---|---|---|
+| `skill` | **`Client`** | **`Player`** |
+| ids | `groupId`/`unitId` = 9001 | 9003 — *l'éditeur utilise 900x aussi* |
+| parking | `43` / `16`, `airdromeId` 24 | `6` / `01`, `airdromeId` 22 |
+| premier waypoint | `TakeOffParking` | `TakeOffParking` — identique |
 
-Le suspect restant est de moi : le script de copie a **forcé `groupId = 9001` et `unitId = 9001`**,
-alors que la mission ne déclare ni `maxGroupId` ni `maxUnitId` (les deux valent `None`). Une mission
-vierge synthétisée n'a pas ces compteurs, et un id hors de leur suite — ou en collision avec les
-templates d'avions que le pipeline injecte, tous en `skill: Client` — expliquerait un slot présent
-mais inutilisable.
+Donc les ids forcés sont **innocentés** — c'était mon suspect, et l'éditeur fait pareil. La paire
+parking l'est aussi (complète des deux côtés), et `coalitions` est peuplé dans les deux fichiers. Il
+reste `Client`, qui est un slot **multijoueur** : une session solo n'offre que `Player`. D'où un slot
+visible et imprenable.
 
-À faire, dans cet ordre :
+Consigné dans
+[`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md),
+qui écrivait `skill: "Client"` partout — tel quel, il aurait livré exactement ce bug.
 
-1. Récupérer `TestMenuFR-david.miz` (ou son nom exact) depuis `Saved Games\DCS*\Missions`.
-2. Diffé les deux groupes A-10 champ par champ. Le différentiel est la réponse ; ne pas deviner avant
-   de l'avoir lu.
-3. Vérifier en particulier `maxGroupId` / `maxUnitId` dans la mission de David : si l'éditeur les a
-   écrits, c'est la cause.
-4. Ce que ça apprend appartient à
-   [`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md) :
-   l'action qui créera un slot joueur doit gérer ces compteurs, et la lire dans une mission
-   **fabriquée par l'éditeur** est exactement la mesure que ce ticket demande.
+**Ce qui reste à confirmer en jeu (2 min)** : DCS n'accepte qu'**un seul** `Player` par mission. La
+règle retenue pour l'action — `Player` pour le premier slot d'un camp, `Client` pour les suivants —
+tient-elle quand il y en a deux ? À vérifier quand le ticket 03 sera implémenté, pas avant.
 
 ### Reste de la session
 

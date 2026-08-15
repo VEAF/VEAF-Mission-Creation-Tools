@@ -1372,9 +1372,14 @@ class V5Converter:
         # Modules explicitly enabled (from missionConfig.lua or always-on base set)
         enabled_by_id = {m["id"] for m in all_mods if m["id"] in enabled_set}
 
+        # A few modules (SKYNET) are ALSO community scripts and own a richer, config-carrying
+        # entry in the dedicated community section below. Emitting them here too would write the
+        # same YAML key twice. The community section is authoritative, so skip them here.
+        community_ids_upper = {s["id"].upper() for s in get_community_script_files()}
+
         # Emit modules grouped by category in declaration order
         for category, cat_mods in MODULE_CATEGORIES.items():
-            cat_enabled = [mid for mid in cat_mods if mid in enabled_by_id]
+            cat_enabled = [mid for mid in cat_mods if mid in enabled_by_id and mid not in community_ids_upper]
             if not cat_enabled:
                 continue
             lines.append(f"  # {category}")
@@ -1468,7 +1473,11 @@ class V5Converter:
                     # Opt-in: keep disabled by default; the maker enables it explicitly.
                     lines.append(f"  {upper}: false")
                 else:
-                    lines.append(f"  {upper}: {'true' if detected else 'false'}")
+                    # A community script that is also an enabled module (SKYNET) counts as
+                    # enabled even when its .lua is not bundled, so its single entry here still
+                    # reflects the mission's intent.
+                    enabled = detected or upper in enabled_by_id
+                    lines.append(f"  {upper}: {'true' if enabled else 'false'}")
         lines.append("")
 
         # ── CAP missions ──────────────────────────────────────────────────

@@ -93,8 +93,9 @@ démarrée.
     SERVER ONLY, et en pratique il faut un serveur en cours (`net.start_server`), pas seulement une
     instance locale. Donc `--full` **ne peut pas charger une mission en solo** : il échoue proprement
     au bout du délai en le disant, plutôt que de mentir. Pour vérifier en solo, chargez la mission à la
-    main et lancez `smoke-test` (sans `--full`). Charger sans surveillance en solo reste non résolu —
-    piste : une mission en ligne de commande (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
+    main et lancez `smoke-test` (sans `--full`). **Le chargement sans surveillance en solo est acté hors
+    scope** (aucune API DCS ne le permet ; la seule voie serait le mode serveur, non retenu) —
+    `--full` n'est bout-en-bout que dans un contexte serveur hébergé (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
 
 ## Comment ça parle à DCS
 

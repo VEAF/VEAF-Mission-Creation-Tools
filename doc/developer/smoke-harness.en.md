@@ -91,8 +91,9 @@ inherits a running instance. Every wait is bounded and names the step that timed
     ONLY, and in practice it needs a running server (`net.start_server`), not just a local instance. So
     `--full` **cannot load a mission in single-player**: it fails cleanly at the timeout saying so,
     rather than lying. To check in single-player, load the mission by hand and run `smoke-test` (without
-    `--full`). Unattended single-player load is unsolved — a mission on the command line is the next
-    avenue (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
+    `--full`). **Unattended single-player load is out of scope by decision** (no DCS API allows it; the
+    only path would be server mode, not pursued) — `--full` is end-to-end only in a hosted-server
+    context (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
 
 ## How it talks to DCS
 

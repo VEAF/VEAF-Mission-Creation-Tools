@@ -86,7 +86,7 @@ it must degrade to a clear "no DCS found, skipped" rather than a failure when ru
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [The test mission, and its documented contract](tickets/01-test-mission-contract.md) — contract written, mission artefact and the in-game anchor check outstanding | 🔄 |
-| 02 | [The runner](tickets/02-runner.md) — probe, transport, data-driven checks **and** the launch/load/quit lifecycle (`--full`) written 2026-08-15; one in-game run left to confirm the DCS calls | 🧑 |
+| 02 | [The runner](tickets/02-runner.md) — probe, transport, data-driven checks **and** the launch/load/quit lifecycle (`--full`) shipped; validated in game — unattended single-player load dropped (no documented API; server mode not pursued), so `--full` is end-to-end only in a hosted-server context | ✅ |
 | 03 | [Port the four pending in-game checks](tickets/03-port-pending-checks.md) — six checks written for two of the four questions; **none has run** | 🔄 |
 | 04 | [Assert VEAF through the mission bridge, not the hook](tickets/04-assert-through-the-mission-bridge.md) — transport split shipped; sentinel fixed | ✅ |
 

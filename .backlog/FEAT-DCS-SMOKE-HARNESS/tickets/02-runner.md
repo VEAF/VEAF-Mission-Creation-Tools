@@ -1,6 +1,6 @@
 # 02 — The runner: launch, load, assert, quit
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-08-15 (runner shipped; unattended single-player load dropped, David's call)
 Type: feat
 Files: `veaf_build/` or a new `veaf-tools` machine-only command, `test/python/`
 
@@ -245,10 +245,28 @@ non-destructive — it does not quit). Two findings, and the second is the impor
   `_wait_for_mission` timeout message, the harness docs (both languages) and the CHANGELOG all state
   that `net.load_mission` loads nothing in single-player and that `--full` therefore fails cleanly
   there rather than lying — with the workaround (load by hand, `smoke-test` without `--full`).
-- **Not shipped, left as the remaining work**: unattended single-player load. `net.load_mission`
-  is a dead end here; **option 3 (a mission on the DCS command line)** is the next avenue and needs an
-  in-game launch test to settle. Until then, `--full` is only end-to-end where a mission can be loaded
-  (a server context, or once option 3 is proven). This ticket stays `🔄`.
+### Unattended single-player load — dropped, David's call 2026-08-15
+
+Verified against ED's shipped API (`<install>/API/Sim_ControlAPI.md`): **there is no documented way to
+load a mission in single-player.** `net.load_mission` is SERVER ONLY (it overrides a *server's* mission
+list, so it no-ops without a hosting server), `Sim.*` has no load function at all, and there is no
+mission command-line argument (the earlier "option 3" was speculative — scrapped). The *only* documented
+path is **server mode**: launch DCS as a hosted server reading `Config/serverSettings.lua`, which loads
+`missionList[listStartIndex]` on startup; the harness's scripting-env checks run there because they do
+not need a client cockpit.
+
+David weighed value against effort and **dropped unattended single-player load**: the server-mode
+chantier is not worth it now, and the interactive path already works — load the mission by hand, then
+`smoke-test` (without `--full`) asserts against it. So:
+
+- `--full` (launch → `net.load_mission` → wait → assert → quit) **ships as-is**. It is end-to-end only
+  where a mission can actually load (a hosted-server context); in single-player it fails cleanly at the
+  load timeout saying so. That behaviour is intended, not a bug to fix.
+- Unattended single-player load is **wontfix** — the documented API does not allow it, and server mode
+  is deliberately not pursued. If a future need arises, server mode (patch `serverSettings.lua` + launch
+  `--server`) is the recorded path.
+
+The runner is delivered; this ticket is **done**.
 
 ## Behaviour (original scope, for the remainder)
 

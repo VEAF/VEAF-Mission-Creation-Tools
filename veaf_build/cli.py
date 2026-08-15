@@ -482,6 +482,9 @@ def update_dcs_data(
     airdromes: bool = typer.Option(
         False, "--airdromes", help="Regenerate the airdrome name->id table from committed runtime dumps."
     ),
+    parking: bool = typer.Option(
+        False, "--parking", help="Regenerate the bundled parking-stand table from committed parking dumps."
+    ),
     airfield_freqs: bool = typer.Option(
         False, "--airfield-freqs", help="Regenerate the airfield ATC-frequency table (needs --dcs-path)."
     ),
@@ -523,7 +526,9 @@ def update_dcs_data(
     from veaf_build.dcs_data import units_lua
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
-    run_all = all_data or not (countries or units or radio or airdromes or airfield_freqs or cockpit_controls)
+    run_all = all_data or not (
+        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls
+    )
     ref_short = DATAMINE_REF[:8]
 
     if airdromes:
@@ -553,6 +558,13 @@ def update_dcs_data(
             console.print("[cyan]Generating airdrome table from committed runtime dumps...[/cyan]")
             count = airdromes_provider.generate()
             console.print(f"[green]✓ {count} airfields written across all dumped theatres[/green]")
+
+    if parking:
+        from veaf_build.dcs_data import parking as parking_provider
+
+        console.print("[cyan]Generating slimmed parking table from committed parking dumps...[/cyan]")
+        written = parking_provider.generate()
+        console.print(f"[green]✓ parking data written for {written} theatre(s)[/green]")
 
     if airfield_freqs:
         if not dcs_path:

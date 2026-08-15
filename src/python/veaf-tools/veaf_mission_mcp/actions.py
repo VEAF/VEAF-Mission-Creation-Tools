@@ -5,6 +5,7 @@ from typing import Any
 
 from veaf_libs.blank_mission import supported_theatres
 
+from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
@@ -670,6 +671,76 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_add_player_slot,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_air_group",
+            description=(
+                "Put a FLIGHT on the ramp -- 'a two-ship of F-16s at Incirlik' -- resolving the "
+                "parking stands itself from the captured airfield data, which add_player_slot (one "
+                "aircraft, caller supplies the spot) does not. Give an airfield NAME and a count; it "
+                "picks that many free aircraft stands the mission does not already occupy, nearest to "
+                "the runway first, and seats each aircraft on its stand. A stand already taken is "
+                "REFUSED naming the group that holds it; an airfield with no aircraft stands, an "
+                "unknown airfield, or a theatre with no captured parking data is refused rather than "
+                "guessed. skill defaults to an AI level (a ramp flight is AI unless you ask for "
+                "'Client'). Starts: parking-cold / parking-hot (need 'airfield'), runway (needs "
+                "'airfield'), air (needs 'position'). Target a FOLDER (durable) or .miz (transient); "
+                "backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz (transient).",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer", "description": "DCS numeric country id."},
+                    "country_name": {"type": "string", "description": "DCS country name (e.g. 'USA')."},
+                    "name": {"type": "string", "description": "The group's name."},
+                    "unit_type": {"type": "string", "description": "DCS aircraft type, e.g. 'F-16C_50'."},
+                    "count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Aircraft in the flight; each gets its own stand for a parking start.",
+                    },
+                    "start": {
+                        "type": "string",
+                        "enum": ["parking-cold", "parking-hot", "runway", "air"],
+                        "default": "parking-cold",
+                        "description": "Parking (needs airfield), runway (needs airfield), or air (needs position).",
+                    },
+                    "airfield": {
+                        "type": "string",
+                        "description": "Airfield NAME (e.g. 'Incirlik') — required for a parking or runway start.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Anchor for an air start.",
+                    },
+                    "altitude_ft": {"type": "number", "default": 15000, "description": "Air-start altitude in FEET."},
+                    "speed_kt": {"type": "number", "default": 250, "description": "Speed in KNOTS."},
+                    "heading_deg": {"type": "number", "default": 0, "description": "Heading in degrees."},
+                    "skill": {
+                        "type": "string",
+                        "default": "High",
+                        "description": "AI level, or 'Client'/'Player' for human slots.",
+                    },
+                    "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
+                    "task": {"type": "string", "default": "CAS", "description": "Aircraft-group task."},
+                    "parking": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional explicit stand numbers (one per aircraft), overriding auto-selection.",
+                    },
+                },
+                "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
+            },
+        ),
+        handler=_handle_add_air_group,
     )
     catalog.register(
         ActionSpec(
@@ -1565,6 +1636,28 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
         frequency_mhz=params.get("frequency_mhz", 251.0),
         onboard_num=params.get("onboard_num", "010"),
         task=params.get("task", "Nothing"),
+    )
+
+
+def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
+    return add_air_group(
+        Path(params["target"]),
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        name=params["name"],
+        unit_type=params["unit_type"],
+        count=params.get("count", 1),
+        start=params.get("start", "parking-cold"),
+        airfield=params.get("airfield"),
+        position=params.get("position"),
+        altitude_ft=params.get("altitude_ft", 15000.0),
+        speed_kt=params.get("speed_kt", 250.0),
+        heading_deg=params.get("heading_deg", 0.0),
+        skill=params.get("skill", "High"),
+        frequency_mhz=params.get("frequency_mhz", 251.0),
+        task=params.get("task", "CAS"),
+        parking=params.get("parking"),
     )
 
 

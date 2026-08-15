@@ -437,6 +437,43 @@ pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sau
 - **`frequency_mhz`** est écrite (radio de groupe active) plutôt qu'héritée d'un `communication: false`.
 - Assigne le pays à son camp dans `coalitions` (voir `add_group`), donc la mission reste chargeable.
 
+### `add_air_group` (lot FEAT-MCP-MUTATION-ACTIONS, ticket 09)
+
+Écriture. Pose un **vol** (un ou plusieurs appareils) au parking en **résolvant lui-même les places**
+depuis un **nom** d'aérodrome — le cas *« un deux-ship de F-16 à Incirlik »* que `add_player_slot` (un
+appareil, place fournie) ne couvre pas. Sauvegarde horodatée avant écriture. Cible un dossier (durable)
+ou un `.miz` (transitoire).
+
+```json
+{
+  "target": "chemin/vers/dossier-mission",
+  "coalition": "blue", "country_id": 2, "country_name": "USA",
+  "name": "Viper", "unit_type": "F-16C_50", "count": 2,
+  "start": "parking-cold", "airfield": "Kobuleti"
+}
+```
+
+- **Résolution des places.** Le nom d'aérodrome est résolu en id (`veaf_libs.dcs_airdromes`), puis en
+  places libres via la capture allégée bundlée (`veaf_libs.dcs_parking`, générée par
+  `veaf-build update-dcs-data --parking`). L'action prend `count` places libres, **les plus proches de
+  la piste d'abord**, et pose chaque appareil à la **position exacte** du stand.
+- **`parking_id` = `parking`.** Établi en jeu le 2026-08-15 : `parking` est le `Term_Index` de la
+  capture, l'appareil se cale sur la position exacte, et le `parking_id` propre à l'éditeur — absent de
+  la capture — n'est **pas** porteur. Il est donc écrit égal à `parking`.
+- **Seuls les types de terminal 104 et 68** sont proposés comme parking (mesuré : les avions parkés des
+  vraies missions Caucasus n'occupent qu'eux). Un aérodrome sans place de ce type est **refusé** plutôt
+  que de poser un appareil sur un seuil de piste.
+- **Collision refusée.** Une place déjà occupée dans la mission (un groupe avion dont le premier
+  waypoint vise cet aérodrome et dont une unité déclare cette place) est refusée **en nommant** le
+  groupe qui la tient ; la sélection automatique **saute** les places occupées.
+- **Départs.** `parking-cold` / `parking-hot` (exigent `airfield`), `runway` (exige `airfield`, ancré
+  sur le terrain, pas de place consommée), `air` (exige `position`). La paire `type`/`action` et le
+  verrou `ETA_locked` du premier waypoint sont écrits pour l'appelant.
+- **`skill`** vaut un niveau d'IA par défaut (`High`) — un vol au parking est IA sauf demande de
+  `Client`/`Player`. `parking` accepte une liste explicite de places qui court-circuite la sélection.
+- Un théâtre sans capture, un aérodrome inconnu, ou trop peu de places libres sont refusés en nommant
+  la cause. Assigne le pays à son camp dans `coalitions`.
+
 ### `validate_group_name` (vague 6)
 
 Lecture seule. Contrôle un nom proposé contre les motifs réservés (préfixes

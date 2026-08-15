@@ -303,6 +303,23 @@ One thing to know: a slot is **Client** skill (playable in single-player too) an
 dynamic-spawn template — that setting, left on, is exactly what makes a slot sit in the file but not
 appear in the slot list.
 
+### Put a flight on the ramp {#add-a-flight}
+
+*Built mission · ⭐* — The AI places a **flight** (one or more aircraft) on the parking stands of an
+airfield you **name** — it picks the free stands itself, so you never need their numbers. It takes the
+stands nearest the runway, skips the ones already taken, and **refuses** if a requested stand is
+occupied (telling you which group holds it) or the airfield has no real aircraft stand. Start cold or
+hot on the ramp, from the runway, or airborne.
+
+> 💬 *"Put a two-ship of F-16s on the ramp at Kobuleti."*
+> 💬 *"Add four Su-25s at Batumi parking, engines hot."*
+> 💬 *"Scramble a flight of F-15s from Incirlik's runway."*
+
+Aircraft are **AI by default** — handy for traffic or targets. An AI flight does **not** appear in the
+"Choice of role" screen (which lists only playable slots): to spawn into it and fly it, ask explicitly
+for **player slots**. The airfield must have been **captured** first (parking data); otherwise the AI
+tells you rather than guessing.
+
 ### Change an existing aircraft or vehicle {#change-a-unit}
 
 *Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**

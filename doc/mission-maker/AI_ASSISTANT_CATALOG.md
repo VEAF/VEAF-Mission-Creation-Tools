@@ -307,6 +307,23 @@ Une chose à savoir : un slot est en compétence **Client** (jouable aussi en so
 un template de spawn dynamique — c'est précisément ce réglage-là qui, laissé actif, fait qu'une place
 existe dans le fichier mais n'apparaît pas dans la liste des slots.
 
+### Poser un vol au parking {#add-a-flight}
+
+*Mission construite · ⭐* — L'IA place un **vol** (un ou plusieurs appareils) sur les places de
+parking d'un aérodrome que tu **nommes** — elle choisit elle-même les stands libres, sans que tu aies
+à connaître leur numéro. Elle prend les places les plus proches de la piste, saute celles déjà prises,
+et **refuse** si une place demandée est occupée (en te disant par quel groupe) ou si l'aérodrome n'a
+pas de vraie place avion. Départ moteurs coupés ou chauds au parking, sur la piste, ou en vol.
+
+> 💬 *« Mets un deux-ship de F-16 au parking de Kobuleti. »*
+> 💬 *« Ajoute quatre Su-25 au parking de Batoumi, moteurs chauds. »*
+> 💬 *« Fais décoller une patrouille de F-15 depuis la piste d'Incirlik. »*
+
+Les appareils sont en **IA par défaut** — utile pour du trafic ou des cibles. Un vol IA **n'apparaît
+pas** dans l'écran « Choice of role » (qui ne liste que les places jouables) : pour t'y poser et le
+piloter, demande explicitement des **slots joueur**. L'aérodrome doit avoir été **capturé** au
+préalable (donnée de parking) ; sinon l'IA te le dit au lieu de deviner.
+
 ### Modifier un appareil ou un véhicule existant {#change-a-unit}
 
 *Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son

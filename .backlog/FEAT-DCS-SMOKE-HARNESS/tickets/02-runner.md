@@ -1,10 +1,25 @@
 # 02 — The runner: launch, load, assert, quit
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 Type: feat
 Files: `veaf_build/` or a new `veaf-tools` machine-only command, `test/python/`
 
 Depends on: 01
+
+## The lifecycle is written — 2026-08-15
+
+The remainder deferred below (locate, launch, load, quit) shipped as `veaf_libs/dcs_lifecycle.py`
+and the `smoke-test --full --mission <miz>` mode, on the facts the probe had already measured:
+`net.load_mission` present and `isServer=true` in single-player (so the SERVER-ONLY call is
+legitimate on a local instance — option 1 of "the decision step 4 now needs"), `exitProcess`
+present. It launches DCS, polls the hook until it answers (the ~28 Hz-at-the-menu measurement is
+what makes this a poll, not a fixed sleep), loads the mission, waits on the mission **name** rather
+than a frame counter (which freezes during the blocking load), runs the checks, and **always**
+quits a DCS it launched — killing it if `exitProcess` does not take. It **refuses** a
+already-running DCS by default (loading a mission would overwrite a live session) and does not quit
+one it did not start. The orchestration is unit-tested with injected fakes
+(`test/python/veaf_libs/test_dcs_lifecycle.py`); the real behaviour of the DCS calls themselves is
+what one in-game run confirms, which is why this ticket is waiting-human rather than done.
 
 ## Delivered 2026-08-05, and what was cut
 
@@ -231,17 +246,17 @@ One command, unattended, exiting non-zero on a failed assertion:
 
 ## Tasks
 
-- [ ] Command implemented, registered as machine-only.
-- [ ] No-DCS path skips with an explanation and exit 0; tested without touching a real install.
-- [ ] Bridge readiness polled, not slept.
-- [ ] Mission-load freeze handled explicitly, with the reason in a comment citing the measurement.
-- [ ] Assertion list is data; the driver knows nothing about individual checks.
-- [ ] Every wait bounded, each timeout naming its step; DCS always terminated.
-- [ ] Docs: how to run it, what it needs installed, what the exit codes mean.
+- [x] Command implemented, registered as machine-only. (`smoke-test --full`)
+- [x] No-DCS path skips with an explanation and exit 0; tested without touching a real install.
+- [x] Bridge readiness polled, not slept.
+- [x] Mission-load freeze handled explicitly, with the reason in a comment citing the measurement.
+- [x] Assertion list is data; the driver knows nothing about individual checks.
+- [x] Every wait bounded, each timeout naming its step; DCS always terminated.
+- [x] Docs: how to run it, what it needs installed, what the exit codes mean.
 
 ## Acceptance criteria
 
-- [ ] A full unattended run against a real DCS: launch → load → assert → quit, no human input.
-- [ ] Forced-failure run exits non-zero and still leaves no DCS process behind.
-- [ ] `ruff` / `mypy` / `pytest` green over the whole tree. The unit tests cover the driver's logic
+- [ ] A full unattended run against a real DCS: launch → load → assert → quit, no human input. **(the in-game run left)**
+- [ ] Forced-failure run exits non-zero and still leaves no DCS process behind. **(in game)**
+- [x] `ruff` / `mypy` / `pytest` green over the whole tree. The unit tests cover the driver's logic
       with a faked bridge — the real-DCS part is the thing being built and cannot self-test.

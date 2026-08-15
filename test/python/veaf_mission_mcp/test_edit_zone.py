@@ -16,8 +16,9 @@ edited one afterwards, so adjusting a VEAF combat zone meant deleting and rebuil
 
 **David's call on vertex count (2026-08-12)**: accept 3 or more, since "follow the ridge line" is the
 use case and the VEAF runtime handles an arbitrary polygon through mist — but **warn** whenever the
-count is not 4, because the DCS Mission Editor only draws quad zones and may not render or preserve
-the rest. That confirmation is an in-game item, not something a test can settle.
+count is not 4, because the DCS Mission Editor has no tool to draw or reshape a non-quad zone. The
+open question of whether the editor *preserves* one was settled in game on 2026-08-15: a 6-vertex zone
+came back byte-identical through a save, so the action warns but does not refuse above four.
 """
 
 import zipfile
@@ -181,10 +182,13 @@ class TestReshape:
         assert len(_values(_zone(miz, "czKobuleti")["verticies"])) == 6
 
     def test_a_vertex_count_other_than_four_warns_about_the_editor(self, miz: Path) -> None:
-        """The ME only draws quad zones; whether it preserves more is an in-game question."""
+        """The ME cannot edit a non-quad zone by hand; it *preserves* one through a save, measured
+        in game 2026-08-15, so the action warns but does not refuse above four (ticket 04)."""
         vertices = [{"x": -328000.0 + i * 500, "y": 631000.0 + i * 300} for i in range(6)]
         result = edit_zone(miz, zone_name="czKobuleti", vertices=vertices)
         assert any("editor" in warning.lower() for warning in result["warnings"])
+        # It is written, not refused: the shape survives a save.
+        assert result["changed"]["vertices"]["to"] == 6
 
     def test_exactly_four_vertices_does_not_warn(self, miz: Path) -> None:
         result = edit_zone(

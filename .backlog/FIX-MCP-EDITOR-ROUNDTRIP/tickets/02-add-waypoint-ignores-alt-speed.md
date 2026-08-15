@@ -1,6 +1,6 @@
 # 02 — `edit_route add` ignores the altitude and speed it is given
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — add/insert honour altitude_ft/speed_kt; inheritance kept when omitted
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/route_editing.py`, tests
 

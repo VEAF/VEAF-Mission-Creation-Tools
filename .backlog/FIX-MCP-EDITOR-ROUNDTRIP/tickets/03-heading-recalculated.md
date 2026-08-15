@@ -1,6 +1,6 @@
 # 03 — A heading set on a flying aircraft does not survive the editor
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — warns for an airborne aircraft with a 2+ waypoint route; still writes the heading
 Type: docs
 Files: `src/python/veaf-tools/veaf_mission_mcp/unit_properties.py` (the result's warnings), the
 mission-maker action catalogue (both languages), tests

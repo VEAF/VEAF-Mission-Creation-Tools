@@ -126,7 +126,12 @@ ticket qui les demandait :
   dépôt n'embarque pas : c'est refusé sauf si l'appelant fournit lui-même le `name` résultant.
 - **`heading` est en radians** alors qu'un créateur de mission parle en degrés — le piège que
   `resolve_coordinates` masque ailleurs. Le paramètre s'appelle `heading_deg` pour que l'unité soit
-  impossible à confondre, et la valeur est normalisée sur un tour (−90 vaut 270).
+  impossible à confondre, et la valeur est normalisée sur un tour (−90 vaut 270). **Sur un appareil en
+  vol** (catégorie avion/hélico, route de 2+ points, premier waypoint en l'air), l'action **avertit** :
+  DCS recalcule le cap depuis le premier segment de la route à la sauvegarde, donc le cap posé a une
+  durée de vie d'une sauvegarde (`FIX-MCP-EDITOR-ROUNDTRIP`, mesuré 2026-08-15). Pour orienter un
+  appareil en vol, on règle la route, pas le cap. Le cap est **quand même écrit** — l'avertissement
+  informe, il ne refuse pas ; un appareil parké ou une unité au sol ne déclenchent pas l'avertissement.
 
 Ce que l'action **ne valide pas**, faute des données pour le faire : le CLSID d'une arme face à
 l'appareil qui la porte, et une livrée face aux peintures installées. DCS retire silencieusement une
@@ -235,7 +240,19 @@ Chaque signature a été lue dans une vraie mission, et trois sont des pièges :
 
 Deux détails mesurés qui n'étaient pas dans le ticket : `type` et `action` d'un point de passage sont
 une **paire** (« Land » va avec « Landing »), et un point ajouté **hérite** de l'altitude et de la
-vitesse de son voisin — sinon il s'écrit à l'altitude 0 et le vol plonge au sol pour l'atteindre.
+vitesse de son voisin — sinon il s'écrit à l'altitude 0 et le vol plonge au sol pour l'atteindre —
+**sauf si `altitude_ft`/`speed_kt` sont fournis à `add`/`insert`**, auquel cas ils sont écrits
+(`FIX-MCP-EDITOR-ROUNDTRIP` : ils étaient acceptés puis silencieusement ignorés, l'héritage écrasant la
+valeur demandée).
+
+**Les tâches d'attaque doivent porter le jeu de champs complet que l'éditeur conserve.**
+`FIX-MCP-EDITOR-ROUNDTRIP` a mesuré (2026-08-15) qu'un `Bombing` écrit sans `weaponType` est **jeté par
+l'éditeur à la sauvegarde** — un dispositif d'attaque qui ne largue rien. `Bombing` et `AttackGroup`
+portent donc désormais `weaponType` (défaut « Auto » mesuré : 2032 pour Bombing, 9659482112 pour
+AttackGroup, surchargeable via `weapon_type`), les paires `altitude`/`altitudeEnabled` et
+`direction`/`directionEnabled` **présentes mais désactivées** par défaut (activées si l'appelant passe
+`altitude_ft`/`direction_deg`), et l'ensemble `expend`/`attackQty`/`groupAttack`. `EngageTargetsInZone`
+porte aussi `noTargetTypes` (liste d'exclusion, vide par défaut).
 
 ```json
 {
@@ -267,8 +284,11 @@ de la refaire.
 
 **Décision de David sur le nombre de sommets (2026-08-12)** : accepter trois ou plus, puisque « suivre
 la ligne de crête » est le cas d'usage réel et que mist gère un polygone quelconque — mais **avertir**
-dès que le compte n'est pas quatre, l'éditeur DCS ne dessinant que des quadrilatères. Savoir s'il
-préserve davantage est une question de jeu, qu'aucun test unitaire ne tranche.
+dès que le compte n'est pas quatre, l'éditeur DCS n'ayant aucun outil pour dessiner ou remodeler une
+zone non quadrilatère. La question ouverte de savoir s'il **préserve** une telle zone a été tranchée en
+jeu le 2026-08-15 (`FIX-MCP-EDITOR-ROUNDTRIP`) : une zone à 6 sommets est revenue identique après
+sauvegarde. L'action **ne refuse donc pas** au-delà de quatre ; l'avertissement énonce une limite
+connue (on ne peut pas éditer la forme à la main dans l'éditeur), plus un risque inconnu.
 
 Deux refus que le ticket laissait ouverts, décidés ici : un **lien vers une unité inexistante** est
 refusé plutôt qu'averti (une zone liée à rien ne suit simplement jamais rien, sans bruit), et une

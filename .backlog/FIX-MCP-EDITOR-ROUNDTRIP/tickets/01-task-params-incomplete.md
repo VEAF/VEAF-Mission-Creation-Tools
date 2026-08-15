@@ -1,6 +1,6 @@
 # 01 — `add_task` writes an incomplete task, and the editor deletes it
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — all seven tasks compared to real examples; Bombing/AttackGroup weaponType + altitude/direction pairs, EngageTargetsInZone noTargetTypes
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/route_editing.py` (the task builders), tests
 

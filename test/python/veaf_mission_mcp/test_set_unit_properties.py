@@ -250,6 +250,57 @@ class TestHeading:
         assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["heading"] == pytest.approx(math.pi / 2)
 
 
+class TestHeadingRecalculationWarning:
+    """DCS recomputes an airborne aircraft's heading from its route on save, so a set heading has a
+    lifetime of one save. The warning is scoped to the measured case (ticket 03)."""
+
+    def _miz(self, tmp_path: Path, *, category: str, first_wp_type: str, waypoints: int) -> Path:
+        units = '["units"] = { [1] = { ["name"] = "U1", ["type"] = "FA-18C_hornet", ["heading"] = 0.0 } }'
+        points = ",".join(
+            f'[{i + 1}] = {{ ["type"] = "{first_wp_type if i == 0 else "Turning Point"}", '
+            f'["x"] = {i * 1000}.0, ["y"] = 0.0 }}'
+            for i in range(waypoints)
+        )
+        lua = (
+            'mission = { ["coalition"] = { ["blue"] = { ["country"] = { [1] = { ["name"] = "USA", '
+            f'["{category}"] = {{ ["group"] = {{ [1] = {{ ["name"] = "G1", ["groupId"] = 1, {units}, '
+            f'["route"] = {{ ["points"] = {{ {points} }} }} }} }} }} }} }} }} }} }}'
+        ).encode()
+        path = tmp_path / "m.miz"
+        with zipfile.ZipFile(path, "w") as zf:
+            zf.writestr("mission", lua)
+            zf.writestr("options", b"options = {\n}\n")
+            zf.writestr("warehouses", b"warehouses = {\n}\n")
+            zf.writestr("theatre", b"Caucasus")
+            zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
+            zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
+        return path
+
+    def _warned(self, result: dict) -> bool:
+        return any("recomputes it from the route" in w for w in result["warnings"])
+
+    def test_an_airborne_aircraft_with_a_route_warns(self, tmp_path: Path) -> None:
+        miz = self._miz(tmp_path, category="plane", first_wp_type="Turning Point", waypoints=2)
+        assert self._warned(set_unit_properties(miz, group_name="G1", unit_name="U1", heading_deg=90))
+
+    def test_a_ground_unit_does_not_warn(self, tmp_path: Path) -> None:
+        miz = self._miz(tmp_path, category="vehicle", first_wp_type="Turning Point", waypoints=2)
+        assert not self._warned(set_unit_properties(miz, group_name="G1", unit_name="U1", heading_deg=90))
+
+    def test_a_single_waypoint_aircraft_does_not_warn(self, tmp_path: Path) -> None:
+        miz = self._miz(tmp_path, category="plane", first_wp_type="Turning Point", waypoints=1)
+        assert not self._warned(set_unit_properties(miz, group_name="G1", unit_name="U1", heading_deg=90))
+
+    def test_a_parked_aircraft_is_not_claimed_since_it_was_not_measured(self, tmp_path: Path) -> None:
+        miz = self._miz(tmp_path, category="plane", first_wp_type="TakeOffParking", waypoints=2)
+        assert not self._warned(set_unit_properties(miz, group_name="G1", unit_name="U1", heading_deg=90))
+
+    def test_the_heading_is_still_written_when_it_warns(self, tmp_path: Path) -> None:
+        miz = self._miz(tmp_path, category="plane", first_wp_type="Turning Point", waypoints=2)
+        result = set_unit_properties(miz, group_name="G1", unit_name="U1", heading_deg=90)
+        assert result["changed"]["heading"]["to"] == pytest.approx(math.pi / 2)  # informs, never refuses
+
+
 class TestLoadout:
     """The pylon table is keyed by station number, and the numbers are not contiguous."""
 

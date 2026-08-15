@@ -124,7 +124,12 @@ that asked for them:
   this repository does not ship: that is refused unless the caller supplies the resulting `name`.
 - **`heading` is radians** while a mission maker speaks degrees — the trap `resolve_coordinates`
   hides elsewhere. The parameter is named `heading_deg` so the unit cannot be mistaken, and the value
-  is normalised onto one turn (−90 is 270).
+  is normalised onto one turn (−90 is 270). **On an airborne aircraft** (plane/helicopter category, a
+  route of 2+ waypoints, an in-air first waypoint) the action **warns**: DCS recomputes the heading
+  from the route's first leg on save, so a set heading has a lifetime of one save
+  (`FIX-MCP-EDITOR-ROUNDTRIP`, measured 2026-08-15). To point an airborne aircraft, set the route, not
+  the heading. The heading is **still written** — the warning informs, it does not refuse; a parked
+  aircraft or a ground unit does not trigger it.
 
 What the action does **not** validate, for want of the data to do it: a weapon's CLSID against the
 airframe carrying it, and a livery against the skins installed. DCS silently drops an impossible
@@ -228,7 +233,19 @@ Every signature was read out of a real mission, and three are traps:
 
 Two measured details the ticket did not mention: a waypoint's `type` and `action` are a **pair**
 ("Land" goes with "Landing"), and an added waypoint **inherits** its neighbour's altitude and speed —
-otherwise it is written at altitude 0 and the flight dives into the ground to reach it.
+otherwise it is written at altitude 0 and the flight dives into the ground to reach it — **unless
+`altitude_ft`/`speed_kt` are given to `add`/`insert`**, which are then written (`FIX-MCP-EDITOR-
+ROUNDTRIP`: they were accepted and then silently dropped, the inheritance overwriting the asked-for
+value).
+
+**Attack tasks must carry the full field set the editor keeps.** `FIX-MCP-EDITOR-ROUNDTRIP` measured
+(2026-08-15) that a `Bombing` written without `weaponType` is **discarded by the editor on save** — a
+strike package that drops nothing. `Bombing` and `AttackGroup` therefore now carry `weaponType`
+(measured "Auto" default: 2032 for Bombing, 9659482112 for AttackGroup, overridable via `weapon_type`),
+the `altitude`/`altitudeEnabled` and `direction`/`directionEnabled` pairs **present but disabled** by
+default (enabled when the caller passes `altitude_ft`/`direction_deg`), and the
+`expend`/`attackQty`/`groupAttack` set. `EngageTargetsInZone` also carries `noTargetTypes` (its
+exclusion list, empty by default).
 
 ```json
 {
@@ -259,8 +276,10 @@ adjusting a VEAF combat zone — which *is* a trigger zone — meant deleting it
 
 **David's call on the vertex count (2026-08-12)**: accept three or more, since "follow the ridge line"
 is the real use case and mist handles an arbitrary polygon — but **warn** whenever the count is not
-four, the DCS editor only drawing quads. Whether it preserves more is an in-game question no unit test
-settles.
+four, the DCS editor having no tool to draw or reshape a non-quad zone. The open question of whether it
+*preserves* one was settled in game on 2026-08-15 (`FIX-MCP-EDITOR-ROUNDTRIP`): a 6-vertex zone came
+back unchanged through a save, so the action **does not refuse** above four; the warning states a known
+limitation (you cannot edit the shape by hand there), not an unknown risk.
 
 Two refusals the ticket left open, decided here: a **link to a unit that does not exist** is refused
 rather than warned (a zone linked to nothing simply never follows anything, silently), and a **name

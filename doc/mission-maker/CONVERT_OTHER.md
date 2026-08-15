@@ -7,13 +7,13 @@ mission n'a jamais été construite avec les outils VEAF, on l'**adopte**.
 
 > Cette commande ne contient aucune connaissance propre à une mission donnée.
 > Le savoir spécifique à une famille de missions (ordre des scripts, triggers à
-> retirer, réglages à surcharger…) est porté par un *profil de conversion*
-> (à venir). Voir l'ADR 0007.
+> retirer, réglages à surcharger…) est porté par un *profil de conversion*.
+> Deux profils sont livrés avec l'outil : `foothold` et `foothold-ww2`. Voir l'ADR 0007.
 
 ## Usage
 
 ```bash
-veaf-tools convert-other <mission.miz> <dossier-de-sortie>
+veaf-tools convert other <mission.miz> <dossier-de-sortie>
 ```
 
 Sans argument (dans un terminal interactif), la commande ouvre l'assistant TUI
@@ -27,7 +27,7 @@ gestion de configuration, le manuel et un raccourci. Passez l'archive que vous a
 téléchargée, `convert-other` adopte le `.miz` qu'elle contient :
 
 ```bash
-veaf-tools convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-de-sortie> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-de-sortie> --profile foothold
 ```
 
 Seul le membre `.miz` est lu ; rien d'autre dans l'archive n'est écrit où que ce soit
@@ -47,7 +47,7 @@ nomme ce qu'elle a trouvé plutôt que de deviner quelle mission vous visiez.
 
 Sans `--profile`, le scaffold est générique (tier `minimal`). Avec un profil, la
 connaissance propre à une famille de missions est appliquée — **données, pas code**
-(voir [ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). Le profil
+(voir [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md)). Le profil
 `foothold` (livré) :
 
 - **active les modules VEAF** que Foothold utilise (RADIO, SPAWN, WEATHER,
@@ -60,11 +60,11 @@ connaissance propre à une famille de missions est appliquée — **données, pa
 - **inscrit un marqueur** `conversion_profile: foothold` dans le `mission.yaml` ;
 - **pré-remplit un `config_override` commenté** ciblant `Foothold Config.lua` ;
 - **déclare les modules incompatibles** (`CTLD` : Foothold embarque sa propre CTLD).
-  Si un module incompatible est activé, **`veaf-tools validate` et le build
+  Si un module incompatible est activé, **`veaf-tools mission validate` et le build
   échouent** — y compris si vous l'activez à la main plus tard.
 
 ```bash
-veaf-tools convert-other <mission.miz> <dossier-de-sortie> --profile foothold
+veaf-tools convert other <mission.miz> <dossier-de-sortie> --profile foothold
 ```
 
 ### Profils livrés
@@ -123,7 +123,7 @@ valeurs au runtime.
 Chaque clé de surcharge est **validée lexicalement** : chaque segment pointé doit
 apparaître comme identifiant quelque part dans les scripts injectés
 (`src/scripts/*.lua`). Un segment introuvable — une faute de frappe ou un global
-renommé/supprimé en amont — **fait échouer `veaf-tools validate` et le build**,
+renommé/supprimé en amont — **fait échouer `veaf-tools mission validate` et le build**,
 transformant une dérive amont silencieuse en alerte au build. (Aucun Lua n'est
 exécuté : la vérification est une recherche mot entier en Python pur.)
 
@@ -140,7 +140,7 @@ Quand l'auteur tiers publie une nouvelle version (p. ex. une montée de version
 Foothold de Lekaa), ré-importez-la dans votre dossier déjà adopté avec `--update` :
 
 ```bash
-veaf-tools convert-other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
+veaf-tools convert other <nouveau-upstream.miz> <dossier-sortie> --profile foothold --update
 ```
 
 Le nouvel upstream peut aussi être l'archive `.zip` de release — même règle, exactement un

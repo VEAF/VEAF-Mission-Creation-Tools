@@ -54,7 +54,7 @@ veafTransportMission.RedDefenseGroupName = "Cargo - Enemy Air Defense Group"
 --- Name of the enemy group that blocades the friendlies
 veafTransportMission.RedBlocadeGroupName = "Cargo - Enemy Blocade Group"
 
-veafTransportMission.RadioMenuName = "TRANSPORT MISSION"
+veafTransportMission.RadioMenuName = "menu.transportmission.root"
 
 veafTransportMission.AdfRadioSound = "l10n/DEFAULT/beacon.ogg"
 
@@ -121,8 +121,10 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
     if options then
       -- Check options commands
       if options.transportmission then
-        -- check security
-        if not veafSecurity.checkSecurity_L1(options.password) then
+        -- Check security. The marker id is what identifies the author, so a listed pilot's own
+        -- level can grant the command; without it `getMarkerSecurityLevel` returns -1 and the
+        -- password is the only way through, whoever asks.
+        if not veafSecurity.checkSecurity_L1(options.password, event.idx) then
           return
         end
         -- create the mission
@@ -143,84 +145,47 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The transport module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. The bounds are asymmetric on purpose and unchanged: `size`
+--- counts cargo so it starts at 1, while `defense` and `blocade` describe cover and blockade
+--- strength where 0 means none. Out-of-range values stay *ignored* rather than clamped, which is
+--- what `veaf.markerRules.boundedNumber` provides and what `VMR-019` settled on for the twin
+--- parameters in veafCasMission.
+---
+--- The four `if switch.transportmission and ...` guards the old loop carried are gone rather than
+--- translated into `when` predicates: the flag is set before the loop and the function returns nil
+--- when the keyphrase is absent, so all four were always true.
+veafTransportMission.MarkerSpec = {
+  defaults = function(options)
+    options.transportmission = false
+    options.size = 1 -- number of cargo to be transported
+    options.defense = 0 -- air defense cover on the way (1 = light, 5 = heavy)
+    options.blocade = 0 -- enemy blocade around the drop zone (1 = light, 5 = heavy)
+    options.from = nil -- start position, named point
+    options.password = nil
+  end,
+  commands = {
+    {
+      match = veafTransportMission.Keyphrase,
+      init = function(options)
+        options.transportmission = true
+      end,
+    },
+  },
+  parameters = {
+    { keys = { "password" }, apply = veaf.markerRules.text("password") },
+    { keys = { "size" }, apply = veaf.markerRules.boundedNumber("size", 1, 5) },
+    { keys = { "defense" }, apply = veaf.markerRules.boundedNumber("defense", 0, 5) },
+    { keys = { "blocade" }, apply = veaf.markerRules.boundedNumber("blocade", 0, 5) },
+    { keys = { "from" }, apply = veaf.markerRules.text("from") },
+  },
+  valueWhenAbsent = nil,
+}
+
 --- Extract keywords from mark text.
 function veafTransportMission.markTextAnalysis(text)
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.transportmission = false
-
-  -- size ; number of cargo to be transported
-  switch.size = 1
-
-  -- defense [1-5] : air defense cover on the way (1 = light, 5 = heavy)
-  switch.defense = 0
-
-  -- blocade [1-5] : enemy blocade around the drop zone (1 = light, 5 = heavy)
-  switch.blocade = 0
-
-  -- start position, named point
-  switch.from = nil
-
-  -- password
-  switch.password = nil
-
-  -- Check for correct keywords.
-  if text:lower():find(veafTransportMission.Keyphrase) then
-    switch.transportmission = true
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "password" then
-      -- Unlock the command
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword password", val))
-      switch.password = val
-    end
-
-    if switch.transportmission and key:lower() == "size" then
-      -- Set size.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
-        switch.size = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "defense" then
-      -- Set defense.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
-        switch.defense = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "blocade" then
-      -- Set blocade.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
-        switch.blocade = nVal
-      end
-    end
-
-    if switch.transportmission and key:lower() == "from" then
-      -- Set armor.
-      veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword from = %s", val))
-      switch.from = val
-    end
-  end
-
-  return switch
+  return veaf.parseMarkerText(text, veafTransportMission.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -460,7 +425,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
   -- add radio menu for drop zone information (by player group)
   veafRadio.addCommandToSubmenu(
-    "Drop zone information",
+    veaf.t("menu.transportmission.info"),
     veafTransportMission.rootPath,
     veafTransportMission.reportTargetInformation,
     nil,
@@ -468,11 +433,15 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
   )
 
   -- add radio menus for commands
-  veafRadio.addSecuredCommandToSubmenu("Skip current objective", veafTransportMission.rootPath, veafTransportMission.skip)
-  veafTransportMission.targetMarkersPath = veafRadio.addSubMenu("Drop zone markers", veafTransportMission.rootPath)
-  veafRadio.addCommandToSubmenu("Request smoke on drop zone", veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.transportmission.skip"), veafTransportMission.rootPath, veafTransportMission.skip)
+  veafTransportMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.transportmission.markers"), veafTransportMission.rootPath)
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over drop zone",
+    veaf.t("menu.transportmission.request_smoke"),
+    veafTransportMission.targetMarkersPath,
+    veafTransportMission.smokeTarget
+  )
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.transportmission.request_flare"),
     veafTransportMission.targetMarkersPath,
     veafTransportMission.flareTarget
   )
@@ -555,7 +524,7 @@ function veafTransportMission.smokeTarget()
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafTransportMission.BlueGroupName), trigger.smokeColor.Green)
   trigger.action.outText(veaf.t("transport.smoke_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request smoke on drop zone")
-  veafRadio.addCommandToSubmenu("Drop zone is marked with GREEN smoke", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.smoke_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.smokeResetTaskID =
     mist.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
@@ -565,7 +534,11 @@ end
 function veafTransportMission.smokeReset()
   veaf.loggers.get(veafTransportMission.Id):debug("smokeReset()")
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Drop zone is marked with GREEN smoke")
-  veafRadio.addCommandToSubmenu("Request smoke on drop zone", veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.transportmission.request_smoke"),
+    veafTransportMission.targetMarkersPath,
+    veafTransportMission.smokeTarget
+  )
   trigger.action.outText(veaf.t("transport.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
@@ -576,7 +549,7 @@ function veafTransportMission.flareTarget()
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafTransportMission.BlueGroupName))
   trigger.action.outText(veaf.t("transport.illum_requested"), 5)
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request illumination flare over drop zone")
-  veafRadio.addCommandToSubmenu("Drop zone is lit with illumination flare", veafTransportMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.flare_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.flareResetTaskID =
     mist.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
@@ -587,7 +560,7 @@ function veafTransportMission.flareReset()
   veaf.loggers.get(veafTransportMission.Id):debug("flareReset()")
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Drop zone is lit with illumination flare")
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over drop zone",
+    veaf.t("menu.transportmission.request_flare"),
     veafTransportMission.targetMarkersPath,
     veafTransportMission.flareTarget
   )
@@ -673,8 +646,14 @@ end
 
 --- Build the initial radio menu
 function veafTransportMission.buildRadioMenu()
-  veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
-  veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
+  veafTransportMission.rootPath = veafRadio.addSubMenu(veaf.t(veafTransportMission.RadioMenuName))
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.common.help"),
+    veafTransportMission.rootPath,
+    veafTransportMission.help,
+    nil,
+    veafRadio.USAGE_ForGroup
+  )
   -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
   -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end

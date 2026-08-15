@@ -122,6 +122,48 @@ return table.concat(out, "\\n")
 """
 
 
+# Lua run over the bridge for parking slots. One line per slot:
+# `<airbase id>\t<key>=<value>|<key>=<value>|...`, with a nested table flattened one level
+# (`vTerminalPos.x=...`).
+#
+# **Every key is dumped, none presupposed.** The API schema shipped in this repository declares
+# `AirbaseParking` with four fields (`Term_Type`, `Term_Index`, `Term_Index_0`, `Term_Details`) while
+# a mission table's parked unit carries *two* different numbers (`parking` and `parking_id`, measured
+# at 28 and 24 on the same aircraft) — so the schema is incomplete here, and asking the runtime what
+# it actually returns is the only way not to invent the answer.
+_PARKING_CAPTURE_LUA = """
+local out = { tostring(env.mission.theatre) }
+local function flatten(t)
+  local parts = {}
+  for k, v in pairs(t) do
+    if type(v) == "table" then
+      for k2, v2 in pairs(v) do
+        if type(v2) ~= "table" then
+          parts[#parts + 1] = string.format("%s.%s=%s", tostring(k), tostring(k2), tostring(v2))
+        end
+      end
+    else
+      parts[#parts + 1] = string.format("%s=%s", tostring(k), tostring(v))
+    end
+  end
+  table.sort(parts)
+  return table.concat(parts, "|")
+end
+for _, ab in ipairs(world.getAirbases()) do
+  local ok, desc = pcall(function() return ab:getDesc() end)
+  if ok and desc and desc.category == Airbase.Category.AIRDROME then
+    local gotParking, slots = pcall(function() return ab:getParking(false) end)
+    if gotParking and type(slots) == "table" then
+      for _, slot in ipairs(slots) do
+        out[#out + 1] = string.format("%d\\t%s", ab:getID(), flatten(slot))
+      end
+    end
+  end
+end
+return table.concat(out, "\\n")
+"""
+
+
 def resolve_bridge_lua(lua_path: str | None) -> Path:
     """Resolve ``dcs-bridge.lua`` to a local path, downloading it when none is given.
 
@@ -219,7 +261,50 @@ def capture_airbases(serve_url: str, api_key: str, timeout: float = 30.0) -> tup
         RuntimeError: If the server is unreachable, returns a non-200, or the Lua
             snippet errors / yields an empty result.
     """
-    body = json.dumps({"code": _CAPTURE_LUA, "timeout": timeout}).encode("utf-8")
+    return _parse_capture(_exec_over_bridge(serve_url, api_key, _CAPTURE_LUA, timeout))
+
+
+def exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float = 10.0) -> str:
+    """Run `code` in the running mission over ``dcs-serve`` and return its result string.
+
+    The public entry point for callers other than the captures — the smoke harness routes its VEAF
+    assertions here, because the bridge lives **inside the mission** where the ``veaf`` global exists,
+    which the fiddle hook's scripting state does not (``FEAT-DCS-SMOKE-HARNESS`` ticket 04).
+
+    Args:
+        serve_url: Base URL of the ``dcs-serve`` HTTP API (e.g. ``http://127.0.0.1:8080``).
+        api_key: The superuser Bearer token.
+        code: The Lua snippet to run (should ``return`` a value).
+        timeout: HTTP request timeout, in seconds.
+
+    Returns:
+        The snippet's ``result`` as a string (empty when the payload carried none).
+
+    Raises:
+        RuntimeError: If the server is unreachable, refuses the request, or returns a non-200.
+    """
+    return _exec_over_bridge(serve_url, api_key, code, timeout)
+
+
+def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -> str:
+    """Run `code` in the running mission over ``dcs-serve`` and return its raw result.
+
+    Shared by every capture: the HTTP error mapping is the part a maker actually reads when nothing
+    works ("is the mission started?", "is the key a superuser?"), so it exists once.
+
+    Args:
+        serve_url: Base URL of the ``dcs-serve`` HTTP API (e.g. ``http://127.0.0.1:8080``).
+        api_key: The superuser Bearer token.
+        code: The Lua snippet to run.
+        timeout: HTTP request timeout, in seconds.
+
+    Returns:
+        The snippet's ``result`` as a string (empty when the payload carried none).
+
+    Raises:
+        RuntimeError: If the server is unreachable, refuses the request, or returns a non-200.
+    """
+    body = json.dumps({"code": code, "timeout": timeout}).encode("utf-8")
     req = urllib.request.Request(  # noqa: S310 - user-provided local serve URL
         f"{serve_url.rstrip('/')}/api/exec",
         data=body,
@@ -244,8 +329,87 @@ def capture_airbases(serve_url: str, api_key: str, timeout: float = 30.0) -> tup
             f"cannot reach dcs-serve at {serve_url} (is dcs-serve running and the mission started?): {exc}"
         ) from exc
 
-    result = str(payload.get("result", "")) if isinstance(payload, dict) else ""
-    return _parse_capture(result)
+    return str(payload.get("result", "")) if isinstance(payload, dict) else ""
+
+
+def _parse_parking(result: str) -> tuple[str, dict[int, list[dict[str, str]]]]:
+    """Parse the parking snippet's raw result into ``(theatre, {airbase id: [slot, ...]})``.
+
+    Values stay **strings**: the point of this capture is to record what the runtime returns without
+    interpreting it, and guessing that ``Term_Index`` is an int while ``Term_Details`` is not is
+    exactly the interpretation to avoid at this stage.
+
+    Args:
+        result: The raw snippet output.
+
+    Returns:
+        The theatre and its slots, grouped by airbase id.
+
+    Raises:
+        RuntimeError: If the bridge returned an error or nothing usable.
+    """
+    if not result or result.startswith("Error:"):
+        raise RuntimeError(f"bridge exec failed or empty (mission running with the bridge?): {result!r}")
+    lines = result.splitlines()
+    theatre = lines[0].strip()
+    slots: dict[int, list[dict[str, str]]] = {}
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        airbase_id, _, fields = line.partition(_SEP)
+        if not fields:
+            continue
+        slot = {key: value for key, _, value in (field.partition("=") for field in fields.split("|")) if key}
+        if slot:
+            slots.setdefault(int(airbase_id), []).append(slot)
+    if not theatre:
+        raise RuntimeError(f"unexpected parking capture result (no theatre): {result!r}")
+    return theatre, slots
+
+
+def capture_parking(serve_url: str, api_key: str, timeout: float = 60.0) -> tuple[str, dict[int, list[dict[str, str]]]]:
+    """Capture every airbase's parking slots over the bridge (`POST /api/exec`).
+
+    Separate from :func:`capture_airbases` because it is a different order of magnitude: a large
+    theatre has hundreds of airbases with dozens of slots each, so it gets its own file and its own
+    longer timeout rather than inflating a dump 15 theatres already use.
+
+    Args:
+        serve_url: Base URL of the ``dcs-serve`` HTTP API.
+        api_key: The superuser Bearer token.
+        timeout: HTTP request timeout, in seconds.
+
+    Returns:
+        ``(theatre, {airbase id: [slot, ...]})``, each slot a mapping of whatever keys the runtime
+        returned, values as strings.
+
+    Raises:
+        RuntimeError: If the server is unreachable, returns a non-200, or the snippet errors.
+    """
+    return _parse_parking(_exec_over_bridge(serve_url, api_key, _PARKING_CAPTURE_LUA, timeout))
+
+
+def write_parking_dump(theatre: str, slots: dict[int, list[dict[str, str]]], out_dir: Path) -> Path:
+    """Write a parking capture as ``<theatre>.json`` (pretty, stable key order).
+
+    Args:
+        theatre: DCS theatre string (the file stem).
+        slots: The slots, grouped by airbase id.
+        out_dir: Directory to write into (created if missing).
+
+    Returns:
+        The path of the written `.json`.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{theatre}.json"
+    doc = {
+        "theatre": theatre,
+        "parking_by_airbase": {str(airbase_id): slots[airbase_id] for airbase_id in sorted(slots)},
+    }
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(doc, f, ensure_ascii=False, indent=2, sort_keys=False)
+        f.write("\n")
+    return out
 
 
 def write_airbase_dump(theatre: str, airbases: list[dict[str, Any]], out_dir: Path) -> Path:

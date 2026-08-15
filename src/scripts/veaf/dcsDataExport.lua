@@ -88,8 +88,14 @@ function DcsDataExport.Logger.formatText(text, ...)
   if type(text) ~= "string" then
     text = DcsDataExport.p(text)
   else
-    if arg and #arg > 0 then
-      text = text:format(unpack(arg))
+    -- `arg` is NOT the varargs table inside a vararg function: measured on Lua 5.1, it is nil there
+    -- (the global `arg` holds the script's command-line arguments instead). So this branch never ran,
+    -- and the callers' `unpack(arg)` raised outright unless the interpreter was built with
+    -- LUA_COMPAT_VARARG -- which is a compile-time option of whichever Lua DCS ships, not something
+    -- we can rely on (SECREV-2 / VMR-079). `{...}` removes the dependency entirely.
+    local args = { ... }
+    if #args > 0 then
+      text = text:format(unpack(args))
     end
   end
   local fName = nil
@@ -133,35 +139,35 @@ end
 
 function DcsDataExport.Logger:error(text, ...)
   if self.level >= 1 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(1, text)
   end
 end
 
 function DcsDataExport.Logger:warn(text, ...)
   if self.level >= 2 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(2, text)
   end
 end
 
 function DcsDataExport.Logger:info(text, ...)
   if self.level >= 3 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(3, text)
   end
 end
 
 function DcsDataExport.Logger:debug(text, ...)
   if self.level >= 4 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(4, text)
   end
 end
 
 function DcsDataExport.Logger:trace(text, ...)
   if self.level >= 5 then
-    text = DcsDataExport.Logger.formatText(text, unpack(arg))
+    text = DcsDataExport.Logger.formatText(text, ...)
     self:print(5, text)
   end
 end
@@ -195,13 +201,18 @@ function DcsDataExport.loggers.get(loggerId)
 end
 
 function DcsDataExport.p(obj, maxLevel, skip, serializeInLua)
-  local skip = skip
-  if skip and type(skip) == "table" then
+  -- `local skip = skip` rebinds the name but not the table, so writing skip[value] = true wrote into
+  -- the caller's own list -- turning `{"units"}` into `{"units", units = true}` for whoever passed it,
+  -- and leaving a mixed array/hash table behind on every call (SECREV-2 / VMR-080). The lookup set is
+  -- built separately now, and the caller's list is left exactly as it was handed over.
+  local skipByKey = nil
+  if type(skip) == "table" then
+    skipByKey = {}
     for _, value in ipairs(skip) do
-      skip[value] = true
+      skipByKey[value] = true
     end
   end
-  return DcsDataExport._p(nil, obj, maxLevel, 0, skip, serializeInLua)
+  return DcsDataExport._p(nil, obj, maxLevel, 0, skipByKey, serializeInLua)
 end
 
 function DcsDataExport._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
@@ -245,7 +256,9 @@ function DcsDataExport._p(objKey, objValue, maxLevel, level, skip, serializeInLu
     level = 0
   end
   if level > MAX_LEVEL then
-    logError("max depth reached in p : " .. tostring(MAX_LEVEL))
+    -- logError is not defined anywhere: hitting the depth limit raised "attempt to call a nil value"
+    -- instead of reporting it (SECREV-2 / VMR-077). The module has its own logger, five lines up.
+    DcsDataExport.loggers.get(DcsDataExport.Id):error("max depth reached in p : " .. tostring(MAX_LEVEL))
     return ""
   end
 
@@ -423,8 +436,10 @@ function DcsDataExport.serialize(name, value, level)
         table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
       end
     else
-      ---@diagnostic disable-next-line: param-type-mismatch
-      log:error("Cannot serialize a $1", type(value))
+      -- `log` is not defined anywhere: this reported an unserializable value by raising "attempt to
+      -- index a nil value" instead (SECREV-2 / VMR-078, the same defect as VMR-077 elsewhere in this
+      -- file). The `$1` placeholder was wrong too -- string.format uses `%s`.
+      DcsDataExport.loggers.get(DcsDataExport.Id):error("Cannot serialize a %s", type(value))
     end
     return var_str_tbl
   end
@@ -521,10 +536,14 @@ local function browseUnits(out, database, defaultCategory, fullDcsUnit, exportAl
 end
 
 -- export all units as a lua file
-local file = io.open(export_path .. "db.Units.lua", "w")
-writeln(file, 'db={\n    ["Units"] = {' .. DcsDataExport.p(db.Units, nil, nil, true) .. "}\n}")
+-- The `if file then` below used to come *after* the write, so an unwritable export path crashed in
+-- writeln on a nil handle instead of saying which file could not be opened (SECREV-2 / VMR-076).
+local file, fileError = io.open(export_path .. "db.Units.lua", "w")
 if file then
+  writeln(file, 'db={\n    ["Units"] = {' .. DcsDataExport.p(db.Units, nil, nil, true) .. "}\n}")
   file:close()
+else
+  DcsDataExport.loggers.get(DcsDataExport.Id):error("cannot write db.Units.lua : " .. tostring(fileError))
 end
 
 local units = {}
@@ -552,8 +571,11 @@ else
   end
   table.sort(values, _sortUnits)
 end
-file = io.open(export_path .. "dcsUnits.lua", "w")
-writeln(file, DcsDataExport.serialize("units", values))
+-- The second one, which the finding did not mention (SECREV-2 / VMR-076).
+file, fileError = io.open(export_path .. "dcsUnits.lua", "w")
 if file then
+  writeln(file, DcsDataExport.serialize("units", values))
   file:close()
+else
+  DcsDataExport.loggers.get(DcsDataExport.Id):error("cannot write dcsUnits.lua : " .. tostring(fileError))
 end

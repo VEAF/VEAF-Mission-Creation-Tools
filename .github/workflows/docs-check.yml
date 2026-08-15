@@ -18,10 +18,23 @@ on:
       - "veaf_build/docs_check.py"
       - "veaf_build/docs_version_stamp.py"
       - ".github/workflows/docs-check.yml"
+      # The gate also walks the markdown outside doc/ (TOOLING-REPO-LINK-GATE), so those paths have
+      # to trigger it. Without them a PR breaking a backlog link never runs the job — which is
+      # exactly how PR #655 shipped 68 dangling links unnoticed, and how
+      # FIX-WORKFLOWS-MAIN-TO-MASTER managed to leave every workflow dead on `master`.
+      - ".backlog/**"
+      - "docs/**"
+      - "*.md"
+      # The gate also checks that every capability the code defines is named by its reference page
+      # (TOOLING-DOC-AUTOGEN). The whole point is catching "an action shipped and the doc did not
+      # follow", and that commit touches only the sources below — so without them the gate would be
+      # blind to the exact case it exists for.
+      - "src/python/veaf-tools/veaf_mission_mcp/**"
+      - "src/scripts/veaf/veafShortcuts.lua"
 
 jobs:
   docs-check:
-    name: Links, anchors, translations, nav
+    name: Links, anchors, translations, nav (+ repo-wide links)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

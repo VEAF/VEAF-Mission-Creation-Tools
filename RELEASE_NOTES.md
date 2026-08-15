@@ -1,161 +1,105 @@
-# VEAF Mission Creation Tools — 6.13.0
+# VEAF Mission Creation Tools — 6.14.0
 
-Une seule grande nouvelle dans cette version : **CTLD passe à la version 2**. Le script de
-transport et de logistique embarqué par les outils n'est plus le monolithe historique de
-ciribob mais la **réécriture VEAF** — même jeu, code modulaire et testé — et surtout, il ne se
-configure plus dans `mission.yaml` mais dans un fichier dédié, avec un **éditeur graphique**.
-
-> **CTLD embarqué : `2.0.0-rc3`.** C'est une *release candidate*, pas encore une version
-> stable. Elle est éprouvée (plus de 1 100 tests automatiques et des tests en vol), mais si
-> vous exploitez un serveur public, sachez sur quoi vous décollez.
+Trois grands chantiers dans cette version, plus une longue liste de correctifs. **L'assistant
+d'édition de mission (MCP) passe de créateur à éditeur** : il peut désormais *modifier* une mission
+existante — bouger un groupe, changer une loadout, éditer une route ou une zone, dessiner sur la
+carte, ajouter une place joueur. **Un harnais de fumée** vérifie enfin le comportement de VEAF dans
+un vrai DCS, sans personne devant l'écran. Et **le modèle de sécurité passe par pilote** — c'est le
+point à lire avant de mettre à jour. Le tout sur fond de **CTLD 2.0.0-rc7** embarqué et d'une refonte
+documentaire de fond.
 
 ---
 
 ## ⚠️ À lire avant de mettre à jour
 
-**Si vos missions activent CTLD, elles demandent une action de votre part.** Deux points
-arrêtent le build tant que vous n'y avez pas touché, et deux autres changent le vol.
+**`/login` et `_auth` n'ouvrent plus la mission pour tout le monde.**
 
-### 1. Le bloc `settings:` de CTLD n'est plus lu — et `validate` le refuse
+Jusqu'ici, une authentification réussie ouvrait chaque commande sécurisée à **tous les joueurs du
+serveur** pendant `authDuration` minutes. Ce n'est plus le cas : chaque commande vérifie **qui**
+demande.
 
-```yaml
-modules:
-  CTLD:
-    enabled: true
-    settings:            # ← n'existe plus
-      hoverPickup: true
-```
+| | |
+|---|---|
+| **Un pilote listé dans `veaf-pilots.txt`** | rien ne change — son propre palier lui donne déjà ses commandes, il n'a jamais eu besoin du mot de passe |
+| **Un pilote non listé** | doit donner le mot de passe **à chaque commande**. Plus de session de dix minutes |
+| **Le menu radio F10** | DCS ne sait pas *quel* occupant d'un groupe a cliqué, donc un groupe agit au niveau de son occupant **le moins gradé**. `_auth` ou `/login` depuis un marqueur ou le chat élève ce groupe au niveau du **demandeur** pour 2 minutes |
 
-devient simplement :
+C'est cette dernière ligne qui résout le vol à plusieurs : un instructeur avec un élève garde ses
+commandes en s'authentifiant, sans rien prêter à l'élève. `veaf.SecurityDisabled = true` désactive
+toujours toute la couche pour une mission solo ou de test. Détails :
+[`veafSecurity.md`](doc/mission-maker/scripts/veafSecurity.md).
 
-```yaml
-modules:
-  CTLD: true
-```
-
-…et vos réglages partent dans un fichier `ctld-config.yaml`, à côté de `mission.yaml`. La
-marche à suivre est en fin de page.
-
-Pourquoi une erreur plutôt qu'un avertissement ? Parce que **ce canal n'a jamais complètement
-fonctionné** : les valeurs écrites là étaient posées, puis écrasées par la configuration VEAF
-en dur, sans un mot. Un `slingLoad: false` dans un `mission.yaml` n'a jamais rien fait. Plutôt
-que de continuer en silence, l'outil s'arrête et vous dit où aller.
-
-### 2. Les noms de zones réservés disparaissent
-
-Les vingt noms `logistic #001` … `#020` et `pickzone #001` … `#020` ne sont plus reconnus.
-CTLD 2 découvre ses zones **par préfixe de nom**, directement dans l'éditeur de mission :
-`LGZ_` pour une zone logistique, `TRZ_` pour une zone d'embarquement de troupes. Sans limite de
-nombre, et avec un nom qui dit ce que la zone fait.
-
-Pour qu'une zone suive un objet mobile — un porte-avions —, liez-la à l'unité dans l'éditeur
-(*Moving Zone*) : elle le suivra en vol.
-
-### 3. Le ramassage des caisses change pour les pilotes
-
-Jusqu'ici VEAF imposait l'**élingage réel** de DCS. Les outils reprennent désormais le
-comportement par défaut de CTLD : **le stationnaire au-dessus de la caisse suffit**. Plus
-permissif, et la fenêtre de stationnaire est un peu plus serrée :
-
-| | Avant (VEAF) | Maintenant (CTLD 2) |
-|---|---|---|
-| hauteur de stationnaire | 5 à 15 m | 7,5 à 12 m |
-| distance à la caisse | 8 m | 5,5 m |
-
-### 4. Les capacités d'emport sont réalignées
-
-Les limites que VEAF portait en dur dataient de la configuration d'origine. On adopte celles de
-CTLD 2, calées sur les appareils :
-
-| Appareil | Avant | Maintenant |
-|---|---|---|
-| UH-1H | 10 soldats | 8 |
-| UH-60L | 20 | 12 |
-| Mi-8MTV2 | 20 | 16 |
-| CH-47F | 33 | 40 |
-
-Les **Gazelle** (SA342 L/M/Mistral/Minigun) et le **Yak-52** gardent leur soldat unique et
-n'emportent pas de caisse. Le **Ka-50** conserve son menu CTLD — reconnaissance, statut JTAC,
-balises — mais ne transporte plus troupes ni caisses : l'ancienne version le lui permettait par
-accident, pas par choix.
+**Les paliers de sécurité sont renommés** pour dire ce qu'ils sont : `ADMIN` / `SENIOR_PILOT` /
+`KNOWN_PILOT` (les anciens `L0`/`L1`/`L9` marchent encore une version, avec un avertissement).
 
 ---
 
-## 🛠️ Configurer CTLD : un outil, plus de YAML à la main
+## L'assistant d'édition de mission devient un éditeur
 
-La configuration de CTLD est désormais un fichier **`ctld-config.yaml`** posé à côté de votre
-`mission.yaml`, et vous l'éditez avec **`ctld-tools.exe`**, livré avec CTLD
-([page des releases](https://github.com/VEAF/CTLD/releases)) : double-cliquez, il s'ouvre dans
-votre navigateur, en local, sans rien installer.
+Le serveur MCP savait *créer* une mission ; il peut maintenant en **modifier** une existante, à
+partir d'un `.miz` ou d'un dossier de mission :
 
-Tout y est éditable — caisses, groupes de troupes, zones, capacités par appareil, zones IA —
-avec des libellés en clair plutôt que des noms de réglages, les unités (m / kg / s), une
-recherche sur l'ensemble des paramètres, un marqueur sur ce que vous avez changé et un retour
-au défaut d'un clic. L'interface est en français. La validation tourne en continu et vous parle
-de vos données, pas de la syntaxe.
+- **lire** ce qui est là : les groupes et zones, puis les unités jusqu'aux loadouts et routes ;
+- **changer une unité** (loadout par numéro de pylône, compétence, livrée, cap, callsign) et
+  **déplacer un groupe** (le déplacement emporte unités, route et ancre) ;
+- **éditer une route** (ajouter/insérer/retirer/réordonner des waypoints, et leur donner une tâche
+  d'un jeu fermé validé) et **remodeler une zone de combat** (déplacer, redimensionner, en polygone) ;
+- **dessiner sur la carte F10** (ligne, rectangle, étiquette, cercle, ovale, forme libre) — un dessin
+  posé par l'assistant survit à un rebuild, contrairement à un dessin fait à la main dans l'éditeur ;
+- **ajouter une place joueur**, un groupe au sol, ou un vol au parking (places de stationnement
+  résolues automatiquement à partir des données capturées, appareils bien garés).
 
-`veaf-tools prepare` crée le fichier pour vous quand le modèle choisi active CTLD, prérempli
-avec les valeurs par défaut du moteur et les choix VEAF (les porte-avions et les dépôts FARP
-sont reconnus automatiquement comme points logistiques, comme avant). Ensuite il est à vous :
-le build ne le réécrit jamais.
+Chaque action mesure ce que l'éditeur DCS fait *réellement* subir à ce qu'elle écrit — plusieurs
+défauts (une tâche `Bombing` silencieusement supprimée, une altitude ignorée) ont été trouvés et
+corrigés en comparant à de vraies missions ouvertes puis sauvées dans l'éditeur.
 
-> **N'utilisez pas le bouton « Injecter dans la mission » de `ctld-tools`** sur une mission
-> VEAF. Il écrit directement dans un `.miz`, or le `.miz` est reconstruit à chaque build depuis
-> votre dossier mission : votre injection disparaîtrait au build suivant. Enregistrez le
-> fichier, le build s'occupe du reste.
+## Un harnais qui vérifie VEAF dans un vrai DCS
 
-**Un point à connaître** : ce fichier est une configuration **complète**, pas une liste de
-différences. Un réglage simple que vous omettez reprend la valeur par défaut du moteur — et
-CTLD vous le dit à l'écran au démarrage de la mission. Mais une **liste** omise — une section
-de caisses, un groupe de troupes, une zone — est réellement supprimée. C'est ainsi qu'on retire
-un élément, et c'est pourquoi il vaut mieux partir du fichier existant que d'en écrire un.
+`veaf-tools dcs smoke-test` interroge un DCS en cours d'exécution et exécute des assertions **à
+l'intérieur du jeu**, là où les mocks ne peuvent rien prouver. Il a servi à mesurer, entre autres,
+que l'API non documentée `Disposition` évite réellement les bâtiments (0 point sur 30 posé sur du
+décor, dans une zone qui en compte 369), et il embarque une mission de test dont l'ancre est vérifiée
+en jeu. Outil **local** et opt-in : il n'exige pas de DCS pour les machines qui n'en ont pas, il
+**passe** proprement.
 
-Quand vous monterez CTLD de version, l'outil comparera votre fichier au nouveau catalogue et
-vous listera ce qui est apparu, ce qui a disparu et ce qui diffère, avant que vous ne
-réenregistriez. Rien n'est jamais fusionné dans votre dos.
+## CTLD 2.0.0-rc7
 
----
+Le CTLD embarqué passe de `2.0.0-rc3` à **`2.0.0-rc7`** (la réécriture VEAF). La configuration s'y
+adapte sans que vous n'ayez rien à faire de plus qu'en 6.13 : elle vit dans un fichier dédié
+(`CTLD_userConfig.lua`) éditable via l'outil graphique. Au passage, **sauver une mission dans
+l'éditeur DCS ne supprime plus les sons de CTLD et CSAR**.
 
-## 📖 Documentation
+> **`2.0.0-rc7` reste une *release candidate*** — éprouvée, mais si vous exploitez un serveur public,
+> sachez sur quoi vous décollez.
 
-- **Le guide du mission maker enseigne le nouveau modèle** : configuration en fichier dédié,
-  zones par préfixe, ordre de chargement réel des scripts dans la mission, et un tableau
-  avant/après pour la migration. En français et en anglais, comme le reste du site.
-- **La documentation d'une version peut être republiée sans déplacer son tag.** Jusqu'ici, un
-  correctif de documentation arrivé après la pose du tag ne pouvait pas atteindre les pages
-  publiées : reconstruire depuis le tag rebâtissait l'ancien contenu.
-- **Le tampon de version marque aussi le pied de page.** La page de référence Lua porte sa
-  version à deux endroits et un seul était mis à jour : la page 6.12.0 annonçait encore
-  « v6.5.25 — juin 2026 » en bas.
+## Documentation
 
----
+Un audit en cinq passes a trouvé une quarantaine d'endroits où la documentation disait le contraire
+du code — tous corrigés. En vrac : une **référence CLI complète** (25 commandes, toutes leurs
+options, dans les deux langues), les **pages des modules qui n'en avaient pas**, le guide pilote qui
+annonçait des entrées de menu inexistantes, 239 liens qui renvoyaient les lecteurs anglophones vers
+des pages françaises, et un contrôle documentaire (`docs-check`) durci pour que ces dérives ne
+repassent plus en silence.
 
-## 🔄 Migration, pas à pas
+## Autres correctifs notables
 
-Pour chaque mission qui active CTLD :
-
-1. **Récupérez `ctld-tools.exe`** sur la [page des releases de CTLD](https://github.com/VEAF/CTLD/releases).
-2. **Lancez-le** (double-clic) et enregistrez la configuration dans votre dossier mission sous
-   le nom `ctld-config.yaml`. Il démarre sur les valeurs par défaut : reportez-y les réglages
-   que vous aviez dans `settings:`, s'il y en avait de réellement actifs.
-3. **Dans `mission.yaml`**, remplacez le bloc `CTLD:` par `CTLD: true`.
-4. **Dans l'éditeur de mission**, remplacez les unités et zones nommées `logistic #0NN` /
-   `pickzone #0NN` par des zones nommées `LGZ_…` / `TRZ_…`.
-5. **Dans `mission-script.lua`**, supprimez tout appel à `ctld.initialize(...)` : le framework
-   VEAF s'en charge. Les fonctions `veaf.ctld_initialize_replacement` et `veaf.ctld_initialized`
-   n'existent plus.
-6. **Rebuildez** et lancez `veaf-tools validate` : il vous dira ce qui reste à corriger.
-
-Les missions **Foothold** ne sont pas concernées : elles embarquent leur propre CTLD et le CTLD
-VEAF y reste désactivé, comme avant.
+- **La démo de référence est passée en v6** (dossier de mission `mission.yaml`, et elle montre des
+  choses qu'une mission v5 ne pouvait pas déclarer).
+- **`convert-v5`** : un `presets.yaml` v5 qui survivait à la conversion puis tuait le build ; un
+  doublon de clé `SKYNET` dans le bloc `modules:` ; un chemin Windows de config météo converti en rien.
+- **Radio** : les préréglages radio des Flaming Cliffs reviennent sur planchette ; le menu radio F10
+  parle enfin la langue de la mission ; les canaux E/F de l'AJS-37 atteignent enfin la mission ; un
+  radiocompas ne se déclare plus comme radio FM.
+- **Un script personnalisé peut être chargé avec un délai**, et une mission adoptée reproduit
+  l'échelonnement de chargement d'origine (ce dont AIEN a besoin après Foothold).
+- **`validate`** refuse désormais une mission que personne ne peut charger (coalitions non peuplées),
+  et une mission bâtie de zéro est jouable de bout en bout.
+- Une volée de correctifs runtime issus de la revue de sécurité `SECREV-2`, close avec ses 140 points
+  décidés : chaque CAP volait sa route à Mach 0.3, une faute de frappe dans un nom de zone plantait
+  toutes les air waves, `-showmfd` faisait l'inverse de ce qu'il annonce sur les AFAC et CAP, un METAR
+  pouvait écraser la météo observée, et d'autres.
 
 ---
 
-## 🙏 Crédits
-
-CTLD 2 est l'œuvre de **FullGas**, développeur principal de la réécriture — architecture,
-moteur, outil de configuration. **Zip** a assuré l'intégration dans les outils de création de
-mission.
-
-Merci également aux mission makers qui remontent ce qui casse : c'est ainsi que les pièges
-silencieux, comme un `settings:` que personne ne lisait, finissent par être trouvés.
+*Le CTLD embarqué est `2.0.0-rc7`. Signalez tout souci sur le
+[Discord VEAF](https://www.veaf.org) ou le dépôt.*

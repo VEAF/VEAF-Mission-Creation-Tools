@@ -106,6 +106,13 @@ def get_mission_script_files() -> list[tuple[str, str]]:
         ("src/scripts/veaf-config.lua", DEFAULT_SCRIPTS_LOCATION),
         # The mission scripts
         ("src/scripts/mission-script.lua", DEFAULT_SCRIPTS_LOCATION),
+        # veafDynamicConfig.lua is packaged but never read from the archive, and that is
+        # understood rather than accidental (FIX-COMMUNITY-SOUNDS-PRUNED ticket 02): dynamic mode
+        # loads it off disk through VEAF_DYNAMIC_MISSIONPATH, and static mode does not load it at
+        # all — `_ordered_mission_script_files` excludes it on purpose, since it *is* the dynamic
+        # loader. Left in because the `src/scripts/*.lua` catch-all below would package it anyway,
+        # and narrowing that glob to save 780 bytes risks silently dropping a mission maker's own
+        # script. The Mission Editor prunes the copy on save; nothing depends on it.
         ("src/scripts/veafDynamicConfig.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/*.lua", DEFAULT_SCRIPTS_LOCATION),
     ]

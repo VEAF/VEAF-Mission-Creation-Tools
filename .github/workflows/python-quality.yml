@@ -1,16 +1,27 @@
 name: Python Quality
 
+# The trigger paths must cover everything the gate below checks, or widening the gate is a no-op:
+# a change confined to test/python/ would not run the job that now lints it.
 on:
   push:
     branches: [develop, master]
     paths:
       - "src/python/**"
+      - "test/python/**"
+      - "veaf_build/**"
       - "pyproject.toml"
+      # A bump that fits the existing constraint changes ONLY this file: without it here, the suite
+      # never runs for such a PR, which then reads green off the Lua and docs checks. A *major* is
+      # covered by pyproject.toml above, which is why the gap only ever showed on minors.
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
   pull_request:
     paths:
       - "src/python/**"
+      - "test/python/**"
+      - "veaf_build/**"
       - "pyproject.toml"
+      - "poetry.lock"
       - ".github/workflows/python-quality.yml"
 
 jobs:
@@ -31,11 +42,14 @@ jobs:
         # --all-extras installs lupa (lua extra) needed by miz_tools / luadata
         run: poetry install --without build --all-extras
 
+      # The whole Python tree, not just the shipped package: test/python/ was under no gate at all,
+      # which is how a `ruff --fix` run in passing silently rewrote unrelated test files twice.
+      # veaf_build/ was already conforming, so including it costs nothing and stops it drifting.
       - name: Lint (ruff check)
-        run: poetry run ruff check src/python/veaf-tools
+        run: poetry run ruff check src/python/ test/python/ veaf_build/
 
       - name: Format check (ruff format)
-        run: poetry run ruff format --check src/python/veaf-tools
+        run: poetry run ruff format --check src/python/ test/python/ veaf_build/
 
       - name: Type check (mypy)
         run: poetry run mypy src/python/veaf-tools

@@ -1,6 +1,6 @@
 # veafServerHook — VEAF server hook
 
-**File:** `VEAF-Server-hook.lua` | **Version:** 2.7.x | **Location:** `Saved Games/<server>/Scripts/Hooks/`
+**File:** `VEAF-Server-hook.lua` | **Location:** `Saved Games/<server>/Scripts/Hooks/`
 
 ---
 
@@ -8,8 +8,9 @@
 
 A DCS hook (GameGUI environment) running on a dedicated server. It:
 
-- listens to chat and runs VEAF server commands (`/secu login`, `/send`, `/pause`…), relayed to
-  the mission through `veafRemote` / `veafSecurity`;
+- listens to chat, runs its own server commands (`/send`, `/pause`, `/restart`…) and relays any
+  other `/module` command (`/secu elevate`, `/alias`…) to the mission through
+  `veafRemote` / `veafSecurity`;
 - loads the pilots list (permission level per UCID);
 - optionally restarts the server when idle (opt-in);
 - optionally pushes telemetry to an API server (opt-in).
@@ -77,8 +78,8 @@ Permission levels (ascending):
 | Level | May… |
 |------:|------|
 | 0 | send messages (`/send`) |
-| 1 | unlock commands (`/secu login`), spawn, missions/zones |
-| 10 | `/restart`, `/halt` (if `enableAutoRestart`) |
+| 1 | relay VEAF commands to the mission (`/alias`, `/atis`, `/secu elevate`… — each module then applies its own check) |
+| 10 | `/secu login`, `/secu logout`, `/pause`, and `/restart`, `/halt` (if `enableAutoRestart`) |
 | 30 | `/restartnow` |
 | 50 | `/haltnow` |
 | 90 | `/code` (arbitrary code execution) |

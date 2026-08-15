@@ -97,6 +97,25 @@ def test_veaf_tools_extra_data_bundles_conversion_profiles(tmp_path: Path) -> No
     assert {"foothold", "foothold-ww2"} <= shipped
 
 
+def test_veaf_tools_extra_data_bundles_the_checklist_data(tmp_path: Path) -> None:
+    """Both guided-checklist directories must ship, or the feature works from a checkout
+    and fails from the executable — the failure mode the conversion profiles already had.
+
+    The checklists are what a mission embeds; the cockpit-control indexes are what the
+    resolver reads to turn an instructor's `throttle sur idle` into an argument number.
+    Each is a whole directory, so a new checklist or a newly indexed aircraft needs no
+    build change.
+    """
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = worker._veaf_tools_extra_data(None)
+    dests = [dest for _src, dest in bundled]
+    assert "veaf_libs/data/checklists" in dests
+    assert "veaf_libs/data/cockpit-controls" in dests
+
+    indexes = next(src for src, dest in bundled if dest == "veaf_libs/data/cockpit-controls")
+    assert "F-16C_50" in {p.stem for p in indexes.glob("*.yaml")}
+
+
 def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
     """Regression guard: third_party_mods.json must ship so the build's requiredModules
     stripping works in the packaged executable (FEAT-THIRD-PARTY-MODS)."""

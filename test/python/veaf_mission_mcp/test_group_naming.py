@@ -47,9 +47,7 @@ def test_combat_zone_capture_trap_detected_against_miz(sample_miz: Path) -> None
 
 
 def test_capture_trap_suppressed_for_intended_zone(sample_miz: Path) -> None:
-    result = validate_group_name(
-        "combatZone_Test-tanks", miz_path=sample_miz, expected_combat_zone="combatZone_Test"
-    )
+    result = validate_group_name("combatZone_Test-tanks", miz_path=sample_miz, expected_combat_zone="combatZone_Test")
     assert not [w for w in result["warnings"] if w["convention"] == "combat_zone_capture"]
 
 
@@ -58,7 +56,10 @@ def test_capture_trap_suppressed_for_intended_zone(sample_miz: Path) -> None:
 
 def test_add_group_returns_warnings_for_colliding_name(sample_miz: Path) -> None:
     result = add_group(
-        sample_miz, **_RED, name="OnDemand-Strike", position={"x": 1.0, "y": 2.0},
+        sample_miz,
+        **_RED,
+        name="OnDemand-Strike",
+        position={"x": 1.0, "y": 2.0},
         units=[{"type": "T-72B", "count": 1}],
     )
     assert "cap_template" in {w["convention"] for w in result["warnings"]}
@@ -66,15 +67,22 @@ def test_add_group_returns_warnings_for_colliding_name(sample_miz: Path) -> None
 
 def test_add_group_for_combat_zone_does_not_warn_about_intended_zone(sample_miz: Path) -> None:
     result = add_group(
-        sample_miz, **_RED, name="tanks", position={"x": 1.0, "y": 2.0},
-        units=[{"type": "T-72B", "count": 1}], for_combat_zone="combatZone_Test",
+        sample_miz,
+        **_RED,
+        name="tanks",
+        position={"x": 1.0, "y": 2.0},
+        units=[{"type": "T-72B", "count": 1}],
+        for_combat_zone="combatZone_Test",
     )
     assert not [w for w in result["warnings"] if w["convention"] == "combat_zone_capture"]
 
 
 def test_add_group_clean_name_no_warnings(sample_miz: Path) -> None:
     result = add_group(
-        sample_miz, **_RED, name="Plain Convoy", position={"x": 1.0, "y": 2.0},
+        sample_miz,
+        **_RED,
+        name="Plain Convoy",
+        position={"x": 1.0, "y": 2.0},
         units=[{"type": "T-72B", "count": 1}],
     )
     assert result["warnings"] == []

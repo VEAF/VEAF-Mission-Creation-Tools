@@ -23,8 +23,6 @@ veafShortcuts.Id = "SHORTCUTS"
 
 veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
 
-veafShortcuts.RadioMenuName = "SHORTCUTS"
-
 veafShortcuts.AliasStarter = "-"
 
 veafShortcuts.RemoteCommandParser = "([a-zA-Z0-9:\\.-]+)%s(.*)"
@@ -56,7 +54,10 @@ function VeafAlias:new(objectToCopy)
   objectToCreate.name = nil
   -- description
   objectToCreate.description = nil
-  -- hidden from HELP
+  -- if true, the alias is internal (auth, debug) and is NOT offered to a mission maker:
+  -- veaf_shortcuts_scanner.py greps `:setHidden(true)` out of this file to build the list the
+  -- `list_shortcuts` MCP action serves to an AI assistant. (Its original consumer, the
+  -- veafShortcuts F10 radio menu, was deleted in ca962e4b — June 2021.)
   objectToCreate.hidden = false
   -- the command that must be substituted to the alias
   objectToCreate.veafCommand = nil
@@ -230,8 +231,10 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   elseif logDebug("checking in veafGroundAI") and veafGroundAI.executeCommand(position, command, coalition, _bypassSecurity) then
     return true
-  elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
-    return true
+  -- VMR-130: veafRemote had a marker command here (`_remote`). It has been removed — it read a
+  -- `monitoredCommands` table that nothing had been able to fill since the SLMOD bridge was
+  -- deleted in 2021, so it could only ever refuse. Remote execution goes through the server hook
+  -- and `veafRemote.executeCommandFromRemote`, not through a marker.
   else
     return false
   end
@@ -240,6 +243,52 @@ end
 ---
 --- other methods
 ---
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Alias parameter parsing
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The parameters an alias command carries, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, group B. This loop was written out **three times** in this
+--- file, and two of the three were identical but for the name of one local (`missionName` versus
+--- `zoneName`) — the clearest illustration in the codebase of why this lot exists. One spec now.
+---
+--- There is no keyphrase to detect here: an alias's remaining command is always parsed, so a
+--- single always-matching descriptor stands in for the sub-verb chain the other modules have.
+veafShortcuts.AliasParameterSpec = {
+  defaults = function(options)
+    options.silent = false
+    options.name = nil
+    options.password = nil
+  end,
+  commands = { { match = "" } },
+  parameters = {
+    { keys = { "silent" }, apply = veaf.markerRules.flag("silent") },
+    { keys = { "name" }, apply = veaf.markerRules.text("name") },
+    { keys = { "password" }, apply = veaf.markerRules.text("password") },
+  },
+  valueWhenAbsent = "",
+}
+
+--- Extract `silent`, `name` and `password` from an alias command.
+---
+--- Always returns a table, so callers can read the fields without a nil check. A non-string
+--- command yields the defaults rather than raising, which the `ExecuteAlias` call site relied on
+--- not happening: it passed `remainingCommand` straight to `veaf.split`, so a nil there used to
+--- raise.
+--- @param command the alias command text
+--- @return table with `silent`, `name` and `password`
+function veafShortcuts.parseAliasParameters(command)
+  local _options = veaf.parseMarkerText(command, veafShortcuts.AliasParameterSpec)
+  if not _options then
+    -- Seed from the spec rather than repeating its defaults here: two copies of the same list is
+    -- what this whole lot exists to remove, and they would drift the first time one changed.
+    _options = {}
+    veafShortcuts.AliasParameterSpec.defaults(_options)
+  end
+  return _options
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAliasForCombatMission object
@@ -280,30 +329,12 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   local command = command .. (remainingCommand or "")
   veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
-  local keywords = veaf.split(command, ",")
+  local _options = veafShortcuts.parseAliasParameters(command)
+  local silent = _options.silent
+  local missionName = _options.name
+  local password = _options.password
 
-  local silent = false
-  local missionName = nil
-  local password = nil
-  for _, keyphrase in pairs(keywords) do
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "silent" then
-      silent = true
-    end
-
-    if key:lower() == "name" then
-      missionName = val
-    end
-
-    if key:lower() == "password" then
-      password = val
-    end
-  end
-
-  if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+  if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
@@ -386,30 +417,12 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   local command = command .. (remainingCommand or "")
   veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
-  local keywords = veaf.split(command, ",")
+  local _options = veafShortcuts.parseAliasParameters(command)
+  local silent = _options.silent
+  local zoneName = _options.name
+  local password = _options.password
 
-  local silent = false
-  local zoneName = nil
-  local password = nil
-  for _, keyphrase in pairs(keywords) do
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "silent" then
-      silent = true
-    end
-
-    if key:lower() == "name" then
-      zoneName = val
-    end
-
-    if key:lower() == "password" then
-      password = val
-    end
-  end
-
-  if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+  if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
     veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
@@ -500,20 +513,9 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("found VeafAlias[%s]", alias:getName() or ""))
     if alias:getBatchAliases() then -- no alias to actually execute, but instead run a batch
       -- the batch aliases are always password protected by a Mission Master password, so search for one
-      local password = nil
-      local keywords = veaf.split(remainingCommand, ",")
+      local password = veafShortcuts.parseAliasParameters(remainingCommand).password
 
-      for _, keyphrase in pairs(keywords) do
-        local str = veaf.breakString(veaf.trim(keyphrase), " ")
-        local key = str[1]
-        local val = str[2] or ""
-
-        if key:lower() == "password" then
-          password = val
-        end
-      end
-
-      if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+      if not (bypassSecurity or veafSecurity.isKnownPilot(markId)) then
         veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
         local hash = nil
         if password then
@@ -1722,7 +1724,7 @@ function veafShortcuts.initialize()
     -- An alias usually expands to a spawn: markers target the opposing side by default.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     return veafShortcuts.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, route)
-  end, veafCommands.PRIORITY_SHORTCUTS)
+  end, veafCommands.PRIORITY_SHORTCUTS, veafCommands.SECURITY_HANDLED)
   veafRemote.registerRemoteModule("alias", veafShortcuts.executeCommandFromRemote)
   veafShortcuts.dumpAliasesList()
 end

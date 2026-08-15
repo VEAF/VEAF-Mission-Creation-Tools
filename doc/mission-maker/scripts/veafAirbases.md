@@ -1,6 +1,6 @@
 # veafAirbases — Données de bases aériennes et ATC
 
-**Module ID:** — | **Fichier:** `veafAirbases.lua`
+**Module ID:** `AIRBASES` | **Fichier:** `veafAirbases.lua`
 
 ---
 

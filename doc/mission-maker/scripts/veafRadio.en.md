@@ -160,7 +160,7 @@ The action vocabulary is **closed** (v1). Each `action` requires the listed keys
 | `message` | `text: "<displayed text>"` | Displays the text on screen |
 | `lua` | `function: "<name.of.function>"`, `args: [ ... ]` (optional) | Calls a mission-maker Lua function |
 
-> **The `lua` action is the bridge to your Lua.** The function referenced by `function:` must be defined by the mission maker in `mission-script.lua`. If it is referenced in YAML but **missing** from the mission's Lua, **the build fails** (and `veaf-tools validate` flags it). This is how you attach a custom Lua function to a menu declared in YAML.
+> **The `lua` action is the bridge to your Lua.** The function referenced by `function:` must be defined by the mission maker in `mission-script.lua`. If it is referenced in YAML but **missing** from the mission's Lua, **the build fails** (and `veaf-tools mission validate` flags it). This is how you attach a custom Lua function to a menu declared in YAML.
 
 ---
 
@@ -202,7 +202,7 @@ The **parent** menu is untouched: hang a restricted submenu under a global one a
 still sees the parent, simply without that entry.
 
 > Used by combat zones, which offer their menu to the side playing them — see
-> [veafCombatZone](veafCombatZone.md#f10-menu-audience).
+> [veafCombatZone](veafCombatZone.en.md#f10-menu-audience).
 
 ---
 
@@ -226,7 +226,7 @@ veafRadio.addCommandToSubmenu(
   veafRadio.USAGE_ForAll
 )
 
--- Add a secured command (requires /secu login)
+-- Add a secured command (runs at the group's effective level — its lowest-graded occupant)
 veafRadio.addSecuredCommandToSubmenu(
   "Emergency stop",
   missionMenu,
@@ -348,5 +348,5 @@ veafRadio.addCommandToSubmenu(
 
 ## See Also
 
-- [veafSecurity](veafSecurity.md) — securing commands with `/secu login`
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafRadio` API
+- [veafSecurity](veafSecurity.en.md) — security tiers and the group's effective level
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafRadio` API

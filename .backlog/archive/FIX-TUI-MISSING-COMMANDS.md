@@ -2,7 +2,7 @@
 
 Status: ✅ done
 
-**Goal**: 4 of the 17 `veaf-tools` commands have **no `CommandSpec`** in [tui.py](src/python/veaf-tools/veaf_libs/tui.py) (`COMMANDS` list), so they are absent from the interactive wizard menu **and** from the CLI↔TUI bridge: `validate`, `migrate-config`, `generate-config`, `user-config`. A user who double-clicks `veaf-tools.exe` (TUI mode) cannot reach them — e.g. can't run `validate` interactively (reported by David). The TUI must expose **all** commands.
+**Goal**: 4 of the 17 `veaf-tools` commands have **no `CommandSpec`** in [tui.py](../../src/python/veaf-tools/veaf_libs/tui.py) (`COMMANDS` list), so they are absent from the interactive wizard menu **and** from the CLI↔TUI bridge: `validate`, `migrate-config`, `generate-config`, `user-config`. A user who double-clicks `veaf-tools.exe` (TUI mode) cannot reach them — e.g. can't run `validate` interactively (reported by David). The TUI must expose **all** commands.
 
 Confirmed by audit (vs the 13 already covered). Clarifications from David:
 1. **All** commands belong in the TUI menu (even those without mandatory args — they're still launchable from the menu, like `about`).

@@ -473,14 +473,25 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
   veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned[coalition])))
 
-  local AFAC_num = veafSpawn.AFAC.numberSpawned[coalition]
-  local newGroupName = veafSpawn.AFAC.callsigns[coalition][AFAC_num].name
+  -- VMR-098: take the first free callsign, and refuse the spawn when there is none. The old
+  -- fallback was `callsigns[coalition][numberSpawned]`, so a counter out of step with the taken
+  -- flags handed out the callsign of an AFAC that is still flying: two aircraft answering to one
+  -- name, and the first watchdog to fire releases a slot the other one is still using.
+  local newGroupName = nil
+  local AFAC_num = nil
   for i = 1, veafSpawn.AFAC.maximumAmount do
     if veafSpawn.AFAC.callsigns[coalition][i].taken == false then
       newGroupName = veafSpawn.AFAC.callsigns[coalition][i].name
       AFAC_num = i
       break
     end
+  end
+  if not newGroupName then
+    veaf.loggers.get(veafSpawn.Id):info("every AFAC callsign is taken, one needs to be destroyed")
+    if not silent then
+      trigger.action.outTextForCoalition(coalition, veaf.t("spawn.afac_limit"), 15)
+    end
+    return false
   end
   veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s", newGroupName)
   veaf.loggers.get(veafSpawn.Id):trace("AFAC_num=%s", AFAC_num)
@@ -861,8 +872,12 @@ function veafSpawn.spawnCombatAirPatrol(
   local function convertSpeeds(speed, mach, altitude)
     local result = speed
     if not result then
-      -- compute ground speed in m/s based on MACH and altitude
-      result = veaf.convertMachSpeed(0.3, altitude).TAS_ms
+      -- compute ground speed in m/s based on MACH and altitude.
+      -- `mach` was ignored in favour of a hard 0.3, so the four legs below -- called with 0.3, 0.5,
+      -- 0.63 and 0.63 -- all came out at the same speed, and every CAP spawned without an explicit
+      -- speed flew its whole route at Mach 0.3 (SECREV-2 / VMR-097). `or 0.3` keeps the old value as
+      -- the fallback for a caller that passes nothing.
+      result = veaf.convertMachSpeed(mach or 0.3, altitude).TAS_ms
     else
       -- compute ground speed in m/s based on IAS and altitude
       result = veaf.convertIndicatedAirSpeed(speed, altitude).TAS_ms
@@ -1400,7 +1415,7 @@ end
 -- Aircraft spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("unit", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local code = options.laserCode
   local channel = options.freq
   local band = options.mod
@@ -1429,7 +1444,7 @@ veafSpawn.registerCommandHandler("unit", "L9", function(eventPos, options, coali
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("afac", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnAFAC(
     eventPos,
     options.name,
@@ -1442,12 +1457,15 @@ veafSpawn.registerCommandHandler("afac", "L9", function(eventPos, options, coali
     options.laserCode,
     options.immortal,
     false,
-    options.showMFD
+    -- VMR-099: `hiddenOnMFD`, so the flag is negated here as in every other handler. Passing
+    -- `options.showMFD` straight through left the AFAC visible on every MFD by default and
+    -- hid it when the mission maker asked for it.
+    not options.showMFD
   )
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("cap", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("cap", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCombatAirPatrol(
     eventPos,
     options.radius,
@@ -1461,7 +1479,7 @@ veafSpawn.registerCommandHandler("cap", "L9", function(eventPos, options, coalit
     options.capradius,
     options.skill,
     bypassSecurity,
-    options.showMFD
+    not options.showMFD -- VMR-099: same inversion as the afac handler above
   )
   return g, nil, false
 end)

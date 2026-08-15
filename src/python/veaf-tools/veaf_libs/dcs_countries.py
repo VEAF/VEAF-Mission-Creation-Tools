@@ -37,6 +37,22 @@ def _name_to_id() -> dict[str, int]:
     return mapping
 
 
+@functools.lru_cache(maxsize=1)
+def all_country_ids() -> frozenset[int]:
+    """Return every country id DCS knows about.
+
+    Used when a build tool needs a country the mission does *not* contain — the CTLD/CSAR sound
+    declaration plays each sound to an unused country so nobody hears it. The candidate has to come
+    from this table: an id DCS does not know makes the Mission Editor crash on load, the same
+    failure ``country_id_for_name`` exists to avoid.
+
+    Returns:
+        The frozen set of known ``country.id`` values.
+    """
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcs-countries.yaml"))
+    return frozenset(int(entry["id"]) for entry in raw.get("countries", []))
+
+
 def country_id_for_name(name: str) -> int | None:
     """Return the DCS numeric id for a country name, or ``None`` if unknown.
 

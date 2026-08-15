@@ -37,9 +37,9 @@ function TestVeafGroundUnitHandlerClass:test_class_exists()
 end
 
 function TestVeafGroundUnitHandlerClass:test_status_constants()
-  luaunit.assertEquals(GroundUnitHandler.STATUS_READY,  1)
+  luaunit.assertEquals(GroundUnitHandler.STATUS_READY, 1)
   luaunit.assertEquals(GroundUnitHandler.STATUS_ACTIVE, 2)
-  luaunit.assertEquals(GroundUnitHandler.STATUS_OVER,   4)
+  luaunit.assertEquals(GroundUnitHandler.STATUS_OVER, 4)
 end
 
 function TestVeafGroundUnitHandlerClass:test_statusToString_ready()
@@ -97,7 +97,7 @@ function TestVeafGroundUnitHandlerOOP:test_setSilent_true()
 end
 
 function TestVeafGroundUnitHandlerOOP:test_setPlayerUnitsNames()
-  self.h:setPlayerUnitsNames({"alpha", "bravo"})
+  self.h:setPlayerUnitsNames({ "alpha", "bravo" })
   luaunit.assertEquals(#self.h:getPlayerUnitsNames(), 2)
 end
 
@@ -120,31 +120,31 @@ function TestVeafGroundUnitHandlerOrders:test_no_orders_getCurrentOrder_nil()
 end
 
 function TestVeafGroundUnitHandlerOrders:test_setOrders_returns_first()
-  self.h:setOrders({"order1", "order2", "order3"})
+  self.h:setOrders({ "order1", "order2", "order3" })
   luaunit.assertEquals(self.h:getCurrentOrder(), "order1")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_advances()
-  self.h:setOrders({"o1", "o2", "o3"})
+  self.h:setOrders({ "o1", "o2", "o3" })
   self.h:completeOrder()
   luaunit.assertEquals(self.h:getCurrentOrder(), "o2")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_twice()
-  self.h:setOrders({"o1", "o2", "o3"})
+  self.h:setOrders({ "o1", "o2", "o3" })
   self.h:completeOrder()
   self.h:completeOrder()
   luaunit.assertEquals(self.h:getCurrentOrder(), "o3")
 end
 
 function TestVeafGroundUnitHandlerOrders:test_completeOrder_beyond_last_returns_nil()
-  self.h:setOrders({"o1"})
+  self.h:setOrders({ "o1" })
   self.h:completeOrder()
   luaunit.assertNil(self.h:getCurrentOrder())
 end
 
 function TestVeafGroundUnitHandlerOrders:test_clearOrders()
-  self.h:setOrders({"o1", "o2"})
+  self.h:setOrders({ "o1", "o2" })
   self.h:clearOrders()
   luaunit.assertNil(self.h:getCurrentOrder())
 end
@@ -308,6 +308,164 @@ function TestVeafGroundAIMarkTextAnalysis:test_unset_without_group_returns_nil()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafGroundAICharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: what this parser does TODAY, measured. This one carries the
+-- inventory's hardest quirk — `set` and `unset` search the game world for the nearest allied
+-- group when `groupname` is absent, from inside the parser. A shared text parser cannot do
+-- that, so ticket 03 has to decide where it goes before migrating this module.
+-- ---------------------------------------------------------------------------
+TestVeafGroundAICharacterisation = {}
+
+local function analyse(text)
+  return veafGroundAI.markTextAnalysis({ x = 0, y = 0, z = 0 }, coalition.side.BLUE, text)
+end
+
+function TestVeafGroundAICharacterisation:test_every_verb_maps_to_its_constant()
+  luaunit.assertEquals(analyse("_ground order, name H, order fire").verb, veafGroundAI.VERB_ORDER)
+  luaunit.assertEquals(analyse("_ground start, name H").verb, veafGroundAI.VERB_START)
+  luaunit.assertEquals(analyse("_ground stop, name H").verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(analyse("_ground clear, name H").verb, veafGroundAI.VERB_CLEAR)
+  luaunit.assertEquals(analyse("_ground status, name H").verb, veafGroundAI.VERB_STATUS)
+end
+
+function TestVeafGroundAICharacterisation:test_the_verb_is_case_insensitive()
+  luaunit.assertEquals(analyse("_ground STATUS, name H").verb, veafGroundAI.VERB_STATUS)
+end
+
+-- `name` is mandatory for every verb, and its absence refuses the command.
+function TestVeafGroundAICharacterisation:test_a_missing_name_refuses_the_command()
+  luaunit.assertNil(analyse("_ground status"))
+end
+
+-- FIXED (ticket 03): this parser reads `str[2] or ""`, so a valueless `name` becomes the EMPTY
+-- STRING, and the old `if not options.name` guard did not catch it because "" is truthy in Lua —
+-- the command proceeded with a nameless handler. Exactly the bug SECREV-010 fixed in veafMove,
+-- and which the veafShortcuts loops got right by testing `#name == 0`.
+function TestVeafGroundAICharacterisation:test_a_valueless_name_is_refused()
+  luaunit.assertNil(analyse("_ground status, name"))
+end
+
+-- Measured, not assumed: `name` followed only by spaces is refused too, because `veaf.trim` runs
+-- BEFORE the key/value split (quirk 13), so trailing whitespace never becomes a value. A name of
+-- pure whitespace is therefore unreachable through a marker.
+function TestVeafGroundAICharacterisation:test_a_name_followed_only_by_spaces_is_refused_too()
+  luaunit.assertNil(analyse("_ground status, name  "))
+end
+
+-- But a SECOND space is part of the value, since only the first one separates (quirk 11).
+function TestVeafGroundAICharacterisation:test_a_second_space_becomes_part_of_the_name()
+  luaunit.assertEquals(analyse("_ground status, name  Alpha").name, " Alpha")
+end
+
+-- FIXED (ticket 03): a valueless `groupname` used to reach `Group.getByName("")`. An empty name
+-- cannot identify a group, and leaving `group` nil is what lets the nearest-allied-group search
+-- run — which is the intended answer when the pilot named no group.
+function TestVeafGroundAICharacterisation:test_a_valueless_groupname_does_not_query_dcs()
+  local queried = {}
+  local savedGetByName = Group.getByName
+  Group.getByName = function(name)
+    table.insert(queried, name)
+    return savedGetByName(name)
+  end
+
+  analyse("_ground status, name H, groupname")
+
+  Group.getByName = savedGetByName
+  luaunit.assertEquals(#queried, 0, "queried DCS with: " .. table.concat(queried, ", "))
+end
+
+function TestVeafGroundAICharacterisation:test_a_named_groupname_still_queries_dcs()
+  local queried = {}
+  local savedGetByName = Group.getByName
+  Group.getByName = function(name)
+    table.insert(queried, name)
+    return savedGetByName(name)
+  end
+
+  analyse("_ground status, name H, groupname Alpha")
+
+  Group.getByName = savedGetByName
+  luaunit.assertEquals(queried, { "Alpha" })
+end
+
+-- Unlike veafCasMission and veafMove, an absent value here is "" rather than nil. That is the
+-- inventory's quirk 1, and the shared parser has to express both.
+function TestVeafGroundAICharacterisation:test_a_valueless_order_becomes_an_empty_string()
+  luaunit.assertEquals(analyse("_ground order, name H, order").order, "")
+end
+
+function TestVeafGroundAICharacterisation:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(analyse("_ground status, name H, name J").name, "J")
+end
+
+function TestVeafGroundAICharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = analyse("_ground status, name H, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.name, "H")
+  luaunit.assertNil(r.unknownParameters)
+end
+
+function TestVeafGroundAICharacterisation:test_empty_text_returns_nil()
+  luaunit.assertNil(analyse(""))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestArtilleryOrderTextCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01, GROUP B: the same key/value loop under another name, and
+-- the only one in the codebase splitting on ";" instead of ",". The shared parser therefore
+-- needs the separator as a parameter, not a constant.
+-- ---------------------------------------------------------------------------
+TestArtilleryOrderTextCharacterisation = {}
+
+function TestArtilleryOrderTextCharacterisation:setUp()
+  self.ah = ArtilleryUnitHandler:new()
+end
+
+function TestArtilleryOrderTextCharacterisation:test_the_separator_is_a_semicolon()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("aim; shells 5").shells, 5)
+end
+
+-- A comma is NOT a separator here, so "shells 5" is never seen as a keyword.
+function TestArtilleryOrderTextCharacterisation:test_a_comma_does_not_separate()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim, shells 5").shells)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_several_keywords_apply()
+  local r = self.ah:orderTextAnalysis("aim; shells 5; radius 100")
+  luaunit.assertEquals(r.shells, 5)
+  luaunit.assertEquals(r.radius, 100)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_an_unrecognised_verb_returns_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis("move"))
+end
+
+function TestArtilleryOrderTextCharacterisation:test_the_verb_is_case_insensitive()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("AIM").verb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+end
+
+-- "aim" is tested before "fire", so the chain order wins over the order in the text.
+function TestArtilleryOrderTextCharacterisation:test_the_chain_order_wins_over_the_text_order()
+  luaunit.assertEquals(self.ah:orderTextAnalysis("fire aim").verb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_a_valueless_shells_leaves_the_field_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim; shells").shells)
+end
+
+-- `target` is validated before being stored: an unparseable coordinate is dropped, which is
+-- the one place in the codebase where a parameter rule refuses its own input.
+function TestArtilleryOrderTextCharacterisation:test_an_invalid_target_is_dropped()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim; target banana").target)
+end
+
+function TestArtilleryOrderTextCharacterisation:test_an_empty_order_returns_nil()
+  luaunit.assertNil(self.ah:orderTextAnalysis(""))
+end
+
+-- ---------------------------------------------------------------------------
 -- TestArtilleryUnitHandlerOOP
 -- ---------------------------------------------------------------------------
 TestArtilleryUnitHandlerOOP = {}
@@ -322,8 +480,12 @@ function TestArtilleryUnitHandlerOOP:setUp()
     setTask = function(self, task) end,
   }
   self.ah.dcsGroup = {
-    getController = function(self) return mockCtrl end,
-    getName = function(self) return "Art1Group" end,
+    getController = function(self)
+      return mockCtrl
+    end,
+    getName = function(self)
+      return "Art1Group"
+    end,
   }
 end
 

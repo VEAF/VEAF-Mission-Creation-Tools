@@ -1,7 +1,7 @@
 # veafMove — Unit Movement and Tanker Route Management
 
 
-**Module ID:** `MOVE` | **Version:** — | **File:** `veafMove.lua`
+**Module ID:** `MOVE` | **File:** `veafMove.lua`
 
 ---
 
@@ -94,5 +94,5 @@ veafMove.moveTanker(eventPos, "KC-135 Texaco", 430, 7000, 270, 30, false, false)
 
 ## See Also
 
-- [veafSpawn](veafSpawn.md) — spawning new units
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafMove` API
+- [veafSpawn](veafSpawn.en.md) — spawning new units
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafMove` API

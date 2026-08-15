@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from veaf_mission_mcp.edit_mission_yaml import describe_mission_config, set_mission_module
 
 SAMPLE = """\

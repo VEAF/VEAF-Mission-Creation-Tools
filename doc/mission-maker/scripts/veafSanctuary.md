@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Définit des zones qui détruisent automatiquement toute unité de la coalition spécifiée qui y entre. Utile pour protéger les zones d'opération des porte-avions, les bases aériennes amies ou les zones arrière sécurisées contre les intrusions ennemies.
+Définit des zones qui protègent une coalition : toute unité d'une autre coalition qui y entre est avertie, puis traitée. Utile pour protéger les zones d'opération des porte-avions, les bases aériennes amies ou les zones arrière sécurisées contre les intrusions ennemies.
 
 ---
 
@@ -25,7 +25,7 @@ Puis définir les zones :
 ```lua
 local zone = VeafSanctuaryZone:new()
   :setName("Carrier Zone")
-  :setCoalition(coalition.side.RED)  -- protéger contre les unités rouges qui entrent
+  :setCoalition(coalition.side.BLUE) -- coalition protégée : les unités des autres coalitions sont traitées
   :setPolygonFromUnits({ "SANCT-NO", "SANCT-NE", "SANCT-SE", "SANCT-SO" }, true)
   :setDelayWarning(30)               -- secondes avant l'avertissement
   :setDelaySpawn(60)                 -- secondes avant le déploiement des défenses
@@ -53,24 +53,24 @@ modules:
         polygon_units:                  # noms d'unités DCS définissant le périmètre du polygone
           - "Sanctuary-Unit-1"
           - "Sanctuary-Unit-2"
-        coalition: RED                  # BLUE | RED — coalition dont les unités sont détruites à l'entrée
-        delay_warning: 30              # secondes avant l'envoi du message d'avertissement (défaut : 0)
-        delay_spawn: 60                # secondes avant que la zone devient active après le démarrage
-        delay_instant: 0               # secondes entre les contrôles de destruction répétés (défaut : 0)
+        coalition: BLUE                 # BLUE | RED — coalition protégée ; les unités des autres coalitions sont traitées
+        delay_warning: 30              # secondes de présence dans la zone avant le message d'avertissement (défaut : 0)
+        delay_spawn: 60                # secondes de présence dans la zone avant le déploiement des défenses (-1 = désactivé, défaut)
+        delay_instant: -1              # secondes de présence dans la zone avant la destruction instantanée (-1 = désactivé, défaut)
         protect_from_missiles: false   # true = détruire aussi les missiles tirés sur les unités présentes dans la zone
 ```
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `sanctuary_zones` | objet[] | `[]` | Non | Liste des zones sanctuary |
 | `sanctuary_zones[].name` | string | — | Oui | Identifiant interne |
 | `sanctuary_zones[].polygon_units` | string[] | — | Non | Noms d'unités DCS définissant le périmètre du polygone |
-| `sanctuary_zones[].coalition` | string | — | Non | `BLUE` ou `RED` — les unités de cette coalition sont détruites à l'entrée |
-| `sanctuary_zones[].delay_warning` | entier | `0` | Non | Secondes avant l'envoi du message d'avertissement |
-| `sanctuary_zones[].delay_spawn` | entier | `0` | Non | Secondes avant que la zone s'active après le démarrage de la mission |
-| `sanctuary_zones[].delay_instant` | entier | `0` | Non | Secondes entre les contrôles de destruction répétés |
+| `sanctuary_zones[].coalition` | string | — | Non | `BLUE` ou `RED` — coalition protégée ; les unités des autres coalitions sont traitées à l'entrée |
+| `sanctuary_zones[].delay_warning` | entier | `0` | Non | Secondes de présence dans la zone avant l'envoi du message d'avertissement |
+| `sanctuary_zones[].delay_spawn` | entier | `-1` | Non | Secondes de présence dans la zone avant le déploiement des défenses (-1 = désactivé) |
+| `sanctuary_zones[].delay_instant` | entier | `-1` | Non | Secondes de présence dans la zone avant la destruction instantanée de l'intrus (-1 = désactivé) |
 | `sanctuary_zones[].protect_from_missiles` | booléen | `false` | Non | true = détruire aussi les missiles tirés sur les unités présentes dans la zone |
 
 ### Exemple minimal
@@ -86,7 +86,7 @@ modules:
           - "SANCT-NE"
           - "SANCT-SE"
           - "SANCT-SO"
-        coalition: RED
+        coalition: BLUE
 ```
 
 ---
@@ -118,8 +118,8 @@ Les zones sont construites avec `VeafSanctuaryZone:new()` puis enregistrées via
 
 ## Notes
 
-- La zone utilise la zone de trigger DCS définie dans l'éditeur de mission
-- Les unités sont détruites immédiatement à l'entrée dans la zone
+- Une zone se définit par polygone, par cercle (position + rayon) ou depuis une zone de trigger DCS (`addZoneFromTriggerZone`)
+- Par défaut, aucune destruction instantanée : `delay_instant` vaut -1 (désactivé) ; l'escalade avertissement → défenses → destruction suit les délais configurés
 - Fonctionne pour les aéronefs et les unités terrestres
 - N'affecte pas la coalition qui possède le sanctuary
 

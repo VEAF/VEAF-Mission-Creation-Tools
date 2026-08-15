@@ -235,7 +235,7 @@ def publish(
         False,
         help="Mark as pre-release (e.g. RC). Requires a semver pre-release version "
         "(--version 6.9.21-rc1): the release workflow keys off the '-' suffix to leave "
-        "published-latest untouched. Test with: veaf-tools-updater update --tag published-v<version>",
+        "published-latest untouched. Test with: veaf-tools-updater --tag published-v<version>",
     ),
     ci: bool = typer.Option(
         False,
@@ -254,7 +254,7 @@ def publish(
     For pre-release testing without affecting production users, publish a semver
     pre-release version (e.g. --version 6.9.21-rc1 --prerelease). The release workflow
     keys off the '-' suffix, so published-latest is left untouched; test with:
-        veaf-tools-updater update --tag published-v<version>
+        veaf-tools-updater --tag published-v<version>
     """
     logger.set_verbose(verbose)
     console.print("[bold green]VEAF Tools Publish[/bold green]")
@@ -482,10 +482,21 @@ def update_dcs_data(
     airdromes: bool = typer.Option(
         False, "--airdromes", help="Regenerate the airdrome name->id table from committed runtime dumps."
     ),
+    parking: bool = typer.Option(
+        False, "--parking", help="Regenerate the bundled parking-stand table from committed parking dumps."
+    ),
     airfield_freqs: bool = typer.Option(
         False, "--airfield-freqs", help="Regenerate the airfield ATC-frequency table (needs --dcs-path)."
     ),
-    dcs_path: str | None = typer.Option(None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs)."),
+    cockpit_controls: bool = typer.Option(
+        False, "--cockpit-controls", help="Regenerate the cockpit-control indexes (needs --dcs-path)."
+    ),
+    aircraft: str | None = typer.Option(
+        None, "--aircraft", help="With --cockpit-controls: index only this module folder, e.g. F-16C."
+    ),
+    dcs_path: str | None = typer.Option(
+        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls)."
+    ),
     inject_bridge: str | None = typer.Option(
         None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."
     ),
@@ -515,7 +526,9 @@ def update_dcs_data(
     from veaf_build.dcs_data import units_lua
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
-    run_all = all_data or not (countries or units or radio or airdromes or airfield_freqs)
+    run_all = all_data or not (
+        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls
+    )
     ref_short = DATAMINE_REF[:8]
 
     if airdromes:
@@ -546,6 +559,13 @@ def update_dcs_data(
             count = airdromes_provider.generate()
             console.print(f"[green]✓ {count} airfields written across all dumped theatres[/green]")
 
+    if parking:
+        from veaf_build.dcs_data import parking as parking_provider
+
+        console.print("[cyan]Generating slimmed parking table from committed parking dumps...[/cyan]")
+        written = parking_provider.generate()
+        console.print(f"[green]✓ parking data written for {written} theatre(s)[/green]")
+
     if airfield_freqs:
         if not dcs_path:
             console.print("[red]--airfield-freqs requires --dcs-path <DCS World install>[/red]")
@@ -557,6 +577,25 @@ def update_dcs_data(
         console.print(f"[cyan]Generating airfield ATC-frequency table from {dcs_path}...[/cyan]")
         count = airfield_freqs_provider.generate(Path(dcs_path))
         console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
+
+    if cockpit_controls:
+        if not dcs_path:
+            console.print("[red]--cockpit-controls requires --dcs-path <DCS World install>[/red]")
+            raise typer.Exit(code=1)
+        from pathlib import Path
+
+        from veaf_build.dcs_data import cockpit_controls as cockpit_controls_provider
+
+        console.print(f"[cyan]Indexing cockpit controls from {dcs_path}...[/cyan]")
+        written = cockpit_controls_provider.generate(Path(dcs_path), only=aircraft)
+        if not written:
+            console.print("[yellow]No indexed module is installed here — nothing written.[/yellow]")
+        for module, (control_count, skipped) in written.items():
+            console.print(f"[green]✓ {module}: {control_count} controls[/green]")
+            if skipped:
+                console.print(
+                    f"  [yellow]{skipped} element(s) skipped — built in a shape the parser cannot read[/yellow]"
+                )
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")

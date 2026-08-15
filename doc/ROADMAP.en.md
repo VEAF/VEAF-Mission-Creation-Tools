@@ -1,73 +1,33 @@
-# Roadmap — VEAF Mission Creation Tools
+# Roadmap
 
-This document describes the intended direction for the project. Items are ordered by priority, not by date. No delivery dates are committed.
+**The roadmap lives in the repository, not here**:
+[`ROADMAP.md`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/ROADMAP.md) holds the
+execution order of the open lots, and
+[`.backlog/`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/tree/develop/.backlog) the scope
+and status of each. Both are kept current alongside the code; this page was not, and still claimed
+that the `master` branch carried a v5 release when it moved to v6 on 18 July 2026.
 
----
+What follows is deliberately short: the three long-term axes, with no dates and no statuses, to place
+the project. No delivery date is committed.
 
-## Status Legend
+## The three axes
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Done — shipped in a release |
-| 🔄 | In progress — on `develop` |
-| 🔵 | Planned — ticket exists in backlog |
-| ⚪ | Idea — not yet ticketed |
+**Persistent campaign.** A persistence module saving a mission's state between runs — the DCS units
+as well as the VEAF state machines (CAS missions, combat zones, QRA) — and on top of it, dynamic
+persistent campaign generation built entirely on VEAF tooling. The dependency path: drop MiST, then
+persistence, then the campaign.
 
----
+**AI-assisted tooling.** Describe a mission in French or English and get its `mission.yaml` with its
+spawns and zones — at *design time*, using the mission maker's own AI tooling rather than VEAF
+infrastructure. An MCP server already delivers editing a `.miz` and mutating what it contains.
+Further along the same axis, a game master improvising a campaign live while the player flies.
 
-## v6.x — Current development cycle (`develop`)
+**The DCS bridge.** Finish integrating `veaf-dcs-bridge`, the link between a running DCS and an
+outside program. It is the shared building block of persistence, of the game master, and of a
+real-time dashboard in the browser.
 
-### Foundation (Lot 1 — INFRA)
-- ✅ **Poetry migration** — replace `requirements.txt` with `pyproject.toml` managed by Poetry
-- ✅ **Python quality gate** — ruff (lint + format) + mypy (types) + pytest, enforced in CI
-- ✅ **Python CI job** — `python-quality` GitHub Actions job alongside the existing Lua CI
+## What already happened
 
-### CLI improvements (Lot 2 — CLI)
-- 🔵 **Version check on startup** — compare installed version against latest GitHub release, prompt to update
-- 🔵 **Centralized `~/.veaf/` directory** — all user data (installed scripts, preferences, logs) in one place
-- 🔵 **Embedded module list** — `veaf-tools` exe embeds the list of Lua modules with version info; exposed via `about --modules`
-
-### Interactive mode (Lot 3 — TUI)
-- ✅ **InquirerPy interactive mode** — launching `veaf-tools` with no arguments opens a guided prompt instead of showing help
-- ✅ **Preference persistence** — last-used parameters saved to `~/.veaf/preferences.json` and pre-filled on next run
-
-### Lua configuration system (Lot 4 — LUA-CONFIG)
-- ✅ **`veaf.config` per module** — each Lua module registers its default configuration; modules can be enabled/disabled
-- ✅ **`veaf-config.lua`** — build-generated config file (from `mission.yaml`); replaces hand-written `veaf-modules-config.lua`
-- ✅ **`mission-script.lua`** — mission-level file for custom Lua code; replaces `missionConfig.lua`
-- ✅ **`generate-config` command** — generates a documented `mission.yaml` template for a given mission
-- ✅ **Mission YAML → module selection** — `lua_modules` section in `mission.yaml` drives which modules are included and how they are initialized
-
-### Release
-- ✅ **v6.x releases** — each release goes out on a `release/x.y.z` branch merged into `master` (the v6 stable line since 6.10.0), then tagged twice: `published-vx.y.z` for the binaries, `vx.y.z` for the versioned documentation. Current version **6.12.0**.
-- ✅ **v6.12.0 release** — **combat zones on both sides**: `enemy_coalition` makes a zone playable from the red side (completion and the friends/enemies labels follow), and its F10 menu now goes only to the side playing it (`radio_menu_coalition`, with `ALL` to restore the shared menu) — `veafRadio` can now scope a submenu to a coalition. **Foothold chain**: `convert-other` adopts the release archive as distributed, a `foothold-ww2` profile for Normandy, `validate` rejects an ineffective `config_override.target`, batch adoption of the ten maps, radio presets on the plan model. **Reliability**: a group's primary frequency is bounded by the airframe's real range (FW-190 bug reported by Tripack, 27 aircraft affected), and a `mission.yaml` password finally protects something (SHA-1 hashes, not SHA-256). **Documentation**: full audit of the published site, plus a CI gate to keep it that way.
-- ✅ **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
-- ✅ **v6.3.3 release** — stabilization and bug fixes: Lua initialize() crashes, build pipeline fixes, build profiles, CSAR YAML-first, auto dependency resolution
-
----
-
-## Quality & Testing
-
-- ✅ Lua unit tests (31 suites, ~915 tests) — `luaunit` + `dcs_mocks.lua` + `poetry run test-lua`
-- ✅ StyLua formatting check in CI
-- ✅ Luacheck static analysis in CI
-- ✅ Lua CI on GitHub Actions (`lua-unit-tests` + `luacheck` + `stylua-check`)
-- ✅ Python unit tests — pytest with coverage
-- ✅ Python quality gate in CI
-
----
-
-## Beyond v6 (ideas, not yet ticketed)
-
-- ✅ **Logger filter** (`--log-modules`) — filter which Lua modules write to the DCS log, for cleaner debugging
-- ✅ **DCSUnits doc** — auto-generate `doc/DCS_UNITS.md` from `dcsUnits.lua` before each publish
-- ⚪ **Mission validation** — `veaf-tools validate` command that checks a mission against known VEAF requirements
-- ⚪ **Multi-map support** — better handling of missions across different DCS maps (Caucasus, Syria, Persian Gulf, etc.)
-- ⚪ **VS Code extension** — syntax highlighting and validation for VEAF YAML config files
-
----
-
-## Maintained but stable (v5)
-
-The `master` branch carries the last v5 release (**v5.103.3**). Only critical bug fixes will be applied to v5.
-New features target v6 only.
+The v6 cycle is complete and published; `master` carries v6. Each version's notable changes are in
+the
+[changelog](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/CHANGELOG.md).

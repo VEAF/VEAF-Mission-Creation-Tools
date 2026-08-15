@@ -22,9 +22,13 @@ Sections handled
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
+from typing import Literal
 
+from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
+from veaf_libs.lua_literals import lua_long_string, lua_scalar, lua_string
 from veaf_libs.lua_module_scanner import get_modules
 
 # ---------------------------------------------------------------------------
@@ -55,6 +59,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "AIRBASES",
     "MARKERS",
     "MISSILEGUARDIAN",
+    "ASSIST",
     "TIME",
     "UNITS",
     "CACHE",
@@ -96,6 +101,11 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zones",
         "airwave_zones",
         "password_mm_hashes",
+        # ASSIST: build-time choices, not runtime settings — the engine only ever sees
+        # the checklists the build chose to emit, and infers the display mode from
+        # whether they carry images.
+        "checklists",
+        "display",
     }
 )
 
@@ -188,9 +198,9 @@ def security_section() -> list[str]:
     return [
         *_yaml_comment("generated.mission_yaml.section.security"),
         "# security:",
-        "#   disabled: true                # true = no password required (default)",
-        "#   password_hashes:              # add SHA-256 hashes to restrict access",
-        '#     - "<SHA-256 hash>"',
+        "#   disabled: true                # true = no password required (default: false — security is active)",
+        "#   password_hashes:              # add SHA-1 hashes to restrict access (sha1.hex of the password)",
+        '#     - "<SHA-1 hash>"',
     ]
 
 
@@ -223,6 +233,7 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
         "REMOTE",
         "AIRBASES",
         "MISSILEGUARDIAN",
+        "ASSIST",
         "INTERPRETER",
     ],
     "Combat": [
@@ -375,41 +386,22 @@ def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
 
 
 def _to_lua_scalar(value: object) -> str:
-    """Convert a Python scalar to a Lua literal string."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if value is None:
-        return "nil"
-    return f'"{value}"'
+    """Convert a Python scalar to a Lua literal string.
 
-
-def _lua_long_string(text: str) -> str:
-    """Wrap *text* in a Lua long-string with a dynamically chosen bracket level.
-
-    Chooses the minimum number of ``=`` characters such that the closing
-    bracket sequence does not appear anywhere in *text*, making the result
-    valid for any input.
+    Strings go through the shared quoting helper.  They used to be interpolated into
+    ``"{value}"`` with no escaping at all, two dozen lines above a correct
+    implementation in this same module — the sixteen call sites below meant any
+    ``mission.yaml`` value carrying a quote or a newline generated broken Lua
+    (SECREV-2, VMR-012).
     """
-    level = 0
-    while f"]{('=' * level)}]" in text:
-        level += 1
-    eq = "=" * level
-    return f"[{eq}[{text}]{eq}]"
+    return lua_scalar(value)
 
 
-def _emit_lua_string(value: str) -> str:
-    """Return a valid Lua string literal for *value*.
-
-    Uses a Lua long-string (``[[...]]`` or equivalent) when the value contains
-    a newline, a double-quote, or a backslash — characters that either cannot
-    appear unescaped inside a plain ``"..."`` Lua string or would be silently
-    transformed by Lua's escape processing.  Otherwise wraps in double quotes.
-    """
-    if "\n" in value or '"' in value or "\\" in value:
-        return _lua_long_string(value)
-    return f'"{value}"'
+# Kept as module-private names because this file and its tests use them in some thirty
+# places; the implementations now live in `veaf_libs.lua_literals`, the single helper the
+# security review asked for so that a new emitter cannot quietly invent a fourth scheme.
+_lua_long_string = lua_long_string
+_emit_lua_string = lua_string
 
 
 def _yaml_comment(key: str) -> list[str]:
@@ -467,10 +459,15 @@ def _emit_module_body(
         if custom_points:
             lines.append("    local customPoints = {")
             for pt in custom_points:
-                pt_name = pt.get("name", "")
-                lat = pt.get("lat", "0")
-                lon = pt.get("lon", "0")
-                lines.append(f'        {{name = "{pt_name}", point = coord.LLtoLO("{lat}", "{lon}")}},')
+                # Three problems in one line (SECREV-2 / VMR-060). The coordinates were quoted, so
+                # `coord.LLtoLO` received strings and only worked through Lua's implicit coercion --
+                # and a non-numeric value sailed through to fail at mission start. Neither they nor
+                # the point's *name* (which the finding does not mention) were escaped, so a quote in
+                # either produced Lua that does not parse.
+                pt_name = _emit_lua_string(str(pt.get("name", "")))
+                lat = _coordinate(pt.get("lat", 0), "lat", pt.get("name", ""))
+                lon = _coordinate(pt.get("lon", 0), "lon", pt.get("name", ""))
+                lines.append(f"        {{name = {pt_name}, point = coord.LLtoLO({lat}, {lon})}},")
             lines.append("    }")
             lines.append("    veafNamedPoints.initialize(customPoints)")
         else:
@@ -497,7 +494,11 @@ def _emit_module_body(
     elif mod_id == "QRA":
         lines.append(f"    {var_name}.initialize()")
         if qra_section:
-            silence_all = qra_section.get("silence_all", False)
+            # No `False` default: with one, the guard below was true whatever the mission said, so
+            # every QRA mission emitted `ToggleAllSilence(false)` even when silence was never
+            # mentioned (SECREV-2 / VMR-059). Harmless at runtime -- veafQraManager.AllSilence is
+            # already false -- but the guard read as "only when configured" and did not do that.
+            silence_all = qra_section.get("silence_all")
             if silence_all is not None:
                 lines.append(f"    VeafQRA.ToggleAllSilence({'true' if silence_all else 'false'})")
             for qra_def in qra_section.get("definitions") or []:
@@ -729,6 +730,62 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     return lines
 
 
+def _coordinate(value: object, axis: Literal["lat", "lon"], point_name: str) -> float:
+    """Return *value* as a number, refusing anything a Lua coordinate call cannot use.
+
+    A named point's latitude and longitude come from a hand-written ``mission.yaml`` and used to be
+    interpolated *quoted*, so ``coord.LLtoLO`` got strings and worked only through Lua's implicit
+    coercion — while a genuinely non-numeric value produced Lua that failed at mission start rather
+    than at build time (SECREV-2 / VMR-060).
+
+    Args:
+        value: The configured coordinate, as parsed from YAML.
+        axis: ``"lat"`` or ``"lon"``, for the error message.
+        point_name: The point's name, so the message says which one is wrong.
+
+    Returns:
+        The coordinate as a float.
+
+    Raises:
+        ValueError: When *value* is not a number, or a string spelling one.
+    """
+    if isinstance(value, bool):
+        raise ValueError(t("lua_config.err.not_a_coordinate", axis=axis, point=point_name, value=value))
+    if isinstance(value, int | float):
+        return float(value)
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(t("lua_config.err.not_a_coordinate", axis=axis, point=point_name, value=value)) from exc
+
+
+def _number_pair(value: object, key: str) -> tuple[float, float]:
+    """Return *value* as a pair of numbers, refusing anything else with a message naming *key*.
+
+    These offsets come from hand-written ``mission.yaml``, and indexing them as ``value[0]`` /
+    ``value[1]`` turned a plain typo into an ``IndexError`` or ``TypeError`` with no hint of which
+    setting was wrong (SECREV-2 / VMR-058). A string is refused on purpose: ``"12"[0]`` is ``"1"``,
+    so it used to emit silently wrong Lua rather than fail.
+
+    Args:
+        value: The configured value, as parsed from YAML.
+        key: The setting's name, for the error message.
+
+    Returns:
+        The two numbers, in order.
+
+    Raises:
+        ValueError: When *value* is not a sequence of exactly two numbers.
+    """
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes) and len(value) == 2:
+        first, second = value
+        if isinstance(first, int | float) and isinstance(second, int | float):
+            if not isinstance(first, bool) and not isinstance(second, bool):
+                return first, second
+    # `setting`, not `key`: `t()`'s own first parameter is named `key`, so passing one collides.
+    raise ValueError(t("lua_config.err.not_a_number_pair", setting=key, value=value))
+
+
 def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     """Emit an AirWaveZone:new():...:start() builder chain."""
     lines: list[str] = []
@@ -750,7 +807,8 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     if "draw_zone" in zone:
         lines.append(f"{indent}    :setDrawZone({'true' if zone['draw_zone'] else 'false'})")
     if ro := zone.get("respawn_default_offset"):
-        lines.append(f"{indent}    :setRespawnDefaultOffset({ro[0]}, {ro[1]})")
+        x, y = _number_pair(ro, "respawn_default_offset")
+        lines.append(f"{indent}    :setRespawnDefaultOffset({x}, {y})")
     if rr := zone.get("respawn_radius"):
         lines.append(f"{indent}    :setRespawnRadius({rr})")
     if da := zone.get("delay_before_activation"):
@@ -1155,6 +1213,27 @@ def _resolve_deps(effective: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
+    """Return a module's normalised config block, or ``None`` when it is not active.
+
+    Accepts every shape a mission may write (``ID: true``, ``ID:``, ``ID: {enabled: …}``)
+    and applies the same enable rule as the generator itself, so a caller reading a
+    module's settings cannot disagree with what gets emitted.
+
+    Args:
+        mission_yaml: The effective ``mission.yaml`` mapping (internal ``lua_modules`` key).
+        module_id: The module id, e.g. ``"ASSIST"``.
+
+    Returns:
+        The module's settings, or ``None`` when the mission omits or disables it.
+    """
+    modules: dict = mission_yaml.get("lua_modules") or {}
+    if module_id not in modules:
+        return None
+    config = _normalize_module_cfg(modules[module_id])
+    return config if _get_module_enabled(config, True) else None
+
+
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     """Return whether a community script is enabled, matching the build's enable rule.
 
@@ -1177,9 +1256,95 @@ def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     return bool(cfg)
 
 
+def _emit_check_table(check: dict[str, object]) -> str:
+    """Render a step's resolved check descriptor as an inline Lua table.
+
+    ``type`` leads, so a generated checklist reads the way the engine dispatches it.
+    """
+    ordered = ["type", *(key for key in check if key != "type")]
+    fields = [f"{key} = {_emit_lua_value(check[key])}" for key in ordered if key in check]
+    return "{" + ", ".join(fields) + "}"
+
+
+def _emit_lua_value(value: object) -> str:
+    """Render a scalar for embedding in a generated table, strings safely quoted."""
+    return _emit_lua_string(value) if isinstance(value, str) else _to_lua_scalar(value)
+
+
+def _emit_localized(text: str | dict[str, str], language: str) -> str:
+    """Render a label or title as a Lua string literal.
+
+    A **string** is emitted untouched: it may be a catalog key, and a key has to reach
+    the engine as a key so ``veaf.t()`` resolves it in game. **Inline translations** are
+    resolved here, in the mission's language — the same one the picture is rendered in,
+    so the two can never disagree.
+    """
+    if isinstance(text, str):
+        return _emit_lua_string(text)
+    return _emit_lua_string(resolve_text(text, {}, language))
+
+
+def _emit_checklist_step(step: ChecklistStep, language: str) -> str:
+    """Render one checklist step as an inline Lua table."""
+    fields = [f"label = {_emit_localized(step.label, language)}"]
+    if step.element is not None:
+        fields.append(f"element = {_emit_lua_string(step.element)}")
+    for carried in ("device", "command"):
+        value = getattr(step, carried)
+        if value is not None:
+            fields.append(f"{carried} = {_to_lua_scalar(value)}")
+    fields.append(f"check = {_emit_check_table(step.check_table())}")
+    # Emitted only when set, so an ordinary checklist's Lua is byte-for-byte what it was before
+    # the hatch existed — and so `devCondition` in a generated file is always a real one.
+    if step.dev_condition:
+        fields.append("devCondition = true")
+    return "{" + ", ".join(fields) + "}"
+
+
+def emit_checklists_lua(
+    checklists: Sequence[Checklist],
+    image_keys: Mapping[str, Sequence[str]] | None = None,
+    indent: str = "    ",
+    language: str | None = None,
+) -> list[str]:
+    """Render one ``veafAssist.registerChecklist()`` call per checklist.
+
+    Args:
+        checklists: The checklists the mission activates, already validated.
+        image_keys: Per checklist id, the resource key of each progress state. Emitted
+            so the engine indexes a list instead of rebuilding a name by concatenation;
+            a checklist with no entry simply displays no picture.
+        indent: Leading whitespace, so the block sits inside its ``if`` guard.
+
+    Returns:
+        The Lua lines (empty when there is nothing to register).
+    """
+    resolved_language = language or current_language()
+    lines: list[str] = []
+    for checklist in checklists:
+        lines.append(f"{indent}veafAssist.registerChecklist({{")
+        lines.append(f"{indent}    id = {_emit_lua_string(checklist.id)},")
+        lines.append(f"{indent}    title = {_emit_localized(checklist.title, resolved_language)},")
+        aircraft = ", ".join(_emit_lua_string(name) for name in checklist.aircraft)
+        lines.append(f"{indent}    aircraft = {{{aircraft}}},")
+        lines.append(f"{indent}    menu = {_emit_lua_string(checklist.menu)},")
+        keys = (image_keys or {}).get(checklist.id)
+        if keys:
+            rendered = ", ".join(_emit_lua_string(key) for key in keys)
+            lines.append(f"{indent}    images = {{{rendered}}},")
+        lines.append(f"{indent}    steps = {{")
+        for step in checklist.steps:
+            lines.append(f"{indent}        {_emit_checklist_step(step, resolved_language)},")
+        lines.append(f"{indent}    }},")
+        lines.append(f"{indent}}})")
+    return lines
+
+
 def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
+    checklists: Sequence[Checklist] | None = None,
+    checklist_images: Mapping[str, Sequence[str]] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -1190,6 +1355,13 @@ def generate_config_lua(
     header:
         Comment text prepended after the separator line. Defaults to the
         localised generated-file header from the i18n catalog.
+    checklists:
+        Guided checklists the mission activates. Emitted **before** the module
+        initialisation block, so ``veafAssist.initialize()`` sees a populated
+        catalogue when it builds its radio menu. Nothing is emitted when empty,
+        which is what keeps a mission that activates none of them free of cost.
+    checklist_images:
+        Per checklist id, the resource key of each rendered progress state.
 
     Returns
     -------
@@ -1240,7 +1412,23 @@ def generate_config_lua(
         # (veafSpawnCore:142), transport missions — accept L1 or L0 only. Emitting L9 alone gave
         # a password that could not authenticate a marker whatever it was set to; the
         # hand-written v5 missions set both for this exact reason.
-        for hash_val in security_cfg.get("password_hashes") or []:
+        own_hashes: list = security_cfg.get("password_hashes") or []
+        if own_hashes:
+            # Replace, do not add (SECREV-2 / VMR-040). `veafSecurity.lua` ships two password hashes
+            # common to every mission, and they live in a public repository — so declaring your own
+            # used to *widen* the set rather than close it: the well-known password still opened the
+            # mission. `password_MM` five lines below has always been replaced rather than extended;
+            # there was no reason for the asymmetry.
+            #
+            # L0 is cleared too, and that is not incidental: `checkPassword_L1` accepts L1 **or L0**,
+            # so leaving the shipped L0 hash in place would keep opening every L1 gate and make this
+            # change decorative. Consequence to know: on a mission that declares its own hashes,
+            # nothing grants the ADMIN tier by password any more — ADMIN comes from the pilot's level
+            # in veaf-pilots.txt, which is how a server identifies its administrators anyway.
+            lines.append("veafSecurity.password_L0 = {}")
+            lines.append("veafSecurity.password_L1 = {}")
+            lines.append("veafSecurity.password_L9 = {}")
+        for hash_val in own_hashes:
             lines.append(f'veafSecurity.password_L1["{hash_val}"] = true')
             lines.append(f'veafSecurity.password_L9["{hash_val}"] = true')
         mm_hashes: list = security_cfg.get("password_mm_hashes") or []
@@ -1262,6 +1450,16 @@ def generate_config_lua(
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
             lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+        lines.append("")
+
+    # ── Guided checklists ─────────────────────────────────────────────────
+    # Registered before the module block: veafAssist.initialize() reads the catalogue
+    # to build its radio menu, so the data has to be there first.
+    if checklists:
+        lines.append("-- ── Guided checklists (assistance) ───────────────────────────────────────────")
+        lines.append("if veafAssist then")
+        lines.extend(emit_checklists_lua(checklists, checklist_images, language=language))
+        lines.append("end")
         lines.append("")
 
     # ── Module configuration + initialization ─────────────────────────────

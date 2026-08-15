@@ -16,7 +16,7 @@ Documentation for the VEAF Lua unit test suite and CI/CD pipeline.
 
 ## Overview
 
-The project has 34 Lua test suites covering all runtime modules, totalling ~1000 tests. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
+The project covers the runtime modules with 36 Lua test suites (the exceptions are listed at the end of the "Test Suite" section). Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
 
 ---
 
@@ -46,8 +46,16 @@ lua test/lua/test_veafSpawn.lua
 ### Requirements
 
 - `poetry install` must have been run once
-- Lua 5.1 on PATH (`lua5.1` on Linux/DevContainer, `lua` or `C:\Program Files (x86)\Lua\5.1\lua.exe` on Windows)
+- Lua 5.1 on PATH (`lua5.1`, `lua51` or `lua`, or `C:\Program Files (x86)\Lua\5.1\lua.exe` on Windows)
 - No other dependencies (luaunit is bundled in `test/lua/luaunit.lua`)
+
+Version **5.1** is verified: every candidate is queried with `lua -v`, and a 5.2+ interpreter is
+refused rather than used. That is deliberate — Lua 5.2 removed `unpack` and made
+`string.format('%d', ...)` reject a fractional number, so a run under 5.4 produces dozens of
+failures that look like regressions and are not.
+
+On Windows, `scoop install lua51` provides Lua 5.1.5. Note that its `lua` shim replaces the one
+of any other Lua already installed through scoop; the `lua51` shim lets you keep both.
 
 ---
 
@@ -63,7 +71,7 @@ poetry run test-lua -c
 
 After the test run a rich table is printed showing hits, missed lines, and coverage percentage per module. The report file is also written to `luacov.report.out` in the repository root for manual inspection.
 
-### Requirements
+### Requirements (coverage)
 
 luacov must be installed via luarocks:
 
@@ -92,7 +100,7 @@ test/lua/
 ├── luaunit.lua         # Test framework (bundled)
 ├── dcs_mocks.lua       # DCS API stubs
 ├── veaf_loader.lua     # Module loader for src/scripts/veaf/
-└── test_*.lua          # One file per module (34 files)
+└── test_*.lua          # One file per module (36 files)
 ```
 
 ### dcs_mocks.lua
@@ -135,53 +143,48 @@ luaunit.assertIsTrue(ok, err)
 
 | Suite | Tests | What it covers |
 |-------|-------|----------------|
-| `test_veaf.lua` | 93 | Core utilities, string/table/vector helpers, logging |
+| `test_veaf.lua` | 346 | Core utilities, string/table/vector helpers, logging |
 | `test_veafCacheManager.lua` | 12 | Cache get/set/invalidate |
-| `test_veafInterpreter.lua` | 9 | Mark text tokenizer |
+| `test_veafInterpreter.lua` | 12 | Mark text tokenizer |
 | `test_veafTime.lua` | 71 | Time parsing, formatting, DCS time helpers |
-| `test_veafSecurity.lua` | 24 | Security levels, admin management |
+| `test_veafSecurity.lua` | 79 | Security levels, admin management |
+| `test_veafServerHook.lua` | 9 | Server hook: chat-command parsing and dispatch |
 | `test_veafNamedPoints.lua` | 25 | Point registration, lookup, ATC helpers |
-| `test_veafShortcuts.lua` | 39 | Shortcut registration and resolution |
-| `test_veafWeather.lua` | 65 | Weather parsing, QNH/wind calculations |
+| `test_veafShortcuts.lua` | 74 | Shortcut registration and resolution |
+| `test_veafWeather.lua` | 107 | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | 29 | Unit data export utilities |
-| `test_veafCombatMission.lua` | 59 | Base combat mission lifecycle |
-| `test_veafAirbases.lua` | 13 | Airbase data lookup |
-| `test_veafCombatZone.lua` | 51 | Zone activation, scoring, state machine |
-| `test_veafUnits.lua` | 34 | Unit template lookup, category filtering |
-| `test_veafAssets.lua` | 19 | Asset registration, state tracking |
-| `test_veafRemote.lua` | 25 | Remote command parsing |
-| `test_veafMarkers.lua` | 17 | Marker event handling |
+| `test_veafCombatMission.lua` | 116 | Base combat mission lifecycle |
+| `test_veafAirbases.lua` | 31 | Airbase data lookup |
+| `test_veafCombatZone.lua` | 138 | Zone activation, scoring, state machine |
+| `test_veafUnits.lua` | 67 | Unit template lookup, category filtering |
+| `test_veafAssets.lua` | 26 | Asset registration, state tracking |
+| `test_veafAssist.lua` | 67 | Pilot assistance: checklists, progression, menus |
+| `test_veafRemote.lua` | 23 | Remote command parsing |
+| `test_veafMarkers.lua` | 18 | Marker event handling |
 | `test_veafEventHandler.lua` | 21 | Event dispatch, handler registration |
-| `test_veafSkynetIadsHelper.lua` | 18 | Skynet IADS integration helpers |
-| `test_veafSkynetIadsMonitor.lua` | 18 | Skynet monitor state |
-| `test_veafGroundAI.lua` | 26 | Ground AI behavior flags |
-| `test_veafRadio.lua` | 24 | Radio menu tree construction |
-| `test_veafQraManager.lua` | 28 | QRA state machine, zone management |
-| `test_veafAirWaves.lua` | 30 | Wave scheduling, group assignment |
-| `test_veafSanctuary.lua` | 19 | Sanctuary zone detection |
-| `test_veafMissileGuardian.lua` | 16 | Missile intercept logic |
-| `test_veafCasMission.lua` | 14 | CAS threat package generation |
-| `test_veafTransportMission.lua` | 14 | Transport mission setup |
-| `test_veafCarrierOperations.lua` | 16 | Carrier recovery sequence |
-| `test_veafMove.lua` | 19 | Move/teleport command parsing |
-| `test_veafGrass.lua` | 12 | Grass runway initialization |
-| `test_veafSpawn.lua` | 55 | Spawn commands, mark text analysis, laser freq conversion |
-| `test_veafSpawnParser.lua` | 45 | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
-| `test_veafCommands.lua` | 8 | Command registry: priority ordering and dispatch |
+| `test_veafSkynetIadsHelper.lua` | 68 | Skynet IADS integration helpers |
+| `test_veafSkynetIadsMonitor.lua` | 41 | Skynet monitor state |
+| `test_veafGroundAI.lua` | 83 | Ground AI behavior flags |
+| `test_veafRadio.lua` | 127 | Radio menu tree construction |
+| `test_veafQraManager.lua` | 99 | QRA state machine, zone management |
+| `test_veafAirWaves.lua` | 135 | Wave scheduling, group assignment |
+| `test_veafSanctuary.lua` | 49 | Sanctuary zone detection |
+| `test_veafMissileGuardian.lua` | 38 | Missile intercept logic |
+| `test_veafCasMission.lua` | 51 | CAS threat package generation |
+| `test_veafTransportMission.lua` | 52 | Transport mission setup |
+| `test_veafCarrierOperations.lua` | 47 | Carrier recovery sequence |
+| `test_veafMove.lua` | 78 | Move/teleport command parsing |
+| `test_veafGrass.lua` | 16 | Grass runway initialization |
+| `test_veafSpawn.lua` | 184 | Spawn commands, mark text analysis, laser freq conversion |
+| `test_veafSpawnParser.lua` | 70 | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
+| `test_veafCommands.lua` | 17 | Command registry: priority ordering and dispatch |
 | `test_veafI18n.lua` | 32 | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |
 
-**Modules not covered** (design-time or external-only):
+**Module not covered**:
 
 | Module | Reason |
 |--------|--------|
-| `veafMissionEditor.lua` | Operates on `.miz` ZIP files; tested via Python integration tests |
-| `veafMissionFlightPlanEditor.lua` | idem |
-| `veafMissionNormalizer.lua` | idem |
-| `veafMissionRadioPresetsEditor.lua` | idem |
-| `veafMissionTriggerInjector.lua` | idem |
-| `veafSpawnableAircraftsEditor.lua` | idem |
 | `dcsUnits.lua` | Pure data file; exercised indirectly through `test_veafUnits.lua` |
-| `veaf-scripts-trace.lua` | Config/include wrapper with no testable logic |
 
 ---
 
@@ -254,24 +257,24 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 
 **`stylua-check`** — Ubuntu latest
 1. Checkout repository
-2. Run `JohnnyMorganz/stylua-action@v4` with version `2.4.0`
-3. Check `src/scripts/veaf/` against `.stylua.toml`
+2. Run `JohnnyMorganz/stylua-action@v5` with version `2.4.0`
+3. Check `src/scripts/veaf/` **and** `test/lua/` against `.stylua.toml`
 4. Fail if any file is not formatted
 
 **`lua-coverage`** — Ubuntu latest
 1. Checkout repository
 2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
-3. Run `poetry run test-lua --cov-fail-under 67` (luacov line coverage)
+3. Run `poetry run test-lua --cov-fail-under 72` (luacov line coverage)
 4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally
 
 ```powershell
 # Check only (no writes)
-stylua --check src/scripts/veaf/
+stylua --check src/scripts/veaf/ test/lua/
 
 # Auto-format
-stylua src/scripts/veaf/
+stylua src/scripts/veaf/ test/lua/
 ```
 
 ### Running Luacheck Locally

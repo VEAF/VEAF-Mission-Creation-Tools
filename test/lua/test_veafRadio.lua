@@ -4,6 +4,8 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- veafRadio consults veafSecurity for secured menu commands (REVIEW-SECURITY-LAYER 01)
+dofile(src .. "/veafSecurity.lua")
 dofile(src .. "/veafRadio.lua")
 
 -- ---------------------------------------------------------------------------
@@ -131,6 +133,188 @@ function TestVeafRadioMarkTextAnalysis:test_path_for_play()
   local r = veafRadio.markTextAnalysis("_radio play, path sounds/msg.ogg")
   luaunit.assertTrue(r.playmp3)
   luaunit.assertEquals(r.path, "sounds/msg.ogg")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: these record what this parser does TODAY, so the shared
+-- parser can be proved to change nothing. Measured, not assumed. Anything here that looks
+-- wrong is recorded rather than fixed — the ticket's inventory says which is which.
+-- ---------------------------------------------------------------------------
+TestVeafRadioCharacterisation = {}
+
+-- The keyphrase alone is not a command: a sub-verb (transmit / play) is required.
+function TestVeafRadioCharacterisation:test_keyphrase_without_subverb_returns_nil()
+  luaunit.assertNil(veafRadio.markTextAnalysis("_radio"))
+end
+
+function TestVeafRadioCharacterisation:test_keyphrase_is_case_insensitive()
+  local r = veafRadio.markTextAnalysis("_RADIO TRANSMIT, message hi")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.transmit)
+end
+
+-- An unrecognised key is ignored in silence, and — unlike a recognised one — leaves the
+-- defaults intact. Only veafSpawn reports unknown keys; generalising that is ticket 02's job.
+function TestVeafRadioCharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = veafRadio.markTextAnalysis("_radio transmit, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.transmit)
+  luaunit.assertEquals(r.frequencies, "251")
+  luaunit.assertNil(r.unknownParameters)
+end
+
+-- FIXED (ticket 03): a *recognised* keyword with no value used to overwrite its default with
+-- nil. `executeCommand` requires `options.frequencies`, so the command did nothing at all — no
+-- transmission, no message to the pilot — while an *unknown* keyword was harmless because it
+-- left "251" intact. A mistyped recognised keyword should not be worse than an unrecognised one.
+function TestVeafRadioCharacterisation:test_valueless_freq_keeps_the_default()
+  local r = veafRadio.markTextAnalysis("_radio transmit, freq")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.frequencies, "251")
+end
+
+function TestVeafRadioCharacterisation:test_valueless_name_keeps_the_default()
+  local r = veafRadio.markTextAnalysis("_radio transmit, name")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.name, "SRS")
+end
+
+function TestVeafRadioCharacterisation:test_valueless_modulation_keeps_the_default()
+  luaunit.assertEquals(veafRadio.markTextAnalysis("_radio transmit, mod").modulations, "AM")
+end
+
+-- `message` and `path` default to nil, so a valueless keyword has nothing to destroy there.
+function TestVeafRadioCharacterisation:test_valueless_message_stays_nil()
+  luaunit.assertNil(veafRadio.markTextAnalysis("_radio transmit, message").message)
+end
+
+-- `quiet` is a pure flag: a value is accepted and discarded rather than parsed.
+function TestVeafRadioCharacterisation:test_quiet_ignores_any_value()
+  luaunit.assertTrue(veafRadio.markTextAnalysis("_radio transmit, quiet yes").quiet)
+  luaunit.assertTrue(veafRadio.markTextAnalysis("_radio transmit, quiet false").quiet)
+end
+
+-- This parser is the only one chaining its keywords with `elseif`, so at most one rule fires
+-- per key. It is **not observable today**: no key is claimed by two live branches (`path`
+-- appears twice, but the second is unreachable). Recorded because it means ticket 03 may
+-- migrate this module to the permissive form without changing behaviour — pinned here so
+-- that claim is tested rather than argued.
+function TestVeafRadioCharacterisation:test_every_keyword_group_is_independent()
+  local r = veafRadio.markTextAnalysis("_radio transmit, message hi, freq 243, mod FM, name net, quiet")
+  luaunit.assertEquals(r.message, "hi")
+  luaunit.assertEquals(r.frequencies, "243")
+  luaunit.assertEquals(r.modulations, "FM")
+  luaunit.assertEquals(r.name, "net")
+  luaunit.assertTrue(r.quiet)
+end
+
+-- `transmit` wins when both sub-verbs are present: the chain tests it first.
+function TestVeafRadioCharacterisation:test_first_subverb_in_the_chain_wins()
+  local r = veafRadio.markTextAnalysis("_radio transmit, _radio play, message hi")
+  luaunit.assertTrue(r.transmit)
+  luaunit.assertFalse(r.playmp3)
+end
+
+-- A message may contain spaces; only the first space separates key from value.
+function TestVeafRadioCharacterisation:test_value_keeps_everything_after_the_first_space()
+  local r = veafRadio.markTextAnalysis("_radio transmit, message hello there pilot")
+  luaunit.assertEquals(r.message, "hello there pilot")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioMigratedParser
+--
+-- REFACTOR-MARKER-PARSER ticket 03. This block replaces the differential equivalence test that
+-- ticket 02 used to prove the specification BEFORE migrating. Once veafRadio.markTextAnalysis
+-- became `veaf.parseMarkerText(text, veafRadio.MarkerSpec)`, that test compared the shared parser
+-- to itself through a spec duplicated in the test file — tautological, and carrying the very
+-- second-source-of-truth defect this lot exists to remove. A test that can no longer fail is
+-- worse than an absent one, so it is gone rather than kept for reassurance.
+--
+-- The values it used to guard are pinned by TestVeafRadioCharacterisation above, written before
+-- any of this moved. What is still worth asserting is that the corpus of hostile and degenerate
+-- inputs cannot take the parser down, and that the module really does drive the shared machine.
+-- ---------------------------------------------------------------------------
+TestVeafRadioMigratedParser = {}
+
+-- Every input ticket 01 pinned, plus hostile and degenerate shapes.
+local RADIO_CORPUS = {
+  "_radio",
+  "_radio transmit",
+  "_radio play",
+  "_RADIO TRANSMIT, message hi",
+  "_radio transmit, message hi",
+  "_radio transmit, message hello there pilot",
+  "_radio transmit, message  padded",
+  "_radio transmit, freq 131.5",
+  "_radio transmit, freqs 243",
+  "_radio transmit, frequency 243.0",
+  "_radio transmit, frequencies 121.5",
+  "_radio transmit, mod FM",
+  "_radio transmit, mods FM",
+  "_radio transmit, modulation FM",
+  "_radio transmit, modulations AM",
+  "_radio transmit, name mynet",
+  "_radio transmit, quiet",
+  "_radio transmit, quiet yes",
+  "_radio transmit, quiet false",
+  "_radio transmit, freq",
+  "_radio transmit, name",
+  "_radio transmit, message",
+  "_radio transmit, banana 3",
+  "_radio transmit, freq 131.5, mod FM, name mynet, quiet",
+  "_radio play, path sounds/msg.ogg",
+  "_radio play, path",
+  "_radio transmit, _radio play, message hi",
+  "_radio transmit, freq 1, freq 2",
+  "_radio transmit,freq 243",
+  "_radio transmit ,  freq 243",
+  "please _radio transmit here",
+  "",
+  " ",
+  ",",
+  ",,,",
+  "hello world",
+  "_spawn group, name A",
+}
+
+function TestVeafRadioMigratedParser:test_the_corpus_is_not_empty()
+  -- Without this, an empty corpus would make the test below pass while checking nothing.
+  luaunit.assertTrue(#RADIO_CORPUS > 30)
+end
+
+function TestVeafRadioMigratedParser:test_no_input_in_the_corpus_raises()
+  local raised = {}
+  for _, text in ipairs(RADIO_CORPUS) do
+    local ok, err = pcall(veafRadio.markTextAnalysis, text)
+    if not ok then
+      table.insert(raised, string.format("[%s] %s", text, tostring(err)))
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "inputs raising: " .. table.concat(raised, " | "))
+end
+
+-- The module drives the shared machine rather than carrying its own loop.
+function TestVeafRadioMigratedParser:test_the_module_declares_a_marker_specification()
+  luaunit.assertIsTable(veafRadio.MarkerSpec)
+  luaunit.assertIsTable(veafRadio.MarkerSpec.commands)
+  luaunit.assertIsTable(veafRadio.MarkerSpec.parameters)
+end
+
+-- The unreachable duplicate `path` branch of the old elseif chain is gone, not translated:
+-- one rule claims that key now.
+function TestVeafRadioMigratedParser:test_only_one_rule_claims_the_path_key()
+  local claiming = 0
+  for _, rule in ipairs(veafRadio.MarkerSpec.parameters) do
+    for _, key in ipairs(rule.keys) do
+      if key == "path" then
+        claiming = claiming + 1
+      end
+    end
+  end
+  luaunit.assertEquals(claiming, 1)
 end
 
 -- ---------------------------------------------------------------------------
@@ -950,6 +1134,219 @@ function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
   local menu = veafRadio.addSubMenu("Scoped", nil, coalition.side.BLUE)
   luaunit.assertEquals(menu.coalition, coalition.side.BLUE)
   veafRadio.delSubmenu("Scoped", nil)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioShellSafety (SECREV-2, finding VMR-004)
+--
+-- _transmitViaSRS builds a Windows command line and hands it to os.execute. Three of
+-- the values it interpolates -- the spoken message, the station name, the frequency
+-- list -- come from the text of an F10 map marker, which any player can write and
+-- which nothing authenticates. A double quote inside one of them ends the argument it
+-- sits in, and what follows is read by cmd as a new command on the server's host.
+-- ---------------------------------------------------------------------------
+TestVeafRadioShellSafety = {}
+
+--- The template puts exactly four values in quotes, so a well-formed command line has
+--- eight double quotes. Any other count means a value opened or closed one of its own.
+local EXPECTED_QUOTES = 8
+
+local function countQuotes(command)
+  local _, n = command:gsub('"', "")
+  return n
+end
+
+function TestVeafRadioShellSafety:setUp()
+  self.savedExecute = os.execute
+  self.commands = {}
+  -- _transmitViaSRS reads the global `os`, so replacing the field is enough.
+  os.execute = function(command)
+    self.commands[#self.commands + 1] = command
+    return 0
+  end
+  STTS = { DIRECTORY = "C:\\SRS", EXECUTABLE = "DCS-SR-ExternalAudio.exe", SRS_PORT = 5002 }
+end
+
+function TestVeafRadioShellSafety:tearDown()
+  os.execute = self.savedExecute
+  STTS = nil
+end
+
+--- The finding itself: a marker message that closes its quote and chains a command.
+function TestVeafRadioShellSafety:test_message_cannot_chain_a_command()
+  veafRadio.transmitMessage('inbound" & calc.exe & rem "', "251", "AM", "SRS", 1, nil, true)
+
+  luaunit.assertEquals(#self.commands, 1)
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "&", 1, true))
+end
+
+--- The station name is interpolated into its own quoted argument, and is just as free.
+function TestVeafRadioShellSafety:test_station_name_cannot_chain_a_command()
+  veafRadio.transmitMessage("hello", "251", "AM", 'SRS" | whoami | rem "', 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "|", 1, true))
+end
+
+--- The MP3 path travels the same way, through a different option.
+function TestVeafRadioShellSafety:test_mp3_path_cannot_chain_a_command()
+  veafRadio.playToRadio('sound.mp3" & calc.exe & rem "', "251", "AM", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+  luaunit.assertNil(string.find(command, "&", 1, true))
+end
+
+--- Values that reach the command line unquoted are validated rather than stripped: a
+--- frequency list that is not one is refused outright.
+function TestVeafRadioShellSafety:test_frequencies_are_validated_not_stripped()
+  veafRadio.transmitMessage("hello", "251 & calc.exe", "AM", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNil(string.find(command, "calc.exe", 1, true))
+  luaunit.assertNotNil(string.find(command, "-f 251 ", 1, true))
+end
+
+function TestVeafRadioShellSafety:test_modulations_are_validated()
+  veafRadio.transmitMessage("hello", "251", "AM|whoami", "SRS", 1, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNil(string.find(command, "whoami", 1, true))
+  luaunit.assertNotNil(string.find(command, "-m AM ", 1, true))
+end
+
+--- A legitimate transmission must be unchanged -- the point is to keep SRS working.
+function TestVeafRadioShellSafety:test_ordinary_transmission_is_untouched()
+  veafRadio.transmitMessage("Bullseye zero nine zero, forty.", "251,255.5", "AM,FM", "Overlord", 2, nil, true)
+
+  local command = self.commands[1]
+  luaunit.assertNotNil(string.find(command, '-t "Bullseye zero nine zero, forty."', 1, true))
+  luaunit.assertNotNil(string.find(command, "-f 251,255.5 ", 1, true))
+  luaunit.assertNotNil(string.find(command, "-m AM,FM ", 1, true))
+  luaunit.assertNotNil(string.find(command, '-n "Overlord"', 1, true))
+  luaunit.assertEquals(countQuotes(command), EXPECTED_QUOTES)
+end
+
+-------------------------------------------------------------------------------------------------
+-- REVIEW-SECURITY-LAYER ticket 01 — a secured menu command checks the group, not a global flag
+--
+-- `_proxyMethod` used to consult `veafSecurity.isAuthenticated()`, one boolean for the whole
+-- server, and received no identity at all. It now receives the group the menu entry was posted
+-- for -- the finest grain DCS offers on this channel -- and compares that group's effective
+-- level against what the command requires.
+-------------------------------------------------------------------------------------------------
+
+TestVeafRadioSecuredCommands = {}
+
+function TestVeafRadioSecuredCommands:setUp()
+  self.called = false
+  self.originalEffective = veafSecurity.getEffectiveGroupLevel
+  veafSecurity.getEffectiveGroupLevel = function(groupId)
+    return self.groupLevels and self.groupLevels[groupId] or 0
+  end
+  self.groupLevels = {}
+end
+
+function TestVeafRadioSecuredCommands:tearDown()
+  veafSecurity.getEffectiveGroupLevel = self.originalEffective
+end
+
+function TestVeafRadioSecuredCommands:_run(groupId, requiredLevel)
+  local method = function()
+    self.called = true
+  end
+  veafRadio._proxyMethod({ method = method, parameters = nil, groupId = groupId, level = requiredLevel })
+end
+
+function TestVeafRadioSecuredCommands:test_group_at_the_required_level_runs_the_command()
+  self.groupLevels[7] = veafSecurity.LEVEL_ADMIN
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertTrue(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_group_below_the_required_level_is_refused()
+  self.groupLevels[7] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_no_group_is_refused()
+  -- Fail closed: a command posted without a group cannot say who is asking.
+  self:_run(nil, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_unknown_group_is_refused()
+  self:_run(999, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertFalse(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_exact_level_passes()
+  -- "at least the constant" -- equality must be enough, or every tier is off by one.
+  self.groupLevels[7] = veafSecurity.LEVEL_SENIOR_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertTrue(self.called)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-093 — the SRS position was truncated to whole degrees
+--
+-- coord.LOtoLL returns degrees as floating point, and the -L/-O options were built with %d.
+-- Measured in Lua 5.1, string.format("%d", 41.567) does not raise — it yields "41", truncating
+-- toward zero. One degree of latitude is ~111 km, so a positional transmission landed tens of
+-- kilometres from the marker, which is the whole point of passing eventPos.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2SrsPosition = {}
+
+function TestSecrev2SrsPosition:setUp()
+  self.savedExecute = os.execute
+  self.savedLOtoLL = coord.LOtoLL
+  self.commands = {}
+  os.execute = function(command)
+    self.commands[#self.commands + 1] = command
+    return 0
+  end
+  STTS = { DIRECTORY = "C:\\SRS", EXECUTABLE = "DCS-SR-ExternalAudio.exe", SRS_PORT = 5002 }
+  coord.LOtoLL = function(_)
+    return 41.567891, -73.123456, 1234.5
+  end
+end
+
+function TestSecrev2SrsPosition:tearDown()
+  os.execute = self.savedExecute
+  coord.LOtoLL = self.savedLOtoLL
+  STTS = nil
+end
+
+function TestSecrev2SrsPosition:_transmitWithPosition()
+  veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, { x = 0, y = 0, z = 0 }, true)
+  luaunit.assertEquals(#self.commands, 1)
+  return self.commands[1]
+end
+
+function TestSecrev2SrsPosition:test_latitude_keeps_its_fraction()
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-L 41.567891")
+end
+
+function TestSecrev2SrsPosition:test_a_negative_longitude_keeps_its_fraction()
+  -- Truncation is toward zero, so the western hemisphere was wrong in the other direction.
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-O -73.123456")
+end
+
+function TestSecrev2SrsPosition:test_altitude_stays_a_whole_number()
+  -- Metres: a fraction of one buys nothing, and SRS reads it as a level.
+  luaunit.assertStrContains(self:_transmitWithPosition(), "-A 1234")
+end
+
+function TestSecrev2SrsPosition:test_no_position_means_no_position_options()
+  -- The control: an eventPos-less transmission must not grow an empty -L.
+  veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, nil, true)
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertNil(string.find(self.commands[1], "-L", 1, true))
 end
 
 os.exit(luaunit.LuaUnit.run())

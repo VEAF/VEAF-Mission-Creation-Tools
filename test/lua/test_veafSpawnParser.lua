@@ -285,4 +285,247 @@ function TestParserUnknownParams:test_command_keyphrase_not_flagged()
   luaunit.assertNil(r.unknownParameters)
 end
 
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-025 — a non-numeric numeric parameter must not abort the spawn
+--
+-- `multiplier` goes through `_num`, which calls `veaf.getRandomizableNumeric`. That returns nil
+-- for unusable input, so `options.multiplier` became nil and `for i = 1, options.multiplier do`
+-- in veafSpawnCore raised. Worse, a *valueless* keyword reached `string.find(nil, "%-")` inside
+-- the conversion and raised there instead.
+--
+-- Fixed in `_num` rather than on `multiplier`, because every numeric spawn keyword shares it.
+-------------------------------------------------------------------------------------------------
+
+TestSpawnParserNumericRobustness = {}
+
+function TestSpawnParserNumericRobustness:test_garbage_multiplier_does_not_crash()
+  local ok = pcall(function()
+    return veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  end)
+  luaunit.assertTrue(ok, "a non-numeric multiplier must not raise")
+end
+
+function TestSpawnParserNumericRobustness:test_garbage_multiplier_keeps_the_default()
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  luaunit.assertNotNil(options)
+  luaunit.assertEquals(options.multiplier, 1)
+end
+
+function TestSpawnParserNumericRobustness:test_valueless_multiplier_does_not_crash()
+  local ok = pcall(function()
+    return veafSpawn.markTextAnalysis("_spawn group, name test, multiplier")
+  end)
+  luaunit.assertTrue(ok, "a valueless multiplier must not raise")
+end
+
+function TestSpawnParserNumericRobustness:test_multiplier_is_never_nil()
+  -- The crash was downstream: `for i = 1, options.multiplier do` in veafSpawnCore.
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier banana")
+  luaunit.assertNotNil(options.multiplier)
+end
+
+function TestSpawnParserNumericRobustness:test_a_valid_multiplier_still_applies()
+  local options = veafSpawn.markTextAnalysis("_spawn group, name test, multiplier 3")
+  luaunit.assertEquals(options.multiplier, 3)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-102 — a laser code no aircraft can dial must be refused
+--
+-- DCS laser codes are octal-like: the three digits after the leading 1 are each 1..8. The
+-- range check (1111..1688) let 1109, 1119, 1190 and friends through, and they came out as a
+-- plausible-looking frequency — so the JTAC lased on a code nobody could enter, and the pilot
+-- had no way to tell that from a JTAC that was simply not lasing.
+--
+-- Handled like every other unusable marker value (VMR-025): keep the default, do not abort.
+-------------------------------------------------------------------------------------------------
+
+TestSpawnParserLaserCodes = {}
+
+function TestSpawnParserLaserCodes:test_valid_code_converts()
+  luaunit.assertEquals(veafSpawn.convertLaserToFreq(1688), "40.4")
+  luaunit.assertEquals(veafSpawn.convertLaserToFreq(1111), "31.55")
+end
+
+function TestSpawnParserLaserCodes:test_units_digit_nine_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1119))
+end
+
+function TestSpawnParserLaserCodes:test_units_digit_zero_is_refused()
+  -- 1210, not 1110: the latter is already below the 1111 floor, so it would pass without
+  -- the digit rule and prove nothing.
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1210))
+end
+
+function TestSpawnParserLaserCodes:test_tens_digit_zero_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1201))
+end
+
+function TestSpawnParserLaserCodes:test_tens_digit_nine_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1191))
+end
+
+function TestSpawnParserLaserCodes:test_a_non_integer_code_is_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1111.5))
+end
+
+function TestSpawnParserLaserCodes:test_out_of_range_is_still_refused()
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1110 - 1000))
+  luaunit.assertNil(veafSpawn.convertLaserToFreq(1788))
+  luaunit.assertNil(veafSpawn.convertLaserToFreq("banana"))
+end
+
+function TestSpawnParserLaserCodes:test_every_valid_code_in_range_converts()
+  -- The control: the digit rule must not reject codes that are genuinely dialable.
+  local rejected = {}
+  for b = 1, 6 do
+    for c = 1, 8 do
+      for d = 1, 8 do
+        local code = 1000 + b * 100 + c * 10 + d
+        if code <= 1688 and veafSpawn.convertLaserToFreq(code) == nil then
+          table.insert(rejected, code)
+        end
+      end
+    end
+  end
+  luaunit.assertEquals(#rejected, 0, "refused dialable codes: " .. table.concat(rejected, ", "))
+end
+
+function TestSpawnParserLaserCodes:test_marker_keeps_the_default_code_when_the_value_is_invalid()
+  -- `_spawn afac` defaults to 1688; asking for an impossible code must not install it.
+  local r = analyse("_spawn afac, laser 1119")
+  luaunit.assertEquals(r.laserCode, 1688)
+  luaunit.assertEquals(r.freq, veafSpawn.convertLaserToFreq(1688))
+end
+
+function TestSpawnParserLaserCodes:test_marker_still_accepts_a_valid_code()
+  local r = analyse("_spawn afac, laser 1311")
+  luaunit.assertEquals(r.laserCode, 1311)
+  luaunit.assertEquals(r.freq, veafSpawn.convertLaserToFreq(1311))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestSpawnParserEveryKeywordSurvivesBadInput
+--
+-- FIX-MARKER-PARAM-CRASHES-2. The previous lot closed six crashes and declared the family
+-- closed on the strength of thirteen hand-picked cases. Four more were living here, in the
+-- module the refactor plan calls the healthy one: `_numNonNegative` and the inline `delayed`
+-- carry the very nil-comparison VMR-025 fixed in `_num`, one function above them.
+--
+-- So this suite does not list keywords. It reads them from `veafSpawn.ParameterRules`, which
+-- means a parameter added tomorrow with an unguarded conversion fails here rather than in a
+-- pilot's mission. That is the point: coverage that is enumerated, not asserted.
+-- ---------------------------------------------------------------------------
+TestSpawnParserEveryKeywordSurvivesBadInput = {}
+
+local function everyDeclaredKey()
+  local keys, seen = {}, {}
+  for _, rule in ipairs(veafSpawn.ParameterRules) do
+    for _, k in ipairs(rule.keys) do
+      if not seen[k] then
+        seen[k] = true
+        table.insert(keys, k)
+      end
+    end
+  end
+  return keys
+end
+
+-- Runs one marker-text shape over every declared keyword and reports all the failures at once,
+-- named, rather than stopping at the first. Adding a new hostile shape is one call.
+local function assertNoDeclaredKeywordRaises(shape, description)
+  local raised = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    local ok, err = pcall(analyse, "_spawn group, name A, " .. shape(key))
+    if not ok then
+      table.insert(raised, key .. " (" .. tostring(err) .. ")")
+    end
+  end
+  luaunit.assertEquals(#raised, 0, "keywords raising " .. description .. ": " .. table.concat(raised, " | "))
+end
+
+-- Guards against the enumeration degenerating, which would make every test below pass while
+-- checking nothing. Asserted as the invariant rather than as a magic count: **every declared
+-- rule must contribute at least one key**. That cannot go stale when parameters are added or
+-- removed, where a hardcoded threshold would.
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_the_enumeration_covers_every_declared_rule()
+  luaunit.assertTrue(#veafSpawn.ParameterRules > 0, "veafSpawn.ParameterRules is empty")
+
+  local enumerated = {}
+  for _, key in ipairs(everyDeclaredKey()) do
+    enumerated[key] = true
+  end
+
+  local uncovered = {}
+  for index, rule in ipairs(veafSpawn.ParameterRules) do
+    local covered = false
+    for _, key in ipairs(rule.keys) do
+      if enumerated[key] then
+        covered = true
+      end
+    end
+    if not covered then
+      table.insert(uncovered, "rule #" .. index)
+    end
+  end
+  luaunit.assertEquals(#uncovered, 0, "rules the sweep would skip: " .. table.concat(uncovered, ", "))
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_when_bare()
+  assertNoDeclaredKeywordRaises(function(key)
+    return key
+  end, "with no value")
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_non_numeric_value()
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " banana"
+  end, "on a non-numeric value")
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_negative_value()
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " -1"
+  end, "on a negative value")
+end
+
+function TestSpawnParserEveryKeywordSurvivesBadInput:test_no_declared_keyword_raises_on_a_huge_value()
+  assertNoDeclaredKeywordRaises(function(key)
+    return key .. " 999999"
+  end, "on an out-of-range value")
+end
+
+-- The four that were actually broken, named so a regression reads as itself rather than as a
+-- line in the sweep's failure list.
+TestSpawnParserNonNegativeKeywords = {}
+
+function TestSpawnParserNonNegativeKeywords:test_bare_defense_keeps_the_default()
+  local r = analyse("_spawn group, name A, defense")
+  luaunit.assertNotNil(r)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_non_numeric_armor_keeps_the_default()
+  local r = analyse("_spawn group, name A, armor banana")
+  luaunit.assertNotNil(r)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_bare_disperse_keeps_the_default()
+  local r = analyse("_spawn group, name A, disperse")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.disperse, 15)
+end
+
+-- An unreadable `delayed` falls into the branch that already handles a negative value, so it
+-- means "the minimum" rather than "no delay" — which is what a bare `delayed` asks for.
+function TestSpawnParserNonNegativeKeywords:test_bare_delayed_means_the_minimum_delay()
+  local r = analyse("_spawn group, name A, delayed")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.delayedStart, veafSpawn.MIN_REPEAT_DELAY)
+end
+
+function TestSpawnParserNonNegativeKeywords:test_a_readable_delayed_is_honoured()
+  local r = analyse("_spawn group, name A, delayed 30")
+  luaunit.assertEquals(r.delayedStart, 30)
+end
+
 os.exit(luaunit.LuaUnit.run())

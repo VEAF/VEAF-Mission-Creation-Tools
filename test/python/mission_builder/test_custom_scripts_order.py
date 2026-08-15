@@ -12,15 +12,16 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from mission_builder_factory import make_worker
 from veaf_libs.config_override import OVERRIDE_SCRIPT_NAME
 
 
 def _worker(declared: list[str], target: str | None = None, values: dict | None = None) -> MissionBuilderWorker:
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker.custom_scripts = [CustomScript(path=name) for name in declared]
-    worker.config_override_target = target
-    worker.config_override_values = values or {}
-    return worker
+    return make_worker(
+        custom_scripts=[CustomScript(path=name) for name in declared],
+        config_override_target=target,
+        config_override_values=values or {},
+    )
 
 
 class TestApplyCustomScriptsOrder(unittest.TestCase):

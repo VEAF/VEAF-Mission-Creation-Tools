@@ -288,7 +288,9 @@ function TestVeafSpawnConvertLaserToFreq:test_1111_returns_31_55()
 end
 
 function TestVeafSpawnConvertLaserToFreq:test_returns_string()
-  luaunit.assertIsString(veafSpawn.convertLaserToFreq(1500))
+  -- Was 1500, which this test asserted produced a frequency. It does not: a DCS laser code
+  -- carries no 0 digit, so 1500 is not dialable and VMR-102 now refuses it. 1511 is.
+  luaunit.assertIsString(veafSpawn.convertLaserToFreq(1511))
 end
 
 -- ---------------------------------------------------------------------------
@@ -343,16 +345,26 @@ function TestVeafSpawnEffects:test_spawnIlluminationFlare_heading_speed()
 end
 
 function TestVeafSpawnEffects:test_destroyObjectWithFlak_not_exist()
-  local obj = { isExist = function() return false end }
+  local obj = {
+    isExist = function()
+      return false
+    end,
+  }
   veafSpawn.destroyObjectWithFlak(obj, 1, 1)
   luaunit.assertTrue(true)
 end
 
 function TestVeafSpawnEffects:test_destroyObjectWithFlak_exists()
   local obj = {
-    isExist     = function() return true end,
-    getPoint    = function() return { x = 0, y = 100, z = 0 } end,
-    getVelocity = function() return { x = 0, y = 0, z = 0 } end,
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 100, z = 0 }
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
   }
   -- density=0.1 → 3 flak shells fired synchronously (no recursion since scheduleFunction is a stub)
   veafSpawn.destroyObjectWithFlak(obj, 1, 0.1)
@@ -416,16 +428,31 @@ end
 
 function TestVeafSpawnCore:test_registerCommandHandler()
   local called = false
-  veafSpawn.registerCommandHandler("testkey", function() called = true end)
+  veafSpawn.registerCommandHandler("testkey", "OPEN", function()
+    called = true
+  end)
   luaunit.assertEquals(#veafSpawn.commandHandlers, 1)
   luaunit.assertEquals(veafSpawn.commandHandlers[1].key, "testkey")
 end
 
-function TestVeafSpawnCore:test_registerCommandHandler_legacy_2arg_has_no_security()
-  local fn = function() end
-  veafSpawn.registerCommandHandler("k", fn)
-  luaunit.assertEquals(veafSpawn.commandHandlers[1].fn, fn)
-  luaunit.assertNil(veafSpawn.commandHandlers[1].security)
+--- The 2-argument form (key, fn) used to mean "no security check", so omitting the level
+--- and forgetting it were indistinguishable. That is the shape SECREV-2 ticket 03 removes:
+--- the call is now refused rather than silently registering an ungated command.
+function TestVeafSpawnCore:test_registerCommandHandler_refuses_the_legacy_2arg_form()
+  local ok, err = pcall(veafSpawn.registerCommandHandler, "k", function() end)
+
+  luaunit.assertFalse(ok)
+  luaunit.assertNotNil(string.find(tostring(err), "2-argument form", 1, true))
+  luaunit.assertEquals(#veafSpawn.commandHandlers, 0)
+end
+
+--- A misspelled level must not be accepted and then quietly deny at dispatch either: it is
+--- a typo in the source, and the place to catch it is registration.
+function TestVeafSpawnCore:test_registerCommandHandler_refuses_an_unknown_level()
+  local ok = pcall(veafSpawn.registerCommandHandler, "k", "BOGUS", function() end)
+
+  luaunit.assertFalse(ok)
+  luaunit.assertEquals(#veafSpawn.commandHandlers, 0)
 end
 
 function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
@@ -435,10 +462,60 @@ function TestVeafSpawnCore:test_registerCommandHandler_stores_security_level()
   luaunit.assertEquals(veafSpawn.commandHandlers[1].security, "L9")
 end
 
+--- FIX-DOCAUDIT-CODE 01 — the tier names REVIEW-SECURITY-LAYER decision b settled on (2026-08-08)
+--- were refused here too: this dispatcher's table held `L9`/`L1`/`MM`/`OPEN` only, so a handler
+--- declaring `ADMIN` failed the assert. Both vocabularies now, in one sweep. `MM` and `OPEN` are
+--- not tiers — a Mission Master password carries no level, and OPEN means "no check" — so they keep
+--- their own spelling.
+function TestVeafSpawnCore:test_registerCommandHandler_accepts_both_vocabularies()
+  local levels = { "ADMIN", "SENIOR_PILOT", "KNOWN_PILOT", "L0", "L1", "L9", "MM", "OPEN" }
+  for _, level in ipairs(levels) do
+    veafSpawn.commandHandlers = {}
+    veafSpawn.registerCommandHandler("k", level, function() end)
+    luaunit.assertEquals(#veafSpawn.commandHandlers, 1, "level rejected: " .. tostring(level))
+    luaunit.assertEquals(veafSpawn.commandHandlers[1].security, level)
+  end
+end
+
+--- A deprecated name and its replacement share the **same** function, not a copy: two copies is
+--- how one of two paths receives tomorrow's fix.
+function TestVeafSpawnCore:test_a_deprecated_level_shares_its_replacement_check()
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L0, veafSpawn.SECURITY_CHECKS.ADMIN)
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L1, veafSpawn.SECURITY_CHECKS.SENIOR_PILOT)
+  luaunit.assertIs(veafSpawn.SECURITY_CHECKS.L9, veafSpawn.SECURITY_CHECKS.KNOWN_PILOT)
+end
+
+--- The new names must be *enforced*, not merely accepted at registration — and enforced by the
+--- check the name actually means. `ADMIN` is the tightest tier, so it runs `checkSecurity_L0`; the
+--- ticket's own example claimed `ADMIN ≡ L9`, which `veafSecurity.LEVELS_BY_NAME` contradicts.
+--- Stubbing that one function is what pins the wiring: a mis-aliased `ADMIN` would sail through.
+function TestVeafSpawnCore:_runAdminHandlerWith(verdict)
+  local orig = veafSecurity.checkSecurity_L0
+  veafSecurity.checkSecurity_L0 = function()
+    return verdict
+  end
+  local called = false
+  veafSpawn.registerCommandHandler("unit", "ADMIN", function()
+    called = true
+    return nil
+  end)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_spawn unit, name shilka", 1, 0, false)
+  veafSecurity.checkSecurity_L0 = orig
+  return called
+end
+
+function TestVeafSpawnCore:test_an_admin_handler_is_blocked_when_the_admin_check_fails()
+  luaunit.assertFalse(self:_runAdminHandlerWith(false))
+end
+
+function TestVeafSpawnCore:test_an_admin_handler_runs_when_the_admin_check_passes()
+  luaunit.assertTrue(self:_runAdminHandlerWith(true))
+end
+
 function TestVeafSpawnCore:test_unknown_parameter_aborts_without_spawning()
   -- An unrecognized parameter (typo) must abort the command, not spawn anyway.
   local spawned = false
-  veafSpawn.registerCommandHandler("unit", function()
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
     spawned = true
     return nil
   end)
@@ -449,7 +526,7 @@ end
 function TestVeafSpawnCore:test_known_parameters_still_spawn()
   -- A valid command (no unknown parameter) still reaches its handler.
   local spawned = false
-  veafSpawn.registerCommandHandler("unit", function()
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
     spawned = true
     return nil
   end)
@@ -459,9 +536,13 @@ end
 
 function TestVeafSpawnCore:test_security_gate_blocks_handler_when_check_fails()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return false end
+  veafSecurity.checkSecurity_MM = function()
+    return false
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   -- check fails -> handler must not run
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
@@ -470,9 +551,13 @@ end
 
 function TestVeafSpawnCore:test_security_gate_allows_handler_when_check_passes()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return true end
+  veafSecurity.checkSecurity_MM = function()
+    return true
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
   luaunit.assertTrue(called)
@@ -480,17 +565,25 @@ end
 
 function TestVeafSpawnCore:test_security_gate_fail_closed_on_unknown_level()
   local called = false
-  -- an unknown security level must DENY (fail-closed), never silently pass
-  veafSpawn.registerCommandHandler("mmGetFlag", "BOGUS", function() called = true end)
+  -- Registration refuses an unknown level outright now, so it is injected afterwards: this
+  -- pins the *direction* of the dispatcher's fallback, which must deny rather than pass.
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
+  veafSpawn.commandHandlers[1].security = "BOGUS"
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, false, nil, nil, nil, nil, false)
   luaunit.assertFalse(called)
 end
 
 function TestVeafSpawnCore:test_security_gate_bypassed_when_bypassSecurity()
   local orig = veafSecurity.checkSecurity_MM
-  veafSecurity.checkSecurity_MM = function() return false end
+  veafSecurity.checkSecurity_MM = function()
+    return false
+  end
   local called = false
-  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function() called = true end)
+  veafSpawn.registerCommandHandler("mmGetFlag", "MM", function()
+    called = true
+  end)
   -- bypassSecurity = true -> handler runs even though the check would fail
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_mm getflag, name f", 2, 0, true, nil, nil, nil, nil, false)
   veafSecurity.checkSecurity_MM = orig
@@ -552,7 +645,8 @@ end
 
 function TestVeafSpawnCore:test_doSpawnGroup_string_not_found()
   -- veafUnits.findGroup returns nil → doSpawnGroup returns nil
-  local result = veafSpawn.doSpawnGroup({ x = 0, y = 0, z = 0 }, 0, "NonExistentGroup", nil, "usa", 0, 0, 10, nil, true, false, false, false)
+  local result =
+    veafSpawn.doSpawnGroup({ x = 0, y = 0, z = 0 }, 0, "NonExistentGroup", nil, "usa", 0, 0, 10, nil, true, false, false, false)
   luaunit.assertNil(result)
 end
 
@@ -575,7 +669,9 @@ function TestVeafSpawnCore:test_missionMasterSetMessagingMode()
 end
 
 function TestVeafSpawnCore:test_missionMasterAddRunnable()
-  veafSpawn.missionMasterAddRunnable("MYCODE", function() return 42 end, nil)
+  veafSpawn.missionMasterAddRunnable("MYCODE", function()
+    return 42
+  end, nil)
   luaunit.assertNotNil(veafSpawn.missionMasterRunnables["MYCODE"])
 end
 
@@ -590,13 +686,17 @@ function TestVeafSpawnCore:test_missionMasterRun_not_found()
 end
 
 function TestVeafSpawnCore:test_missionMasterRun_success()
-  veafSpawn.missionMasterAddRunnable("OK", function() return 99 end, nil)
+  veafSpawn.missionMasterAddRunnable("OK", function()
+    return 99
+  end, nil)
   veafSpawn.missionMasterRun("OK")
   luaunit.assertTrue(true)
 end
 
 function TestVeafSpawnCore:test_missionMasterRun_error()
-  veafSpawn.missionMasterAddRunnable("ERR", function() error("boom") end, nil)
+  veafSpawn.missionMasterAddRunnable("ERR", function()
+    error("boom")
+  end, nil)
   veafSpawn.missionMasterRun("ERR")
   luaunit.assertTrue(true)
 end
@@ -724,6 +824,163 @@ end
 function TestVeafSpawnGround:test_spawnFullCombatGroup()
   local result = veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 0, nil, "usa", 2, 0, 10, 1, 1, 3, true, false)
   luaunit.assertIsString(result)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnGroundSceneryAware — FEAT-SCENERY-AWARE-SPAWN
+--
+-- The four dynamic ground spawners and the generic doSpawnGroup now pick their
+-- group centre through veaf.findSpawnPoint instead of jittering once and using the
+-- result unvalidated. What is pinned here is the wiring, not the search itself
+-- (that lives in test_veaf.lua): the centre that reaches placeGroup, and the
+-- single abort-with-one-message when no point works anywhere.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnGroundSceneryAware = {}
+
+function TestVeafSpawnGroundSceneryAware:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedPlaceGroup = veafUnits.placeGroup
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+  -- Record the centre every spawn hands to placeGroup, then delegate.
+  self.centres = {}
+  veafUnits.placeGroup = function(group, spawnPoint, spacing, hdg, hasDest)
+    table.insert(self.centres, { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z })
+    return self._savedPlaceGroup(group, spawnPoint, spacing, hdg, hasDest)
+  end
+end
+
+function TestVeafSpawnGroundSceneryAware:tearDown()
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  veafUnits.placeGroup = self._savedPlaceGroup
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+--- All water, so every tier is exhausted.
+function TestVeafSpawnGroundSceneryAware:_allWater()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+end
+
+--- Jitter walks the given x offsets, one per call; water is decided by x.
+function TestVeafSpawnGroundSceneryAware:_jitter(xs, waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs or {}) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+  local calls = 0
+  mist.getRandPointInCircle = function(spot, _r)
+    calls = calls + 1
+    return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_the_spawn_still_happens()
+  -- Before this lot the first jitter was used as-is, so this spawn put its centre in
+  -- the sea and every unit was dropped downstream one by one.
+  self:_jitter({ 100, 700 }, { 100 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(#self.centres, 1)
+  luaunit.assertEquals(self.centres[1].x, 700, "the water candidate must not become the group centre")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_no_position_anywhere_aborts_before_placing_anything()
+  self:_allWater()
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0, "placeGroup must not run when no centre was found")
+  -- veafI18n is not loaded by this suite, so veaf.t echoes the key — same convention as
+  -- test_veafAssist.lua asserting on "step.one".
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("spawn.no_position_group"), 1, "exactly one message, not one per unit")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_silent_failure_says_nothing_to_the_players()
+  self:_allWater()
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_armored_platoon_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnArmoredPlatoon({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_air_defense_battery_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnAirDefenseBattery({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_transport_company_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnTransportCompany({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 3, true, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.centres, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_scenery_aware_point_becomes_the_group_centre()
+  -- Was written with a candidate at x=4200 for a 1000 m request, and passed — which is exactly
+  -- the bug measured in a live DCS on 2026-08-06: Disposition's radius argument does not bound
+  -- its answers, and tier 1 had no distance test, so a group could be placed kilometres from
+  -- where it was asked for. The candidate is now inside the requested radius; the rejection is
+  -- pinned by the test below.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 420, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(self.centres[1].x, 420)
+  luaunit.assertEquals(self.centres[1].z, 77)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_a_far_scenery_point_does_not_become_the_group_centre()
+  -- 4200 m for a 1000 m request. The whole group used to move there in silence.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 4200, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(self.centres[1].x, 100, "out-of-range scenery point must give way to the jitter tier")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_opt_out_ignores_the_singleton()
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 4200, y = 0, z = 77 } }
+    end,
+  }
+  veaf.doNotAvoidScenery = true
+  self:_jitter({ 100 })
+  veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertFalse(called)
+  luaunit.assertEquals(self.centres[1].x, 100)
 end
 
 function TestVeafSpawnGround:test_stopClosestConvoy_nil_unit()
@@ -891,7 +1148,8 @@ function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_nil_name()
 end
 
 function TestVeafSpawnAircraft:test_spawnAFAC_invalid_country()
-  local result = veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "AFAC1", "invalid_country", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+  local result =
+    veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "AFAC1", "invalid_country", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
   luaunit.assertNil(result)
 end
 
@@ -901,7 +1159,8 @@ function TestVeafSpawnAircraft:test_spawnAFAC_no_template()
 end
 
 function TestVeafSpawnAircraft:test_spawnCombatAirPatrol_invalid_country()
-  local result = veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "MiG-29", "invalid_country", 0, 0, 0, 20, nil, 60, "random", true, false)
+  local result =
+    veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "MiG-29", "invalid_country", 0, 0, 0, 20, nil, 60, "random", true, false)
   luaunit.assertNil(result)
 end
 
@@ -936,7 +1195,9 @@ end
 
 function TestVeafSpawnAircraft:test_spawnUnit_not_found()
   local origFind = veafUnits.findUnit
-  veafUnits.findUnit = function(name) return nil end
+  veafUnits.findUnit = function(name)
+    return nil
+  end
   local result = veafSpawn.spawnUnit({ x = 0, y = 0, z = 0 }, 0, "Unknown", nil, "usa", 0, 0, nil, nil, false, nil, nil, nil, true, false)
   veafUnits.findUnit = origFind
   luaunit.assertNil(result)
@@ -1036,6 +1297,282 @@ function TestVeafSpawnAircraft:test_spawnCombatAirPatrol_with_template()
   local result = veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "ALPHA", "usa", 0, 0, 0, 20, nil, 60, "random", true, false)
   veafSpawn.findSpawnableAircraftGroupname = origFind
   luaunit.assertNil(result)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / ticket 07, Lua batch 3 — the spawn family
+-------------------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------
+-- VMR-098 — no free AFAC callsign must refuse the spawn, not reuse a taken one
+--
+-- The callsign loop falls back to `callsigns[coalition][numberSpawned]` when it finds nothing
+-- free, so a desynchronised counter handed out a callsign another live AFAC already answers to:
+-- two aircraft on the same name, and the watchdog then frees a slot that is still flying.
+--
+-- The finding also asked for `>` → `>=` on the limit check. That one does NOT apply and was
+-- deliberately left alone: `numberSpawned` is pre-incremented (set to 1 before the first spawn),
+-- so `> maximumAmount` already refuses the 9th AFAC. `>=` would have capped missions at 7.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2AfacCallsigns = {}
+
+function TestSecrev2AfacCallsigns:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  veafSpawn.airUnitTemplates = {}
+  veafSpawn.SpawnablePlanes = { { name = "veafSpawn-ALPHA", units = {} } }
+  veafSpawn.initializeAirUnitTemplates()
+  veafSpawn.SpawnablePlanes = nil
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = false
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
+end
+
+function TestSecrev2AfacCallsigns:tearDown()
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = false
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
+end
+
+local function _spawnAfac()
+  return veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "ALPHA", "usa", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+end
+
+function TestSecrev2AfacCallsigns:test_every_callsign_taken_refuses_the_spawn()
+  -- All 8 answered for, but the counter says there is room (what the watchdog leaves behind
+  -- when it frees the counter without the callsign, or vice versa).
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = true
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = 1
+  luaunit.assertFalse(_spawnAfac())
+end
+
+function TestSecrev2AfacCallsigns:test_refusing_leaves_the_taken_callsigns_alone()
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = true
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = 1
+  _spawnAfac()
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    luaunit.assertTrue(veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken, "callsign " .. i .. " was released by a refused spawn")
+  end
+end
+
+-- The control. Without it the two tests above would also pass if spawnAFAC refused
+-- everything, which is exactly the failure mode this ticket keeps running into.
+function TestSecrev2AfacCallsigns:test_one_free_callsign_still_reaches_the_spawn()
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = true
+  end
+  veafSpawn.AFAC.callsigns[coalition.side.BLUE][5].taken = false
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = 1
+  -- mist.teleportToPoint returns nil in the mocks, so the spawn itself fails with nil —
+  -- a different outcome from the `false` that means "refused before trying".
+  luaunit.assertNil(_spawnAfac())
+end
+
+function TestSecrev2AfacCallsigns:test_the_limit_still_allows_eight_afacs()
+  -- Guards the `>` the finding wanted turned into `>=`: with 7 AFACs flying the 8th is allowed.
+  for i = 1, 7 do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = true
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = 8
+  luaunit.assertNil(_spawnAfac())
+end
+
+function TestSecrev2AfacCallsigns:test_the_limit_still_refuses_the_ninth()
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = true
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = 9
+  luaunit.assertFalse(_spawnAfac())
+end
+
+-------------------------------------------------------------------------------------------------
+-- VMR-099 — `-showmfd` was inverted on the afac and cap commands
+--
+-- Every other handler passes `not options.showMFD` for the `hiddenOnMFD` parameter. These two
+-- passed `options.showMFD` straight through, so the default (showMFD=false) left the aircraft
+-- VISIBLE on every MFD and asking for it hid it. The finding named `afac` only; `cap` has it too.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2ShowMfd = {}
+
+local function _handlerFor(key)
+  for _, entry in ipairs(veafSpawn.commandHandlers) do
+    if entry.key == key then
+      return entry.fn
+    end
+  end
+  return nil
+end
+
+function TestSecrev2ShowMfd:setUp()
+  dcs_mocks.reset()
+  self._savedAfac = veafSpawn.spawnAFAC
+  self._savedCap = veafSpawn.spawnCombatAirPatrol
+end
+
+function TestSecrev2ShowMfd:tearDown()
+  veafSpawn.spawnAFAC = self._savedAfac
+  veafSpawn.spawnCombatAirPatrol = self._savedCap
+end
+
+--- Run a spawn command handler with the real spawner replaced by a recorder.
+--- Returns the `hiddenOnMFD` argument the handler passed on.
+local function _hiddenOnMfdFor(key, spawnerField, argIndex, showMFD)
+  local captured
+  veafSpawn[spawnerField] = function(...)
+    captured = select(argIndex, ...)
+    return "recorded-group"
+  end
+  _handlerFor(key)(
+    { x = 0, y = 0, z = 0 },
+    { [key] = true, showMFD = showMFD, country = "usa", mod = "fm" },
+    coalition.side.BLUE,
+    nil,
+    true
+  )
+  return captured
+end
+
+function TestSecrev2ShowMfd:test_afac_handler_is_registered()
+  luaunit.assertIsFunction(_handlerFor("afac"))
+end
+
+function TestSecrev2ShowMfd:test_afac_defaults_to_hidden_on_mfd()
+  luaunit.assertTrue(_hiddenOnMfdFor("afac", "spawnAFAC", 12, false))
+end
+
+function TestSecrev2ShowMfd:test_afac_showmfd_shows_it()
+  luaunit.assertFalse(_hiddenOnMfdFor("afac", "spawnAFAC", 12, true))
+end
+
+function TestSecrev2ShowMfd:test_cap_defaults_to_hidden_on_mfd()
+  luaunit.assertTrue(_hiddenOnMfdFor("cap", "spawnCombatAirPatrol", 13, false))
+end
+
+function TestSecrev2ShowMfd:test_cap_showmfd_shows_it()
+  luaunit.assertFalse(_hiddenOnMfdFor("cap", "spawnCombatAirPatrol", 13, true))
+end
+
+-------------------------------------------------------------------------------------------------
+-- VMR-100 — the cargo weight computation must not write into the shared units database
+--
+-- `veafUnits.findDcsUnit` hands back the live `dcsUnits.DcsUnitsDatabase` entry, and the
+-- min/max swap wrote both fields back into it. Every later reader of that type — the
+-- dcsDataExport dump among them — saw the edited descriptor.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2CargoMass = {}
+
+function TestSecrev2CargoMass:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedFind = veafUnits.findDcsUnit
+  self._savedDynAddStatic = mist.dynAddStatic
+  -- A descriptor with the bounds the wrong way round: the branch the finding is about.
+  self.shared = { type = "veaf_test_cargo", name = "VEAF test cargo", desc = { minMass = 100, maxMass = 50 } }
+  veafUnits.findDcsUnit = function(name)
+    return self.shared
+  end
+  self.spawned = {}
+  mist.dynAddStatic = function(template)
+    table.insert(self.spawned, template)
+  end
+end
+
+function TestSecrev2CargoMass:tearDown()
+  veafUnits.findDcsUnit = self._savedFind
+  mist.dynAddStatic = self._savedDynAddStatic
+end
+
+function TestSecrev2CargoMass:test_the_shared_descriptor_is_left_untouched()
+  veafSpawn.spawnCargo({ x = 0, y = 0, z = 0 }, 0, "veaf_test_cargo", "usa", 2, false, nil, true, false)
+  luaunit.assertEquals(self.shared.desc.minMass, 100)
+  luaunit.assertEquals(self.shared.desc.maxMass, 50)
+end
+
+-- The control: the mass must still be computed from the reordered bounds, otherwise the test
+-- above would pass just as well on a function that gave up before reading them.
+function TestSecrev2CargoMass:test_the_mass_is_still_computed_within_the_bounds()
+  veafSpawn.spawnCargo({ x = 0, y = 0, z = 0 }, 0, "veaf_test_cargo", "usa", 2, false, nil, true, false)
+  luaunit.assertEquals(#self.spawned, 1)
+  local mass = self.spawned[1].mass
+  luaunit.assertNotNil(mass)
+  luaunit.assertTrue(mass >= 50 and mass <= 100, "mass " .. tostring(mass) .. " is outside the descriptor's bounds")
+end
+
+-------------------------------------------------------------------------------------------------
+-- VMR-101 — one positionless convoy must not hide the others
+--
+-- `_findClosestConvoy` returned nil as soon as `veaf.getAveragePosition` failed for any single
+-- convoy, so a despawned convoy still sitting in `spawnedConvoys` blinded "mark/stop/move
+-- closest convoy" for every live one.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2ClosestConvoy = {}
+
+function TestSecrev2ClosestConvoy:setUp()
+  dcs_mocks.reset()
+  self._savedGetAveragePosition = veaf.getAveragePosition
+  self._savedGetHuman = veafRadio.getHumanUnitOrWingman
+  veafRadio.getHumanUnitOrWingman = function(name)
+    return {
+      getPosition = function()
+        return { p = { x = 0, y = 0, z = 0 } }
+      end,
+    }
+  end
+  veafSpawn.spawnedConvoys = {}
+end
+
+function TestSecrev2ClosestConvoy:tearDown()
+  veaf.getAveragePosition = self._savedGetAveragePosition
+  veafRadio.getHumanUnitOrWingman = self._savedGetHuman
+  veafSpawn.spawnedConvoys = {}
+end
+
+--- Position every convoy but the ones named in `positionless`.
+local function _positionConvoysExcept(positionless, positions)
+  veaf.getAveragePosition = function(name)
+    if positionless[name] then
+      return nil
+    end
+    return positions[name]
+  end
+end
+
+function TestSecrev2ClosestConvoy:test_a_positionless_convoy_does_not_hide_a_live_one()
+  -- Both orders are exercised, since `pairs` gives no ordering guarantee: whichever way the
+  -- table is walked, the live convoy must be the answer.
+  veafSpawn.spawnedConvoys = { ["convoy-dead"] = {}, ["convoy-alive"] = {} }
+  _positionConvoysExcept({ ["convoy-dead"] = true }, { ["convoy-alive"] = { x = 300, y = 0, z = 0 } })
+  luaunit.assertEquals(veafSpawn._findClosestConvoy("player-1"), "convoy-alive")
+
+  veafSpawn.spawnedConvoys = { ["aaa-dead"] = {}, ["zzz-alive"] = {} }
+  _positionConvoysExcept({ ["aaa-dead"] = true }, { ["zzz-alive"] = { x = 300, y = 0, z = 0 } })
+  luaunit.assertEquals(veafSpawn._findClosestConvoy("player-1"), "zzz-alive")
+end
+
+-- The control: with every convoy positioned, the closest one still wins.
+function TestSecrev2ClosestConvoy:test_the_closest_positioned_convoy_still_wins()
+  veafSpawn.spawnedConvoys = { ["convoy-far"] = {}, ["convoy-near"] = {} }
+  _positionConvoysExcept({}, {
+    ["convoy-far"] = { x = 9000, y = 0, z = 0 },
+    ["convoy-near"] = { x = 120, y = 0, z = 0 },
+  })
+  luaunit.assertEquals(veafSpawn._findClosestConvoy("player-1"), "convoy-near")
+end
+
+function TestSecrev2ClosestConvoy:test_no_convoy_has_a_position_returns_nil()
+  veafSpawn.spawnedConvoys = { ["convoy-dead"] = {} }
+  _positionConvoysExcept({ ["convoy-dead"] = true }, {})
+  luaunit.assertNil(veafSpawn._findClosestConvoy("player-1"))
 end
 
 os.exit(luaunit.LuaUnit.run())

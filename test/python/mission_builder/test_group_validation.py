@@ -215,6 +215,26 @@ class TestSanctuaryUnits:
         my = {"modules": {"SANCTUARY": {"sanctuary_zones": [{"polygon_units": ["U1"]}]}}}
         assert find_missing_sanctuary_units(my, _units("U1")) == []
 
+    def test_a_group_name_is_accepted_like_the_runtime(self) -> None:
+        # The runtime resolves each polygon name with Unit.getByName then Group.getByName:getUnit(1),
+        # so a group name is valid even when its unit is named differently — the demo's
+        # 'Sanctuary_Kutaisi_Polygon #001' group holds a unit 'Ground-1-1'. A unit-names-only check
+        # flagged 16 working references as errors (MIGRATE-DEMO-MISSION-V6 ticket 02).
+        content = {
+            "coalition": {
+                "blue": {
+                    "country": [
+                        {
+                            "name": "USA",
+                            "vehicle": {"group": [{"name": "Sanctuary_Poly #001", "units": [{"name": "Ground-1-1"}]}]},
+                        }
+                    ]
+                }
+            }
+        }
+        my = {"modules": {"SANCTUARY": {"sanctuary_zones": [{"polygon_units": ["Sanctuary_Poly #001"]}]}}}
+        assert find_missing_sanctuary_units(my, content) == []
+
 
 class TestAirportLinks:
     def test_unknown_airfield_is_error(self, monkeypatch) -> None:

@@ -30,7 +30,7 @@ veafMissileGuardian.SecondsBetweenWideZoneWatchdogChecks = 5
 --- Number of seconds between each check of the DANGER ZONE watchdog function
 veafMissileGuardian.SecondsBetweenDangerZoneWatchdogChecks = 0.5
 
-veafMissileGuardian.RadioMenuName = "GUARDIAN"
+veafMissileGuardian.RadioMenuName = "menu.missileguardian.root"
 
 veafMissileGuardian.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -190,9 +190,14 @@ function VeafMG_Guardian:copy()
   copy.friendlyName = self.friendlyName
 
   -- deep copy the collections
+  --
+  -- VMR-091: this loop used to write into `copy.protectedZone` while iterating
+  -- `self.protectedUnits`, so a copy came back with an **empty** protectedUnits. The block below
+  -- then reassigns `copy.protectedZone = {}`, which wiped the misplaced entries and left
+  -- protectedZone looking correct — which is precisely why nobody noticed the units were gone.
   copy.protectedUnits = {}
   for unitName, value in pairs(self.protectedUnits) do
-    copy.protectedZone[unitName] = value
+    copy.protectedUnits[unitName] = value
   end
 
   copy.protectedZone = {}
@@ -520,10 +525,16 @@ function veafMissileGuardian.buildRadioMenu()
   if veafMissileGuardian.rootPath then
     veafRadio.clearSubmenu(veafMissileGuardian.rootPath)
   else
-    veafMissileGuardian.rootPath = veafRadio.addMenu(veafMissileGuardian.RadioMenuName)
+    veafMissileGuardian.rootPath = veafRadio.addMenu(veaf.t(veafMissileGuardian.RadioMenuName))
   end
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafMissileGuardian.rootPath, veafMissileGuardian.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafMissileGuardian.rootPath,
+      veafMissileGuardian.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
   veafRadio.refreshRadioMenu()
 end
@@ -589,22 +600,25 @@ function veafMissileGuardian.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_guardianName=%s", veaf.p(_missionName)))
     veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "list" then
-      veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is listing air missions)", veaf.p(_pilot.name)))
-      veafMissileGuardian.listAvailableMissions()
+      veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is listing guardians", veaf.p(_pilot.name)))
+      -- listAvailableMissions/ActivateMission/DesactivateMission do not exist: the module was
+      -- renamed mission -> guardian and this remote handler never followed, so all three of its
+      -- branches raised "attempt to call a nil value" (SECREV-2 / VMR-090).
+      veafMissileGuardian.listGuardians()
       return true
     elseif _action and _action:lower() == "start" and _missionName then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafMissileGuardian.Id)
-        :info(string.format("[%s] is starting air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-      veafMissileGuardian.ActivateMission(_missionName, _silent)
+        :info(string.format("[%s] is starting guardian [%s] %s", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+      veafMissileGuardian.ActivateGuardian(_missionName, _silent)
       return true
     elseif _action and _action:lower() == "stop" then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafMissileGuardian.Id)
-        :info(string.format("[%s] is stopping air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-      veafMissileGuardian.DesactivateMission(_missionName, _silent)
+        :info(string.format("[%s] is stopping guardian [%s] %s", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+      veafMissileGuardian.DesactivateGuardian(_missionName, _silent)
       return true
     end
   end

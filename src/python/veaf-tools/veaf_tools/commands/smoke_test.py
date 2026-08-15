@@ -1,0 +1,105 @@
+"""Run the in-DCS smoke checks against a running DCS.
+
+Machine-only: it needs a DCS install, so it never runs in CI (GitHub runners have no DCS, licence or
+GPU). It skips with an explanation rather than failing when there is nothing to talk to, because that
+is the normal state of most machines and a tool that cries wolf there stops being run.
+"""
+
+from pathlib import Path
+
+import typer
+from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL
+from veaf_libs.dcs_fiddle_client import DEFAULT_FIDDLE_URL, probe, resolve_fiddle_token, set_session_token
+from veaf_libs.dcs_lifecycle import LifecycleConfig, find_dcs_executable, run_unattended
+from veaf_libs.dcs_smoke import format_result, run
+
+from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
+
+
+@app.command(name="smoke-test", help=t("cmd.smoke_test.help"))
+def smoke_test(
+    url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t("cmd.smoke_test.opt.url")),
+    timeout: float = typer.Option(10.0, "--timeout", help=t("cmd.smoke_test.opt.timeout")),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.smoke_test.opt.serve_url")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.smoke_test.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.smoke_test.opt.config")),
+    probe_only: bool = typer.Option(False, "--probe-only", help=t("cmd.smoke_test.opt.probe_only")),
+    full: bool = typer.Option(False, "--full", help=t("cmd.smoke_test.opt.full")),
+    mission: Path | None = typer.Option(None, "--mission", help=t("cmd.smoke_test.opt.mission")),
+    dcs_exe: Path | None = typer.Option(None, "--dcs-exe", help=t("cmd.smoke_test.opt.dcs_exe")),
+    allow_running: bool = typer.Option(False, "--allow-running", help=t("cmd.smoke_test.opt.allow_running")),
+    fiddle_token: str | None = typer.Option(
+        None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t("cmd.smoke_test.opt.fiddle_token")
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """Probe a running DCS and assert VEAF runtime behaviour inside it."""
+    logger.set_verbose(verbose)
+    console.print(t("cmd.smoke_test.title", version=VERSION))
+
+    # Resolve the hook's per-session password once, so every hook call this process makes authenticates
+    # with it. Absent is fine: a hook that predates the auth accepts no header, and one that requires it
+    # says so by rejecting the request.
+    set_session_token(resolve_fiddle_token(fiddle_token))
+
+    if probe_only:
+        caps = probe(url=url, timeout=timeout)
+        for note in caps.notes:
+            console.print(f"  - {note}")
+        blocker = caps.blocking_reason()
+        if blocker:
+            # Named explicitly, and after the raw notes rather than instead of them: the notes are the
+            # measurement, this line is the reading of it, and the reading is what people act on.
+            console.print(f"\n[yellow]![/]  {blocker}")
+        elif caps.can_drive_lifecycle:
+            console.print(f"\n[green]✓[/]  {t('cmd.smoke_test.lifecycle_available')}")
+        if not caps.hook_alive:
+            raise typer.Exit(code=0)  # nothing running is not a failure
+        return
+
+    if full:
+        _run_full(url, timeout, serve_url, api_key, config, mission, dcs_exe, allow_running)
+        return
+
+    result = run(url=url, timeout=timeout, serve_url=serve_url, api_key=api_key, config=config)
+    console.print(format_result(result))
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
+
+
+def _run_full(
+    url: str,
+    timeout: float,
+    serve_url: str,
+    api_key: str | None,
+    config: str | None,
+    mission: Path | None,
+    dcs_exe: Path | None,
+    allow_running: bool,
+) -> None:
+    """Drive a whole DCS run: launch, load *mission*, assert, quit — the ``--full`` path."""
+    if mission is None:
+        console.print(f"[red]![/]  {t('cmd.smoke_test.full.needs_mission')}")
+        raise typer.Exit(code=2)
+
+    exe = dcs_exe
+    if exe is None:
+        # Only a running DCS can tell us its install dir; when nothing is up, --dcs-exe is required.
+        exe = find_dcs_executable(probe(url=url, timeout=timeout).install_dir)
+    if exe is None:
+        console.print(f"[red]![/]  {t('cmd.smoke_test.full.no_exe')}")
+        raise typer.Exit(code=2)
+
+    cfg = LifecycleConfig(dcs_exe=exe, mission=mission, url=url, timeout=timeout)
+    report = run_unattended(cfg, allow_running=allow_running, serve_url=serve_url, api_key=api_key, config=config)
+
+    for step in report.steps:
+        console.print(f"  {step}")
+    if report.result is not None:
+        console.print(format_result(report.result))
+    if report.error:
+        console.print(f"[red]![/]  {report.error}")
+    if report.exit_code:
+        raise typer.Exit(code=report.exit_code)

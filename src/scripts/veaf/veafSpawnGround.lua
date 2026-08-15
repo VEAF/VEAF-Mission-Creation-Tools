@@ -316,7 +316,10 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Infantry Section", czName)
   local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side, size)
@@ -367,9 +370,10 @@ function veafSpawn.spawnArmoredPlatoon(
     hiddenOnMFD
   )
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
-  local randSpot = mist.getRandPointInCircle(spawnSpot, radius)
-  veaf.loggers.get(veafSpawn.Id):trace("randSpot=%s", randSpot)
-  local spawnSpot = veaf.placePointOnLand(randSpot)
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Armored Platoon", czName)
   veaf.loggers.get(veafSpawn.Id):trace("groupName=%s", groupName)
@@ -408,7 +412,10 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Air Defense Battery", czName)
   local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
@@ -460,7 +467,10 @@ function veafSpawn.spawnTransportCompany(
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Transport Company", czName)
   local group = veafCasMission.generateTransportCompany(groupName, defense, side, size)
@@ -633,6 +643,9 @@ function veafSpawn.spawnConvoy(
 
   if groupUnits.units then
     -- place its units
+    -- Deliberately NOT using veaf.findSpawnPoint here: spawnSpot is the convoy's departure
+    -- point, and generateVehiclesRoute below builds the route *from that same point*, so
+    -- moving the spawn laterally would desync the route origin from where the vehicles are.
     local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), spacing, heading, true)
     veafUnits.traceGroup(groupUnits, cells)
 
@@ -665,18 +678,21 @@ function veafSpawn._findClosestConvoy(unitName)
   if unit then
     for name, _ in pairs(veafSpawn.spawnedConvoys) do
       local averageGroupPosition = veaf.getAveragePosition(name)
+      -- VMR-101: skip the convoy, do not abandon the search. A destroyed convoy still listed in
+      -- spawnedConvoys has no average position, and returning here hid every live convoy from
+      -- "mark/stop/move closest convoy". The name logged was the player's, not the convoy's.
       if not averageGroupPosition then
-        veaf.loggers.get(veafSpawn.Id):error("cannot get average position of %s", veaf.p(unitName))
-        return nil
-      end
-      local distanceFromPlayer = (
-        (averageGroupPosition.x - unit:getPosition().p.x) ^ 2 + (averageGroupPosition.z - unit:getPosition().p.z) ^ 2
-      ) ^ 0.5
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d", distanceFromPlayer))
-      if distanceFromPlayer < minDistance then
-        minDistance = distanceFromPlayer
-        closestConvoyName = name
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("convoy %s is closest", closestConvoyName))
+        veaf.loggers.get(veafSpawn.Id):warn("cannot get average position of convoy %s, skipping it", veaf.p(name))
+      else
+        local distanceFromPlayer = (
+          (averageGroupPosition.x - unit:getPosition().p.x) ^ 2 + (averageGroupPosition.z - unit:getPosition().p.z) ^ 2
+        ) ^ 0.5
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d", distanceFromPlayer))
+        if distanceFromPlayer < minDistance then
+          minDistance = distanceFromPlayer
+          closestConvoyName = name
+          veaf.loggers.get(veafSpawn.Id):trace(string.format("convoy %s is closest", closestConvoyName))
+        end
       end
     end
   end
@@ -820,7 +836,7 @@ end
 -- Ground spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("farp", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("farp", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   if not options.type then
     options.type = "invisible"
   end
@@ -843,7 +859,7 @@ veafSpawn.registerCommandHandler("farp", "L9", function(eventPos, options, coali
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("fob", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("fob", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnFob(
     eventPos,
     options.radius,
@@ -859,7 +875,7 @@ veafSpawn.registerCommandHandler("fob", "L9", function(eventPos, options, coalit
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("group", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnGroup(
     eventPos,
@@ -878,7 +894,7 @@ veafSpawn.registerCommandHandler("group", "L9", function(eventPos, options, coal
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("infantryGroup", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("infantryGroup", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnInfantryGroup(
     eventPos,
     options.radius,
@@ -896,7 +912,7 @@ veafSpawn.registerCommandHandler("infantryGroup", "L9", function(eventPos, optio
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("armoredPlatoon", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("armoredPlatoon", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnArmoredPlatoon(
     eventPos,
@@ -916,7 +932,7 @@ veafSpawn.registerCommandHandler("armoredPlatoon", "L9", function(eventPos, opti
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("airDefenseBattery", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnAirDefenseBattery(
     eventPos,
@@ -934,7 +950,7 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "L9", function(eventPos, o
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("transportCompany", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("transportCompany", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local hasDest = options.destination ~= nil
   local g = veafSpawn.spawnTransportCompany(
     eventPos,
@@ -953,7 +969,7 @@ veafSpawn.registerCommandHandler("transportCompany", "L9", function(eventPos, op
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("fullCombatGroup", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("fullCombatGroup", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnFullCombatGroup(
     eventPos,
     options.radius,
@@ -971,7 +987,7 @@ veafSpawn.registerCommandHandler("fullCombatGroup", "L9", function(eventPos, opt
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("convoy", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("convoy", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnConvoy(
     eventPos,
     options.name,

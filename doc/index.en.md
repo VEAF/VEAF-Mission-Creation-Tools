@@ -10,9 +10,9 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
 | Role | Start Here | What You'll Find |
 |------|------------|-----------------|
-| **Player / Pilot** | [Pilot Guide](pilot/README.md) | F10 menus, marker commands, available assets and combat zones |
-| **Mission Maker** | [Mission Maker Guide](mission-maker/README.md) | Install, configure modules, build and deploy missions |
-| **Developer** | [Developer Guide](developer/README.md) | Architecture, build pipeline, quality gates, contributing |
+| **Player / Pilot** | [Pilot Guide](pilot/README.en.md) | F10 menus, marker commands, available assets and combat zones |
+| **Mission Maker** | [Mission Maker Guide](mission-maker/README.en.md) | Install, configure modules, build and deploy missions |
+| **Developer** | [Developer Guide](developer/README.en.md) | Architecture, build pipeline, quality gates, contributing |
 
 ---
 
@@ -20,16 +20,16 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
 ```mermaid
 flowchart TD
-    A["Base .miz\n(DCS Editor)"] -->|veaf-tools extract| B["Mission folder\n(src/ + mission.yaml)"]
+    A["Base .miz\n(DCS Editor)"] -->|veaf-tools mission extract| B["Mission folder\n(src/ + mission.yaml)"]
     B --- C["published/\n(VEAF scripts)"]
-    B -->|veaf-tools build| D[".miz ready to fly"]
+    B -->|veaf-tools mission build| D[".miz ready to fly"]
     D -->|DCS loads| E["30+ Lua modules active"]
     E -->|Players use| F["F10 markers · Radio menus"]
 ```
 
 1. **Extract** — Create a base mission in DCS Editor and extract it into version-controllable source files
 2. **Configure** — `mission.yaml` declares active modules; `published/` provides the VEAF Lua scripts
-3. **Build** — `veaf-tools build` assembles everything into a final `.miz`
+3. **Build** — `veaf-tools mission build` assembles everything into a final `.miz`
 4. **Runtime** — DCS loads the `.miz`; players interact via F10 markers and radio menus
 
 ---
@@ -38,10 +38,11 @@ flowchart TD
 
 | Reference | Description |
 |-----------|-------------|
-| [Lua API Reference](LUA_API_REFERENCE.md) | Full API for the Lua runtime modules |
-| [Tools CLI Reference](TOOLS_REFERENCE.md) | `veaf-tools.exe` — all commands and options |
-| [Testing Guide](TESTING.md) | Lua unit test suite and CI/CD pipeline |
-| [Roadmap](ROADMAP.md) | Planned features and known limitations |
+| [Lua API Reference](LUA_API_REFERENCE.en.md) | Full API for the Lua runtime modules |
+| [CLI Reference](CLI_REFERENCE.en.md) | `veaf-tools` — all 25 commands, their arguments and every option |
+| [Updater & release tools](TOOLS_REFERENCE.en.md) | `veaf-tools-updater` and `veaf-build`: install, update, publish |
+| [Testing Guide](TESTING.en.md) | Lua unit test suite and CI/CD pipeline |
+| [Roadmap](ROADMAP.en.md) | Planned features and known limitations |
 
 ---
 
@@ -49,7 +50,7 @@ flowchart TD
 
 ### Players and Pilots
 
-You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.md) for all available commands.
+You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.en.md) for all available commands.
 
 ### Mission Makers
 
@@ -63,28 +64,28 @@ Then, depending on your starting point:
 
 **You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
 ```powershell
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 **You only have a `.miz` file:**
 ```powershell
-veaf-tools.exe extract my-mission.miz
+veaf-tools.exe mission extract my-mission.miz
 # → edit mission.yaml to enable the modules you want
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
-Full workflow: [Mission Maker Guide](mission-maker/README.md)
+Full workflow: [Mission Maker Guide](mission-maker/README.en.md)
 
 ### Developers
 
 ```powershell
 poetry install --with build
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version <version>
 poetry run test-lua
-poetry run veaf-build publish --version 6.0.5
+poetry run veaf-build publish --version <version>
 ```
 
-Full reference: [Developer Guide](developer/README.md)
+Full reference: [Developer Guide](developer/README.en.md)
 
 ---
 

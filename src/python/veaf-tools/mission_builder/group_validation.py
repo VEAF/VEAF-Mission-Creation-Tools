@@ -206,8 +206,15 @@ def find_missing_trigger_zone_refs(
 def find_missing_sanctuary_units(
     mission_yaml: dict[str, Any], mission_content: dict[str, Any]
 ) -> list[tuple[str, str, str]]:
-    """Return ``(section, unit_name, "error")`` for SANCTUARY ``polygon_units`` absent from the mission."""
-    present = collect_mission_unit_names(mission_content)
+    """Return ``(section, name, "error")`` for SANCTUARY ``polygon_units`` absent from the mission.
+
+    A name is accepted if it matches a **unit or a group**, mirroring the runtime:
+    ``VeafSanctuaryZone:setPolygonFromUnits`` resolves each name with ``Unit.getByName`` and, failing
+    that, ``Group.getByName(name):getUnit(1)`` — so the demo's polygon groups (named
+    ``Sanctuary_Kutaisi_Polygon #NNN`` with a unit ``Ground-1-1`` inside) are valid, and a
+    unit-names-only check flagged 16 real, working references as errors.
+    """
+    present = collect_mission_unit_names(mission_content) | collect_mission_group_names(mission_content)
     modules = mission_yaml.get("modules") or {}
     issues: list[tuple[str, str, str]] = []
     for zone in _module_cfg(modules, "SANCTUARY").get("sanctuary_zones") or []:

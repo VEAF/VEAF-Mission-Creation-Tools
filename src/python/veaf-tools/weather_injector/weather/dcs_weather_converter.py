@@ -2,6 +2,7 @@
 
 import json
 import re
+import traceback
 from typing import Any
 
 from veaf_libs.i18n import t
@@ -150,6 +151,15 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         logger.debug(f"Fetching live METAR for airport {airport_icao} from avwx-engine")
         metar = Metar(airport_icao)
 
+        # VMR-006: `Metar(icao)` only *constructs* — `.update()` is what fetches. Without it
+        # every attribute below is None, so the function returned its canned defaults while
+        # logging "Successfully fetched", and a mission asking for live weather quietly got
+        # invented weather. The return value matters too: avwx reports a failed fetch by
+        # returning False rather than raising, so ignoring it reinstates the same silence.
+        if not metar.update():  # type: ignore[attr-defined]
+            logger.warning(t("weather.converter.metar_fetch_empty", icao=airport_icao))
+            return result
+
         if metar.temperature and metar.temperature.value is not None:  # type: ignore[attr-defined]
             result["temperature"] = metar.temperature.value  # type: ignore[attr-defined]
 
@@ -185,7 +195,13 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
         logger.debug(f"Successfully fetched METAR for {airport_icao}: {result}")
     except Exception as e:
-        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=str(e)))
+        # Kept broad on purpose: this is a network call to a third-party library, and a build must
+        # not die because a weather service is down. But naming the exception type is what makes a
+        # programming error tellable from an outage (SECREV-2 / VMR-069) — an AttributeError from an
+        # avwx API change used to read exactly like a failed request, and the traceback was lost
+        # entirely. The mission then flies the default weather, so the warning has to be legible.
+        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=f"{type(e).__name__}: {e}"))
+        logger.debug(f"METAR fetch traceback for {airport_icao}:\n{traceback.format_exc()}")
 
     return result
 
@@ -240,10 +256,31 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
 
     parts = metar_string.split()
 
+    # Everything from the first of these words on describes a *forecast* or free-text remarks, not
+    # the current observation (SECREV-2 / VMR-070). The loop used to read straight through them, and
+    # since the visibility branch has no `break`, the last four-digit group won: a report ending in
+    # `TEMPO 3000` was flown at 3000 m even though it was observed at 9999.
+    _NOT_OBSERVED_FROM = ("TEMPO", "BECMG", "NOSIG", "RMK", "PROB30", "PROB40", "FM")
+    for cut, part in enumerate(parts):
+        if part.upper().startswith(_NOT_OBSERVED_FROM):
+            parts = parts[:cut]
+            break
+
+    #: Which single-valued groups have already been read, so a later token cannot overwrite them.
+    seen: set[str] = set()
+
     for i, part in enumerate(parts):
         # Temperature/Dewpoint: "15/10" format
         if "/" in part and i > 0:
             with_temp = part.split("/")[0]
+            # VMR-016: a METAR marks a negative temperature with an `M` prefix, not a minus
+            # sign — `M05/M10` is -5 °C with a -10 °C dewpoint. Testing `lstrip("-").isdigit()`
+            # therefore rejected every sub-zero reading and left the default in place
+            # **silently**, so a winter mission quietly flew at whatever temperature happened to
+            # be configured. Both spellings are accepted now; the `-` form is not valid METAR but
+            # was already tolerated here, and removing tolerance would be a second change.
+            if with_temp.upper().startswith("M"):
+                with_temp = "-" + with_temp[1:]
             if with_temp.lstrip("-").isdigit():
                 try:
                     result["temperature"] = float(with_temp)
@@ -262,12 +299,12 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
                 except ValueError:
                     pass
 
-        # Visibility: "9999" format (meters) or "10SM" (statute miles)
-        if part.isdigit() and len(part) == 4:
-            try:
-                result["visibility"] = float(part)
-            except ValueError:
-                pass
+        # Visibility: "9999" format (meters) or "10SM" (statute miles).
+        # First one only: a METAR carries at most one prevailing visibility, and taking the last
+        # four-digit group let a later one overwrite it (SECREV-2 / VMR-070).
+        if part.isdigit() and len(part) == 4 and "visibility" not in seen:
+            result["visibility"] = float(part)
+            seen.add("visibility")
 
         # Cloud coverage groups: "FEW010", "SCT025", "BKN040", "OVC100"
         cloud_match = re.match(r"(SKC|CLR|FEW|SCT|BKN|OVC)(\d{3})?", part)

@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from mission_builder_factory import make_worker
 from veaf_libs.i18n import set_language
 
 
@@ -20,17 +21,18 @@ def _make_worker(
 ) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the attributes
     needed by complete_src_folder_with_defaults()."""
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker.mission_folder = mission_folder
-    worker.scripts_path = None  # forces defaults_folder resolution via mission_folder/published/src
-    worker.mission_yaml = mission_yaml
-    worker.pipeline_cfg = mission_yaml.get("pipeline") or {}
-    # Raw (pre-profile) yaml: in these unit tests the same dict doubles as the raw
-    # config (it carries the pipeline + any profiles the orphan check reasons about).
-    worker._raw_yaml = mission_yaml
-    worker.custom_scripts = custom_scripts or []
-    worker.custom_scripts_generate_load_trigger = custom_scripts_generate_load_trigger
-    return worker
+    # scripts_path stays None (the factory default): that forces defaults_folder resolution
+    # via mission_folder/published/src.
+    return make_worker(
+        mission_folder=mission_folder,
+        mission_yaml=mission_yaml,
+        pipeline_cfg=mission_yaml.get("pipeline") or {},
+        # Raw (pre-profile) yaml: in these unit tests the same dict doubles as the raw
+        # config (it carries the pipeline + any profiles the orphan check reasons about).
+        _raw_yaml=mission_yaml,
+        custom_scripts=custom_scripts or [],
+        custom_scripts_generate_load_trigger=custom_scripts_generate_load_trigger,
+    )
 
 
 def _seed_defaults(defaults_folder: Path, *filenames: str) -> None:
@@ -413,10 +415,10 @@ class TestCustomScriptsLoadTrigger(unittest.TestCase):
         custom_scripts: list[CustomScript],
         global_trigger: bool = True,
     ) -> MissionBuilderWorker:
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker.custom_scripts = custom_scripts
-        worker.custom_scripts_generate_load_trigger = global_trigger
-        return worker
+        return make_worker(
+            custom_scripts=custom_scripts,
+            custom_scripts_generate_load_trigger=global_trigger,
+        )
 
     def test_undeclared_file_always_triggers(self) -> None:
         """A file not in custom_scripts always gets a load trigger."""
@@ -467,6 +469,33 @@ class TestCustomScriptsLoadTrigger(unittest.TestCase):
         )
         self.assertFalse(worker._resolves_load_trigger("A.lua"))
         self.assertTrue(worker._resolves_load_trigger("B.lua"))
+
+
+class TestShippedVersionsDefaultIsNotADemo(unittest.TestCase):
+    """The shipped default versions.yaml is copied into every from-scratch mission, so it must not be
+    the seven-variant tutorial that turned one noon mission into a night one (FIX-SCRATCH-MISSION-
+    PLAYABLE ticket 04). It ships a single midday variant; the tutorial lives commented out below it.
+    """
+
+    def _shipped_default(self) -> Path:
+        here = Path(__file__).resolve()
+        root = next(p for p in here.parents if (p / "src" / "defaults").is_dir())
+        return root / "src" / "defaults" / "mission-folder" / "src" / "versions.yaml"
+
+    def test_it_declares_exactly_one_active_variant_at_noon(self) -> None:
+        import yaml
+
+        raw = yaml.safe_load(self._shipped_default().read_text(encoding="utf-8"))
+        versions = raw["versions"]
+        self.assertEqual(len(versions), 1, f"a from-scratch mission must build one mission, got {versions}")
+        self.assertEqual(versions[0]["time"], "12:00", "the single shipped variant must be midday, not dawn")
+
+    def test_the_demo_variants_are_commented_out_not_active(self) -> None:
+        # dawn-auto is the night start that reached David; it may survive as a commented example but
+        # never as a live entry the build would produce.
+        text = self._shipped_default().read_text(encoding="utf-8")
+        self.assertNotIn("\n  - name: dawn-auto", text, "dawn-auto must not be an active variant")
+        self.assertIn("dawn-auto", text, "the tutorial should remain, commented, so the feature stays discoverable")
 
 
 if __name__ == "__main__":

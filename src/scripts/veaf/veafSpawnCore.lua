@@ -45,7 +45,7 @@ veafSpawn.MissionMasterKeyphrase = "_mm"
 --- Illumination flare default initial altitude (in meters AGL)
 veafSpawn.IlluminationFlareAglAltitude = 1000
 
-veafSpawn.RadioMenuName = "SPAWN"
+veafSpawn.RadioMenuName = "menu.spawn.root"
 veafSpawn.HideRadioMenu = false
 
 --- static object type spawned when using the "logistic" keyword
@@ -134,35 +134,65 @@ veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ...
 
 --- Security levels recognized by the command dispatcher; mapped to a veafSecurity
 --- check applied centrally before a handler runs (nil = no check needed).
+---
+--- The tier names are the ones REVIEW-SECURITY-LAYER decision b settled on (2026-08-08);
+--- `KNOWN_PILOT` is the loosest and `ADMIN` the tightest. `MM` and `OPEN` are deliberately not
+--- tiers: a Mission Master password carries no level, and OPEN means *no check*.
 veafSpawn.SECURITY_CHECKS = {
-  L9 = function(options, markId)
+  KNOWN_PILOT = function(options, markId)
     return veafSecurity.checkSecurity_L9(options.password, markId)
   end,
-  L1 = function(options, markId)
+  SENIOR_PILOT = function(options, markId)
     return veafSecurity.checkSecurity_L1(options.password, markId)
+  end,
+  ADMIN = function(options, markId)
+    return veafSecurity.checkSecurity_L0(options.password, markId)
   end,
   MM = function(options, markId)
     return veafSecurity.checkSecurity_MM(options.password)
   end,
+  --- Deliberately available to everyone. Exists so that "open" is something a command
+  --- states, rather than something it achieves by leaving the level out.
+  OPEN = function()
+    return true
+  end,
 }
+
+--- Deprecated spellings, aliased to the **same** function rather than to a copy of it: two copies
+--- is how one of two paths receives tomorrow's fix. Kept for one release. Listed here rather than
+--- derived from `veafSecurity.DEPRECATED_LEVEL_NAMES`, which would need that module loaded first.
+veafSpawn.SECURITY_CHECKS.L0 = veafSpawn.SECURITY_CHECKS.ADMIN
+veafSpawn.SECURITY_CHECKS.L1 = veafSpawn.SECURITY_CHECKS.SENIOR_PILOT
+veafSpawn.SECURITY_CHECKS.L9 = veafSpawn.SECURITY_CHECKS.KNOWN_PILOT
 
 --- Register a command handler for executeCommand().
 -- @param key       options field name that activates this handler (e.g. "unit", "farp")
--- @param security  optional security level ("L9"/"L1"/"MM") checked centrally before fn;
---                  omit for no check. Accepts the legacy 2-arg form (key, fn).
+-- @param security  REQUIRED level ("KNOWN_PILOT"/"SENIOR_PILOT"/"ADMIN", or the deprecated
+--                  "L9"/"L1"/"L0"), "MM" for the Mission Master password, or "OPEN" for a command
+--                  deliberately available to everyone. The 2-arg form (key, fn) is no longer
+--                  accepted: it meant "no check", so omitting the level and forgetting it looked
+--                  the same, which is the shape SECREV-2 set out to remove.
 -- @param fn        function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
 function veafSpawn.registerCommandHandler(key, security, fn)
-  if fn == nil then
-    -- legacy 2-arg form: (key, fn), no security check
-    fn = security
-    security = nil
-  end
-  -- Catch a mistyped level early: an unknown level is fail-closed by the dispatcher
-  -- (it denies), so warn so the typo doesn't silently lock the command instead.
-  if security ~= nil and veafSpawn.SECURITY_CHECKS[security] == nil then
-    veaf.loggers
-      .get(veafSpawn.Id)
-      :warn(string.format("registerCommandHandler(%s): unknown security level %s", tostring(key), tostring(security)))
+  assert(
+    type(fn) == "function",
+    "veafSpawn.registerCommandHandler("
+      .. tostring(key)
+      .. "): fn must be a function — the 2-argument form (key, fn) meant 'no security check' and is gone"
+  )
+  assert(
+    veafSpawn.SECURITY_CHECKS[security] ~= nil,
+    "veafSpawn.registerCommandHandler("
+      .. tostring(key)
+      .. "): unknown or missing security level ["
+      .. tostring(security)
+      .. "] — declare one of KNOWN_PILOT/SENIOR_PILOT/ADMIN/MM/OPEN"
+  )
+  -- An old spelling still works, and says so once. Guarded on veafSecurity because a handler may
+  -- register before that module is loaded, and a missing deprecation notice must never be the
+  -- reason a mission fails to load.
+  if veafSecurity and veafSecurity.DEPRECATED_LEVEL_NAMES and veafSecurity.DEPRECATED_LEVEL_NAMES[security] then
+    veafSecurity.levelForName(security)
   end
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
@@ -603,6 +633,20 @@ end
 -- Group spawn command
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Reports that no acceptable position was found for a whole group, and aborts the spawn
+-- Shared by every caller of veaf.findSpawnPoint, in this module and in veafSpawnGround.
+-- Before FEAT-SCENERY-AWARE-SPAWN such a spawn ran to completion and dropped its units one
+-- by one downstream, emitting one message per unit; it now stops once, with one message.
+-- @param silent when true, log only — a scripted spawn must not spam the players
+-- @return nil always, so a caller can `return veafSpawn._reportNoGroupPosition(silent)`
+function veafSpawn._reportNoGroupPosition(silent)
+  veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning the group")
+  if not silent then
+    trigger.action.outText(veaf.t("spawn.no_position_group"), 5)
+  end
+  return nil
+end
+
 --- Spawn a specific group at a specific spot
 function veafSpawn.doSpawnGroup(
   spawnSpot,
@@ -633,7 +677,10 @@ function veafSpawn.doSpawnGroup(
     shuffle
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
   veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
@@ -858,24 +905,42 @@ end
 function veafSpawn.buildRadioMenu()
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu() hideMenu%s", veaf.p(veafSpawn.HideRadioMenu)))
   if not veafSpawn.HideRadioMenu then
-    veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
-    veafRadio.addCommandToSubmenu("Available Aircraft spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
-    veafRadio.addCommandToSubmenu("Info on all convoys", veafSpawn.rootPath, veafSpawn.infoOnAllConvoys, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu("Mark closest convoy route", veafSpawn.rootPath)
+    veafSpawn.rootPath = veafRadio.addSubMenu(veaf.t(veafSpawn.RadioMenuName))
     veafRadio.addCommandToSubmenu(
-      "Mark closest convoy route",
+      veaf.t("menu.spawn.available_aircraft"),
+      veafSpawn.rootPath,
+      veafSpawn.listAllCAP,
+      nil,
+      veafRadio.USAGE_ForAll
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_info_all"),
+      veafSpawn.rootPath,
+      veafSpawn.infoOnAllConvoys,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark_route"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_mark_route"),
       menuPath,
       veafSpawn.markClosestConvoyRouteWithSmoke,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu("Mark closest convoy", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Mark closest convoy", menuPath, veafSpawn.markClosestConvoyWithSmoke, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu("Stop closest convoy", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Stop closest convoy", menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu("Makes closest convoy move", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Make closest convoy move", menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)
-    veafRadio.addSecuredCommandToSubmenu("Cleanup all convoys", veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_mark"),
+      menuPath,
+      veafSpawn.markClosestConvoyWithSmoke,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_stop"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_stop"), menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_move"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_move"), menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.convoy_cleanup"), veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
     veafRadio.refreshRadioMenu()
   end
 end
@@ -884,22 +949,22 @@ end
 -- Core command handlers (drawing + mission master) — registered at load time
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("addDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("addDrawing", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.addPointToDrawing(eventPos, options.name, options.drawColor, options.drawFillColor, options.type, options.drawArrow)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawSquare", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("drawSquare", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawSquare(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("drawCircle", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("drawCircle", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.drawCircle(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("eraseDrawing", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("eraseDrawing", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.eraseDrawing(options.name)
   return nil, nil, false
 end)
@@ -937,7 +1002,7 @@ function veafSpawn.initialize()
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     local requesterCoalition = veaf.getRequesterCoalition(event)
     return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
-  end, veafCommands.PRIORITY_SPAWN)
+  end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
   veafSpawn.dumpSpawnablePlanesList()
 end
 

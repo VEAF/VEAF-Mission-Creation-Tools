@@ -12,12 +12,13 @@ Que construisez-vous ? Choisissez l'étape qui correspond.
 
 | Étape | Modules | Objectif |
 |-------|---------|----------|
-| **Fondation** | `veaf.lua`, `veafMarkers`, `veafRadio`, `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
+| **Fondation** | `veaf.lua`, `veafMarkers`, [veafRadio](veafRadio.md), [veafInterpreter](veafInterpreter.md), [veafCommands](veafCommands.md), [veafI18n](veafI18n.md), [veafUnits](veafUnits.md), `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
 | **Mise en place** | [veafSecurity](veafSecurity.md), [veafNamedPoints](veafNamedPoints.md), [veafAirbases](veafAirbases.md) | Contrôle d'accès, positions carte, données de bases |
-| **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md) | Permettre aux joueurs de créer et déplacer des unités |
-| **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Scénarios de gameplay structurés |
+| **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md), [veafGroundAI](veafGroundAI.md) | Permettre aux joueurs de créer, déplacer et piloter des unités |
+| **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatMission](veafCombatMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Scénarios de gameplay structurés |
 | **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Ravitailleurs/AWACS/porte-avions gérés, météo |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Défense anti-missiles, zones sûres |
+| **Assistance en vol** | [veafAssist](veafAssist.md) | Checklists guidées : la mission encadre le bon interrupteur dans le cockpit et coche la ligne |
 | **Intégrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | Systèmes IADS tiers |
 
 ### Par interaction joueur
@@ -27,13 +28,13 @@ Que vivront vos joueurs ?
 | Action joueur | Module | Ce qui se passe |
 |---------------|--------|-----------------|
 | Place un marqueur avec `_spawn ...` | [veafSpawn](veafSpawn.md) | Des unités apparaissent à la position du marqueur |
-| Ouvre F10 → CAS Mission → Generate | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
-| Ouvre F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
-| Ouvre F10 → Missions → Activate | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
-| Ouvre F10 → Assets → Tanker/AWACS | [veafAssets](veafAssets.md) | Info, respawn, recovery porte-avions |
-| Ouvre F10 → Carrier → Start Recovery | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
+| Place un marqueur avec `_cas` | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
+| Ouvre F10 → ZONES DE COMBAT → Activer la zone | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
+| Entre dans une zone de vagues aériennes | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
+| Ouvre F10 → ASSETS → [ressource] | [veafAssets](veafAssets.md) | Info, respawn |
+| Ouvre F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
 | Entre dans une zone protégée | [veafQraManager](veafQraManager.md) | Intercepteurs IA décollent |
-| Tape `_auth [mot_de_passe]` | [veafSecurity](veafSecurity.md) | Permissions élevées accordées |
+| Tape `_auth elevate` | [veafSecurity](veafSecurity.md) | Le groupe monte au niveau du demandeur pendant 2 minutes |
 | Vole dans une zone sanctuaire | [veafSanctuary](veafSanctuary.md) | Missiles hostiles neutralisés |
 
 ### Par fréquence d'utilisation
@@ -97,7 +98,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 
 | Composant | Fichier | Rôle |
 |-----------|---------|------|
-| [veafServerHook](veafServerHook.md) | `VEAF-Server-hook.lua` | Hook serveur dédié : commandes chat (`/secu login`, `/send`…), liste des pilotes, restart/télémétrie opt-in |
+| [veafServerHook](veafServerHook.md) | `VEAF-Server-hook.lua` | Hook serveur dédié : commandes chat (`/send`, `/pause`…), liste des pilotes, restart/télémétrie opt-in |
 
 ---
 

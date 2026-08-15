@@ -70,7 +70,12 @@ class TestConvertOtherInput(unittest.TestCase):
             result, convert = self._invoke(miz, Path(td) / "out")
 
             self.assertEqual(result.exit_code, 0, result.output)
-            self.assertEqual(convert.call_args.kwargs["input_mission_path"], miz)
+            # Compared **resolved**: the command puts its input through `resolve_path`, which returns
+            # an absolute, resolved path. On a machine whose TEMP is an 8.3 short name
+            # (`C:\Users\DPIERR~1\...`) that expands to the long form, so the two Paths differ by
+            # form alone and this assertion failed while the command was behaving correctly. CI never
+            # saw it, its temp directory already being a long path.
+            self.assertEqual(convert.call_args.kwargs["input_mission_path"], miz.resolve())
 
     def test_archive_without_a_miz_fails_without_converting(self) -> None:
         with TemporaryDirectory() as td:

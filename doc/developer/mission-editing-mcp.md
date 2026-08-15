@@ -66,6 +66,293 @@ nouveau parsing.
 {"miz_path": "chemin/vers/mission.miz"}
 ```
 
+### `describe_units` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Lecture seule. Le niveau de détail que `describe_mission` ne donne pas : les **unités** de chaque
+groupe (type, `skill`, livrée, indicatif, numéro de flanc, position, cap, altitude, carburant,
+leurres/canon), leur **emport** et la **route** du groupe avec les tâches de chaque point.
+
+Trois choix de forme, chacun pour une raison mesurée sur une mission réelle (Foothold Caucasus
+4.4.1, 357 unités armées) :
+
+- **`pylons` est indexé par numéro de pylône, jamais positionnel.** DCS numérote les stations et
+  les numéros ne sont **pas contigus** : un FA-18C réel porte les pylônes 1, 4, 5, 6 et 9. Dans
+  cette mission, 170 unités sur 357 ont une disposition à trous, et le parseur Lua rend celles-ci
+  en `dict` alors qu'il aplatit les contiguës en `list`. Un lecteur qui traiterait les pylônes
+  comme une liste ordonnée aurait donc raison une fois sur deux et tort en silence le reste du
+  temps — c'est ainsi qu'un futur *setter* accrocherait une arme sur la mauvaise station.
+- **Les tâches automatiques de l'éditeur sont signalées et allégées.** Une tâche de point de
+  passage est un `ComboTask` qui mélange la tâche voulue par l'auteur et les options que l'éditeur
+  écrit tout seul (ROE, usage du radar, formation), toutes marquées `auto = true` : 1093 entrées
+  automatiques contre 189 voulues sur cette mission. Les deux sont rapportées — les masquer
+  fausserait la description — mais seules les tâches voulues portent leurs `params`.
+- **Un plafond dont l'appelant est informé.** La mission entière fait 1,9 Mo de JSON, et un seul
+  groupe de 62 points de passage en fait 18 ko. D'où les filtres (`group_name` par fragment,
+  `coalition`, `category`), la limite par défaut de 50 groupes avec `truncated`/`matched` dans la
+  réponse, et `include_route: false` qui **omet la clé** au lieu de renvoyer une liste vide (« pas
+  demandé » n'est pas « ce groupe n'a pas de route »).
+
+Les booléens sont rendus comme des booléens : DCS **omet** une clé qui vaut faux, et un appelant
+qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas regardé ».
+
+```json
+{"miz_path": "chemin/vers/mission.miz", "group_name": "Colt", "include_route": false}
+```
+
+### `set_unit_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Écriture. La **première** action qui modifie un objet déjà présent dans la mission : toutes les
+`set_*` livrées avant elle agissent sur la *configuration* (modules, sécurité, logs, coalition d'une
+base). Sauvegarde horodatée avant écriture, comme ses sœurs.
+
+Adresse l'unité par **nom exact** de groupe et **nom exact** d'unité — pas par fragment, contrairement
+à `describe_units` : un fragment fait porter la modification au premier groupe qui correspond, ce qui
+n'est pas rattrapable. Un nom introuvable liste ce qui existe, pour qu'un appelant réessaie sans
+relire toute la mission.
+
+Trois formes ont été **mesurées** sur de vraies missions plutôt que déduites, et deux contredisent le
+ticket qui les demandait :
+
+- **`skill` a sept valeurs, pas quatre.** `Average`, `Good`, `High`, `Excellent` et `Random` sont des
+  niveaux d'IA ; `Client` et `Player` sont des **slots humains**. Franchir cette limite dans un sens
+  ajoute une place à la liste multijoueur, dans l'autre la supprime — le bug pour lequel
+  `FIX-TEMPLATE-SLOTS-VISIBLE` a été ouvert. Les deux sens sont donc refusés en nommant la raison,
+  au lieu d'être honorés comme un réglage de compétence.
+- **L'indicatif d'un appareil n'est pas un champ simple.** C'est une table
+  `{1: famille, 2: vol, 3: numéro, name: "Colt11"}` où `name` est le mot de la famille suivi des deux
+  indices (`{1:1, 2:1, 3:2}` se lit `Enfield12`). Écrire `name` seul désynchronise ce que DCS annonce
+  à la radio de ce que montre l'éditeur : l'action modifie donc les indices et **reconstruit** `name`
+  à partir du préfixe déjà présent. Changer la *famille* exige la table famille→mot de DCS, que ce
+  dépôt n'embarque pas : c'est refusé sauf si l'appelant fournit lui-même le `name` résultant.
+- **`heading` est en radians** alors qu'un créateur de mission parle en degrés — le piège que
+  `resolve_coordinates` masque ailleurs. Le paramètre s'appelle `heading_deg` pour que l'unité soit
+  impossible à confondre, et la valeur est normalisée sur un tour (−90 vaut 270). **Sur un appareil en
+  vol** (catégorie avion/hélico, route de 2+ points, premier waypoint en l'air), l'action **avertit** :
+  DCS recalcule le cap depuis le premier segment de la route à la sauvegarde, donc le cap posé a une
+  durée de vie d'une sauvegarde (`FIX-MCP-EDITOR-ROUNDTRIP`, mesuré 2026-08-15). Pour orienter un
+  appareil en vol, on règle la route, pas le cap. Le cap est **quand même écrit** — l'avertissement
+  informe, il ne refuse pas ; un appareil parké ou une unité au sol ne déclenchent pas l'avertissement.
+
+Ce que l'action **ne valide pas**, faute des données pour le faire : le CLSID d'une arme face à
+l'appareil qui la porte, et une livrée face aux peintures installées. DCS retire silencieusement une
+arme impossible et affiche silencieusement la peinture par défaut, donc les deux limites sont
+renvoyées comme `warnings` plutôt que sous-entendues par leur absence.
+
+`pylons` est indexé **par numéro de station**, jamais positionnel, pour la raison mesurée dans
+`describe_units`. `pylons` absent = « ne touche pas à l'emport » ; `{}` en mode `replace` = « ne porte
+rien » ; en mode `merge`, un CLSID vide vide cette station.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Colt 1-1",
+  "unit_name": "Colt 1-1-1",
+  "skill": "Excellent",
+  "heading_deg": 270,
+  "pylons": {"4": ""},
+  "pylons_mode": "merge"
+}
+```
+
+La réponse porte `changed`, qui donne pour chaque champ touché sa valeur **précédente** et la
+nouvelle : un appelant qui ne peut pas dire ce qu'il a remplacé ne peut pas le défaire.
+
+### `set_group_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Écriture. Agit sur le groupe entier : déplacement, renommage, fréquence, modulation, et les trois
+booléens (`lateActivation`, `hidden`, `uncontrolled`). Sauvegarde horodatée avant écriture.
+
+**Le déplacement porte toute la conception de ce module, et ce n'est pas « écrire x et y ».** Un
+groupe, ce sont des unités **en formation** plus éventuellement une **route**. La translation
+s'applique donc à *toutes* les unités, *tous* les points de passage **et** l'ancre `x`/`y` du groupe,
+d'un seul vecteur : autrement la formation se déforme, ou la route se détache des unités auxquelles
+elle appartient — et aucun des deux ne se voit avant qu'on vole la mission. Le test du cisaillement
+(déplacer les unités en laissant les points de passage) est écrit pour tomber sur toute
+implémentation qui l'oublierait, et ça a été vérifié en cassant volontairement la translation.
+
+Le vecteur vient de **l'offset géodésique** de `FEAT-GEO-PLACEMENT`
+([ADR 0015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0015-coordinate-projection-port.md)), pas d'une addition de mètres sur `x` : un théâtre
+DCS est le monde réel projeté, donc « 5 km à l'est » est une question de latitude/longitude. Un
+théâtre sans projection fait **refuser** la forme cap + distance, en invitant à passer `move_to`.
+
+`frequency_mhz` est contrôlée face au `HumanRadio` de l'appareil, en réutilisant le validateur de
+l'injecteur de presets plutôt qu'en le redérivant : `FIX-PRIMARY-FREQ-HUMANRADIO` a établi que
+l'éditeur DCS **refuse d'enregistrer** une mission dont la fréquence primaire sort de cette plage.
+**Tous** les types d'unités du groupe sont vérifiés, pas seulement le premier — un groupe hétérogène
+passerait sinon sur son premier membre pour être refusé par l'éditeur à cause d'un autre.
+
+Le renommage lance la vérification des conventions VEAF réservées (`validate_group_name`) et
+**refuse par défaut** : un groupe renommé avec le nom de la zone de déclenchement d'une combat zone
+est *despawné au démarrage*, en silence. Renommer *vers* une convention est une intention légitime,
+d'où `acknowledge_conventions` — l'important est que ce soit délibéré. Les noms d'**unités** ne
+suivent jamais : ils portent leurs propres marqueurs (`#command=`, `#veafInterpreter[...]`), qu'une
+cascade réécrirait à l'aveugle.
+
+Ce que l'action **ne peut pas** faire, mesuré et non oublié : vérifier la nature du sol à l'arrivée.
+Il n'y a aucune donnée de terrain côté Python — `land.getSurfaceType` est une API d'exécution, seul
+son schéma est livré ici — et c'est exactement pour cette raison que `FEAT-SCENERY-AWARE-SPAWN` a
+résolu le problème à l'exécution. Le déplacement **avertit** donc qu'il n'a pas pu regarder, au lieu
+de valider et de mentir.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Red SAM Battery",
+  "move_bearing": 90,
+  "move_distance_m": 5000,
+  "late_activation": true
+}
+```
+
+### `edit_route` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Écriture. Deux couches : la **route** (`add`, `insert`, `remove`, `reorder`, `set`) est pour l'essentiel
+une opération de liste sur `route.points` ; les **tâches** d'un point de passage (`add_task`,
+`clear_tasks`) sont ce qui fait qu'un vol fait quelque chose.
+
+**L'invariant qui en fait de la chirurgie et pas de l'édition de liste.**
+`FIX-WAYPOINTS-ETA-LOCKED` a établi que DCS **refuse d'enregistrer** une mission dont une route n'a
+aucun point de passage à heure verrouillée (« Route has no waypoints with locked time! »), et que sa
+propre réparation consiste à verrouiller le premier. Supprimer ou réordonner peut donc produire une
+mission que l'éditeur rejette, loin de l'édition qui l'a causée. Chaque opération rétablit l'invariant
+et **le signale** quand elle a dû le faire.
+
+**Unités.** La table de mission contient des mètres et des mètres par seconde ; un créateur de mission
+parle en pieds et en nœuds. Comme pour le `heading_deg` de `set_unit_properties`, les paramètres portent
+leur unité dans leur nom (`altitude_ft`, `speed_kt`) et la réponse donne les deux, pour que l'appelant
+n'ait jamais à reconvertir.
+
+**Les tâches sont un jeu nommé à signatures vérifiées, pas une table libre** — choix explicite du
+ticket : une action générique « écris cette table de tâche » est un piège, parce qu'un agent produit une
+table plausible, DCS l'ignore en silence, et le créateur de mission le découvre une heure plus tard.
+L'échappatoire démarre **fermée**.
+
+Chaque signature a été lue dans une vraie mission, et trois sont des pièges :
+
+- **`SetFrequency` prend des hertz** (`31000000` pour 31 MHz) alors que la fréquence d'un *groupe* —
+  `set_group_properties` — est en MHz. Deux unités pour la même notion, dans le même fichier. L'action
+  prend des MHz et convertit.
+- **`EngageTargetsInZone` duplique sa liste de cibles** dans une chaîne sérialisée `value`
+  (`"Air;Cruise missiles;"`) à côté du tableau `targetTypes` ; n'écrire que le tableau laisse la mission
+  porter deux versions de la même décision.
+- **`SetFrequency` et `SwitchWaypoint` ne sont pas des tâches** mais des *actions*, portées dans une
+  enveloppe `WrappedAction`. Écrite comme une tâche nue, DCS l'ignore.
+
+Deux détails mesurés qui n'étaient pas dans le ticket : `type` et `action` d'un point de passage sont
+une **paire** (« Land » va avec « Landing »), et un point ajouté **hérite** de l'altitude et de la
+vitesse de son voisin — sinon il s'écrit à l'altitude 0 et le vol plonge au sol pour l'atteindre —
+**sauf si `altitude_ft`/`speed_kt` sont fournis à `add`/`insert`**, auquel cas ils sont écrits
+(`FIX-MCP-EDITOR-ROUNDTRIP` : ils étaient acceptés puis silencieusement ignorés, l'héritage écrasant la
+valeur demandée).
+
+**Les tâches d'attaque doivent porter le jeu de champs complet que l'éditeur conserve.**
+`FIX-MCP-EDITOR-ROUNDTRIP` a mesuré (2026-08-15) qu'un `Bombing` écrit sans `weaponType` est **jeté par
+l'éditeur à la sauvegarde** — un dispositif d'attaque qui ne largue rien. `Bombing` et `AttackGroup`
+portent donc désormais `weaponType` (défaut « Auto » mesuré : 2032 pour Bombing, 9659482112 pour
+AttackGroup, surchargeable via `weapon_type`), les paires `altitude`/`altitudeEnabled` et
+`direction`/`directionEnabled` **présentes mais désactivées** par défaut (activées si l'appelant passe
+`altitude_ft`/`direction_deg`), et l'ensemble `expend`/`attackQty`/`groupAttack`. `EngageTargetsInZone`
+porte aussi `noTargetTypes` (liste d'exclusion, vide par défaut).
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "group_name": "Colt 1-1",
+  "operation": "add_task",
+  "index": 2,
+  "task": "orbit",
+  "task_params": {"pattern": "Race-Track", "altitude_ft": 20000, "speed_kt": 300}
+}
+```
+
+### `edit_zone` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Écriture. `add_trigger_zone` ne crée que des zones **circulaires** et rien n'en modifiait une ensuite,
+donc ajuster une combat zone VEAF — qui *est* une zone de déclenchement — imposait de la supprimer et
+de la refaire.
+
+**Deux mesures avant toute ligne de code**, comme le ticket l'exigeait :
+
+- **La forme réelle d'une zone polygonale**, lue dans `veaf-demo-mission.miz` (`czBatumi`) : `type: 2`
+  plus une liste `verticies` — l'orthographe de DCS, conservée telle quelle parce que corriger la
+  coquille écrirait un champ que DCS ignore — tandis que `x`, `y` et `radius` **restent présents**. Un
+  polygone n'est donc pas un cercle avec des champs en plus.
+- **Ce que le runtime VEAF gère.** `veafCombatZone.lua` ne teste que deux types : `0` →
+  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y a **pas de
+  `else`**, donc une zone d'un autre type ne contiendrait aucune unité, en silence — pire que de ne pas
+  proposer la forme. L'action n'écrit donc que 0 et 2.
+
+**Décision de David sur le nombre de sommets (2026-08-12)** : accepter trois ou plus, puisque « suivre
+la ligne de crête » est le cas d'usage réel et que mist gère un polygone quelconque — mais **avertir**
+dès que le compte n'est pas quatre, l'éditeur DCS n'ayant aucun outil pour dessiner ou remodeler une
+zone non quadrilatère. La question ouverte de savoir s'il **préserve** une telle zone a été tranchée en
+jeu le 2026-08-15 (`FIX-MCP-EDITOR-ROUNDTRIP`) : une zone à 6 sommets est revenue identique après
+sauvegarde. L'action **ne refuse donc pas** au-delà de quatre ; l'avertissement énonce une limite
+connue (on ne peut pas éditer la forme à la main dans l'éditeur), plus un risque inconnu.
+
+Deux refus que le ticket laissait ouverts, décidés ici : un **lien vers une unité inexistante** est
+refusé plutôt qu'averti (une zone liée à rien ne suit simplement jamais rien, sans bruit), et une
+**collision de nom** est refusée (les zones sont référencées par nom depuis `mission.yaml`).
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "zone_name": "czBatumi",
+  "vertices": [
+    {"x": -359753.0, "y": 614918.0},
+    {"x": -355602.0, "y": 622688.0},
+    {"x": -352849.0, "y": 617192.0},
+    {"x": -358731.0, "y": 614282.0}
+  ]
+}
+```
+
+### `add_map_drawing` / `edit_map_drawing` (lot FEAT-MCP-MUTATION-ACTIONS)
+
+Écriture. Rien dans VMCT ne touchait aux dessins de la carte F10, donc une ligne de briefing, un couloir
+d'entrée ou une boîte interdite se dessinait à la main dans l'éditeur — **et disparaissait dès que la
+mission était reconstruite depuis son dossier**. C'est tout l'argument : un dessin posé par un agent
+fait partie de la recette, un dessin fait à la main non.
+
+**La mesure qui gouverne la conception**, lue dans les fixtures du dépôt :
+
+> Les `points` sont **relatifs à l'ancre `mapX`/`mapY`** du dessin, le premier valant `{0, 0}`.
+
+Un dessin écrit en coordonnées absolues atterrit à des centaines de kilomètres et **rien ne lève
+d'erreur** — la même classe de panne silencieuse que confondre le `{x=nord, y=est}` de la table de
+mission avec un vec3 d'exécution (voir `docs/agents/dcs-coordinates.md`). Les actions prennent donc les
+coordonnées **absolues** dont l'appelant dispose et font l'ancrage elles-mêmes. Le bénéfice apparaît
+dans `edit_map_drawing` : déplacer un dessin, c'est déplacer son ancre, et la forme suit gratuitement.
+
+**Six formes sont livrées parce que six formes ont été mesurées** : `Line` (avec `lineMode`
+`segment` ou `segments`, et `closed` pour une forme qui se referme), `Polygon` en mode `rect`
+(`width`/`height`/`angle`, **aucun** point), `TextBox` (`text`/`font`/`fontSize` ; la police est reprise
+d'un vrai dessin, une police absente de DCS ne s'affichant pas du tout), et — ajoutés le 2026-08-15
+depuis `bridge-Syria-editeur.miz` (ticket 10) — `Polygon` en mode `circle` (`radius`, aucun point ni
+angle), `oval` (`r1`/`r2`/`angle`) et `free` (des `points` relatifs à l'ancre comme une `Line`, une
+zone libre remplie, au moins trois points).
+
+`arrow` et `icon` ont été mesurés mais restent **refusés, avec une raison** plutôt qu'une supposition :
+un `arrow` stocke un contour calculé de 8 points **en plus** de ses `length`/`angle`, donc écrire les
+seuls paramètres demande un aller-retour en jeu pour savoir si DCS recalcule le contour (son propre
+ticket) ; un `icon` réclame un `file` du jeu d'icônes de l'éditeur (p. ex. `P91000007.png`), qu'aucune
+donnée du dépôt n'énumère, et un nom non validé ne s'affiche pas. `chevron` a été retiré : il n'existe
+pas dans l'éditeur DCS.
+
+La **couche** est un paramètre de première classe, jamais une valeur par défaut : un dessin sur la
+mauvaise couche est invisible pour les pilotes qui en ont besoin et visible pour ceux qui ne devraient
+pas le voir.
+
+```json
+{
+  "miz_path": "chemin/vers/mission.miz",
+  "layer": "Blue",
+  "shape": "line",
+  "name": "FSCL",
+  "points": [{"x": -300000.0, "y": 600000.0}, {"x": -290000.0, "y": 610000.0}]
+}
+```
+
 ### `add_group`
 
 Écriture. Insère un groupe terrestre/véhicule dans le `.miz` source, **en place**, avec une
@@ -115,6 +402,80 @@ nom conforme aux conventions VEAF lui-même (`veaf_mission_mcp.group_naming.reso
 
 `add_group` renvoie aussi un champ `warnings` (voir `validate_group_name` ci-dessous) : il **écrit
 quand même**, mais signale toute collision de convention pour que l'appelant la relaie.
+
+### `add_player_slot` (lot FIX-SCRATCH-MISSION-PLAYABLE)
+
+Écriture. Crée une **place joueur** — un groupe avion jouable — que `add_group` (terrestre) ne sait
+pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sauvegarde horodatée avant
+écriture. Cible un **dossier** (durable) ou un `.miz` (transitoire).
+
+```json
+{
+  "target": "chemin/vers/dossier-mission",
+  "coalition": "blue",
+  "country_id": 2,
+  "country_name": "USA",
+  "name": "Player Viper",
+  "unit_type": "F-16C_50",
+  "position": {"x": 1000.0, "y": 2000.0},
+  "start": "ground-cold",
+  "parking": "43",
+  "parking_id": "16",
+  "airdrome_id": 24
+}
+```
+
+- **`skill: Client`** — la compétence de slot multijoueur, jouable aussi en solo. Cette action ne
+  modifie **pas** la compétence d'une unité existante : `set_unit_properties` refuse `Client`/`Player`
+  et ceci n'en est pas une porte dérobée.
+- **`dynSpawnTemplate` est mis à `false`.** Ce drapeau marque un template de spawn dynamique, qui
+  exige une base configurée pour ça ; laissé actif (comme sur une copie d'un template) le slot existe
+  dans le fichier mais n'apparaît **pas** dans la liste des places — le défaut trouvé en jeu le
+  2026-08-14.
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime),
+  `"ground-cold"` ou `"ground-hot"`. Un départ au sol **exige** `parking`, `parking_id` et
+  `airdrome_id` ; sans eux il est **refusé** (message nommant la donnée capturée par
+  `FEAT-MCP-MUTATION-ACTIONS` ticket 09), jamais deviné. La paire `type`/`action` du premier waypoint
+  est écrite selon le mode.
+- **`frequency_mhz`** est écrite (radio de groupe active) plutôt qu'héritée d'un `communication: false`.
+- Assigne le pays à son camp dans `coalitions` (voir `add_group`), donc la mission reste chargeable.
+
+### `add_air_group` (lot FEAT-MCP-MUTATION-ACTIONS, ticket 09)
+
+Écriture. Pose un **vol** (un ou plusieurs appareils) au parking en **résolvant lui-même les places**
+depuis un **nom** d'aérodrome — le cas *« un deux-ship de F-16 à Incirlik »* que `add_player_slot` (un
+appareil, place fournie) ne couvre pas. Sauvegarde horodatée avant écriture. Cible un dossier (durable)
+ou un `.miz` (transitoire).
+
+```json
+{
+  "target": "chemin/vers/dossier-mission",
+  "coalition": "blue", "country_id": 2, "country_name": "USA",
+  "name": "Viper", "unit_type": "F-16C_50", "count": 2,
+  "start": "parking-cold", "airfield": "Kobuleti"
+}
+```
+
+- **Résolution des places.** Le nom d'aérodrome est résolu en id (`veaf_libs.dcs_airdromes`), puis en
+  places libres via la capture allégée bundlée (`veaf_libs.dcs_parking`, générée par
+  `veaf-build update-dcs-data --parking`). L'action prend `count` places libres, **les plus proches de
+  la piste d'abord**, et pose chaque appareil à la **position exacte** du stand.
+- **`parking_id` = `parking`.** Établi en jeu le 2026-08-15 : `parking` est le `Term_Index` de la
+  capture, l'appareil se cale sur la position exacte, et le `parking_id` propre à l'éditeur — absent de
+  la capture — n'est **pas** porteur. Il est donc écrit égal à `parking`.
+- **Seuls les types de terminal 104 et 68** sont proposés comme parking (mesuré : les avions parkés des
+  vraies missions Caucasus n'occupent qu'eux). Un aérodrome sans place de ce type est **refusé** plutôt
+  que de poser un appareil sur un seuil de piste.
+- **Collision refusée.** Une place déjà occupée dans la mission (un groupe avion dont le premier
+  waypoint vise cet aérodrome et dont une unité déclare cette place) est refusée **en nommant** le
+  groupe qui la tient ; la sélection automatique **saute** les places occupées.
+- **Départs.** `parking-cold` / `parking-hot` (exigent `airfield`), `runway` (exige `airfield`, ancré
+  sur le terrain, pas de place consommée), `air` (exige `position`). La paire `type`/`action` et le
+  verrou `ETA_locked` du premier waypoint sont écrits pour l'appelant.
+- **`skill`** vaut un niveau d'IA par défaut (`High`) — un vol au parking est IA sauf demande de
+  `Client`/`Player`. `parking` accepte une liste explicite de places qui court-circuite la sélection.
+- Un théâtre sans capture, un aérodrome inconnu, ou trop peu de places libres sont refusés en nommant
+  la cause. Assigne le pays à son camp dans `coalitions`.
 
 ### `validate_group_name` (vague 6)
 
@@ -208,6 +569,17 @@ modules) :
 - `set_module_enabled(module_id, enabled)` → `veaf.setConfig("<MOD>", "enable", <bool>)`.
 - `set_security_disabled(disabled)` → `veaf.SecurityDisabled = <bool>`.
 - `set_veaf_config(key, value)` → `veaf.config.<key> = <scalaire Lua>`.
+
+### Coalition d'un aérodrome
+
+- `set_airbase_coalition(folder_path, name, coalition)` — assigne durablement un aérodrome DCS à une
+  coalition, dans un **dossier de mission**.
+
+> ⚠️ La coalition d'un aérodrome vit dans `warehouses.airports[<id>].coalition`, **pas** dans
+> `mission.coalition`. Poser une unité à côté d'une base ne la fait donc jamais changer de camp :
+> c'est cette action qu'il faut. Elle résout le nom de l'aérodrome en identifiant via le théâtre de
+> la mission, pose la coalition, et **active les slots Dynamic Spawn** de la base (le build les
+> approvisionne ensuite). Sauvegarde préalable, comme les autres actions d'édition.
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.
@@ -315,7 +687,7 @@ est fourni — son état activé. Les clés de config de chaque module vivent da
 
 Actions haut niveau qui posent une **fonctionnalité complète** en un appel, sur un **dossier de
 mission** : elles éditent la **source durable** (le `src/mission/` exploité — zones/groupes — via
-`mission_folder`, **et** `mission.yaml`), sans déclencher de build (un `veaf-tools build` ultérieur
+`mission_folder`, **et** `mission.yaml`), sans déclencher de build (un `veaf-tools mission build` ultérieur
 produit le `.miz`). Elles orchestrent les primitives des vagues 1-7 (`insert_trigger_zone`,
 `insert_group_into_content`, l'éditeur `mission.yaml`). Implémentation : `veaf_mission_mcp/composites.py`.
 
@@ -349,7 +721,7 @@ ferait un Mission Maker à sa première installation.
    `veaf-tools-updater-<os>-<arch>` sous Unix) et le télécharge depuis l'**URL de release stable**
    (`…/releases/download/<tag>/<asset>` — pas d'API GitHub, donc pas de rate-limit).
 2. Lance l'updater dans le dossier (il télécharge et installe les outils VEAF + `published/`).
-3. Lance `veaf-tools prepare --template <tier> --force` dans le dossier.
+3. Lance `veaf-tools mission prepare --template <tier> --force` dans le dossier.
 
 ```json
 {
@@ -422,7 +794,7 @@ confirmer visuellement ; les lieux nommés marchent, le terrain vague non.
 ## Build & validation (vague 11)
 
 Les actions précédentes créent, orientent et éditent un **dossier de mission**, mais rien ne
-produisait le `.miz` jouable — le maker lançait `veaf-tools build` à la main. La vague 11 rend le
+produisait le `.miz` jouable — le maker lançait `veaf-tools mission build` à la main. La vague 11 rend le
 serveur **autonome de bout en bout** : dossier vide → scaffold → blank théâtre → composites/placement
 → **validation → build → `.miz` jouable**, sans quitter l'assistant.
 
@@ -438,7 +810,7 @@ process. Renvoie `{ok, errors[], warnings[]}` (`ok = false` dès qu'une erreur).
 
 ### `build_mission`
 
-Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools build`** dans le dossier
+Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools mission build`** dans le dossier
 (le binaire installé par `scaffold_mission`, ou `veaf-tools` du PATH). L'orchestration du build vit
 dans la commande CLI, on la réexécute telle quelle. Un échec de build est remonté (`RuntimeError`).
 
@@ -448,11 +820,10 @@ dans la commande CLI, on la réexécute telle quelle. Un échec de build est rem
 
 ## Prochaines vagues (hors périmètre)
 
-- Zones non circulaires (quad/polygone) — la vague 2 ne couvre que les zones circulaires.
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2
   se limite aux triggers de démarrage chargement-de-script / exécution-Lua.
 - Un validateur de schéma par module pour `set_mission_module` (la vague 4 reste générique).
-- Composites CAS (pur runtime, pas d'écriture), zones non-circulaires, et génération end-to-end
+- Composites CAS (pur runtime, pas d'écriture) et génération end-to-end
   depuis un prompt (l'objectif NL-MISSION-GEN au-delà de ce lot).
 
-Voir `.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md` pour le détail.
+Voir `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md` pour le détail.

@@ -8,6 +8,10 @@ cache/
 .claude/settings.local.json
 # Claude Code git worktrees (local runtime, never committed)
 .claude/worktrees/
+# Agent memories: a junction into a personal central config repo, not project content.
+# It was untracked but NOT ignored, so a `git add -A` would have published personal notes
+# into a public repository. Ignored so that cannot happen by accident.
+.claude/memory/
 
 # luacov coverage artefacts
 luacov.stats.out
@@ -191,3 +195,14 @@ poc/doc-chatbot/worker/vec-*.bin
 poc/doc-chatbot/worker/txt-*.json
 poc/doc-chatbot/worker/.embed-cache.json
 poc/doc-chatbot/worker/.wrangler/
+
+# dcs-bridge local configuration — dcs-serve writes an API key into these when it is
+# started from this folder. Secrets, and machine-local: never committed.
+dcs-serve.yaml
+dcs-client.yaml
+dcs-tokens.yaml
+
+# dcsDataExport.lua writes its exports next to the current directory when VEAF_EXPORT_DIR is unset.
+# One of these reached a commit that way (SECREV-2 ticket 07); they are generated data, never sources.
+db.Units.lua
+dcsUnits.lua

@@ -49,17 +49,55 @@ timer = {
     return dcs_mocks.currentTime
   end,
   scheduleFunction = function(fn, args, t) end,
+  --- Test-only: move mission time forward. Not a DCS API — DCS has no setter — but anything
+  --- with an expiry (a timed security elevation, a cooldown) needs a way to reach the far side
+  --- of it without the suite actually waiting.
+  setTime = function(t)
+    dcs_mocks.currentTime = t
+  end,
 }
 
 -- ---------------------------------------------------------------------------
 -- trigger
 -- ---------------------------------------------------------------------------
+
+--- Pilot-facing messages sent through trigger.action.outText*, in order:
+--- { fn = "outTextForUnit", target = <id or nil>, text = "…", duration = <seconds> }.
+--- Cleared by dcs_mocks.reset().
+dcs_mocks.messages = {}
+
+--- Record one message. Called by the outText* stubs.
+function dcs_mocks.recordMessage(fn, target, text, duration)
+  table.insert(dcs_mocks.messages, { fn = fn, target = target, text = text, duration = duration })
+end
+
+--- Return the recorded messages whose text contains `needle` (a plain substring).
+function dcs_mocks.messagesContaining(needle)
+  local found = {}
+  for _, message in ipairs(dcs_mocks.messages) do
+    if type(message.text) == "string" and message.text:find(needle, 1, true) then
+      table.insert(found, message)
+    end
+  end
+  return found
+end
+
 trigger = {
   action = {
-    outText = function(text, duration) end,
-    outTextForGroup = function(groupId, text, duration) end,
-    outTextForUnit = function(unitId, text, duration) end,
-    outTextForCoalition = function(side, text, duration) end,
+    -- Recorded, not discarded: a module's pilot-facing messages are behaviour, and a
+    -- test asserting on them against a no-op stub passes without checking anything.
+    outText = function(text, duration)
+      dcs_mocks.recordMessage("outText", nil, text, duration)
+    end,
+    outTextForGroup = function(groupId, text, duration)
+      dcs_mocks.recordMessage("outTextForGroup", groupId, text, duration)
+    end,
+    outTextForUnit = function(unitId, text, duration)
+      dcs_mocks.recordMessage("outTextForUnit", unitId, text, duration)
+    end,
+    outTextForCoalition = function(side, text, duration)
+      dcs_mocks.recordMessage("outTextForCoalition", side, text, duration)
+    end,
     markToAll = function(...) end,
     markToCoalition = function(...) end,
     removeMark = function(id) end,
@@ -496,6 +534,10 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.messages = {}
+  dcs_mocks.cockpitCalls = {}
+  dcs_mocks.cockpitArguments = {}
+  dcs_mocks.exportAvailable = true
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
     if manager then
@@ -539,6 +581,15 @@ function dcs_mocks.addUnit(name, data)
   end
   u.getCategoryEx = u.getCategoryEx or function(self)
     return self._categoryEx or Unit.Category.AIRPLANE
+  end
+  u.getID = u.getID or function(self)
+    return self._id or 1
+  end
+  -- Cockpit animation arguments, read by veafAssist's `argument` check.
+  -- A test sets them with { _drawArgs = { [510] = 1.0 } } and moves a switch by
+  -- reassigning the entry.
+  u.getDrawArgumentValue = u.getDrawArgumentValue or function(self, arg)
+    return (self._drawArgs or {})[arg]
   end
   u.destroy = u.destroy or function() end
   _unit_registry[name] = u
@@ -685,6 +736,11 @@ veafSecurity = {
   checkPassword_L0 = function(...)
     return true
   end,
+  -- The ADMIN tier's check. Missing here until FIX-DOCAUDIT-CODE 01 wired that tier into the two
+  -- dispatchers, which is when a test could reach it at all.
+  checkSecurity_L0 = function(...)
+    return true
+  end,
   checkSecurity_L9 = function(...)
     return true
   end,
@@ -814,4 +870,162 @@ end
 -- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
 Group.getUnits = function(grp)
   return grp:getUnits()
+end
+
+-- ---------------------------------------------------------------------------
+-- Cockpit primitives — and the environment boundary they sit behind
+--
+-- Measured in game (docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md): a_cockpit_*
+-- and a_out_picture_* do NOT exist in the environment mission scripts run in.
+-- They live in the trigger environment, reachable only through
+-- net.dostring_in("mission", <code>). The mocks reproduce that boundary rather
+-- than the convenient fiction of one flat namespace: a module that called them
+-- directly would pass its tests here and fail in game, which is exactly what
+-- happened before this was measured.
+--
+-- So the primitives below are deliberately NOT globals. They are reachable only
+-- through the net.dostring_in stub, which evaluates the chunk against them.
+-- ---------------------------------------------------------------------------
+
+--- Calls recorded by the cockpit stubs, in order: { fn = "…", args = { … } }.
+dcs_mocks.cockpitCalls = {}
+
+local function _recordCockpitCall(name, ...)
+  table.insert(dcs_mocks.cockpitCalls, { fn = name, args = { ... } })
+end
+
+--- Return the recorded calls to one cockpit function, in order.
+function dcs_mocks.cockpitCallsTo(name)
+  local found = {}
+  for _, call in ipairs(dcs_mocks.cockpitCalls) do
+    if call.fn == name then
+      table.insert(found, call)
+    end
+  end
+  return found
+end
+
+--- The trigger environment's globals. Everything a chunk passed to
+--- net.dostring_in("mission", …) can see — and nothing a mission script can.
+local _triggerEnv = {}
+
+_triggerEnv.a_cockpit_highlight = function(id, element)
+  _recordCockpitCall("a_cockpit_highlight", id, element)
+  return true
+end
+
+_triggerEnv.a_cockpit_remove_highlight = function(id)
+  _recordCockpitCall("a_cockpit_remove_highlight", id)
+  return true
+end
+
+_triggerEnv.a_out_picture_u = function(unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, units)
+  _recordCockpitCall("a_out_picture_u", unitId, resource, duration, clearView, startDelay, hAlign, vAlign, size, units)
+  return true
+end
+
+_triggerEnv.a_out_picture_stop = function()
+  _recordCockpitCall("a_out_picture_stop")
+  return true
+end
+
+--- Resolve an embedded resource key. The real one maps the key to the file the
+--- build embedded; here the key is its own resolution, which is enough to assert
+--- that the right state was displayed.
+_triggerEnv.getValueResourceByKey = function(key)
+  return key
+end
+
+--- Cockpit parameters the fake aircraft publishes, as the engine's "NAME:value" dump.
+--- A test sets dcs_mocks.cockpitParams to drive it.
+dcs_mocks.cockpitParams = {}
+
+_triggerEnv.list_cockpit_params = function()
+  local lines = {}
+  for name, value in pairs(dcs_mocks.cockpitParams) do
+    lines[#lines + 1] = name .. ":" .. tostring(value)
+  end
+  return table.concat(lines, "\n")
+end
+
+-- The standard-library names a probe chunk needs. The trigger environment is a
+-- namespace of its own, so nothing is inherited from the mission script's globals.
+_triggerEnv.type = type
+_triggerEnv.tostring = tostring
+_triggerEnv.pairs = pairs
+_triggerEnv.table = table
+_triggerEnv.string = string
+
+--- The pristine trigger environment, so a test can put back what it removed.
+local _pristineTriggerEnv = {}
+for name, value in pairs(_triggerEnv) do
+  _pristineTriggerEnv[name] = value
+end
+
+--- Override or remove a trigger-environment global, for a test.
+function dcs_mocks.setTriggerGlobal(name, value)
+  _triggerEnv[name] = value
+end
+
+--- Put every trigger-environment global back the way it was.
+function dcs_mocks.restoreTriggerGlobals()
+  for name in pairs(_triggerEnv) do
+    _triggerEnv[name] = nil
+  end
+  for name, value in pairs(_pristineTriggerEnv) do
+    _triggerEnv[name] = value
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- The export environment — a THIRD namespace
+--
+-- Export.lua's own, where GetDevice(0):get_argument_value(arg) reads a cockpit
+-- control's POSITION. Neither the mission nor the trigger environment can
+-- (measured in game). Kept separate here for the same reason as the trigger one:
+-- a module reaching for GetDevice directly must fail in the tests exactly as it
+-- would in game.
+-- ---------------------------------------------------------------------------
+
+--- Cockpit animation arguments the fake aircraft reports: { [510] = -1.0 }.
+dcs_mocks.cockpitArguments = {}
+
+--- Whether the export environment answers at all. A dedicated server is expected
+--- to look like `false`; set it to exercise the degraded path.
+dcs_mocks.exportAvailable = true
+
+local _exportEnv = {
+  type = type,
+  tostring = tostring,
+  GetDevice = function(_)
+    return {
+      get_argument_value = function(_, argument)
+        return dcs_mocks.cockpitArguments[argument]
+      end,
+    }
+  end,
+}
+
+--- net.dostring_in — the only bridge out of a mission script. Compiles the chunk
+--- against the target environment, so a module that reaches for a_cockpit_highlight
+--- or GetDevice directly gets nil, exactly as it would in game.
+net = net or {}
+net.dostring_in = function(environment, code)
+  local target
+  if environment == "mission" then
+    target = _triggerEnv
+  elseif environment == "export" then
+    if not dcs_mocks.exportAvailable then
+      return nil
+    end
+    target = _exportEnv
+  else
+    return nil
+  end
+  local chunk, err = loadstring(code)
+  if not chunk then
+    error("net.dostring_in: " .. tostring(err))
+  end
+  setfenv(chunk, target)
+  return chunk()
 end

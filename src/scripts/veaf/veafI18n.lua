@@ -87,6 +87,10 @@ veaf.i18nCatalog = {
     fr = "Le système était déjà verrouillé",
     en = "The system was already locked down",
   },
+  ["security.group_elevated"] = {
+    fr = "Votre groupe dispose de vos droits pendant %d secondes",
+    en = "Your group has your privileges for %d seconds",
+  },
   ["security.locked"] = {
     fr = "Le système a été verrouillé",
     en = "The system has been locked down",
@@ -196,6 +200,10 @@ veaf.i18nCatalog = {
   ["spawn.no_position_unit"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître l'unité %s",
     en = "cannot find a suitable position for spawning unit %s",
+  },
+  ["spawn.no_position_group"] = {
+    fr = "impossible de trouver une position adéquate pour faire apparaître le groupe",
+    en = "cannot find a suitable position for spawning the group",
   },
   ["spawn.no_position_cargo"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître la cargaison %s",
@@ -492,6 +500,13 @@ veaf.i18nCatalog = {
   ["weather.atis_wind"] = {
     fr = "Vent %s",
     en = "Wind %s",
+  },
+  -- Said to a pilot when the airbase's DCS object is gone (a sunk carrier, a despawned base, a
+  -- persistence reload), so there is no weather to report. Before this key the code passed a nil down
+  -- to trigger.action.outTextForUnit, which raises — the display-side twin of issue #302.
+  ["weather.atis_unavailable"] = {
+    fr = "Pas d'ATIS disponible pour %s",
+    en = "No ATIS available for %s",
   },
   ["weather.atis_cavok"] = {
     fr = "\nPlafond et visibilité OK, CAVOK",
@@ -1143,6 +1158,358 @@ veaf.i18nCatalog = {
   ["assets.help"] = {
     fr = "Le menu radio liste tous les actifs, amis ou ennemis\nUtilisez ces menus pour faire réapparaître les actifs au besoin\n",
     en = "The radio menu lists all the assets, friendly or enemy\nUse these menus to respawn the assets when needed\n",
+  },
+
+  -- veafAssist — guided checklists. Short event texts; the persistent checklist
+  -- itself is the generated picture, not a message.
+  ["assist.started"] = {
+    fr = "Assistance : %s",
+    en = "Assistance: %s",
+  },
+  ["assist.step_validated"] = {
+    fr = "Fait : %s",
+    en = "Done: %s",
+  },
+  ["assist.step_skipped"] = {
+    fr = "Étape passée : %s",
+    en = "Step skipped: %s",
+  },
+  ["assist.completed"] = {
+    fr = "Terminé : %s",
+    en = "Complete: %s",
+  },
+  -- Text mode only (a mission built with `display: text`): the picture is what normally
+  -- carries the checklist, so without one the current instruction has to be said.
+  ["assist.step_current"] = {
+    fr = "Étape %d/%d : %s",
+    en = "Step %d/%d: %s",
+  },
+  -- The development hatch, said out loud on purpose: %d steps of this checklist tick
+  -- themselves without the cockpit being in the required state. Keeping the technical word
+  -- `devCondition` is deliberate — it is what a pilot can quote back to whoever built the
+  -- mission, and what an author greps for.
+  ["assist.dev_condition"] = {
+    fr = "⚠ %d étape(s) se valident d'office (devCondition) — checklist de mise au point",
+    en = "⚠ %d step(s) tick themselves (devCondition) — this is a checklist under development",
+  },
+
+  -- veafAssist — radio menu. "assist.menu.<slot>" labels a checklist's `menu` slot; an
+  -- unknown slot resolves to itself, so a mission maker's own checklist still reads.
+  ["assist.menu.root"] = {
+    fr = "Assistance",
+    en = "Assistance",
+  },
+  ["assist.menu.cold-start"] = {
+    fr = "Démarrage à froid",
+    en = "Cold start",
+  },
+  -- These two sit at the top level of the radio menu, among unrelated entries, so they
+  -- name the module rather than relying on a parent menu for context.
+  ["assist.menu.confirm"] = {
+    fr = "Assistance : valider l'étape",
+    en = "Assistance: confirm the step",
+  },
+  ["assist.menu.skip"] = {
+    fr = "Assistance : passer l'étape",
+    en = "Assistance: skip the step",
+  },
+  ["assist.menu.toggle_picture"] = {
+    fr = "Masquer / afficher la checklist",
+    en = "Hide / show the checklist",
+  },
+  ["assist.menu.stop"] = {
+    fr = "Arrêter l'assistance",
+    en = "Stop the assistance",
+  },
+
+  -- veafAssist — guided checklists.
+  -- The F-16C wording follows ED's own autostart sequence (Macro_sequencies.lua); the
+  -- cockpit labels stay in English because that is what is written in the cockpit.
+  ["assist.f16c.coldstart.title"] = {
+    fr = "F-16C — démarrage moteur",
+    en = "F-16C — engine start",
+  },
+  ["assist.f16c.main_pwr_batt"] = {
+    fr = "MAIN PWR sur BATT",
+    en = "MAIN PWR switch to BATT",
+  },
+  ["assist.f16c.main_pwr_on"] = {
+    fr = "MAIN PWR sur MAIN PWR",
+    en = "MAIN PWR switch to MAIN PWR",
+  },
+  ["assist.f16c.jfs_start2"] = {
+    fr = "JFS sur START 2",
+    en = "JFS switch to START 2",
+  },
+  ["assist.f16c.jfs_run_light"] = {
+    fr = "Voyant JFS RUN allumé — vérifier",
+    en = "JFS RUN light on — check",
+  },
+  ["assist.f16c.throttle_idle"] = {
+    fr = "Manette sur IDLE (20 % RPM minimum)",
+    en = "Throttle to IDLE (20% RPM minimum)",
+  },
+  ["assist.f16c.engine_idle"] = {
+    fr = "Moteur au ralenti — vérifier",
+    en = "Engine at idle — check",
+  },
+
+  -- Radio-menu root names (FIX-RADIO-MENU-I18N ticket 01). `RadioMenuName` holds the KEY, not the
+  -- label: `veaf.config.language` is set after the module files load, so resolving at declaration
+  -- would always yield French, silently. The call site resolves it at menu-build time.
+  ["menu.radio.root"] = {
+    fr = "VEAF",
+    en = "VEAF",
+  },
+  ["menu.spawn.root"] = {
+    fr = "APPARITION",
+    en = "SPAWN",
+  },
+  ["menu.combatzone.root"] = {
+    fr = "ZONES DE COMBAT",
+    en = "COMBAT ZONES",
+  },
+  ["menu.combatmission.root"] = {
+    fr = "MISSIONS",
+    en = "MISSIONS",
+  },
+  ["menu.casmission.root"] = {
+    fr = "MISSION CAS",
+    en = "CAS MISSION",
+  },
+  ["menu.transportmission.root"] = {
+    fr = "MISSION DE TRANSPORT",
+    en = "TRANSPORT MISSION",
+  },
+  ["menu.assets.root"] = {
+    fr = "MOYENS",
+    en = "ASSETS",
+  },
+  ["menu.carrier.root"] = {
+    fr = "OPS PORTE-AVIONS",
+    en = "CARRIER OPS",
+  },
+  ["menu.carrier.root_blue"] = {
+    fr = "OPS PORTE-AVIONS - BLEU",
+    en = "CARRIER OPS - BLUE",
+  },
+  ["menu.carrier.root_red"] = {
+    fr = "OPS PORTE-AVIONS - ROUGE",
+    en = "CARRIER OPS - RED",
+  },
+  ["menu.weather.root"] = {
+    fr = "MÉTÉO ET ATC",
+    en = "WEATHER AND ATC",
+  },
+  ["menu.namedpoints.root"] = {
+    fr = "POINTS NOMMÉS",
+    en = "NAMED POINTS",
+  },
+  ["menu.move.root"] = {
+    fr = "DÉPLACER",
+    en = "MOVE",
+  },
+  ["menu.missileguardian.root"] = {
+    fr = "GUARDIAN",
+    en = "GUARDIAN",
+  },
+
+  -- Radio-menu entries (FIX-RADIO-MENU-I18N ticket 02). Resolved at menu-build time.
+  ["menu.assets.dispose"] = {
+    fr = "Retirer %s",
+    en = "Dispose of %s",
+  },
+  ["menu.assets.info"] = {
+    fr = "Infos sur %s",
+    en = "Get info on %s",
+  },
+  ["menu.assets.respawn"] = {
+    fr = "Réapparition de %s",
+    en = "Respawn %s",
+  },
+  ["menu.casmission.flare_done"] = {
+    fr = "Objectif éclairé par fusée",
+    en = "Target area is marked with illumination flare",
+  },
+  ["menu.casmission.markers"] = {
+    fr = "Marquage de l'objectif",
+    en = "Target markers",
+  },
+  ["menu.casmission.request_smoke"] = {
+    fr = "Demander de la fumée sur l'objectif",
+    en = "Request smoke on target area",
+  },
+  ["menu.casmission.skip"] = {
+    fr = "Passer l'objectif en cours",
+    en = "Skip current objective",
+  },
+  ["menu.casmission.smoke_done"] = {
+    fr = "Objectif marqué à la fumée rouge",
+    en = "Target is marked with red smoke",
+  },
+  ["menu.combatzone.activate"] = {
+    fr = "Activer la zone",
+    en = "Activate zone",
+  },
+  ["menu.combatzone.deactivate"] = {
+    fr = "Désactiver la zone",
+    en = "Deactivate zone",
+  },
+  ["menu.combatzone.flare_unavailable"] = {
+    fr = "Fusée indisponible",
+    en = "Flare not available",
+  },
+  ["menu.combatzone.request_flare"] = {
+    fr = "Demander une fusée éclairante sur l'objectif",
+    en = "Request illumination flare on target",
+  },
+  ["menu.combatzone.request_smoke"] = {
+    fr = "Demander de la fumée ROUGE sur l'objectif",
+    en = "Request RED smoke on target",
+  },
+  ["menu.combatzone.smoke_unavailable"] = {
+    fr = "Fumée indisponible",
+    en = "Smoke not available",
+  },
+  ["menu.common.help"] = {
+    fr = "AIDE",
+    en = "HELP",
+  },
+  ["menu.namedpoints.list"] = {
+    fr = "Lister tous les points",
+    en = "List all points",
+  },
+  ["menu.spawn.available_aircraft"] = {
+    fr = "Appareils disponibles",
+    en = "Available Aircraft spawns",
+  },
+  ["menu.spawn.convoy_cleanup"] = {
+    fr = "Retirer tous les convois",
+    en = "Cleanup all convoys",
+  },
+  ["menu.spawn.convoy_info_all"] = {
+    fr = "Infos sur tous les convois",
+    en = "Info on all convoys",
+  },
+  ["menu.spawn.convoy_mark"] = {
+    fr = "Marquer le convoi le plus proche",
+    en = "Mark closest convoy",
+  },
+  ["menu.spawn.convoy_mark_route"] = {
+    fr = "Marquer la route du convoi le plus proche",
+    en = "Mark closest convoy route",
+  },
+  ["menu.spawn.convoy_move"] = {
+    fr = "Faire repartir le convoi le plus proche",
+    en = "Make closest convoy move",
+  },
+  ["menu.spawn.convoy_stop"] = {
+    fr = "Arrêter le convoi le plus proche",
+    en = "Stop closest convoy",
+  },
+  ["menu.transportmission.flare_done"] = {
+    fr = "Zone de largage éclairée par fusée",
+    en = "Drop zone is lit with illumination flare",
+  },
+  ["menu.transportmission.info"] = {
+    fr = "Infos sur la zone de largage",
+    en = "Drop zone information",
+  },
+  ["menu.transportmission.markers"] = {
+    fr = "Marquage de la zone de largage",
+    en = "Drop zone markers",
+  },
+  ["menu.transportmission.request_flare"] = {
+    fr = "Demander une fusée éclairante sur la zone de largage",
+    en = "Request illumination flare over drop zone",
+  },
+  ["menu.transportmission.request_smoke"] = {
+    fr = "Demander de la fumée sur la zone de largage",
+    en = "Request smoke on drop zone",
+  },
+  ["menu.transportmission.skip"] = {
+    fr = "Passer l'objectif en cours",
+    en = "Skip current objective",
+  },
+  ["menu.transportmission.smoke_done"] = {
+    fr = "Zone de largage marquée à la fumée VERTE",
+    en = "Drop zone is marked with GREEN smoke",
+  },
+  ["menu.weather.atc_and_weather"] = {
+    fr = "ATC et météo d'un coup",
+    en = "ATC and weather in one go",
+  },
+  ["menu.weather.closest_atc"] = {
+    fr = "ATC de la base la plus proche",
+    en = "ATC on closest airbase",
+  },
+  ["menu.weather.closest_point"] = {
+    fr = "Météo sur le point le plus proche",
+    en = "Weather on closest point",
+  },
+  ["menu.weather.fog_animated"] = {
+    fr = "Brouillard animé",
+    en = "Animated fog",
+  },
+  ["menu.weather.fog_dynamic"] = {
+    fr = "Brouillard dynamique",
+    en = "Dynamic fog",
+  },
+  ["menu.weather.fog_settings"] = {
+    fr = "Réglages du brouillard",
+    en = "Fog settings",
+  },
+  ["menu.weather.fog_static"] = {
+    fr = "Brouillard statique",
+    en = "Static fog",
+  },
+  ["menu.carrier.atc_info"] = {
+    fr = "ATC — Demander les informations",
+    en = "ATC - Request informations",
+  },
+  ["menu.carrier.end_ops"] = {
+    fr = "Fin des opérations aériennes",
+    en = "End air operations",
+  },
+  ["menu.casmission.info"] = {
+    fr = "Infos sur l'objectif",
+    en = "Target information",
+  },
+  ["menu.casmission.request_flare"] = {
+    fr = "Demander une fusée éclairante sur l'objectif",
+    en = "Request illumination flare over target area",
+  },
+  ["menu.combatmission.activate"] = {
+    fr = "Activer la mission",
+    en = "Activate mission",
+  },
+  ["menu.combatmission.deactivate"] = {
+    fr = "Désactiver la mission",
+    en = "Deactivate mission",
+  },
+  ["menu.combatmission.get_info"] = {
+    fr = "Infos",
+    en = "Get info",
+  },
+  ["menu.combatmission.list_active"] = {
+    fr = "Lister les missions en cours",
+    en = "List active",
+  },
+  ["menu.combatmission.list_available"] = {
+    fr = "Lister les missions disponibles",
+    en = "List available",
+  },
+  ["menu.combatzone.briefing"] = {
+    fr = "Briefing %s",
+    en = "Briefing %s",
+  },
+  ["menu.combatzone.get_info"] = {
+    fr = "Infos",
+    en = "Get info",
+  },
+  ["menu.weather.fog_animated_over"] = {
+    fr = "Brouillard animé sur %d minutes",
+    en = "Animated fog over %d minutes",
   },
 }
 

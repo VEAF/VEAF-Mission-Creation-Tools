@@ -28,7 +28,7 @@ veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
 
-veafCombatMission.RadioMenuName = "MISSIONS"
+veafCombatMission.RadioMenuName = "menu.combatmission.root"
 
 veafCombatMission.MinimumSpacingBetweenClones = 300 -- minimum spawn distance between clones of a group
 
@@ -699,7 +699,11 @@ function VeafCombatMission:setRadioMenuEnabled(value)
 end
 
 function VeafCombatMission:setAllElementsSkill(skill)
-  for _, element in self.elements do
+  -- VMR-020: `in self.elements` asked Lua to call the table as an iterator, raising
+  -- "attempt to call a table value" on the first invocation. The two sibling loops in this file
+  -- both write `pairs(self.elements)`, so this was a slip rather than a convention — and nothing
+  -- in the repository calls this method, which is exactly why it never surfaced.
+  for _, element in pairs(self.elements) do
     element:setSkill(skill)
   end
   return self
@@ -774,19 +778,25 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
     if group and group:getUnits() then
       for _, unit in pairs(group:getUnits()) do
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("processing unit [%s]", unit:getName()))
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("veaf.getUnitLifeRelative(unit) = %f", veaf.getUnitLifeRelative(unit)))
-        if veaf.getUnitLifeRelative(unit) == 1.0 then
+        -- SECREV-2 / VMR-088: read once. This asked DCS for the same unit's life up to **four** times
+        -- per pass — one trace, the `== 1.0` test, the threshold test, and a fourth hidden inside the
+        -- "damaged" trace. A unit under fire changes between reads, so the classification could
+        -- disagree with itself: fail `== 1.0`, read back at full health on the next line, or drop past
+        -- the threshold and land in the `else` below whose own comment says it never happens. These
+        -- counts feed the remaining-enemies message a player has no way to check.
+        local unitLife = veaf.getUnitLifeRelative(unit)
+        veaf.loggers.get(veafCombatMission.Id):trace(string.format("veaf.getUnitLifeRelative(unit) = %f", unitLife))
+        if unitLife == 1.0 then
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is alive", unit:getName()))
           groupLiveUnits = groupLiveUnits + 1
-        elseif veaf.getUnitLifeRelative(unit) > whatsInAKill then
-          veaf.loggers
-            .get(veafCombatMission.Id)
-            :trace(string.format("unit[%s] is damaged (%d %%)", unit:getName(), veaf.getUnitLifeRelative(unit) * 100))
+        elseif unitLife > whatsInAKill then
+          veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is damaged (%d %%)", unit:getName(), unitLife * 100))
           groupDamagedUnits = groupDamagedUnits + 1
           groupLiveUnits = groupLiveUnits + 1
         else
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("unit[%s] is dead", unit:getName()))
-          -- should never come to that, Moose do not return dead units in getUnits()
+          -- Reachable now that one read decides: a unit at or below `whatsInAKill` lands here, and is
+          -- counted as dead through the group's spawned count below rather than incremented here.
         end
       end
     else
@@ -887,12 +897,16 @@ function VeafCombatMission:activate(silent)
           local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s", veaf.p(spawnedGroupName)))
           local _group = mist.teleportToPoint(vars, true)
+          -- VMR-021: `_group.groupName = ...` used to sit **between** two `if _group then`
+          -- guards, unguarded itself, so a nil return from mist crashed the activation right
+          -- after the code had just finished checking for exactly that. The guards are merged
+          -- rather than a third one added — the assignment belongs with the work it labels.
           if _group then
             for _, unit in pairs(_group.units) do
               unit.skill = missionElement:getSkill()
             end
+            _group.groupName = spawnedGroupName
           end
-          _group.groupName = spawnedGroupName
           if _group then
             for _, unit in pairs(_group.units) do
               local unitName = unit.unitName
@@ -1022,7 +1036,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
   veaf.loggers.get(veafCombatMission.Id):trace("populate the radio menu")
   -- global commands
   veafRadio.addCommandToSubmenu(
-    "Get info",
+    veaf.t("menu.combatmission.get_info"),
     self.radioRootPath,
     veafCombatMission.GetInformationOnMission,
     self.name,
@@ -1033,7 +1047,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatMission.Id):trace("mission is active")
     if self:isSecured() then
       veafRadio.addSecuredCommandToSubmenu(
-        "Desactivate mission",
+        veaf.t("menu.combatmission.deactivate"),
         self.radioRootPath,
         veafCombatMission.DesactivateMission,
         self.name,
@@ -1041,7 +1055,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
       )
     else
       veafRadio.addCommandToSubmenu(
-        "Desactivate mission",
+        veaf.t("menu.combatmission.deactivate"),
         self.radioRootPath,
         veafCombatMission.DesactivateMission,
         self.name,
@@ -1053,7 +1067,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatMission.Id):trace("mission is not active")
     if self:isSecured() then
       veafRadio.addSecuredCommandToSubmenu(
-        "Activate mission",
+        veaf.t("menu.combatmission.activate"),
         self.radioRootPath,
         veafCombatMission.ActivateMission,
         self.name,
@@ -1061,7 +1075,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
       )
     else
       veafRadio.addCommandToSubmenu(
-        "Activate mission",
+        veaf.t("menu.combatmission.activate"),
         self.radioRootPath,
         veafCombatMission.ActivateMission,
         self.name,
@@ -1330,20 +1344,26 @@ function veafCombatMission.buildRadioMenu()
   if veafCombatMission.rootPath then
     veafRadio.clearSubmenu(veafCombatMission.rootPath)
   else
-    veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
+    veafCombatMission.rootPath = veafRadio.addMenu(veaf.t(veafCombatMission.RadioMenuName))
   end
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCombatMission.rootPath, veafCombatMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafCombatMission.rootPath,
+      veafCombatMission.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
   veafRadio.addCommandToSubmenu(
-    "List available",
+    veaf.t("menu.combatmission.list_available"),
     veafCombatMission.rootPath,
     veafCombatMission.listAvailableMissions,
     nil,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addCommandToSubmenu(
-    "List active",
+    veaf.t("menu.combatmission.list_active"),
     veafCombatMission.rootPath,
     veafCombatMission.listActiveMissions,
     nil,

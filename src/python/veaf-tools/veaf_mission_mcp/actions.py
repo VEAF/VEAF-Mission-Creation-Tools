@@ -5,6 +5,7 @@ from typing import Any
 
 from veaf_libs.blank_mission import supported_theatres
 
+from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
@@ -13,6 +14,7 @@ from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
+from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
     set_mission_log_level,
@@ -20,14 +22,17 @@ from veaf_mission_mcp.edit_mission_yaml import (
     set_mission_security,
     set_mission_setting,
 )
+from veaf_mission_mcp.edit_route import edit_route
 from veaf_mission_mcp.edit_veaf_config import (
     set_log_level,
     set_module_enabled,
     set_security_disabled,
     set_veaf_config,
 )
+from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -36,8 +41,11 @@ from veaf_mission_mcp.oracle import (
     list_shortcuts,
     list_unit_types,
 )
+from veaf_mission_mcp.player_slot import add_player_slot
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
+from veaf_mission_mcp.set_group_properties import set_group_properties
+from veaf_mission_mcp.set_unit_properties import set_unit_properties
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -62,6 +70,420 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda params: describe_mission(Path(params["miz_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_units",
+            description=(
+                "Describe a mission's groups down to their UNITS, LOADOUTS and ROUTES -- what "
+                "describe_mission does not report. Use this before changing anything about a unit or a "
+                "route: it gives each unit's type, skill, livery, callsign, onboard number, position, "
+                "heading, fuel and its pylons keyed BY PYLON NUMBER (a real FA-18C carries stations 1, "
+                "4, 5, 6 and 9, so the numbering matters), plus each group's task, frequency, hidden "
+                "flags, uncontrolled/late-activation state, and its waypoints with their tasks. "
+                "ALWAYS FILTER on a big mission: an adopted mission is megabytes of JSON, so pass "
+                "group_name (a fragment is enough), coalition or category, and set include_route=false "
+                "when the question is about loadouts. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {
+                        "type": "string",
+                        "description": "Keep only groups whose name contains this (case-insensitive).",
+                    },
+                    "coalition": {
+                        "type": "string",
+                        "enum": ["blue", "red", "neutrals"],
+                        "description": "Keep only this coalition.",
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": ["plane", "helicopter", "vehicle", "ship", "static"],
+                        "description": "Keep only this group category.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum groups returned (default 50). 'truncated' says whether it bit.",
+                    },
+                    "include_route": {
+                        "type": "boolean",
+                        "description": "Include each group's waypoints (default true). False omits the key.",
+                    },
+                },
+                "required": ["miz_path"],
+            },
+        ),
+        handler=lambda params: describe_units(
+            Path(params["miz_path"]),
+            group_name=params.get("group_name"),
+            coalition=params.get("coalition"),
+            category=params.get("category"),
+            limit=params.get("limit"),
+            include_route=params.get("include_route", True),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_unit_properties",
+            description=(
+                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign or "
+                "onboard number. Call describe_units FIRST -- this addresses the unit by its EXACT "
+                "group name and unit name (a fragment is refused, so an edit cannot land on the wrong "
+                "group), and pylons are keyed BY STATION NUMBER, which is not the position in a list. "
+                "Only the fields you pass change; the result reports each previous value so you can "
+                "tell the mission maker what you did. Two refusals worth knowing: skill accepts the "
+                "five AI levels but NOT 'Client'/'Player' (those add or remove a multiplayer slot "
+                "rather than set a skill), and changing a callsign's family needs its spoken name too. "
+                "Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {
+                        "type": "string",
+                        "description": "The group's EXACT name (not a fragment) -- as describe_units reports it.",
+                    },
+                    "unit_name": {"type": "string", "description": "The unit's exact name within that group."},
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "AI competence. 'Client'/'Player' are refused: they are human slots.",
+                    },
+                    "livery": {
+                        "type": "string",
+                        "description": "Livery id. NOT validated -- DCS shows the default skin for an "
+                        "unknown one without any error.",
+                    },
+                    "heading_deg": {
+                        "type": "number",
+                        "description": "Heading in DEGREES (0-360, normalised). Stored as radians for you.",
+                    },
+                    "callsign": {
+                        "description": "Aircraft: an object with any of family/flight/number/name "
+                        "(1..9 each); 'family' requires 'name' since the family->word table is not "
+                        "shipped. Ground unit: the bare number.",
+                    },
+                    "onboard_num": {
+                        "type": "string",
+                        "description": "Tail number, as text so a leading zero survives.",
+                    },
+                    "pylons": {
+                        "type": "object",
+                        "description": "Loadout as {station number: weapon CLSID}. BY STATION, not by "
+                        "position: a real FA-18C carries 1, 4, 5, 6, 9. Omit to leave the loadout "
+                        "alone; pass {} with mode 'replace' for a clean airframe.",
+                    },
+                    "pylons_mode": {
+                        "type": "string",
+                        "enum": ["replace", "merge"],
+                        "default": "replace",
+                        "description": "'replace' writes exactly the stations given; 'merge' updates "
+                        "only those, and an empty CLSID empties that station.",
+                    },
+                },
+                "required": ["miz_path", "group_name", "unit_name"],
+            },
+        ),
+        handler=_handle_set_unit_properties,
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_group_properties",
+            description=(
+                "MOVE, RENAME or reconfigure a group that already exists. A move translates every "
+                "unit, every waypoint AND the group anchor by one delta, so the formation keeps its "
+                "shape and the route stays attached -- give it a bearing + distance (resolved "
+                "geodesically, like geocode) or an explicit target. Frequency is checked against the "
+                "airframe's own primary-frequency range, because the DCS editor REFUSES TO SAVE a "
+                "mission that breaks it. A rename that would trigger a reserved VEAF convention is "
+                "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
+                "zone makes the runtime despawn it at start. Unit names are never renamed with the "
+                "group. WARNING: the destination's surface cannot be checked design-time, so a "
+                "ground group can end up in water. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {"type": "string", "description": "The group's EXACT current name."},
+                    "new_name": {
+                        "type": "string",
+                        "description": "New group name. Refused on a collision, or on a reserved VEAF "
+                        "convention unless acknowledge_conventions is true.",
+                    },
+                    "move_to": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Absolute destination for the group anchor. Not with a bearing.",
+                    },
+                    "move_bearing": {
+                        "type": "number",
+                        "description": "Bearing in degrees clockwise from north; needs move_distance_m.",
+                    },
+                    "move_distance_m": {
+                        "type": "number",
+                        "description": "Distance in METRES along move_bearing.",
+                    },
+                    "frequency_mhz": {
+                        "type": "number",
+                        "description": "Group primary frequency in MHz. Refused when the airframe "
+                        "cannot tune it (the editor would refuse to save the mission).",
+                    },
+                    "modulation": {"type": "string", "enum": ["AM", "FM"]},
+                    "late_activation": {"type": "boolean"},
+                    "hidden": {"type": "boolean"},
+                    "uncontrolled": {
+                        "type": "boolean",
+                        "description": "Aircraft group starts with engines off.",
+                    },
+                    "acknowledge_conventions": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Allow a rename that triggers a reserved VEAF convention. Only "
+                        "pass this when the convention is what the mission maker asked for.",
+                    },
+                },
+                "required": ["miz_path", "group_name"],
+            },
+        ),
+        handler=_handle_set_group_properties,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_route",
+            description=(
+                "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
+                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked), "
+                "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
+                "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
+                "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
+                "Tasks are a CLOSED named set -- orbit, land, attack_group, bombing, "
+                "engage_targets_in_zone, set_frequency, switch_waypoint -- each validating its own "
+                "parameters, because a made-up task table is one DCS ignores in silence while the flight "
+                "does nothing. Note set_frequency takes MHz here even though DCS stores hertz. Every "
+                "operation guarantees at least one waypoint keeps a locked time, since DCS refuses to save "
+                "a route without one. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "group_name": {"type": "string", "description": "The group's EXACT name."},
+                    "operation": {
+                        "type": "string",
+                        "enum": ["add", "insert", "remove", "reorder", "set", "add_task", "clear_tasks"],
+                    },
+                    "index": {
+                        "type": "integer",
+                        "description": "1-based waypoint the operation acts on (every operation but 'add').",
+                    },
+                    "to_index": {"type": "integer", "description": "Destination index, for 'reorder'."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Coordinates, for 'add' / 'insert'.",
+                    },
+                    "name": {"type": "string", "description": "Waypoint name."},
+                    "altitude_ft": {"type": "number", "description": "Altitude in FEET."},
+                    "speed_kt": {"type": "number", "description": "Speed in KNOTS."},
+                    "waypoint_type": {
+                        "type": "string",
+                        "enum": [
+                            "Turning Point",
+                            "Fly Over Point",
+                            "TakeOff",
+                            "TakeOffParking",
+                            "TakeOffParkingHot",
+                            "TakeOffGround",
+                            "TakeOffGroundHot",
+                            "Land",
+                        ],
+                        "description": "Its matching DCS 'action' is written with it -- they are a pair.",
+                    },
+                    "eta_locked": {"type": "boolean", "description": "Whether this waypoint's time is locked."},
+                    "task": {
+                        "type": "string",
+                        "enum": [
+                            "orbit",
+                            "land",
+                            "attack_group",
+                            "bombing",
+                            "engage_targets_in_zone",
+                            "set_frequency",
+                            "switch_waypoint",
+                        ],
+                        "description": "For 'add_task'. Unknown names are refused rather than guessed.",
+                    },
+                    "task_params": {
+                        "type": "object",
+                        "description": "That task's parameters. orbit: pattern (Race-Track|Circle), "
+                        "altitude_ft, speed_kt. land: position, duration_s. attack_group: group_id. "
+                        "bombing: position, expend, attack_qty. engage_targets_in_zone: position, "
+                        "radius_m, target_types. set_frequency: frequency_mhz, modulation (AM|FM). "
+                        "switch_waypoint: to_index, from_index.",
+                    },
+                },
+                "required": ["miz_path", "group_name", "operation"],
+            },
+        ),
+        handler=_handle_edit_route,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_zone",
+            description=(
+                "RESHAPE, move, resize, rename, link or remove a trigger zone that already exists -- "
+                "add_trigger_zone only creates circular ones. A VEAF combat zone IS a trigger zone, so "
+                "this is how one gets adjusted instead of deleted and rebuilt. Pass 'vertices' (3 or "
+                "more absolute x/y points) to make it a polygon following a ridge line; the VEAF "
+                "runtime handles any polygon, but the DCS editor only DRAWS 4-point quads, so a "
+                "different count is warned about. make_circular turns one back. Moving a polygon "
+                "carries its vertices with it. 'link_unit' makes the zone follow a unit (a carrier) and "
+                "is refused if that unit does not exist. A rename does NOT update what references the "
+                "zone -- mission.yaml and member group prefixes need doing by hand, and the result says "
+                "so. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "zone_name": {"type": "string", "description": "The zone's EXACT current name."},
+                    "new_name": {"type": "string", "description": "New name. Refused on a collision."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "New centre. A polygon's vertices travel with it.",
+                    },
+                    "radius": {"type": "number", "description": "New radius in metres; must be positive."},
+                    "vertices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                        "description": "3+ ABSOLUTE points making the zone a polygon.",
+                    },
+                    "make_circular": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Turn a polygon back into a circle, dropping its vertices.",
+                    },
+                    "link_unit": {
+                        "type": "string",
+                        "description": "Unit name for the zone to follow; empty string unlinks.",
+                    },
+                    "remove": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Delete the zone. Cannot be combined with another change.",
+                    },
+                },
+                "required": ["miz_path", "zone_name"],
+            },
+        ),
+        handler=_handle_edit_zone,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_map_drawing",
+            description=(
+                "DRAW on the F10 map -- an FSCL, an ingress corridor, a no-fly box, a label. Worth doing "
+                "here rather than in the editor because a hand-drawn shape is LOST when the mission is "
+                "rebuilt from its folder, while this one is part of the recipe. Give ABSOLUTE mission "
+                "coordinates; the relative anchoring DCS stores is done for you (getting that wrong puts "
+                "a drawing hundreds of km away with no error). The LAYER decides who sees it and is "
+                "never defaulted. Shapes: 'line' (2+ points, closed=true for an area), 'rect' "
+                "(width/height), 'textbox' (text), 'circle' (radius), 'oval' (r1/r2/angle), 'free' (3+ "
+                "points, a free-form filled polygon). 'arrow' and 'icon' are REFUSED with a reason "
+                "(an arrow's outline needs an in-game round-trip; an icon needs a file from DCS's icon set)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "layer": {
+                        "type": "string",
+                        "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
+                        "description": "Who sees it. 'Common' is everyone; 'Author' is the maker's own layer.",
+                    },
+                    "shape": {"type": "string", "enum": ["line", "rect", "textbox", "circle", "oval", "free"]},
+                    "name": {"type": "string", "description": "Name, used to edit or remove it later."},
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                        "description": "ABSOLUTE coordinates for a 'line' (2+) or a 'free' polygon (3+).",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "ABSOLUTE anchor for a rect, textbox, circle or oval.",
+                    },
+                    "text": {"type": "string", "description": "The label, for a textbox."},
+                    "width": {"type": "number", "description": "Width in metres, for a rect."},
+                    "height": {"type": "number", "description": "Height in metres, for a rect."},
+                    "radius": {"type": "number", "description": "Radius in metres, for a circle."},
+                    "r1": {"type": "number", "description": "Semi-axis in metres along the angle, for an oval."},
+                    "r2": {"type": "number", "description": "The other semi-axis in metres, for an oval."},
+                    "angle": {"type": "number", "default": 0},
+                    "closed": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Join a line back up -- how a free-form area is drawn.",
+                    },
+                    "color": {"type": "string", "description": "Outline colour, DCS 0xRRGGBBAA string."},
+                    "fill_color": {"type": "string", "description": "Fill colour, same format."},
+                    "thickness": {"type": "number"},
+                    "font_size": {"type": "integer", "description": "For a textbox."},
+                },
+                "required": ["miz_path", "layer", "shape", "name"],
+            },
+        ),
+        handler=_handle_add_map_drawing,
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_map_drawing",
+            description=(
+                "MOVE, retitle, rename or REMOVE an F10 map drawing that already exists, addressed by "
+                "its layer and name. Moving takes ABSOLUTE coordinates and only shifts the anchor -- the "
+                "shape follows, since DCS stores a drawing's points relative to it. 'text' only works on "
+                "a textbox. Mutates in place, backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "layer": {
+                        "type": "string",
+                        "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
+                    },
+                    "name": {"type": "string", "description": "The drawing's current name."},
+                    "new_name": {"type": "string"},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "New ABSOLUTE anchor.",
+                    },
+                    "text": {"type": "string", "description": "New text; textbox only."},
+                    "remove": {"type": "boolean", "default": False},
+                },
+                "required": ["miz_path", "layer", "name"],
+            },
+        ),
+        handler=_handle_edit_map_drawing,
     )
     catalog.register(
         ActionSpec(
@@ -156,6 +578,172 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_add_group,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_player_slot",
+            description=(
+                "Create a flyable PLAYER SLOT -- the one thing add_group cannot, and the one thing a "
+                "from-scratch mission needs before anybody can fly it. Builds an aircraft group with "
+                "skill Client (playable in single-player too), a group radio frequency, and "
+                "dynSpawnTemplate cleared -- that flag marks a dynamic-spawn TEMPLATE, which needs an "
+                "airfield configured for it, and leaving it set is what made a hand-placed slot appear "
+                "in the file but not in the slot list. Three starts: 'air' (position + altitude + speed, "
+                "needs no runtime data) and 'ground-cold'/'ground-hot' (you supply the parking spot -- "
+                "parking, parking_id and airdrome_id). A ground start with no spot is REFUSED rather "
+                "than guessed: airfield parking is FEAT-MCP-MUTATION-ACTIONS ticket 09's captured data. "
+                "The first waypoint's type/action pair is written for you. Also assigns the country to "
+                "its side (coalitions), so the mission stays loadable. Does NOT change an existing "
+                "unit's skill. Target a FOLDER (durable) or a .miz (transient); backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz (transient).",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer", "description": "DCS numeric country id."},
+                    "country_name": {"type": "string", "description": "DCS country name (e.g. 'USA')."},
+                    "name": {"type": "string", "description": "The group's name."},
+                    "unit_type": {
+                        "type": "string",
+                        "description": "DCS aircraft type, e.g. 'A-10C_2' -- the caller's decision.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "The slot's anchor position.",
+                    },
+                    "start": {
+                        "type": "string",
+                        "enum": ["air", "ground-cold", "ground-hot"],
+                        "default": "air",
+                        "description": "Air start, or a cold/hot ground start (needs a parking spot).",
+                    },
+                    "altitude_ft": {
+                        "type": "number",
+                        "default": 15000,
+                        "description": "Air-start altitude in FEET (ignored on the ground).",
+                    },
+                    "speed_kt": {"type": "number", "default": 250, "description": "Speed in KNOTS."},
+                    "heading_deg": {
+                        "type": "number",
+                        "default": 0,
+                        "description": "Heading in degrees (mainly meaningful on the ground).",
+                    },
+                    "parking": {
+                        "type": "string",
+                        "description": "Parking-spot number (ground start), as text so a leading zero survives.",
+                    },
+                    "parking_id": {
+                        "type": "string",
+                        "description": "Parking id -- the slot's Term_Index (ground start), as text.",
+                    },
+                    "airdrome_id": {
+                        "type": "integer",
+                        "description": "Airfield id the parking belongs to (ground start).",
+                    },
+                    "frequency_mhz": {
+                        "type": "number",
+                        "default": 251,
+                        "description": "Group radio frequency in MHz (written, not inherited).",
+                    },
+                    "onboard_num": {
+                        "type": "string",
+                        "default": "010",
+                        "description": "Tail number, as text so a leading zero survives.",
+                    },
+                    "task": {
+                        "type": "string",
+                        "default": "Nothing",
+                        "description": "Aircraft-group task (default 'Nothing').",
+                    },
+                },
+                "required": [
+                    "target",
+                    "coalition",
+                    "country_id",
+                    "country_name",
+                    "name",
+                    "unit_type",
+                    "position",
+                ],
+            },
+        ),
+        handler=_handle_add_player_slot,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_air_group",
+            description=(
+                "Put a FLIGHT on the ramp -- 'a two-ship of F-16s at Incirlik' -- resolving the "
+                "parking stands itself from the captured airfield data, which add_player_slot (one "
+                "aircraft, caller supplies the spot) does not. Give an airfield NAME and a count; it "
+                "picks that many free aircraft stands the mission does not already occupy, nearest to "
+                "the runway first, and seats each aircraft on its stand. A stand already taken is "
+                "REFUSED naming the group that holds it; an airfield with no aircraft stands, an "
+                "unknown airfield, or a theatre with no captured parking data is refused rather than "
+                "guessed. skill defaults to an AI level (a ramp flight is AI unless you ask for "
+                "'Client'). Starts: parking-cold / parking-hot (need 'airfield'), runway (needs "
+                "'airfield'), air (needs 'position'). Target a FOLDER (durable) or .miz (transient); "
+                "backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz (transient).",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer", "description": "DCS numeric country id."},
+                    "country_name": {"type": "string", "description": "DCS country name (e.g. 'USA')."},
+                    "name": {"type": "string", "description": "The group's name."},
+                    "unit_type": {"type": "string", "description": "DCS aircraft type, e.g. 'F-16C_50'."},
+                    "count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Aircraft in the flight; each gets its own stand for a parking start.",
+                    },
+                    "start": {
+                        "type": "string",
+                        "enum": ["parking-cold", "parking-hot", "runway", "air"],
+                        "default": "parking-cold",
+                        "description": "Parking (needs airfield), runway (needs airfield), or air (needs position).",
+                    },
+                    "airfield": {
+                        "type": "string",
+                        "description": "Airfield NAME (e.g. 'Incirlik') — required for a parking or runway start.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Anchor for an air start.",
+                    },
+                    "altitude_ft": {"type": "number", "default": 15000, "description": "Air-start altitude in FEET."},
+                    "speed_kt": {"type": "number", "default": 250, "description": "Speed in KNOTS."},
+                    "heading_deg": {"type": "number", "default": 0, "description": "Heading in degrees."},
+                    "skill": {
+                        "type": "string",
+                        "default": "High",
+                        "description": "AI level, or 'Client'/'Player' for human slots.",
+                    },
+                    "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
+                    "task": {"type": "string", "default": "CAS", "description": "Aircraft-group task."},
+                    "parking": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional explicit stand numbers (one per aircraft), overriding auto-selection.",
+                    },
+                },
+                "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
+            },
+        ),
+        handler=_handle_add_air_group,
     )
     catalog.register(
         ActionSpec(
@@ -903,6 +1491,120 @@ def _handle_replace_in_mission_files(params: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`set_unit_properties`.
+
+    A JSON object's keys are always strings, so ``pylons`` arrives as ``{"4": "..."}``. It is
+    passed through untouched: the action's own station parsing produces the error message that
+    names what a station is, which converting here would replace with `int()`'s.
+    """
+    return set_unit_properties(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        unit_name=params["unit_name"],
+        skill=params.get("skill"),
+        livery=params.get("livery"),
+        heading_deg=params.get("heading_deg"),
+        callsign=params.get("callsign"),
+        onboard_num=params.get("onboard_num"),
+        pylons=params.get("pylons"),
+        pylons_mode=params.get("pylons_mode", "replace"),
+    )
+
+
+def _handle_edit_zone(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_zone`."""
+    return edit_zone(
+        Path(params["miz_path"]),
+        zone_name=params["zone_name"],
+        new_name=params.get("new_name"),
+        position=params.get("position"),
+        radius=params.get("radius"),
+        vertices=params.get("vertices"),
+        make_circular=params.get("make_circular", False),
+        link_unit=params.get("link_unit"),
+        remove=params.get("remove", False),
+    )
+
+
+def _handle_add_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`add_map_drawing`."""
+    return add_map_drawing(
+        Path(params["miz_path"]),
+        layer=params["layer"],
+        shape=params["shape"],
+        name=params["name"],
+        points=params.get("points"),
+        position=params.get("position"),
+        text=params.get("text"),
+        width=params.get("width"),
+        height=params.get("height"),
+        radius=params.get("radius"),
+        r1=params.get("r1"),
+        r2=params.get("r2"),
+        angle=params.get("angle", 0),
+        closed=params.get("closed", False),
+        color=params.get("color"),
+        fill_color=params.get("fill_color"),
+        thickness=params.get("thickness"),
+        font_size=params.get("font_size"),
+    )
+
+
+def _handle_edit_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_map_drawing`."""
+    return edit_map_drawing(
+        Path(params["miz_path"]),
+        layer=params["layer"],
+        name=params["name"],
+        new_name=params.get("new_name"),
+        position=params.get("position"),
+        text=params.get("text"),
+        remove=params.get("remove", False),
+    )
+
+
+def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`edit_route`."""
+    return edit_route(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        operation=params["operation"],
+        index=params.get("index"),
+        to_index=params.get("to_index"),
+        position=params.get("position"),
+        name=params.get("name"),
+        altitude_ft=params.get("altitude_ft"),
+        speed_kt=params.get("speed_kt"),
+        waypoint_type=params.get("waypoint_type"),
+        eta_locked=params.get("eta_locked"),
+        task=params.get("task"),
+        task_params=params.get("task_params"),
+    )
+
+
+def _handle_set_group_properties(params: dict[str, Any]) -> dict[str, Any]:
+    """Adapt the JSON-RPC parameters to :func:`set_group_properties`.
+
+    The booleans are read with ``.get()`` rather than defaulted: ``None`` means "not given" and
+    ``False`` means "turn it off", and collapsing the two would make a flag impossible to clear.
+    """
+    return set_group_properties(
+        Path(params["miz_path"]),
+        group_name=params["group_name"],
+        new_name=params.get("new_name"),
+        move_to=params.get("move_to"),
+        move_bearing=params.get("move_bearing"),
+        move_distance_m=params.get("move_distance_m"),
+        frequency_mhz=params.get("frequency_mhz"),
+        modulation=params.get("modulation"),
+        late_activation=params.get("late_activation"),
+        hidden=params.get("hidden"),
+        uncontrolled=params.get("uncontrolled"),
+        acknowledge_conventions=params.get("acknowledge_conventions", False),
+    )
+
+
 def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
     return add_group(
         Path(params["target"]),
@@ -918,6 +1620,50 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         for_combat_zone=params.get("for_combat_zone"),
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
+    )
+
+
+def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
+    return add_player_slot(
+        Path(params["target"]),
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        name=params["name"],
+        unit_type=params["unit_type"],
+        position=params["position"],
+        start=params.get("start", "air"),
+        altitude_ft=params.get("altitude_ft", 15000.0),
+        speed_kt=params.get("speed_kt", 250.0),
+        heading_deg=params.get("heading_deg", 0.0),
+        parking=params.get("parking"),
+        parking_id=params.get("parking_id"),
+        airdrome_id=params.get("airdrome_id"),
+        frequency_mhz=params.get("frequency_mhz", 251.0),
+        onboard_num=params.get("onboard_num", "010"),
+        task=params.get("task", "Nothing"),
+    )
+
+
+def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
+    return add_air_group(
+        Path(params["target"]),
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        name=params["name"],
+        unit_type=params["unit_type"],
+        count=params.get("count", 1),
+        start=params.get("start", "parking-cold"),
+        airfield=params.get("airfield"),
+        position=params.get("position"),
+        altitude_ft=params.get("altitude_ft", 15000.0),
+        speed_kt=params.get("speed_kt", 250.0),
+        heading_deg=params.get("heading_deg", 0.0),
+        skill=params.get("skill", "High"),
+        frequency_mhz=params.get("frequency_mhz", 251.0),
+        task=params.get("task", "CAS"),
+        parking=params.get("parking"),
     )
 
 

@@ -1,8 +1,16 @@
+import asyncio
 from pathlib import Path
 
 import pytest
 from veaf_mission_mcp import server
 from veaf_mission_mcp.catalog import ActionNotFoundError
+
+# The tests below call the module functions directly, which proves the *catalog* works but says
+# nothing about the server: every one of them would still pass while the MCP client connected and
+# saw no tools at all — the failure `main()`'s comment warns about. The two that follow go through
+# `mcp` itself, so a decorator that silently stopped registering (or an argument shape that stopped
+# being accepted) fails here instead of in DCS. `asyncio.run` rather than pytest-asyncio: the
+# listing API is a coroutine, and this needs no new dependency for two calls.
 
 
 def test_capabilities_reports_server_name_and_a_version() -> None:
@@ -40,3 +48,19 @@ def test_run_action_dispatches_describe_mission_end_to_end(sample_miz: Path) -> 
 
     assert {g["name"] for g in result["groups"]} == {"Blue Recon Flight", "Red Armor Section"}
     assert result["zones"][0]["name"] == "combatZone_Test"
+
+
+def test_the_server_registers_the_four_discovery_tools() -> None:
+    # Exact equality on purpose, not a subset: the module docstring commits to a **fixed** discovery
+    # surface rather than one MCP tool per mission-editing action, so a fifth tool appearing is a
+    # design change this test exists to surface. Relaxing this to a subset would let it through.
+    names = {tool.name for tool in asyncio.run(server.mcp.list_tools())}
+
+    assert names == {"capabilities", "list_catalog", "describe_action", "run_action"}
+
+
+def test_calling_a_tool_through_the_server_returns_its_value() -> None:
+    result = asyncio.run(server.mcp.call_tool("capabilities", {}))
+
+    assert not result.is_error
+    assert result.structured_content == {"name": "veaf-mission-mcp", "version": server.VERSION}

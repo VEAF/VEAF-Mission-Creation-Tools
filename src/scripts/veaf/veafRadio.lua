@@ -24,7 +24,7 @@ veafRadio.Id = "RADIO"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
-veafRadio.RadioMenuName = "VEAF"
+veafRadio.RadioMenuName = "menu.radio.root"
 
 -- constants used to determine how the radio menu is set up
 veafRadio.USAGE_ForAll = 0
@@ -55,7 +55,9 @@ veafRadio.humanGroups = {}
 
 --- This structure contains all the radio menus
 veafRadio.radioMenu = {}
-veafRadio.radioMenu.title = veafRadio.RadioMenuName
+-- The title is set in initialize(), not here: `veaf.config.language` is assigned after this file
+-- loads, so resolving the key now would pin every server to French with no error to show for it.
+veafRadio.radioMenu.title = nil
 veafRadio.radioMenu.dcsRadioMenu = nil
 veafRadio.radioMenu.subMenus = {}
 veafRadio.radioMenu.commands = {}
@@ -99,6 +101,14 @@ function veafRadio.onBirthEvent(event)
         if grp then
           groupId = grp:getID()
         end
+      end
+      -- VMR-023: both resolution paths can come back empty on a dynamic slot, and `groupId` then
+      -- reaches `veafRadio.humanGroups[groupId] = {}` a few lines below — assigning at a nil index
+      -- raises "table index is nil" and takes the birth handler down. Without a group there is no
+      -- per-group radio menu to build anyway, so this unit is skipped rather than half-registered.
+      if not groupId then
+        veaf.loggers.get(veafRadio.Id):warn("no group id for human unit %s, skipping its radio menu", unitName)
+        return
       end
       local callsign = event and event.initiator and event.initiator.unitPilotName
       if not callsign then
@@ -184,72 +194,61 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The radio module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, first migration. Two things ticket 01 pinned are reproduced
+--- deliberately rather than tidied up on the way past:
+---
+---   * `valueWhenAbsent` stays nil, because this parser read `str[2]` with no `or ""`. That is what
+---     makes a valueless `freq` destroy the "251" default — a recorded defect, fixed in its own
+---     commit so the behaviour change is visible on its own rather than buried in a move.
+---   * the original chained its keywords with `elseif`, so at most one rule fired per key. Ticket 01
+---     measured that as **unobservable** — no key is claimed by two live branches — which is what
+---     makes the permissive shared loop behaviour-preserving here. The chain's duplicate second
+---     `path` branch is gone rather than translated: it was unreachable and never ran.
+veafRadio.MarkerSpec = {
+  defaults = function(options)
+    options.transmit = false
+    options.playmp3 = false
+    options.message = nil
+    options.frequencies = "251"
+    options.modulations = "AM"
+    options.name = "SRS"
+    options.quiet = false
+    options.path = nil
+  end,
+  commands = {
+    {
+      match = veafRadio.Keyphrase .. " transmit",
+      init = function(options)
+        options.transmit = true
+      end,
+    },
+    {
+      match = veafRadio.Keyphrase .. " play",
+      init = function(options)
+        options.playmp3 = true
+      end,
+    },
+  },
+  parameters = {
+    -- `message` and `path` default to nil, so there is nothing for a valueless keyword to destroy.
+    { keys = { "message" }, apply = veaf.markerRules.text("message") },
+    { keys = { "path" }, apply = veaf.markerRules.text("path") },
+    -- These three carry defaults that must survive a mistyped keyword: `executeCommand` requires
+    -- `frequencies` and `name`, so clearing either made the command do nothing, silently.
+    { keys = { "name" }, apply = veaf.markerRules.textKeepingDefault("name") },
+    { keys = { "quiet" }, apply = veaf.markerRules.flag("quiet") },
+    { keys = { "freq", "freqs", "frequency", "frequencies" }, apply = veaf.markerRules.textKeepingDefault("frequencies") },
+    { keys = { "mod", "mods", "modulation", "modulations" }, apply = veaf.markerRules.textKeepingDefault("modulations") },
+  },
+  valueWhenAbsent = nil,
+}
+
 --- Extract keywords from mark text.
 function veafRadio.markTextAnalysis(text)
   veaf.loggers.get(veafRadio.Id):trace(string.format("markTextAnalysis(%s)", text))
-
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.transmit = false
-  switch.playmp3 = false
-
-  switch.message = nil
-  switch.frequencies = "251"
-  switch.modulations = "AM"
-  switch.name = "SRS"
-  switch.quiet = false
-  switch.path = nil
-
-  -- Check for correct keywords.
-  if text:lower():find(veafRadio.Keyphrase .. " transmit") then
-    switch.transmit = true
-  elseif text:lower():find(veafRadio.Keyphrase .. " play") then
-    switch.playmp3 = true
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "message" then
-      -- Set message.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword message = %s", tostring(val)))
-      switch.message = val
-    elseif key:lower() == "path" then
-      -- Set path.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
-      switch.path = val
-    elseif key:lower() == "name" then
-      -- Set name.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword name = %s", tostring(val)))
-      switch.name = val
-    elseif key:lower() == "quiet" then
-      -- Set quiet.
-      veaf.loggers.get(veafRadio.Id):trace("Keyword quiet found")
-      switch.quiet = true
-    elseif key:lower() == "freq" or key:lower() == "freqs" or key:lower() == "frequency" or key:lower() == "frequencies" then
-      -- Set frequencies.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword frequencies = %s", tostring(val)))
-      switch.frequencies = val
-    elseif key:lower() == "mod" or key:lower() == "mods" or key:lower() == "modulation" or key:lower() == "modulations" then
-      -- Set modulations.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword modulations = %s", tostring(val)))
-      switch.modulations = val
-    elseif key:lower() == "path" then
-      -- Set path.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
-      switch.path = val
-    end
-  end
-
-  return switch
+  return veaf.parseMarkerText(text, veafRadio.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -260,15 +259,54 @@ end
 -- Radio menu methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Run a secured menu command, or refuse it, based on **the group the entry was posted for**.
+---
+--- REVIEW-SECURITY-LAYER ticket 01. This used to consult `veafSecurity.isAuthenticated()` — one
+--- boolean for the entire server — and had no idea who was asking, because `missionCommands`
+--- passes only the argument fixed at registration. The identity is therefore captured *at
+--- registration*: the group id travels inside `parameters`, and the check compares that group's
+--- effective level (the lowest of its occupants, or an active temporary elevation) against what
+--- the command requires.
+---
+--- No group means no identity, and that is refused rather than waved through: a secured command
+--- may only be posted per group, never for a whole coalition.
 function veafRadio._proxyMethod(parameters)
   veaf.loggers.get(veafRadio.Id):trace("parameters=%s", veaf.lp(parameters))
-  local realMethod, realParameters = veaf.safeUnpack(parameters)
+  -- A **named** table, not a positional one. `veaf.safeUnpack` is `unpack`, which stops at the
+  -- first hole, so `{method, nil, groupId, level}` — a secured command that takes no parameters,
+  -- which is common — would have dropped the group id and been refused for lack of identity.
+  -- Caught by a test before it shipped.
+  local realMethod = parameters and parameters.method
+  local realParameters = parameters and parameters.parameters
+  local groupId = parameters and parameters.groupId
+  local requiredLevel = parameters and parameters.level
   veaf.loggers.get(veafRadio.Id):trace("realMethod=%s", veaf.lp(realMethod))
   veaf.loggers.get(veafRadio.Id):trace("realParameters=%s", veaf.lp(realParameters))
-  if veafSecurity.isAuthenticated() then
+  veaf.loggers.get(veafRadio.Id):trace("groupId=%s requiredLevel=%s", veaf.lp(groupId), veaf.lp(requiredLevel))
+
+  if veaf.SecurityDisabled then
+    realMethod(realParameters)
+    return
+  end
+
+  local _required = requiredLevel or veafSecurity.LEVEL_SENIOR_PILOT
+  if not groupId then
+    veaf.loggers.get(veafRadio.Id):warn("refusing a secured command posted without a group")
+    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    return
+  end
+
+  local _level = veafSecurity.getEffectiveGroupLevel(groupId)
+  if _level >= _required then
     realMethod(realParameters)
   else
-    veaf.loggers.get(veafRadio.Id):error("Your radio has to be authenticated for '+'' commands")
+    -- `debug`, not `warn`: a refused click is player-driven and repeatable at will, so a pilot
+    -- tapping the menu would flood a busy server's log with something entirely benign. The pilot
+    -- already gets the on-screen message, which is the feedback that matters. The *misconfigured*
+    -- case above stays at `warn` — that one is a mission bug and happens once.
+    veaf.loggers
+      .get(veafRadio.Id)
+      :debug(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
     trigger.action.outText(veaf.t("radio.auth_required"), 5)
   end
 end
@@ -306,6 +344,8 @@ function veafRadio.RadioMenuBuilder:addMenu(label, parent, coalitionSide)
 end
 
 --- Creates a command node under parent (or root when nil) and returns it.
+--- The caller may set `groupFilter` on the returned node (see _placeCommandOnMenu) and
+--- `sortKey` to override its alphabetical position (see _buildSubtree).
 function veafRadio.RadioMenuBuilder:addCommand(label, parent, method, parameters, usage, isSecured)
   local command = {
     title = label,
@@ -371,6 +411,13 @@ end
 --- (internal) Places a single logical command onto the given DCS menu, handling
 --- the ForAll (global) and per-group / per-unit dispatch. Extracted from
 --- _buildSubtree so pagination can target a specific page's DCS menu.
+---
+--- A command may carry an optional `groupFilter(unitName, groupId) -> boolean`, consulted
+--- once per candidate unit: false leaves the entry out for that group. It is what lets a
+--- module offer an entry only to the pilots it applies to — an aircraft type that has a
+--- checklist, a pilot with a session running — instead of showing everyone an item that
+--- answers "nothing for you" (veafAssist). Only per-group / per-unit commands are
+--- filtered: a ForAll command has no unit to decide on.
 function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide)
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
@@ -394,7 +441,16 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
           veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
           local humanUnit = veafRadio.humanUnits[unitName]
           veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-          if humanUnit and humanUnit.spawned then
+          local passesFilter = true
+          if command.groupFilter then
+            local ok, result = pcall(command.groupFilter, unitName, groupId)
+            -- A filter that throws must not take the whole menu rebuild down with it.
+            passesFilter = ok and result == true
+            if not ok then
+              veaf.loggers.get(veafRadio.Id):warn("groupFilter for command %s failed: %s", veaf.p(command.title), veaf.p(result))
+            end
+          end
+          if humanUnit and humanUnit.spawned and passesFilter then
             veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
             local parameters = command.parameters
             if parameters == nil then
@@ -446,15 +502,22 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentDcsMenu)
   end
 
-  local function compareByTitle(a, b)
-    if a.title and b.title then
-      return a.title < b.title
+  -- Entries render in alphabetical order, which is the right default when a menu is a
+  -- list to browse. A module whose entries have an intended sequence — veafAssist's
+  -- "confirm the step" before "skip the step" — sets `sortKey` on them instead, so the
+  -- order does not depend on how the labels happen to sort, in French or in any other
+  -- language they get translated to.
+  local function compareByOrder(a, b)
+    local left = a.sortKey or a.title
+    local right = b.sortKey or b.title
+    if left and right then
+      return left < right
     else
       return false
     end
   end
-  table.sort(node.commands, compareByTitle)
-  table.sort(node.subMenus, compareByTitle)
+  table.sort(node.commands, compareByOrder)
+  table.sort(node.subMenus, compareByOrder)
 
   -- Pagination decision (ADR 0013): each command / submenu counts as one item.
   local total = #node.commands + #node.subMenus
@@ -507,13 +570,19 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
   local _parameters = parameters
   if command.isSecured then
     veaf.loggers.get(veafRadio.Id):trace("adding secured command")
+    -- The group id is captured **here**, at registration, because that is the only identity the
+    -- DCS menu API will ever carry: `missionCommands` hands the callback the argument fixed now
+    -- and nothing about who clicked. A secured command therefore only makes sense per group —
+    -- posting one for a whole coalition would leave `_proxyMethod` unable to say who is asking,
+    -- and it refuses in that case (REVIEW-SECURITY-LAYER ticket 01).
     _method = veafRadio._proxyMethod
-    _parameters = { command.method, _parameters }
-    if veafSecurity.isAuthenticated() then
-      _title = "-" .. title
-    else
-      _title = "+" .. title
-    end
+    _parameters = {
+      method = command.method,
+      parameters = _parameters,
+      groupId = groupId,
+      level = command.securityLevel or veafSecurity.LEVEL_SENIOR_PILOT,
+    }
+    _title = "+" .. title
   end
   veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
   veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))
@@ -809,6 +878,57 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- transmit a radio message or play a mp3 file via SRS
+-- Characters that let a value stop being an argument and start being a command once the
+-- string reaches the Windows shell through os.execute. The double quote is the way out of
+-- the argument it sits in; the separators, redirections, cmd's escape character and its
+-- variable-expansion marker are what a value does once it is out. Control characters end
+-- the command line outright.
+--
+-- These are removed rather than escaped, deliberately: cmd's quoting rules are not
+-- composable, so an escaping scheme that is right for one nesting depth is wrong at the
+-- next. None of them is needed to speak a sentence or name a radio station. The cost is a
+-- literal ampersand in a spoken message becoming a space.
+veafRadio.SHELL_UNSAFE_CHARACTERS = '[%c"&|<>%^%%]'
+
+--- Strip everything from *value* that could break out of a quoted shell argument.
+---
+--- For free text that has no small legal shape -- a spoken message, a station name, a
+--- file path -- where validation would have to reject legitimate input.
+---
+---@param value any the untrusted text, or nil
+---@param what string what the value is, named in the warning
+---@return string|nil the text with unsafe characters replaced by spaces, nil if value was nil
+function veafRadio._shellSafeText(value, what)
+  if value == nil then
+    return nil
+  end
+  local cleaned, removed = tostring(value):gsub(veafRadio.SHELL_UNSAFE_CHARACTERS, " ")
+  if removed > 0 then
+    veaf.loggers.get(veafRadio.Id):warn(string.format("removed %d shell-unsafe character(s) from the SRS %s", removed, what))
+  end
+  return cleaned
+end
+
+--- Return *value* when it has the shape it is supposed to have, the fallback otherwise.
+---
+--- For the values that *do* have a small legal shape -- a frequency list, a modulation
+--- list, a coalition id. Validating beats stripping here: a frequency that is not a
+--- frequency is a mistake worth refusing, not text worth cleaning.
+---
+---@param value any the untrusted value, or nil
+---@param pattern string an anchored Lua pattern the value must match
+---@param fallback string used, with a warning, when the value does not match
+---@param what string what the value is, named in the warning
+---@return string
+function veafRadio._shellSafeToken(value, pattern, fallback, what)
+  local text = tostring(value or "")
+  if text:match(pattern) then
+    return text
+  end
+  veaf.loggers.get(veafRadio.Id):warn(string.format("SRS %s [%s] is not a valid %s; falling back to [%s]", what, text, what, fallback))
+  return fallback
+end
+
 function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name, coalition, eventPos)
   veaf.loggers.get(veafRadio.Id):debug(
     "transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, file=%s)",
@@ -823,14 +943,20 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
   if eventPos then
     veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.p(eventPos)))
     local lat, lon, alt = coord.LOtoLL(eventPos)
-    posOption = string.format("-L %d -O %d -A %d", lat, lon, alt)
+    -- VMR-093: degrees are floating point and %d truncated them toward zero, putting the
+    -- transmission up to ~111 km from the marker it was given. Altitude stays whole: it is in
+    -- metres. (Lua 5.1's %d does not raise on a float, so nothing ever complained.)
+    posOption = string.format("-L %.6f -O %.6f -A %d", lat, lon, alt)
   end
 
+  -- Everything below reaches os.execute. message, file and name come from the text of an
+  -- F10 map marker, which any player can write and which no authentication gates, so they
+  -- are treated as hostile.
   local contentOption = ""
   if message then
-    contentOption = string.format('-t "%s"', message)
+    contentOption = string.format('-t "%s"', veafRadio._shellSafeText(message, "message"))
   elseif file then
-    contentOption = string.format('-i "%s"', file)
+    contentOption = string.format('-i "%s"', veafRadio._shellSafeText(file, "file path"))
   else
     veaf.loggers.get(veafRadio.Id):error("no message nor file for veafRadio._transmitViaSRS()!")
     return
@@ -848,11 +974,11 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
       STTS.DIRECTORY,
       STTS.EXECUTABLE,
       contentOption,
-      frequencies,
-      modulations,
-      coalition,
+      veafRadio._shellSafeToken(frequencies, "^[%d%.,]+$", "251", "frequencies"),
+      veafRadio._shellSafeToken(modulations, "^[%a,]+$", "AM", "modulations"),
+      veafRadio._shellSafeToken(coalition, "^%d+$", "0", "coalition"),
       STTS.SRS_PORT,
-      name,
+      veafRadio._shellSafeText(name, "station name"),
       posOption
     )
     veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))
@@ -973,8 +1099,6 @@ function veafRadio.createUserMenu(configuration, groupId)
 end
 
 -- helper functions for user menus
-local spawnCapFunction = function() end
-
 function veafRadio.menu(name, ...)
   return {
     "menu",
@@ -1001,6 +1125,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
+  -- Resolve the root title now that the mission's language is known (see the declaration above).
+  veafRadio.radioMenu.title = veaf.t(veafRadio.RadioMenuName)
   -- Find the path of the SRS radio configuration script
   -- We're going to need it to define :
   --  STTS.DIRECTORY
@@ -1050,10 +1176,13 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   --mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15) --TODO check if this is still needed (commented out when added the BIRTH event handler)
 
   -- add marker change event handler
+  -- L1: this path transmits audio on a radio frequency, which is spammable. Had no check at
+  -- all before SECREV-2 -- the two isAuthenticated tests in this module guard the F10 menu,
+  -- not the marker. Level chosen by David.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     -- veafRadio uses raw (non-inverted) coalition — pass event.coalition directly
     return veafRadio.executeCommand(pos, event.text, event.coalition, bypass)
-  end, veafCommands.PRIORITY_RADIO)
+  end, veafCommands.PRIORITY_RADIO, "SENIOR_PILOT", veafRadio.Keyphrase)
 
   -- add human birth event handler
   veafEventHandler.addCallback("veafRadio.eventHandler", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafRadio.onBirthEvent)

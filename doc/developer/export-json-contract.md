@@ -1,8 +1,8 @@
-# `veaf-tools export` — contrat JSON pour le plugin BFR `dcs-mission-tools`
+# `veaf-tools mission export` — contrat JSON pour le plugin BFR `dcs-mission-tools`
 
 > **Public visé** : les développeurs du plugin Claude BFR `dcs-mission-tools`
 > ([bfr-claude-plugins](https://github.com/Bullseye-Francophone/bfr-claude-plugins)) qui consomment
-> `veaf-tools export --format json` au lieu d'exécuter les fichiers mission via `lua54`.
+> `veaf-tools mission export --format json` au lieu d'exécuter les fichiers mission via `lua54`.
 > Ce document est le **contrat figé** entre les deux outils.
 >
 > **schemaVersion : 2.** — 🇬🇧 [`export-json-contract.en.md`](export-json-contract.en.md).
@@ -133,7 +133,7 @@ markdown`**.
 
 ## 8. Ressources (entrée `.miz`)
 
-Quand l'entrée est un `.miz`, `veaf-tools export --extract-dir <dir>` **extrait** aussi les ressources
+Quand l'entrée est un `.miz`, `veaf-tools mission export --extract-dir <dir>` **extrait** aussi les ressources
 embarquées de l'archive — scripts `.lua` et `l10n/DEFAULT/*` (sons/images) — vers un dossier annexe
 reproduisant le layout de l'archive, pour que le plugin exécute ses checks `.lua` et résolve les noms de
 fichiers de `mapResource` sans dézipper. Les fichiers data déjà portés par le JSON sont ignorés. Pour un

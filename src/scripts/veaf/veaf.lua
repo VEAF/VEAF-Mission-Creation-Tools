@@ -818,9 +818,12 @@ function veaf.p(o, level, skip, includeMeta, dontRecurse)
   if _mt and _mt.__tostring then
     return _mt.__tostring(o)
   end
-  if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
+  -- VMR-084: the `#o == 3` / `#o == 2` tests these conditions used to carry could never be true.
+  -- `#` measures a table's *sequence* part, and a coordinate holds only the named keys x/y/z, so
+  -- `#o` is 0 — the branch was dead and every vec3 fell through to the multi-line generic dump.
+  if o and type(o) == "table" and (o.x and o.z and o.y) then
     return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
-  elseif o and type(o) == "table" and (o.x and o.y and #o == 2) then
+  elseif o and type(o) == "table" and (o.x and o.y) then
     return string.format("{x=%s, y=%s}", veaf.p(o.x), veaf.p(o.y))
   end
   local skip = skip
@@ -1131,6 +1134,111 @@ function veaf.placePointOnLand(vec3)
   return result
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- spawn point search
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Number of candidate points examined per search tier in veaf.findSpawnPoint
+veaf.SPAWN_SEARCH_ATTEMPTS = 10
+
+--- Default clearance from scenery, in metres, requested for a spawned group
+veaf.DEFAULT_SPAWN_CLEARANCE = 100
+
+--- Set to true to skip the scenery-aware tier of veaf.findSpawnPoint
+veaf.doNotAvoidScenery = false
+
+--- Places a candidate on the terrain and tells whether a ground unit can stand there
+-- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
+-- Only WATER is rejected, which is the criterion veafUnits.checkPositionForUnit applies
+-- to a ground unit — SHALLOW_WATER keeps passing, as it does today.
+-- The shape guard is not paranoia: tier 1 candidates come from an undocumented API whose
+-- return shape we have not measured, and veaf.placePointOnLand would raise on a non-table
+-- — outside the pcall, which only wraps the call to the singleton itself.
+-- @return vec3 placed on land, or nil when the candidate is unusable
+local function acceptableGroundPoint(candidate)
+  if type(candidate) ~= "table" then
+    return nil
+  end
+  local placed = veaf.placePointOnLand(candidate)
+  if land.getSurfaceType({ x = placed.x, y = placed.z }) ~= land.SurfaceType.WATER then
+    return placed
+  end
+  return nil
+end
+
+--- Horizontal distance between two points, either of which may be a vec2
+-- A vec2's y is the map's z, which is the convention veaf.placePointOnLand applies. Reading
+-- it as an altitude instead is how a distance test ends up comparing the wrong axis.
+-- Horizontal on purpose: placePointOnLand writes the terrain height into y, so measuring in
+-- three dimensions would let a hill push a perfectly good candidate out of range.
+local function horizontalDistance(a, b)
+  local dx = (a.x or 0) - (b.x or 0)
+  local dz = (a.z or a.y or 0) - (b.z or b.y or 0)
+  return math.sqrt(dx * dx + dz * dz)
+end
+
+--- Searches for an acceptable ground spawn point near a centre
+-- Three bounded tiers, degrading in order: every criterion including clearance from
+-- scenery, then every criterion except that clearance, then failure. Callers used to
+-- jitter once and use the result unvalidated, so a centre could land in the sea and the
+-- units were dropped one by one downstream.
+-- @param vec3 centre point
+-- @param radius search radius in metres — honoured by **every** tier, see below
+-- @param safeRadius required clearance from scenery (default veaf.DEFAULT_SPAWN_CLEARANCE)
+-- @return vec3 placed on land, or nil when no acceptable point was found
+function veaf.findSpawnPoint(vec3, radius, safeRadius)
+  safeRadius = safeRadius or veaf.DEFAULT_SPAWN_CLEARANCE
+
+  -- Tier 1 — every criterion, clearance from buildings and forests included.
+  -- Disposition is a native but *undocumented* DCS singleton, found in TUM. Measured in a live
+  -- DCS on 2026-08-06: it exists, and the points it returns genuinely avoid buildings and
+  -- forests (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md). The guard and
+  -- the pcall stay: a singleton absent on another DCS version or map, or whose signature
+  -- changes under us, must degrade to tier 2 and never kill a spawn.
+  --
+  -- A zero radius means "exactly here, the mission maker means it" — veafSpawn passes it for
+  -- farp, cargo, teleport, bomb, smoke and friends. Tier 1 exists to *move* a point, so it must
+  -- not even be consulted.
+  if not veaf.doNotAvoidScenery and radius and radius > 0 and Disposition and Disposition.getSimpleZones then
+    -- One call yields several candidates, which is cheaper than one call each and matters
+    -- because the per-call cost is still unmeasured.
+    local ok, candidates = pcall(Disposition.getSimpleZones, vec3, radius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
+    if ok and type(candidates) == "table" then
+      for _, candidate in ipairs(candidates) do
+        local placed = acceptableGroundPoint(candidate)
+        -- The distance test is not belt-and-braces: **Disposition's radius argument does not
+        -- bound its answers.** Measured around one centre in wooded terrain — asked for 800 m
+        -- it returned points 2035-2258 m out, and asked for 1600 m with a count of *one* it
+        -- still returned a point 2628 m out, so the overshoot is not the count forcing a wider
+        -- search. Without this test tier 1 took the first candidate that was merely on land, so
+        -- `_spawn group, radius 50` in a forest could place the group kilometres away in
+        -- silence. ADR 0018 requires this dependency to be quality-only and never correctness.
+        if placed and horizontalDistance(placed, vec3) <= radius then
+          veaf.loggers.get(veaf.Id):trace("findSpawnPoint: scenery-aware point found")
+          return placed
+        end
+      end
+      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point in range, dropping the scenery criterion")
+    else
+      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition.getSimpleZones unusable, dropping the scenery criterion")
+    end
+  end
+
+  -- Tier 2 — every criterion except clearance from scenery.
+  for _ = 1, veaf.SPAWN_SEARCH_ATTEMPTS do
+    local placed = acceptableGroundPoint(mist.getRandPointInCircle(vec3, radius))
+    if placed then
+      return placed
+    end
+  end
+
+  -- Tier 3 — nothing acceptable anywhere. The caller reports it and aborts the spawn.
+  veaf.loggers
+    .get(veaf.Id)
+    :info(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
+  return nil
+end
+
 --- Trim a string
 function veaf.trim(s)
   local a = s:match("^%s*()")
@@ -1158,9 +1266,20 @@ function veaf.splitWithPattern(str, pat)
   return t
 end
 
+--- Escape a separator so it is literal inside a Lua pattern.
+---
+--- VMR-082: `veaf.split` and `veaf.breakString` interpolate the separator straight into a
+--- character class, so a Lua-magic separator changes what the class means. Measured rather than
+--- assumed: `-` and `]` happen to survive, but `%` raises *malformed pattern* outright. Every
+--- separator used inside this repository is a comma, a space or a semicolon — all harmless — but
+--- both functions are public API and a mission can pass anything.
+local function _escapePattern(sep)
+  return (tostring(sep):gsub("(%W)", "%%%1"))
+end
+
 function veaf.split(str, sep)
   local result = {}
-  local regex = ("([^%s]+)"):format(sep)
+  local regex = ("([^%s]+)"):format(_escapePattern(sep))
   for each in str:gmatch(regex) do
     table.insert(result, each)
   end
@@ -1169,7 +1288,8 @@ end
 
 --- Break string around a separator
 function veaf.breakString(str, sep)
-  local regex = ("^([^%s]+)%s(.*)$"):format(sep, sep)
+  local escaped = _escapePattern(sep)
+  local regex = ("^([^%s]+)%s(.*)$"):format(escaped, escaped)
   local a, b = str:match(regex)
   if not a then
     a = str
@@ -2393,7 +2513,21 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
   return result
 end
 
+--- Shows a message to a unit, its group, or everyone
+-- The nil check is a floor under **every** caller, not a fix for one. `trigger.action.outText*`
+-- raises on a nil message, so a caller with nothing to say produced a DCS scripting error from a
+-- *display* call — which reads in `dcs.log` as a bug in whatever feature was talking, not as
+-- "somebody passed nothing". That is how issue #302's crash survived its own fix: the guard was added
+-- where the value is computed, and the nil simply travelled one level further. There are dozens of
+-- callers here, so guarding them one at a time would leave the trap armed.
+-- It **logs** rather than returning quietly: a caller reaching this has a defect, and silence is worse
+-- than a crash for whoever has to diagnose it later.
 function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
+  if message == nil or (type(message) == "string" and message:match("^%s*$")) then
+    veaf.loggers.get(veaf.Id):warn("outTextForUnit: refusing an empty message (unit=%s)", veaf.p(unitName))
+    return
+  end
+
   local unitId = nil
   local groupId = nil
   if unitName then
@@ -3003,6 +3137,320 @@ function veaf.randomlyChooseFrom(aTable, bias)
   return aTable[index]
 end
 
+--- Convert a marker parameter to a number, never raising, optionally clamped.
+---
+--- SECREV-2 group A. Marker text is player input: a keyword can arrive with no value at all, or
+--- with something that is not a number, and the handlers were converting it inline. Two crash
+--- shapes came out of that repeatedly — `string.format("%d", nil)` on a valueless keyword, and
+--- `tonumber(val) <= 5`, which compares nil with a number and takes the whole handler down.
+---
+--- The review asked for this to live in "the shared marker parser". There is no such thing: ten
+--- modules carry their own `markTextAnalysis`, and unifying them is a different lot. What *can*
+--- be shared is the conversion, which is the part that was being written wrong each time.
+---
+--- @param value the raw parameter (string, number, or anything a player managed to produce)
+--- @param options optional table: `default` when the value is unusable, `min`/`max` to clamp
+--- @return number|nil the converted value, the clamped value, or `options.default`
+function veaf.safeNumber(value, options)
+  options = options or {}
+  local _number = tonumber(value)
+  if _number == nil then
+    return options.default
+  end
+  if options.min and _number < options.min then
+    return options.min
+  end
+  if options.max and _number > options.max then
+    return options.max
+  end
+  return _number
+end
+
+--- Convert a marker parameter to a number, **rejecting** it when it falls outside `min`..`max`.
+---
+--- The bounded twin of `veaf.safeNumber`, which *clamps* instead. Marker keywords want the
+--- rejecting form: `size 42` keeps the command's default rather than silently becoming 5.
+---
+--- Seven keywords across `veafCasMission` and `veafTransportMission` wrote this out inline, and
+--- three of those copies still carried `tonumber(val) <= 5` because a fix reaches the copy it was
+--- written against. Callers now name the bounds and test one value.
+---
+--- @param value the raw parameter (string, number, or anything a player managed to produce)
+--- @param min lowest accepted value, inclusive
+--- @param max highest accepted value, inclusive
+--- @return number|nil the value when it converts and is in range, `nil` otherwise
+function veaf.safeNumberInRange(value, min, max)
+  local _number = veaf.safeNumber(value)
+  if _number == nil or _number < min or _number > max then
+    return nil
+  end
+  return _number
+end
+
+-------------------------------------------------------------------------------------------------
+-- Shared marker-text parser (REFACTOR-MARKER-PARSER)
+--
+-- Every marker command has the same shape: a keyphrase, then separated `key value` pairs. That
+-- loop was copied across the codebase, which is why a fix reached one copy and not its siblings
+-- three times over (VMR-019, VMR-025, and the two FIX-MARKER-PARAM-CRASHES lots).
+--
+-- A module now DECLARES its parameters instead of writing the loop, so a new keyword cannot
+-- reintroduce `tonumber(nil) <= 5`. The specification has to be able to express the quirks
+-- ticket 01 measured, because several are load-bearing and a migration that drops one silently
+-- changes a command in the field:
+--
+--   * `valueWhenAbsent` — a valueless keyword is nil in some modules and "" in others, which
+--     decides whether a bare keyword reads as a flag or as an error.
+--   * `separator` — every module splits on "," except ArtilleryUnitHandler, which uses ";".
+--   * command descriptors seed different defaults per sub-verb, FIRST MATCH WINS: the chain's
+--     order decides, not the text's, so `_move group tanker` is a group move.
+--   * ALL matching parameter rules run, in declaration order, and a repeated keyword therefore
+--     ends on its last occurrence.
+--   * a value keeps everything after the FIRST space and is NOT trimmed: `side  BLUE` with two
+--     spaces really is " BLUE", which is not "BLUE". Trimming here would change behaviour.
+-------------------------------------------------------------------------------------------------
+
+--- True when a marker parameter is absent or empty.
+---
+--- Worth a name because `""` is **truthy** in Lua, so `if not value` does not catch it — which is
+--- the whole of `SECREV-010` (veafMove accepting an empty group name) and of the same bug found
+--- again in veafGroundAI. Every "is this parameter really given?" test goes through here now.
+--- @param value the parameter as the parser produced it
+--- @return boolean true when nil or the empty string
+function veaf.isBlank(value)
+  return value == nil or value == ""
+end
+
+--- Ready-made `apply` functions for the common parameter kinds.
+---
+--- These are the four `veafSpawnParser` had as file-locals. They live here because the crash
+--- family came from every module writing its own: `VMR-025` fixed the nil guard in `_num` and
+--- left the identical hole in `_numNonNegative`, one function below it.
+veaf.markerRules = {}
+
+--- A numeric parameter, keeping the field's existing value when the input is unusable.
+---
+--- Conversion goes through `veaf.getRandomizableNumeric`, which also accepts the `1-5`
+--- random-range syntax markers use — a third numeric kind beyond `safeNumber` and
+--- `safeNumberInRange`, not a mistake.
+function veaf.markerRules.number(field)
+  return function(options, value)
+    if value == nil then
+      return
+    end
+    local _converted = veaf.getRandomizableNumeric(value)
+    if _converted ~= nil then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A numeric parameter that must not go below zero, keeping the existing value otherwise.
+---
+--- Guards nil the same way `number` does. That symmetry is the point: this helper's whole history
+--- is that it did *not* have the guard its sibling had.
+function veaf.markerRules.nonNegativeNumber(field)
+  return function(options, value)
+    if value == nil then
+      return
+    end
+    local _converted = veaf.getRandomizableNumeric(value)
+    if _converted and _converted >= 0 then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A plain numeric parameter, keeping the field's existing value when the input is unusable.
+---
+--- Converts with `veaf.safeNumber` — plain `tonumber` semantics — for the modules that never
+--- accepted the `1-5` random-range syntax `veaf.markerRules.number` allows.
+function veaf.markerRules.plainNumber(field)
+  return function(options, value)
+    local _converted = veaf.safeNumber(value)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A numeric parameter accepted only inside `min`..`max`, keeping the default otherwise.
+---
+--- Goes through `veaf.safeNumberInRange`, which **rejects** rather than clamps — `size 42` keeps
+--- the command's default instead of silently becoming 5, the behaviour `VMR-019` settled on.
+---
+--- Deliberately not `getRandomizableNumeric`: the modules using bounded parameters never accepted
+--- the `1-5` random-range syntax, and adding it here would be a behaviour change wearing a
+--- refactor's clothes.
+function veaf.markerRules.boundedNumber(field, min, max)
+  return function(options, value)
+    local _converted = veaf.safeNumberInRange(value, min, max)
+    if _converted then
+      options[field] = _converted
+    end
+  end
+end
+
+--- A string parameter, stored exactly as typed — including nil, which clears the field.
+---
+--- Use `textKeepingDefault` instead whenever the field has a default worth surviving a mistyped
+--- keyword.
+function veaf.markerRules.text(field)
+  return function(options, value)
+    options[field] = value
+  end
+end
+
+--- A string parameter that leaves the field alone when the keyword carries no value.
+---
+--- The difference matters wherever a default exists: `_radio transmit, freq` used to set
+--- `frequencies` to nil, and `executeCommand` requires that field, so the command did nothing at
+--- all and said nothing to the pilot. An *unknown* keyword was harmless by comparison, since it
+--- left the default intact — a mistyped recognised keyword should not be worse than an
+--- unrecognised one.
+function veaf.markerRules.textKeepingDefault(field)
+  return function(options, value)
+    if not veaf.isBlank(value) then
+      options[field] = value
+    end
+  end
+end
+
+--- A `validate` function refusing the command unless `field` holds a non-empty string.
+---
+--- The mandatory-parameter check, written once. Modules were each spelling out
+--- `x ~= nil and x ~= ""`, and the one that spelled it `if not x` shipped the bug twice.
+function veaf.markerRules.requireText(field)
+  return function(options)
+    return not veaf.isBlank(options[field])
+  end
+end
+
+--- A flag: present means true, and any value the pilot typed after it is discarded.
+function veaf.markerRules.flag(field)
+  return function(options)
+    options[field] = true
+  end
+end
+
+--- Build the lookup tables a specification needs, once, in place.
+---
+--- Mutates `spec` so the work is not redone on every marker: each rule gets a `_keyset` for O(1)
+--- matching, and the spec gets the recognised-key list that powers the "did you mean" hint.
+--- Idempotent, so a module may call it explicitly at load time or leave it to the first parse.
+--- @param spec table the specification to prepare
+--- @return table the same spec, prepared
+function veaf.prepareMarkerSpec(spec)
+  if spec._prepared then
+    return spec
+  end
+  -- Keys are stored lower-cased because `parseMarkerText` looks them up that way: a spec
+  -- declaring `keys = { "Size" }` would otherwise never match, and — worse — would be reported
+  -- to the pilot as an unknown parameter. Every spec today declares lower-case, so this changes
+  -- nothing now and removes a trap for the next one.
+  spec.knownKeys = {}
+  spec._knownKeySet = {}
+  for _, rule in ipairs(spec.parameters or {}) do
+    rule._keyset = {}
+    for _, key in ipairs(rule.keys) do
+      local keyLower = key:lower()
+      rule._keyset[keyLower] = true
+      if not spec._knownKeySet[keyLower] then
+        spec._knownKeySet[keyLower] = true
+        table.insert(spec.knownKeys, keyLower)
+      end
+    end
+  end
+  spec._prepared = true
+  return spec
+end
+
+--- Parse marker text into an options table, following a module's declared specification.
+---
+--- @param text the raw marker text a player typed
+--- @param spec table the module's specification:
+---   * `defaults` — function(options) seeding the fields every command shares, or a table copied
+---     field by field. Runs before the command descriptors.
+---   * `commands` — list of `{ match = <lowercase substring>, init = function(options) }`. The
+---     first whose `match` is found in the lowercased text wins and seeds its defaults; if none
+---     matches, the text is not this module's command and `nil` is returned.
+---   * `parameters` — list of `{ keys = {...}, apply = function(options, value), when = function(options) }`.
+---     Every rule whose key matches runs, in order; `when` gates context-specific rules.
+---   * `separator` — defaults to `","`.
+---   * `valueWhenAbsent` — what a keyword with no value passes to `apply`. Defaults to `nil`;
+---     pass `""` for the modules that read `str[2] or ""`.
+---   * `reportUnknownKeys` — when true, unrecognised keys are collected into
+---     `options.unknownParameters` with a nearest-match `suggestion`, so the caller can hint the
+---     pilot about a typo. Keys starting with `_` are skipped: that is the command keyphrase.
+---   * `validate` — function(options) run after the loop; returning false rejects the command,
+---     which is how a mandatory parameter is enforced.
+--- @return table|nil the options table, or nil when the text is not this module's command
+function veaf.parseMarkerText(text, spec)
+  if type(text) ~= "string" then
+    return nil
+  end
+  veaf.prepareMarkerSpec(spec)
+
+  local options = {}
+  if type(spec.defaults) == "function" then
+    spec.defaults(options)
+  elseif type(spec.defaults) == "table" then
+    for field, value in pairs(spec.defaults) do
+      options[field] = value
+    end
+  end
+
+  -- Detect the command keyphrase and seed its defaults. First match wins.
+  local textLower = text:lower()
+  local matched = false
+  for _, command in ipairs(spec.commands or {}) do
+    if textLower:find(command.match, 1, true) then
+      if command.init then
+        command.init(options)
+      end
+      matched = true
+      break
+    end
+  end
+  if not matched then
+    return nil
+  end
+
+  -- `ipairs`, not `pairs`: order is load-bearing here — a repeated keyword must end on its LAST
+  -- occurrence — and Lua does not guarantee `pairs` iterates a sequence in order. Every copied
+  -- parser used `pairs` and got away with it; sharing the loop means fixing that once.
+  for _, keyphrase in ipairs(veaf.split(text, spec.separator or ",")) do
+    -- The first space separates key from value; everything after it IS the value, untrimmed.
+    local parts = veaf.breakString(veaf.trim(keyphrase), " ")
+    local key = parts[1]
+    local value = parts[2]
+    if value == nil then
+      value = spec.valueWhenAbsent
+    end
+    local keyLower = key:lower()
+
+    if spec.reportUnknownKeys and keyLower ~= "" and keyLower:sub(1, 1) ~= "_" and not spec._knownKeySet[keyLower] then
+      options.unknownParameters = options.unknownParameters or {}
+      table.insert(options.unknownParameters, {
+        key = key,
+        suggestion = veaf.nearestMatch(keyLower, spec.knownKeys, 3),
+      })
+    end
+
+    -- ALL matching rules run, in declaration order.
+    for _, rule in ipairs(spec.parameters or {}) do
+      if rule._keyset[keyLower] and (not rule.when or rule.when(options)) then
+        rule.apply(options, value)
+      end
+    end
+  end
+
+  if spec.validate and not spec.validate(options) then
+    return nil
+  end
+  return options
+end
+
 function veaf.safeUnpack(package)
   if type(package) == "table" then
     return (unpack or table.unpack)(package) -- luacheck: ignore 143
@@ -3031,6 +3479,14 @@ function veaf.getRandomizableNumeric_random(val)
   local nVal = tonumber(val)
   veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.lp(nVal))
   if nVal == nil then
+    -- REFACTOR-MARKER-PARSER ticket 02: return nil rather than raising on something that is not
+    -- a string. `string.find(nil, ...)` below is the crash VMR-025 described and then guarded
+    -- against **in its caller** (`_num`), which left the hole reachable from every other caller
+    -- — and `_numNonNegative`, one function away, walked straight into it. Fixed at the source
+    -- this time, so the guard cannot be forgotten again. `_norandom` never had the problem.
+    if type(val) ~= "string" then
+      return nil
+    end
     local dashPos = string.find(val, "%-")
     veaf.loggers.get(veaf.Id):trace("dashPos=%s", veaf.lp(dashPos))
     if dashPos then
@@ -3225,13 +3681,17 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
   footer = footer .. "]\n"
   footer = footer .. "}\n"
 
-  local file = l_io.open(l_export_path .. filename, "w")
+  -- The `if file then` used to sit after the three writes, so an unwritable export directory raised
+  -- inside writeln on a nil handle -- in a script running in DCS (SECREV-2 / VMR-081).
+  local file, fileError = l_io.open(l_export_path .. filename, "w")
+  if not file then
+    veaf.loggers.get(veaf.Id):error(string.format("cannot open %s for writing: %s", veaf.p(l_export_path .. filename), tostring(fileError)))
+    return
+  end
   writeln(file, header)
   writeln(file, table.concat(content, ",\n"))
   writeln(file, footer)
-  if file then
-    file:close()
-  end
+  file:close()
 end
 
 function veaf.isUnitAlive(unit)
@@ -4388,6 +4848,91 @@ end
 
 function veaf.getTriggerZone(zoneName)
   return veaf.triggerZones[zoneName]
+end
+
+--- Reads a raw trigger-zone property, as typed by the mission maker in the editor
+-- DCS stores them as an array of { key = "…", value = "…" } pairs, never a map, and every
+-- value is a string. Discovered zones have carried them since veaf._discoverTriggerZones,
+-- but nothing read them until FEAT-SCENERY-AWARE-SPAWN.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @return string, or nil when the zone, its properties or the key are missing
+function veaf.getZoneProperty(zoneName, key)
+  local zone = veaf.getTriggerZone(zoneName)
+  if not zone or not zone.properties then
+    return nil
+  end
+  for _, property in pairs(zone.properties) do
+    if property.key == key then
+      return property.value
+    end
+  end
+  return nil
+end
+
+--- Reads a trigger-zone property as a boolean
+-- Accepts "true"/"false" in any case; anything else is a miss and yields the default, so a
+-- mission maker's typo cannot silently read as false.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @param default value returned when absent or unparseable
+-- @return boolean
+function veaf.getZonePropertyBoolean(zoneName, key, default)
+  local raw = veaf.getZoneProperty(zoneName, key)
+  if raw == nil then
+    return default
+  end
+  local text = tostring(raw):lower()
+  if text == "true" then
+    return true
+  elseif text == "false" then
+    return false
+  end
+  veaf.loggers.get(veaf.Id):warn(
+    string.format(
+      "getZonePropertyBoolean: zone [%s] property [%s] is not a boolean: [%s]",
+      tostring(zoneName),
+      tostring(key),
+      tostring(raw)
+    )
+  )
+  return default
+end
+
+--- Reads a trigger-zone property as a number, clamped into an optional range
+-- Clamps rather than rejects, so a mission maker who types an absurd value gets the bound
+-- instead of a dead module. Lua 5.1 has a single number type, hence one accessor and not
+-- the float/int pair the source of this pattern exposes.
+-- @param zoneName name of the trigger zone
+-- @param key property name
+-- @param default value returned when absent or not a number
+-- @param min optional lower bound
+-- @param max optional upper bound
+-- @return number
+function veaf.getZonePropertyNumber(zoneName, key, default, min, max)
+  local raw = veaf.getZoneProperty(zoneName, key)
+  if raw == nil then
+    return default
+  end
+  local value = tonumber(raw)
+  if not value then
+    veaf.loggers.get(veaf.Id):warn(
+      string.format(
+        "getZonePropertyNumber: zone [%s] property [%s] is not a number: [%s]",
+        tostring(zoneName),
+        tostring(key),
+        tostring(raw)
+      )
+    )
+    return default
+  end
+  if min and value < min then
+    value = min
+  end
+  if max and value > max then
+    value = max
+  end
+  return value
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

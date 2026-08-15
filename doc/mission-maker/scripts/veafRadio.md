@@ -104,7 +104,7 @@ veafRadio.createUserMenu(
 )
 ```
 
-> **Lua vs YAML.** `veafRadio.createUserMenu(configuration, groupId)` est du **Lua** : il se place dans `mission-script.lua`. Depuis ADR 0011, la même chose se déclare directement en YAML sous `modules.RADIO.user_menus` (voir [Menus radio en YAML](#menus-radio-en-yaml)), sans écrire de Lua. L'action YAML `lua` reste le pont pour rattacher une fonction Lua écrite par le créateur de mission à un menu déclaré en YAML.
+> **Lua vs YAML.** `veafRadio.createUserMenu(configuration, groupId)` est du **Lua** : il se place dans `mission-script.lua`. Depuis ADR 0011, la même chose se déclare directement en YAML sous `modules.RADIO.user_menus` (voir [Menus radio en YAML](#radio-menus-in-yaml)), sans écrire de Lua. L'action YAML `lua` reste le pont pour rattacher une fonction Lua écrite par le créateur de mission à un menu déclaré en YAML.
 
 ---
 
@@ -160,7 +160,7 @@ Le vocabulaire d'actions est **fermé** (v1). Chaque `action` requiert les clés
 | `message` | `text: "<texte affiché>"` | Affiche le texte à l'écran |
 | `lua` | `function: "<nom.de.fonction>"`, `args: [ ... ]` (optionnel) | Appelle une fonction Lua du créateur de mission |
 
-> **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
+> **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools mission validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
 
 ---
 
@@ -226,7 +226,7 @@ veafRadio.addCommandToSubmenu(
   veafRadio.USAGE_ForAll
 )
 
--- Ajouter une commande sécurisée (nécessite /secu login)
+-- Ajouter une commande sécurisée (exécutée au niveau effectif du groupe — son occupant le moins gradé)
 veafRadio.addSecuredCommandToSubmenu(
   "Arrêt d'urgence",
   menuMission,
@@ -352,5 +352,5 @@ veafRadio.addCommandToSubmenu(
 
 ## Voir aussi
 
-- [veafSecurity](veafSecurity.md) — sécuriser les commandes avec `/secu login`
+- [veafSecurity](veafSecurity.md) — paliers de sécurité et niveau effectif du groupe
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafRadio`

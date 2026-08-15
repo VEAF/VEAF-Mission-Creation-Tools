@@ -16,7 +16,7 @@
 -- Bootstrap: load the test framework, DCS mocks, and modules under test.
 -- ---------------------------------------------------------------------------
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
-luaunit = dofile(_base .. "/luaunit.lua")  -- exported as global for test methods
+luaunit = dofile(_base .. "/luaunit.lua") -- exported as global for test methods
 dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafCacheManager.lua")
@@ -49,7 +49,7 @@ end
 -- 3 -------------------------------------------------------------------------
 function TestVeafCacheManager:test_expiredEntryReturnsNil()
   self.cache:setCachedData("key2", 42, 5) -- expires at t=5
-  dcs_mocks.advanceTime(6)               -- now t=6
+  dcs_mocks.advanceTime(6) -- now t=6
   local result = self.cache:getCachedData("key2")
   luaunit.assertNil(result)
 end
@@ -57,7 +57,7 @@ end
 -- 4 -------------------------------------------------------------------------
 function TestVeafCacheManager:test_validEntryReturnsData()
   self.cache:setCachedData("key3", "live", 10) -- expires at t=10
-  dcs_mocks.advanceTime(9)                     -- now t=9
+  dcs_mocks.advanceTime(9) -- now t=9
   local result = self.cache:getCachedData("key3")
   luaunit.assertNotNil(result)
   luaunit.assertEquals(result.data, "live")
@@ -134,8 +134,8 @@ function TestVeafCacheManager:test_storeNilValue()
   -- Storing nil as a value: the cache entry exists but data is nil.
   self.cache:setCachedData("nullish", nil, 10)
   local result = self.cache:getCachedData("nullish")
-  luaunit.assertNotNil(result)          -- the entry itself exists
-  luaunit.assertNil(result.data)        -- but the payload is nil
+  luaunit.assertNotNil(result) -- the entry itself exists
+  luaunit.assertNil(result.data) -- but the payload is nil
 end
 
 -- ---------------------------------------------------------------------------

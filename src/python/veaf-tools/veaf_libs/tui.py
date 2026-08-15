@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
 
+from veaf_tools.command_tree import COMMAND_GROUPS, ROOT_COMMANDS, ROOT_GROUP_ID, group_of, resolve_command
+
 from veaf_libs.i18n import t
 
 # ---------------------------------------------------------------------------
@@ -49,6 +51,16 @@ class ArgPrompt:
         return "--" + self.key.replace("_", "-")
 
 
+#: The wizard's headings, in display order, taken from the command tree — the CLI reads the same one,
+#: so the two interfaces cannot disagree about where a command lives (REFACTOR-CLI-COMMAND-TREE).
+#: The root commands come last, under their own heading: the wizard has no root.
+GROUP_ORDER: tuple[str, ...] = tuple(group.id for group in COMMAND_GROUPS) + (ROOT_GROUP_ID,)
+
+#: The CLI's group names, so the bridge can tell `mission build` from a bare command. None of them
+#: is also a command name — asserted by a test, since a collision would make one unreachable.
+_GROUP_IDS: frozenset[str] = frozenset(group.id for group in COMMAND_GROUPS)
+
+
 @dataclass
 class CommandSpec:
     """Describes one veaf-tools command exposed in the wizard."""
@@ -59,6 +71,15 @@ class CommandSpec:
     """One-line description shown in the command selector."""
     prompts: list[ArgPrompt] = field(default_factory=list)
     """Ordered list of prompts — positional args first, then options."""
+
+    @property
+    def group(self) -> str:
+        """The heading this command is filed under, read from the command tree.
+
+        Derived rather than declared: the tree is the only place a command's group is written, so
+        the wizard and the CLI cannot drift apart.
+        """
+        return group_of(self.cli_name) or ROOT_GROUP_ID
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +244,42 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="resolve-checklist",
+        description=t("tui.cmd.resolve_checklist.description"),
+        prompts=[
+            ArgPrompt(
+                "checklist_file",
+                t("tui.arg.checklist_file"),
+                default="checklists/my-checklist.yaml",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt("dry_run", t("tui.arg.checklist_dry_run"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
+        cli_name="explore-cockpit",
+        description=t("tui.cmd.explore_cockpit.description"),
+        prompts=[
+            ArgPrompt("aircraft", t("tui.arg.explore_aircraft"), default="F-16C_50", is_option=False, required=True),
+            ArgPrompt("control", t("tui.arg.explore_control"), default=""),
+        ],
+    ),
+    CommandSpec(
+        cli_name="verify-checklist",
+        description=t("tui.cmd.verify_checklist.description"),
+        prompts=[
+            ArgPrompt(
+                "checklist_file",
+                t("tui.arg.checklist_file"),
+                default="checklists/my-checklist.yaml",
+                is_option=False,
+                required=True,
+            ),
+            ArgPrompt("write", t("tui.arg.checklist_write_verified"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="migrate-config",
         description=t("tui.cmd.migrate_config.description"),
         prompts=[
@@ -254,6 +311,48 @@ COMMANDS: list[CommandSpec] = [
 ]
 
 _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}
+
+
+def _in_tree_order(commands: list[CommandSpec], group: str) -> list[CommandSpec]:
+    """Order a group's commands the way the tree lists them, not the way COMMANDS declares them.
+
+    The tree's intra-group order is deliberate — `prepare` before `validate` before `build` is the
+    order a mission maker does them in — and the CLI's ``--help`` reads it too, so the wizard has to
+    as well or the two interfaces show the same group differently.
+
+    Args:
+        commands: The group's commands, in declaration order.
+        group: The group id, or the root pseudo-group.
+
+    Returns:
+        The same commands, in tree order; anything the tree does not list keeps its relative place
+        at the end rather than disappearing.
+    """
+    listed = next((g.commands for g in COMMAND_GROUPS if g.id == group), ROOT_COMMANDS)
+    return sorted(commands, key=lambda cmd: listed.index(cmd.cli_name) if cmd.cli_name in listed else len(listed))
+
+
+def _grouped_choices() -> list[Any]:
+    """Return the command selector's entries, under one heading per group.
+
+    Twenty commands in a flat list is a wall of text, and the three assistance ones are a
+    workflow that only makes sense read together. A group with no installed command
+    simply does not appear.
+    """
+    from InquirerPy.base.control import Choice  # noqa: PLC0415 - optional dependency
+    from InquirerPy.separator import Separator  # noqa: PLC0415 - optional dependency
+
+    entries: list[Any] = []
+    for group in GROUP_ORDER:
+        commands = _in_tree_order([cmd for cmd in COMMANDS if cmd.group == group], group)
+        if not commands:
+            continue
+        if entries:
+            entries.append(Separator(" "))
+        entries.append(Separator(f"── {t(f'tree.group.{group}.label')} ──"))
+        entries.extend(Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in commands)
+    return entries
+
 
 # Prompt keys that should default to the ``mission.name`` field of a detected
 # ``mission.yaml``.  Both the ``build``/``extract`` positional and the
@@ -437,6 +536,18 @@ def maybe_bridge_to_tui(args: list[str]) -> list[str] | None:
         return wizard_args
 
     command, rest = tokens[0], tokens[1:]
+    if command in _GROUP_IDS and rest:
+        # The grouped form, `veaf-tools mission build …`: the command is the second token. Without
+        # this the bridge saw `mission`, found no CommandSpec, and let Typer run a command that was
+        # missing a required option — the exact case the bridge exists to catch
+        # (REFACTOR-CLI-COMMAND-TREE ticket 02).
+        #
+        # `resolve_command` rather than `rest[0]` because a command whose name starts with its
+        # group's drops it there: the user types `convert other`, the wizard knows `convert-other`.
+        # That command has two required arguments, so getting this wrong would send someone to
+        # Typer's help screen instead of the wizard.
+        resolved = resolve_command(command, rest[0])
+        command, rest = (resolved or rest[0]), rest[1:]
     spec = _COMMAND_MAP.get(command)
     if spec is None:
         return None
@@ -565,7 +676,6 @@ def run_wizard(preselected: str | None = None, provided: dict[str, str] | None =
 
     try:
         from InquirerPy import inquirer
-        from InquirerPy.base.control import Choice
 
         from veaf_libs.preferences import get_last_args, get_last_command, save_invocation
     except ImportError:
@@ -584,9 +694,7 @@ def run_wizard(preselected: str | None = None, provided: dict[str, str] | None =
             if preselected and preselected in _COMMAND_MAP:
                 selected = preselected
             else:
-                choices = [
-                    Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS
-                ]
+                choices = _grouped_choices()
                 default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
                 _touch_prompt_shown()
                 selected = inquirer.select(  # type: ignore[attr-defined]

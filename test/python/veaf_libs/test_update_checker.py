@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 from veaf_libs.update_checker import _load_cache, _save_cache, _version_tuple
@@ -86,3 +87,52 @@ class TestSaveCache(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAnUnreadableCurrentVersionSaysNothing(unittest.TestCase):
+    """SECREV-2 / VMR-063 — `_version_tuple` falls back to (0,), below every real release.
+
+    So an unreadable *current* version made the check confidently announce "a new version is
+    available" on every single run. Saying nothing is the honest answer when we do not know what is
+    installed.
+    """
+
+    def _run(self, current: str, latest: str = "6.20.0") -> list[str]:
+        from unittest import mock
+
+        from veaf_libs import update_checker
+
+        printed: list[str] = []
+        console = mock.MagicMock()
+        console.print.side_effect = lambda *args, **kwargs: printed.append(str(args[0]) if args else "")
+
+        with (
+            mock.patch.object(update_checker.sys.stdout, "isatty", return_value=True),
+            mock.patch.object(
+                update_checker, "_load_cache", return_value={"latest": latest, "last_check": str(date.today())}
+            ),
+            mock.patch.object(update_checker, "_save_cache"),
+        ):
+            update_checker.check_for_updates(current, console)
+        return printed
+
+    def test_an_unreadable_version_produces_no_prompt(self) -> None:
+        self.assertEqual(self._run("unknown"), [], "an unknown installed version must not claim to be old")
+
+    def test_an_empty_version_produces_no_prompt(self) -> None:
+        self.assertEqual(self._run(""), [])
+
+    def test_the_sentinel_is_what_the_parser_returns_for_junk(self) -> None:
+        # Pinning the link between the two: if the fallback changes, the guard must change with it.
+        from veaf_libs.update_checker import _UNPARSEABLE_VERSION
+
+        self.assertEqual(_version_tuple("not-a-version"), _UNPARSEABLE_VERSION)
+        self.assertNotEqual(_version_tuple("6.13.0"), _UNPARSEABLE_VERSION)
+
+    def test_a_readable_older_version_does_prompt(self) -> None:
+        # The control that makes the tests above mean something: if the mocked cache were being
+        # rejected, `latest` would be empty and nothing would print either way.
+        printed = self._run("6.1.0")
+
+        self.assertTrue(printed, "a genuinely older version must still be told about the update")
+        self.assertTrue(any("6.20.0" in line for line in printed), printed)

@@ -25,7 +25,7 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 16. [Debug Logging](#debug-logging)
 17. [Resources](#resources)
 
-> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
+> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.en.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
 ---
 
@@ -93,7 +93,7 @@ To pin to a specific version:
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Full CLI reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 ---
 
@@ -153,7 +153,7 @@ cd my-mission
 1. Create a folder for your mission project (this is your Git repository)
 2. Copy your existing `.miz` file there
 3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
-4. Extract your mission: `veaf-tools.exe extract my-mission.miz`
+4. Extract your mission: `veaf-tools.exe mission extract my-mission.miz`
 5. Configure modules in `mission.yaml` and optionally `src/scripts/mission-script.lua`
 
 Recommended project layout:
@@ -209,7 +209,7 @@ flowchart TD
         SRC[src/mission + src/scripts]
         LUA[VEAF Lua scripts]
     end
-    YAML --> BUILD[veaf-tools build]
+    YAML --> BUILD[veaf-tools mission build]
     SRC --> BUILD
     LUA --> BUILD
     BUILD --> GEN[Generate veaf-config.lua from mission.yaml]
@@ -263,7 +263,7 @@ modules:
         information: "Tacan 64Y\nU290.50 (20)"
 ```
 
-> The unified `modules:` block replaces the older `lua_modules:` + `community_scripts:` keys, and `enabled:` replaces `enable:`. The legacy keys still work but emit a deprecation warning. See the [mission.yaml Reference](../MISSION_YAML_REFERENCE.md) for the full syntax.
+> The unified `modules:` block replaces the older `lua_modules:` + `community_scripts:` keys, and `enabled:` replaces `enable:`. The legacy keys still work but emit a deprecation warning. See the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md) for the full syntax.
 
 ### mission-script.lua Example
 
@@ -279,28 +279,44 @@ modules:
 -- (see CTLD and CSAR Integration)
 ```
 
-### Security Levels
+### Security Levels {#security-tiers}
 
-| Level | Constant | Who can use |
-|-------|----------|-------------|
-| 0 (public) | `veafSecurity.LEVEL_L0` | All players |
-| 1 (pilots) | `veafSecurity.LEVEL_L1` | Non-spectator pilots |
-| 9 (admin) | `veafSecurity.LEVEL_L9` | Authenticated admins |
+| Tier | Constant | Passes without a password when the pilot's level is |
+|------|----------|------------------------------------------------------|
+| `KNOWN_PILOT` | `veafSecurity.LEVEL_KNOWN_PILOT` = 1 | **≥ 1** — any pilot listed in the server's `veaf-pilots.txt` |
+| `SENIOR_PILOT` | `veafSecurity.LEVEL_SENIOR_PILOT` = 10 | **≥ 10** — a trusted member |
+| `ADMIN` | `veafSecurity.LEVEL_ADMIN` = 90 | **≥ 90** — a server administrator |
+| `MM` | (no level) | never — the Mission Master password is the only way in |
+| `OPEN` | (no check) | always — the command is deliberately available to everyone |
 
-Set passwords (SHA-256 hashes) in `mission.yaml`:
+!!! info "`L9`, `L1` and `L0` are deprecated aliases — and they read backwards"
+
+    The old names read backwards from what they suggest: `L0` is the **tightest** tier
+    (`ADMIN`), not the loosest; `L9` is the most open (`KNOWN_PILOT`).
+
+    `L9`, `L1` and `L0` still work as **deprecated aliases** and will be removed in a
+    future release. **The values are unchanged** (1, 10, 90), so renaming them changes no
+    mission's behaviour — only what you write.
+
+Two things satisfy a check. Either the player's **pilot level**, published by the server
+hook from `veaf-pilots.txt`, is high enough for the tier — that is the identity path, and
+it needs no password — or the correct **password** for that tier appears in the marker
+text. Without the hook there are no pilot levels, so everything falls back to passwords.
+
+Set passwords (SHA-1 hashes — that is what `veafSecurity` compares) in `mission.yaml`:
 
 ```yaml
 security:
   disabled: false
   password_hashes:
-    - "<SHA-256 hash of your password>"
+    - "<SHA-1 hash of your password>"
 ```
 
 ---
 
 ## Configuring the build pipeline {#configuring-pipeline}
 
-Beyond the Lua modules that run inside DCS, `veaf-tools build` can chain **pipeline steps** at build time: they inject data into the `.miz` (radio presets, waypoints, aircraft groups, weather variants) from separate YAML files placed in `src/`. Each step is **auto-detected** (it runs when its config file exists) and is controlled from the `pipeline:` section of `mission.yaml`.
+Beyond the Lua modules that run inside DCS, `veaf-tools mission build` can chain **pipeline steps** at build time: they inject data into the `.miz` (radio presets, waypoints, aircraft groups, weather variants) from separate YAML files placed in `src/`. Each step is **auto-detected** (it runs when its config file exists) and is controlled from the `pipeline:` section of `mission.yaml`.
 
 | Step | Role | Detailed schema |
 |------|------|-----------------|
@@ -326,6 +342,17 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 
 `veaf-tools.exe` manipulates `.miz` files at build time — before loading them in DCS.
 
+> **Commands are filed by theme.** `veaf-tools mission build`, `veaf-tools content
+> inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` lists the groups, and
+> `veaf-tools <group> --help` shows what is in one. The `dcs` group is what **needs DCS running**.
+> The groups are: `mission`, `convert`, `content`, `cockpit` and `dcs`.
+> A command whose name starts with its group's name drops that word inside: you write
+> `veaf-tools convert v5` and `veaf-tools convert other`, not `convert convert-v5`.
+>
+> **The old short names still work**: `veaf-tools build` does exactly what `veaf-tools mission
+> build` does. They are no longer shown in the help and count as deprecated — a script or forum
+> post written before this change keeps working.
+
 | Command | What it does |
 |---------|-------------|
 | `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them. `--theatre <name>` also generates a synthetic blank mission for that DCS map into `src/mission/` (no DCS round-trip needed to start); `--list-theatres` to list the supported maps. The generated file carries the same documented preamble as `convert-v5` (YAML syntax guide, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
@@ -341,17 +368,29 @@ See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of
 | `extract-waypoints` | Extracts waypoints from a mission |
 | `convert-v5` | Migrates a v5 mission folder to v6 format |
 | `user-config` | Shows or edits the global user config (`~/veafmct.yaml`) |
+| `about` | Show information about VEAF Mission Creation Tools. |
+| `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
+| `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
+| `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
+| `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |
+| `generate-config` | Generate a documented mission.yaml template for a mission folder. |
+| `inject-bridge` | Embed the dcs-bridge + a start trigger into a .miz, turning it into a bridge mission. |
+| `mcp` | Start the LLM-assisted mission-editing MCP server (stdio). Used by the veaf-mission-editor Claude plugin. |
+| `migrate-config` | Migrate a missionConfig.lua to v6 format (mission-script.lua). |
+| `resolve-checklist` | Fill in the technical fields of a guided checklist written in plain words. |
+| `smoke-test` | Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook. |
+| `verify-checklist` | Check a resolved checklist against a real cockpit (needs DCS running here). |
 
-Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Full reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 ### Interactive mode (wizard)
 
 In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead of failing on a missing option:
 
 - `veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
-- `veaf-tools.exe prepare` → the wizard asks for the target folder **and** the module template.
-- `veaf-tools.exe prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
-- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `veaf-tools.exe build --tui`).
+- `veaf-tools.exe mission prepare` → the wizard asks for the target folder **and** the module template.
+- `veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
+- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `veaf-tools.exe mission build --tui`).
 
 Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
@@ -363,7 +402,7 @@ Options already passed on the command line are pre-filled; unknown options (e.g.
 
 ```powershell
 # Build the mission — the integrated pipeline runs all enabled steps automatically
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.
@@ -375,13 +414,13 @@ If you need to run a single step in isolation (e.g. inject weather only, without
 
 ```powershell
 # Inject radio presets only
-veaf-tools.exe inject-presets my-mission.miz --presets-file src/presets.yaml
+veaf-tools.exe content inject-presets my-mission.miz --presets-file src/presets.yaml
 
 # Inject bullseye and nav waypoints only
-veaf-tools.exe inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
+veaf-tools.exe content inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
 
 # Create weather/time variants only
-veaf-tools.exe inject-weather my-mission.miz --config-file versions.yaml
+veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -389,7 +428,7 @@ veaf-tools.exe inject-weather my-mission.miz --config-file versions.yaml
 Commit the contents of `src/` to Git — not the built `.miz`. Use `extract` once to bootstrap the source folder from an existing mission:
 
 ```powershell
-veaf-tools.exe extract my-mission.miz
+veaf-tools.exe mission extract my-mission.miz
 ```
 
 ---
@@ -421,34 +460,34 @@ profiles:
 
 ```powershell
 # Build for testing (no weather, security disabled, verbose logging)
-veaf-tools.exe build --profile TEST
+veaf-tools.exe mission build --profile TEST
 
 # Build for server deployment
-veaf-tools.exe build --profile SERVER
+veaf-tools.exe mission build --profile SERVER
 
 # Build with no profile (base config)
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
 
-See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.md#profiles) for the full field description.
+See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.en.md#profiles) for the full field description.
 
 ---
 
 ## Scripts Reference
 
-All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scripts/README.md](scripts/README.md) for the complete list with configuration guides.
+All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scripts/README.md](scripts/README.en.md) for the complete list with configuration guides.
 
 **Quick navigation by category:**
 
 | Category | Modules |
 |----------|---------|
-| Core | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
-| Mission types | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
-| Assets | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
-| Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
-| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
+| Core | [veafSpawn](scripts/veafSpawn.en.md), [veafMove](scripts/veafMove.en.md), [veafSecurity](scripts/veafSecurity.en.md), [veafNamedPoints](scripts/veafNamedPoints.en.md) |
+| Mission types | [veafCasMission](scripts/veafCasMission.en.md), [veafCombatZone](scripts/veafCombatZone.en.md), [veafTransportMission](scripts/veafTransportMission.en.md), [veafQraManager](scripts/veafQraManager.en.md), [veafAirWaves](scripts/veafAirWaves.en.md) |
+| Assets | [veafAssets](scripts/veafAssets.en.md), [veafCarrierOperations](scripts/veafCarrierOperations.en.md), [veafGrass](scripts/veafGrass.en.md), [veafWeather](scripts/veafWeather.en.md) |
+| Protection | [veafSanctuary](scripts/veafSanctuary.en.md), [veafMissileGuardian](scripts/veafMissileGuardian.en.md) |
+| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.en.md) |
 
 ---
 
@@ -507,7 +546,7 @@ modules:
 
 Everything else — distances, timers, crates, troop groups, zones, per-aircraft capabilities — lives in a **`ctld-config.yaml`** file next to `mission.yaml` in your mission folder. You edit it with **`ctld-tools.exe`**, shipped with CTLD: double-click it and the tool opens in your browser, locally, with nothing to install. It validates as you type and shows plain-language labels rather than raw setting names.
 
-`veaf-tools prepare` creates the file for you when the chosen template enables CTLD, pre-filled with the engine's own defaults. It is never overwritten afterwards: it is your configuration.
+`veaf-tools mission prepare` creates the file for you when the chosen template enables CTLD, pre-filled with the engine's own defaults. It is never overwritten afterwards: it is your configuration.
 
 At build time VEAF injects it into the mission as a `CTLD_userConfig.lua` loaded immediately before `CTLD.lua`.
 
@@ -642,21 +681,21 @@ modules:
     logLevel: debug   # overrides the global default for this module only
 ```
 
-`veaf-tools.exe build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
+`veaf-tools.exe mission build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
 
 ### Reading the log
 
 We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages.
 
-A ready-to-use Klogg highlight profile is included in the repository at [`tools/klogg/veaf.conf`](../../tools/klogg/veaf.conf). It colour-codes log levels (errors in red, warnings in orange, VEAF info in green, debug in teal, trace in grey) and highlights MIST and CTLD entries. To install it: open Klogg → *File > Import highlights…* and select the file.
+A ready-to-use Klogg highlight profile is included in the repository at [`tools/klogg/veaf.conf`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/klogg/veaf.conf). It colour-codes log levels (errors in red, warnings in orange, VEAF info in green, debug in teal, trace in grey) and highlights MIST and CTLD entries. To install it: open Klogg → *File > Import highlights…* and select the file.
 
 ---
 
 ## Resources
 
-- [Scripts Reference](scripts/README.md) — all scripts with configuration details
-- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI full reference
-- [Lua API Reference](../LUA_API_REFERENCE.md) — complete Lua API documentation
+- [Scripts Reference](scripts/README.en.md) — all scripts with configuration details
+- [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands, arguments and options
+- [Lua API Reference](../LUA_API_REFERENCE.en.md) — complete Lua API documentation
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
 - [VEAF Discord](https://www.veaf.org/discord) — community help
 

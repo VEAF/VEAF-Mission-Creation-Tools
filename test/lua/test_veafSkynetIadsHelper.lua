@@ -108,19 +108,37 @@ local function _makeMockIads(name)
   return {
     name = name,
     coalitionID = nil,
-    getSAMSites = function(self) return {} end,
-    getEarlyWarningRadars = function(self) return {} end,
-    addSAMSite = function(self, gname) return {} end,
-    addEarlyWarningRadar = function(self, uname) return {} end,
-    getSAMSitesByNatoName = function(self, nname) return natoMock end,
+    getSAMSites = function(self)
+      return {}
+    end,
+    getEarlyWarningRadars = function(self)
+      return {}
+    end,
+    addSAMSite = function(self, gname)
+      return {}
+    end,
+    addEarlyWarningRadar = function(self, uname)
+      return {}
+    end,
+    getSAMSitesByNatoName = function(self, nname)
+      return natoMock
+    end,
     activate = function(self) end,
     deactivate = function(self) end,
-    getCoalitionString = function(self) return "blue" end,
+    getCoalitionString = function(self)
+      return "blue"
+    end,
     getDebugSettings = function(self)
       return {
-        radarWentLive = false, noWorkingCommmandCenter = false, ewRadarNoConnection = false,
-        samNoConnection = false, jammerProbability = false, addedEWRadar = false,
-        hasNoPower = false, harmDefence = false, samSiteStatusEnvOutput = false,
+        radarWentLive = false,
+        noWorkingCommmandCenter = false,
+        ewRadarNoConnection = false,
+        samNoConnection = false,
+        jammerProbability = false,
+        addedEWRadar = false,
+        hasNoPower = false,
+        harmDefence = false,
+        samSiteStatusEnvOutput = false,
         earlyWarningRadarStatusEnvOutput = false,
       }
     end,
@@ -128,29 +146,54 @@ local function _makeMockIads(name)
     buildRadarCoverage = function(self) end,
     addRadioMenu = function(self) end,
     removeRadioMenu = function(self) end,
-    isCommandCenterUsable = function(self) return false end,
-    getCommandCenters = function(self) return {} end,
-    getContacts = function(self) return {} end,
+    isCommandCenterUsable = function(self)
+      return false
+    end,
+    getCommandCenters = function(self)
+      return {}
+    end,
+    getContacts = function(self)
+      return {}
+    end,
   }
 end
 
-SkynetIADS = { database = {}, create = function(self, name) return _makeMockIads(name) end }
+SkynetIADS = {
+  database = {},
+  create = function(self, name)
+    return _makeMockIads(name)
+  end,
+}
 dcsUnits = { DcsUnitsDatabase = {} }
 
 local function _makeGroupWithUnits(unitTypes)
   local units = {}
   for i, t in ipairs(unitTypes) do
     units[i] = {
-      getName = function() return "Unit_" .. i end,
-      getTypeName = function() return t end,
-      getID = function() return 100 + i end,
+      getName = function()
+        return "Unit_" .. i
+      end,
+      getTypeName = function()
+        return t
+      end,
+      getID = function()
+        return 100 + i
+      end,
     }
   end
   return {
-    getName = function() return "TestGroup" end,
-    getID = function() return 99 end,
-    getCoalition = function() return coalition.side.BLUE end,
-    getUnits = function() return units end,
+    getName = function()
+      return "TestGroup"
+    end,
+    getID = function()
+      return 99
+    end,
+    getCoalition = function()
+      return coalition.side.BLUE
+    end,
+    getUnits = function()
+      return units
+    end,
   }
 end
 
@@ -163,7 +206,11 @@ function TestVeafSkynetGetStringSkynetElement:test_not_exist_returns_not_exist_s
   local el = {
     dcsName = "TestSite",
     typeName = "SA-10",
-    dcsRepresentation = { isExist = function() return false end },
+    dcsRepresentation = {
+      isExist = function()
+        return false
+      end,
+    },
   }
   local s = veafSkynet.getStringSkynetElement(el)
   luaunit.assertStrContains(s, "does not exist")
@@ -171,15 +218,21 @@ end
 
 function TestVeafSkynetGetStringSkynetElement:test_exists_with_nato_name_includes_name()
   local rep = {
-    isExist = function() return true end,
-    getID = function() return 42 end,
+    isExist = function()
+      return true
+    end,
+    getID = function()
+      return 42
+    end,
   }
   setmetatable(rep, Group)
   local el = {
     dcsName = "SA6Site",
     typeName = "SA-6 Launcher",
     dcsRepresentation = rep,
-    getNatoName = function(self) return "Gainful" end,
+    getNatoName = function(self)
+      return "Gainful"
+    end,
   }
   local s = veafSkynet.getStringSkynetElement(el)
   luaunit.assertStrContains(s, "SA6Site")
@@ -188,8 +241,12 @@ end
 
 function TestVeafSkynetGetStringSkynetElement:test_exists_without_nato_name_uses_type_name()
   local rep = {
-    isExist = function() return true end,
-    getID = function() return 7 end,
+    isExist = function()
+      return true
+    end,
+    getID = function()
+      return 7
+    end,
   }
   setmetatable(rep, Unit)
   local el = {
@@ -203,8 +260,12 @@ end
 
 function TestVeafSkynetGetStringSkynetElement:test_exists_with_static_metatable_shows_static()
   local rep = {
-    isExist = function() return true end,
-    getID = function() return 5 end,
+    isExist = function()
+      return true
+    end,
+    getID = function()
+      return 5
+    end,
   }
   setmetatable(rep, StaticObject)
   local el = {
@@ -227,19 +288,31 @@ function TestVeafSkynetGetDcsGroupFromSkynetElement:test_nil_representation_retu
 end
 
 function TestVeafSkynetGetDcsGroupFromSkynetElement:test_not_exist_returns_nil()
-  local el = { dcsRepresentation = { isExist = function() return false end } }
+  local el = { dcsRepresentation = {
+    isExist = function()
+      return false
+    end,
+  } }
   luaunit.assertNil(veafSkynet.getDcsGroupFromSkynetElement(el))
 end
 
 function TestVeafSkynetGetDcsGroupFromSkynetElement:test_group_metatable_returns_representation()
-  local rep = { isExist = function() return true end }
+  local rep = {
+    isExist = function()
+      return true
+    end,
+  }
   setmetatable(rep, Group)
   local el = { dcsRepresentation = rep }
   luaunit.assertEquals(veafSkynet.getDcsGroupFromSkynetElement(el), rep)
 end
 
 function TestVeafSkynetGetDcsGroupFromSkynetElement:test_unit_metatable_calls_unit_getgroup()
-  local rep = { isExist = function() return true end }
+  local rep = {
+    isExist = function()
+      return true
+    end,
+  }
   setmetatable(rep, Unit)
   local el = { dcsRepresentation = rep }
   luaunit.assertNil(veafSkynet.getDcsGroupFromSkynetElement(el))
@@ -255,7 +328,11 @@ function TestVeafSkynetGetSkynetData:test_empty_database_returns_nil()
   local el = {
     dcsName = "TestEl",
     typeName = "SA-10",
-    dcsRepresentation = { isExist = function() return false end },
+    dcsRepresentation = {
+      isExist = function()
+        return false
+      end,
+    },
     launchers = {},
     trackingRadars = {},
     searchRadars = {},
@@ -353,7 +430,9 @@ end
 function TestVeafSkynetActivatePrivate:test_activates_iads_and_clears_delay()
   local activated = false
   local mockIads = _makeMockIads("act1")
-  mockIads.activate = function(self) activated = true end
+  mockIads.activate = function(self)
+    activated = true
+  end
   veafSkynet.structure["act1"] = { iads = mockIads, coalitionID = 2, groups = {}, delayedActivation = 1 }
   veafSkynet._activateIADS("act1")
   luaunit.assertTrue(activated)
@@ -451,7 +530,11 @@ TestVeafSkynetRemovePointDefences = {}
 
 function TestVeafSkynetRemovePointDefences:test_element_with_defences_clears_them()
   local called = false
-  local pd = { setIsAPointDefence = function(self, v) called = true end }
+  local pd = {
+    setIsAPointDefence = function(self, v)
+      called = true
+    end,
+  }
   local el = { pointDefences = { pd } }
   veafSkynet.removePointDefencesFromSkynetElement(el)
   luaunit.assertTrue(called)
@@ -472,10 +555,16 @@ end
 
 function TestVeafSkynetRemovePointDefences:test_removePointDefences_clears_sam_site_defences()
   local called = false
-  local pd = { setIsAPointDefence = function(self, v) called = true end }
+  local pd = {
+    setIsAPointDefence = function(self, v)
+      called = true
+    end,
+  }
   local samSite = { pointDefences = { pd } }
   local mockIads = _makeMockIads("rp2")
-  mockIads.getSAMSites = function(self) return { samSite } end
+  mockIads.getSAMSites = function(self)
+    return { samSite }
+  end
   veafSkynet.removePointDefences(mockIads)
   luaunit.assertTrue(called)
 end
@@ -490,14 +579,21 @@ function TestVeafSkynetAddGroupToNetwork:setUp()
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
-  SkynetIADS = { database = {}, create = function(self, name) return _makeMockIads(name) end }
+  SkynetIADS = {
+    database = {},
+    create = function(self, name)
+      return _makeMockIads(name)
+    end,
+  }
   dcsUnits = { DcsUnitsDatabase = {} }
 end
 
 function TestVeafSkynetAddGroupToNetwork:test_not_usable_returns_false()
   local dcsGroup = _makeGroupWithUnits({ "UNKNOWN" })
   veafSkynet.structure["blue iads"] = {
-    iads = _makeMockIads("blue iads"), coalitionID = coalition.side.BLUE, groups = {},
+    iads = _makeMockIads("blue iads"),
+    coalitionID = coalition.side.BLUE,
+    groups = {},
   }
   local result = veafSkynet.addGroupToNetwork("blue iads", dcsGroup, false, false, nil, true)
   luaunit.assertFalse(result)
@@ -585,7 +681,12 @@ function TestVeafSkynetInitialize:setUp()
     [tostring(coalition.side.BLUE)] = true,
     [tostring(coalition.side.RED)] = true,
   }
-  SkynetIADS = { database = {}, create = function(self, name) return _makeMockIads(name) end }
+  SkynetIADS = {
+    database = {},
+    create = function(self, name)
+      return _makeMockIads(name)
+    end,
+  }
   dcsUnits = { DcsUnitsDatabase = {} }
 end
 
@@ -613,6 +714,81 @@ function TestVeafSkynetInitialize:test_dynamic_spawn_true_sets_handler()
   veafSkynet.DynamicSpawn = true
   veafSkynet._initialize(false, false, false, false)
   luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-096 — removing an element whose DCS group is already gone
+--
+-- `getDcsGroupFromSkynetElement` returns nil when the DCS representation no longer exists — which
+-- is the very situation `removeSkynetElement` is called in — and the caller indexed it anyway,
+-- under a `---@diagnostic disable-next-line: need-check-nil` that recorded the problem instead of
+-- fixing it.
+--
+-- The network's `groups` table is keyed by group name, and for the SAM sites this function
+-- removes, `skynetElement.dcsName` **is** that group name (see the `sam.dcsName == dcsGroupName`
+-- comparison in addGroupsToNetwork). So the entry can still be cleared by name; that matters,
+-- because leaving it behind would keep the group looking present to the network.
+-------------------------------------------------------------------------------------------------
+
+TestSecrev2RemoveSkynetElement = {}
+
+--- A Skynet element whose DCS representation is a Group that may or may not still exist.
+local function _skynetElement(dcsName, groupExists)
+  local dcsRepresentation = {
+    isExist = function()
+      return groupExists
+    end,
+    getName = function()
+      return dcsName
+    end,
+    getID = function()
+      return 4242
+    end,
+    enableEmission = function(_) end,
+  }
+  setmetatable(dcsRepresentation, Group)
+  return {
+    dcsName = dcsName,
+    typeName = "SA-6 Kub LN 2P25",
+    dcsRepresentation = dcsRepresentation,
+    cleanUp = function(_) end,
+    getDCSRepresentation = function(_)
+      return dcsRepresentation
+    end,
+  }
+end
+
+local function _network(groupName)
+  return {
+    iads = { samSites = {} },
+    groups = { [groupName] = { forceEwr = false } },
+  }
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_live_group_is_removed_from_the_network()
+  -- The control: the normal path must keep working.
+  local network = _network("SAM-alive")
+  veafSkynet.removeSkynetElement(_skynetElement("SAM-alive", true), network)
+  luaunit.assertNil(network.groups["SAM-alive"])
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_destroyed_group_does_not_raise()
+  local network = _network("SAM-dead")
+  local ok, err = pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertTrue(ok, "removing an element whose group is gone must not raise: " .. tostring(err))
+end
+
+function TestSecrev2RemoveSkynetElement:test_a_destroyed_group_is_still_removed_from_the_network()
+  local network = _network("SAM-dead")
+  pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertNil(network.groups["SAM-dead"], "the network still lists a group that no longer exists")
+end
+
+function TestSecrev2RemoveSkynetElement:test_another_group_is_left_alone()
+  local network = _network("SAM-dead")
+  network.groups["SAM-other"] = { forceEwr = false }
+  pcall(veafSkynet.removeSkynetElement, _skynetElement("SAM-dead", false), network)
+  luaunit.assertNotNil(network.groups["SAM-other"])
 end
 
 os.exit(luaunit.LuaUnit.run())

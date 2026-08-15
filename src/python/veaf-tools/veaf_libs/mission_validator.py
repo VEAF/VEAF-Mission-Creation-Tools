@@ -30,6 +30,7 @@ import yaml
 from veaf_libs.config_override import find_unknown_segments, read_corpus
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.i18n import t
+from veaf_libs.mission_table import CATEGORIES, indexed
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
 
 ERROR = "error"
@@ -93,12 +94,16 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_radio_lua_functions(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
-    mission = _read_source_mission(folder)
+    mission, mission_error = _read_source_mission(folder)
     if mission is None:
-        issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
+        if mission_error:
+            issues.append(ValidationIssue(ERROR, t("validate.source_mission_unreadable", error=mission_error)))
+        else:
+            issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
         return issues
 
     issues += validate_mission_content(yaml_data, mission)
+    issues += _check_has_player_slot(mission)
     issues += _check_presets_waypoints(folder, yaml_data, mission)
     issues += _check_tum_zones(yaml_data, mission)
     return issues
@@ -147,7 +152,69 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     for section, subzone, level in find_undeclared_operation_subzones(yaml_data):
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
 
+    issues += _check_mission_is_playable(mission)
+
     return issues
+
+
+def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
+    """Report a mission DCS would refuse, or that no pilot can enter.
+
+    Added after a mission built for the 2026-08-14 DCS session passed this validator and built
+    cleanly, and DCS then opened CHANGING COALITIONS with every country unassigned: `coalitions` was
+    empty while `coalition` held units. Two tables describe the same fact — which countries a side
+    owns, and what those countries field — and populating only the second gives units in a side that
+    does not exist.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One error per side holding units but owning no country, plus one warning when the mission has
+        no player slot at all.
+    """
+    if not isinstance(mission, dict):
+        return []
+    issues: list[ValidationIssue] = []
+
+    # Only judge a mission that actually carries the table. A real DCS mission always does — even
+    # empty, which is the broken state — while a partial table written for a test omits it, and
+    # reporting those would be noise about a mission nobody flies.
+    if "coalitions" not in mission:
+        return issues
+    assigned = mission.get("coalitions") or {}
+    for side, side_content in (mission.get("coalition") or {}).items():
+        if not isinstance(side_content, dict):
+            continue
+        countries = indexed(side_content.get("country"))
+        has_units = any(
+            indexed((country.get(category) or {}).get("group"))
+            for country in countries
+            if isinstance(country, dict)
+            for category in CATEGORIES
+        )
+        if has_units and not indexed(assigned.get(side) if isinstance(assigned, dict) else None):
+            issues.append(ValidationIssue(ERROR, t("validate.side_without_country", side=side)))
+
+    return issues
+
+
+def _check_has_player_slot(mission: dict) -> list[ValidationIssue]:
+    """Warn when no pilot can enter the mission.
+
+    Kept out of :func:`validate_mission_content` on purpose: the **build** runs that function too, and
+    a template library or a server-side scenario legitimately has no slot — warning on every build of
+    one would be noise. This belongs to the `validate` command, where a maker is asking the question.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning, or nothing.
+    """
+    if not isinstance(mission, dict) or _aircraft_counts(mission)[1] > 0:
+        return []
+    return [ValidationIssue(WARNING, t("validate.no_player_slot"))]
 
 
 def _check_radio_menus(yaml_data: dict) -> list[ValidationIssue]:
@@ -289,18 +356,33 @@ def _check_config_override_target(scripts_dir: Path, target: object) -> list[Val
     return [ValidationIssue(ERROR, t("validate.config_override_target_missing", target=name))]
 
 
-def _read_source_mission(folder: Path) -> dict | None:
-    """Parse the unpacked source mission table (``src/mission/mission``); ``None`` if absent/unreadable."""
+def _read_source_mission(folder: Path) -> tuple[dict | None, str | None]:
+    """Parse the unpacked source mission table (``src/mission/mission``).
+
+    VMR-062: this used to answer ``None`` for both "the file is not there" and "the file is there
+    and will not parse", and the caller turned that into the *not found* warning — so a corrupt
+    mission table disabled the reference checks while pointing the mission maker at a missing file.
+
+    Args:
+        folder: The mission folder to read from.
+
+    Returns:
+        ``(mission, error)``. ``mission`` is the parsed table, or ``None`` when it could not be
+        read; ``error`` describes why when the file exists but is unusable, and is ``None`` when
+        the file is simply absent.
+    """
     mission_file = folder / "src" / "mission" / "mission"
     if not mission_file.is_file():
-        return None
+        return None, None
     try:
         import luadata  # type: ignore[import-untyped]
 
         content = luadata.unserialize(mission_file.read_text(encoding="utf-8"), keep_as_dict=["trig", "trigrules"])
-    except Exception:  # noqa: BLE001 - a parse failure just disables the mission-content checks
-        return None
-    return content if isinstance(content, dict) else None
+    except Exception as exc:  # noqa: BLE001 - reported to the caller rather than silently skipped
+        return None, str(exc) or exc.__class__.__name__
+    if not isinstance(content, dict):
+        return None, f"expected a table, got {type(content).__name__}"
+    return content, None
 
 
 def _aircraft_counts(mission: dict) -> tuple[int, int]:

@@ -30,7 +30,7 @@ veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
-veafMove.RadioMenuName = "MOVE"
+veafMove.RadioMenuName = "menu.move.root"
 
 veafMove.tankerMissionParameters = {
   ["A-10C"] = { speed = 250, alt = 12000 },
@@ -121,123 +121,84 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The move module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. The per-sub-verb defaults are the quirk that most needed
+--- preserving here: a group move starts at 20 knots, a tanker keeps its own speed and altitude
+--- via the `-1` sentinel, and an AFAC gets 150 knots at 15000 feet. Order matters —
+--- `tankermission` MUST be tested before `tanker`, or it could never match.
+veafMove.MarkerSpec = {
+  defaults = function(options)
+    options.moveGroup = false
+    options.moveTanker = false
+    options.changeTanker = false
+    options.moveAfac = false
+    options.groupName = "" -- the name of the group to move ; mandatory
+    options.speed = -1 -- defaults to original speed
+    options.altitude = -1 -- defaults to tanker original altitude
+    options.hdg = nil -- defaults to original heading
+    options.immortal = false -- option to set AFAC to immortal
+    options.distance = nil -- defaults to original distance
+    options.teleport = false -- if true, teleport the tanker instead of making it move
+    options.silent = false -- if false, Named Points are created when moving the tankers
+  end,
+  commands = {
+    {
+      match = veafMove.Keyphrase .. " group",
+      init = function(options)
+        options.moveGroup = true
+        options.speed = 20
+      end,
+    },
+    {
+      match = veafMove.Keyphrase .. " tankermission",
+      init = function(options)
+        options.changeTanker = true
+        options.speed = -1
+        options.altitude = -1
+      end,
+    },
+    {
+      match = veafMove.Keyphrase .. " tanker",
+      init = function(options)
+        options.moveTanker = true
+        options.speed = -1
+        options.altitude = -1
+      end,
+    },
+    {
+      match = veafMove.Keyphrase .. " afac",
+      init = function(options)
+        options.moveAfac = true
+        options.speed = 150
+        options.altitude = 15000
+      end,
+    },
+  },
+  parameters = {
+    { keys = { "name" }, apply = veaf.markerRules.text("groupName") },
+    -- `plainNumber` keeps the field when the value will not convert, which is what protects the
+    -- `-1` sentinel meaning "keep the tanker's original speed or altitude". The old code assigned
+    -- `tonumber(val)` unconditionally, so `speed banana` sent nil downstream instead.
+    -- `plainNumber` and not `number`: this module never accepted the `1-5` random-range syntax.
+    { keys = { "speed", "spd" }, apply = veaf.markerRules.plainNumber("speed") },
+    { keys = { "heading", "hdg" }, apply = veaf.markerRules.plainNumber("hdg") },
+    { keys = { "distance", "dist" }, apply = veaf.markerRules.plainNumber("distance") },
+    { keys = { "alt", "altitude" }, apply = veaf.markerRules.plainNumber("altitude") },
+    { keys = { "teleport" }, apply = veaf.markerRules.flag("teleport") },
+    { keys = { "silent" }, apply = veaf.markerRules.flag("silent") },
+    { keys = { "immortal" }, apply = veaf.markerRules.flag("immortal") },
+  },
+  valueWhenAbsent = nil,
+  -- SECREV-010: "" is truthy in Lua, so the empty default has to be rejected explicitly. The check
+  -- lives in `veaf.markerRules.requireText` now, since three modules were each writing it out and
+  -- the one that wrote it as `if not x` shipped the bug.
+  validate = veaf.markerRules.requireText("groupName"),
+}
+
 --- Extract keywords from mark text.
 function veafMove.markTextAnalysis(text)
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.moveGroup = false
-  switch.moveTanker = false
-  switch.changeTanker = false
-  switch.moveAfac = false
-
-  -- the name of the group to move ; mandatory
-  switch.groupName = ""
-
-  -- speed in knots
-  switch.speed = -1 -- defaults to original speed
-
-  -- tanker refuel leg altitude in feet
-  switch.altitude = -1 -- defaults to tanker original altitude
-
-  -- tanker refuel leg heading in degrees
-  switch.hdg = nil -- defaults to original heading
-
-  -- option to set AFAC to immortal
-  switch.immortal = false
-
-  -- tanker refuel leg distance in degrees
-  switch.distance = nil -- defaults to original distance
-
-  -- if true, teleport the tanker instead of simply making it move
-  switch.teleport = false
-
-  -- if false, Named Points will be created when moving the tankers
-  switch.silent = false
-
-  -- Check for correct keywords.
-  if text:lower():find(veafMove.Keyphrase .. " group") then
-    switch.moveGroup = true
-    switch.speed = 20
-  elseif text:lower():find(veafMove.Keyphrase .. " tankermission") then
-    switch.changeTanker = true
-    switch.speed = -1
-    switch.altitude = -1
-  elseif text:lower():find(veafMove.Keyphrase .. " tanker") then
-    switch.moveTanker = true
-    switch.speed = -1
-    switch.altitude = -1
-  elseif text:lower():find(veafMove.Keyphrase .. " afac") then
-    switch.moveAfac = true
-    switch.speed = 150
-    switch.altitude = 15000
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "name" then
-      -- Set group name
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", val))
-      switch.groupName = val
-    end
-
-    if key:lower() == "speed" or key:lower() == "spd" then
-      -- Set speed.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword speed = %d", val))
-      local nVal = tonumber(val)
-      switch.speed = nVal
-    end
-
-    if key:lower() == "heading" or key:lower() == "hdg" then
-      -- Set heading.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword hdg = %d", val))
-      local nVal = tonumber(val)
-      switch.hdg = nVal
-    end
-
-    if key:lower() == "distance" or key:lower() == "dist" then
-      -- Set distance.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword distance = %d", val))
-      local nVal = tonumber(val)
-      switch.distance = nVal
-    end
-
-    if key:lower() == "alt" or key:lower() == "altitude" then
-      -- Set altitude.
-      veaf.loggers.get(veafMove.Id):debug(string.format("Keyword alt = %d", val))
-      local nVal = tonumber(val)
-      switch.altitude = nVal
-    end
-
-    if key:lower() == "teleport" then
-      veaf.loggers.get(veafMove.Id):trace("Keyword teleport found")
-      switch.teleport = true
-    end
-
-    if key:lower() == "silent" then
-      veaf.loggers.get(veafMove.Id):trace("Keyword silent found")
-      switch.silent = true
-    end
-
-    if key:lower() == "immortal" then
-      veaf.loggers.get(veafMove.Id):trace("Keyword immortal found")
-      switch.immortal = true
-    end
-  end
-
-  -- check mandatory parameter "group" (defaults to "", which is truthy in Lua)
-  if not switch.groupName or switch.groupName == "" then
-    return nil
-  end
-  return switch
+  return veaf.parseMarkerText(text, veafMove.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -955,9 +916,9 @@ end
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
   veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.buildRadioMenu()"))
-  veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
+  veafMove.rootPath = veafRadio.addSubMenu(veaf.t(veafMove.RadioMenuName))
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
   end
   for _, tankerUnitName in pairs(veafMove.Tankers) do
     local tankerName = tankerUnitName
@@ -995,9 +956,11 @@ function veafMove.initialize()
     veafMove.Tankers = veafMove.findAllTankers()
   end
   veafMove.buildRadioMenu()
+  -- L1: moving a tanker or AFAC affects everyone flying, so it is a pilot action rather than
+  -- an open one. Had no check at all before SECREV-2. Level chosen by David.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     return veafMove.executeCommand(pos, event.text, bypass)
-  end, veafCommands.PRIORITY_MOVE)
+  end, veafCommands.PRIORITY_MOVE, "SENIOR_PILOT", veafMove.Keyphrase)
 end
 
 veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo())

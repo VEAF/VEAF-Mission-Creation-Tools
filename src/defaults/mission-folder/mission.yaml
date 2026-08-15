@@ -46,11 +46,11 @@
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:
-#   disabled: true              # true = no password required (default)
-#   password_hashes:            # SHA-256 hashes to restrict JTF/admin access
-#     - "<SHA-256 hash>"
-#   password_mm_hashes:         # SHA-256 hashes to restrict Mission Master access
-#     - "<SHA-256 hash>"
+#   disabled: true              # true = no password required (default: false — security is active)
+#   password_hashes:            # SHA-1 hashes to restrict JTF/admin access (sha1.hex of the password)
+#     - "<SHA-1 hash>"
+#   password_mm_hashes:         # SHA-1 hashes to restrict Mission Master access
+#     - "<SHA-1 hash>"
 
 # ── Module configuration ──────────────────────────────────────────────────────
 # Enable or disable VEAF modules and community scripts in one unified block.
@@ -111,6 +111,14 @@ modules:
   #         name: T1-Arco-1
   #         description: Arco-1 (KC-135)
   #         information: "Tacan 64Y\nU290.50 (20)"
+  # ASSIST offers guided checklists from the F10 menu (Assistance / …). Off by default:
+  # every activated checklist bakes one picture per step into the .miz.
+  # With no `checklists:` list, the checklists you drop in this mission's `checklists/`
+  # folder are activated — never the whole shipped catalogue.
+  #   ASSIST:
+  #     enabled: true
+  #     display: picture          # `picture` (nice, ~10 KB per step) or `text` (free)
+  #     checklists: [f16c-cold-start]
   # SANCTUARY needs `sanctuary_zones:` — uncomment and fill in to enable:
   #   SANCTUARY:
   #     enabled: true
@@ -235,6 +243,11 @@ modules:
 #     - path: src/scripts/FgMission.lua
 #     - path: src/scripts/FgTools.lua
 #       generate_load_trigger: false
+#     - path: src/scripts/AIEN.lua
+#       delay_seconds: 12        # load 12 s after mission start, in a trigger of its own.
+#                                # The delay decides the order, not the position in this list;
+#                                # a script that inventories the world at load time needs the
+#                                # scripts that create groups to have run first.
 
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # pipeline:

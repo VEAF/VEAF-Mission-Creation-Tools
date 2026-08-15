@@ -80,7 +80,10 @@ class MissionExtractorWorker(BaseWorker):
             except FileNotFoundError:
                 pass  # no need for error if the file is already non-existent
             except PermissionError:
-                print(f"Permission denied to delete {path}")
+                # A warning, not an error: `logger.error` raises, and this path deliberately carries
+                # on. Silent is what it must not be — the extraction continues with a stale file in
+                # place (SECREV-2 / VMR-052).
+                logger.warning(t("extractor.warn.delete_denied", path=path))
 
         def mv_file_or_dir(path: Path, new_path: Path):
             try:
@@ -97,7 +100,8 @@ class MissionExtractorWorker(BaseWorker):
             except FileNotFoundError:
                 pass  # no need for error if the file is already non-existent
             except PermissionError:
-                print(f"Permission denied to move {path} to {new_path}")
+                # The second one, which the finding did not mention (SECREV-2 / VMR-052).
+                logger.warning(t("extractor.warn.move_denied", path=path, new_path=new_path))
 
         # Create a temporary folder
         with tempfile.TemporaryDirectory() as temp_dir_name:

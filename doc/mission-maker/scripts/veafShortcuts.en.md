@@ -43,12 +43,12 @@ modules:
       - name: "smoke"                 # alias name (used as -smoke in markers)
         description: "Smoke shortcut" # shown in radio help
         command: "/_smoke"            # VEAF command to execute
-        bypass_security: false        # true = always available, no /secu needed
+        bypass_security: false        # true = skips the command's level check (always available)
 ```
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `shortcuts` | object[] | `[]` | No | Additional custom aliases |
 | `shortcuts[].name` | string | — | Yes | Alias name — players type `-name` in a map marker |
@@ -91,7 +91,7 @@ veafShortcuts.AddAlias(
 
 ## Default Aliases Reference {#default-aliases-reference}
 
-The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
+The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.en.md)** for the complete list of all built-in aliases.
 
 ### Air Missions
 
@@ -130,13 +130,13 @@ The most common built-in aliases are grouped below. See the **[Aliases Reference
 
 ## Security
 
-Most aliases respect the security system (`veafSecurity`). Some utility aliases (like `-smoke`, `-signal`, `-light`, `-tacan`, `-jtac`, `-afac`) bypass security and are always available to all players.
+Most aliases respect the security system (`veafSecurity`). Eight utility aliases bypass it and stay available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`, `-afac`.
 
 ---
 
 ## See Also
 
-- [Pilot Guide — Marker Commands](../../pilot/GUIDE.md#marker-commands) — player-facing usage instructions
-- [Aliases Reference](../../ALIASES.md) — complete list of all built-in aliases
-- [veafSpawn](veafSpawn.md) — the underlying spawn engine
-- [veafSecurity](veafSecurity.md) — permission system
+- [Pilot Guide — Marker Commands](../../pilot/GUIDE.en.md#marker-commands) — player-facing usage instructions
+- [Aliases Reference](../../ALIASES.en.md) — complete list of all built-in aliases
+- [veafSpawn](veafSpawn.en.md) — the underlying spawn engine
+- [veafSecurity](veafSecurity.en.md) — permission system

@@ -36,9 +36,9 @@ TestVeafAssetsBuildAndGet = {}
 function TestVeafAssetsBuildAndGet:setUp()
   -- Override with a controlled test dataset
   veafAssets.Assets = {
-    { name = "testTanker",  description = "KC-135T",       unitType = "KC-135 MPRS", side = 1 },
-    { name = "testAwacs",   description = "E-3A AWACS",    unitType = "E-3A",        side = 1 },
-    { name = "testRefueler",description = "IL-78M tanker", unitType = "IL-78M",      side = 2 },
+    { name = "testTanker", description = "KC-135T", unitType = "KC-135 MPRS", side = 1 },
+    { name = "testAwacs", description = "E-3A AWACS", unitType = "E-3A", side = 1 },
+    { name = "testRefueler", description = "IL-78M tanker", unitType = "IL-78M", side = 2 },
   }
   veafAssets.assets = {}
   veafAssets.buildAssetsDatabase()

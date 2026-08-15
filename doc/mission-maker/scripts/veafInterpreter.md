@@ -1,7 +1,7 @@
 # veafInterpreter — Commandes embarquées dans les unités
 
 
-**ID du module :** `INTERPRETER` | **Version :** 1.6.x | **Fichier :** `veafInterpreter.lua`
+**ID du module :** `INTERPRETER` | **Fichier :** `veafInterpreter.lua`
 
 ---
 
@@ -18,7 +18,7 @@ Résultat : toute votre configuration d'apparition (spawn) vit dans l'éditeur D
 1. Placez une unité (ou un objet statique) dans l'éditeur de mission DCS, n'importe où sur la carte.
 2. Nommez-la avec la balise `#veafInterpreter["command"]` — où `command` est n'importe quelle commande de marqueur VEAF.
 3. Une seconde après le démarrage de la mission, l'interpréteur parcourt toutes les unités de la base de données de la mission.
-4. Pour chaque unité portant une balise valide, il exécute la commande à la position de cette unité, puis **détruit l'unité** (et son groupe).
+4. Pour chaque unité portant une balise valide, il exécute la commande à la position de cette unité, puis **détruit l'unité** (et son groupe) **si la commande a réussi** — une commande refusée laisse son unité hôte en place.
 
 La position de l'unité devient la position de la commande — parfait pour des configurations de JTAC, des points de passage de convois, ou des emplacements de batteries SAM que vous voulez positionner visuellement dans l'éditeur.
 
@@ -35,8 +35,8 @@ Si l'unité hôte appartient à un groupe doté de **points de passage**, ces po
 La balise peut apparaître n'importe où dans le nom de l'unité. Le texte avant et après est ignoré — ce qui est utile pour rendre les noms d'unités uniques quand DCS l'exige :
 
 ```
-#veafInterpreter["-spawn sa-11, side red"] #001
-#veafInterpreter["-spawn sa-11, side red"] #002
+#veafInterpreter["-sa11, side red"] #001
+#veafInterpreter["-sa11, side red"] #002
 ```
 
 Les deux unités portent la même commande mais ont des noms différents.
@@ -48,11 +48,18 @@ Les deux unités portent la même commande mais ont des noms différents.
 La commande à l'intérieur de la balise utilise la même syntaxe que les marqueurs de la carte F10 — le préfixe `-` suivi d'une commande VEAF et de ses options :
 
 ```
--spawn sa-11, side red
--jtac, laserCode 1688
--convoy from ZONE-A to ZONE-B
--arty, rounds 10
+-sa11, side red
+-jtac, laser 1688
+-convoy, dest ZONE-B
+-arty, side red
 ```
+
+
+!!! warning "Une clé inconnue interrompt la commande"
+    Depuis l'unification des analyseurs de marqueurs, un mot-clé que la commande ne connaît pas
+    **arrête** l'exécution au lieu d'être ignoré, avec un message proposant la clé la plus proche.
+    Une balise `#veafInterpreter` mal orthographiée ne produit donc rien au démarrage — vérifiez
+    vos clés dans la [référence des alias](../../ALIASES.md).
 
 Toutes les commandes comprises par le système de marqueurs VEAF fonctionnent ici. Voir la [référence des commandes VEAF](../../LUA_API_REFERENCE.md) pour la liste complète.
 
@@ -64,40 +71,42 @@ Toutes les commandes comprises par le système de marqueurs VEAF fonctionnent ic
 
 Placez une unité d'infanterie factice nommée :
 ```
-#veafInterpreter["-jtac, laserCode 1688, smoke red"]
+#veafInterpreter["-jtac, laser 1688"]
 ```
 
-Au démarrage de la mission, l'interpréteur crée un JTAC à cette position avec le code laser 1688 et déclenche une fumée rouge. L'infanterie factice disparaît.
+Au démarrage de la mission, l'interpréteur crée un JTAC à cette position, désignant ses cibles avec le code laser 1688. L'infanterie factice disparaît.
 
 ### Batterie SA-11
 
 ```
-#veafInterpreter["-spawn sa-11, side red, defense 2, size 2"]
+#veafInterpreter["-sa11, side red"]
 ```
 
-Une batterie SA-11 complète apparaît à la position de l'unité dans l'éditeur. Ajustez `defense` et `size` selon vos besoins.
+Une batterie SA-11 complète apparaît à la position de l'unité dans l'éditeur. L'alias intègre déjà son intégration Skynet et son espacement ; `side` choisit la coalition.
 
 ### Convoi suivant une route tracée dans l'éditeur
 
 1. Dans l'éditeur DCS, créez un groupe terrestre et tracez des **points de passage** de A vers B.
 2. Nommez le groupe (ou une unité du groupe) :
    ```
-   #veafInterpreter["-convoy, defense 1, size 8, patrol"]
+   #veafInterpreter["-convoy, dest ZONE-B, size 8, defense 1, patrol"]
    ```
 3. Au démarrage de la mission, l'interpréteur crée un convoi à la position du groupe, suivant la route tracée. Le groupe d'origine est détruit.
+
+   `dest` est **obligatoire** pour un convoi : c'est le point nommé vers lequel il roule. `size` est le nombre de véhicules (défaut 10).
 
 ### Plusieurs sites SAM avec des noms uniques
 
 ```
-#veafInterpreter["-spawn sa-10, side red"] NORTH-01
-#veafInterpreter["-spawn sa-10, side red"] NORTH-02
-#veafInterpreter["-spawn sa-6, side red"]  SOUTH-01
+#veafInterpreter["-sa10, side red"] NORTH-01
+#veafInterpreter["-sa10, side red"] NORTH-02
+#veafInterpreter["-sa6, side red"]  SOUTH-01
 ```
 
 ### Artillerie en position défensive
 
 ```
-#veafInterpreter["-arty, rounds 20, defense 2"]
+#veafInterpreter["-arty, side red, spacing 2"]
 ```
 
 ---

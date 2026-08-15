@@ -9,8 +9,8 @@
 > [ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md))
 > and **untouched upstream config + lexically-validated partial override** (see
 > [ADR 0008](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0008-foothold-config-override.md)).
-> The per-command detail lives in [CONVERT_OTHER](CONVERT_OTHER.md) and the
-> [mission.yaml reference](../MISSION_YAML_REFERENCE.md).
+> The per-command detail lives in [CONVERT_OTHER](CONVERT_OTHER.en.md) and the
+> [mission.yaml reference](../MISSION_YAML_REFERENCE.en.md).
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ Cold War Germany, Kola, Iraq, Afghanistan, WWII Normandy), each holding:
 Pass the `.zip` straight to `convert-other`: it adopts the `.miz` inside and ignores the
 rest. No need to unzip by hand.
 
-> **All ten maps at once.** A release ships one archive per map. From a clone of this
+> **All nine maps at once.** A release ships one archive per map. From a clone of this
 > repository, [`tools/Convert-FootholdBatch.ps1`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/Convert-FootholdBatch.ps1)
 > adopts them all in one pass, picking the right profile for each (it looks inside the archive,
 > not at its name):
@@ -81,14 +81,18 @@ New Lekaa version ──► convert-other --update ──► (re)validate ──
 ## 1. Initialise (adopt)
 
 ```bash
-veaf-tools convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <mission-folder> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <mission-folder> --profile foothold
 ```
 
 `convert-other` extracts the `.miz` (out of the archive when needed), detects the scripts
 loaded by its native triggers (in order), and generates a `mission.yaml` with:
 
 - an **ordered `custom_scripts:`** block (Moose, zoneCommander, Foothold Config,
-  setup, Foothold CTLD, Splash, AIEN, EWRS… — the original load order);
+  setup, Foothold CTLD, Splash, AIEN, EWRS… — the original load order), **delays
+  included**: Lekaa does not load everything at once — 5 scripts arrive 3 seconds after the
+  first ones, and AIEN 12 seconds later. `convert-other` reads those delays out of the source
+  triggers and writes `delay_seconds:` on the scripts concerned, reproducing the staging
+  (see [`delay_seconds`](../MISSION_YAML_REFERENCE.en.md#custom-scripts));
 - a **`strip_native_triggers:`** list of the native loader triggers (the build
   removes them so nothing is loaded twice);
 - the profile's **VEAF modules** (RADIO, SPAWN, WEATHER, SHORTCUTS, SECURITY,
@@ -96,6 +100,18 @@ loaded by its native triggers (in order), and generates a `mission.yaml` with:
 - a `conversion_profile: foothold` marker (build/validate reject an incompatible
   module — Foothold ships its own CTLD, so the VEAF CTLD stays OFF);
 - a commented **`config_override:`** scaffold targeting `Foothold Config.lua`.
+
+### Why the staging matters {#staging}
+
+This is not fidelity for its own sake. **AIEN inventories ground groups exactly once**, at load
+time (its own comment: "launched once at mission start and collect everything relevant that is
+already there"). Foothold, meanwhile, creates part of its groups afterwards, from scheduled tasks
+starting at around 2 seconds.
+
+Loading AIEN at time zero therefore hands it a world those tasks have not populated yet — and the
+symptom is **silent**: no log error, just ground AI that never manages the groups Foothold created.
+That is what Lekaa's 12 seconds are for, and why a detected `delay_seconds:` should not be removed
+casually.
 
 ## 2. Tune `mission.yaml`
 
@@ -182,7 +198,7 @@ its *Import MIZ Config* button installs that file. What follows from it:
 Foothold's era is driven by the `Era` global, which accepts four values — `"Modern"`,
 `"Coldwar"`, `"Gulfwar"` (the Cold-War era's name on the Iraq map) and `"Vietnam"`. It is a
 pure **config difference**, so we emit several `.miz` in a single build via
-[`build_variants:`](../MISSION_YAML_REFERENCE.md):
+[`build_variants:`](../MISSION_YAML_REFERENCE.en.md):
 
 ```yaml
 mission:
@@ -214,7 +230,7 @@ is called `Gulfwar`.
 ## 3. Validate
 
 ```bash
-veaf-tools validate <mission-folder>
+veaf-tools mission validate <mission-folder>
 ```
 
 Checks the syntax, module semantics, `custom_scripts` existence, profile
@@ -224,7 +240,7 @@ injected Foothold code.
 ## 4. Build both variants
 
 ```bash
-veaf-tools build <mission-folder>
+veaf-tools mission build <mission-folder>
 ```
 
 A single build produces **two** `.miz`: `…_MODERN.miz` and `…_COLD_WAR.miz`. Each
@@ -233,7 +249,7 @@ variant: untouched upstream config → small `veaf-config-override.lua` reassign
 `custom_scripts` loaded in declaration order → VEAF spawns/data injected.
 
 > For `--profile <X>` alone (a single variant, unsuffixed) or build options, see
-> the [mission.yaml reference](../MISSION_YAML_REFERENCE.md).
+> the [mission.yaml reference](../MISSION_YAML_REFERENCE.en.md).
 
 ## 5. Test in DCS
 
@@ -247,7 +263,7 @@ When Foothold ships a new release, download the new archive and re-import it **i
 folder**:
 
 ```bash
-veaf-tools convert-other <new_release.zip> <mission-folder> --profile foothold --update
+veaf-tools convert other <new_release.zip> <mission-folder> --profile foothold --update
 ```
 
 `--update` refreshes the third-party scripts and mission base, **preserves your

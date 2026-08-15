@@ -43,6 +43,20 @@ globals = {
   "VoiceChat", "net", "lfs", "StaticObject",
   -- DCS API globals commonly used but often omitted from stub lists
   "coord", "atmosphere", "missionCommands", "log",
+  -- Native trigger-action functions of the mission scripting environment, used by
+  -- veafAssist. They live in no script — the engine exposes them (verified in game,
+  -- .backlog/FEAT-ASSIST-CHECKLISTS/tickets/01-primitives-spike.md).
+  "a_cockpit_highlight", "a_cockpit_remove_highlight", "a_cockpit_perform_clickable_action",
+  "a_out_picture_u", "a_out_picture_stop", "getValueResourceByKey",
+  -- Undocumented native DCS singleton for scenery-aware ground placement, used by
+  -- veaf.findSpawnPoint. **Verified in game 2026-08-06**, like the a_* entries above: it exists,
+  -- and the points it returns genuinely avoid buildings and forests. Signature measured as
+  -- getSimpleZones(centre, radius, spacing, count) returning {x, y, course} — a vec2 plus a
+  -- heading. Its radius argument does **not** bound the answers, which is why the call site
+  -- filters by distance. See .backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md.
+  -- Still absent from dcs-world-schema, so it stays guarded and pcall-ed at the call site: what
+  -- was measured is this DCS version on one theatre, not a contract ED owes us.
+  "Disposition",
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
@@ -52,7 +66,7 @@ globals = {
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
-  "veafAirWaves", "veafAssets", "veafCacheManager", "veafCarrierOperations",
+  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMissileGuardian", "veafMove",

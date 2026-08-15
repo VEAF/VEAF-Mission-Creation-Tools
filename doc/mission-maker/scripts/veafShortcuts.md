@@ -43,12 +43,12 @@ modules:
       - name: "smoke"                 # nom de l'alias (tapé en -smoke dans les marqueurs)
         description: "Raccourci fumée" # affiché dans l'aide radio
         command: "/_smoke"            # commande VEAF à exécuter
-        bypass_security: false        # true = toujours disponible, sans /secu
+        bypass_security: false        # true = saute le contrôle de niveau de la commande (toujours disponible)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `shortcuts` | objet[] | `[]` | Non | Aliases personnalisés supplémentaires |
 | `shortcuts[].name` | string | — | Oui | Nom de l'alias — les joueurs tapent `-nom` dans un marqueur |
@@ -130,7 +130,7 @@ Les aliases intégrés les plus courants sont regroupés ci-dessous. Voir la **[
 
 ## Sécurité
 
-La plupart des aliases respectent le système de sécurité (`veafSecurity`). Certains aliases utilitaires (comme `-smoke`, `-signal`, `-light`, `-tacan`, `-jtac`, `-afac`) contournent la sécurité et sont toujours disponibles pour tous les joueurs.
+La plupart des aliases respectent le système de sécurité (`veafSecurity`). Huit aliases utilitaires le contournent et restent toujours disponibles pour tous les joueurs : `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`, `-afac`.
 
 ---
 

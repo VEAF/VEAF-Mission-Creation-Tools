@@ -3,11 +3,14 @@
 from typing import Any
 
 import pytest
-from mission_tools.group_insertion import add_group, find_or_add_country, max_ids
+from mission_tools.group_insertion import add_group, assign_country_to_side, find_or_add_country, max_ids
 
 
-def _mission(coalition: dict[str, Any] | None = None) -> dict[str, Any]:
-    return {"coalition": coalition or {"blue": {"country": []}, "red": {"country": []}}}
+def _mission(coalition: dict[str, Any] | None = None, coalitions: dict[str, Any] | None = None) -> dict[str, Any]:
+    mission: dict[str, Any] = {"coalition": coalition or {"blue": {"country": []}, "red": {"country": []}}}
+    if coalitions is not None:
+        mission["coalitions"] = coalitions
+    return mission
 
 
 def _group(name: str = "New Group", unit_count: int = 1) -> dict[str, Any]:
@@ -123,6 +126,55 @@ class TestAddGroup:
             add_group(
                 mission, coalition="neutral", country_id=0, country_name="Russia", category="vehicle", group=_group()
             )
+
+
+class TestAddGroupPopulatesCoalitions:
+    """A group's country must land in `coalitions.<side>` too, or DCS cannot load the mission."""
+
+    def test_a_new_group_assigns_its_country_to_the_side(self) -> None:
+        # The blank-mission shape: coalitions ships as an empty dict per side, not a list.
+        mission = _mission(coalitions={"blue": {}, "red": {}, "neutrals": {}})
+
+        add_group(mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group())
+
+        assert mission["coalitions"]["red"] == [0]
+
+    def test_two_groups_from_the_same_country_list_it_once(self) -> None:
+        mission = _mission(coalitions={"blue": {}, "red": {}, "neutrals": {}})
+
+        add_group(mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("a"))
+        add_group(mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("b"))
+
+        assert mission["coalitions"]["red"] == [0]
+
+    def test_a_second_country_on_the_side_appends(self) -> None:
+        # The populated shape: coalitions.<side> is already a list of ids.
+        mission = _mission(coalitions={"blue": [2], "red": [], "neutrals": []})
+
+        add_group(mission, coalition="blue", country_id=11, country_name="Georgia", category="vehicle", group=_group())
+
+        assert mission["coalitions"]["blue"] == [2, 11]
+
+    def test_it_creates_the_coalitions_table_when_absent(self) -> None:
+        # A hand-made mission missing the table entirely must still come out loadable.
+        mission = _mission()
+        assert "coalitions" not in mission
+
+        add_group(mission, coalition="blue", country_id=2, country_name="USA", category="vehicle", group=_group())
+
+        assert mission["coalitions"]["blue"] == [2]
+
+
+class TestAssignCountryToSide:
+    def test_is_idempotent(self) -> None:
+        mission: dict[str, Any] = {"coalitions": {"blue": [2]}}
+        assign_country_to_side(mission, "blue", 2)
+        assert mission["coalitions"]["blue"] == [2]
+
+    def test_normalises_the_empty_dict_shape_to_a_list(self) -> None:
+        mission: dict[str, Any] = {"coalitions": {"blue": {}}}
+        assign_country_to_side(mission, "blue", 2)
+        assert mission["coalitions"]["blue"] == [2]
 
 
 class TestFindOrAddCountry:

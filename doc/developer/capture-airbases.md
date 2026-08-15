@@ -61,13 +61,29 @@ Double-clique sur **`dcs-serve.exe`**.
 - **Copie-colle** cette ligne, puis Entrée :
 
   ```
-  veaf-tools.exe capture-map --out-dir .
+  veaf-tools.exe dcs capture-map --out-dir .
   ```
 
 - → Un fichier **`<Carte>.json`** apparaît dans le dossier (ex. `Syria.json`). 🎉
 
 > Rien à configurer : le programme récupère tout seul le code d'accès créé par
 > `dcs-serve.exe` (dans le fichier `dcs-serve.yaml`, à côté).
+
+### Si David t'a demandé les places de parking en plus
+
+Ajoute `--parking` à la fin de la ligne :
+
+```
+veaf-tools.exe dcs capture-map --out-dir . --parking
+```
+
+Ça fait **deux** fichiers au lieu d'un : le `<Carte>.json` habituel, plus un
+`parking/<Carte>.json` avec les emplacements où un avion peut se garer. C'est un peu plus long
+(quelques dizaines de secondes de plus), et les aérodromes sont récupérés **en premier** — donc si
+la deuxième partie coince, tu as quand même la première, la plus utile.
+
+Une carte qui ne renvoie aucune place de parking, ce n'est pas une panne : certaines n'en ont
+simplement pas. Envoie les deux fichiers dans ce cas aussi.
 
 ## 4 · L'envoyer
 
@@ -107,7 +123,7 @@ Coche au fur et à mesure. **Inutile de refaire une carte déjà cochée.**
 5. Dans le terminal (comme à l'étape 3), tape *(mets le vrai chemin de ta mission)* :
 
    ```
-   veaf-tools.exe inject-bridge "C:\...\ma-mission.miz"
+   veaf-tools.exe dcs inject-bridge "C:\...\ma-mission.miz"
    ```
 
    → Ta mission est prête (une copie de secours est créée automatiquement à côté).

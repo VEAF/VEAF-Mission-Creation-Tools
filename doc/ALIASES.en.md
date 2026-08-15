@@ -2,7 +2,7 @@
 
 Quick-reference of all built-in marker aliases available in every VEAF MCT mission.
 
-Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.md) for the module documentation and how to create custom aliases.
+Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md) for the module documentation and how to create custom aliases.
 
 ---
 
@@ -100,9 +100,9 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | `-convoy` | Dynamic convoy (needs `, dest POINTNAME`) |
 | `-hv_convoy_red` | Red high-value attack convoy (with Scud) |
 | `-attack_convoy_red` | Red attack convoy |
-| `-QRC_red` | Red Quick Reaction Convoy (fast) |
+| `-QRC_red` | Red Quick Reaction Convoy |
 | `-civilian_convoy_red` | Red civilian convoy |
-| `-QRC_blue` | Blue Quick Reaction Convoy (fast) |
+| `-QRC_blue` | Blue Quick Reaction Convoy |
 
 ## Artillery
 
@@ -132,6 +132,17 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | `-arty3_fire` | ARTY-3: fire for effect at marker |
 | `-arty3_stop` | ARTY-3: stop listening |
 | `-arty3_start` | ARTY-3: start listening |
+
+### Simulated shelling
+
+These three simulate artillery fire by spawning explosions (`_spawn bomb`); shell count, radius and
+power are each drawn at random from a range.
+
+| Alias | Description |
+|-------|-------------|
+| `-cesar` | Precision shelling of a zone, a few low-yield HE rounds |
+| `-shell` | Shelling of a small zone with lots of low-yield HE |
+| `-flak` | Anti-air artillery: flak at 6,000 ft above the marker |
 
 ## Support & Utility
 
@@ -192,6 +203,13 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 |-------|-------------|
 | `-destroy` | Destroy any unit within 100 m of marker |
 | `-ai_set` | Configure AI handler for a ground group |
+| `-login` | Unlock the system (takes the password — see below) |
+| `-logout` | Lock the system again |
+
+> 🔐 `-login` and `-logout` drive VEAF authentication (`_auth`). `-login` expects the password right
+> after it, **with no comma**: `-login mypassword`. They carry `:setHidden(true)`, which keeps them out
+> of the list the `list_shortcuts` MCP action serves to an AI — you do not offer an authentication
+> command to an assistant building a mission.
 
 ## Map Tools
 
@@ -208,5 +226,5 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 
 ## See also
 
-- [veafShortcuts module](mission-maker/scripts/veafShortcuts.md) — module documentation, custom alias creation
-- [veafSpawn](mission-maker/scripts/veafSpawn.md) — the underlying spawn engine
+- [veafShortcuts module](mission-maker/scripts/veafShortcuts.en.md) — module documentation, custom alias creation
+- [veafSpawn](mission-maker/scripts/veafSpawn.en.md) — the underlying spawn engine

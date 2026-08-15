@@ -30,9 +30,113 @@ veafSecurity.authDuration = 10
 
 veafSecurity.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?(.*)"
 
-veafSecurity.LEVEL_L0 = 90
-veafSecurity.LEVEL_L1 = 10
-veafSecurity.LEVEL_L9 = 1
+-- Security tiers, from the loosest to the tightest. A check passes when the pilot's level is
+-- **at least** the constant, so a bigger number is a tighter tier.
+--
+-- The names say what they mean since 2026-08-08 (REVIEW-SECURITY-LAYER ticket 02). The old
+-- L0/L1/L9 names read backwards -- L0 was the *tightest* -- and that trap had already caught
+-- someone: a proposal read "L0 - all players" off the documentation and would have locked a
+-- deliberately public command to administrators. The **values are unchanged**, so no existing
+-- mission changes behaviour; only the names people write are new.
+veafSecurity.LEVEL_ADMIN = 90 -- server administrators
+veafSecurity.LEVEL_SENIOR_PILOT = 10 -- trusted members
+veafSecurity.LEVEL_KNOWN_PILOT = 1 -- anyone listed in veaf-pilots.txt (e.g. VEAF members)
+
+-- Deprecated aliases, kept for one release so missions and third-party scripts written against the
+-- old names keep working.
+--
+-- This comment used to claim `veafSecurity.registerCommandHandler` warns when one is used. It does
+-- not, and it never could: **there is no such function** — `registerCommandHandler` lives in
+-- `veafCommands`. Corrected 2026-08-11 rather than left describing a mechanism that does not exist.
+veafSecurity.LEVEL_L0 = veafSecurity.LEVEL_ADMIN
+veafSecurity.LEVEL_L1 = veafSecurity.LEVEL_SENIOR_PILOT
+veafSecurity.LEVEL_L9 = veafSecurity.LEVEL_KNOWN_PILOT
+
+--- Maps every accepted tier name to its level. "OPEN" is absent on purpose: it means *no check*
+--- rather than a level, and the dispatcher treats it separately.
+---
+--- Resolve a name through `veafSecurity.levelForName`, which is what applies the deprecation
+--- warning; reading this table directly bypasses it.
+veafSecurity.LEVELS_BY_NAME = {
+  ADMIN = veafSecurity.LEVEL_ADMIN,
+  SENIOR_PILOT = veafSecurity.LEVEL_SENIOR_PILOT,
+  KNOWN_PILOT = veafSecurity.LEVEL_KNOWN_PILOT,
+  L0 = veafSecurity.LEVEL_ADMIN,
+  L1 = veafSecurity.LEVEL_SENIOR_PILOT,
+  L9 = veafSecurity.LEVEL_KNOWN_PILOT,
+}
+
+--- Old tier name -> new one, for the deprecation warning.
+veafSecurity.DEPRECATED_LEVEL_NAMES = {
+  L0 = "ADMIN",
+  L1 = "SENIOR_PILOT",
+  L9 = "KNOWN_PILOT",
+}
+
+--- Deprecated names already warned about, so a flag read on every secured command warns once.
+veafSecurity._deprecationWarned = {}
+
+--- Resolve a tier name to its level, warning once when a deprecated name is used.
+---
+--- `LEVELS_BY_NAME` and `DEPRECATED_LEVEL_NAMES` were both added by ticket 02 and **neither had a
+--- single reader** — measured 2026-08-11. The rename shipped and worked, because callers write
+--- `veafSecurity.LEVEL_ADMIN` directly, but the by-name path and its warning were declared and never
+--- wired up. This is that wiring.
+--- @param name a tier name, current or deprecated
+--- @return number|nil the level, or nil when the name is not a tier
+function veafSecurity.levelForName(name)
+  if type(name) ~= "string" then
+    return nil
+  end
+  local _upper = name:upper()
+  local _current = veafSecurity.DEPRECATED_LEVEL_NAMES[_upper]
+  if _current then
+    veafSecurity.warnDeprecated("security level " .. _upper, _current)
+  end
+  return veafSecurity.LEVELS_BY_NAME[_upper]
+end
+
+--- Warn once that `oldName` is deprecated in favour of `newName`.
+---
+--- Once, not once per read: `isSecurityDisabled` is consulted by every secured gate, so warning on
+--- each call would bury the log it is trying to inform.
+--- @param oldName the deprecated spelling a mission used
+--- @param newName what to write instead
+function veafSecurity.warnDeprecated(oldName, newName)
+  if veafSecurity._deprecationWarned[oldName] then
+    return
+  end
+  veafSecurity._deprecationWarned[oldName] = true
+  veaf.loggers
+    .get(veafSecurity.Id)
+    :warn(string.format("%s is deprecated and will be removed in a future release; use %s instead", oldName, newName))
+end
+
+--- Is security switched off by the mission's configuration?
+---
+--- REVIEW-SECURITY-LAYER ticket 03. Honours both spellings, because `veafSecurity.SecurityDisabled`
+--- is a **mission-facing config knob** and not library state. `SECREV-009` moved the read to
+--- `veaf.SecurityDisabled` on the grounds that the old name was "never assigned" — true inside this
+--- repository, false outside it, since the only places that assign it are mission configs. Including
+--- our own demo mission, at `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua:633`.
+---
+--- The breakage was fail-safe, which is why three years of it went unnoticed: a mission asking for
+--- security **off** got it **on**. Nobody was over-privileged — but every secured command then
+--- refused for everyone, and that reads as "the security layer is broken" rather than "your config
+--- field was retired".
+---
+--- For a config field, "nothing in the repository assigns it" is evidence of nothing.
+--- @return boolean true when either spelling asks for security to be off
+function veafSecurity.isSecurityDisabled()
+  if veaf.SecurityDisabled then
+    return true
+  end
+  if veafSecurity.SecurityDisabled then
+    veafSecurity.warnDeprecated("veafSecurity.SecurityDisabled", "veaf.SecurityDisabled")
+    return true
+  end
+  return false
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -53,7 +157,9 @@ veafSecurity.PASSWORD_L1 = "bdc82f5ef92369919a3a53515023ce19f68656cc"
 veafSecurity.password_L0[veafSecurity.PASSWORD_L0] = true
 veafSecurity.password_L1[veafSecurity.PASSWORD_L1] = true
 
-veafSecurity.authenticated = veaf.SecurityDisabled
+-- Runs at module load, i.e. before any mission config is read, so this can only ever see nil.
+-- Harmless, and kept because `initialize()` sets it again once the config has been applied.
+veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- SHA-1 pure LUA implementation
@@ -430,6 +536,10 @@ function veafSecurity.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has not the required level to unlock the mission", veaf.p(_pilotName)))
         return false
       end
+    elseif _action and _action:lower() == "elevate" then
+      -- No level gate here beyond having one at all: the elevation is capped at the requester's
+      -- own level, so it can never grant more than they already hold.
+      return veafSecurity.handleElevationRequest(_pilot, _pilotName, _unitName)
     elseif _action and _action:lower() == "logout" then
       if _pilot.level >= veafSecurity.LEVEL_L1 then
         local _silent = _parameters and _parameters:lower() == "silent"
@@ -449,7 +559,7 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity)
+function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity, markerAuthor)
   -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
   if eventText ~= nil and eventText:lower():find(veafSecurity.Keyphrase) then
     -- Analyse the mark point text and extract the keywords.
@@ -468,6 +578,16 @@ function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity)
       elseif options.logout then
         veafSecurity.logout(true)
         return true
+      elseif options.elevate then
+        -- The marker carries an author, so this channel can identify who is asking — unlike the
+        -- F10 menu, which is why the elevation is offered here and not there.
+        local _author = markerAuthor
+        local _user = _author and veafRemote and veafRemote.getRemoteUser and veafRemote.getRemoteUser(_author)
+        if not _user then
+          veaf.loggers.get(veafSecurity.Id):warn(string.format("unknown marker author [%s]", veaf.p(_author)))
+          return false
+        end
+        return veafSecurity.handleElevationRequest(_user, _author, veafSecurity.getUnitNameForPlayer(_author))
       end
     end
   end
@@ -501,6 +621,10 @@ function veafSecurity.markTextAnalysis(text)
 
   if text and text:lower() == "logout" then
     switch.logout = true
+  elseif text and text:lower() == "elevate" then
+    -- Temporarily raise this marker author's group to their own level. Offered on the marker and
+    -- on chat, never on the F10 menu: both of those carry an author, and the menu does not.
+    switch.elevate = true
   else
     switch.password = text
     switch.login = true
@@ -508,6 +632,68 @@ function veafSecurity.markTextAnalysis(text)
   end
 
   return switch
+end
+
+--- Return the group id of the unit named `unitName`, or nil.
+function veafSecurity.getGroupIdForUnit(unitName)
+  if not unitName then
+    return nil
+  end
+  local _unit = Unit and Unit.getByName and Unit.getByName(unitName)
+  local _group = _unit and _unit.getGroup and _unit:getGroup()
+  return _group and _group.getID and _group:getID() or nil
+end
+
+--- Find the unit a named player is currently sitting in, or nil.
+---
+--- The marker channel identifies its author by **name**, while a group is reached through a
+--- *unit*, so the two have to be bridged. `veafRemote.remoteUnitsPilots` is already the registry
+--- that maps one to the other, kept up to date by the server hook.
+function veafSecurity.getUnitNameForPlayer(playerName)
+  if not playerName or not veafRemote or not veafRemote.remoteUnitsPilots then
+    return nil
+  end
+  local _wanted = playerName:lower()
+  for _unitName, _pilot in pairs(veafRemote.remoteUnitsPilots) do
+    local _name = _pilot and (_pilot.name or _pilot.pilotName)
+    if _name and _name:lower() == _wanted then
+      return _unitName
+    end
+  end
+  return nil
+end
+
+--- Handle an elevation request coming from an **identified** channel (chat or marker).
+---
+--- Raises the requester's group to the requester's own level for
+--- `veafSecurity.ELEVATION_DURATION_SECONDS`. The cap is the point: it lets an admin who shares a
+--- group get their commands back without letting anyone borrow a rank they do not hold.
+---
+--- The residual effect is deliberate and worth stating plainly: for those two minutes, the other
+--- occupants of that group act at the requester's level too. That is the old global `/login`
+--- reduced to one group, for a bounded time, attributable to a named pilot.
+---
+--- Returns true when an elevation was granted.
+function veafSecurity.handleElevationRequest(pilot, pilotName, unitName)
+  if not pilot or not pilot.level or pilot.level <= 0 then
+    veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has no level, refusing to elevate", veaf.p(pilotName)))
+    return false
+  end
+  local _groupId = veafSecurity.getGroupIdForUnit(unitName)
+  if not _groupId then
+    veaf.loggers.get(veafSecurity.Id):warn(string.format("cannot resolve a group for unit [%s], refusing to elevate", veaf.p(unitName)))
+    return false
+  end
+  local _granted = veafSecurity.elevateGroupForPilot(_groupId, pilot.level, pilotName)
+  if not _granted then
+    return false
+  end
+  veaf.outTextForUnit(
+    unitName,
+    veaf.t("security.group_elevated", veafSecurity.ELEVATION_DURATION_SECONDS),
+    veafSecurity.ELEVATION_DURATION_SECONDS > 10 and 10 or 5
+  )
+  return true
 end
 
 function veafSecurity.logout(withMessage, unitName)
@@ -527,8 +713,15 @@ end
 
 --- authenticate all radios for a short time
 function veafSecurity.authenticate(minutes, unitName)
-  local actualMinutes = minutes or veafSecurity.authDuration
-  if type(actualMinutes) == "string" and not (actualMinutes:match("%d+")) then
+  -- VMR-095: `minutes` arrives as text a pilot typed after `-auth login`, so it is converted
+  -- rather than pattern-matched. The old guard was `not actualMinutes:match("%d+")`, unanchored:
+  -- "abc5" passed it and `actualMinutes * 60` then raised. A negative or zero value passed too,
+  -- and scheduled the logout in the past — the mission unlocked and relocked without a word.
+  local actualMinutes = tonumber(minutes)
+  if not actualMinutes or actualMinutes <= 0 then
+    if minutes ~= nil then
+      veaf.loggers.get(veafSecurity.Id):warn(string.format("unusable auth duration [%s], using the default", veaf.p(minutes)))
+    end
     actualMinutes = veafSecurity.authDuration
   end
   if not veafSecurity.authenticated then
@@ -559,24 +752,24 @@ function veafSecurity._checkPassword(password, level)
 end
 
 function veafSecurity.checkPassword_L0(password)
-  return veaf.SecurityDisabled or veafSecurity._checkPassword(password, veafSecurity.password_L0)
+  return veafSecurity.isSecurityDisabled() or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_L1(password)
-  return veaf.SecurityDisabled
+  return veafSecurity.isSecurityDisabled()
     or veafSecurity._checkPassword(password, veafSecurity.password_L1)
     or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_L9(password)
-  return veaf.SecurityDisabled
+  return veafSecurity.isSecurityDisabled()
     or veafSecurity._checkPassword(password, veafSecurity.password_L9)
     or veafSecurity._checkPassword(password, veafSecurity.password_L1)
     or veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
 function veafSecurity.checkPassword_MM(password)
-  return veaf.SecurityDisabled or veafSecurity._checkPassword(password, veafSecurity.password_MM)
+  return veafSecurity.isSecurityDisabled() or veafSecurity._checkPassword(password, veafSecurity.password_MM)
 end
 
 function veafSecurity.getMarkerSecurityLevel(markId)
@@ -593,7 +786,11 @@ function veafSecurity.getMarkerSecurityLevel(markId)
     _author = markId
   end
   veaf.loggers.get(veafSecurity.Id):trace("_author=%s", _author)
-  local _user = veafRemote.getRemoteUser(_author)
+  -- Guarded like `getPilotLevelForUnit` below, which this function was not: it indexed `veafRemote`
+  -- unconditionally. Harmless while every caller happened to load that module, and a **raise inside
+  -- a security check** as soon as one did not. Returning -1 means "unknown author", so the failure
+  -- mode is a refusal rather than a crashed handler.
+  local _user = veafRemote and veafRemote.getRemoteUser and veafRemote.getRemoteUser(_author)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.p(_user)))
   if _user then
     return _user.level
@@ -601,11 +798,20 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   return -1
 end
 
+-- REVIEW-SECURITY-LAYER ticket 01. These three used to open with
+--
+--     if veafSecurity.isAuthenticated() then return true end
+--
+-- a module-level boolean, so one `/login` granted every secured command to **every player on the
+-- server** for `authDuration` — and while anyone was logged in the per-pilot path below was never
+-- reached, the blunt mechanism disabling the precise one.
+--
+-- Removing it does not remove password access: `checkPassword_Lx` is still in the condition, so
+-- "your own level suffices OR you give the password" holds. What went is the convenience of one
+-- login covering everyone, replaced by an elevation scoped to a single group for two minutes
+-- (`elevateGroupForPilot`). `veaf.SecurityDisabled` still short-circuits everything, because it is a
+-- mission-wide switch and not an authentication path.
 function veafSecurity.checkSecurity_L0(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L0 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L0"), 5)
@@ -615,10 +821,6 @@ function veafSecurity.checkSecurity_L0(password, markId)
 end
 
 function veafSecurity.checkSecurity_L1(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L1 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L1"), 5)
@@ -628,10 +830,6 @@ function veafSecurity.checkSecurity_L1(password, markId)
 end
 
 function veafSecurity.checkSecurity_L9(password, markId)
-  -- don't check the password if already logged in
-  if veafSecurity.isAuthenticated() then
-    return true
-  end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
     veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L9 password to do this")
     trigger.action.outText(veaf.t("security.use_password", "L9"), 5)
@@ -650,15 +848,160 @@ function veafSecurity.checkSecurity_MM(password)
 end
 
 function veafSecurity.isAuthenticated()
-  return veafSecurity.authenticated or veaf.SecurityDisabled
+  return veafSecurity.authenticated or veafSecurity.isSecurityDisabled()
+end
+
+--- Is the author of `markId` a pilot this server knows at all?
+---
+--- REVIEW-SECURITY-LAYER ticket 01, David's option 1. This is the gate for an **alias** password,
+--- which is a per-alias secret with no tier attached — so "which level excuses it?" had no answer in
+--- the tier model. The answer chosen: **being in `veaf-pilots.txt` excuses it**, whatever the level.
+---
+--- It replaces `isAuthenticated()`, whose global boolean meant one player's login excused the alias
+--- password for everybody. `getMarkerSecurityLevel` returns -1 for an author the server cannot
+--- resolve, so an unknown author still has to give the password.
+--- @param markId the mark panel id, or a username when called from veafRemote
+--- @return boolean true when the author has a known pilot level
+function veafSecurity.isKnownPilot(markId)
+  if veafSecurity.isSecurityDisabled() then
+    return true
+  end
+  return veafSecurity.getMarkerSecurityLevel(markId) >= veafSecurity.LEVEL_KNOWN_PILOT
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Per-group security level (REVIEW-SECURITY-LAYER ticket 01)
+--
+-- DCS offers no per-unit menu API: `missionCommands` posts to all, to a coalition, or to a
+-- **group**, and the callback receives only the argument fixed at registration time. So a secured
+-- F10 command cannot know which occupant clicked it, and the group is the finest identity
+-- available on that channel.
+--
+-- The level applied to a group is therefore the **minimum** of its occupants. Taking the maximum
+-- would reproduce the very defect this lot fixes — one player acting with another's rights —
+-- merely at group scale instead of server scale. The marker channel keeps a finer grain: it
+-- carries an author, so it resolves to one player.
+--
+-- The cost of the minimum is real: an admin sharing a four-slot group loses their admin commands
+-- in the menu. Hence the elevation below, which David asked for: an identified request raises the
+-- group to the requester's **own** level for two minutes, never higher.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- How long a temporary elevation lasts, in seconds.
+veafSecurity.ELEVATION_DURATION_SECONDS = 120
+
+--- Active elevations, keyed by group id: `{ level = number, expiresAt = number, pilot = string }`.
+veafSecurity.groupElevations = {}
+
+--- Return the security level of the pilot flying `unitName`, or nil when unknown.
+function veafSecurity.getPilotLevelForUnit(unitName)
+  if not unitName then
+    return nil
+  end
+  local _user = veafRemote and veafRemote.getRemoteUserFromUnit and veafRemote.getRemoteUserFromUnit(unitName)
+  return _user and _user.level or nil
+end
+
+--- Return the unit names currently occupied by a player in `groupId`.
+function veafSecurity.getGroupOccupantUnitNames(groupId)
+  local _names = {}
+  if not groupId then
+    return _names
+  end
+  local _group = Group.getByID and Group.getByID(groupId)
+  if not _group or not _group.getUnits then
+    return _names
+  end
+  for _, _unit in pairs(_group:getUnits() or {}) do
+    -- Only slots with a human in them matter: an AI wingman has no security level and must not
+    -- drag the group to zero.
+    if _unit and _unit.getPlayerName and _unit:getPlayerName() and _unit.getName then
+      table.insert(_names, _unit:getName())
+    end
+  end
+  return _names
+end
+
+--- Return a group's intrinsic level: the **lowest** level among its human occupants.
+---
+--- An occupant with no known level yields 0, which denies everything — an unlisted player must
+--- not be silently ignored, or a group could be raised by leaving out the people in it. An empty
+--- group is 0 for the same reason.
+function veafSecurity.getGroupLevel(groupId)
+  local _names = veafSecurity.getGroupOccupantUnitNames(groupId)
+  if #_names == 0 then
+    return 0
+  end
+  local _lowest = nil
+  for _, _unitName in ipairs(_names) do
+    local _level = veafSecurity.getPilotLevelForUnit(_unitName) or 0
+    if _lowest == nil or _level < _lowest then
+      _lowest = _level
+    end
+  end
+  return _lowest or 0
+end
+
+--- Grant `groupId` a temporary elevation to `level`, attributed to `pilotName`.
+function veafSecurity.elevateGroup(groupId, level, pilotName)
+  if not groupId or not level then
+    return nil
+  end
+  veafSecurity.groupElevations[groupId] = {
+    level = level,
+    expiresAt = timer.getTime() + veafSecurity.ELEVATION_DURATION_SECONDS,
+    pilot = pilotName,
+  }
+  veaf.loggers.get(veafSecurity.Id):info(
+    string.format(
+      "group %s elevated to level %s for %s seconds by [%s]",
+      veaf.p(groupId),
+      veaf.p(level),
+      veaf.p(veafSecurity.ELEVATION_DURATION_SECONDS),
+      veaf.p(pilotName)
+    )
+  )
+  return level
+end
+
+--- Elevate `groupId` on behalf of a pilot, **capped at that pilot's own level**.
+---
+--- This cap is the whole safety of the mechanism. Without it, any occupant could raise the group
+--- to its most privileged member's level and act with rights they were never granted — the bug
+--- this lot exists to remove, rebuilt as a feature.
+function veafSecurity.elevateGroupForPilot(groupId, requesterLevel, pilotName)
+  if not requesterLevel or requesterLevel <= 0 then
+    veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has no level, refusing to elevate", veaf.p(pilotName)))
+    return nil
+  end
+  return veafSecurity.elevateGroup(groupId, requesterLevel, pilotName)
+end
+
+--- Return the level a group acts with right now: its active elevation if any, else its minimum.
+function veafSecurity.getEffectiveGroupLevel(groupId)
+  local _elevation = veafSecurity.groupElevations[groupId]
+  if _elevation then
+    if timer.getTime() < _elevation.expiresAt then
+      return _elevation.level
+    end
+    -- Expired: drop it so the table cannot grow without bound over a long mission.
+    veafSecurity.groupElevations[groupId] = nil
+  end
+  return veafSecurity.getGroupLevel(groupId)
 end
 
 function veafSecurity.initialize()
+  -- OPEN, necessarily: this handler *is* the login command. Gating it behind a level would
+  -- mean needing to be authenticated in order to authenticate.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    return veafSecurity.executeCommand(pos, event.text, bypass)
-  end, veafCommands.PRIORITY_SECURITY)
+    -- The author travels with the event; it is what lets the elevation verb identify its
+    -- requester on this channel (REVIEW-SECURITY-LAYER ticket 01).
+    return veafSecurity.executeCommand(pos, event.text, bypass, event and event.author)
+  end, veafCommands.PRIORITY_SECURITY, "OPEN", veafSecurity.Keyphrase)
   veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
-  veafSecurity.authenticated = veaf.SecurityDisabled
+  -- Read here rather than at module load: the mission config has been applied by now, so this is
+  -- where the deprecated spelling can actually be seen (and warned about).
+  veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
 end
 
 veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo())

@@ -1,6 +1,6 @@
 # Pipeline Reference
 
-This page documents the optional **build pipeline** steps that `veaf-tools build` can run after generating `veaf-config.lua`. Each step injects data into the `.miz` file from a separate YAML configuration file.
+This page documents the optional **build pipeline** steps that `veaf-tools mission build` can run after generating `veaf-config.lua`. Each step injects data into the `.miz` file from a separate YAML configuration file.
 
 ---
 
@@ -45,6 +45,7 @@ pipeline:
 | `spawnable_aircrafts` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `dynamic_slot_templates` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 | `spawn_data` | bool \| object | always | No | `true`/unset = **always runs** (framework data embedded), `false` = disable entirely, object `{file: …}` = non-default mission file |
+| `warehouses` | bool \| object | auto | No | `true`/unset = auto-detect (run if `src/warehouses.yaml` exists), `false` = always skip, object = custom options |
 | `weather` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 
 When set to an object, the following sub-fields apply:
@@ -53,6 +54,8 @@ When set to an object, the following sub-fields apply:
 |-----------|------|---------|-------------|
 | `file` | string | *(see step defaults)* | Path to the config file, relative to the mission folder |
 | `mode` | `add` \| `replace` | `add` | *(group-injection steps only)* `add` keeps existing groups; `replace` updates same-named groups |
+| `enabled` | bool | `true` | Disables the step without losing the other sub-fields — the long form of `<step>: false` |
+| `kneeboards` | bool | `true` | *(`presets` step only)* `false` keeps the frequency injection and renders no kneeboard PNG |
 
 **Auto-detection** (when not set or `true`): the step runs only if its default file is found. Absence of the file silently skips the step.
 
@@ -62,7 +65,7 @@ When set to an object, the following sub-fields apply:
 
 Injects radio frequency presets into every aircraft group that has at least one human pilot (Client/Player skill). Also generates kneeboard PNG images for each preset.
 
-> **Disabling kneeboards**: the step's mapping form accepts a `kneeboards` sub-flag (default `true`). Setting `pipeline: { presets: { enabled: true, kneeboards: false } }` keeps the radio frequency injection but generates no kneeboard PNG plates (`KNEEBOARD/IMAGES/presets-*.png`).
+> **Disabling kneeboards**: the step's mapping form accepts a `kneeboards` sub-flag (default `true`). Setting `pipeline: { presets: { enabled: true, kneeboards: false } }` keeps the radio frequency injection but generates no kneeboard PNG plates (`KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`).
 
 ### Default file location
 
@@ -246,9 +249,9 @@ presets_assignments:
 
 Once the presets are corrected, remove the `none` line to re-enable injection.
 
-Specs cover 87 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
+Specs cover 100 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
 
-> **See also**: [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — full reference table of valid frequency ranges and list of critical aircraft.  
+> **See also**: [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.en.md) — full reference table of valid frequency ranges and list of critical aircraft.  
 > To regenerate after a DCS update: `poetry run update-radio-specs`
 
 ---
@@ -400,6 +403,96 @@ airplanes:
 
 ---
 
+## Step 4 — Dynamic-Slot Warehouses (`warehouses.yaml`) {#pipeline-step-4-warehouses}
+
+Configures DCS **Dynamic Slots** per coalition. It runs **after** aircraft
+injection (so the `dynSpawnTemplate` groups already exist) and edits the
+mission's `warehouses`: it enables `dynamicSpawn` on the selected airbases, sets
+fuel / munitions and aircraft stock, and links each offered aircraft type to its
+template group via `linkDynTempl`.
+
+### Default file location
+
+`src/warehouses.yaml` (auto-enabled when present; disable with `pipeline: { warehouses: false }`).
+
+### Schema
+
+```yaml
+<coalition>:                 # blue | red | neutral. An undeclared coalition is left untouched.
+  defaults:                  # applied to every selected airport
+    fuel: unlimited          # optional -> unlimitedFuel
+    weapons: unlimited       # optional -> unlimitedMunitions
+    aircrafts:               # aircraft types offered as dynamic slots
+      <DCS type>: { amount: unlimited | <int>, template: "<group name>" }
+  airports:                  # optional. Absent -> ALL airports of this coalition get `defaults`.
+    <name or id>: { }                       # defaults only
+    <name or id>: { aircrafts: { ... } }    # defaults + per-airport override
+```
+
+- `template` references a template group by **name**; omit it to auto-match a
+  template group of the same **aircraft type** (same coalition).
+- Airports may be named only on installed theatres present in the committed
+  airdrome table (`veaf-build update-dcs-data --airdromes`); otherwise use the
+  numeric id (visible in the mission's `warehouses` as `airports[<id>]`).
+
+### Minimal example
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+    aircrafts:
+      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
+  airports:
+    Senaki-Kolkhi: {}
+```
+
+---
+
+## Step 5 — Spawn Data (`spawn-groups.yaml`) {#pipeline-step-5-spawn-data}
+
+The `_spawn unit <alias>` and `_spawn group <alias>` marker commands rely on two Lua tables (`veafUnits.UnitsDatabase` and `veafUnits.GroupsDatabase`). Since v6 these are no longer hard-coded in `veafUnits.lua`: they come from YAML, are rendered to Lua, and **injected into the `.miz` at mission build** (DCS cannot parse YAML at runtime). See [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
+
+### Always on
+
+Unlike the other steps, `spawn_data` **always** runs (even with no mission file) because the framework spawn database must be embedded for `_spawn` to work. To disable it entirely:
+
+```yaml
+pipeline:
+  spawn_data: false
+```
+
+### Extending the database (`src/spawn-groups.yaml`)
+
+An optional `src/spawn-groups.yaml` lets a mission add or override units/groups. It is **merged over** the framework data:
+
+- a brand-new alias is **appended**;
+- an alias already present in the framework **replaces** that entry (override).
+
+### Schema
+
+```yaml
+units:                              # -> _spawn unit <alias>
+  - aliases: [myaaa]                # one or more case-insensitive aliases
+    unitType: ZSU-23-4 Shilka       # a DCS unit type id
+
+groups:                             # -> _spawn group <alias>
+  - aliases: [mysam]
+    disposition: {h: 3, w: 3}       # placement grid in cells (10m x 10m)
+    units:
+      - {type: ZSU-23-4 Shilka, cell: 1}
+      - {type: Ural-375, random: true}                       # randomized within its cell
+      - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
+    description: My custom SAM site
+    groupName: MySAM
+```
+
+Group-unit fields: `type` (required), `cell` (preferred cell), `number` (count, or `{min, max}` random), `hdg` (heading), `size` (fixed cell size in m), `random` (randomize within the cell), `fitToUnit` (cell shrunk to the unit's exact footprint).
+
+The framework database lives in `veaf_libs/data/veaf-units.yaml` (bundled with the tool).
+
+---
+
 ## Step 6 — Weather & Time Versions (`versions.yaml`) {#pipeline-step-6-versions}
 
 Creates multiple `.miz` variants from a single base mission, each with a different time and/or weather configuration.
@@ -426,7 +519,7 @@ base_date: "2024-03-15"                 # ISO 8601 (YYYY-MM-DD)
 
 # ── Mission variants ───────────────────────────────────────────────────────
 versions:
-  - name: dawn                          # REQUIRED — output filename (without .miz)
+  - name: dawn                          # REQUIRED — variant name (output filename suffix)
     time: "sunrise+30*60"               # Time expression (see below)
     date: "today"                       # Date expression (see below, optional)
     metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optional
@@ -447,7 +540,7 @@ versions:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Output filename (no `.miz`); e.g. `dawn` → `dawn.miz` |
+| `name` | string | Yes | Variant name. Inside `mission build`, the output is `missions/<BaseName>_<name>.miz` (e.g. `dawn` → `My-Mission_dawn.miz`); the bare `<name>.miz` form only exists with standalone `inject-weather` |
 | `time` | string | No | Time expression — see below |
 | `date` | string | No | Date expression — see below |
 | `metar` | string | No | Full METAR string — parsed for weather data |
@@ -510,97 +603,9 @@ versions:
 
 ---
 
-## Step 4 — Dynamic-Slot Warehouses (`warehouses.yaml`)
-
-Configures DCS **Dynamic Slots** per coalition. It runs **after** aircraft
-injection (so the `dynSpawnTemplate` groups already exist) and edits the
-mission's `warehouses`: it enables `dynamicSpawn` on the selected airbases, sets
-fuel / munitions and aircraft stock, and links each offered aircraft type to its
-template group via `linkDynTempl`.
-
-### Default file location
-
-`src/warehouses.yaml` (auto-enabled when present; disable with `pipeline: { warehouses: false }`).
-
-### Schema
-
-```yaml
-<coalition>:                 # blue | red | neutral. An undeclared coalition is left untouched.
-  defaults:                  # applied to every selected airport
-    fuel: unlimited          # optional -> unlimitedFuel
-    weapons: unlimited       # optional -> unlimitedMunitions
-    aircrafts:               # aircraft types offered as dynamic slots
-      <DCS type>: { amount: unlimited | <int>, template: "<group name>" }
-  airports:                  # optional. Absent -> ALL airports of this coalition get `defaults`.
-    <name or id>: { }                       # defaults only
-    <name or id>: { aircrafts: { ... } }    # defaults + per-airport override
-```
-
-- `template` references a template group by **name**; omit it to auto-match a
-  template group of the same **aircraft type** (same coalition).
-- Airports may be named only on installed theatres present in the committed
-  airdrome table (`veaf-build update-dcs-data --airdromes`); otherwise use the
-  numeric id (visible in the mission's `warehouses` as `airports[<id>]`).
-
-### Minimal example
-
-```yaml
-blue:
-  defaults:
-    fuel: unlimited
-    aircrafts:
-      UH-1H: { amount: unlimited, template: "DST - UH-1H" }
-  airports:
-    Senaki-Kolkhi: {}
-```
-
----
-
-## Step 5 — Spawn Data (`spawn-groups.yaml`)
-
-The `_spawn unit <alias>` and `_spawn group <alias>` marker commands rely on two Lua tables (`veafUnits.UnitsDatabase` and `veafUnits.GroupsDatabase`). Since v6 these are no longer hard-coded in `veafUnits.lua`: they come from YAML, are rendered to Lua, and **injected into the `.miz` at mission build** (DCS cannot parse YAML at runtime). See [ADR 0005](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0005-spawn-data-externalization.md).
-
-### Always on
-
-Unlike the other steps, `spawn_data` **always** runs (even with no mission file) because the framework spawn database must be embedded for `_spawn` to work. To disable it entirely:
-
-```yaml
-pipeline:
-  spawn_data: false
-```
-
-### Extending the database (`src/spawn-groups.yaml`)
-
-An optional `src/spawn-groups.yaml` lets a mission add or override units/groups. It is **merged over** the framework data:
-
-- a brand-new alias is **appended**;
-- an alias already present in the framework **replaces** that entry (override).
-
-### Schema
-
-```yaml
-units:                              # -> _spawn unit <alias>
-  - aliases: [myaaa]                # one or more case-insensitive aliases
-    unitType: ZSU-23-4 Shilka       # a DCS unit type id
-
-groups:                             # -> _spawn group <alias>
-  - aliases: [mysam]
-    disposition: {h: 3, w: 3}       # placement grid in cells (10m x 10m)
-    units:
-      - {type: ZSU-23-4 Shilka, cell: 1}
-      - {type: Ural-375, random: true}                       # randomized within its cell
-      - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
-    description: My custom SAM site
-    groupName: MySAM
-```
-
-Group-unit fields: `type` (required), `cell` (preferred cell), `number` (count, or `{min, max}` random), `hdg` (heading), `size` (fixed cell size in m), `random` (randomize within the cell), `fitToUnit` (cell shrunk to the unit's exact footprint).
-
-The framework database lives in `veaf_libs/data/veaf-units.yaml` (bundled with the tool).
-
 ---
 
 ## See Also
 
-- [mission.yaml Reference](MISSION_YAML_REFERENCE.md) — top-level mission configuration
-- [Mission Maker Guide](mission-maker/GUIDE.md) — complete workflow
+- [mission.yaml Reference](MISSION_YAML_REFERENCE.en.md) — top-level mission configuration
+- [Mission Maker Guide](mission-maker/GUIDE.en.md) — complete workflow

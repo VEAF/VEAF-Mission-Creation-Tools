@@ -23,9 +23,9 @@ veafCarrierOperations.Id = "CARRIER"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
-veafCarrierOperations.RadioMenuName = "CARRIER OPS"
-veafCarrierOperations.RadioMenuNameBlue = "CARRIER OPS - BLUE"
-veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"
+veafCarrierOperations.RadioMenuName = "menu.carrier.root"
+veafCarrierOperations.RadioMenuNameBlue = "menu.carrier.root_blue"
+veafCarrierOperations.RadioMenuNameRed = "menu.carrier.root_red"
 veafCarrierOperations.DisableSecurity = false
 
 veafCarrierOperations.AllCarriers = {
@@ -519,7 +519,12 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
         tankerUnit = Unit.getByName(carrier.tankerUnitName)
         local tankerGroup = Group.getByName(carrier.tankerUnitName) -- group has the same name as the unit
-        if tankerGroup then
+        -- VMR-018: `carrier.tankerData` is dereferenced twice inside this block — for the TACAN
+        -- task and for the radio frequency — and a guard further down (`if carrier.tankerData then`
+        -- before the report) proves the code already knows it can be absent. Added to the entry
+        -- condition rather than as two inner guards: with no tanker data there is nothing this
+        -- block can usefully set up, so skipping it whole is both simpler and the intent.
+        if tankerGroup and carrier.tankerData then
           veaf.loggers.get(veafCarrierOperations.Id):debug("found Tanker group")
           veaf.loggers.get(veafCarrierOperations.Id):trace("groupName=" .. tankerGroup:getName())
 
@@ -834,7 +839,7 @@ function veafCarrierOperations.rebuildRadioMenu()
       -- add the stop menu
       if veafCarrierOperations.DisableSecurity then
         veafRadio.addCommandToSubmenu(
-          "End air operations",
+          veaf.t("menu.carrier.end_ops"),
           carrier.menuPath,
           veafCarrierOperations.stopCarrierOperations,
           name,
@@ -842,7 +847,7 @@ function veafCarrierOperations.rebuildRadioMenu()
         )
       else
         veafRadio.addSecuredCommandToSubmenu(
-          "End air operations",
+          veaf.t("menu.carrier.end_ops"),
           carrier.menuPath,
           veafCarrierOperations.stopCarrierOperations,
           name,
@@ -893,7 +898,7 @@ function veafCarrierOperations.rebuildRadioMenu()
 
     -- add the ATC menu (by player group)
     veafRadio.addCommandToSubmenu(
-      "ATC - Request informations",
+      veaf.t("menu.carrier.atc_info"),
       carrier.menuPath,
       veafCarrierOperations.atcForCarrierOperations,
       name,
@@ -913,13 +918,19 @@ function veafCarrierOperations.buildRadioMenu()
     return
   end
 
-  veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
-  veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameBlue, veafCarrierOperations.rootPath)
-  veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameRed, veafCarrierOperations.rootPath)
+  veafCarrierOperations.rootPath = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuName))
+  veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameBlue), veafCarrierOperations.rootPath)
+  veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameRed), veafCarrierOperations.rootPath)
 
   -- build HELP menu for each group
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCarrierOperations.rootPath, veafCarrierOperations.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.common.help"),
+      veafCarrierOperations.rootPath,
+      veafCarrierOperations.help,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
   end
 
   veafCarrierOperations.rebuildRadioMenu()
@@ -1110,10 +1121,10 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
       return true
     elseif _action and _action:lower() == "start" and _carrierName then
       ---@type number
-      local _duration = 45
-      if _parameters and type(_parameters) == "number" then
-        _duration = tonumber(parameters) or 45
-      end
+      -- VMR-086: `_parameters` comes from a string match, so it is never a number and the
+      -- duration the caller asked for was dropped on the floor. The dead branch also read a
+      -- global `parameters` instead of `_parameters`, which is why nothing ever noticed.
+      local _duration = tonumber(_parameters) or 45
       local _carrier = findCarrier(_carrierName)
       veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_duration=%s", veaf.p(_duration)))
       veaf.loggers.get(veafCarrierOperations.Id):info(

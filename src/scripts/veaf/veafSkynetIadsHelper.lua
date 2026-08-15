@@ -198,9 +198,18 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
 
   veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list) -- not removed here
 
+  -- VMR-096: getDcsGroupFromSkynetElement returns nil once the DCS representation is gone, which
+  -- is exactly the case this function is called in — so asking the group for its name raised, and
+  -- the network kept listing a group that no longer exists. `dcsName` carries the group name for
+  -- the SAM sites removed here (addGroupsToNetwork compares it against a group name), so the
+  -- entry can still be cleared under the right key.
   local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(skynetElement)
-  ---@diagnostic disable-next-line: need-check-nil
-  veafSkynetNetwork.groups[dcsGroup:getName()] = nil
+  local groupName = (dcsGroup and dcsGroup:getName()) or skynetElement.dcsName
+  if groupName then
+    veafSkynetNetwork.groups[groupName] = nil
+  else
+    veaf.loggers.get(veafSkynet.Id):warn("cannot tell which group to remove from the network for a skynet element with no name")
+  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -619,7 +628,18 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
     else
       defended_name = pointDefense
       local defended_SAM = iads:getSAMSiteByGroupName(defended_name)
-      local defended_EWR = iads:getEarlyWarningRadars(defended_name)
+      -- VMR-024: this used to call `getEarlyWarningRadars(defended_name)`. Skynet's signature is
+      -- `getEarlyWarningRadars()` — it takes **no argument** and returns *every* EWR as a table
+      -- delegator, so the name was silently ignored and the result was always truthy. The lookup
+      -- therefore never failed, and `defended_site` became the whole collection rather than the
+      -- radar that was asked for.
+      --
+      -- `getEarlyWarningRadarByUnitName` is the accessor that does what the call meant: it matches
+      -- on `getDCSName()`, exactly as `getSAMSiteByGroupName` does for SAM sites. The asymmetry in
+      -- the two method names is Skynet's — a SAM site's DCS name is its group, an EWR's is its unit
+      -- — so a `defended_name` naming a *group* whose EWR unit is named differently will now
+      -- correctly find nothing instead of incorrectly finding everything.
+      local defended_EWR = iads:getEarlyWarningRadarByUnitName(defended_name)
 
       local defended_site = defended_EWR
       if defended_SAM then

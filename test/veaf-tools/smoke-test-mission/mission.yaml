@@ -1,0 +1,296 @@
+# mission.yaml — optional build-time configuration for veaf-tools
+#
+# Place this file at the root of your mission folder (next to veaf-tools-updater.exe).
+# If absent, veaf-tools build works with default settings.
+#
+# Doc: https://veaf.github.io/documentation/dev/mission-maker/GUIDE/
+
+# ── YAML syntax quick reference ─────────────────────────────────────────────
+# Indentation: spaces only (never tabs). Each level = 2 spaces.
+# Quotes: only needed when a value contains  :  #  {  [  or starts with a digit.
+#   name: Mon-Vol-01            # OK — no quotes needed
+#   name: "Vol: Aller-Retour"   # required — value contains :
+#   Also required when the value contains escape sequences such as  \n  \t
+#   briefing: "Intercept bandits\nRTB when done"  # required — contains \n
+# Multiline text: use  |  (literal block) — each continuation line indented by 2 extra spaces.
+#   briefing: |
+#     second line
+# Lists: each item on its own line, preceded by  -
+#   groups:
+#     - MIG-29_SOLO
+#     - MIG-21_SOLO
+# Booleans: true / false  (without quotes)
+# Empty value (mandatory modules): MODULE:   (nothing after the colon)
+# ────────────────────────────────────────────────────────────────────────────
+
+# ── Global log level ─────────────────────────────────────────────────────────
+# Forces veaf.ForcedLogLevel in the built mission. Applies to every module.
+# Values: error | warning | info | debug | trace
+# Remove or set to info before deploying to players.
+#
+# global_log_level: debug
+
+# ── Mission ──────────────────────────────────────────────────────────────────
+# Identity (name, export path, era) and mission-wide options (silence_atc…).
+# mission:
+#   name: My-Mission            # shown in radio menus and log messages
+#   export_path: null           # null = default DCS Saved Games path
+#   era: MODERN                 # MODERN | COLD_WAR | WW2
+#   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
+#   silence_atc_on_all_airbases: true   # mute DCS ATC at every airdrome
+#   third_party_mods: [MyAircraftMod]   # extra DCS third-party aircraft mods to make
+#                               # non-blocking (unioned with the VEAF default list): the
+#                               # mission loads even for pilots who lack the mod — that
+#                               # slot is simply unavailable. Common mods are covered by
+#                               # default; list here only ones not already handled.
+
+# ── Security ─────────────────────────────────────────────────────────────────
+# security:
+#   disabled: true              # true = no password required (default: false — security is active)
+#   password_hashes:            # SHA-1 hashes to restrict JTF/admin access (sha1.hex of the password)
+#     - "<SHA-1 hash>"
+#   password_mm_hashes:         # SHA-1 hashes to restrict Mission Master access
+#     - "<SHA-1 hash>"
+
+# ── Module configuration ──────────────────────────────────────────────────────
+# Enable or disable VEAF modules and community scripts in one unified block.
+# This default activates a sensible baseline (VEAF F10 menu, spawn, airbases,
+# weather, …) so a fresh mission works out of the box — mirroring what convert-v5
+# produces. Toggle with  MODULE: true / false ; mandatory modules are bare
+# (MODULE:). Modules that need their own config block are shown commented below;
+# uncomment and fill them in to enable.
+modules:
+  # ── Infrastructure (mandatory — always active) ────────────────────────────
+  UNITS:
+  TIME:
+  CACHE:
+  EVENTS:
+  MARKERS:
+  COMMANDS:
+  MIST:                     # MiST community lib — mandatory (VEAF dependency), always injected
+  # ── Core ─────────────────────────────────────────────────────────────────
+  SECURITY: true
+  RADIO: true               # the VEAF F10 radio menu
+  # RADIO (extended form, instead of `RADIO: true`):
+  #   RADIO:
+  #     enabled: true
+  #     init:
+  #       help_menus: true
+  #     user_menus:            # Mission-Master F10 menus in YAML (FEAT-RADIO-YAML-MENUS)
+  #       restrict_to_group: "MM Ctrl"   # optional: DCS group name; absent = global menu
+  #       tree:
+  #         - menu: "Flags"
+  #           items:
+  #             - { command: "Enable ALPHA", action: flag.on, flag: "alpha" }
+  #             - { command: "Start QRA North", action: qra.start, qra: "QRA-North" }
+  GROUNDAI: true
+  SPAWN: true
+  NAMEDPOINTS: true
+  SHORTCUTS: true           # built-in aliases (-shilka, -sa2, …) ; add custom ones with the extended form below
+  # SHORTCUTS (extended form, to add custom aliases on top of the built-in ones):
+  #   SHORTCUTS:
+  #     enabled: true
+  #     shortcuts:
+  #       - name: smoke
+  #         description: Smoke command shortcut
+  #         command: /_smoke
+  #         bypass_security: false
+  # ── Features ─────────────────────────────────────────────────────────────
+  MOVE: true
+  GRASS: true
+  WEATHER: true
+  REMOTE: true
+  AIRBASES: true
+  INTERPRETER: true
+  # MISSILEGUARDIAN: true   # missile-guardian protection (off by default)
+  # ASSETS needs an `assets:` list — uncomment and fill in to enable:
+  #   ASSETS:
+  #     enabled: true
+  #     assets:
+  #       - sort: 1
+  #         name: T1-Arco-1
+  #         description: Arco-1 (KC-135)
+  #         information: "Tacan 64Y\nU290.50 (20)"
+  # ASSIST offers guided checklists from the F10 menu (Assistance / …). Off by default:
+  # every activated checklist bakes one picture per step into the .miz.
+  # With no `checklists:` list, the checklists you drop in this mission's `checklists/`
+  # folder are activated — never the whole shipped catalogue.
+  #   ASSIST:
+  #     enabled: true
+  #     display: picture          # `picture` (nice, ~10 KB per step) or `text` (free)
+  #     checklists: [f16c-cold-start]
+  # SANCTUARY needs `sanctuary_zones:` — uncomment and fill in to enable:
+  #   SANCTUARY:
+  #     enabled: true
+  #     sanctuary_zones:
+  #       - name: Base Alpha
+  #         polygon_units:
+  #           - Sanctuary-Unit-1
+  #           - Sanctuary-Unit-2
+  #         coalition: BLUE
+  #         delay_warning: 30
+  #         delay_spawn: 60
+  # ── Combat ────────────────────────────────────────────────────────────────
+  CASMISSION: true          # `_cas` marker — on-demand CAS target group (no config)
+  TRANSPORTMISSION: true    # `_transport` marker — on-demand transport mission (no config)
+  # The rest need configuration — enable + configure as needed:
+  # COMBATMISSION: true
+  # CARRIER: true             # carrier-operations radio menus (if a carrier is present)
+  #   COMBATZONE:
+  #     enabled: true
+  #     combat_zone_settings:
+  #       event_message_combatzonecomplete: Combat Zone complete!
+  #       watchdog_check_interval: 30
+  #       radio_menu_name: Combat Zones
+  #     combat_zones:
+  #       - type: zone
+  #         zone_name: CZ-Alpha
+  #         friendly_name: Alpha Zone
+  #         radio_group_name: North   # gather same-named zones under one shared radio submenu
+  #         radio_menu_prefix: BLUE   # prefix shown before the zone label in the menu
+  #         training: false
+  #         active_at_start: true   # activate this zone automatically at mission start
+  #         completable: true       # false = never auto-completes on its own
+  #         enemy_coalition: RED    # RED | BLUE — the hostile side; BLUE = zone played from the red side
+  #         radio_menu_coalition: ALL   # RED | BLUE | ALL — who is offered the F10 menu
+  #                                     # (default: the side playing the zone; ALL = both)
+  #   QRA:
+  #     enabled: true
+  #     silence_all: false
+  #     definitions:
+  #       - name: Base QRA
+  #         coalition: RED
+  #         enemy_coalitions:
+  #           - BLUE
+  #         trigger_zone: QRA zone
+  #         zone_radius: 30000
+  #         groups_by_enemy_count:
+  #           - enemy_count: 1
+  #             groups:
+  #               - Group1
+  #               - Group2
+  #             random_pick: 1
+  #         delay_before_rearming: 30
+  #         delay_before_activating: 30
+  #         active_at_start: true   # false = declared but not armed; wait for a qra.start radio command
+  #   AIRWAVES:
+  #     enabled: true
+  #     airwave_zones:
+  #       - name: BVR Zone
+  #         start: true
+  #         player_coalitions:
+  #           - BLUE
+  #         zone_center_coordinates: "N41°00'00\" E044°00'00\""
+  #         zone_radius: 50000
+  #         delay_between_waves: 120
+  #         waves:
+  #           - groups: su27-2ship
+  #             delay: 0
+  # ── Community scripts (off by default — enable what your mission uses) ─────
+  # (MiST is mandatory and lives in the Infrastructure block above.)
+  STTS: false
+  CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
+  AIEN: false
+  CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
+  HERCULES: false
+  SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, ... }
+  TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
+
+# Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block
+# above (single source of truth). There is no separate `external_modules:` or
+# `qra:` section any more.
+# CTLD is the exception: it takes only its on/off flag here, and its settings live
+# in `ctld-config.yaml` next to this file — a complete configuration snapshot you
+# edit with `ctld-tools.exe` (double-click it, it opens in your browser). The build
+# injects that file into the mission; do not use the tool's own "inject into .miz"
+# button on a VEAF mission, the next build would overwrite it.
+
+# ── CAP missions ──────────────────────────────────────────────────────────────
+# Requires COMBATMISSION module enabled in modules above.
+# cap_missions:
+#   - group_name: CAP Group
+#     menu_name: CAP
+#     briefing: CAP mission briefing
+#     default: false
+#     activated: true
+
+# ── Combat missions ───────────────────────────────────────────────────────────
+# Requires COMBATMISSION module enabled in modules above.
+# combat_missions:
+#   - name: Mission Name
+#     friendly_name: Display Name
+#     secured: false
+#     radio_menu_enabled: true
+#     briefing: |
+#       Multi-line briefing text here.
+#     elements:
+#       - name: Element Name
+#         groups:
+#           - Group1
+#           - Group2
+#         scalable: true
+
+# ── DCS Bridge ───────────────────────────────────────────────────────────────
+# Optionally inject dcs-bridge.lua as the very first DO SCRIPT FILE trigger.
+# dcs_bridge:
+#   enabled: false
+#   lua_path: null      # optional — auto-download when absent
+
+# ── Custom scripts ────────────────────────────────────────────────────────────
+# custom_scripts:
+#   generate_load_trigger: true
+#   scripts:
+#     - path: src/scripts/FgMission.lua
+#     - path: src/scripts/FgTools.lua
+#       generate_load_trigger: false
+#     - path: src/scripts/AIEN.lua
+#       delay_seconds: 12        # load 12 s after mission start, in a trigger of its own.
+#                                # The delay decides the order, not the position in this list;
+#                                # a script that inventories the world at load time needs the
+#                                # scripts that create groups to have run first.
+
+# ── Build pipeline ────────────────────────────────────────────────────────────
+# pipeline:
+#   presets: false                  # scalar; or the mapping form below:
+#   presets:
+#     enabled: true                 # inject radio presets (default true)
+#     kneeboards: false             # skip kneeboard PNG generation, keep radio injection (default true)
+#   waypoints: true
+#   spawnable_aircrafts:            # src/spawnables.yaml (veafSpawn- groups)
+#     file: src/spawnables.yaml
+#     mode: replace
+#   dynamic_slot_templates: true    # src/dynamic-slot-templates.yaml (dynSpawnTemplate)
+#   warehouses: true                # src/warehouses.yaml (Dynamic-Slot warehouses)
+#   spawn_data: true                # always on; src/spawn-groups.yaml extends the spawn DB. false = disable
+#   weather: false
+
+# ── Build settings ────────────────────────────────────────────────────────────
+# Usually set via the CLI (--dev-mode, --scripts-path, --dynamic-mode) and persisted here.
+# build:
+#   dev_mode: false         # true = resolve scripts from a local dev repo
+#   # scripts_path: null    # path to VEAF-Mission-Creation-Tools repo root (dev mode)
+#   dynamic_loading: false  # true = load scripts from disk at runtime (dev/test); profile-overridable
+
+# ── Version pinning ──────────────────────────────────────────────────────────────────────────────
+# veaf_tools:
+#   version: "6"         # accept any 6.x.x
+
+# ── Build profiles ────────────────────────────────────────────────────────────
+# profiles:
+#   TEST:
+#     global_log_level: debug
+#     security:
+#       disabled: true
+#     pipeline:
+#       weather: false
+#   SERVER:
+#     global_log_level: info
+#     pipeline:
+#       weather: true
+
+# ── Build configuration ─────────────────────────────────────────────────────
+# Persisted build settings — set via --dev-mode / --scripts-path CLI flags.
+# Note: scripts_path is usually machine-specific.
+#
+# (built with `veaf-tools mission build --dev-mode --scripts-path <repo>`; dev_mode is not persisted
+#  here so the committed fixture stays machine-independent — pass the flags at build time)

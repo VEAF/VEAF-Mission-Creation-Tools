@@ -8,22 +8,20 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 
 
 def _make_worker(mission_yaml: dict, mission_folder: Path | None = None) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the
     attributes needed by dcs-bridge methods."""
-    worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-    worker.mission_yaml = mission_yaml
-    worker.mission_folder = mission_folder or Path(tempfile.mkdtemp())
-    worker.scripts_path = None
-    worker.output_mission = worker.mission_folder / "out.miz"
-    worker.dcs_mission = None
     # Parse dcs_bridge config the same way __init__ does
     dcsb_cfg: dict = mission_yaml.get("dcs_bridge") or {}
-    worker.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
-    worker.dcs_bridge_lua_path: str | None = dcsb_cfg.get("lua_path")
-    return worker
+    return make_worker(
+        mission_yaml=mission_yaml,
+        mission_folder=mission_folder or Path(tempfile.mkdtemp()),
+        dcs_bridge_enabled=bool(dcsb_cfg.get("enabled", False)),
+        dcs_bridge_lua_path=dcsb_cfg.get("lua_path"),
+    )
 
 
 class TestDcsBridgeParsing(unittest.TestCase):

@@ -42,7 +42,7 @@ veafCasMission.BlueCasGroupName = "Blue CAS Group"
 veafCasMission.casGroupName = veafCasMission.RedCasGroupName
 veafCasMission.afacName = nil
 
-veafCasMission.RadioMenuName = "CAS MISSION"
+veafCasMission.RadioMenuName = "menu.casmission.root"
 
 veafCasMission.TRANSPORT_TYPES = {
   [coalition.side.BLUE] = {
@@ -399,6 +399,9 @@ veafCasMission.flareResetTaskID = "none"
 veafCasMission.SIDE_RED = coalition.side.RED
 veafCasMission.SIDE_BLUE = coalition.side.BLUE
 
+--- Seconds a bare `disperse` keyword asks for, when the pilot names no delay.
+veafCasMission.DEFAULT_DISPERSE_DELAY = 15
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -460,117 +463,80 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The CAS module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. Bounds are asymmetric and unchanged: `size` and `spacing`
+--- start at 1, `defense` and `armor` accept 0. Out-of-range values stay *ignored* rather than
+--- clamped, which is what `VMR-019` settled on.
+---
+--- The five `if switch.casmission and ...` guards are gone rather than translated into `when`
+--- predicates: the flag is set before the loop and the function returns nil when the keyphrase is
+--- absent, so all five were always true.
+veafCasMission.MarkerSpec = {
+  defaults = function(options)
+    options.casmission = false
+    options.size = 1 -- ranges from 1 to 5, 5 being the biggest
+    options.defense = 1 -- defenses force ; 1 to 5, 5 being the toughest
+    options.armor = 1 -- armor force ; 1 to 5, 5 being the strongest and most modern
+    options.spacing = 1 -- 1 is the default, 5 the widest spacing
+    options.disperseOnAttack = false
+    options.password = nil
+    options.side = nil
+  end,
+  commands = {
+    {
+      match = veafCasMission.Keyphrase,
+      init = function(options)
+        options.casmission = true
+      end,
+    },
+  },
+  parameters = {
+    { keys = { "password" }, apply = veaf.markerRules.text("password") },
+    { keys = { "size" }, apply = veaf.markerRules.boundedNumber("size", 1, 5) },
+    { keys = { "defense" }, apply = veaf.markerRules.boundedNumber("defense", 0, 5) },
+    { keys = { "armor" }, apply = veaf.markerRules.boundedNumber("armor", 0, 5) },
+    { keys = { "spacing" }, apply = veaf.markerRules.boundedNumber("spacing", 1, 5) },
+    {
+      -- A valueless `side` leaves the side unset rather than falling through to RED, since
+      -- executeCommand then derives it from the marker's own coalition. Note the value is NOT
+      -- trimmed, so `side  BLUE` with two spaces is " BLUE" and resolves to RED — a recorded
+      -- defect, reproduced here and fixed in its own commit.
+      keys = { "side" },
+      apply = function(options, value)
+        if value then
+          if value:upper() == "BLUE" then
+            options.side = veafCasMission.SIDE_BLUE
+          else
+            options.side = veafCasMission.SIDE_RED
+          end
+        end
+      end,
+    },
+    {
+      -- A bare `disperse` means "disperse, after the default 15 seconds". The old code expressed
+      -- that as `if val ~= "" then tonumber(val) else 15 end`, but `veaf.breakString` returns nil
+      -- for a valueless keyword and never `""`, so the `else` was unreachable and a bare
+      -- `disperse` silently did nothing at all. Both empty forms now reach the default.
+      keys = { "disperse" },
+      apply = function(options, value)
+        if value == nil or value == "" then
+          options.disperseOnAttack = veafCasMission.DEFAULT_DISPERSE_DELAY
+          return
+        end
+        local converted = veaf.safeNumber(value)
+        if converted then
+          options.disperseOnAttack = converted
+        end
+      end,
+    },
+  },
+  valueWhenAbsent = nil,
+}
+
 --- Extract keywords from mark text.
 function veafCasMission.markTextAnalysis(text)
-  -- Option parameters extracted from the mark text.
-  local switch = {}
-  switch.casmission = false
-
-  -- size ; ranges from 1 to 5, 5 being the biggest.
-  switch.size = 1
-
-  -- defenses force ; ranges from 1 to 5, 5 being the toughest.
-  switch.defense = 1
-
-  -- armor force ; ranges from 1 to 5, 5 being the strongest and most modern.
-  switch.armor = 1
-
-  -- spacing ; ranges from 1 to 5, 1 being the default and 5 being the widest spacing.
-  switch.spacing = 1
-
-  -- disperse on attack ; self explanatory, if keyword is present the option will be set to true
-  switch.disperseOnAttack = false
-
-  -- password
-  switch.password = nil
-
-  -- coalition
-  switch.side = nil
-
-  -- Check for correct keywords.
-  if text:lower():find(veafCasMission.Keyphrase) then
-    switch.casmission = true
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2]
-
-    if key:lower() == "password" then
-      -- Unlock the command
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword password", val))
-      switch.password = val
-    end
-
-    if switch.casmission and key:lower() == "size" then
-      -- Set size.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword size = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
-        switch.size = nVal
-      end
-    end
-
-    if switch.casmission and key:lower() == "defense" then
-      -- Set defense.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword defense = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
-        switch.defense = nVal
-      end
-    end
-
-    if switch.casmission and key:lower() == "armor" then
-      -- Set armor.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword armor = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 0 then
-        switch.armor = nVal
-      end
-    end
-
-    if switch.casmission and key:lower() == "spacing" then
-      -- Set spacing.
-      veaf.loggers.get(veafCasMission.Id):debug(string.format("Keyword spacing = %d", val))
-      local nVal = tonumber(val)
-      if nVal <= 5 and nVal >= 1 then
-        switch.spacing = nVal
-      end
-    end
-
-    if key:lower() == "side" then
-      -- Set side
-      veaf.loggers.get(veafCasMission.Id):trace(string.format("Keyword side = %s", val))
-      if val:upper() == "BLUE" then
-        switch.side = veafCasMission.SIDE_BLUE
-      else
-        switch.side = veafCasMission.SIDE_RED
-      end
-    end
-
-    if switch.casmission and key:lower() == "disperse" then
-      -- Set disperse on attack.
-      veaf.loggers.get(veafCasMission.Id):debug("Keyword disperse = %s", val)
-
-      if val ~= "" then
-        local nVal = tonumber(val)
-        if nVal then
-          switch.disperseOnAttack = nVal
-        end
-      else
-        switch.disperseOnAttack = 15
-      end
-    end
-  end
-
-  return switch
+  return veaf.parseMarkerText(text, veafCasMission.MarkerSpec)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1079,7 +1045,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
 
   -- build menu for each player
   veafRadio.addCommandToSubmenu(
-    "Target information",
+    veaf.t("menu.casmission.info"),
     veafCasMission.rootPath,
     veafCasMission.reportTargetInformation,
     nil,
@@ -1087,11 +1053,15 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   )
 
   -- add radio menus for commands
-  veafRadio.addSecuredCommandToSubmenu("Skip current objective", veafCasMission.rootPath, veafCasMission.skipCasTarget)
-  veafCasMission.targetMarkersPath = veafRadio.addSubMenu("Target markers", veafCasMission.rootPath)
-  veafRadio.addCommandToSubmenu("Request smoke on target area", veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.casmission.skip"), veafCasMission.rootPath, veafCasMission.skipCasTarget)
+  veafCasMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.casmission.markers"), veafCasMission.rootPath)
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over target area",
+    veaf.t("menu.casmission.request_smoke"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.smokeCasTargetGroup
+  )
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_flare"),
     veafCasMission.targetMarkersPath,
     veafCasMission.flareCasTargetGroup
   )
@@ -1157,7 +1127,7 @@ function veafCasMission.smokeCasTargetGroup()
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.casGroupName), trigger.smokeColor.Red)
   trigger.action.outText(veaf.t("cas.smoke_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
-  veafRadio.addCommandToSubmenu("Target is marked with red smoke", veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.smoke_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.smokeResetTaskID =
     mist.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
@@ -1166,7 +1136,11 @@ end
 --- Reset the smoke request radio menu
 function veafCasMission.smokeReset()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target is marked with red smoke")
-  veafRadio.addCommandToSubmenu("Request smoke on target area", veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_smoke"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.smokeCasTargetGroup
+  )
   trigger.action.outText(veaf.t("cas.smoke_available"), 5)
   veafRadio.refreshRadioMenu()
 end
@@ -1176,7 +1150,7 @@ function veafCasMission.flareCasTargetGroup()
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.casGroupName))
   trigger.action.outText(veaf.t("cas.illum_requested"), 5)
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
-  veafRadio.addCommandToSubmenu("Target area is marked with illumination flare", veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.flare_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.flareResetTaskID =
     mist.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
@@ -1186,7 +1160,7 @@ end
 function veafCasMission.flareReset()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target area is marked with illumination flare")
   veafRadio.addCommandToSubmenu(
-    "Request illumination flare over target area",
+    veaf.t("menu.casmission.request_flare"),
     veafCasMission.targetMarkersPath,
     veafCasMission.flareCasTargetGroup
   )
@@ -1257,9 +1231,9 @@ end
 
 --- Build the initial radio menu
 function veafCasMission.buildRadioMenu()
-  veafCasMission.rootPath = veafRadio.addSubMenu(veafCasMission.RadioMenuName)
+  veafCasMission.rootPath = veafRadio.addSubMenu(veaf.t(veafCasMission.RadioMenuName))
   if not veafRadio.skipHelpMenus then
-    veafRadio.addCommandToSubmenu("HELP", veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
   end
 end
 
@@ -1279,7 +1253,7 @@ function veafCasMission.initialize()
     -- Markers spawn the CAS target for the opposing side by default.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     return veafCasMission.executeCommand(pos, event.text, spawnSide, event.idx, bypass)
-  end, veafCommands.PRIORITY_CASMISSION)
+  end, veafCommands.PRIORITY_CASMISSION, veafCommands.SECURITY_HANDLED)
 end
 
 veaf.loggers.get(veafCasMission.Id):info(veaf.loggers.get(veafCasMission.Id):getVersionInfo())

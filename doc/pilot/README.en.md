@@ -18,15 +18,16 @@ That's it. You're using VEAF Mission Creation Tools.
 
 | Feature | How | Description |
 |---------|-----|-------------|
-| **Spawn units** | F10 marker: `-alias` (e.g. `-sa6`, `-armor`, `-farp`) | Create units at marker position — see [shortcuts list](../mission-maker/scripts/veafShortcuts.md) |
-| **CAS training** | F10 menu → CAS Mission → Generate | Random ground targets with configurable difficulty |
+| **Spawn units** | F10 marker: `-alias` (e.g. `-sa6`, `-armor`, `-farp`) | Create units at marker position — see [shortcuts list](../mission-maker/scripts/veafShortcuts.en.md) |
+| **CAS training** | F10 marker: `_cas` | Random ground targets with configurable difficulty; the **CAS MISSION** radio menu then reports on them and calls smoke |
 | **Activate missions** | F10 menu → Missions → [Name] → Activate | Pre-built combat scenarios (CAP, strike, SEAD…) |
-| **Combat zones** | F10 menu → Combat Zones → [Zone] → Activate | Persistent combat areas with objectives |
+| **Combat zones** | F10 menu → Combat Zones → [Zone] → Activate zone | Persistent combat areas with objectives |
 | **Manage assets** | F10 menu → Assets | Tanker/AWACS info, carrier recovery, respawn |
-| **Authenticate** | F10 marker: `_auth [PASSWORD]` | Unlock restricted commands on multiplayer servers |
+| **Guided checklists** | F10 menu → Assistance → [procedure] | The mission boxes the right switch in your cockpit and ticks the line once you have it in the right position — see [guided checklists](../mission-maker/scripts/veafAssist.en.md#for-pilots) |
+| **Elevate your group** | F10 marker: `_auth elevate` | Raise the group to your own level for 2 minutes (the F10 menu acts at the level of the group's lowest-graded occupant) |
 
 ---
 
 ## Full Reference
 
-The [complete Pilot Guide](GUIDE.md) covers all commands, options, radio menus, and tips by aircraft role.
+The [complete Pilot Guide](GUIDE.en.md) covers all commands, options, radio menus, and tips by aircraft role.

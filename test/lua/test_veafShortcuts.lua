@@ -16,7 +16,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
-dofile(src .. "/veafSecurity.lua")   -- veafShortcuts references sha1 / veafSecurity constants
+dofile(src .. "/veafSecurity.lua") -- veafShortcuts references sha1 / veafSecurity constants
 dofile(src .. "/veafShortcuts.lua")
 
 -- ============================================================================
@@ -64,7 +64,7 @@ function TestVeafShortcuts:test_default_description_is_nil()
 end
 
 function TestVeafShortcuts:test_default_randomParameters_is_empty()
-  local a      = VeafAlias:new()
+  local a = VeafAlias:new()
   local params = a:getRandomParameters()
   luaunit.assertNotNil(params)
   luaunit.assertEquals(#params, 0)
@@ -79,7 +79,7 @@ function TestVeafShortcuts:test_setName_getName_round_trip()
 end
 
 function TestVeafShortcuts:test_setName_returns_self_for_chaining()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:setName("-test")
   luaunit.assertEquals(ret, a)
 end
@@ -111,7 +111,7 @@ function TestVeafShortcuts:test_dontEndWithComma_clears_flag()
 end
 
 function TestVeafShortcuts:test_dontEndWithComma_returns_self()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:dontEndWithComma()
   luaunit.assertEquals(ret, a)
 end
@@ -184,19 +184,19 @@ function TestVeafShortcuts:test_addRandomParameter_single_entry()
   local params = a:getRandomParameters()
   luaunit.assertEquals(#params, 1)
   luaunit.assertEquals(params[1].name, "size")
-  luaunit.assertEquals(params[1].low,  1)
+  luaunit.assertEquals(params[1].low, 1)
   luaunit.assertEquals(params[1].high, 6)
 end
 
 function TestVeafShortcuts:test_addRandomParameter_multiple_entries()
   local a = VeafAlias:new()
   a:addRandomParameter("defense", 2, 5)
-  a:addRandomParameter("size",    1, 3)
+  a:addRandomParameter("size", 1, 3)
   luaunit.assertEquals(#a:getRandomParameters(), 2)
 end
 
 function TestVeafShortcuts:test_addRandomParameter_returns_self()
-  local a   = VeafAlias:new()
+  local a = VeafAlias:new()
   local ret = a:addRandomParameter("size", 1, 6)
   luaunit.assertEquals(ret, a)
 end
@@ -213,7 +213,7 @@ function TestVeafShortcuts:test_fluent_chain_all_setters()
     :setHidden(true)
     :dontEndWithComma()
 
-  luaunit.assertEquals(a:getName(),        "-myalias")
+  luaunit.assertEquals(a:getName(), "-myalias")
   luaunit.assertEquals(a:getVeafCommand(), "_spawn test")
   luaunit.assertEquals(a:getDescription(), "A description")
   luaunit.assertTrue(a:isBypassSecurity())
@@ -241,7 +241,7 @@ function TestVeafShortcuts:test_AddAlias_normalises_to_lowercase_key()
 end
 
 function TestVeafShortcuts:test_AddAlias_returns_alias()
-  local a   = VeafAlias:new():setName("-ret")
+  local a = VeafAlias:new():setName("-ret")
   local ret = veafShortcuts.AddAlias(a)
   luaunit.assertEquals(ret, a)
 end
@@ -265,7 +265,7 @@ end
 -- -----------------------------------------------------------------------
 function TestVeafShortcuts:test_markTextAnalysis_alias_with_remainder()
   local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis("-sa6 size 3")
-  luaunit.assertEquals(alias,     "-sa6")
+  luaunit.assertEquals(alias, "-sa6")
   luaunit.assertEquals(remainder, " size 3")
 end
 
@@ -276,9 +276,9 @@ end
 
 function TestVeafShortcuts:test_markTextAnalysis_alias_with_coords_and_delay()
   local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis("-sa6#N45E033!30 extra")
-  luaunit.assertEquals(alias,     "-sa6")
-  luaunit.assertEquals(coords,    "N45E033")
-  luaunit.assertEquals(delay,     "30")
+  luaunit.assertEquals(alias, "-sa6")
+  luaunit.assertEquals(coords, "N45E033")
+  luaunit.assertEquals(delay, "30")
   luaunit.assertEquals(remainder, " extra")
 end
 
@@ -297,7 +297,7 @@ end
 function TestVeafShortcuts:test_markTextAnalysis_comma_in_remainder()
   -- Comma is excluded from alias name by the pattern
   local alias, _, _, remainder = veafShortcuts.markTextAnalysis("-sa6, defense 3")
-  luaunit.assertEquals(alias,     "-sa6")
+  luaunit.assertEquals(alias, "-sa6")
   luaunit.assertEquals(remainder, ", defense 3")
 end
 
@@ -452,6 +452,136 @@ end
 
 function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_silent_true()
   luaunit.assertTrue(veafShortcuts.ExecuteBatchAliasesList({ "hello" }, nil, nil, true))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestShortcutsInlineParserCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01, GROUP B. Three of the four loops the first inventory
+-- missed live here, and unlike every group-A parser they are NOT standalone functions: the
+-- loop is a step in the middle of `execute`, which then runs the mission or zone. So they are
+-- characterised by what they hand downstream — the only observable the parsing produces —
+-- through spies on veafCombatMission / veafCombatZone.
+--
+-- Two of the three (`VeafAliasForCombatMission:execute` at :288 and
+-- `VeafAliasForCombatZone:execute` at :394) are the SAME loop twice, differing only in the
+-- name of one local. Ticket 03 collapses them into one call.
+-- ---------------------------------------------------------------------------
+TestShortcutsInlineParserCharacterisation = {}
+
+function TestShortcutsInlineParserCharacterisation:setUp()
+  self.calls = {}
+  local record = function(what)
+    return function(name, silent)
+      table.insert(self.calls, { what = what, name = name, silent = silent })
+      return true
+    end
+  end
+  veafCombatMission = {
+    GetMission = function(name)
+      return { name = name }
+    end,
+    ActivateMission = record("activateMission"),
+    DesactivateMission = record("desactivateMission"),
+  }
+  veafCombatZone = {
+    GetZone = function(name)
+      return { name = name }
+    end,
+    ActivateZone = record("activateZone"),
+    DesactivateZone = record("desactivateZone"),
+  }
+  self.position = { x = 0, y = 0, z = 0 }
+end
+
+function TestShortcutsInlineParserCharacterisation:tearDown()
+  veafCombatMission = nil
+  veafCombatZone = nil
+end
+
+local function combatMissionAlias()
+  return VeafAliasForCombatMission:new():setName("-testcm"):setVeafCommand("start"):setBypassSecurity(true)
+end
+
+local function combatZoneAlias()
+  return VeafAliasForCombatZone:new():setName("-testcz"):setVeafCommand("start"):setBypassSecurity(true)
+end
+
+-- The loop's `name` reaches the mission layer as the mission to activate.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_name_reaches_the_mission_layer()
+  combatMissionAlias():execute(", name Alpha", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].what, "activateMission")
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
+end
+
+-- `silent` is a flag, and it travels as the second argument.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_silent_flag_travels_downstream()
+  combatMissionAlias():execute(", name Alpha, silent", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, true)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_without_silent_passes_false()
+  combatMissionAlias():execute(", name Alpha", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, false)
+end
+
+-- A missing `name` refuses the command before anything runs — the mandatory-field check that
+-- group A performs after its loop, done here after the loop too.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_without_name_runs_nothing()
+  local result = combatMissionAlias():execute("", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+-- A valueless `name` is "" here (`str[2] or ""`), and unlike veafGroundAI the guard DOES catch
+-- it, because it tests `#zoneName == 0` as well as nil. Same bug shape, opposite outcome.
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_valueless_name_is_refused()
+  local result = combatMissionAlias():execute(", name", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_mission_unknown_keyword_is_ignored()
+  combatMissionAlias():execute(", name Alpha, banana 3", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
+end
+
+-- The zone loop is the same code with `zoneName` in place of `missionName`.
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_name_reaches_the_zone_layer()
+  combatZoneAlias():execute(", name Bravo", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].what, "activateZone")
+  luaunit.assertEquals(self.calls[1].name, "Bravo")
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_silent_flag_travels_downstream()
+  combatZoneAlias():execute(", name Bravo, silent", self.position, coalition.side.BLUE, nil, true, nil)
+  luaunit.assertEquals(self.calls[1].silent, true)
+end
+
+function TestShortcutsInlineParserCharacterisation:test_combat_zone_without_name_runs_nothing()
+  luaunit.assertFalse(combatZoneAlias():execute("", self.position, coalition.side.BLUE, nil, true, nil))
+  luaunit.assertEquals(#self.calls, 0)
+end
+
+-- The `password` the loop extracts is what the security check consumes. With bypassSecurity
+-- false and a password set on the alias, a wrong one refuses and the right one proceeds —
+-- which is the only way to observe that the loop read it at all.
+--
+-- Note `setPassword` stores the **hash**, not the clear text: `execute` hashes what the pilot
+-- typed and looks that up, so a test passing clear text here would silently never match.
+function TestShortcutsInlineParserCharacterisation:test_the_parsed_password_is_the_one_checked()
+  local alias = VeafAliasForCombatMission:new():setName("-testcm"):setVeafCommand("start"):setBypassSecurity(false)
+  alias:setPassword(sha1.hex("s3cret"))
+
+  luaunit.assertFalse(alias:execute(", name Alpha, password wrong", self.position, coalition.side.BLUE, nil, false, nil))
+  luaunit.assertEquals(#self.calls, 0)
+
+  alias:execute(", name Alpha, password s3cret", self.position, coalition.side.BLUE, nil, false, nil)
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(self.calls[1].name, "Alpha")
 end
 
 os.exit(luaunit.LuaUnit.run())

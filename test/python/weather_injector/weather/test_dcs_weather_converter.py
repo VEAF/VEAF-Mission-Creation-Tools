@@ -216,10 +216,16 @@ class TestFallbackMetarParsing(unittest.TestCase):
         r = self._parse("AAAA 0/M02")
         self.assertAlmostEqual(r["temperature"], 0.0)
 
-    def test_temperature_negative_M_prefix_not_parsed(self) -> None:
-        # "M05/M10" — with_temp = "M05", "M05".lstrip("-") = "M05", not isdigit
+    def test_temperature_negative_M_prefix_is_parsed(self) -> None:
+        """SECREV-2 / VMR-016: this test used to pin the bug rather than the behaviour.
+
+        It asserted that `M05/M10` left the default of 15.0 in place, and its comment even
+        explained the mechanism — `"M05".lstrip("-")` is not a digit string — as though that
+        were the intended outcome. `M` is how a METAR spells a minus sign, so the reading was
+        being dropped silently, and a winter mission flew at whatever default was configured.
+        """
         r = self._parse("AAAA M05/M10")
-        self.assertAlmostEqual(r["temperature"], 15.0)  # unchanged default
+        self.assertAlmostEqual(r["temperature"], -5.0)
 
     # Visibility parsing
     def test_visibility_9999(self) -> None:
@@ -303,3 +309,55 @@ class TestCloudTypesConstant(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestForecastGroupsDoNotOverrideTheObservation(unittest.TestCase):
+    """SECREV-2 / VMR-070 — the loop read past TEMPO/BECMG, and visibility had no `break`.
+
+    A METAR describes what is observed *now*; everything from TEMPO, BECMG, PROB or RMK onwards is a
+    forecast or free text. Reading straight through them meant the **last** four-digit group won, so a
+    report observed at 9999 was flown at the trend's 3000.
+    """
+
+    @staticmethod
+    def _parse(metar: str) -> dict:
+        from weather_injector.weather.dcs_weather_converter import _fallback_metar_parsing
+
+        return _fallback_metar_parsing(
+            metar,
+            {
+                "temperature": 20.0,
+                "wind_speed": 5.0,
+                "wind_direction": 0.0,
+                "visibility": 10000.0,
+                "cloud_type": 0,
+                "cloud_height": 2000.0,
+            },
+        )
+
+    def test_a_tempo_visibility_does_not_replace_the_observed_one(self) -> None:
+        r = self._parse("LFPG 121200Z 27015KT 9999 SCT040 12/08 Q1013 TEMPO 3000")
+
+        self.assertAlmostEqual(r["visibility"], 9999.0, msg="the observation must win over the trend")
+
+    def test_a_becmg_group_is_ignored_too(self) -> None:
+        r = self._parse("LFPG 121200Z 27015KT 9999 SCT040 12/08 Q1013 BECMG 0800")
+
+        self.assertAlmostEqual(r["visibility"], 9999.0)
+
+    def test_remarks_cannot_inject_a_visibility(self) -> None:
+        r = self._parse("LFPG 121200Z 27015KT 0800 SCT040 12/08 Q1013 RMK 9999")
+
+        self.assertAlmostEqual(r["visibility"], 800.0, msg="a number in RMK is free text, not weather")
+
+    def test_the_observed_visibility_is_still_read_without_any_trend(self) -> None:
+        r = self._parse("LFPG 121200Z 27015KT 4000 SCT040 12/08 Q1013")
+
+        self.assertAlmostEqual(r["visibility"], 4000.0)
+
+    def test_the_wind_before_a_trend_is_still_read(self) -> None:
+        # Truncating at TEMPO must not throw away the groups that came before it.
+        r = self._parse("LFPG 121200Z 27015KT 9999 SCT040 12/08 Q1013 TEMPO 31025G40KT")
+
+        self.assertAlmostEqual(r["wind_direction"], 270.0)
+        self.assertAlmostEqual(r["wind_speed"], 15 * 0.51444, places=4)

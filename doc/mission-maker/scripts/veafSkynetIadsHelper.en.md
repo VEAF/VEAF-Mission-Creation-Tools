@@ -191,4 +191,4 @@ end
 ## See also
 
 - [Skynet IADS documentation](https://github.com/walder/Skynet-IADS) — third-party script (not included in VEAF)
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSkynet` API
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafSkynet` API

@@ -42,7 +42,7 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | `-sa22` | Escouade SA-22 Greyhound (Pantsir-S1) |
 | `-sa18` | Escouade MANPAD SA-18 |
 | `-sa18s` | Escouade MANPAD SA-18S |
-| `-insurgent_manpad` | Escouade MANPAD SA-18 insurgée |
+| `-insurgent_manpad` | Escouade MANPAD SA-18 d'insurgés |
 | `-manpads` | Multiples SA-18S dispersés sur un large rayon (3–6 unités) |
 | `-shilka` | AAA ZSU-23-4 Shilka |
 | `-zu23` | ZU-23 sur camion Ural |
@@ -100,9 +100,9 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | `-convoy` | Convoi dynamique (nécessite `, dest NOMPOINT`) |
 | `-hv_convoy_red` | Convoi d'attaque rouge haute valeur (avec Scud) |
 | `-attack_convoy_red` | Convoi d'attaque rouge |
-| `-QRC_red` | Convoi de Réaction Rapide rouge (rapide) |
+| `-QRC_red` | Convoi de Réaction Rapide rouge |
 | `-civilian_convoy_red` | Convoi civil rouge |
-| `-QRC_blue` | Convoi de Réaction Rapide bleu (rapide) |
+| `-QRC_blue` | Convoi de Réaction Rapide bleu |
 
 ## Artillerie
 
@@ -133,6 +133,17 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | `-arty3_stop` | ARTY-3 : cesser l'écoute |
 | `-arty3_start` | ARTY-3 : reprendre l'écoute |
 
+### Bombardements simulés
+
+Ces trois alias simulent un tir d'artillerie en faisant apparaître des explosions (`_spawn bomb`) :
+le nombre d'obus, le rayon et la puissance sont tirés au hasard dans une fourchette.
+
+| Alias | Description |
+|-------|-------------|
+| `-cesar` | Tir de précision sur une zone, quelques obus HE de faible puissance |
+| `-shell` | Pilonnage d'une petite zone avec beaucoup d'obus HE de faible puissance |
+| `-flak` | Tir anti-aérien : flak à 6 000 pieds au-dessus du marqueur |
+
 ## Support & Utilitaires
 
 | Alias | Description |
@@ -144,8 +155,8 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | `-refuel` | Groupe ravitaillement US |
 | `-tankerhere` | Déplacer le ravitailleur à la position (nécessite nom de groupe) |
 | `-tanker` | Alias pour `-tankerhere` |
-| `-tankerlow` | Ravitailleur le plus proche à FL120 / 200 KIAS |
-| `-tankerhigh` | Ravitailleur le plus proche à FL220 / 300 KIAS |
+| `-tankerlow` | Placer le ravitailleur le plus proche à FL120 / 200 KIAS |
+| `-tankerhigh` | Placer le ravitailleur le plus proche à FL220 / 300 KIAS |
 | `-tacan` | Balise TACAN portable (bande X, canal 99) |
 | `-farp` | Créer un FARP (nécessite un nom) |
 | `-farpNoMarker` | Créer un FARP invisible (nécessite un nom) |
@@ -192,6 +203,13 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 |-------|-------------|
 | `-destroy` | Détruire toute unité dans un rayon de 100 m du marqueur |
 | `-ai_set` | Configurer un handler IA pour un groupe terrestre |
+| `-login` | Déverrouiller le système (demande le mot de passe — voir ci-dessous) |
+| `-logout` | Reverrouiller le système |
+
+> 🔐 `-login` et `-logout` pilotent l'authentification VEAF (`_auth`). `-login` attend le mot de
+> passe à la suite, **sans virgule** : `-login monmotdepasse`. Elles portent `:setHidden(true)`, ce qui les
+> retire de la liste que l'action MCP `list_shortcuts` sert à une IA — on ne propose pas une commande
+> d'authentification à un assistant qui construit une mission.
 
 ## Outils cartographiques
 

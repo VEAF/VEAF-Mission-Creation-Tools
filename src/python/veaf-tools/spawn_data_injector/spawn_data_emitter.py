@@ -29,6 +29,8 @@ from typing import Any
 
 import yaml
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.i18n import t
+from veaf_libs.lua_literals import lua_quoted_string
 
 # Canonical order of named keys in a rendered group unit entry.
 _UNIT_KEY_ORDER = ("cell", "hdg", "number", "size", "random", "fitToUnit")
@@ -50,9 +52,17 @@ def load_framework_spawn_data() -> dict[str, Any]:
 
 
 def _lua_string(value: str) -> str:
-    """Quote a string as a Lua double-quoted literal."""
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    """Quote a string as a Lua string literal.
+
+    Delegates to the shared helper.  This used to escape a backslash and a double quote
+    and stop there, which left a newline — legal in a YAML unit name, a syntax error
+    inside a Lua ``"…"`` string — to break the generated file (SECREV-2, VMR-010).
+
+    The escaped short-string form, not the long-string one the mission config generator
+    prefers: this output is read back by the bundled ``luadata`` parser, which does not
+    implement long strings.
+    """
+    return lua_quoted_string(value)
 
 
 def _lua_number(value: int | float) -> str:
@@ -142,11 +152,40 @@ def render_spawn_data_lua(data: dict[str, Any]) -> str:
     groups = data.get("groups") or []
 
     out = [_HEADER, "veafUnits.UnitsDatabase = {"]
-    out.extend(_render_unit_db_entry(u, "  ") for u in units)
+    out.extend(_described(_render_unit_db_entry, entry, index, "units", "  ") for index, entry in enumerate(units))
     out.append("}")
     out.append("")
     out.append("veafUnits.GroupsDatabase = {")
-    out.extend(_render_group_entry(g) for g in groups)
+    out.extend(_described(_render_group_entry, entry, index, "groups") for index, entry in enumerate(groups))
     out.append("}")
     out.append("")
     return "\n".join(out)
+
+
+def _described(render: Any, entry: Any, index: int, section: str, *extra: Any) -> str:
+    """Render one entry, turning a malformed one into a message that names it.
+
+    Half of this data is hand-written per mission, and the renderers index required keys directly, so
+    a typo used to surface as a bare ``KeyError: 'type'`` with a Python traceback and nothing to say
+    which entry was at fault (SECREV-2 / VMR-055).
+
+    Args:
+        render: The entry renderer to call.
+        entry: The entry to render, as parsed from YAML.
+        index: Its position in *section*, used to locate it in the file.
+        section: ``"units"`` or ``"groups"`` — the list the entry came from.
+        *extra: Further positional arguments for *render*.
+
+    Returns:
+        The rendered Lua for this entry.
+
+    Raises:
+        ValueError: When the entry is missing a required key or holds an unusable value.
+    """
+    try:
+        return render(entry, *extra)
+    except KeyError as exc:
+        # `missing`, not `key`: `t()`'s own first parameter is named `key`, so passing one collides.
+        raise ValueError(t("spawn_data.err.missing_key", section=section, index=index, missing=exc.args[0])) from exc
+    except (TypeError, ValueError) as exc:
+        raise ValueError(t("spawn_data.err.bad_entry", section=section, index=index, error=exc)) from exc

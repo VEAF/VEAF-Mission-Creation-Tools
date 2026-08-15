@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder_factory import make_worker
 from mission_tools.mission_constants import (
     get_community_script_files,
     get_optin_community_script_ids,
@@ -133,30 +134,26 @@ class TestActiveCommunityScripts(unittest.TestCase):
 
     def test_none_returns_all_optout(self) -> None:
         """_active_community_scripts returns every opt-out script (all but opt-in ids) when the set is None."""
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker.enabled_community_script_ids = None
+        worker = make_worker(enabled_community_script_ids=None)
         result = worker._active_community_scripts()
         expected = [s for s in get_community_script_files() if s["id"] not in get_optin_community_script_ids()]
         self.assertEqual(result, expected)
 
     def test_none_excludes_optin_scripts(self) -> None:
         """Opt-in scripts (e.g. TUM) are NOT active by default when the set is None."""
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker.enabled_community_script_ids = None
+        worker = make_worker(enabled_community_script_ids=None)
         active_ids = {s["id"] for s in worker._active_community_scripts()}
         for optin in get_optin_community_script_ids():
             self.assertNotIn(optin, active_ids)
 
     def test_empty_set_returns_nothing(self) -> None:
         """_active_community_scripts returns empty list when no ids are enabled."""
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker.enabled_community_script_ids = set()
+        worker = make_worker(enabled_community_script_ids=set())
         self.assertEqual(worker._active_community_scripts(), [])
 
     def test_subset_returns_matching_scripts(self) -> None:
         """_active_community_scripts returns only scripts whose id is in the enabled set."""
-        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
-        worker.enabled_community_script_ids = {"mist", "ctld"}
+        worker = make_worker(enabled_community_script_ids={"mist", "ctld"})
         result = worker._active_community_scripts()
         result_ids = {s["id"] for s in result}
         self.assertEqual(result_ids, {"mist", "ctld"})

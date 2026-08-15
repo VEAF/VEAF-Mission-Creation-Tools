@@ -1,0 +1,2105 @@
+[
+  {
+    "vid": "VMR-005",
+    "title": "dcs-bridge injection shifts trigger indices but leaves funcStartup self-references off by one",
+    "severity": "HIGH",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "869",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by SECREV-2 ticket 05. The code carries the VMR-005 rationale at mission_builder_worker.py and test_dcs_bridge_trigger_shift.py covers it; only the triage entry had not been updated."
+  },
+  {
+    "vid": "VMR-056",
+    "title": "_next_trigger_index assumes every trigger key is integer-convertible",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
+    "line": "80",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, though it needs an unusual mission: `int(k) for k in trigrules` raised ValueError on the first non-numeric key. A key that is not an index cannot contribute to \"the next index\", so it is now ignored with a debug line instead of being fatal. 4 tests, including the degenerate case where every key is non-numeric and max() would see an empty list."
+  },
+  {
+    "vid": "VMR-006",
+    "title": "Live METAR fetch never actually fetches; always returns defaults",
+    "severity": "HIGH",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "151",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by SECREV-2 ticket 05. dcs_weather_converter.py now calls metar.update() with the VMR-006 rationale beside it; only the triage entry had not been updated."
+  },
+  {
+    "vid": "VMR-069",
+    "title": "Broad `except Exception` around METAR fetch swallows all errors as a warning",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "187",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part -- 'silently' overstates it, since the handler does warn. The real defect is that `except Exception` made an avwx API change indistinguishable from an outage, and the traceback was dropped entirely; the mission then flies default weather. The breadth is kept on purpose (a build must not die because a weather service is down) but the exception type is now named in the warning and the traceback goes to debug."
+  },
+  {
+    "vid": "VMR-009",
+    "title": "read_miz / write_miz decompress untrusted .miz members with no size cap (decompression-bomb gap)",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "124",
+    "status": "review-needed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 04 / PR #673 — safe_read_member caps every member read into memory; new code rather than routing through safe_extract_all, which guards the disk this path never touches."
+  },
+  {
+    "vid": "VMR-010",
+    "title": "Spawn-data Lua emitter only escapes backslash and double-quote, allowing broken/injectable Lua",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
+    "line": "52",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "spawn_data_emitter._lua_string delegates to the shared veaf_libs.lua_literals helper. It emits an escaped short string rather than the long string the config generator prefers, because this output is read back by the bundled luadata parser, which implements no long-string syntax -- measured, not assumed."
+  },
+  {
+    "vid": "VMR-011",
+    "title": "Checksum verification fails open when release metadata is missing or malformed",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "685",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 04 / PR #673 — four fall-through paths (no metadata asset, undownloadable, unparseable, checksum-less) all refuse now; the publish side was hardened with them."
+  },
+  {
+    "vid": "VMR-057",
+    "title": "Temp verification zip leaks on unexpected exception",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "703",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "Does not reproduce. The temp verification zip in veaf-tools-updater.py already sits in a try/finally with unlink(missing_ok=True); the leak was closed by the updater hardening of SECREV-2 ticket 04."
+  },
+  {
+    "vid": "VMR-012",
+    "title": "mission.yaml string values are interpolated into generated Lua without escaping (Lua injection / broken output)",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "376",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "lua_config_generator._to_lua_scalar routed through the shared helper. Its string branch was a bare f'\"{value}\"' with no escaping at all, feeding sixteen call sites, two dozen lines above a correct implementation in the same module. _emit_lua_string and _lua_long_string are kept as names but now come from veaf_libs.lua_literals."
+  },
+  {
+    "vid": "VMR-015",
+    "title": "Lua-to-YAML converter emits numeric `time`, breaking the downstream string parser",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "125",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / PR #677 — the converter emitted a numeric `time`, and TimeExpressionParser.parse starts with expression.strip(), so a number raised AttributeError downstream. The shipped versions.yaml confirms the intended shape is a string ('sunrise', '08:30'), so seconds since midnight are now formatted HH:MM. Guarded with `is not None` rather than truthiness: midnight is 0 and would have been dropped silently. 5 tests, one of which feeds the emitted value straight into the consumer."
+  },
+  {
+    "vid": "VMR-068",
+    "title": "`_extract_list` escape handling ignores string state and doubled backslashes",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "207",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it empties the list rather than truncating it. `_extract_list` tested `content[i - 1] == chr(92)` regardless of string state, where `_extract_table` ten lines above uses an `escape_next` flag honoured only inside a string. So an ordinary Windows path in a Lua string left the closing quote looking escaped, the string never closed, and no brace after it was counted — measured: zero tables returned instead of two. Aligned with `_extract_table`. 6 tests."
+  },
+  {
+    "vid": "VMR-111",
+    "title": "`_get_boolean` helper is dead code",
+    "severity": "LOW",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/utils/lua_converter.py",
+    "line": "261",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/weather_injector/utils/lua_converter.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-016",
+    "title": "METAR parser silently drops negative (sub-zero) temperatures",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "246",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / this PR — a METAR spells a negative temperature `M05`, not `-05`, so every sub-zero reading was dropped and the configured default survived silently. An existing test, test_temperature_negative_M_prefix_not_parsed, was pinning the defect as intended behaviour and had to be flipped."
+  },
+  {
+    "vid": "VMR-070",
+    "title": "Visibility regex matches unrelated 4-digit METAR tokens",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py",
+    "line": "266",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the mechanism is worse than the title suggests: the visibility branch has no break, so the *last* four-digit group won. Everything from TEMPO, BECMG, PROB or RMK onwards is a forecast or free text, not the current observation, so a report observed at 9999 and ending in 'TEMPO 3000' was flown at 3000 m. The parser now stops at those words and takes the first prevailing visibility only. 5 tests. An `i > 0` guard I added first against a numeric station identifier was removed: ICAO codes are alphabetic, so it protected nothing and broke two existing tests that parse a bare token."
+  },
+  {
+    "vid": "VMR-034",
+    "title": "dcs-bridge auto-download has no size cap or integrity check (unbounded fetch of executed Lua)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "814",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part. The URL is a module constant on a VEAF repository over https, so there is no attacker-chosen host, and pinning a hash would defeat the design (the bridge deliberately tracks its develop branch). The missing size bound was real and is now enforced: the read is capped at 2 MiB, measured against the file's actual 13 237 bytes, and an oversized response is refused before anything is written to disk. 2 tests."
+  },
+  {
+    "vid": "VMR-049",
+    "title": "Auto-downloaded dcs-bridge.lua temp file is never deleted (handle/file leak)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "819",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed and fixed. resolve_dcs_bridge_file wrote the auto-download to a NamedTemporaryFile(delete=False) that nothing ever removed, so every build using the download path left a stray .lua in the temp dir. The worker now remembers which file it created and inject_dcs_bridge_trigger deletes only that one — never a `lua_path` the mission maker supplied, which the same argument also carries. Two tests cover both sides."
+  },
+  {
+    "vid": "VMR-035",
+    "title": "Profile-driven script rename uses replacement verbatim as a filename (path traversal into scripts_dir parent)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/other_converter.py",
+    "line": "502",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and reproduced: with the new guard disabled, a profile rule replacing a script with '../../escaped.lua' moved the file out of the mission's scripts folder entirely. What makes it real is that load_profile accepts a filesystem path as well as a bundled name, so the replacement string is not necessarily one we ship, and profiles are shared artefacts. A replacement that is not a plain filename is now refused with a localized warning and the original name kept. 6 tests."
+  },
+  {
+    "vid": "VMR-036",
+    "title": "Deferred-update .cmd script interpolates paths without escaping (batch injection)",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "328",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, but not for the reported reason: Windows forbids '\"' in a path, so no interpolated directory can escape its quotes and batch injection is not reachable. The real consequence was elsewhere and did bite: every rename and delete in the script is relative, so a cd that failed -- which a path containing '!' or '%' can cause under delayed expansion -- left them running against whatever directory the script started in. The script now aborts on a failed cd. 1 test."
+  },
+  {
+    "vid": "VMR-037",
+    "title": "download_asset does not validate the GitHub-provided download URL scheme/host",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf-tools-updater.py",
+    "line": "300",
+    "status": "review-needed",
+    "commits": [
+      "dbb47ab2 fix(updater): never block on the exit pause in programmatic use (plugin hang)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. browser_download_url comes from the GitHub API reply, and the updater installs and then runs what it downloads. The URL is now required to be https on a GitHub host before any request is made. The test loads veaf-tools-updater.py by path rather than copying the function, unlike test_version_constraint.py next to it -- a test over a copy cannot fail when the shipped code regresses. 7 tests."
+  },
+  {
+    "vid": "VMR-047",
+    "title": "_max_ids / _coalition_unit_count assume country is always a list and group containers are dicts",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/coalition_placeholder.py",
+    "line": "60",
+    "status": "review-needed",
+    "commits": [
+      "f350da53 feat(mcp): add add_group write action (FEAT-MCP-MISSION-EDITOR-004)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Half the finding is obsolete -- `_max_ids` no longer exists in the module. The rest is real: a Lua sequence reaches Python as a list only while its keys are 1..n with no gap, and deleting a country or a group in the Mission Editor brings the same field back as a dict keyed by the surviving indexes. Iterating that yields the *keys*, so `country.get(...)` was called on a string and raised AttributeError. A `_dcs_entries` helper now accepts either shape at all three levels (country, group, units) and treats junk as empty. 4 tests."
+  },
+  {
+    "vid": "VMR-048",
+    "title": "Combat-mission / assets extraction comments out from call start, not line start, corrupting the leading text",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/config_migrator.py",
+    "line": "1044",
+    "status": "reviewed",
+    "commits": [
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the consequence is at the tail rather than the head the title names. `_comment_out_span` receives the offsets of a regex match, which need not sit on a line boundary — unlike `_extract_inline_value`, which expands to the whole line first. So a statement sharing the **last** line with the table's closing brace ended up behind the `--` marker and stopped being code (measured: `} local keep = 1` became a comment), and a statement sharing the first line read as though it had been extracted too. The span is now isolated onto its own lines. 5 tests."
+  },
+  {
+    "vid": "VMR-050",
+    "title": "clear_veaf_triggers deletes trigger indexes without handling the list-shaped trig category",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/mission_builder_worker.py",
+    "line": "1156",
+    "status": "reviewed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed as an inconsistency, and the fix is the opposite of what the title suggests. The collection loop handled a list-shaped category; the removal loop calls `.get()` on the same value, which a list has not — so that branch could only ever raise. It could not have been right either way: a trigger index is shared across categories, so mixing 0-based list positions with Lua's 1-based keys would delete *other* triggers. Measured that the shape cannot occur — every read of `mission_content` passes `keep_as_dict=[\"trig\", \"trigrules\"]` and the policy covers the subtree — so the half-handling is gone and replaced by an explicit fail-closed check. 6 tests, including a control that a non-`trig` table is still allowed to be a list (so the invariant test is not vacuous) and one that watches the new guard refuse."
+  },
+  {
+    "vid": "VMR-051",
+    "title": "Weather converter drops a version's weather when position lat/lon keys are present but null",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_builder/v5_pipeline_converters.py",
+    "line": "635",
+    "status": "reviewed",
+    "commits": [
+      "9af588f2 fix(convert-v5): integer channel keys + header comments in generated presets.yaml (FIX-CONVERTV5-PRESETS-OUTPUT) (#567)",
+      "e8db4756 feat(convert-v5): readable channel aliases instead of hardcoded frequencies (FEAT-CONVERTV5-FREQ-ALIASING) (#566)",
+      "e15e7543 feat(convert-v5): simplified preset plan by default + faithful copy (ADR 0010) (#562)",
+      "1dcbcd55 feat(presets): convert-v5 generates a preset plan by default (ADR 0010) (#559)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `pos.get(\"lat\", pos.get(\"latitude\"))` only reaches the fallback when the key is absent, so a v5 JSON with an explicit `\"lat\": null` beside a real `latitude` emitted `latitude: null` and lost the coordinate silently. Replaced by a first-non-None lookup for all three keys. 5 tests, including a control that a genuinely absent coordinate still comes out None rather than being invented."
+  },
+  {
+    "vid": "VMR-052",
+    "title": "Bare print() in extractor worker violates logger-only project rule",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/mission_extractor/mission_extractor_worker.py",
+    "line": "83",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. CLAUDE.md forbids print() outright -- veaf_libs.logger exists so output can be muted (the MCP server silences the console because stdout carries its JSON-RPC stream) and routed to the log file. There were TWO, not the one reported: the delete path and the move path. Both now warn through the logger, localized. A gate was added with them: test_no_bare_print.py parses the whole shipped package with ast rather than grepping, since a regex counts `print(` in comments and in `pprint(`. It caught what a hand grep of mine had missed. One named exemption, migrate_lazy_log.py -- see VMR-115."
+  },
+  {
+    "vid": "VMR-053",
+    "title": "write_miz temp file left behind and original silently unchanged on partial failure paths",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "247",
+    "status": "reviewed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Half confirmed, and the half that reproduces has a different cause than the finding gives. 'Original silently unchanged' does NOT apply: `logger.exception` calls `error(..., exception_type=type(e))`, which **re-raises**, so the failure has always reached the caller — and that makes the `temp_zip_path = None` line below it, commented 'prevent replacing the original with a broken temp file', unreachable code. What does reproduce is the leaked temp file, and the cause is the aside the finding mentions last: the `NamedTemporaryFile` handle stayed open while `zipfile.ZipFile` wrote to that same path, so on Windows `os.unlink` failed with a sharing violation and the surrounding `suppress(OSError)` swallowed it. Every failed build left a `veaf_mission_*.miz` in the mission folder. Now `mkstemp` + immediate close, with cleanup in a `finally` that also covers a failing `os.replace`. Proved by re-opening the handle and watching 6 of the 9 tests fail — including one *control*, because `os.replace` cannot rename an open file either. 9 tests."
+  },
+  {
+    "vid": "VMR-054",
+    "title": "read_mission_folder produces a DcsMission whose file_path is a directory, unsafe to pass to write_miz",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/miz_tools.py",
+    "line": "198",
+    "status": "review-needed",
+    "commits": [
+      "04907ddc feat(mcp): mission-folder awareness for composite builders (FEAT-MCP-MISSION-EDITOR-024)",
+      "a3ed7bbd feat(mcp): rewrite_miz_members brick + generic replace_in_mission_files (FEAT-MCP-MISSION-EDITOR-009)"
+    ],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `DcsMission(file_path=folder_path)` stores a directory in a field every other producer fills with a .miz path."
+  },
+  {
+    "vid": "VMR-055",
+    "title": "Malformed per-mission spawn YAML raises unguarded KeyError/ValueError in the Lua renderer",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_emitter.py",
+    "line": "105",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. Half of this data is hand-written per mission and the renderers index required keys directly, so a typo surfaced as a bare `KeyError: 'type'` with a traceback and nothing to say which entry was at fault. Every entry is now rendered through a wrapper that names the section, the index and the missing key. 4 tests. Writing them found a bug in my own fix: `t()`'s first parameter is named `key`, so passing `key=` collided -- and the same mistake was in the VMR-058 fix, where no test had reached it yet."
+  },
+  {
+    "vid": "VMR-058",
+    "title": "respawn_default_offset indexed as a 2-element list with no validation",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "676",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. respawn_default_offset came from a hand-written mission.yaml and was indexed as value[0]/value[1] with no check, so a scalar raised TypeError and a short list IndexError, neither naming the setting. A string was worse than a crash: \"12\"[0] is \"1\", so it emitted silently wrong Lua. Now refused with the setting named. 8 tests, including the string and bool cases."
+  },
+  {
+    "vid": "VMR-059",
+    "title": "QRA silence_all guard is a dead branch — always true",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "483",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed as a dead guard, with no runtime effect. `qra_section.get(\"silence_all\", False)` made the following `is not None` test true whatever the mission said, so every QRA mission emitted ToggleAllSilence(false) even when silence was never mentioned. Harmless -- veafQraManager.AllSilence is already false, checked in veafQraCore.lua -- but the guard read as \"only when configured\" and did not do that. The default is gone; an explicit true or false is still honoured. 3 tests, and nothing had covered this emission before."
+  },
+  {
+    "vid": "VMR-060",
+    "title": "NAMEDPOINTS lat/lon passed to coord.LLtoLO as strings and interpolated unescaped",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_config_generator.py",
+    "line": "456",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "31215ddb fix(combatzone): reject any enemy coalition that is not RED or BLUE",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it hid a third defect. Coordinates were interpolated *quoted*, so coord.LLtoLO received strings and only worked through Lua's implicit coercion, while a genuinely non-numeric value produced Lua that failed at mission start rather than at build time. They are now converted and refused with the point named. The finding mentions escaping for the coordinates but not for the point's **name**, which was interpolated raw too -- a quote in a point name produced Lua that does not parse. It now goes through _emit_lua_string. 4 tests."
+  },
+  {
+    "vid": "VMR-061",
+    "title": "get_modules() loads bundled/pre-generated JSON with no schema validation, trusting it into Lua emission",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/lua_module_scanner.py",
+    "line": "112",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the shape was worse than 'no validation': the consumers disagreed. `lua_config_generator` reads `mod[\"var_name\"]` directly while `config_migrator` uses `.get(\"var_name\")` with a comment saying old bundled JSON lacks it — so a JSON one accepts, the other raises on, which is exactly the downstream `KeyError` the finding predicts. `get_modules()` now validates the decoded payload (a list of tables each carrying a non-empty `id` and `filename`) and normalises `version` / `var_name`, so both consumers see one shape. Refusals are localized and name the file. 9 tests, including a control that the live repo scan is unaffected. Recorded because it repeats: my first version passed `key=` to `t()`, whose own first parameter is named `key` — the identical TypeError this ticket hit in the CONFIRMED sweep."
+  },
+  {
+    "vid": "VMR-062",
+    "title": "Source-mission parse swallows all exceptions, silently disabling reference checks",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/mission_validator.py",
+    "line": "194",
+    "status": "reviewed",
+    "commits": [
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, but the defect is a misleading diagnosis rather than silence: `_read_source_mission` returned None both for 'absent' and for 'present but unparseable', and the caller turns None into the *not found* warning — so a corrupt mission table disabled the group / preset / waypoint / TUM checks while pointing the mission maker at a missing file. It now returns the reason, and an unreadable table is an ERROR naming the parse failure. New i18n key in both locales. 4 tests — and one of them first passed for the wrong reason, matching only the English wording while the default locale is French."
+  },
+  {
+    "vid": "VMR-063",
+    "title": "Unparseable current version yields a spurious 'update available' prompt",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/update_checker.py",
+    "line": "37",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the user-visible effect is exactly as described: `_version_tuple` falls back to (0,), which is lower than every release, so an unreadable *current* version produced a confident 'a new version is available' on every run. The fallback is now a named sentinel the caller recognises, and the check says nothing when it cannot tell what is installed. 4 tests -- and writing the fourth mattered: the first three passed for the wrong reason, because my cache mock used the wrong key ('checked_at' instead of 'last_check'), so the code went to the network and the exception was swallowed. The control test that a readable older version DOES prompt is what caught it."
+  },
+  {
+    "vid": "VMR-064",
+    "title": "ask REPL only catches RuntimeError, so any other worker error crashes the session",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
+    "line": "85",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. Only RuntimeError was caught, so a JSON decode error or a connection reset ended the whole REPL session on one bad question -- a REPL's job is to survive its inputs. Any exception is now reported and the session continues, with the type named so a real bug stays visible instead of reading like a service hiccup."
+  },
+  {
+    "vid": "VMR-116",
+    "title": "ask history cap constant is named 'turns' but counts messages",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/ask.py",
+    "line": "62",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_tools/commands/ask.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-065",
+    "title": "Commands rely on the site-provided exit() builtin instead of typer.Exit",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/build.py",
+    "line": "239",
+    "status": "review-needed",
+    "commits": [
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and 10 occurrences across 8 files rather than the one reported. `exit()` is installed by the site module, not part of the language: absent under `python -S` and not guaranteed in the PyInstaller exe this project ships. `typer.Exit` was already the idiom in the same directory (ask.py, capture_map.py, prepare.py), so these were leftovers. Replacing them found dead code as a bonus: prepare.py called exit(1) after logger.error, which raises typer.Abort by default -- the line was unreachable. A gate now parses commands/ with ast; written as a regex first, it missed the two `exit(1)` forms that were not alone on their line, which is how the count went from 8 to 10."
+  },
+  {
+    "vid": "VMR-066",
+    "title": "Mission lookup by name uses raw glob, treating name metacharacters as patterns",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/extract.py",
+    "line": "53",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: `p_mission_folder.glob(f\"{name}*.miz\")` confirmed: a mission name containing glob metacharacters is treated as a pattern."
+  },
+  {
+    "vid": "VMR-067",
+    "title": "extract_from_mission crashes with TypeError on a group that has no 'name'",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/python/veaf-tools/waypoints_injector/waypoints_injector_worker.py",
+    "line": "302",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. A group with no `name` reached `pattern.match(None)` and raised TypeError, taking the whole extraction down rather than skipping one group. It is now skipped -- it cannot match a name pattern and has no addressable key; without a pattern it used to produce a key ending in '/None'. 2 tests."
+  },
+  {
+    "vid": "VMR-104",
+    "title": "GitHub publish can leave a dangling tag with no release when gh CLI is absent",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "veaf_build/github.py",
+    "line": "57",
+    "status": "reviewed",
+    "commits": [
+      "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
+      "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `publish` pushed the tags first and created the release second, so an unusable `gh` left `published-v<x>` on the remote with no release behind it — and for a full release the floating `published-latest` force-moved onto that same commit, which is what the updater and every 'latest' link resolve. Reordered: `gh` is checked before anything reaches the remote, and `published-latest` moves only once the release exists (`_move_latest_tag`, split out of `_publish_with_git_tags`). 13 tests, including the ordering itself and a control that a normal publish still pushes both tags."
+  },
+  {
+    "vid": "VMR-105",
+    "title": "Force-pushed git tags with swallowed local failures in tag publishing",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/github.py",
+    "line": "79",
+    "status": "reviewed",
+    "commits": [
+      "2343db9b refactor(release): centralize prerelease detection in version_is_prerelease",
+      "b54dc51c fix(release): make pre-releases actually leave published-latest untouched"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Handled with VMR-104, and the 'swallowed local failures' half does not reproduce the way the finding reads it: `logger.error` raises typer.Abort, so a failed tag push or release creation already aborted the publish. The `git tag -d` that runs without `check` is deliberate — it is how re-publishing the same version is allowed — and it is now in one place (`_force_tag`) rather than duplicated four times, with a comment saying why. What was genuinely wrong was the ordering, which VMR-104 covers."
+  },
+  {
+    "vid": "VMR-106",
+    "title": "Unit-type preset lookup compiles mission-maker regex on every aircraft match",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/presets_injector/presets_manager.py",
+    "line": "482",
+    "status": "review-needed",
+    "commits": [
+      "4fcfadef feat(presets): channel priority/colour, AJS-37 key-based packer, per-type kneeboards (#569)",
+      "58e6b1db feat(presets): add slot capacity primitive + CH-47F radio layout fix (ADR 0010) (#558)",
+      "5e27b016 feat(presets): add reserved head slots primitive + OH-58D layout (ADR 0010) (#557)",
+      "3f8d1e48 feat(presets): add radio fusion, hardcoded specials and modulation (AJS-37) (ADR 0010) (#556)",
+      "a6eecc12 feat(presets): add per-type radio layout + Mi-24P channel-0 rotation (ADR 0010) (#553)",
+      "05349a23 feat(presets): project role-based channel lists onto standard aircraft (ADR 0010) (#552)"
+    ],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/presets_injector/presets_manager.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-107",
+    "title": "merge_spawn_data recomputes framework alias sets on every mission entry (O(n*m))",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py",
+    "line": "66",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/spawn_data_injector/spawn_data_injector_worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-108",
+    "title": "build reads and parses mission.yaml multiple times per invocation",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_tools/commands/build.py",
+    "line": "421",
+    "status": "review-needed",
+    "commits": [
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed as plausible: 18 references to mission.yaml in build.py. Optimization only — no behaviour is wrong."
+  },
+  {
+    "vid": "VMR-112",
+    "title": "Dead code: release packager still tries to add removed debug/trace Lua variants",
+    "severity": "LOW",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/worker.py",
+    "line": "686",
+    "status": "review-needed",
+    "commits": [
+      "96d48195 feat(assist): checklists an instructor can write, without knowing DCS internals (#651)",
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "e40869f9 fix(mcp): enum theatre from supported_theatres + bundle map/geo/blank data",
+      "adb8dd6e feat(mcp): expose #command spawn aliases in the oracle + bundle dcsUnits.yaml",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
+      "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
+    ],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-113",
+    "title": "Public helper classes/methods missing -> None return annotations",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py",
+    "line": "83",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-114",
+    "title": "collect_files_from_globs uses untyped logger param and swallows non-existent folders silently",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/mission_tools/mission_constants.py",
+    "line": "139",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/mission_tools/mission_constants.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-115",
+    "title": "Migration script uses print() throughout, violating the mandatory logger rule",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/migrate_lazy_log.py",
+    "line": "128",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: 11 print() calls in migrate_lazy_log.py. It is a one-shot migration script rather than shipped code, which is why it survived the logger rule. Revisited while adding the print() gate for VMR-052: migrate_lazy_log.py is exempted from it by name. It is a one-shot migration run by hand as `python -m veaf_libs.migrate_lazy_log`, wired to no CLI command, and its console output IS the deliverable -- it reports the lines it could not migrate. Naming the exemption keeps the choice visible instead of pattern-matching it away. The decision itself is unchanged."
+  },
+  {
+    "vid": "VMR-118",
+    "title": "radio_specs_updater.py uses print() throughout instead of the veaf_libs logger",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/radio_specs_updater.py",
+    "line": "46",
+    "status": "review-needed",
+    "commits": [
+      "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range"
+    ],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/radio_specs_updater.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-128",
+    "title": "luadata read() silently ignores its multival argument",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/luadata/io/read.py",
+    "line": "25",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Accurate but out of scope, and it costs us nothing: `luadata` is a vendored third-party library, excluded from ruff and mypy for that reason, and no call site of ours passes `multival` -- measured across the tree, we only ever call `unserialize`. Patching vendored code would make the next upstream refresh harder for a parameter we do not use. It belongs upstream."
+  },
+  {
+    "vid": "VMR-131",
+    "title": "config_file_path() re-scans the filesystem on every user_config.get()",
+    "severity": "INFO",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/user_config.py",
+    "line": "89",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_libs/user_config.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-134",
+    "title": "check_command ignores its display_name argument",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "veaf_build/worker.py",
+    "line": "180",
+    "status": "review-needed",
+    "commits": [
+      "96d48195 feat(assist): checklists an instructor can write, without knowing DCS internals (#651)",
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "95246701 fix(build,validate): ship the conversion profiles, and catch a dud config_override target",
+      "e40869f9 fix(mcp): enum theatre from supported_theatres + bundle map/geo/blank data",
+      "adb8dd6e feat(mcp): expose #command spawn aliases in the oracle + bundle dcsUnits.yaml",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "928ac2bc feat(build): datamine DCS airfield ATC frequencies per theatre (FEAT-AIRFIELD-FREQS-DATA) (#565)",
+      "b65db64a fix(build): bundle dcs-radio-layouts.yaml in veaf_build's PyInstaller data list (#561)"
+    ],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Refactoring finding, no wrong behaviour attached, and nothing else is currently changing veaf_build/worker.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-135",
+    "title": "_read_db_version truncates the source ref to 8 chars, risking a misleading version label",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/python/veaf-tools/veaf_libs/dcs_units_parser.py",
+    "line": "116",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/python/veaf-tools/veaf_libs/dcs_units_parser.py. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-001",
+    "title": "Lua injection: unescaped player name/command interpolated into executed mission code",
+    "severity": "CRITICAL",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "473",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "REGISTER_PLAYER / REGISTER_PLAYER_SLOT / RUN_COMMAND / SEND_MESSAGE now interpolate with %q instead of \"%s\", and every call site passes tostring(value). injectCode quotes the whole payload with %q instead of wrapping it in a fixed [===[ ]===] bracket. Both layers were needed and both are proven: test/lua/test_veafServerHook.lua drives the real onPlayerConnect callback and asserts the crafted name arrives as data. NOT YET DEPLOYED -- the hook only becomes fixed on the VEAF servers."
+  },
+  {
+    "vid": "VMR-002",
+    "title": "Injection via playerName in REGISTER_PLAYER / REGISTER_PLAYER_SLOT before authentication",
+    "severity": "CRITICAL",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "216",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Same change as VMR-001; this is the same interpolation on the pre-authentication connect path. Covered by test_connect_with_a_crafted_name_executes_nothing, which goes through onPlayerConnect rather than through the template. NOT YET DEPLOYED."
+  },
+  {
+    "vid": "VMR-003",
+    "title": "veafGroundAI marker commands run with no security check",
+    "severity": "HIGH",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafGroundAI.lua",
+    "line": "599",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Fixed structurally rather than per-instance. veafCommands.registerCommandHandler now takes a required security argument and asserts on a missing or unknown one, and the dispatcher enforces it centrally; veafSpawn.registerCommandHandler lost its documented 'legacy 2-arg form = no check'. The inventory the ticket asked for found VMR-003 was one of FOUR ungated handlers: veafGroundAI (reported), plus veafMove, veafNamedPoints and the veafRadio marker path (not reported). Levels set by David 2026-08-06: veafGroundAI L9, veafMove L1, veafRadio L1, veafNamedPoints OPEN. Changes existing missions -- three commands anyone could use now need a pilot level or a login."
+  },
+  {
+    "vid": "VMR-004",
+    "title": "Unauthenticated OS command injection via SRS transmit/play marker commands",
+    "severity": "HIGH",
+    "kind": "Security flaw",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "755",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "veafRadio._transmitViaSRS now strips shell metacharacters from the free-text values (message, station name, file path) and validates the small-shape ones (frequencies, modulations, coalition) against an anchored pattern, falling back with a warning. Reachability was confirmed while fixing: markTextAnalysis reads an F10 marker and nothing on that path authenticates, so any player reached os.execute on the server host. Six tests in test_veafRadio.lua; five of them fail without the fix. Security half closed by ticket 03: the veafRadio marker path now declares L1 and the dispatcher enforces it, so the shell-safety fix is no longer the only thing between a spectator and os.execute."
+  },
+  {
+    "vid": "VMR-013",
+    "title": "dcs-fiddle-server executes arbitrary Lua from unauthenticated HTTP requests",
+    "severity": "MEDIUM",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/other/dcs-fiddle-server.lua",
+    "line": "270",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "ADR 0019. The port stays open for now because no DCS is available to test a change to the transport FEAT-DCS-SMOKE-HARNESS speaks through, and shipping untested auth there breaks the harness invisibly. Two things did ship: the harness documentation now carries a danger warning where it tells you to install the hook, and the token design is written down to be implemented with the harness's remaining slice, where it can be tested. Severity is understated in the review: cors='*' plus a GET channel means any web page visited while the hook is installed gets code execution, so 'loopback only' is not the protection it sounds like."
+  },
+  {
+    "vid": "VMR-017",
+    "title": "onEvent aborts all remaining match managers on a coalition mismatch",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/other/DcssbMatchManager.lua",
+    "line": "417",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — a coalition mismatch used `return`, which leaves the whole onEvent function rather than the iteration, so the first manager of the other side ended the loop and every manager after it never saw the player. Lua 5.1 has no `continue`, so the test became a flag guarding the body. NOTE: the trigger-zone branch has the same `return` and the same effect; left deliberately, since VMR-017 reports the coalition test only and 'a player joins one match at a time' may be intended there. Flagged in a code comment for a decision."
+  },
+  {
+    "vid": "VMR-018",
+    "title": "continueCarrierOperations dereferences carrier.tankerData without nil check",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCarrierOperations.lua",
+    "line": "647",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — carrier.tankerData was dereferenced twice inside the tanker setup block while a guard further down proved the code knows it can be absent. Added to the block's entry condition rather than as two inner guards: with no tanker data there is nothing the block can usefully set up."
+  },
+  {
+    "vid": "VMR-019",
+    "title": "tonumber(nil) comparison crashes on valueless size/defense/armor/spacing marker keywords",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "515",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group A / PR #677 — the four valueless numeric keywords (size, defense, armor, spacing) each crashed twice: string.format('%d', nil) and tonumber(nil) <= 5. Both go through veaf.safeNumber now. The review asked for this in 'the shared marker parser'; there is none — ten modules carry their own markTextAnalysis — so the shared piece is the conversion, which is what was being written wrong each time. Out-of-range values stay ignored rather than clamped, preserving existing behaviour."
+  },
+  {
+    "vid": "VMR-020",
+    "title": "Invalid Lua iteration crashes setAllElementsSkill",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "702",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `for _, element in self.elements do` asked Lua to call the table as an iterator, raising on the first invocation. The two sibling loops in the same file already write pairs(), so it was a slip, and nothing in the repository calls the method, which is why it survived. 3 tests."
+  },
+  {
+    "vid": "VMR-021",
+    "title": "Unguarded nil dereference when mist.teleportToPoint returns nil in combat mission activate",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "895",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `_group.groupName = ...` sat between two `if _group then` guards while being unguarded itself, so a nil return from mist.teleportToPoint crashed activation immediately after the code had checked for exactly that. The guards are merged rather than a third added; the assignment belongs with the work it labels."
+  },
+  {
+    "vid": "VMR-022",
+    "title": "Dead type() guards make FARP coalition normalization ineffective",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafGrass.lua",
+    "line": "1012",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — `if type(x == \"number\")` evaluates type(boolean), always truthy, so both normalisation guards always ran. Not just dead code: a coalition arriving as the string \"red\" failed the `== 1` test, fell into the else, and came out BLUE, building the FARP for the wrong side. Extracted into veafGrass._normalizeFarpCoalition so it is testable; 5 tests."
+  },
+  {
+    "vid": "VMR-023",
+    "title": "onBirthEvent crashes when dynamic-slot groupId resolves to nil",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "113",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — both groupId resolution paths can come back empty on a dynamic slot, and the value then reached `veafRadio.humanGroups[groupId] = {}`; assigning at a nil index raises 'table index is nil' and takes the birth handler down. The unit is skipped with a warning, since without a group there is no per-group radio menu to build."
+  },
+  {
+    "vid": "VMR-024",
+    "title": "Point-defence lookup relies on getEarlyWarningRadars(name), but Skynet ignores the argument",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "622",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group B / PR #677 — confirmed against Skynet's source: getEarlyWarningRadars() takes no argument and returns every EWR as a table delegator, so the name was ignored and the result was always truthy, making the lookup never fail and defended_site the whole collection. Switched to getEarlyWarningRadarByUnitName, which matches on getDCSName() exactly as getSAMSiteByGroupName does. Skynet's naming asymmetry is real (a SAM's DCS name is its group, an EWR's is its unit), so a group-named lookup now correctly finds nothing instead of incorrectly finding everything."
+  },
+  {
+    "vid": "VMR-096",
+    "title": "removeSkynetElement can nil-deref when the DCS group is gone",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "203",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `getDcsGroupFromSkynetElement` returns nil once the DCS representation stops existing — the very case `removeSkynetElement` handles — and the caller indexed it anyway, under a `---@diagnostic disable-next-line: need-check-nil` that recorded the defect instead of fixing it. Beyond the raise, the network kept listing a group that no longer exists. Falls back to `skynetElement.dcsName`, which is the group name for the SAM sites this function removes (`addGroupsToNetwork` compares it against one). 4 tests."
+  },
+  {
+    "vid": "VMR-138",
+    "title": "Duplicate self.pointDefences = {} and shadowed launchers local",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSkynetIadsHelper.lua",
+    "line": "423",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafSkynetIadsHelper.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-025",
+    "title": "Non-numeric 'multiplier' marker parameter aborts spawn with a runtime error",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafSpawnCore.lua",
+    "line": "305",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group A / PR #677 — fixed in veafSpawnParser's shared _num applier rather than on `multiplier`, since every numeric spawn keyword goes through it. Two failure modes: a non-numeric value set options.multiplier = nil and the spawn died downstream on `for i = 1, options.multiplier do`, and a valueless keyword raised inside getRandomizableNumeric itself, which reaches string.find(nil, '%-') after tonumber returns nil. Unusable values now leave the existing default in place."
+  },
+  {
+    "vid": "VMR-038",
+    "title": "dictionaryNormalizer executes an untrusted dictionary file via loadfile/setfenv",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/other/dictionaryNormalizer.lua",
+    "line": "19",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "The sandbox the finding overlooks is right there: loadTable does setfenv(file, table) with table = {}, so the loaded dictionary runs with an empty environment and reaches no global at all -- no os, no io, no require, not even setmetatable. Arbitrary code execution is not available. A hostile file can still spin or allocate, but this is a developer tool run by hand on one's own files, so that is a denial of service against oneself."
+  },
+  {
+    "vid": "VMR-129",
+    "title": "dictionaryNormalizer and its helpers use print() and leak file handles on error",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/dictionaryNormalizer.lua",
+    "line": "99",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "wontfix",
+    "outcome_detail": "David's call: legacy one-shot tool, replaced in v6 by the Python pipeline (`luadata.serialize(…, sort=True)` writes the normalised dictionary). `src/scripts/other/dictionaryNormalizer.lua` is deleted rather than repaired — nothing in the repository referenced it. This also makes VMR-038 moot (already recorded as does-not-reproduce)."
+  },
+  {
+    "vid": "VMR-039",
+    "title": "Remote marker command runs stored Lua via mist.utils.dostring gated by shared static password",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafRemote.lua",
+    "line": "228",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Inherited from VMR-040 and now materially reduced by it: the remote Lua execution is gated on the ADMIN tier, and a mission that declares its own hashes no longer accepts the public password at any tier. What remains -- that an authenticated admin can run arbitrary Lua -- is the feature, not a defect: it is how a server operator drives their own server. Any further hardening belongs to REVIEW-SECURITY-LAYER with the authorization layer's own tests, not to a LOW sweep."
+  },
+  {
+    "vid": "VMR-130",
+    "title": "Empty monitoredCommands makes the remote marker command path dead/unreachable",
+    "severity": "INFO",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRemote.lua",
+    "line": "220",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Removed rather than documented, on David's call, and the history says why: `monitoredCommands` was filled by `veafRemote.monitorWithSlMod(command, script, …)`, the mission-facing half of the **SLMOD** bridge. That registration API was deleted on 2021-08-24 (`067495be` — 'removed slmod monitoring altogether'), leaving a table nothing could fill, a consumer that could only warn, and a `mist.utils.dostring` of arbitrary Lua behind a password published in a public repository. Gone: `executeRemoteCommand`, `markTextAnalysis`, the `_remote` marker entry point, `monitoredCommands`, `CommandStarter`, and the two orphaned `USE_SLMOD*` flags — plus the veafShortcuts branch that routed markers there. `registerRemoteModule` / `executeCommandFromRemote` is the supported route and the only one the server hook uses. No documentation to update: `_remote` was documented nowhere. Tests replaced by three asserting the path is gone."
+  },
+  {
+    "vid": "VMR-040",
+    "title": "Passwords hashed with unsalted single-round SHA-1; shared secrets committed in source",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "51",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "David's call, taken on 2026-08-10, and it dissolved the dilemma I had framed. The choice was not between breaking every server and merely documenting: `password_MM` has always been REPLACED by the generator (`veafSecurity.password_MM = {}` before the adds) while `password_L1` was only extended -- three lines apart. So a mission declaring its own hashes widened the accepted set instead of closing it, and the public hash kept opening it. Declaring password_hashes now clears L0/L1/L9 first. L0 too, deliberately: checkPassword_L1 accepts L1 OR L0, so leaving the shipped L0 hash would have made the change decorative. Consequence to know: on a mission that declares its own hashes, nothing grants ADMIN by password any more -- ADMIN comes from the pilot's level in veaf-pilots.txt. Missions that declare nothing keep the shipped defaults, so no silent change. 4 tests. The unsalted SHA-1 itself is untouched: a known password is known whatever the digest, and the fix that matters is being able to turn it off."
+  },
+  {
+    "vid": "VMR-041",
+    "title": "getMarkerSecurityLevel conflates markId and username, weakening marker author trust",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "591",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Confirmed as a design defect, and the code says so itself: 'markId may actually be the username if called from veafRemote - yes I know it's ugly'. Not exploitable in practice -- the username fallback only fires when no mark panel carries the id, and it would then have to collide with a registered remote user's name, which are pilot names rather than integers. The fix is a signature split in the authorization layer, which belongs with REVIEW-SECURITY-LAYER and its tests rather than in a LOW sweep touching ten unrelated files."
+  },
+  {
+    "vid": "VMR-042",
+    "title": "Remote fog command indexes veafWeather with attacker-supplied key without whitelisting",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafWeather.lua",
+    "line": "1798",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Not exploitable as reported. The key is player-supplied but goes through :upper(), and every all-caps key on veafWeather is a FOG_* preset -- measured across the file, there is no other. So the missing whitelist reaches nothing but fog objects. The fragility underneath was real and is removed: the command now checks the contract setAndActivateFog is about to use, so the first all-caps constant that is not a fog object cannot turn a pilot's request into a Lua error. 3 tests."
+  },
+  {
+    "vid": "VMR-071",
+    "title": "get_stat indexed by numeric loop key instead of stat type value",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "350",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "A real defect, with the finding's remedy inverted. statisticsTypes was a plain list, so pairs() gave the loop the Lua index (1..8) and the code passed that to net.get_stat -- reading whatever ids 1..8 happen to be and filing them under the wrong names. But the finding proposes passing the list's *value* instead, a string, and the repo's own API schema settles it: net.get_stat's second parameter is 'one of the net.PS_* constants', a number. The table now maps each reported name to its constant NAME, resolved through net[...] at the call, which removes any assumption about the numeric values -- and skips a statistic with a warning if a DCS version ever drops one, rather than calling get_stat with nil."
+  },
+  {
+    "vid": "VMR-072",
+    "title": "parse() dereferences pilot.level after logging that pilot is unknown (potential nil index)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/Hooks/VEAF-Server-hook.lua",
+    "line": "390",
+    "status": "review-needed",
+    "commits": [
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "edfcd837 refactor(server-hook): make the repo hook the single deployable source (REFACTOR-SERVER-HOOK-CANONICAL) (#604)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: the finding describes an unguarded pilot.level dereference after logging an unknown pilot. The code reads `local pilot = veafServerHook.pilots[ucid]; if pilot then pilotData.level = pilot.level end` — guarded. The hook was rewritten by REFACTOR-SERVER-HOOK-CANONICAL and SECREV-2 ticket 02 since the review."
+  },
+  {
+    "vid": "VMR-073",
+    "title": "dcs-fiddle create_server references undefined `id`, breaking every request path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/dcs-fiddle-server.lua",
+    "line": "561",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and worse than reported: `handle_client_connection` returns **nothing**, so `success` was always nil, the failure branch concatenated a nil `res` and raised — on *every* request. The `else` branch the finding names (`clients[id]`, with `id` undefined and `clients` never filled) was therefore unreachable. The response is sent before all this, which is why the smoke harness worked while its server errored each time. Now a `pcall` around the handler, reporting the error instead of taking the loop down. Vendored file, kept to the minimum; `clients` and `get_client_id` were already orphaned before this change and are left alone."
+  },
+  {
+    "vid": "VMR-074",
+    "title": "activateZone/deactivateZone crash on unknown or wrong-case zone name",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/other/trainingSpawnZone.lua",
+    "line": "118",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 sample / this PR — activateZone and deactivateZone both looked up zones[name:lower()] and indexed the result immediately, so an unknown zone name (or the right name in a case the table does not hold) crashed instead of being refused. Both guarded, with an error log naming the zone."
+  },
+  {
+    "vid": "VMR-075",
+    "title": "trainingSpawnZone.p references undefined veafServerHook on depth overflow",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/other/trainingSpawnZone.lua",
+    "line": "54",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same shape as VMR-077 and VMR-078: `veafServerHook` appears exactly once in trainingSpawnZone.lua -- the call itself, copied from the server hook -- so reaching the depth limit raised 'attempt to index a nil value' instead of reporting it. The file has its own logger thirty lines up."
+  },
+  {
+    "vid": "VMR-076",
+    "title": "Output files written before io.open success is checked, crashing on any open failure",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "524",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and doubled: two io.open calls in dcsDataExport.lua wrote before the `if file then` guard, not the one reported. An unwritable export path crashed inside writeln on a nil handle. Both now check first and report which file could not be opened."
+  },
+  {
+    "vid": "VMR-077",
+    "title": "Undefined global logError() crashes the pretty-printer at max recursion depth",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "248",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. logError is defined nowhere in the file or its dependencies, so reaching the recursion depth limit raised 'attempt to call a nil value' instead of reporting it -- the error path was itself the error. The module has its own logger, declared a few lines above."
+  },
+  {
+    "vid": "VMR-078",
+    "title": "Undefined global log used in serialize error branch (log:error)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "427",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same defect as VMR-077 in the same file: `log` is defined nowhere, so reporting an unserializable value raised 'attempt to index a nil value' instead. The placeholder was wrong too -- `$1` where string.format wants `%s`. Now uses the module's own logger."
+  },
+  {
+    "vid": "VMR-079",
+    "title": "Reliance on the implicit Lua 5.1 'arg' varargs table breaks under Lua 5.2+",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "91",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and far worse than 'breaks under 5.2+': measured on Lua 5.1, `arg` is nil INSIDE a vararg function -- the global `arg` holds the script's command-line arguments. So formatText's format branch never ran, and the five logger methods called `unpack(arg)` on nil, which raises outright unless the interpreter was built with LUA_COMPAT_VARARG -- a compile-time option of whichever Lua DCS ships, not something we can rely on. All 6 occurrences now use `{...}`, removing the dependency. mist.lua has the same pattern 6 times and was left alone: it is third-party community code."
+  },
+  {
+    "vid": "VMR-080",
+    "title": "skip parameter mutated in place, corrupting caller's list and mixing array/hash keys",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "199",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `local skip = skip` rebinds the name but not the table, so `skip[value] = true` wrote into the caller's own list -- turning {\"units\"} into {\"units\", units = true} for whoever passed it. The lookup set is built separately now and the caller's list is left as handed over."
+  },
+  {
+    "vid": "VMR-081",
+    "title": "exportAsJson writes to a file handle without checking io.open succeeded",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "3228",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same shape as VMR-076 but worse, because this one runs inside DCS: three writeln calls preceded the `if file then`. An export directory that cannot be opened raised in a mission script. It now returns after logging, and 2 tests cover both sides -- io is the real one in the Lua suite, not a mock, so the failure is genuine."
+  },
+  {
+    "vid": "VMR-082",
+    "title": "veaf.split / veaf.breakString break when the separator is a Lua pattern magic char",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "1163",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the separator was interpolated straight into a character class. Measured rather than assumed: `-` and `]` happen to survive, `%` raises 'malformed pattern' outright, and every separator used inside this repository is a comma, space or semicolon. Fixed anyway because both functions are public API a mission can call with anything. 7 tests."
+  },
+  {
+    "vid": "VMR-083",
+    "title": "veaf.serialize emits non-reloadable text for table/function/userdata values",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "656",
+    "status": "reviewed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "wontfix",
+    "outcome_detail": "David's call — 'osef des fonctions'. Measured first: `veaf.serialize` has three call sites in the whole tree and all three are debug traces (two in veafCombatZone, one commented out in veafCombatMission). Nothing reloads its output as Lua, which is the finding's entire argument, so a `function: 0x…` in a trace has never misled anyone."
+  },
+  {
+    "vid": "VMR-084",
+    "title": "vec3/vec2 pretty-print branch in veaf.p is dead code (#o is always 0)",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veaf.lua",
+    "line": "821",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "16cb2ab2 fix: logger Sim crash + dead server-hook chat callback (FIX-SERVERHOOK-CHAT-SIM-LOGGER) (#590)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 / PR #678 — the vec3/vec2 pretty-print branches tested `#o == 3` / `#o == 2`, and `#` measures a table's sequence part, so a coordinate holding only named keys gives 0. Both branches were dead and every vec3 fell through to the multi-line generic dump. 4 tests."
+  },
+  {
+    "vid": "VMR-085",
+    "title": "deployWaves/tickActive dereference triggerZone/zoneCenter without full nil handling",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafAirWaves.lua",
+    "line": "1006",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and reachable precisely because of a deliberate leniency. `setTriggerZone` stores the name before checking the zone, and when a centre is already configured it only warns — so `deployWaves` saw a `triggerZoneName`, got nil from `veaf.getTriggerZone` and indexed it: every wave of such a zone raised. Now asks for the zone and then decides, the same shape as `AirWaveZone:check()` two hundred lines above, with an explicit refusal when neither is usable. 3 tests. Noted in passing, not fixed: `setTriggerZone` writes a vec2 into `zoneCenter` while the documented contract of `setZoneCenter` is a vec3 — harmless today because the vec2 only exists when the trigger zone does."
+  },
+  {
+    "vid": "VMR-086",
+    "title": "Remote start-operations duration parsing is dead / uses wrong variable",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCarrierOperations.lua",
+    "line": "1114",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `_parameters` comes from `_command:match(RemoteCommandParser)` so it is always a string or nil, and `type(_parameters) == \"number\"` is never true: the duration the caller asked for was dropped and every remote `start` ran for the 45-minute default. The dead branch also read a global `parameters` rather than `_parameters`, which is why nothing ever surfaced. 4 tests. The duration is not bounded, which is unchanged: the radio menu already offers 45 and 90 minutes."
+  },
+  {
+    "vid": "VMR-087",
+    "title": "Unreachable armorBias branch: _actualDefense > 5 never true after clamp",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "609",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "The branch is reachable, so the finding's premise is wrong. `if _actualDefense > 5 then _actualDefense = 6 end` is not a clamp to 5 — it promotes to 6, which is what makes the `> 5` branch below fire (defense 5 plus a dice roll above 80). The two tiers spawn different units (Roland ADS / Gepard against the level-5 set), so this is a working 'super' tier, not dead code. What remains is the finding's second half — that `_addDefenseForGroups` and `generateAirDefenseGroup` disagree on the ceiling — and removing tier 6 would change mission balance, which is David's call, not a sweep's."
+  },
+  {
+    "vid": "VMR-088",
+    "title": "getRemainingEnemies mislabels damaged/dead units due to repeated getUnitLifeRelative calls",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCombatMission.lua",
+    "line": "778",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Real but deferred to `REFACTOR-MARKER-PARSER`, on David's call, because it is one instance of a family. The logging refactor he remembered is there and it works: `Logger:trace` checks the level before formatting, and `veaf.lp` defers serialisation through a `__tostring` metatable (726 uses). This call site defeats both — it calls `string.format` itself, and its argument is a DCS API call, so the work happens whatever the log level. There are **four** such calls per unit here, not the three reported (the fourth hides inside the trace). Measured across `src/scripts/veaf/`: **794** pre-formatted trace/debug calls remain, which is the size of the real chantier."
+  },
+  {
+    "vid": "VMR-089",
+    "title": "veafEventHandler.isEventEnabled returns nil for unknown events, silently letting them through",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafEventHandler.lua",
+    "line": "526",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Contract hardening with no reachable failure — the finding says so itself: `onEvent` filters unknown events before `isEventEnabled` sees them. Two `return false` to add, deferred to whichever lot next touches `veafEventHandler`."
+  },
+  {
+    "vid": "VMR-090",
+    "title": "veafMissileGuardian remote/list handlers call undefined functions",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafMissileGuardian.lua",
+    "line": "593",
+    "status": "review-needed",
+    "commits": [
+      "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and all three branches were dead, not just one: listAvailableMissions, ActivateMission and DesactivateMission do not exist. The module was renamed mission -> guardian and this remote handler never followed, so every remote command raised. Mapped onto the real listGuardians, ActivateGuardian and DesactivateGuardian. Noted in passing and NOT fixed here: listGuardians itself sorts and iterates an empty local table, so it always prints an empty list -- a separate defect, outside this finding, and it needs someone to say what it should collect."
+  },
+  {
+    "vid": "VMR-091",
+    "title": "VeafMG_Guardian:copy corrupts protectedUnits/protectedZone deep copy",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafMissileGuardian.lua",
+    "line": "193",
+    "status": "review-needed",
+    "commits": [
+      "c058d2b7 fix(missileguardian): fix init crash + stop auto-enabling the 2021 WIP relic (#550)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 07 sample / this PR — copy() iterated self.protectedUnits and wrote into copy.protectedZone; the next block then reassigned copy.protectedZone = {}, wiping the misplaced entries, so protectedZone looked right while protectedUnits came back empty. Every copy silently lost its protected units. 5 tests."
+  },
+  {
+    "vid": "VMR-092",
+    "title": "Eager string.format(\"%d\", val) on raw marker strings crashes veafMove parser",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "src/scripts/veaf/veafMove.lua",
+    "line": "194",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and 7 occurrences across 2 files rather than the single line reported: 4 in veafMove, 3 in veafTransportMission. string.format(\"%d\", val) ran on the raw marker text before tonumber(), and the format call is evaluated before the logger sees it, so the level made no difference -- `_move speed abc` took the parser down. Measuring Lua 5.1 changed the fix: %s raises on nil too, which is exactly what a keyword with no value produces, so tostring() is required and %s alone would have shipped a half-fix. veafShortcuts has three similar-looking lines that are safe (math.random), and were left alone. 5 tests."
+  },
+  {
+    "vid": "VMR-093",
+    "title": "Latitude/longitude formatted with %d, truncating fractional degrees",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "736",
+    "status": "reviewed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and worse than an approximation. Measured in Lua 5.1, `string.format(\"%d\", 41.567)` does not raise — it truncates toward zero — so an SRS positional transmission landed up to ~111 km from the marker, and in the wrong direction in the southern/western hemispheres. Now `%.6f` for latitude and longitude, `%d` kept for altitude (metres). The locale worry that argued for hand-formatting was tested and does not reproduce: `%.6f` keeps the decimal point even after `os.setlocale(\"French_France.1252\")`. 4 tests."
+  },
+  {
+    "vid": "VMR-094",
+    "title": "Sanctuary event filter operator-precedence bug lets non-tracked BIRTH/DEAD events register",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSanctuary.lua",
+    "line": "804",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and the finding's remedy would have been a regression. `A or B and C and D` parses as `A or (B and C and D)`, so PLAYER_ENTER_UNIT/LEAVE_UNIT skipped the name check and registered under the key `\"\"`. But parenthesising as `(A or B) and C and D`, as proposed, would require the `humanUnits` lookup on PLAYER_ENTER_UNIT — and that table is filled once at initialize() from `mist.DBs.humansByName`, so a **dynamic slot** is not in it and Sanctuary would stop following those players entirely. Proved by applying the proposed remedy and watching the dynamic-slot test fail. The two branches differ: ENTER/LEAVE is a human by definition and needs only a name; BIRTH/DEAD fires for AI too and does need the lookup. 9 tests."
+  },
+  {
+    "vid": "VMR-095",
+    "title": "authenticate() silently ignores malformed timeout and mis-parses embedded digits",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSecurity.lua",
+    "line": "531",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and it is a crash rather than a silent ignore. `-auth login <duration>` reaches `authenticate` as text a pilot typed, and the guard `not actualMinutes:match(\"%d+\")` was unanchored: \"abc5\" passed it and `actualMinutes * 60` then raised (measured in Lua 5.1). \"-5\" passed too and scheduled the logout in the past, so the mission unlocked and relocked without a word. Now converted with `tonumber` and refused when nil or <= 0, with a warning. 7 tests."
+  },
+  {
+    "vid": "VMR-097",
+    "title": "CAP speed computation ignores its mach argument, collapsing all leg speeds",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "859",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and flagrant: convertSpeeds(speed, mach, altitude) took `mach` and ignored it, using a hard 0.3. The four legs are called with 0.3, 0.5, 0.63 and 0.63, so every CAP spawned without an explicit speed flew its entire route at Mach 0.3 -- visible in game as sluggish patrols. `mach or 0.3` keeps the old value as a fallback for a caller that passes nothing."
+  },
+  {
+    "vid": "VMR-098",
+    "title": "AFAC spawn limit check is off-by-one and can index a taken callsign",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "464",
+    "status": "reviewed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed in part, and the finding's own remedy would have been a regression. The callsign loop fell back to `callsigns[coalition][numberSpawned]` when nothing was free, handing out the callsign of an AFAC that is still flying; spawnAFAC now refuses the spawn instead. The reported off-by-one does NOT apply: `numberSpawned` is pre-incremented (set to 1 before the first spawn), so `> maximumAmount` already refuses the 9th AFAC — `>=` would have capped missions at 7. Both limits are now pinned by tests."
+  },
+  {
+    "vid": "VMR-099",
+    "title": "'afac' command handler inverts the hiddenOnMFD flag relative to every other handler",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnAircraft.lua",
+    "line": "1443",
+    "status": "reviewed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and wider than reported: the `cap` handler passes the same raw `options.showMFD` as `afac`, against `not options.showMFD` in every other handler. Default showMFD=false therefore left AFACs and CAPs visible on every MFD and `-showmfd` hid them. Both negated; 4 tests drive the handlers through the registry."
+  },
+  {
+    "vid": "VMR-100",
+    "title": "In-place mutation of shared DCS unit descriptor when swapping cargo min/max mass",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "PLAUSIBLE",
+    "path": "src/scripts/veaf/veafSpawnEffects.lua",
+    "line": "89",
+    "status": "reviewed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `veafUnits.findDcsUnit` returns the live `dcsUnits.DcsUnitsDatabase` entry, so the min/max swap edited the shared units database for the rest of the mission (dcsDataExport reads those same fields). Bounds are now reordered into locals. 2 tests, including a control that the mass is still computed from the reordered bounds."
+  },
+  {
+    "vid": "VMR-101",
+    "title": "_findClosestConvoy aborts the whole search when one convoy has no position",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnGround.lua",
+    "line": "677",
+    "status": "reviewed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. `_findClosestConvoy` returned nil as soon as one convoy had no average position, so a despawned convoy still listed in `spawnedConvoys` hid every live one from mark/stop/move closest convoy. Now skipped with a warning. The error message also named the *player*, not the convoy — corrected in the same block. 3 tests."
+  },
+  {
+    "vid": "VMR-102",
+    "title": "convertLaserToFreq accepts codes outside the valid DCS laser range in the low digits",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSpawnParser.lua",
+    "line": "234",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed. DCS laser codes are octal-like and the 1111..1688 range check let 1201, 1210, 1119 through, producing a plausible frequency for a code no aircraft can dial. Digits C and D are now validated (B is pinned to 1..6 by the range, so no guard there), and an undialable code keeps the command default instead of installing itself, as `_num` does for unusable numerics. Found on the way: an existing test asserted 1500 produced a frequency, and both GUIDE pages documented the keyword as `code` (which is the TACAN channel) instead of `laser`. 11 tests."
+  },
+  {
+    "vid": "VMR-103",
+    "title": "getAtis new-ATIS detection triggers on any lower date component, not strict chronology",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafWeather.lua",
+    "line": "1131",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "does-not-reproduce",
+    "outcome_detail": "Disproved by enumeration, not by reading. Under a monotonic clock the shipped per-component `or` chain is exactly equivalent to a lexicographic (year, month, day, hour) comparison: 26 304 hour blocks over three years, 345 963 360 ordered pairs, **zero divergence**. The control — the same comparison with the clock allowed to run backwards — does diverge, so the probe is not hollow. `timer.getAbsTime()` never runs backwards, so there is nothing to fix."
+  },
+  {
+    "vid": "VMR-109",
+    "title": "Asset info/dispose/respawn scan the whole list instead of keyed lookup",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafAssets.lua",
+    "line": "91",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafAssets.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-110",
+    "title": "VeafCache.getCachedData never evicts expired entries, growing the table unbounded",
+    "severity": "LOW",
+    "kind": "Optimization",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCacheManager.lua",
+    "line": "113",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Optimization finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafCacheManager.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-117",
+    "title": "Dead / nonsensical double-wrapped _recordAction call in veafSanctuary",
+    "severity": "LOW",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafSanctuary.lua",
+    "line": "116",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "decided-deferred",
+    "outcome_detail": "Deferred by this ticket's own policy: \"No file is touched purely for readability unless something else was being changed in it.\" Readability finding, no wrong behaviour attached, and nothing else is currently changing src/scripts/veaf/veafSanctuary.lua. NOT fixed — it becomes eligible the next time a lot edits that file, and ticket 07 lists all 15 by file so it can be found then. REFACTOR-MARKER-PARSER absorbed the three that were in its files (VMR-133/136/137); these are the ones it did not reach."
+  },
+  {
+    "vid": "VMR-132",
+    "title": "Module-level export code runs at load time as a script side effect (poor testability / reuse)",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/dcsDataExport.lua",
+    "line": "523",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `local file = io.open(...)` runs at module level, so loading the file writes to disk."
+  },
+  {
+    "vid": "VMR-133",
+    "title": "Unused local spawnCapFunction",
+    "severity": "INFO",
+    "kind": "Refactoring",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "873",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed dead and removed. `local spawnCapFunction = function() end` at veafRadio.lua:1100, assigned an empty function and referenced nowhere; being a `local`, it was unreachable from any other module by construction. Eligible under this ticket's own policy because REFACTOR-MARKER-PARSER was rewriting the file anyway."
+  },
+  {
+    "vid": "VMR-136",
+    "title": "veafCombatMission password keyword uses string.format with no format specifier",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafCasMission.lua",
+    "line": "508",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "already-fixed",
+    "outcome_detail": "Removed by REFACTOR-MARKER-PARSER. The site was `string.format(\"Keyword password\", val)` — a format string with no specifier, so `val` was silently discarded and the log never showed it. The migration replaced the whole hand-rolled password branch with `veaf.markerRules.text(\"password\")`, so the call is gone. Two corrections to the finding: it names `veafCombatMission` while the path is `veafCasMission.lua`, and the same line existed a second time at veafTransportMission.lua:185, which the review did not report. Both are gone. Worth noting the bug was accidentally protective — a working %s would have logged a password."
+  },
+  {
+    "vid": "VMR-137",
+    "title": "Duplicate 'path' keyword handling in markTextAnalysis",
+    "severity": "INFO",
+    "kind": "Readability",
+    "verdict": "UNVERIFIED",
+    "path": "src/scripts/veaf/veafRadio.lua",
+    "line": "235",
+    "status": "review-needed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "9d535c88 refactor(radio): skip an off-side group instead of iterating an empty table",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "Removed by REFACTOR-MARKER-PARSER. `path` appeared twice in veafRadio's `elseif` keyword chain (lines 233 and 253); the second branch was unreachable and never ran. The migration to the shared parser deleted it rather than translating it, and `test_only_one_rule_claims_the_path_key` now asserts exactly one rule claims that key."
+  },
+  {
+    "vid": "VMR-007",
+    "title": "CONVERT_OTHER says conversion profiles are \"coming next\" but foothold already ships",
+    "severity": "HIGH",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/CONVERT_OTHER.en.md",
+    "line": "8",
+    "status": "review-needed",
+    "commits": [
+      "1712b932 feat(convert-other): adopt Lekaa's release channel (zip input, profile refresh, WW2 profile)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Still applied, in BOTH languages: the profile paragraph said 'coming next' / '(à venir)' while veaf_libs/data/convert-profiles/ ships foothold.yaml and foothold-ww2.yaml. Both pages now name the two shipped profiles. Nearly missed on the English page because 'coming next' is split across two lines."
+  },
+  {
+    "vid": "VMR-008",
+    "title": "English guides link to French .md pages instead of .en.md",
+    "severity": "HIGH",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/README.en.md",
+    "line": "69",
+    "status": "review-needed",
+    "commits": [
+      "521d1967 docs(plugin): install guide for the AI mission-editing assistant (FEAT-MCP-PLUGIN-003)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Still applied, and far wider than the one page reported: 239 links across 38 .en.md pages sent an English reader to the French version of a page that has an English one. All rewritten. docs-check gained a wrong_language_links rule — it had been *compensating* for this silently (following the twin to check anchors) instead of reporting it, which is how 239 accumulated. Verified the rule fails on a reintroduced bad link."
+  },
+  {
+    "vid": "VMR-014",
+    "title": "Coalition ID mapping is backwards (1=blue/2=red) — DCS uses RED=1, BLUE=2",
+    "severity": "MEDIUM",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/LUA_API_REFERENCE.en.md",
+    "line": "74",
+    "status": "review-needed",
+    "commits": [
+      "4f15f228 feat(spawn): scenery-aware ground spawning from TUM's native tier (FEAT-SCENERY-AWARE-SPAWN) (#653)",
+      "19aec92c docs: fix what the documentation audit found"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 / this PR — the coalition mapping was inverted in both LUA_API_REFERENCE pages (said 1=blue/2=red; DCS is RED=1, BLUE=2). Verified against dcs_mocks and veaf.lua: the repository's own Lua never used the wrong values, so nothing else needed correcting."
+  },
+  {
+    "vid": "VMR-026",
+    "title": "CONTRIBUTING.md links to a non-existent doc/developer/GUIDE.fr.md",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "CONTRIBUTING.md",
+    "line": "5",
+    "status": "review-needed",
+    "commits": [
+      "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed without work, as ticket 06 instructed. Verified: CONTRIBUTING.md now links doc/developer/GUIDE.md, not the non-existent GUIDE.fr.md — repaired by TOOLING-REPO-LINK-GATE on 2026-08-05."
+  },
+  {
+    "vid": "VMR-027",
+    "title": "Developer GUIDE says \"31 test suites\" but there are 34 (contradicts TESTING.md)",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/developer/GUIDE.md",
+    "line": "64",
+    "status": "review-needed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the counter was removed rather than corrected. Measured 36 suites against the documented 31, and the finding itself said 34: the number has drifted three times, so any value written down is wrong by the next commit. A directory tree does not need to count itself."
+  },
+  {
+    "vid": "VMR-028",
+    "title": "Developer GUIDE says \"34 files\" for src/scripts/veaf/ but there are 41",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/developer/GUIDE.md",
+    "line": "54",
+    "status": "review-needed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "3b08ae32 feat(docs): allow republishing a version's docs without moving its tag",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — same treatment: 42 files against a documented 34, the finding said 41. Counter removed in both languages, plus a third one in the CI table ('All 31 test suites pass' -> 'Every test suite passes')."
+  },
+  {
+    "vid": "VMR-029",
+    "title": "French GUIDE Table of Contents links are broken (slug vs explicit heading id)",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/GUIDE.md",
+    "line": "15",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — five French table-of-contents links pointed at slugs derived from the French headings while those headings carry explicit English anchors ({#global-user-configuration} and friends). An explicit anchor wins, so all five were dead. Repointed at the explicit anchors; the English page was already correct."
+  },
+  {
+    "vid": "VMR-030",
+    "title": "Migration guide says Klogg VEAF profile is \"planned\" but it already ships",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/MIGRATION_GUIDE.en.md",
+    "line": "349",
+    "status": "review-needed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the migration guide said a Klogg profile 'is planned'; tools/klogg/veaf.conf ships and is 6.5 KB. Both languages now name the path, in code rather than as a link: a link out of doc/ is one of the pre-existing mkdocs --strict warnings."
+  },
+  {
+    "vid": "VMR-031",
+    "title": "Shortcuts config table names the enable field `enable` while examples use `enabled`",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafShortcuts.en.md",
+    "line": "51",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the config table named the field `enable` while the page's own two examples used `enabled`, and the shipped default mission.yaml confirms `enabled`. The table was wrong; fixed in both languages."
+  },
+  {
+    "vid": "VMR-032",
+    "title": "Weather page Purpose and F10-menu sections diverge between FR and EN",
+    "severity": "MEDIUM",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafWeather.md",
+    "line": "8",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Ticket 06 group C / PR #677 — the weather page diverged in two places. 'Purpose' was one flat paragraph in French against a two-role split in English, and the F10 section was a bullet list in French against a table in English carrying an 'Available to' column (per group / All secured) that French readers simply did not get. French is the project's default language and was the poorer of the two; both sections now carry the richer content."
+  },
+  {
+    "vid": "VMR-033",
+    "title": "Warn that a well-known default L1 password ships active",
+    "severity": "LOW",
+    "kind": "Security flaw",
+    "verdict": "PLAUSIBLE",
+    "path": "doc/mission-maker/scripts/veafSecurity.en.md",
+    "line": "43",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "The doc half, and worse than reported: mission.yaml, the generator's template, the MCP action's docstring and both GUIDE pages all said **SHA-256** while `veafSecurity._checkPassword` hashes with `sha1.hex(password)`. A mission maker following the documentation produced a hash that can never match -- believing access was restricted while only the public default still worked. All five corrected. Note: MISSION_YAML_REFERENCE already carried a 'SHA-1, not SHA-256' warning, so the repo had caught this in one place and left it wrong in five others."
+  },
+  {
+    "vid": "VMR-124",
+    "title": "Security page documents only three levels; Mission-Master (MM) level is undocumented",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafSecurity.en.md",
+    "line": "26",
+    "status": "reviewed",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and far worse than 'MM is undocumented': the page said `LEVEL_L0` was the **public** tier. In the code `LEVEL_L0 = LEVEL_ADMIN = 90`, the *tightest* tier — the very trap REVIEW-SECURITY-LAYER records as having nearly locked a deliberately public command to administrators. The mission-maker GUIDE already had it right, so both language versions of this page now carry the same tier table (ADMIN / SENIOR_PILOT / KNOWN_PILOT / MM / OPEN), the deprecated-alias warning, the password hierarchy, and a link to the GUIDE — which needed an explicit shared `{#security-tiers}` anchor. Two further traps found on the page and fixed: the key-constants table repeated the inverted meaning, and the password example put `myAdminPassword` into `password_L9`, the **loosest** tier. The example now also clears before adding, with a note on why (#701)."
+  },
+  {
+    "vid": "VMR-043",
+    "title": "GUIDE (EN) tips use invalid `group N` option for `_spawn unit`",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/GUIDE.en.md",
+    "line": "311",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Still reproduced. `_spawn unit, name BTR-80, group 5` -- there is no `group` option in the spawn parser at all, so the advice was unusable. Replaced with `_spawn armorgroup, size 5, spacing 8`, which exists. Fixed in BOTH languages: the finding named only the English page, and GUIDE.md carried the same line. My first replacement described spacing as a distance in hundreds of metres, which the code contradicts -- it is a multiplier of each vehicle's footprint."
+  },
+  {
+    "vid": "VMR-044",
+    "title": "GUIDE tips use invalid `group N` option for `_spawn unit`",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "311",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: `group` is a *subcommand* (`_spawn group`), not a parameter of `_spawn unit`. The pilot guide's tip is invalid syntax."
+  },
+  {
+    "vid": "VMR-045",
+    "title": "README (EN) advertises non-existent \"CAS Mission → Generate\" menu path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/README.en.md",
+    "line": "22",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Still reproduced. There is no 'Generate' item under the CAS menu, and the menu is named 'CAS MISSION'. A CAS mission is started by a `_cas` map marker; the radio menu reports on targets and calls smoke. The table now says that."
+  },
+  {
+    "vid": "VMR-046",
+    "title": "README advertises non-existent \"CAS Mission → Generate\" menu path",
+    "severity": "LOW",
+    "kind": "Error / bug",
+    "verdict": "CONFIRMED",
+    "path": "doc/pilot/README.md",
+    "line": "22",
+    "status": "untouched",
+    "commits": [],
+    "outcome": "fixed",
+    "outcome_detail": "Same defect on the French README, fixed with VMR-045."
+  },
+  {
+    "vid": "VMR-119",
+    "title": "README claims \"34 Lua modules\" — contradicts the source tree (41) and the API reference (\"33+\")",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "README.md",
+    "line": "28",
+    "status": "review-needed",
+    "commits": [
+      "3581658e fix(docs): extend the link gate past doc/, and repair the 92 links behind it (#658)"
+    ],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: README still claims 34 Lua modules; the tree has 42. Same family as VMR-027/028 — a counter that cannot stay true."
+  },
+  {
+    "vid": "VMR-120",
+    "title": "MISSION_YAML_REFERENCE.en.md cross-links point at French GUIDE.md instead of .en.md",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/MISSION_YAML_REFERENCE.en.md",
+    "line": "465",
+    "status": "reviewed",
+    "commits": [
+      "3c09574f feat(assist): guided checklists from YAML, with F-16C engine start as first client (#649)",
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "08061fb3 docs(mission-yaml): Afghanistan takes OAIX, and the doc stops prescribing omission",
+      "1a012488 docs(mission-yaml): document the .miz file name as an interface (_ICAO_ real weather)",
+      "cd2bbcdb fix(config): make mission.yaml passwords work, and let RADIO hide its menus",
+      "385d6cb0 chore: rename develop-v6 to develop and fix the release skill's gitflow",
+      "4db894f1 feat(build): make third-party aircraft mods non-blocking (FEAT-THIRD-PARTY-MODS) (#571)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)",
+      "97dd29e7 feat(radio): declare F10 radio menus in YAML (FEAT-RADIO-YAML-MENUS, ADR 0011) (#563)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "Closed by the VMR-008 sweep of 2026-08-10, which rewrote 239 cross-language links across 38 English pages, and it cannot come back: `docs_check` now reports an English page linking to a French one that has an English twin. Measured across the whole tree — the only two remaining are deliberate language selectors (the '🇫🇷 version française' line at the top of a page)."
+  },
+  {
+    "vid": "VMR-121",
+    "title": "convert-other missing from the Design-Time Tools command table",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/GUIDE.md",
+    "line": "318",
+    "status": "reviewed",
+    "commits": [
+      "193d25c5 feat(ctld): replace the bundled CTLD v1 with CTLD 2 (whole lot) (#646)",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "54db5659 feat(prepare): synthetic per-theatre blank mission + scaffold --theatre (FEAT-BLANK-MISSION-THEATRE)",
+      "7d368dd5 feat(build): disable kneeboard generation while keeping radio presets (FEAT-PRESETS-KNEEBOARD-TOGGLE) (#564)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "`convert-other` is in the Design-Time Tools table of both GUIDE pages."
+  },
+  {
+    "vid": "VMR-122",
+    "title": "dcs-radio-specs reference page has no English version",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/dcs-radio-specs.md",
+    "line": "1",
+    "status": "reviewed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "fa29c135 fix(presets): gate the primary-frequency promotion on the aircraft's HumanRadio range",
+      "89c0eeff docs(presets): document per-type radio-preset projection (dev page + MM note)"
+    ],
+    "outcome": "already-fixed",
+    "outcome_detail": "`dcs-radio-specs.en.md` exists, and `docs-check` would refuse a French page without its English twin, so this one is enforced rather than merely fixed."
+  },
+  {
+    "vid": "VMR-123",
+    "title": "veafCombatZone.en.md is missing the \"See Also\" heading",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafCombatZone.en.md",
+    "line": "343",
+    "status": "reviewed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version",
+      "19aec92c docs: fix what the documentation audit found",
+      "9dd12731 feat(combatzone): show a zone's F10 menu to the side playing it",
+      "58b703d4 feat(combatzone): let a combat zone be played from the red side",
+      "85c155a1 chore(release): promote 6.11.1 to master (stable milestone) (#625)",
+      "2a5e9b35 feat(radio): combat-zone radio grouping + automatic menu pagination (#573)"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed: the English page carried the See Also links with no heading, where the French one has `## Voir aussi`. Heading added."
+  },
+  {
+    "vid": "VMR-125",
+    "title": "FR/EN asset menu labels diverge (Ressources vs Assets) from real 'ASSETS' label",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.en.md",
+    "line": "178",
+    "status": "review-needed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "confirmed-open",
+    "outcome_detail": "Ticket 07 sample, 2026-08-09: Confirmed: the FR and EN pilot guides label the same menu differently, and neither matches the in-game 'ASSETS' string."
+  },
+  {
+    "vid": "VMR-126",
+    "title": "Asset menu path documents intermediate submenus that don't exist in-game",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "178",
+    "status": "reviewed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed and wider than reported. The ASSETS menu is flat: `addPaginatedRadioElements` gives each asset its own submenu named after the asset, so the documented *Tankers* / *AWACS* steps do not exist. Beyond the path, the labels were wrong too — the menu is `ASSETS` (in English, in game), and the commands read `Get info on X` / `Respawn X` / `Dispose of X`. The F10 tree diagram carried the same invented hierarchy and put carriers under ASSETS, when CARRIER OPS - BLUE/RED is its own menu. Rewritten in both languages, including the asset with no submenu at all."
+  },
+  {
+    "vid": "VMR-127",
+    "title": "Permission table maps to Public/Pilots/Admin, not the code's L0/L1/L9 password model",
+    "severity": "LOW",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/pilot/GUIDE.md",
+    "line": "278",
+    "status": "reviewed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, same family as VMR-124. 'Public / Pilots / Admin' with 'Pilots = non-spectator players' matches nothing in the code: the tiers are KNOWN_PILOT (listed in the server's veaf-pilots.txt), SENIOR_PILOT and ADMIN, and a pilot's level can pass a check with no password at all. Rewritten for a pilot audience in both languages — two ways in (recognised by the server, or the password), which commands are open to everyone, and that the administrator password also opens everything below it."
+  },
+  {
+    "vid": "VMR-139",
+    "title": "Overview test count \"~1000 tests\" disagrees with ROADMAP's \"~915 tests\"",
+    "severity": "INFO",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/TESTING.md",
+    "line": "19",
+    "status": "reviewed",
+    "commits": [
+      "fb7b8796 fix(tooling): test-lua verifies the interpreter is Lua 5.1 instead of taking any lua",
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and both numbers were wrong rather than one: TESTING said 34 suites / ~1000 tests, ROADMAP said 31 / ~915, and the tree holds 36. Handled the way ticket 06 handled this family — by **deleting the counters** rather than refreshing them, in all four pages (TESTING and ROADMAP, both languages). A number nothing checks drifts again by the next lot."
+  },
+  {
+    "vid": "VMR-140",
+    "title": "Shortcuts security list omits `-point` and `-longsmoke` from the bypass-security aliases",
+    "severity": "INFO",
+    "kind": "Documentation",
+    "verdict": "UNVERIFIED",
+    "path": "doc/mission-maker/scripts/veafShortcuts.en.md",
+    "line": "133",
+    "status": "reviewed",
+    "commits": [
+      "b2209562 feat(docs): gate the documentation, anchor it in English, stamp its version"
+    ],
+    "outcome": "fixed",
+    "outcome_detail": "Confirmed, and my own first measurement was wrong before the finding's was. A regex over `VeafAlias:new()` chains reported 7 bypassing aliases and no `-point`, because `-point` is written `VeafAlias` / `:new()` across two lines. Walking every `setBypassSecurity` call back to its nearest `setName` gives **8**: -smoke, -longsmoke, -signal, -light, -point, -tacan, -jtac, -afac. The docs listed 6, so both aliases the finding names were genuinely missing. Fixed in both languages."
+  }
+]

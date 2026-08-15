@@ -1,0 +1,525 @@
+"""Guided-checklist definitions: the YAML format, its validation and its loading.
+
+A *checklist* drives the in-game assistance module (``veafAssist``): it names the
+cockpit element to box for each step, and how that step is validated — automatically
+from an animation argument, or by the pilot confirming it. See
+``.backlog/FEAT-ASSIST-CHECKLISTS/PRD.md``.
+
+The YAML is **design-time only**. DCS has no YAML reader, so the build converts each
+checklist into a Lua table embedded in the ``.miz``; the emission itself lives in
+:mod:`veaf_libs.lua_config_generator`, the authoritative YAML-to-Lua path.
+
+Two sources, later overriding earlier by ``id``:
+
+1. the VMCT catalogue shipped under ``veaf_libs/data/checklists/``;
+2. the ``checklists/`` folder of the mission, where a mission maker adds their own.
+
+Sidecar files rather than blocks of ``mission.yaml``, per the call in
+``docs/adr/0016-ctld2-sidecar-configuration.md``.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Collection, Mapping, Sequence
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError, field_validator, model_validator
+
+from veaf_libs.bundled_data import bundled_dir, read_bundled_text
+from veaf_libs.i18n import t
+from veaf_libs.logger import logger
+from veaf_libs.lua_i18n import RUNTIME_DEFAULT_LANGUAGE, translate
+
+#: Folder holding the checklist files, both in the mission folder and in the catalogue.
+CHECKLISTS_FOLDER_NAME = "checklists"
+
+#: Half-width of the acceptance window when a step gives ``equals`` without ``tolerance``.
+#: Sized for the 0/1 parameters that make up most of what an aircraft publishes (gear
+#: down, flaps retracted, weight on wheels). A physical quantity — an altitude, a speed —
+#: needs its own ``tolerance`` or a ``range``; 0.05 metres would never match.
+DEFAULT_TOLERANCE = 0.05
+
+#: Decimal places kept when resolving a window, so ``0.5 - 0.05`` emits ``0.45`` rather
+#: than the binary-float noise Lua would then have to compare against.
+_WINDOW_PRECISION = 6
+
+
+#: A piece of pilot-facing text: a catalog key, a plain sentence, or a mapping of
+#: language code to text. The first two are strings and indistinguishable here — an
+#: unknown key resolves to itself, which is what makes plain text work.
+LocalizedText = str | dict[str, str]
+
+
+def resolve_text(text: LocalizedText, catalog: dict[str, dict[str, str]], language: str) -> str:
+    """Return *text* in *language*.
+
+    Args:
+        text: A catalog key, a plain sentence, or inline translations.
+        catalog: The parsed runtime catalog, for the key form.
+        language: The mission's language.
+
+    Returns:
+        The resolved text. A mapping falls back to French then to any entry it has: a
+        label shown in the wrong language beats a label shown as nothing.
+    """
+    if isinstance(text, str):
+        return translate(catalog, text, language)
+    return text.get(language) or text.get(RUNTIME_DEFAULT_LANGUAGE) or next(iter(text.values()), "")
+
+
+def _normalise_control(text: str) -> str:
+    """Return *text* in the form two control descriptions are compared in."""
+    return " ".join(text.lower().split())
+
+
+def _validate_localized(value: LocalizedText, field: str) -> LocalizedText:
+    """Reject a translations mapping that carries nothing usable."""
+    if isinstance(value, str):
+        if not value.strip():
+            raise ValueError(f"{field} is empty")
+        return value
+    if not value:
+        raise ValueError(f"{field} is an empty set of translations")
+    for lang, text in value.items():
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError(f"{field} has no text for language '{lang}'")
+    return value
+
+
+class ChecklistError(ValueError):
+    """A checklist file the build refuses: unreadable, invalid, or a duplicate id.
+
+    Raised with a message naming the offending file, so a mission maker's typo surfaces
+    at build time rather than as a Lua error in game.
+    """
+
+
+class ChecklistStep(BaseModel):
+    """One line of a checklist: what to do, and how we know it is done.
+
+    A step carries **exactly one** validation mode. ``param`` reads a live cockpit
+    parameter and compares it against a window; ``check`` names a check the engine
+    registered (the extension point for later checklists); ``confirm`` waits for the
+    pilot to tick the line from the radio menu. A step declaring none of the three is a
+    confirm step — but it must then at least box an ``element``, otherwise it says
+    nothing at all.
+
+    ``argument`` reads a **control's position**, which takes going through the *export*
+    environment — the mission one cannot see it (see
+    ``docs/exploration/DCS-COCKPIT-ASSISTANCE-API.md``). It carries a caveat: ``Export.lua``
+    runs on the pilot's machine, so this may not work from a dedicated server.
+    ``param`` reads what the aircraft *publishes* — altitude, speed, gear, fuel — and has
+    no such restriction.
+
+    Attributes:
+        label: i18n catalog key, or a literal string (``veaf.t()`` returns an unknown
+            key unchanged, so a mission maker can write plain text).
+        element: Cockpit element to box. Optional, and independent of the validation
+            mode: a gauge can be boxed while the pilot is the one who says it is good.
+        param: Cockpit parameter to read, e.g. ``BASE_SENSOR_NOSE_GEAR_DOWN``.
+        argument: Cockpit animation argument to read, i.e. a control's position.
+        equals: Target value of *param* or *argument*; the window is ``equals ± tolerance``.
+        tolerance: Half-width of the window around *equals*.
+        range: Explicit ``[min, max]`` window, for a value with a wide span.
+        confirm: Ticked by the pilot rather than measured.
+        check: ``{type: <name>, …}`` — a named check with its parameters.
+        device: DCS cockpit device id, carried for a future demonstration mode.
+        command: DCS cockpit command id, carried for a future demonstration mode.
+        control: What an **instructor** writes instead of the technical fields: the
+            control and the position it should be in, in their own words — ``throttle sur
+            idle``. A resolution pass turns it into ``element``/``argument``/``equals``
+            beside it, in this same file.
+        verified: Written by ``verify-checklist`` once the value has been read from a real
+            cockpit with the control in position. Design-time only: the engine never sees
+            it, and its absence means nothing more than "not checked yet".
+        resolved_from: The ``control`` text those technical fields were derived from.
+            Written by the resolver, read by nothing else. It is the whole
+            synchronisation mechanism: no timestamps, no hashes, no second file — an
+            instructor can see the state of their own checklist by reading it.
+        dev_condition: **Development hatch.** Makes this step's check pass without the
+            cockpit ever being in the required state, so an author can reach step 30
+            without performing steps 1 to 29. Absent means today's behaviour exactly, it
+            is ``StrictBool`` so a stray ``dev_condition: yes`` is refused rather than
+            coerced, and a checklist carrying it warns at build time and says so on
+            screen in game — a silent auto-tick would tell a pilot they did something
+            they did not.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    label: LocalizedText
+    control: str | None = None
+    resolved_from: str | None = None
+    verified: bool = False
+    element: str | None = None
+    param: str | None = None
+    equals: float | None = None
+    tolerance: float | None = None
+    range: list[float] | None = None
+    confirm: bool = False
+    check: dict[str, Any] | None = None
+    argument: int | None = None
+    device: int | None = None
+    command: int | None = None
+    dev_condition: StrictBool = False
+
+    @field_validator("label")
+    @classmethod
+    def _usable_label(cls, value: LocalizedText) -> LocalizedText:
+        return _validate_localized(value, "label")
+
+    @model_validator(mode="after")
+    def _exactly_one_validation_mode(self) -> ChecklistStep:
+        """Reject a step whose validation modes conflict, or whose window is incomplete."""
+        declared = [
+            name
+            for name, present in (
+                ("argument", self.argument is not None),
+                ("param", self.param is not None),
+                ("check", self.check is not None),
+                ("confirm", self.confirm),
+            )
+            if present
+        ]
+        if len(declared) > 1:
+            raise ValueError(f"a step declares exactly one validation mode, found {' + '.join(declared)}")
+
+        measured = self.argument is not None or self.param is not None
+        if self.tolerance is not None and self.equals is None:
+            raise ValueError("tolerance only makes sense with equals")
+        if self.equals is not None and not measured:
+            raise ValueError("equals needs the argument or param it applies to")
+        if self.range is not None and not measured:
+            raise ValueError("range needs the argument or param it applies to")
+        if self.equals is not None and self.range is not None:
+            raise ValueError("equals and range are mutually exclusive")
+        if measured and self.equals is None and self.range is None:
+            raise ValueError("a measured step needs an acceptance window: equals or range")
+        if self.range is not None and (len(self.range) != 2 or self.range[0] >= self.range[1]):
+            raise ValueError("range is [min, max] with min < max")
+
+        if self.check is not None and not str(self.check.get("type") or "").strip():
+            raise ValueError("a named check needs a type")
+
+        # `control` says something, even before anything technical exists: it is exactly
+        # the state a checklist is in between the instructor writing it and the resolver
+        # running. Refusing it here would mean the resolver could not read its own input.
+        if self.element is None and not declared and self.control is None:
+            raise ValueError("a step with no element and no validation mode says nothing")
+        return self
+
+    @property
+    def needs_resolution(self) -> bool:
+        """Whether this step's technical fields are missing or older than its ``control``.
+
+        A step is stale when an instructor has written or edited ``control`` and the
+        resolver has not caught up. Comparison ignores case and runs of whitespace, so
+        re-indenting a file does not invalidate every step in it.
+        """
+        if self.control is None:
+            return False
+        return _normalise_control(self.control) != _normalise_control(self.resolved_from or "")
+
+    def check_table(self) -> dict[str, Any]:
+        """Return the check the engine runs for this step, windows already resolved.
+
+        Resolving ``equals``/``tolerance`` here keeps the runtime comparison a plain
+        ``min <= value <= max`` — the arithmetic is design-time work.
+
+        Returns:
+            The check descriptor, always carrying a ``type``.
+        """
+        if self.check is not None:
+            return dict(self.check)
+        if self.param is None and self.argument is None:
+            return {"type": "confirm"}
+        if self.equals is not None:
+            tolerance = DEFAULT_TOLERANCE if self.tolerance is None else self.tolerance
+            low, high = self.equals - tolerance, self.equals + tolerance
+        else:
+            # The validator guarantees a range whenever equals is absent.
+            window = self.range or [0.0, 0.0]
+            low, high = window[0], window[1]
+        bounds = {"min": round(low, _WINDOW_PRECISION), "max": round(high, _WINDOW_PRECISION)}
+        if self.argument is not None:
+            return {"type": "switch", "argument": self.argument, **bounds}
+        return {"type": "cockpit_param", "param": self.param, **bounds}
+
+
+class Checklist(BaseModel):
+    """A complete checklist: what it is called, what it applies to, and its steps.
+
+    Attributes:
+        id: Unique identifier, and the key a mission's own file overrides.
+        title: i18n catalog key, or a literal string.
+        aircraft: DCS type names the checklist applies to.
+        menu: Slot under the ``Assistance`` radio menu.
+        steps: The lines, in the order the pilot walks them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    title: LocalizedText
+    aircraft: list[str] = Field(min_length=1)
+    menu: str = Field(min_length=1)
+    steps: list[ChecklistStep] = Field(min_length=1)
+
+    @field_validator("title")
+    @classmethod
+    def _usable_title(cls, value: LocalizedText) -> LocalizedText:
+        return _validate_localized(value, "title")
+
+    def unresolved_steps(self) -> list[tuple[int, ChecklistStep]]:
+        """Return the steps still waiting on the resolver, numbered as a pilot sees them.
+
+        Returns:
+            ``(step number, step)`` pairs, 1-based — the number is what makes a build
+            error actionable, since a ``control`` text may well appear twice.
+        """
+        return [(number, step) for number, step in enumerate(self.steps, start=1) if step.needs_resolution]
+
+    def dev_condition_steps(self) -> list[tuple[int, ChecklistStep]]:
+        """Return the steps carrying the development hatch, numbered as a pilot sees them.
+
+        Returns:
+            ``(step number, step)`` pairs, 1-based — the numbering matches
+            :meth:`unresolved_steps` so a build message reads the same way whichever
+            problem it is reporting.
+        """
+        return [(number, step) for number, step in enumerate(self.steps, start=1) if step.dev_condition]
+
+    @field_validator("aircraft")
+    @classmethod
+    def _known_aircraft_types(cls, value: list[str]) -> list[str]:
+        """Reject a DCS type name absent from the shipped unit catalogue."""
+        known = _known_unit_types()
+        if not known:
+            return value
+        unknown = [name for name in value if name not in known]
+        if unknown:
+            raise ValueError(f"unknown DCS aircraft type(s): {', '.join(unknown)}")
+        return value
+
+
+@lru_cache(maxsize=1)
+def _known_unit_types() -> frozenset[str]:
+    """Return the DCS type ids a checklist may name.
+
+    Two sources, because one is not enough. The unit catalogue is generated from a
+    community datamine at a **pinned** revision, so an aircraft released since that pin
+    is missing from it — the F-14B(U) is, and rejecting a checklist for the aircraft
+    somebody just bought is the wrong answer. An aircraft with a committed cockpit-control
+    index is proof enough: that index was generated from a real installation.
+
+    Returns:
+        The known type ids, or an empty set when neither source can be read — in which
+        case type validation is skipped rather than rejecting every checklist.
+    """
+    try:
+        raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml")) or {}
+        catalogued = frozenset(str(entry["type"]) for entry in (raw.get("units") or []) if entry.get("type"))
+    except (OSError, ModuleNotFoundError, yaml.YAMLError):
+        logger.warning(t("checklist.units_catalogue_unavailable"))
+        catalogued = frozenset()
+
+    try:
+        indexes = bundled_dir("veaf_libs", "data", "cockpit-controls")
+        indexed = frozenset(path.stem for path in indexes.glob("*.yaml")) if indexes.is_dir() else frozenset()
+    except (OSError, ModuleNotFoundError):
+        indexed = frozenset()
+
+    return catalogued | indexed
+
+
+def _format_validation_error(error: ValidationError) -> str:
+    """Render a pydantic error as a one-line, field-by-field summary."""
+    parts: list[str] = []
+    for item in error.errors():
+        location = ".".join(str(piece) for piece in item["loc"]) or "<root>"
+        message = str(item["msg"]).removeprefix("Value error, ")
+        parts.append(f"{location}: {message}")
+    return "; ".join(parts)
+
+
+def parse_checklist(raw: dict[str, Any], source: str) -> Checklist:
+    """Validate one checklist definition.
+
+    Args:
+        raw: The parsed YAML mapping.
+        source: File name quoted in the error message.
+
+    Returns:
+        The validated checklist.
+
+    Raises:
+        ChecklistError: if the definition breaks any rule of the format.
+    """
+    try:
+        return Checklist.model_validate(raw)
+    except ValidationError as error:
+        raise ChecklistError(t("checklist.invalid", source=source, details=_format_validation_error(error))) from error
+
+
+def _load_folder(folder: Path, into: dict[str, Checklist]) -> None:
+    """Parse every checklist file of *folder* into *into*, later files overriding by id.
+
+    Args:
+        folder: Directory to read; a missing one simply contributes nothing.
+        into: Accumulator, keyed by checklist id.
+
+    Raises:
+        ChecklistError: on an unreadable file, an invalid definition, or two files of
+            this folder declaring the same id.
+    """
+    if not folder.is_dir():
+        return
+    seen: dict[str, str] = {}
+    for path in sorted(folder.glob("*.y*ml")):
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError) as error:
+            raise ChecklistError(t("checklist.unreadable", source=path.name, details=error)) from error
+        if not isinstance(raw, dict):
+            raise ChecklistError(t("checklist.invalid", source=path.name, details="expected a mapping"))
+        checklist = parse_checklist(raw, source=path.name)
+        if checklist.id in seen:
+            raise ChecklistError(
+                t("checklist.duplicate_id", id=checklist.id, first=seen[checklist.id], second=path.name)
+            )
+        seen[checklist.id] = path.name
+        into[checklist.id] = checklist
+
+
+def load_mission_checklists(mission_folder: Path) -> dict[str, Checklist]:
+    """Load only the checklists a mission ships in its own ``checklists/`` folder.
+
+    Kept separate from :func:`load_checklists` because "the mission maker put this file
+    here" is what activates a checklist when ``mission.yaml`` gives no explicit list.
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The mission's own checklists, keyed by ``id`` (empty when it has none).
+
+    Raises:
+        ChecklistError: on any invalid or duplicated definition.
+    """
+    result: dict[str, Checklist] = {}
+    _load_folder(mission_folder / CHECKLISTS_FOLDER_NAME, result)
+    return result
+
+
+def select_activated(
+    available: Mapping[str, Checklist],
+    configured_ids: Sequence[str] | None,
+    mission_ids: Collection[str] = (),
+) -> list[Checklist]:
+    """Return the checklists a mission activates, in a stable order.
+
+    Two rules, and the second is the one that makes the common case need no configuration:
+
+    - an explicit ``checklists:`` list in ``mission.yaml`` wins, and an id it names that
+      no source provides is a build error rather than a silently missing menu entry;
+    - with no list, the checklists the mission maker dropped in its own ``checklists/``
+      folder are activated. **Never the whole VMCT catalogue** — every activated checklist
+      costs images in the ``.miz``, so activating a catalogue by accident is not an option.
+
+    Args:
+        available: Every checklist that could be activated, catalogue and mission merged.
+        configured_ids: The ``checklists:`` list, or ``None`` when the key is absent.
+        mission_ids: Ids the mission ships in its own folder.
+
+    Returns:
+        The activated checklists, sorted by id.
+
+    Raises:
+        ChecklistError: when the configured list names an unknown id, or when an
+            activated checklist still has a step the resolver has not filled in — such a
+            step would box nothing and never validate, silently.
+    """
+    if configured_ids is None:
+        chosen = {str(entry) for entry in mission_ids}
+    else:
+        chosen = {str(entry) for entry in configured_ids}
+        unknown = sorted(entry for entry in chosen if entry not in available)
+        if unknown:
+            raise ChecklistError(
+                t("checklist.unknown_id", ids=", ".join(unknown), known=", ".join(sorted(available)) or "none")
+            )
+    activated = [available[checklist_id] for checklist_id in sorted(chosen) if checklist_id in available]
+    _refuse_unresolved(activated)
+    _warn_about_dev_conditions(activated)
+    return activated
+
+
+def _warn_about_dev_conditions(checklists: Sequence[Checklist]) -> None:
+    """Say loudly, per build, that an activated checklist carries the development hatch.
+
+    **Warns rather than refuses, deliberately.** The hatch exists to iterate on a mission you
+    are about to fly, so a build that refused it would make the feature unusable — you could
+    never produce the `.miz` you wanted to test. The real risk is not building with the hatch,
+    it is *forgetting* it and shipping. Two things cover that, and neither depends on anyone
+    reading a log: this line names the checklist and the exact step numbers, and the engine tells
+    the pilot on screen while a step is being auto-passed.
+
+    No strict flag either: an option that has to be remembered protects nobody, and the on-screen
+    notice reaches the one person who would otherwise be misled. Reopen this if a release ever
+    ships a hatched checklist despite both.
+
+    Args:
+        checklists: The activated checklists.
+    """
+    hatched = [
+        f"{checklist.id} step(s) {', '.join(str(number) for number, _ in steps)}"
+        for checklist in checklists
+        if (steps := checklist.dev_condition_steps())
+    ]
+    if hatched:
+        logger.warning(t("checklist.dev_condition_active", checklists="; ".join(hatched)))
+
+
+def _refuse_unresolved(checklists: Sequence[Checklist]) -> None:
+    """Fail the build on any step whose ``control`` the resolver has not caught up with.
+
+    Args:
+        checklists: The activated checklists.
+
+    Raises:
+        ChecklistError: naming every stale step, so one run says everything there is to
+            fix rather than one thing per build.
+    """
+    stale = [
+        f"{checklist.id} step {number} ({step.control})"
+        for checklist in checklists
+        for number, step in checklist.unresolved_steps()
+    ]
+    if stale:
+        raise ChecklistError(t("checklist.unresolved_steps", steps="; ".join(stale)))
+
+
+def load_checklists(mission_folder: Path | None = None, catalogue_dir: Path | None = None) -> dict[str, Checklist]:
+    """Load the checklists available to a mission: catalogue first, mission folder last.
+
+    Args:
+        mission_folder: The mission folder; its ``checklists/`` subfolder overrides the
+            catalogue by ``id``. ``None`` loads the catalogue alone.
+        catalogue_dir: The VMCT catalogue. Defaults to the shipped one.
+
+    Returns:
+        The checklists, keyed by ``id``.
+
+    Raises:
+        ChecklistError: on any invalid or duplicated definition.
+    """
+    if catalogue_dir is None:
+        catalogue_dir = bundled_dir("veaf_libs", "data", CHECKLISTS_FOLDER_NAME)
+    result: dict[str, Checklist] = {}
+    _load_folder(catalogue_dir, result)
+    if mission_folder is not None:
+        _load_folder(mission_folder / CHECKLISTS_FOLDER_NAME, result)
+    return result

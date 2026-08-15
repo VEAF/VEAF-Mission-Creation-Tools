@@ -22,18 +22,12 @@ function TestVeafI18n:test_default_language_is_fr()
 end
 
 function TestVeafI18n:test_returns_french_by_default()
-  luaunit.assertEquals(
-    veaf.t("marker.command_failed"),
-    "VEAF : votre commande de marqueur a échoué (voir le log DCS pour les détails)."
-  )
+  luaunit.assertEquals(veaf.t("marker.command_failed"), "VEAF : votre commande de marqueur a échoué (voir le log DCS pour les détails).")
 end
 
 function TestVeafI18n:test_returns_english_when_selected()
   veaf.config.language = "en"
-  luaunit.assertEquals(
-    veaf.t("marker.command_failed"),
-    "VEAF: your marker command failed (see the DCS log for details)."
-  )
+  luaunit.assertEquals(veaf.t("marker.command_failed"), "VEAF: your marker command failed (see the DCS log for details).")
 end
 
 function TestVeafI18n:test_unknown_key_returns_the_key()

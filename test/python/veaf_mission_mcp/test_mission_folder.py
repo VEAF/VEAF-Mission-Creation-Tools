@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 _MISSION = """\

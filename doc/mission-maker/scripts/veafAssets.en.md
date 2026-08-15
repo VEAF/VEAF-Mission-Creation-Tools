@@ -1,20 +1,19 @@
 # veafAssets — Tankers, AWACS, and Carriers
 
 
-**Module ID:** `ASSETS` | **Version:** 1.8.x | **File:** `veafAssets.lua`
+**Module ID:** `ASSETS` | **File:** `veafAssets.lua`
 
 ---
 
 ## Purpose
 
-Manages the persistent assets in a mission — tankers, AWACS, and carriers. Provides F10 radio menu entries for each asset: information (position, TACAN, frequency), respawn after loss, and optional disposal.
+Manages the persistent assets in a mission — tankers, AWACS, JTACs. Provides F10 radio menu entries for each asset: information (position, TACAN, frequency), respawn after loss, and optional disposal.
 
 ---
 
 ## Dependencies
 
 - `veafRadio` — F10 menu
-- `veafCarrierOperations` — for carrier assets (optional, auto-integrated)
 - **MiST** — mandatory: respawn (`veafAssets.respawn`) uses `mist.respawnGroup`.
 
 > ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in MiST's database (`mist.DBs.MEgroupsByName`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
@@ -44,14 +43,14 @@ modules:
         description: "Texaco (KC-135)" # label shown in F10 menu
         information: 'Tacan 51Y\nU251.00 (21)'  # single-quoted: \n is preserved as-is → valid Lua escape
         linked: null                    # linked asset name (optional)
-        jtac: false                     # true = asset is a JTAC (optional)
+        jtac: 1688                      # laser code — the asset is a JTAC lasing with this code (optional)
         freq: null                      # override frequency for info display (optional)
         mod: null                       # radio modulation (AM | FM, optional)
 ```
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
+| `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `assets` | object[] | `[]` | No | List of assets to manage |
 | `assets[].sort` | integer | `0` | No | Sort order in the F10 menu (ascending) |
@@ -59,11 +58,11 @@ modules:
 | `assets[].description` | string | — | Yes | Label shown in the F10 menu |
 | `assets[].information` | string | — | No | Info text displayed to players — use single-quoted YAML `'line1\nline2'` or `"line1\\nline2"` (double-quoted) to get a `\n` Lua escape |
 | `assets[].linked` | string | `null` | No | Name of a linked asset (e.g. a carrier linked to its escort) |
-| `assets[].jtac` | boolean | `false` | No | Marks this asset as a JTAC |
+| `assets[].jtac` | number | `null` | No | Laser code: the asset is a JTAC that automatically lases with this code (requires CTLD) |
 | `assets[].freq` | number | `null` | No | Override frequency for the info display (MHz) |
 | `assets[].mod` | string | `null` | No | Radio modulation override (`AM` or `FM`) |
 
-> The DCS group referenced by `name` must exist in the mission editor. Carrier assets also require `CARRIER` module enabled.
+> The DCS group referenced by `name` must exist in the mission editor.
 
 ### Minimal example
 
@@ -120,17 +119,17 @@ veafAssets.Assets = {
 | `information` | string | No | Info text shown to players; non-empty → adds the Info button |
 | `disposable` | boolean | No | Allow authorised players to despawn the asset |
 
-> Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.md) module, not by `veafAssets`.
+> Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.en.md) module, not by `veafAssets`.
 
 ---
 
 ## F10 Radio Menu
 
-For each asset, a submenu is created under **F10 → Assets**:
+Assets appear under **F10 → ASSETS**. An asset with neither `information` nor `disposable` is a plain **Respawn [description]** command; otherwise a submenu is created with:
 
-- **Respawn [name]** — respawns the group at its original position
-- **Get info on [name]** — displays position, TACAN channel, radio frequency (if `information = true`)
-- **Dispose of [name]** — despawns the asset (if `disposable = true`, secured command)
+- **Respawn [description]** — respawns the group at its original position
+- **Get info on [description]** — displays the information text (if `information` is set)
+- **Dispose of [description]** — despawns the asset (if `disposable = true`, secured command)
 
 ---
 
@@ -138,11 +137,10 @@ For each asset, a submenu is created under **F10 → Assets**:
 
 - The DCS group must exist in the mission editor with the exact name used in `name`
 - Tanker information (TACAN, frequency) is read from the DCS group's waypoint/route settings
-- Carrier information requires `veafCarrierOperations` to be initialised
 
 ---
 
 ## See Also
 
-- [veafCarrierOperations](veafCarrierOperations.md) — carrier recovery management
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAssets` API
+- [veafCarrierOperations](veafCarrierOperations.en.md) — carrier recovery management
+- [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafAssets` API

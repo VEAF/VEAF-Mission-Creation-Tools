@@ -31,6 +31,8 @@ from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import pipeline_step_enabled_anywhere, resolve_profile
 from veaf_libs.build_stamp import get_build_stamp
+from veaf_libs.checklist_images import ChecklistImages, render_all
+from veaf_libs.checklists import Checklist, load_checklists, load_mission_checklists, select_activated
 from veaf_libs.config_override import (
     OVERRIDE_SCRIPT_NAME,
     find_unknown_segments,
@@ -39,9 +41,11 @@ from veaf_libs.config_override import (
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, CTLD_USER_CONFIG_FILENAME
-from veaf_libs.i18n import t, tn
+from veaf_libs.dcs_countries import all_country_ids
+from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.logger import logger
-from veaf_libs.lua_config_generator import find_undefined_lua_functions, generate_config_lua
+from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
+from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
@@ -54,6 +58,10 @@ from mission_builder.third_party_mods import strip_third_party_mods
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
 )
+
+#: Upper bound on the auto-downloaded bridge (SECREV-2 / VMR-034). Measured at 13 237 bytes on
+#: 2026-08-10, so 2 MiB leaves ~150x for growth while still refusing an absurd response.
+_DCS_BRIDGE_MAX_BYTES = 2 * 1024 * 1024
 
 
 def _lua_long_bracket(text: str) -> str:
@@ -96,10 +104,83 @@ _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
 
 @dataclass
 class CustomScript:
-    """A custom Lua script declared in the custom_scripts section of mission.yaml."""
+    """A custom Lua script declared in the custom_scripts section of mission.yaml.
+
+    Attributes:
+        path: The script's base name.
+        generate_load_trigger: Per-script override of the section's default.
+        delay_seconds: Wall-clock delay before loading, or ``None`` for the shared
+            ``triggerStart``. ``None`` and ``0`` are deliberately different: zero would be a
+            delayed trigger firing on the first tick, i.e. one more trigger for the same result.
+    """
 
     path: str
     generate_load_trigger: bool | None = field(default=None)
+    delay_seconds: float | None = field(default=None)
+
+
+def _parse_custom_scripts(cs_raw: object) -> tuple[bool, list[CustomScript]]:
+    """Parse the ``custom_scripts`` section of ``mission.yaml``.
+
+    Extracted from ``__init__`` so the validation below can be tested against the real code
+    rather than against a copy of it — the pre-existing parsing test had to replicate the loop,
+    which is how a copy comes to disagree with its original.
+
+    Args:
+        cs_raw: The raw ``custom_scripts`` value, of whatever type the YAML happened to hold.
+
+    Returns:
+        ``(generate_load_trigger, scripts)`` — the section default and the declared scripts,
+        in declaration order.
+    """
+    if cs_raw is not None and not isinstance(cs_raw, dict):
+        logger.warning(t("builder.custom_scripts_not_mapping", type=type(cs_raw).__name__))
+        cs_raw = None
+    cs_section: dict = cs_raw or {}
+    if not cs_section:
+        return True, []
+
+    generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
+    scripts: list[CustomScript] = []
+    for script_item in cs_section.get("scripts") or []:
+        if isinstance(script_item, dict):
+            path = script_item.get("path", "")
+            per_script_trigger: bool | None = script_item.get("generate_load_trigger")
+            delay = _parse_delay_seconds(script_item.get("delay_seconds"), Path(str(path)).name)
+        else:
+            path = str(script_item)
+            per_script_trigger = None
+            delay = None
+        scripts.append(
+            CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger, delay_seconds=delay)
+        )
+    return generate_load_trigger, scripts
+
+
+def _parse_delay_seconds(raw: object, script_name: str) -> float | None:
+    """Validate a ``delay_seconds`` value, warning and returning ``None`` when unusable.
+
+    A bad delay never costs the script: it loads in the shared trigger, which is what it did
+    before the key existed. Dropping the whole entry over a mistyped delay would silently remove
+    a script the mission needs — a worse outcome than losing the staging.
+
+    Args:
+        raw: The declared value, of any type.
+        script_name: Base name of the script, so the warning names the culprit.
+
+    Returns:
+        The delay in seconds, or ``None`` when absent or unusable.
+    """
+    if raw is None:
+        return None
+    # bool is an int in Python, and `delay_seconds: true` is a mistake, not a one-second delay.
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        logger.warning(t("builder.custom_script_delay_invalid", script=script_name, value=raw))
+        return None
+    if raw <= 0:
+        logger.warning(t("builder.custom_script_delay_not_positive", script=script_name, value=raw))
+        return None
+    return float(raw)
 
 
 # --- Unified VEAF load-trigger specification -------------------------------------
@@ -129,14 +210,43 @@ class FileAction:
 
 
 @dataclass(frozen=True)
+class SoundAction:
+    """Play an embedded sound to one country (``a_out_sound_c``).
+
+    Emitted for one reason only: to make the ``.ogg`` a resource the Mission Editor **declares**.
+    CTLD and CSAR play these by filename at runtime, from a script the editor never reads, so
+    without this the files are orphans and an editor save deletes them
+    (`FIX-COMMUNITY-SOUNDS-PRUNED`). ``country_id`` is deliberately a country the mission does not
+    use, so the sound is never audible.
+    """
+
+    map_key: str
+    country_id: int
+
+
+@dataclass(frozen=True)
 class VeafTriggerSpec:
-    """One VEAF trigger, source of truth for both the trig and trigrules forms."""
+    """One VEAF trigger, source of truth for both the trig and trigrules forms.
+
+    Attributes:
+        dict_key: Dictionary entry holding this trigger's Lua condition.
+        comment: What the Mission Editor shows in its trigger list.
+        color_item: The editor's colour for the row.
+        rule_has_flag: Whether the editor rule carries ``flag = 1``.
+        actions: What the trigger does, in order.
+        delay_seconds: When set, the trigger becomes a ``triggerOnce`` gated on
+            ``c_time_after`` instead of a ``triggerStart``. The three consequences in the
+            compiled ``trig`` form were read out of an upstream `.miz`: the trigger lives in
+            ``func`` rather than ``funcStartup``, its condition ANDs ``c_time_after``, and its
+            action string ends by clearing its own ``func`` entry so it fires once.
+    """
 
     dict_key: str
     comment: str
     color_item: str
     rule_has_flag: bool
-    actions: list[LuaAction | FileAction]
+    actions: list[LuaAction | FileAction | SoundAction]
+    delay_seconds: float | None = None
 
 
 #: Dictionary keys of the 6 VEAF load triggers, in order. Shared by the dictionary
@@ -150,10 +260,82 @@ _VEAF_TRIGGER_DICT_KEYS: tuple[str, ...] = (
     "VEAF_DictKey_ActionText_12004",
     "VEAF_DictKey_ActionText_12005",
     "VEAF_DictKey_ActionText_12006",
+    # The 7th is the CTLD/CSAR sound declaration, emitted only when sounds are injected
+    # (FIX-COMMUNITY-SOUNDS-PRUNED). Its dictionary entry is written unconditionally, which is
+    # inert when the trigger is absent.
+    "VEAF_DictKey_ActionText_12007",
 )
 
+#: Dictionary keys of the deferred mission-script triggers, one per distinct ``delay_seconds``
+#: (FEAT-CUSTOM-SCRIPT-LOAD-DELAY). Numbered from 12008 so the seven fixed keys above keep
+#: theirs, and generated on demand: a mission staging nothing declares none of these triggers,
+#: though their dictionary entries are written anyway — inert, exactly like the 7th.
+_VEAF_DELAY_TRIGGER_DICT_KEY_BASE = 12008
 
-def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
+#: Distinct delays a single mission may declare. Twelve is far above anything observed (Foothold
+#: stages twice) and exists so a generated mission cannot collide with the dictionary keys of
+#: whatever is added after 12008 — a bound stated here rather than discovered by a key clash.
+_VEAF_MAX_DELAY_GROUPS = 12
+
+
+def _delay_trigger_dict_key(group_index: int) -> str:
+    """Return the dictionary key of the *group_index*-th deferred trigger (0-based)."""
+    return f"VEAF_DictKey_ActionText_{_VEAF_DELAY_TRIGGER_DICT_KEY_BASE + group_index}"
+
+
+def format_delay_seconds(delay: float) -> str:
+    """Render a delay for a human to read: ``12`` rather than ``12.0``, ``0.5`` kept.
+
+    Public and shared with :mod:`mission_builder.other_converter`, which scaffolds the same value
+    into a ``mission.yaml``. Two copies would let the build and the scaffold render one delay two
+    ways, and the pair only has to disagree once to be confusing (Sourcery, #720).
+
+    Args:
+        delay: The delay in seconds.
+
+    Returns:
+        The shortest faithful rendering.
+    """
+    return str(int(delay)) if float(delay).is_integer() else str(delay)
+
+
+def _emit_trig_condition(spec: VeafTriggerSpec) -> str:
+    """Emit the compiled ``trig`` condition of *spec*.
+
+    ``c_predicate`` is what makes a *static* trigger inert in a *dynamic* build (its dictionary
+    entry reads ``return VEAF_DYNAMIC_MISSIONPATH==nil``), so a deferred trigger keeps it and ANDs
+    the delay. Dropping it would load the deferred script in dynamic mode too, i.e. twice.
+
+    Args:
+        spec: The trigger.
+
+    Returns:
+        The Lua condition body.
+    """
+    predicate = f'c_predicate(getValueDictByKey("{spec.dict_key}"))'
+    if spec.delay_seconds is None:
+        return f"return({predicate} )"
+    # Named rather than returned inline: this is generated Lua, but the i18n gate flags any
+    # returned literal over 15 characters containing a space as untranslated user prose, and
+    # exempting this file would grow a list the quality policy only ever shrinks.
+    condition = f"return({predicate} and c_time_after({format_delay_seconds(spec.delay_seconds)}) )"
+    return condition
+
+
+#: Module id of the guided-assistance module, whose config selects the checklists to
+#: activate and therefore the images to render into the ``.miz``.
+_ASSIST_MODULE_ID = "ASSIST"
+
+#: How a mission wants its checklists shown. ``picture`` renders one image per progress
+#: state and embeds them — nice, and the F-16C's six steps already cost 68 KB. ``text``
+#: renders **nothing**: the engine sends the current instruction as a message instead,
+#: which is the whole reason the option exists.
+_ASSIST_DISPLAY_PICTURE = "picture"
+_ASSIST_DISPLAY_TEXT = "text"
+_ASSIST_DISPLAY_MODES = frozenset({_ASSIST_DISPLAY_PICTURE, _ASSIST_DISPLAY_TEXT})
+
+
+def _emit_trig_action_string(actions: list[LuaAction | FileAction | SoundAction]) -> str:
     """Emit the compiled ``trig`` form of a trigger's actions: one concatenated string.
 
     Each action becomes a ``;``-terminated Lua call. ``LuaAction`` is wrapped in
@@ -170,13 +352,15 @@ def _emit_trig_action_string(actions: list[LuaAction | FileAction]) -> str:
     for action in actions:
         if isinstance(action, FileAction):
             parts.append(f'a_do_script_file(getValueResourceByKey("{action.map_key}"));')
+        elif isinstance(action, SoundAction):
+            parts.append(f'a_out_sound_c({action.country_id}, getValueResourceByKey("{action.map_key}"), 0);')
         else:
             escaped = action.lua.replace('"', '\\"')
             parts.append(f'a_do_script("{escaped}");')
     return "".join(parts)
 
 
-def _emit_trigrule_actions(actions: list[LuaAction | FileAction]) -> list[dict]:
+def _emit_trigrule_actions(actions: list[LuaAction | FileAction | SoundAction]) -> list[dict]:
     """Emit the Mission Editor ``trigrules`` form of a trigger's actions: action dicts.
 
     ``LuaAction`` becomes ``{"predicate": "a_do_script", "text": <raw lua>}``;
@@ -192,6 +376,18 @@ def _emit_trigrule_actions(actions: list[LuaAction | FileAction]) -> list[dict]:
     for action in actions:
         if isinstance(action, FileAction):
             result.append({"predicate": "a_do_script_file", "file": action.map_key})
+        elif isinstance(action, SoundAction):
+            # `meters` and `zone`, which the editor also writes on this predicate, are shared
+            # leftovers from other actions and are omitted: a dangling zone id is worse than an
+            # absent optional field. The compiled call takes three arguments and no zone.
+            result.append(
+                {
+                    "predicate": "a_out_sound_c",
+                    "countrylist": action.country_id,
+                    "file": action.map_key,
+                    "start_delay": 0,
+                }
+            )
         else:
             result.append({"predicate": "a_do_script", "text": action.lua})
     return result
@@ -551,23 +747,9 @@ class MissionBuilderWorker(BaseWorker):
         self.lua_modules: dict | None = lua_modules
 
         # Parse custom_scripts section from mission.yaml
-        self.custom_scripts: list[CustomScript] = []
-        self.custom_scripts_generate_load_trigger: bool = True
-        cs_raw = self.mission_yaml.get("custom_scripts")
-        if cs_raw is not None and not isinstance(cs_raw, dict):
-            logger.warning(t("builder.custom_scripts_not_mapping", type=type(cs_raw).__name__))
-            cs_raw = None
-        cs_section: dict = cs_raw or {}
-        if cs_section:
-            self.custom_scripts_generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
-            for script_item in cs_section.get("scripts") or []:
-                if isinstance(script_item, dict):
-                    path = script_item.get("path", "")
-                    per_script_trigger: bool | None = script_item.get("generate_load_trigger")
-                else:
-                    path = str(script_item)
-                    per_script_trigger = None
-                self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
+        self.custom_scripts_generate_load_trigger, self.custom_scripts = _parse_custom_scripts(
+            self.mission_yaml.get("custom_scripts")
+        )
 
         # Parse config_override section from mission.yaml (FOOTHOLD-V6-004).
         # target = the upstream config script the override layers on top of (its
@@ -630,6 +812,13 @@ class MissionBuilderWorker(BaseWorker):
         self.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
         self.dcs_bridge_lua_path: str | None = dcsb_cfg.get("lua_path")
         self.dcs_bridge_bytes: bytes | None = None
+        #: Set only when the bridge was auto-downloaded, so it can be cleaned up without ever
+        #: touching a `lua_path` the mission maker supplied (SECREV-2 / VMR-049).
+        self._dcs_bridge_temp_file: Path | None = None
+
+        # Guided checklists (FEAT-ASSIST-CHECKLISTS): resolved in write_config_lua, then
+        # embedded as .miz resources. Empty when the ASSIST module activates none.
+        self.checklist_images: list[ChecklistImages] = []
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
@@ -902,15 +1091,31 @@ class MissionBuilderWorker(BaseWorker):
         logger.info(t("builder.dcs_bridge_downloading", url=_DCS_BRIDGE_DOWNLOAD_URL))
         try:
             with urllib.request.urlopen(_DCS_BRIDGE_DOWNLOAD_URL) as resp:
-                content: bytes = resp.read()
+                # Read one byte past the cap so an oversized body is detected rather than streamed
+                # into memory whole (SECREV-2 / VMR-034). The URL is a constant on a VEAF repository
+                # over https, so there is no attacker-chosen host here and pinning a hash would
+                # defeat the point — the bridge deliberately tracks its `develop` branch. The size
+                # cap is what remains: this content is Lua that DCS will execute, and a runaway
+                # response should fail with a clear message instead of filling the process.
+                content: bytes = resp.read(_DCS_BRIDGE_MAX_BYTES + 1)
         except urllib.error.URLError as exc:
             raise RuntimeError(f"dcs_bridge: failed to download dcs-bridge.lua: {exc}") from exc
+
+        if len(content) > _DCS_BRIDGE_MAX_BYTES:
+            raise RuntimeError(
+                f"dcs_bridge: dcs-bridge.lua is larger than the {_DCS_BRIDGE_MAX_BYTES} byte limit — refusing it"
+            )
 
         tmp = tempfile.NamedTemporaryFile(suffix=".lua", delete=False)
         tmp.write(content)
         tmp.flush()
         tmp.close()
-        return Path(tmp.name)
+        # Remembered so `inject_dcs_bridge_trigger` can remove it once its bytes are read
+        # (SECREV-2 / VMR-049 — every auto-download used to leave a stray .lua behind). Recording
+        # *which* file we created is the point: the same argument also carries a `lua_path` the
+        # mission maker provided, and deleting that would be a data-loss bug.
+        self._dcs_bridge_temp_file = Path(tmp.name)
+        return self._dcs_bridge_temp_file
 
     def inject_dcs_bridge_trigger(self, bridge_file: Path | None) -> None:
         """Inject a DO SCRIPT FILE trigger for dcs-bridge.lua at position 1 in the mission.
@@ -932,6 +1137,12 @@ class MissionBuilderWorker(BaseWorker):
 
         bridge_bytes = bridge_file.read_bytes()
         self.dcs_bridge_bytes = bridge_bytes
+        # The content now lives in memory and goes into the .miz from there, so a file we
+        # downloaded ourselves has no reason to survive (SECREV-2 / VMR-049). Only ours —
+        # never a path the mission maker gave us.
+        if self._dcs_bridge_temp_file is not None and bridge_file == self._dcs_bridge_temp_file:
+            self._dcs_bridge_temp_file.unlink(missing_ok=True)
+            self._dcs_bridge_temp_file = None
 
         # Register in mapResource
         map_resource_key = "VEAF_MapKey_DcsBridge"
@@ -956,11 +1167,24 @@ class MissionBuilderWorker(BaseWorker):
         shifted[1] = bridge_trigrule
         self.dcs_mission.mission_content["trigrules"] = shifted
 
-        # Shift all existing trig entries up by 1
+        # Shift all existing trig entries up by 1.
+        #
+        # VMR-005: the shift alone is not enough, and shifting without this rewrite is what the
+        # finding reported. `funcStartup` values are Lua **strings** carrying their own indices —
+        # `if mission.trig.conditions[1]() then mission.trig.actions[1]() end` — so a trigger moved
+        # from key 1 to key 2 kept calling `conditions[1]`, which by then is the bridge's. Every
+        # previously inserted trigger fired the wrong pair. `insert_veaf_triggers` already gets
+        # this right; the same `[old]` → `[new]` substitution is applied here, per entry, so each
+        # string is only ever rewritten with its own key and neighbours cannot collide.
         trig: dict = self.dcs_mission.mission_content["trig"]
         for category_name, category_data in trig.items():
             if isinstance(category_data, dict):
-                trig[category_name] = {k + 1: v for k, v in category_data.items()}
+                trig[category_name] = {
+                    old_key + 1: (
+                        re.sub(f"\\[{old_key}\\]", f"[{old_key + 1}]", value) if isinstance(value, str) else value
+                    )
+                    for old_key, value in category_data.items()
+                }
 
         # Insert the bridge trigger at position 1 in each trig category
         trig["actions"][1] = f'a_do_script_file(getValueResourceByKey("{map_resource_key}"));'
@@ -1239,23 +1463,31 @@ class MissionBuilderWorker(BaseWorker):
         if self.dcs_mission and self.dcs_mission.mission_content:
             mission_triggers: dict = self.dcs_mission.mission_content.get("trig", {})
             trigger_indexes_to_remove = []
-            for trigger_category_value in mission_triggers.values():
-                if isinstance(trigger_category_value, list):
-                    trigger_indexes_to_remove.extend(
-                        [
-                            trigger_index
-                            for trigger_index, value in enumerate(trigger_category_value)
-                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
-                        ]
+            # VMR-050: every category is a dict, by construction — each read of mission_content
+            # passes keep_as_dict=["trig", "trigrules"], and that policy covers the whole subtree
+            # (pinned by test_secrev_trigger_categories_are_dicts.py). The collection loop used to
+            # also handle a list-shaped category, which the removal loop below would have raised on
+            # (`list.get`) — and which could never have been right anyway: a trigger index is shared
+            # across categories, so mixing 0-based list positions with Lua's 1-based keys would
+            # delete other triggers. So the shape is checked rather than half-handled.
+            for trigger_category_name, trigger_category_value in mission_triggers.items():
+                if not isinstance(trigger_category_value, dict):
+                    # Fail closed: `logger.error` raises typer.Abort. Carrying on would leave the
+                    # mission's VEAF triggers half-removed, which is worse than refusing to build.
+                    logger.error(
+                        t(
+                            "builder.trig_category_not_a_dict",
+                            category=trigger_category_name,
+                            kind=type(trigger_category_value).__name__,
+                        )
                     )
-                elif isinstance(trigger_category_value, dict):
-                    trigger_indexes_to_remove.extend(
-                        [
-                            trigger_key
-                            for trigger_key, value in trigger_category_value.items()
-                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
-                        ]
-                    )
+                trigger_indexes_to_remove.extend(
+                    [
+                        trigger_key
+                        for trigger_key, value in trigger_category_value.items()
+                        if any(s in str(value) for s in veaf_dict_keys_to_remove)
+                    ]
+                )
 
             # remove duplicates
             trigger_indexes_to_remove = list(set(trigger_indexes_to_remove))
@@ -1309,7 +1541,16 @@ class MissionBuilderWorker(BaseWorker):
             keys[3]: "return VEAF_DYNAMIC_SCRIPTSPATH==nil",
             keys[4]: "return VEAF_DYNAMIC_MISSIONPATH~=nil",
             keys[5]: "return VEAF_DYNAMIC_MISSIONPATH==nil",
+            keys[6]: "return true -- declare the CTLD/CSAR sounds so the Mission Editor keeps them",
         }
+        # The deferred mission-script triggers share the static-mission predicate: they must be
+        # inert in a dynamic build, where veafDynamicConfig.lua schedules the same scripts itself.
+        # Written for every possible group, not only the declared ones — an unused entry is inert,
+        # and this way a trigger can never read a dictionary key the other half forgot.
+        for group_index in range(_VEAF_MAX_DELAY_GROUPS):
+            new_dictionary[_delay_trigger_dict_key(group_index)] = (
+                "return VEAF_DYNAMIC_MISSIONPATH==nil -- deferred mission scripts (static mode only)"
+            )
 
         # merge the new dictionary with the mission dictionary
         assert self.dcs_mission is not None
@@ -1495,11 +1736,21 @@ class MissionBuilderWorker(BaseWorker):
         hand-edited (declare scripts in ``mission.yaml`` ``custom_scripts:``).
         """
         scripts = self._ordered_mission_script_names()
-        scripts_lua = "\n".join(f'    "{name}",' for name in scripts)
+        delay_by_name = {
+            script.path: script.delay_seconds for script in self.custom_scripts if script.delay_seconds is not None
+        }
+        scripts_lua = "\n".join(
+            f'    {{ name = "{name}", delay = {format_delay_seconds(delay_by_name[name])} }},'
+            if name in delay_by_name
+            else f'    {{ name = "{name}" }},'
+            for name in scripts
+        )
         content = (
             "-- GENERATED by veaf-tools build — do NOT edit by hand.\n"
             "-- Declare your scripts in mission.yaml (custom_scripts:); this list mirrors\n"
             "-- the static load triggers so dynamic and static builds load the same files.\n"
+            "-- A `delay` mirrors `delay_seconds:`, which in static mode is a triggerOnce with\n"
+            "-- c_time_after; here it is a scheduled load, so both modes stage alike.\n"
             "local scriptsToLoad =\n"
             "{\n"
             f"{scripts_lua}\n"
@@ -1507,9 +1758,17 @@ class MissionBuilderWorker(BaseWorker):
             "if (VEAF_DYNAMIC_MISSIONPATH) then\n"
             "    local sMissionScriptsPath = VEAF_DYNAMIC_MISSIONPATH .. [[src\\scripts\\]]\n"
             "    for _, script in ipairs(scriptsToLoad) do\n"
-            "        local sPathToExec = sMissionScriptsPath .. script\n"
-            '        veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec)\n'
-            "        assert(loadfile(sPathToExec))()\n"
+            "        local sPathToExec = sMissionScriptsPath .. script.name\n"
+            "        if script.delay then\n"
+            '            veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec .. " in " .. script.delay .. "s")\n'
+            "            timer.scheduleFunction(function()\n"
+            '                veaf.loggers.get(veaf.Id):info("DynamicConfig: loading (delayed) " .. sPathToExec)\n'
+            "                assert(loadfile(sPathToExec))()\n"
+            "            end, {}, timer.getTime() + script.delay)\n"
+            "        else\n"
+            '            veaf.loggers.get(veaf.Id):info("DynamicConfig: loading " .. sPathToExec)\n'
+            "            assert(loadfile(sPathToExec))()\n"
+            "        end\n"
             "    end\n"
             "else\n"
             '        veaf.loggers.get(veaf.Id):error("DynamicConfig: cannot load because the VEAF_DYNAMIC_MISSIONPATH is not set")\n'
@@ -1542,11 +1801,14 @@ class MissionBuilderWorker(BaseWorker):
             new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 
-        # merge the new mapResource with the mission mapResource
+        # merge the new mapResource with the mission mapResource. The checklist pictures
+        # go in the same member — DCS resolves getValueResourceByKey against
+        # l10n/DEFAULT/mapResource, not the mission table (see FIX-MAPRESOURCE-KEY).
         assert self.dcs_mission is not None
         self.dcs_mission.map_resource_content = (
             new_map_resource_script_files
             | new_map_resource_mission_script_files
+            | self._checklist_resources()
             | (self.dcs_mission.map_resource_content or {})
         )
 
@@ -1566,6 +1828,77 @@ class MissionBuilderWorker(BaseWorker):
         scripts_path = f"[[{scripts_root.resolve().as_posix()}/]]"
         mission_path = f"[[{self.output_mission.parent.resolve().as_posix()}/]]"
         return scripts_path, mission_path
+
+    def _unused_country_id(self) -> int:
+        """Return a DCS country id that the mission's coalitions do not contain.
+
+        The CTLD/CSAR sound declaration has to name *some* country. Naming one the mission uses
+        would make its pilots hear beacons at mission start, so the id is chosen by looking at the
+        mission rather than hardcoded — a constant is correct only until someone uses that country.
+
+        Returns:
+            The **highest** known DCS country id absent from every coalition. High deliberately:
+            the low ids are the countries missions actually use — 0 Russia, 1 Ukraine, 2 USA,
+            3 Turkey — so picking the lowest free id would hand out Turkey on a Syria map and play
+            beacons at its pilots. The top of the table (92 New Zealand, 90 Ecuador, 89 Peru) is
+            where nobody is. Falls back to the lowest known id if a mission somehow uses them all,
+            which keeps the build running rather than failing over a cosmetic detail.
+        """
+        used: set[int] = set()
+        content = (self.dcs_mission.mission_content if self.dcs_mission else None) or {}
+        for side in (content.get("coalition") or {}).values():
+            countries = (side or {}).get("country") or []
+            entries = countries.values() if isinstance(countries, dict) else countries
+            for country in entries:
+                if isinstance(country, dict) and country.get("id") is not None:
+                    used.add(int(country["id"]))
+        known = all_country_ids()
+        # `max` over the free ids: deterministic, so two builds of the same mission emit the same
+        # trigger and a rebuild shows no spurious diff, and biased away from the countries missions
+        # actually use.
+        return max(known - used, default=min(known))
+
+    def _build_sound_declaration_actions(self) -> list[SoundAction]:
+        """Declare every sound the mission carries that nothing else references.
+
+        The Mission Editor keeps the resources its own table declares and prunes the rest. A
+        ``.ogg`` played by a script at runtime — CTLD's ``outSound("beacon.ogg")``, CSAR's beacon —
+        is invisible to that scan, so an editor save **deletes** it (measured on the demo mission:
+        four files gone, `FIX-COMMUNITY-SOUNDS-PRUNED`).
+
+        The rule is deliberately about **orphans**, not about CTLD/CSAR: the sounds that triggered
+        this came from the *mission's own* ``src/mission/l10n/DEFAULT/`` with both modules disabled,
+        so keying on the tool-injected set would have missed the very case that was measured. A
+        sound already present in ``mapResource`` — a briefing clip with its own trigger, say — is
+        left alone; it is not an orphan and needs nothing.
+
+        Returns:
+            One :class:`SoundAction` per orphan sound, in file-name order; empty when the mission
+            carries none, in which case no trigger is emitted at all.
+        """
+        candidates = set(self.get_collected_community_sound_files()) | set(self.get_collected_mission_data_files())
+        prefix = f"{DEFAULT_SCRIPTS_LOCATION}/"
+        sounds = sorted(p for p in candidates if p.startswith(prefix) and p.lower().endswith(".ogg"))
+        # Nothing to declare is the common case (a mission with no sound at all), and it must not
+        # need a loaded mission to establish — so the early exit comes before touching dcs_mission.
+        if not sounds:
+            return []
+
+        assert self.dcs_mission is not None
+        already_declared = {str(v) for v in (self.dcs_mission.map_resource_content or {}).values()}
+        orphans = [p for p in sounds if Path(p).name not in already_declared]
+        if not orphans:
+            return []
+
+        self.dcs_mission.map_resource_content = self.dcs_mission.map_resource_content or {}
+        country_id = self._unused_country_id()
+        actions: list[SoundAction] = []
+        for index, path in enumerate(orphans):
+            map_key = f"VEAF_MapKey_Sound_{index}"
+            # The bare file name, not the l10n/DEFAULT/ path: CTLD calls outSound("beacon.ogg").
+            self.dcs_mission.map_resource_content[map_key] = Path(path).name
+            actions.append(SoundAction(map_key=map_key, country_id=country_id))
+        return actions
 
     def _build_veaf_trigger_specs(
         self, new_map_resource_script_files: dict, new_map_resource_mission_script_files: dict
@@ -1594,7 +1927,7 @@ class MissionBuilderWorker(BaseWorker):
         # and log it. Set in both load paths (dynamic and static) so it is always present.
         build_stamp_action = LuaAction(f'VEAF_BUILD_VERSION = "{get_build_stamp()}"')
 
-        dynamic_scripts: list[LuaAction | FileAction] = [
+        dynamic_scripts: list[LuaAction | FileAction | SoundAction] = [
             build_stamp_action,
             LuaAction('env.info("DYNAMIC VEAF scripts loading from "..VEAF_DYNAMIC_SCRIPTSPATH)'),
         ]
@@ -1620,16 +1953,22 @@ class MissionBuilderWorker(BaseWorker):
         # for the first, _ordered_mission_script_files() for the second), and dicts
         # preserve insertion order, so iterating them keeps the scripts in load order
         # (e.g. veaf-config.lua before mission-script.lua).
-        static_scripts: list[LuaAction | FileAction] = [
+        static_scripts: list[LuaAction | FileAction | SoundAction] = [
             build_stamp_action,
             LuaAction('env.info("STATIC VEAF scripts loading")'),
         ]
         static_scripts += [FileAction(key) for key in new_map_resource_script_files]
 
-        static_mission: list[LuaAction | FileAction] = [LuaAction('env.info("STATIC Mission scripts loading")')]
-        static_mission += [FileAction(key) for key in new_map_resource_mission_script_files]
+        # Mission scripts declaring `delay_seconds` leave the shared triggerStart for a
+        # triggerOnce of their own, grouped by delay (FEAT-CUSTOM-SCRIPT-LOAD-DELAY).
+        immediate_keys, delay_groups = self._split_delayed_mission_scripts(new_map_resource_mission_script_files)
 
-        return [
+        static_mission: list[LuaAction | FileAction | SoundAction] = [
+            LuaAction('env.info("STATIC Mission scripts loading")')
+        ]
+        static_mission += [FileAction(key) for key in immediate_keys]
+
+        specs = [
             VeafTriggerSpec(
                 keys[0],
                 "VEAF scripts loading method",
@@ -1658,6 +1997,86 @@ class MissionBuilderWorker(BaseWorker):
             ),
             VeafTriggerSpec(keys[5], "Mission scripts loading - static", "0x8080ffff", False, static_mission),
         ]
+
+        # One deferred trigger per distinct delay, in increasing delay order so the editor's
+        # trigger list reads as the staging it reproduces.
+        for group_index, (delay, group_keys) in enumerate(sorted(delay_groups.items())):
+            specs.append(
+                VeafTriggerSpec(
+                    _delay_trigger_dict_key(group_index),
+                    f"Mission scripts loading - static, delayed {format_delay_seconds(delay)}s",
+                    "0x8080ffff",
+                    False,
+                    [
+                        LuaAction(
+                            f'env.info("STATIC Mission scripts loading - delayed {format_delay_seconds(delay)}s")'
+                        ),
+                        *(FileAction(key) for key in group_keys),
+                    ],
+                    delay_seconds=delay,
+                )
+            )
+
+        # The sound declaration is last and conditional: with no orphan sound there is nothing to
+        # protect from the editor's pruning, and an empty trigger would be noise.
+        sound_actions = self._build_sound_declaration_actions()
+        if sound_actions:
+            specs.append(VeafTriggerSpec(keys[6], "Declare mission sounds", "0xffff00ff", False, list(sound_actions)))
+        return specs
+
+    def _split_delayed_mission_scripts(self, mission_script_files: dict) -> tuple[list[str], dict[float, list[str]]]:
+        """Split the mission-script resource keys into immediate ones and per-delay groups.
+
+        The declared **order of the mission-file list is preserved inside each group**, since that
+        list is already the resolved load order (``_ordered_mission_script_files``).
+
+        Ordering rule, and it is documented rather than enforced: **the delay decides, not the
+        position in the list.** A script at +12 s loads after every undelayed one wherever it sits.
+        Refusing a list where a delayed script precedes an undelayed one was the alternative; it
+        would reject perfectly workable files — a maker may well group their scripts by topic
+        instead of by delay — so a build warning names the pair instead. That is the only case
+        where reading the list top to bottom disagrees with what actually happens.
+
+        Args:
+            mission_script_files: Resource key → script base name, in load order.
+
+        Returns:
+            ``(immediate keys, {delay: keys})``.
+        """
+        delay_by_name = {
+            script.path: script.delay_seconds for script in self.custom_scripts if script.delay_seconds is not None
+        }
+        if not delay_by_name:
+            return list(mission_script_files), {}
+
+        immediate: list[str] = []
+        groups: dict[float, list[str]] = {}
+        seen_immediate_after_delay: list[tuple[str, str]] = []
+        last_delayed_name: str | None = None
+        for key, name in mission_script_files.items():
+            delay = delay_by_name.get(name)
+            if delay is None:
+                immediate.append(key)
+                if last_delayed_name is not None:
+                    seen_immediate_after_delay.append((last_delayed_name, name))
+            else:
+                groups.setdefault(delay, []).append(key)
+                last_delayed_name = name
+
+        if seen_immediate_after_delay:
+            pairs = "; ".join(f"{delayed} → {immediate_name}" for delayed, immediate_name in seen_immediate_after_delay)
+            logger.warning(t("builder.custom_script_delay_out_of_order", pairs=pairs))
+
+        if len(groups) > _VEAF_MAX_DELAY_GROUPS:
+            # This ABORTS the build: `veaf_libs.logger.error` raises `typer.Abort`, it does not merely
+            # log (see its `exception_type` default). Spelled out because the line reads like a log
+            # line that falls through to the `return` below — Sourcery read it that way on #720 and
+            # reported orphan triggers. Aborting is the right outcome and the alternative is worse:
+            # truncating would build a mission quietly missing scripts the maker declared. A test
+            # pins that a 13th group raises rather than emitting a spec whose dictionary key is
+            # absent.
+            logger.error(t("builder.custom_script_delay_too_many", count=len(groups), maximum=_VEAF_MAX_DELAY_GROUPS))
+        return immediate, groups
 
     def insert_veaf_triggers(self, specs: list[VeafTriggerSpec]) -> None:
         """Insert the compiled ``trig`` form of the VEAF triggers, derived from *specs*.
@@ -1718,20 +2137,26 @@ class MissionBuilderWorker(BaseWorker):
             return result
 
         nb = len(specs)
+        indexed = list(enumerate(specs, start=1))
+        # A deferred trigger is a triggerOnce, and DCS compiles that differently from the
+        # triggerStart every other VEAF trigger is. Three differences, all read out of an upstream
+        # `.miz` rather than guessed: it is dispatched from `func` (evaluated every tick) instead
+        # of `funcStartup` (evaluated once), its condition ANDs `c_time_after`, and its action
+        # string clears its own `func` entry — that is what makes the "Once".
+        dispatch = "if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end"
         veaf_triggers = {
             "customStartup": {},
-            "func": {},
+            "func": {i: dispatch.format(i=i) for i, spec in indexed if spec.delay_seconds is not None},
             "custom": {},
             "events": {},
             "flag": {i: True for i in range(1, nb + 1)},
-            "conditions": {
-                i: f'return(c_predicate(getValueDictByKey("{spec.dict_key}")) )'
-                for i, spec in enumerate(specs, start=1)
+            "conditions": {i: _emit_trig_condition(spec) for i, spec in indexed},
+            "actions": {
+                i: _emit_trig_action_string(spec.actions)
+                + (f" mission.trig.func[{i}]=nil;" if spec.delay_seconds is not None else "")
+                for i, spec in indexed
             },
-            "actions": {i: _emit_trig_action_string(spec.actions) for i, spec in enumerate(specs, start=1)},
-            "funcStartup": {
-                i: f"if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end" for i in range(1, nb + 1)
-            },
+            "funcStartup": {i: dispatch.format(i=i) for i, spec in indexed if spec.delay_seconds is None},
         }
 
         assert self.dcs_mission is not None
@@ -1793,10 +2218,19 @@ class MissionBuilderWorker(BaseWorker):
                         "text": spec.dict_key,
                         "KeyDict_text": spec.dict_key,
                         "predicate": "c_predicate",
-                    }
+                    },
+                    # A second rule, ANDed by the editor, for a deferred trigger. Only `seconds` is
+                    # written: an upstream mission also carries `coalitionlist`/`unitType`/`zone`
+                    # there, but those are leftovers of the editor's form and `zone` names a zone of
+                    # *that* mission — copying it would point at a zone we do not have.
+                    *(
+                        [{"predicate": "c_time_after", "seconds": spec.delay_seconds}]
+                        if spec.delay_seconds is not None
+                        else []
+                    ),
                 ],
                 "comment": spec.comment,
-                "predicate": "triggerStart",
+                "predicate": "triggerStart" if spec.delay_seconds is None else "triggerOnce",
                 "eventlist": "",
                 "actions": _emit_trigrule_actions(spec.actions),
                 "colorItem": spec.color_item,
@@ -1826,10 +2260,14 @@ class MissionBuilderWorker(BaseWorker):
         logger.debug("Writing mission file")
         assert self.dcs_mission is not None
         additional_files: dict[str, bytes] = {}
-        if self.dcs_bridge_bytes is not None:
+        if self.dcs_bridge_bytes is not None or self.checklist_images:
             from mission_tools import DEFAULT_SCRIPTS_LOCATION
 
-            additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/dcs-bridge.lua"] = self.dcs_bridge_bytes
+            if self.dcs_bridge_bytes is not None:
+                additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/dcs-bridge.lua"] = self.dcs_bridge_bytes
+            for entry in self.checklist_images:
+                for filename, payload in entry.files.items():
+                    additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/{filename}"] = payload
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
@@ -1898,10 +2336,71 @@ class MissionBuilderWorker(BaseWorker):
                 exception_type=RuntimeError,
             )
 
+        checklists = self._resolve_checklists(yaml_dict)
+        image_keys = {entry.checklist_id: entry.resource_keys for entry in self.checklist_images}
+
         config_file = scripts_dir / "veaf-config.lua"
-        content = generate_config_lua(yaml_dict)
+        content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
+
+    def _resolve_checklists(self, yaml_dict: dict) -> list[Checklist]:
+        """Resolve the guided checklists this mission activates, and render their images.
+
+        The rendering happens here rather than at write time because the emitted Lua has
+        to carry the resource keys the images will be embedded under, and both come from
+        the same resolution.
+
+        Args:
+            yaml_dict: The effective ``mission.yaml`` mapping.
+
+        Returns:
+            The activated checklists (empty when the ASSIST module is off or activates
+            none). :attr:`checklist_images` is filled to match.
+        """
+        self.checklist_images = []
+        assist_cfg = enabled_module_config(yaml_dict, _ASSIST_MODULE_ID)
+        if assist_cfg is None:
+            return []
+
+        available = load_checklists(mission_folder=self.mission_folder)
+        mission_ids = load_mission_checklists(self.mission_folder)
+        configured = assist_cfg.get("checklists")
+        checklists = select_activated(available, configured, mission_ids)
+        if not checklists:
+            return []
+
+        display = str(assist_cfg.get("display") or _ASSIST_DISPLAY_PICTURE).lower()
+        if display not in _ASSIST_DISPLAY_MODES:
+            logger.error(
+                t("checklist.unknown_display", value=display, valid=", ".join(sorted(_ASSIST_DISPLAY_MODES))),
+                exception_type=ValueError,
+            )
+        if display == _ASSIST_DISPLAY_TEXT:
+            # The whole point of text mode: nothing rendered, nothing embedded, nothing in
+            # mapResource. The engine reads a checklist with no `images` as a text one.
+            logger.info(t("checklist.text_mode", n=len(checklists)))
+            return checklists
+
+        # The picture's text must read like the pilot's messages, so it is resolved through
+        # the runtime catalog, in the mission's language — the same resolution veaf.t()
+        # will do in game.
+        scripts_root = self.scripts_path or (self.mission_folder / "published")
+        catalog = load_runtime_catalog(scripts_root)
+        language = (yaml_dict.get("mission") or {}).get("language") or current_language()
+        self.checklist_images = render_all(checklists, catalog, language)
+        return checklists
+
+    def _checklist_resources(self) -> dict[str, str]:
+        """Return the ``mapResource`` entries of the rendered checklist images.
+
+        Returns:
+            Mapping of resource key to file name, empty when no checklist is activated.
+        """
+        resources: dict[str, str] = {}
+        for entry in self.checklist_images:
+            resources.update(entry.resources())
+        return resources
 
     def work(self, silent: bool = False) -> Path:
         """Main work function."""

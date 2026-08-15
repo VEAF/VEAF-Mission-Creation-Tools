@@ -13,7 +13,7 @@ This guide is for players flying missions that use the VEAF framework. No techni
 5. [Assets: Tankers, AWACS, Carriers](#assets)
 6. [Combat Zones and Missions](#combat-zones-and-missions)
 7. [CAS Training](#cas-training)
-8. [Security and Permissions](#security-and-permissions)
+8. [Security and Permissions](#security)
 9. [Tips for Your Aircraft](#tips-for-your-aircraft)
 10. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 11. [Community and Support](#community-and-support)
@@ -22,7 +22,7 @@ This guide is for players flying missions that use the VEAF framework. No techni
 
 ## What is VEAF MCT?
 
-VEAF Mission Creation Tools (VEAF MCT) makes DCS World missions alive and interactive. In a regular mission, everything is fixed in advance. With VEAF MCT, you can act while flying:
+VEAF Mission Creation Tools (VEAF MCT) brings DCS World missions to life and makes them interactive. In a regular mission, everything is fixed in advance. With VEAF MCT, you can act while flying:
 
 - spawn enemy units on demand;
 - request a tanker, an AWACS or a carrier;
@@ -52,14 +52,16 @@ All VEAF MCT features are available from **F10 → Other → VEAF**. (The radio 
 ```mermaid
 graph TD
     F10[F10 Radio Menu] --> Other[Other] --> VEAF[VEAF]
-    VEAF --> Res[Assets]
+    VEAF --> Res[ASSETS]
     VEAF --> CAS[CAS Mission]
     VEAF --> CZ[Combat Zones]
     VEAF --> Miss[Missions]
+    VEAF --> Assist[Assistance]
     VEAF --> Help[Help]
-    Res --> Tank[Tankers]
-    Res --> AWACS[AWACS]
-    Res --> Carrier[Carriers]
+    Assist --> AS1["Cold start — F-16C"]
+    Res --> A1["Arco 1-1 — tanker"]
+    Res --> A2["Overlord — AWACS"]
+    F10 --> Carrier["CARRIER OPS - BLUE / RED"]
 ```
 
 > 📷 *Screenshot coming soon: VEAF submenu in the F10 radio menu.*
@@ -83,7 +85,7 @@ VEAF detects the marker, runs the command at the marker's location, then removes
 
 > 📷 *Screenshot coming soon: typing a command into an F10 map marker.*
 
-> On multiplayer servers, some commands require a password. See [Security and Permissions](#security-and-permissions).
+> On multiplayer servers, some commands require a password. See [Security and Permissions](#security).
 
 ### Aliases: the simplest method
 
@@ -97,8 +99,8 @@ An **alias** is a shortcut prepared by the mission maker. It starts with a hyphe
 | `-sa6` | SA-6 Gainful (2K12 Kub) battery |
 | `-sa10` | SA-10 Grumble (S-300) battery |
 | `-sa11` | SA-11 Gadfly (9K37 Buk) battery |
-| `-sa15` | SA-15 Gauntlet (Tor) vehicle |
-| `-sa22` | SA-22 Greyhound (Pantsir-S1) vehicle |
+| `-sa15` | SA-15 Gauntlet (Tor) squad |
+| `-sa22` | SA-22 Greyhound (Pantsir-S1) squad |
 | `-shilka` | ZSU-23-4 Shilka AAA |
 | `-manpads` | MANPADS squad (man-portable surface-to-air missiles) |
 | `-samLR` | Random long-range SAM battery |
@@ -169,23 +171,24 @@ _spawn bomb, power 500, shells 3
 
 ## Assets
 
-**Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and carriers. You find them under **F10 → VEAF → Assets**.
+**Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and ships. You find them under **F10 → VEAF → ASSETS**.
 
-> 📷 *Screenshot coming soon: tankers and AWACS submenus.*
+> 📷 *Screenshot coming soon: the ASSETS menu and one asset's submenu.*
 
-### Tankers
+### Tankers, AWACS and ships
 
-**F10 → VEAF → Assets → Tankers → [Name] → Info**
+**F10 → VEAF → ASSETS → [Asset name] → Get info on [Asset name]**
 
-Shows: position, TACAN channel (navigation beacon), radio frequency and refuelling type.
+The menu does not group assets by category: every tanker, AWACS or ship has its own submenu directly, named after the asset. There is no *Tankers* or *AWACS* step to go through.
 
-If the tanker has been destroyed, the **Respawn** option brings it back (if the mission maker has allowed it).
+What the info shows depends on the asset: for a tanker, its position, TACAN channel (navigation beacon), radio frequency and refuelling type; for an AWACS, its callsign, frequency and position.
 
-### AWACS
+Two more commands may appear in an asset's submenu:
 
-**F10 → VEAF → Assets → AWACS → [Name] → Info**
+- **Respawn [Name]** — brings it back if it has been destroyed. Available to everyone.
+- **Dispose of [Name]** — removes it from the mission. Restricted to authenticated players.
 
-Shows: callsign, frequency and position.
+An asset the mission maker did not make consultable has no submenu at all: its **Respawn [Name]** sits directly in the ASSETS menu.
 
 ### Carriers
 
@@ -219,15 +222,24 @@ Carrier air operations have their own **CARRIER OPS** menu (not under *Assets*),
 
 ### Combat Zones
 
+> **The F10 menu follows the mission's language** (`mission.language`). The labels below are the ones
+> an English mission shows; a French mission shows their French equivalents.
+
 A **combat zone** is an area prepared by the mission maker that you activate on demand. On activation, enemy units spawn; once all are destroyed, the zone is complete and can be replayed.
 
 | Action | Menu path |
 |--------|-----------|
-| List available zones | Combat Zones |
-| Activate a zone | Combat Zones → [Zone] → Activate |
-| Check zone status | Combat Zones → [Zone] → Info |
-| Mark the zone with smoke | Combat Zones → [Zone] → Smoke |
-| Deactivate / clean up | Combat Zones → [Zone] → Deactivate |
+| List available zones | `Combat Zones` |
+| Activate a zone | `Combat Zones` → [Zone] → `Activate zone` |
+| Check zone status | `Combat Zones` → [Zone] → `Get info` |
+| Mark the zone with smoke | `Combat Zones` → [Zone] → `Request RED smoke on target` |
+| Deactivate / clean up | `Combat Zones` → [Zone] → `Deactivate zone` |
+
+**You only see your own side's zones.** A combat zone can be played from red as well as from blue,
+and its submenu appears only on the side it belongs to: two pilots on opposing sides therefore see
+different lists under *Combat Zones*, and a zone missing from yours is not a missing zone. A mission
+maker who wants the old behaviour — everybody sees everything — declares
+`radio_menu_coalition: ALL` on the zone.
 
 ### Missions
 
@@ -235,10 +247,10 @@ A **combat zone** is an area prepared by the mission maker that you activate on 
 
 | Action | Menu path |
 |--------|-----------|
-| List missions | Missions |
-| Activate | Missions → [Mission] → Activate |
-| Read status and objectives | Missions → [Mission] → Info |
-| Abort | Missions → [Mission] → Deactivate |
+| List missions | `MISSIONS` → `List available` |
+| Activate | `MISSIONS` → [Mission] → `Activate mission` |
+| Read status and objectives | `MISSIONS` → [Mission] → `Get info` |
+| Abort | `MISSIONS` → [Mission] → `Deactivate mission` |
 
 ---
 
@@ -258,7 +270,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 
 **Set the difficulty** via marker: `_cas, size 3, defense 2, armor 3`
 
-| Level | Typical composition | For whom |
+| Level (`defense` / `armor`) | Typical composition | For whom |
 |-------|---------------------|----------|
 | 0 | Infantry, jeeps, no AA | Beginners |
 | 1 | Light vehicles, MANPADS | Easy |
@@ -271,23 +283,52 @@ Options for the `_cas` command: `size [1-5]` (force size), `defense [0-5]` (AA l
 
 ---
 
-## Security and Permissions
+## Security and Permissions {#security}
 
-On multiplayer servers, the mission maker may restrict certain commands according to your permission level:
+On multiplayer servers, the mission maker may restrict certain commands according to your permission level.
 
-| Level | Who can use it |
-|-------|----------------|
-| Public | All players — asset info, zone activation, smoke/flare |
-| Pilots | Non-spectator players |
-| Admin | Server administrators |
+There are two ways to be allowed to run a command: **being recognised by the server**, or **giving
+the password**. VEAF servers keep a list of pilots; if you are on it, your tier applies by itself —
+you are never asked for a password for commands at or below your tier.
 
-To authenticate, place a marker containing:
+| Tier | Who passes without a password |
+|------|-------------------------------|
+| Open | Everyone, listed or not |
+| Known pilot | Any pilot on the server's list |
+| Trusted member | The pilots the server has singled out as such |
+| Administrator | The server's administrators |
+| Mission Master | Nobody: the password is required from everyone, whatever their tier |
 
-```
-_auth [PASSWORD]
-```
+The open commands: asset info, smoke, signal flares, naming a point. Others — spawning a group,
+destroying a unit — need a higher tier.
 
-The password is set by the mission maker or server administrator. Authentication stays valid for a configured duration (10 minutes by default), after which your rights return automatically to the public level.
+If you are not on the list, add the password of the required tier to each protected command
+(`password` keyword, e.g. `_spawn group, name ..., password [PASSWORD]`): it is checked command by
+command. There is no session and no duration — nothing to open, nothing that expires. The password is
+set by the mission maker or server administrator, and there is one per tier — the administrator's
+also opens everything below it.
+
+**F10 menu**: DCS cannot tell which occupant of a group clicked a menu entry. Protected F10 menu
+commands therefore work at the level of the group's **lowest-graded occupant**. If that holds you
+back (shared multi-crew aircraft), place a marker containing `_auth elevate`: the group rises to your
+own level for 2 minutes, never higher.
+
+### A worked case: the instructor and the student {#instructor-and-student}
+
+You are a trusted member; your student has just created their account and is on no list at all. You
+both climb into the same L-39.
+
+- **Your marker commands keep working normally.** A marker carries its author's name, so the server
+  knows you placed it, and your tier applies.
+- **Protected F10 menu entries, however, stop responding**: the group acts at the level of its
+  lowest-graded occupant, and that is your student.
+- **To get your rights back**, place an `_auth elevate` marker. For 2 minutes the whole group — you
+  *and* your student — acts at **your** level. After that the group falls back to the student's
+  level. Place the marker again if you still need it.
+
+Two things not to confuse: `_auth elevate` raises the group to **your** level and never higher, and a
+plain `_auth [PASSWORD]` elevates nothing at all — it only clears the password for the command being
+issued.
 
 ---
 
@@ -308,7 +349,9 @@ The password is set by the mission maker or server administrator. Authentication
 ### Helicopters (AH-64D, Ka-50, Mi-24…)
 
 - Keep difficulty between 0 and 2 (minimal AA).
-- Use `_spawn unit, name BTR-80, group 5` for dispersed APC targets.
+- Use `_spawn armorgroup, size 5, spacing 8` for dispersed armour targets — `size` is how many
+  vehicles, and `spacing` widens the gap between them as a multiple of each vehicle's own footprint
+  (so a bigger number spreads the group out).
 - Use terrain masking to approach below AA radar coverage.
 
 ### Transports (C-130, Mi-8, UH-1H…)
@@ -324,7 +367,7 @@ The password is set by the mission maker or server administrator. Authentication
 Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 
 **My marker commands don't work. Why?**
-Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer you may need to authenticate first with `_auth [PASSWORD]`. Also check that the server allows marker commands.
+Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer, if you are not on the server's pilot list, add `password [PASSWORD]` to the command. For the F10 menu, remember the group acts at the level of its lowest-graded occupant: `_auth elevate` raises it to your own level for 2 minutes. Also check that the server allows marker commands.
 
 **What unit names can I use with `_spawn unit`?**
 Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.

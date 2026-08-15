@@ -1,0 +1,22 @@
+waypoints:
+  BULLSEYE:
+    type: Turning Point
+    action: Turning Point
+    alt: 6096
+    alt_type: BARO
+    ETA: 364.89432745775
+    ETA_locked: false
+    speed: 999
+    name: BULLSEYE
+    x: 75869
+    y: 48674
+    speed_type: TAS
+settings:
+  all blue planes:
+    category: plane
+    coalition: blue
+    waypoints: {}
+  all blue helicopters:
+    category: helicopter
+    coalition: blue
+    waypoints: {}

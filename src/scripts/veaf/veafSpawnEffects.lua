@@ -88,15 +88,14 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
     veaf.loggers.get(veafSpawn.Id):debug(string.format("weightBias=%s", veaf.p(weightBias)))
     if unit.desc and unit.desc.minMass and unit.desc.maxMass then
       local weightScaleRange = veafSpawn.cargoWeightBiasRange + 1
-      local massDelta = unit.desc.maxMass - unit.desc.minMass
-      if massDelta < 0 then --never can be too careful around DCS
-        local temp = unit.desc.maxMass
-        unit.desc.maxMass = unit.desc.minMass
-        unit.desc.minMass = temp
-        massDelta = math.abs(massDelta)
-      end
-      local minMass = unit.desc.minMass + weightBias * massDelta / weightScaleRange
-      local maxMass = unit.desc.minMass + (weightBias + 1) * massDelta / weightScaleRange
+      -- VMR-100: reorder the bounds locally. `findDcsUnit` hands back the live
+      -- dcsUnits.DcsUnitsDatabase entry, so swapping the fields in place edited the shared
+      -- units database for the rest of the mission — never can be too careful around DCS,
+      -- but the caution belongs in our own locals.
+      local lowMass = math.min(unit.desc.minMass, unit.desc.maxMass)
+      local massDelta = math.abs(unit.desc.maxMass - unit.desc.minMass)
+      local minMass = lowMass + weightBias * massDelta / weightScaleRange
+      local maxMass = lowMass + (weightBias + 1) * massDelta / weightScaleRange
       veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo minMass=%s, cargo maxMass=%s", veaf.p(minMass), veaf.p(maxMass)))
       cargoWeight = math.random(minMass, maxMass)
     elseif unit.defaultMass then
@@ -485,7 +484,7 @@ end
 -- Effects spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafSpawn.registerCommandHandler("cargo", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("cargo", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnCargo(
     eventPos,
     options.radius,
@@ -500,32 +499,32 @@ veafSpawn.registerCommandHandler("cargo", "L9", function(eventPos, options, coal
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("logistic", "L9", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("logistic", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local g = veafSpawn.spawnLogistic(eventPos, options.radius, options.country, bypassSecurity, not options.showMFD)
   return g, nil, false
 end)
 
-veafSpawn.registerCommandHandler("destroy", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("destroy", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.destroy(eventPos, options.radius, options.unitName)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("teleport", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("teleport", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.teleport(eventPos, options.name, bypassSecurity)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("bomb", "L1", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("bomb", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.power, options.altitude, options.altitudedelta, options.password)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("smoke", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("smoke", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("flare", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("flare", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   if not options.altitude or options.altitude == 0 then
     options.altitude = 1000
   end
@@ -546,7 +545,7 @@ veafSpawn.registerCommandHandler("flare", function(eventPos, options, coalition,
   return nil, nil, false
 end)
 
-veafSpawn.registerCommandHandler("signal", function(eventPos, options, coalition, markId, bypassSecurity)
+veafSpawn.registerCommandHandler("signal", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
   veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
   return nil, nil, false
 end)

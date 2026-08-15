@@ -236,7 +236,7 @@ def build(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionBuilderREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve input mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)

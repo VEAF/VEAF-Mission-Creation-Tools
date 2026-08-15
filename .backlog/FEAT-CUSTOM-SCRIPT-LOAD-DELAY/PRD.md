@@ -1,6 +1,6 @@
 # FEAT-CUSTOM-SCRIPT-LOAD-DELAY — a custom script cannot be loaded after a delay
 
-Status: ⬜ ready
+Status: ✅ done — delivered 2026-08-11; one in-game confirmation left to David
 
 ## Context
 
@@ -44,7 +44,7 @@ into Lua for something the upstream expressed declaratively.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Per-script load delay in `custom_scripts`](tickets/01-per-script-load-delay.md) | ⬜ |
+| 01 | [Per-script load delay in `custom_scripts`](tickets/01-per-script-load-delay.md) | ✅ |
 
 ## Open question — is it actually breaking anything?
 
@@ -57,3 +57,18 @@ Unknown, and worth settling before designing too much. Two ways to find out, che
 If nothing breaks, the delay is upstream belt-and-braces and this lot is a fidelity nicety —
 still worth having, lower priority. If something breaks, it is a **correctness** issue for every
 adopted mission that staggers its loading, and it jumps the queue.
+
+## The open question, answered — 2026-08-11
+
+This PRD said the flattening might be "upstream belt-and-braces", in which case the lot was a fidelity
+nicety, or a **correctness** issue, in which case it jumped the queue. Option 2 was taken by reading the
+code, which is the cheaper of the two routes it listed:
+
+**AIEN inventories ground groups exactly once**, at load time (`populate_Db()`, upstream comment: *"launched
+once at mission start and collect everything relevant that is already there"*). **Foothold creates part of
+its groups from t+2 s onwards**, through `SCHEDULER:New(…, o:update(), …, 2, …)` and its deferred save
+restores. Loading AIEN at t=0 therefore shows it a world those schedulers have not populated — and nothing
+says so: no log error, just ground AI that never manages Foothold's groups.
+
+So the lot delivered as a correctness fix. What remains is the in-game confirmation, which is the PRD's
+own first suggestion and needs a DCS session: run the built Foothold and read `dcs.log`.

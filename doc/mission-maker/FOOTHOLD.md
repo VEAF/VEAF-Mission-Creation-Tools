@@ -35,7 +35,7 @@ Syrie, Cold War Germany, Kola, Irak, Afghanistan, Normandie WWII), chacun conten
 Passez le `.zip` directement à `convert-other` : il adopte le `.miz` qu'il contient et
 ignore le reste. Pas besoin de dézipper à la main.
 
-> **Les dix cartes d'un coup.** Une release contient une archive par carte. Depuis un clone du
+> **Les neuf cartes d'un coup.** Une release contient une archive par carte. Depuis un clone du
 > dépôt, [`tools/Convert-FootholdBatch.ps1`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/Convert-FootholdBatch.ps1)
 > les adopte toutes en une passe, en choisissant le bon profil pour chacune (il regarde dans
 > l'archive, pas son nom) :
@@ -83,14 +83,18 @@ Nouvelle version Lekaa ──► convert-other --update ──► (re)validate �
 ## 1. Initialiser (adopter)
 
 ```bash
-veaf-tools convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-mission> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <dossier-mission> --profile foothold
 ```
 
 `convert-other` extrait le `.miz` (de l'archive si besoin), détecte les scripts chargés par
 les triggers natifs (dans l'ordre), et génère un `mission.yaml` avec :
 
 - un bloc **`custom_scripts:` ordonné** (Moose, zoneCommander, Foothold Config,
-  setup, CTLD Foothold, Splash, AIEN, EWRS… — l'ordre de chargement d'origine) ;
+  setup, CTLD Foothold, Splash, AIEN, EWRS… — l'ordre de chargement d'origine),
+  **délais compris** : Lekaa ne charge pas tout d'un bloc — 5 scripts arrivent 3 secondes
+  après les premiers, et AIEN 12 secondes après. `convert-other` lit ces délais dans les
+  triggers d'origine et écrit `delay_seconds:` en face des scripts concernés, ce qui
+  reproduit l'étalement (voir [`delay_seconds`](../MISSION_YAML_REFERENCE.md#custom-scripts)) ;
 - un **`strip_native_triggers:`** listant les triggers de chargement natifs (le
   build les supprime pour éviter un double chargement) ;
 - les **modules VEAF** du profil (RADIO, SPAWN, WEATHER, SHORTCUTS, SECURITY,
@@ -98,6 +102,18 @@ les triggers natifs (dans l'ordre), et génère un `mission.yaml` avec :
 - un marqueur `conversion_profile: foothold` (le build/validate refusent un module
   incompatible — Foothold embarque sa propre CTLD, donc la CTLD VEAF reste OFF) ;
 - un scaffold **`config_override:`** commenté ciblant `Foothold Config.lua`.
+
+### Pourquoi l'étalement compte {#staging}
+
+Ce n'est pas de la coquetterie de fidélité. **AIEN inventorie les groupes terrestres une seule
+fois**, au chargement (son propre commentaire dit « launched once at mission start and collect
+everything relevant that is already there »). Or Foothold crée une partie de ses groupes après
+coup, depuis des tâches planifiées qui démarrent à partir de 2 secondes.
+
+Charger AIEN à l'instant zéro lui présente donc un monde que ces tâches n'ont pas encore peuplé —
+et le symptôme est **silencieux** : aucune erreur dans le journal, simplement une IA terrestre qui
+ne gère jamais les groupes créés par Foothold. C'est la raison des 12 secondes de Lekaa, et la
+raison pour laquelle un `delay_seconds:` détecté ne doit pas être retiré à la légère.
 
 ## 2. Régler le `mission.yaml`
 
@@ -218,7 +234,7 @@ récentes de Lekaa embarquent les appareils et les armements de l'époque, séle
 ## 3. Valider
 
 ```bash
-veaf-tools validate <dossier-mission>
+veaf-tools mission validate <dossier-mission>
 ```
 
 Vérifie la syntaxe, la sémantique des modules, l'existence des `custom_scripts`,
@@ -228,7 +244,7 @@ existe** dans le code Foothold injecté.
 ## 4. Construire les deux variantes
 
 ```bash
-veaf-tools build <dossier-mission>
+veaf-tools mission build <dossier-mission>
 ```
 
 Un seul build produit **deux** `.miz` : `…_MODERN.miz` et `…_COLD_WAR.miz`. Chaque
@@ -251,7 +267,7 @@ Quand Foothold sort une nouvelle release, téléchargez la nouvelle archive et r
 **dans le même dossier** :
 
 ```bash
-veaf-tools convert-other <nouvelle_release.zip> <dossier-mission> --profile foothold --update
+veaf-tools convert other <nouvelle_release.zip> <dossier-mission> --profile foothold --update
 ```
 
 `--update` rafraîchit les scripts tiers et la base de mission, **préserve votre

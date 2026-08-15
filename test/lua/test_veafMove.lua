@@ -30,7 +30,9 @@ end
 
 function TestVeafMoveTankerParameters:test_tanker_params_has_27_entries()
   local count = 0
-  for _ in pairs(veafMove.tankerMissionParameters) do count = count + 1 end
+  for _ in pairs(veafMove.tankerMissionParameters) do
+    count = count + 1
+  end
   luaunit.assertEquals(count, 27)
 end
 
@@ -85,6 +87,15 @@ function TestVeafMoveMarkTextAnalysis:test_move_group_speed_keyword()
   local r = veafMove.markTextAnalysis("_move group, name Alpha, speed 250")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.speed, 250)
+end
+
+-- FIX-MARKER-PARAM-CRASHES: `name` with no value used to raise inside its own log line
+-- (`string.format("%s", nil)`) before the parser could reach the guard above, which already
+-- refuses the command on an empty group name. The refusal is the intended answer; the crash
+-- was not.
+function TestVeafMoveMarkTextAnalysis:test_move_group_valueless_name_returns_nil()
+  local r = veafMove.markTextAnalysis("_move group, name")
+  luaunit.assertNil(r)
 end
 
 function TestVeafMoveMarkTextAnalysis:test_move_tanker_returns_table()
@@ -183,6 +194,101 @@ function TestVeafMoveMarkTextAnalysisKeywords:test_immortal_keyword()
   local r = veafMove.markTextAnalysis("_move afac, name AFAC1, immortal")
   luaunit.assertNotNil(r)
   luaunit.assertTrue(r.immortal)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafMoveCharacterisation
+--
+-- REFACTOR-MARKER-PARSER ticket 01: what this parser does TODAY, measured. The sub-command
+-- defaults below are the quirk that most needs preserving — the shared parser has to be able
+-- to seed different defaults per sub-verb, or moving a tanker starts behaving like moving a
+-- ground group.
+-- ---------------------------------------------------------------------------
+TestVeafMoveCharacterisation = {}
+
+function TestVeafMoveCharacterisation:test_group_seeds_speed_20_and_keeps_altitude()
+  local r = veafMove.markTextAnalysis("_move group, name A")
+  luaunit.assertEquals(r.speed, 20)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+-- -1 is the sentinel for "keep whatever the tanker already had".
+function TestVeafMoveCharacterisation:test_tanker_seeds_both_sentinels()
+  local r = veafMove.markTextAnalysis("_move tanker, name T")
+  luaunit.assertEquals(r.speed, -1)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+function TestVeafMoveCharacterisation:test_tankermission_seeds_both_sentinels()
+  local r = veafMove.markTextAnalysis("_move tankermission, name T")
+  luaunit.assertEquals(r.speed, -1)
+  luaunit.assertEquals(r.altitude, -1)
+end
+
+function TestVeafMoveCharacterisation:test_afac_seeds_speed_150_and_altitude_15000()
+  local r = veafMove.markTextAnalysis("_move afac, name F")
+  luaunit.assertEquals(r.speed, 150)
+  luaunit.assertEquals(r.altitude, 15000)
+end
+
+-- The sub-verb chain is tested in order and the FIRST match wins, regardless of where the
+-- words appear in the text. Note "tankermission" is tested before "tanker", otherwise it
+-- could never match.
+function TestVeafMoveCharacterisation:test_the_first_subverb_in_the_chain_wins()
+  local r = veafMove.markTextAnalysis("_move group tanker, name A")
+  luaunit.assertTrue(r.moveGroup)
+  luaunit.assertFalse(r.moveTanker)
+end
+
+function TestVeafMoveCharacterisation:test_subverb_is_case_insensitive()
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move GROUP, name A").moveGroup)
+end
+
+function TestVeafMoveCharacterisation:test_keys_are_case_insensitive()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, NAME A").groupName, "A")
+end
+
+-- Flags ignore any value they are given rather than parsing it: `teleport false` teleports.
+function TestVeafMoveCharacterisation:test_flags_ignore_their_value()
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move group, name A, teleport false").teleport)
+  luaunit.assertTrue(veafMove.markTextAnalysis("_move group, name A, silent 0").silent)
+end
+
+function TestVeafMoveCharacterisation:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, name B").groupName, "B")
+end
+
+-- Zero is a real speed here, not "absent": there is no lower bound on this parameter.
+function TestVeafMoveCharacterisation:test_speed_zero_is_accepted()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed 0").speed, 0)
+end
+
+-- FIXED (ticket 03): an unreadable numeric value used to assign nil, wiping the sentinel that
+-- means "keep the original speed or altitude", so a nil travelled to moveTanker instead of -1.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed").speed, -1)
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, speed banana").speed, -1)
+end
+
+function TestVeafMoveCharacterisation:test_an_unreadable_altitude_keeps_the_sentinel()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move tanker, name T, alt banana").altitude, -1)
+end
+
+-- A group move seeds speed 20, so that is what an unreadable speed falls back to there.
+function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_group_default()
+  luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed banana").speed, 20)
+end
+
+-- An unknown keyword is ignored in silence and leaves the seeded defaults alone.
+function TestVeafMoveCharacterisation:test_unknown_keyword_is_ignored_silently()
+  local r = veafMove.markTextAnalysis("_move group, name A, banana 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.speed, 20)
+  luaunit.assertNil(r.unknownParameters)
+end
+
+function TestVeafMoveCharacterisation:test_empty_text_returns_nil()
+  luaunit.assertNil(veafMove.markTextAnalysis(""))
 end
 
 -- ---------------------------------------------------------------------------
@@ -334,12 +440,14 @@ end
 TestVeafMoveAdvanced = {}
 
 function TestVeafMoveAdvanced:setUp()
-  self._origSchedule    = mist.scheduleFunction
-  self._origCountry     = env.mission.coalition.blue.country
+  self._origSchedule = mist.scheduleFunction
+  self._origCountry = env.mission.coalition.blue.country
   self._origUnitsByName = mist.DBs.unitsByName
 
   -- Execute scheduled functions synchronously (Lua 5.1: unpack, not table.unpack)
-  mist.scheduleFunction = function(fn, params, time) fn(unpack(params)) end
+  mist.scheduleFunction = function(fn, params, time)
+    fn(unpack(params))
+  end
 
   -- KC-135 unit for findAllTankers inner loop
   mist.DBs.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
@@ -351,26 +459,34 @@ function TestVeafMoveAdvanced:setUp()
         group = {
           [1] = {
             groupId = "TKR_NO_ORBIT",
-            name    = "TKR_NO_ORBIT",
-            route   = {
+            name = "TKR_NO_ORBIT",
+            route = {
               points = {
-                { x = 0,      y = 0, speed = 200, alt = 6000 },
-                { x = 100000, y = 0, speed = 200, alt = 6000,
-                  task = { params = { tasks = {} } } },
+                { x = 0, y = 0, speed = 200, alt = 6000 },
+                { x = 100000, y = 0, speed = 200, alt = 6000, task = { params = { tasks = {} } } },
                 { x = 200000, y = 0, speed = 200, alt = 6000 },
               },
             },
           },
           [2] = {
             groupId = "TKR_WITH_ORBIT",
-            name    = "TKR_WITH_ORBIT",
-            route   = {
+            name = "TKR_WITH_ORBIT",
+            route = {
               points = {
-                { x = 0,      y = 0, speed = 200, alt = 6000 },
-                { x = 100000, y = 0, speed = 200, alt = 6000,
-                  task = { params = { tasks = {
-                    { id = "Orbit", params = { speed = 200, altitude = 6000 } },
-                  } } } },
+                { x = 0, y = 0, speed = 200, alt = 6000 },
+                {
+                  x = 100000,
+                  y = 0,
+                  speed = 200,
+                  alt = 6000,
+                  task = {
+                    params = {
+                      tasks = {
+                        { id = "Orbit", params = { speed = 200, altitude = 6000 } },
+                      },
+                    },
+                  },
+                },
                 { x = 200000, y = 0, speed = 200, alt = 6000 },
               },
             },
@@ -389,9 +505,9 @@ function TestVeafMoveAdvanced:setUp()
 end
 
 function TestVeafMoveAdvanced:tearDown()
-  mist.scheduleFunction                  = self._origSchedule
-  env.mission.coalition.blue.country     = self._origCountry
-  mist.DBs.unitsByName                   = self._origUnitsByName
+  mist.scheduleFunction = self._origSchedule
+  env.mission.coalition.blue.country = self._origCountry
+  mist.DBs.unitsByName = self._origUnitsByName
   dcs_mocks.removeGroup("TKR_NO_ORBIT")
   dcs_mocks.removeGroup("TKR_WITH_ORBIT")
 end
@@ -422,6 +538,72 @@ function TestVeafMoveAdvanced:test_findAllTankers_finds_kc135()
   local result = veafMove.findAllTankers()
   luaunit.assertEquals(#result, 1)
   luaunit.assertEquals(result[1], "TKR_GRP")
+end
+
+-- ============================================================================
+-- TestVeafMoveNonNumericValues -- SECREV-2 / VMR-092
+-- ============================================================================
+--- The keyword handlers logged the value with string.format("%d", val) *before* tonumber(), on the
+--- raw text the pilot typed. In Lua 5.1 that raises on "abc" -- and, measured, %s raises on nil too,
+--- which is what a keyword given with no value at all produces. So a typo in a marker took the whole
+--- parser down instead of being ignored.
+TestVeafMoveNonNumericValues = {}
+
+function TestVeafMoveNonNumericValues:_analyse(text)
+  local ok, result = pcall(veafMove.markTextAnalysis, text)
+  luaunit.assertTrue(ok, "the parser must not raise on: " .. text .. " (" .. tostring(result) .. ")")
+  return result
+end
+
+-- REFACTOR-MARKER-PARSER ticket 03 changed the expectation of the next two tests, and the reason
+-- is worth stating because "unset, not crash" looked like the safe answer when VMR-092 wrote it.
+--
+-- Unset moved the crash rather than removing it. `veafMove.moveGroup` opens with
+-- `"... speed = " .. speed`, and concatenating nil raises — measured, for both `speed` and
+-- `altitude`. So `_move group, name SomeGroup, speed abc` parsed cleanly and then took the command
+-- down one call later. The other three consumers happen to tolerate nil (`moveTanker` tests
+-- `speed == nil or speed < 0`), which is why this stayed invisible.
+--
+-- Keeping the seeded default is what actually removes the crash: the parameter is ignored, the
+-- command runs, and the pilot loses the parameter rather than the order.
+function TestVeafMoveNonNumericValues:test_a_non_numeric_speed_keeps_the_default_rather_than_unsetting()
+  local r = self:_analyse("_move group, name SomeGroup, speed abc")
+
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.speed, 20, "an unparseable speed must keep the sub-command's default")
+end
+
+function TestVeafMoveNonNumericValues:test_a_keyword_with_no_value_keeps_the_default()
+  local r = self:_analyse("_move group, name SomeGroup, speed")
+
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.speed, 20)
+end
+
+-- The crash this now prevents, asserted on the whole command path rather than on the parser:
+-- an unreadable numeric parameter must not take the order down downstream either.
+function TestVeafMoveNonNumericValues:test_the_whole_command_survives_an_unreadable_number()
+  for _, text in ipairs({
+    "_move group, name SomeGroup, speed abc",
+    "_move group, name SomeGroup, speed",
+    "_move group, name SomeGroup, alt abc",
+  }) do
+    local ok, err = pcall(veafMove.executeCommand, { x = 0, y = 0, z = 0 }, text, true)
+    luaunit.assertTrue(ok, text .. " raised: " .. tostring(err))
+  end
+end
+
+function TestVeafMoveNonNumericValues:test_every_numeric_keyword_survives_a_bad_value()
+  for _, keyword in ipairs({ "speed", "hdg", "distance", "alt" }) do
+    local r = self:_analyse("_move group, name SomeGroup, " .. keyword .. " notanumber")
+    luaunit.assertNotNil(r, keyword .. " must still return a result")
+  end
+end
+
+function TestVeafMoveNonNumericValues:test_a_numeric_value_is_still_parsed()
+  local r = self:_analyse("_move group, name SomeGroup, speed 250")
+
+  luaunit.assertEquals(r.speed, 250)
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -7,13 +7,13 @@ the mission was never built with the VEAF tools, so we **adopt** it.
 
 > This command holds no knowledge specific to any given mission. The
 > author-specific knowledge for a mission family (script order, triggers to
-> strip, settings to override…) is carried by a *conversion profile* (coming
-> next). See ADR 0007.
+> strip, settings to override…) is carried by a *conversion profile*. Two ship
+> with the tool: `foothold` and `foothold-ww2`. See ADR 0007.
 
 ## Usage
 
 ```bash
-veaf-tools convert-other <mission.miz> <output-folder>
+veaf-tools convert other <mission.miz> <output-folder>
 ```
 
 With no argument (in an interactive terminal) the command opens the TUI wizard
@@ -27,7 +27,7 @@ manual and a shortcut. Pass the archive you downloaded and `convert-other` adopt
 inside it:
 
 ```bash
-veaf-tools convert-other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <output-folder> --profile foothold
+veaf-tools convert other Foothold_CA_4.4.1_Multi_Language_Coldwar-Modern-Vietnam.zip <output-folder> --profile foothold
 ```
 
 Only the `.miz` member is read; nothing else in the archive is written anywhere (the bundled
@@ -47,7 +47,7 @@ guessing which mission you meant.
 
 Without `--profile` the scaffold is generic (the `minimal` tier). With a profile,
 mission-family-specific knowledge is applied — **data, not code** (see
-[ADR 0007](../../docs/adr/0007-third-party-mission-adoption.md)). The bundled
+[ADR 0007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0007-third-party-mission-adoption.md)). The bundled
 `foothold` profile:
 
 - **enables the VEAF modules** Foothold uses (RADIO, SPAWN, WEATHER, SHORTCUTS,
@@ -60,11 +60,11 @@ mission-family-specific knowledge is applied — **data, not code** (see
 - **writes a marker** `conversion_profile: foothold` into `mission.yaml`;
 - **scaffolds a commented `config_override`** targeting `Foothold Config.lua`;
 - **declares incompatible modules** (`CTLD`: Foothold ships its own). Enabling an
-  incompatible module makes **`veaf-tools validate` and the build fail** — including
+  incompatible module makes **`veaf-tools mission validate` and the build fail** — including
   if you enable it by hand later.
 
 ```bash
-veaf-tools convert-other <mission.miz> <output-folder> --profile foothold
+veaf-tools convert other <mission.miz> <output-folder> --profile foothold
 ```
 
 ### Bundled profiles
@@ -121,7 +121,7 @@ them; the mission validates its own values at runtime.
 Each override key is **validated lexically**: every dotted segment must appear as
 an identifier somewhere in the injected scripts (`src/scripts/*.lua`). A segment
 found nowhere — a typo or a global the upstream renamed/removed — **fails
-`veaf-tools validate` and the build**, so silent upstream drift becomes a
+`veaf-tools mission validate` and the build**, so silent upstream drift becomes a
 build-time alert. (No Lua is executed: the check is a pure-Python whole-word
 search.)
 
@@ -137,7 +137,7 @@ When the third-party author ships a new version (e.g. a Lekaa Foothold bump),
 re-import it into your already-adopted folder with `--update`:
 
 ```bash
-veaf-tools convert-other <new-upstream.miz> <output-folder> --profile foothold --update
+veaf-tools convert other <new-upstream.miz> <output-folder> --profile foothold --update
 ```
 
 The new upstream can be the release `.zip` here too — same rule, exactly one `.miz` inside.

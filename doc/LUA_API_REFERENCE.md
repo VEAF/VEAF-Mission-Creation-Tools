@@ -1,7 +1,9 @@
 # Modules Lua VEAF — Référence API complète
 
 **Version :** générée pour la 6.11.x
+
 **Dernière mise à jour :** Juillet 2026
+
 **Projet :** VEAF Mission Creation Tools
 
 ---
@@ -71,7 +73,17 @@ Les modules doivent être chargés dans l'ordre de dépendance :
 - `table` — Table/tableau Lua
 - `vec3` — Vecteur 3D : `{x=number, y=number, z=number}`
 - `function` — Fonction callback
-- `coalition` — ID de coalition : 0=neutre, 1=bleu, 2=rouge
+- `coalition` — ID de coalition : 0=neutre, **1=rouge, 2=bleu** (`coalition.side.RED` vaut 1 — voir la note ci-dessous)
+
+!!! danger "`coalition.side` vaut RED=1, BLUE=2"
+
+    ```lua
+    coalition.side = { NEUTRAL = 0, RED = 1, BLUE = 2 }
+    ```
+
+    Une inversion de ces valeurs n'est attrapée par rien : du code écrit d'après un mauvais
+    tableau compile, s'exécute, et vise silencieusement **le camp adverse**.
+
 
 **Valeurs de retour :**
 
@@ -135,7 +147,7 @@ veaf.loggers.setBaseLevel("info")  -- Défaut global
 ### veaf.lua
 
 **Module ID :** `VEAF`
-**Version :** 1.56.2
+
 **Objectif :** Bibliothèque racine fournissant les utilitaires de base, constantes et système de logger
 
 #### Constantes
@@ -153,7 +165,7 @@ veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 
 #### Localisation (i18n) & retour pilote
 
-Les messages en jeu destinés au pilote sont localisés (FR/EN). La langue active est `veaf.config.language` (issue de `mission.language`, sinon la langue des outils, défaut `fr`) ; les logs restent toujours en anglais.
+Les messages en jeu destinés au pilote sont localisés (FR/EN). La langue active est `veaf.config.language` (issue de `mission.language`, sinon la langue résolue des outils au build, dont le repli final est `en`) ; les logs restent toujours en anglais.
 
 ##### `veaf.t(key, ...)`
 
@@ -406,6 +418,36 @@ Place un point sur la surface terrestre (ajuste l'altitude Y).
 - `vec3` (vec3) — Position à ajuster
 
 **Retourne :** `vec3` — Position sur la surface
+
+##### `veaf.findSpawnPoint(vec3, radius, safeRadius)`
+
+Cherche un point d'apparition au sol acceptable près d'un centre. Là où `placePointOnLand`
+déplace un point **verticalement**, celle-ci en **cherche** un.
+
+La recherche dégrade en trois paliers bornés :
+
+1. **Tous les critères, dégagement du décor inclus** — via le singleton DCS `Disposition`, qui
+   rend des points à l'écart des bâtiments et des forêts.
+2. **Tous les critères sauf le dégagement** — tirages aléatoires validés dans le rayon.
+3. **Échec** — retourne `nil` ; l'appelant signale et abandonne l'apparition.
+
+**Paramètres :**
+
+- `vec3` (vec3) — Centre de la recherche
+- `radius` (number) — Rayon de recherche en mètres, utilisé par le palier aléatoire
+- `safeRadius` (number, optionnel) — Dégagement exigé (défaut `veaf.DEFAULT_SPAWN_CLEARANCE`)
+
+**Retourne :** `vec3` posé sur le sol, ou `nil` si aucun point acceptable n'a été trouvé
+
+**Réglages :**
+
+- `veaf.SPAWN_SEARCH_ATTEMPTS` (défaut 10) — nombre de candidats examinés par palier
+- `veaf.DEFAULT_SPAWN_CLEARANCE` (défaut 100) — dégagement demandé, en mètres
+- `veaf.doNotAvoidScenery` (défaut `false`) — à `true`, saute le palier 1
+
+> **Note :** `Disposition` est une API DCS **native mais non documentée**, absente de
+> `dcs-world-schema`. L'appel est gardé et protégé par `pcall` : si le singleton est absent de
+> cette version de DCS ou de cette carte, la recherche passe au palier 2 au lieu d'échouer.
 
 ##### `veaf.getLandHeight(vec3)`
 
@@ -1029,6 +1071,50 @@ Obtient une zone trigger par nom.
 
 **Retourne :** `DCS Zone` — Objet zone ou nil
 
+##### `veaf.getZoneProperty(zoneName, key)`
+
+Lit une propriété de zone trigger, telle que saisie par le mission maker dans l'éditeur.
+
+DCS stocke ces propriétés sous forme de **tableau de paires** `{ key = "…", value = "…" }`,
+jamais de dictionnaire, et **toute valeur est une chaîne**. Ces trois accesseurs remplacent le
+parcours linéaire et le `tonumber` que chaque appelant devrait écrire.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+
+**Retourne :** `string` — ou `nil` si la zone, ses propriétés ou la clé sont absentes
+
+##### `veaf.getZonePropertyBoolean(zoneName, key, default)`
+
+Lit une propriété comme booléen. Accepte `true`/`false` sans distinction de casse ; toute autre
+valeur est un échec de lecture et rend `default` — une coquille ne peut donc pas se lire
+silencieusement comme `false`.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+- `default` (boolean) — Valeur rendue si absente ou illisible
+
+**Retourne :** `boolean`
+
+##### `veaf.getZonePropertyNumber(zoneName, key, default, min, max)`
+
+Lit une propriété comme nombre, **borné** dans un intervalle optionnel. Borne au lieu de
+rejeter : un mission maker qui saisit une valeur absurde obtient la borne, pas un module mort.
+
+**Paramètres :**
+
+- `zoneName` (string) — Nom de la zone
+- `key` (string) — Nom de la propriété
+- `default` (number) — Valeur rendue si absente ou non numérique
+- `min` (number, optionnel) — Borne basse
+- `max` (number, optionnel) — Borne haute
+
+**Retourne :** `number`
+
 #### Fonctions de contrôle de mission
 
 ##### `veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, checkMessage, ...)`
@@ -1261,7 +1347,7 @@ Ajoute un marqueur quadrilatère.
 ### veafEventHandler.lua
 
 **Module ID :** `EVENTS`
-**Version :** 1.5.3
+
 **Objectif :** Gestion des événements DCS World et des callbacks
 
 #### Constantes
@@ -1562,7 +1648,7 @@ end)
 ### veafMarkers.lua
 
 **Module ID :** `MARKERS`
-**Version :** 1.1.1
+
 **Objectif :** Écouter les événements de marqueurs carte et exécuter des handlers
 
 #### Constantes
@@ -1693,7 +1779,9 @@ end)
 ### veafCommands.lua
 
 **Module ID :** `COMMANDS`
+
 **Ordre d'init :** 15 (après veafMarkers, avant tous les modules de commande)
+
 **Objectif :** Registre central et dispatcher pour toutes les commandes texte (marqueurs F10 et interpréteur)
 
 #### Constantes
@@ -1748,7 +1836,7 @@ Gère un événement de modification de marqueur. Inverse la coalition (les év�
 ### veafInterpreter.lua
 
 **Module ID :** `INTERPRETER`
-**Version :** 1.6.3
+
 **Objectif :** Interpréter et exécuter des commandes depuis les noms d'unités et marqueurs
 
 #### Constantes
@@ -1915,7 +2003,7 @@ Convertit un code laser en chaîne de fréquence TACAN/radio.
 ### veafSpawn.lua
 
 **Module ID :** `SPAWN`
-**Version :** 1.59.3
+
 **Objectif :** Système de spawn dynamique pour unités, groupes, convois et effets
 
 #### Constantes
@@ -2706,7 +2794,7 @@ Initialise le module de spawn.
 ### veafUnits.lua
 
 **Module ID :** `UNITS`
-**Version :** 1.15.0
+
 **Objectif :** Définitions d'unités/groupes et utilitaires
 
 #### Constantes
@@ -2765,7 +2853,7 @@ Traite et valide une définition de groupe.
 ### veafAssets.lua
 
 **Module ID :** `ASSETS`
-**Version :** 1.8.3
+
 **Objectif :** Gérer et suivre les assets de mission (ravitailleurs, AWACS, porte-avions)
 
 #### Structures de données
@@ -2888,7 +2976,7 @@ Initialise le module assets.
 ### veafCombatMission.lua
 
 **Module ID :** `COMBATMISSION`
-**Version :** 2.2.1
+
 **Objectif :** Créer et gérer des missions de combat avec objectifs
 
 #### Constantes
@@ -3253,7 +3341,7 @@ Initialise le module.
 ### veafCasMission.lua
 
 **Module ID :** `CASMISSION`
-**Version :** 1.15.3
+
 **Objectif :** Créer des missions d'entraînement Close Air Support
 
 #### Constantes
@@ -3279,7 +3367,9 @@ DEFENSE_TYPES[coalition][era][defense] = {unit_types}
 ```
 
 **Coalition :** `"blue"`, `"red"`
+
 **Époque :** `"cold"`, `"modern"`
+
 **Défense :** `0-5` (0=aucune, 5=lourde)
 
 #### Fonctions
@@ -3420,7 +3510,7 @@ Initialise le module CAS.
 ### veafAirbases.lua
 
 **Module ID :** `AIRBASES`
-**Version :** 1.1.1
+
 **Objectif :** Informations normalisées sur les aérodromes et pistes
 
 #### Classes
@@ -3546,7 +3636,7 @@ veaf.outTextForUnit("Viper 1-1",
 ### veafCarrierOperations.lua
 
 **Module ID :** `CARRIER`
-**Version :** 1.12.3
+
 **Objectif :** Gérer les opérations de porte-avions
 
 #### Fonctions
@@ -3676,7 +3766,7 @@ Initialise le module opérations porte-avions.
 ### veafRadio.lua
 
 **Module ID :** `RADIO`
-**Version :** 1.4.1
+
 **Objectif :** Gérer les menus radio F10 et les communications
 
 #### Constantes
@@ -3896,6 +3986,7 @@ Initialise le module radio.
 ### veafWeather.lua
 
 **Module ID :** `WEATHER`
+
 **Objectif :** Système météo dynamique
 
 #### Fonctions
@@ -4006,6 +4097,7 @@ Désactive le brouillard existant éventuel puis active l'objet de brouillard fo
 ### veafTime.lua
 
 **Module ID :** `TIME`
+
 **Objectif :** Gestion du temps de mission
 
 > Module en lecture seule : il **calcule** des informations de date et d'heure à
@@ -4080,7 +4172,9 @@ Détermine la saison à partir du mois et de la latitude (gère les deux hémisp
 ### dcsUnits.lua
 
 **Module ID :** `DCSUNITS`
+
 **Version :** datamine-dc7d15e8
+
 **Objectif :** Base de données complète des unités DCS
 
 > Ce module n'expose pas de fonctions : il fournit uniquement des tables de données.
@@ -4126,6 +4220,7 @@ dcsUnits.NavalStatics = {
 ### dcsDataExport.lua
 
 **Module ID :** `DCSEXPORT`
+
 **Objectif :** Script d'export de données DCS, à exécuter dans l'éditeur de mission
 
 #### Description
@@ -4254,12 +4349,17 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ## Crédits
 
 **Projet VEAF :** https://www.veaf.org
+
 **Dépôt :** https://github.com/VEAF/VEAF-Mission-Creation-Tools
+
 **Documentation :** https://veaf.github.io/documentation/
+
 **Développeur principal :** Zip (davidp57)
 
 ---
 
 **Version du document :** 1.0
+
 **Dernière mise à jour :** Juin 2026
+
 **Généré pour :** VEAF Mission Creation Tools v6.5.25

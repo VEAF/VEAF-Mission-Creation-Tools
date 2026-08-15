@@ -45,9 +45,15 @@ end
 function TestVeafMGWeapon:test_setDcsWeapon_getDcsWeapon()
   local w = VeafMG_Weapon:new()
   -- dcsWeapon needs getLauncher() so veafMissileGuardian.getUnitName can work
-  local fakeUnit = { getName = function() return "F-16" end }
+  local fakeUnit = {
+    getName = function()
+      return "F-16"
+    end,
+  }
   local fake = {
-    getLauncher = function() return fakeUnit end,
+    getLauncher = function()
+      return fakeUnit
+    end,
     category = 1,
   }
   w:setDcsWeapon(fake)
@@ -123,8 +129,16 @@ end
 TestVeafMGWeaponExtra = {}
 
 function TestVeafMGWeaponExtra:test_setDcsWeapon_populates_shooter()
-  local fakeLauncher = { getName = function() return "F-16C-1" end }
-  local fakeWeapon = { getLauncher = function() return fakeLauncher end }
+  local fakeLauncher = {
+    getName = function()
+      return "F-16C-1"
+    end,
+  }
+  local fakeWeapon = {
+    getLauncher = function()
+      return fakeLauncher
+    end,
+  }
   local w = VeafMG_Weapon:new()
   w:setDcsWeapon(fakeWeapon)
   luaunit.assertEquals(w:getShooter(), fakeLauncher)
@@ -266,6 +280,60 @@ function TestVeafMGInitialize:test_initialize_idempotent()
   local ok, err = pcall(veafMissileGuardian.initialize)
   luaunit.assertTrue(ok, tostring(err))
   luaunit.assertEquals(veafMissileGuardian.rootPath, firstRootPath)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-091 — VeafMG_Guardian:copy lost every protected unit
+--
+--     copy.protectedUnits = {}
+--     for unitName, value in pairs(self.protectedUnits) do
+--       copy.protectedZone[unitName] = value    -- wrong target
+--     end
+--     copy.protectedZone = {}                   -- and this wipes what was just written
+--
+-- Net effect: the copy comes back with an empty protectedUnits. protectedZone survives only
+-- because the second block reinitialises it, which is what hid the defect.
+-------------------------------------------------------------------------------------------------
+
+TestVeafMissileGuardianCopy = {}
+
+function TestVeafMissileGuardianCopy:_guardian()
+  local g = VeafMG_Guardian:new()
+  g.name = "test"
+  g.friendlyName = "Test guardian"
+  g.protectedUnits = { ["unit-a"] = true, ["unit-b"] = true }
+  g.protectedZone = { "zone-1", "zone-2" }
+  return g
+end
+
+function TestVeafMissileGuardianCopy:test_protected_units_survive_the_copy()
+  local copy = self:_guardian():copy()
+  luaunit.assertEquals(copy.protectedUnits["unit-a"], true)
+  luaunit.assertEquals(copy.protectedUnits["unit-b"], true)
+end
+
+function TestVeafMissileGuardianCopy:test_protected_zones_survive_the_copy()
+  local copy = self:_guardian():copy()
+  luaunit.assertEquals(#copy.protectedZone, 2)
+end
+
+function TestVeafMissileGuardianCopy:test_protected_zone_holds_zones_not_units()
+  -- The corruption: unit keys used to land in protectedZone before being wiped.
+  local copy = self:_guardian():copy()
+  luaunit.assertNil(copy.protectedZone["unit-a"])
+end
+
+function TestVeafMissileGuardianCopy:test_the_copy_is_independent()
+  local original = self:_guardian()
+  local copy = original:copy()
+  copy.protectedUnits["unit-c"] = true
+  luaunit.assertNil(original.protectedUnits["unit-c"])
+end
+
+function TestVeafMissileGuardianCopy:test_scalar_attributes_are_copied()
+  local copy = self:_guardian():copy()
+  luaunit.assertEquals(copy.name, "test")
+  luaunit.assertEquals(copy.friendlyName, "Test guardian")
 end
 
 os.exit(luaunit.LuaUnit.run())

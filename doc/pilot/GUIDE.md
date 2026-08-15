@@ -9,11 +9,11 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 1. [Qu'est-ce que VEAF MCT ?](#quest-ce-que-veaf-mct)
 2. [Reconnaître une mission VEAF](#reconnaître-une-mission-veaf)
 3. [Le menu radio F10](#le-menu-radio-f10)
-4. [Les commandes par marqueur](#les-commandes-par-marqueur)
+4. [Les commandes par marqueur](#marker-commands)
 5. [Ressources : ravitailleurs, AWACS, porte-avions](#ressources)
 6. [Zones et missions de combat](#zones-et-missions-de-combat)
 7. [Entraînement CAS](#entraînement-cas)
-8. [Sécurité et permissions](#sécurité-et-permissions)
+8. [Sécurité et permissions](#security)
 9. [Conseils selon votre appareil](#conseils-selon-votre-appareil)
 10. [Questions fréquentes (FAQ)](#questions-fréquentes-faq)
 11. [Communauté et support](#communauté-et-support)
@@ -52,14 +52,16 @@ Toutes les fonctions de VEAF MCT sont accessibles depuis **F10 → Autre → VEA
 ```mermaid
 graph TD
     F10[Menu radio F10] --> Autre[Autre] --> VEAF[VEAF]
-    VEAF --> Res[Ressources]
+    VEAF --> Res[ASSETS]
     VEAF --> CAS[Mission CAS]
     VEAF --> CZ[Zones de combat]
     VEAF --> Miss[Missions]
+    VEAF --> Assist[Assistance]
     VEAF --> Aide[Aide]
-    Res --> Tank[Ravitailleurs]
-    Res --> AWACS[AWACS]
-    Res --> Carrier[Porte-avions]
+    Assist --> AS1["Démarrage à froid — F-16C"]
+    Res --> A1["Arco 1-1 — ravitailleur"]
+    Res --> A2["Overlord — AWACS"]
+    F10 --> Carrier["CARRIER OPS - BLUE / RED"]
 ```
 
 > 📷 *Capture à venir : sous-menu VEAF dans le menu radio F10.*
@@ -83,7 +85,7 @@ VEAF détecte le marqueur, exécute la commande à l'emplacement du marqueur, pu
 
 > 📷 *Capture à venir : saisie d'une commande dans un marqueur de la carte F10.*
 
-> Sur les serveurs multijoueurs, certaines commandes demandent un mot de passe. Voir [Sécurité et permissions](#sécurité-et-permissions).
+> Sur les serveurs multijoueurs, certaines commandes demandent un mot de passe. Voir [Sécurité et permissions](#security).
 
 ### Les alias : la méthode la plus simple
 
@@ -97,8 +99,8 @@ Un **alias** est un raccourci préparé par le créateur de la mission. Il comme
 | `-sa6` | Batterie SA-6 Gainful (2K12 Kub) |
 | `-sa10` | Batterie SA-10 Grumble (S-300) |
 | `-sa11` | Batterie SA-11 Gadfly (9K37 Buk) |
-| `-sa15` | Véhicule SA-15 Gauntlet (Tor) |
-| `-sa22` | Véhicule SA-22 Greyhound (Pantsir-S1) |
+| `-sa15` | Escouade SA-15 Gauntlet (Tor) |
+| `-sa22` | Escouade SA-22 Greyhound (Pantsir-S1) |
 | `-shilka` | DCA ZSU-23-4 Shilka |
 | `-manpads` | Équipe de MANPADS (missiles sol-air portables) |
 | `-samLR` | Batterie SAM longue portée aléatoire |
@@ -169,27 +171,28 @@ _spawn bomb, power 500, shells 3
 
 ## Ressources
 
-Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et porte-avions. Vous les retrouvez sous **F10 → VEAF → Ressources**.
+Les **ressources** sont les appareils de soutien partagés de la mission : ravitailleurs, AWACS et navires. Vous les retrouvez sous **F10 → VEAF → MOYENS**.
 
-> 📷 *Capture à venir : sous-menus Ravitailleurs et AWACS.*
+> 📷 *Capture à venir : le menu ASSETS et le sous-menu d'une ressource.*
 
-### Ravitailleurs
+### Ravitailleurs, AWACS et navires
 
-**F10 → VEAF → Ressources → Ravitailleurs → [Nom] → Infos**
+**F10 → VEAF → MOYENS → [Nom de la ressource] → Infos sur [Nom de la ressource]**
 
-Affiche : position, canal TACAN (balise de navigation), fréquence radio et type de ravitaillement.
+Le menu ne range pas les ressources par catégorie : chaque ravitailleur, AWACS ou navire a directement son propre sous-menu, portant son nom. Il n'y a donc pas d'étape *Ravitailleurs* ou *AWACS* à traverser.
 
-Si le ravitailleur a été détruit, l'option **Réapparition** le ramène (si le créateur de la mission l'a autorisée).
+Ce que l'info affiche dépend de la ressource : pour un ravitailleur, sa position, son canal TACAN (balise de navigation), sa fréquence radio et son type de ravitaillement ; pour un AWACS, son indicatif radio (*callsign*), sa fréquence et sa position.
 
-### AWACS
+Deux autres commandes peuvent apparaître dans le sous-menu d'une ressource :
 
-**F10 → VEAF → Ressources → AWACS → [Nom] → Infos**
+- **Respawn [Nom]** — la fait réapparaître si elle a été détruite. Disponible pour tout le monde.
+- **Dispose of [Nom]** — la retire de la mission. Réservée aux joueurs authentifiés.
 
-Affiche : indicatif radio (*callsign*), fréquence et position.
+Une ressource que le créateur de la mission n'a pas rendue consultable n'a pas de sous-menu du tout : son **Respawn [Nom]** figure directement dans le menu ASSETS.
 
 ### Porte-avions
 
-Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** (et non sous *Ressources*), avec un sous-menu par camp puis par porte-avions.
+Les opérations aériennes du porte-avions ont leur propre menu **OPS PORTE-AVIONS** (et non sous *MOYENS*), avec un sous-menu par camp puis par porte-avions.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
@@ -219,15 +222,24 @@ Les opérations aériennes du porte-avions ont leur propre menu **CARRIER OPS** 
 
 ### Zones de combat
 
-Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois toutes détruites, la zone est terminée et peut être rejouée.
+> **Le menu F10 suit la langue de la mission** (`mission.language`). Les libellés ci-dessous sont
+> ceux d'une mission en français ; en anglais, ce sont leurs équivalents anglais.
+
+Une **zone de combat** est une zone préparée par le créateur de la mission, que vous activez à la demande. À l'activation, des unités ennemies apparaissent ; une fois qu'elles sont toutes détruites, la zone est terminée et peut être rejouée.
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les zones disponibles | Zones de combat |
-| Activer une zone | Zones de combat → [Zone] → Activer |
-| Voir l'état de la zone | Zones de combat → [Zone] → Infos |
-| Marquer la zone à la fumée | Zones de combat → [Zone] → Fumée |
-| Désactiver / nettoyer | Zones de combat → [Zone] → Désactiver |
+| Lister les zones disponibles | `ZONES DE COMBAT` |
+| Activer une zone | `ZONES DE COMBAT` → [Zone] → `Activer la zone` |
+| Voir l'état de la zone | `ZONES DE COMBAT` → [Zone] → `Infos` |
+| Marquer la zone à la fumée | `ZONES DE COMBAT` → [Zone] → `Demander de la fumée ROUGE sur l'objectif` |
+| Désactiver / nettoyer | `ZONES DE COMBAT` → [Zone] → `Désactiver la zone` |
+
+**Vous ne voyez que les zones de votre camp.** Une zone de combat peut être jouée depuis le rouge
+comme depuis le bleu, et son sous-menu n'apparaît que dans le camp auquel elle appartient : deux
+pilotes de camps opposés n'ont donc pas la même liste sous *Zones de combat*, et une zone absente de
+la vôtre n'est pas une zone manquante. Si le créateur de la mission veut l'ancien comportement — tout
+le monde voit tout — il déclare `radio_menu_coalition: ALL` sur la zone.
 
 ### Missions
 
@@ -235,10 +247,10 @@ Les **missions** sont des scénarios plus élaborés, avec objectifs et suivi de
 
 | Action | Chemin dans le menu |
 |--------|---------------------|
-| Lister les missions | Missions |
-| Activer | Missions → [Mission] → Activer |
-| Lire l'état et les objectifs | Missions → [Mission] → Infos |
-| Abandonner | Missions → [Mission] → Désactiver |
+| Lister les missions | `MISSIONS` → `Lister les missions disponibles` |
+| Activer | `MISSIONS` → [Mission] → `Activer la mission` |
+| Lire l'état et les objectifs | `MISSIONS` → [Mission] → `Infos` |
+| Abandonner | `MISSIONS` → [Mission] → `Désactiver la mission` |
 
 ---
 
@@ -248,7 +260,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Déroulement :**
 
-1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **CAS MISSION** apparaît alors dans F10 → VEAF.
+1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS** apparaît alors dans F10 → VEAF.
 2. **Marquer la zone** — *Target markers → Request smoke on target area* ou *Request illumination flare over target area* (3 minutes de délai entre deux marquages).
 3. **Obtenir les infos** — *Target information* : position, composition des unités, état.
 4. **Engager** — attaquez les cibles marquées.
@@ -258,7 +270,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Régler la difficulté** par marqueur : `_cas, size 3, defense 2, armor 3`
 
-| Niveau | Composition typique | Pour qui |
+| Niveau (`defense` / `armor`) | Composition typique | Pour qui |
 |--------|---------------------|----------|
 | 0 | Infanterie, jeeps, pas de DCA | Débutants |
 | 1 | Véhicules légers, MANPADS | Facile |
@@ -271,23 +283,53 @@ Options de la commande `_cas` : `size [1-5]` (taille de la force), `defense [0-5
 
 ---
 
-## Sécurité et permissions
+## Sécurité et permissions {#security}
 
-Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission :
+Sur les serveurs multijoueurs, le créateur de la mission peut restreindre certaines commandes selon votre niveau de permission.
 
-| Niveau | Qui peut l'utiliser |
-|--------|---------------------|
-| Public | Tous les joueurs — infos des ressources, activation des zones, fumée/fusée |
-| Pilotes | Joueurs non-spectateurs |
-| Admin | Administrateurs du serveur |
+Il y a deux façons d'avoir le droit d'utiliser une commande : **être reconnu par le serveur**, ou
+**donner le mot de passe**. Les serveurs VEAF tiennent une liste de pilotes ; si vous y êtes inscrit,
+votre palier s'applique tout seul — aucun mot de passe ne vous est jamais demandé pour les commandes
+de votre palier ou en dessous.
 
-Pour vous authentifier, placez un marqueur contenant :
+| Palier | Qui passe sans mot de passe |
+|--------|-----------------------------|
+| Ouvert | Tout le monde, inscrit ou pas |
+| Pilote connu | Tout pilote inscrit sur la liste du serveur |
+| Membre de confiance | Les pilotes que le serveur a distingués comme tels |
+| Administrateur | Les administrateurs du serveur |
+| Mission Master | Personne : le mot de passe est exigé de tous, quel que soit le palier |
 
-```
-_auth [MOT_DE_PASSE]
-```
+Les commandes ouvertes : infos sur les ressources, fumée, fusées éclairantes, marquage d'un point.
+D'autres, comme faire apparaître un groupe ou détruire une unité, demandent un palier plus élevé.
 
-Le mot de passe est défini par le créateur de la mission ou l'administrateur du serveur. L'authentification reste valide pendant une durée configurée (10 minutes par défaut), puis vos droits reviennent automatiquement au niveau public.
+Si vous n'êtes pas sur la liste, ajoutez le mot de passe du palier voulu à chaque commande protégée
+(mot-clé `password`, par exemple `_spawn group, name ..., password [MOT_DE_PASSE]`) : il est vérifié
+commande par commande. Il n'y a ni session ni durée — rien à ouvrir, rien qui expire. Le mot de passe
+est défini par le créateur de la mission ou l'administrateur du serveur, et il y en a un par palier —
+celui d'administrateur ouvre aussi tout ce qui est en dessous.
+
+**Menu F10** : DCS ne sait pas dire quel occupant d'un groupe a cliqué sur une entrée du menu. Les
+commandes protégées du menu F10 fonctionnent donc au niveau du **membre le moins gradé** du groupe.
+Si cela vous bride (appareil multi-places partagé), posez un marqueur contenant `_auth elevate` : le
+groupe monte à votre propre niveau pendant 2 minutes, jamais plus haut.
+
+### Un cas concret : l'instructeur et l'élève {#instructor-and-student}
+
+Vous êtes membre de confiance, votre élève vient de créer son compte et n'est sur aucune liste. Vous
+montez tous les deux dans le même L-39.
+
+- **Vos commandes par marqueur continuent de marcher normalement.** Un marqueur porte le nom de son
+  auteur, donc le serveur sait que c'est vous qui l'avez posé, et votre palier s'applique.
+- **Les entrées protégées du menu F10, en revanche, ne répondent plus** : le groupe agit au niveau
+  du moins gradé de ses occupants, et c'est votre élève.
+- **Pour récupérer vos droits**, posez un marqueur `_auth elevate`. Pendant 2 minutes, tout le
+  groupe — vous *et* votre élève — agit à **votre** niveau. Passé ce délai, le groupe retombe au
+  niveau de l'élève. Reposez le marqueur si vous en avez encore besoin.
+
+Deux choses à ne pas confondre : `_auth elevate` élève le groupe à **votre** niveau, jamais plus
+haut, et un `_auth [MOT_DE_PASSE]` tout court n'élève rien du tout — il ne fait que valider le mot
+de passe pour la commande en cours.
 
 ---
 
@@ -308,7 +350,9 @@ Le mot de passe est défini par le créateur de la mission ou l'administrateur d
 ### Hélicoptères (AH-64D, Ka-50, Mi-24…)
 
 - Gardez une difficulté de 0 à 2 (DCA minimale).
-- Utilisez `_spawn unit, name BTR-80, group 5` pour des cibles APC dispersées.
+- Utilisez `_spawn armorgroup, size 5, spacing 8` pour des cibles blindées dispersées — `size` est le
+  nombre de véhicules, et `spacing` élargit l'écart entre eux en multiple de l'emprise de chaque
+  véhicule (plus le nombre est grand, plus le groupe est étalé).
 - Profitez du relief pour approcher sous la couverture radar de la DCA.
 
 ### Transports (C-130, Mi-8, UH-1H…)
@@ -324,7 +368,7 @@ Le mot de passe est défini par le créateur de la mission ou l'administrateur d
 Appuyez sur F10 : si un sous-menu « VEAF » apparaît sous « Autre », c'est une mission VEAF.
 
 **Mes commandes par marqueur ne fonctionnent pas. Pourquoi ?**
-Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, vous devez peut-être vous authentifier d'abord avec `_auth [MOT_DE_PASSE]`. Vérifiez aussi que le serveur autorise les commandes par marqueur.
+Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, si vous n'êtes pas sur la liste des pilotes du serveur, ajoutez `password [MOT_DE_PASSE]` à la commande. Pour le menu F10, rappelez-vous que le groupe agit au niveau de son membre le moins gradé : `_auth elevate` le monte à votre niveau pendant 2 minutes. Vérifiez aussi que le serveur autorise les commandes par marqueur.
 
 **Quels noms d'unités puis-je utiliser avec `_spawn unit` ?**
 Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Attention, ils sont sensibles à la casse (majuscules/minuscules).
@@ -333,7 +377,7 @@ Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6
 Oui, certaines missions imposent une limite de distance (environ 40 à 50 NM) : l'IA est nettoyée si vous vous éloignez trop.
 
 **Comment passer à la cible CAS suivante ?**
-F10 → CAS MISSION → *Skip current objective*. Pour repartir de zéro, posez un nouveau marqueur `_cas`.
+F10 → MISSION CAS → *Passer l'objectif en cours*. Pour repartir de zéro, posez un nouveau marqueur `_cas`.
 
 **Puis-je faire apparaître des unités amies ?**
 Oui : ajoutez `side blue` à votre commande.

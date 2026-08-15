@@ -20,8 +20,21 @@ function TestCombatZoneModuleConstants:test_id()
   luaunit.assertEquals(veafCombatZone.Id, "COMBATZONE")
 end
 
-function TestCombatZoneModuleConstants:test_radioMenuName()
-  luaunit.assertEquals(veafCombatZone.RadioMenuName, "COMBAT ZONES")
+--- FIX-RADIO-MENU-I18N — `RadioMenuName` now holds an i18n **key**, resolved when the menu is built.
+--- The value is asserted through `veaf.t` in both languages rather than as a literal: a test on the
+--- English side alone would still pass on a hard-coded English string, which is the defect this lot
+--- fixes.
+function TestCombatZoneModuleConstants:test_radioMenuName_is_a_key()
+  luaunit.assertEquals(veafCombatZone.RadioMenuName, "menu.combatzone.root")
+end
+
+function TestCombatZoneModuleConstants:test_radioMenuName_resolves_in_both_languages()
+  local saved = veaf.config.language
+  veaf.config.language = "en"
+  luaunit.assertEquals(veaf.t(veafCombatZone.RadioMenuName), "COMBAT ZONES")
+  veaf.config.language = "fr"
+  luaunit.assertEquals(veaf.t(veafCombatZone.RadioMenuName), "ZONES DE COMBAT")
+  veaf.config.language = saved
 end
 
 function TestCombatZoneModuleConstants:test_defaultSpawnRadii()

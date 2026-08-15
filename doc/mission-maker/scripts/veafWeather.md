@@ -1,12 +1,17 @@
 # veafWeather — Météo dynamique et conditions ATC
 
-**Module ID:** `WEATHER` | **Version:** — | **Fichier:** `veafWeather.lua`
+**Module ID:** `WEATHER` | **Fichier:** `veafWeather.lua`
 
 ---
 
 ## Objectif
 
-Fournit des rapports météo et l'injection de météo dynamique pour les missions DCS. Génère des rapports lisibles au format METAR et s'intègre avec `veaf-tools.exe inject-weather` pour injecter de la météo réelle ou configurée au moment du build.
+Deux rôles distincts :
+
+1. **Au build** : injecter dans un `.miz` une météo réelle ou configurée, avant même que les joueurs chargent la mission. C'est le travail de `veaf-tools.exe content inject-weather`.
+2. **En jeu** : les joueurs demandent des rapports météo et des informations ATC via le menu radio F10, et le créateur de mission peut scripter des changements de brouillard dynamiques.
+
+Les rapports sont générés au format METAR, lisible par un pilote.
 
 ---
 
@@ -30,7 +35,7 @@ veafWeather.initialize()
 La météo est injectée au moment du build (avant le chargement de la mission) avec `veaf-tools.exe` :
 
 ```powershell
-veaf-tools.exe inject-weather mission.miz --config-file versions.yaml
+veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
 ### Exemple versions.yaml
@@ -75,10 +80,12 @@ Les arguments suivants sont optionnels : `getWeatherString(vec3, dcsElementName,
 
 Le sous-menu **WEATHER AND ATC** du menu radio F10 permet aux joueurs d'obtenir des informations détaillées sur la météo et la base aérienne la plus proche.
 
-- **Weather on closest point** — météo locale adaptée au type d'appareil (unités et format conformes à l'avion du joueur)
-- **ATC on closest airbase** — informations ATIS de la base la plus proche (piste en service, QFU, etc.)
-- **ATC and weather in one go** — les deux d'un coup
-- **Fog settings → ...** — Réglages brouillard (modifier les conditions de brouillard, voir plus bas)
+| Entrée | Accessible à | Ce qu'elle affiche |
+|--------|--------------|--------------------|
+| Weather on closest point | Par groupe | Vent, visibilité, QNH, température au point nommé le plus proche — unités et format adaptés à l'appareil du joueur |
+| ATC on closest airbase | Par groupe | Piste en service, QFE/QNH, informations de circuit sur la base la plus proche |
+| ATC and weather in one go | Par groupe | Les deux rapports d'un coup |
+| Fog settings → … | Tous (sécurisé) | Modifier les conditions de brouillard (voir plus bas) |
 
 Ces commandes sont aussi accessibles depuis le chat multijoueur (avec le hook serveur VEAF) : `atc`
 
@@ -148,12 +155,17 @@ end, {}, timer.getTime() + 0)
 
 ## Commandes chat / à distance
 
+Ces commandes passent par le tchat (nécessite `veafRemote` et le [hook serveur](veafServerHook.md)) —
+il n'existe pas de commande de marqueur pour ce module. Les trois alias `/weather`, `/atc` et `/atis`
+sont interchangeables ; c'est le mot qui suit qui choisit l'action :
+
 | Commande | Effet |
 |----------|-------|
-| `_weather` | Rapport météo à la position courante |
-| `_atc` | ATIS de la base aérienne la plus proche |
-| `_weather fog FOG_STATIC_MEDIUM` | Activer une constante de brouillard |
-| `_weather fog FOG_ANIMATED_10M_NO` | Dissipation animée en 10 minutes |
+| `/atis` (ou `/weather`, `/atc`, sans argument) | Rapport ATC + météo à la position courante |
+| `/weather weather` | Rapport météo seul |
+| `/atc atc` | ATIS de la base aérienne la plus proche seul |
+| `/weather fog FOG_STATIC_MEDIUM` | Activer une constante de brouillard |
+| `/weather fog FOG_ANIMATED_10M_NO` | Dissipation animée en 10 minutes |
 
 Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather.`).
 
@@ -161,5 +173,5 @@ Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather
 
 ## Voir aussi
 
-- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe inject-weather`
+- [Référence CLI](../../CLI_REFERENCE.md#inject-weather) — toutes les options de `veaf-tools content inject-weather`
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafWeather`

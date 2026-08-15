@@ -14,7 +14,7 @@ interchangeable:
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
 | **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airdrome name→id table, weapons |
-| **DCS install files** | read terrain files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies |
+| **DCS install files** | read files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies, cockpit controls |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
 data VEAF needs at build/runtime. The in-DCS export now only covers data the
@@ -32,9 +32,9 @@ veaf-build update-dcs-data --radio
 veaf-build update-dcs-data --airdromes    # merges the committed runtime dumps
 ```
 
-`--radio`, `--airdromes` and `--airfield-freqs` are excluded from the no-flag /
-`--all` run: radio has manual overlays, airdromes merges committed runtime dumps, and
-airfield-freqs needs a local DCS install path (`--dcs-path`).
+`--radio`, `--airdromes`, `--airfield-freqs` and `--cockpit-controls` are excluded from
+the no-flag / `--all` run: radio has manual overlays, airdromes merges committed runtime
+dumps, and the last two need a local DCS install path (`--dcs-path`).
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -184,9 +184,9 @@ in the shipped executable, usable by a non-dev) produce the rich
 
 ```bash
 # 1. inject the bridge into any mission on the target theatre
-veaf-tools inject-bridge myMission.miz
+veaf-tools dcs inject-bridge myMission.miz
 # 2. launch myMission.miz in DCS + start dcs-serve, then capture
-veaf-tools capture-map --api-key <dcs-serve superuser token> --out-dir <folder>
+veaf-tools dcs capture-map --api-key <dcs-serve superuser token> --out-dir <folder>
 ```
 
 On the dev side, `veaf-build update-dcs-data --airdromes` then merges the committed
@@ -197,6 +197,33 @@ Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
 `veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** are dumped (810 airbases). Residual caveat:
 the table only covers **already-dumped** theatres; an un-dumped theatre yields no
 entries — callers fall back to ids. Resolution is case-insensitive.
+
+## Parking spots {#parking}
+
+`parking/<theatre>.json` lists, **per theatre**, the spots an aircraft can park on. Kept separate
+from the airbase dumps rather than merged into them: the 15 theatres already captured need no
+redoing, and the airbase capture stays the useful half if the second one fails.
+
+Captured in game with the **VEAF dcs-bridge**, `Airbase:getParking(false)` per airbase:
+
+```bash
+veaf-tools dcs capture-map --parking
+```
+
+**A parked aircraft carries two distinct numbers, and confusing them puts the aircraft somewhere
+else**: `parking` and `parking_id`, which are 28 and 24 on the same F-14A in this repository's own
+fixtures. They are the runtime's `Term_Index` and `Term_Index_0`. That pair is what turned
+`add_air_group` on a ramp into a data capture (ticket 08) and then a write (ticket 09) rather than
+one task: no data shipped here carried those numbers — the 15 airbase dumps hold only
+`{id, name, lat, lon, coalition}`.
+
+The dump keeps **every** key each spot carries, flattened one level and kept as strings: the API
+schema shipped here declares four fields where a mission file already proves there are more, so the
+shape comes from the runtime rather than from the schema. A test pins that an unknown future field
+survives the read. A theatre reporting no spots is data, not a failure.
+
+Not guarded by CI, like the other runtime-dependent tables. The operator's procedure is in
+[Capture a map's airbases](capture-airbases.en.md).
 
 ## The airfield-frequency table
 
@@ -213,3 +240,46 @@ veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle D
 ```
 
 It only covers **installed** theatres.
+
+## The cockpit-control indexes {#cockpit-controls}
+
+`src/python/veaf-tools/veaf_libs/data/cockpit-controls/<type>.yaml` describes, for one
+aircraft, each of its **clickable controls**: the animation argument to read, the hint DCS
+shows on mouse-over, the named positions, the value window, and whether the control has a
+**readable** position. This is what the guided-checklist resolver reads to turn an
+instructor's `throttle sur idle` into technical fields, without anyone opening a DCS
+install.
+
+Source: `Mods/aircraft/<Module>/Cockpit/Scripts/clickabledata.lua` (or `Cockpit/` for
+Heatblur), plus `clickable_defs.lua` for the value window and `draw_args.lua` when the
+module names its arguments. **Install-dependent**, so **not CI-guarded**:
+
+```bash
+veaf-build update-dcs-data --cockpit-controls --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+`--aircraft F-16C` restricts generation to one module. A module the install does not have
+is skipped; the number of elements the parser could not read is **printed**, never
+swallowed.
+
+### What the index says, and what it does not
+
+Three traps, all measured on real cockpits:
+
+- **`positions` is in hint order, not value order.** The F-16C's `MAIN PWR Switch, MAIN
+  PWR/BATT/OFF` runs +1 / 0 / -1 in that order, while `DIGITAL BACKUP, OFF/BACKUP` runs
+  0 / 1. Inferring a value from a rank is wrong half the time, silently.
+- **Naming positions in the hint is a recent ED habit, not a rule.** Across the cockpits
+  indexed here: F-16C 127 controls out of 284, AH-64D 123 of 478, A-10C 8 of 470, F-14B
+  **none** (Heatblur writes `Hydraulic Transfer Pump Switch`, with no positions). A
+  resolver that assumes named positions only works on ED aircraft.
+- **`readable: false` is not a gap in the index.** A button has no position, and a
+  spring-loaded switch is back at neutral before anything can poll it; a step on one of
+  those has to be pilot-confirmed.
+
+Every module has its own dialect, and each was found by indexing a real cockpit: the
+AH-64D, a two-seater, names the crew station before the hint (`mpd_button(CREW.PLT,
+_("..."), ...)`) and uses single quotes; the A-10C's UFC keypad passes an empty hint;
+Heatblur names its arguments (`cockpit_args.HYD_ISOLATION_Switch`) instead of writing them
+out. The F-14B(U) has no cockpit of its own: its `clickabledata.lua` is two lines of
+`dofile` pointing at the F-14B's, so both aircraft share one index.

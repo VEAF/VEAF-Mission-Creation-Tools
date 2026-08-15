@@ -957,3 +957,155 @@ def test_qra_mixed_active_at_start_only_skips_the_flagged_one():
     assert lua.count(":start()") == 1
     # The single :start() belongs to the armed QRA's chain, before the dormant one begins.
     assert lua.index('setName("QRA-Armed")') < lua.index(":start()") < lua.index('setName("QRA-Dormant")')
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-058 — respawn_default_offset was indexed as value[0] / value[1] with no check.
+# These offsets come from a hand-written mission.yaml, so a typo produced an IndexError or a
+# TypeError naming nothing, and a *string* was worse than that: "12"[0] is "1", so it emitted
+# silently wrong Lua instead of failing.
+# --------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        5,  # a scalar where a pair was meant
+        [1],  # one element
+        [1, 2, 3],  # three
+        "12",  # a string, which used to index character-wise
+        {"x": 1, "y": 2},  # a mapping
+        [True, 2],  # bool is an int in Python, but not a coordinate
+        [None, 2],
+    ],
+)
+def test_a_malformed_respawn_offset_is_refused_with_the_setting_name(bad: object) -> None:
+    with pytest.raises(ValueError) as caught:
+        _emit_airwave_zone({"name": "Z", "respawn_default_offset": bad})
+
+    assert "respawn_default_offset" in str(caught.value), str(caught.value)
+
+
+def test_a_well_formed_respawn_offset_still_emits_the_call() -> None:
+    lua = "\n".join(_emit_airwave_zone({"name": "Z", "respawn_default_offset": [10, -20]}))
+
+    assert ":setRespawnDefaultOffset(10, -20)" in lua
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-059 — `qra_section.get("silence_all", False)` meant the `is not None` guard was
+# true whatever the mission said, so every QRA mission emitted ToggleAllSilence(false) even when
+# silence was never mentioned. Harmless at runtime (veafQraManager.AllSilence is already false)
+# but the guard read as "only when configured".
+# --------------------------------------------------------------------------------------------
+
+
+def test_silence_is_not_mentioned_when_the_mission_does_not_ask_for_it() -> None:
+    lua = generate_config_lua(_qra_yaml({"name": "QRA-Nord", "coalition": "RED"}))
+
+    assert "ToggleAllSilence" not in lua
+
+
+def test_silence_all_true_still_emits_the_call() -> None:
+    mission = _qra_yaml({"name": "QRA-Nord", "coalition": "RED"})
+    mission["qra"]["silence_all"] = True
+
+    assert "VeafQRA.ToggleAllSilence(true)" in generate_config_lua(mission)
+
+
+def test_silence_all_false_is_still_honoured_when_written_explicitly() -> None:
+    # An explicit `false` is a statement of intent and must survive the round trip from a v5 mission.
+    mission = _qra_yaml({"name": "QRA-Nord", "coalition": "RED"})
+    mission["qra"]["silence_all"] = False
+
+    assert "VeafQRA.ToggleAllSilence(false)" in generate_config_lua(mission)
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-060 — named-point coordinates were interpolated *quoted*, so coord.LLtoLO got
+# strings and worked only through Lua coercion; and neither they nor the point's name (which the
+# finding does not mention) were escaped, so a quote produced Lua that does not parse.
+# --------------------------------------------------------------------------------------------
+
+
+def _named_points(*points: dict) -> dict:
+    return {
+        "mission": {"name": "Test"},
+        "lua_modules": {"NAMEDPOINTS": {"custom_points": list(points)}},
+    }
+
+
+def test_named_point_coordinates_are_emitted_as_numbers() -> None:
+    lua = generate_config_lua(_named_points({"name": "Alpha", "lat": 41.5, "lon": 42.25}))
+
+    assert "coord.LLtoLO(41.5, 42.25)" in lua
+    assert 'coord.LLtoLO("41.5"' not in lua, "quoted coordinates relied on Lua coercing them"
+
+
+def test_a_numeric_string_coordinate_is_still_accepted() -> None:
+    # mission.yaml is hand-written and YAML happily yields a string here; that must keep working.
+    lua = generate_config_lua(_named_points({"name": "Alpha", "lat": "41.5", "lon": "42.25"}))
+
+    assert "coord.LLtoLO(41.5, 42.25)" in lua
+
+
+def test_a_non_numeric_coordinate_is_refused_naming_the_point() -> None:
+    with pytest.raises(ValueError) as caught:
+        generate_config_lua(_named_points({"name": "Bravo", "lat": "north", "lon": 42.0}))
+
+    message = str(caught.value)
+    assert "Bravo" in message and "lat" in message, message
+
+
+def test_a_quote_in_a_point_name_does_not_break_the_generated_lua() -> None:
+    lua = generate_config_lua(_named_points({"name": 'Point "Zulu"', "lat": 1.0, "lon": 2.0}))
+
+    # `_emit_lua_string` wraps it in a long bracket, which needs no escaping at all. What must not
+    # appear is the old raw interpolation, `name = "Point "Zulu""`, which does not parse as Lua.
+    assert '[[Point "Zulu"]]' in lua, lua
+    assert 'name = "Point "Zulu""' not in lua
+
+
+# --------------------------------------------------------------------------------------------
+# SECREV-2 / VMR-040 — veafSecurity.lua ships two password hashes common to every mission, in a
+# public repository. Declaring your own used to *widen* the accepted set instead of closing it, so
+# the well-known password still opened the mission. password_MM was always replaced rather than
+# extended; there was no reason for the asymmetry.
+# --------------------------------------------------------------------------------------------
+
+
+def _security_yaml(**security: object) -> dict:
+    return {"mission": {"name": "Test"}, "lua_modules": {}, "security": security}
+
+
+def test_declaring_your_own_hashes_clears_the_shipped_ones() -> None:
+    lua = generate_config_lua(_security_yaml(disabled=False, password_hashes=["deadbeef"]))
+
+    assert "veafSecurity.password_L1 = {}" in lua
+    assert 'veafSecurity.password_L1["deadbeef"] = true' in lua
+    # Order matters: clearing after adding would throw the mission's own hash away.
+    assert lua.index("veafSecurity.password_L1 = {}") < lua.index('veafSecurity.password_L1["deadbeef"]')
+
+
+def test_the_admin_table_is_cleared_too() -> None:
+    # checkPassword_L1 accepts L1 *or L0*, so leaving the shipped L0 hash in place would keep opening
+    # every L1 gate and make the whole change decorative.
+    lua = generate_config_lua(_security_yaml(disabled=False, password_hashes=["deadbeef"]))
+
+    assert "veafSecurity.password_L0 = {}" in lua
+    assert "veafSecurity.password_L9 = {}" in lua
+
+
+def test_a_mission_that_declares_nothing_keeps_the_shipped_defaults() -> None:
+    # No silent behaviour change for the missions that never configured a password.
+    lua = generate_config_lua(_security_yaml(disabled=False))
+
+    assert "veafSecurity.password_L0 = {}" not in lua
+    assert "veafSecurity.password_L1 = {}" not in lua
+
+
+def test_mission_master_hashes_are_still_replaced() -> None:
+    lua = generate_config_lua(_security_yaml(disabled=False, password_mm_hashes=["cafe"]))
+
+    assert "veafSecurity.password_MM = {}" in lua
+    assert 'veafSecurity.password_MM["cafe"] = true' in lua

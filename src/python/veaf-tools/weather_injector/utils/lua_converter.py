@@ -122,8 +122,17 @@ class LuaToYamlConverter:
                     # Add optional fields
                     if moment := LuaToYamlConverter._get_string(target, "moment"):
                         version["moment"] = moment
-                    if time := LuaToYamlConverter._get_number(target, "time"):
-                        version["time"] = time
+                    # VMR-015: emit `time` as a string, not a number. It is consumed by
+                    # TimeExpressionParser.parse, whose first act is `expression.strip()`, so a
+                    # number raises AttributeError downstream — and the shipped versions.yaml
+                    # confirms the intended shape ("sunrise", "08:30"). The Lua value is seconds
+                    # since midnight, so it becomes HH:MM.
+                    #
+                    # `is not None` rather than a truthiness test: midnight is 0, and `if time:`
+                    # would drop it silently — the same class of bug one line further on.
+                    time_seconds = LuaToYamlConverter._get_number(target, "time")
+                    if time_seconds is not None:
+                        version["time"] = f"{int(time_seconds) // 3600:02d}:{int(time_seconds) % 3600 // 60:02d}"
                     if weather := LuaToYamlConverter._get_string(target, "weather"):
                         version["weather"] = weather
                     if date := LuaToYamlConverter._get_string(target, "date"):
@@ -198,13 +207,25 @@ class LuaToYamlConverter:
         in_string = False
         string_char = None
         table_start = None
+        escape_next = False
 
         i = start
         while i < len(content):
             char = content[i]
 
-            # Handle escape sequences
-            if i > 0 and content[i - 1] == "\\":
+            # Handle escape sequences (VMR-068). This used to look at content[i - 1] regardless of
+            # string state, which broke on the two cases `_extract_table` already handles: a
+            # doubled backslash — an ordinary Windows path, `"C:\\missions\\"` — left the closing
+            # quote looking escaped, so the string never closed and every later brace went
+            # uncounted; and a backslash outside a string skipped whatever followed it, brace
+            # included.
+            if escape_next:
+                escape_next = False
+                i += 1
+                continue
+
+            if char == "\\" and in_string:
+                escape_next = True
                 i += 1
                 continue
 

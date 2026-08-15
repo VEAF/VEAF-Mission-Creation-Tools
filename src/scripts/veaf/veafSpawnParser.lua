@@ -17,32 +17,13 @@
 -- original chained-`if` semantics. The recognized-key set (for typo hints,
 -- UXPILOT-003) is derived from these rules, so there is a single source of truth.
 
-local function _num(field)
-  return function(options, val)
-    options[field] = veaf.getRandomizableNumeric(val)
-  end
-end
-
-local function _str(field)
-  return function(options, val)
-    options[field] = val
-  end
-end
-
-local function _flag(field)
-  return function(options)
-    options[field] = true
-  end
-end
-
-local function _numNonNegative(field)
-  return function(options, val)
-    local nVal = veaf.getRandomizableNumeric(val)
-    if nVal >= 0 then
-      options[field] = nVal
-    end
-  end
-end
+-- The four `apply` kinds these rules use now live in `veaf.markerRules`, shared with every other
+-- marker parser (REFACTOR-MARKER-PARSER ticket 02). They moved rather than changed: VMR-025's nil
+-- guard on `number`, and FIX-MARKER-PARAM-CRASHES-2's on `nonNegativeNumber`, are both in there.
+local _num = veaf.markerRules.number
+local _str = veaf.markerRules.text
+local _flag = veaf.markerRules.flag
+local _numNonNegative = veaf.markerRules.nonNegativeNumber
 
 veafSpawn.ParameterRules = {
   { keys = { "unitname" }, apply = _str("unitName") },
@@ -119,11 +100,17 @@ veafSpawn.ParameterRules = {
   { keys = { "password" }, apply = _str("password") },
   { keys = { "power" }, apply = _num("power") },
   {
+    -- VMR-102: an undialable code keeps the command's default (1688 for afac/jtac), the same
+    -- way `_num` keeps a default it cannot parse. Installing the code but not the frequency
+    -- would have left the JTAC lasing on something no aircraft can enter, and silently.
     keys = { "laser" },
     apply = function(options, val)
       local nVal = veaf.getRandomizableNumeric(val)
-      options.freq = veafSpawn.convertLaserToFreq(nVal)
-      options.laserCode = nVal
+      local frequency = veafSpawn.convertLaserToFreq(nVal)
+      if frequency then
+        options.freq = frequency
+        options.laserCode = nVal
+      end
     end,
   },
   { keys = { "freq" }, apply = _str("freq") },
@@ -198,10 +185,13 @@ veafSpawn.ParameterRules = {
   { keys = { "static" }, apply = _flag("forceStatic") },
   { keys = { "immortal" }, apply = _flag("immortal") },
   {
+    -- An unreadable value falls into the `else`, which already handles a negative one: a bare
+    -- `delayed` therefore means the minimum delay, not no delay. Without the nil guard the
+    -- comparison raised (FIX-MARKER-PARAM-CRASHES-2).
     keys = { "delayed" },
     apply = function(options, val)
       local nVal = veaf.getRandomizableNumeric(val)
-      if nVal >= 0 then
+      if nVal and nVal >= 0 then
         options.delayedStart = nVal
       else
         options.delayedStart = veafSpawn.MIN_REPEAT_DELAY
@@ -212,28 +202,25 @@ veafSpawn.ParameterRules = {
   { keys = { "disperse" }, apply = _numNonNegative("disperse") },
 }
 
---- All parameter keys the mark-text parser recognizes, derived from ParameterRules
---- (single source of truth) and used to flag typos and suggest the nearest match
---- (UXPILOT-003). Each rule also gets a precomputed `_keyset` for O(1) matching.
-veafSpawn._knownParameterKeySet = {}
-veafSpawn.KnownParameterKeys = {}
-for _, _rule in ipairs(veafSpawn.ParameterRules) do
-  _rule._keyset = {}
-  for _, _k in ipairs(_rule.keys) do
-    _rule._keyset[_k] = true
-    if not veafSpawn._knownParameterKeySet[_k] then
-      veafSpawn._knownParameterKeySet[_k] = true
-      table.insert(veafSpawn.KnownParameterKeys, _k)
-    end
-  end
-end
-
+--- Convert a DCS laser code to the JTAC radio frequency that carries it.
+---
+--- Returns nil for anything that is not a dialable code. VMR-102: the range check alone
+--- (1111..1688) accepted codes such as 1201, 1210 or 1119, because DCS laser codes are
+--- octal-like — each of the three digits after the leading 1 must be 1..8. Those produced a
+--- plausible frequency, so a JTAC advertised a code no aircraft can enter.
 function veafSpawn.convertLaserToFreq(laser)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
   local laser = tonumber(laser)
-  if laser and laser >= 1111 and laser <= 1688 then
+  if laser and laser >= 1111 and laser <= 1688 and math.floor(laser) == laser then
     local laserB = math.floor((laser - 1000) / 100)
     local laserCD = laser - 1000 - laserB * 100
+    -- Only C and D are checked: the 1111..1688 range already pins B to 1..6.
+    local laserC = math.floor(laserCD / 10)
+    local laserD = laserCD % 10
+    if laserC < 1 or laserC > 8 or laserD < 1 or laserD > 8 then
+      veaf.loggers.get(veafSpawn.Id):warn(string.format("laser code %s is not dialable: digits must each be 1..8", tostring(laser)))
+      return nil
+    end
     local frequency = tostring(30 + laserB + laserCD * 0.05)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("laserB=%s", tostring(laserB)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("laserCD=%s", tostring(laserCD)))
@@ -545,91 +532,53 @@ veafSpawn.CommandDescriptors = {
   },
 }
 
+--- The spawn module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 02: the loop this module carried is now shared, and the module
+--- declares what it accepts instead. `valueWhenAbsent = ""` is deliberate and load-bearing —
+--- several rules here call `val:lower()` or compare against `""`, so a nil would break them.
+veafSpawn.MarkerSpec = {
+  defaults = function(options)
+    options.czName = nil
+    options.name = ""
+    options.unitName = nil
+    options.country = nil
+    options.side = nil
+    options.altitude = 0
+    options.altitudedelta = 0
+    options.heading = 0
+    options.multiplier = 1
+    options.password = nil
+    options.repeatCount = nil
+    options.repeatDelay = nil
+    options.delayedStart = 0
+    options.showMFD = false
+    options.AlarmState = 2
+    options.disperse = 15
+    options.shells = 1
+    options.power = 100
+  end,
+  commands = veafSpawn.CommandDescriptors,
+  parameters = veafSpawn.ParameterRules,
+  valueWhenAbsent = "",
+  reportUnknownKeys = true,
+  validate = function(options)
+    -- `name` is mandatory for group, unit, and every mission-master command. Conditional, so this
+    -- one cannot be `requireText` outright, but the blank test itself is shared.
+    local _needsName = options.group or options.unit or options.mmFlagOff or options.mmFlagOn or options.mmRun
+    return not (_needsName and veaf.isBlank(options.name))
+  end,
+}
+
+--- Recognised parameter keys, kept as module fields because they are public API a mission could
+--- read. They are **aliases** of the tables the shared parser derives from `ParameterRules`, not a
+--- second derivation of the same list — maintaining two would be the exact defect this lot exists
+--- to remove.
+veaf.prepareMarkerSpec(veafSpawn.MarkerSpec)
+veafSpawn.KnownParameterKeys = veafSpawn.MarkerSpec.knownKeys
+veafSpawn._knownParameterKeySet = veafSpawn.MarkerSpec._knownKeySet
+
 function veafSpawn.markTextAnalysis(text)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-
-  -- common fields
-  options.czName = nil
-  options.name = ""
-  options.unitName = nil
-  options.country = nil
-  options.side = nil
-  options.altitude = 0
-  options.altitudedelta = 0
-  options.heading = 0
-  options.multiplier = 1
-  options.password = nil
-  options.repeatCount = nil
-  options.repeatDelay = nil
-  options.delayedStart = 0
-  options.showMFD = false
-  options.AlarmState = 2
-  options.disperse = 15
-  options.shells = 1
-  options.power = 100
-
-  -- Detect the command keyphrase and seed its defaults (data-driven; see
-  -- CommandDescriptors). First match wins, as the original elseif chain did.
-  local textLower = text:lower()
-  local matched = false
-  for _, cmd in ipairs(veafSpawn.CommandDescriptors) do
-    if textLower:find(cmd.match) then
-      cmd.init(options)
-      matched = true
-      break
-    end
-  end
-  if not matched then
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    -- Flag a parameter key we don't recognize (skip the command keyphrase itself,
-    -- e.g. "_spawn") so the caller can hint the pilot about a likely typo.
-    local keyLower = key:lower()
-    if keyLower ~= "" and keyLower:sub(1, 1) ~= "_" and not veafSpawn._knownParameterKeySet[keyLower] then
-      options.unknownParameters = options.unknownParameters or {}
-      table.insert(options.unknownParameters, {
-        key = key,
-        suggestion = veaf.nearestMatch(keyLower, veafSpawn.KnownParameterKeys, 3),
-      })
-    end
-
-    -- Apply every parameter rule whose key matches (data-driven; see ParameterRules).
-    -- ALL matching rules run, in order, reproducing the original chained-if behaviour.
-    for _, rule in ipairs(veafSpawn.ParameterRules) do
-      if rule._keyset[keyLower] and (not rule.when or rule.when(options)) then
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword %s = %s", keyLower, tostring(val)))
-        rule.apply(options, val)
-      end
-    end
-  end
-
-  -- check mandatory parameter "name" for command "group"
-  if options.group and (not options.name or options.name == "") then
-    return nil
-  end
-
-  -- check mandatory parameter "name" for command "unit"
-  if options.unit and (not options.name or options.name == "") then
-    return nil
-  end
-
-  -- check mandatory parameter "name" for all mission master commands
-  if (options.mmFlagOff or options.mmFlagOn or options.mmRun) and (not options.name or options.name == "") then
-    return nil
-  end
-
-  return options
+  return veaf.parseMarkerText(text, veafSpawn.MarkerSpec)
 end

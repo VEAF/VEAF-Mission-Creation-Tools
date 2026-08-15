@@ -358,61 +358,73 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- METHODS
 
+ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
+ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
+
+--- The artillery order specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03, group B. This is the only parser in the codebase that splits
+--- on `";"` rather than `","`, which is why the shared parser takes the separator as a parameter.
+---
+--- Two other things are specific to it. The verbs are matched anywhere in the text and the chain's
+--- order decides, so `fire aim` is an *aim*. And `target` is the only parameter rule in the
+--- codebase that **validates its own input**, dropping a coordinate string `computeLLFromString`
+--- cannot read instead of storing it.
+ArtilleryUnitHandler.OrderSpec = {
+  defaults = function(options)
+    options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
+    options.target = nil -- the coordinates of the target
+    options.shells = nil -- the number of shells to fire
+    options.radius = nil -- the precision of the shelling
+  end,
+  commands = {
+    {
+      match = "aim",
+      init = function(options)
+        options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
+      end,
+    },
+    {
+      match = "fire",
+      init = function(options)
+        options.verb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
+      end,
+    },
+  },
+  parameters = {
+    {
+      keys = { "target" },
+      apply = function(options, value)
+        if veaf.computeLLFromString(value) then -- check target string validity
+          options.target = value
+        end
+      end,
+    },
+    -- These assign whatever the conversion returns, nil included, which is the existing
+    -- behaviour: an unreadable `shells` clears it, and fireForAim then applies its own default.
+    {
+      keys = { "shells" },
+      apply = function(options, value)
+        options.shells = veaf.getRandomizableNumeric(value)
+      end,
+    },
+    {
+      keys = { "radius" },
+      apply = function(options, value)
+        options.radius = veaf.getRandomizableNumeric(value)
+      end,
+    },
+  },
+  separator = ";",
+  valueWhenAbsent = "",
+}
+
 function ArtilleryUnitHandler:orderTextAnalysis(text)
   veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.lp(self:getName()), veaf.lp(text))
 
-  -- analyze the string for an acceptable order
-  ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
-  ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-  options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM -- can be "aim", "fire"
-  options.target = nil -- the coordinates of the target
-  options.shells = nil -- the number of shells to fire
-  options.radius = nil -- the precision of the shelling
-
-  -- Check for correct keywords.
-  if text:lower():find("aim") then
-    options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
-  elseif text:lower():find("fire") then
-    options.verb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
-  else
+  local options = veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
+  if not options then
     return nil
-  end
-
-  -- keywords are split by ";"
-  local keywords = veaf.split(text, ";")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "target" then
-      -- Set the target
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword target = %s", veaf.lp(val))
-      if veaf.computeLLFromString(val) then -- check target string validity
-        options.target = val
-      end
-    end
-
-    if key:lower() == "shells" then
-      -- Set the number of shells
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword shells = %s", veaf.lp(val))
-      local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("shells = %s", veaf.lp(nVal))
-      options.shells = nVal
-    end
-
-    if key:lower() == "radius" then
-      -- Set the radius of the shelling
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword radius = %s", veaf.lp(val))
-      local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("radius = %s", veaf.lp(nVal))
-      options.radius = nVal
-    end
   end
 
   if options.verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then
@@ -682,75 +694,104 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
   return false
 end
 
+veafGroundAI.VERB_SET = 1
+veafGroundAI.VERB_UNSET = 2
+veafGroundAI.VERB_ORDER = 3
+veafGroundAI.VERB_START = 4
+veafGroundAI.VERB_STOP = 5
+veafGroundAI.VERB_CLEAR = 6
+veafGroundAI.VERB_STATUS = 7
+
+--- The ground-AI module's marker specification, read by `veaf.parseMarkerText`.
+---
+--- REFACTOR-MARKER-PARSER ticket 03. `valueWhenAbsent = ""` is load-bearing and reproduced as-is:
+--- it is also why a valueless `name` is accepted as an empty string, since the mandatory check
+--- below is `not options.name` and `""` is truthy in Lua. That is a recorded defect and it gets
+--- its own named commit rather than being repaired inside this move.
+---
+--- What deliberately stays OUT of the specification is the nearest-allied-group search: it needs
+--- the marker's position and coalition and it reads the game world, which a text parser has no
+--- business doing. The shared parser handles the text; `markTextAnalysis` handles the world.
+veafGroundAI.MarkerSpec = {
+  defaults = function(options)
+    options.verb = veafGroundAI.VERB_SET
+    options.group = nil -- the DCS group concerned by "set" and "unset"
+    options.order = nil -- the order given by "order"
+    options.name = nil -- the handler name, concerned by every verb
+  end,
+  commands = {
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " set",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_SET
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " unset",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_UNSET
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " order",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_ORDER
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " start",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_START
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " stop",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_STOP
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " clear",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_CLEAR
+      end,
+    },
+    {
+      match = veafGroundAI.MarkerKeyphrase .. " status",
+      init = function(options)
+        options.verb = veafGroundAI.VERB_STATUS
+      end,
+    },
+  },
+  parameters = {
+    {
+      -- A valueless `groupname` arrives as "" and used to be handed to `Group.getByName("")`.
+      -- Skipped now: an empty name cannot identify a group, and leaving `options.group` nil is
+      -- what lets the nearest-allied-group search below do its job.
+      keys = { "groupname" },
+      apply = function(options, value)
+        if value ~= nil and value ~= "" then
+          options.group = Group.getByName(value)
+        end
+      end,
+    },
+    { keys = { "name" }, apply = veaf.markerRules.text("name") },
+    { keys = { "order" }, apply = veaf.markerRules.text("order") },
+  },
+  valueWhenAbsent = "",
+  -- `name` is mandatory for every verb, and the empty string has to be rejected explicitly: values
+  -- arrive as "" rather than nil in this module, and `""` is truthy in Lua, so the old
+  -- `if not options.name` guard let `_ground status, name` through with a nameless handler. Same
+  -- bug shape SECREV-010 fixed in veafMove; `requireText` is now the one place it is spelled out.
+  validate = veaf.markerRules.requireText("name"),
+}
+
 --- Extract keywords from mark text.
 function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
   veaf.loggers.get(veafGroundAI.Id):trace("veafGroundAI.markTextAnalysis(text=%s)", veaf.lp(text))
 
-  veafGroundAI.VERB_SET = 1
-  veafGroundAI.VERB_UNSET = 2
-  veafGroundAI.VERB_ORDER = 3
-  veafGroundAI.VERB_START = 4
-  veafGroundAI.VERB_STOP = 5
-  veafGroundAI.VERB_CLEAR = 6
-  veafGroundAI.VERB_STATUS = 7
-
-  -- Option parameters extracted from the mark text.
-  local options = {}
-  options.verb = veafGroundAI.VERB_SET -- can be "set", "unset", "order", "start", "stop", "status"
-  options.group = nil -- the DCS group that is concerned by "set" and "unset" verbs
-  options.order = nil -- the order that is given by "order" verb
-  options.name = nil -- the name of the handler that is concerned by all verbs
-
-  -- Check for correct keywords.
-  if text:lower():find(veafGroundAI.MarkerKeyphrase .. " set") then
-    options.verb = veafGroundAI.VERB_SET
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " unset") then
-    options.verb = veafGroundAI.VERB_UNSET
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " order") then
-    options.verb = veafGroundAI.VERB_ORDER
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " start") then
-    options.verb = veafGroundAI.VERB_START
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " stop") then
-    options.verb = veafGroundAI.VERB_STOP
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " clear") then
-    options.verb = veafGroundAI.VERB_CLEAR
-  elseif text:lower():find(veafGroundAI.MarkerKeyphrase .. " status") then
-    options.verb = veafGroundAI.VERB_STATUS
-  else
-    return nil
-  end
-
-  -- keywords are split by ","
-  local keywords = veaf.split(text, ",")
-
-  for _, keyphrase in pairs(keywords) do
-    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
-    local str = veaf.breakString(veaf.trim(keyphrase), " ")
-    local key = str[1]
-    local val = str[2] or ""
-
-    if key:lower() == "groupname" then
-      -- Set dcs group name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword groupname = %s", veaf.lp(val))
-      -- search for the DCS group
-      options.group = Group.getByName(val)
-    end
-
-    if key:lower() == "name" then
-      -- Set AI handler name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword name = %s", veaf.lp(val))
-      options.name = val
-    end
-
-    if key:lower() == "order" then
-      -- Set order
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword order = %s", veaf.lp(val))
-      options.order = val
-    end
-  end
-
-  -- check mandatory parameter "name" for all commands
-  if not options.name then
+  local options = veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+  if not options then
     return nil
   end
 
@@ -810,12 +851,15 @@ end
 function veafGroundAI.initialize()
   veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo())
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
+  -- L9: any pilot the server hook lists in veaf-pilots.txt (level >= 1). Spawning and
+  -- commanding ground AI is the same power veafSpawn already gates, and this path had no
+  -- check at all (SECREV-2, VMR-003). David: restrict to VEAF pilots authenticated by the hook.
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     if not fromMarker then
       return false
     end
     return veafGroundAI.onEventMarkChange(pos, event)
-  end, veafCommands.PRIORITY_GROUNDAI)
+  end, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.MarkerKeyphrase)
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

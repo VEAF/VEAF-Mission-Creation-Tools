@@ -97,6 +97,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafAirbases.lua",
     "veafAirWaves.lua",
     "veafAssets.lua",
+    "veafAssist.lua",
     "veafCarrierOperations.lua",
     "veafCasMission.lua",
     "veafCombatMission.lua",
@@ -468,7 +469,19 @@ class BuildAndReleaseWorker:
     def _veaf_tools_extra_data(
         self, modules_json_path: Path | None, shortcuts_json_path: Path | None = None
     ) -> list[tuple[Path, str]]:
-        """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable."""
+        """Assemble the ``--add-data`` payloads bundled into the veaf-tools executable.
+
+        **This is the single source of truth for what data ships in the exe.** The
+        ``veaf-tools.spec`` / ``veaf-tools-updater.spec`` files used to look like the answer and
+        were not: the build passes its own ``--add-data`` list to PyInstaller and never read them,
+        so the two had silently diverged — the spec declared four entries while this assembles a
+        dozen. That mismatch is what made a missing-profiles bug hard to find
+        (``unknown conversion profile: foothold``), because the obvious place to check said the
+        profiles were bundled. Both spec files were deleted on 2026-08-08
+        (CHORE-TOOLING-GATES ticket 02); a static spec cannot express this list anyway, since the
+        paths are conditional on ``exists()`` and two are generated JSON files passed in as
+        arguments.
+        """
         locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
         extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
         if modules_json_path:
@@ -490,6 +503,17 @@ class BuildAndReleaseWorker:
         profiles_dir = veaf_tools_dir / "veaf_libs" / "data" / "convert-profiles"
         if profiles_dir.is_dir():
             extra.append((profiles_dir, "veaf_libs/data/convert-profiles"))
+        # Guided-checklist catalogue — a whole directory, same reasoning as the profiles:
+        # shipping a new checklist must not need a build change.
+        checklists_dir = veaf_tools_dir / "veaf_libs" / "data" / "checklists"
+        if checklists_dir.is_dir():
+            extra.append((checklists_dir, "veaf_libs/data/checklists"))
+        # Cockpit-control indexes — one file per aircraft, read by the checklist resolver
+        # so an instructor never opens a DCS install. A whole directory again: indexing a
+        # new aircraft must not need a build change.
+        cockpit_controls_dir = veaf_tools_dir / "veaf_libs" / "data" / "cockpit-controls"
+        if cockpit_controls_dir.is_dir():
+            extra.append((cockpit_controls_dir, "veaf_libs/data/cockpit-controls"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
@@ -823,7 +847,11 @@ class BuildAndReleaseWorker:
                 json.dump(metadata, f, indent=2)
             logger.debug(f"Metadata file created: {metadata_file}")
         except Exception as e:
-            logger.warning(f"Failed to create metadata file: {e}")
+            # Not a warning any more (SECREV-2 ticket 04): the updater now refuses to install a
+            # release whose checksum metadata is missing, so a build that quietly skips this file
+            # ships something nobody can install — and the failure would only surface on a user's
+            # machine. The checksum is a deliverable, not a nicety.
+            logger.error(f"Failed to create the checksum metadata file, which the updater requires: {e}")
 
         return {
             "path": output_file,

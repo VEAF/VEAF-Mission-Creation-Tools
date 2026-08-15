@@ -86,14 +86,15 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 - **Architecture**: Strictly respect the Worker (`*_worker.py`), Manager (`*_manager.py`), and Data Models (`models.py`) structural pattern.
 - **Environment Management**: Dependencies are managed via Poetry. Activate the virtual environment using `poetry shell`.
 - **Logger**: Only use the logger from `veaf_libs.logger`. Absolute prohibition of using the native `print()` function.
-- **Quality Validation**: Run `poetry run ruff check src/python/ --fix` and `poetry run mypy src/python/veaf-tools/`. Resolve errors rather than adding exclusions.
+- **Quality Validation**: Run `poetry run ruff check src/python/ test/python/ veaf_build/ --fix`, `poetry run ruff format --check src/python/ test/python/ veaf_build/` and `poetry run mypy src/python/veaf-tools/`. Resolve errors rather than adding exclusions. These are the CI commands exactly (`python-quality.yml`) — ruff covers the **whole** Python tree, mypy only the shipped package (tests use loose typing on purpose).
 - **Tests**: Run `poetry run pytest`. Unit tests must match the `test_*.py` pattern and be located in the `test/python/` folder.
 
 ### Lua (`src/scripts/veaf/` or `test/lua/`)
 
 - **Environment**: Code written in pure Lua 5.1 executing inside the DCS World environment, without external dependencies.
+- **Positions**: before writing anything that places an object, read `docs/agents/dcs-coordinates.md` — the runtime is not even internally consistent about what `y` means.
 - **Naming Conventions**: Files named as `veafFeature.lua`, global module table in camelCase (`veafFeature = {}`), and class definitions in PascalCase (`VeafFeature`).
-- **Quality Validation**: Run `luacheck --config .luacheckrc src/scripts/veaf/` and `stylua --check src/scripts/veaf/`.
+- **Quality Validation**: Run `luacheck --config .luacheckrc src/scripts/veaf/` and `stylua --check src/scripts/veaf/ test/lua/`.
 - **Tests**: Run `poetry run test-lua`. Test scripts rely on luaunit and DCS mocks located in `test/lua/test_<module>.lua`. Line coverage is available via `poetry run test-lua --coverage` (luacov); the CI `lua-coverage` job enforces a ratchet floor with `--cov-fail-under` — like the Python coverage gate, the number only ever goes up.
 
 ---
@@ -105,11 +106,14 @@ For every action requested by the user, execute these steps in order:
 0. **Sync first (MANDATORY)**: at the start of any conversation or any new chantier within an existing conversation, **systematically** make sure the working folder you are using (worktree or not) is up to date with GitHub before reading the backlog or doing anything else — `git fetch` then `git pull --ff-only` on `develop` (or rebase your branch onto the latest `origin/develop`). Never reason about "what's left to do" or start work from a stale local checkout.
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
+   - **When starting work on a ticket, first restate it in 1–3 sentences.** What it is and what
+     "done" means, before any tool call. The point is that the user can catch a misread before the
+     work is built on it, not after.
 2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add a row to `.backlog/README.md`.
 3. **Create a branch** from `develop` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
-6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
+6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ test/python/ veaf_build/ --fix && poetry run ruff format --check src/python/ test/python/ veaf_build/ && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/ test/lua/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.
@@ -161,3 +165,9 @@ mapped to Matt's triage roles. See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+
+### DCS coordinates
+
+`x`/`y`/`z` mean **different things** in a mission table and in the runtime scripting API, and getting
+them confused raises no error — only a wrong position. Read `docs/agents/dcs-coordinates.md` before
+writing code that places anything.

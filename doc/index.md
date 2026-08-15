@@ -20,16 +20,16 @@ Ensemble complet d'outils pour créer des missions [DCS World](https://www.digit
 
 ```mermaid
 flowchart TD
-    A[".miz de base\n(Éditeur DCS)"] -->|veaf-tools extract| B["Dossier mission\n(src/ + mission.yaml)"]
+    A[".miz de base\n(Éditeur DCS)"] -->|veaf-tools mission extract| B["Dossier mission\n(src/ + mission.yaml)"]
     B --- C["published/\n(scripts VEAF)"]
-    B -->|veaf-tools build| D[".miz prêt à voler"]
+    B -->|veaf-tools mission build| D[".miz prêt à voler"]
     D -->|DCS charge| E["plus de 30 modules Lua actifs"]
     E -->|Les joueurs utilisent| F["Marqueurs F10 · Menus radio"]
 ```
 
 1. **Extract** — Créez une mission de base dans l'éditeur DCS et extrayez-la en fichiers source versionnables
 2. **Configure** — `mission.yaml` déclare les modules actifs ; `published/` fournit les scripts Lua VEAF
-3. **Build** — `veaf-tools build` assemble tout en un `.miz` final
+3. **Build** — `veaf-tools mission build` assemble tout en un `.miz` final
 4. **Runtime** — DCS charge le `.miz` ; les joueurs interagissent via les marqueurs F10 et les menus radio
 
 ---
@@ -39,7 +39,8 @@ flowchart TD
 | Référence | Description |
 |-----------|-------------|
 | [Référence API Lua](LUA_API_REFERENCE.md) | API complète des modules Lua runtime |
-| [Référence CLI des outils](TOOLS_REFERENCE.md) | `veaf-tools.exe` — toutes les commandes et options |
+| [Référence CLI](CLI_REFERENCE.md) | `veaf-tools` — les 25 commandes, leurs arguments et toutes leurs options |
+| [Mise à jour & publication](TOOLS_REFERENCE.md) | `veaf-tools-updater` et `veaf-build` : installer, mettre à jour, publier |
 | [Guide de tests](TESTING.md) | Suite de tests Lua unitaires et pipeline CI/CD |
 | [Feuille de route](ROADMAP.md) | Fonctionnalités prévues et limitations connues |
 
@@ -63,14 +64,14 @@ Ensuite, selon votre point de départ :
 
 **Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
 ```powershell
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 **Vous n'avez qu'un fichier `.miz` :**
 ```powershell
-veaf-tools.exe extract ma-mission.miz
+veaf-tools.exe mission extract ma-mission.miz
 # → éditez mission.yaml pour activer les modules souhaités
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 Guide complet : [Guide créateur de missions](mission-maker/README.md)
@@ -79,9 +80,9 @@ Guide complet : [Guide créateur de missions](mission-maker/README.md)
 
 ```powershell
 poetry install --with build
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version <version>
 poetry run test-lua
-poetry run veaf-build publish --version 6.0.5
+poetry run veaf-build publish --version <version>
 ```
 
 Référence complète : [Guide du développeur](developer/README.md)

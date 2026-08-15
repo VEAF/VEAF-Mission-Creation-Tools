@@ -1,6 +1,6 @@
 # veafTransportMission — Missions de transport et logistique
 
-**Module ID:** `TRANSPORT` | **Version:** — | **Fichier:** `veafTransportMission.lua`
+**Module ID:** `TRANSPORTMISSION` | **Fichier:** `veafTransportMission.lua`
 
 ---
 
@@ -51,7 +51,7 @@ _transport, size 3, defense 2, from FARP London
 |-----------|---------|--------|-------------|
 | `size <n>` | `1`–`5` | `1` | Nombre de caisses de cargo à transporter |
 | `defense <n>` | `0`–`5` | `0` | Couverture anti-aérienne le long de la route (`1` = légère, `5` = lourde) |
-| `blocade <n>` | `0`–`5` | `0` | Blocus ennemi autour de la zone de livraison (`1` = léger, `5` = lourd) |
+| `blocade <n>` | `0`–`5` | `0` | **Sans effet** : le paramètre est accepté mais la génération du blocus n'est pas implémentée (TODO dans le code) |
 | `from <point nommé>` | point nommé | — | Point de départ **obligatoire** où apparaît le cargo |
 | `password <mdp>` | string | — | Mot de passe de sécurité débloquant la commande |
 

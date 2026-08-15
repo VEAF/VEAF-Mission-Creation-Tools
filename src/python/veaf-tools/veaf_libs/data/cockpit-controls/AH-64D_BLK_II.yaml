@@ -1,0 +1,4770 @@
+# Clickable cockpit controls of the AH-64D_BLK_II.
+# Generated from AH-64D/Cockpit/Scripts/clickabledata.lua in a DCS install.
+# `positions` is in HINT order, which is not value order: a switch whose hint
+# reads MAIN PWR/BATT/OFF runs +1/0/-1. Never infer a value from a rank here.
+# `readable` is false for buttons and spring-loaded switches: they have no
+# position to poll, so a step on one has to be pilot-confirmed.
+# Install-dependent, so NOT CI-guarded. Re-run
+# `veaf-build update-dcs-data --cockpit-controls --dcs-path <DCS>` after a DCS update.
+
+aircraft: AH-64D_BLK_II
+module: AH-64D
+source: clickabledata.lua
+dcs_version: 2.9.28.26385
+controls:
+  pnt_20:
+    argument: 20
+    hint: Left MPD Pushbutton, T1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T1
+    values: {}
+    range: null
+    readable: false
+  pnt_21:
+    argument: 21
+    hint: Left MPD Pushbutton, T2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T2
+    values: {}
+    range: null
+    readable: false
+  pnt_22:
+    argument: 22
+    hint: Left MPD Pushbutton, T3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T3
+    values: {}
+    range: null
+    readable: false
+  pnt_23:
+    argument: 23
+    hint: Left MPD Pushbutton, T4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T4
+    values: {}
+    range: null
+    readable: false
+  pnt_24:
+    argument: 24
+    hint: Left MPD Pushbutton, T5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T5
+    values: {}
+    range: null
+    readable: false
+  pnt_25:
+    argument: 25
+    hint: Left MPD Pushbutton, T6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T6
+    values: {}
+    range: null
+    readable: false
+  pnt_28:
+    argument: 28
+    hint: Left MPD Pushbutton, R1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R1
+    values: {}
+    range: null
+    readable: false
+  pnt_29:
+    argument: 29
+    hint: Left MPD Pushbutton, R2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R2
+    values: {}
+    range: null
+    readable: false
+  pnt_30:
+    argument: 30
+    hint: Left MPD Pushbutton, R3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R3
+    values: {}
+    range: null
+    readable: false
+  pnt_31:
+    argument: 31
+    hint: Left MPD Pushbutton, R4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R4
+    values: {}
+    range: null
+    readable: false
+  pnt_32:
+    argument: 32
+    hint: Left MPD Pushbutton, R5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R5
+    values: {}
+    range: null
+    readable: false
+  pnt_33:
+    argument: 33
+    hint: Left MPD Pushbutton, R6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R6
+    values: {}
+    range: null
+    readable: false
+  pnt_37:
+    argument: 37
+    hint: Left MPD Pushbutton, B6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B6
+    values: {}
+    range: null
+    readable: false
+  pnt_38:
+    argument: 38
+    hint: Left MPD Pushbutton, B5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B5
+    values: {}
+    range: null
+    readable: false
+  pnt_39:
+    argument: 39
+    hint: Left MPD Pushbutton, B4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B4
+    values: {}
+    range: null
+    readable: false
+  pnt_40:
+    argument: 40
+    hint: Left MPD Pushbutton, B3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B3
+    values: {}
+    range: null
+    readable: false
+  pnt_41:
+    argument: 41
+    hint: Left MPD Pushbutton, B2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B2
+    values: {}
+    range: null
+    readable: false
+  pnt_42:
+    argument: 42
+    hint: Left MPD Pushbutton, B1/M(Menu)
+    prototype: mpd_button
+    positions:
+    - B1
+    - M(Menu)
+    command: mpd_commands.B1
+    values: {}
+    range: null
+    readable: false
+  pnt_12:
+    argument: 12
+    hint: Left MPD Pushbutton, L6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L6
+    values: {}
+    range: null
+    readable: false
+  pnt_13:
+    argument: 13
+    hint: Left MPD Pushbutton, L5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L5
+    values: {}
+    range: null
+    readable: false
+  pnt_14:
+    argument: 14
+    hint: Left MPD Pushbutton, L4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L4
+    values: {}
+    range: null
+    readable: false
+  pnt_15:
+    argument: 15
+    hint: Left MPD Pushbutton, L3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L3
+    values: {}
+    range: null
+    readable: false
+  pnt_16:
+    argument: 16
+    hint: Left MPD Pushbutton, L2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L2
+    values: {}
+    range: null
+    readable: false
+  pnt_17:
+    argument: 17
+    hint: Left MPD Pushbutton, L1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L1
+    values: {}
+    range: null
+    readable: false
+  pnt_27:
+    argument: 27
+    hint: Left MPD Pushbutton, Asterisk
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.Asterisk
+    values: {}
+    range: null
+    readable: false
+  pnt_34:
+    argument: 34
+    hint: Left MPD Pushbutton, VID
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.VID
+    values: {}
+    range: null
+    readable: false
+  pnt_35:
+    argument: 35
+    hint: Left MPD Pushbutton, COM
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.COM
+    values: {}
+    range: null
+    readable: false
+  pnt_36:
+    argument: 36
+    hint: Left MPD Pushbutton, A/C
+    prototype: mpd_button
+    positions:
+    - A
+    - C
+    command: mpd_commands.AC
+    values: {}
+    range: null
+    readable: false
+  pnt_43:
+    argument: 43
+    hint: Left MPD Pushbutton, TSD
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.TSD
+    values: {}
+    range: null
+    readable: false
+  pnt_10:
+    argument: 10
+    hint: Left MPD Pushbutton, WPN
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.WPN
+    values: {}
+    range: null
+    readable: false
+  pnt_11:
+    argument: 11
+    hint: Left MPD Pushbutton, FCR
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.FCR
+    values: {}
+    range: null
+    readable: false
+  pnt_18:
+    argument: 18
+    hint: Left MPD Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_19:
+    argument: 19
+    hint: Left MPD Video Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.VID_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_26:
+    argument: 26
+    hint: Left MPD Mode Knob, DAY/NIGHT/MONO
+    prototype: multiposition_switch
+    positions:
+    - DAY
+    - NIGHT
+    - MONO
+    command: mpd_commands.MODE_KNOB
+    values:
+      Left MPD Mode Knob - DAY: 1.0
+      Left MPD Mode Knob - NT: 0.5
+      Left MPD Mode Knob - MONO: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_54:
+    argument: 54
+    hint: Right MPD Pushbutton, T1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T1
+    values: {}
+    range: null
+    readable: false
+  pnt_55:
+    argument: 55
+    hint: Right MPD Pushbutton, T2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T2
+    values: {}
+    range: null
+    readable: false
+  pnt_56:
+    argument: 56
+    hint: Right MPD Pushbutton, T3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T3
+    values: {}
+    range: null
+    readable: false
+  pnt_57:
+    argument: 57
+    hint: Right MPD Pushbutton, T4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T4
+    values: {}
+    range: null
+    readable: false
+  pnt_58:
+    argument: 58
+    hint: Right MPD Pushbutton, T5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T5
+    values: {}
+    range: null
+    readable: false
+  pnt_59:
+    argument: 59
+    hint: Right MPD Pushbutton, T6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T6
+    values: {}
+    range: null
+    readable: false
+  pnt_62:
+    argument: 62
+    hint: Right MPD Pushbutton, R1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R1
+    values: {}
+    range: null
+    readable: false
+  pnt_63:
+    argument: 63
+    hint: Right MPD Pushbutton, R2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R2
+    values: {}
+    range: null
+    readable: false
+  pnt_64:
+    argument: 64
+    hint: Right MPD Pushbutton, R3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R3
+    values: {}
+    range: null
+    readable: false
+  pnt_65:
+    argument: 65
+    hint: Right MPD Pushbutton, R4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R4
+    values: {}
+    range: null
+    readable: false
+  pnt_66:
+    argument: 66
+    hint: Right MPD Pushbutton, R5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R5
+    values: {}
+    range: null
+    readable: false
+  pnt_67:
+    argument: 67
+    hint: Right MPD Pushbutton, R6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R6
+    values: {}
+    range: null
+    readable: false
+  pnt_71:
+    argument: 71
+    hint: Right MPD Pushbutton, B6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B6
+    values: {}
+    range: null
+    readable: false
+  pnt_72:
+    argument: 72
+    hint: Right MPD Pushbutton, B5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B5
+    values: {}
+    range: null
+    readable: false
+  pnt_73:
+    argument: 73
+    hint: Right MPD Pushbutton, B4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B4
+    values: {}
+    range: null
+    readable: false
+  pnt_74:
+    argument: 74
+    hint: Right MPD Pushbutton, B3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B3
+    values: {}
+    range: null
+    readable: false
+  pnt_75:
+    argument: 75
+    hint: Right MPD Pushbutton, B2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B2
+    values: {}
+    range: null
+    readable: false
+  pnt_76:
+    argument: 76
+    hint: Right MPD Pushbutton, B1/M(Menu)
+    prototype: mpd_button
+    positions:
+    - B1
+    - M(Menu)
+    command: mpd_commands.B1
+    values: {}
+    range: null
+    readable: false
+  pnt_46:
+    argument: 46
+    hint: Right MPD Pushbutton, L6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L6
+    values: {}
+    range: null
+    readable: false
+  pnt_47:
+    argument: 47
+    hint: Right MPD Pushbutton, L5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L5
+    values: {}
+    range: null
+    readable: false
+  pnt_48:
+    argument: 48
+    hint: Right MPD Pushbutton, L4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L4
+    values: {}
+    range: null
+    readable: false
+  pnt_49:
+    argument: 49
+    hint: Right MPD Pushbutton, L3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L3
+    values: {}
+    range: null
+    readable: false
+  pnt_50:
+    argument: 50
+    hint: Right MPD Pushbutton, L2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L2
+    values: {}
+    range: null
+    readable: false
+  pnt_51:
+    argument: 51
+    hint: Right MPD Pushbutton, L1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L1
+    values: {}
+    range: null
+    readable: false
+  pnt_61:
+    argument: 61
+    hint: Right MPD Pushbutton, Asterisk
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.Asterisk
+    values: {}
+    range: null
+    readable: false
+  pnt_68:
+    argument: 68
+    hint: Right MPD Pushbutton, VID
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.VID
+    values: {}
+    range: null
+    readable: false
+  pnt_69:
+    argument: 69
+    hint: Right MPD Pushbutton, COM
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.COM
+    values: {}
+    range: null
+    readable: false
+  pnt_70:
+    argument: 70
+    hint: Right MPD Pushbutton, A/C
+    prototype: mpd_button
+    positions:
+    - A
+    - C
+    command: mpd_commands.AC
+    values: {}
+    range: null
+    readable: false
+  pnt_77:
+    argument: 77
+    hint: Right MPD Pushbutton, TSD
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.TSD
+    values: {}
+    range: null
+    readable: false
+  pnt_44:
+    argument: 44
+    hint: Right MPD Pushbutton, WPN
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.WPN
+    values: {}
+    range: null
+    readable: false
+  pnt_45:
+    argument: 45
+    hint: Right MPD Pushbutton, FCR
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.FCR
+    values: {}
+    range: null
+    readable: false
+  pnt_52:
+    argument: 52
+    hint: Right MPD Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_53:
+    argument: 53
+    hint: Right MPD Video Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.VID_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_60:
+    argument: 60
+    hint: Right MPD Mode Knob, DAY/NIGHT/MONO
+    prototype: multiposition_switch
+    positions:
+    - DAY
+    - NIGHT
+    - MONO
+    command: mpd_commands.MODE_KNOB
+    values:
+      Left MPD Mode Knob - DAY: 1.0
+      Left MPD Mode Knob - NT: 0.5
+      Left MPD Mode Knob - MONO: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_88:
+    argument: 88
+    hint: Left MPD Pushbutton, T1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T1
+    values: {}
+    range: null
+    readable: false
+  pnt_89:
+    argument: 89
+    hint: Left MPD Pushbutton, T2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T2
+    values: {}
+    range: null
+    readable: false
+  pnt_90:
+    argument: 90
+    hint: Left MPD Pushbutton, T3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T3
+    values: {}
+    range: null
+    readable: false
+  pnt_91:
+    argument: 91
+    hint: Left MPD Pushbutton, T4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T4
+    values: {}
+    range: null
+    readable: false
+  pnt_92:
+    argument: 92
+    hint: Left MPD Pushbutton, T5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T5
+    values: {}
+    range: null
+    readable: false
+  pnt_93:
+    argument: 93
+    hint: Left MPD Pushbutton, T6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T6
+    values: {}
+    range: null
+    readable: false
+  pnt_96:
+    argument: 96
+    hint: Left MPD Pushbutton, R1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R1
+    values: {}
+    range: null
+    readable: false
+  pnt_97:
+    argument: 97
+    hint: Left MPD Pushbutton, R2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R2
+    values: {}
+    range: null
+    readable: false
+  pnt_98:
+    argument: 98
+    hint: Left MPD Pushbutton, R3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R3
+    values: {}
+    range: null
+    readable: false
+  pnt_99:
+    argument: 99
+    hint: Left MPD Pushbutton, R4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R4
+    values: {}
+    range: null
+    readable: false
+  pnt_100:
+    argument: 100
+    hint: Left MPD Pushbutton, R5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R5
+    values: {}
+    range: null
+    readable: false
+  pnt_101:
+    argument: 101
+    hint: Left MPD Pushbutton, R6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R6
+    values: {}
+    range: null
+    readable: false
+  pnt_105:
+    argument: 105
+    hint: Left MPD Pushbutton, B6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B6
+    values: {}
+    range: null
+    readable: false
+  pnt_106:
+    argument: 106
+    hint: Left MPD Pushbutton, B5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B5
+    values: {}
+    range: null
+    readable: false
+  pnt_107:
+    argument: 107
+    hint: Left MPD Pushbutton, B4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B4
+    values: {}
+    range: null
+    readable: false
+  pnt_108:
+    argument: 108
+    hint: Left MPD Pushbutton, B3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B3
+    values: {}
+    range: null
+    readable: false
+  pnt_109:
+    argument: 109
+    hint: Left MPD Pushbutton, B2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B2
+    values: {}
+    range: null
+    readable: false
+  pnt_110:
+    argument: 110
+    hint: Left MPD Pushbutton, B1/M(Menu)
+    prototype: mpd_button
+    positions:
+    - B1
+    - M(Menu)
+    command: mpd_commands.B1
+    values: {}
+    range: null
+    readable: false
+  pnt_80:
+    argument: 80
+    hint: Left MPD Pushbutton, L6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L6
+    values: {}
+    range: null
+    readable: false
+  pnt_81:
+    argument: 81
+    hint: Left MPD Pushbutton, L5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L5
+    values: {}
+    range: null
+    readable: false
+  pnt_82:
+    argument: 82
+    hint: Left MPD Pushbutton, L4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L4
+    values: {}
+    range: null
+    readable: false
+  pnt_83:
+    argument: 83
+    hint: Left MPD Pushbutton, L3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L3
+    values: {}
+    range: null
+    readable: false
+  pnt_84:
+    argument: 84
+    hint: Left MPD Pushbutton, L2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L2
+    values: {}
+    range: null
+    readable: false
+  pnt_85:
+    argument: 85
+    hint: Left MPD Pushbutton, L1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L1
+    values: {}
+    range: null
+    readable: false
+  pnt_95:
+    argument: 95
+    hint: Left MPD Pushbutton, Asterisk
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.Asterisk
+    values: {}
+    range: null
+    readable: false
+  pnt_102:
+    argument: 102
+    hint: Left MPD Pushbutton, VID
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.VID
+    values: {}
+    range: null
+    readable: false
+  pnt_103:
+    argument: 103
+    hint: Left MPD Pushbutton, COM
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.COM
+    values: {}
+    range: null
+    readable: false
+  pnt_104:
+    argument: 104
+    hint: Left MPD Pushbutton, A/C
+    prototype: mpd_button
+    positions:
+    - A
+    - C
+    command: mpd_commands.AC
+    values: {}
+    range: null
+    readable: false
+  pnt_111:
+    argument: 111
+    hint: Left MPD Pushbutton, TSD
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.TSD
+    values: {}
+    range: null
+    readable: false
+  pnt_78:
+    argument: 78
+    hint: Left MPD Pushbutton, WPN
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.WPN
+    values: {}
+    range: null
+    readable: false
+  pnt_79:
+    argument: 79
+    hint: Left MPD Pushbutton, FCR
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.FCR
+    values: {}
+    range: null
+    readable: false
+  pnt_86:
+    argument: 86
+    hint: Left MPD Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_87:
+    argument: 87
+    hint: Left MPD Video Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.VID_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_94:
+    argument: 94
+    hint: Left MPD Mode Knob, DAY/NIGHT/MONO
+    prototype: multiposition_switch
+    positions:
+    - DAY
+    - NIGHT
+    - MONO
+    command: mpd_commands.MODE_KNOB
+    values:
+      Left MPD Mode Knob - DAY: 1.0
+      Left MPD Mode Knob - NT: 0.5
+      Left MPD Mode Knob - MONO: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_122:
+    argument: 122
+    hint: Right MPD Pushbutton, T1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T1
+    values: {}
+    range: null
+    readable: false
+  pnt_123:
+    argument: 123
+    hint: Right MPD Pushbutton, T2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T2
+    values: {}
+    range: null
+    readable: false
+  pnt_124:
+    argument: 124
+    hint: Right MPD Pushbutton, T3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T3
+    values: {}
+    range: null
+    readable: false
+  pnt_125:
+    argument: 125
+    hint: Right MPD Pushbutton, T4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T4
+    values: {}
+    range: null
+    readable: false
+  pnt_126:
+    argument: 126
+    hint: Right MPD Pushbutton, T5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T5
+    values: {}
+    range: null
+    readable: false
+  pnt_127:
+    argument: 127
+    hint: Right MPD Pushbutton, T6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.T6
+    values: {}
+    range: null
+    readable: false
+  pnt_130:
+    argument: 130
+    hint: Right MPD Pushbutton, R1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R1
+    values: {}
+    range: null
+    readable: false
+  pnt_131:
+    argument: 131
+    hint: Right MPD Pushbutton, R2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R2
+    values: {}
+    range: null
+    readable: false
+  pnt_132:
+    argument: 132
+    hint: Right MPD Pushbutton, R3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R3
+    values: {}
+    range: null
+    readable: false
+  pnt_133:
+    argument: 133
+    hint: Right MPD Pushbutton, R4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R4
+    values: {}
+    range: null
+    readable: false
+  pnt_134:
+    argument: 134
+    hint: Right MPD Pushbutton, R5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R5
+    values: {}
+    range: null
+    readable: false
+  pnt_135:
+    argument: 135
+    hint: Right MPD Pushbutton, R6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.R6
+    values: {}
+    range: null
+    readable: false
+  pnt_139:
+    argument: 139
+    hint: Right MPD Pushbutton, B6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B6
+    values: {}
+    range: null
+    readable: false
+  pnt_140:
+    argument: 140
+    hint: Right MPD Pushbutton, B5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B5
+    values: {}
+    range: null
+    readable: false
+  pnt_141:
+    argument: 141
+    hint: Right MPD Pushbutton, B4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B4
+    values: {}
+    range: null
+    readable: false
+  pnt_142:
+    argument: 142
+    hint: Right MPD Pushbutton, B3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B3
+    values: {}
+    range: null
+    readable: false
+  pnt_143:
+    argument: 143
+    hint: Right MPD Pushbutton, B2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.B2
+    values: {}
+    range: null
+    readable: false
+  pnt_144:
+    argument: 144
+    hint: Right MPD Pushbutton, B1/M(Menu)
+    prototype: mpd_button
+    positions:
+    - B1
+    - M(Menu)
+    command: mpd_commands.B1
+    values: {}
+    range: null
+    readable: false
+  pnt_114:
+    argument: 114
+    hint: Right MPD Pushbutton, L6
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L6
+    values: {}
+    range: null
+    readable: false
+  pnt_115:
+    argument: 115
+    hint: Right MPD Pushbutton, L5
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L5
+    values: {}
+    range: null
+    readable: false
+  pnt_116:
+    argument: 116
+    hint: Right MPD Pushbutton, L4
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L4
+    values: {}
+    range: null
+    readable: false
+  pnt_117:
+    argument: 117
+    hint: Right MPD Pushbutton, L3
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L3
+    values: {}
+    range: null
+    readable: false
+  pnt_118:
+    argument: 118
+    hint: Right MPD Pushbutton, L2
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L2
+    values: {}
+    range: null
+    readable: false
+  pnt_119:
+    argument: 119
+    hint: Right MPD Pushbutton, L1
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.L1
+    values: {}
+    range: null
+    readable: false
+  pnt_129:
+    argument: 129
+    hint: Right MPD Pushbutton, Asterisk
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.Asterisk
+    values: {}
+    range: null
+    readable: false
+  pnt_136:
+    argument: 136
+    hint: Right MPD Pushbutton, VID
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.VID
+    values: {}
+    range: null
+    readable: false
+  pnt_137:
+    argument: 137
+    hint: Right MPD Pushbutton, COM
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.COM
+    values: {}
+    range: null
+    readable: false
+  pnt_138:
+    argument: 138
+    hint: Right MPD Pushbutton, A/C
+    prototype: mpd_button
+    positions:
+    - A
+    - C
+    command: mpd_commands.AC
+    values: {}
+    range: null
+    readable: false
+  pnt_145:
+    argument: 145
+    hint: Right MPD Pushbutton, TSD
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.TSD
+    values: {}
+    range: null
+    readable: false
+  pnt_112:
+    argument: 112
+    hint: Right MPD Pushbutton, WPN
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.WPN
+    values: {}
+    range: null
+    readable: false
+  pnt_113:
+    argument: 113
+    hint: Right MPD Pushbutton, FCR
+    prototype: mpd_button
+    positions: []
+    command: mpd_commands.FCR
+    values: {}
+    range: null
+    readable: false
+  pnt_120:
+    argument: 120
+    hint: Right MPD Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_121:
+    argument: 121
+    hint: Right MPD Video Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: mpd_commands.VID_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_128:
+    argument: 128
+    hint: Right MPD Mode Knob, DAY/NIGHT/MONO
+    prototype: multiposition_switch
+    positions:
+    - DAY
+    - NIGHT
+    - MONO
+    command: mpd_commands.MODE_KNOB
+    values:
+      Left MPD Mode Knob - DAY: 1.0
+      Left MPD Mode Knob - NT: 0.5
+      Left MPD Mode Knob - MONO: 0.0
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_326:
+    argument: 326
+    hint: Navigation Lights Switch, BRT/OFF/DIM
+    prototype: default_3_position_tumb
+    positions:
+    - BRT
+    - 'OFF'
+    - DIM
+    command: extlights_commands.NavLights
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_329:
+    argument: 329
+    hint: Formation Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: extlights_commands.FormationLights
+    values: {}
+    range: null
+    readable: true
+  pnt_332:
+    argument: 332
+    hint: Anti-Collision Lights Switch, WHT/OFF/RED
+    prototype: default_3_position_tumb
+    positions:
+    - WHT
+    - 'OFF'
+    - RED
+    command: extlights_commands.AntiCollLights
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_305:
+    argument: 305
+    hint: Master Caution Button
+    prototype: lighted_pushbutton
+    positions: []
+    command: intlights_commands.MasterCautionPLT
+    values: {}
+    range: null
+    readable: false
+  pnt_304:
+    argument: 304
+    hint: Master Warning Button
+    prototype: lighted_pushbutton
+    positions: []
+    command: intlights_commands.MasterWarningPLT
+    values: {}
+    range: null
+    readable: false
+  pnt_807:
+    argument: 807
+    hint: Master Caution Button
+    prototype: lighted_pushbutton
+    positions: []
+    command: intlights_commands.MasterCautionCPG
+    values: {}
+    range: null
+    readable: false
+  pnt_805:
+    argument: 805
+    hint: Master Warning Button
+    prototype: lighted_pushbutton
+    positions: []
+    command: intlights_commands.MasterWarningCPG
+    values: {}
+    range: null
+    readable: false
+  pnt_333:
+    argument: 333
+    hint: Press To Test Button
+    prototype: default_button
+    positions: []
+    command: intlights_commands.TestLightsPLT
+    values: {}
+    range: null
+    readable: false
+  pnt_327:
+    argument: 327
+    hint: Signal Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.SignalPLT
+    values: {}
+    range: null
+    readable: true
+  pnt_328:
+    argument: 328
+    hint: Primary Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.PrimaryPLT
+    values: {}
+    range: null
+    readable: true
+  pnt_330:
+    argument: 330
+    hint: Flood Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.FloodPLT
+    values: {}
+    range: null
+    readable: true
+  pnt_331:
+    argument: 331
+    hint: Standby Instrument Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.StbyInstPLT
+    values: {}
+    range: null
+    readable: true
+  pnt_367:
+    argument: 367
+    hint: Press To Test Button
+    prototype: default_button
+    positions: []
+    command: intlights_commands.TestLightsCPG
+    values: {}
+    range: null
+    readable: false
+  pnt_364:
+    argument: 364
+    hint: Signal Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.SignalCPG
+    values: {}
+    range: null
+    readable: true
+  pnt_365:
+    argument: 365
+    hint: Primary Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.PrimaryCPG
+    values: {}
+    range: null
+    readable: true
+  pnt_366:
+    argument: 366
+    hint: Flood Lights Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: intlights_commands.FloodCPG
+    values: {}
+    range: null
+    readable: true
+  pnt_619:
+    argument: 620
+    hint: SAI Cage Knob, (LMB) Pull to cage /(MW) Adjust aircraft reference symbol
+    prototype: default_button_axis
+    positions:
+    - (LMB) Pull to cage
+    - (MW) Adjust aircraft reference symbol
+    command: sai_commands.CageKnobPull
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_477:
+    argument: 477
+    hint: Altimeter Pressure Setting Knob
+    prototype: default_axis_limited
+    positions: []
+    command: baro_alt_commands.PressureSet
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_375:
+    argument: 375
+    hint: VHF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.VHF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_376:
+    argument: 376
+    hint: UHF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.UHF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_377:
+    argument: 377
+    hint: FM1 Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.FM1_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_378:
+    argument: 378
+    hint: FM2 Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.FM2_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_379:
+    argument: 379
+    hint: HF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.HF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_389:
+    argument: 389
+    hint: IFF Volume Control Knob, Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.IFF_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_390:
+    argument: 390
+    hint: RLWR Volume Control Knob, Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.RLWR_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_391:
+    argument: 391
+    hint: ATA Volume Control Knob, Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.ATA_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_392:
+    argument: 392
+    hint: VCR Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.VCR_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_393:
+    argument: 393
+    hint: ADF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.ADF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_385:
+    argument: 385
+    hint: MASTER Volume Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.MASTER_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_386:
+    argument: 386
+    hint: SENS Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.SensControl
+    values: {}
+    range: null
+    readable: true
+  pnt_380:
+    argument: 380
+    hint: VHF SQL Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.VHF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_381:
+    argument: 381
+    hint: UHF SQL Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.UHF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_382:
+    argument: 382
+    hint: FM1 SQL Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.FM1_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_383:
+    argument: 383
+    hint: FM2 SQL Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.FM2_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_384:
+    argument: 384
+    hint: HF SQL Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.HF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_387:
+    argument: 387
+    hint: ICS Mode Switch, HOT MIC/VOX/PTT
+    prototype: default_3_position_tumb
+    positions:
+    - HOT MIC
+    - VOX
+    - PTT
+    command: comm_commands.ICS_MODE
+    values:
+      PTT: 1.0
+      VOX: 0.0
+      HOT MIC: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_388:
+    argument: 388
+    hint: IDENT Button
+    prototype: default_button
+    positions: []
+    command: comm_commands.IDENT
+    values: {}
+    range: null
+    readable: false
+  pnt_334:
+    argument: 334
+    hint: VHF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.VHF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_335:
+    argument: 335
+    hint: UHF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.UHF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_336:
+    argument: 336
+    hint: FM1 Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.FM1_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_337:
+    argument: 337
+    hint: FM2 Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.FM2_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_338:
+    argument: 338
+    hint: HF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.HF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_348:
+    argument: 348
+    hint: IFF Volume Control Knob,  Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.IFF_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_349:
+    argument: 349
+    hint: RLWR Volume Control Knob, Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.RLWR_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_350:
+    argument: 350
+    hint: ATA Volume Control Knob,  Rotate to adjust volume
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.ATA_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_351:
+    argument: 351
+    hint: VCR Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.VCR_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_352:
+    argument: 352
+    hint: ADF Volume Control Knob, RMB-Pull to mute/LMB-stow/MW-Rotate to adjust volume
+    prototype: comm_knob
+    positions:
+    - RMB-Pull to mute
+    - LMB-stow
+    - MW-Rotate to adjust volume
+    command: comm_commands.ADF_volume
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_344:
+    argument: 344
+    hint: MASTER Volume Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.MASTER_volume
+    values: {}
+    range: null
+    readable: true
+  pnt_345:
+    argument: 345
+    hint: SENS Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: comm_commands.SensControl
+    values: {}
+    range: null
+    readable: true
+  pnt_339:
+    argument: 339
+    hint: VHF Squelch Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.VHF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_340:
+    argument: 340
+    hint: UHF Squelch Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.UHF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_341:
+    argument: 341
+    hint: FM1 Squelch Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.FM1_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_342:
+    argument: 342
+    hint: FM2 Squelch Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.FM2_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_343:
+    argument: 343
+    hint: HF Squelch Switch, ON/OFF
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: comm_commands.HF_SQL_OFF
+    values: {}
+    range: null
+    readable: false
+  pnt_346:
+    argument: 346
+    hint: ICS Mode Switch, HOT MIC/VOX/PTT
+    prototype: default_3_position_tumb
+    positions:
+    - HOT MIC
+    - VOX
+    - PTT
+    command: comm_commands.ICS_MODE
+    values:
+      PTT: 1.0
+      VOX: 0.0
+      HOT MIC: -1.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_347:
+    argument: 347
+    hint: IDENT Button
+    prototype: default_button
+    positions: []
+    command: comm_commands.IDENT
+    values: {}
+    range: null
+    readable: false
+  pnt_310:
+    argument: 310
+    hint: Guard Button, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.PLT_UHF_GUARD_Btn
+    values: {}
+    range: null
+    readable: false
+  pnt_311:
+    argument: 311
+    hint: XPNDR Button, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.PLT_XPNDR_Btn
+    values: {}
+    range: null
+    readable: false
+  pnt_312:
+    argument: 312
+    hint: Zeroize Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.PLT_ZEROIZE_Sw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_803:
+    argument: 803
+    hint: Master Zeroize Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: intercom_commands.PLT_MasterZeroizeSwCover
+    values: {}
+    range: null
+    readable: true
+  pnt_804:
+    argument: 804
+    hint: Master Zeroize Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.PLT_MasterZeroizeSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_358:
+    argument: 358
+    hint: Guard Button, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.CPG_UHF_GUARD_Btn
+    values: {}
+    range: null
+    readable: false
+  pnt_359:
+    argument: 359
+    hint: XPNDR Button, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.CPG_XPNDR_Btn
+    values: {}
+    range: null
+    readable: false
+  pnt_360:
+    argument: 360
+    hint: Zeroize Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.CPG_ZEROIZE_Sw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_801:
+    argument: 801
+    hint: Master Zeroize Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: intercom_commands.CPG_MasterZeroizeSwCover
+    values: {}
+    range: null
+    readable: true
+  pnt_802:
+    argument: 802
+    hint: Master Zeroize Switch, ON/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: intercom_commands.CPG_MasterZeroizeSw
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_164:
+    argument: 164
+    hint: KU Key, A
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyA
+    values: {}
+    range: null
+    readable: false
+  pnt_165:
+    argument: 165
+    hint: KU Key, B
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyB
+    values: {}
+    range: null
+    readable: false
+  pnt_166:
+    argument: 166
+    hint: KU Key, C
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyC
+    values: {}
+    range: null
+    readable: false
+  pnt_167:
+    argument: 167
+    hint: KU Key, D
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyD
+    values: {}
+    range: null
+    readable: false
+  pnt_168:
+    argument: 168
+    hint: KU Key, E
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyE
+    values: {}
+    range: null
+    readable: false
+  pnt_169:
+    argument: 169
+    hint: KU Key, F
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyF
+    values: {}
+    range: null
+    readable: false
+  pnt_173:
+    argument: 173
+    hint: KU Key, G
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyG
+    values: {}
+    range: null
+    readable: false
+  pnt_174:
+    argument: 174
+    hint: KU Key, H
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyH
+    values: {}
+    range: null
+    readable: false
+  pnt_175:
+    argument: 175
+    hint: KU Key, I
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyI
+    values: {}
+    range: null
+    readable: false
+  pnt_176:
+    argument: 176
+    hint: KU Key, J
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyJ
+    values: {}
+    range: null
+    readable: false
+  pnt_177:
+    argument: 177
+    hint: KU Key, K
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyK
+    values: {}
+    range: null
+    readable: false
+  pnt_178:
+    argument: 178
+    hint: KU Key, L
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyL
+    values: {}
+    range: null
+    readable: false
+  pnt_182:
+    argument: 182
+    hint: KU Key, M
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyM
+    values: {}
+    range: null
+    readable: false
+  pnt_183:
+    argument: 183
+    hint: KU Key, N
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyN
+    values: {}
+    range: null
+    readable: false
+  pnt_184:
+    argument: 184
+    hint: KU Key, O
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyO
+    values: {}
+    range: null
+    readable: false
+  pnt_185:
+    argument: 185
+    hint: KU Key, P
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyP
+    values: {}
+    range: null
+    readable: false
+  pnt_186:
+    argument: 186
+    hint: KU Key, Q
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyQ
+    values: {}
+    range: null
+    readable: false
+  pnt_187:
+    argument: 187
+    hint: KU Key, R
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyR
+    values: {}
+    range: null
+    readable: false
+  pnt_191:
+    argument: 191
+    hint: KU Key, S
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyS
+    values: {}
+    range: null
+    readable: false
+  pnt_192:
+    argument: 192
+    hint: KU Key, T
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyT
+    values: {}
+    range: null
+    readable: false
+  pnt_193:
+    argument: 193
+    hint: KU Key, U
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyU
+    values: {}
+    range: null
+    readable: false
+  pnt_194:
+    argument: 194
+    hint: KU Key, V
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyV
+    values: {}
+    range: null
+    readable: false
+  pnt_195:
+    argument: 195
+    hint: KU Key, W
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyW
+    values: {}
+    range: null
+    readable: false
+  pnt_196:
+    argument: 196
+    hint: KU Key, X
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyX
+    values: {}
+    range: null
+    readable: false
+  pnt_200:
+    argument: 200
+    hint: KU Key, Y
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyY
+    values: {}
+    range: null
+    readable: false
+  pnt_201:
+    argument: 201
+    hint: KU Key, Z
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyZ
+    values: {}
+    range: null
+    readable: false
+  pnt_202:
+    argument: 202
+    hint: KU Key, /
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keySlash
+    values: {}
+    range: null
+    readable: false
+  pnt_198:
+    argument: 198
+    hint: KU Key, 0
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key0
+    values: {}
+    range: null
+    readable: false
+  pnt_170:
+    argument: 170
+    hint: KU Key, 1
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key1
+    values: {}
+    range: null
+    readable: false
+  pnt_171:
+    argument: 171
+    hint: KU Key, 2
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key2
+    values: {}
+    range: null
+    readable: false
+  pnt_172:
+    argument: 172
+    hint: KU Key, 3
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key3
+    values: {}
+    range: null
+    readable: false
+  pnt_179:
+    argument: 179
+    hint: KU Key, 4
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key4
+    values: {}
+    range: null
+    readable: false
+  pnt_180:
+    argument: 180
+    hint: KU Key, 5
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key5
+    values: {}
+    range: null
+    readable: false
+  pnt_181:
+    argument: 181
+    hint: KU Key, 6
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key6
+    values: {}
+    range: null
+    readable: false
+  pnt_188:
+    argument: 188
+    hint: KU Key, 7
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key7
+    values: {}
+    range: null
+    readable: false
+  pnt_189:
+    argument: 189
+    hint: KU Key, 8
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key8
+    values: {}
+    range: null
+    readable: false
+  pnt_190:
+    argument: 190
+    hint: KU Key, 9
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key9
+    values: {}
+    range: null
+    readable: false
+  pnt_197:
+    argument: 197
+    hint: KU Key, .
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyDot
+    values: {}
+    range: null
+    readable: false
+  pnt_199:
+    argument: 199
+    hint: KU Key, +/-
+    prototype: ku_button
+    positions:
+    - +
+    - '-'
+    command: KU_commands.keySign
+    values: {}
+    range: null
+    readable: false
+  pnt_203:
+    argument: 203
+    hint: KU Key, BKS
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyBKS
+    values: {}
+    range: null
+    readable: false
+  pnt_204:
+    argument: 204
+    hint: KU Key, SPC
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keySPC
+    values: {}
+    range: null
+    readable: false
+  pnt_205:
+    argument: 205
+    hint: KU Key, *
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyMultiply
+    values: {}
+    range: null
+    readable: false
+  pnt_206:
+    argument: 206
+    hint: )
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyDivide
+    values: {}
+    range: null
+    readable: false
+  pnt_207:
+    argument: 207
+    hint: KU Key, +
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyPlus
+    values: {}
+    range: null
+    readable: false
+  pnt_208:
+    argument: 208
+    hint: KU Key, -
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyMinus
+    values: {}
+    range: null
+    readable: false
+  pnt_209:
+    argument: 209
+    hint: KU Key, CLR
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyCLR
+    values: {}
+    range: null
+    readable: false
+  pnt_210:
+    argument: 210
+    hint: KU Key, Left
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyLeft
+    values: {}
+    range: null
+    readable: false
+  pnt_211:
+    argument: 211
+    hint: KU Key, Right
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyRight
+    values: {}
+    range: null
+    readable: false
+  pnt_212:
+    argument: 212
+    hint: KU Key, ENTER
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyEnter
+    values: {}
+    range: null
+    readable: false
+  pnt_621:
+    argument: 621
+    hint: KU Scratchpad Brightness Knob
+    prototype: default_rheostat
+    positions: []
+    command: KU_commands.BrightnessKnob
+    values: {}
+    range: null
+    readable: true
+  pnt_213:
+    argument: 213
+    hint: KU Key, A
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyA
+    values: {}
+    range: null
+    readable: false
+  pnt_214:
+    argument: 214
+    hint: KU Key, B
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyB
+    values: {}
+    range: null
+    readable: false
+  pnt_215:
+    argument: 215
+    hint: KU Key, C
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyC
+    values: {}
+    range: null
+    readable: false
+  pnt_216:
+    argument: 216
+    hint: KU Key, D
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyD
+    values: {}
+    range: null
+    readable: false
+  pnt_217:
+    argument: 217
+    hint: KU Key, E
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyE
+    values: {}
+    range: null
+    readable: false
+  pnt_218:
+    argument: 218
+    hint: KU Key, F
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyF
+    values: {}
+    range: null
+    readable: false
+  pnt_222:
+    argument: 222
+    hint: KU Key, G
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyG
+    values: {}
+    range: null
+    readable: false
+  pnt_223:
+    argument: 223
+    hint: KU Key, H
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyH
+    values: {}
+    range: null
+    readable: false
+  pnt_224:
+    argument: 224
+    hint: KU Key, I
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyI
+    values: {}
+    range: null
+    readable: false
+  pnt_225:
+    argument: 225
+    hint: KU Key, J
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyJ
+    values: {}
+    range: null
+    readable: false
+  pnt_226:
+    argument: 226
+    hint: KU Key, K
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyK
+    values: {}
+    range: null
+    readable: false
+  pnt_227:
+    argument: 227
+    hint: KU Key, L
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyL
+    values: {}
+    range: null
+    readable: false
+  pnt_231:
+    argument: 231
+    hint: KU Key, M
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyM
+    values: {}
+    range: null
+    readable: false
+  pnt_232:
+    argument: 232
+    hint: KU Key, N
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyN
+    values: {}
+    range: null
+    readable: false
+  pnt_233:
+    argument: 233
+    hint: KU Key, O
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyO
+    values: {}
+    range: null
+    readable: false
+  pnt_234:
+    argument: 234
+    hint: KU Key, P
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyP
+    values: {}
+    range: null
+    readable: false
+  pnt_235:
+    argument: 235
+    hint: KU Key, Q
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyQ
+    values: {}
+    range: null
+    readable: false
+  pnt_236:
+    argument: 236
+    hint: KU Key, R
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyR
+    values: {}
+    range: null
+    readable: false
+  pnt_240:
+    argument: 240
+    hint: KU Key, S
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyS
+    values: {}
+    range: null
+    readable: false
+  pnt_241:
+    argument: 241
+    hint: KU Key, T
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyT
+    values: {}
+    range: null
+    readable: false
+  pnt_242:
+    argument: 242
+    hint: KU Key, U
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyU
+    values: {}
+    range: null
+    readable: false
+  pnt_243:
+    argument: 243
+    hint: KU Key, V
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyV
+    values: {}
+    range: null
+    readable: false
+  pnt_244:
+    argument: 244
+    hint: KU Key, W
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyW
+    values: {}
+    range: null
+    readable: false
+  pnt_245:
+    argument: 245
+    hint: KU Key, X
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyX
+    values: {}
+    range: null
+    readable: false
+  pnt_249:
+    argument: 249
+    hint: KU Key, Y
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyY
+    values: {}
+    range: null
+    readable: false
+  pnt_250:
+    argument: 250
+    hint: KU Key, Z
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyZ
+    values: {}
+    range: null
+    readable: false
+  pnt_251:
+    argument: 251
+    hint: KU Key, /
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keySlash
+    values: {}
+    range: null
+    readable: false
+  pnt_247:
+    argument: 247
+    hint: KU Key, 0
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key0
+    values: {}
+    range: null
+    readable: false
+  pnt_219:
+    argument: 219
+    hint: KU Key, 1
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key1
+    values: {}
+    range: null
+    readable: false
+  pnt_220:
+    argument: 220
+    hint: KU Key, 2
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key2
+    values: {}
+    range: null
+    readable: false
+  pnt_221:
+    argument: 221
+    hint: KU Key, 3
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key3
+    values: {}
+    range: null
+    readable: false
+  pnt_228:
+    argument: 228
+    hint: KU Key, 4
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key4
+    values: {}
+    range: null
+    readable: false
+  pnt_229:
+    argument: 229
+    hint: KU Key, 5
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key5
+    values: {}
+    range: null
+    readable: false
+  pnt_230:
+    argument: 230
+    hint: KU Key, 6
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key6
+    values: {}
+    range: null
+    readable: false
+  pnt_237:
+    argument: 237
+    hint: KU Key, 7
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key7
+    values: {}
+    range: null
+    readable: false
+  pnt_238:
+    argument: 238
+    hint: KU Key, 8
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key8
+    values: {}
+    range: null
+    readable: false
+  pnt_239:
+    argument: 239
+    hint: KU Key, 9
+    prototype: ku_button
+    positions: []
+    command: KU_commands.key9
+    values: {}
+    range: null
+    readable: false
+  pnt_246:
+    argument: 246
+    hint: KU Key, .
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyDot
+    values: {}
+    range: null
+    readable: false
+  pnt_248:
+    argument: 248
+    hint: KU Key, +/-
+    prototype: ku_button
+    positions:
+    - +
+    - '-'
+    command: KU_commands.keySign
+    values: {}
+    range: null
+    readable: false
+  pnt_252:
+    argument: 252
+    hint: KU Key, BKS
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyBKS
+    values: {}
+    range: null
+    readable: false
+  pnt_253:
+    argument: 253
+    hint: KU Key, SPC
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keySPC
+    values: {}
+    range: null
+    readable: false
+  pnt_254:
+    argument: 254
+    hint: KU Key, *
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyMultiply
+    values: {}
+    range: null
+    readable: false
+  pnt_255:
+    argument: 255
+    hint: KU Key, / (divide)
+    prototype: ku_button
+    positions:
+    - (divide)
+    command: KU_commands.keyDivide
+    values: {}
+    range: null
+    readable: false
+  pnt_256:
+    argument: 256
+    hint: KU Key, +
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyPlus
+    values: {}
+    range: null
+    readable: false
+  pnt_257:
+    argument: 257
+    hint: KU Key, -
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyMinus
+    values: {}
+    range: null
+    readable: false
+  pnt_258:
+    argument: 258
+    hint: KU Key, CLR
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyCLR
+    values: {}
+    range: null
+    readable: false
+  pnt_259:
+    argument: 259
+    hint: KU Key, Left
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyLeft
+    values: {}
+    range: null
+    readable: false
+  pnt_260:
+    argument: 260
+    hint: KU Key, Right
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyRight
+    values: {}
+    range: null
+    readable: false
+  pnt_261:
+    argument: 261
+    hint: KU Key, ENTER
+    prototype: ku_button
+    positions: []
+    command: KU_commands.keyEnter
+    values: {}
+    range: null
+    readable: false
+  pnt_316:
+    argument: 316
+    hint: KU Scratchpad Brightness Knob
+    prototype: default_rheostat
+    positions: []
+    command: KU_commands.BrightnessKnob
+    values: {}
+    range: null
+    readable: true
+  pnt_271-2:
+    argument: 271
+    hint: WCA Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.WCA_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_271-1:
+    argument: 271
+    hint: WCA Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.WCA_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_270-2:
+    argument: 270
+    hint: IDM Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.IDM_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_270-1:
+    argument: 270
+    hint: IDM Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.IDM_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_272-2:
+    argument: 272
+    hint: RTS Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.RTS_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_272-1:
+    argument: 272
+    hint: RTS Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.RTS_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_273:
+    argument: 273
+    hint: Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: eufd_commands.BRT
+    values: {}
+    range: null
+    readable: true
+  pnt_275:
+    argument: 275
+    hint: Enter Button
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Enter
+    values: {}
+    range: null
+    readable: false
+  pnt_277:
+    argument: 277
+    hint: Swap Button
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Swap
+    values: {}
+    range: null
+    readable: false
+  pnt_274:
+    argument: 274
+    hint: Preset Button - Press to toggle preset window
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Preset
+    values: {}
+    range: null
+    readable: false
+  pnt_276:
+    argument: 276
+    hint: Stopwatch Button - Press to start/stop, Hold to reset
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Stopwatch
+    values: {}
+    range: null
+    readable: false
+  pnt_263-2:
+    argument: 263
+    hint: WCA Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.WCA_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_263-1:
+    argument: 263
+    hint: WCA Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.WCA_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_262-2:
+    argument: 262
+    hint: IDM Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.IDM_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_262-1:
+    argument: 262
+    hint: IDM Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.IDM_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_264-2:
+    argument: 264
+    hint: RTS Rocker Switch, Up
+    prototype: Rocker_switch_positive
+    positions: []
+    command: eufd_commands.RTS_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_264-1:
+    argument: 264
+    hint: RTS Rocker Switch, Down
+    prototype: Rocker_switch_negative
+    positions: []
+    command: eufd_commands.RTS_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_265:
+    argument: 265
+    hint: Brightness Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: eufd_commands.BRT
+    values: {}
+    range: null
+    readable: true
+  pnt_267:
+    argument: 267
+    hint: Enter Button
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Enter
+    values: {}
+    range: null
+    readable: false
+  pnt_269:
+    argument: 269
+    hint: Swap Button
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Swap
+    values: {}
+    range: null
+    readable: false
+  pnt_266:
+    argument: 266
+    hint: Preset Button - Press to toggle preset window
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Preset
+    values: {}
+    range: null
+    readable: false
+  pnt_268:
+    argument: 268
+    hint: Stopwatch Button - Press to start/stop, Hold to reset
+    prototype: eufd_button
+    positions: []
+    command: eufd_commands.Stopwatch
+    values: {}
+    range: null
+    readable: false
+  pnt_150:
+    argument: 150
+    hint: TAD Video Select Button - Press to select TADS as the video source
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_VIDEO_SELECT_TAD_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_151:
+    argument: 151
+    hint: FCR Video Select Button - Press to select FCR targeting format
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_VIDEO_SELECT_FCR_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_152:
+    argument: 152
+    hint: PNV Video Select Button - Press to select PNVS as the video source
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_VIDEO_SELECT_PNV_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_153:
+    argument: 153
+    hint: G/S Video Select Button - Press to activate grayscale for the video display
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_VIDEO_SELECT_GS_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_155-1:
+    argument: 155
+    hint: SYM Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    command: tedac_commands.TDU_SYM_DEC
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_155-2:
+    argument: 155
+    hint: SYM Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    command: tedac_commands.TDU_SYM_INC
+    values: {}
+    range: null
+    readable: true
+  pnt_156-1:
+    argument: 156
+    hint: BRT Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    command: tedac_commands.TDU_BRT_DEC
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_156-2:
+    argument: 156
+    hint: BRT Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    command: tedac_commands.TDU_BRT_INC
+    values: {}
+    range: null
+    readable: true
+  pnt_157-1:
+    argument: 157
+    hint: CON Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    command: tedac_commands.TDU_CON_DEC
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_157-2:
+    argument: 157
+    hint: CON Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    command: tedac_commands.TDU_CON_INC
+    values: {}
+    range: null
+    readable: true
+  pnt_147-1:
+    argument: 147
+    hint: R/F Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    command: tedac_commands.TDU_RF_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_147-2:
+    argument: 147
+    hint: R/F Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    command: tedac_commands.TDU_RF_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_146-1:
+    argument: 146
+    hint: EL Adjust Rocker Switch, Down/Decrease
+    prototype: Rocker_switch_negative
+    positions:
+    - Down
+    - Decrease
+    command: tedac_commands.TDU_EL_DOWN
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_146-2:
+    argument: 146
+    hint: EL Adjust Rocker Switch, Up/Increase
+    prototype: Rocker_switch_positive
+    positions:
+    - Up
+    - Increase
+    command: tedac_commands.TDU_EL_UP
+    values: {}
+    range: null
+    readable: true
+  pnt_163-1:
+    argument: 163
+    hint: AZ Adjust Rocker Switch, Left
+    prototype: Rocker_switch_negative
+    positions: []
+    command: tedac_commands.TDU_AZ_LEFT
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_163-2:
+    argument: 163
+    hint: AZ Adjust Rocker Switch, Right
+    prototype: Rocker_switch_positive
+    positions: []
+    command: tedac_commands.TDU_AZ_RIGHT
+    values: {}
+    range: null
+    readable: true
+  pnt_158:
+    argument: 158
+    hint: Asterisk (*) Button - Press to adjust the brightness and contrast to nominal
+      settings
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_ASTERISK_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_162:
+    argument: 162
+    hint: AZ/EL Boresight Enable Button - Press to enable boresight controls
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_B1
+    values: {}
+    range: null
+    readable: false
+  pnt_161:
+    argument: 161
+    hint: ACM Button - Press to activate ACM
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_B2
+    values: {}
+    range: null
+    readable: false
+  pnt_160:
+    argument: 160
+    hint: FREEZE Button - Press to freeze the video imaging on the TDU
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_B3
+    values: {}
+    range: null
+    readable: false
+  pnt_159:
+    argument: 159
+    hint: FILTER Button - Press to select filter in the TADS FLIR sensor
+    prototype: mpd_button
+    positions: []
+    command: tedac_commands.TDU_B4
+    values: {}
+    range: null
+    readable: false
+  pnt_148:
+    argument: 148
+    hint: FLIR GAIN Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: tedac_commands.TDU_GAIN_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_149:
+    argument: 149
+    hint: FLIR LEV Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: tedac_commands.TDU_LEV_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_154:
+    argument: 154
+    hint: Display Mode Knob, DAY/NT/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - DAY
+    - NT
+    - 'OFF'
+    command: tedac_commands.TDU_MODE_KNOB
+    values:
+      DAY: 1.0
+      NT: 0.5
+      'OFF': 0.0
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_491:
+    argument: 491
+    hint: Image AutoTrack/Offset Switch, OFS(LMB)/IAT(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - OFS(LMB)
+    - IAT(RMB)
+    command: tedac_commands.LHG_IAT_OFS_SW_OFS
+    values: {}
+    range: null
+    readable: false
+  pnt_492-1:
+    argument: 492
+    hint: TADS FOV Select Switch, Z (Zoom)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_TADS_FOV_SW_Z
+    values: {}
+    range: null
+    readable: false
+  pnt_492-2:
+    argument: 492
+    hint: TADS FOV Select Switch, M (Medium)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_TADS_FOV_SW_M
+    values: {}
+    range: null
+    readable: false
+  pnt_493-1:
+    argument: 493
+    hint: TADS FOV Select Switch, N (Narrow)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_TADS_FOV_SW_N
+    values: {}
+    range: null
+    readable: false
+  pnt_493-2:
+    argument: 493
+    hint: TADS FOV Select Switch, W (Wide)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_TADS_FOV_SW_W
+    values: {}
+    range: null
+    readable: false
+  pnt_494:
+    argument: 494
+    hint: TADS Sensor Select Switch, FLIR/TV/DVO
+    prototype: default_3_position_tumb
+    positions:
+    - FLIR
+    - TV
+    - DVO
+    command: tedac_commands.LHG_TADS_SENSOR_SELECT_SW
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_495:
+    argument: 495
+    hint: STORE/Update Switch, UPDT(LMB)/STORE(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - UPDT(LMB)
+    - STORE(RMB)
+    command: tedac_commands.LHG_STORE_UPDT_SW_UPDT
+    values: {}
+    range: null
+    readable: false
+  pnt_500:
+    argument: 500
+    hint: FCR Scan Switch, C (Continuous)(LMB)/S (Single)(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - C (Continuous)(LMB)
+    - S (Single)(RMB)
+    command: tedac_commands.LHG_FCR_SCAN_SW_C
+    values: {}
+    range: null
+    readable: false
+  pnt_501:
+    argument: 501
+    hint: CUED Search Button - Press to orient the FCR centerline
+    prototype: default_button
+    positions: []
+    command: tedac_commands.LHG_CUED_SEARCH_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_496:
+    argument: 496
+    hint: Linear Motion Compensation (LMC) Button - Press to toggle LMC mode
+    prototype: default_button
+    positions: []
+    command: tedac_commands.LHG_LMC_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_498-1:
+    argument: 498
+    hint: FCR Mode Switch, GTM (Ground Targeting Mode)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_FCR_MODE_SW_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_498-2:
+    argument: 498
+    hint: FCR Mode Switch, ATM (Air Targeting Mode)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_FCR_MODE_SW_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_499-1:
+    argument: 499
+    hint: FCR Mode Switch, TPM (Terrain Profile Mode)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_FCR_MODE_SW_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_499-2:
+    argument: 499
+    hint: FCR Mode Switch, RMAP (Radar MAP)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_FCR_MODE_SW_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_502-1:
+    argument: 502
+    hint: Weapons Action (WAS) Switch, GUN
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_WEAPONS_ACTION_SW_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_502-2:
+    argument: 502
+    hint: Weapons Action (WAS) Switch, ATA
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_WEAPONS_ACTION_SW_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_503-1:
+    argument: 503
+    hint: Weapons Action (WAS) Switch, RKT
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_WEAPONS_ACTION_SW_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_503-2:
+    argument: 503
+    hint: Weapons Action (WAS) Switch, MSL
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_WEAPONS_ACTION_SW_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_487-1:
+    argument: 487
+    hint: Cursor Controller, Up
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_CURSOR_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_487-2:
+    argument: 487
+    hint: Cursor Controller, Down
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_CURSOR_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_488-1:
+    argument: 488
+    hint: Cursor Controller, Left
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_CURSOR_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_488-2:
+    argument: 488
+    hint: Cursor Controller, Right
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_CURSOR_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_489:
+    argument: 489
+    hint: Cursor Controller, Enter
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.LHG_CURSOR_ENTER
+    values: {}
+    range: null
+    readable: false
+  pnt_490:
+    argument: 490
+    hint: Cursor Display Select (L/R) Button - Press to move the cursor to the center
+      of the opposite MPD
+    prototype: default_button
+    positions: []
+    command: tedac_commands.LHG_LR_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_508-1:
+    argument: 508
+    hint: Sight Select Switch, HMD
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_SIGHT_SELECT_SW_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_508-2:
+    argument: 508
+    hint: Sight Select Switch, LINK
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_SIGHT_SELECT_SW_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_509-1:
+    argument: 509
+    hint: Sight Select Switch, FCR
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_SIGHT_SELECT_SW_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_509-2:
+    argument: 509
+    hint: Sight Select Switch, TADS
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_SIGHT_SELECT_SW_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_510:
+    argument: 510
+    hint: Laser Tracker Mode (LT) Switch, A (Automatic)/O (Off)/M (Manual)
+    prototype: default_3_position_tumb
+    positions:
+    - A (Automatic)
+    - O (Off)
+    - M (Manual)
+    command: tedac_commands.RHG_LT_SW
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_511-1:
+    argument: 511
+    hint: FCR Scan Size Switch, Z (Zoom)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_FCR_SCAN_SIZE_SW_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_511-2:
+    argument: 511
+    hint: FCR Scan Size Switch, M (Medium)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_FCR_SCAN_SIZE_SW_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_512-1:
+    argument: 512
+    hint: FCR Scan Size Switch, N (Narrow)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_FCR_SCAN_SIZE_SW_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_512-2:
+    argument: 512
+    hint: FCR Scan Size Switch, W (Wide)
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_FCR_SCAN_SIZE_SW_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_513:
+    argument: 513
+    hint: C-Scope Button
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_C_SCOPE_SW
+    values: {}
+    range: null
+    readable: false
+  pnt_504:
+    argument: 504
+    hint: FLIR Polarity Button - Press to change polarity
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_FLIR_PLRT_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_514:
+    argument: 514
+    hint: Sight Slave Button - Press to slave TADS or FCR to the selected acquisition
+      source
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_SIGHT_SLAVE_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_517:
+    argument: 517
+    hint: Display Zoom Button - Press to view FCR targeting information on the NTS
+      target
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_DISPLAY_ZOOM_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_519:
+    argument: 519
+    hint: Spare Switch, PREVIOUS(LMB)/NEXT(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - PREVIOUS(LMB)
+    - NEXT(RMB)
+    command: tedac_commands.RHG_SPARE_SW_AFT
+    values: {}
+    range: null
+    readable: false
+  pnt_505:
+    argument: 505
+    hint: HDD/HOD Select Button - currently not used
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_HDD_SW
+    values: {}
+    range: null
+    readable: false
+  pnt_518:
+    argument: 518
+    hint: Cursor Enter Button - Press to enter
+    prototype: default_button
+    positions: []
+    command: tedac_commands.RHG_ENTER_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_515-1:
+    argument: 515
+    hint: Sight Manual Tracker (MAN TRK) Controller, Up
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_MAN_TRK_UP
+    values: {}
+    range: null
+    readable: false
+  pnt_515-2:
+    argument: 515
+    hint: Sight Manual Tracker (MAN TRK) Controller, Down
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_MAN_TRK_DOWN
+    values: {}
+    range: null
+    readable: false
+  pnt_516-1:
+    argument: 516
+    hint: Sight Manual Tracker (MAN TRK) Controller, Left
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_MAN_TRK_LEFT
+    values: {}
+    range: null
+    readable: false
+  pnt_516-2:
+    argument: 516
+    hint: Sight Manual Tracker (MAN TRK) Controller, Right
+    prototype: knuppel_button
+    positions: []
+    command: tedac_commands.RHG_MAN_TRK_RIGHT
+    values: {}
+    range: null
+    readable: false
+  pnt_507:
+    argument: 507
+    hint: Image Auto Tracker (IAT) Polarity Switch, W (White)/A (Auto)/B (Black)
+    prototype: default_3_position_tumb
+    positions:
+    - W (White)
+    - A (Auto)
+    - B (Black)
+    command: tedac_commands.RHG_IAT_POLARITY_SW
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_278:
+    argument: 278
+    hint: IHADSS BRT Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: electric_commands.VCP_IHADSS_BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_279:
+    argument: 279
+    hint: IHADSS CON Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: electric_commands.VCP_IHADSS_CON_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_280:
+    argument: 280
+    hint: SYM BRT Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: electric_commands.VCP_SYM_BRT_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_282:
+    argument: 282
+    hint: FLIR LVL Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: electric_commands.VCP_FLIR_LEV_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_283:
+    argument: 283
+    hint: FLIR GAIN Control Knob
+    prototype: default_rheostat
+    positions: []
+    command: electric_commands.VCP_FLIR_GAIN_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_281:
+    argument: 281
+    hint: Automatic Contrast Mode Switch, ACM/OFF
+    prototype: default_2_position_tumb
+    positions:
+    - ACM
+    - 'OFF'
+    command: electric_commands.VCP_ACM_SW
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_309:
+    argument: 309
+    hint: NVS MODE Switch, FIXED/NORM/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - FIXED
+    - NORM
+    - 'OFF'
+    command: electric_commands.NVS_MODE_PLT_KNOB
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_363:
+    argument: 363
+    hint: NVS MODE Switch, FIXED/NORM/OFF
+    prototype: default_3_position_tumb
+    positions:
+    - FIXED
+    - NORM
+    - 'OFF'
+    command: electric_commands.NVS_MODE_CPG_KNOB
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_355:
+    argument: 355
+    hint: Generator Reset Switch, GEN 1(LMB)/GEN 2(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - GEN 1(LMB)
+    - GEN 2(RMB)
+    command: electric_commands.GEN1_RST_SW
+    values: {}
+    range: null
+    readable: false
+  pnt_353:
+    argument: 353
+    hint: CKT A Check Overspeed Test Switch, ENG 2(LMB)/ENG 1(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - ENG 2(LMB)
+    - ENG 1(RMB)
+    command: engine_commands.ChkOvspTestSwENG2A
+    values: {}
+    range: null
+    readable: false
+  pnt_354:
+    argument: 354
+    hint: CKT B Check Overspeed Test Switch, ENG 2(LMB)/ENG 1(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - ENG 2(LMB)
+    - ENG 1(RMB)
+    command: engine_commands.ChkOvspTestSwENG2B
+    values: {}
+    range: null
+    readable: false
+  pnt_397:
+    argument: 397
+    hint: Processor Select Switch, SP 1/AUTO/SP 2
+    prototype: default_3_position_tumb
+    positions:
+    - SP 1
+    - AUTO
+    - SP 2
+    command: electric_commands.SP_SELECT_SW
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_315:
+    argument: 315
+    hint: Master Ignition Switch, OFF/BATT/EXT PWR
+    prototype: multiposition_switch
+    positions:
+    - 'OFF'
+    - BATT
+    - EXT PWR
+    command: electric_commands.MIK
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_306:
+    argument: 306
+    hint: A/S Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: electric_commands.ARM_SAFE_PLT_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_307:
+    argument: 307
+    hint: GND ORIDE Pushbutton, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: electric_commands.GND_ORIDE_PLT_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_293:
+    argument: 293
+    hint: A/S Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: electric_commands.ARM_SAFE_CPG_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_294:
+    argument: 294
+    hint: GND ORIDE Pushbutton, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: electric_commands.GND_ORIDE_CPG_BTN
+    values: {}
+    range: null
+    readable: false
+  pnt_319:
+    argument: 319
+    hint: L OUTBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_LO_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_320:
+    argument: 320
+    hint: L INBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_LI_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_321:
+    argument: 321
+    hint: R INBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_RI_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_322:
+    argument: 322
+    hint: R OUTBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_RO_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_323:
+    argument: 323
+    hint: L TIP Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_JETTISON_LEFT_WINGTIP
+    values: {}
+    range: null
+    readable: false
+  pnt_325:
+    argument: 325
+    hint: R TIP Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_JETTISON_RIGHT_WINGTIP
+    values: {}
+    range: null
+    readable: false
+  pnt_324:
+    argument: 324
+    hint: JETT Pushbutton - Press to jettison stores from all armed stations
+    prototype: default_button
+    positions: []
+    command: JETT_commands.STORES_JETT_PUSHBUTTON
+    values: {}
+    range: null
+    readable: false
+  pnt_313:
+    argument: 313
+    hint: EMERG HYD Pushbutton, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: hydraulic_commands.Emergency_HYD_PLT
+    values: {}
+    range: null
+    readable: false
+  pnt_308:
+    argument: 308
+    hint: TAIL WHEEL Pushbutton, LOCK/UNLOCK
+    prototype: lighted_pushbutton
+    positions:
+    - LOCK
+    - UNLOCK
+    command: hydraulic_commands.TailWheelUnLock_PLT
+    values: {}
+    range: null
+    readable: false
+  pnt_314:
+    argument: 314
+    hint: Rotor Brake Switch, OFF/BRK/LOCK
+    prototype: default_3_position_tumb
+    positions:
+    - 'OFF'
+    - BRK
+    - LOCK
+    command: hydraulic_commands.Rotor_Brake
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_400:
+    argument: 400
+    hint: APU Pushbutton - Press to start/stop APU
+    prototype: lighted_pushbutton
+    positions: []
+    command: engine_commands.APU_StartBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_401:
+    argument: 401
+    hint: APU Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.APU_StartBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_633:
+    argument: 633
+    hint: Power Lever Friction Adjustment Lever
+    prototype: default_lever
+    positions: []
+    command: ctrl_commands.FrictionLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_317:
+    argument: 317
+    hint: No.1 Engine Start Switch, IGN ORIDE(LMB)/START(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - IGN ORIDE(LMB)
+    - START(RMB)
+    command: engine_commands.Eng1IgnOrideSw
+    values: {}
+    range: null
+    readable: false
+  pnt_318:
+    argument: 318
+    hint: No.2 Engine Start Switch, IGN ORIDE(LMB)/START(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - IGN ORIDE(LMB)
+    - START(RMB)
+    command: engine_commands.Eng2IgnOrideSw
+    values: {}
+    range: null
+    readable: false
+  pnt_368:
+    argument: 368
+    hint: L OUTBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_LO_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_369:
+    argument: 369
+    hint: L INBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_LI_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_370:
+    argument: 370
+    hint: R INBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_RI_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_371:
+    argument: 371
+    hint: R OUTBD Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_RO_JETTISON_ARMED
+    values: {}
+    range: null
+    readable: false
+  pnt_372:
+    argument: 372
+    hint: L TIP Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_JETTISON_LEFT_WINGTIP
+    values: {}
+    range: null
+    readable: false
+  pnt_374:
+    argument: 374
+    hint: R TIP Station Select Pushbutton, ARM/SAFE
+    prototype: lighted_pushbutton
+    positions:
+    - ARM
+    - SAFE
+    command: JETT_commands.STORE_JETTISON_RIGHT_WINGTIP
+    values: {}
+    range: null
+    readable: false
+  pnt_373:
+    argument: 373
+    hint: JETT Pushbutton - Press to jettison stores from all armed stations
+    prototype: default_button
+    positions: []
+    command: JETT_commands.STORES_JETT_PUSHBUTTON
+    values: {}
+    range: null
+    readable: false
+  pnt_361:
+    argument: 361
+    hint: EMERG HYD Pushbutton, ON/OFF
+    prototype: lighted_pushbutton
+    positions:
+    - 'ON'
+    - 'OFF'
+    command: hydraulic_commands.Emergency_HYD_CPG
+    values: {}
+    range: null
+    readable: false
+  pnt_362:
+    argument: 362
+    hint: TAIL WHEEL Pushbutton, LOCK/UNLOCK
+    prototype: lighted_pushbutton
+    positions:
+    - LOCK
+    - UNLOCK
+    command: hydraulic_commands.TailWheelUnLock_CPG
+    values: {}
+    range: null
+    readable: false
+  pnt_295:
+    argument: 295
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.PLT_Eng1FireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_296:
+    argument: 296
+    hint: ENG 1 Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.PLT_Eng1FireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_297:
+    argument: 297
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.PLT_ApuFireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_298:
+    argument: 298
+    hint: APU Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.PLT_ApuFireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_299:
+    argument: 299
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.PLT_Eng2FireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_300:
+    argument: 300
+    hint: ENG 2 Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.PLT_Eng2FireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_301:
+    argument: 301
+    hint: Primary Fire Extinguisher Discharge Pushbutton - Press to discharge primary
+      fire bottle
+    prototype: lighted_pushbutton
+    positions: []
+    command: engine_commands.PLT_PrimaryDischBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_303:
+    argument: 303
+    hint: Reserve Fire Extinguisher Discharge Pushbutton - Press to discharge reserve
+      fire bottle
+    prototype: lighted_pushbutton
+    positions: []
+    command: engine_commands.PLT_ReserveDischBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_302:
+    argument: 302
+    hint: Fire Detection Circuit Test Switch, 1(LMB)/2(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 1(LMB)
+    - 2(RMB)
+    command: engine_commands.PLT_FireDetTestSw1
+    values: {}
+    range: null
+    readable: false
+  pnt_284:
+    argument: 284
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.CPG_Eng1FireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_285:
+    argument: 285
+    hint: ENG 1 Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.CPG_Eng1FireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_286:
+    argument: 286
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.CPG_ApuFireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_287:
+    argument: 287
+    hint: APU Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.CPG_ApuFireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_288:
+    argument: 288
+    hint: s fire extinguishing system
+    prototype: lighted_push_button_tumb
+    positions: []
+    command: engine_commands.CPG_Eng2FireBtn
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: false
+  pnt_289:
+    argument: 289
+    hint: ENG 2 Fire Pushbutton Cover, OPEN/CLOSE
+    prototype: lighted_pushbutton_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: engine_commands.CPG_Eng2FireBtnCover
+    values: {}
+    range: null
+    readable: false
+  pnt_290:
+    argument: 290
+    hint: Primary Fire Extinguisher Discharge Pushbutton - Press to discharge primary
+      fire bottle
+    prototype: lighted_pushbutton
+    positions: []
+    command: engine_commands.CPG_PrimaryDischBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_292:
+    argument: 292
+    hint: Reserve Fire Extinguisher Discharge Pushbutton - Press to discharge reserve
+      fire bottle
+    prototype: lighted_pushbutton
+    positions: []
+    command: engine_commands.CPG_ReserveDischBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_291:
+    argument: 291
+    hint: Fire Detection Circuit Test Switch, 1(LMB)/2(RMB)
+    prototype: springloaded_3_pos_tumb
+    positions:
+    - 1(LMB)
+    - 2(RMB)
+    command: engine_commands.CPG_FireDetTestSw1
+    values: {}
+    range: null
+    readable: false
+  pnt_356:
+    argument: 356
+    hint: Defog Button - Press to defog the canopy side panels
+    prototype: default_button
+    positions: []
+    command: cpt_mech_commands.PLT_DefogBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_357:
+    argument: 357
+    hint: Wiper Control Switch, PARK/OFF/LO/HI
+    prototype: wiper_multiposition_spring_switch
+    positions:
+    - PARK
+    - 'OFF'
+    - LO
+    - HI
+    command: cpt_mech_commands.PLT_WiperSw_PARK
+    values: {}
+    range:
+    - -0.1
+    - 0.2
+    readable: true
+  pnt_394:
+    argument: 394
+    hint: Defog Button - Press to defog the canopy side panels
+    prototype: default_button
+    positions: []
+    command: cpt_mech_commands.CPG_DefogBtn
+    values: {}
+    range: null
+    readable: false
+  pnt_395:
+    argument: 395
+    hint: Wiper Control Switch, PARK/OFF/LO/HI
+    prototype: wiper_multiposition_spring_switch
+    positions:
+    - PARK
+    - 'OFF'
+    - LO
+    - HI
+    command: cpt_mech_commands.CPG_WiperSw_PARK
+    values: {}
+    range:
+    - -0.1
+    - 0.2
+    readable: true
+  pnt_634:
+    argument: 634
+    hint: Parking Brake Handle, Pull/Stow
+    prototype: default_2_position_tumb
+    positions:
+    - Pull
+    - Stow
+    command: gear_commands.AH64_ParkingBrake
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_796:
+    argument: 796
+    hint: PLT canopy, OPEN/CLOSE
+    prototype: default_animated_lever
+    positions:
+    - OPEN
+    - CLOSE
+    command: cpt_mech_commands.PLT_Door_Lock
+    values: {}
+    range: null
+    readable: true
+  pnt_799:
+    argument: 799
+    hint: CPG canopy, OPEN/CLOSE
+    prototype: default_animated_lever
+    positions:
+    - OPEN
+    - CLOSE
+    command: cpt_mech_commands.CPG_Door_Lock
+    values: {}
+    range: null
+    readable: true
+  pnt_398:
+    argument: 398
+    hint: Power Lever Smoothly (Left)
+    prototype: default_lever
+    positions: []
+    command: engine_commands.PLT_L_PowerLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_399:
+    argument: 399
+    hint: Power Lever Smoothly (Right)
+    prototype: default_lever
+    positions: []
+    command: engine_commands.PLT_R_PowerLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_628:
+    argument: 628
+    hint: Power Lever Smoothly (Left)
+    prototype: default_lever
+    positions: []
+    command: engine_commands.CPG_L_PowerLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_629:
+    argument: 629
+    hint: Power Lever Smoothly (Right)
+    prototype: default_lever
+    positions: []
+    command: engine_commands.CPG_R_PowerLever
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_825:
+    argument: 825
+    hint: CPG M4 Trigger
+    prototype: default_button
+    positions: []
+    command: cpt_mech_commands.CPG_M4_Trigger
+    values: {}
+    range: null
+    readable: false
+  pnt_826:
+    argument: 826
+    hint: CPG M4 Safety
+    prototype: default_3_position_tumb
+    positions: []
+    command: cpt_mech_commands.CPG_M4_Safety
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_827:
+    argument: 827
+    hint: PLT M4 Trigger
+    prototype: default_button
+    positions: []
+    command: cpt_mech_commands.PLT_M4_Trigger
+    values: {}
+    range: null
+    readable: false
+  pnt_828:
+    argument: 828
+    hint: PLT M4 Safety
+    prototype: default_3_position_tumb
+    positions: []
+    command: cpt_mech_commands.PLT_M4_Safety
+    values: {}
+    range:
+    - -1.0
+    - 1.0
+    readable: true
+  pnt_610:
+    argument: 610
+    hint: CMWS PWR Switch, OFF/ON/TEST(momentarily)
+    prototype: spring_3_position_tumb
+    positions:
+    - 'OFF'
+    - 'ON'
+    - TEST(momentarily)
+    command: CMWS_commands.CMWS_PWR
+    values: {}
+    range:
+    - -1.0
+    - 0.0
+    readable: true
+  pnt_611:
+    argument: 611
+    hint: CMWS Audio Volume Knob
+    prototype: default_rheostat
+    positions: []
+    command: CMWS_commands.CMWS_AUDIO_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_612:
+    argument: 612
+    hint: CMWS Lamp Knob
+    prototype: default_rheostat
+    positions: []
+    command: CMWS_commands.CMWS_LAMP_KNOB
+    values: {}
+    range: null
+    readable: true
+  pnt_614:
+    argument: 614
+    hint: CMWS Flare Squibs Switch, ARM/SAFE
+    prototype: default_2_position_tumb
+    positions:
+    - ARM
+    - SAFE
+    command: CMWS_commands.CMWS_ARM_SAFE_SW
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_615:
+    argument: 615
+    hint: CMWS Mode Switch, CMWS/NAV
+    prototype: default_2_position_tumb
+    positions:
+    - CMWS
+    - NAV
+    command: CMWS_commands.CMWS_CMWS_NAV_SW
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_616:
+    argument: 616
+    hint: CMWS Operation Switch, BYPASS/AUTO
+    prototype: default_2_position_tumb
+    positions:
+    - BYPASS
+    - AUTO
+    command: CMWS_commands.CMWS_BYPASS_AUTO_SW
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_617:
+    argument: 617
+    hint: CMWS Flare Jettison Switch Cover, OPEN/CLOSE
+    prototype: default_red_cover
+    positions:
+    - OPEN
+    - CLOSE
+    command: CMWS_commands.CMWS_JETT_COVER
+    values: {}
+    range: null
+    readable: true
+  pnt_618:
+    argument: 618
+    hint: CMWS Flare Jettison Switch
+    prototype: default_2_position_tumb
+    positions: []
+    command: CMWS_commands.CMWS_JETT_SW
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_809:
+    argument: 809
+    hint: Stick Folding, UP/DOWN
+    prototype: default_2_position_tumb
+    positions:
+    - UP
+    - DOWN
+    command: preston_commands.StickFolding
+    values: {}
+    range:
+    - 0.0
+    - 1.0
+    readable: true
+  pnt_849:
+    argument: 849
+    hint: Left Sunvisor
+    prototype: sunvisor_handle
+    positions: []
+    command: cpt_mech_commands.PLT_SunvisorLeft
+    values: {}
+    range: null
+    readable: true
+  pnt_850:
+    argument: 850
+    hint: Right Sunvisor
+    prototype: sunvisor_handle
+    positions: []
+    command: cpt_mech_commands.PLT_SunvisorRight
+    values: {}
+    range: null
+    readable: true

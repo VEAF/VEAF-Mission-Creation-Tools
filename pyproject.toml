@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.13.0"
+version = "6.14.0"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -19,13 +19,13 @@ python = "^3.11"
 rich = ">=13.0,<15"
 typer = ">=0.9,<1"
 pyyaml = ">=6.0,<7"
-Pillow = ">=10.0,<12"
+Pillow = ">=12.3,<13"
 astral = ">=3.0,<4"
 pydantic = ">=2.0,<3"
 avwx-engine = ">=1.8,<2"
 InquirerPy = ">=0.3,<1"
 requests = ">=2.28,<3"
-mcp = "^1.28.1"
+mcp = "^2.0.0"
 "ruamel.yaml" = ">=0.18,<1.0"
 
 [tool.poetry.scripts]
@@ -120,7 +120,10 @@ ignore_errors = true
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["test/python"]
-pythonpath = ["src/python/veaf-tools"]
+# test/python/testlib holds shared test helpers (not tests). It needs to be importable
+# by name: with --import-mode=importlib a test module cannot import a sibling file, and
+# a conftest fixture is unreachable from the unittest.TestCase classes that need it.
+pythonpath = ["src/python/veaf-tools", "test/python/testlib"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     "--tb=short",
@@ -129,7 +132,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=78",
+    "--cov-fail-under=81",
 ]
 
 # ---------------------------------------------------------------------------

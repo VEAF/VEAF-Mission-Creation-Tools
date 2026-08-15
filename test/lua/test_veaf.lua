@@ -248,14 +248,18 @@ TestVeafArrayRemoveWhen = {}
 
 function TestVeafArrayRemoveWhen:test_removeNothingReturnsFalse()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return true end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
+    return true
+  end)
   luaunit.assertFalse(changed)
   luaunit.assertEquals(#t, 3)
 end
 
 function TestVeafArrayRemoveWhen:test_removeAllReturnsTrue()
   local t = { 1, 2, 3 }
-  local changed = veaf.arrayRemoveWhen(t, function(_, _, _) return false end)
+  local changed = veaf.arrayRemoveWhen(t, function(_, _, _)
+    return false
+  end)
   luaunit.assertTrue(changed)
   luaunit.assertEquals(#t, 0)
 end
@@ -565,13 +569,17 @@ end
 
 function TestVeafIfnn:test_functionField()
   local obj = {}
-  function obj:getName() return "test" end
+  function obj:getName()
+    return "test"
+  end
   luaunit.assertEquals(veaf.ifnn(obj, "getName"), "test")
 end
 
 function TestVeafIfnn:test_erroringFunctionReturnsNil()
   local obj = {}
-  function obj:broken() error("oops") end
+  function obj:broken()
+    error("oops")
+  end
   luaunit.assertNil(veaf.ifnn(obj, "broken"))
 end
 
@@ -799,17 +807,23 @@ end
 TestVeafSafeCall = {}
 
 function TestVeafSafeCall:test_successReturnsValue()
-  local result = veaf.safeCall(function(a, b) return a + b end, 3, 4)
+  local result = veaf.safeCall(function(a, b)
+    return a + b
+  end, 3, 4)
   luaunit.assertEquals(result, 7)
 end
 
 function TestVeafSafeCall:test_errorReturnsNil()
-  local result = veaf.safeCall(function() error("boom") end)
+  local result = veaf.safeCall(function()
+    error("boom")
+  end)
   luaunit.assertNil(result)
 end
 
 function TestVeafSafeCall:test_multipleReturnValues()
-  local a, b = veaf.safeCall(function() return 1, 2 end)
+  local a, b = veaf.safeCall(function()
+    return 1, 2
+  end)
   luaunit.assertEquals(a, 1)
   luaunit.assertEquals(b, 2)
 end
@@ -1706,6 +1720,945 @@ function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
 end
 
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- veaf.outTextForUnit — the floor under every pilot-facing message
+--
+-- trigger.action.outText* raises on a nil message, so a caller with nothing to say produced a DCS
+-- scripting error from a *display* call, reading in dcs.log as a bug in whatever feature was talking.
+-- That is how issue #302's crash survived its own fix: the guard went where the value is computed and
+-- the nil travelled one level further (FIX-ATIS-NIL-MESSAGE, from MacFlorent's PR #303).
+-- ---------------------------------------------------------------------------
+TestVeafOutTextFloor = {}
+
+function TestVeafOutTextFloor:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafOutTextFloor:test_a_nil_message_never_reaches_dcs()
+  veaf.outTextForUnit(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0, "a nil message must not be forwarded to DCS")
+end
+
+function TestVeafOutTextFloor:test_a_blank_message_never_reaches_dcs()
+  -- Whitespace only is the same defect wearing a disguise: the pilot sees an empty box and the caller
+  -- looks like it worked.
+  veaf.outTextForUnit(nil, "   \n\t ", 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_the_group_variant_inherits_the_floor()
+  -- It delegates, so one guard covers both — pinned so a future refactor cannot split them apart.
+  veaf.outTextForGroup(nil, nil, 10)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafOutTextFloor:test_a_real_message_still_gets_through_untouched()
+  veaf.outTextForUnit(nil, "ATIS Alpha, wind calm", 30)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(dcs_mocks.messages[1].text, "ATIS Alpha, wind calm")
+  luaunit.assertEquals(dcs_mocks.messages[1].duration, 30)
+end
+
+function TestVeafOutTextFloor:test_zero_is_a_message_not_an_absence()
+  -- The guard must key on nil and blank, not on falsiness or emptiness in general: a caller reporting
+  -- a count of 0 has something to say.
+  veaf.outTextForUnit(nil, "0", 5)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+end
+
+-- veaf.findSpawnPoint — three-tier search (FEAT-SCENERY-AWARE-SPAWN)
+--
+-- Tier 1 asks the undocumented Disposition singleton for scenery-clear points,
+-- tier 2 jitters with mist.getRandPointInCircle, tier 3 gives up and returns nil.
+-- Every degradation path is pinned here, the "singleton absent" one above all:
+-- it is what ships to any DCS install that does not expose Disposition.
+-- ---------------------------------------------------------------------------
+TestVeafFindSpawnPoint = {}
+
+function TestVeafFindSpawnPoint:setUp()
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+  -- Land everywhere unless a test says otherwise.
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+  self._jitterCalls = 0
+end
+
+function TestVeafFindSpawnPoint:tearDown()
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+--- Makes land.getSurfaceType answer WATER for every point whose x is in `waterXs`.
+function TestVeafFindSpawnPoint:_waterAt(waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+end
+
+--- Makes the jitter walk a fixed list of x offsets, one per call.
+function TestVeafFindSpawnPoint:_jitterSequence(xs)
+  local calls = 0
+  mist.getRandPointInCircle = function(spot, _r)
+    calls = calls + 1
+    self._jitterCalls = calls
+    local x = xs[calls] or xs[#xs]
+    return { x = x, y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafFindSpawnPoint:test_singleton_absent_falls_through_to_the_jitter()
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNotNil(point)
+  luaunit.assertEquals(point.x, 500)
+  luaunit.assertEquals(self._jitterCalls, 1)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_absent_result_is_placed_on_land()
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  -- placePointOnLand puts the terrain height in y; the mock's getHeight + 1 m margin.
+  luaunit.assertEquals(point.y, math.floor(land.getHeight({ x = 500, y = 0 }) + 1))
+end
+
+function TestVeafFindSpawnPoint:test_jitter_retries_until_it_finds_land()
+  self:_waterAt({ 100, 200 })
+  self:_jitterSequence({ 100, 200, 300 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNotNil(point)
+  luaunit.assertEquals(point.x, 300, "must skip the two water candidates")
+  luaunit.assertEquals(self._jitterCalls, 3)
+end
+
+function TestVeafFindSpawnPoint:test_no_acceptable_point_anywhere_returns_nil()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+  self:_jitterSequence({ 100 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertNil(point)
+  luaunit.assertEquals(self._jitterCalls, veaf.SPAWN_SEARCH_ATTEMPTS, "the jitter tier must be bounded")
+end
+
+function TestVeafFindSpawnPoint:test_singleton_proposal_wins_over_the_jitter()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 42, y = 0, z = 7 } }
+    end,
+  }
+  self:_jitterSequence({ 999 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 42)
+  luaunit.assertEquals(point.z, 7)
+  luaunit.assertEquals(self._jitterCalls, 0, "the jitter tier must not run when tier 1 succeeds")
+end
+
+function TestVeafFindSpawnPoint:test_singleton_returning_nothing_falls_through()
+  Disposition = {
+    getSimpleZones = function()
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_throwing_falls_through_without_propagating()
+  Disposition = {
+    getSimpleZones = function()
+      error("undocumented API changed its signature")
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local ok, point = pcall(veaf.findSpawnPoint, { x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertTrue(ok, "a broken singleton must never propagate out of the helper")
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_proposing_water_is_rejected()
+  self:_waterAt({ 42 })
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500, "Disposition is not guaranteed to respect water")
+end
+
+function TestVeafFindSpawnPoint:test_opt_out_skips_the_singleton_entirely()
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  veaf.doNotAvoidScenery = true
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertFalse(called)
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_singleton_is_asked_for_several_candidates()
+  local askedFor
+  Disposition = {
+    getSimpleZones = function(_centre, _searchRadius, _exclusionRadius, count)
+      askedFor = count
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(askedFor, veaf.SPAWN_SEARCH_ATTEMPTS)
+end
+
+-- ---------------------------------------------------------------------------
+-- The distance filter (measured in a live DCS, 2026-08-06)
+--
+-- Disposition's radius argument is NOT a bound. Measured around one centre in wooded
+-- terrain: asked for 800 m it returned points 2035-2258 m out, and asked for 1600 m with
+-- a count of **one** it still returned a point 2628 m out — so the overshoot is not the
+-- count forcing a wider search, the radius simply does not cap anything.
+--
+-- Tier 1 used to take the first candidate that was on land, with no distance test at all,
+-- so `_spawn group, radius 50` in a forest could place the group kilometres away in
+-- silence. ADR 0018 requires this dependency to be quality-only and never correctness;
+-- moving a group somewhere nobody asked for is a correctness regression.
+-- ---------------------------------------------------------------------------
+
+function TestVeafFindSpawnPoint:test_candidate_beyond_the_caller_radius_is_rejected()
+  -- 2628 m is the real measurement, not a round number invented for the test.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 2628, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 500, "a candidate outside the requested radius must not be used")
+  luaunit.assertEquals(self._jitterCalls, 1, "it must fall through to the jitter tier")
+end
+
+function TestVeafFindSpawnPoint:test_candidate_within_the_caller_radius_is_accepted()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 900, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 900)
+  luaunit.assertEquals(self._jitterCalls, 0)
+end
+
+function TestVeafFindSpawnPoint:test_the_nearest_acceptable_candidate_is_not_required_only_a_near_one()
+  -- The far one comes first in the array; the filter must keep looking rather than give up.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 5000, y = 0, z = 0 }, { x = 300, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 300)
+end
+
+function TestVeafFindSpawnPoint:test_distance_is_horizontal_so_terrain_height_cannot_defeat_it()
+  -- placePointOnLand writes the terrain height into y. Measuring in 3D would let a hill
+  -- push a perfectly good candidate out of range.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 0, y = 0, z = 999 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.z, 999)
+end
+
+function TestVeafFindSpawnPoint:test_a_zero_radius_keeps_the_singleton_out_of_it()
+  -- radius 0 is what veafSpawn passes for farp, cargo, teleport, bomb, smoke and friends:
+  -- "exactly here, the mission maker means it". Tier 1 exists to move a point; it must not.
+  local called = false
+  Disposition = {
+    getSimpleZones = function()
+      called = true
+      return { { x = 42, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 0 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertFalse(called, "a zero radius must not even ask")
+  luaunit.assertEquals(point.x, 0)
+end
+
+function TestVeafFindSpawnPoint:test_the_singleton_is_asked_within_the_caller_radius()
+  -- It used to be asked for math.max(1852, safeRadius * 5) regardless of what the caller
+  -- wanted, which is where the silent widening started.
+  local askedRadius
+  Disposition = {
+    getSimpleZones = function(_centre, searchRadius)
+      askedRadius = searchRadius
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 250)
+  luaunit.assertEquals(askedRadius, 250)
+end
+
+function TestVeafFindSpawnPoint:test_the_measured_vec2_shape_is_understood()
+  -- What the real API returns, measured: {x, y, course} — a vec2 plus a heading, no z.
+  -- Its y is the map's z, so reading it as an altitude would put the group 200 m up and
+  -- leave the distance filter comparing the wrong axis.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 100, y = 200, course = 1.57 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 100)
+  luaunit.assertEquals(point.z, 200, "the candidate's y is the map's z")
+end
+
+function TestVeafFindSpawnPoint:test_a_vec2_centre_is_measured_against_the_right_axis()
+  -- Callers do pass vec2 centres. Reading the centre's y as an altitude would make the
+  -- distance nonsense in exactly the case the filter matters.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 0, y = 900, course = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  -- Centre vec2 {x=0, y=1000} means map z=1000; candidate y=900 means map z=900. That is 100 m
+  -- apart, inside the 200 m radius, so it must be accepted. Read the centre's y as an altitude
+  -- instead and the distance becomes 900 — rejected, and the filter would misfire everywhere.
+  local point = veaf.findSpawnPoint({ x = 0, y = 1000 }, 200)
+  luaunit.assertEquals(self._jitterCalls, 0, "100 m apart is inside a 200 m radius")
+  luaunit.assertEquals(point.z, 900)
+end
+
+function TestVeafFindSpawnPoint:test_malformed_candidates_do_not_raise()
+  -- The singleton is undocumented and its return shape unmeasured, so a flat array of
+  -- numbers has to degrade like an empty one. placePointOnLand would raise on these, and
+  -- the pcall only wraps the call to getSimpleZones, not the loop over its result.
+  Disposition = {
+    getSimpleZones = function()
+      return { 1, 2, 3 }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local ok, point = pcall(veaf.findSpawnPoint, { x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertTrue(ok, "a malformed candidate must not propagate out of the helper")
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_first_clear_candidate_of_several_is_taken()
+  self:_waterAt({ 10, 20 })
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 10, y = 0, z = 0 }, { x = 20, y = 0, z = 0 }, { x = 30, y = 0, z = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 30)
+  luaunit.assertEquals(self._jitterCalls, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- Trigger-zone properties (FEAT-SCENERY-AWARE-SPAWN ticket 04)
+--
+-- DCS hands properties over as an array of string pairs, so a caller would otherwise
+-- write its own linear scan plus its own tonumber / "true" comparison every time.
+-- ---------------------------------------------------------------------------
+TestVeafZoneProperties = {}
+
+function TestVeafZoneProperties:setUp()
+  self._saved = veaf.triggerZones
+  veaf.triggerZones = {
+    ["Alpha"] = {
+      name = "Alpha",
+      properties = {
+        { key = "smoke", value = "true" },
+        { key = "hidden", value = "FALSE" },
+        { key = "radius", value = "800" },
+        { key = "ratio", value = "1.5" },
+        { key = "label", value = "not a number" },
+      },
+    },
+    ["Bare"] = { name = "Bare" },
+  }
+end
+
+function TestVeafZoneProperties:tearDown()
+  veaf.triggerZones = self._saved
+end
+
+function TestVeafZoneProperties:test_raw_property_is_returned_as_a_string()
+  luaunit.assertEquals(veaf.getZoneProperty("Alpha", "radius"), "800")
+end
+
+function TestVeafZoneProperties:test_missing_key_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Alpha", "nope"))
+end
+
+function TestVeafZoneProperties:test_missing_zone_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Ghost", "radius"))
+end
+
+function TestVeafZoneProperties:test_zone_without_properties_is_nil()
+  luaunit.assertNil(veaf.getZoneProperty("Bare", "radius"))
+end
+
+function TestVeafZoneProperties:test_boolean_true()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "smoke", false))
+end
+
+function TestVeafZoneProperties:test_boolean_is_case_insensitive()
+  luaunit.assertFalse(veaf.getZonePropertyBoolean("Alpha", "hidden", true))
+end
+
+function TestVeafZoneProperties:test_boolean_junk_falls_back_to_the_default_not_to_false()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "label", true))
+end
+
+function TestVeafZoneProperties:test_boolean_missing_key_returns_the_default()
+  luaunit.assertTrue(veaf.getZonePropertyBoolean("Alpha", "nope", true))
+end
+
+function TestVeafZoneProperties:test_number_is_parsed()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0), 800)
+end
+
+function TestVeafZoneProperties:test_number_accepts_decimals()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "ratio", 0), 1.5)
+end
+
+function TestVeafZoneProperties:test_number_junk_returns_the_default()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "label", 42), 42)
+end
+
+function TestVeafZoneProperties:test_number_is_clamped_to_the_upper_bound()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 0, 500), 500)
+end
+
+function TestVeafZoneProperties:test_number_is_clamped_to_the_lower_bound()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 1000, 2000), 1000)
+end
+
+function TestVeafZoneProperties:test_number_within_bounds_is_untouched()
+  luaunit.assertEquals(veaf.getZonePropertyNumber("Alpha", "radius", 0, 0, 1000), 800)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 group A — marker parameters must not be able to crash their handler
+--
+-- The review recommended validating in "the shared marker parser". There is none: ten modules
+-- carry their own `markTextAnalysis`. Rewriting all ten is a different lot, so the shared piece
+-- is the conversion itself -- one tested helper the call sites use -- which is the part that
+-- was being written wrong each time.
+--
+-- The crash shapes seen in the wild: `string.format("%d", nil)` on a valueless keyword, and
+-- `tonumber(val) <= 5` comparing nil with a number.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSafeNumber = {}
+
+function TestVeafSafeNumber:test_parses_a_plain_number()
+  luaunit.assertEquals(veaf.safeNumber("3"), 3)
+end
+
+function TestVeafSafeNumber:test_accepts_a_number_as_is()
+  luaunit.assertEquals(veaf.safeNumber(4), 4)
+end
+
+function TestVeafSafeNumber:test_nil_returns_the_default()
+  -- A player writing "size" with no value: the exact VMR-019 shape.
+  luaunit.assertEquals(veaf.safeNumber(nil, { default = 2 }), 2)
+end
+
+function TestVeafSafeNumber:test_garbage_returns_the_default()
+  luaunit.assertEquals(veaf.safeNumber("banana", { default = 2 }), 2)
+end
+
+function TestVeafSafeNumber:test_nil_without_a_default_is_nil()
+  luaunit.assertNil(veaf.safeNumber(nil))
+end
+
+function TestVeafSafeNumber:test_below_the_minimum_is_clamped()
+  luaunit.assertEquals(veaf.safeNumber("0", { min = 1, max = 5, default = 1 }), 1)
+end
+
+function TestVeafSafeNumber:test_above_the_maximum_is_clamped()
+  luaunit.assertEquals(veaf.safeNumber("9", { min = 1, max = 5, default = 1 }), 5)
+end
+
+function TestVeafSafeNumber:test_inside_the_range_is_untouched()
+  luaunit.assertEquals(veaf.safeNumber("3", { min = 1, max = 5, default = 1 }), 3)
+end
+
+function TestVeafSafeNumber:test_boundaries_are_inclusive()
+  luaunit.assertEquals(veaf.safeNumber("1", { min = 1, max = 5 }), 1)
+  luaunit.assertEquals(veaf.safeNumber("5", { min = 1, max = 5 }), 5)
+end
+
+function TestVeafSafeNumber:test_negative_values_survive_when_allowed()
+  luaunit.assertEquals(veaf.safeNumber("-20", { min = -50, max = 50 }), -20)
+end
+
+function TestVeafSafeNumber:test_decimals_survive()
+  luaunit.assertEquals(veaf.safeNumber("2.5", { min = 0, max = 5 }), 2.5)
+end
+
+function TestVeafSafeNumber:test_a_table_returns_the_default()
+  luaunit.assertEquals(veaf.safeNumber({}, { default = 7 }), 7)
+end
+
+function TestVeafSafeNumber:test_boolean_returns_the_default()
+  -- `true` is what a valueless keyword often becomes before it reaches the conversion.
+  luaunit.assertEquals(veaf.safeNumber(true, { default = 7 }), 7)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-MARKER-PARAM-CRASHES — safeNumberInRange rejects out-of-range values where safeNumber
+-- clamps them. Marker keywords need the rejecting form: an out-of-range `size` keeps the
+-- command's default instead of silently becoming the nearest bound.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSafeNumberInRange = {}
+
+function TestVeafSafeNumberInRange:test_accepts_a_value_in_range()
+  luaunit.assertEquals(veaf.safeNumberInRange("3", 1, 5), 3)
+end
+
+function TestVeafSafeNumberInRange:test_bounds_are_inclusive()
+  luaunit.assertEquals(veaf.safeNumberInRange("1", 1, 5), 1)
+  luaunit.assertEquals(veaf.safeNumberInRange("5", 1, 5), 5)
+end
+
+function TestVeafSafeNumberInRange:test_rejects_below_min()
+  luaunit.assertNil(veaf.safeNumberInRange("0", 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_rejects_above_max()
+  luaunit.assertNil(veaf.safeNumberInRange("42", 1, 5))
+end
+
+-- The distinction from safeNumber that justifies a second function.
+function TestVeafSafeNumberInRange:test_out_of_range_is_rejected_not_clamped()
+  luaunit.assertNil(veaf.safeNumberInRange("42", 1, 5))
+  luaunit.assertEquals(veaf.safeNumber("42", { min = 1, max = 5 }), 5)
+end
+
+function TestVeafSafeNumberInRange:test_rejects_a_valueless_keyword()
+  luaunit.assertNil(veaf.safeNumberInRange(nil, 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_rejects_a_non_numeric_value()
+  luaunit.assertNil(veaf.safeNumberInRange("banana", 1, 5))
+end
+
+function TestVeafSafeNumberInRange:test_accepts_zero_when_min_is_zero()
+  -- `defense` and `blocade` accept 0 where `size` and `spacing` start at 1.
+  luaunit.assertEquals(veaf.safeNumberInRange("0", 0, 5), 0)
+end
+
+function TestVeafSafeNumberInRange:test_accepts_a_decimal_in_range()
+  luaunit.assertEquals(veaf.safeNumberInRange("2.5", 0, 5), 2.5)
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-082 — split and breakString built patterns by interpolating the separator
+--
+--     local regex = ("([^%s]+)"):format(sep)
+--
+-- puts `sep` straight inside a character class, so a Lua-magic separator changes what the class
+-- means: "]" closes it early, "%" starts an escape, "^" negates. Every separator used inside this
+-- repository is a comma, a space or a semicolon — all harmless — but both functions are public
+-- API a mission can call with anything.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSplitMagicSeparators = {}
+
+function TestVeafSplitMagicSeparators:test_split_on_a_comma_still_works()
+  local r = veaf.split("a,b,c", ",")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[1], "a")
+  luaunit.assertEquals(r[3], "c")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_space_still_works()
+  luaunit.assertEquals(#veaf.split("a b c", " "), 3)
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_dash()
+  local r = veaf.split("a-b-c", "-")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_percent()
+  local r = veaf.split("a%b%c", "%")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_split_on_a_bracket()
+  local r = veaf.split("a]b]c", "]")
+  luaunit.assertEquals(#r, 3)
+  luaunit.assertEquals(r[2], "b")
+end
+
+function TestVeafSplitMagicSeparators:test_break_string_on_a_comma_still_works()
+  local r = veaf.breakString("key,value", ",")
+  luaunit.assertEquals(r[1], "key")
+  luaunit.assertEquals(r[2], "value")
+end
+
+function TestVeafSplitMagicSeparators:test_break_string_on_a_dash()
+  local r = veaf.breakString("key-value", "-")
+  luaunit.assertEquals(r[1], "key")
+  luaunit.assertEquals(r[2], "value")
+end
+
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-084 — the vec3/vec2 pretty-print in veaf.p could never run
+--
+--     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
+--
+-- `#` counts a table's *sequence* part, so a table holding only the named keys x/y/z has #o == 0.
+-- The condition was never true and every vec3 fell through to the generic dump.
+-------------------------------------------------------------------------------------------------
+
+TestVeafPrettyPrintVectors = {}
+
+function TestVeafPrettyPrintVectors:test_vec3_is_pretty_printed()
+  local s = veaf.p({ x = 1, y = 2, z = 3 })
+  luaunit.assertStrContains(s, "x=1")
+  luaunit.assertStrContains(s, "y=2")
+  luaunit.assertStrContains(s, "z=3")
+end
+
+function TestVeafPrettyPrintVectors:test_vec3_is_a_single_line()
+  -- The point of the branch: a coordinate should read as one value, not a multi-line dump.
+  local s = veaf.p({ x = 1, y = 2, z = 3 })
+  luaunit.assertNil(s:find(string.char(10)))
+end
+
+function TestVeafPrettyPrintVectors:test_vec2_is_pretty_printed()
+  local s = veaf.p({ x = 10, y = 20 })
+  luaunit.assertStrContains(s, "x=10")
+  luaunit.assertStrContains(s, "y=20")
+end
+
+function TestVeafPrettyPrintVectors:test_a_normal_table_is_untouched()
+  -- Guard: only coordinate-shaped tables take the short path.
+  local s = veaf.p({ name = "test", value = 1 })
+  luaunit.assertStrContains(s, "name")
+end
+
+-- ============================================================================
+-- TestVeafExportAsJsonUnwritablePath -- SECREV-2 / VMR-081
+-- ============================================================================
+--- The `if file then` guard used to sit *after* three writeln() calls, so an export directory that
+--- could not be opened raised "attempt to index a nil value" inside a script running in DCS. io is
+--- the real one here, not a mock, so this exercises a genuine open failure.
+TestVeafExportAsJsonUnwritablePath = {}
+
+local function jsonifyPair(key, value)
+  return '    { "' .. tostring(key) .. '": "' .. tostring(value) .. '" }'
+end
+
+function TestVeafExportAsJsonUnwritablePath:test_an_unwritable_directory_is_reported_not_raised()
+  local ok, err = pcall(veaf.exportAsJson, { a = 1 }, "things", jsonifyPair, "things.json", "Z:/veaf-no-such-directory/nested/")
+
+  luaunit.assertTrue(ok, "an unwritable export path must be reported, not raised: " .. tostring(err))
+end
+
+function TestVeafExportAsJsonUnwritablePath:test_a_writable_directory_still_produces_the_file()
+  -- The guard must not have turned the happy path into a silent no-op.
+  local dir = os.getenv("TEMP") or os.getenv("TMPDIR") or "."
+  local filename = "veaf-test-export.json"
+  local path = dir .. "/" .. filename
+  os.remove(path)
+
+  veaf.exportAsJson({ a = 1 }, "things", jsonifyPair, filename, dir .. "/")
+
+  local written = io.open(path, "r")
+  luaunit.assertNotNil(written, "the export must still be written when the directory is writable")
+  local content = written:read("*a")
+  written:close()
+  os.remove(path)
+  luaunit.assertNotNil(string.find(content, "things", 1, true), "the export must name the exported table")
+end
+
+-------------------------------------------------------------------------------------------------
+-- REFACTOR-MARKER-PARSER ticket 02 — veaf.parseMarkerText
+--
+-- The specification has to be able to express the quirks ticket 01 measured, because several
+-- are load-bearing: a migration that silently drops one changes a command in the field. Each
+-- test below pins one of those quirks against the shared machine.
+-------------------------------------------------------------------------------------------------
+
+TestVeafParseMarkerText = {}
+
+-- A minimal spec: one command, a few parameter kinds.
+local function simpleSpec(overrides)
+  local spec = {
+    defaults = function(options)
+      options.size = 1
+      options.label = nil
+      options.loud = false
+    end,
+    commands = {
+      {
+        match = "_probe deep",
+        init = function(options)
+          options.deep = true
+          options.size = 9
+        end,
+      },
+      {
+        match = "_probe",
+        init = function(options)
+          options.shallow = true
+        end,
+      },
+    },
+    parameters = {
+      { keys = { "size" }, apply = veaf.markerRules.number("size") },
+      { keys = { "label", "name" }, apply = veaf.markerRules.text("label") },
+      { keys = { "loud" }, apply = veaf.markerRules.flag("loud") },
+      { keys = { "floor" }, apply = veaf.markerRules.nonNegativeNumber("floor") },
+    },
+  }
+  for field, value in pairs(overrides or {}) do
+    spec[field] = value
+  end
+  return spec
+end
+
+function TestVeafParseMarkerText:test_text_without_any_command_returns_nil()
+  luaunit.assertNil(veaf.parseMarkerText("hello world", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_a_non_string_returns_nil()
+  luaunit.assertNil(veaf.parseMarkerText(nil, simpleSpec()))
+  luaunit.assertNil(veaf.parseMarkerText(42, simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_defaults_are_seeded()
+  local r = veaf.parseMarkerText("_probe", simpleSpec())
+  luaunit.assertEquals(r.size, 1)
+  luaunit.assertFalse(r.loud)
+end
+
+-- Quirk 8: the command descriptor seeds its own defaults, over the common ones.
+function TestVeafParseMarkerText:test_a_command_overrides_the_common_defaults()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe deep", simpleSpec()).size, 9)
+end
+
+-- Quirk 17: FIRST MATCH WINS, decided by the chain's order and not the text's.
+function TestVeafParseMarkerText:test_the_first_matching_command_wins()
+  local r = veaf.parseMarkerText("_probe deep", simpleSpec())
+  luaunit.assertTrue(r.deep)
+  luaunit.assertNil(r.shallow)
+end
+
+function TestVeafParseMarkerText:test_the_keyphrase_match_is_case_insensitive()
+  luaunit.assertNotNil(veaf.parseMarkerText("_PROBE", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_the_keyphrase_is_found_anywhere_in_the_text()
+  luaunit.assertNotNil(veaf.parseMarkerText("please _probe now", simpleSpec()))
+end
+
+function TestVeafParseMarkerText:test_parameters_are_applied()
+  local r = veaf.parseMarkerText("_probe, size 4, label alpha, loud", simpleSpec())
+  luaunit.assertEquals(r.size, 4)
+  luaunit.assertEquals(r.label, "alpha")
+  luaunit.assertTrue(r.loud)
+end
+
+function TestVeafParseMarkerText:test_aliases_share_one_rule()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, name beta", simpleSpec()).label, "beta")
+end
+
+-- Quirk 12: every matching rule runs as the loop walks, so the last occurrence wins.
+function TestVeafParseMarkerText:test_a_repeated_keyword_keeps_the_last_value()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size 2, size 5", simpleSpec()).size, 5)
+end
+
+-- Quirk 11: the value keeps everything after the FIRST space, untrimmed. Trimming here would
+-- change veafCasMission's behaviour, where `side  BLUE` resolves to RED because of it.
+function TestVeafParseMarkerText:test_the_value_is_everything_after_the_first_space_untrimmed()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label two words", simpleSpec()).label, "two words")
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label  padded", simpleSpec()).label, " padded")
+end
+
+-- Quirk 1: a valueless keyword is nil by default, and "" for the modules that need it.
+function TestVeafParseMarkerText:test_a_valueless_keyword_is_nil_by_default()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label", simpleSpec()).label)
+end
+
+function TestVeafParseMarkerText:test_valueWhenAbsent_makes_a_valueless_keyword_an_empty_string()
+  local spec = simpleSpec({ valueWhenAbsent = "" })
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, label", spec).label, "")
+end
+
+-- Quirk 15: a flag discards any value handed to it.
+function TestVeafParseMarkerText:test_a_flag_ignores_its_value()
+  luaunit.assertTrue(veaf.parseMarkerText("_probe, loud false", simpleSpec()).loud)
+end
+
+-- A bad parameter must never take the command down: this is the whole crash family.
+function TestVeafParseMarkerText:test_a_valueless_numeric_keyword_keeps_the_default()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size", simpleSpec()).size, 1)
+end
+
+function TestVeafParseMarkerText:test_a_non_numeric_value_keeps_the_default()
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size banana", simpleSpec()).size, 1)
+end
+
+function TestVeafParseMarkerText:test_a_valueless_non_negative_keyword_does_not_raise()
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, floor", simpleSpec()))
+end
+
+-- Quirk 2 (separator): every module splits on "," except ArtilleryUnitHandler, on ";".
+function TestVeafParseMarkerText:test_the_separator_is_configurable()
+  local spec = simpleSpec({ separator = ";" })
+  luaunit.assertEquals(veaf.parseMarkerText("_probe; size 3", spec).size, 3)
+  -- With ";" declared, a comma is no longer a separator.
+  luaunit.assertEquals(veaf.parseMarkerText("_probe, size 3", spec).size, 1)
+end
+
+-- Quirk 3: unknown keys are silent unless the module asks for the report.
+function TestVeafParseMarkerText:test_unknown_keys_are_silent_by_default()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, banana 3", simpleSpec()).unknownParameters)
+end
+
+function TestVeafParseMarkerText:test_unknown_keys_are_reported_with_a_suggestion_when_asked()
+  local r = veaf.parseMarkerText("_probe, labl alpha", simpleSpec({ reportUnknownKeys = true }))
+  luaunit.assertIsTable(r.unknownParameters)
+  luaunit.assertEquals(#r.unknownParameters, 1)
+  luaunit.assertEquals(r.unknownParameters[1].key, "labl")
+  luaunit.assertEquals(r.unknownParameters[1].suggestion, "label")
+end
+
+-- The command keyphrase itself must not be reported as an unknown parameter.
+function TestVeafParseMarkerText:test_the_keyphrase_is_not_reported_as_unknown()
+  luaunit.assertNil(veaf.parseMarkerText("_probe, size 3", simpleSpec({ reportUnknownKeys = true })).unknownParameters)
+end
+
+-- Quirk 9: mandatory parameters are enforced after the loop, by refusing the command.
+function TestVeafParseMarkerText:test_validate_can_refuse_the_command()
+  local spec = simpleSpec({
+    validate = function(options)
+      return options.label ~= nil
+    end,
+  })
+  luaunit.assertNil(veaf.parseMarkerText("_probe", spec))
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, label alpha", spec))
+end
+
+-- `when` gates a rule on the options built so far, which is how one key means two things.
+function TestVeafParseMarkerText:test_when_gates_a_rule()
+  local spec = simpleSpec()
+  table.insert(spec.parameters, {
+    keys = { "label" },
+    when = function(options)
+      return options.deep
+    end,
+    apply = veaf.markerRules.text("deepLabel"),
+  })
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label alpha", spec).deepLabel)
+  luaunit.assertEquals(veaf.parseMarkerText("_probe deep, label alpha", spec).deepLabel, "alpha")
+end
+
+-- A keyphrase containing a Lua pattern character must be matched literally, not as a pattern.
+function TestVeafParseMarkerText:test_the_command_match_is_literal_not_a_pattern()
+  local spec = simpleSpec({ commands = { {
+    match = "_a.b",
+    init = function(options)
+      options.hit = true
+    end,
+  } } })
+  luaunit.assertNotNil(veaf.parseMarkerText("_a.b", spec))
+  luaunit.assertNil(veaf.parseMarkerText("_axb", spec))
+end
+
+-- On Sourcery's review of #712: keys are stored lower-cased, because the lookup lower-cases the
+-- incoming key. A spec declaring "Size" would otherwise never match AND would be reported to the
+-- pilot as an unknown parameter — a silent trap for the next module to be migrated.
+function TestVeafParseMarkerText:test_a_mixed_case_declared_key_still_matches()
+  local spec = simpleSpec({
+    parameters = { { keys = { "SiZe" }, apply = veaf.markerRules.number("size") } },
+    reportUnknownKeys = true,
+  })
+  local r = veaf.parseMarkerText("_probe, size 4", spec)
+  luaunit.assertEquals(r.size, 4)
+  luaunit.assertNil(r.unknownParameters)
+end
+
+-- Order is load-bearing (a repeated keyword ends on its last occurrence), so the loop must walk
+-- the split result as a sequence. Long input, to make an out-of-order traversal show up.
+function TestVeafParseMarkerText:test_keywords_are_applied_in_text_order()
+  local text = "_probe"
+  for i = 1, 30 do
+    text = text .. ", size " .. i
+  end
+  luaunit.assertEquals(veaf.parseMarkerText(text, simpleSpec()).size, 30)
+end
+
+-- On Sourcery's review of #713: the "is this parameter really given?" test is shared, because
+-- `""` is truthy in Lua and the module that spelled the check `if not x` shipped the bug twice.
+function TestVeafParseMarkerText:test_isBlank_catches_nil_and_the_empty_string()
+  luaunit.assertTrue(veaf.isBlank(nil))
+  luaunit.assertTrue(veaf.isBlank(""))
+  luaunit.assertFalse(veaf.isBlank("a"))
+  luaunit.assertFalse(veaf.isBlank(" "), "a space is a value, since nothing is trimmed")
+  luaunit.assertFalse(veaf.isBlank(0), "0 is a value, not an absence")
+  luaunit.assertFalse(veaf.isBlank(false), "false is a value, not an absence")
+end
+
+function TestVeafParseMarkerText:test_requireText_refuses_a_blank_mandatory_field()
+  local spec = simpleSpec({ validate = veaf.markerRules.requireText("label") })
+  luaunit.assertNil(veaf.parseMarkerText("_probe", spec))
+  luaunit.assertNil(veaf.parseMarkerText("_probe, label", spec))
+  luaunit.assertNotNil(veaf.parseMarkerText("_probe, label alpha", spec))
+end
+
+-- prepareMarkerSpec is idempotent, so a module may call it at load time or not at all.
+function TestVeafParseMarkerText:test_prepareMarkerSpec_is_idempotent()
+  local spec = simpleSpec()
+  veaf.prepareMarkerSpec(spec)
+  local firstCount = #spec.knownKeys
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertEquals(#spec.knownKeys, firstCount)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -28,7 +28,9 @@ class TestPresetsInjectorWorkerInit(unittest.TestCase):
     def test_init_stores_presets_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             presets_file = Path(tmpdir) / "presets.yaml"
-            presets_file.write_text("presets: {}", encoding="utf-8")
+            # A real section name: since FIX-CONVERT-V5-PRESETS-SCHEMA the loader refuses a section
+            # it does not read rather than dropping it in silence, and `presets:` was never one.
+            presets_file.write_text("channel_lists: {}", encoding="utf-8")
             worker = _make_worker(presets_file=presets_file)
             self.assertEqual(worker.presets_file, presets_file)
 

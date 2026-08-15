@@ -42,7 +42,7 @@ def inject_presets(
         if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
-        exit()
+        raise typer.Exit()
 
     # Resolve input mission
     assert input_mission_name_or_file is not None

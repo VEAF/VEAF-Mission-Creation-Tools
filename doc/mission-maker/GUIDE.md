@@ -9,17 +9,17 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 1. [Ce que vous obtenez](#ce-que-vous-obtenez)
 2. [Prérequis](#prérequis)
 3. [Installation et mises à jour](#installation-et-mises-à-jour)
-4. [Configuration globale utilisateur](#configuration-globale-utilisateur)
+4. [Configuration globale utilisateur](#global-user-configuration)
 5. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
 6. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
-7. [Configurer les modules](#configurer-les-modules)
+7. [Configurer les modules](#configuring-modules)
 8. [Configurer le pipeline de build](#configuring-pipeline)
 9. [Outils de conception](#outils-de-conception)
 10. [Workflow de build typique](#workflow-de-build-typique)
-11. [Profils de build](#profils-de-build)
+11. [Profils de build](#build-profiles)
 12. [Référence des scripts](#référence-des-scripts)
-13. [Exemples de configuration](#exemples-de-configuration)
-14. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+13. [Exemples de configuration](#configuration-examples)
+14. [Intégration CTLD et CSAR](#ctld-and-csar-integration)
 15. [DCS Bridge](#dcs-bridge)
 16. [Journalisation de débogage](#journalisation-de-débogage)
 17. [Ressources](#ressources)
@@ -34,8 +34,8 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 
 - **Commandes via marqueurs** — les joueurs tapent des commandes sur la carte F10 (faire apparaître des unités, créer des zones CAS, déplacer des groupes…)
 - **Menus radio F10** — menus dynamiques pour chaque fonctionnalité activée
-- **Types de missions préconstruits** — CAS, transport, opérations carrier, QRA, vagues aériennes, zones de combat
-- **Gestion des actifs** — tankers, AWACS, carriers avec suivi d'état automatique et menus radio
+- **Types de missions préconstruits** — CAS, transport, opérations porte-avions, QRA, vagues aériennes, zones de combat
+- **Gestion des ressources** — ravitailleurs, AWACS, porte-avions avec suivi d'état automatique et menus radio
 - **Points nommés** — positions cartographiques réutilisables avec services ATC/TACAN optionnels
 - **Intégrations** — Skynet IADS, CTLD/CSAR
 
@@ -92,7 +92,7 @@ Pour épingler une version spécifique :
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
+Référence CLI complète : [Référence CLI](../CLI_REFERENCE.md)
 
 ---
 
@@ -152,7 +152,7 @@ cd my-mission
 1. Créez un dossier pour votre projet de mission (c'est votre dépôt Git)
 2. Copiez votre fichier `.miz` existant dedans
 3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
-4. Extrayez votre mission : `veaf-tools.exe extract ma-mission.miz`
+4. Extrayez votre mission : `veaf-tools.exe mission extract ma-mission.miz`
 5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/mission-script.lua`
 
 Structure de projet recommandée :
@@ -208,7 +208,7 @@ flowchart TD
         SRC[src/mission + src/scripts]
         LUA[Scripts Lua VEAF]
     end
-    YAML --> BUILD[veaf-tools build]
+    YAML --> BUILD[veaf-tools mission build]
     SRC --> BUILD
     LUA --> BUILD
     BUILD --> GEN[Génère veaf-config.lua depuis mission.yaml]
@@ -278,28 +278,44 @@ modules:
 -- (voir la section Intégration CTLD et CSAR)
 ```
 
-### Niveaux de sécurité
+### Niveaux de sécurité {#security-tiers}
 
-| Niveau | Constante | Qui peut utiliser |
-|--------|-----------|-------------------|
-| 0 (public) | `veafSecurity.LEVEL_L0` | Tous les joueurs |
-| 1 (pilotes) | `veafSecurity.LEVEL_L1` | Pilotes non-spectateurs |
-| 9 (admin) | `veafSecurity.LEVEL_L9` | Admins authentifiés |
+| Palier | Constante | Passe sans mot de passe si le niveau du pilote est |
+|--------|-----------|-----------------------------------------------------|
+| `KNOWN_PILOT` | `veafSecurity.LEVEL_KNOWN_PILOT` = 1 | **≥ 1** — tout pilote inscrit dans le `veaf-pilots.txt` du serveur |
+| `SENIOR_PILOT` | `veafSecurity.LEVEL_SENIOR_PILOT` = 10 | **≥ 10** — un membre de confiance |
+| `ADMIN` | `veafSecurity.LEVEL_ADMIN` = 90 | **≥ 90** — un administrateur du serveur |
+| `MM` | (aucun niveau) | jamais — seul le mot de passe Mission Master ouvre |
+| `OPEN` | (aucun contrôle) | toujours — la commande est délibérément ouverte à tous |
 
-Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
+!!! info "`L9`, `L1` et `L0` sont des alias dépréciés — et ils se lisent à l'envers"
+
+    Les anciens noms se lisent à l'envers de ce qu'ils suggèrent : `L0` est le palier le plus
+    **strict** (`ADMIN`), pas le plus permissif ; `L9` est le plus ouvert (`KNOWN_PILOT`).
+
+    `L9`, `L1` et `L0` restent acceptés comme **alias dépréciés** et disparaîtront dans une
+    version ultérieure. **Les valeurs sont inchangées** (1, 10, 90) : renommer ne change le
+    comportement d'aucune mission, seulement ce que vous écrivez.
+
+Deux choses satisfont un contrôle. Soit le **niveau de pilote** du joueur, publié par le
+hook serveur depuis `veaf-pilots.txt`, atteint le palier — c'est la voie par l'identité,
+sans mot de passe — soit le **mot de passe** du palier figure dans le texte du marqueur.
+Sans le hook, personne n'a de niveau et tout retombe sur les mots de passe.
+
+Définissez les mots de passe (hachages SHA-1 — c'est ce que `veafSecurity` compare) dans `mission.yaml` :
 
 ```yaml
 security:
   disabled: false
   password_hashes:
-    - "<hachage SHA-256 de votre mot de passe>"
+    - "<hachage SHA-1 de votre mot de passe>"
 ```
 
 ---
 
 ## Configurer le pipeline de build {#configuring-pipeline}
 
-Au-delà des modules Lua exécutés dans DCS, `veaf-tools build` peut enchaîner des **étapes de pipeline** au moment du build : elles injectent des données dans le `.miz` (préréglages radio, points de cheminement, groupes d'aéronefs, variantes météo) à partir de fichiers YAML séparés placés dans `src/`. Chaque étape est **auto-détectée** (elle s'exécute si son fichier de config existe) et se pilote depuis la section `pipeline:` de `mission.yaml`.
+Au-delà des modules Lua exécutés dans DCS, `veaf-tools mission build` peut enchaîner des **étapes de pipeline** au moment du build : elles injectent des données dans le `.miz` (préréglages radio, points de cheminement, groupes d'aéronefs, variantes météo) à partir de fichiers YAML séparés placés dans `src/`. Chaque étape est **auto-détectée** (elle s'exécute si son fichier de config existe) et se pilote depuis la section `pipeline:` de `mission.yaml`.
 
 | Étape | Rôle | Schéma détaillé |
 |-------|------|-----------------|
@@ -325,10 +341,21 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 
 `veaf-tools.exe` manipule les fichiers `.miz` au moment du build — avant de les charger dans DCS.
 
+> **Les commandes sont rangées par thème.** `veaf-tools mission build`, `veaf-tools content
+> inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` liste les groupes, et
+> `veaf-tools <groupe> --help` leur contenu. Le groupe `dcs` regroupe ce qui **exige DCS lancé**.
+> Les groupes sont : `mission`, `convert`, `content`, `cockpit` et `dcs`.
+> Une commande dont le nom commence par celui de son groupe le perd à l'intérieur : on écrit
+> `veaf-tools convert v5` et `veaf-tools convert other`, pas `convert convert-v5`.
+>
+> **Les anciens noms courts fonctionnent toujours** : `veaf-tools build` fait exactement la même
+> chose que `veaf-tools mission build`. Ils ne sont plus affichés dans l'aide et sont considérés
+> comme dépréciés — un script ou un message de forum écrit avant ce changement continue de marcher.
+
 | Commande | Ce qu'elle fait |
 |----------|----------------|
 | `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer) ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
-| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que tu puisses corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
+| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que vous puissiez corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
 | `validate` | Vérifie le dossier de mission **avant** le build — signale les erreurs de config et les risques runtime sans builder (sortie non nulle en cas d'erreur ; `--strict` échoue aussi sur les avertissements) |
 | `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
 | `export` | Exporte un `.miz` en **JSON** (défaut), **YAML** ou **Markdown** (résumé lisible) : `export mission.miz out.json --format json`. L'analyse est **purement Python** (parser `luadata`) et **n'exécute jamais de Lua** — alternative sûre à l'interprétation d'un `.miz` non fiable (risque d'exécution de code). Sans fichier de sortie, écrit sur la sortie standard |
@@ -340,17 +367,29 @@ Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
 | `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
+| `about` | Affiche les informations sur VEAF Mission Creation Tools. |
+| `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
+| `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
+| `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
+| `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
+| `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
+| `inject-bridge` | Injecte le dcs-bridge + un trigger de démarrage dans un .miz (mission-pont). |
+| `mcp` | Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor. |
+| `migrate-config` | Migre un fichier missionConfig.lua au format v6 (mission-script.lua). |
+| `resolve-checklist` | Complète les champs techniques d'une checklist guidée écrite en langage courant. |
+| `smoke-test` | Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle. |
+| `verify-checklist` | Vérifie une checklist résolue dans un vrai cockpit (DCS doit tourner ici). |
 
-Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
+Référence complète : [Référence CLI](../CLI_REFERENCE.md)
 
 ### Mode interactif (assistant)
 
 Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) plutôt que d'échouer sur une option manquante :
 
 - `veaf-tools.exe` (sans argument) → menu de sélection de commande, puis questions.
-- `veaf-tools.exe prepare` → l'assistant demande le dossier cible **et** le template de modules.
-- `veaf-tools.exe prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
-- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe build --tui`).
+- `veaf-tools.exe mission prepare` → l'assistant demande le dossier cible **et** le template de modules.
+- `veaf-tools.exe mission prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
+- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe mission build --tui`).
 
 Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
 
@@ -362,7 +401,7 @@ Les options déjà passées sur la ligne de commande sont pré-remplies ; les op
 
 ```powershell
 # Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.
@@ -374,13 +413,13 @@ Si vous devez exécuter une seule étape en isolation (ex : injecter la météo 
 
 ```powershell
 # Injecter les préréglages radio uniquement
-veaf-tools.exe inject-presets ma-mission.miz --presets-file src/presets.yaml
+veaf-tools.exe content inject-presets ma-mission.miz --presets-file src/presets.yaml
 
 # Injecter les waypoints bullseye et de navigation uniquement
-veaf-tools.exe inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
+veaf-tools.exe content inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
 # Créer des variantes météo/heure uniquement
-veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
+veaf-tools.exe content inject-weather ma-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -388,7 +427,7 @@ veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
 Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
 ```powershell
-veaf-tools.exe extract ma-mission.miz
+veaf-tools.exe mission extract ma-mission.miz
 ```
 
 ---
@@ -420,13 +459,13 @@ profiles:
 
 ```powershell
 # Build pour les tests (pas de météo, sécurité désactivée, journalisation détaillée)
-veaf-tools.exe build --profile TEST
+veaf-tools.exe mission build --profile TEST
 
 # Build pour le déploiement serveur
-veaf-tools.exe build --profile SERVER
+veaf-tools.exe mission build --profile SERVER
 
 # Build sans profil (config de base)
-veaf-tools.exe build
+veaf-tools.exe mission build
 ```
 
 Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
@@ -445,7 +484,7 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 |-----------|---------|
 | Cœur | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
 | Types de missions | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
-| Actifs | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
+| Ressources | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
 | Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
 | Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
 
@@ -506,7 +545,7 @@ modules:
 
 Tout le reste — distances, temporisations, caisses, groupes de troupes, zones, capacités par appareil — vit dans un fichier **`ctld-config.yaml`**, à côté de `mission.yaml` dans votre dossier mission. Vous l'éditez avec **`ctld-tools.exe`**, fourni avec CTLD : double-cliquez, l'outil s'ouvre dans votre navigateur, en local, sans installation. Il valide au fil de la saisie et affiche les libellés en clair plutôt que les noms de réglages.
 
-`veaf-tools prepare` crée ce fichier pour vous quand le modèle choisi active CTLD, pré-rempli avec les valeurs par défaut du moteur. Il n'est jamais écrasé ensuite : c'est votre configuration.
+`veaf-tools mission prepare` crée ce fichier pour vous quand le modèle choisi active CTLD, pré-rempli avec les valeurs par défaut du moteur. Il n'est jamais écrasé ensuite : c'est votre configuration.
 
 Au build, VEAF l'injecte dans la mission sous forme d'un `CTLD_userConfig.lua` chargé juste avant `CTLD.lua`.
 
@@ -527,7 +566,7 @@ Si vous montez CTLD de version et que votre fichier a été écrit pour la préc
 | zones nommées `pickzone #001` … `#020` | une zone de l'éditeur nommée `TRZ_…` |
 | `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le framework VEAF initialise CTLD |
 
-Pour attacher une zone logistique à un objet mobile — un porte-avions, par exemple —, liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
+Pour attacher une zone logistique à un objet mobile (un porte-avions, par exemple), liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
 
 ### Configurer CSAR via mission.yaml (YAML-first)
 
@@ -641,20 +680,20 @@ modules:
     logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
-`veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
+`veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. **N'éditez pas `veaf-config.lua` directement** : il est généré, donc toute modification disparaît au prochain build. Pour essayer un réglage sans reconstruire, éditez-le en sachant que le changement est jetable — puis reportez-le dans `mission.yaml` pour qu'il survive.
 
 ### Lire le journal
 
 Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF.
 
-Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](../../tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
+Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
 
 ---
 
 ## Ressources
 
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — mission d'exemple fonctionnelle
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

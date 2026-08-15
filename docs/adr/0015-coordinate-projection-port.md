@@ -6,7 +6,7 @@ status: accepted
 
 The mission-editing MCP and `veaf-tools` place things by DCS local coordinates (`x`/`y`, metres in
 each theatre's own projection), but a Mission Maker thinks in lat/long off a map. To accept human
-coordinates design-time (wave 10 of [FEAT-MCP-MISSION-EDITOR](../../.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md)),
+coordinates design-time (wave 10 of [FEAT-MCP-MISSION-EDITOR](../../.backlog/archive/FEAT-MCP-MISSION-EDITOR.md)),
 we need `lat/lon ↔ x/y` **without a running DCS** — the DCS `coord.*` conversions live only in the
 in-game Lua runtime, and the repo had no Python projection.
 

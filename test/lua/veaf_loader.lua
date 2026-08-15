@@ -46,6 +46,7 @@ local _moduleOrder = {
   "veafSanctuary",
   "veafQraManager",
   "veafAirWaves",
+  "veafAssist",
   "veafEventHandler",
   "veafCacheManager",
   "veafGroundAI",
@@ -57,7 +58,9 @@ local _moduleOrder = {
 --- If "veaf" is not yet loaded and the requested module is not "veaf",
 --- "veaf" is loaded first automatically.
 function M.load(name)
-  if _loaded[name] then return end
+  if _loaded[name] then
+    return
+  end
   -- Ensure the core framework is always loaded first.
   if name ~= "veaf" and not _loaded["veaf"] then
     M.load("veaf")

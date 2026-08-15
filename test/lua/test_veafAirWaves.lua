@@ -528,14 +528,18 @@ end
 
 function TestAirWaveZoneSetters:test_setIsEnemyWaveDeadCallback()
   local z = AirWaveZone:new()
-  local cb = function() return true end
+  local cb = function()
+    return true
+  end
   z:setIsEnemyWaveDeadCallback(cb)
   luaunit.assertEquals(z.isEnemyWaveDeadCallback, cb)
 end
 
 function TestAirWaveZoneSetters:test_setIsEnemyGroupDeadCallback()
   local z = AirWaveZone:new()
-  local cb = function() return true end
+  local cb = function()
+    return true
+  end
   z:setIsEnemyGroupDeadCallback(cb)
   luaunit.assertEquals(z.isEnemyGroupDeadCallback, cb)
 end
@@ -645,7 +649,9 @@ function TestAirWaveZoneSignals:test_signalStart_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnStart(function() fired = true end)
+  z:setOnStart(function()
+    fired = true
+  end)
   z:signalStart()
   luaunit.assertTrue(fired)
 end
@@ -662,7 +668,9 @@ function TestAirWaveZoneSignals:test_signalWaitForHumans_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnWaitForHumans(function() fired = true end)
+  z:setOnWaitForHumans(function()
+    fired = true
+  end)
   z:signalWaitForHumans()
   luaunit.assertTrue(fired)
 end
@@ -681,7 +689,9 @@ function TestAirWaveZoneSignals:test_signalWaitToDeploy_callback_fires()
   z.name = "TestZone"
   z.delayBeforeNextWave = 10
   local fired = false
-  z:setOnWaitToDeploy(function() fired = true end)
+  z:setOnWaitToDeploy(function()
+    fired = true
+  end)
   z:signalWaitToDeploy()
   luaunit.assertTrue(fired)
 end
@@ -707,7 +717,9 @@ function TestAirWaveZoneSignals:test_signalDeploy_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnDeploy(function() fired = true end)
+  z:setOnDeploy(function()
+    fired = true
+  end)
   z:signalDeploy()
   luaunit.assertTrue(fired)
 end
@@ -724,7 +736,9 @@ function TestAirWaveZoneSignals:test_signalDestroyed_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnDestroyed(function() fired = true end)
+  z:setOnDestroyed(function()
+    fired = true
+  end)
   z:signalDestroyed()
   luaunit.assertTrue(fired)
 end
@@ -741,7 +755,10 @@ function TestAirWaveZoneSignals:test_signalOutsideOfZone_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local firedUnit, firedSecs
-  z:setOnOutsideOfZone(function(_, unit, secs) firedUnit = unit; firedSecs = secs end)
+  z:setOnOutsideOfZone(function(_, unit, secs)
+    firedUnit = unit
+    firedSecs = secs
+  end)
   z:signalOutsideOfZone("unit1", 10)
   luaunit.assertEquals(firedUnit, "unit1")
   luaunit.assertEquals(firedSecs, 10)
@@ -767,7 +784,9 @@ function TestAirWaveZoneSignals:test_signalWon_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnWon(function() fired = true end)
+  z:setOnWon(function()
+    fired = true
+  end)
   z:signalWon()
   luaunit.assertTrue(fired)
 end
@@ -784,7 +803,9 @@ function TestAirWaveZoneSignals:test_signalLost_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnLost(function() fired = true end)
+  z:setOnLost(function()
+    fired = true
+  end)
   z:signalLost()
   luaunit.assertTrue(fired)
 end
@@ -801,7 +822,9 @@ function TestAirWaveZoneSignals:test_signalStop_callback_fires()
   z:setSilent(true)
   z.name = "TestZone"
   local fired = false
-  z:setOnStop(function() fired = true end)
+  z:setOnStop(function()
+    fired = true
+  end)
   z:signalStop()
   luaunit.assertTrue(fired)
 end
@@ -888,7 +911,9 @@ function TestAirWaveZoneFSMExtended:test_onExitActive_destroys_and_signals_destr
   z:setSilent(true)
   z.name = "TestZone"
   local destroyed_cb_fired = false
-  z:setOnDestroyed(function() destroyed_cb_fired = true end)
+  z:setOnDestroyed(function()
+    destroyed_cb_fired = true
+  end)
   AirWaveZone._onExitActive(z)
   luaunit.assertTrue(destroyed_cb_fired)
 end
@@ -898,7 +923,9 @@ function TestAirWaveZoneFSMExtended:test_onEnterOver_fires_won()
   z:setSilent(true)
   z.name = "TestZone"
   local won_fired = false
-  z:setOnWon(function() won_fired = true end)
+  z:setOnWon(function()
+    won_fired = true
+  end)
   AirWaveZone._onEnterOver(z)
   luaunit.assertTrue(won_fired)
 end
@@ -935,5 +962,86 @@ function TestAirWavesModuleFunctions:test_get_nonexistent_returns_nil()
   luaunit.assertNil(veafAirWaves.get("no_such_zone_xyzzy"))
 end
 
-os.exit(luaunit.LuaUnit.run())
+-------------------------------------------------------------------------------------------------
+-- SECREV-2 / VMR-085 — a trigger zone name that names nothing must not take deployWaves down
+--
+-- `setTriggerZone` is deliberately lenient: when a center is already configured it keeps it and
+-- only warns (see test_setTriggerZone_missing_keeps_existing_center above). But it stores the
+-- name anyway, so `deployWaves` saw a `triggerZoneName`, called `veaf.getTriggerZone` on it,
+-- got nil and indexed it. That leniency is what makes the crash reachable: the mission maker
+-- gets a warning at configuration time and a raise at the first wave.
+--
+-- `AirWaveZone:check()` already has the right shape — trigger zone, else center, else complain —
+-- so this aligns deployWaves with its neighbour rather than inventing a rule.
+-------------------------------------------------------------------------------------------------
 
+TestSecrev2AirWavesZoneCenter = {}
+
+function TestSecrev2AirWavesZoneCenter:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedExecute = veafInterpreter and veafInterpreter.execute
+end
+
+function TestSecrev2AirWavesZoneCenter:tearDown()
+  veaf.triggerZones["AirWaveZoneThatExists"] = nil
+  if veafInterpreter then
+    veafInterpreter.execute = self._savedExecute
+  end
+end
+
+--- A zone that will deploy one VEAF command, recording the position it is given.
+function TestSecrev2AirWavesZoneCenter:_zoneDeployingOneCommand()
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z.chooseGroupsToDeploy = function(_)
+    return { "-shilka" }, nil
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(command, position, _, _, _)
+    table.insert(positions, { command = command, position = position })
+  end
+  return z
+end
+
+function TestSecrev2AirWavesZoneCenter:test_a_missing_trigger_zone_falls_back_to_the_center()
+  local z = self:_zoneDeployingOneCommand()
+  -- A DCS vec3, which is what `setZoneCenter(vec3)` is documented to take and what
+  -- `setZoneCenterFromCoordinates` produces through coord.LLtoLO.
+  z:setZoneCenter({ x = 1000, y = 0, z = 2000 })
+  z:setTriggerZone("NoSuchTriggerZone")
+  local ok, err = pcall(function()
+    z:deployWaves()
+  end)
+  luaunit.assertTrue(ok, "a trigger zone that does not exist must not raise at deploy time: " .. tostring(err))
+  luaunit.assertEquals(#self.deployed, 1)
+end
+
+function TestSecrev2AirWavesZoneCenter:test_an_existing_trigger_zone_is_still_preferred()
+  -- The control: the fallback must not shadow a zone that does exist.
+  veaf.triggerZones["AirWaveZoneThatExists"] = { x = 77, y = 88, radius = 500 }
+  local z = self:_zoneDeployingOneCommand()
+  -- A DCS vec3, which is what `setZoneCenter(vec3)` is documented to take and what
+  -- `setZoneCenterFromCoordinates` produces through coord.LLtoLO.
+  z:setZoneCenter({ x = 1000, y = 0, z = 2000 })
+  z:setTriggerZone("AirWaveZoneThatExists")
+  z:deployWaves()
+  luaunit.assertEquals(#self.deployed, 1)
+  -- The trigger zone's coordinates, not the 1000/2000 centre set just before: with both
+  -- offsets at 0 the deploy position is the zone centre itself (x, and y read into z).
+  luaunit.assertEquals(self.deployed[1].position.x, 77)
+  luaunit.assertEquals(self.deployed[1].position.z, 88)
+end
+
+function TestSecrev2AirWavesZoneCenter:test_neither_zone_nor_center_does_not_raise()
+  local z = self:_zoneDeployingOneCommand()
+  z:setTriggerZone("NoSuchTriggerZone")
+  local ok = pcall(function()
+    z:deployWaves()
+  end)
+  luaunit.assertTrue(ok, "a zone with no usable position must complain, not raise")
+end
+
+os.exit(luaunit.LuaUnit.run())

@@ -1,6 +1,6 @@
 # veafCasMission — Générateur d'entraînement CAS
 
-**Module ID:** `CASMISSION` | **Version:** 1.15.x | **Fichier:** `veafCasMission.lua`
+**Module ID:** `CASMISSION` | **Fichier:** `veafCasMission.lua`
 
 ---
 
@@ -30,82 +30,19 @@ veafCasMission.initialize()
 
 ## Configuration (`mission.yaml`) {#configuration-missionyaml}
 
-`veafCasMission` lui-même n'a pas de champs configurables en YAML. Cependant, les **missions CAP** et les **missions de combat** (gérées par le module `COMBATMISSION`) sont déclarées dans des sections de premier niveau de `mission.yaml`.
+`veafCasMission` n'a **aucun champ configurable en YAML** : il s'active comme les autres modules.
 
 ```yaml
 modules:
   CASMISSION:
     enabled: true          # défaut : true
-    logLevel: info        # surcharge optionnelle du niveau de log
-  COMBATMISSION:
-    enabled: true          # requis pour cap_missions: et combat_missions:
-
-# ── Missions CAP ──────────────────────────────────────────────────────────────
-cap_missions:
-  - group_name: "Groupe CAP"      # REQUIS — nom logique ; le groupe DCS doit s'appeler "OnDemand-Groupe CAP"
-    menu_name: "CAP Nord"          # libellé dans le menu F10
-    briefing: "Patrouiller le secteur nord et engager les menaces."
-    default: false                # true = actif par défaut
-    activated: true               # true = activé immédiatement au démarrage
-
-# ── Missions de combat ───────────────────────────────────────────────────
-combat_missions:
-  - name: "Frappe-Alpha"          # REQUIS — identifiant interne
-    friendly_name: "Frappe Alpha" # libellé dans le menu F10
-    secured: false                # true = nécessite /secu pour activer
-    radio_menu_enabled: true      # afficher dans le menu F10
-    briefing: |
-      Détruire la colonne blindée dans le carré BQ-123.
-      Prévoir de l'AAA et des MANPADS.
-    elements:
-      - name: "Elément Alpha 1"   # nom interne de l'élément
-        groups:                   # noms de groupes DCS inclus dans cet élément
-          - "STRIKE-GROUP-1"
-          - "STRIKE-GROUP-2"
-        scalable: true            # true = le nombre de groupes s'adapte au paramètre de compétence
+    logLevel: info         # surcharge optionnelle du niveau de log
 ```
 
-### Champs de `cap_missions[]`
-
-| Champ | Type | Défaut | Requis | Description |
-|-------|------|--------|--------|-------------|
-| `group_name` | string | — | Oui | Nom logique du vol CAP. **Le groupe DCS placé dans l'éditeur doit être nommé `OnDemand-<group_name>`** : le runtime préfixe `OnDemand-` (depuis la v5). Ex. `group_name: CAP-Alpha` → groupe DCS `OnDemand-CAP-Alpha` |
-| `menu_name` | string | — | Non | Libellé du menu F10 |
-| `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
-| `default` | booléen | `false` | Non | Démarrer comme mission active par défaut |
-| `activated` | booléen | `true` | Non | Activer immédiatement au démarrage de la mission |
-
-### Champs de `combat_missions[]`
-
-| Champ | Type | Défaut | Requis | Description |
-|-------|------|--------|--------|-------------|
-| `name` | string | — | Oui | Identifiant interne |
-| `friendly_name` | string | — | Non | Libellé du menu F10 |
-| `secured` | booléen | `false` | Non | Nécessite le token de sécurité `/secu` pour activer |
-| `radio_menu_enabled` | booléen | `true` | Non | Afficher dans le menu F10 |
-| `briefing` | string | — | Non | Texte de briefing multi-ligne |
-| `elements` | objet[] | `[]` | Non | Définitions des éléments de mission |
-| `elements[].name` | string | — | Non | Nom interne de l'élément |
-| `elements[].groups` | string[] | — | Non | Noms de groupes DCS dans cet élément |
-| `elements[].scalable` | booléen | `true` | Non | Adapter le nombre de groupes à la difficulté |
-
-### Exemple minimal
-
-```yaml
-modules:
-  COMBATMISSION:
-    enabled: true
-
-cap_missions:
-  - group_name: "CAP-Alpha"
-    menu_name: "CAP"
-
-combat_missions:
-  - name: "Frappe-Nord"
-    briefing: "Détruire les cibles nord."
-    elements:
-      - groups: ["Strike-Group-1"]
-```
+> **Les missions CAP et les missions de combat ne sont pas configurées ici.** Les sections
+> `cap_missions:` et `combat_missions:` appartiennent au module `COMBATMISSION`, qui est un module
+> distinct : voir [veafCombatMission](veafCombatMission.md#configuration-missionyaml). Elles étaient
+> documentées sur cette page, ce qui envoyait chercher les champs d'un module dans la page d'un autre.
 
 ---
 
@@ -133,18 +70,21 @@ _cas, side blue
 
 Options :
 
-| Option | Plage | Description |
-|--------|-------|-------------|
-| `size` | 1–5 | Nombre d'unités cibles |
-| `defense` | 0–5 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
-| `armor` | 0–5 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
-| `side` | blue/red | Coalition des cibles |
+| Option | Plage | Défaut | Description |
+|--------|-------|--------|-------------|
+| `size` | 1–5 | 1 | Nombre d'unités cibles |
+| `defense` | 0–5 | 1 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
+| `armor` | 0–5 | 1 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
+| `spacing` | 1–5 | 1 | Espacement entre les unités du groupe |
+| `side` | blue/red | *(coalition du marqueur)* | Coalition des cibles |
+| `disperse` | secondes | — | Les cibles se dispersent quand elles sont attaquées ; un `disperse` sans valeur = 15 secondes |
+| `password` | texte | — | Mot de passe de sécurité (voir [veafSecurity](veafSecurity.md)) |
 
 ---
 
 ## Menu radio F10
 
-Le sous-menu **CAS MISSION** n'apparaît qu'une fois une mission générée (via le marqueur `_cas`). Il propose alors :
+Le sous-menu **CAS MISSION** est créé dès l'initialisation du module, avec une entrée **HELP**. Une fois une mission générée (via le marqueur `_cas`), il propose en plus :
 
 - **Target information** — afficher position, composition et statut des cibles
 - **Skip current objective** — abandonner la zone courante et en générer une nouvelle (commande sécurisée)

@@ -43,26 +43,46 @@ TestVeafWeatherUnitSystem = {}
 
 function TestVeafWeatherUnitSystem:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 -- -----------------------------------------------------------------------
 -- defaultForTypeName — known aircraft families
 -- -----------------------------------------------------------------------
-function TestVeafWeatherUnitSystem:test_typeName_FA18_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("FA-18C_hornet"),    veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_A10C_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("A-10C"),             veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_F16_is_Faa()     luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("F-16C_50"),           veafWeatherUnitSystem.Systems.Faa) end
-function TestVeafWeatherUnitSystem:test_typeName_UH1H_is_Faa()    luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("UH-1H"),              veafWeatherUnitSystem.Systems.Faa) end
+function TestVeafWeatherUnitSystem:test_typeName_FA18_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("FA-18C_hornet"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_A10C_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("A-10C"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_F16_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("F-16C_50"), veafWeatherUnitSystem.Systems.Faa)
+end
+function TestVeafWeatherUnitSystem:test_typeName_UH1H_is_Faa()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("UH-1H"), veafWeatherUnitSystem.Systems.Faa)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_Ka50_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Ka-50"),   veafWeatherUnitSystem.Systems.MetricEastern) end
-function TestVeafWeatherUnitSystem:test_typeName_Mi24_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Mi-24P"),  veafWeatherUnitSystem.Systems.MetricEastern) end
-function TestVeafWeatherUnitSystem:test_typeName_Su27_is_MetricEastern()  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Su-27"),   veafWeatherUnitSystem.Systems.MetricEastern) end
+function TestVeafWeatherUnitSystem:test_typeName_Ka50_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Ka-50"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
+function TestVeafWeatherUnitSystem:test_typeName_Mi24_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Mi-24P"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
+function TestVeafWeatherUnitSystem:test_typeName_Su27_is_MetricEastern()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("Su-27"), veafWeatherUnitSystem.Systems.MetricEastern)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_SA342L_is_Metric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342L"), veafWeatherUnitSystem.Systems.Metric) end
-function TestVeafWeatherUnitSystem:test_typeName_SA342M_is_Metric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342M"), veafWeatherUnitSystem.Systems.Metric) end
+function TestVeafWeatherUnitSystem:test_typeName_SA342L_is_Metric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342L"), veafWeatherUnitSystem.Systems.Metric)
+end
+function TestVeafWeatherUnitSystem:test_typeName_SA342M_is_Metric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("SA342M"), veafWeatherUnitSystem.Systems.Metric)
+end
 
-function TestVeafWeatherUnitSystem:test_typeName_AH64_is_FaaMetric() luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("AH-64D_BLK_II"), veafWeatherUnitSystem.Systems.FaaMetric) end
+function TestVeafWeatherUnitSystem:test_typeName_AH64_is_FaaMetric()
+  luaunit.assertEquals(veafWeatherUnitSystem.defaultForTypeName("AH-64D_BLK_II"), veafWeatherUnitSystem.Systems.FaaMetric)
+end
 
 -- unknown type falls back to the default (Icao)
 function TestVeafWeatherUnitSystem:test_typeName_unknown_is_default()
@@ -310,40 +330,82 @@ end
 
 function TestVeafWeatherCavok:test_zero_density_returns_false()
   -- Density <= 0 → getNormalizedCloudBaseMeters returns nil → false
-  local wd = weatherInstance({ Clouds = { Density = 0, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 0, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_clouds_above_5000ft_good_vis_is_cavok()
   -- 3000m AGL → 9842 ft > 5000 ft, vis >= 10000, no precip, no dust → CAVOK
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertTrue(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_clouds_below_5000ft_returns_false()
   -- 1000m → 3280 ft < 5000 ft → false
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 1000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 1000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_altitude_reduces_agl_height()
   -- Cloud ASL 3000, airfield at 2000 → AGL height = 1000m = 3280ft < 5000ft → false
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 2000, VisibilityMeters = 10000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 2000,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_low_visibility_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 8000, Precipitation = false, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 8000,
+    Precipitation = false,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_precipitation_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = true, Dust = false })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = true,
+    Dust = false,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
 function TestVeafWeatherCavok:test_dust_returns_false()
-  local wd = weatherInstance({ Clouds = { Density = 4, BaseMeters = 3000 }, AltitudeMeter = 0, VisibilityMeters = 10000, Precipitation = false, Dust = true })
+  local wd = weatherInstance({
+    Clouds = { Density = 4, BaseMeters = 3000 },
+    AltitudeMeter = 0,
+    VisibilityMeters = 10000,
+    Precipitation = false,
+    Dust = true,
+  })
   luaunit.assertFalse(wd:isCavok())
 end
 
@@ -354,15 +416,17 @@ TestVeafWeatherCarrierCase = {}
 
 function TestVeafWeatherCarrierCase:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 -- AbsTime = 0 → midnight UTC at equator → aeronautical night → Case III
 function TestVeafWeatherCarrierCase:test_night_always_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 0,
-    Clouds = nil, VisibilityMeters = 20000,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 0,
+    Clouds = nil,
+    VisibilityMeters = 20000,
   })
   luaunit.assertEquals(wd:getCarrierCase(), 3)
 end
@@ -371,7 +435,8 @@ end
 -- No effective clouds (density ≤ 4), good vis → Case I
 function TestVeafWeatherCarrierCase:test_day_good_conditions_case1()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 3, BaseMeters = 2000 }, -- density ≤ 4, not counted
     VisibilityMeters = 20000,
   })
@@ -381,7 +446,8 @@ end
 -- Daytime, clouds with density 5 at 600m (> feetToMeters(1000)=305m but < feetToMeters(3000)=914m) → Case II
 function TestVeafWeatherCarrierCase:test_day_mid_clouds_case2()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 5, BaseMeters = 600 }, -- 600m > 305 but < 914
     VisibilityMeters = 15000, -- > NMToMeters(5) = 9260m
   })
@@ -391,7 +457,8 @@ end
 -- Daytime, poor visibility → Case III
 function TestVeafWeatherCarrierCase:test_day_poor_vis_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 3, BaseMeters = 2000 },
     VisibilityMeters = 5000, -- < NMToMeters(5) = 9260m
   })
@@ -401,7 +468,8 @@ end
 -- Daytime, clouds low (below feetToMeters(1000) = 305m) → Case III
 function TestVeafWeatherCarrierCase:test_day_low_clouds_case3()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = { Density = 5, BaseMeters = 200 }, -- 200m < 305m → Case III
     VisibilityMeters = 20000,
   })
@@ -411,7 +479,8 @@ end
 -- Daytime, no clouds at all (nil) → vis OK → Case I
 function TestVeafWeatherCarrierCase:test_day_no_clouds_case1()
   local wd = weatherInstance({
-    Vec3 = { x = 0, y = 0, z = 0 }, AbsTime = 43200,
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     Clouds = nil,
     VisibilityMeters = 20000,
   })
@@ -429,8 +498,12 @@ end
 
 -- Helper: override atmosphere.getWind to return a fixed vector
 local function setWind(x, z)
-  atmosphere.getWind = function(_) return { x = x, y = 0, z = z } end
-  atmosphere.getWindWithTurbulence = function(_) return { x = x, y = 0, z = z } end
+  atmosphere.getWind = function(_)
+    return { x = x, y = 0, z = z }
+  end
+  atmosphere.getWindWithTurbulence = function(_)
+    return { x = x, y = 0, z = z }
+  end
 end
 
 -- No wind → direction 0 (calm), speed 0
@@ -492,7 +565,9 @@ function TestVeafWeatherGetWind:test_turbulence_flag()
     called = true
     return { x = 1, y = 0, z = 0 }
   end
-  atmosphere.getWind = function(_) return { x = 0, y = 0, z = 0 } end
+  atmosphere.getWind = function(_)
+    return { x = 0, y = 0, z = 0 }
+  end
   veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0, true)
   luaunit.assertTrue(called)
 end
@@ -511,7 +586,7 @@ TestVeafWeatherCloudBase = {}
 
 function TestVeafWeatherCloudBase:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
@@ -659,7 +734,7 @@ TestVeafWeatherSunTime = {}
 
 function TestVeafWeatherSunTime:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
@@ -698,11 +773,11 @@ end
 function TestVeafWeatherSlice:test_toStringSlice_returns_nonempty()
   local w = weatherInstance({ MagneticDeclination = 0 })
   local slice = {
-    AltitudeMeters   = 3000,
-    WindDirection    = 270,
-    WindSpeedMps     = 12,
+    AltitudeMeters = 3000,
+    WindDirection = 270,
+    WindSpeedMps = 12,
     TemperatureCelcius = 5,
-    PressureHpa      = 900,
+    PressureHpa = 900,
   }
   local s = w:toStringSlice(slice, veafWeatherUnitSystem.Systems.Faa, false)
   luaunit.assertTrue(#s > 0)
@@ -715,27 +790,27 @@ TestVeafWeatherToString = {}
 
 function TestVeafWeatherToString:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 function TestVeafWeatherToString:test_toString_returns_nonempty()
   local w = weatherInstance({
-    WindDirection       = 270,
-    WindSpeedMps        = 5,
-    VisibilityMeters    = 10000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 2000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 15,
-    DewPointCelcius     = 8,
-    QnhHpa              = 1013,
-    QfeHpa              = 1010,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    WeatherSlices       = {},
+    WindDirection = 270,
+    WindSpeedMps = 5,
+    VisibilityMeters = 10000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 15,
+    DewPointCelcius = 8,
+    QnhHpa = 1013,
+    QfeHpa = 1010,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    WeatherSlices = {},
     MagneticDeclination = 0,
   })
   local s = w:toString(veafWeatherUnitSystem.Systems.Faa, false)
@@ -751,28 +826,28 @@ TestVeafWeatherToStringAtis = {}
 
 function TestVeafWeatherToStringAtis:setUp()
   dcs_mocks.reset()
-  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
   env.mission.theatre = "Caucasus"
 end
 
 function TestVeafWeatherToStringAtis:test_cavok_path()
   -- CAVOK: visibility ≥ 10000m, no precipitation, no dust, cloud base ≥ 1524m (≥ 5000ft)
   local w = weatherInstance({
-    WindDirection       = 090,
-    WindSpeedMps        = 8,
-    VisibilityMeters    = 15000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 2000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 20,
-    DewPointCelcius     = 10,
-    QnhHpa              = 1013,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    Vec3                = { x = 0, y = 0, z = 0 },
-    AbsTime             = 43200,
+    WindDirection = 090,
+    WindSpeedMps = 8,
+    VisibilityMeters = 15000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 20,
+    DewPointCelcius = 10,
+    QnhHpa = 1013,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     MagneticDeclination = 0,
   })
   local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)
@@ -782,26 +857,235 @@ end
 function TestVeafWeatherToStringAtis:test_non_cavok_path()
   -- Non-CAVOK: low cloud base (1000m ≈ 3280ft < 5000ft)
   local w = weatherInstance({
-    WindDirection       = 180,
-    WindSpeedMps        = 3,
-    VisibilityMeters    = 3000,
-    VisibilityAffect    = 0,
-    Dust                = false,
-    Precipitation       = false,
-    Clouds              = { Density = 3, BaseMeters = 1000 },
-    AltitudeMeter       = 0,
-    TemperatureCelcius  = 10,
-    DewPointCelcius     = 8,
-    QnhHpa              = 1005,
-    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
-    Vec3                = { x = 0, y = 0, z = 0 },
-    AbsTime             = 43200,
+    WindDirection = 180,
+    WindSpeedMps = 3,
+    VisibilityMeters = 3000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 1000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 10,
+    DewPointCelcius = 8,
+    QnhHpa = 1005,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
     MagneticDeclination = 0,
   })
   local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)
   luaunit.assertNotStrContains(s, "CAVOK")
   luaunit.assertStrContains(s, "Wind")
+end
+
+-- ============================================================================
+-- veafWeatherAtis — the vanished-airbase path (FIX-ATIS-NIL-MESSAGE)
+--
+-- Credit: MacFlorent, PR #303. His crash fix for issue #302 landed independently, but the idea kept
+-- here is the other one: when the airbase's DCS object is gone there is no weather to report, and the
+-- pilot must get a sentence rather than a nil travelling on into trigger.action.outTextForUnit.
+--
+-- This path had NO test coverage at all, which is how the gap survived a guard being added next to it.
+-- ============================================================================
+TestVeafWeatherAtisVanishedAirbase = {}
+
+function TestVeafWeatherAtisVanishedAirbase:setUp()
+  dcs_mocks.reset()
+  veafWeatherAtis.ListInEffect = {}
+  -- This suite deliberately loads the minimum (veaf, veafTime, veafI18n, veafWeather), so veafAirbases
+  -- is absent. Stub it rather than pulling the module in: what is under test is what veafWeather does
+  -- with the answer, not how the nearest airbase is found.
+  self._hadAirbases = veafAirbases ~= nil
+  self._savedAirbases = veafAirbases
+  veafAirbases = veafAirbases or {}
+  self._savedGetNearest = veafAirbases.getNearestAirbase
+  dcs_mocks.addUnit("Player1", {})
+end
+
+function TestVeafWeatherAtisVanishedAirbase:tearDown()
+  if self._hadAirbases then
+    veafAirbases.getNearestAirbase = self._savedGetNearest
+  else
+    veafAirbases = self._savedAirbases
+  end
+  veafWeatherAtis.ListInEffect = {}
+end
+
+--- An airbase whose DCS object reports it no longer exists — a sunk carrier is the canonical case.
+function TestVeafWeatherAtisVanishedAirbase:_vanished()
+  return {
+    Name = "CVN-75 Truman",
+    DcsAirbase = {
+      isExist = function()
+        return false
+      end,
+      getPoint = function()
+        error("getPoint on a destroyed airbase — exactly the crash issue #302 reported")
+      end,
+    },
+  }
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_getAtis_returns_nil_rather_than_raising()
+  local ok, result = pcall(veafWeatherAtis.getAtis, self:_vanished())
+  luaunit.assertTrue(ok, "a vanished airbase must not raise out of getAtis")
+  luaunit.assertNil(result)
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_getAtisString_returns_nil()
+  luaunit.assertNil(veafWeatherAtis.getAtisString(self:_vanished()))
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_the_pilot_gets_words_not_nothing()
+  -- The defect this pins: nil used to be handed to veaf.outTextForUnit and on to DCS, which raises.
+  veafAirbases.getNearestAirbase = function()
+    return self:_vanished()
+  end
+  local ok = pcall(veafWeather.messageAtcClosestAirbase, "Player1", true)
+  luaunit.assertTrue(ok, "asking for ATIS at a vanished airbase must not raise")
+  luaunit.assertEquals(#dcs_mocks.messages, 1, "the pilot must be told something")
+  -- Plain find, not assertStrContains: the hyphen in "CVN-75" is a Lua pattern quantifier, and the
+  -- assertion helper matches as a pattern — so it failed on a message that was in fact correct.
+  luaunit.assertNotNil(
+    string.find(dcs_mocks.messages[1].text, "CVN-75 Truman", 1, true),
+    "the message must name the airbase, got: " .. tostring(dcs_mocks.messages[1].text)
+  )
+end
+
+function TestVeafWeatherAtisVanishedAirbase:test_the_message_is_translated_not_hardcoded()
+  -- MacFlorent's version hardcoded English. The key must resolve through the catalogue, so a missing
+  -- entry shows up here rather than shipping the raw key to a pilot.
+  local text = veaf.t("weather.atis_unavailable", "Batumi")
+  luaunit.assertNotEquals(text, "weather.atis_unavailable", "the i18n key must exist in the catalogue")
+  luaunit.assertNotNil(string.find(text, "Batumi", 1, true))
+end
+
+-- ============================================================================
+-- TestVeafWeatherRemoteFogKey -- SECREV-2 / VMR-042
+-- ============================================================================
+--- The remote `fog` command indexes veafWeather with a key the pilot supplies. It was reported as a
+--- missing whitelist; measured, `:upper()` already narrows the reachable keys to the all-caps ones,
+--- and every all-caps key on veafWeather is a FOG_* preset -- so it was not exploitable as reported.
+--- What these tests pin is the fragility underneath: the first all-caps constant that is not a fog
+--- object would have turned the command into a Lua error on a pilot's request.
+TestVeafWeatherRemoteFogKey = {}
+
+function TestVeafWeatherRemoteFogKey:setUp()
+  self.activated = nil
+  self.originalSetAndActivateFog = veafWeather.setAndActivateFog
+  veafWeather.setAndActivateFog = function(fogObject)
+    self.activated = fogObject
+  end
+end
+
+function TestVeafWeatherRemoteFogKey:tearDown()
+  veafWeather.setAndActivateFog = self.originalSetAndActivateFog
+  veafWeather.NOT_A_FOG = nil
+end
+
+function TestVeafWeatherRemoteFogKey:_run(command)
+  return veafWeather.executeCommandFromRemote({ "pilot", "Player1", "Unit1", command })
+end
+
+function TestVeafWeatherRemoteFogKey:test_a_known_preset_is_still_accepted()
+  local handled = self:_run("fog fog_static_heavy")
+
+  luaunit.assertTrue(handled, "a real preset must still be applied")
+  luaunit.assertEquals(self.activated, veafWeather.FOG_STATIC_HEAVY)
+end
+
+function TestVeafWeatherRemoteFogKey:test_an_unknown_key_is_refused_without_activating_anything()
+  local handled = self:_run("fog no_such_preset")
+
+  luaunit.assertFalse(handled, "an unknown fog name must not be reported as handled")
+  luaunit.assertNil(self.activated)
+end
+
+function TestVeafWeatherRemoteFogKey:test_an_all_caps_key_that_is_not_a_fog_object_is_refused()
+  -- setAndActivateFog is stubbed here, so what this pins is that a non-fog value never *reaches* it
+  -- -- which is the guard's job. The real function would call fogObject:enable() on whatever it got.
+  veafWeather.NOT_A_FOG = { "some other constant" }
+
+  local handled = self:_run("fog not_a_fog")
+
+  luaunit.assertFalse(handled, "an all-caps key that is not a fog preset must not be reported handled")
+  luaunit.assertNil(self.activated, "a non-fog value must never be passed on for activation")
+end
+
+-- ============================================================================
+-- TestVeafWeatherFogMenuWiring -- FIX-DOCAUDIT-CODE 03
+-- ============================================================================
+--- The "animated NO fog" entries all passed `veafWeather.FOG_ANIMATED_5_NO` -- a constant that does
+--- not exist, since the generated names carry the `M` (`FOG_ANIMATED_5M_NO`). So seven menu entries
+--- handed `nil` to their handler, and even had the name been right, all seven would have applied the
+--- 5-minute preset.
+---
+--- These assertions are **enumerated from the menu-building code**, not sampled: the real
+--- `buildRadioMenu` runs against a recording stub, and every command it wires to
+--- `setAndActivateFog` is checked. A future entry with a mistyped constant fails here by name.
+TestVeafWeatherFogMenuWiring = {}
+
+function TestVeafWeatherFogMenuWiring:setUp()
+  self.commands = {}
+  local recorded = self.commands
+  local record = function(title, _path, method, parameters)
+    table.insert(recorded, { title = title, method = method, parameters = parameters })
+  end
+  self.originalVeafRadio = veafRadio
+  veafRadio = {
+    USAGE_ForAll = 0,
+    USAGE_ForGroup = 1,
+    addMenu = function(title)
+      return { title = title }
+    end,
+    addSubMenu = function(title)
+      return { title = title }
+    end,
+    addCommandToSubmenu = record,
+    addSecuredCommandToSubmenu = record,
+  }
+end
+
+function TestVeafWeatherFogMenuWiring:tearDown()
+  veafRadio = self.originalVeafRadio
+  veafWeather.rootPath = nil
+end
+
+--- Every command wired to setAndActivateFog, with its declared parameter.
+function TestVeafWeatherFogMenuWiring:_fogCommands()
+  veafWeather.buildRadioMenu()
+  local fogCommands = {}
+  for _, command in ipairs(self.commands) do
+    if command.method == veafWeather.setAndActivateFog then
+      table.insert(fogCommands, command)
+    end
+  end
+  return fogCommands
+end
+
+function TestVeafWeatherFogMenuWiring:test_the_menu_wires_fog_commands_at_all()
+  -- A guard on the harness itself: if the stub stopped recording, the sweep below would pass
+  -- vacuously. 6 static + 4 dynamic + 7 durations x 6 = 52 at the time of writing.
+  luaunit.assertTrue(#self:_fogCommands() >= 40, "the fog menu must wire a fog preset per entry")
+end
+
+function TestVeafWeatherFogMenuWiring:test_every_fog_menu_entry_passes_an_existing_preset()
+  for _, command in ipairs(self:_fogCommands()) do
+    luaunit.assertNotNil(command.parameters, "fog menu entry '" .. tostring(command.title) .. "' passes nil")
+  end
+end
+
+function TestVeafWeatherFogMenuWiring:test_every_fog_menu_entry_passes_the_preset_it_advertises()
+  -- The entry's title is read off the preset, so a title that disagrees with the parameter's own
+  -- name means the entry applies a *different* preset than the one the pilot clicked.
+  for _, command in ipairs(self:_fogCommands()) do
+    luaunit.assertEquals(
+      command.parameters and command.parameters.name,
+      command.title,
+      "fog menu entry '" .. tostring(command.title) .. "' applies another preset"
+    )
+  end
 end
 
 -- ============================================================================

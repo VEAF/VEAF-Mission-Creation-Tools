@@ -78,7 +78,12 @@ plugins:
             Developer: Développeur
             Capture a map's airbases: Récupérer les aérodromes d'une carte
             References: Références
-            Tools CLI Reference: Référence CLI des outils
+            CLI Reference: Référence CLI
+            Updater & release tools: Mise à jour & publication
+            Guided checklists (veafAssist): Checklists guidées (veafAssist)
+            Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
+            Ground AI (veafGroundAI): IA au sol (veafGroundAI)
+            Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
             Roadmap: Feuille de route
             Testing: Tests
@@ -114,10 +119,15 @@ nav:
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md
       - veafAirbases: mission-maker/scripts/veafAirbases.md
       - veafAssets: mission-maker/scripts/veafAssets.md
+      - Guided checklists (veafAssist): mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
+      - Missions menu (veafCombatMission): mission-maker/scripts/veafCombatMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
+      - veafCommands: mission-maker/scripts/veafCommands.md
       - veafGrass: mission-maker/scripts/veafGrass.md
+      - Ground AI (veafGroundAI): mission-maker/scripts/veafGroundAI.md
+      - veafI18n: mission-maker/scripts/veafI18n.md
       - veafInterpreter: mission-maker/scripts/veafInterpreter.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md
@@ -125,12 +135,13 @@ nav:
       - veafQraManager: mission-maker/scripts/veafQraManager.md
       - veafRadio: mission-maker/scripts/veafRadio.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
-      - veafSecurity: mission-maker/scripts/veafSecurity.md
+      - Security & permissions (veafSecurity): mission-maker/scripts/veafSecurity.md
       - veafServerHook: mission-maker/scripts/veafServerHook.md
       - veafShortcuts: mission-maker/scripts/veafShortcuts.md
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
       - veafSpawn: mission-maker/scripts/veafSpawn.md
       - veafTransportMission: mission-maker/scripts/veafTransportMission.md
+      - veafUnits: mission-maker/scripts/veafUnits.md
       - veafWeather: mission-maker/scripts/veafWeather.md
   - Developer:
     - Overview: developer/README.md
@@ -140,11 +151,13 @@ nav:
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md
+    - Smoke harness (in-DCS): developer/smoke-harness.md
     - Testing: TESTING.md
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md
     - Pipeline Reference: PIPELINE_REFERENCE.md
     - DCS Radio Specs: mission-maker/dcs-radio-specs.md
     - Lua API Reference: LUA_API_REFERENCE.md
-    - Tools CLI Reference: TOOLS_REFERENCE.md
+    - CLI Reference: CLI_REFERENCE.md
+    - Updater & release tools: TOOLS_REFERENCE.md
     - Roadmap: ROADMAP.md

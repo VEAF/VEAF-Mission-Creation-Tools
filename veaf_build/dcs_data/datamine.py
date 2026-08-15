@@ -21,7 +21,7 @@ _REF_RE = re.compile(r"^[0-9A-Za-z._/-]+$")
 DATAMINE_REPO = "https://github.com/Quaggles/dcs-lua-datamine.git"
 """Upstream repository providing dumped DCS database tables."""
 
-DATAMINE_REF = "dc7d15e8e34150441b109346eea4ca18eb0104a7"
+DATAMINE_REF = "d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a"
 """Pinned upstream commit. Bump (and regenerate) to refresh DCS data."""
 
 

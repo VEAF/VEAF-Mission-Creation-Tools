@@ -14,7 +14,7 @@ Les données DCS entrent dans le dépôt de **deux** façons, non interchangeabl
 |--------|---------|-----------------|----------|
 | **Datamine communautaire** | clone de `Quaggles/dcs-lua-datamine` à un ref pinné | non | table des pays, **base des unités**, specs radio |
 | **Export in-DCS** | capturer un dump en jeu (dcs-bridge `world.getAirbases()`, ou `dcsDataExport.lua`), committer le dump | oui (DCS lancé) | table nom→id des aérodromes, armements |
-| **Fichiers d'install DCS** | lire les fichiers terrain d'une install locale (`--dcs-path`) | install seule (pas lancé) | fréquences ATC d'aérodrome |
+| **Fichiers d'install DCS** | lire les fichiers d'une install locale (`--dcs-path`) | install seule (pas lancé) | fréquences ATC d'aérodrome, contrôles de cockpit |
 
 La voie datamine est reproductible et vérifiable en CI ; c'est la voie par défaut
 pour toutes les données dont VEAF a besoin au build/runtime. L'export in-DCS ne
@@ -33,9 +33,10 @@ veaf-build update-dcs-data --radio
 veaf-build update-dcs-data --airdromes    # fusionne les dumps runtime committés
 ```
 
-`--radio`, `--airdromes` et `--airfield-freqs` sont exclus du run sans flag / `--all` :
-radio a des overlays manuels, airdromes fusionne des dumps runtime committés, et
-airfield-freqs nécessite le chemin d'une install DCS locale (`--dcs-path`).
+`--radio`, `--airdromes`, `--airfield-freqs` et `--cockpit-controls` sont exclus du run
+sans flag / `--all` : radio a des overlays manuels, airdromes fusionne des dumps runtime
+committés, et les deux derniers nécessitent le chemin d'une install DCS locale
+(`--dcs-path`).
 
 Le datamine est cloné à un ref **pinné**
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), donc la génération est
@@ -187,9 +188,9 @@ veaf-build update-dcs-data --airdromes
 
 ```bash
 # 1. injecter le pont dans n'importe quelle mission du théâtre voulu
-veaf-tools inject-bridge maMission.miz
+veaf-tools dcs inject-bridge maMission.miz
 # 2. lancer maMission.miz dans DCS + démarrer dcs-serve, puis capturer
-veaf-tools capture-map --api-key <token superuser dcs-serve> --out-dir <dossier>
+veaf-tools dcs capture-map --api-key <token superuser dcs-serve> --out-dir <dossier>
 ```
 
 Le `veaf-build update-dcs-data --airdromes` (côté dev) fusionne ensuite les `.json`
@@ -201,6 +202,34 @@ le [dépôt VEAF-dcs-bridge](https://github.com/VEAF/VEAF-dcs-bridge) pour `dcs-
 table ne couvre que les théâtres **déjà dumpés** ; un théâtre non dumpé ne donne
 aucune entrée — l'appelant retombe alors sur les ids. La résolution est insensible
 à la casse.
+
+## Les places de parking {#parking}
+
+`parking/<theatre>.json` liste, **par théâtre**, les emplacements où un appareil peut se garer.
+Séparé des dumps d'aérodromes plutôt que fusionné avec eux : les 15 théâtres déjà capturés n'ont pas
+besoin d'être refaits, et la capture des aérodromes reste la moitié utile si la seconde échoue.
+
+Capturé en jeu avec le **VEAF dcs-bridge**, `Airbase:getParking(false)` par aérodrome :
+
+```bash
+veaf-tools dcs capture-map --parking
+```
+
+**Un appareil garé porte deux numéros distincts, et confondre les deux met l'avion ailleurs** :
+`parking` et `parking_id`, qui valent par exemple 28 et 24 sur le même F-14A dans les fixtures de ce
+dépôt. Ce sont les `Term_Index` et `Term_Index_0` du runtime. C'est cette paire qui a fait de
+`add_air_group` sur un tarmac une capture de données (ticket 08) puis une écriture (ticket 09) au
+lieu d'une seule tâche : aucune donnée livrée ici ne portait ces numéros — les 15 dumps d'aérodromes
+ne contiennent que `{id, name, lat, lon, coalition}`.
+
+Le dump garde **toutes** les clés que chaque emplacement porte, aplaties d'un niveau et en chaînes de
+caractères : le schéma de l'API livré ici déclare quatre champs alors qu'un fichier de mission en
+prouve davantage, donc la forme vient du runtime et non du schéma. Un test épingle qu'un champ futur
+inconnu survit à la lecture. Un théâtre qui ne renvoie aucun emplacement est une donnée, pas un
+échec.
+
+Pas gardé par la CI, comme les autres tables dépendantes du runtime. Le mode opératoire côté
+opérateur est dans [Récupérer les aérodromes d'une carte](capture-airbases.md).
 
 ## La table des fréquences d'aérodrome
 
@@ -218,3 +247,47 @@ veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle D
 ```
 
 Elle ne couvre que les théâtres **installés**.
+
+## Les index de contrôles de cockpit {#cockpit-controls}
+
+`src/python/veaf-tools/veaf_libs/data/cockpit-controls/<type>.yaml` décrit, pour un
+appareil, chacun de ses **contrôles cliquables** : l'argument d'animation à lire, le
+libellé que DCS affiche au survol, les positions nommées, la plage de valeurs, et si le
+contrôle a une position **lisible**. C'est ce que le résolveur de checklists guidées lit
+pour traduire un `throttle sur idle` écrit par un instructeur en paramètres techniques,
+sans que personne n'ouvre une install DCS.
+
+Source : `Mods/aircraft/<Module>/Cockpit/Scripts/clickabledata.lua` (ou `Cockpit/` chez
+Heatblur), plus `clickable_defs.lua` pour la plage de valeurs et `draw_args.lua` quand le
+module nomme ses arguments. **Dépendant de l'install**, donc **non gardé par la CI** :
+
+```bash
+veaf-build update-dcs-data --cockpit-controls --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+```
+
+`--aircraft F-16C` limite la génération à un module. Un module non installé est
+simplement sauté ; le nombre d'éléments que le parseur n'a pas su lire est **affiché**,
+jamais avalé en silence.
+
+### Ce que l'index dit, et ce qu'il ne dit pas
+
+Trois pièges, tous mesurés sur des cockpits réels :
+
+- **`positions` est dans l'ordre du libellé, pas l'ordre des valeurs.** Le `MAIN PWR
+  Switch, MAIN PWR/BATT/OFF` du F-16C vaut +1 / 0 / −1 dans cet ordre, alors que le
+  `DIGITAL BACKUP, OFF/BACKUP` vaut 0 / 1. Déduire une valeur d'un rang est faux une fois
+  sur deux, silencieusement.
+- **Nommer les positions dans le libellé est une habitude ED récente, pas une règle.**
+  Sur les cockpits indexés ici : F-16C 127 contrôles sur 284, AH-64D 123 sur 478, A-10C
+  8 sur 470, F-14B **aucun** (Heatblur écrit `Hydraulic Transfer Pump Switch`, sans ses
+  positions). Un résolveur qui suppose des positions nommées ne marche que chez ED.
+- **`readable: false` n'est pas un défaut de l'index.** Un bouton n'a pas de position, et
+  un interrupteur à rappel est revenu au neutre avant qu'on puisse le lire ; une étape sur
+  un de ces contrôles doit être confirmée par le pilote.
+
+Chaque module a son dialecte, et chacun a été trouvé en indexant un cockpit réel :
+l'AH-64D, biplace, nomme la place avant le libellé (`mpd_button(CREW.PLT, _("…"), …)`) et
+utilise des apostrophes ; le clavier UFC de l'A-10C passe un libellé vide ; Heatblur nomme
+ses arguments (`cockpit_args.HYD_ISOLATION_Switch`) au lieu de les écrire. Le F-14B(U) n'a
+pas de cockpit à lui : son `clickabledata.lua` fait deux lignes de `dofile` vers celui du
+F-14B, et les deux appareils partagent donc un seul index.

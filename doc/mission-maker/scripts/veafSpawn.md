@@ -1,6 +1,6 @@
 # veafSpawn — Apparition dynamique d'unités
 
-**Module ID:** `SPAWN` | **Version:** 1.59.x | **Fichier:** `veafSpawn.lua`
+**Module ID:** `SPAWN` | **Fichier:** `veafSpawn.lua`
 
 ---
 
@@ -92,7 +92,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 ### Faire apparaître un AFAC/JTAC
 
 ```
-_spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
+_spawn afac, name A-10C, freq 133.0, mod AM, laser 1688, alt 15000
 ```
 
 **Options :**
@@ -100,7 +100,7 @@ _spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
 - `name` — type d'avion
 - `freq` — fréquence radio
 - `mod` — modulation (`AM` ou `FM`)
-- `code` — code laser
+- `laser` — code laser, entre `1111` et `1688`. Les trois derniers chiffres valent chacun de 1 à 8 (pas de `0`, pas de `9`) : `1688` convient, `1690` non. Un code impossible est ignoré et le code par défaut (`1688`) reste en vigueur.
 - `alt` — altitude d'orbite (pieds)
 - `speed` — vitesse d'orbite (nœuds)
 - `immortal` — unité invulnérable
@@ -119,7 +119,7 @@ _spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 - `speed` — vitesse du convoi (km/h)
 - `defense [0-5]` — niveau de défense aérienne
 - `armor [0-5]` — niveau de blindage
-- `size [0-5]` — nombre de véhicules
+- `size` — nombre de véhicules (défaut : 10 ; l'alias `-convoy` tire une taille aléatoire entre 6 et 15)
 - `patrol` — retour à la position de départ
 - `offroad` — autoriser le déplacement hors route
 
@@ -174,7 +174,7 @@ Un **groupe d'avion spawnable** est identifié par le **préfixe de nom `veafSpa
 Le fichier utilise le **schéma DCS complet** des groupes d'aéronefs (`airplanes`/`helicopters` → `coalitions` → pays → groupe), identique à celui décrit dans la [Référence Pipeline — Étape 3](../../PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups). On l'obtient en général par extraction depuis une mission :
 
 ```bash
-veaf-tools extract-aircraft-groups --kind spawnable
+veaf-tools content extract-aircraft-groups --kind spawnable
 ```
 
 Les **modèles de slot dynamique** (`dynSpawnTemplate = true`, slots Dynamic Slots DCS) sont une famille distincte, dans `src/dynamic-slot-templates.yaml` (étape `dynamic_slot_templates`) — voir l'[ADR 0002](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0002-aircraft-group-injection-sort-criteria.md).

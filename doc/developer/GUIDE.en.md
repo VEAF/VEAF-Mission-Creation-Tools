@@ -52,7 +52,7 @@ VEAF-Mission-Creation-Tools/
 ├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
 ├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
 ├── src/
-│   ├── scripts/veaf/             # Lua runtime modules (34 files)
+│   ├── scripts/veaf/             # Lua runtime modules
 │   └── python/veaf-tools/        # Python CLI source
 │       ├── veaf-tools.py         # Entry point
 │       ├── veaf_libs/            # Shared utilities (logger, progress, miz)
@@ -62,9 +62,10 @@ VEAF-Mission-Creation-Tools/
 ├── dist/                         # PyInstaller .exe output
 ├── build/                        # Temporary build workspace
 ├── test/
-│   └── lua/                      # Lua unit tests (31 suites)
+│   ├── lua/                      # Lua unit tests
+│   └── python/                   # Python unit tests
 ├── doc/                          # Documentation
-├── openspec/                     # Change management (OpenSpec workflow)
+├── .backlog/                     # Lot backlog (PRDs + tickets)
 └── .github/
     └── workflows/                # CI/CD GitHub Actions
 ```
@@ -152,6 +153,11 @@ Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 scoop install lua51
 ```
 
+> If another Lua version is already installed through scoop, `lua51` **replaces its `lua` shim**
+> (the package declares one). The `lua51` shim stays available for both, and
+> `poetry run test-lua` knows how to find it — but the bare `lua` command in your terminal will
+> have changed version.
+
 Alternatively, download a binary from [LuaBinaries](https://luabinaries.sourceforge.net/) (`lua-5.1.x_Win64_bin.zip`), extract it, and add the folder to the system PATH.
 
 Verify:
@@ -159,6 +165,9 @@ Verify:
 ```powershell
 lua -v   # Lua 5.1.x expected
 ```
+
+If it is not 5.1, `poetry run test-lua` refuses to run and prints what it found: running the suite
+under 5.4 produces dozens of failures that look like regressions in the VEAF code and are not.
 
 #### 5. StyLua 2.4.0 (Lua code quality) {#stylua-setup}
 
@@ -331,6 +340,34 @@ logger.error("Failed", raise_exception=True)
 3. Register the command in `veaf-tools.py` using `typer`
 4. Add YAML config schema in `models.py`
 
+### Shared Test Helpers {#shared-test-helpers}
+
+`test/python/testlib/` holds the helpers several test files share. The folder is on pytest's
+`pythonpath`, so its modules import by name:
+
+```python
+from mission_builder_factory import make_worker
+```
+
+`make_worker(**overrides)` builds a `MissionBuilderWorker` **without running `__init__`** — that
+reads `mission.yaml`, resolves the scripts path and checks the loader exists on disk, all of which a
+unit test of one method wants to avoid. Every attribute `__init__` assigns is present with a neutral
+value, so the test only names what it actually cares about:
+
+```python
+worker = make_worker(mission_yaml={"dcs_bridge": {"enabled": True}}, dev_mode=True)
+```
+
+No filesystem access: `mission_folder` defaults to `None`. When a folder is given,
+`output_mission` derives from it (`<mission_folder>/out.miz`). An unknown key is rejected
+(`TypeError`) rather than silently creating an attribute nothing reads; **method** stubs are
+assigned on the returned worker, not through `make_worker`.
+
+Adding a field to `MissionBuilderWorker.__init__` requires adding an entry to
+`init_field_defaults()`. That is not something to remember:
+`test/python/mission_builder/test_mission_builder_factory_contract.py` reads the `self.<field>`
+assignments out of `__init__` and fails naming the missing field and the file to fix.
+
 ---
 
 ## Build and Release
@@ -339,7 +376,7 @@ logger.error("Failed", raise_exception=True)
 
 ```powershell
 # Build (compiles Lua + builds .exe)
-poetry run veaf-build build --version 6.1.0
+poetry run veaf-build build --version <version>
 ```
 
 What it does:
@@ -405,7 +442,7 @@ poetry run test-lua
 
 Exit code `0` = all pass, `1` = failures.
 
-Works on Windows, Linux, and inside the DevContainer (auto-detects `lua5.1` / `lua` / Windows fallback path).
+Works on Windows, Linux, and inside the DevContainer (auto-detects `lua5.1` / `lua51` / `lua` / Windows fallback path). Every candidate is **queried with `lua -v`**: a 5.2+ interpreter is refused, with install instructions, rather than used — otherwise 5.4's incompatibilities look like regressions in the VEAF code.
 
 ### Filtered Run
 
@@ -420,7 +457,7 @@ poetry run test-lua --filter combat
 poetry run test-lua --coverage
 ```
 
-Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
+Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.en.md#coverage) for details.
 
 ### Single Suite
 
@@ -435,7 +472,7 @@ lua test/lua/test_veafSpawn.lua
 - **Module loader:** `test/lua/veaf_loader.lua`
 - No DCS installation required
 
-Full testing reference: [Testing Guide](../TESTING.md)
+Full testing reference: [Testing Guide](../TESTING.en.md)
 
 ---
 
@@ -445,10 +482,10 @@ Full testing reference: [Testing Guide](../TESTING.md)
 
 ```powershell
 # Check formatting (same as CI)
-~/.local/bin/stylua.exe --check src/scripts/veaf/
+~/.local/bin/stylua.exe --check src/scripts/veaf/ test/lua/
 
 # Auto-fix
-~/.local/bin/stylua.exe src/scripts/veaf/
+~/.local/bin/stylua.exe src/scripts/veaf/ test/lua/
 
 # Static analysis
 luacheck src/scripts/veaf/ --config .luacheckrc
@@ -461,14 +498,16 @@ Luacheck is enforced by the `Luacheck` CI job.
 
 | Job | What it checks |
 |-----|---------------|
-| `Lua Unit Tests` | All 31 test suites pass |
+| `Lua Unit Tests` | Every test suite passes |
 | `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
-| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
-| `python-quality` | ruff lint + format, mypy types, pytest |
+| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` and `test/lua/` |
+| `Lua Coverage` | Line coverage (luacov) above the ratchet floor (`--cov-fail-under`) — blocking |
+| `python-quality` | ruff lint + format (`src/python/ test/python/ veaf_build/`), mypy (`src/python/veaf-tools`), pytest |
 | `Docs Check` | Documentation links and anchors, FR/EN pairing, pages missing from the menu |
 | `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
 
-All CI jobs must be green before a PR can be merged.
+All CI jobs must be green before a PR can be merged. Exception: `dcs-mock-coverage` is
+`continue-on-error` — informative, it does not block the merge.
 
 ### Before a commit touching the documentation {#docs-check}
 
@@ -476,7 +515,10 @@ All CI jobs must be green before a PR can be merged.
 poetry run docs-check
 ```
 
-The `Docs Check` CI job runs exactly that command. It refuses four kinds of rot that had quietly
+The `Docs Check` CI job runs exactly that command, which chains **three passes**: the main pass
+over `doc/` (the table below), a relative-link pass over the rest of the repository (`.backlog/`,
+`docs/`, the root pages), and a documentation-coverage pass (every capability the code defines
+must be named by its reference page). The main pass refuses four kinds of rot that had quietly
 accumulated before it existed (see the `DOC-AUDIT-PASS` lot):
 
 | Check | Why |
@@ -519,8 +561,8 @@ The version you enter is also the one stamped into the pages — otherwise repub
 Push a `published-v*` tag — the `Release` CI workflow does everything automatically:
 
 ```bash
-git tag published-v6.1.0
-git push origin published-v6.1.0
+git tag published-v<version>
+git push origin published-v<version>
 ```
 
 ---
@@ -528,7 +570,7 @@ git push origin published-v6.1.0
 ## Developer Mode {#developer-mode}
 
 Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
-When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone
+When enabled, `veaf-tools mission build` reads scripts from a local VEAF-Mission-Creation-Tools clone
 instead of the `published/` folder shipped with veaf-tools.
 
 ### Prerequisites
@@ -540,7 +582,7 @@ instead of the `published/` folder shipped with veaf-tools.
 
 | Priority | Method | Effect |
 |----------|--------|--------|
-| 1 | `veaf-tools build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
+| 1 | `veaf-tools mission build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
 | 2 | `mission.yaml build.dev_mode: true` | Persisted config — applies every build |
 | 3 | *(default)* | `false` — uses published scripts |
 
@@ -572,7 +614,7 @@ poetry run veaf-build build
 
 # 3. Build a test mission using the local scripts
 cd path/to/my-mission
-veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
+veaf-tools mission build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
 ```
 
 ---
@@ -584,7 +626,7 @@ veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
 - **Feature work:** create `feature/xxx` from `develop`, open PR → `develop`
 - **Bug fixes:** create `fix/xxx` from `develop`, open PR → `develop`
 - **Hotfixes to production:** `fix/xxx` from `master`, PR → `master`
-- **Releases:** `release/vX.Y.Z` from `develop`, PR → `master`
+- **Releases:** `release/X.Y.Z` (no `v`) from `develop`, PR → `master`
 
 ### Commit Convention
 
@@ -611,7 +653,7 @@ docs(api): document veafMove tanker helpers
 
 ## Further Reading
 
-- [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for the modules
-- [Testing Guide](../TESTING.md) — test infrastructure details
-- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI
-- [Roadmap](../ROADMAP.md) — planned work
+- [Lua API Reference](../LUA_API_REFERENCE.en.md) — full public API for the modules
+- [Testing Guide](../TESTING.en.md) — test infrastructure details
+- [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands and every option
+- [Roadmap](../ROADMAP.en.md) — planned work

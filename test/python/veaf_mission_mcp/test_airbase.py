@@ -5,7 +5,6 @@ from typing import Any
 
 import pytest
 from mission_tools.miz_tools import DcsMission
-
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_mission_mcp import airbase
 from veaf_mission_mcp.airbase import _airbase_entry, set_airbase_coalition

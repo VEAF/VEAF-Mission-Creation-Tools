@@ -25,10 +25,10 @@ none of these fixes, so a mission built the ordinary way would show the old beha
 `ZONES DE COMBAT`, `APPARITION`, `Activer la mission` and `menu.combatzone.root`, and its
 `veaf-config.lua` declares `veaf.config.language = "fr"`.
 
-**Deux réserves sur ce fichier**, toutes deux mesurées le 2026-08-15 : il démarre à **03:48** (de nuit
-— voir [ticket 04](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/04-start-time.md)) et son slot A-10
-est en `skill: Client`, donc imprenable en solo. Pour un item qui demande seulement de charger la
-mission et de lire les menus, aucune des deux ne gêne ; pour voler, reconstruire d'abord.
+**Utiliser `TestMenuFR-fixed.miz`**, à côté, et non `TestMenuFR.miz` : la première corrige les trois
+défauts mesurés le 2026-08-15 sur la seconde — l'A-10 marqué `dynSpawnTemplate`, sa radio coupée, et un
+démarrage à 03:48 ([ticket 04](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/04-start-time.md)). Tout
+le reste est identique, octet pour octet.
 
 Rebuild it, if needed, with:
 
@@ -48,31 +48,32 @@ David, in front of the game: the labels are correct. The 90 localised labels of
 [`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
 longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
-## ✅ Le slot A-10 du 2026-08-14 : diagnostiqué le 2026-08-15
+## ✅ Le slot A-10 du 2026-08-14 : `dynSpawnTemplate`
 
-David, en jeu : *"je le prends, et je reste spectateur"*. Il a supprimé ce slot, ajouté un A-10 à la
-main dans l'éditeur, sauvé sous le suffixe **`-david`** — et là ça fonctionne. Le différentiel entre
-les deux tables a été fait, et il ne laisse **qu'une** différence de structure :
+David, en jeu : *"je le prends, et je reste spectateur"*. Le différentiel contre l'A-10 qu'il a ajouté
+lui-même dans l'éditeur (mission `-david`) donne :
 
-| | posé par mon script | ajouté dans l'éditeur |
+| | mon script (ko) | éditeur (ok) |
 |---|---|---|
-| `skill` | **`Client`** | **`Player`** |
-| ids | `groupId`/`unitId` = 9001 | 9003 — *l'éditeur utilise 900x aussi* |
+| `dynSpawnTemplate` | **`true`** | **`false`** |
+| `communication` / `frequency` | `false` / 121.5 | `true` / 251 |
+| `skill` | `Client` | `Player` |
+| ids | 9001 | 9003 |
 | parking | `43` / `16`, `airdromeId` 24 | `6` / `01`, `airdromeId` 22 |
-| premier waypoint | `TakeOffParking` | `TakeOffParking` — identique |
 
-Donc les ids forcés sont **innocentés** — c'était mon suspect, et l'éditeur fait pareil. La paire
-parking l'est aussi (complète des deux côtés), et `coalitions` est peuplé dans les deux fichiers. Il
-reste `Client`, qui est un slot **multijoueur** : une session solo n'offre que `Player`. D'où un slot
-visible et imprenable.
+`dynSpawnTemplate = true` ne décrit pas un slot : il désigne le groupe comme **modèle de spawn
+dynamique**, ce qui suppose une base aérienne configurée pour ça — cette mission n'en a aucune. J'avais
+copié le groupe depuis la démo avec son drapeau. David l'avait dit dès le premier jour : *"il n'y a que
+des templates de groupe, et pas de base aérienne configurée pour les slots dyn"*.
 
-Consigné dans
-[`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md),
-qui écrivait `skill: "Client"` partout — tel quel, il aurait livré exactement ce bug.
+**`skill` est innocenté** : David, 2026-08-15 — *"c'est pas le slot Client ; ça fonctionne dans une
+mission DCS"*. Les ids forcés aussi (l'éditeur écrit 900x lui-même), et la paire parking, complète des
+deux côtés. Consigné dans
+[`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md).
 
-**Ce qui reste à confirmer en jeu (2 min)** : DCS n'accepte qu'**un seul** `Player` par mission. La
-règle retenue pour l'action — `Player` pour le premier slot d'un camp, `Client` pour les suivants —
-tient-elle quand il y en a deux ? À vérifier quand le ticket 03 sera implémenté, pas avant.
+**`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi) et attend son essai. Si le
+slot ne se prend toujours pas : ajouter un A-10 à la main **dans cette mission-là**, la sauver, et
+refaire le différentiel — protocole proposé par David.
 
 ### Reste de la session
 

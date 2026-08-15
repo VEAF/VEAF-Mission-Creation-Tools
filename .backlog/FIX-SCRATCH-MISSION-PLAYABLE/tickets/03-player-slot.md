@@ -14,8 +14,9 @@ missing field makes DCS refuse the mission.
 
 ## What it does, and what it deliberately does not
 
-An action creating an aircraft group whose units carry a **playable** skill (see the measurement
-below — `Client` alone is what broke the 2026-08-14 slot), with:
+An action creating an aircraft group whose units carry `skill: "Client"` and whose group carries
+`dynSpawnTemplate = false` (see the measurement below — the missing flag is what broke the 2026-08-14
+slot), with:
 
 - **an air start** — position, altitude, speed, heading. Needs no runtime data at all.
 - **a ground start when the caller supplies a parking spot.** This action does **not** resolve airfield
@@ -34,34 +35,42 @@ writer. `A-10C Kobuleti  HOT` is an `A-10C_2`, `skill: Client`, `parking: "43"`,
 is `TakeOffParkingHot` / `From Parking Area Hot`. The cold pair is `TakeOffParking` /
 `From Parking Area`, verified by making exactly that edit on 2026-08-14 and loading the result.
 
-### `skill: Client` is what made the 2026-08-14 slot unusable
+### `dynSpawnTemplate` is what made the 2026-08-14 slot unusable
 
-**Written as `Client` above, this ticket would have shipped the very bug it exists to fix.** The slot
-placed by hand on 2026-08-14 carried `skill: "Client"`; David took it and stayed a spectator. The one
-he added himself in the editor, in the same mission, works — and the differential between the two
-groups (run 2026-08-15) leaves exactly one structural difference:
+A slot created by this action **must carry `dynSpawnTemplate = false`**, and that single field is the
+whole lesson of the 2026-08-14 defect.
 
-| | placed by the script | added in the editor |
+The slot placed that day was copied out of the demo mission — including its `dynSpawnTemplate = true`.
+That flag does not describe a slot: it marks the group as a **template for dynamic spawn**, which
+requires an airfield configured for it. This mission configures none, so the group was in the file,
+absent from the slot list, and David stayed a spectator. He had in fact said so on day one — *"il n'y
+a que des templates de groupe, et pas de base aérienne configurée pour les slots dyn"* — and the
+build had 105 groups carrying the flag.
+
+The differential against the A-10 he added in the editor, and against the demo's original:
+
+| | script (ko) | editor (ok) |
 |---|---|---|
-| `skill` | **`Client`** | **`Player`** |
-| ids | `groupId`/`unitId` = 9001 | 9003 — *the editor uses 900x too* |
+| `dynSpawnTemplate` | **`true`** | **`false`** |
+| `communication` / `frequency` | `false` / 121.5 | `true` / 251 |
+| `skill` | `Client` | `Player` |
+| ids | 9001 | 9003 |
 | parking | `43` / `16`, `airdromeId` 24 | `6` / `01`, `airdromeId` 22 |
 | first waypoint | `TakeOffParking` | `TakeOffParking` — identical |
 
-So the forced ids are **cleared**, and so is the parking pair: both missions carry a complete one. The
-`coalitions` table is populated in both (the copy on disk is the one rebuilt after David's report), so
-that is not it either. `Client` is a **multiplayer** slot; a single-player session offers only `Player`,
-which is why the slot was visible and untakeable.
+**`skill` is not the cause**: David, 2026-08-15 — *"c'est pas le slot Client ; ça fonctionne dans une
+mission DCS"*. `Client` stays what this action writes. The forced ids are cleared too (the editor
+writes 900x itself), as is the parking pair, complete on both sides.
 
-What the action must therefore do — and the part still to confirm in game, since DCS allows **one**
-`Player` per mission: write `Player` for the first slot of a side and `Client` for the following ones,
-rather than `Client` for all. The 80 VEAF aircraft templates are all `Client` and must stay that way;
-they are templates, not slots.
+`communication = false` is a second, milder defect of the same copy: both working A-10s carry `true`
+with a real frequency. A created slot gets a group frequency rather than an inherited `false`.
 
 ## TDD
 
-- The first slot created on a side gets `skill: "Player"`, a second one `Client` — the assertion that
-  would have caught the 2026-08-14 defect. Both show up in `describe_units`.
+- A created slot has `skill: "Client"`, `dynSpawnTemplate = false` and a group frequency — the three
+  assertions that would have caught the 2026-08-14 defect. It shows up in `describe_units`.
+- Copying a group out of a mission does **not** carry `dynSpawnTemplate = true` over into a slot. That
+  is the exact path the defect took.
 - Cold and hot write the right `type`/`action` pair — both asserted, since writing one without the
   other is the silent failure here.
 - A ground start with no parking spot is refused, with a message naming ticket 09's data.

@@ -56,8 +56,8 @@ map, and **starting DCS is David's**:
 veaf-tools capture-map --parking --out-dir veaf_build/dcs_data
 ```
 
-- [x] 🧑 **Caucasus captured 2026-08-15** by David. Syria and PersianGulf remain — the bridge missions
-      for both are ready in `tmp\bridge-maps\collect\` (Syria built the same day).
+- [x] 🧑 **Caucasus and Syria captured 2026-08-15** by David. PersianGulf remains — its bridge mission
+      is ready in `tmp\bridge-maps\collect\`.
 - [x] Committed as `veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`, beside the airbase dump
       rather than in a sibling `parking/` folder, so the two files that share a key sit together.
 - [x] **Shape recorded below, and it contradicts the table above**: `Term_Index_0` is `-1` on every
@@ -79,13 +79,19 @@ A slot carries exactly eight keys:
  "vTerminalPos.y": "18.01001739502", "vTerminalPos.z": "635663.3125"}
 ```
 
+**Syria was captured the same day** — 225 airfields, 4202 slots, again 225 of 225 keys matching its
+airbase dump, and the **same eight fields on every one of the 5144 slots** across both theatres (a
+single distinct field set, so the shape is stable rather than per-map). Sizes differ wildly: Caucasus
+runs 7–94 slots per field, Syria 1–195, and no field reports zero.
+
 ### `parking_id` is **not** `Term_Index_0` — the assumption above is wrong
 
-`Term_Index_0` is **`-1` on all 942 slots**. So is `TO_AC` (`"false"` throughout). Yet the A-10 that
-flies at Kobuleti declares `parking: "43"` **and** `parking_id: "16"`, and David's own declares
-`6` / `"01"` — a zero-padded string, which reads like the sign painted on the ramp rather than an
-index. **Ticket 09 must not derive `parking_id` from this capture**; where it comes from is an open
-question, and guessing it is what puts an aircraft on the grass.
+`Term_Index_0` is **`-1` on all 5144 slots of both theatres**, and `TO_AC` is `"false"` throughout.
+Two theatres agreeing rules out a one-map accident. Yet the A-10 that flies at Kobuleti declares
+`parking: "43"` **and** `parking_id: "16"`, and David's own declares `6` / `"01"` — a zero-padded
+string, which reads like the sign painted on the ramp rather than an index. **Ticket 09 must not
+derive `parking_id` from this capture**; where it comes from is an open question, and guessing it is
+what puts an aircraft on the grass.
 
 `Term_Index` is the half that is confirmed: slot `43` exists at Kobuleti (airbase 24), which is the
 one the working A-10 sits on.
@@ -103,9 +109,11 @@ The same slot's position matches the flying A-10's group **exactly**:
 So **mission `y` is runtime `z`**, and runtime `y` is the altitude — exactly the trap
 `docs/agents/dcs-coordinates.md` warns about, here confirmed on real data rather than argued.
 
-`Term_Type` takes 5 values across the theatre: `104` (510 slots), `68` (340), `72` (46), `16` (42),
-`40` (4). What they mean is not captured and ticket 09 should not assume — filtering a slot by type
-without knowing which type accepts an A-10 is the next silent failure in line.
+`Term_Type` takes 5 values on Caucasus — `104` (510 slots), `68` (340), `72` (46), `16` (42), `40`
+(4) — and 6 on Syria, where `100` (283) appears and `40` jumps to 914. So the set is **not** fixed
+per theatre, and a reader hard-coding the Caucasus five would silently drop 283 Syrian slots. What
+the values mean is not captured, and ticket 09 should not assume: filtering a slot by type without
+knowing which type accepts an A-10 is the next silent failure in line.
 
 ## Careful
 

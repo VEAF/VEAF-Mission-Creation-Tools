@@ -9,6 +9,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.14.0] — 2026-08-15
+
 ### ⚠️ Behaviour change — tell your pilots before you ship this
 
 **`/login` and `_auth` no longer unlock the mission for everybody.**

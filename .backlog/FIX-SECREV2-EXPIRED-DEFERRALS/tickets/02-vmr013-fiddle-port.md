@@ -18,6 +18,18 @@ The triage entry adds something the review did not say, and it is the part to ca
 
 That is the sentence to re-read before deciding this can wait again.
 
+### The unauthenticated half is no longer a claim — 2026-08-15
+
+While probing the smoke harness on David's machine, arbitrary Lua was executed against
+`127.0.0.1:12081` from an ad-hoc Python script that presented **no credential of any kind**: an
+enumeration of all 1683 globals in the scripting state, plus reads of `env.mission.theatre`. It
+returned data on the first attempt.
+
+That confirms the finding's first half by doing it. It does **not** test the half the triage calls
+understated — whether a **web page** can do the same through `cors='*'` and the GET channel — which
+would take one HTML file and a browser, and is the measurement that would settle whether this can wait
+again.
+
 ## Why it was deferred, and what has changed
 
 Deferred because *"no DCS is available to test a change to the transport `FEAT-DCS-SMOKE-HARNESS` speaks

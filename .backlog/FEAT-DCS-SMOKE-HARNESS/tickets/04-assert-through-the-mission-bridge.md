@@ -27,6 +27,23 @@ The pattern explains itself once you sort the globals by who creates them:
 The route reaches a scripting state that never ran the mission's scripts. `dcs.log` agrees:
 `Error while executing string in scripting` for probes as trivial as `return true`.
 
+### Re-measured 2026-08-15, on a different mission, same verdict
+
+Run again against `TestMenuFR-fixed.miz`: same two failures, same four passes. Probing the route's
+globals directly adds three details that close the door on any remaining doubt:
+
+- `env.mission.theatre` returns `Caucasus` — so the route **is** in a state that can read the loaded
+  mission, which is what made `env`-based detection look convincing;
+- `veaf` is `nil`, **and so is `mist`** — not one of the **1683** globals in that state contains the
+  string "veaf", in any case;
+- `missionCommands`, `trigger` and `coalition` are all tables, which is why the DCS-native checks keep
+  passing and why 4/6 reads as "mostly working".
+
+Nothing here is new — the ticket had it right on 2026-08-09. It is recorded because a second
+independent measurement on another mission removes "maybe that run was odd" as an explanation, and
+because **running the harness again cannot produce anything else until this ticket lands**. That is the
+useful conclusion for whoever is tempted to spend a DCS session on it.
+
 ## The route that does work, proven the same day
 
 `dcs-bridge.lua` is injected **into the mission** at build time (it is the trigger whose index

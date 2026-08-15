@@ -548,6 +548,10 @@ Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le 
 | `--url` | `str` | `http://127.0.0.1:12081` | URL de base du hook dcs-fiddle-server.lua (défaut : http://127.0.0.1:12081). |
 | `--timeout` | `float` | `10.0` | Délai d'attente par requête, en secondes. |
 | `--probe-only` | `boolean` | `false` | Rapporte seulement ce qu'un DCS en cours autorise, sans lancer de vérification. |
+| `--full` | `boolean` | `false` | Lance DCS, charge --mission, vérifie, puis quitte — un run complet sans surveillance. |
+| `--mission` | `str` | *(aucun)* | Chemin du .miz à charger pour un run --full. |
+| `--dcs-exe` | `str` | *(aucun)* | Chemin de DCS.exe pour un run --full (défaut : déduit du dossier d'installation d'un DCS en cours). |
+| `--allow-running` | `boolean` | `false` | Pour --full : utilise un DCS déjà lancé au lieu de refuser (il charge la mission par-dessus la session en cours). |
 | `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans ~/dcs-fiddle-token.txt, ou $DCS_FIDDLE_TOKEN). |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 

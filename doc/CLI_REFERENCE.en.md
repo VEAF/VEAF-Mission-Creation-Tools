@@ -546,6 +546,10 @@ Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook.
 | `--url` | `str` | `http://127.0.0.1:12081` | Base URL of the dcs-fiddle-server.lua hook (default: http://127.0.0.1:12081). |
 | `--timeout` | `float` | `10.0` | Per-request socket timeout, in seconds. |
 | `--probe-only` | `boolean` | `false` | Only report what a running DCS lets the harness do, run no checks. |
+| `--full` | `boolean` | `false` | Launch DCS, load --mission, assert, then quit — a full unattended run. |
+| `--mission` | `str` | *(none)* | Path to the .miz to load for a --full run. |
+| `--dcs-exe` | `str` | *(none)* | Path to DCS.exe for a --full run (default: discovered from a running DCS's install dir). |
+| `--allow-running` | `boolean` | `false` | For --full: use a DCS that is already running instead of refusing (it loads the mission over the current session). |
 | `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic-auth password (default: read from ~/dcs-fiddle-token.txt, or $DCS_FIDDLE_TOKEN). |
 | `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
 

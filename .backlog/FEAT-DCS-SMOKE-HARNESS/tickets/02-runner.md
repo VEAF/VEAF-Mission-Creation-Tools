@@ -1,10 +1,25 @@
 # 02 — The runner: launch, load, assert, quit
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 Type: feat
 Files: `veaf_build/` or a new `veaf-tools` machine-only command, `test/python/`
 
 Depends on: 01
+
+## The lifecycle is written — 2026-08-15
+
+The remainder deferred below (locate, launch, load, quit) shipped as `veaf_libs/dcs_lifecycle.py`
+and the `smoke-test --full --mission <miz>` mode, on the facts the probe had already measured:
+`net.load_mission` present and `isServer=true` in single-player (so the SERVER-ONLY call is
+legitimate on a local instance — option 1 of "the decision step 4 now needs"), `exitProcess`
+present. It launches DCS, polls the hook until it answers (the ~28 Hz-at-the-menu measurement is
+what makes this a poll, not a fixed sleep), loads the mission, waits on the mission **name** rather
+than a frame counter (which freezes during the blocking load), runs the checks, and **always**
+quits a DCS it launched — killing it if `exitProcess` does not take. It **refuses** a
+already-running DCS by default (loading a mission would overwrite a live session) and does not quit
+one it did not start. The orchestration is unit-tested with injected fakes
+(`test/python/veaf_libs/test_dcs_lifecycle.py`); the real behaviour of the DCS calls themselves is
+what one in-game run confirms, which is why this ticket is waiting-human rather than done.
 
 ## Delivered 2026-08-05, and what was cut
 
@@ -198,6 +213,43 @@ buildings and forests. That still needs a mission anchored near a village, which
 Recorded in `FEAT-SCENERY-AWARE-SPAWN` ticket 01 so nobody reads "Disposition works" as "the avoidance is
 measured".
 
+## 2026-08-15 — validated in game, and the load step does NOT work as assumed
+
+Ran the real `run_unattended` path against a live DCS (secured hook, `allow_running=True`, so
+non-destructive — it does not quit). Two findings, and the second is the important one:
+
+1. **The orchestration is correct.** It detected the running DCS, used it without launching a second,
+   authenticated through the secured hook, and called `net.load_mission` — every step in order.
+2. **`net.load_mission` does not produce an active mission.** Called from the hook environment at the
+   main menu with an absolute path (tried both `\\` and `/` separators), it returns **nil** and
+   `Sim.getMissionName()` stays empty for 20 s+ — the mission never becomes active. This is exactly the
+   risk the "decision step 4" section below flagged: `net.load_mission` is *present* and `isServer()` is
+   true, but **presence is not "it works"**. Whether it silently no-ops in single-player or loads to a
+   briefing screen that needs a manual "fly" (which would leave `getMissionName` empty until then) is
+   **unresolved** and needs more in-game investigation — do not record "it works" either way.
+
+   Consequence: **`--full`'s load step is unproven**. Options, in order of promise: (3) launch DCS with
+   the mission on the **command line** (`DCS.exe <mission.miz>`), which the PRD left unverified and is now
+   the one to test, since the post-launch `net.load_mission` route does not deliver; or restrict `--full`
+   to asserting against a mission the operator has already loaded.
+
+3. **A transport bug found in passing** (its own small fix, wherever the client protocol lives): the
+   vendored omltcat fork serialises a **nil** return as `[]` (an empty table), and `exec_lua` rejects
+   `[]` as "carries neither result nor error". Any hook call that returns nothing — `net.load_mission`,
+   `exitProcess` — trips it. The fix is to read `[]` as a nil result rather than an error.
+
+### What shipped in response (same PR)
+
+- **The `[]` bug is fixed**: `exec_lua` reads an empty-table reply as a nil result. Test added.
+- **The SP load limitation is documented, not papered over**: `_load_mission`'s docstring, the
+  `_wait_for_mission` timeout message, the harness docs (both languages) and the CHANGELOG all state
+  that `net.load_mission` loads nothing in single-player and that `--full` therefore fails cleanly
+  there rather than lying — with the workaround (load by hand, `smoke-test` without `--full`).
+- **Not shipped, left as the remaining work**: unattended single-player load. `net.load_mission`
+  is a dead end here; **option 3 (a mission on the DCS command line)** is the next avenue and needs an
+  in-game launch test to settle. Until then, `--full` is only end-to-end where a mission can be loaded
+  (a server context, or once option 3 is proven). This ticket stays `🔄`.
+
 ## Behaviour (original scope, for the remainder)
 
 One command, unattended, exiting non-zero on a failed assertion:
@@ -231,17 +283,17 @@ One command, unattended, exiting non-zero on a failed assertion:
 
 ## Tasks
 
-- [ ] Command implemented, registered as machine-only.
-- [ ] No-DCS path skips with an explanation and exit 0; tested without touching a real install.
-- [ ] Bridge readiness polled, not slept.
-- [ ] Mission-load freeze handled explicitly, with the reason in a comment citing the measurement.
-- [ ] Assertion list is data; the driver knows nothing about individual checks.
-- [ ] Every wait bounded, each timeout naming its step; DCS always terminated.
-- [ ] Docs: how to run it, what it needs installed, what the exit codes mean.
+- [x] Command implemented, registered as machine-only. (`smoke-test --full`)
+- [x] No-DCS path skips with an explanation and exit 0; tested without touching a real install.
+- [x] Bridge readiness polled, not slept.
+- [x] Mission-load freeze handled explicitly, with the reason in a comment citing the measurement.
+- [x] Assertion list is data; the driver knows nothing about individual checks.
+- [x] Every wait bounded, each timeout naming its step; DCS always terminated.
+- [x] Docs: how to run it, what it needs installed, what the exit codes mean.
 
 ## Acceptance criteria
 
-- [ ] A full unattended run against a real DCS: launch → load → assert → quit, no human input.
-- [ ] Forced-failure run exits non-zero and still leaves no DCS process behind.
-- [ ] `ruff` / `mypy` / `pytest` green over the whole tree. The unit tests cover the driver's logic
+- [ ] A full unattended run against a real DCS: launch → load → assert → quit, no human input. **(the in-game run left)**
+- [ ] Forced-failure run exits non-zero and still leaves no DCS process behind. **(in game)**
+- [x] `ruff` / `mypy` / `pytest` green over the whole tree. The unit tests cover the driver's logic
       with a faked bridge — the real-DCS part is the thing being built and cannot self-test.

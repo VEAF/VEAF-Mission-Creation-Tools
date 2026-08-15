@@ -40,6 +40,7 @@ from veaf_mission_mcp.oracle import (
     list_shortcuts,
     list_unit_types,
 )
+from veaf_mission_mcp.player_slot import add_player_slot
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
@@ -573,6 +574,102 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_add_group,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_player_slot",
+            description=(
+                "Create a flyable PLAYER SLOT -- the one thing add_group cannot, and the one thing a "
+                "from-scratch mission needs before anybody can fly it. Builds an aircraft group with "
+                "skill Client (playable in single-player too), a group radio frequency, and "
+                "dynSpawnTemplate cleared -- that flag marks a dynamic-spawn TEMPLATE, which needs an "
+                "airfield configured for it, and leaving it set is what made a hand-placed slot appear "
+                "in the file but not in the slot list. Three starts: 'air' (position + altitude + speed, "
+                "needs no runtime data) and 'ground-cold'/'ground-hot' (you supply the parking spot -- "
+                "parking, parking_id and airdrome_id). A ground start with no spot is REFUSED rather "
+                "than guessed: airfield parking is FEAT-MCP-MUTATION-ACTIONS ticket 09's captured data. "
+                "The first waypoint's type/action pair is written for you. Also assigns the country to "
+                "its side (coalitions), so the mission stays loadable. Does NOT change an existing "
+                "unit's skill. Target a FOLDER (durable) or a .miz (transient); backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz (transient).",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer", "description": "DCS numeric country id."},
+                    "country_name": {"type": "string", "description": "DCS country name (e.g. 'USA')."},
+                    "name": {"type": "string", "description": "The group's name."},
+                    "unit_type": {
+                        "type": "string",
+                        "description": "DCS aircraft type, e.g. 'A-10C_2' -- the caller's decision.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "The slot's anchor position.",
+                    },
+                    "start": {
+                        "type": "string",
+                        "enum": ["air", "ground-cold", "ground-hot"],
+                        "default": "air",
+                        "description": "Air start, or a cold/hot ground start (needs a parking spot).",
+                    },
+                    "altitude_ft": {
+                        "type": "number",
+                        "default": 15000,
+                        "description": "Air-start altitude in FEET (ignored on the ground).",
+                    },
+                    "speed_kt": {"type": "number", "default": 250, "description": "Speed in KNOTS."},
+                    "heading_deg": {
+                        "type": "number",
+                        "default": 0,
+                        "description": "Heading in degrees (mainly meaningful on the ground).",
+                    },
+                    "parking": {
+                        "type": "string",
+                        "description": "Parking-spot number (ground start), as text so a leading zero survives.",
+                    },
+                    "parking_id": {
+                        "type": "string",
+                        "description": "Parking id -- the slot's Term_Index (ground start), as text.",
+                    },
+                    "airdrome_id": {
+                        "type": "integer",
+                        "description": "Airfield id the parking belongs to (ground start).",
+                    },
+                    "frequency_mhz": {
+                        "type": "number",
+                        "default": 251,
+                        "description": "Group radio frequency in MHz (written, not inherited).",
+                    },
+                    "onboard_num": {
+                        "type": "string",
+                        "default": "010",
+                        "description": "Tail number, as text so a leading zero survives.",
+                    },
+                    "task": {
+                        "type": "string",
+                        "default": "Nothing",
+                        "description": "Aircraft-group task (default 'Nothing').",
+                    },
+                },
+                "required": [
+                    "target",
+                    "coalition",
+                    "country_id",
+                    "country_name",
+                    "name",
+                    "unit_type",
+                    "position",
+                ],
+            },
+        ),
+        handler=_handle_add_player_slot,
     )
     catalog.register(
         ActionSpec(
@@ -1446,6 +1543,28 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         for_combat_zone=params.get("for_combat_zone"),
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
+    )
+
+
+def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
+    return add_player_slot(
+        Path(params["target"]),
+        coalition=params["coalition"],
+        country_id=params["country_id"],
+        country_name=params["country_name"],
+        name=params["name"],
+        unit_type=params["unit_type"],
+        position=params["position"],
+        start=params.get("start", "air"),
+        altitude_ft=params.get("altitude_ft", 15000.0),
+        speed_kt=params.get("speed_kt", 250.0),
+        heading_deg=params.get("heading_deg", 0.0),
+        parking=params.get("parking"),
+        parking_id=params.get("parking_id"),
+        airdrome_id=params.get("airdrome_id"),
+        frequency_mhz=params.get("frequency_mhz", 251.0),
+        onboard_num=params.get("onboard_num", "010"),
+        task=params.get("task", "Nothing"),
     )
 
 

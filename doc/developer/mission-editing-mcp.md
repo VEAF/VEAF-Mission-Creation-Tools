@@ -380,6 +380,43 @@ nom conforme aux conventions VEAF lui-même (`veaf_mission_mcp.group_naming.reso
 `add_group` renvoie aussi un champ `warnings` (voir `validate_group_name` ci-dessous) : il **écrit
 quand même**, mais signale toute collision de convention pour que l'appelant la relaie.
 
+### `add_player_slot` (lot FIX-SCRATCH-MISSION-PLAYABLE)
+
+Écriture. Crée une **place joueur** — un groupe avion jouable — que `add_group` (terrestre) ne sait
+pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sauvegarde horodatée avant
+écriture. Cible un **dossier** (durable) ou un `.miz` (transitoire).
+
+```json
+{
+  "target": "chemin/vers/dossier-mission",
+  "coalition": "blue",
+  "country_id": 2,
+  "country_name": "USA",
+  "name": "Player Viper",
+  "unit_type": "F-16C_50",
+  "position": {"x": 1000.0, "y": 2000.0},
+  "start": "ground-cold",
+  "parking": "43",
+  "parking_id": "16",
+  "airdrome_id": 24
+}
+```
+
+- **`skill: Client`** — la compétence de slot multijoueur, jouable aussi en solo. Cette action ne
+  modifie **pas** la compétence d'une unité existante : `set_unit_properties` refuse `Client`/`Player`
+  et ceci n'en est pas une porte dérobée.
+- **`dynSpawnTemplate` est mis à `false`.** Ce drapeau marque un template de spawn dynamique, qui
+  exige une base configurée pour ça ; laissé actif (comme sur une copie d'un template) le slot existe
+  dans le fichier mais n'apparaît **pas** dans la liste des places — le défaut trouvé en jeu le
+  2026-08-14.
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime),
+  `"ground-cold"` ou `"ground-hot"`. Un départ au sol **exige** `parking`, `parking_id` et
+  `airdrome_id` ; sans eux il est **refusé** (message nommant la donnée capturée par
+  `FEAT-MCP-MUTATION-ACTIONS` ticket 09), jamais deviné. La paire `type`/`action` du premier waypoint
+  est écrite selon le mode.
+- **`frequency_mhz`** est écrite (radio de groupe active) plutôt qu'héritée d'un `communication: false`.
+- Assigne le pays à son camp dans `coalitions` (voir `add_group`), donc la mission reste chargeable.
+
 ### `validate_group_name` (vague 6)
 
 Lecture seule. Contrôle un nom proposé contre les motifs réservés (préfixes

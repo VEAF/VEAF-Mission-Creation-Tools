@@ -291,6 +291,22 @@ zone), en **Late Activation** pour une QRA, ou template de spawn (`veafSpawn-`).
 > 💬 *« Mets deux groupes de blindés dans la combat zone North. »*
 > 💬 *« Place des intercepteurs Su-27 en Late Activation pour la QRA. »*
 
+### Créer un slot joueur {#add-a-player-slot}
+
+*Mission construite · ⭐* — L'IA crée une **place jouable** : c'est ce qu'il faut avant que quiconque
+puisse voler une mission bâtie de zéro. Tu dis l'appareil, la position, et le type de départ — **en
+vol** (altitude, vitesse, cap) ou **au sol** froid/chaud (là il faut fournir la place de parking).
+Une place au sol sans emplacement est **refusée** plutôt que devinée : les emplacements de parking
+sont une donnée capturée dans DCS, pas inventée. L'IA écrit pour toi la paire départ correcte et
+règle la radio du groupe.
+
+> 💬 *« Ajoute un slot A-10C au parking 43 de Kobuleti, départ à froid. »*
+> 💬 *« Mets une place F-16 en vol à 15 000 ft au-dessus de la zone. »*
+
+Une chose à savoir : un slot est en compétence **Client** (jouable aussi en solo) et n'est **jamais**
+un template de spawn dynamique — c'est précisément ce réglage-là qui, laissé actif, fait qu'une place
+existe dans le fichier mais n'apparaît pas dans la liste des slots.
+
 ### Modifier un appareil ou un véhicule existant {#change-a-unit}
 
 *Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son

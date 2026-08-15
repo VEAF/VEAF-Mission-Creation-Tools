@@ -63,8 +63,8 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 | 04 | [Route and waypoint task editing](tickets/04-route-and-waypoints.md) | ✅ |
 | 06 | [Zone editing, including polygons](tickets/06-zone-editing.md) | ✅ |
 | 07 | [F10 map drawings](tickets/07-map-drawings.md) | ✅ |
-| 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — tooling shipped, capturing needs a DCS session | 🧑 |
-| 09 | [`add_air_group`](tickets/09-add-air-group.md) — was a line in 03; blocked on 08 | ⬜ |
+| 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — 3 theatres captured 2026-08-15, 6521 slots | ✅ |
+| 09 | [`add_air_group`](tickets/09-add-air-group.md) — was a line in 03; **unblocked 2026-08-15** | ⬜ |
 | — | Arbitrary triggers — **the triage says no**, with its reasoning below. No ticket | 🚫 |
 
 Execution order is **05 → 02 → 03 → 04 → 06 → 07**, not the numbering: the read action is a

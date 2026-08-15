@@ -100,16 +100,19 @@ preuve de release plutôt que supprimés.
 qu'ils étaient le 2026-08-14, donc avant ce correctif. Pour vérifier que le message ne s'affiche plus
 qu'une fois, reconstruire la mission d'abord.
 
-## 🔄 1. Capture the parking slots — Caucasus fait le 2026-08-15, reste Syria et PersianGulf
+## ✅ 1. La capture parking — faite le 2026-08-15
 
-**Caucasus est capturé et analysé** (942 places sur 21 aérodromes,
-`veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`). La forme réelle est consignée dans le
-ticket 08, avec une correction : `Term_Index_0` vaut `-1` partout, donc `parking_id` **ne vient pas**
-de cette capture, contrairement à ce que le ticket supposait.
+Caucasus, Syria et PersianGulf : **276 aérodromes, 6521 places**, dans
+`veaf_build/dcs_data/airbase_dumps/parking/`. Le ticket
+[08](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/08-capture-parking-data.md) est clos et le **09 est
+débloqué**.
 
-**Les deux missions-pont qui restent sont prêtes** dans `D:\dev\_VEAF\tmp\bridge-maps\collect\` —
-`bridge-PersianGulf.miz` existait, `bridge-Syria.miz` a été fabriquée le 2026-08-15. Même procédure
-que ci-dessous, une carte à la fois.
+Ce que la donnée a corrigé : `Term_Index_0` vaut `-1` sur les 6521 places, donc `parking_id` **ne
+vient pas** de cette capture contrairement à ce que le ticket supposait. Et `Term_Type` change de jeu
+de valeurs d'une carte à l'autre — PersianGulf n'a aucun `68`, Syria est seule à avoir `100`.
+
+D'autres cartes peuvent suivre à l'identique : `tmp\bridge-maps\collect\` contient aussi des missions
+pour GermanyCW, MarianaIslands, Normandy et SinaiMap.
 
 
 Unblocks [`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/09-add-air-group.md)

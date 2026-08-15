@@ -1,7 +1,7 @@
 # 08 — Capture the parking-slot data an aircraft needs to stand on a ramp
 
-Status: 🔄 in-progress — tooling shipped 2026-08-12; Caucasus captured and analysed 2026-08-15;
-Syria and PersianGulf still want a DCS session
+Status: ✅ done — tooling shipped 2026-08-12; Caucasus, Syria and PersianGulf captured, committed and
+analysed 2026-08-15. **Ticket 09 is unblocked.**
 Type: feat
 Files: `veaf_libs/dcs_bridge_capture.py`, `veaf_tools/commands/capture_map.py`, locales, `test/python/`
 
@@ -56,8 +56,9 @@ map, and **starting DCS is David's**:
 veaf-tools capture-map --parking --out-dir veaf_build/dcs_data
 ```
 
-- [x] 🧑 **Caucasus and Syria captured 2026-08-15** by David. PersianGulf remains — its bridge mission
-      is ready in `tmp\bridge-maps\collect\`.
+- [x] 🧑 **Caucasus, Syria and PersianGulf captured 2026-08-15** by David — the three theatres this
+      ticket named. Other maps can follow the same way; `tmp\bridge-maps\collect\` holds bridge
+      missions for GermanyCW, MarianaIslands, Normandy and SinaiMap too.
 - [x] Committed as `veaf_build/dcs_data/airbase_dumps/parking/Caucasus.json`, beside the airbase dump
       rather than in a sibling `parking/` folder, so the two files that share a key sit together.
 - [x] **Shape recorded below, and it contradicts the table above**: `Term_Index_0` is `-1` on every
@@ -79,15 +80,24 @@ A slot carries exactly eight keys:
  "vTerminalPos.y": "18.01001739502", "vTerminalPos.z": "635663.3125"}
 ```
 
-**Syria was captured the same day** — 225 airfields, 4202 slots, again 225 of 225 keys matching its
-airbase dump, and the **same eight fields on every one of the 5144 slots** across both theatres (a
-single distinct field set, so the shape is stable rather than per-map). Sizes differ wildly: Caucasus
-runs 7–94 slots per field, Syria 1–195, and no field reports zero.
+**Syria and PersianGulf followed the same day.** Three theatres, and every structural property holds
+across all of them:
+
+| Theatre | Airfields | Slots | Keys matching the airbase dump | Field sets | `Term_Index_0` |
+|---|---|---|---|---|---|
+| Caucasus | 21 | 942 | 21/21 | 1 | `-1` ×942 |
+| Syria | 225 | 4202 | 225/225 | 1 | `-1` ×4202 |
+| PersianGulf | 30 | 1377 | 30/30 | 1 | `-1` ×1377 |
+| **Total** | **276** | **6521** | **100 %** | **1** | **`-1` throughout** |
+
+So the eight fields below are **the** shape, not one theatre's shape. Sizes are the part that varies:
+7–94 slots per field on Caucasus, 1–195 on Syria, and no field anywhere reports zero.
 
 ### `parking_id` is **not** `Term_Index_0` — the assumption above is wrong
 
-`Term_Index_0` is **`-1` on all 5144 slots of both theatres**, and `TO_AC` is `"false"` throughout.
-Two theatres agreeing rules out a one-map accident. Yet the A-10 that flies at Kobuleti declares
+`Term_Index_0` is **`-1` on all 6521 slots of all three theatres**, and `TO_AC` is `"false"`
+throughout. Three theatres agreeing rules out a one-map accident. Yet the A-10 that flies at Kobuleti
+declares
 `parking: "43"` **and** `parking_id: "16"`, and David's own declares `6` / `"01"` — a zero-padded
 string, which reads like the sign painted on the ramp rather than an index. **Ticket 09 must not
 derive `parking_id` from this capture**; where it comes from is an open question, and guessing it is
@@ -109,11 +119,18 @@ The same slot's position matches the flying A-10's group **exactly**:
 So **mission `y` is runtime `z`**, and runtime `y` is the altitude — exactly the trap
 `docs/agents/dcs-coordinates.md` warns about, here confirmed on real data rather than argued.
 
-`Term_Type` takes 5 values on Caucasus — `104` (510 slots), `68` (340), `72` (46), `16` (42), `40`
-(4) — and 6 on Syria, where `100` (283) appears and `40` jumps to 914. So the set is **not** fixed
-per theatre, and a reader hard-coding the Caucasus five would silently drop 283 Syrian slots. What
-the values mean is not captured, and ticket 09 should not assume: filtering a slot by type without
-knowing which type accepts an A-10 is the next silent failure in line.
+`Term_Type` is the **one** thing that is not stable, and each theatre carries a different subset:
+
+| Theatre | `Term_Type` values, by frequency |
+|---|---|
+| Caucasus | `104` ×510, `68` ×340, `72` ×46, `16` ×42, `40` ×4 |
+| Syria | `104` ×1893, `40` ×914, `68` ×469, `72` ×433, **`100` ×283**, `16` ×210 |
+| PersianGulf | `104` ×710, `72` ×503, `40` ×92, `16` ×72 — **no `68` at all** |
+
+`100` appears on Syria alone; `68` is on two maps out of three; `40` runs from 4 slots to 914. A
+reader hard-coding one theatre's set drops the others' in silence. What the values mean is not
+captured, and ticket 09 should not assume: filtering a slot by type without knowing which type
+accepts an A-10 is the next silent failure in line.
 
 ## Careful
 

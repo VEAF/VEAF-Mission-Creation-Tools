@@ -78,12 +78,21 @@ veaf-tools dcs smoke-test --full --mission <path.miz>
 ```
 
 The **full, unattended** run: it locates `DCS.exe` (from the install dir the probe reports, or
-`--dcs-exe`), launches it, waits for the hook to answer, loads the mission (`net.load_mission`,
-legitimate in single-player since `isServer=true`), waits for the mission to become active, runs the
-checks, then **quits DCS** — always, even on failure, or the next run inherits a running instance.
-Every wait is bounded and names the step that timed out. As a safeguard it **refuses** a DCS that is
-already running (loading a mission would overwrite the live session); `--allow-running` lifts that, and
-in that case it does not quit an instance it did not start.
+`--dcs-exe`), launches it, waits for the hook to answer, calls `net.load_mission`, waits for the mission
+to become active, runs the checks, then **quits DCS** — always, even on failure, or the next run
+inherits a running instance. Every wait is bounded and names the step that timed out. As a safeguard it
+**refuses** a DCS that is already running (loading a mission would overwrite the live session);
+`--allow-running` lifts that, and in that case it does not quit an instance it did not start.
+
+!!! warning "Measured limitation: `net.load_mission` loads nothing in single-player"
+
+    Measured 2026-08-15: `net.load_mission` is *present* and `isServer()` is true in single-player, but
+    calling it from the menu **returns nil and no mission becomes active** — ED documents it SERVER
+    ONLY, and in practice it needs a running server (`net.start_server`), not just a local instance. So
+    `--full` **cannot load a mission in single-player**: it fails cleanly at the timeout saying so,
+    rather than lying. To check in single-player, load the mission by hand and run `smoke-test` (without
+    `--full`). Unattended single-player load is unsolved — a mission on the command line is the next
+    avenue (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
 
 ## How it talks to DCS
 

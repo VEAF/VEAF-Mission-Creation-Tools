@@ -112,6 +112,15 @@ class TestTransport:
         with pytest.raises(FiddleError, match="dcs-fiddle-server.lua"):
             exec_lua("return 1")
 
+    def test_an_empty_table_reply_is_a_nil_result_not_an_error(self, monkeypatch: pytest.MonkeyPatch):
+        # The omltcat fork serialises `{result = nil}` as `[]` — a chunk that returned nothing, such as
+        # net.load_mission or exitProcess. Measured 2026-08-15: rejecting it broke the whole lifecycle.
+        def fake_urlopen(request: Any, timeout: float = 0.0) -> _FakeResponse:
+            return _FakeResponse(json.dumps([]).encode("utf-8"))
+
+        monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
+        assert exec_lua("net.load_mission('x')", env=ENV_HOOK) is None
+
     def test_a_lua_error_returned_as_a_result_still_raises(self, monkeypatch: pytest.MonkeyPatch):
         # Measured on a live DCS at the main menu: net.dostring_in returns a Lua failure as its string
         # *result*, HTTP 200, {result=…} body. So the mission environment reports a crash in the exact

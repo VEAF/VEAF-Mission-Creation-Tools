@@ -239,6 +239,11 @@ def exec_lua(
 
     if isinstance(payload, dict) and "error" in payload:
         raise FiddleError(f"the Lua raised in the {env} environment: {payload['error']}")
+    # The omltcat fork serialises `{result = nil}` — a chunk that returned nothing, such as
+    # `net.load_mission` or `exitProcess` — as an empty table, which its JSON encoder renders as `[]`.
+    # That is a successful nil return, not a malformed reply; reject it and the whole lifecycle breaks.
+    if payload == []:
+        return None
     if not isinstance(payload, dict) or "result" not in payload:
         raise FiddleError(f"the DCS hook reply carries neither result nor error: {body[:200]!r}")
 

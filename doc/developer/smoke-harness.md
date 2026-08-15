@@ -79,12 +79,22 @@ veaf-tools dcs smoke-test --full --mission <chemin.miz>
 ```
 
 Le run **complet, sans surveillance** : localise `DCS.exe` (via le dossier d'installation que la sonde
-rapporte, ou `--dcs-exe`), le lance, attend que le hook réponde, charge la mission (`net.load_mission`,
-légitime en solo car `isServer=true`), attend que la mission soit active, exécute les vérifications,
-puis **quitte DCS** — toujours, même en cas d'échec, sinon le run suivant hérite d'une instance restée
-ouverte. Chaque attente est bornée et nomme l'étape qui expire. Par sécurité, il **refuse** un DCS déjà
-lancé (charger une mission écraserait la session en cours) ; `--allow-running` lève ce garde-fou et,
-dans ce cas, ne quitte pas l'instance qu'il n'a pas démarrée.
+rapporte, ou `--dcs-exe`), le lance, attend que le hook réponde, appelle `net.load_mission`, attend que
+la mission soit active, exécute les vérifications, puis **quitte DCS** — toujours, même en cas d'échec,
+sinon le run suivant hérite d'une instance restée ouverte. Chaque attente est bornée et nomme l'étape
+qui expire. Par sécurité, il **refuse** un DCS déjà lancé (charger une mission écraserait la session en
+cours) ; `--allow-running` lève ce garde-fou et, dans ce cas, ne quitte pas l'instance qu'il n'a pas
+démarrée.
+
+!!! warning "Limite mesurée : `net.load_mission` ne charge rien en solo"
+
+    Mesuré le 2026-08-15 : `net.load_mission` est *présent* et `isServer()` est vrai en solo, mais
+    l'appeler depuis le menu **renvoie nil et aucune mission ne devient active** — ED le documente
+    SERVER ONLY, et en pratique il faut un serveur en cours (`net.start_server`), pas seulement une
+    instance locale. Donc `--full` **ne peut pas charger une mission en solo** : il échoue proprement
+    au bout du délai en le disant, plutôt que de mentir. Pour vérifier en solo, chargez la mission à la
+    main et lancez `smoke-test` (sans `--full`). Charger sans surveillance en solo reste non résolu —
+    piste : une mission en ligne de commande (`FEAT-DCS-SMOKE-HARNESS` ticket 02).
 
 ## Comment ça parle à DCS
 

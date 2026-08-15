@@ -256,10 +256,15 @@ def _wait_for_hook(
 def _load_mission(cfg: LifecycleConfig, hook_exec: HookExec) -> None:
     """Ask DCS to load the test mission through ``net.load_mission``.
 
-    Called in the hook environment, where ``net.*`` lives. SERVER ONLY per ED, and legitimate here
-    because the probe measured ``isServer()`` true in single-player.
+    Called in the hook environment, where ``net.*`` lives. **Measured limitation (2026-08-15)**:
+    ``net.load_mission`` is *present* and ``isServer()`` is true in single-player, but calling it from
+    the main menu returns nil and **no mission becomes active** — ED documents it SERVER ONLY, and in
+    practice it needs a running server (``net.start_server``), not just a local instance. So this call
+    succeeds (returns nothing) yet loads nothing in single-player; :func:`_wait_for_mission` is what
+    turns that into a legible failure. Loading a mission unattended in single-player is unsolved — see
+    ``FEAT-DCS-SMOKE-HARNESS`` ticket 02 (option 3, a mission on the command line, is the next avenue).
     """
-    lua = f"return net.load_mission({lua_quoted_string(str(cfg.mission))})"
+    lua = f"net.load_mission({lua_quoted_string(str(cfg.mission))}) return 'called'"
     try:
         hook_exec(lua, env=ENV_HOOK, url=cfg.url, timeout=cfg.timeout)
     except FiddleError as exc:
@@ -280,7 +285,11 @@ def _wait_for_mission(
         if caps.mission_name:
             return caps
         sleeper(cfg.poll_interval)
-    raise DcsLifecycleError(f"no mission became active within {cfg.load_timeout:.0f}s of net.load_mission")
+    raise DcsLifecycleError(
+        f"no mission became active within {cfg.load_timeout:.0f}s of net.load_mission — in single-player "
+        "that call loads nothing (it needs a running server), so unattended --full load is unsolved here; "
+        "load the mission by hand and use `smoke-test` (without --full) to assert against it"
+    )
 
 
 def _quit(

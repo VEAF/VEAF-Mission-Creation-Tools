@@ -238,6 +238,18 @@ non-destructive — it does not quit). Two findings, and the second is the impor
    `[]` as "carries neither result nor error". Any hook call that returns nothing — `net.load_mission`,
    `exitProcess` — trips it. The fix is to read `[]` as a nil result rather than an error.
 
+### What shipped in response (same PR)
+
+- **The `[]` bug is fixed**: `exec_lua` reads an empty-table reply as a nil result. Test added.
+- **The SP load limitation is documented, not papered over**: `_load_mission`'s docstring, the
+  `_wait_for_mission` timeout message, the harness docs (both languages) and the CHANGELOG all state
+  that `net.load_mission` loads nothing in single-player and that `--full` therefore fails cleanly
+  there rather than lying — with the workaround (load by hand, `smoke-test` without `--full`).
+- **Not shipped, left as the remaining work**: unattended single-player load. `net.load_mission`
+  is a dead end here; **option 3 (a mission on the DCS command line)** is the next avenue and needs an
+  in-game launch test to settle. Until then, `--full` is only end-to-end where a mission can be loaded
+  (a server context, or once option 3 is proven). This ticket stays `🔄`.
+
 ## Behaviour (original scope, for the remainder)
 
 One command, unattended, exiting non-zero on a failed assertion:

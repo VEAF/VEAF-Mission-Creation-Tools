@@ -25,10 +25,23 @@ While probing the smoke harness on David's machine, arbitrary Lua was executed a
 enumeration of all 1683 globals in the scripting state, plus reads of `env.mission.theatre`. It
 returned data on the first attempt.
 
-That confirms the finding's first half by doing it. It does **not** test the half the triage calls
-understated — whether a **web page** can do the same through `cors='*'` and the GET channel — which
-would take one HTML file and a browser, and is the measurement that would settle whether this can wait
-again.
+That confirms the finding's first half by doing it. The second half — the one the triage calls
+understated — was then settled **by reading the source, not by building an exploit** (David: *"t'as pas
+le droit, règles cyber"*, and he is right). `dcs-fiddle-server.lua` shows all three properties in three
+lines:
+
+- **line 568**, `if request.method ~= "GET"` — the only accepted verb is **GET**;
+- **line 572**, the Lua is read from `request.path`, base64-decoded, and handed to `net.dostring_in` /
+  `loadstring` (lines 336/343) — so **the whole payload rides in the URL**;
+- **lines 542 / 593-594**, `cors = "*"` echoed into `Access-Control-Allow-Origin` on every response.
+
+No token, origin or `Referer` check anywhere on that path. A GET whose payload is entirely in the URL
+is fired by a web page with **no CORS preflight** — a bare tag whose source is the server URL is
+enough to run the Lua; the page never needs to read the response, the code has already run inside DCS.
+`cors='*'` additionally lets any origin read the result. So "loopback only" is no protection: the
+attacker does not reach the port from outside, the **victim's own browser** — which is on the loopback
+— makes the request. The review's MEDIUM is understated, now established from the code rather than
+argued.
 
 ## Why it was deferred, and what has changed
 

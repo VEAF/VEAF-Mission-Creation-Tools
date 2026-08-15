@@ -27,7 +27,7 @@ from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
-from veaf_libs.dcs_parking import ParkingStand, has_theatre, stands_for_airbase
+from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has_theatre, stands_for_airbase
 from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -37,10 +37,6 @@ _M_PER_FT = 0.3048
 _MPS_PER_KT = 0.514444
 #: Lateral spacing between airborne units of one flight, in metres.
 _AIR_SPACING_M = 60.0
-
-#: Terminal types real missions park aircraft on (measured on Caucasus: 104 ×71, 68 ×13). Other types
-#: (runway thresholds, helipads) are not offered as parking, so an aircraft never lands on one.
-_AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"104", "68"})
 
 #: The `type`/`action` pair DCS stores per start mode.
 _START_WAYPOINT: dict[str, tuple[str, str]] = {
@@ -228,7 +224,7 @@ def _select_stands(
             f"no parking data captured for theatre {theatre!r} — capture it with "
             "'veaf-tools dcs capture-map --parking' (see FEAT-MCP-MUTATION-ACTIONS ticket 08)"
         )
-    all_stands = [s for s in stands_for_airbase(theatre, airdrome_id) if s.term_type in _AIRCRAFT_STAND_TYPES]
+    all_stands = aircraft_stands_for_airbase(theatre, airdrome_id)
     if not all_stands:
         raise ValueError(f"airfield {airfield!r} (id {airdrome_id}) has no aircraft parking stands in the capture")
     occupied = _occupied_stands(content, airdrome_id)

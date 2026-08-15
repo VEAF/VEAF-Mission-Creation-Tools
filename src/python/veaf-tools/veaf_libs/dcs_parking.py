@@ -22,6 +22,13 @@ from dataclasses import dataclass
 
 from veaf_libs.bundled_data import read_bundled_text
 
+#: Terminal types real missions park aircraft on. Measured on Caucasus (104 ×71, 68 ×13 across
+#: test.miz's parked flights); the other captured types (runway thresholds, helipads: 16/40/72/100)
+#: carry no parked aircraft. Lives here, beside the parking data, so parking-type policy is in one
+#: place rather than scattered across the actions that consume it. If a future theatre parks aircraft
+#: on another type, this is the single spot to widen.
+AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"104", "68"})
+
 
 @dataclass(frozen=True)
 class ParkingStand:
@@ -92,3 +99,19 @@ def stands_for_airbase(theatre: str, airbase_id: int | str) -> list[ParkingStand
         return []
     stands = _theatre_table(stem).get(str(airbase_id), [])
     return sorted(stands, key=lambda s: s.dist_to_runway)
+
+
+def aircraft_stands_for_airbase(theatre: str, airbase_id: int | str) -> list[ParkingStand]:
+    """Return only the stands aircraft actually park on, nearest-to-runway first.
+
+    Filters :func:`stands_for_airbase` to :data:`AIRCRAFT_STAND_TYPES`, so a caller never seats an
+    aircraft on a runway threshold or a helipad.
+
+    Args:
+        theatre: The DCS theatre/map name (case-insensitive).
+        airbase_id: The DCS numeric airdrome id.
+
+    Returns:
+        The aircraft-capable stands (empty if the theatre or airbase is not in the bundled data).
+    """
+    return [s for s in stands_for_airbase(theatre, airbase_id) if s.term_type in AIRCRAFT_STAND_TYPES]

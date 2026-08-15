@@ -213,6 +213,31 @@ buildings and forests. That still needs a mission anchored near a village, which
 Recorded in `FEAT-SCENERY-AWARE-SPAWN` ticket 01 so nobody reads "Disposition works" as "the avoidance is
 measured".
 
+## 2026-08-15 — validated in game, and the load step does NOT work as assumed
+
+Ran the real `run_unattended` path against a live DCS (secured hook, `allow_running=True`, so
+non-destructive — it does not quit). Two findings, and the second is the important one:
+
+1. **The orchestration is correct.** It detected the running DCS, used it without launching a second,
+   authenticated through the secured hook, and called `net.load_mission` — every step in order.
+2. **`net.load_mission` does not produce an active mission.** Called from the hook environment at the
+   main menu with an absolute path (tried both `\\` and `/` separators), it returns **nil** and
+   `Sim.getMissionName()` stays empty for 20 s+ — the mission never becomes active. This is exactly the
+   risk the "decision step 4" section below flagged: `net.load_mission` is *present* and `isServer()` is
+   true, but **presence is not "it works"**. Whether it silently no-ops in single-player or loads to a
+   briefing screen that needs a manual "fly" (which would leave `getMissionName` empty until then) is
+   **unresolved** and needs more in-game investigation — do not record "it works" either way.
+
+   Consequence: **`--full`'s load step is unproven**. Options, in order of promise: (3) launch DCS with
+   the mission on the **command line** (`DCS.exe <mission.miz>`), which the PRD left unverified and is now
+   the one to test, since the post-launch `net.load_mission` route does not deliver; or restrict `--full`
+   to asserting against a mission the operator has already loaded.
+
+3. **A transport bug found in passing** (its own small fix, wherever the client protocol lives): the
+   vendored omltcat fork serialises a **nil** return as `[]` (an empty table), and `exec_lua` rejects
+   `[]` as "carries neither result nor error". Any hook call that returns nothing — `net.load_mission`,
+   `exitProcess` — trips it. The fix is to read `[]` as a nil result rather than an error.
+
 ## Behaviour (original scope, for the remainder)
 
 One command, unattended, exiting non-zero on a failed assertion:

@@ -1,6 +1,6 @@
 # 03 — Port the four pending in-game checks
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-08-15 (questions 1 & 2 answered in game; 3 & 4 left as stated open questions)
 Type: feat
 Files: the assertion list from 02, plus status updates on the four lots
 
@@ -55,23 +55,40 @@ against every sentinel.
 **Not done: running them.** Foothold's staggered loading and the guided checklists have no checks
 yet either.
 
+## Run in game — 2026-08-15 (Syria)
+
+Questions 1 and 2 are **answered by the harness**, and the `[]`-drift the ticket body warned about is
+resolved:
+
+- **Question 1 — `Disposition`.** Signature measured: `getSimpleZones(centre_vec3, radius_m, arg3, count)`
+  → array of `{x, y, course}` 2D points. **Avoidance measured**: centred on the airbase Abu al-Duhur
+  (369 scenery objects within 2 km), all 30 returned points were 0 within 10 m of scenery and all on a
+  `land` surface. It **returns fewer than requested when clear space is scarce** (150 m → 2, 500 m → 10,
+  2000 m/req 50 → 50; desert → 30), so tier 1's fallback is necessary. Cost ~43 ms/call. `arg3` and
+  WWII-map presence remain unmeasured. A new **regression check `disposition-avoids-scenery`** encodes
+  this (0 of 30 near scenery in a scenery-bearing area) and **passes live**. Note: `FEAT-SCENERY-AWARE-SPAWN`
+  had already run its probe on 2026-08-06 (it is archived ✅), but ADR 0018 and TUM-EXPLOIT.md were left
+  saying "asserted, not measured" — today reconciles that stale wording with the measurement and adds the
+  harness **regression check** the archived probe never left behind.
+- **Question 2 — coalition-scoped submenu.** Re-confirmed live (`created`); `FEAT-COMBATZONE-MENU-COALITION`
+  was already closed on this.
+
 ## Tasks
 
-- [ ] Assertions added for 1 and 2 — the two lots actually blocked.
-- [ ] `Disposition` probe covers all six questions from `FEAT-SCENERY-AWARE-SPAWN` ticket 01, not
-      just "does it exist".
-- [ ] Run them; **write the measurements into
-      [`docs/exploration/TUM-EXPLOIT.md`](../../../docs/exploration/TUM-EXPLOIT.md)**, including
-      anything that turns out false. That note has already been corrected once for claiming things
-      nobody had measured.
-- [ ] Update ADR 0018 from "asserted" to measured, or record the dead end.
-- [ ] Move the two 🧑 lots off waiting-human, in whichever direction the facts point.
-- [ ] 3 and 4 added if cheap once the runner exists; if not, say so and leave them as open questions
-      rather than pretending they are covered.
+- [x] Assertions added for 1 and 2 — the two lots actually blocked. (`disposition-avoids-scenery` added;
+      the submenu check already existed.)
+- [x] `Disposition` probe covers the load-bearing questions — existence, signature, avoidance, short-count
+      fallback, cost. (`arg3` meaning and WWII-map presence explicitly left unmeasured.)
+- [x] Run them; measurements written into `docs/exploration/TUM-EXPLOIT.md`.
+- [x] Update ADR 0018 from "asserted" to measured.
+- [x] Reconcile the stale docs — `FEAT-SCENERY-AWARE-SPAWN` was already ✅ (probe 2026-08-06), but
+      ADR 0018 / TUM-EXPLOIT still said "asserted"; now measured, with a regression check.
+- [ ] 3 (Foothold staggered loading, read `dcs.log`) and 4 (checklists as a regression check) — **not
+      done today**; left as open questions rather than pretended covered. Both need a specific mission
+      loaded (built Foothold; an assisted cockpit) — a follow-up session.
 
 ## Acceptance criteria
 
-- [ ] At least the `Disposition` question is answered **by the harness**, not by a person — that is
-      the proof this lot works.
-- [ ] Every measurement recorded in the exploration note or the ADR, not only in a PR description.
-- [ ] No lot left claiming a status the facts contradict.
+- [x] At least the `Disposition` question is answered **by the harness**, not by a person.
+- [x] Every measurement recorded in the exploration note and the ADR, not only in a PR description.
+- [x] No lot left claiming a status the facts contradict.

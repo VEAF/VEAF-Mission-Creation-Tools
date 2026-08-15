@@ -1,6 +1,19 @@
 # 01 — The test mission, and its documented contract
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-08-15 (mission built + committed, anchor events verified in game, contract page shipped)
+
+## Delivered 2026-08-15 — the committed mission
+
+`test/veaf-tools/smoke-test-mission/` is the committed **source folder** (the `.miz` is a reproducible,
+gitignored build artefact). Built through the normal pipeline (`prepare --theatre Syria`, then the MCP
+`create_combat_zone` for the ground group + trigger zone, `add_player_slot` for the client slot), it
+**validates clean** (a real player slot; coalitions set) and **builds clean**. It holds a client A-10C
+slot, a two-tank ground group at the anchor, and a `SmokeZone` combat zone. `build.dev_mode` is not
+persisted so the fixture stays machine-independent. Its README carries the theatre/anchor rationale.
+
+The **anchor was verified in game** (not taken on trust): a unit spawned at `(-32220, 405386)` on a
+`land` surface (~242 m) and blown up produced a death event the harness caught. The open-water
+counter-example stays credited to `dcs-sms` in the contract page.
 Type: feat
 Files: a committed test `.miz` (or its `mission.yaml` + build recipe), `docs/` contract page
 

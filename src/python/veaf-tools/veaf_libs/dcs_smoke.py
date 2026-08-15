@@ -157,6 +157,26 @@ def _is_truthy(value: Any) -> bool:
     return bool(value)
 
 
+def _disposition_avoids_scenery(value: Any) -> bool:
+    """Whether ``getSimpleZones`` returned points and none of them sat on scenery.
+
+    Args:
+        value: The check's reply, ``points:<n> near_scenery:<b> area_scenery:<a>``.
+
+    Returns:
+        ``True`` when at least one point came back and **none** had scenery within 10 m — the avoidance
+        ADR 0018 rests on. Measured 2026-08-15 (Syria, an airbase with 369 scenery objects: 0 of 30
+        points near scenery).
+    """
+    if not isinstance(value, str) or not value.startswith("points:"):
+        return False
+    parts = dict(p.split(":", 1) for p in value.split() if ":" in p)
+    try:
+        return int(parts.get("points", "0")) > 0 and int(parts.get("near_scenery", "1")) == 0
+    except ValueError:
+        return False
+
+
 #: The checks that answer questions currently waiting on a human. Each cites the lot it unblocks.
 #:
 #: `Disposition` is the richest and the reason FEAT-SCENERY-AWARE-SPAWN is still open: ADR 0018
@@ -194,6 +214,32 @@ CHECKS: tuple[Check, ...] = (
         expect=lambda v: isinstance(v, str) and v.startswith("count:") and v[6:].isdigit(),
         why="Its return shape is unmeasured, which is why acceptableGroundPoint type-checks each "
         "candidate. Confirms whether that guard is paranoia or necessity.",
+    ),
+    Check(
+        name="disposition-avoids-scenery",
+        # The load-bearing claim of ADR 0018: the points genuinely avoid buildings. Centre on the first
+        # airbase (scenery guaranteed), then count how many of the returned points sit within 10 m of a
+        # scenery object. Everything is serialised to a string — a Lua number/table would be lost.
+        lua=(
+            "if type(Disposition) ~= 'table' or type(Disposition.getSimpleZones) ~= 'function' then "
+            "return 'no-singleton' end "
+            "local abs = world.getAirbases() if not abs or #abs == 0 then return 'no-airbases' end "
+            "local p = abs[1]:getPoint() "
+            "local function sc(v, r) local n = 0 "
+            "world.searchObjects(Object.Category.SCENERY, {id=world.VolumeType.SPHERE, params={point=v, radius=r}}, "
+            "function() n = n + 1 return true end) return n end "
+            "local area = sc(p, 2000) "
+            "local ok, r = pcall(Disposition.getSimpleZones, p, 2000, 100, 30) "
+            "if not ok then return 'raised: ' .. tostring(r) end "
+            "if type(r) ~= 'table' then return 'not-a-table' end "
+            "local bad = 0 for _, z in ipairs(r) do local h = land.getHeight({x=z.x, y=z.y}) "
+            "if sc({x=z.x, y=h, z=z.y}, 10) > 0 then bad = bad + 1 end end "
+            "return 'points:' .. tostring(#r) .. ' near_scenery:' .. tostring(bad) .. ' area_scenery:' .. tostring(area)"
+        ),
+        expect=_disposition_avoids_scenery,
+        why="ADR 0018 rested on TUM's word that getSimpleZones avoids buildings. Measured 2026-08-15 "
+        "(Syria, an airbase carrying 369 scenery objects: 0 of 30 returned points within 10 m of any). "
+        "This is the regression guard for that claim — a DCS patch degrading the avoidance fails here.",
     ),
     Check(
         name="veaf-loaded",

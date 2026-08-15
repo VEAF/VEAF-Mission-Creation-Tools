@@ -7,7 +7,9 @@ bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/FEAT-BLANK-MISSION
 
 The output is the exploded ``src/mission/`` file set a VEAF mission folder expects, ready for
 ``veaf-tools build`` and the MCP composites. Coalitions ship empty (no groups/countries): the maker
-— or the composites (`add_group` populates coalitions/countries on demand) — fills them in.
+fills them in, or every group-adding path does — ``mission_tools.group_insertion.add_group`` calls
+``assign_country_to_side`` so ``coalitions.<side>`` is populated in step with ``coalition.<side>``,
+which is what keeps a from-scratch mission loadable.
 """
 
 from functools import lru_cache

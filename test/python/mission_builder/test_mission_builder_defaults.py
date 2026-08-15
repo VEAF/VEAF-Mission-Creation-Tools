@@ -471,5 +471,32 @@ class TestCustomScriptsLoadTrigger(unittest.TestCase):
         self.assertTrue(worker._resolves_load_trigger("B.lua"))
 
 
+class TestShippedVersionsDefaultIsNotADemo(unittest.TestCase):
+    """The shipped default versions.yaml is copied into every from-scratch mission, so it must not be
+    the seven-variant tutorial that turned one noon mission into a night one (FIX-SCRATCH-MISSION-
+    PLAYABLE ticket 04). It ships a single midday variant; the tutorial lives commented out below it.
+    """
+
+    def _shipped_default(self) -> Path:
+        here = Path(__file__).resolve()
+        root = next(p for p in here.parents if (p / "src" / "defaults").is_dir())
+        return root / "src" / "defaults" / "mission-folder" / "src" / "versions.yaml"
+
+    def test_it_declares_exactly_one_active_variant_at_noon(self) -> None:
+        import yaml
+
+        raw = yaml.safe_load(self._shipped_default().read_text(encoding="utf-8"))
+        versions = raw["versions"]
+        self.assertEqual(len(versions), 1, f"a from-scratch mission must build one mission, got {versions}")
+        self.assertEqual(versions[0]["time"], "12:00", "the single shipped variant must be midday, not dawn")
+
+    def test_the_demo_variants_are_commented_out_not_active(self) -> None:
+        # dawn-auto is the night start that reached David; it may survive as a commented example but
+        # never as a live entry the build would produce.
+        text = self._shipped_default().read_text(encoding="utf-8")
+        self.assertNotIn("\n  - name: dawn-auto", text, "dawn-auto must not be an active variant")
+        self.assertIn("dawn-auto", text, "the tutorial should remain, commented, so the feature stays discoverable")
+
+
 if __name__ == "__main__":
     unittest.main()

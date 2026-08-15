@@ -21,28 +21,46 @@ only one that was **not** written down anywhere until now.
 - The session's `mission.yaml` (kept as `mission.yaml-source` next to the mission) declares **no**
   weather section at all. The `WEATHER` module it lists is the runtime Lua module, not the injector.
 
-## The question this ticket answers
+## Told apart by measurement — 2026-08-15
 
-A yaml that never mentions weather produced a mission at dawn. Either the build applies a weather
-preset when none is asked for — a product defect that will surprise every mission maker who does not
-ask for one — or the mission was built through a variant-producing command, in which case the defect
-is that **nothing in the output says which moment of day was shipped**.
+Traced through the code rather than reasoned about:
 
-Do not fix before telling those two apart: build a mission from that exact `mission.yaml` and read
-`start_time` out of the result.
+- `veaf_tools/commands/build.py:405` runs the weather step **only when `src/versions.yaml` exists**
+  (`weather_path = _step_file(...); if weather_path:`). With no such file, no weather step runs and the
+  built mission keeps the blank's `start_time` — **43200, noon**. So the first hypothesis's *code* is
+  correct: a mission with no weather config does start at midday.
+- **But `src/versions.yaml` is a shipped default.** `mission_builder_worker.py:1232` maps it to the
+  weather pipeline, and `complete_src_folder_with_defaults` copies every default the pipeline does not
+  disable into a fresh folder. The shipped file, `src/defaults/mission-folder/src/versions.yaml`, is a
+  **seven-variant tutorial** — `dawn-auto` (`time: sunrise`, ≈ 03:48 at its Damascus position in June),
+  `morning-plus-two-hours`, `with-metar`, `tomorrow-sunset`, and so on.
 
-- If it comes out at 03:48 → the default is wrong. A mission with no weather section must keep the
-  blank mission's midday.
-- If it comes out at 12:00 → the build was fine and the variant was handed over blind. Then the fix
-  is on the reporting side: a build producing several moments must name the one it wrote.
+So both halves were true at once. The build did not invent a preset — it faithfully applied the demo
+`versions.yaml` that `prepare` lays into every from-scratch mission, and `dawn-auto` is alphabetically
+first among the seven `.miz` it produces, which is the one that got handed over. The defect is not in
+the weather code or the blank mission; it is that **the active default for a brand-new mission is a
+tutorial that turns one noon mission into seven example-weather variants, one of them at night**, and
+nothing about `prepare` says so.
+
+The fix is therefore about what a from-scratch mission ships with, not about the weather engine. The
+one sub-choice with a user-facing consequence is put to David below.
+
+## The fix — David's call, 2026-08-15
+
+Asked which way to correct the shipped default, David chose **reduce it to a single noon variant**,
+keeping the seven-variant tutorial as a commented block a maker uncomments to activate. So
+`src/defaults/mission-folder/src/versions.yaml` now declares one variant, `noon` at `12:00`, clear
+sky; a from-scratch build produces `<mission>_noon.miz` at midday, and the tutorial stays discoverable
+in the same file. The other two options (ship no default at all; leave the demo) were declined.
 
 ## TDD
 
-- Building from a `mission.yaml` with no `weather` section leaves `start_time` at `43200`. That test
-  is the whole ticket, and it fails today if the first branch is the right one.
+- The shipped default declares exactly one active variant, at `12:00` — the regression guard against
+  the demo creeping back as the active default.
+- `dawn-auto` is absent as a live entry but present as a comment, so the feature stays documented.
 
 ## Acceptance criteria
 
-- [ ] The two hypotheses are told apart by measurement, and the finding is written here.
-- [ ] A mission built without a weather section starts at midday.
-- [ ] Full Python gate green; coverage ratchet respected.
+- [x] The two hypotheses are told apart by measurement, and the finding is written here.
+- [x] A mission built without asking for variants starts at midday.
+- [x] Full Python gate green; coverage ratchet respected.

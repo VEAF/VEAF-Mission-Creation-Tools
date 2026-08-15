@@ -82,6 +82,10 @@ with a real frequency. A created slot gets a group frequency rather than an inhe
 
 ## Acceptance criteria
 
-- [ ] The action ships, documented in the catalogue in both languages.
-- [ ] A mission built from `scaffold_mission` + this action + `build_mission` is flyable.
-- [ ] Full Python gate green; coverage ratchet respected.
+- [x] The action ships (`add_player_slot`), documented in the mission-maker catalogue and the
+      developer reference, both languages.
+- [~] A mission built from `scaffold_mission` + this action + `build_mission` is flyable — the pieces
+      are unit-tested (Client skill, `dynSpawnTemplate` false, group frequency, waypoint pairs,
+      coalitions populated); flying it is David's in-game step, and the `dynSpawnTemplate` fix is
+      already confirmed in game (2026-08-15).
+- [x] Full Python gate green; coverage ratchet respected.

@@ -288,6 +288,21 @@ template (`veafSpawn-`).
 > 💬 *"Put two armor groups in the North combat zone."*
 > 💬 *"Place Su-27 interceptors in Late Activation for the QRA."*
 
+### Create a player slot {#add-a-player-slot}
+
+*Built mission · ⭐* — The AI creates a **flyable slot**: the one thing needed before anybody can fly
+a mission built from scratch. You give the aircraft, a position, and the start type — **airborne**
+(altitude, speed, heading) or **on the ground** cold/hot (there you supply the parking spot). A ground
+start with no spot is **refused** rather than guessed: parking spots are data captured in DCS, not
+invented. The AI writes the right start waypoint pair for you and sets the group radio.
+
+> 💬 *"Add an A-10C slot on parking 43 at Kobuleti, cold start."*
+> 💬 *"Put an F-16 slot airborne at 15,000 ft over the zone."*
+
+One thing to know: a slot is **Client** skill (playable in single-player too) and is **never** a
+dynamic-spawn template — that setting, left on, is exactly what makes a slot sit in the file but not
+appear in the slot list.
+
 ### Change an existing aircraft or vehicle {#change-a-unit}
 
 *Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**

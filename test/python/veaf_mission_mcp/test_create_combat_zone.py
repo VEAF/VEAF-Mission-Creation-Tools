@@ -87,6 +87,25 @@ def test_create_combat_zone_lays_down_both_worlds(tmp_path: Path) -> None:
     assert any(z["zone_name"] == "CZ-North" for z in zones)  # COMBATZONE block appended
 
 
+def test_create_combat_zone_assigns_the_country_to_its_side(tmp_path: Path) -> None:
+    # The composite routes through the same writer as add_group, so coalitions is populated for it too
+    # — without this a combat zone's groups live in a side DCS refuses to load.
+    folder = _folder(tmp_path)
+    create_combat_zone(
+        folder,
+        zone_name="CZ-North",
+        position={"x": 1000.0, "y": 2000.0},
+        radius=3000,
+        groups=[{"name": "armor", "units": [{"type": "T-72B", "count": 2}]}],
+        coalition="red",
+        country_id=0,
+        country_name="Russia",
+    )
+
+    content = read_mission_folder(folder).mission_content or {}
+    assert content["coalitions"]["red"] == [0]
+
+
 def test_create_combat_zone_appends_to_existing(tmp_path: Path) -> None:
     folder = _folder(tmp_path)
     common: dict[str, Any] = {

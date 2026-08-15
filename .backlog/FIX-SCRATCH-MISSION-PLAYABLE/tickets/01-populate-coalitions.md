@@ -38,6 +38,8 @@ but make it name what actually performs the work, so the next reader can verify 
 
 ## Acceptance criteria
 
-- [ ] `coalitions` populated by every path that creates a group; idempotent.
-- [ ] Both the dict and the list shape handled.
-- [ ] Full Python gate green.
+- [x] `coalitions` populated by every path that creates a group; idempotent. The shared writer
+      `mission_tools.group_insertion.assign_country_to_side` is called from `add_group`, so
+      `add_group` (MCP), all three composites and `add_player_slot` inherit it.
+- [x] Both the dict and the list shape handled (via `mission_table.indexed`).
+- [x] Full Python gate green.

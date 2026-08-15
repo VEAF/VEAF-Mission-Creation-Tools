@@ -11,6 +11,7 @@ from typing import Any
 
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+from veaf_libs.mission_table import indexed
 
 GROUP_CATEGORIES: tuple[str, ...] = ("vehicle", "plane", "helicopter", "ship", "static")
 
@@ -63,6 +64,32 @@ def coerce_country_list(coalition: dict[str, Any]) -> list[Any]:
         countries = []
     coalition["country"] = countries
     return countries
+
+
+def assign_country_to_side(mission_content: dict[str, Any], side: str, country_id: int) -> None:
+    """Record `country_id` as belonging to `side` in the mission's `coalitions` table (in place).
+
+    A DCS mission describes the same fact in two tables: `coalition.<side>.country` holds the units,
+    and `coalitions.<side>` is the **list of country ids** on that side. DCS needs both — populating
+    the first without the second opens the Mission Editor's CHANGING COALITIONS dialog with every
+    country unassigned, and the mission does not load. This keeps the second in step with the first.
+
+    Idempotent: a country already listed is not added twice, so two groups from the same country leave
+    one entry.
+
+    Args:
+        mission_content: The parsed DCS `mission` table (mutated in place).
+        side: `"blue"`, `"red"` or `"neutrals"` — the same key used for the `coalition` units table,
+            so the two stay consistent whatever spelling the caller uses.
+        country_id: The DCS numeric country id to record on that side.
+    """
+    coalitions = mission_content.setdefault("coalitions", {})
+    # `coalitions.<side>` is a list of ids in a real mission, but an empty one deserialises as `{}`;
+    # `indexed` normalises both to a list so a blank mission and a populated one take the same path.
+    ids = indexed(coalitions.get(side))
+    if country_id not in ids:
+        ids.append(country_id)
+    coalitions[side] = ids
 
 
 def find_or_add_country(coalition: dict[str, Any], country_id: int, country_name: str) -> dict[str, Any]:
@@ -145,5 +172,9 @@ def add_group(
         groups = list(groups.values())
         container["group"] = groups
     groups.append(group)
+
+    # Keep `coalitions.<side>` in step with the country just created/reused: the units table alone
+    # leaves the mission unloadable (DCS opens CHANGING COALITIONS with every country unassigned).
+    assign_country_to_side(mission_content, coalition, country_id)
 
     return next_group_id

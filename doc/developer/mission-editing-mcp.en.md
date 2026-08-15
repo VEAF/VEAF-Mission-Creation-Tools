@@ -369,6 +369,42 @@ convention-correct name itself (`veaf_mission_mcp.group_naming.resolve_group_nam
 `add_group` also returns a `warnings` field (see `validate_group_name`): it **still writes**, but
 flags any convention collision for the caller to relay.
 
+### `add_player_slot` (FIX-SCRATCH-MISSION-PLAYABLE lot)
+
+Write. Creates a **player slot** — a flyable aircraft group — which `add_group` (ground) cannot, and
+without which a from-scratch mission is not flyable at all. Timestamped backup before writing. Targets
+a **folder** (durable) or a `.miz` (transient).
+
+```json
+{
+  "target": "path/to/mission-folder",
+  "coalition": "blue",
+  "country_id": 2,
+  "country_name": "USA",
+  "name": "Player Viper",
+  "unit_type": "F-16C_50",
+  "position": {"x": 1000.0, "y": 2000.0},
+  "start": "ground-cold",
+  "parking": "43",
+  "parking_id": "16",
+  "airdrome_id": 24
+}
+```
+
+- **`skill: Client`** — the multiplayer-slot skill, playable in single-player too. This action does
+  **not** change an existing unit's skill: `set_unit_properties` refuses `Client`/`Player` and this is
+  not a back door to it.
+- **`dynSpawnTemplate` is set to `false`.** That flag marks a dynamic-spawn template, which needs an
+  airfield configured for it; left on (as on a copy of a template) the slot sits in the file but does
+  **not** appear in the slot list — the defect found in game on 2026-08-14.
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, no runtime data),
+  `"ground-cold"` or `"ground-hot"`. A ground start **requires** `parking`, `parking_id` and
+  `airdrome_id`; without them it is **refused** (the message names the data captured by
+  `FEAT-MCP-MUTATION-ACTIONS` ticket 09), never guessed. The first waypoint's `type`/`action` pair is
+  written per mode.
+- **`frequency_mhz`** is written (group radio on) rather than inherited from a `communication: false`.
+- Assigns the country to its side in `coalitions` (see `add_group`), so the mission stays loadable.
+
 ### `validate_group_name` (wave 6)
 
 Read-only. Checks a proposed name against the reserved patterns (`veafSpawn-`/`OnDemand-`/

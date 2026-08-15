@@ -188,6 +188,25 @@ class TestRefusals:
         )
         assert "1" not in result["stands"]
 
+    def test_an_explicit_parking_list_sets_the_flight_size(self, tmp_path: Path) -> None:
+        # A count that disagrees with the parking list would index past the chosen stands; the list
+        # wins, so two stands means two aircraft whatever count says.
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Pair",
+            unit_type="F-16C_50",
+            count=1,
+            start="parking-cold",
+            airfield="Kobuleti",
+            parking=["15", "14"],
+        )
+        assert result["stands"] == ["15", "14"]
+        assert len(_units(_slot_group(read_miz(miz).mission_content, "Pair"))) == 2
+
     def test_an_unknown_start_is_refused(self, tmp_path: Path) -> None:
         miz = _caucasus_miz(tmp_path)
         with pytest.raises(ValueError, match="Unknown start"):

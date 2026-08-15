@@ -307,7 +307,7 @@ Une chose à savoir : un slot est en compétence **Client** (jouable aussi en so
 un template de spawn dynamique — c'est précisément ce réglage-là qui, laissé actif, fait qu'une place
 existe dans le fichier mais n'apparaît pas dans la liste des slots.
 
-### Poser un vol sur la ramp {#add-a-flight}
+### Poser un vol au parking {#add-a-flight}
 
 *Mission construite · ⭐* — L'IA place un **vol** (un ou plusieurs appareils) sur les places de
 parking d'un aérodrome que tu **nommes** — elle choisit elle-même les stands libres, sans que tu aies
@@ -315,7 +315,7 @@ parking d'un aérodrome que tu **nommes** — elle choisit elle-même les stands
 et **refuse** si une place demandée est occupée (en te disant par quel groupe) ou si l'aérodrome n'a
 pas de vraie place avion. Départ moteurs coupés ou chauds au parking, sur la piste, ou en vol.
 
-> 💬 *« Mets un deux-ship de F-16 sur la ramp à Kobuleti. »*
+> 💬 *« Mets un deux-ship de F-16 au parking de Kobuleti. »*
 > 💬 *« Ajoute quatre Su-25 au parking de Batoumi, moteurs chauds. »*
 > 💬 *« Fais décoller une patrouille de F-15 depuis la piste d'Incirlik. »*
 

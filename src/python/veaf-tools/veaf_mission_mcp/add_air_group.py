@@ -94,6 +94,8 @@ def add_air_group(
         frequency_mhz: The group's radio frequency in MHz.
         task: The aircraft-group task (default ``"CAS"``).
         parking: Optional explicit stand numbers (one per aircraft) overriding automatic selection.
+            When given, it also **sets the flight size** — one aircraft per stand — so it can never
+            disagree with ``count``.
 
     Returns:
         ``{"group_id", "name", "durable", "start", "stands": [...], "airdrome_id"}``.
@@ -112,6 +114,13 @@ def add_air_group(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission (missing 'mission' content): {target}")
     content = mission.mission_content
+
+    # An explicit parking list is the authority on the flight size, so `count` and the number of
+    # stands can never disagree (a mismatch would index past the chosen stands when building units).
+    if parking is not None:
+        count = len(parking)
+        if count < 1:
+            raise ValueError("parking list is empty — give at least one stand, or omit it")
 
     airdrome_id: int | None = None
     stands: list[ParkingStand] = []

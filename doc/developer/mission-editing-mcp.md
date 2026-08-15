@@ -439,7 +439,7 @@ pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sau
 
 ### `add_air_group` (lot FEAT-MCP-MUTATION-ACTIONS, ticket 09)
 
-Écriture. Pose un **vol** (un ou plusieurs appareils) sur la ramp en **résolvant lui-même les places**
+Écriture. Pose un **vol** (un ou plusieurs appareils) au parking en **résolvant lui-même les places**
 depuis un **nom** d'aérodrome — le cas *« un deux-ship de F-16 à Incirlik »* que `add_player_slot` (un
 appareil, place fournie) ne couvre pas. Sauvegarde horodatée avant écriture. Cible un dossier (durable)
 ou un `.miz` (transitoire).
@@ -469,7 +469,7 @@ ou un `.miz` (transitoire).
 - **Départs.** `parking-cold` / `parking-hot` (exigent `airfield`), `runway` (exige `airfield`, ancré
   sur le terrain, pas de place consommée), `air` (exige `position`). La paire `type`/`action` et le
   verrou `ETA_locked` du premier waypoint sont écrits pour l'appelant.
-- **`skill`** vaut un niveau d'IA par défaut (`High`) — un vol sur la ramp est IA sauf demande de
+- **`skill`** vaut un niveau d'IA par défaut (`High`) — un vol au parking est IA sauf demande de
   `Client`/`Player`. `parking` accepte une liste explicite de places qui court-circuite la sélection.
 - Un théâtre sans capture, un aérodrome inconnu, ou trop peu de places libres sont refusés en nommant
   la cause. Assigne le pays à son camp dans `coalitions`.

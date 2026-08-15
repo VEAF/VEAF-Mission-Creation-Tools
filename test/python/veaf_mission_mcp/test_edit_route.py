@@ -283,6 +283,43 @@ class TestWaypointFields:
         edit_route(miz, group_name="Colt 1-1", operation="add", position={"x": -270000.0, "y": 630000.0})
         assert (_points(miz)[-1]["type"], _points(miz)[-1]["action"]) == ("Turning Point", "Turning Point")
 
+    def test_add_honours_the_altitude_and_speed_it_is_given(self, miz: Path) -> None:
+        # Regression: `add` used to accept altitude_ft/speed_kt and silently drop them, inheriting the
+        # neighbour's — wrong in a plausible way, since the value looks reasonable.
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add",
+            position={"x": -270000.0, "y": 630000.0},
+            altitude_ft=18000,
+            speed_kt=350,
+        )
+        wp = _points(miz)[-1]
+        assert wp["alt"] == pytest.approx(5486.4)  # 18000 ft
+        assert wp["speed"] == pytest.approx(180.0554)  # 350 kt
+
+    def test_insert_honours_the_altitude_and_speed_it_is_given(self, miz: Path) -> None:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="insert",
+            index=2,
+            position={"x": -270000.0, "y": 630000.0},
+            altitude_ft=12000,
+            speed_kt=250,
+        )
+        wp = _points(miz)[1]
+        assert wp["alt"] == pytest.approx(3657.6)  # 12000 ft
+        assert wp["speed"] == pytest.approx(128.611)  # 250 kt
+
+    def test_add_without_altitude_still_inherits(self, miz: Path) -> None:
+        # The inheritance default must survive the fix — omitting the params still copies the neighbour.
+        edit_route(miz, group_name="Colt 1-1", operation="add", position={"x": -270000.0, "y": 630000.0})
+        assert (_points(miz)[-1]["alt"], _points(miz)[-1]["speed"]) == (
+            _points(miz)[-2]["alt"],
+            _points(miz)[-2]["speed"],
+        )
+
 
 class TestWaypointTasks:
     """A named set with validated signatures, each shape read out of a real mission."""
@@ -405,6 +442,78 @@ class TestWaypointTasks:
             task_params={"position": {"x": -281000.0, "y": 621000.0}, "expend": "All"},
         )
         assert _tasks(_points(miz)[2])[0]["params"]["expend"] == "All"
+
+    def test_bombing_carries_the_full_field_set_the_editor_keeps(self, miz: Path) -> None:
+        # Written without these, the editor discarded the task on save (measured 2026-08-15). The set
+        # is what a real Bombing carries; weaponType defaults to the editor's measured Auto value.
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=3,
+            task="bombing",
+            task_params={"position": {"x": -281000.0, "y": 621000.0}},
+        )
+        params = _tasks(_points(miz)[2])[0]["params"]
+        assert params["weaponType"] == 2032
+        assert params["altitudeEnabled"] is False and params["altitude"] == 0.0
+        assert params["directionEnabled"] is False and params["direction"] == 0.0
+        assert set(params) >= {"x", "y", "expend", "attackQty", "attackQtyLimit", "groupAttack"}
+
+    def test_attack_group_carries_the_full_field_set(self, miz: Path) -> None:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=2,
+            task="attack_group",
+            task_params={"group_id": 18},
+        )
+        params = _tasks(_points(miz)[1])[0]["params"]
+        assert params["groupId"] == 18
+        assert params["weaponType"] == 9659482112  # the measured AttackGroup Auto value
+        assert {"expend", "attackQty", "attackQtyLimit", "groupAttack", "altitudeEnabled", "directionEnabled"} <= set(
+            params
+        )
+
+    def test_attack_altitude_and_direction_turn_their_flags_on(self, miz: Path) -> None:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=3,
+            task="bombing",
+            task_params={"position": {"x": -281000.0, "y": 621000.0}, "altitude_ft": 10000, "direction_deg": 90},
+        )
+        params = _tasks(_points(miz)[2])[0]["params"]
+        assert params["altitudeEnabled"] is True and params["altitude"] == pytest.approx(3048.0)
+        assert params["directionEnabled"] is True and params["direction"] == pytest.approx(1.5707963)
+
+    def test_a_caller_can_override_the_weapon_type(self, miz: Path) -> None:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=3,
+            task="bombing",
+            task_params={"position": {"x": -281000.0, "y": 621000.0}, "weapon_type": 2147485694},
+        )
+        assert _tasks(_points(miz)[2])[0]["params"]["weaponType"] == 2147485694
+
+    def test_engage_targets_in_zone_carries_a_no_target_list(self, miz: Path) -> None:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=2,
+            task="engage_targets_in_zone",
+            task_params={"position": {"x": -281000.0, "y": 621000.0}, "radius_m": 30000, "target_types": ["Air"]},
+        )
+        params = _tasks(_points(miz)[1])[0]["params"]
+        assert params["targetTypes"] == ["Air"]
+        assert params["value"] == "Air;"
+        # The key is present and empty (nothing excluded) — an empty Lua table round-trips as `{}`.
+        assert "noTargetTypes" in params and not params["noTargetTypes"]
 
     def test_an_unknown_task_is_refused_naming_the_set(self, miz: Path) -> None:
         """The escape hatch starts closed: a plausible task table DCS ignores is a silent failure."""

@@ -1,6 +1,6 @@
 # 04 — The 6-vertex zone survives the editor: say so, and stop hedging
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — warning reworded to a measured limitation; no refusal above four
 Type: docs
 Files: `src/python/veaf-tools/veaf_mission_mcp/zone_editing.py` (the warning text), the mission-maker
 action catalogue (both languages), tests

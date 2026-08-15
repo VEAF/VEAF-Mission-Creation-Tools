@@ -17,8 +17,10 @@ deleting it and rebuilding it.
 
 **David's call on the vertex count (2026-08-12)**: accept three or more, because "follow the ridge
 line" is the actual use case and mist handles an arbitrary polygon — but **warn** whenever the count
-is not four, since the DCS Mission Editor only draws quad zones and whether it preserves more is an
-in-game question no unit test can settle.
+is not four, since the DCS Mission Editor has no tool to draw or reshape a non-quad zone. The
+open question of whether the editor *preserves* more was settled in game on 2026-08-15: a 6-vertex
+zone came back byte-identical through a save, so the action does not refuse above four — the warning
+now states a known limitation (you cannot edit the shape by hand there) rather than an unknown risk.
 
 Two refusals the ticket left open, decided here: a **dangling unit link** is refused rather than
 warned (a zone linked to a unit that does not exist simply never follows anything, in silence), and a
@@ -65,7 +67,8 @@ def edit_zone(
         position: New centre, ``{"x": ..., "y": ...}``. A polygon's vertices travel with it.
         radius: New radius in metres; must be positive.
         vertices: Three or more ``{"x": ..., "y": ...}`` points, making the zone a polygon. A count
-            other than four warns, since the editor only draws quads.
+            other than four warns that the editor cannot edit the shape by hand (it is preserved
+            through a save — measured 2026-08-15).
         make_circular: Turn a polygon back into a circle, dropping its vertices.
         link_unit: A unit name for the zone to follow (a carrier, typically). Empty string unlinks.
             A unit that does not exist is refused.
@@ -224,9 +227,11 @@ def _apply_vertices(
     zone[_VERTICES_KEY] = cleaned
     if len(cleaned) != _EDITOR_VERTEX_COUNT:
         warnings.append(
-            f"{len(cleaned)} vertices: the VEAF runtime handles any polygon (mist.getUnitsInPolygon), "
-            "but the DCS Mission Editor only draws 4-point quad zones — open the mission in the "
-            "editor and save it once to confirm it keeps the shape"
+            f"{len(cleaned)} vertices: the DCS Mission Editor has no tool to draw or reshape a "
+            "non-quad zone, so you cannot edit this shape by hand there. It is preserved through a "
+            "save (measured 2026-08-15 — a 6-vertex zone came back unchanged), and the VEAF runtime "
+            "handles any polygon (mist.getUnitsInPolygon), so it is safe to ship; just adjust it here, "
+            "not in the editor"
         )
 
 

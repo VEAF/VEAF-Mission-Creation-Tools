@@ -1,6 +1,7 @@
 # FIX-MCP-EDITOR-ROUNDTRIP — what the Mission Editor does to what the MCP writes
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — all four tickets delivered; the task-survival fix (01) still wants one
+in-game confirmation, David's step.
 
 Origin: the 2026-08-15 DCS session, item 2 of `DCS-SESSION-TODO.md`. Six mutations were written into a
 copy of the demo mission through the MCP, David opened it in the Mission Editor and saved it, and the
@@ -40,10 +41,10 @@ than feared. That is ticket 04 below, and it is a documentation change rather th
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [`add_task` writes an incomplete task the editor discards](tickets/01-task-params-incomplete.md) | ⬜ |
-| 02 | [`edit_route add` ignores the altitude and speed it is given](tickets/02-add-waypoint-ignores-alt-speed.md) | ⬜ |
-| 03 | [A heading set on a flying aircraft does not survive](tickets/03-heading-recalculated.md) | ⬜ |
-| 04 | [The 6-vertex zone survives — say so](tickets/04-polygon-zone-confirmed.md) | ⬜ |
+| 01 | [`add_task` writes an incomplete task the editor discards](tickets/01-task-params-incomplete.md) | ✅ |
+| 02 | [`edit_route add` ignores the altitude and speed it is given](tickets/02-add-waypoint-ignores-alt-speed.md) | ✅ |
+| 03 | [A heading set on a flying aircraft does not survive](tickets/03-heading-recalculated.md) | ✅ |
+| 04 | [The 6-vertex zone survives — say so](tickets/04-polygon-zone-confirmed.md) | ✅ |
 
 01 is the one that matters: a task the editor deletes is a flight that quietly does nothing, which is
 the failure mode `FEAT-MCP-MUTATION-ACTIONS` ticket 04 named as its worst case and could not test for.

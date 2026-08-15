@@ -31,6 +31,7 @@ from typing import Any
 
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
+from veaf_libs.mission_table import CATEGORIES
 
 from veaf_mission_mcp.mission_table import find_group, indexed, listed
 
@@ -45,6 +46,12 @@ _CALLSIGN_FAMILY, _CALLSIGN_FLIGHT, _CALLSIGN_NUMBER = 1, 2, 3
 
 #: Both indices a callsign's flight/number accept; `name` concatenates them, so 10 would read as 1.
 _CALLSIGN_INDEX_RANGE = range(1, 10)
+
+#: Aircraft categories, and the in-air first-waypoint types. DCS recomputes an **airborne** aircraft's
+#: heading from its route's first leg on save, so a heading set on one has a lifetime of one save; a
+#: parked start (``TakeOffParking...``) was not measured, so the warning is scoped to what was.
+_AIRCRAFT_CATEGORIES: tuple[str, ...] = ("plane", "helicopter")
+_IN_AIR_WAYPOINT_TYPES: tuple[str, ...] = ("Turning Point", "Fly Over Point")
 
 
 def set_unit_properties(
@@ -118,6 +125,12 @@ def set_unit_properties(
         )
     if heading_deg is not None:
         _apply_heading(unit, heading_deg, changed)
+        if _heading_will_be_recalculated(mission.mission_content, group_name, group):
+            warnings.append(
+                "heading on an airborne aircraft has a lifetime of one save: DCS recomputes it from "
+                "the route's first leg (measured 2026-08-15 — a set heading came back as the bearing "
+                "to the next waypoint). To point the aircraft, set the route, not the heading"
+            )
     if callsign is not None:
         _apply_callsign(unit, callsign, changed)
     if onboard_num is not None:
@@ -159,6 +172,43 @@ def _find_unit(group: dict[str, Any], group_name: str, unit_name: str) -> dict[s
             return unit
         names.append(name)
     raise ValueError(f"No unit named {unit_name!r} in group {group_name!r}. Units in that group: {listed(names)}")
+
+
+def _group_category(mission_content: dict[str, Any], group_name: str) -> str | None:
+    """Return the category (`plane`, `vehicle`, ...) the group sits under, or None if not found."""
+    for coalition in (mission_content.get("coalition") or {}).values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if isinstance(group, dict) and str(group.get("name", "")) == group_name:
+                        return category
+    return None
+
+
+def _heading_will_be_recalculated(mission_content: dict[str, Any], group_name: str, group: dict[str, Any]) -> bool:
+    """Whether DCS will overwrite a set heading — an airborne aircraft with a route of 2+ waypoints.
+
+    Scoped to the measured case: a parked aircraft (a ``TakeOff*`` first waypoint) was not tested, so
+    it does not warn. A ground unit's heading is meaningful and never recomputed.
+
+    Args:
+        mission_content: The parsed ``mission`` table (to read the group's category).
+        group_name: The group's name.
+        group: The group table (to read its route).
+
+    Returns:
+        True when the heading would be recomputed from the route on save.
+    """
+    if _group_category(mission_content, group_name) not in _AIRCRAFT_CATEGORIES:
+        return False
+    points = indexed((group.get("route") or {}).get("points"))
+    if len(points) < 2 or not isinstance(points[0], dict):
+        return False
+    return str(points[0].get("type", "")) in _IN_AIR_WAYPOINT_TYPES
 
 
 def _apply_skill(unit: dict[str, Any], skill: str, changed: dict[str, Any]) -> None:

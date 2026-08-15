@@ -32,6 +32,7 @@ Every signature below was read out of a real mission, and three are traps a gene
   ``WrappedAction`` envelope.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,13 @@ _ORBIT_PATTERNS: tuple[str, ...] = ("Race-Track", "Circle")
 
 #: Group modulation names, as `set_group_properties` spells them.
 _MODULATIONS: dict[str, int] = {"AM": 0, "FM": 1}
+
+#: `weaponType` is a DCS weapon-category bitmask, and an attack task **without it is discarded by the
+#: Mission Editor on save** (measured 2026-08-15 — a `Bombing` written without it came back with an
+#: empty `tasks`). These are the editor's own "Auto" values, taken by frequency across this
+#: repository's fixtures rather than invented: `Bombing` 2032 (128 occurrences), `AttackGroup`
+#: 9659482112 (8). A caller may override via `weapon_type`.
+_WEAPON_TYPE_AUTO: dict[str, int] = {"bombing": 2032, "attack_group": 9659482112}
 
 #: The operations this action performs.
 _OPERATIONS: tuple[str, ...] = ("add", "insert", "remove", "reorder", "set", "add_task", "clear_tasks")
@@ -126,9 +134,17 @@ def edit_route(
     warnings: list[str] = []
 
     if operation == "add":
-        _add(points, position, name, len(points) + 1, changed)
+        _add(points, position, name, len(points) + 1, changed, altitude_ft=altitude_ft, speed_kt=speed_kt)
     elif operation == "insert":
-        _add(points, position, name, _checked_index(index, points, allow_append=True), changed)
+        _add(
+            points,
+            position,
+            name,
+            _checked_index(index, points, allow_append=True),
+            changed,
+            altitude_ft=altitude_ft,
+            speed_kt=speed_kt,
+        )
     elif operation == "remove":
         _remove(points, _checked_index(index, points), changed)
     elif operation == "reorder":
@@ -218,11 +234,16 @@ def _add(
     name: str | None,
     at: int,
     changed: dict[str, Any],
+    *,
+    altitude_ft: float | None = None,
+    speed_kt: float | None = None,
 ) -> None:
-    """Insert a waypoint at 1-based position `at`, inheriting altitude and speed from its neighbour.
+    """Insert a waypoint at 1-based position `at`, honouring altitude/speed or inheriting them.
 
-    The inheritance matters: a waypoint written with no altitude sits at 0, and a flight given one
-    dives into the ground on its way there. DCS's own editor copies the previous leg's values too.
+    When ``altitude_ft``/``speed_kt`` are given they are written (converted); when omitted the new
+    waypoint inherits its neighbour's, because a waypoint written with no altitude sits at 0 and a
+    flight given one dives into the ground on its way there. DCS's own editor copies the previous
+    leg's values too. A caller that passed the parameters used to have them silently dropped.
 
     Args:
         points: The waypoint list to mutate.
@@ -230,6 +251,8 @@ def _add(
         name: An optional name; defaults to ``WP<n>``.
         at: 1-based insertion position.
         changed: The report to record the change in.
+        altitude_ft: Altitude in feet; inherited from the neighbour when omitted.
+        speed_kt: Speed in knots; inherited from the neighbour when omitted.
 
     Raises:
         ValueError: If `position` is missing.
@@ -237,15 +260,17 @@ def _add(
     if position is None or "x" not in position or "y" not in position:
         raise ValueError("position {x, y} is required to add a waypoint")
     reference = points[at - 2] if at >= 2 and points else (points[0] if points else {})
+    alt = float(altitude_ft) * _M_PER_FT if altitude_ft is not None else reference.get("alt", 0)
+    speed = float(speed_kt) * _MPS_PER_KT if speed_kt is not None else reference.get("speed", 0)
     point: dict[str, Any] = {
         "name": name if name is not None else f"WP{at}",
         "type": "Turning Point",
         "action": "Turning Point",
         "x": float(position["x"]),
         "y": float(position["y"]),
-        "alt": reference.get("alt", 0),
+        "alt": alt,
         "alt_type": reference.get("alt_type", "BARO"),
-        "speed": reference.get("speed", 0),
+        "speed": speed,
         "ETA": 0,
         "ETA_locked": False,
         "speed_locked": True,
@@ -461,25 +486,51 @@ def _build_land(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _attack_common(params: dict[str, Any], task: str) -> dict[str, Any]:
+    """The fields every attack task shares, in the shape the Mission Editor writes them.
+
+    Measured 2026-08-15: `Bombing` and `AttackGroup` both carry `weaponType`, an `expend`/`attackQty`/
+    `attackQtyLimit`/`groupAttack` set, and **present-but-disabled** `altitude`/`altitudeEnabled` and
+    `direction`/`directionEnabled` pairs. Writing a subset is what made the editor discard the task on
+    save. The `*Enabled` flags default off — DCS wants the field present with the flag clear, not the
+    field missing — and turn on when the caller supplies the value.
+
+    Args:
+        params: The caller's task parameters.
+        task: The task name, choosing the measured default `weaponType`.
+
+    Returns:
+        The shared parameter block.
+    """
+    altitude_given = "altitude_ft" in params
+    direction_given = "direction_deg" in params
+    return {
+        "weaponType": int(params.get("weapon_type", _WEAPON_TYPE_AUTO[task])),
+        "expend": params.get("expend", "Auto"),
+        "attackQty": int(params.get("attack_qty", 1)),
+        "attackQtyLimit": "attack_qty" in params,
+        "groupAttack": bool(params.get("group_attack", False)),
+        "altitude": float(params["altitude_ft"]) * _M_PER_FT if altitude_given else 0.0,
+        "altitudeEnabled": altitude_given,
+        "direction": math.radians(float(params["direction_deg"]) % 360) if direction_given else 0.0,
+        "directionEnabled": direction_given,
+    }
+
+
 def _build_attack_group(params: dict[str, Any]) -> dict[str, Any]:
     """Build an ``AttackGroup`` task against a group id."""
-    return {"id": "AttackGroup", "params": {"groupId": int(_required(params, "group_id", "attack_group"))}}
+    body = _attack_common(params, "attack_group")
+    body["groupId"] = int(_required(params, "group_id", "attack_group"))
+    return {"id": "AttackGroup", "params": body}
 
 
 def _build_bombing(params: dict[str, Any]) -> dict[str, Any]:
     """Build a ``Bombing`` task against a ground point."""
     point = _point_params(params, "bombing")
-    return {
-        "id": "Bombing",
-        "params": {
-            "x": point["x"],
-            "y": point["y"],
-            "expend": params.get("expend", "Auto"),
-            "attackQty": int(params.get("attack_qty", 1)),
-            "attackQtyLimit": "attack_qty" in params,
-            "groupAttack": bool(params.get("group_attack", False)),
-        },
-    }
+    body = _attack_common(params, "bombing")
+    body["x"] = point["x"]
+    body["y"] = point["y"]
+    return {"id": "Bombing", "params": body}
 
 
 def _build_engage_targets_in_zone(params: dict[str, Any]) -> dict[str, Any]:
@@ -499,6 +550,10 @@ def _build_engage_targets_in_zone(params: dict[str, Any]) -> dict[str, Any]:
             "zoneRadius": float(_required(params, "radius_m", "engage_targets_in_zone")),
             "targetTypes": target_types,
             "value": "".join(f"{entry};" for entry in target_types),
+            # The editor writes an explicit exclusion list beside the inclusion one (measured
+            # 2026-08-15); an empty list excludes nothing, which is the right default for a caller
+            # who named only what to engage.
+            "noTargetTypes": list(params.get("no_target_types") or []),
             "priority": int(params.get("priority", 0)),
         },
     }

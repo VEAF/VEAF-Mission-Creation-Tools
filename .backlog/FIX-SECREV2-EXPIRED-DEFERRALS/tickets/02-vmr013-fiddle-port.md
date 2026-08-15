@@ -1,6 +1,6 @@
 # 02 — The fiddle-server port: re-anchor the deferral or close it
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-08-15 (validated in game)
 Type: chore
 Finding: VMR-013 (Security flaw, **MEDIUM**), `src/scripts/other/dcs-fiddle-server.lua:270`
 
@@ -72,13 +72,47 @@ Three possible outcomes, and picking one is the work:
 Outcome 1 is the most likely and the cheapest. What must **not** happen is a fourth deferral with no
 named collector — that is how this finding became invisible for a month in the first place.
 
+## Decision — outcome 2, and the vendored file was the wrong one (2026-08-15)
+
+Going to implement the token surfaced the decisive fact: the repo's `src/scripts/other/dcs-fiddle-server.lua`
+is a **stale JonathanTurnock copy that nobody installs**. The hook actually used — and the one the
+harness was validated against — is the **omltcat/dcs-lua-runner** fork, which already carries HTTP Basic
+auth but ships `BYPASS_LOCAL = true`: loopback requests skip auth via the (spoofable) Host header. **That
+is the real VMR-013**, and hardening the stale copy would have fixed nothing on the machine that runs the
+fork.
+
+So, on David's call (option A), the repo **adopts the fork**:
+
+- vendor omltcat/dcs-lua-runner as `src/scripts/other/dcs-fiddle-server.lua`, re-applying the VEAF
+  `sanitizedModule` patch;
+- `AUTH = true`, `BYPASS_LOCAL = false`;
+- a **per-session password** generated in the hook environment at launch and written to
+  `%USERPROFILE%\dcs-fiddle-token.txt` (fixed path, since a workstation carries several write dirs and
+  only the running DCS knows which is live); the mission environment reads the same file so both ports
+  check the same password;
+- the harness client reads that file and sends it as HTTP Basic (username `veaf`), with
+  `--fiddle-token` / `$DCS_FIDDLE_TOKEN` as the override.
+
+A web page cannot read a local file, so it can no longer authenticate — the exposure is closed. The
+condition ADR 0019 named is met and collected, not re-deferred. The **live confirmation** the ADR insists
+on is the one thing left: `smoke-test --probe-only` against a DCS running the vendored hook. The Lua half
+cannot be unit-tested; the client half is (`test/python/veaf_libs/test_dcs_fiddle_token.py`).
+
 ## Tasks
 
-- [ ] Read ADR 0019's token design and check it against what ticket 04 actually changes.
-- [ ] Pick outcome 1, 2 or 3 and write the reason here.
-- [ ] Whichever way: make sure exactly **one** place names the condition, and that a closing lot trips
-      over it. The triage entry alone was not enough — this ticket exists because it was not read.
+- [x] Read ADR 0019's token design and check it against what the harness actually needs.
+- [x] Pick an outcome and write the reason here. (outcome 2, via adopting the fork)
+- [x] Make sure exactly **one** place names the condition — met and collected, not re-deferred.
+- [x] Confirm in game that the authenticated transport still answers (`smoke-test --probe-only` with the
+      vendored hook installed).
 
-## Blocked on
+## Validated in game — 2026-08-15
 
-David: a DCS session, or the call on outcome 1 versus 3.
+With the vendored hook installed and DCS at the main menu:
+
+- the hook wrote a 40-hex password to `%USERPROFILE%\dcs-fiddle-token.txt`, and `smoke-test --probe-only`
+  **authenticated and answered** (control table, `net.load_mission`, `exitProcess`, write dir all read);
+- `--fiddle-token wrong-password-xxxx` was **rejected with 401** ("the DCS hook rejected the credentials").
+
+So the local bypass is off, auth is enforced, and only the per-session password — which a browser cannot
+read — is accepted. VMR-013 is closed, confirmed both ways rather than assumed.

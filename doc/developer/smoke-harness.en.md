@@ -20,17 +20,24 @@ talk to — otherwise it would be red on every machine and nobody would run it.
 2. **The hook installed**: copy `src/scripts/other/dcs-fiddle-server.lua` into
    `Saved Games/DCS/Scripts/Hooks/`. It listens on `127.0.0.1:12081`.
 
-   !!! danger "This hook is an open remote-code-execution port. Remove it when you are done."
+   !!! danger "This hook runs Lua in your DCS. Remove it when you are done, never on a server."
 
-       It runs any Lua it is sent, with no token and no origin check, and it answers with
-       `Access-Control-Allow-Origin: *`. The command channel is a `GET`, and a browser sends a
-       cross-origin `GET` without asking first — so **any web page you visit while the hook is
-       installed can run code in your DCS**, and read what it returns. Binding to `127.0.0.1` does
-       not help: your browser is on `127.0.0.1` too.
+       This hook is the **omltcat/dcs-lua-runner** fork with authentication. Since `FIX-SECREV2` it
+       **requires a per-session password** (`FIDDLE.AUTH = true`, `BYPASS_LOCAL = false`): at each
+       launch it draws a secret and writes it to `%USERPROFILE%\dcs-fiddle-token.txt`, then rejects any
+       request without the matching Basic auth. The local bypass, which let a web page on loopback
+       through via the (spoofable) Host header, is **off** — that is the vector
+       [ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
+       described, and it is closed.
 
-       Install it to run the harness, take it out afterwards, and **never put it on a server**. See
-       [ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md) for why it
-       is still like this and what replaces it.
+       What is still true: **any local process that can read that file can run Lua in your DCS**.
+       Install the hook to run the harness, take it out afterwards, and **never deploy it on a
+       server**. (The upstream DCS Fiddle web UI, which relied on the local bypass, is no longer
+       supported by this build.)
+
+   The harness reads the same file automatically (username `veaf`). If your install writes the secret
+   elsewhere (the hook's `os` function unavailable → fallback to the `writedir`), pass it with
+   `--fiddle-token` or the `DCS_FIDDLE_TOKEN` variable.
 
 3. **`net.dostring_in` available** — it is the only path into the mission environment, so without it no
    assertion can run at all. **Nothing to configure: measured present on a stock install**

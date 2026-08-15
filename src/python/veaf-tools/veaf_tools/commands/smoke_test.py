@@ -7,7 +7,7 @@ is the normal state of most machines and a tool that cries wolf there stops bein
 
 import typer
 from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL
-from veaf_libs.dcs_fiddle_client import DEFAULT_FIDDLE_URL, probe
+from veaf_libs.dcs_fiddle_client import DEFAULT_FIDDLE_URL, probe, resolve_fiddle_token, set_session_token
 from veaf_libs.dcs_smoke import format_result, run
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
@@ -23,11 +23,19 @@ def smoke_test(
     ),
     config: str | None = typer.Option(None, "--config", help=t("cmd.smoke_test.opt.config")),
     probe_only: bool = typer.Option(False, "--probe-only", help=t("cmd.smoke_test.opt.probe_only")),
+    fiddle_token: str | None = typer.Option(
+        None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t("cmd.smoke_test.opt.fiddle_token")
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """Probe a running DCS and assert VEAF runtime behaviour inside it."""
     logger.set_verbose(verbose)
     console.print(t("cmd.smoke_test.title", version=VERSION))
+
+    # Resolve the hook's per-session password once, so every hook call this process makes authenticates
+    # with it. Absent is fine: a hook that predates the auth accepts no header, and one that requires it
+    # says so by rejecting the request.
+    set_session_token(resolve_fiddle_token(fiddle_token))
 
     if probe_only:
         caps = probe(url=url, timeout=timeout)

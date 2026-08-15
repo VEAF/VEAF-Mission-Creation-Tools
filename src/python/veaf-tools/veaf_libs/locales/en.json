@@ -352,6 +352,7 @@
   "cmd.smoke_test.opt.api_key": "dcs-serve superuser Bearer token for the VEAF (bridge) checks (default: read from dcs-serve.yaml).",
   "cmd.smoke_test.opt.config": "Path to a dcs-serve.yaml / dcs-client.yaml where the bridge API key is read.",
   "cmd.smoke_test.opt.probe_only": "Only report what a running DCS lets the harness do, run no checks.",
+  "cmd.smoke_test.opt.fiddle_token": "The hook's per-session Basic-auth password (default: read from ~/dcs-fiddle-token.txt, or $DCS_FIDDLE_TOKEN).",
   "cmd.smoke_test.opt.serve_url": "Base URL of dcs-serve, for the VEAF (bridge) checks (default: http://127.0.0.1:8080).",
   "cmd.smoke_test.opt.timeout": "Per-request socket timeout, in seconds.",
   "cmd.smoke_test.opt.url": "Base URL of the dcs-fiddle-server.lua hook (default: http://127.0.0.1:12081).",

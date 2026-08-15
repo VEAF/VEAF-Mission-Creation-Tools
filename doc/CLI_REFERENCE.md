@@ -548,6 +548,7 @@ Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le 
 | `--url` | `str` | `http://127.0.0.1:12081` | URL de base du hook dcs-fiddle-server.lua (défaut : http://127.0.0.1:12081). |
 | `--timeout` | `float` | `10.0` | Délai d'attente par requête, en secondes. |
 | `--probe-only` | `boolean` | `false` | Rapporte seulement ce qu'un DCS en cours autorise, sans lancer de vérification. |
+| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans ~/dcs-fiddle-token.txt, ou $DCS_FIDDLE_TOKEN). |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 ```bash

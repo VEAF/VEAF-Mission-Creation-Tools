@@ -1,6 +1,9 @@
 # 04 — Assert VEAF through the mission bridge, not the hook
 
-Status: ⬜ ready
+Status: ✅ done 2026-08-15 — transport split shipped: VEAF checks ride the mission bridge, DCS-native
+checks the hook; the `env`-based sentinel is replaced by a measured `type(veaf)` probe; a bridge-absent
+VEAF check fails naming `dcs-serve`. The two side findings below (rebuild the test mission, restore
+mutating checks from source) are notes for tickets 01/03, not code in this one.
 Type: fix
 
 ## What the 2026-08-09 run measured
@@ -73,14 +76,16 @@ The two needs have different constraints:
 
 ## Tasks
 
-- [ ] Split the transport: keep the hook for driving DCS, route every `veaf-*` assertion through
-      the mission bridge.
-- [ ] Fix the sentinel that hid this. `route dostring_in-scripting: reaches the scripting state`
-      concludes "reached" because `env` is a table — and `env` exists in *every* scripting state,
-      loaded or bare. It must test a **VEAF** global instead. This is the **fourth** truthy-failure
-      in this lot after the sentinel strings, the submenu constant and the Lua-error-shaped-as-result.
-- [ ] Make the bridge a documented prerequisite of a VEAF assertion run, and fail with a message
-      naming `dcs-serve` when it is absent rather than reporting `veaf-absent`.
+- [x] Split the transport: `Check.transport` is `hook` or `bridge`; `veaf-loaded` and
+      `findspawnpoint-exists` ride the bridge (`veaf_libs.dcs_bridge_capture.exec_over_bridge`), the
+      DCS-native checks keep the hook. `run()` resolves the bridge once, only when a VEAF check needs it.
+- [x] Fix the sentinel: `probe()` now measures `type(veaf)` on the hook route and records
+      `hook_sees_veaf`, and the route note no longer claims the mission's scripts ran because `env` is a
+      table. This was the **fourth** truthy-failure in the lot.
+- [x] Bridge is a stated prerequisite: a VEAF check with no reachable bridge (or no API key) **fails
+      naming `dcs-serve`** (`smoke.bridge.unreachable` / `smoke.bridge.no_key`), never `veaf-absent`.
+      `smoke-test` gained `--serve-url`, `--api-key`, `--config`. Documented in `smoke-harness.md`
+      (both languages).
 
 ## A second finding from the same run: the test mission must be built, not stored
 

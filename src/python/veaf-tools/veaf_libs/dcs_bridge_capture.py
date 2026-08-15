@@ -264,6 +264,28 @@ def capture_airbases(serve_url: str, api_key: str, timeout: float = 30.0) -> tup
     return _parse_capture(_exec_over_bridge(serve_url, api_key, _CAPTURE_LUA, timeout))
 
 
+def exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float = 10.0) -> str:
+    """Run `code` in the running mission over ``dcs-serve`` and return its result string.
+
+    The public entry point for callers other than the captures — the smoke harness routes its VEAF
+    assertions here, because the bridge lives **inside the mission** where the ``veaf`` global exists,
+    which the fiddle hook's scripting state does not (``FEAT-DCS-SMOKE-HARNESS`` ticket 04).
+
+    Args:
+        serve_url: Base URL of the ``dcs-serve`` HTTP API (e.g. ``http://127.0.0.1:8080``).
+        api_key: The superuser Bearer token.
+        code: The Lua snippet to run (should ``return`` a value).
+        timeout: HTTP request timeout, in seconds.
+
+    Returns:
+        The snippet's ``result`` as a string (empty when the payload carried none).
+
+    Raises:
+        RuntimeError: If the server is unreachable, refuses the request, or returns a non-200.
+    """
+    return _exec_over_bridge(serve_url, api_key, code, timeout)
+
+
 def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -> str:
     """Run `code` in the running mission over ``dcs-serve`` and return its raw result.
 

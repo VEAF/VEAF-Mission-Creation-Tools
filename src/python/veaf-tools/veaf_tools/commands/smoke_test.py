@@ -6,6 +6,7 @@ is the normal state of most machines and a tool that cries wolf there stops bein
 """
 
 import typer
+from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL
 from veaf_libs.dcs_fiddle_client import DEFAULT_FIDDLE_URL, probe
 from veaf_libs.dcs_smoke import format_result, run
 
@@ -16,6 +17,11 @@ from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 def smoke_test(
     url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t("cmd.smoke_test.opt.url")),
     timeout: float = typer.Option(10.0, "--timeout", help=t("cmd.smoke_test.opt.timeout")),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.smoke_test.opt.serve_url")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.smoke_test.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.smoke_test.opt.config")),
     probe_only: bool = typer.Option(False, "--probe-only", help=t("cmd.smoke_test.opt.probe_only")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
@@ -38,7 +44,7 @@ def smoke_test(
             raise typer.Exit(code=0)  # nothing running is not a failure
         return
 
-    result = run(url=url, timeout=timeout)
+    result = run(url=url, timeout=timeout, serve_url=serve_url, api_key=api_key, config=config)
     console.print(format_result(result))
     if result.exit_code:
         raise typer.Exit(code=result.exit_code)

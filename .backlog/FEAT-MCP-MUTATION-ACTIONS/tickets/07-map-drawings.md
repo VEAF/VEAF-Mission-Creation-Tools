@@ -24,9 +24,14 @@ per intent:
 
 | Shape | Kept from |
 |---|---|
-| line, arrow, chevron | `drawing-create-line/arrow/chevron` |
+| line, arrow | `drawing-create-line/arrow` |
 | circle, oval, rect, polygon | `drawing-create-circle/oval/rect/polygon` |
 | textbox, icon | `drawing-create-textbox/icon` |
+
+> **`chevron` was in this table and does not exist.** David, 2026-08-15, with the editor open: *"chevron ?
+> y'a pas ça"*. It came from the proposed verb list above rather than from the editor, and rode into
+> `_UNMEASURED_SHAPES` — so the list whose job is to stop invented shapes was carrying one. Removed,
+> with a test asserting its absence.
 
 Plus `drawing-remove`, `drawing-set-pos`, `drawing-set-text`, `drawing-set-name`.
 
@@ -66,7 +71,7 @@ themselves — and moving a drawing becomes moving its anchor, with the shape fo
 
 **Deliberate scope reduction, stated rather than slipped in.** The ticket lists nine `create-*` shapes.
 Only three field layouts exist in this repository — line, rect, textbox — so `circle`, `oval`, `free`,
-`arrow`, `chevron` and `icon` are **refused by name**, pointing at what does work. Inventing their
+`arrow` and `icon` are **refused by name**, pointing at what does work. Inventing their
 layout is exactly what the ticket's own "read a real `.miz` before writing" rule forbids, and what
 `FIX-MAPRESOURCE-KEY` and `FIX-COMMUNITY-SOUNDS-PRUNED` already cost: a write that looks right and the
 editor disagrees. The functional need is still met — `line` with `closed=true` outlines a free-form

@@ -49,7 +49,13 @@ LAYERS: tuple[str, ...] = ("Red", "Blue", "Neutral", "Common", "Author")
 _MEASURED_SHAPES: tuple[str, ...] = ("line", "rect", "textbox")
 
 #: Shapes DCS supports but which appear in no fixture here, so their fields are unknown.
-_UNMEASURED_SHAPES: tuple[str, ...] = ("circle", "oval", "free", "arrow", "chevron", "icon")
+#:
+#: ``chevron`` used to sit in this list and does **not** exist in the DCS editor (David, 2026-08-15,
+#: with it open). It came from a table of proposed ``drawing-create-*`` verbs rather than from any
+#: measurement — the exact habit the module docstring above forbids, committed in the module that
+#: forbids it. Removed rather than kept as a harmless alias: a name nobody can draw is one a caller
+#: will eventually ask for.
+_UNMEASURED_SHAPES: tuple[str, ...] = ("circle", "oval", "free", "arrow", "icon")
 
 #: Defaults taken from real drawings rather than invented.
 _DEFAULT_COLOR = "0xff0000ff"

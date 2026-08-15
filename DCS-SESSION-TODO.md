@@ -160,12 +160,16 @@ silently wrong:
 - The **rebuild**: build the mission from its folder again and confirm the drawing is still there. That
   is the entire reason drawings are not left to the editor.
 
-## 2b. Measure the six drawing shapes that no mission here contains
+## 2b. Measure the five drawing shapes that no mission here contains
 
 `FEAT-MCP-MUTATION-ACTIONS` ticket 07 ships three shapes — line, rect, textbox — because those are the
 only field layouts present in any `.miz` in this repository. `circle`, `oval`, a free-form `Polygon`,
-`arrow`, `chevron` and `icon` are **refused by name** rather than guessed, since inventing a layout is
+`arrow` and `icon` are **refused by name** rather than guessed, since inventing a layout is
 what `FIX-MAPRESOURCE-KEY` and `FIX-COMMUNITY-SOUNDS-PRUNED` both cost.
+
+**It was six until 2026-08-15**, when David opened the editor and found no `chevron` tool. That name
+came from a table of proposed verbs, never from a measurement — so the list that exists to stop
+invented shapes was carrying one of its own. Removed from the code, the test and the ticket.
 
 Five minutes in the editor closes it: draw **one of each** on any layer, save, and send the `.miz` (or
 just its `mission` file). Each shape is then a table entry, not an investigation.

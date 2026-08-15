@@ -26,7 +26,12 @@ from pathlib import Path
 
 import pytest
 from mission_tools.miz_tools import read_miz
-from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
+from veaf_mission_mcp.map_drawings import (
+    _MEASURED_SHAPES,
+    _UNMEASURED_SHAPES,
+    add_map_drawing,
+    edit_map_drawing,
+)
 
 _MISSION_LUA = b"""
 mission = {
@@ -264,10 +269,17 @@ class TestRectAndTextBox:
 class TestUnmeasuredShapesAreRefused:
     """The ticket's own rule: read a real `.miz` rather than assume a field shape."""
 
-    @pytest.mark.parametrize("shape", ["circle", "oval", "arrow", "chevron", "icon"])
+    @pytest.mark.parametrize("shape", ["circle", "oval", "free", "arrow", "icon"])
     def test_a_shape_absent_from_every_fixture_is_refused(self, miz: Path, shape: str) -> None:
         with pytest.raises(ValueError, match="not measured"):
             add_map_drawing(miz, layer="Blue", shape=shape, name="X", position={"x": 0.0, "y": 0.0})
+
+    def test_the_refused_shapes_are_ones_dcs_actually_draws(self) -> None:
+        # `chevron` sat here until 2026-08-15, when David opened the editor and found no such tool.
+        # It came from a table of proposed verbs, never from a measurement — so the list that exists
+        # to stop invented shapes was carrying one. This test is what keeps the next one out.
+        assert "chevron" not in _UNMEASURED_SHAPES
+        assert set(_UNMEASURED_SHAPES).isdisjoint(_MEASURED_SHAPES), "a shape is refused or it ships"
 
     def test_the_refusal_names_the_shapes_that_do_work(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="rect"):

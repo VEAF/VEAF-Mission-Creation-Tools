@@ -4,6 +4,19 @@ status: accepted
 
 # DCS Fiddle keeps its open port until the smoke harness can prove a token works, and the docs say so today
 
+> **Update 2026-08-15 — part 3 is implemented, and the vendored file was the wrong one**
+> (`FIX-SECREV2-EXPIRED-DEFERRALS` ticket 02). The repo's vendored `dcs-fiddle-server.lua` was a stale
+> JonathanTurnock copy that nobody installs; the hook actually used (and validated by the harness) is the
+> **omltcat/dcs-lua-runner** fork, which already carries HTTP Basic auth — with `BYPASS_LOCAL = true`,
+> keying off the spoofable Host header, which is the real form of the exposure below. The fix therefore
+> **adopts that fork** as the vendored file, re-applies the VEAF `sanitizedModule` patch, sets
+> `AUTH = true` and `BYPASS_LOCAL = false`, and generates a **per-session password** written to
+> `%USERPROFILE%\dcs-fiddle-token.txt` that the harness client reads and sends as Basic auth — so no
+> credential is configured by a human or committed. The token-file mechanism designed below survives; it
+> now carries the fork's password rather than a bespoke `?token=`. The one thing left is the in-game
+> confirmation the ADR insists on — that the authenticated transport still answers. The decision below
+> stands as the record of why the port was left open until now.
+
 `src/scripts/other/dcs-fiddle-server.lua` is a third-party developer tool, already carrying VEAF
 changes, that a developer copies by hand into `Saved Games/.../Scripts/Hooks/`. It listens on
 `127.0.0.1:12080` (mission environment) and `127.0.0.1:12081` (hook environment), base64-decodes the

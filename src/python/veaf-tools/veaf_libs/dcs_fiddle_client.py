@@ -54,11 +54,13 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import re
 import urllib.error
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from veaf_libs.i18n import t
@@ -80,6 +82,68 @@ LUA_ERROR = re.compile(r'^(?:\[string "[^"]*"\])?:\d+:\s')
 
 #: Where the hook listens, hardcoded in ``dcs-fiddle-server.lua`` (``create_server("127.0.0.1", 12081)``).
 DEFAULT_FIDDLE_URL = "http://127.0.0.1:12081"
+
+#: The Basic-auth username the vendored hook checks (``FIDDLE.USERNAME = 'veaf'``). Fixed, because the
+#: secret is the per-session password, not the username.
+FIDDLE_USERNAME = "veaf"
+
+#: Environment variable that overrides the session password, for a machine whose token file is not
+#: where this client looks (see :func:`resolve_fiddle_token`).
+ENV_FIDDLE_TOKEN = "DCS_FIDDLE_TOKEN"
+
+#: Where the hook writes the per-session password, and where this client reads it. A fixed path in the
+#: user's home rather than under a ``Saved Games`` write directory, because a workstation can carry
+#: several write directories (one per aircraft profile) and only the running DCS knows which is live —
+#: so a writedir-relative path would leave the client guessing. The hook computes the same path from
+#: ``USERPROFILE`` (see ``dcs-fiddle-server.lua``); ``FIX-SECREV2-EXPIRED-DEFERRALS`` ticket 02.
+FIDDLE_TOKEN_FILENAME = "dcs-fiddle-token.txt"
+
+#: Set once per process by the CLI (:func:`set_session_token`) from the resolved password, so every
+#: hook call carries the Basic-auth header without threading the value through :func:`probe` and the
+#: rest. ``None`` sends no ``Authorization`` header, which is correct against a hook that predates the
+#: auth and keeps unit tests hermetic — they never touch the filesystem for it.
+_session_token: str | None = None
+
+
+def resolve_fiddle_token(explicit: str | None = None, path: str | os.PathLike[str] | None = None) -> str | None:
+    """Find the hook's per-session password: explicit value, then env var, then the token file.
+
+    Args:
+        explicit: A password passed on the command line; wins when set.
+        path: Explicit path to the token file; defaults to :data:`FIDDLE_TOKEN_FILENAME` in the user's
+            home, which is where the hook writes it.
+
+    Returns:
+        The password, or ``None`` when none is configured or the file is absent — a missing password is
+        not an error here, it is reported by the hook rejecting the request, which names the real cause.
+    """
+    if explicit:
+        return explicit
+    from_env = os.environ.get(ENV_FIDDLE_TOKEN)
+    if from_env:
+        return from_env.strip() or None
+    token_file = Path(path) if path else Path.home() / FIDDLE_TOKEN_FILENAME
+    try:
+        return token_file.read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def set_session_token(token: str | None) -> None:
+    """Set the password every hook call authenticates with for the rest of this process.
+
+    Args:
+        token: The resolved per-session password, or ``None`` to send no ``Authorization`` header.
+    """
+    global _session_token
+    _session_token = token
+
+
+def _basic_auth_header(password: str) -> str:
+    """Return the ``Authorization: Basic`` value for :data:`FIDDLE_USERNAME` and *password*."""
+    raw = f"{FIDDLE_USERNAME}:{password}".encode()
+    return "Basic " + base64.b64encode(raw).decode("ascii")
+
 
 #: The hook's own environment: ``loadstring`` there, and the only one holding ``net.*``.
 ENV_HOOK = "default"
@@ -120,7 +184,13 @@ def _encode(code: str) -> str:
     return base64.b64encode(code.encode("utf-8")).decode("ascii")
 
 
-def exec_lua(code: str, env: str = ENV_MISSION, url: str = DEFAULT_FIDDLE_URL, timeout: float = 10.0) -> Any:
+def exec_lua(
+    code: str,
+    env: str = ENV_MISSION,
+    url: str = DEFAULT_FIDDLE_URL,
+    timeout: float = 10.0,
+    token: str | None = None,
+) -> Any:
     """Run *code* in *env* through the hook and return whatever it produced.
 
     Args:
@@ -129,20 +199,32 @@ def exec_lua(code: str, env: str = ENV_MISSION, url: str = DEFAULT_FIDDLE_URL, t
         env: :data:`ENV_HOOK` for the hook's own environment, :data:`ENV_MISSION` for the mission's.
         url: Base URL of the hook.
         timeout: Socket timeout in seconds.
+        token: The hook's per-session password, sent as HTTP Basic auth (username :data:`FIDDLE_USERNAME`).
+            Defaults to the process-wide :data:`_session_token` set by :func:`set_session_token`; ``None``
+            sends no ``Authorization`` header, which a pre-auth hook accepts.
 
     Returns:
         The decoded ``result`` value. It is whatever ``net.lua2json`` made of the Lua value, so a
         table comes back as a dict or a list.
 
     Raises:
-        FiddleError: The hook is unreachable, replied with a non-200, replied with something that is
-            not JSON, or reported that the Lua raised.
+        FiddleError: The hook is unreachable, rejected the credentials, replied with a non-200, replied
+            with something that is not JSON, or reported that the Lua raised.
     """
     request = urllib.request.Request(f"{url.rstrip('/')}/{_encode(code)}?env={env}")  # noqa: S310 - local hook
+    tok = token if token is not None else _session_token
+    if tok:
+        request.add_header("Authorization", _basic_auth_header(tok))
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - local hook
             body = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise FiddleError(
+                f"the DCS hook rejected the credentials ({exc.code}). It writes a fresh per-session "
+                f"password to {Path.home() / FIDDLE_TOKEN_FILENAME} at each launch — is that the current "
+                f"session's file, or set {ENV_FIDDLE_TOKEN}?"
+            ) from exc
         raise FiddleError(f"the DCS hook replied {exc.code} — is dcs-fiddle-server.lua installed?") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise FiddleError(

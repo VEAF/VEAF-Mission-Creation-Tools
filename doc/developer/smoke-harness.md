@@ -21,17 +21,24 @@ n'y a rien à interroger — sinon il deviendrait rouge sur chaque machine et pe
 2. **Le hook installé** : copier `src/scripts/other/dcs-fiddle-server.lua` dans
    `Saved Games/DCS/Scripts/Hooks/`. Il écoute sur `127.0.0.1:12081`.
 
-   !!! danger "Ce hook est un port d'exécution de code à distance, ouvert. Retirez-le après usage."
+   !!! danger "Ce hook exécute du Lua dans votre DCS. Retirez-le après usage, jamais sur un serveur."
 
-       Il exécute n'importe quel Lua qu'on lui envoie, sans jeton ni contrôle d'origine, et répond
-       avec `Access-Control-Allow-Origin: *`. Le canal de commande est un `GET`, et un navigateur
-       émet un `GET` cross-origin sans rien demander — donc **n'importe quelle page web visitée
-       pendant que le hook est installé peut exécuter du code dans votre DCS**, et en lire le
-       résultat. Écouter sur `127.0.0.1` ne protège pas : votre navigateur y est aussi.
+       Ce hook est le fork **omltcat/dcs-lua-runner** avec authentification. Depuis `FIX-SECREV2`, il
+       **exige un mot de passe par session** (`FIDDLE.AUTH = true`, `BYPASS_LOCAL = false`) : à chaque
+       démarrage il tire un secret et l'écrit dans `%USERPROFILE%\dcs-fiddle-token.txt`, puis rejette
+       toute requête sans l'auth Basic correspondante. Le contournement local, qui laissait passer une
+       page web sur loopback via le Host header (falsifiable), est **désactivé** — c'est le vecteur que
+       l'[ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
+       décrivait, et il est fermé.
 
-       Installez-le pour lancer le harnais, retirez-le ensuite, et **ne le mettez jamais sur un
-       serveur**. Voir l'[ADR 0019](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0019-dcs-fiddle-server-stays-unauthenticated-for-now.md)
-       pour la raison de cet état et ce qui le remplacera.
+       Ce qui reste vrai : **tout processus local capable de lire ce fichier peut exécuter du Lua dans
+       votre DCS**. Installez le hook pour lancer le harnais, retirez-le ensuite, et **ne le déployez
+       jamais sur un serveur**. (L'interface web amont de DCS Fiddle, qui dépendait du contournement
+       local, n'est plus supportée par ce build.)
+
+   Le harnais lit le même fichier automatiquement (username `veaf`). Si votre installation écrit le
+   secret ailleurs (fonction `os` du hook indisponible → repli sur le `writedir`), passez-le avec
+   `--fiddle-token` ou la variable `DCS_FIDDLE_TOKEN`.
 
 3. **`net.dostring_in` disponible** — c'est le seul chemin vers l'environnement de mission, donc sans lui
    aucune assertion ne peut tourner. **Rien à configurer : mesuré présent sur une installation

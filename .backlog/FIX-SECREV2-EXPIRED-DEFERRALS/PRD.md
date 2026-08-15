@@ -1,6 +1,6 @@
 # FIX-SECREV2-EXPIRED-DEFERRALS — two deferred findings whose condition came due
 
-Status: 🔄 in-progress — ticket 01 delivered; ticket 02 needs a DCS session
+Status: 🔄 in-progress — ticket 01 delivered; ticket 02 implemented 2026-08-15 (adopts the omltcat fork, auth on, bypass off), one in-game confirmation left
 
 ## Why this lot exists
 

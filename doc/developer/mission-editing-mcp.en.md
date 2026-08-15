@@ -317,8 +317,8 @@ is moving its anchor, and the shape follows for free.
 
 **Six shapes ship because six shapes were measured**: `Line` (with `lineMode` `segment` or `segments`,
 and `closed` for a shape that joins up), `Polygon` in `rect` mode (`width`/`height`/`angle`, **no**
-points), `TextBox` (`text`/`font`/`fontSize`; the font is taken from a real drawing, one DCS lacks
-rendering as nothing), and — added 2026-08-15 from `bridge-Syria-editeur.miz` (ticket 10) — `Polygon`
+points), `TextBox` (`text`/`font`/`fontSize`; the font is taken from a real drawing — one absent from DCS
+renders as nothing), and — added 2026-08-15 from `bridge-Syria-editeur.miz` (ticket 10) — `Polygon`
 in `circle` mode (`radius`, no points or angle), `oval` (`r1`/`r2`/`angle`), and `free` (`points`
 relative to the anchor like a `Line`, a free-form filled area, three or more points).
 

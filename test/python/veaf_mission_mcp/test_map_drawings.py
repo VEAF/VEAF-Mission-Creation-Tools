@@ -287,9 +287,13 @@ class TestMeasuredPolygonShapes:
         assert d["radius"] == 3000.0 and (d["mapX"], d["mapY"]) == (100.0, 200.0)
         assert "points" not in d and "angle" not in d
 
-    def test_a_circle_needs_a_positive_radius(self, miz: Path) -> None:
+    @pytest.mark.parametrize("radius", [None, 0, -1])
+    def test_a_circle_needs_a_positive_radius(self, miz: Path, radius: float | None) -> None:
+        kwargs: dict = {"layer": "Blue", "shape": "circle", "name": "C", "position": {"x": 0.0, "y": 0.0}}
+        if radius is not None:
+            kwargs["radius"] = radius
         with pytest.raises(ValueError, match="radius"):
-            add_map_drawing(miz, layer="Blue", shape="circle", name="C", position={"x": 0.0, "y": 0.0})
+            add_map_drawing(miz, **kwargs)
 
     def test_an_oval_carries_two_semi_axes_and_an_angle(self, miz: Path) -> None:
         add_map_drawing(

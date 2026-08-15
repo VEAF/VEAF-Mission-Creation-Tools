@@ -22,7 +22,7 @@ drawing is moving its anchor, and the shape follows for free.
   and ``closed`` for a shape that joins up.
 - ``Polygon`` in ``rect`` mode — ``width``/``height``/``angle`` around the anchor, and **no points**.
 - ``TextBox`` — ``text``/``font``/``fontSize``, no points either. The font is taken from a real
-  drawing rather than chosen: one DCS does not have renders as nothing.
+  drawing rather than chosen: one absent from DCS renders as nothing.
 - ``Polygon`` in ``circle`` mode — ``radius``, no points or angle. (ticket 10)
 - ``Polygon`` in ``oval`` mode — ``r1``/``r2``/``angle``. (ticket 10)
 - ``Polygon`` in ``free`` mode — ``points`` relative to the anchor like a ``Line``, a free-form filled
@@ -123,7 +123,7 @@ def add_map_drawing(
         angle: Rotation, for a ``rect``, ``textbox`` or ``oval``.
         closed: Whether a line joins back up — how a free-form area is drawn.
         color: Outline colour as DCS's ``0xRRGGBBAA`` string.
-        fill_color: Fill colour, for a ``rect`` or a ``textbox``.
+        fill_color: Fill colour, for a ``rect``, ``textbox``, ``circle``, ``oval`` or ``free`` polygon.
         thickness: Outline thickness.
         font_size: Font size, for a ``textbox``.
 
@@ -627,7 +627,7 @@ def _build_textbox(
         {
             "primitiveType": "TextBox",
             "text": text,
-            # Taken from a real drawing rather than chosen: a font DCS lacks renders as nothing.
+            # Taken from a real drawing rather than chosen: a font absent from DCS renders as nothing.
             "font": _DEFAULT_FONT,
             "fontSize": font_size if font_size is not None else _DEFAULT_FONT_SIZE,
             "angle": angle,

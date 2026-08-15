@@ -64,7 +64,7 @@ rename, waypoint tasks — are pre-scoped, because those are the ones with a nam
 | 06 | [Zone editing, including polygons](tickets/06-zone-editing.md) | ✅ |
 | 07 | [F10 map drawings](tickets/07-map-drawings.md) | ✅ |
 | 08 | [Capture the parking-slot data](tickets/08-capture-parking-data.md) — 3 theatres captured 2026-08-15, 6521 slots | ✅ |
-| 09 | [`add_air_group`](tickets/09-add-air-group.md) — was a line in 03; **unblocked 2026-08-15** | ⬜ |
+| 09 | [`add_air_group`](tickets/09-add-air-group.md) — **blocked**: `parking_id` not in the capture, needs a DCS session (2026-08-15) | 🧑 |
 | 10 | [Ship the drawing shapes now measured](tickets/10-remaining-drawing-shapes.md) — circle, oval, free | ⬜ |
 | — | Arbitrary triggers — **the triage says no**, with its reasoning below. No ticket | 🚫 |
 

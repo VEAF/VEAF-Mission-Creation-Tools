@@ -104,31 +104,37 @@ qu'une fois, reconstruire la mission d'abord.
 
 Caucasus, Syria et PersianGulf : **276 aérodromes, 6521 places**, dans
 `veaf_build/dcs_data/airbase_dumps/parking/`. Le ticket
-[08](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/08-capture-parking-data.md) est clos et le **09 est
-débloqué**.
+[08](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/08-capture-parking-data.md) est clos.
 
-Ce que la donnée a corrigé : `Term_Index_0` vaut `-1` sur les 6521 places, donc `parking_id` **ne
-vient pas** de cette capture contrairement à ce que le ticket supposait. Et `Term_Type` change de jeu
-de valeurs d'une carte à l'autre — PersianGulf n'a aucun `68`, Syria est seule à avoir `100`.
+Ce que la donnée a **révélé, et qui bloque le 09** : `Term_Index_0` vaut `-1` sur les 6521 places,
+donc `parking_id` **ne vient pas** de cette capture — voir l'item 9 ci-dessous. Au passage, `Term_Type`
+change de jeu de valeurs d'une carte à l'autre (PersianGulf n'a aucun `68`, Syria est seule à avoir
+`100`). D'autres cartes peuvent être capturées à l'identique : `tmp\bridge-maps\collect\` contient
+aussi des missions pour GermanyCW, MarianaIslands, Normandy et SinaiMap.
 
-D'autres cartes peuvent suivre à l'identique : `tmp\bridge-maps\collect\` contient aussi des missions
-pour GermanyCW, MarianaIslands, Normandy et SinaiMap.
+## 🔎 9. D'où vient `parking_id` ? — débloque le ticket 09
 
+[`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/09-add-air-group.md)
+(*"un deux-ship de F-16 sur la ramp à Incirlik"*) a besoin de `parking` **et** `parking_id` pour un
+départ au parking. La capture donne `parking` (= `Term_Index`) et la **position exacte** du stand, mais
+**pas** `parking_id` (`Term_Index_0` = -1 partout, et les paires parking/parking_id des vraies missions
+n'ont aucune fonction dérivable). David, 2026-08-15 : investiguer d'abord, ne rien deviner.
 
-Unblocks [`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/09-add-air-group.md)
-(*"put a two-ship of F-16s on the ramp at Incirlik"*), which cannot start without this data.
+Deux mesures à faire, dans cet ordre :
 
-Same kit as the airbase captures of `FEAT-AIRDROMES-RUNTIME-SOURCE`: load a bridge mission, start
-`dcs-serve`, then:
+1. **D'où sort `parking_id`.** Dans l'éditeur, poser 3-4 avions sur des stands **connus** d'un même
+   aérodrome (p. ex. Kobuleti), sauver, et me donner pour chacun `(parking, parking_id)` + le stand
+   visé. Je corrèle à `Term_Index` et à la position de la capture : soit `parking_id` correspond à
+   quelque chose de capturable (alors on étend la capture du ticket 08 pour le sortir), soit il est
+   interne à l'éditeur et il faut l'obtenir autrement.
+2. **Est-il indispensable si la position est exacte ?** Je te prépare une mission bâtie via
+   `add_player_slot` avec la position + `parking` capturés et `parking_id` = `parking` ; tu la charges
+   et tu regardes si l'avion se pose sur le bon stand. Si DCS se cale sur la position quoi qu'il
+   arrive, un départ ramp n'a pas besoin du vrai `parking_id` et le 09 est débloqué tel quel ; s'il
+   déplace l'avion ou refuse, le 09 attend le vrai `parking_id` de l'étape 1.
 
-```bash
-veaf-tools dcs capture-map --parking --out-dir veaf_build/dcs_data
-```
-
-- Caucasus, Syria and PersianGulf first — they cover most missions.
-- It writes `parking/<theatre>.json` next to the airbase dump. Commit it.
-- Then paste one airfield's slots into ticket 08 so the runtime's real field names are recorded
-  rather than assumed — the shipped API schema is already known to be incomplete here.
+Rien à lancer côté outils pour l'étape 1 (c'est de l'éditeur) ; pour l'étape 2 je fabrique la mission
+quand tu me diras que tu es en jeu.
 
 ## ✅ 2 et 2b — faits le 2026-08-15
 

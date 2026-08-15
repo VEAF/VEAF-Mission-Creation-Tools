@@ -71,9 +71,9 @@ mission DCS"*. Les ids forcés aussi (l'éditeur écrit 900x lui-même), et la p
 deux côtés. Consigné dans
 [`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md).
 
-**`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi) et attend son essai. Si le
-slot ne se prend toujours pas : ajouter un A-10 à la main **dans cette mission-là**, la sauver, et
-refaire le différentiel — protocole proposé par David.
+**`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi), et **le slot a été pris en
+jeu le 2026-08-15** — *"le A-10 fonctionne"*. Le correctif est donc mesuré, pas supposé, et cette
+mission est celle à utiliser pour la suite de la session.
 
 ### Reste de la session
 

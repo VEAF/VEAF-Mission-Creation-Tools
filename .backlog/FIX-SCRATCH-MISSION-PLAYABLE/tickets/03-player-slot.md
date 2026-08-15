@@ -35,10 +35,14 @@ writer. `A-10C Kobuleti  HOT` is an `A-10C_2`, `skill: Client`, `parking: "43"`,
 is `TakeOffParkingHot` / `From Parking Area Hot`. The cold pair is `TakeOffParking` /
 `From Parking Area`, verified by making exactly that edit on 2026-08-14 and loading the result.
 
-### `dynSpawnTemplate` is what made the 2026-08-14 slot unusable
+### `dynSpawnTemplate` is what made the 2026-08-14 slot unusable — verified in game 2026-08-15
 
 A slot created by this action **must carry `dynSpawnTemplate = false`**, and that single field is the
 whole lesson of the 2026-08-14 defect.
+
+**Confirmed by flying it**: the same mission with the flag cleared gives a slot David can take
+(*"le A-10 fonctionne"*, 2026-08-15). So this is a measured fix rather than a hypothesis, and the
+assertions below are writing down a known-good shape.
 
 The slot placed that day was copied out of the demo mission — including its `dynSpawnTemplate = true`.
 That flag does not describe a slot: it marks the group as a **template for dynamic spawn**, which

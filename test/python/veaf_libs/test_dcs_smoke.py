@@ -468,7 +468,7 @@ class TestTransportSplit:
         monkeypatch.setattr(smoke, "exec_over_bridge", fake_bridge)
         monkeypatch.setattr(smoke, "exec_in_scripting", lambda *a, **k: "veaf-absent")
 
-        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.TRANSPORT_BRIDGE)
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
         result = run(checks=(check,), timeout=0.1)
         assert result.outcomes[0].passed, "the bridge sees veaf where the hook does not"
         assert "return type(veaf)" in bridge_calls  # it went to the bridge
@@ -481,7 +481,7 @@ class TestTransportSplit:
             raise RuntimeError("cannot reach dcs-serve")
 
         monkeypatch.setattr(smoke, "exec_over_bridge", unreachable)
-        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.TRANSPORT_BRIDGE)
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
         result = run(checks=(check,), timeout=0.1)
         assert not result.outcomes[0].passed
         detail = result.outcomes[0].detail
@@ -494,7 +494,7 @@ class TestTransportSplit:
             raise RuntimeError("no API key found")
 
         monkeypatch.setattr(smoke, "resolve_api_key", no_key)
-        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.TRANSPORT_BRIDGE)
+        check = Check("veaf", "return type(veaf)", lambda v: v == "table", "why", transport=smoke.Transport.BRIDGE)
         result = run(checks=(check,), timeout=0.1)
         assert not result.outcomes[0].passed and "dcs-serve" in result.outcomes[0].detail
 
@@ -513,9 +513,9 @@ class TestTransportSplit:
 
     def test_the_shipped_veaf_checks_are_tagged_for_the_bridge(self):
         by_name = {c.name: c for c in CHECKS}
-        assert by_name["veaf-loaded"].transport == smoke.TRANSPORT_BRIDGE
-        assert by_name["findspawnpoint-exists"].transport == smoke.TRANSPORT_BRIDGE
-        assert by_name["disposition-exists"].transport == smoke.TRANSPORT_HOOK
+        assert by_name["veaf-loaded"].transport == smoke.Transport.BRIDGE
+        assert by_name["findspawnpoint-exists"].transport == smoke.Transport.BRIDGE
+        assert by_name["disposition-exists"].transport == smoke.Transport.HOOK
 
 
 class TestCheckExpectations:

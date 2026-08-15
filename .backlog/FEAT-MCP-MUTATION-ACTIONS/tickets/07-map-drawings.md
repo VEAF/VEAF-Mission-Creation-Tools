@@ -38,6 +38,36 @@ Plus `drawing-remove`, `drawing-set-pos`, `drawing-set-text`, `drawing-set-name`
 Rejected as low value: `drawing-set-angle/color/fill-color/thickness` — styling, which a caller can pass
 at creation. Add one later if a mission maker asks; never speculatively.
 
+## The five unmeasured shapes, measured — 2026-08-15
+
+David drew one of each in the editor and saved (`tmp\bridge-maps\collect\bridge-Syria-editeur.miz`).
+**There were five, not six**: no `chevron` tool exists, see the note above. Every one is a
+`primitiveType: "Polygon"` distinguished by `polygonMode`, except the icon.
+
+| Shape | `primitiveType` / `polygonMode` | Its own fields | Points |
+|---|---|---|---|
+| circle | `Polygon` / `circle` | `radius` | **none** |
+| oval | `Polygon` / `oval` | `angle`, `r1`, `r2` | **none** |
+| free | `Polygon` / `free` | — | `points`, first at `{0,0}` |
+| arrow | `Polygon` / `arrow` | `angle`, **`length`** | `points` **as well** — 8 of them |
+| icon | `Icon` | `file`, `scale`, `angle` | **none** |
+
+All of them also carry the common set already known from line/rect/textbox: `name`, `layerName`,
+`mapX`, `mapY`, `visible`, `colorString`, `thickness`, `style` (`"solid"`), plus `fillColorString` on
+every `Polygon`. An `Icon` has `colorString` but **no** `fillColorString`; a `Line` has no fill either.
+
+Two of the five are not the free win the others are:
+
+- **`arrow` carries both `length`/`angle` and 8 `points`.** The editor stores the computed outline
+  alongside the parameters, so writing the parameters alone produces an unknown result. Whether DCS
+  recomputes the points on load is exactly the kind of thing to test with a round-trip rather than
+  reason about.
+- **`icon` needs a `file`** — the sample is `P91000007.png`, an opaque name from the editor's own icon
+  set. Shipping `icon` means shipping a catalogue of valid names, or accepting one from the caller and
+  refusing to validate it. That is a decision, not an implementation detail.
+
+`circle`, `oval` and `free` are each a handful of fields and can ship as they are.
+
 ## Decide before implementing
 
 - **Where do drawings live in the mission table?** `drawingLayers`, with per-coalition layers (Common,

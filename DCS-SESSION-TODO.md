@@ -130,6 +130,32 @@ veaf-tools dcs capture-map --parking --out-dir veaf_build/dcs_data
 - Then paste one airfield's slots into ticket 08 so the runtime's real field names are recorded
   rather than assumed — the shipped API schema is already known to be incomplete here.
 
+## ✅ 2 et 2b — faits le 2026-08-15
+
+Les deux aller-retours dans l'éditeur ont eu lieu. Résultats consignés dans
+[`FIX-MCP-EDITOR-ROUNDTRIP`](.backlog/FIX-MCP-EDITOR-ROUNDTRIP/PRD.md) (4 tickets) et dans le
+[ticket 07](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/07-map-drawings.md), qui donne naissance au
+[ticket 10](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/10-remaining-drawing-shapes.md).
+
+Ce que l'éditeur a **gardé** : le groupe déplacé de 6 km avec sa route, le renommage, l'emport, la
+ligne et l'étiquette sur la couche Blue, le waypoint retiré avec son reverrouillage d'heure — et la
+**zone à 6 sommets**, ce qui tranche une question ouverte : `edit_zone` ne doit pas se mettre à
+refuser au-delà de 4.
+
+Ce qu'il a **jeté** : la tâche `Bombing`, écrite avec 6 paramètres là où une vraie en porte 11.
+
+Ce qu'il a **recalculé** : le cap d'un avion en vol, remplacé par l'`atan2` du premier segment de sa
+route, à la septième décimale. DCS recalcule, il ne casse rien.
+
+Les cinq formes de dessin sont mesurées (`bridge-Syria-editeur.miz`) — et il y en avait cinq, pas six.
+
+Ce qui reste de l'item 2, non fait : **voler** la route avec sa tâche d'attaque (l'éditeur l'ayant
+supprimée, ça attend le correctif du ticket 01), et le rebuild qui confirme qu'un dessin survit à une
+reconstruction depuis le dossier.
+
+<details>
+<summary>Consigne d'origine de l'item 2, conservée pour le prochain aller-retour</summary>
+
 ## 2. Open a mutated mission in the Mission Editor
 
 The acceptance criterion of
@@ -173,6 +199,8 @@ invented shapes was carrying one of its own. Removed from the code, the test and
 
 Five minutes in the editor closes it: draw **one of each** on any layer, save, and send the `.miz` (or
 just its `mission` file). Each shape is then a table entry, not an investigation.
+
+</details>
 
 ## 3. Confirm a rebuilt checklist picture is not served stale
 

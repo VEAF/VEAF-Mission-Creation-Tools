@@ -292,3 +292,74 @@ class TestCoalitions:
         )
         content = read_miz(miz).mission_content
         assert content["coalitions"]["blue"] == [2]
+
+
+class TestAircraftCategory:
+    """A helicopter flight must land under `helicopter`, not `plane` (FIX-MCP-AIRCRAFT-CATEGORY).
+
+    Found in game on 2026-08-16, by David opening a generated test mission in the Mission Editor:
+    the two CTLD helicopter slots showed as AIRPLANE GROUP with `UH-1H` in red — unflyable. The
+    action hard-coded `category="plane"`, and no assertion here looked at the category, so every
+    test passed while every helicopter it produced was broken.
+    """
+
+    def _group_under(self, mission_content: dict, category: str, name: str) -> dict | None:
+        for coalition in mission_content["coalition"].values():
+            countries = coalition.get("country")
+            for country in countries.values() if isinstance(countries, dict) else (countries or []):
+                groups = (country.get(category) or {}).get("group")
+                for group in groups.values() if isinstance(groups, dict) else (groups or []):
+                    if group.get("name") == name:
+                        return group
+        return None
+
+    def test_a_helicopter_flight_lands_under_helicopter(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Dustoff",
+            unit_type="UH-1H",
+            count=1,
+            start="parking-cold",
+            airfield="Kobuleti",
+            skill="Client",
+        )
+        assert result["category"] == "helicopter"
+        content = read_miz(miz).mission_content
+        assert self._group_under(content, "helicopter", "Dustoff") is not None
+        assert self._group_under(content, "plane", "Dustoff") is None
+
+    def test_a_plane_flight_still_lands_under_plane(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Viper",
+            unit_type="F-16C_50",
+            count=1,
+            start="parking-cold",
+            airfield="Kobuleti",
+        )
+        assert result["category"] == "plane"
+        assert self._group_under(read_miz(miz).mission_content, "plane", "Viper") is not None
+
+    def test_an_unclassifiable_type_warns_instead_of_guessing_silently(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Modded",
+            unit_type="NoSuchModType",
+            count=1,
+            start="parking-cold",
+            airfield="Kobuleti",
+        )
+        assert result["category"] == "plane"
+        assert any("NoSuchModType" in w for w in result["warnings"])

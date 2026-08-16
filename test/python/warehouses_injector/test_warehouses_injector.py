@@ -212,3 +212,30 @@ class TestEdgeCases:
         m = DcsMission(file_path=Path("d.miz"), warehouses_content={"airports": {}}, mission_content={})
         result = apply_warehouses(m, {"blue": {"defaults": {}}})
         assert result.airports_configured == 0
+
+
+class TestHotStart:
+    """A dynamic slot the pilot can start with engines running (FIX-WAREHOUSES-INCREMENTAL 03).
+
+    `allowHotStart` is what offers "spawn hot" on a dynamic-slot airfield. The DCS Mission Editor
+    writes it `false`, which the bootstrap copies, and nothing ever turned it back on — reported in
+    game on 2026-08-16: the option was greyed out on an airfield whose dynamic slots otherwise
+    worked. An airfield configured for dynamic slots offers a hot start by default now, and a
+    mission that wants cold starts only says so.
+    """
+
+    def test_a_configured_airfield_offers_a_hot_start(self) -> None:
+        m = _mission()
+        apply_warehouses(m, {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": "unlimited"}}}}})
+        assert m.warehouses_content["airports"][23]["allowHotStart"] is True
+
+    def test_hot_start_can_be_turned_off(self) -> None:
+        m = _mission()
+        apply_warehouses(m, {"blue": {"defaults": {"hot_start": False, "aircrafts": {}}}})
+        assert m.warehouses_content["airports"][23]["allowHotStart"] is False
+
+    def test_an_airfield_of_another_coalition_is_untouched(self) -> None:
+        m = _mission()
+        m.warehouses_content["airports"][99]["allowHotStart"] = False
+        apply_warehouses(m, {"blue": {"defaults": {"aircrafts": {}}}})
+        assert m.warehouses_content["airports"][99]["allowHotStart"] is False

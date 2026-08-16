@@ -27,6 +27,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   cannot be taken and a dynamic-slot catalogue showing zero aircraft in every type. Fixed at both
   ends: the MCP writes a full entry, and the build completes a partial one key by key without ever
   overwriting what the mission already set.
+- **A dynamic slot could only be taken cold.** `allowHotStart` — the field behind the "spawn hot"
+  option — is written `false` by the DCS Mission Editor, and nothing turned it back on. An airfield
+  the mission opens to dynamic slots now offers a hot start; `hot_start: false` under a coalition's
+  `defaults:` in `warehouses.yaml` returns to cold starts only.
 
 - **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
   6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising

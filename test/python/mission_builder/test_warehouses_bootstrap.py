@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT, ensure_airports_populated
+from veaf_libs.dcs_airdromes import airdromes_for_theatre
 
 
 def _mission(theatre: str = "Syria", warehouses: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -24,10 +25,13 @@ def _mission(theatre: str = "Syria", warehouses: dict[str, Any] | None = None) -
 
 class TestPopulatesAnEmptyTable:
     def test_every_airfield_of_the_theatre_gets_an_entry(self) -> None:
+        # Counted from the bundled table rather than hard-coded: the number moves when a theatre is
+        # re-captured, and what matters is "every airfield", not "225 of them".
+        expected = len(set(airdromes_for_theatre("Syria").values()))
         warehouses: dict[str, Any] = {"airports": {}, "warehouses": {}, "weapons": {}}
         added = ensure_airports_populated(warehouses, theatre="Syria")
-        assert added == len(warehouses["airports"])
-        assert added > 200, "Syria has 224 airfields in the bundled table"
+        assert added == expected
+        assert set(warehouses["airports"]) == set(airdromes_for_theatre("Syria").values())
 
     def test_entries_are_keyed_by_the_numeric_airdrome_id(self) -> None:
         warehouses: dict[str, Any] = {"airports": {}}
@@ -67,10 +71,11 @@ class TestCompletesAPartialTable:
     """
 
     def test_the_missing_airfields_are_added_beside_an_existing_one(self) -> None:
+        all_ids = set(airdromes_for_theatre("Syria").values())
         warehouses: dict[str, Any] = {"airports": {42: {"coalition": "BLUE", "dynamicSpawn": True}}}
         added = ensure_airports_populated(warehouses, theatre="Syria")
-        assert added > 200
-        assert len(warehouses["airports"]) == added + 1
+        assert added == len(all_ids) - 1, "every airfield but the one already there"
+        assert set(warehouses["airports"]) == all_ids
 
     def test_a_partial_entry_gains_the_keys_it_lacks(self) -> None:
         # What set_airbase_coalition leaves behind is FIVE keys, not twenty. DCS cannot work an
@@ -102,6 +107,8 @@ class TestCompletesAPartialTable:
         assert warehouses["airports"][42]["coalition"] == "BLUE"
 
     def test_a_complete_table_gains_nothing(self) -> None:
+        # The first call is what makes the table complete; the second is the one under test. Both
+        # are needed — asserting idempotency on a table nothing has populated proves nothing.
         warehouses: dict[str, Any] = {"airports": {}}
         ensure_airports_populated(warehouses, theatre="Syria")
         assert ensure_airports_populated(warehouses, theatre="Syria") == 0

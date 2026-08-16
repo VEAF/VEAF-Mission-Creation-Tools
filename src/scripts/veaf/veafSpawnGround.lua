@@ -130,7 +130,9 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   -- engine parked because nothing ever called veaf.ctld_initialize() (that third state is what
   -- FIX-CTLD-NEVER-INITIALIZED found, and it is the one that used to crash here).
   if not veaf.isCtldReady() then
-    veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)", veaf.p(name))
+    -- "not usable" rather than "without CTLD": the script may well be loaded, and
+    -- veaf.isCtldReady() has already logged which of the three states it is in.
+    veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): CTLD is not usable, cannot spawn a FOB", veaf.p(name))
     return nil
   end
 

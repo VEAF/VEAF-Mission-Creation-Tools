@@ -3,7 +3,14 @@
 from typing import Any
 
 import pytest
-from mission_tools.group_insertion import add_group, assign_country_to_side, find_or_add_country, max_ids
+from mission_tools.group_insertion import (
+    add_group,
+    air_category_for_type,
+    air_category_for_type_verbose,
+    assign_country_to_side,
+    find_or_add_country,
+    max_ids,
+)
 
 
 def _mission(coalition: dict[str, Any] | None = None, coalitions: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -191,3 +198,38 @@ class TestFindOrAddCountry:
 class TestMaxIds:
     def test_returns_zero_zero_for_an_empty_mission(self) -> None:
         assert max_ids(_mission()) == (0, 0)
+
+
+class TestAirCategoryForType:
+    """A helicopter written under `plane` is a slot DCS shows with its type in RED and cannot fly.
+
+    Found in game on 2026-08-16: `add_air_group` and `add_player_slot` both hard-coded
+    `category="plane"`, so every helicopter slot either action produced was broken — and nothing
+    in the mission file says so, since the category is structural, not a validated field.
+    """
+
+    def test_a_helicopter_type_resolves_to_helicopter(self) -> None:
+        assert air_category_for_type("UH-1H") == "helicopter"
+        assert air_category_for_type("CH-47Fbl1") == "helicopter"
+        assert air_category_for_type("Mi-8MT") == "helicopter"
+
+    def test_a_plane_type_resolves_to_plane(self) -> None:
+        assert air_category_for_type("A-10C_2") == "plane"
+        assert air_category_for_type("F-16C_50") == "plane"
+
+    def test_an_unknown_type_falls_back_to_plane(self) -> None:
+        # Third-party mods are absent from the generated database (`Hercules` is), so an unknown
+        # type must not raise — the mission maker asked for a type we simply cannot classify.
+        assert air_category_for_type("Hercules") == "plane"
+        assert air_category_for_type("NoSuchAircraftType") == "plane"
+
+    def test_the_fallback_is_reported_so_it_is_not_silent(self) -> None:
+        # A silent wrong category is exactly the defect this helper exists to stop: when the type
+        # cannot be classified, the caller gets told rather than guessing well.
+        category, warning = air_category_for_type_verbose("NoSuchAircraftType")
+        assert category == "plane"
+        assert warning is not None
+        assert "NoSuchAircraftType" in warning
+
+    def test_a_known_type_reports_no_warning(self) -> None:
+        assert air_category_for_type_verbose("UH-1H") == ("helicopter", None)

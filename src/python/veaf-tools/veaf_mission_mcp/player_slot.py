@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_tools.group_insertion import add_group as insert_group
+from mission_tools.group_insertion import air_category_for_type_verbose
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
@@ -127,12 +128,16 @@ def add_player_slot(
         onboard_num=onboard_num,
         task=task,
     )
+    # The category comes from the type, never from a default: a helicopter filed under `plane`
+    # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
+    # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
+    category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         mission.mission_content,
         coalition=coalition,
         country_id=country_id,
         country_name=country_name,
-        category="plane",
+        category=category,
         group=group,
     )
 
@@ -142,7 +147,16 @@ def add_player_slot(
         backup_before_write(target)
         write_miz(mission, target)
 
-    return {"group_id": group_id, "name": name, "durable": is_folder, "start": start}
+    result: dict[str, Any] = {
+        "group_id": group_id,
+        "name": name,
+        "durable": is_folder,
+        "start": start,
+        "category": category,
+    }
+    if category_warning:
+        result["warnings"] = [category_warning]
+    return result
 
 
 def _build_slot_group(

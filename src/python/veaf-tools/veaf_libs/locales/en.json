@@ -115,6 +115,7 @@
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
   "builder.updating_triggers": "Updating mission triggers...",
   "builder.veaf_config_generated": "Generated '{file}' from mission.yaml",
+  "builder.warehouses_airports_populated": "Warehouses: {count} airfield(s) of {theatre} added to an empty table",
   "builder.writing_mission": "Writing final mission {output}...",
   "checklist.dev_condition_active": "DEVELOPMENT HATCH ACTIVE: {checklists} auto-pass without the cockpit being in the required state (dev_condition). Remove it before shipping — a pilot flying this is told they did something they did not.",
   "checklist.duplicate_id": "Two checklists declare the id '{id}': '{first}' and '{second}'. Ids must be unique within a folder.",

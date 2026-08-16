@@ -9,6 +9,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A built mission had no usable airfield, so no parked slot could be taken** (FIX-EMPTY-WAREHOUSES).
+  A `.miz` keeps each airfield's coalition and stock in its `warehouses` table, one entry per
+  airfield of the theatre. A mission built from a blank or scratch-made source had `airports = {}`,
+  and DCS then refuses to seat a pilot on a ramp: the slot appears in the list, can be selected, and
+  never takes. An air start does not go through that table, which is why this survived until someone
+  parked a helicopter. Nothing reported it — `validate` was clean, the build said nothing, and the
+  warehouses injector logged "0 airports configured", which reads like a mission that declared none.
+  Opening the mission in the DCS Mission Editor and saving it repairs the file, which is exactly why
+  such a mission "works when launched from the editor". The build now writes those entries itself,
+  from the runtime-sourced `airdromes.yaml`, in the shape the editor writes them (`NEUTRAL`,
+  ownership being resolved at runtime). A mission that already declares airfields is left untouched.
+  Measured on the smoke-test mission: `warehouses` 69 bytes → 150 040, 225 airfields.
+- **`set_airbase_coalition` reported success without writing anything.** It mutated the warehouses
+  table and returned `durable: true`, but `write_mission_folder` only ever wrote the `mission` file
+  — so an airfield's coalition, which lives in `warehouses`, never reached the disk. The folder
+  writer now persists that table too, when the folder has one.
+
 ## [6.14.0] — 2026-08-15
 
 ### ⚠️ Behaviour change — tell your pilots before you ship this

@@ -220,12 +220,19 @@ def read_mission_folder(folder_path: Path) -> DcsMission:
 def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
     """Serialize ``mission_content`` back to a folder's loose ``mission`` file.
 
-    The write-side counterpart of :func:`read_mission_folder`. Rewrites only the ``mission`` file
-    (the tables the composite builders edit), leaving the rest of ``src/mission/`` and the folder
-    untouched. Uses the same ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
+    The write-side counterpart of :func:`read_mission_folder`. Rewrites the ``mission`` table and,
+    when the folder has one, the ``warehouses`` table — the two a caller can mutate through
+    :class:`DcsMission`. Everything else in ``src/mission/`` is left untouched. Uses the same
+    ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
+
+    ``warehouses`` used to be skipped, which made `set_airbase_coalition` a fail-silent: it mutated
+    the table, called this, and reported ``durable: True`` while the file on disk never changed —
+    an airfield's coalition lives in ``warehouses``, not in ``mission`` (FIX-EMPTY-WAREHOUSES). The
+    file is only rewritten when the folder already has one, so this never invents a member the
+    mission did not carry.
 
     Args:
-        mission: The mission whose ``mission_content`` to write.
+        mission: The mission whose tables to write.
         folder_path: A folder holding the loose mission files (root or ``src/mission/``).
 
     Returns:
@@ -245,6 +252,14 @@ def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
     )
     mission_file = root / "mission"
     mission_file.write_text(f"mission = \n{lua_content}", encoding="utf-8")
+
+    warehouses_file = root / "warehouses"
+    if mission.warehouses_content is not None and warehouses_file.is_file():
+        warehouses_lua = luadata.serialize(
+            mission.warehouses_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+        )
+        warehouses_file.write_text(f"warehouses = \n{warehouses_lua}", encoding="utf-8")
+
     return mission_file
 
 

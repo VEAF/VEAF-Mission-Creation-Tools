@@ -22,9 +22,14 @@ from veaf_libs.bundled_data import read_bundled_text
 @functools.lru_cache(maxsize=1)
 def _categories() -> dict[str, str]:
     """Load (and cache) the ``{type_lower: category}`` table from ``dcsUnits.yaml``."""
-    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml")) or {}
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml"))
+    # A malformed or reshaped file yields an empty table rather than an AttributeError mid-build:
+    # every caller already handles "type not found", and that is the safer of the two failures.
+    units = raw.get("units") if isinstance(raw, dict) else None
     table: dict[str, str] = {}
-    for entry in raw.get("units") or []:
+    for entry in units or []:
+        if not isinstance(entry, dict):
+            continue
         unit_type = str(entry.get("type") or "").strip()
         category = str(entry.get("category") or "").strip()
         if unit_type and category:

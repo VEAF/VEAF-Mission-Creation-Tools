@@ -233,3 +233,23 @@ class TestAirCategoryForType:
 
     def test_a_known_type_reports_no_warning(self) -> None:
         assert air_category_for_type_verbose("UH-1H") == ("helicopter", None)
+
+
+class TestAirCategoryIsRobustToTheDatabase:
+    """Sourcery, PR #749: the lookup must not depend on the generated file's exact shape."""
+
+    def test_the_category_comparison_ignores_case_and_spacing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import mission_tools.group_insertion as gi
+
+        monkeypatch.setattr("veaf_libs.dcs_units_data.get_unit_category", lambda _t: "  HELICOPTER ")
+        assert gi.air_category_for_type("Whatever") == "helicopter"
+
+    def test_a_malformed_database_yields_no_category_rather_than_raising(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import veaf_libs.dcs_units_data as dud
+
+        dud._categories.cache_clear()
+        monkeypatch.setattr(dud, "read_bundled_text", lambda *_a: "- not: a mapping\n")
+        try:
+            assert dud.get_unit_category("UH-1H") is None
+        finally:
+            dud._categories.cache_clear()

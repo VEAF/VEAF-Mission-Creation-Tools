@@ -40,10 +40,13 @@ def air_category_for_type_verbose(unit_type: str) -> tuple[str, str | None]:
     """
     from veaf_libs.dcs_units_data import get_unit_category
 
-    category = get_unit_category(unit_type)
-    if category == "Helicopter":
+    # Compared case-insensitively: the database is generated, and a capitalisation change in it
+    # would otherwise send every helicopter back under `plane` — in silence, which is the exact
+    # defect this helper exists to stop.
+    category = (get_unit_category(unit_type) or "").strip().lower()
+    if category == "helicopter":
         return "helicopter", None
-    if category == "Plane":
+    if category == "plane":
         return "plane", None
     return "plane", (
         f"aircraft type '{unit_type}' is not in the DCS unit database, "

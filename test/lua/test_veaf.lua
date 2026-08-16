@@ -1733,6 +1733,7 @@ function TestVeafIsCtldReady:setUp()
   dcs_mocks.reset()
   self._savedCtld = ctld
   self._savedEnable = veaf.config[veaf.ctldId] and veaf.config[veaf.ctldId].enable
+  veaf._ctldNotReadyReported = false
 end
 
 function TestVeafIsCtldReady:tearDown()
@@ -1775,8 +1776,25 @@ function TestVeafIsCtldReady:test_an_unstarted_engine_says_what_to_do_about_it()
     table.insert(texts, entry.text)
   end
   local logs = table.concat(texts, "\n")
-  luaunit.assertStrContains(logs, "never initialized")
+  luaunit.assertStrContains(logs, "ctld.initialize() has not run")
   luaunit.assertStrContains(logs, "veaf.ctld_initialize()")
+end
+
+function TestVeafIsCtldReady:test_the_unstarted_engine_is_reported_once_not_once_per_call()
+  -- veafSpawnAircraft's JTAC paths and veafAssets reach this guard on a timer, so a line per call
+  -- would bury the rest of the log while adding nothing: the state cannot change back and forth.
+  veaf.setConfig(veaf.ctldId, "enable", true)
+  CTLDConfig._instance.isLoaded = false
+  for _ = 1, 5 do
+    veaf.isCtldReady()
+  end
+  local reported = 0
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if entry.text:find("ctld.initialize() has not run", 1, true) then
+      reported = reported + 1
+    end
+  end
+  luaunit.assertEquals(reported, 1)
 end
 
 -- ---------------------------------------------------------------------------

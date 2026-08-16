@@ -54,6 +54,10 @@ veaf.modules = {}
 --- Flag set once veaf.initialize() has been called.
 veaf._initialized = false
 
+--- True once veaf.isCtldReady() has reported an unstarted CTLD, so it reports it once per mission
+--- rather than on every call (the JTAC and asset paths reach it on a timer).
+veaf._ctldNotReadyReported = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Module configuration API
 -- These functions are available immediately at load time (no loggers required).
@@ -5135,10 +5139,18 @@ function veaf.isCtldReady()
     return false
   end
   if not (CTLDConfig and CTLDConfig.get().isLoaded) then
-    veaf.loggers.get(veaf.Id):error(
-      "CTLD is loaded but was never initialized - rebuild the mission with an up-to-date veaf-tools, "
-        .. "or add [if ctld then veaf.ctld_initialize() end] to its mission-script.lua"
-    )
+    -- Reported once per mission, not once per call: the JTAC and asset paths reach this on a timer,
+    -- and the state cannot change back and forth — CTLD is either started or it is not. A repeated
+    -- line would bury the rest of the log without telling anyone anything new.
+    if not veaf._ctldNotReadyReported then
+      veaf._ctldNotReadyReported = true
+      veaf.loggers.get(veaf.Id):error(
+        "CTLD is loaded but its configuration was never read (ctld.initialize() has not run), so "
+          .. "every CTLD feature is unavailable. The usual cause is a mission built before this was "
+          .. "generated: rebuild it, or add [if ctld then veaf.ctld_initialize() end] to its "
+          .. "mission-script.lua"
+      )
+    end
     return false
   end
   return true

@@ -72,6 +72,27 @@ class TestCompletesAPartialTable:
         assert added > 200
         assert len(warehouses["airports"]) == added + 1
 
+    def test_a_partial_entry_gains_the_keys_it_lacks(self) -> None:
+        # What set_airbase_coalition leaves behind is FIVE keys, not twenty. DCS cannot work an
+        # airfield described that thinly: measured in game, its parked slots stay unusable and its
+        # dynamic-slot catalogue shows zero aircraft of every type. "The entry exists" is not
+        # "the entry is complete".
+        partial: dict[str, Any] = {"coalition": "BLUE", "dynamicSpawn": True}
+        warehouses: dict[str, Any] = {"airports": {42: partial}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        entry = warehouses["airports"][42]
+        assert set(entry) == set(DEFAULT_AIRPORT)
+        assert entry["unlimitedAircrafts"] is True
+
+    def test_completing_a_partial_entry_keeps_its_own_values(self) -> None:
+        partial: dict[str, Any] = {"coalition": "BLUE", "dynamicSpawn": True, "size": 42}
+        warehouses: dict[str, Any] = {"airports": {42: partial}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        entry = warehouses["airports"][42]
+        assert entry["coalition"] == "BLUE"
+        assert entry["dynamicSpawn"] is True
+        assert entry["size"] == 42, "a value the mission set must survive completion"
+
     def test_an_existing_entry_is_never_overwritten(self) -> None:
         # It carries the mission maker's own ownership and stock settings; a default would erase them.
         mine = {"coalition": "BLUE", "dynamicSpawn": True, "aircrafts": {"helicopters": {"UH-1H": {}}}}

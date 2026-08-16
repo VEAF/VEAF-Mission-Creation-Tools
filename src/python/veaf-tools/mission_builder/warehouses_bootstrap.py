@@ -87,8 +87,17 @@ def ensure_airports_populated(warehouses_content: dict[str, Any], *, theatre: st
     # field silently turn every field of the theatre.
     added = 0
     for airdrome_id in sorted(airdromes_for_theatre(theatre).values()):
-        if airdrome_id in airports:
-            continue
-        airports[airdrome_id] = copy.deepcopy(DEFAULT_AIRPORT)
-        added += 1
+        entry = airports.get(airdrome_id)
+        if entry is None:
+            airports[airdrome_id] = copy.deepcopy(DEFAULT_AIRPORT)
+            added += 1
+        elif isinstance(entry, dict):
+            # An entry can exist and still be unusable. `set_airbase_coalition` writes five keys,
+            # not twenty, and DCS cannot work an airfield described that thinly: measured in game,
+            # its parked slots stay unusable and its dynamic-slot catalogue shows zero aircraft.
+            # So a partial entry is completed key by key — never overwritten, since what it does
+            # carry is the mission's own decision.
+            for key, value in DEFAULT_AIRPORT.items():
+                if key not in entry:
+                    entry[key] = copy.deepcopy(value)
     return added

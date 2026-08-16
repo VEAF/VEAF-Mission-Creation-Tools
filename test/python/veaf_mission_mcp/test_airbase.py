@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_mission_mcp import airbase
@@ -69,3 +70,28 @@ class TestSetAirbaseCoalition:
     def test_rejects_unknown_coalition(self, tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="coalition must be"):
             set_airbase_coalition(tmp_path, name=_AIRFIELD, coalition="green")
+
+
+class TestTheEntryIsUsableByDcs:
+    """A new airfield entry must carry the full shape, not just the two keys this action sets.
+
+    Measured in game on 2026-08-16: an entry holding only `coalition` and `dynamicSpawn` (plus what
+    the warehouses step adds) leaves the airfield unusable — its parked slots cannot be taken and
+    its dynamic-slot catalogue shows zero aircraft of every type. Fifteen keys were missing,
+    `unlimitedAircrafts` among them.
+    """
+
+    def test_a_new_entry_carries_the_full_airfield_shape(self) -> None:
+        mission = _mission()
+        _, entry = _airbase_entry(mission, "Batumi")
+        assert set(DEFAULT_AIRPORT).issubset(set(entry)), sorted(set(DEFAULT_AIRPORT) - set(entry))
+        assert entry["unlimitedAircrafts"] is True
+
+    def test_an_existing_entry_keeps_its_own_values(self) -> None:
+        airdrome_id = airdrome_id_for_name(_THEATRE, "Batumi")
+        mine = {"coalition": "RED", "size": 42}
+        mission = _mission({airdrome_id: mine})
+        _, entry = _airbase_entry(mission, "Batumi")
+        assert entry is mine
+        assert entry["coalition"] == "RED"
+        assert entry["size"] == 42

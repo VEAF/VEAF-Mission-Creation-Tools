@@ -21,6 +21,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a coalition, which needs no new code — the existing `warehouses.yaml` step already reads "no
   airfield list" as "every airfield of that coalition", sets `dynamicSpawn` and stocks the
   templates. It only ever needed airfields that *have* a coalition.
+- **An airfield entry could exist and still be unusable.** `set_airbase_coalition` wrote **5 keys**
+  where DCS expects **20** — no `unlimitedAircrafts`, no fuels, no operating levels — and the
+  build's completion pass skipped it because it existed. In game that reads as parked slots that
+  cannot be taken and a dynamic-slot catalogue showing zero aircraft in every type. Fixed at both
+  ends: the MCP writes a full entry, and the build completes a partial one key by key without ever
+  overwriting what the mission already set.
 
 - **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
   6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising

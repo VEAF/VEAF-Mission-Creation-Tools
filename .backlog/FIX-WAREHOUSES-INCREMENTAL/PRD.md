@@ -46,6 +46,7 @@ Measured on a mission with Deir ez-Zor blue and Palmyra red:
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Complete the airfield table instead of all-or-nothing](tickets/01-complete-not-all-or-nothing.md) | ✅ |
+| 02 | [An entry that exists is not an entry that works](tickets/02-complete-partial-entries.md) | ✅ |
 
 ## A build message that lied
 

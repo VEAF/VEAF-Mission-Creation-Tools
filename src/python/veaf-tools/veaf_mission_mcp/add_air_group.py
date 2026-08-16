@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_tools.group_insertion import add_group as insert_group
+from mission_tools.group_insertion import air_category_for_type_verbose
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
@@ -145,12 +146,16 @@ def add_air_group(
         frequency_mhz=frequency_mhz,
         task=task,
     )
+    # The category comes from the type, never from a default: a helicopter filed under `plane`
+    # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
+    # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
+    category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         content,
         coalition=coalition,
         country_id=country_id,
         country_name=country_name,
-        category="plane",
+        category=category,
         group=group,
     )
 
@@ -160,14 +165,18 @@ def add_air_group(
         backup_before_write(target)
         write_miz(mission, target)
 
-    return {
+    result: dict[str, Any] = {
         "group_id": group_id,
         "name": name,
         "durable": is_folder,
         "start": start,
+        "category": category,
         "airdrome_id": airdrome_id,
         "stands": [s.parking for s in stands],
     }
+    if category_warning:
+        result["warnings"] = [category_warning]
+    return result
 
 
 def _resolve_airfield(content: dict[str, Any], airfield: str | None) -> int:

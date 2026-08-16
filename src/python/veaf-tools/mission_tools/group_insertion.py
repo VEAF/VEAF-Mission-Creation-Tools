@@ -16,6 +16,59 @@ from veaf_libs.mission_table import indexed
 GROUP_CATEGORIES: tuple[str, ...] = ("vehicle", "plane", "helicopter", "ship", "static")
 
 
+def air_category_for_type_verbose(unit_type: str) -> tuple[str, str | None]:
+    """Resolve an aircraft type to its mission-table category, reporting an unclassified type.
+
+    A DCS mission stores aircraft under ``plane`` or ``helicopter``, and the two are **not**
+    interchangeable: a helicopter written under ``plane`` opens in the editor as an AIRPLANE GROUP
+    with its type shown in red, and the slot cannot be flown. Nothing in the file flags it — the
+    category is structural, not a validated field — which is why both air-group actions shipped
+    every helicopter slot broken until this was measured in game (2026-08-16).
+
+    The category comes from the generated ``dcsUnits.yaml``, the same database ``list_unit_types``
+    serves, so it cannot drift from what the build ships.
+
+    Args:
+        unit_type: DCS aircraft type name, e.g. ``"UH-1H"``.
+
+    Returns:
+        ``(category, warning)`` — ``category`` is ``"plane"`` or ``"helicopter"``; ``warning`` is
+        ``None`` for a classified type, else a message naming the type that fell back. Third-party
+        mods are legitimately absent from the database (``Hercules`` is), so an unknown type falls
+        back to ``"plane"`` rather than raising — but it says so, because the whole point of this
+        helper is that a wrong category must never be silent.
+    """
+    from veaf_libs.dcs_units_data import get_unit_category
+
+    # Compared case-insensitively: the database is generated, and a capitalisation change in it
+    # would otherwise send every helicopter back under `plane` — in silence, which is the exact
+    # defect this helper exists to stop.
+    category = (get_unit_category(unit_type) or "").strip().lower()
+    if category == "helicopter":
+        return "helicopter", None
+    if category == "plane":
+        return "plane", None
+    return "plane", (
+        f"aircraft type '{unit_type}' is not in the DCS unit database, "
+        "so it was placed under 'plane' — if it is a helicopter, its slot will not be flyable"
+    )
+
+
+def air_category_for_type(unit_type: str) -> str:
+    """Resolve an aircraft type to ``"plane"`` or ``"helicopter"``.
+
+    Convenience wrapper over :func:`air_category_for_type_verbose` for callers that surface the
+    fallback some other way.
+
+    Args:
+        unit_type: DCS aircraft type name.
+
+    Returns:
+        ``"plane"`` or ``"helicopter"``.
+    """
+    return air_category_for_type_verbose(unit_type)[0]
+
+
 def max_ids(mission_content: dict[str, Any]) -> tuple[int, int]:
     """Return the highest groupId and unitId currently used in the mission.
 

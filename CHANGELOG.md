@@ -28,6 +28,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   — so an airfield's coalition, which lives in `warehouses`, never reached the disk. The folder
   writer now persists that table too, when the folder has one.
 
+- **Every helicopter slot the MCP created was unflyable** (FIX-MCP-AIRCRAFT-CATEGORY). `add_air_group`
+  and `add_player_slot` both hard-coded `category="plane"`, and a DCS mission files aircraft under
+  `plane` or `helicopter` as two non-interchangeable keys — a helicopter under `plane` opens in the
+  Mission Editor as an AIRPLANE GROUP with its type in red and cannot be flown. Nothing in the
+  mission file marks the error, and the suite stayed green because no assertion looked at the
+  category. The category is now resolved from the aircraft type against the generated
+  `dcsUnits.yaml` (the database `list_unit_types` already serves). A type absent from it — a
+  third-party mod — still lands under `plane`, but the action returns a warning naming it rather
+  than guessing in silence, and both actions now report the `category` they chose.
+
 - **CTLD spoke English on a French mission** (FIX-CTLD-LANGUAGE). CTLD 2 hard-codes
   `ctld.i18n_lang = "en"`, the key is not even in the engine's default catalogue, and nothing on the
   VEAF side ever aligned it — so its radio menu ignored `mission.language` entirely. Reported in

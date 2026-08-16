@@ -9,6 +9,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `dcs-fiddle-server.lua` debug hook wiped out the VEAF framework mid-mission**
+  (FIX-FIDDLE-HOOK-CLOBBERS-VEAF). The hook opened with `veaf = {}` — a line this repo added the day
+  before — and it is injected into the **mission scripting environment**, the same Lua state the
+  framework lives in, *after* the mission scripts have loaded. Measured in the DCS log: 33 ms
+  between the hook starting and `veaf.loggers` being nil. Every VEAF event handler then raised on
+  every DCS event, and `veaf.ctldLogLevels` being nil made the `ctld.utils.log` override raise
+  inside CTLD's own `onEvent` — the handler that builds a player's CTLD radio menu, so the menu
+  never appeared. The hook's table is now `veafFiddle` (nothing outside the hook referenced it), and
+  a guard fails the build on a global `veaf` assignment in that file. **The hook is hand-deployed**:
+  copy `src/scripts/other/dcs-fiddle-server.lua` over `%USERPROFILE%\Saved Games\DCS\Scripts\Hooks\`
+  to pick the fix up. Only affects a workstation with the hook installed. Confirmed in game.
+
 ## [6.14.0] — 2026-08-15
 
 ### ⚠️ Behaviour change — tell your pilots before you ship this

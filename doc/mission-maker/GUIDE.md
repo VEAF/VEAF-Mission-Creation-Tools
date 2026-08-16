@@ -557,6 +557,15 @@ Au build, VEAF l'injecte dans la mission sous forme d'un `CTLD_userConfig.lua` c
 
 Si vous montez CTLD de version et que votre fichier a été écrit pour la précédente, `ctld-tools` vous liste ce qui est apparu, ce qui a disparu et ce qui diffère du défaut avant que vous ne réenregistriez.
 
+#### La langue de CTLD
+
+CTLD parle la langue de votre mission : VEAF aligne sa langue sur `mission.language` au démarrage, donc une mission en français a un menu CTLD en français, sans rien avoir à régler.
+
+Deux cas où ce n'est pas ce qui se passe :
+
+- vous avez mis un `i18n_lang:` dans votre `ctld-config.yaml` — votre réglage explicite gagne, c'est voulu ;
+- CTLD ne parle pas cette langue. Il fournit `en`, `fr`, `es` et `ko` ; pour toute autre, il reste dans sa langue par défaut et l'écrit une fois dans le journal, plutôt que d'afficher la clé de traduction à la place de chaque texte.
+
 #### Ce qui a changé par rapport à CTLD v1
 
 | Avant | Maintenant |

@@ -5079,9 +5079,38 @@ function veaf.ctld_initialize()
     veaf.loggers.get(veaf.Id):warn("CTLD.utils is missing - CTLD logs will not be routed to the VEAF logger")
   end
 
+  veaf.ctld_alignLanguage()
+
   -- Must come after the override: ctld.initialize() flushes CTLD's startup report, which is
   -- precisely the output naming a stale or incomplete configuration.
   ctld.initialize()
+end
+
+--- Make CTLD speak the mission's language.
+--
+-- CTLD 2 hard-codes `ctld.i18n_lang = "en"` and knows nothing of `veaf.config.language`, so a French
+-- mission showed a French VEAF menu beside an English CTLD one (reported in game 2026-08-16).
+--
+-- The global is the right lever rather than the config setting: CTLD's own `_activeLang()` reads its
+-- config FIRST and this global second, so writing the global changes the **default** while a mission
+-- maker's explicit `i18n_lang:` in their ctld-config.yaml still wins — which is what ADR 0016 means
+-- by the sidecar owning CTLD's configuration.
+--
+-- A language CTLD has no dictionary for is left alone on purpose: `ctld.tr()` logs a WARNING for
+-- every string it cannot find, so pointing the engine at an unknown language would trade a wrong
+-- language for a flooded log.
+function veaf.ctld_alignLanguage()
+  local language = veaf.config.language
+  if not language or not ctld or not ctld.i18n then
+    return
+  end
+  if not ctld.i18n[language] then
+    veaf.loggers
+      .get(veaf.ctldId)
+      :info("CTLD has no dictionary for [%s] - keeping its own default [%s]", veaf.p(language), veaf.p(ctld.i18n_lang))
+    return
+  end
+  ctld.i18n_lang = language
 end
 
 if ctld then

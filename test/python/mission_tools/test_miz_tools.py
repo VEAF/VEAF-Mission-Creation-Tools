@@ -12,6 +12,7 @@ from mission_tools.miz_tools import (
     extract_resources,
     read_mission_folder,
     read_miz,
+    write_mission_folder,
     write_miz,
 )
 
@@ -463,3 +464,48 @@ class TestOptionsAccessors:
         mission = DcsMission(file_path=Path("dummy.miz"), options_content={"old": 1})
         mission.set_options({"new": 2})
         assert mission.get_options() == {"new": 2}
+
+
+class TestWriteMissionFolderPersistsWarehouses:
+    """`write_mission_folder` used to write only the `mission` file (FIX-EMPTY-WAREHOUSES 02).
+
+    `set_airbase_coalition` mutates `warehouses_content` and calls this to save. It returned
+    `durable: True` while the file on disk never changed — measured on 2026-08-16, the airfield's
+    warehouses file was 69 bytes before and after. A fail-silent on an action that promises
+    durability.
+    """
+
+    def _folder(self, tmp_path: Path) -> Path:
+        root = tmp_path / "src" / "mission"
+        root.mkdir(parents=True)
+        (root / "mission").write_text('mission = \n{\n  ["theatre"] = "Syria",\n}\n', encoding="utf-8")
+        (root / "warehouses").write_text(
+            'warehouses = \n{\n  ["airports"] = {},\n  ["warehouses"] = {},\n}\n', encoding="utf-8"
+        )
+        return tmp_path
+
+    def test_a_changed_warehouses_table_reaches_the_disk(self, tmp_path: Path) -> None:
+        folder = self._folder(tmp_path)
+        mission = read_mission_folder(folder)
+        mission.warehouses_content["airports"] = {42: {"coalition": "BLUE"}}
+        write_mission_folder(mission, folder)
+
+        reread = read_mission_folder(folder)
+        assert reread.warehouses_content["airports"][42]["coalition"] == "BLUE"
+
+    def test_the_mission_table_is_still_written(self, tmp_path: Path) -> None:
+        folder = self._folder(tmp_path)
+        mission = read_mission_folder(folder)
+        mission.mission_content["theatre"] = "Caucasus"
+        write_mission_folder(mission, folder)
+        assert read_mission_folder(folder).mission_content["theatre"] == "Caucasus"
+
+    def test_a_folder_without_a_warehouses_file_still_writes_the_mission(self, tmp_path: Path) -> None:
+        # Not every exploded mission carries one; its absence must not break the mission write.
+        folder = self._folder(tmp_path)
+        (folder / "src" / "mission" / "warehouses").unlink()
+        mission = read_mission_folder(folder)
+        mission.mission_content["theatre"] = "Kola"
+        write_mission_folder(mission, folder)
+        assert read_mission_folder(folder).mission_content["theatre"] == "Kola"
+        assert not (folder / "src" / "mission" / "warehouses").exists()

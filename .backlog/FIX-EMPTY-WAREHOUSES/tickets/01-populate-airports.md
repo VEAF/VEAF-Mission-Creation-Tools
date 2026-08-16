@@ -1,6 +1,6 @@
 # 01 — Populate the airfield table at build time
 
-Status: ✅ done 2026-08-16 — 225 airfields written where there were none; needs one in-game confirmation
+Status: ✅ done 2026-08-16 — 225 airfields written where there were none, **confirmed in game**
 Type: fix
 Files: `src/python/veaf-tools/mission_builder/warehouses_bootstrap.py` (new),
 `src/python/veaf-tools/mission_builder/mission_builder_worker.py`, both locale files,

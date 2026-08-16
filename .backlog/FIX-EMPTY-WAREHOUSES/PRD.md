@@ -1,6 +1,6 @@
 # FIX-EMPTY-WAREHOUSES — a built mission has no usable airfield
 
-Status: 🧑 waiting-human — implemented 2026-08-16, needs one in-game confirmation
+Status: ✅ done — 2026-08-16, **confirmed in game**: both parked helicopter slots are takeable in a mission built by the pipeline, without the DCS Mission Editor ever opening it
 
 Origin: the test mission built to verify `FIX-CTLD-NEVER-INITIALIZED`. Its two helicopter slots,
 parked cold at Deir ez-Zor, could be **selected but never taken** — the pilot stayed a spectator.
@@ -60,3 +60,21 @@ A rebuild of the smoke-test mission: `warehouses` goes from **69 bytes to 150 04
 **225, not 224**: our runtime-sourced `airdromes.yaml` carries id 43 (Nicosia) which the editor does
 not write. An entry for an id DCS does not know is inert, so it is left in rather than special-cased
 — but it is a real difference and it is recorded here rather than rounded off.
+
+
+## The confirmation run, and what nearly spoiled it
+
+The first mission handed over for this check carried **three** CTLD groups instead of two: a stray
+`CTLD-Huey` filed under `plane`, left by an `add_air_group` call that ran *before*
+`FIX-MCP-AIRCRAFT-CATEGORY` was merged and whose script then died on `KeyError: 'category'` — after
+the group had already been written. Rerunning the script on the same folder added the fixed group
+beside the broken one.
+
+It reported as *"only one slot works, the other Huey behaves like before, and the CH-47 is not
+flyable"*, plus a `BriefingDialog.lua:47 bad argument #1 to 'translate'` and a log naming
+`CTLD-Huey-2` — a unit no source file declares, DCS having renamed one of two homonymous units.
+
+Rebuilt from a fresh folder, with the fabrication script asserting exactly two helicopter groups
+with distinct unit names before building, **both slots are takeable**. The lesson is small and
+sharp: a mission folder an action partially failed on is contaminated, and the assertion belongs in
+the script that builds the test fixture, not in the eyes of whoever flies it.

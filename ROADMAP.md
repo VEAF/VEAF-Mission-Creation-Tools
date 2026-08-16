@@ -37,9 +37,15 @@ extending it:
   (`DOC-QUALITY-GATE`, 6.12.0) refusing broken links, dead anchors, untranslated pages and nav
   orphans, plus version stamping at deploy.
 - **Combat zones playable from either side** — red-side zones and coalition-scoped F10 menus.
+- **A built mission is playable end to end again** (6.14.2) — nine defects found by pulling on one
+  report (*"no CTLD menu on a 6.14 mission"*): CTLD was started in no generated mission at all, the
+  airfield table a `.miz` needs was empty so no parked slot could be taken, every helicopter the MCP
+  created was filed as a plane, CTLD ignored the mission's language, and the debug hook wiped out
+  the framework mid-mission. None of them raised an error — `validate` was clean and the build was
+  silent throughout, which is why a whole release shipped with CTLD switched off.
 
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.13.0** (2026-08-01); `develop` is at **6.13.95**.
+release is **6.14.2** (2026-08-16).
 
 ---
 

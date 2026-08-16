@@ -678,6 +678,13 @@ ctld = {
   utils = {
     log = function(...) end,
   },
+  -- The engine's shipped dictionaries. `i18n_lang` is the module-level default CTLD hard-codes to
+  -- "en"; a mission's own language is supposed to override it, and `veaf.ctld_initialize` is what
+  -- does that (FIX-CTLD-LANGUAGE). Only the languages CTLD actually ships are listed, because the
+  -- override has to refuse a language the engine cannot speak rather than make ctld.tr() warn on
+  -- every single string.
+  i18n_lang = "en",
+  i18n = { en = {}, fr = {}, es = {}, ko = {} },
 }
 
 -- CTLD 2 managers. Each records its calls so a test can assert what VEAF asked of CTLD

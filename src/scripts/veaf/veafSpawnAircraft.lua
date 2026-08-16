@@ -219,7 +219,7 @@ function veafSpawn.spawnUnit(
     Controller.setCommand(controller, _setInvisible)
 
     -- start lasing
-    if ctld and veaf.isEnabled("ctld") then
+    if veaf.isCtldReady() then
       CTLDJTACManager.getInstance():stopAutoLase(groupName)
       local radioData = { freq = freq, mod = mod, name = groupName }
       veafSpawn.JTACAutoLase(groupName, code, radioData)
@@ -678,7 +678,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     veafSpawn.AFAC.missionData[coalition][AFAC_num] = _spawnedGroup --since MIST does not store cloned group data, this is a bit of trickery to allow teleporting AFACs
 
     -- start lasing
-    if ctld and veaf.isEnabled("ctld") then
+    if veaf.isCtldReady() then
       CTLDJTACManager.getInstance():stopAutoLase(_spawnedGroup.name)
       local radioData = { freq = frequency, mod = mod, name = _spawnedGroup.name }
       veafSpawn.JTACAutoLase(_spawnedGroup.name, code, radioData)

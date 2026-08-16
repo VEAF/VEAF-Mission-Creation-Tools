@@ -11,6 +11,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
+  6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising
+  `CTLD.lua:9109: attempt to perform arithmetic on local 'interval'`. Both come from the same
+  missing line. Since FEAT-CTLD2-INTEGRATION, `veaf.lua` **registers** CTLD as a VEAF module
+  (`veaf.registerModule`, order 50) rather than starting it — and a registration is consumed by
+  `veaf.initialize()` alone, which the generated `veaf-config.lua` never calls, initializing each
+  module one by one instead. So `ctld.initialize()` never ran, CTLD's configuration was never
+  loaded, and `ctld.gs("smokeRefreshInterval")` returned nil the moment `spawnFob` reached a CTLD
+  manager. The generator now emits the start-up call, **before** the module block so CTLD is up
+  ahead of `veafGrass` and `veafAssets`, the two modules that call into it. Nothing in the test
+  suite could see the gap: `veaf.ctld_initialize` existed in three places — its definition, the
+  registration, and a Lua test calling it **directly** — and the string `veaf.initialize` appeared
+  nowhere in the generator. **A mission built with 6.14.0 or earlier must be rebuilt**, or carry
+  `if ctld then veaf.ctld_initialize() end` in its `mission-script.lua`. Confirmed in game.
+- **A CTLD that was loaded but never started now refuses instead of crashing.** The nine VEAF call
+  sites guarded by `ctld and veaf.isEnabled("ctld")` — across `veafAssets`, `veafGrass`,
+  `veafSpawnAircraft`, `veafSpawnEffects` and `veafSpawnGround` — go through `veaf.isCtldReady()`,
+  which also checks `CTLDConfig.get().isLoaded`, the flag `ctld.initialize()` raises once it has
+  parsed the configuration. That third state used to reach the vendored engine and die on a nil
+  setting, in a stack trace naming neither CTLD nor the missing call; it now logs what to do about
+  it. Two comments asserting the opposite of the truth (`lua_config_generator`'s *"started by
+  veaf.lua"*, `config_migrator`'s *"veaf.initialize() in veaf-config.lua calls all module init
+  functions"*) are corrected, and ADR 0016 describes the whole chain rather than half of it. The
+  crash inside the vendored engine is reported upstream as
+  [VEAF/CTLD#125](https://github.com/VEAF/CTLD/issues/125).
+
 - **A built mission had no usable airfield, so no parked slot could be taken** (FIX-EMPTY-WAREHOUSES).
   A `.miz` keeps each airfield's coalition and stock in its `warehouses` table, one entry per
   airfield of the theatre. A mission built from a blank or scratch-made source had `airports = {}`,

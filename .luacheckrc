@@ -61,6 +61,9 @@ globals = {
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
   "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager",
+  -- CTLD 2 config singleton: veaf.isCtldReady() reads its isLoaded flag to tell a started
+  -- engine from one still parked on ctld.dontInitialize
+  "CTLDConfig",
   "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits",
   "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot", "niod",
   "SkynetIADSAbstractRadarElement",

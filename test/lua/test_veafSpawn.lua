@@ -759,7 +759,7 @@ function TestVeafSpawnGround:tearDown()
   veaf.config.ctld = self._savedConfig
 end
 
--- A FOB needs CTLD, and there are two ways not to have it. The v1 code knew only one
+-- A FOB needs CTLD, and there are three ways not to have it. The v1 code knew only one
 -- (veaf.ctld_initialized, set by the init wrapper); the module gate distinguishes them.
 
 function TestVeafSpawnGround:test_spawnFob_without_the_ctld_script()
@@ -772,6 +772,16 @@ function TestVeafSpawnGround:test_spawnFob_with_the_ctld_module_disabled()
   veaf.config.ctld = { enable = false }
   local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
   luaunit.assertNil(result)
+end
+
+function TestVeafSpawnGround:test_spawnFob_with_ctld_loaded_but_never_started()
+  -- The third state, and the one that used to crash rather than refuse: the script is there
+  -- and the module is on, but nothing called veaf.ctld_initialize(), so CTLD's configuration
+  -- was never read (FIX-CTLD-NEVER-INITIALIZED).
+  CTLDConfig._instance.isLoaded = false
+  local result = veafSpawn.spawnFob({ x = 0, y = 0, z = 0 }, 0, "TestFOB", "usa", "simple", 1, 0, 10, true, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#CTLDZoneManager._instance.calls, 0)
 end
 
 function TestVeafSpawnGround:test_spawnFarp_invisible()

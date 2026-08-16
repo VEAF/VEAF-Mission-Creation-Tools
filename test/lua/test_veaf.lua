@@ -1720,6 +1720,84 @@ function TestVeafCtldIntegration:test_missing_engine_is_reported_not_crashed()
 end
 
 -- ---------------------------------------------------------------------------
+-- veaf.isCtldReady — the three states a caller has to tell apart
+-- (FIX-CTLD-NEVER-INITIALIZED)
+--
+-- Script absent and module disabled were already handled. The third — script present, module
+-- enabled, engine never started — is what a mission built before the fix lands in, and what used
+-- to crash inside the vendored CTLD.lua on a configuration that was never loaded.
+-- ---------------------------------------------------------------------------
+TestVeafIsCtldReady = {}
+
+function TestVeafIsCtldReady:setUp()
+  dcs_mocks.reset()
+  self._savedCtld = ctld
+  self._savedEnable = veaf.config[veaf.ctldId] and veaf.config[veaf.ctldId].enable
+  veaf._ctldNotReadyReported = false
+end
+
+function TestVeafIsCtldReady:tearDown()
+  ctld = self._savedCtld
+  CTLDConfig._instance.isLoaded = true
+  veaf.setConfig(veaf.ctldId, "enable", self._savedEnable)
+end
+
+function TestVeafIsCtldReady:test_ready_when_loaded_enabled_and_started()
+  veaf.setConfig(veaf.ctldId, "enable", true)
+  luaunit.assertTrue(veaf.isCtldReady())
+end
+
+function TestVeafIsCtldReady:test_not_ready_when_the_script_is_absent()
+  ctld = nil
+  luaunit.assertFalse(veaf.isCtldReady())
+end
+
+function TestVeafIsCtldReady:test_not_ready_when_the_module_is_disabled()
+  veaf.setConfig(veaf.ctldId, "enable", false)
+  luaunit.assertFalse(veaf.isCtldReady())
+end
+
+function TestVeafIsCtldReady:test_not_ready_when_the_engine_was_never_started()
+  -- The state Tripack's 6.14.0 mission was in: CTLD loaded and enabled, but nothing ever
+  -- called veaf.ctld_initialize(), so its configuration is unread and every setting is nil.
+  veaf.setConfig(veaf.ctldId, "enable", true)
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertFalse(veaf.isCtldReady())
+end
+
+function TestVeafIsCtldReady:test_an_unstarted_engine_says_what_to_do_about_it()
+  -- A silent false would send the mission maker looking at their mission.yaml. The log line
+  -- is the only thing that names the actual cause, so it is part of the contract.
+  veaf.setConfig(veaf.ctldId, "enable", true)
+  CTLDConfig._instance.isLoaded = false
+  veaf.isCtldReady()
+  local texts = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    table.insert(texts, entry.text)
+  end
+  local logs = table.concat(texts, "\n")
+  luaunit.assertStrContains(logs, "ctld.initialize() has not run")
+  luaunit.assertStrContains(logs, "veaf.ctld_initialize()")
+end
+
+function TestVeafIsCtldReady:test_the_unstarted_engine_is_reported_once_not_once_per_call()
+  -- veafSpawnAircraft's JTAC paths and veafAssets reach this guard on a timer, so a line per call
+  -- would bury the rest of the log while adding nothing: the state cannot change back and forth.
+  veaf.setConfig(veaf.ctldId, "enable", true)
+  CTLDConfig._instance.isLoaded = false
+  for _ = 1, 5 do
+    veaf.isCtldReady()
+  end
+  local reported = 0
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if entry.text:find("ctld.initialize() has not run", 1, true) then
+      reported = reported + 1
+    end
+  end
+  luaunit.assertEquals(reported, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- ---------------------------------------------------------------------------
 -- veaf.outTextForUnit — the floor under every pilot-facing message
 --
@@ -2659,6 +2737,67 @@ function TestVeafParseMarkerText:test_prepareMarkerSpec_is_idempotent()
   local firstCount = #spec.knownKeys
   veaf.prepareMarkerSpec(spec)
   luaunit.assertEquals(#spec.knownKeys, firstCount)
+end
+
+-- ---------------------------------------------------------------------------
+-- CTLD speaks the mission's language (FIX-CTLD-LANGUAGE)
+--
+-- CTLD 2 hard-codes `ctld.i18n_lang = "en"` and does not read veaf.config.language, so a French
+-- mission showed a French VEAF menu next to an English CTLD one — reported in game 2026-08-16.
+-- `_activeLang()` inside CTLD reads its config setting FIRST and this global second, so aligning
+-- the global changes the DEFAULT while leaving a mission maker's explicit `i18n_lang:` in their
+-- ctld-config.yaml the winner.
+-- ---------------------------------------------------------------------------
+TestVeafCtldLanguage = {}
+
+function TestVeafCtldLanguage:setUp()
+  dcs_mocks.reset()
+  self._savedLang = veaf.config.language
+  self._savedCtldLang = ctld.i18n_lang
+  self._savedInit = ctld.initialize
+  self._savedI18n = ctld.i18n
+end
+
+function TestVeafCtldLanguage:tearDown()
+  veaf.config.language = self._savedLang
+  ctld.i18n_lang = self._savedCtldLang
+  ctld.initialize = self._savedInit
+  ctld.i18n = self._savedI18n
+end
+
+function TestVeafCtldLanguage:test_ctld_follows_the_mission_language()
+  veaf.config.language = "fr"
+  ctld.i18n_lang = "en"
+  veaf.ctld_initialize()
+  luaunit.assertEquals(ctld.i18n_lang, "fr")
+end
+
+function TestVeafCtldLanguage:test_the_language_is_set_before_the_engine_starts()
+  -- CTLD's startup report is emitted by initialize() and goes through ctld.tr(), so a language
+  -- applied afterwards would leave that first output in the wrong one.
+  veaf.config.language = "fr"
+  local langAtInit
+  ctld.initialize = function()
+    langAtInit = ctld.i18n_lang
+  end
+  veaf.ctld_initialize()
+  luaunit.assertEquals(langAtInit, "fr")
+end
+
+function TestVeafCtldLanguage:test_a_language_ctld_cannot_speak_is_left_alone()
+  -- ctld.tr() logs a WARNING for every string in an unknown language, so pointing it at one the
+  -- engine has no dictionary for would trade a wrong language for a flooded log.
+  veaf.config.language = "de"
+  ctld.i18n_lang = "en"
+  veaf.ctld_initialize()
+  luaunit.assertEquals(ctld.i18n_lang, "en")
+end
+
+function TestVeafCtldLanguage:test_no_mission_language_leaves_the_engine_default()
+  veaf.config.language = nil
+  ctld.i18n_lang = "en"
+  veaf.ctld_initialize()
+  luaunit.assertEquals(ctld.i18n_lang, "en")
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -54,6 +54,7 @@ from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_f
 from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
 from mission_builder.third_party_mods import strip_third_party_mods
+from mission_builder.warehouses_bootstrap import ensure_airports_populated
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
     "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
@@ -1363,6 +1364,27 @@ class MissionBuilderWorker(BaseWorker):
         for side in ensure_coalitions_populated(self.dcs_mission.mission_content):
             logger.info(t("builder.coalition_placeholder_injected", side=side))
 
+    def ensure_airports_populated(self) -> None:
+        """Give the mission a warehouse entry for every airfield of its theatre that lacks one.
+
+        A `.miz` keeps each airfield's coalition and stock in ``warehouses.airports``, keyed by
+        airdrome id. A mission built from a blank source has that table empty, and DCS then has no
+        usable airfield: a slot parked on a ramp can be selected but never taken. Opening the
+        mission in the DCS Mission Editor writes the entries, which is why such a mission "works
+        when launched from the editor" — this does it at build time instead.
+
+        The table is **completed**, not filled only when empty: one ``set_airbase_coalition`` call
+        leaves a single entry, and stopping there would ship a mission with one airfield out of the
+        theatre's. An entry that already exists keeps its own values and is completed key by key.
+        See :func:`warehouses_bootstrap.ensure_airports_populated`.
+        """
+        if not self.dcs_mission or self.dcs_mission.warehouses_content is None:
+            return
+        theatre = str(self.dcs_mission.theatre_content or "")
+        added = ensure_airports_populated(self.dcs_mission.warehouses_content, theatre=theatre)
+        if added:
+            logger.info(t("builder.warehouses_airports_populated", count=added, theatre=theatre))
+
     def strip_third_party_mod_requirements(self, silent: bool = False) -> None:
         """Make third-party aircraft mods non-blocking in the built mission.
 
@@ -2439,6 +2461,10 @@ class MissionBuilderWorker(BaseWorker):
 
         # Ensure each side coalition owns at least one unit (hidden placeholder if not)
         self.ensure_coalitions_populated()
+
+        # Ensure the theatre's airfields exist in the warehouses table (a slot parked on a ramp
+        # cannot be taken otherwise); a mission that already declares them is left alone
+        self.ensure_airports_populated()
 
         # Collect missing Mission-Editor references (zones/groups/units/airfields) on the
         # freshly-read source mission; reported as a summary at the end (non-blocking).

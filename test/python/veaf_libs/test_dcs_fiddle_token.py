@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import re
 import urllib.error
 from pathlib import Path
 from typing import Any
@@ -119,3 +120,45 @@ class TestRejectionIsReadable:
         monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
         with pytest.raises(FiddleError, match="rejected the credentials"):
             exec_lua("return 1")
+
+
+class TestTheHookDoesNotClobberTheFramework:
+    """The hook must not declare a global named `veaf` (FIX-FIDDLE-HOOK-CLOBBERS-VEAF).
+
+    It is injected into the MISSION scripting environment — the same Lua state the VEAF framework
+    lives in — and it is injected *after* the mission scripts have loaded. Measured in game on
+    2026-08-16: `veaf = {}` at the top of the hook replaced the whole framework table 16 seconds
+    into the mission, so `veaf.loggers` and `veaf.ctldLogLevels` became nil, every VEAF event
+    handler started raising, and CTLD's `onPlayerEnterUnit` died before building the player's radio
+    menu — reported as "no CTLD menu", 400 lines and one wrong suspect away from its cause.
+
+    A grep is a crude guard, but the failure it prevents is invisible until someone flies the
+    mission, and the hook is a vendored file that gets re-synced from upstream.
+    """
+
+    HOOK = Path(__file__).resolve().parents[3] / "src" / "scripts" / "other" / "dcs-fiddle-server.lua"
+
+    def test_the_hook_file_exists_where_the_guard_expects_it(self) -> None:
+        # A moved file would make the assertion below vacuously true.
+        assert self.HOOK.is_file(), f"vendored hook not found at {self.HOOK}"
+
+    def test_no_global_veaf_assignment(self) -> None:
+        offenders = [
+            f"line {n}: {line.strip()}"
+            for n, line in enumerate(self.HOOK.read_text(encoding="utf-8").splitlines(), 1)
+            if re.match(r"^\s*veaf\s*=", line)
+        ]
+        assert offenders == [], (
+            "the hook assigns the global `veaf`, which replaces the VEAF framework table in the "
+            "mission scripting environment — use `veafFiddle` instead:\n  " + "\n  ".join(offenders)
+        )
+
+    def test_no_field_written_on_a_global_veaf_table(self) -> None:
+        offenders = [
+            f"line {n}: {line.strip()}"
+            for n, line in enumerate(self.HOOK.read_text(encoding="utf-8").splitlines(), 1)
+            if re.match(r"^\s*function\s+veaf\.", line)
+        ]
+        assert offenders == [], "the hook defines functions on the framework's `veaf` table:\n  " + "\n  ".join(
+            offenders
+        )

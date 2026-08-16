@@ -42,7 +42,17 @@ aligned on CTLD's values. Should a VEAF deviation reappear, it belongs in a shor
 applied at scaffold time — never in a committed snapshot (see below).
 
 **VEAF still owns initialisation.** The injected trigger also sets `ctld.dontInitialize = true`;
-`veaf.lua` installs the log routing and then calls `ctld.initialize()`.
+`veaf.ctld_initialize()` in `veaf.lua` installs the log routing and then calls `ctld.initialize()`.
+
+**And something has to call it.** `veaf.lua` only *registers* that function as a VEAF module
+(`veaf.registerModule`, order 50), and registrations are consumed by `veaf.initialize()` — which the
+generated `veaf-config.lua` does not call, initializing each module one by one instead. So the
+generator emits the start-up call itself, before the module block, ahead of the modules that talk to
+CTLD. Missing that line is not a degraded mode: CTLD stays parked on `dontInitialize`, its
+configuration is never read, and the first VEAF call into a CTLD manager dies on a nil setting inside
+the vendored script (FIX-CTLD-NEVER-INITIALIZED, reported from a 6.14.0 mission). `veaf.isCtldReady()`
+now answers that third state — loaded, enabled, unstarted — so a caller refuses with a readable
+message instead of crashing.
 
 ## Why not the alternatives
 

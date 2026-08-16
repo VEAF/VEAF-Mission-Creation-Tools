@@ -233,6 +233,16 @@ flowchart TD
 
 > **Note — templates and multiplayer slots**: the groups injected from `spawnables.yaml` and `dynamic-slot-templates.yaml` are reusable **templates**. To keep them from showing up as pickable slots in the multiplayer briefing, the build automatically hides them from the slot list (`hiddenOnPlanner`/`hiddenOnMFD`) and locks them with a password. Dynamic-slot spawning (which references the template by name) stays fully functional.
 
+> **The shipped templates are a starting point, not a ready-made catalogue.** When a pilot takes a dynamic slot, DCS hands them the aircraft **as the template describes it**: loadout, livery, frequencies. Of the 52 templates shipped by default, **only 9 carry a loadout** — an A-10C II or an F-14B come out armed and painted, a UH-1H, an F/A-18C or an M-2000C come out **bare**. This is not a build defect: the template-to-aircraft link works, the template itself is empty.
+>
+> To give your pilots equipped aircraft, set them up **once** in a mission (in the DCS Mission Editor, with the loadout and livery you want), then regenerate the file from that mission:
+>
+> ```powershell
+> veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
+> ```
+>
+> That rewrites `src/dynamic-slot-templates.yaml` with your templates. The next build injects them, and the dynamic slots offer aircraft ready to fly.
+
 ---
 
 ## Configuring Modules {#configuring-modules}
@@ -558,6 +568,15 @@ At build time VEAF injects it into the mission as a `CTLD_userConfig.lua` loaded
 
 When you upgrade CTLD and your file was written against an earlier version, `ctld-tools` lists what appeared, what disappeared and what differs from the default before you save it again.
 
+#### CTLD's language
+
+CTLD speaks your mission's language: VEAF aligns it on `mission.language` at start-up, so a French mission gets a French CTLD menu with nothing to configure.
+
+Two cases where that is not what happens:
+
+- you set `i18n_lang:` in your `ctld-config.yaml` — your explicit choice wins, by design;
+- CTLD does not speak that language. It ships `en`, `fr`, `es` and `ko`; for anything else it stays in its own default and says so once in the log, rather than printing the translation key in place of every string.
+
 #### What changed from CTLD v1
 
 | Before | Now |
@@ -565,7 +584,18 @@ When you upgrade CTLD and your file was written against an earlier version, `ctl
 | `modules: CTLD: { settings: … }` | `ctld-config.yaml` (a `settings:` block is rejected by `validate`) |
 | units named `logistic #001` … `#020` | a Mission Editor zone named `LGZ_…` (any number of them) |
 | zones named `pickzone #001` … `#020` | a Mission Editor zone named `TRZ_…` |
-| `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the VEAF framework initialises CTLD |
+| `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the build generates CTLD's start-up |
+
+!!! warning "Missions built with veaf-tools 6.14.0 or earlier: rebuild them"
+    Those versions did not write the line that starts CTLD. In game this shows up as **no CTLD
+    entry in the radio menu**, and the first `-fob` raises a script error in the DCS log
+    (`CTLD.lua: attempt to perform arithmetic on local 'interval'`). Rebuild the mission with an
+    up-to-date version — or, if you cannot rebuild right away, add this line to your
+    `src/scripts/mission-script.lua`:
+
+    ```lua
+    if ctld then veaf.ctld_initialize() end
+    ```
 
 To attach a logistic zone to something that moves — a carrier, say — link the zone to the unit in the Mission Editor (*Moving Zone*): the zone follows its unit.
 

@@ -7,7 +7,114 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.14.2] — 2026-08-16
+
+### Fixed
+
+- **Assigning one airfield to a coalition disabled all the others** (FIX-WAREHOUSES-INCREMENTAL).
+  The build filled the airfield table only when it was **empty**, which the documented workflow
+  breaks immediately: one `set_airbase_coalition` call leaves a table with a single entry, the build
+  then adds nothing, and the mission ships with 1 airfield out of 225 — the defect
+  FIX-EMPTY-WAREHOUSES fixes, reintroduced by using the MCP as intended. The table is now
+  **completed**: missing airfields are added, an existing entry is never touched (it carries the
+  mission's own ownership and stock). With that, dynamic slots work by default on every airfield of
+  a coalition, which needs no new code — the existing `warehouses.yaml` step already reads "no
+  airfield list" as "every airfield of that coalition", sets `dynamicSpawn` and stocks the
+  templates. It only ever needed airfields that *have* a coalition.
+- **An airfield entry could exist and still be unusable.** `set_airbase_coalition` wrote **5 keys**
+  where DCS expects **20** — no `unlimitedAircrafts`, no fuels, no operating levels — and the
+  build's completion pass skipped it because it existed. In game that reads as parked slots that
+  cannot be taken and a dynamic-slot catalogue showing zero aircraft in every type. Fixed at both
+  ends: the MCP writes a full entry, and the build completes a partial one key by key without ever
+  overwriting what the mission already set.
+- **A dynamic slot could only be taken cold.** `allowHotStart` — the field behind the "spawn hot"
+  option — is written `false` by the DCS Mission Editor, and nothing turned it back on. An airfield
+  the mission opens to dynamic slots now offers a hot start; `hot_start: false` under a coalition's
+  `defaults:` in `warehouses.yaml` returns to cold starts only.
+
+### Documentation
+
+- **The shipped dynamic-slot templates are a starting point, and the guides now say so.** A pilot
+  taking a dynamic slot gets the aircraft as its template describes it, and only **9 of the 52**
+  templates shipped by default carry a loadout — an A-10C II comes out armed and painted, a UH-1H
+  or an F/A-18C comes out bare. The link works (measured in game); the template is empty. Both
+  guides name the two families and give the `content extract-aircraft-groups … --kind
+  dynamic-template` command that replaces them with the mission maker's own.
+
+- **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
+  6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising
+  `CTLD.lua:9109: attempt to perform arithmetic on local 'interval'`. Both come from the same
+  missing line. Since FEAT-CTLD2-INTEGRATION, `veaf.lua` **registers** CTLD as a VEAF module
+  (`veaf.registerModule`, order 50) rather than starting it — and a registration is consumed by
+  `veaf.initialize()` alone, which the generated `veaf-config.lua` never calls, initializing each
+  module one by one instead. So `ctld.initialize()` never ran, CTLD's configuration was never
+  loaded, and `ctld.gs("smokeRefreshInterval")` returned nil the moment `spawnFob` reached a CTLD
+  manager. The generator now emits the start-up call, **before** the module block so CTLD is up
+  ahead of `veafGrass` and `veafAssets`, the two modules that call into it. Nothing in the test
+  suite could see the gap: `veaf.ctld_initialize` existed in three places — its definition, the
+  registration, and a Lua test calling it **directly** — and the string `veaf.initialize` appeared
+  nowhere in the generator. **A mission built with 6.14.0 or earlier must be rebuilt**, or carry
+  `if ctld then veaf.ctld_initialize() end` in its `mission-script.lua`. Confirmed in game.
+- **A CTLD that was loaded but never started now refuses instead of crashing.** The nine VEAF call
+  sites guarded by `ctld and veaf.isEnabled("ctld")` — across `veafAssets`, `veafGrass`,
+  `veafSpawnAircraft`, `veafSpawnEffects` and `veafSpawnGround` — go through `veaf.isCtldReady()`,
+  which also checks `CTLDConfig.get().isLoaded`, the flag `ctld.initialize()` raises once it has
+  parsed the configuration. That third state used to reach the vendored engine and die on a nil
+  setting, in a stack trace naming neither CTLD nor the missing call; it now logs what to do about
+  it. Two comments asserting the opposite of the truth (`lua_config_generator`'s *"started by
+  veaf.lua"*, `config_migrator`'s *"veaf.initialize() in veaf-config.lua calls all module init
+  functions"*) are corrected, and ADR 0016 describes the whole chain rather than half of it. The
+  crash inside the vendored engine is reported upstream as
+  [VEAF/CTLD#125](https://github.com/VEAF/CTLD/issues/125).
+
+- **A built mission had no usable airfield, so no parked slot could be taken** (FIX-EMPTY-WAREHOUSES).
+  A `.miz` keeps each airfield's coalition and stock in its `warehouses` table, one entry per
+  airfield of the theatre. A mission built from a blank or scratch-made source had `airports = {}`,
+  and DCS then refuses to seat a pilot on a ramp: the slot appears in the list, can be selected, and
+  never takes. An air start does not go through that table, which is why this survived until someone
+  parked a helicopter. Nothing reported it — `validate` was clean, the build said nothing, and the
+  warehouses injector logged "0 airports configured", which reads like a mission that declared none.
+  Opening the mission in the DCS Mission Editor and saving it repairs the file, which is exactly why
+  such a mission "works when launched from the editor". The build now writes those entries itself,
+  from the runtime-sourced `airdromes.yaml`, in the shape the editor writes them (`NEUTRAL`,
+  ownership being resolved at runtime). A mission that already declares airfields is left untouched.
+  Measured on the smoke-test mission: `warehouses` 69 bytes → 150 040, 225 airfields.
+- **`set_airbase_coalition` reported success without writing anything.** It mutated the warehouses
+  table and returned `durable: true`, but `write_mission_folder` only ever wrote the `mission` file
+  — so an airfield's coalition, which lives in `warehouses`, never reached the disk. The folder
+  writer now persists that table too, when the folder has one.
+
+- **Every helicopter slot the MCP created was unflyable** (FIX-MCP-AIRCRAFT-CATEGORY). `add_air_group`
+  and `add_player_slot` both hard-coded `category="plane"`, and a DCS mission files aircraft under
+  `plane` or `helicopter` as two non-interchangeable keys — a helicopter under `plane` opens in the
+  Mission Editor as an AIRPLANE GROUP with its type in red and cannot be flown. Nothing in the
+  mission file marks the error, and the suite stayed green because no assertion looked at the
+  category. The category is now resolved from the aircraft type against the generated
+  `dcsUnits.yaml` (the database `list_unit_types` already serves). A type absent from it — a
+  third-party mod — still lands under `plane`, but the action returns a warning naming it rather
+  than guessing in silence, and both actions now report the `category` they chose.
+
+- **CTLD spoke English on a French mission** (FIX-CTLD-LANGUAGE). CTLD 2 hard-codes
+  `ctld.i18n_lang = "en"`, the key is not even in the engine's default catalogue, and nothing on the
+  VEAF side ever aligned it — so its radio menu ignored `mission.language` entirely. Reported in
+  game the day the CTLD menu first appeared. `veaf.ctld_initialize()` now sets CTLD's language from
+  `veaf.config.language`, **before** `ctld.initialize()` so the startup report is translated too. It
+  writes the module **global**, which CTLD's own `_activeLang()` reads *after* its config setting:
+  an explicit `i18n_lang:` in a mission's `ctld-config.yaml` still wins, as ADR 0016 intends. A
+  language CTLD has no dictionary for (it ships `en`, `fr`, `es`, `ko`) is left alone and logged
+  once, since `ctld.tr()` warns for every string it cannot resolve.
+
+- **The `dcs-fiddle-server.lua` debug hook wiped out the VEAF framework mid-mission**
+  (FIX-FIDDLE-HOOK-CLOBBERS-VEAF). The hook opened with `veaf = {}` — a line this repo added the day
+  before — and it is injected into the **mission scripting environment**, the same Lua state the
+  framework lives in, *after* the mission scripts have loaded. Measured in the DCS log: 33 ms
+  between the hook starting and `veaf.loggers` being nil. Every VEAF event handler then raised on
+  every DCS event, and `veaf.ctldLogLevels` being nil made the `ctld.utils.log` override raise
+  inside CTLD's own `onEvent` — the handler that builds a player's CTLD radio menu, so the menu
+  never appeared. The hook's table is now `veafFiddle` (nothing outside the hook referenced it), and
+  a guard fails the build on a global `veaf` assignment in that file. **The hook is hand-deployed**:
+  copy `src/scripts/other/dcs-fiddle-server.lua` over `%USERPROFILE%\Saved Games\DCS\Scripts\Hooks\`
+  to pick the fix up. Only affects a workstation with the hook installed. Confirmed in game.
 
 ## [6.14.0] — 2026-08-15
 

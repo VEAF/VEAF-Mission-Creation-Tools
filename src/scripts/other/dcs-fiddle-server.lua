@@ -7,12 +7,18 @@
 ---@diagnostic disable -- third-party file; suppress all LuaLS diagnostics
 --[[
     VEAF: Changes to the original script:
-    - a way to find out the sanitized modules from the server config (veaf.sanitizedModule);
+    - a way to find out the sanitized modules from the server config (veafFiddle.sanitizedModule);
     - a per-session Basic-auth password, generated at launch and written to a file the harness client
       reads, with the local bypass turned off (FIX-SECREV2-EXPIRED-DEFERRALS ticket 02 / VMR-013).
 ]]
-veaf = {}
-function veaf.sanitizedModule(moduleName)
+-- NOT named `veaf`: this file is injected into the MISSION scripting environment, the very state
+-- where the VEAF framework lives, and it is injected ~16 s AFTER the mission scripts have loaded.
+-- A global named `veaf` therefore replaces the whole framework table mid-mission — measured
+-- 2026-08-16: veaf.loggers and veaf.ctldLogLevels became nil, every VEAF event handler started
+-- raising, and CTLD's onPlayerEnterUnit died before it could build the player's radio menu
+-- (FIX-FIDDLE-HOOK-CLOBBERS-VEAF).
+veafFiddle = {}
+function veafFiddle.sanitizedModule(moduleName)
   local result = nil
   if not result and SERVER_CONFIG and SERVER_CONFIG.getModule then
     result = SERVER_CONFIG.getModule(moduleName)
@@ -20,8 +26,8 @@ function veaf.sanitizedModule(moduleName)
   return result
 end
 
-local require = veaf.sanitizedModule("require") or require
-local package = veaf.sanitizedModule("package") or package
+local require = veafFiddle.sanitizedModule("require") or require
+local package = veafFiddle.sanitizedModule("package") or package
 -- END OF VEAF CHANGES
 
 FIDDLE = {}
@@ -66,7 +72,7 @@ _G.FIDDLE_LOG_LEVEL = _G.FIDDLE_LOG_LEVEL or 0    -- 0 = debug, 1 = info, 2 = er
 -- several write dirs (one per aircraft profile) and only the running DCS knows which is live, so a
 -- writedir-relative path would leave the client guessing. The Python client computes the same path
 -- from the home directory. Falls back to the write dir when os.getenv is unavailable.
-function veaf.tokenFilePath()
+function veafFiddle.tokenFilePath()
   local home = os and os.getenv and os.getenv("USERPROFILE")
   if home and home ~= "" then
     return home .. "\\dcs-fiddle-token.txt"
@@ -76,7 +82,7 @@ end
 
 -- A 40-hex-character secret. Its strength is not the point — the file is unreadable to a browser, and
 -- that is what it protects against — but it is seeded from time so it differs per launch.
-function veaf.generateToken()
+function veafFiddle.generateToken()
   math.randomseed(os.time() + math.floor((os.clock() or 0) * 1000000))
   local chars = "0123456789abcdef"
   local out = {}
@@ -87,8 +93,8 @@ function veaf.generateToken()
   return table.concat(out)
 end
 
-function veaf.writeToken(tok)
-  local f = io.open(veaf.tokenFilePath(), "w")
+function veafFiddle.writeToken(tok)
+  local f = io.open(veafFiddle.tokenFilePath(), "w")
   if not f then
     return false
   end
@@ -97,8 +103,8 @@ function veaf.writeToken(tok)
   return true
 end
 
-function veaf.readToken()
-  local f = io.open(veaf.tokenFilePath(), "r")
+function veafFiddle.readToken()
+  local f = io.open(veafFiddle.tokenFilePath(), "r")
   if not f then
     return nil
   end
@@ -1155,7 +1161,7 @@ if (isMission) then
     -- VEAF (FIX-SECREV2): the hook environment generated the password and wrote the file first (it runs
     -- at the main menu, before any mission), so read it here. A read failure leaves the placeholder,
     -- which no client knows — so every request is rejected, which is the safe outcome.
-    FIDDLE.PASSWORD = veaf.readToken() or FIDDLE.PASSWORD
+    FIDDLE.PASSWORD = veafFiddle.readToken() or FIDDLE.PASSWORD
     local loop = create_server(bind_ip, port)
 
     if (not loop) then
@@ -1179,11 +1185,11 @@ elseif (not isMission) then
     -- VEAF (FIX-SECREV2): generate a fresh per-session password and write it where the harness client
     -- reads it. This runs at the main menu, before any mission, so the mission environment can read it
     -- when it bootstraps at onSimulationStart.
-    FIDDLE.PASSWORD = veaf.generateToken()
-    if veaf.writeToken(FIDDLE.PASSWORD) then
-        __info("Fiddle session password written to " .. veaf.tokenFilePath())
+    FIDDLE.PASSWORD = veafFiddle.generateToken()
+    if veafFiddle.writeToken(FIDDLE.PASSWORD) then
+        __info("Fiddle session password written to " .. veafFiddle.tokenFilePath())
     else
-        __error("Could not write the fiddle token to " .. veaf.tokenFilePath() .. " — clients will be rejected")
+        __error("Could not write the fiddle token to " .. veafFiddle.tokenFilePath() .. " — clients will be rejected")
     end
 
     local fiddleFile = lfs.writedir() .. 'Scripts\\Hooks\\dcs-fiddle-server.lua'

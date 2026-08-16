@@ -1462,6 +1462,26 @@ def generate_config_lua(
         lines.append("end")
         lines.append("")
 
+    # ── CTLD 2 start-up (FIX-CTLD-NEVER-INITIALIZED) ──────────────────────
+    # CTLD 2 takes no settings here — its configuration is the mission's ctld-config.yaml,
+    # injected as CTLD_userConfig.lua right before CTLD.lua (ADR 0016). What it does need is
+    # the start-up call: CTLD_userConfig.lua sets ctld.dontInitialize, and veaf.lua only
+    # *registers* CTLD as a module (order 50), a registration consumed solely by
+    # veaf.initialize() — which this generated file never calls, initializing each module
+    # one by one instead. Without the line below the engine never starts: no radio menu, and
+    # the first spawnFob dies inside CTLD on a configuration that was never loaded.
+    #
+    # Emitted BEFORE the module block on purpose. Order 50 puts CTLD ahead of veafGrass (150)
+    # and veafAssets (160), the two modules that call into it; a generated file has no
+    # ordering but its own, so the call has to come first here too.
+    if _community_enabled(mission_yaml, "ctld"):
+        lines.append("-- ── CTLD 2 ───────────────────────────────────────────────────────────────────")
+        lines.append("-- Configuration lives in ctld-config.yaml (edit it with ctld-tools); this only starts it.")
+        lines.append("if ctld then")
+        lines.append("    veaf.ctld_initialize()")
+        lines.append("end")
+        lines.append("")
+
     # ── Module configuration + initialization ─────────────────────────────
     # Accept both `modules:` (new) and `lua_modules:` (legacy) keys.
     raw_lua_modules: dict = mission_yaml.get("lua_modules") or {}
@@ -1574,8 +1594,9 @@ def generate_config_lua(
         lines.append("end")
         lines.append("")
 
-    # No CTLD block: CTLD 2 is configured by the mission's ctld-config.yaml, injected as
-    # CTLD_userConfig.lua right before CTLD.lua by the builder, and started by veaf.lua.
+    # No CTLD configuration block: CTLD 2 is configured by the mission's ctld-config.yaml,
+    # injected as CTLD_userConfig.lua right before CTLD.lua by the builder. Its start-up call
+    # is emitted above, before the module block, where its ordering is explained.
     # See docs/adr/0016-ctld2-sidecar-configuration.md.
 
     csar_cfg: dict = external_modules.get("csar") or {}

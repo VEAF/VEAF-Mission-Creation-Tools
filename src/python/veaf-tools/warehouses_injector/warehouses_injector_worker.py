@@ -6,6 +6,7 @@ Config shape (per coalition; an undeclared coalition is left untouched)::
       defaults:                 # applied to every selected airport
         fuel: unlimited         # -> unlimitedFuel = true (omit to leave as-is)
         weapons: unlimited      # -> unlimitedMunitions = true
+        hot_start: false        # -> allowHotStart = false (default: true, engines running)
         aircrafts:              # aircraft types offered as dynamic slots
           UH-1H:   { amount: unlimited, template: "DST - UH-1H" }
           A-10C_2: { amount: 50 }            # template auto-matched by type
@@ -206,6 +207,10 @@ def _apply_to_airport(
 ) -> int:
     """Apply one airport's settings in place; return the number of templates linked."""
     airport["dynamicSpawn"] = True
+    # A dynamic slot is worth little if the pilot cannot take it with the engines running: the DCS
+    # Mission Editor writes `allowHotStart = false`, and an airfield the mission deliberately opened
+    # to dynamic slots wants the opposite. `hot_start: false` in the config says otherwise.
+    airport["allowHotStart"] = settings.get("hot_start", True) is not False
     if settings.get("fuel") == "unlimited":
         airport["unlimitedFuel"] = True
     if settings.get("weapons") == "unlimited":

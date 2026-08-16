@@ -20,6 +20,15 @@ def _slot_group(mission_content: dict, name: str) -> dict:
     raise AssertionError(f"Slot {name!r} not found")
 
 
+def _group_in_category(mission_content: dict, category: str, name: str) -> dict | None:
+    """Find a group by name under an explicit category, or None."""
+    for country in mission_content["coalition"]["blue"]["country"]:
+        for group in country.get(category, {}).get("group", []):
+            if group["name"] == name:
+                return group
+    return None
+
+
 def _common(**over: object) -> dict:
     params: dict = {
         "coalition": "blue",
@@ -97,3 +106,34 @@ class TestCoalitionsAndCopyPath:
         add_player_slot(sample_miz, **_common(name="Viper 1"))
         add_player_slot(sample_miz, **_common(name="Viper 2"))
         assert read_miz(sample_miz).mission_content["coalitions"]["blue"] == [2]
+
+
+class TestAircraftCategory:
+    """A helicopter must land under `helicopter`, not `plane` (FIX-MCP-AIRCRAFT-CATEGORY).
+
+    Measured in game on 2026-08-16: the action hard-coded `category="plane"`, so a UH-1H slot opened
+    in the Mission Editor as an AIRPLANE GROUP with its type in red and could not be flown. Nothing
+    in the mission file says so — the category is structural, not a validated field — which is why
+    this went unnoticed until someone opened the editor.
+    """
+
+    def test_a_helicopter_lands_under_helicopter(self, sample_miz: Path) -> None:
+        result = add_player_slot(sample_miz, **_common(name="Player Huey", unit_type="UH-1H"))
+        assert result["category"] == "helicopter"
+        content = read_miz(sample_miz).mission_content
+        assert _group_in_category(content, "helicopter", "Player Huey") is not None
+        with pytest.raises(AssertionError):
+            _slot_group(content, "Player Huey")  # must NOT be among the planes
+
+    def test_a_plane_still_lands_under_plane(self, sample_miz: Path) -> None:
+        result = add_player_slot(sample_miz, **_common())
+        assert result["category"] == "plane"
+        assert _slot_group(read_miz(sample_miz).mission_content, "Player Viper") is not None
+
+    def test_an_unclassifiable_type_warns_instead_of_guessing_silently(self, sample_miz: Path) -> None:
+        # A third-party mod is legitimately absent from the unit database, so the slot is still
+        # written — under 'plane' — but the caller is told, because a wrong category is invisible
+        # in the file and the mission maker is the only one who knows what the type really is.
+        result = add_player_slot(sample_miz, **_common(name="Player Mod", unit_type="NoSuchModType"))
+        assert result["category"] == "plane"
+        assert any("NoSuchModType" in w for w in result["warnings"])

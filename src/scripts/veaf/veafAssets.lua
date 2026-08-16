@@ -176,7 +176,7 @@ function veafAssets.respawn(name)
     end
     local text = veaf.t("assets.respawned", theAsset.description)
     if theAsset.jtac then
-      if ctld and veaf.isEnabled("ctld") then
+      if veaf.isCtldReady() then
         veafSpawn.JTACAutoLase(name, theAsset.jtac, theAsset)
         text = text .. veaf.t("assets.lasing", theAsset.jtac)
       end
@@ -211,7 +211,7 @@ function veafAssets.initialize()
   -- start any action-bound asset (e.g. jtacs)
   for name, asset in pairs(veafAssets.assets) do
     if asset.jtac then
-      if ctld and veaf.isEnabled("ctld") then
+      if veaf.isCtldReady() then
         veafSpawn.JTACAutoLase(name, asset.jtac, asset)
       end
     end

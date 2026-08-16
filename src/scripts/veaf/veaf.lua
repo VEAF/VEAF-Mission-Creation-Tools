@@ -54,6 +54,10 @@ veaf.modules = {}
 --- Flag set once veaf.initialize() has been called.
 veaf._initialized = false
 
+--- True once veaf.isCtldReady() has reported an unstarted CTLD, so it reports it once per mission
+--- rather than on every call (the JTAC and asset paths reach it on a timer).
+veaf._ctldNotReadyReported = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Module configuration API
 -- These functions are available immediately at load time (no loggers required).
@@ -5079,14 +5083,77 @@ function veaf.ctld_initialize()
     veaf.loggers.get(veaf.Id):warn("CTLD.utils is missing - CTLD logs will not be routed to the VEAF logger")
   end
 
+  veaf.ctld_alignLanguage()
+
   -- Must come after the override: ctld.initialize() flushes CTLD's startup report, which is
   -- precisely the output naming a stale or incomplete configuration.
   ctld.initialize()
 end
 
+--- Make CTLD speak the mission's language.
+--
+-- CTLD 2 hard-codes `ctld.i18n_lang = "en"` and knows nothing of `veaf.config.language`, so a French
+-- mission showed a French VEAF menu beside an English CTLD one (reported in game 2026-08-16).
+--
+-- The global is the right lever rather than the config setting: CTLD's own `_activeLang()` reads its
+-- config FIRST and this global second, so writing the global changes the **default** while a mission
+-- maker's explicit `i18n_lang:` in their ctld-config.yaml still wins — which is what ADR 0016 means
+-- by the sidecar owning CTLD's configuration.
+--
+-- A language CTLD has no dictionary for is left alone on purpose: `ctld.tr()` logs a WARNING for
+-- every string it cannot find, so pointing the engine at an unknown language would trade a wrong
+-- language for a flooded log.
+function veaf.ctld_alignLanguage()
+  local language = veaf.config.language
+  if not language or not ctld or not ctld.i18n then
+    return
+  end
+  if not ctld.i18n[language] then
+    veaf.loggers
+      .get(veaf.ctldId)
+      :info("CTLD has no dictionary for [%s] - keeping its own default [%s]", veaf.p(language), veaf.p(ctld.i18n_lang))
+    return
+  end
+  ctld.i18n_lang = language
+end
+
 if ctld then
   -- Ordered before the VEAF modules that talk to CTLD (veafGrass 150, veafAssets 160).
   veaf.registerModule(veaf.ctldId, veaf.ctld_initialize, { enable = true }, 50)
+end
+
+--- True when CTLD can actually be called: script loaded, module enabled, **engine started**.
+--
+-- The third condition is the one a mission built before FIX-CTLD-NEVER-INITIALIZED fails. CTLD 2
+-- parks itself on `ctld.dontInitialize` and waits for `veaf.ctld_initialize()`, which the generated
+-- `veaf-config.lua` only emits since that fix: an older mission has the script, has the module
+-- enabled, and has an engine that never loaded its configuration. Calling a CTLD manager in that
+-- state dies inside the vendored script on a nil setting, in a stack trace naming neither CTLD nor
+-- the missing call — so the check is here, and the log line says what to do about it.
+--
+-- `CTLDConfig.get().isLoaded` is the flag `ctld.initialize()` sets when it loads the configuration:
+-- exactly the condition the crash depends on, rather than a proxy for it.
+---@return boolean
+function veaf.isCtldReady()
+  if not (ctld and veaf.isEnabled(veaf.ctldId)) then
+    return false
+  end
+  if not (CTLDConfig and CTLDConfig.get().isLoaded) then
+    -- Reported once per mission, not once per call: the JTAC and asset paths reach this on a timer,
+    -- and the state cannot change back and forth — CTLD is either started or it is not. A repeated
+    -- line would bury the rest of the log without telling anyone anything new.
+    if not veaf._ctldNotReadyReported then
+      veaf._ctldNotReadyReported = true
+      veaf.loggers.get(veaf.Id):error(
+        "CTLD is loaded but its configuration was never read (ctld.initialize() has not run), so "
+          .. "every CTLD feature is unavailable. The usual cause is a mission built before this was "
+          .. "generated: rebuild it, or add [if ctld then veaf.ctld_initialize() end] to its "
+          .. "mission-script.lua"
+      )
+    end
+    return false
+  end
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

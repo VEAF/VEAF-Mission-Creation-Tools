@@ -115,7 +115,7 @@
   "builder.update_hint": "Essayez de mettre à jour le paquet veaf-tools avec veaf-tools-updater.exe !",
   "builder.updating_triggers": "Mise à jour des triggers de mission...",
   "builder.veaf_config_generated": "'{file}' généré depuis mission.yaml",
-  "builder.warehouses_airports_populated": "Warehouses : {count} aérodrome(s) de {theatre} ajoutés à une table vide",
+  "builder.warehouses_airports_populated": "Warehouses : {count} aérodrome(s) de {theatre} ajoutés (non déclarés par la mission)",
   "builder.writing_mission": "Écriture de la mission finale {output}...",
   "checklist.dev_condition_active": "TRAPPE DE DÉVELOPPEMENT ACTIVE : {checklists} se valident sans que le cockpit soit dans l'état requis (dev_condition). À retirer avant livraison — un pilote qui vole ça s'entend dire qu'il a fait une action qu'il n'a pas faite.",
   "checklist.duplicate_id": "Deux checklists déclarent l'id '{id}' : '{first}' et '{second}'. Les ids doivent être uniques dans un même dossier.",

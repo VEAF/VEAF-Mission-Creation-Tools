@@ -55,11 +55,16 @@ DEFAULT_AIRPORT: dict[str, Any] = {
 
 
 def ensure_airports_populated(warehouses_content: dict[str, Any], *, theatre: str) -> int:
-    """Fill an empty ``warehouses.airports`` with one entry per airfield of the theatre.
+    """Add a ``warehouses.airports`` entry for every airfield of the theatre that has none.
 
-    A table that already holds entries is left completely alone: the mission (or a previous build
-    step) knows better than a default, and rewriting it would discard a mission maker's ownership
-    and stock settings.
+    **Completes** the table rather than filling it only when empty. The difference is not academic:
+    a mission maker who assigns one airfield to a coalition — what the MCP's `set_airbase_coalition`
+    does, and the documented way to own a base — leaves a table with a single entry. An
+    "only when empty" rule would then add nothing and ship a mission with 1 airfield out of 225,
+    which is the very defect this module exists to prevent.
+
+    An entry that already exists is **never** touched: it carries the mission's own ownership and
+    stock settings, and a default would erase them.
 
     Args:
         warehouses_content: The mission's parsed ``warehouses`` table, mutated in place. A missing
@@ -67,7 +72,7 @@ def ensure_airports_populated(warehouses_content: dict[str, Any], *, theatre: st
         theatre: The mission's theatre name (e.g. ``"Syria"``), case-insensitive.
 
     Returns:
-        How many airfield entries were added — ``0`` when the table was already populated, the
+        How many airfield entries were added — ``0`` when every airfield already has one, the
         theatre is unknown to the bundled table, or no theatre was given.
     """
     if not theatre:
@@ -77,11 +82,13 @@ def ensure_airports_populated(warehouses_content: dict[str, Any], *, theatre: st
     if not isinstance(airports, dict):
         airports = {}
         warehouses_content["airports"] = airports
-    if airports:
-        return 0
 
     # Each airfield gets its own copy: a shared dict would make a later coalition change on one
     # field silently turn every field of the theatre.
+    added = 0
     for airdrome_id in sorted(airdromes_for_theatre(theatre).values()):
+        if airdrome_id in airports:
+            continue
         airports[airdrome_id] = copy.deepcopy(DEFAULT_AIRPORT)
-    return len(airports)
+        added += 1
+    return added

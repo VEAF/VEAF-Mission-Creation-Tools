@@ -11,6 +11,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Assigning one airfield to a coalition disabled all the others** (FIX-WAREHOUSES-INCREMENTAL).
+  The build filled the airfield table only when it was **empty**, which the documented workflow
+  breaks immediately: one `set_airbase_coalition` call leaves a table with a single entry, the build
+  then adds nothing, and the mission ships with 1 airfield out of 225 — the defect
+  FIX-EMPTY-WAREHOUSES fixes, reintroduced by using the MCP as intended. The table is now
+  **completed**: missing airfields are added, an existing entry is never touched (it carries the
+  mission's own ownership and stock). With that, dynamic slots work by default on every airfield of
+  a coalition, which needs no new code — the existing `warehouses.yaml` step already reads "no
+  airfield list" as "every airfield of that coalition", sets `dynamicSpawn` and stocks the
+  templates. It only ever needed airfields that *have* a coalition.
+
 - **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
   6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising
   `CTLD.lua:9109: attempt to perform arithmetic on local 'interval'`. Both come from the same

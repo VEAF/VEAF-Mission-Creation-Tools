@@ -56,12 +56,34 @@ class TestPopulatesAnEmptyTable:
         assert all(a["coalition"] == "NEUTRAL" for a in others)
 
 
-class TestLeavesAPopulatedTableAlone:
-    def test_an_existing_table_is_untouched(self) -> None:
-        existing = {12: {"coalition": "BLUE"}}
-        warehouses: dict[str, Any] = {"airports": existing}
+class TestCompletesAPartialTable:
+    """A partial table must be COMPLETED, not left alone (FIX-WAREHOUSES-INCREMENTAL).
+
+    The all-or-nothing rule this replaces had a hole the size of the defect it fixed: the moment a
+    mission maker assigns one airfield to a coalition — which the MCP's `set_airbase_coalition`
+    does, and which is the documented way to own a base — the table stops being empty. The build
+    then added nothing, leaving a mission with **1 airfield out of 225** and every other one
+    unusable again.
+    """
+
+    def test_the_missing_airfields_are_added_beside_an_existing_one(self) -> None:
+        warehouses: dict[str, Any] = {"airports": {42: {"coalition": "BLUE", "dynamicSpawn": True}}}
+        added = ensure_airports_populated(warehouses, theatre="Syria")
+        assert added > 200
+        assert len(warehouses["airports"]) == added + 1
+
+    def test_an_existing_entry_is_never_overwritten(self) -> None:
+        # It carries the mission maker's own ownership and stock settings; a default would erase them.
+        mine = {"coalition": "BLUE", "dynamicSpawn": True, "aircrafts": {"helicopters": {"UH-1H": {}}}}
+        warehouses: dict[str, Any] = {"airports": {42: mine}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        assert warehouses["airports"][42] is mine
+        assert warehouses["airports"][42]["coalition"] == "BLUE"
+
+    def test_a_complete_table_gains_nothing(self) -> None:
+        warehouses: dict[str, Any] = {"airports": {}}
+        ensure_airports_populated(warehouses, theatre="Syria")
         assert ensure_airports_populated(warehouses, theatre="Syria") == 0
-        assert warehouses["airports"] == {12: {"coalition": "BLUE"}}
 
     def test_a_theatre_with_no_bundled_table_is_a_no_op(self) -> None:
         # An uncaptured or misspelt theatre must not raise mid-build; it simply adds nothing.

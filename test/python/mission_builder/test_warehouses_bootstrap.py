@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT, ensure_airports_populated
+from veaf_libs.dcs_airdromes import airdromes_for_theatre
 
 
 def _mission(theatre: str = "Syria", warehouses: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -24,10 +25,13 @@ def _mission(theatre: str = "Syria", warehouses: dict[str, Any] | None = None) -
 
 class TestPopulatesAnEmptyTable:
     def test_every_airfield_of_the_theatre_gets_an_entry(self) -> None:
+        # Counted from the bundled table rather than hard-coded: the number moves when a theatre is
+        # re-captured, and what matters is "every airfield", not "225 of them".
+        expected = len(set(airdromes_for_theatre("Syria").values()))
         warehouses: dict[str, Any] = {"airports": {}, "warehouses": {}, "weapons": {}}
         added = ensure_airports_populated(warehouses, theatre="Syria")
-        assert added == len(warehouses["airports"])
-        assert added > 200, "Syria has 224 airfields in the bundled table"
+        assert added == expected
+        assert set(warehouses["airports"]) == set(airdromes_for_theatre("Syria").values())
 
     def test_entries_are_keyed_by_the_numeric_airdrome_id(self) -> None:
         warehouses: dict[str, Any] = {"airports": {}}
@@ -56,12 +60,58 @@ class TestPopulatesAnEmptyTable:
         assert all(a["coalition"] == "NEUTRAL" for a in others)
 
 
-class TestLeavesAPopulatedTableAlone:
-    def test_an_existing_table_is_untouched(self) -> None:
-        existing = {12: {"coalition": "BLUE"}}
-        warehouses: dict[str, Any] = {"airports": existing}
+class TestCompletesAPartialTable:
+    """A partial table must be COMPLETED, not left alone (FIX-WAREHOUSES-INCREMENTAL).
+
+    The all-or-nothing rule this replaces had a hole the size of the defect it fixed: the moment a
+    mission maker assigns one airfield to a coalition — which the MCP's `set_airbase_coalition`
+    does, and which is the documented way to own a base — the table stops being empty. The build
+    then added nothing, leaving a mission with **1 airfield out of 225** and every other one
+    unusable again.
+    """
+
+    def test_the_missing_airfields_are_added_beside_an_existing_one(self) -> None:
+        all_ids = set(airdromes_for_theatre("Syria").values())
+        warehouses: dict[str, Any] = {"airports": {42: {"coalition": "BLUE", "dynamicSpawn": True}}}
+        added = ensure_airports_populated(warehouses, theatre="Syria")
+        assert added == len(all_ids) - 1, "every airfield but the one already there"
+        assert set(warehouses["airports"]) == all_ids
+
+    def test_a_partial_entry_gains_the_keys_it_lacks(self) -> None:
+        # What set_airbase_coalition leaves behind is FIVE keys, not twenty. DCS cannot work an
+        # airfield described that thinly: measured in game, its parked slots stay unusable and its
+        # dynamic-slot catalogue shows zero aircraft of every type. "The entry exists" is not
+        # "the entry is complete".
+        partial: dict[str, Any] = {"coalition": "BLUE", "dynamicSpawn": True}
+        warehouses: dict[str, Any] = {"airports": {42: partial}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        entry = warehouses["airports"][42]
+        assert set(entry) == set(DEFAULT_AIRPORT)
+        assert entry["unlimitedAircrafts"] is True
+
+    def test_completing_a_partial_entry_keeps_its_own_values(self) -> None:
+        partial: dict[str, Any] = {"coalition": "BLUE", "dynamicSpawn": True, "size": 42}
+        warehouses: dict[str, Any] = {"airports": {42: partial}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        entry = warehouses["airports"][42]
+        assert entry["coalition"] == "BLUE"
+        assert entry["dynamicSpawn"] is True
+        assert entry["size"] == 42, "a value the mission set must survive completion"
+
+    def test_an_existing_entry_is_never_overwritten(self) -> None:
+        # It carries the mission maker's own ownership and stock settings; a default would erase them.
+        mine = {"coalition": "BLUE", "dynamicSpawn": True, "aircrafts": {"helicopters": {"UH-1H": {}}}}
+        warehouses: dict[str, Any] = {"airports": {42: mine}}
+        ensure_airports_populated(warehouses, theatre="Syria")
+        assert warehouses["airports"][42] is mine
+        assert warehouses["airports"][42]["coalition"] == "BLUE"
+
+    def test_a_complete_table_gains_nothing(self) -> None:
+        # The first call is what makes the table complete; the second is the one under test. Both
+        # are needed — asserting idempotency on a table nothing has populated proves nothing.
+        warehouses: dict[str, Any] = {"airports": {}}
+        ensure_airports_populated(warehouses, theatre="Syria")
         assert ensure_airports_populated(warehouses, theatre="Syria") == 0
-        assert warehouses["airports"] == {12: {"coalition": "BLUE"}}
 
     def test_a_theatre_with_no_bundled_table_is_a_no_op(self) -> None:
         # An uncaptured or misspelt theatre must not raise mid-build; it simply adds nothing.

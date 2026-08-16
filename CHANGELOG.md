@@ -11,6 +11,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Assigning one airfield to a coalition disabled all the others** (FIX-WAREHOUSES-INCREMENTAL).
+  The build filled the airfield table only when it was **empty**, which the documented workflow
+  breaks immediately: one `set_airbase_coalition` call leaves a table with a single entry, the build
+  then adds nothing, and the mission ships with 1 airfield out of 225 — the defect
+  FIX-EMPTY-WAREHOUSES fixes, reintroduced by using the MCP as intended. The table is now
+  **completed**: missing airfields are added, an existing entry is never touched (it carries the
+  mission's own ownership and stock). With that, dynamic slots work by default on every airfield of
+  a coalition, which needs no new code — the existing `warehouses.yaml` step already reads "no
+  airfield list" as "every airfield of that coalition", sets `dynamicSpawn` and stocks the
+  templates. It only ever needed airfields that *have* a coalition.
+- **An airfield entry could exist and still be unusable.** `set_airbase_coalition` wrote **5 keys**
+  where DCS expects **20** — no `unlimitedAircrafts`, no fuels, no operating levels — and the
+  build's completion pass skipped it because it existed. In game that reads as parked slots that
+  cannot be taken and a dynamic-slot catalogue showing zero aircraft in every type. Fixed at both
+  ends: the MCP writes a full entry, and the build completes a partial one key by key without ever
+  overwriting what the mission already set.
+- **A dynamic slot could only be taken cold.** `allowHotStart` — the field behind the "spawn hot"
+  option — is written `false` by the DCS Mission Editor, and nothing turned it back on. An airfield
+  the mission opens to dynamic slots now offers a hot start; `hot_start: false` under a coalition's
+  `defaults:` in `warehouses.yaml` returns to cold starts only.
+
+### Documentation
+
+- **The shipped dynamic-slot templates are a starting point, and the guides now say so.** A pilot
+  taking a dynamic slot gets the aircraft as its template describes it, and only **9 of the 52**
+  templates shipped by default carry a loadout — an A-10C II comes out armed and painted, a UH-1H
+  or an F/A-18C comes out bare. The link works (measured in game); the template is empty. Both
+  guides name the two families and give the `content extract-aircraft-groups … --kind
+  dynamic-template` command that replaces them with the mission maker's own.
+
 - **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
   6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising
   `CTLD.lua:9109: attempt to perform arithmetic on local 'interval'`. Both come from the same

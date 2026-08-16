@@ -8,9 +8,11 @@ right side, and turns on its Dynamic Spawn slots at the same time (the build's w
 then stocks it — see `src/warehouses.yaml`). See `.backlog/FEAT-MCP-AIRBASES-WAREHOUSES/PRD.md`.
 """
 
+import copy
 from pathlib import Path
 from typing import Any
 
+from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 
@@ -50,7 +52,11 @@ def _airbase_entry(mission: DcsMission, name: str) -> tuple[int, dict[str, Any]]
 
     entry = airports.get(airdrome_id)
     if entry is None:
-        entry = {}
+        # The full airfield shape, not just the two keys this action sets: an entry holding only
+        # `coalition` and `dynamicSpawn` leaves the airfield unusable — measured in game, its
+        # parked slots cannot be taken and its dynamic-slot catalogue shows zero aircraft of every
+        # type, fifteen keys being absent (FIX-WAREHOUSES-INCREMENTAL).
+        entry = copy.deepcopy(DEFAULT_AIRPORT)
         airports[airdrome_id] = entry
     return airdrome_id, entry
 

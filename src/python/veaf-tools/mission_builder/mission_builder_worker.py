@@ -1365,14 +1365,18 @@ class MissionBuilderWorker(BaseWorker):
             logger.info(t("builder.coalition_placeholder_injected", side=side))
 
     def ensure_airports_populated(self) -> None:
-        """Give the mission an airfield warehouse entry per airfield of its theatre, if it has none.
+        """Give the mission a warehouse entry for every airfield of its theatre that lacks one.
 
         A `.miz` keeps each airfield's coalition and stock in ``warehouses.airports``, keyed by
         airdrome id. A mission built from a blank source has that table empty, and DCS then has no
         usable airfield: a slot parked on a ramp can be selected but never taken. Opening the
         mission in the DCS Mission Editor writes the entries, which is why such a mission "works
-        when launched from the editor" — this does it at build time instead. A table that already
-        holds entries is left alone. See :func:`warehouses_bootstrap.ensure_airports_populated`.
+        when launched from the editor" — this does it at build time instead.
+
+        The table is **completed**, not filled only when empty: one ``set_airbase_coalition`` call
+        leaves a single entry, and stopping there would ship a mission with one airfield out of the
+        theatre's. An entry that already exists keeps its own values and is completed key by key.
+        See :func:`warehouses_bootstrap.ensure_airports_populated`.
         """
         if not self.dcs_mission or self.dcs_mission.warehouses_content is None:
             return

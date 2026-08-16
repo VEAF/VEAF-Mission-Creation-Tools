@@ -9,9 +9,9 @@
 #
 # DEFAULT (below): every airbase assigned to a coalition (e.g. via the MCP
 # `set_airbase_coalition`, or set in the Mission Editor) gets Dynamic Slots
-# enabled, unlimited fuel/munitions, and its warehouse auto-filled with every
-# dynamic-spawn template of that coalition. With no assigned airbase, this
-# changes nothing.
+# enabled, a hot start offered, unlimited fuel/munitions, and its warehouse
+# auto-filled with every dynamic-spawn template of that coalition. With no
+# assigned airbase, this changes nothing.
 #
 # Customize:
 # - Add `aircrafts:` under a coalition's `defaults:` to offer a specific list
@@ -22,6 +22,8 @@
 #     airports:
 #       Senaki-Kolkhi: {}
 #       24: { aircrafts: { Yak-52: { amount: 10 } } }
+# - Add `hot_start: false` under a coalition's `defaults:` to offer cold starts
+#   only (DCS's own default; the build offers a hot start unless told otherwise).
 # - Remove a coalition block to leave that side's warehouses untouched.
 # ---------------------------------------------------------------------------
 

@@ -233,6 +233,16 @@ flowchart TD
 
 > **Note — templates and multiplayer slots**: the groups injected from `spawnables.yaml` and `dynamic-slot-templates.yaml` are reusable **templates**. To keep them from showing up as pickable slots in the multiplayer briefing, the build automatically hides them from the slot list (`hiddenOnPlanner`/`hiddenOnMFD`) and locks them with a password. Dynamic-slot spawning (which references the template by name) stays fully functional.
 
+> **The shipped templates are a starting point, not a ready-made catalogue.** When a pilot takes a dynamic slot, DCS hands them the aircraft **as the template describes it**: loadout, livery, frequencies. Of the 52 templates shipped by default, **only 9 carry a loadout** — an A-10C II or an F-14B come out armed and painted, a UH-1H, an F/A-18C or an M-2000C come out **bare**. This is not a build defect: the template-to-aircraft link works, the template itself is empty.
+>
+> To give your pilots equipped aircraft, set them up **once** in a mission (in the DCS Mission Editor, with the loadout and livery you want), then regenerate the file from that mission:
+>
+> ```powershell
+> veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
+> ```
+>
+> That rewrites `src/dynamic-slot-templates.yaml` with your templates. The next build injects them, and the dynamic slots offer aircraft ready to fly.
+
 ---
 
 ## Configuring Modules {#configuring-modules}

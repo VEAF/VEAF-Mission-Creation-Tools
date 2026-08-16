@@ -232,6 +232,16 @@ flowchart TD
 
 > **Note — templates et slots multijoueur** : les groupes injectés depuis `spawnables.yaml` et `dynamic-slot-templates.yaml` sont des **modèles** réutilisables. Pour éviter qu'ils n'apparaissent comme slots sélectionnables dans le briefing multijoueur, le build les masque automatiquement de la liste des slots (`hiddenOnPlanner`/`hiddenOnMFD`) et les verrouille par un mot de passe. Le spawn dynamique (qui référence le template par son nom) reste pleinement fonctionnel.
 
+> **Les modèles fournis sont un point de départ, pas un catalogue prêt à l'emploi.** Quand un pilote prend un slot dynamique, DCS lui donne l'appareil **tel qu'il est décrit dans le modèle** : emport, livrée, fréquences. Or sur les 52 modèles livrés par défaut, **9 seulement ont un emport** — un A-10C II ou un F-14B sortent armés et peints, un UH-1H, un F/A-18C ou un M-2000C sortent **nus**. Ce n'est pas un défaut du build : le lien modèle → appareil fonctionne, c'est le modèle qui est vide.
+>
+> Pour donner à vos pilotes des appareils équipés, configurez-les **une fois** dans une mission (dans l'éditeur DCS, avec l'emport et la livrée que vous voulez), puis régénérez le fichier depuis cette mission :
+>
+> ```powershell
+> veaf-tools.exe content extract-aircraft-groups ma-mission.miz --kind dynamic-template
+> ```
+>
+> Cela réécrit `src/dynamic-slot-templates.yaml` avec vos modèles. Le prochain build les injecte, et les slots dynamiques proposent des appareils prêts à décoller.
+
 ---
 
 ## Configurer les modules {#configuring-modules}

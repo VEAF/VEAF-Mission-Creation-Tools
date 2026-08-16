@@ -32,6 +32,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the mission opens to dynamic slots now offers a hot start; `hot_start: false` under a coalition's
   `defaults:` in `warehouses.yaml` returns to cold starts only.
 
+### Documentation
+
+- **The shipped dynamic-slot templates are a starting point, and the guides now say so.** A pilot
+  taking a dynamic slot gets the aircraft as its template describes it, and only **9 of the 52**
+  templates shipped by default carry a loadout — an A-10C II comes out armed and painted, a UH-1H
+  or an F/A-18C comes out bare. The link works (measured in game); the template is empty. Both
+  guides name the two families and give the `content extract-aircraft-groups … --kind
+  dynamic-template` command that replaces them with the mission maker's own.
+
 - **CTLD never started in a built mission** (FIX-CTLD-NEVER-INITIALIZED). Reported by Tripack on a
   6.14.0 mission: *no CTLD entry in the radio menu*, and the mission's first `-fob` raising
   `CTLD.lua:9109: attempt to perform arithmetic on local 'interval'`. Both come from the same

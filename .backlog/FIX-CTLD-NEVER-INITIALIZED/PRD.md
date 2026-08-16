@@ -67,9 +67,9 @@ Measured with `test-lua --coverage`, not asserted:
 The in-game run also produced the log evidence the automated tests cannot: `VEAF|I|log: CTLD
 initialized.` followed by `VEAF-SPAWN|I|spawnFob: Spawned FOB FOB YD6647 #10228`, i.e. the exact
 `-fob` path that used to die on `interval`. Getting there took two other defects out of the way
-first — [FIX-FIDDLE-HOOK-CLOBBERS-VEAF](../FIX-FIDDLE-HOOK-CLOBBERS-VEAF/PRD.md) and
-[FIX-MCP-AIRCRAFT-CATEGORY](../FIX-MCP-AIRCRAFT-CATEGORY/PRD.md), both found *because* someone flew
-the mission.
+first — `FIX-FIDDLE-HOOK-CLOBBERS-VEAF` and `FIX-MCP-AIRCRAFT-CATEGORY`, each shipping in its own PR,
+both found *because* someone flew the mission. (Named rather than linked: each lot lands on its own
+branch, and a relative link to a sibling that does not exist there fails `docs-check`.)
 
 The remaining gap is that no test closes this loop, and `FEAT-DCS-SMOKE-HARNESS` is the instrument
 for it: a check asserting the CTLD radio menu exists after load would cover exactly the chain that

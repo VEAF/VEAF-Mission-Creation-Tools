@@ -11,6 +11,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **CTLD spoke English on a French mission** (FIX-CTLD-LANGUAGE). CTLD 2 hard-codes
+  `ctld.i18n_lang = "en"`, the key is not even in the engine's default catalogue, and nothing on the
+  VEAF side ever aligned it — so its radio menu ignored `mission.language` entirely. Reported in
+  game the day the CTLD menu first appeared. `veaf.ctld_initialize()` now sets CTLD's language from
+  `veaf.config.language`, **before** `ctld.initialize()` so the startup report is translated too. It
+  writes the module **global**, which CTLD's own `_activeLang()` reads *after* its config setting:
+  an explicit `i18n_lang:` in a mission's `ctld-config.yaml` still wins, as ADR 0016 intends. A
+  language CTLD has no dictionary for (it ships `en`, `fr`, `es`, `ko`) is left alone and logged
+  once, since `ctld.tr()` warns for every string it cannot resolve.
+
 - **The `dcs-fiddle-server.lua` debug hook wiped out the VEAF framework mid-mission**
   (FIX-FIDDLE-HOOK-CLOBBERS-VEAF). The hook opened with `veaf = {}` — a line this repo added the day
   before — and it is injected into the **mission scripting environment**, the same Lua state the

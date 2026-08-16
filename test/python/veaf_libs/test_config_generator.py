@@ -525,18 +525,19 @@ class TestSkynet(unittest.TestCase):
 
 
 class TestCtld(unittest.TestCase):
-    """CTLD 2 takes no configuration from here — see docs/adr/0016 and the sibling
-    test module ``test_lua_config_generator`` for the full rationale."""
+    """CTLD 2 takes no *configuration* from here — see docs/adr/0016 and the sibling
+    test module ``test_lua_config_generator``, which covers the start-up call itself."""
 
-    def test_ctld_enabled_emits_nothing(self) -> None:
+    def test_ctld_enabled_emits_no_setting(self) -> None:
         lua = generate_config_lua(
             {"external_modules": {"ctld": {"enabled": True, "hoverPickup": True, "maximumCrates": 5}}}
         )
-        self.assertNotIn("ctld.", lua)
+        self.assertNotIn("ctld.hoverPickup", lua)
+        self.assertNotIn("ctld.maximumCrates", lua)
 
-    def test_ctld_disabled_emits_nothing(self) -> None:
+    def test_ctld_disabled_emits_no_setting(self) -> None:
         lua = generate_config_lua({"external_modules": {"ctld": {"enabled": False}}})
-        self.assertNotIn("ctld.", lua)
+        self.assertNotIn("ctld.hoverPickup", lua)
 
 
 class TestGenerateMissionYamlTemplate(unittest.TestCase):

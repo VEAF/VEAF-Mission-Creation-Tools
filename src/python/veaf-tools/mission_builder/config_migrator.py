@@ -487,7 +487,7 @@ class ConfigMigrator:
                 if init_in_guard_m:
                     output.append(
                         f"-- [v6 migration] {raw_line.rstrip()}"
-                        "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
+                        "  -- removed: veaf-config.lua initializes every enabled module itself"
                     )
                     # No warning: convert-v5 deletes missionConfig.lua, so there is no
                     # line to review (CONVERT-V5-INIT-COMMENTED-NOISE).

@@ -29,7 +29,7 @@ function veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD
 
   if unitName then
     veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnLogistic: registering %s as a CTLD logistic zone", unitName))
-    if ctld and veaf.isEnabled("ctld") then
+    if veaf.isCtldReady() then
       local unit = Unit.getByName(unitName) or StaticObject.getByName(unitName)
       if unit then
         CTLDZoneManager.getInstance():registerFOBAsLogistic(unitName, unit:getPoint(), nil, unit:getCoalition())

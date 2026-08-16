@@ -145,31 +145,49 @@ def test_assets_plain_information_uses_quoted_string():
 # ---------------------------------------------------------------------------
 
 
-def test_ctld_enabled_emits_no_configuration_block():
+def test_ctld_emits_no_configuration_block():
     """CTLD 2 is configured by ctld-config.yaml, not from here (ADR 0016).
 
-    Settings that used to be emitted must not reappear: the engine would ignore
-    them (its configuration is a complete YAML snapshot loaded before it), and
-    ``ctld.initialize()`` is now called by veaf.lua after the log routing is set up.
+    Settings that used to be emitted must not reappear: the engine would ignore them,
+    its configuration being a complete YAML snapshot loaded before it.
     """
     yaml_data: dict = {"external_modules": {"ctld": {"enabled": True, "hoverPickup": False, "slingLoad": True}}}
     lua = generate_config_lua(yaml_data)
-    assert "if ctld then" not in lua
     assert "ctld.hoverPickup" not in lua
     assert "ctld.slingLoad" not in lua
-    assert "ctld.initialize()" not in lua
 
 
-def test_ctld_disabled_emits_nothing():
-    yaml_data: dict = {"external_modules": {"ctld": {"enabled": False}}}
-    lua = generate_config_lua(yaml_data)
-    assert "ctld" not in lua
+def test_ctld_start_up_call_is_emitted():
+    """The generated file must START CTLD (FIX-CTLD-NEVER-INITIALIZED).
+
+    ``veaf.lua`` only registers CTLD as a module, and that registration is consumed by
+    ``veaf.initialize()`` alone — which this file never calls. Without the call below the
+    engine stays parked on ``ctld.dontInitialize`` and the mission has no CTLD at all.
+    """
+    lua = generate_config_lua({})
+    assert "if ctld then" in lua
+    assert "veaf.ctld_initialize()" in lua
 
 
-def test_ctld_missing_emits_nothing():
-    yaml_data: dict = {"external_modules": {}}
-    lua = generate_config_lua(yaml_data)
-    assert "ctld" not in lua
+def test_ctld_start_up_call_precedes_the_modules_that_use_ctld():
+    """Ordering is the point: veafGrass and veafAssets call into CTLD.
+
+    ``registerModule`` gives CTLD order 50, ahead of veafGrass (150) and veafAssets (160).
+    The generated file runs top to bottom and has no ordering of its own, so the start-up
+    call has to be emitted before those modules initialize.
+    """
+    lua = generate_config_lua({"lua_modules": {"GRASS": {"enable": True}, "ASSETS": {"enable": True}}})
+    start_up = lua.index("veaf.ctld_initialize()")
+    for var_name in ("veafGrass.initialize()", "veafAssets.initialize()"):
+        assert var_name in lua, f"{var_name} missing — the fixture no longer exercises the ordering"
+        assert start_up < lua.index(var_name)
+
+
+def test_ctld_disabled_emits_no_start_up_call():
+    """A mission that opts out of the CTLD script gets no call to start it."""
+    lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": False}}})
+    assert "veaf.ctld_initialize()" not in lua
+    assert "if ctld then" not in lua
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +224,7 @@ def test_csar_missing_emits_nothing():
 
 
 def test_csar_still_generated_when_ctld_is_enabled_too():
-    """Dropping the CTLD block must not touch CSAR, which still uses this channel."""
+    """Dropping the CTLD configuration block must not touch CSAR, which still uses this channel."""
     yaml_data: dict = {
         "external_modules": {
             "ctld": {"enabled": True, "hoverPickup": True},
@@ -217,7 +235,7 @@ def test_csar_still_generated_when_ctld_is_enabled_too():
     assert "if csar then" in lua
     assert "csar.enableAllslots = false" in lua
     assert "csar.initialize()" in lua
-    assert "if ctld then" not in lua
+    assert "ctld.hoverPickup" not in lua
 
 
 # ---------------------------------------------------------------------------

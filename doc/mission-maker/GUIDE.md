@@ -564,7 +564,18 @@ Si vous montez CTLD de version et que votre fichier a été écrit pour la préc
 | `modules: CTLD: { settings: … }` | `ctld-config.yaml` (le bloc `settings:` est refusé par `validate`) |
 | unités nommées `logistic #001` … `#020` | une zone de l'éditeur nommée `LGZ_…` (nombre illimité) |
 | zones nommées `pickzone #001` … `#020` | une zone de l'éditeur nommée `TRZ_…` |
-| `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le framework VEAF initialise CTLD |
+| `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le build génère le démarrage de CTLD |
+
+!!! warning "Missions construites avec veaf-tools 6.14.0 ou antérieur : reconstruisez-les"
+    Ces versions n'écrivaient pas la ligne qui démarre CTLD. Dans le jeu, cela se voit ainsi :
+    **pas de menu CTLD dans le menu radio**, et le premier `-fob` provoque une erreur de script
+    (`CTLD.lua: attempt to perform arithmetic on local 'interval'`) dans le journal DCS.
+    Reconstruisez la mission avec une version à jour, ou, si vous ne pouvez pas reconstruire
+    tout de suite, ajoutez cette ligne dans votre `src/scripts/mission-script.lua` :
+
+    ```lua
+    if ctld then veaf.ctld_initialize() end
+    ```
 
 Pour attacher une zone logistique à un objet mobile (un porte-avions, par exemple), liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
 

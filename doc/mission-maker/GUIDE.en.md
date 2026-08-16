@@ -565,7 +565,18 @@ When you upgrade CTLD and your file was written against an earlier version, `ctl
 | `modules: CTLD: { settings: … }` | `ctld-config.yaml` (a `settings:` block is rejected by `validate`) |
 | units named `logistic #001` … `#020` | a Mission Editor zone named `LGZ_…` (any number of them) |
 | zones named `pickzone #001` … `#020` | a Mission Editor zone named `TRZ_…` |
-| `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the VEAF framework initialises CTLD |
+| `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the build generates CTLD's start-up |
+
+!!! warning "Missions built with veaf-tools 6.14.0 or earlier: rebuild them"
+    Those versions did not write the line that starts CTLD. In game this shows up as **no CTLD
+    entry in the radio menu**, and the first `-fob` raises a script error in the DCS log
+    (`CTLD.lua: attempt to perform arithmetic on local 'interval'`). Rebuild the mission with an
+    up-to-date version — or, if you cannot rebuild right away, add this line to your
+    `src/scripts/mission-script.lua`:
+
+    ```lua
+    if ctld then veaf.ctld_initialize() end
+    ```
 
 To attach a logistic zone to something that moves — a carrier, say — link the zone to the unit in the Mission Editor (*Moving Zone*): the zone follows its unit.
 

@@ -544,6 +544,9 @@ function dcs_mocks.reset()
       manager._instance.calls = {}
     end
   end
+  if CTLDConfig then
+    CTLDConfig._instance.isLoaded = true
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -678,6 +681,18 @@ ctld = {
   utils = {
     log = function(...) end,
   },
+}
+
+-- CTLDConfig — the singleton `veaf.isCtldReady()` probes. `isLoaded` is the flag the real
+-- `ctld.initialize()` raises once it has parsed the configuration, so it is what tells an engine
+-- that was started apart from one still parked on `ctld.dontInitialize`. The mock starts it **true**
+-- (the nominal case, so every existing CTLD test keeps exercising the code it was written for);
+-- a test flips it to false to reach the other state, and dcs_mocks.reset() restores it.
+CTLDConfig = {
+  _instance = { isLoaded = true },
+  get = function()
+    return CTLDConfig._instance
+  end,
 }
 
 -- CTLD 2 managers. Each records its calls so a test can assert what VEAF asked of CTLD

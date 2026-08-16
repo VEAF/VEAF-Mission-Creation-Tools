@@ -5089,6 +5089,32 @@ if ctld then
   veaf.registerModule(veaf.ctldId, veaf.ctld_initialize, { enable = true }, 50)
 end
 
+--- True when CTLD can actually be called: script loaded, module enabled, **engine started**.
+--
+-- The third condition is the one a mission built before FIX-CTLD-NEVER-INITIALIZED fails. CTLD 2
+-- parks itself on `ctld.dontInitialize` and waits for `veaf.ctld_initialize()`, which the generated
+-- `veaf-config.lua` only emits since that fix: an older mission has the script, has the module
+-- enabled, and has an engine that never loaded its configuration. Calling a CTLD manager in that
+-- state dies inside the vendored script on a nil setting, in a stack trace naming neither CTLD nor
+-- the missing call — so the check is here, and the log line says what to do about it.
+--
+-- `CTLDConfig.get().isLoaded` is the flag `ctld.initialize()` sets when it loads the configuration:
+-- exactly the condition the crash depends on, rather than a proxy for it.
+---@return boolean
+function veaf.isCtldReady()
+  if not (ctld and veaf.isEnabled(veaf.ctldId)) then
+    return false
+  end
+  if not (CTLDConfig and CTLDConfig.get().isLoaded) then
+    veaf.loggers.get(veaf.Id):error(
+      "CTLD is loaded but was never initialized - rebuild the mission with an up-to-date veaf-tools, "
+        .. "or add [if ctld then veaf.ctld_initialize() end] to its mission-script.lua"
+    )
+    return false
+  end
+  return true
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CSAR
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

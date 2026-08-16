@@ -126,8 +126,10 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
 
   -- veaf.ctld_initialized went with the v1 init wrapper. CTLD 2 is a registered VEAF module,
   -- so the framework's own gate answers the same question — and answers it correctly when the
-  -- mission disabled the module rather than merely failing to load the script.
-  if not (ctld and veaf.isEnabled("ctld")) then
+  -- mission disabled the module rather than merely failing to load the script, or left the
+  -- engine parked because nothing ever called veaf.ctld_initialize() (that third state is what
+  -- FIX-CTLD-NEVER-INITIALIZED found, and it is the one that used to crash here).
+  if not veaf.isCtldReady() then
     veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)", veaf.p(name))
     return nil
   end
@@ -186,7 +188,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   _namedPoint.atc = true
   _namedPoint.runways = {}
 
-  if ctld and veaf.isEnabled("ctld") then
+  if veaf.isCtldReady() then
     -- make it able to deploy crates and pickup troops. CTLD 2 owns the FOB list itself
     -- (CTLDFOBManager), so the logistic zone is the only thing we declare.
     CTLDZoneManager.getInstance():registerFOBAsLogistic(_fobName, _spawnPosition, nil, _side)

@@ -1059,7 +1059,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   if not name then
     name = farp.groupName
   end
-  if ctld and veaf.isEnabled("ctld") then
+  if veaf.isCtldReady() then
     -- CTLD 2 owns its FOB list (CTLDFOBManager), so only the logistic zone is ours to
     -- declare. It is anchored to the FARP's position rather than to a unit: the FARP is a
     -- set of statics, not a single object to follow.
@@ -1316,7 +1316,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
   farpNamedPoint.tower = "No Control"
 
-  if ctld and veaf.isEnabled("ctld") then
+  if veaf.isCtldReady() then
     -- spawn tacan
     mod = string.upper(mod)
     local tacanGroupName = string.format("TACAN %s - %s%s", tostring(code), tostring(freq), tostring(mod))

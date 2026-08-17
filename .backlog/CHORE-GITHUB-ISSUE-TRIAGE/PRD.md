@@ -137,4 +137,5 @@ corpus, and no lot covers them.
 - [x] The intake rule written where a contributor reads it (`CONTRIBUTING.md`) and where an agent
       reads it (`docs/agents/issue-tracker.md`)
 - [ ] David confirms and closes the `probably-done` set — **his call, not an agent's**
-- [ ] #722 / #723 / #725 get their lot
+- [x] #722 / #723 / #725 get their lot — `FIX-CONVERT-V5-SILENT-LOSSES`, opened 2026-08-17 with
+      every claim of the three reports re-verified against the code first

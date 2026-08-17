@@ -10,10 +10,21 @@ from mission_tools.miz_tools import (
     Group,
     create_miz,
     extract_resources,
+    normalize_warehouses_airports,
     read_mission_folder,
     read_miz,
     write_mission_folder,
     write_miz,
+)
+
+#: A `warehouses` member as a real mission carries it: airfields keyed 1..N, which the Lua parser
+#: hands back as a **list** rather than a dict (FIX-WAREHOUSES-LIST-FORM).
+POPULATED_WAREHOUSES_LUA = (
+    b"warehouses = \n{\n"
+    b'  ["airports"] = \n  {\n'
+    b'    [1] = \n    {\n      ["coalition"] = "RED",\n    },\n'
+    b'    [2] = \n    {\n      ["coalition"] = "BLUE",\n    },\n'
+    b"  },\n}\n"
 )
 
 # ---------------------------------------------------------------------------
@@ -72,6 +83,67 @@ def _make_miz_with_resources(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # extract_resources
 # ---------------------------------------------------------------------------
+
+
+class TestNormalizeWarehousesAirports:
+    """`warehouses.airports` is keyed by airdrome id, and 1..N keys parse as a list.
+
+    Tripack, 2026-08-17: every base neutral in a mission built with 6.14.2. The build's bootstrap
+    took the list for a malformed table and replaced it — 29 airfields carrying 26 RED, 1 BLUE and
+    three aircraft stocks came out as 30 NEUTRAL entries with none. Normalising at load is what
+    keeps that shape out of the rest of the build.
+    """
+
+    def test_a_list_becomes_a_dict_keyed_from_one(self) -> None:
+        # From one, not from zero: Lua indexes from 1, and an off-by-one here would silently move
+        # every airfield's ownership to its neighbour.
+        content = {"airports": [{"coalition": "RED"}, {"coalition": "BLUE"}]}
+        normalize_warehouses_airports(content)
+        assert content["airports"] == {1: {"coalition": "RED"}, 2: {"coalition": "BLUE"}}
+
+    def test_a_dict_is_left_alone(self) -> None:
+        airports = {42: {"coalition": "BLUE"}}
+        content = {"airports": airports}
+        normalize_warehouses_airports(content)
+        assert content["airports"] is airports
+
+    def test_a_mission_without_warehouses_is_not_a_crash(self) -> None:
+        normalize_warehouses_airports(None)  # a .miz can lack the member entirely
+
+    def test_a_missing_airports_key_is_left_alone(self) -> None:
+        content: dict = {}
+        normalize_warehouses_airports(content)
+        assert content == {}, "normalising must not invent a table the mission does not have"
+
+    def test_read_miz_normalises(self, tmp_path: Path) -> None:
+        miz_path = tmp_path / "populated.miz"
+        with zipfile.ZipFile(miz_path, "w") as zf:
+            zf.writestr("mission", MINIMAL_MISSION_LUA)
+            zf.writestr("options", MINIMAL_OPTIONS_LUA)
+            zf.writestr("warehouses", POPULATED_WAREHOUSES_LUA)
+            zf.writestr("theatre", b"Caucasus")
+        airports = read_miz(miz_path).warehouses_content["airports"]
+        assert isinstance(airports, dict)
+        assert airports[1]["coalition"] == "RED"
+
+    def test_read_mission_folder_normalises(self, tmp_path: Path) -> None:
+        base = _make_mission_folder(tmp_path)
+        (base / "warehouses").write_bytes(POPULATED_WAREHOUSES_LUA)
+        airports = read_mission_folder(base).warehouses_content["airports"]
+        assert isinstance(airports, dict)
+        assert airports[2]["coalition"] == "BLUE"
+
+    def test_a_normalised_table_is_written_back_unchanged(self, tmp_path: Path) -> None:
+        # The guarantee that makes normalising safe: a mission nobody touched must come out of the
+        # build byte-identical. A dict keyed 1..N and the list it came from serialise the same.
+        base = _make_mission_folder(tmp_path)
+        (base / "warehouses").write_bytes(POPULATED_WAREHOUSES_LUA)
+        mission = read_mission_folder(base)
+        write_mission_folder(mission, base)
+        text = (base / "warehouses").read_text(encoding="utf-8")
+        assert 'coalition = "RED"' in text
+        assert 'coalition = "BLUE"' in text
+        assert "[1] =" in text and "[2] =" in text
 
 
 class TestExtractResources:

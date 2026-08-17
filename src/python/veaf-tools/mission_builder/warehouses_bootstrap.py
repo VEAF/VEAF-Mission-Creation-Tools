@@ -21,6 +21,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from mission_tools.miz_tools import normalize_warehouses_airports
 from veaf_libs.dcs_airdromes import airdromes_for_theatre
 
 #: One airfield entry, as the DCS Mission Editor writes it — read off a mission it had just saved
@@ -77,6 +78,14 @@ def ensure_airports_populated(warehouses_content: dict[str, Any], *, theatre: st
     """
     if not theatre:
         return 0
+
+    # A table read from a mission does not always arrive as a dict: `luadata` renders contiguous
+    # `1..N` keys as a list, which is what a mission declaring every airfield of its theatre has.
+    # Normalising it here rather than treating it as malformed is the whole of FIX-WAREHOUSES-LIST-FORM
+    # — the previous `not isinstance(..., dict)` branch discarded the mission's own airfields, their
+    # coalitions and their stock. Callers loading through `miz_tools` are normalised already; this
+    # keeps a caller that builds the table by hand from re-earning the same bug.
+    normalize_warehouses_airports(warehouses_content)
 
     airports = warehouses_content.get("airports")
     if not isinstance(airports, dict):

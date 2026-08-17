@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT
-from mission_tools.miz_tools import DcsMission
+from mission_tools.miz_tools import DcsMission, normalize_warehouses_airports
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -48,6 +48,10 @@ def _airbase_entry(mission: DcsMission, name: str) -> tuple[int, dict[str, Any]]
     if warehouses is None:
         warehouses = {"airports": {}, "warehouses": {}, "weapons": {}}
         mission.warehouses_content = warehouses
+    # A mission whose airfields are keyed 1..N hands the table back as a list, and everything below
+    # indexes it by airdrome id — `.get()` on a list raises (FIX-WAREHOUSES-LIST-FORM). Loading
+    # through `miz_tools` already normalises; this covers a caller that assembled the mission itself.
+    normalize_warehouses_airports(warehouses)
     airports: dict[Any, Any] = warehouses.setdefault("airports", {})
 
     entry = airports.get(airdrome_id)

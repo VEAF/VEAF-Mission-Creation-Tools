@@ -14,7 +14,7 @@ _THEATRE = "Caucasus"
 _AIRFIELD = "Batumi"  # a known Caucasus airfield
 
 
-def _mission(airports: dict[Any, Any] | None = None) -> DcsMission:
+def _mission(airports: Any = None) -> DcsMission:
     return DcsMission(
         file_path=Path("mission"),
         mission_content={},
@@ -34,6 +34,20 @@ class TestAirbaseEntry:
         assert airdrome_id == expected_id
         # keyed by the int id (matches the build's warehouses injector), created lazily
         assert mission.warehouses_content["airports"][expected_id] is entry
+
+    def test_a_list_shaped_table_does_not_break_the_lookup(self) -> None:
+        # A mission declaring every airfield of its theatre parses `airports` as a list, and `.get()`
+        # on a list raises AttributeError — `set_airbase_coalition` simply crashed on any real
+        # mission (FIX-WAREHOUSES-LIST-FORM). The other airfields must also keep their ownership.
+        mission = _mission(airports=[{"coalition": "RED"}, {"coalition": "BLUE"}])
+
+        _airdrome_id, entry = _airbase_entry(mission, _AIRFIELD)
+
+        airports = mission.warehouses_content["airports"]
+        assert isinstance(airports, dict)
+        assert airports[1]["coalition"] == "RED"
+        assert airports[2]["coalition"] == "BLUE"
+        assert entry is airports[airdrome_id_for_name(_THEATRE, _AIRFIELD)]
 
     def test_reuses_existing_entry_in_place(self) -> None:
         expected_id = airdrome_id_for_name(_THEATRE, _AIRFIELD)

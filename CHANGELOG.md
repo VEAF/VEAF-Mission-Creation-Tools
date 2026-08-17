@@ -7,6 +7,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.14.3] — 2026-08-17
+
+### Fixed
+
+- **Every airfield turned neutral in a mission built with 6.14.2** (FIX-WAREHOUSES-LIST-FORM).
+  Reported by Tripack with two builds of the same mission: its `warehouses` member fell from 261 KB
+  to 141.7 KB, and 29 airfields carrying 26 RED, 1 BLUE and three aircraft stocks came out as 30
+  NEUTRAL entries with no stock, no `allowHotStart` and no `dynamicSpawn`. DCS keys the airfield
+  table by airdrome id, so a mission declaring every airfield of its theatre has the ids `1..N` —
+  and the Lua parser renders a contiguous integer-keyed table as a **list**. The build's guard read
+  that as "absent or malformed" and replaced the mission's own airfields with an empty table before
+  filling it with neutral defaults; it caught the nominal case rather than the broken one. The table
+  is now normalised at load, keyed from 1, and a mission nobody touched is written back
+  byte-identical. `set_airbase_coalition` and the warehouses injector were raising on the same
+  shape and are fixed with it.
+
+  **If you built a mission with 6.14.2, rebuild it with this version** — its bases are neutral. Your
+  mission *sources* are untouched: the build never rewrites them, so a rebuild is all it takes.
+
+---
+
 ## [Unreleased]
 
 ### Changed

@@ -19,6 +19,36 @@ from veaf_libs.safe_zip import safe_extract_all, safe_read_member
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
 
+def normalize_warehouses_airports(warehouses_content: Any) -> None:
+    """Key ``warehouses.airports`` by airdrome id whatever shape the Lua parser produced.
+
+    DCS keys that table by **airdrome id**, but a mission declaring every airfield of its theatre
+    ends up with the ids ``1..N`` — and ``luadata`` renders a contiguous integer-keyed Lua table as
+    a Python **list**. The difference does not exist in the file and is decisive in the code: every
+    consumer here indexes ``airports`` by id, so a list makes ``.get()`` and ``.items()`` raise,
+    and the build's bootstrap read ``not isinstance(airports, dict)`` as "absent or malformed" and
+    replaced the mission's own table with an empty one. Reported by Tripack on 2026-08-17 as *every
+    base neutral* in a 6.14.2 build: 29 airfields carrying 26 RED, 1 BLUE and three aircraft stocks
+    came back as 30 NEUTRAL entries with none (FIX-WAREHOUSES-LIST-FORM).
+
+    A mission that owns a *single* airfield keeps a sparse table, hence a dict, which is why the
+    defect never showed on the missions the feature was built and verified against.
+
+    Normalising once, at load, keeps the accident out of the rest of the build. It cannot change
+    what gets written: a dict keyed ``1..N`` and the list it came from serialise **identically**
+    under the build's settings (``always_provide_keyname=True``), both as ``[n] = {...}``.
+
+    Args:
+        warehouses_content: A parsed ``warehouses`` table, mutated in place. Anything that is not a
+            dict — including ``None`` for a mission with no such member — is left alone.
+    """
+    if not isinstance(warehouses_content, dict):
+        return
+    airports = warehouses_content.get("airports")
+    if isinstance(airports, list):
+        warehouses_content["airports"] = dict(enumerate(airports, start=1))
+
+
 @dataclass
 class Group:
     """Canonical representation of a DCS aircraft/helicopter group."""
@@ -147,6 +177,7 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         result.warehouses_content = read_file_in_archive(  # type: ignore[assignment]
             miz, "warehouses", result.missing_components
         )
+        normalize_warehouses_airports(result.warehouses_content)
         result.dictionary_content = read_file_in_archive(  # type: ignore[assignment]
             miz, f"{DEFAULT_SCRIPTS_LOCATION}/dictionary", result.missing_components
         )
@@ -211,6 +242,7 @@ def read_mission_folder(folder_path: Path) -> DcsMission:
     result.options_content = read_loose_file("options")
     result.theatre_content = read_loose_file("theatre", not_lua=True)
     result.warehouses_content = read_loose_file("warehouses")
+    normalize_warehouses_airports(result.warehouses_content)
     result.dictionary_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/dictionary")
     result.map_resource_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/mapResource")
 

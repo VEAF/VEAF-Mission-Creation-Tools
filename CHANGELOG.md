@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **The role of GitHub Issues is now written down** (CHORE-GITHUB-ISSUE-TRIAGE): they are the
+  intake desk, `.backlog/` is the tracker, and a lot is never mirrored as an issue. The 63 open
+  issues were re-read against the v6 code and labelled `v5-era`, `probably-done`, `still-valid` or
+  `verify` — 49 of them date from 2020-2023, and several were fixed years ago without anyone
+  closing them. Nothing was closed: the evidence behind each verdict lives in the lot's PRD so a
+  human confirms before an old report from a contributor disappears.
+
+---
+
 ## [6.14.2] — 2026-08-16
 
 ### Fixed

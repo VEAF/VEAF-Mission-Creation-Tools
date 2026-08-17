@@ -107,4 +107,24 @@ Use [GitHub Issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues):
 
 For questions and real-time discussion, join the [VEAF Discord](https://www.veaf.org/discord).
 
+### What happens to an issue {#issue-intake}
+
+GitHub Issues are the **intake desk**, not the work tracker. The work itself lives in
+`.backlog/<LOT-ID>/` inside the repository (see
+[`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md)), because a lot needs a PRD,
+tickets and a status that travel with the code.
+
+So an issue has exactly two futures: it is **picked up** — a lot is created and the issue is
+closed pointing at that lot — or it stays open as a report nobody has taken yet. An open
+issue therefore means "recorded, not started"; it is never a half-done piece of work.
+
+Three triage labels say where a re-read left an old issue:
+
+| Label | Meaning |
+|-------|---------|
+| `v5-era` | Opened before v6. The framework it describes has since been rewritten, so the report must be re-read against v6 before anyone acts on it. |
+| `probably-done` | v6 appears to already do this. The evidence is recorded in the triage table; the issue is kept open until someone confirms and closes it. |
+| `still-valid` | Re-read against v6: the feature really is missing and the need still holds. |
+| `verify` | Cannot be settled by reading the code — needs a reproduction, usually in DCS. |
+
 **Security vulnerabilities** — do **not** open a public issue. See [SECURITY.md](SECURITY.md).

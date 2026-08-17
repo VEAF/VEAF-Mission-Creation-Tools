@@ -23,13 +23,19 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from veaf_libs.checklists import Checklist, ChecklistStep, resolve_text
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    # Imported for annotations only. At runtime this module pulls pydantic (through
+    # `checklists`), and `mission_builder/__init__.py` imports this whole chain — so a plain
+    # import here makes `from mission_builder.config_migrator import ConfigMigrator` cost
+    # pydantic, which an outside harness using the migrator as a library should not have to
+    # install (FIX-CONVERT-V5-SILENT-LOSSES ticket 05). `resolve_text` is imported where used.
+    from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_literals import lua_long_string, lua_scalar, lua_string
-from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.lua_module_scanner import MANDATORY_MODULES, get_modules, yaml_module_entry
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -251,35 +257,13 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
 #: Flat module→category reverse lookup (built once at module load time).
 _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in MODULE_CATEGORIES.items() for mod_id in ids}
 
-#: Modules that are mandatory (infrastructure tier).
-#: These are always active; specifying ``enable`` (true or false) for them is an error.
-MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
+#: ``MANDATORY_MODULES`` and ``yaml_module_entry`` now live in ``lua_module_scanner`` and are
+#: re-exported here: the config migrator needs only that helper, and importing it used to drag the
+#: checklist model — and pydantic — behind it (FIX-CONVERT-V5-SILENT-LOSSES ticket 05).
 
 #: Community scripts that are mandatory (always injected, never disabled): MiST is a
 #: hard VEAF dependency, so it is never emitted as a disabled ``enable=false`` flag.
 _MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset({"mist"})
-
-
-def yaml_module_entry(yaml_key: str, module_id: str, has_config: bool = False) -> list[str]:
-    """Return the YAML lines for one enabled module entry in ``mission.yaml``.
-
-    Args:
-        yaml_key: The (possibly quoted) YAML key string, e.g. ``RADIO`` or ``"MY-MOD"``.
-        module_id: The canonical module ID used to look up mandatory status.
-        has_config: When ``True``, emit block style (``key:\\n  enabled: true``) so
-            callers can append extra config keys underneath. When ``False`` (default),
-            emit the compact shorthand ``key: true`` for optional modules.
-
-    Returns:
-        One line ``["  key:"]`` for mandatory modules (null value = always active),
-        ``["  key: true"]`` for optional modules without extra config, or
-        ``["  key:", "    enabled: true"]`` for optional modules with extra config.
-    """
-    if module_id in MANDATORY_MODULES:
-        return [f"  {yaml_key}:"]
-    if has_config:
-        return [f"  {yaml_key}:", "    enabled: true"]
-    return [f"  {yaml_key}: true"]
 
 
 def _get_module_enabled(cfg: dict, default: bool = True) -> bool:
@@ -655,6 +639,19 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     # the red count alone — such a zone would otherwise deactivate on the first check.
     if zone_def.get("completable", True) is False:
         lines.append(f"{indent}    :setCompletable(false)")
+    # The other settings `FIX-CONVERT-V5-SILENT-LOSSES` gave a key to (#723). Same rule as
+    # `completable`: the framework default is `true`, so only a `false` is emitted and an existing
+    # mission's generated Lua stays byte-identical.
+    if zone_def.get("show_units_list", True) is False:
+        lines.append(f"{indent}    :setShowUnitsList(false)")
+    if zone_def.get("show_zone_position_info", True) is False:
+        lines.append(f"{indent}    :setShowZonePositionInfo(false)")
+    if zone_def.get("smoke_and_flare", True) is False:
+        lines.append(f"{indent}    :setEnableSmokeAndFlare(false)")
+    # 171 zones were hidden on purpose and reappeared in the F10 menu under the placeholder names
+    # their authors gave them precisely because nobody was meant to see them.
+    if zone_def.get("radio_menu_disabled"):
+        lines.append(f"{indent}    :disableRadioMenu()")
     # `enemy_coalition` picks the side whose units must die for the zone to complete, and
     # which tally the F10 report calls "enemies". RED is the runtime default, so it is not
     # emitted — existing generated configs stay byte-identical.
@@ -1281,6 +1278,8 @@ def _emit_localized(text: str | dict[str, str], language: str) -> str:
     """
     if isinstance(text, str):
         return _emit_lua_string(text)
+    from veaf_libs.checklists import resolve_text  # noqa: PLC0415 - see the TYPE_CHECKING block
+
     return _emit_lua_string(resolve_text(text, {}, language))
 
 
@@ -1450,6 +1449,25 @@ def generate_config_lua(
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
             lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+        lines.append("")
+
+    # ── Module settings (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ──────────
+    # `settings:` above writes `veaf.config.<key>` only. A v5 mission also set scalars straight on
+    # a module table — `veafSkynet.DelayForStartup`, `veafRadio.RadioMenuName` — and half of them
+    # reached neither mission.yaml nor the generated Lua (#725). Keyed by the full Lua target so a
+    # setting nobody enumerated is carried too.
+    module_settings: dict = mission_yaml.get("module_settings") or {}
+    if module_settings:
+        lines.append("-- ── Module settings ──────────────────────────────────────────────────────────")
+        for key, value in module_settings.items():
+            # Guarded, not generic-to-a-fault: this must stay a migration path for VEAF settings,
+            # not a hatch letting a mission.yaml assign anywhere in the Lua runtime.
+            if not re.fullmatch(r"veaf\w*(?:\.\w+)+", str(key)):
+                raise ValueError(
+                    f"module_settings: {key!r} is not a VEAF module setting "
+                    "(expected something like 'veafSkynet.DelayForStartup')"
+                )
+            lines.append(f"{key} = {_to_lua_scalar(value)}")
         lines.append("")
 
     # ── Guided checklists ─────────────────────────────────────────────────

@@ -231,6 +231,32 @@ Chaque clé devient `veaf.config.MON_FLAG_MISSION = 42` dans le `veaf-config.lua
 
 ---
 
+### `module_settings:` {#module-settings}
+
+Réglages scalaires posés **directement sur la table d'un module VEAF**, écrits tels quels dans le `veaf-config.lua` généré. Là où `settings:` ne sait écrire que `veaf.config.CLÉ`, cette section vise n'importe quelle table VEAF.
+
+```yaml
+module_settings:
+  veafSkynet.DelayForStartup: 150     # temporisation de démarrage de l'IADS
+  veafSkynet.DynamicSpawn: true
+  veafRadio.RadioMenuName: "BFR"      # nom du menu radio racine, visible par les joueurs
+  veaf.DEFAULT_GROUND_SPEED_KPH: 25
+```
+
+Chaque entrée devient l'affectation Lua correspondante, ici `veafSkynet.DelayForStartup = 150`.
+
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| *(clé)* | string | — | — | La cible Lua complète, `veafXxx.Champ`. Une clé qui ne commence pas par `veaf` est **refusée à la génération** : cette section est un chemin de migration pour les réglages VEAF, pas une trappe permettant d'écrire n'importe où dans le runtime |
+| *(valeur)* | booléen \| nombre \| string | — | — | Un scalaire. Les tables et les fonctions ne sont pas exprimables ici |
+
+> **D'où ça vient.** `convert-v5` remplit cette section automatiquement : en v5, la moitié de ces
+> réglages n'arrivaient ni dans `mission.yaml` ni dans le Lua généré, et rien ne le signalait.
+> Ce que la conversion ne sait toujours pas porter — une table, une fonction — est désormais listé
+> en commentaire dans le `mission-script.lua` généré, sous « Settings NOT migrated ».
+
+---
+
 ### Modules tiers : `SKYNET` / `CTLD` / `CSAR` (sous `modules:`) {#third-party-modules}
 
 > **Changement v6 (rupture)** : les sections `external_modules:` et `qra:` n'existent plus. Toute leur configuration vit désormais sous le bloc `modules:`, source unique de vérité. Voir [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md).

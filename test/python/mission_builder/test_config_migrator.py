@@ -945,6 +945,195 @@ class TestCombatZoneBriefingMultiline(unittest.TestCase):
         self.assertNotIn("Zone Alpha", zone["briefing"])
 
 
+class TestLocalZoneChainWithMultilineBriefing(unittest.TestCase):
+    """A multi-line setBriefing must not end the builder chain (issue #722, ticket 01).
+
+    Reported by Sharko with a measurement on his campaign corpus: **302 truncated briefings out of
+    1864 zones**, worst case a 137-character briefing migrated as **6** (`CombatZone_MOA2-Hawash`).
+
+    `_local_zone_chain_end` walks a `local x = VeafCombatZone:new()` chain by accepting only lines
+    whose stripped form starts with `:`. Lua string concatenation continues on a line starting with
+    a quote, so a multi-line briefing ended the chain — and **every setter after it was dropped**.
+    The loss is positional, not setter-specific, which is why this ticket goes first: while it
+    stands, any measurement of what else is missing is taken on truncated input.
+    """
+
+    def setUp(self) -> None:
+        self.m = ConfigMigrator()
+
+    def _zone(self, chain_body: str) -> dict:
+        content = f"local ZoneCZ = VeafCombatZone:new()\n{chain_body}    :initialize()\n"
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        self.assertEqual(len(result.combat_zones_extracted), 1, "the zone itself must still be found")
+        return result.combat_zones_extracted[0]
+
+    def test_a_setter_after_a_multiline_briefing_survives(self) -> None:
+        zone = self._zone(
+            '    :setMissionEditorZoneName("CombatZone_Example")\n'
+            '    :setBriefing("first line\\n" ..\n'
+            '        "second line\\n")\n'
+            "    :setTraining(false)\n"
+        )
+        self.assertIn("training", zone, "the setter placed after the briefing must not be dropped")
+
+    def test_the_whole_briefing_is_kept_not_just_its_first_fragment(self) -> None:
+        # Asserting on content, not on the key: the defect produced a `briefing` key that was
+        # present and wrong, which is exactly what a key-presence assertion misses.
+        zone = self._zone(
+            '    :setMissionEditorZoneName("z")\n:setBriefing("first line\\n" ..\n        "second line\\n")\n'
+        )
+        self.assertIn("first line", zone["briefing"])
+        self.assertIn("second line", zone["briefing"])
+
+    def test_the_single_line_form_still_extracts_what_it_did(self) -> None:
+        zone = self._zone('    :setMissionEditorZoneName("z")\n    :setBriefing("one line")\n    :setTraining(false)\n')
+        self.assertEqual(zone["briefing"], "one line")
+        self.assertIn("training", zone)
+
+    def test_a_long_bracket_briefing_spanning_lines(self) -> None:
+        zone = self._zone(
+            '    :setMissionEditorZoneName("z")\n    :setBriefing([[first line\nsecond line]])\n    :setTraining(false)\n'
+        )
+        self.assertIn("second line", zone["briefing"])
+        self.assertIn("training", zone)
+
+    def test_the_chain_still_ends_where_it_ends(self) -> None:
+        # The counter-case that keeps the fix from swallowing the rest of the file: what follows a
+        # chain is ordinary code, and a widened walker must not absorb it.
+        content = (
+            "local ZoneCZ = VeafCombatZone:new()\n"
+            '    :setMissionEditorZoneName("z")\n'
+            '    :setBriefing("a\\n" ..\n        "b\\n")\n'
+            "    :initialize()\n"
+            'local other = "not part of the chain"\n'
+            "veafCombatZone.AddZone(ZoneCZ)\n"
+        )
+        result = MigrationResult(new_content="")
+        new_content = self.m._extract_combat_zones(content, result)
+        self.assertIn("local other", new_content, "code after the chain must survive the extraction")
+
+
+class TestCombatZoneSettingsTheSchemaLacked(unittest.TestCase):
+    """Six supported VeafCombatZone settings had no key at all (#723, ticket 03).
+
+    Sharko's counts on 1898 zones, all of them passing `false`: `setShowUnitsList`,
+    `setShowZonePositionInfo`, `setEnableUserActivation` and `setEnableSmokeAndFlare` on **1135
+    zones each**, `disableRadioMenu` on **171**, `setCompletable` on **82**.
+
+    Because every framework default is `true` and these are used to turn a feature **off**, losing
+    them does not fall back to something neutral — it **inverts** the behaviour. `setCompletable`
+    is the consequential one: without it the watchdog arms, and a zone spawning no RED unit is
+    deactivated ~60 s after activation, broadcasting "all enemies destroyed" and chaining onward.
+    """
+
+    def setUp(self) -> None:
+        self.m = ConfigMigrator()
+
+    def _zone(self, setters: str) -> dict:
+        content = f'veafCombatZone.AddZone(\n    VeafCombatZone:new()\n        :setMissionEditorZoneName("z")\n{setters}        :initialize()\n)\n'
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        return result.combat_zones_extracted[0]
+
+    def test_completable_is_extracted(self) -> None:
+        # The asymmetry that costs least to close: _emit_combat_zone_def already emits
+        # `completable`, so only this half was missing.
+        self.assertIs(self._zone("        :setCompletable(false)\n")["completable"], False)
+
+    def test_show_units_list_is_extracted(self) -> None:
+        self.assertIs(self._zone("        :setShowUnitsList(false)\n")["show_units_list"], False)
+
+    def test_show_zone_position_info_is_extracted(self) -> None:
+        self.assertIs(self._zone("        :setShowZonePositionInfo(false)\n")["show_zone_position_info"], False)
+
+    def test_smoke_and_flare_is_extracted(self) -> None:
+        self.assertIs(self._zone("        :setEnableSmokeAndFlare(false)\n")["smoke_and_flare"], False)
+
+    def test_disable_radio_menu_is_extracted(self) -> None:
+        self.assertIs(self._zone("        :disableRadioMenu()\n")["radio_menu_disabled"], True)
+
+    def test_set_enable_user_activation_false_reuses_the_existing_key(self) -> None:
+        # setEnableUserActivation(false) and disableUserActivation() write the SAME runtime field
+        # (veafCombatZone.lua:344 and :355), so a second YAML key would mean two ways to say one
+        # thing — and two ways to contradict yourself.
+        self.assertIs(self._zone("        :setEnableUserActivation(false)\n")["user_activation_disabled"], True)
+
+    def test_set_enable_user_activation_true_says_nothing(self) -> None:
+        # true is the framework default; emitting a key for it would add noise to every mission.
+        self.assertNotIn("user_activation_disabled", self._zone("        :setEnableUserActivation(true)\n"))
+
+    def test_a_zone_using_none_of_them_gains_no_key(self) -> None:
+        zone = self._zone("")
+        for key in ("completable", "show_units_list", "show_zone_position_info", "smoke_and_flare"):
+            self.assertNotIn(key, zone)
+
+    def test_removing_the_setter_removes_the_key(self) -> None:
+        # The assertion shape the reporter's harness uses, and the only one that catches an
+        # extractor keying on the wrong thing: it must react to the setter's *absence*.
+        self.assertIn("show_units_list", self._zone("        :setShowUnitsList(false)\n"))
+        self.assertNotIn("show_units_list", self._zone("        :setTraining(false)\n"))
+
+
+class TestNotMigratedSettingsAreDeclared(unittest.TestCase):
+    """A setting no extractor recognises must be *named*, not dropped in silence (#725, ticket 02).
+
+    `convert-v5` generates `mission-script.lua` from scratch and deletes `missionConfig.lua`, and
+    no warning was emitted for an unrecognised setting — by construction, you cannot report what
+    you do not see. Measured by Sharko: **14 of 28 scalar keys dropped**, security passwords and
+    IADS timing among them, with nothing saying which settings stopped applying.
+
+    The precedent is our own `callback_hints`: a loss the tool knows it cannot express and says so
+    where the author will look. This does the same for assignments.
+    """
+
+    def setUp(self) -> None:
+        self.m = ConfigMigrator()
+
+    def _not_migrated(self, content: str) -> list[str]:
+        result = MigrationResult(new_content="")
+        self.m.pre_extract(content, result)
+        return result.not_migrated
+
+    def test_an_unrecognised_veaf_setting_is_reported(self) -> None:
+        # A **table**, not a scalar: ticket 04 carries every scalar into `module_settings:`, so what
+        # is left for the net is what no key can express. Asserting on a scalar here would test that
+        # the net still catches what the next ticket exists to stop losing.
+        reported = self._not_migrated("veafSkynet.SomeTable = { a = 1 }\n")
+        self.assertTrue(any("veafSkynet.SomeTable" in line for line in reported), reported)
+
+    def test_the_reported_line_carries_the_original_text(self) -> None:
+        # The author has to be able to paste it back; a bare key name would not be enough.
+        reported = self._not_migrated("veafRadio.someHandler = function() return 1 end\n")
+        self.assertTrue(any("function()" in line for line in reported), reported)
+
+    def test_a_scalar_setting_is_carried_rather_than_reported(self) -> None:
+        # Ticket 04's half of the contract: between them, the two tickets must account for every
+        # dropped setting, with nothing falling in the gap and nothing counted twice.
+        self.assertEqual(self._not_migrated("veafSkynet.DelayForStartup = 150\n"), [])
+
+    def test_a_setting_an_extractor_consumes_is_not_reported(self) -> None:
+        # The witness that proves the net discriminates: MISSION_NAME is carried by a named regex,
+        # so reporting it would be a false alarm — and a net that cries wolf gets muted.
+        reported = self._not_migrated('veaf.config.MISSION_NAME = "Test"\n')
+        self.assertEqual(reported, [])
+
+    def test_a_non_veaf_assignment_is_ignored(self) -> None:
+        self.assertEqual(self._not_migrated('local myOwnThing = "hello"\nsomeTable.field = 3\n'), [])
+
+    def test_a_commented_out_setting_is_ignored(self) -> None:
+        self.assertEqual(self._not_migrated("-- veafSkynet.DelayForStartup = 150\n"), [])
+
+    def test_ctld_and_csar_keys_are_not_reported(self) -> None:
+        # _extract_ctld_csar is generic — it takes any key of those tables — so they are carried,
+        # not lost. Reporting them would be the same false alarm as MISSION_NAME.
+        self.assertEqual(self._not_migrated("ctld.hoverPickup = false\ncsar.enableForBlue = true\n"), [])
+
+    def test_several_settings_are_all_reported(self) -> None:
+        reported = self._not_migrated("veafSkynet.A = { 1 }\nveafSpawn.B = someCall()\nveaf.C = anotherVariable\n")
+        self.assertEqual(len(reported), 3, reported)
+
+
 class TestExtractAirwavesZones(unittest.TestCase):
     """_extract_airwaves_zones must parse AirWaveZone builder chains."""
 

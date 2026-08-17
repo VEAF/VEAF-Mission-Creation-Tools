@@ -448,6 +448,7 @@
   "convert_v5.action.combat_extracted": "mission.yaml : {count} mission(s) de combat extraite(s)",
   "convert_v5.action.identity_extracted": "mission.yaml : identité de la mission extraite depuis missionConfig.lua",
   "convert_v5.action.mission_script_generated": "mission-script.lua généré — éditez-le pour ajouter du code Lua personnalisé à votre mission (les callbacks détectés y figurent en commentaire) ; la configuration des modules est gérée par mission.yaml",
+  "convert_v5.warning.settings_not_migrated": "{count} réglage(s) de missionConfig.lua n'arrivent ni dans mission.yaml ni dans le Lua généré, donc ils ne s'appliquent plus. Ils sont listés dans mission-script.lua — reportez à la main ceux dont vous avez besoin : {settings}",
   "convert_v5.action.missionconfig_bak": "missionConfig.lua : original sauvegardé → backup_v5/{path}",
   "convert_v5.action.modules_detected": "missionConfig.lua : {count} module(s) activé(s) détecté(s) : {list}",
   "convert_v5.action.pipeline_convert_failed": "{label} : conversion échouée — {exc}. Convertissez manuellement (voir le guide de migration).",

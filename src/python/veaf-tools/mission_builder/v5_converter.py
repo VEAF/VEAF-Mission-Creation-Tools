@@ -758,6 +758,24 @@ def _generate_mission_script(result: MigrationResult, version: str = "unknown") 
                 "",
             ]
 
+    if result.not_migrated:
+        # A declared loss, in the sense callback_hints established. The original lines are kept
+        # verbatim so the author can uncomment what still matters: convert-v5 deletes
+        # missionConfig.lua, and a mission that behaves differently with nothing naming the
+        # settings that stopped applying is the defect this block exists to prevent (#725).
+        lines += [
+            "-- ── Settings NOT migrated ────────────────────────────────────────────────────",
+            "-- These were set in missionConfig.lua and are expressed by neither mission.yaml nor",
+            "-- the generated veaf-config.lua, so they no longer apply. The original lines are kept",
+            "-- verbatim below: uncomment the ones your mission needs.",
+            "--",
+            "-- A setting listed here is not necessarily a bug in your mission — it may simply be a",
+            "-- v5 setting v6 has no key for yet. Please report it so it can be carried properly.",
+            "",
+        ]
+        lines += [f"-- {line}" for line in result.not_migrated]
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -1172,6 +1190,17 @@ class V5Converter:
         for w in result.warnings:
             report.warnings.append(f"missionConfig.lua: {w}")
 
+        # Settings no extractor recognised: named in the report as well as in the generated Lua,
+        # since the report is what a mission maker reads after a conversion (#725).
+        if result.not_migrated:
+            report.warnings.append(
+                t(
+                    "convert_v5.warning.settings_not_migrated",
+                    count=len(result.not_migrated),
+                    settings=", ".join(result.not_migrated),
+                )
+            )
+
         # Report extracted YAML data
         mr = result
         if mr.mission_name or mr.mission_era or mr.mission_export_path is not None:
@@ -1323,15 +1352,38 @@ class V5Converter:
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────
-        if mr and (mr.security_disabled is not None or mr.password_mm_hashes):
+        if mr and (mr.security_disabled is not None or mr.password_mm_hashes or mr.password_hashes):
             lines.append(t("converter.yaml.header.security"))
             lines.append("security:")
             if mr.security_disabled is not None:
                 lines.append(f"  disabled: {'true' if mr.security_disabled else 'false'}")
+            # The mission's own level-1 hashes. Never the two `veafSecurity.lua` ships to every
+            # mission: they are public, and carrying one here would re-open the hole VMR-040 closed
+            # (FIX-CONVERT-V5-SILENT-LOSSES ticket 04).
+            if mr.password_hashes:
+                lines.append("  password_hashes:")
+                for h in mr.password_hashes:
+                    lines.append(f"    - {_yaml_str(h)}")
             if mr.password_mm_hashes:
                 lines.append("  password_mm_hashes:")
                 for h in mr.password_mm_hashes:
                     lines.append(f"    - {_yaml_str(h)}")
+            lines.append("")
+
+        # ── Module settings (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ───────
+        if mr and mr.module_settings:
+            lines.append("# Scalar settings read straight off a VEAF module table in missionConfig.lua.")
+            lines.append("# Half of these used to reach neither this file nor the generated Lua (#725).")
+            lines.append("module_settings:")
+            for key, value in mr.module_settings.items():
+                rendered = (
+                    _yaml_str(value)
+                    if isinstance(value, str)
+                    else str(value).lower()
+                    if isinstance(value, bool)
+                    else value
+                )
+                lines.append(f"  {key}: {rendered}")
             lines.append("")
 
         # ── Module configuration ───────────────────────────────────────────

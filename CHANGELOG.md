@@ -7,6 +7,72 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.0] — 2026-08-17
+
+### Fixed
+
+- **Every airfield turned neutral in a mission built with 6.14.2** (FIX-WAREHOUSES-LIST-FORM).
+  Reported by Tripack with two builds of the same mission: its `warehouses` member fell from 261 KB
+  to 141.7 KB, and 29 airfields carrying 26 RED, 1 BLUE and three aircraft stocks came out as 30
+  NEUTRAL entries with no stock, no `allowHotStart` and no `dynamicSpawn`. DCS keys the airfield
+  table by airdrome id, so a mission declaring every airfield of its theatre has the ids `1..N` —
+  and the Lua parser renders a contiguous integer-keyed table as a **list**. The build's guard read
+  that as "absent or malformed" and replaced the mission's own airfields with an empty table before
+  filling it with neutral defaults; it caught the nominal case rather than the broken one. The table
+  is now normalised at load, keyed from 1, and a mission nobody touched is written back
+  byte-identical. `set_airbase_coalition` and the warehouses injector were raising on the same
+  shape and are fixed with it.
+
+  **If you built a mission with 6.14.2, rebuild it with this version** — its bases are neutral. Your
+  mission *sources* are untouched: the build never rewrites them, so a rebuild is all it takes.
+
+- **A multi-line briefing truncated the conversion of a combat zone** (FIX-CONVERT-V5-SILENT-LOSSES,
+  [#722](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/722)). The builder-chain walker
+  accepted only lines starting with `:`, and a Lua string concatenation continues with a quote — so
+  a multi-line `setBriefing` ended the chain and **every setter written after it was dropped**. The
+  loss was positional, not setter-specific, so nothing about the missing setting pointed at the
+  cause. Measured by Sharko on his campaign corpus: **302 truncated briefings out of 1864 zones**,
+  worst case a 137-character briefing migrated as 6.
+
+### Added
+
+- **`convert-v5` now says what it cannot carry** ([#725](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/725)).
+  It generates `mission-script.lua` from scratch and deletes `missionConfig.lua`, and half the
+  scalar settings reached neither `mission.yaml` nor the generated Lua — with no warning, because
+  nothing looked. Settings that still cannot be expressed (a table, a function) are now listed
+  verbatim under a **"Settings NOT migrated"** block in the generated file *and* named in the
+  conversion report, the way callback hints already were.
+- **`module_settings:`**, a new `mission.yaml` section carrying scalar settings written straight
+  onto a VEAF module table (`veafSkynet.DelayForStartup`, `veafRadio.RadioMenuName`…). Generic
+  rather than a key per module: the fourteen dropped settings were measured on one mission maker's
+  corpus, so named keys would have covered those and left the next fourteen to be found the same
+  way. A key outside the `veaf` namespace is refused at generation time.
+- **Six `combat_zones:` settings that the schema could not express**
+  ([#723](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/723)): `completable`,
+  `show_units_list`, `show_zone_position_info`, `smoke_and_flare` and `radio_menu_disabled`, plus
+  `setEnableUserActivation(false)` mapped onto the existing `user_activation_disabled`. Every
+  framework default is `true` and these are used to turn a feature **off**, so losing one inverted
+  the behaviour rather than neutralising it — `completable` most of all: without it, a zone holding
+  no RED unit self-completes ~60 s after activation and chains onward. Counts on the reporting
+  corpus: 1135 zones each for the first four, 171 for `disableRadioMenu`, 82 for `setCompletable`.
+- **A mission's own level-1 password hashes** now survive the conversion into
+  `security.password_hashes`. The two hashes `veafSecurity.lua` ships to **every** mission are
+  deliberately skipped: they live in a public repository, and carrying one into a mission's own
+  list would re-open the hole `SECREV-2 / VMR-040` closed.
+
+### Changed
+- **Importing `mission_builder` no longer loads the whole package** (and, through it, pydantic).
+  Symbols resolve lazily (PEP 562), so `from mission_builder import X` imports what X needs and
+  nothing else — reported by Sharko, whose measurement harnesses use `ConfigMigrator` as a library.
+- **The role of GitHub Issues is now written down** (CHORE-GITHUB-ISSUE-TRIAGE): they are the
+  intake desk, `.backlog/` is the tracker, and a lot is never mirrored as an issue. The 63 open
+  issues were re-read against the v6 code and labelled `v5-era`, `probably-done`, `still-valid` or
+  `verify` — 49 of them date from 2020-2023, and several were fixed years ago without anyone
+  closing them. Nothing was closed: the evidence behind each verdict lives in the lot's PRD so a
+  human confirms before an old report from a contributor disappears.
+
+---
+
 ## [6.14.2] — 2026-08-16
 
 ### Fixed

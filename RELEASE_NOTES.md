@@ -1,133 +1,132 @@
-# VEAF Mission Creation Tools — 6.14.2
+# VEAF Mission Creation Tools — 6.15.0
 
-Aucune fonctionnalité nouvelle dans cette version : **rien que des choses élémentaires qui ne
-marchaient pas**. Une mission construite par les outils n'avait pas de menu CTLD, et un slot posé au
-parking ne pouvait pas être pris — le pilote restait spectateur. Neuf défauts distincts, tous
-remontés en tirant sur le fil d'un seul rapport : *« pas de menu CTLD sur une mission en 6.14 »*.
+**Ce que les outils perdaient en silence.**
 
-Le point commun de ces neuf défauts vaut d'être dit : **aucun ne produisait d'erreur visible**. Le
-build était silencieux, `validate` répondait « aucun problème détecté », et la mission se chargeait
-sans se plaindre. Il fallait voler pour s'en apercevoir.
+Les trois chantiers de cette version racontent la même histoire : une mission qui a l'air correcte
+et qui ne l'est pas. Des bases devenues neutres à la construction, des briefings tronqués à la
+conversion, la moitié des réglages d'un `missionConfig.lua` évaporés sans un mot. Aucun message
+d'erreur, aucun avertissement — le fichier se construisait, la conversion se terminait, et le
+problème n'apparaissait qu'en vol.
 
----
-
-## ⚠️ À faire en mettant à jour
-
-**Reconstruisez vos missions.** Une mission construite avec 6.14.0 ou avant ne démarre pas CTLD :
-pas de menu radio, et le premier `-fob` provoque une erreur de script. Un `veaf-tools mission build`
-suffit. Si vous ne pouvez pas reconstruire tout de suite, ajoutez cette ligne à votre
-`src/scripts/mission-script.lua` :
-
-```lua
-if ctld then veaf.ctld_initialize() end
-```
-
-**Recopiez le hook de debug, si vous l'utilisez.** `dcs-fiddle-server.lua` doit être recopié à la
-main dans `%USERPROFILE%\Saved Games\DCS\Scripts\Hooks\` — aucun pipeline ne le fait. L'ancienne
-version écrase le framework VEAF en pleine mission. Ne concerne que les postes où ce hook est
-installé.
-
-**Deux changements de comportement**, sans action de votre part :
-
-- le `.miz` embarque désormais la table des aérodromes du théâtre (~150 Ko de plus sur la Syrie) —
-  c'est ce que fait l'éditeur DCS, et c'est ce qui rend les aérodromes utilisables ;
-- le **démarrage à chaud** est proposé par défaut sur les aérodromes d'une coalition ;
-  `hot_start: false` dans `warehouses.yaml` revient aux démarrages à froid uniquement.
+Le fil rouge n'est pas « on a ajouté des fonctionnalités ». C'est : **ce qui disparaissait est
+désormais soit porté, soit dit.**
 
 ---
 
-## CTLD démarre enfin — et parle votre langue
+## ⚠️ À faire en premier si vous avez construit une mission avec la 6.14.2
 
-**CTLD n'était démarré dans aucune mission construite par les outils.** Depuis l'intégration de
-CTLD 2, le framework l'*enregistrait* comme module au lieu de le lancer, et l'appel qui devait s'en
-charger n'était écrit nulle part. Conséquences : pas de menu CTLD, et un plantage dès qu'une
-commande touchait CTLD — un `-fob` mourait sur une erreur d'arithmétique au fond d'un script de 1,1 Mo,
-sans que rien ne nomme la cause.
+**Reconstruisez-la.** Toutes ses bases sont neutres — aucune n'appartient à une coalition, les
+stocks d'avions sont vides, les slots dynamiques désactivés.
 
-**CTLD parle maintenant la langue de la mission.** Il était figé en anglais quelle que soit la valeur
-de `mission.language` — un menu VEAF en français à côté d'un menu CTLD en anglais. Votre réglage
-explicite `i18n_lang:` dans `ctld-config.yaml` reste prioritaire, et une langue que CTLD ne connaît
-pas (il fournit `en`, `fr`, `es`, `ko`) laisse le moteur dans la sienne.
-
-**Et quand CTLD n'est pas utilisable, il le dit.** Les neuf endroits où VEAF appelle CTLD refusent
-désormais avec un message qui nomme le problème et la marche à suivre, au lieu de planter dans le
-moteur.
+Votre **dossier de mission source est intact** : la construction ne le réécrit jamais. Une simple
+reconstruction avec cette version restaure tout.
 
 ---
 
-## Les slots au parking fonctionnent
+## Les bases ne deviennent plus neutres
 
-Un appareil placé sur une aire de stationnement apparaissait bien dans la liste, se laissait
-sélectionner, et **ne se prenait jamais** : le pilote restait spectateur. Un départ en vol, lui,
-fonctionnait — ce qui a longtemps masqué le défaut.
+Signalé par **Tripack**, avec deux constructions de la même mission — une en 6.14.0 correcte, une en
+6.14.2 avec toutes les bases neutres. Ces deux fichiers ont donné la cause en une comparaison.
 
-La cause : un `.miz` conserve la coalition et les stocks de chaque aérodrome dans une table à part,
-une entrée par aérodrome du théâtre. Les missions construites par les outils avaient cette table
-**vide**. Sans entrée, l'aérodrome n'existe pas comme base utilisable, et DCS n'a nulle part où
-asseoir le pilote. Ouvrir la mission dans l'éditeur DCS puis la sauver réparait le fichier — d'où le
-symptôme déroutant : *« ça marche quand je lance depuis l'éditeur »*.
+Ce qui se passait : DCS range les aérodromes dans une table indexée par leur numéro. Une mission qui
+déclare **tous** les aérodromes de sa carte a donc les numéros 1, 2, 3… à la suite — et sous cette
+forme précise, le lecteur de fichiers rendait une liste là où le code attendait un dictionnaire. Le
+garde-fou écrit pour se protéger d'une table absente attrapait en réalité **le cas normal** : il
+jetait les aérodromes de la mission et les remplaçait par des entrées neutres par défaut.
 
-Le build écrit maintenant ces entrées lui-même. Une mission qui déclare déjà ses aérodromes garde les
-siens ; ceux qui manquent sont ajoutés.
+Mesuré sur la mission de Tripack : 29 aérodromes portant 26 bases rouges, 1 bleue et trois stocks
+d'avions ressortaient en 30 entrées neutres sans rien. Après correction, ses 26 rouges, sa bleue et
+ses trois stocks sont intacts, et le seul aérodrome ajouté est celui que sa mission n'avait jamais
+déclaré.
 
-Deux corrections liées, du même chantier :
-
-- **assigner un aérodrome à une coalition ne désactive plus tous les autres.** Le remplissage ne se
-  faisait que sur une table entièrement vide, si bien qu'un seul aérodrome déclaré suffisait à
-  laisser les 224 autres inutilisables ;
-- **un aérodrome assigné est complet.** Une entrée pouvait exister sans être exploitable — cinq
-  champs sur les vingt attendus. Elle est complétée sans écraser ce que la mission a posé.
+Deux autres commandes plantaient sur la même forme de fichier — l'attribution d'une base à une
+coalition et l'injecteur de stocks — et sont corrigées avec.
 
 ---
 
-## Slots dynamiques
+## Conversion v5 → v6 : trois pertes silencieuses
 
-Les slots dynamiques d'un aérodrome de coalition sont activés par défaut, avec leur catalogue
-d'appareils et **le démarrage moteurs tournants**. Ce dernier était systématiquement grisé : le
-champ que DCS écrit à `false` n'était jamais remis à `true`.
+Trois rapports de **Sharko**, chacun accompagné d'un banc de mesure, de témoins de contrôle et
+d'une re-mesure contre la version courante. C'est cette qualité de rapport qui a permis de corriger
+sans deviner.
 
-**Une chose à savoir sur les modèles fournis** : quand un pilote prend un slot dynamique, DCS lui
-donne l'appareil *tel que le modèle le décrit* — emport, livrée, fréquences. Or sur les 52 modèles
-livrés par défaut, **9 seulement ont un emport**. Un A-10C II ou un F-14B sortent armés et peints ;
-un UH-1H, un F/A-18C ou un M-2000C sortent nus. Ce n'est pas un défaut de la chaîne, qui fonctionne :
-c'est le modèle qui est vide.
+### Un briefing sur plusieurs lignes n'efface plus la suite
 
-Pour équiper vos slots dynamiques, configurez les appareils **une fois** dans une mission avec
-l'éditeur DCS, puis régénérez le fichier depuis elle :
+Un briefing écrit en plusieurs morceaux coupait la lecture de la zone de combat — et **tous les
+réglages écrits après lui étaient perdus**. La perte dépendait de la position dans le fichier, pas
+du réglage : rien, dans le réglage manquant, ne pouvait mettre sur la piste.
 
-```powershell
-veaf-tools.exe content extract-aircraft-groups ma-mission.miz --kind dynamic-template
-```
+Sur le corpus de campagnes de Sharko : **302 briefings tronqués sur 1864 zones**, le pire passant de
+137 caractères à 6.
 
-Le guide du créateur de missions détaille la manœuvre.
+### Six réglages de zone de combat existent enfin
+
+`completable`, `show_units_list`, `show_zone_position_info`, `smoke_and_flare`,
+`radio_menu_disabled`, et la désactivation de l'activation par les joueurs. Ces réglages servent
+tous à **désactiver** quelque chose, et la valeur par défaut est « activé » : les perdre ne
+remettait pas à neutre, cela **inversait** le comportement.
+
+Le plus lourd de conséquences est `completable`. Sans lui, une zone qui ne contient aucune unité
+rouge se déclare terminée toute seule environ une minute après son activation, annonce « tous les
+ennemis sont détruits » et enchaîne sur la zone suivante. Sur 82 zones de narration ou de soutien,
+c'est une campagne qui déraille.
+
+`radio_menu_disabled` vient juste après : 171 zones volontairement cachées réapparaissaient dans le
+menu F10, sous les noms provisoires que leurs auteurs leur avaient donnés justement parce que
+personne ne devait les voir.
+
+### Les réglages généraux sont portés, et ce qui ne l'est pas est écrit
+
+Sur 28 réglages scalaires mesurés, **14 n'arrivaient nulle part** — mots de passe de sécurité et
+réglages de défense antiaérienne compris.
+
+Deux réponses, ensemble :
+
+- **`module_settings:`**, une nouvelle section de `mission.yaml`, porte les réglages posés
+  directement sur une table VEAF (`veafSkynet.DelayForStartup`, `veafRadio.RadioMenuName`…). Elle
+  est **générique** : les quatorze réglages perdus ont été mesurés sur les campagnes d'un seul
+  mission maker, alors des clés nommées une par une auraient couvert celles-là et laissé les
+  quatorze suivantes à découvrir de la même façon.
+- **Ce que la conversion ne sait toujours pas porter** — une table, une fonction — est désormais
+  listé tel quel, en commentaire, dans le `mission-script.lua` généré sous « Settings NOT
+  migrated », et nommé dans le rapport de conversion. Vous pouvez décommenter ce dont vous avez
+  besoin.
+
+Les **mots de passe de mission** survivent aussi à la conversion, dans `security.password_hashes`.
+Avec une précaution : les deux empreintes que le framework embarque pour toutes les missions ne sont
+**jamais** recopiées — elles sont publiques, et les migrer aurait rouvert une faille fermée
+précédemment.
 
 ---
 
-## Outillage
+## Changement de comportement à la conversion
 
-**Les hélicoptères créés par l'assistant sont pilotables.** Toute machine créée par le serveur MCP
-était rangée dans la catégorie « avion » — l'éditeur DCS affichait son type en rouge et le slot était
-injouable. La catégorie est déduite du type d'appareil ; un type inconnu (mod tiers) est signalé au
-lieu d'être deviné en silence.
+`convert-v5` porte maintenant dans `mission.yaml` des réglages qu'il laissait auparavant dans le
+Lua. Conséquence visible si vous comparez deux conversions : un bloc `if veafSpawn then … end` qui
+ne contenait qu'un réglage scalaire est désormais entièrement mis en commentaire, le réglage étant
+parti dans `module_settings:`. C'est voulu.
 
-**`set_airbase_coalition` écrit vraiment.** L'action annonçait un succès et ne modifiait rien : la
-coalition d'un aérodrome vit dans une table que la sauvegarde n'écrivait pas.
-
-**Le hook de debug ne décapite plus le framework.** `dcs-fiddle-server.lua` déclarait une variable
-globale portant le même nom que la table du framework VEAF, et il s'injecte dans le même
-environnement Lua *après* le chargement des scripts. Trente-trois millisecondes après son démarrage,
-tout VEAF était hors service pour le reste de la mission.
+Aucune rupture de schéma par ailleurs : toutes les nouvelles clés sont optionnelles et les valeurs
+par défaut sont inchangées.
 
 ---
 
-## Merci
+## Ce qu'il faut en retenir
 
-À **Tripack**, dont le rapport « pas de menu CTLD » a servi de fil à toute cette série : sans son
-`dcs.log`, le défaut serait resté invisible.
+Plusieurs de ces défauts vivaient depuis des mois sans que rien ne les voie. La raison est la même
+pour tous : **les tests partaient de missions construites de zéro**, jamais de vraies missions. Une
+mission vide n'a pas d'aérodromes, pas de briefing sur plusieurs lignes, pas de `missionConfig.lua`
+de campagne — exactement les trois formes qui cassaient.
 
-À **David**, pour les essais en vol. Rien de tout cela n'était vérifiable sans DCS : trois pistes de
-diagnostic ont été éliminées par ses tests avant que la bonne n'apparaisse, et chaque correctif de
-cette version a été confirmé en jeu avant d'être livré.
+Les tests ajoutés dans cette version construisent leurs cas d'essai par le vrai cycle de lecture et
+d'écriture des fichiers, et non plus à la main.
 
-Le plantage constaté au fond de CTLD est remonté chez ses auteurs :
-[VEAF/CTLD#125](https://github.com/VEAF/CTLD/issues/125).
+---
+
+## Remerciements
+
+- **Tripack**, pour le signalement des bases neutres et surtout pour les deux fichiers avant/après
+  qui ont transformé une enquête en une comparaison.
+- **Sharko**, pour trois rapports d'une précision rare — bancs de mesure, témoins de contrôle, et
+  une re-mesure contre la version courante pour ne pas laisser de chiffres périmés. Ses bancs
+  restent la mesure de référence pour vérifier que la conversion ne perd plus rien.

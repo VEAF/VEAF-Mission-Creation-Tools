@@ -243,3 +243,40 @@ def generate_modules_config_lua(
     from veaf_libs.lua_config_generator import generate_config_lua  # noqa: PLC0415
 
     return generate_config_lua({"lua_modules": lua_modules}, header=header)
+
+
+# ---------------------------------------------------------------------------
+# Module YAML shorthand (FIX-CONVERT-V5-SILENT-LOSSES ticket 05)
+# ---------------------------------------------------------------------------
+
+#: Modules that are mandatory (infrastructure tier).
+#: These are always active; specifying ``enable`` (true or false) for them is an error.
+MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
+
+
+def yaml_module_entry(yaml_key: str, module_id: str, has_config: bool = False) -> list[str]:
+    """Return the YAML lines for one enabled module entry in ``mission.yaml``.
+
+    Lives here rather than in ``lua_config_generator`` so that importing the config **migrator**
+    does not pull in the guided-checklist model and, through it, pydantic: the migrator needs this
+    one helper and nothing else from the generator, and an outside harness importing
+    ``ConfigMigrator`` as a library should not have to install a dependency it never uses (#725).
+    ``lua_config_generator`` re-exports it, so existing importers are unaffected.
+
+    Args:
+        yaml_key: The (possibly quoted) YAML key string, e.g. ``RADIO`` or ``"MY-MOD"``.
+        module_id: The canonical module ID used to look up mandatory status.
+        has_config: When ``True``, emit block style (``key:\n  enabled: true``) so
+            callers can append extra config keys underneath. When ``False`` (default),
+            emit the compact shorthand ``key: true`` for optional modules.
+
+    Returns:
+        One line ``["  key:"]`` for mandatory modules (null value = always active),
+        ``["  key: true"]`` for optional modules without extra config, or
+        ``["  key:", "    enabled: true"]`` for optional modules with extra config.
+    """
+    if module_id in MANDATORY_MODULES:
+        return [f"  {yaml_key}:"]
+    if has_config:
+        return [f"  {yaml_key}:", "    enabled: true"]
+    return [f"  {yaml_key}: true"]

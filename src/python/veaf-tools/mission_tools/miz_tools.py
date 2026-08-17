@@ -19,7 +19,7 @@ from veaf_libs.safe_zip import safe_extract_all, safe_read_member
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
 
-def normalize_warehouses_airports(warehouses_content: Any) -> None:
+def normalize_warehouses_airports(warehouses_content: dict[str, Any] | None) -> None:
     """Key ``warehouses.airports`` by airdrome id whatever shape the Lua parser produced.
 
     DCS keys that table by **airdrome id**, but a mission declaring every airfield of its theatre
@@ -39,8 +39,8 @@ def normalize_warehouses_airports(warehouses_content: Any) -> None:
     under the build's settings (``always_provide_keyname=True``), both as ``[n] = {...}``.
 
     Args:
-        warehouses_content: A parsed ``warehouses`` table, mutated in place. Anything that is not a
-            dict — including ``None`` for a mission with no such member — is left alone.
+        warehouses_content: A parsed ``warehouses`` table, mutated in place. ``None`` — a mission
+            carrying no such member, which is legal — is left alone rather than treated as an error.
     """
     if not isinstance(warehouses_content, dict):
         return
@@ -64,7 +64,20 @@ class Group:
 
 @dataclass
 class DcsMission:
-    """Class representing a DCS mission."""
+    """Class representing a DCS mission.
+
+    **Contract on `warehouses_content`**: whatever produced it, its ``airports`` table is a dict
+    keyed by airdrome id — never the list the Lua parser hands back for contiguous ``1..N`` keys.
+    :func:`read_miz` and :func:`read_mission_folder` guarantee it by calling
+    :func:`normalize_warehouses_airports`, so downstream code may index it by id without checking.
+
+    A caller that builds a `DcsMission` by hand owes that guarantee itself. Two writers
+    — `warehouses_bootstrap.ensure_airports_populated` and `veaf_mission_mcp.airbase._airbase_entry`
+    — re-assert it rather than trust it, deliberately: both are reachable with a hand-assembled
+    mission, and the cost of the assumption being wrong is not an exception but a silently emptied
+    airfield table, which is the defect FIX-WAREHOUSES-LIST-FORM exists to prevent. The call is a
+    no-op once the contract holds.
+    """
 
     file_path: Path
     mission_content: dict | None = None

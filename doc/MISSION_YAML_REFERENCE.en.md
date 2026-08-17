@@ -229,6 +229,32 @@ Each key becomes `veaf.config.MY_MISSION_FLAG = 42` in the generated `veaf-confi
 
 ---
 
+### `module_settings:` {#module-settings}
+
+Scalar settings written **straight onto a VEAF module's table** in the generated `veaf-config.lua`. Where `settings:` can only write `veaf.config.KEY`, this section targets any VEAF table.
+
+```yaml
+module_settings:
+  veafSkynet.DelayForStartup: 150     # IADS start-up delay
+  veafSkynet.DynamicSpawn: true
+  veafRadio.RadioMenuName: "BFR"      # root radio menu name, seen by players
+  veaf.DEFAULT_GROUND_SPEED_KPH: 25
+```
+
+Each entry becomes the matching Lua assignment, here `veafSkynet.DelayForStartup = 150`.
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| *(key)* | string | — | — | The full Lua target, `veafXxx.Field`. A key that does not start with `veaf` is **refused at generation time**: this section is a migration path for VEAF settings, not a hatch for writing anywhere in the runtime |
+| *(value)* | boolean \| number \| string | — | — | A scalar. Tables and functions cannot be expressed here |
+
+> **Where it comes from.** `convert-v5` fills this section automatically: under v5, half of these
+> settings reached neither `mission.yaml` nor the generated Lua, and nothing reported it. Whatever
+> the conversion still cannot carry — a table, a function — is now listed as comments in the
+> generated `mission-script.lua`, under "Settings NOT migrated".
+
+---
+
 ### Third-party modules: `SKYNET` / `CTLD` / `CSAR` (under `modules:`) {#third-party-modules}
 
 > **v6 change (hard break)**: the `external_modules:` and `qra:` sections no longer exist. All of their configuration now lives under the `modules:` block, the single source of truth. See [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md).

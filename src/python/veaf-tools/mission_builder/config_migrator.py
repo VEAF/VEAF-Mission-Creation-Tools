@@ -16,8 +16,7 @@ import re
 from dataclasses import dataclass, field
 
 from veaf_libs.i18n import t
-from veaf_libs.lua_config_generator import yaml_module_entry
-from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.lua_module_scanner import get_modules, yaml_module_entry
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -91,6 +90,30 @@ class MigrationResult:
     # ── Callback hints (cannot be expressed in YAML) ───────────────────────────
     callback_hints: list[str] = field(default_factory=list)
     """Lua snippets for callbacks that must be set manually in mission-script.lua."""
+
+    # ── FIX-CONVERT-V5-SILENT-LOSSES: scalar settings carried generically ─────
+    module_settings: dict[str, bool | int | float | str] = field(default_factory=dict)
+    """Scalar settings on a VEAF module table, keyed by their Lua target.
+
+    A **generic** carrier rather than a key per module: the fourteen dropped settings were measured
+    on one mission maker's corpus, and he said so explicitly, so named keys would have covered what
+    we happen to know about and nothing else (issue #725)."""
+
+    password_hashes: list[str] = field(default_factory=list)
+    """Mission-specific level-1 password hashes, for ``security.password_hashes``.
+
+    Never the two hashes `veafSecurity.lua` ships to every mission: they live in a public
+    repository, and `SECREV-2 / VMR-040` closed that hole by clearing the tables when a mission
+    declares its own. Carrying one back would re-open it."""
+
+    # ── FIX-CONVERT-V5-SILENT-LOSSES: settings no extractor recognised ────────
+    not_migrated: list[str] = field(default_factory=list)
+    """Original lines assigning a VEAF setting that reaches neither `mission.yaml` nor the Lua.
+
+    A **declared** loss, in the sense `callback_hints` already established: the tool cannot express
+    the thing and says so where the author will look, rather than deleting `missionConfig.lua` and
+    leaving a mission that behaves differently with nothing naming the settings that stopped
+    applying (issue #725 — 14 of 28 scalar keys, security and IADS among them)."""
 
 
 # ---------------------------------------------------------------------------
@@ -539,6 +562,9 @@ class ConfigMigrator:
             airwave_zones_extracted=partial.airwave_zones_extracted,
             password_mm_hashes=partial.password_mm_hashes,
             callback_hints=partial.callback_hints,
+            not_migrated=partial.not_migrated,
+            module_settings=partial.module_settings,
+            password_hashes=partial.password_hashes,
         )
 
     def _build_yaml_snippet(self, enabled_modules: list[str]) -> str:
@@ -642,7 +668,137 @@ class ConfigMigrator:
         content = self._extract_combat_zones(content, result)
         content = self._extract_airwaves_zones(content, result)
         content = self._extract_security_mm(content, result)
+        content = self._extract_password_l1(content, result)
+        content = self._extract_module_settings(content, result)
+        # Last, so it only ever sees what nothing carried.
+        self._collect_not_migrated(content, result)
         return content
+
+    # ── Level-1 password hashes (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ─────
+
+    _PASSWORD_L1_RE = re.compile(r'^[ \t]*veafSecurity\.password_L1\s*\[\s*"([^"]+)"\s*\]\s*=\s*true', re.MULTILINE)
+
+    #: The hashes `veafSecurity.lua:156-159` sets on **every** mission. They are in a public
+    #: repository, so they are not secrets, and `SECREV-2 / VMR-040` closed the hole they opened by
+    #: clearing the password tables as soon as a mission declares its own. Migrating one into a
+    #: mission's `password_hashes:` would put it straight back — silently, in the file a mission
+    #: maker commits.
+    _SHIPPED_PASSWORD_HASHES = frozenset(
+        {
+            "47c7808d1079fd20add322bbd5cf23b93ad1841e",  # PASSWORD_L0
+            "bdc82f5ef92369919a3a53515023ce19f68656cc",  # PASSWORD_L1
+        }
+    )
+
+    def _extract_password_l1(self, content: str, result: MigrationResult) -> str:
+        """Extract a mission's own level-1 password hashes into ``security.password_hashes``.
+
+        Keys on the **table assignment** (``password_L1["…"] = true``) and not on the
+        ``PASSWORD_L1`` constant: reassigning the constant did nothing in v5, since
+        ``password_L1[PASSWORD_L1] = true`` runs at module load, before the mission config
+        executes. Reading the constant would invent a password the mission never had.
+
+        Args:
+            content: The content being migrated.
+            result: Mutated in place — gains the mission's own hashes.
+
+        Returns:
+            *content* with each consumed line commented out.
+        """
+        code = _strip_lua_comments(content)
+        for m in list(self._PASSWORD_L1_RE.finditer(code))[::-1]:
+            hash_val = m.group(1)
+            if hash_val not in self._SHIPPED_PASSWORD_HASHES and hash_val not in result.password_hashes:
+                result.password_hashes.insert(0, hash_val)
+            content = self._comment_out_span(content, m.start(), m.end(), "security password")
+        return content
+
+    # ── Scalar module settings (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ──────
+
+    _MODULE_SETTING_RE = re.compile(
+        r"^([ \t]*)((?:veaf|veaf\w+)(?:\.\w+)+)\s*=\s*"
+        r"(\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|-?\d+(?:\.\d+)?|true|false)\s*(?:--.*)?$",
+        re.MULTILINE,
+    )
+
+    #: Targets another extractor already owns. Carrying them here too would write the same setting
+    #: twice, from two places that can disagree — the defect `FIX-CONVERT-V5-DUPLICATE-SKYNET`
+    #: fixed for the SKYNET module key.
+    _SETTINGS_OWNED_ELSEWHERE = (
+        "veaf.config.MISSION_NAME",
+        "veaf.config.MISSION_EXPORT_PATH",
+        "veaf.config.era",
+        "veaf.SecurityDisabled",
+        "veafSecurity.SecurityDisabled",
+        "veaf.ForcedLogLevel",
+    )
+
+    def _extract_module_settings(self, content: str, result: MigrationResult) -> str:
+        """Carry every remaining scalar assignment on a VEAF table into ``module_settings:``.
+
+        Runs after the named extractors, so it only picks up what none of them claimed. Generic on
+        purpose: the fourteen settings that prompted this were measured on one mission maker's
+        corpus, and a key per module would carry those and leave the next fourteen to be found the
+        same way (issue #725).
+
+        Args:
+            content: The content being migrated.
+            result: Mutated in place — gains one entry per carried setting.
+
+        Returns:
+            *content* with each consumed line commented out.
+        """
+        code = _strip_lua_comments(content)
+        for m in list(self._MODULE_SETTING_RE.finditer(code))[::-1]:
+            target = m.group(2)
+            if target in self._SETTINGS_OWNED_ELSEWHERE:
+                continue
+            result.module_settings[target] = self._coerce_lua_scalar(m.group(3))
+            content = self._comment_out_span(content, m.start(), m.end(), f"module setting {target}")
+        # finditer walked in reverse, so restore source order for a readable mission.yaml.
+        result.module_settings = dict(reversed(list(result.module_settings.items())))
+        return content
+
+    # ── Settings no extractor recognised (FIX-CONVERT-V5-SILENT-LOSSES) ──────
+
+    #: An assignment to a VEAF-owned table: ``veafSkynet.DelayForStartup = 150``,
+    #: ``veafSecurity.password_L1["hash"] = true``, ``veaf.config.ww2 = false``.
+    _VEAF_ASSIGNMENT_RE = re.compile(
+        r"^[ \t]*((?:veaf\w*|ctld|csar)(?:\.\w+|\[[^\]]*\])+)\s*=(?!=)",
+        re.MULTILINE,
+    )
+
+    #: Tables an extractor consumes **generically** — every key of them is carried, so reporting
+    #: one would be a false alarm. `_extract_ctld_csar` takes any key of `ctld.`/`csar.`, and a net
+    #: that cries wolf is a net someone mutes.
+    _GENERICALLY_CARRIED_PREFIXES = ("ctld.", "csar.")
+
+    def _collect_not_migrated(self, content: str, result: MigrationResult) -> None:
+        """Record every still-active VEAF assignment left after the extractors have run.
+
+        Runs **last** in :meth:`pre_extract`, which is what makes it cheap and complete at once:
+        an extractor comments out what it consumed, so whatever still assigns a VEAF table is, by
+        definition, something no extractor recognised. The list needs no inventory of known keys
+        and therefore covers settings nobody thought to enumerate — the answer to the reporter's
+        own stated limit, that he measured the keys his corpus uses rather than every key
+        `missionConfig.lua` can carry.
+
+        Args:
+            content: The content left after every extractor has run.
+            result: Mutated in place — its ``not_migrated`` list gains one original line each.
+        """
+        # Match on a comment-masked copy so a commented-out setting is not reported, but keep the
+        # original text: the author has to be able to paste the line back.
+        code = _strip_lua_comments(content)
+        for m in self._VEAF_ASSIGNMENT_RE.finditer(code):
+            target = m.group(1)
+            if target.startswith(self._GENERICALLY_CARRIED_PREFIXES):
+                continue
+            line_start = content.rfind("\n", 0, m.start()) + 1
+            line_end = content.find("\n", m.start())
+            line = content[line_start : line_end if line_end != -1 else len(content)].strip()
+            if line and line not in result.not_migrated:
+                result.not_migrated.append(line)
 
     # ── identity / security / global_log_level ──────────────────────────────
 
@@ -1393,23 +1549,77 @@ class ConfigMigrator:
     _CZ_LOCAL_ZONE_START_RE = re.compile(r"local\s+(\w+)\s*=\s*VeafCombatZone:new\(\)")
 
     @staticmethod
+    def _chain_line_depth(line: str, depth: int) -> int:
+        """Return the parenthesis depth at the end of *line*, starting from *depth*.
+
+        Quoted string content is skipped, so a parenthesis inside a briefing does not count —
+        the same rule :func:`_find_matching_paren` applies, kept here because the walker needs the
+        depth *carried between lines* rather than one call's matching paren.
+
+        Args:
+            line: A single line of Lua, without its newline.
+            depth: The depth at the start of the line.
+
+        Returns:
+            The depth at the end of the line. Never used as an error signal: an unbalanced line
+            simply reports what it saw.
+        """
+        i = 0
+        while i < len(line):
+            c = line[i]
+            if c in ('"', "'"):
+                quote = c
+                i += 1
+                while i < len(line):
+                    if line[i] == "\\":
+                        i += 2
+                        continue
+                    if line[i] == quote:
+                        break
+                    i += 1
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+            i += 1
+        return depth
+
+    @staticmethod
     def _local_zone_chain_end(content: str, call_start: int) -> int:
         """Return the index past a ``local x = VeafCombatZone:new()…`` builder chain.
 
-        The chain has no enclosing paren (unlike ``AddZone(...)``); it continues across
-        lines while each following line (stripped) starts with ``:``.
+        The chain has no enclosing paren (unlike ``AddZone(...)``), so its end has to be found by
+        walking lines. A line continues the chain when it starts with ``:`` **or** when the previous
+        line left a setter's argument open — a briefing written as a concatenation or as a ``[[long
+        string]]`` spans lines and continues with a quote, a ``..`` or plain text.
+
+        Reading only the ``:`` rule ended the chain at the first such line, and **every setter after
+        it was dropped** — 302 truncated briefings out of 1864 zones on the reporting corpus, worst
+        case 137 characters migrated as 6 (issue #722). The loss was positional, not
+        setter-specific, so nothing about the dropped setter hinted at the cause.
+
+        Args:
+            content: The full source text.
+            call_start: Index of the ``local`` keyword starting the chain.
+
+        Returns:
+            The index just past the chain's last line.
         """
         pos = content.find("\n", call_start)
         if pos == -1:
             return len(content)
+        depth = 0
         while True:
             nl = content.find("\n", pos + 1)
             line_end = nl if nl != -1 else len(content)
-            if content[pos + 1 : line_end].lstrip().startswith(":"):
-                pos = line_end
-                if nl == -1:
-                    break
-            else:
+            line = content[pos + 1 : line_end]
+            # Only a line at depth 0 can end the chain: below it we are still inside a setter's
+            # argument, whatever the line happens to look like.
+            if depth <= 0 and not line.lstrip().startswith(":"):
+                break
+            depth = max(0, ConfigMigrator._chain_line_depth(line, depth))
+            pos = line_end
+            if nl == -1:
                 break
         return pos + 1 if pos < len(content) else len(content)
 
@@ -1518,6 +1728,30 @@ class ConfigMigrator:
 
         if re.search(r":disableUserActivation\s*\(\s*\)", chain_text):
             zone["user_activation_disabled"] = True
+
+        # ── FIX-CONVERT-V5-SILENT-LOSSES: settings the schema had no key for (#723) ──
+        # Every framework default is `true` and these are used to turn a feature OFF, so losing
+        # one does not fall back to something neutral — it inverts the behaviour. Only a `false`
+        # is carried: `true` is the default, and emitting it would add a key to every zone.
+        for setter, key in (
+            ("setCompletable", "completable"),
+            ("setShowUnitsList", "show_units_list"),
+            ("setShowZonePositionInfo", "show_zone_position_info"),
+            ("setEnableSmokeAndFlare", "smoke_and_flare"),
+        ):
+            m = re.search(rf":{setter}\s*\(\s*(true|false)\s*\)", chain_text)
+            if m and m.group(1) == "false":
+                zone[key] = False
+
+        # setEnableUserActivation(false) writes the same runtime field as disableUserActivation()
+        # (veafCombatZone.lua:344 and :355), so it reuses that key rather than adding a second way
+        # to say one thing.
+        m = re.search(r":setEnableUserActivation\s*\(\s*(true|false)\s*\)", chain_text)
+        if m and m.group(1) == "false":
+            zone["user_activation_disabled"] = True
+
+        if re.search(r":disableRadioMenu\s*\(\s*\)", chain_text):
+            zone["radio_menu_disabled"] = True
 
         if re.search(r":setTraining\s*\(\s*(true|false)\s*\)", chain_text):
             m2 = re.search(r":setTraining\s*\(\s*(true|false)\s*\)", chain_text)

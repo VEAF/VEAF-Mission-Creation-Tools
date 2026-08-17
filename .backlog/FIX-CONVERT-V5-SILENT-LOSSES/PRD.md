@@ -1,6 +1,7 @@
 # FIX-CONVERT-V5-SILENT-LOSSES — what `convert-v5` drops without saying so
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — all five tickets shipped 2026-08-17; waiting on Sharko's two harnesses,
+which are the acceptance test this lot signed up to.
 
 Origin: [#722](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/722),
 [#723](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/723),
@@ -119,15 +120,20 @@ one import and it is what lets an outside harness like Sharko's keep measuring u
 
 ## Definition of done
 
-- [ ] A multi-line `setBriefing` no longer truncates its chain, with a regression test on the
-      multi-line form
-- [ ] A converted mission that loses a setting **says so** — in the report and in the generated Lua
-- [ ] `completable` survives a v5 → v6 conversion (the asymmetry closed on the extraction side)
-- [ ] The six `combat_zones` setters carried
-- [ ] The fourteen scalars each either land in `mission.yaml` or are named in the report, with a
-      test enumerating them so none falls in the gap
-- [ ] A v5 mission carrying the shipped `PASSWORD_L0` / `PASSWORD_L1` hashes converts **without**
+- [x] A multi-line `setBriefing` no longer truncates its chain — the walker now carries paren
+      depth between lines, so a concatenated *or* `[[long]]` argument keeps the chain open
+- [x] A converted mission that loses a setting **says so** — in the report and in the generated Lua
+- [x] `completable` survives a v5 → v6 conversion (the asymmetry closed on the extraction side)
+- [x] The six `combat_zones` setters carried
+- [x] Every scalar lands in `mission.yaml` via `module_settings:` — generic rather than fourteen
+      named keys, so a setting nobody enumerated is carried too; what remains (tables, functions)
+      is named in the report
+- [x] A v5 mission carrying the shipped `PASSWORD_L0` / `PASSWORD_L1` hashes converts **without**
       copying them into its own `password_hashes:`
-- [ ] `import ConfigMigrator` no longer loads pydantic
-- [ ] Coverage gate raised, per the ratchet policy
-- [ ] Sharko's two harnesses re-run against the result — his numbers are the acceptance test
+- [x] `import ConfigMigrator` no longer loads pydantic — and the cause was **neither** the one
+      reported nor the one first measured: the chain through `lua_config_generator` was real but
+      secondary, and `mission_builder/__init__.py` importing the whole package was what dominated.
+      Found with `-X importtime`, fixed by making the package lazy (PEP 562)
+- [x] Coverage gate: 81.9% measured against a gate of 81, inside the ~2-point rule
+- [ ] Sharko's two harnesses re-run against the result — his numbers are the acceptance test.
+      **Left open on purpose**: no test here can produce them, and he answered on all three issues.

@@ -1,0 +1,28 @@
+# Per-mission spawn data (optional) — extends the VEAF framework spawn database
+# used by the `_spawn unit <alias>` and `_spawn group <alias>` marker commands.
+#
+# Entries here are merged OVER the shipped framework data at mission build:
+#   - a new alias is added;
+#   - an entry sharing an alias with a framework entry REPLACES it (override).
+# The merged result is rendered to Lua and injected into the .miz (see ADR 0005);
+# DCS cannot read YAML at runtime, so the generation happens at build time.
+#
+# This file ships fully commented: as-is it adds nothing. Uncomment and adapt.
+#
+# Disable the whole step (framework data included) with, in mission.yaml:
+#   pipeline:
+#     spawn_data: false
+
+# units:                              # -> `_spawn unit <alias>`
+#   - aliases: [myaaa]                # one or more case-insensitive aliases
+#     unitType: ZSU-23-4 Shilka       # a DCS unit type id
+
+# groups:                             # -> `_spawn group <alias>`
+#   - aliases: [mysam]
+#     disposition: {h: 3, w: 3}       # layout grid in cells (a cell is 10m x 10m)
+#     units:
+#       - {type: ZSU-23-4 Shilka, cell: 1}
+#       - {type: Ural-375, random: true}     # randomized within its cell
+#       - {type: Soldier M4, number: {min: 2, max: 4}, random: true}
+#     description: My custom SAM site
+#     groupName: MySAM

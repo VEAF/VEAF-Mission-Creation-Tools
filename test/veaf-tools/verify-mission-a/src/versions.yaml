@@ -1,0 +1,69 @@
+# Weather and time variants for this mission.
+#
+# The build runs one weather+time pass PER entry under `versions:` and writes one .miz each, named
+# `<mission>_<name>.miz`. This shipped default declares a SINGLE variant — a clear noon — so a
+# brand-new mission builds one playable mission at midday rather than a fistful of example-weather
+# missions. Add entries below (or uncomment the tutorial) when you actually want several.
+#
+# Times: "HH:MM", a solar expression ("sunrise", "sunset-30*60"), or seconds (0-86400).
+# Dates:  "YYYY-MM-DD", "today", "tomorrow", "+N" / "-N" days.
+# Solar expressions need `position` set (below); without it they are skipped.
+
+# Geographic position for automatic solar calculations (sunrise, sunset).
+position:
+  latitude: 33.5
+  longitude: 35.5
+  timezone: "Asia/Damascus"
+
+# Base date for all versions (optional; defaults to today).
+base_date: "2024-03-15"
+
+versions:
+  # The single shipped variant: midday, clear sky. Rename or edit freely.
+  - name: noon
+    time: "12:00"
+    weather:
+      temperature: 25.0
+      wind_speed: 8.0
+      wind_direction: 270.0
+      visibility: 10000.0
+      cloud_type: "clear"
+      fog_enabled: false
+
+# ── Want several variants? Uncomment any of these and they build alongside `noon`. ──────────────
+# Each `- name:` under `versions:` becomes its own `<mission>_<name>.miz`.
+#
+#   # Solar time expression — needs `position` above.
+#   - name: dawn-auto
+#     time: "sunrise"
+#     date: "2024-03-15"
+#
+#   # Offset from a solar event, plus a METAR string (real-weather data).
+#   - name: morning-plus-two-hours
+#     time: "sunrise+120*60"
+#     metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"
+#
+#   # Relative date, 10 minutes before sunset.
+#   - name: tomorrow-sunset
+#     time: "sunset-10*60"
+#     date: "+1"
+#
+#   # METAR at a fixed clock time.
+#   - name: with-metar
+#     time: "14:00"
+#     metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
+#
+#   # Date change only, keeping the base time/weather.
+#   - name: next-week
+#     date: "+7"
+#
+#   # Manual weather with broken cloud, 30 minutes before sunset.
+#   - name: evening-plus-rain
+#     time: "sunset-30*60"
+#     date: "today"
+#     weather:
+#       temperature: 18.0
+#       wind_speed: 12.0
+#       wind_direction: 180.0
+#       cloud_type: "broken"
+#       cloud_height: 800.0

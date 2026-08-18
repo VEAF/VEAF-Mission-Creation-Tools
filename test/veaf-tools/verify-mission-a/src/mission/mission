@@ -481,14 +481,14 @@ mission =
         red = 0,
       },
       instructor = {
-        blue = 0,
+        blue = 1,
         neutrals = 0,
-        red = 0,
+        red = 1,
       },
       observer = {
-        blue = 0,
+        blue = 1,
         neutrals = 0,
-        red = 0,
+        red = 1,
       },
     },
   },

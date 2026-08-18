@@ -320,6 +320,17 @@ modules:
 security:
   disabled: true
 
+# ── Log level ────────────────────────────────────────────────────────────────
+# Back to INFO: the `-cap` investigation is closed (the CAPs were appearing all along, just not
+# where or when expected). Set this to `trace` again to see `newGroup=` / `_spawnedGroup=` and
+# `_spawnedGroup.name=` at trace level, and those lines say whether mist.dynAdd actually
+# returned a group. At INFO we only get the success message, printed whether or not anything
+# appeared -- which is exactly why three theories in a row went nowhere.
+#
+# Before the build marker on purpose: a build with --dev-mode truncates the file there.
+# Put it back to info once settled -- trace is very verbose.
+global_log_level: info
+
 # ── Build configuration ─────────────────────────────────────────────────────
 # Persisted build settings — set via --dev-mode / --scripts-path CLI flags.
 # Note: scripts_path is usually machine-specific.

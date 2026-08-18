@@ -46,12 +46,44 @@ Do it that way instead:
 smoke mission; if that module is not available either, the two remaining checks only need *a* slot —
 change the type before building.
 
-## Mission B — CAP behaviour (any theatre, red and blue templates present)
+## Mission B — CAP behaviour — **runs on Mission A, there is no separate mission**
+
+Discovered on 2026-08-17, after Mission A was built: the fork of `smoke-test-mission` already carries what
+these two checks need — about a hundred `veafSpawn-*` templates on **both** sides, plus the `SPAWN`,
+`SHORTCUTS` and `MOVE` modules. Both checks are marker commands, so they run in the mission already loaded.
+No second folder, no rebuild.
+
 
 | # | Issue | Gesture | What decides |
 |---|-------|---------|--------------|
 | 4 | [#240](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/240) `-cap` picks NATO units for red | Run `-cap` ten times on the red side, note the types | Any F-15C / F/A-18C on the red side = confirmed. Sharko's ask is a way to force the side's own inventory |
 | 5 | [#209](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/209) `-cap` ignores its route | Give a CAP an explicit altitude, watch it fly | Flying at another altitude = confirmed. Check the altitude actually written into the group's route first — the defect may be in the writing, not the flying |
+
+### Mission B outcome, 2026-08-17
+
+Run by David on Mission A. Both checks answered, plus one false alarm worth recording.
+
+- **#240 confirmed, and the cause is data rather than code.** A red-side `-cap` produced **7 NATO
+  airframes out of 10** (4 M-2000C, 1 Mirage F1EE, 2 F-15C). Measured on the built mission: **14 of the
+  36 shipped red templates are NATO cellules** — F1EE in eight variants, M-2000C in six. The selection
+  is not misbehaving; it draws from a library where two red templates in five are Mirages. Those
+  templates exist on purpose (credible training adversaries, hence the "EASY / Radar ON / ECM OFF"
+  variants), but nothing lets a caller ask for authentically red. **This gives #284 the visible symptom
+  it lacked**, so the two belong in one lot: template selection is opaque *because* a template carries
+  a name and a coalition and no attributes.
+- **#209 not reproduced, closed.** `alt 15000` gave an orbit at **15 800 ft** — a 5 % overshoot, the
+  normal margin of an AI holding an orbit. David accepted it.
+- **A false alarm to remember**: several `-cap` calls announced success with nothing visible, which
+  looked like a silent spawn failure. Three theories were built on it — a missing `mist.goRoute`, an
+  unchecked `dynAdd` return, a "Corrupt damage model" error in the log — and **all three were wrong**.
+  The aircraft were spawning all along; they appear on their **orbit** rather than at the marker, and
+  under load it takes seconds. David found it by reloading and seeing a sky full of CAPs. The only real
+  defect left is that nothing tells the player *where* the CAP appeared, so they look in the wrong
+  place and conclude failure — a small message improvement, not a bug hunt.
+
+Method note, since it cost three rounds: `98` occurrences of "Corrupt damage model" were in that log,
+starting before the mission even loaded. Correlating on the two nearest the symptom was coincidence
+dressed as causation. **Count the occurrences before drawing a line between two of them.**
 
 ## Mission C — IADS (a Skynet network plus a combat zone holding a SAM)
 
@@ -78,6 +110,11 @@ Both learned the hard way on Mission A, on 2026-08-17, after David hit them in g
   `modules:`. A check that asks for a password is a check you cannot run — `-farp` is SENIOR_PILOT-gated,
   so verification #232 stopped at a prompt instead of placing a truck. Turn it on only when the security
   layer is itself what the mission verifies.
+- **Game master slots, both sides.** `mission.groundControl.roles.instructor` (DCS's Game Master) and
+  `observer`, set to 1 for **blue and red** — they are 0 by default. A verification is driven from the F10
+  menu, and a game master reaches it without flying and without owning the module of whatever aircraft the
+  mission happens to carry. A red-side check such as #240's `-cap` needs a red game master. No MCP action does
+  this: go through `read_mission_folder` / `write_mission_folder`.
 - **Player slots on the ramp, engines cold.** Never an air start. An air start puts the pilot in the air
   at load, flying the aircraft before he can look at what he was asked to check. Mission A shipped with an
   airborne A-10C_2 because a **fork inherits its source's defaults** — `smoke-test-mission` is airborne on

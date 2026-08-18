@@ -1,0 +1,114 @@
+# VEAF Waypoints Configuration Example
+# This file defines waypoints and flight plan settings for DCS missions
+#
+# STRUCTURE:
+# 1. waypoints: Define individual waypoints (position, altitude, speed, etc.)
+# 2. settings: Define flight plan templates that use those waypoints
+
+# Define individual waypoints
+# These are the building blocks that will be assembled into flight plans
+waypoints:
+  # Example waypoint 1: Bullseye (turning point)
+  BULLSEYE:
+    type: "Turning Point"
+    action: "Turning Point"
+    alt: 6096          # 20000 ft in meters
+    alt_type: "BARO"
+    speed: 999
+    speed_type: "TAS"
+    x: 75869
+    y: 48674
+    name: "BULLSEYE"
+    ETA: 364.89
+    ETA_locked: false
+
+  # Example waypoint 2: Initial Point
+  INITIAL_POINT:
+    type: "Turning Point"
+    action: "Turning Point"
+    alt: 3048          # 10000 ft
+    alt_type: "BARO"
+    speed: 50
+    speed_type: "TAS"
+    x: 70000
+    y: 50000
+    name: "INITIAL_POINT"
+
+  # Example waypoint 3: Target
+  TARGET:
+    type: "Turning Point"
+    action: "Fly Over Ground"
+    alt: 1524          # 5000 ft
+    alt_type: "BARO"
+    speed: 100
+    speed_type: "TAS"
+    x: 75000
+    y: 48000
+    name: "TARGET"
+
+# Define flight plan settings
+# These determine which waypoints are injected into which aircraft groups
+# Matching criteria (all optional): category, coalition, type, country
+# If no criteria are specified, the plan applies to all groups
+settings:
+  # Flight plan for all blue planes
+  all_blue_planes:
+    category: "plane"
+    coalition: "blue"
+    # No type or country specified - applies to all blue planes
+    waypoints:
+      BULLSEYE: "BULLSEYE"
+      INITIAL_POINT: "INITIAL_POINT"
+
+  # Flight plan for all red helicopters
+  all_red_helicopters:
+    category: "helicopter"
+    coalition: "red"
+    waypoints:
+      BULLSEYE: "BULLSEYE"
+
+  # Flight plan for specific aircraft type
+  f16_flight_plan:
+    category: "plane"
+    coalition: "blue"
+    type: "F-16C_50"
+    # Only F-16C aircraft will receive this plan
+    waypoints:
+      INITIAL_POINT: "INITIAL_POINT"
+      TARGET: "TARGET"
+      BULLSEYE: "BULLSEYE"
+
+  # Flight plan for all aircraft (acts as default)
+  default_plan:
+    # No category, coalition, or type specified
+    # Only used if no other plans match
+    waypoints:
+      BULLSEYE: "BULLSEYE"
+
+# USAGE NOTES:
+#
+# 1. Matching Priority:
+#    - Aircraft type (type field) is checked first
+#    - Then category (plane/helicopter)
+#    - Then coalition (blue/red)
+#    - Finally, plans with no criteria match all
+#
+# 2. Targeting:
+#    - Only human-piloted aircraft groups receive waypoints
+#    - Leave a setting with no criteria as a fallback for all units
+#
+# 3. Coordinates:
+#    - X and Y are in mission coordinates (not lat/lon)
+#    - Altitude (alt) is in meters
+#    - Speed is in m/s
+#
+# 4. Waypoint Order:
+#    - Waypoints are injected in the order they appear in the settings
+#    - The first waypoint becomes the initial waypoint
+#
+# 5. Fields:
+#    - type: "Turning Point", "TakeOffGround", "TakeOff", "Landing", etc.
+#    - action: Usually same as type
+#    - alt_type: "BARO" (barometric) or "RADIO" (AGL)
+#    - speed_type: "TAS" (true airspeed) or "IAS" (indicated airspeed)
+#    - ETA fields are optional

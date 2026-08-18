@@ -37,6 +37,28 @@ shape for a group container:
 A mission is dict-shaped as soon as its group keys are not contiguous — which a hand edit, a
 third-party tool, or a deletion produces. None of these eight would say anything useful about it.
 
+## The family is wider than group containers — measured 2026-08-18
+
+Building `verify-mission-c` produced three holed tables, and only the first was a group container:
+
+| Table | How it broke | Where the build died |
+|---|---|---|
+| `…plane.group` numbered `1,3,4` | a group deleted by hand | `group_insertion.max_ids` |
+| `…group.1.units` numbered `[3]` | a repair regex keyed on indentation alone | same |
+| `…group.1.route.points` numbered `[2]` | same regex | `waypoints_injector._inject_waypoints_into_group` |
+
+Two consequences for this lot:
+
+- **Normalising `group` containers alone would not have saved that build.** `units` and
+  `route.points` are sequences read the same way, by readers that assume a list just as the eight
+  listed below do. Whatever normalisation lands should cover the sequence-shaped tables of a mission,
+  not one key.
+- **The error never names the table.** Each hole surfaced at a different subsystem, the second one in
+  a waypoint injector that had nothing to do with the edit. A hole check reporting the offending
+  **path** — cheap, and independent of the normalisation itself — is what turns three debugging rounds
+  into one line of output. `FIX-MCP-AUTHORING-GAPS` ticket 02 asks for it in `validate_mission`; it
+  may well belong here instead. Decide, and cross-reference.
+
 ## Scope
 
 Normalise **at load**, the way `FIX-WAREHOUSES-LIST-FORM` did for airfields: a `group` container comes

@@ -1,7 +1,7 @@
 # CHORE-GITHUB-ISSUE-TRIAGE — re-read the 63 open GitHub issues against v6
 
-Status: 🧑 waiting-human — every issue is labelled and its verdict recorded; **closing is David's
-call**, deliberately (see *Why nothing is closed*).
+Status: ✅ done — 2026-08-17. Labelled first, then closed with David issue by issue: **63 open → 46**.
+The `probably-done` label is now empty; `still-valid` and `verify` remain as the standing triage.
 
 Date of the re-read: 2026-08-17. Origin: David, "faisons le ménage dans les issues sur GitHub".
 
@@ -67,7 +67,7 @@ robot) keeps its own label and was not touched.
 | #294 | Redo security: drop `/secu login`, role-based menus | `REVIEW-SECURITY-LAYER` did exactly that — `veafCommands.lua:78-79` states there is no global login any more; tiers live in `veafSecurity.lua` |
 | #295 | Update the unit list since 2.9.19.13478 | Currenthill / Oplot / Iskander are in `veaf_libs/data/dcsUnits.yaml` and `dcsUnits.lua`, fed by `update-dcs-data` |
 | #299 | Dynamic aircraft slots do not trigger QRA | **Not a finding but a fact**: `.backlog/archive/FIX-QRA-DYNSLOT-CATEGORY.md` opens with *"Fixes #299 (reported by Tripack)"* and is ✅ — the root cause was `veafEventHandler.completeUnitFromName` reading the wrong category. The odd `setReactOnHelicopters` symptom is answered too (`veafQraCore.lua:486` now respects an explicit value). The lot simply never closed the issue |
-| #57 | Spawn an artillery group that fires on a position | `veafGroundAI` issues artillery orders (`FireAtPoint`, `veafGroundAI.lua:568`) |
+| #57 | Spawn an artillery group that fires on a position | **Partly, and the verdict was corrected on 2026-08-17**: `veafGroundAI` fires (`FireAtPoint`, `:568`) but **spawns nothing** — grepped, it holds no `spawnGroup`, no `veafSpawn.` call. The issue asks for a spawn *coupled to* the fire order, and only the second half exists. Downgraded from a clean verdict when David asked for the evidence line by line |
 | #206 | Make a group fire through `-shell` | Same module: the order spec at `veafGroundAI.lua:364-372` targets a named group |
 | #39 | Test whether smoke and **fires** can be spawned | **Partly**: `veafSpawn.spawnSmoke` exists (`veafSpawnEffects.lua:282`); fires were not found |
 | #67 | Use polygon zones for combat zones | **Partly**: `veafCombatZone` handles a polygon trigger zone, but only **type 2**, and its `if/elseif` has no `else` — any other type silently finds no units (measured in `FEAT-MCP-MUTATION-ACTIONS`) |
@@ -136,6 +136,13 @@ corpus, and no lot covers them.
 - [x] The verdict of each `probably-done` cites what was measured
 - [x] The intake rule written where a contributor reads it (`CONTRIBUTING.md`) and where an agent
       reads it (`docs/agents/issue-tracker.md`)
-- [ ] David confirms and closes the `probably-done` set — **his call, not an agent's**
-- [x] #722 / #723 / #725 get their lot — `FIX-CONVERT-V5-SILENT-LOSSES`, opened 2026-08-17 with
+- [x] David confirms and closes the `probably-done` set — **his call, not an agent's**
+- [x] #722 / #723 / #725 get their lot, shipped in 6.15.0, and closed
+- [x] The 14 `probably-done` confirmed and closed — **and two verdicts were overturned when David asked for
+      the evidence line by line**: #57 (`-arty` does spawn a battery, `veafShortcuts.lua:1084`, so only the
+      one-gesture coupling is missing — #198's scope) and #72 (`VeafDrawingOnMap` exists at `veaf.lua:4514`
+      and `veafSanctuary` draws with it; the first pass had looked at the design-time tooling instead of the
+      runtime Lua). Asking for the evidence is what found them, not asking for the conclusion
+- [x] What the closures would have buried is kept: `FIX-COMBATZONE-ZONE-TYPE-SILENT` for #67's missing `else`,
+      and `SPAWN-FIRES` on the roadmap for #39's fire half, with David's `_bomb` explosions lead — `FIX-CONVERT-V5-SILENT-LOSSES`, opened 2026-08-17 with
       every claim of the three reports re-verified against the code first

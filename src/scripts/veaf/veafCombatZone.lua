@@ -255,8 +255,14 @@ end
 
 function VeafCombatZoneElement:setAlarmState(value)
   local alarmState = tonumber(value)
-  -- an out-of-range or unparsable tag falls back to the default rather than reaching setOption
+  -- an out-of-range or unparsable tag falls back to the default rather than reaching setOption -- and
+  -- says so, because a silent fallback makes a typo indistinguishable from a deliberate AUTO
   if alarmState ~= 0 and alarmState ~= 1 and alarmState ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):warn(
+      "#alarm=%s is not one of 0 (AUTO), 1 (GREEN), 2 (RED); falling back to %s",
+      veaf.p(value),
+      veaf.p(veafCombatZone.DefaultAlarmState)
+    )
     alarmState = veafCombatZone.DefaultAlarmState
   end
   self.alarmState = alarmState
@@ -849,6 +855,12 @@ function VeafCombatZone:initialize()
     if alarmState then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("alarmState = [%s]", alarmState))
       zoneElement:setAlarmState(alarmState)
+    elseif unitName:lower():find("#alarm", 1, true) then
+      -- the tag is there but the pattern read no number out of it (`#alarm=`, `#alarm=x`, `#alarm=-1`):
+      -- without this the unit silently keeps the default and the typo is invisible
+      veaf.loggers
+        .get(veafCombatZone.Id)
+        :warn("unit [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(unitName))
     end
     if command then
       -- it's a fake unit transporting a VEAF command

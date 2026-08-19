@@ -23,8 +23,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`#alarm=N` unit-name tag for combat zones.** Sets a single group's alarm state (`0` AUTO, `1`
   GREEN, `2` RED) instead of inheriting the zone's default, so air defence that must be hot from the
   first second can be marked `#alarm=2`. An unreadable or out-of-range value falls back to AUTO rather
-  than failing the zone. Documented in both languages, and added to the reserved-marker set the MCP
-  server warns about.
+  than failing the zone — and **says so in the log**, since a silent fallback makes a typo
+  indistinguishable from a deliberate AUTO. Documented in both languages, and added to the
+  reserved-marker set the MCP server warns about.
 
 ---
 

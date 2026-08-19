@@ -186,6 +186,20 @@ function TestVeafCombatZoneElement:test_alarmState_rejects_nil()
   luaunit.assertEquals(self.el:getAlarmState(), veafCombatZone.DefaultAlarmState)
 end
 
+function TestVeafCombatZoneElement:test_alarm_out_of_range_is_reported_not_swallowed()
+  -- Sourcery's review point: a fallback nobody is told about makes `#alarm=7` look like a choice.
+  local warned = {}
+  local logger = veaf.loggers.get(veafCombatZone.Id)
+  local originalWarn = logger.warn
+  logger.warn = function(_, text, ...)
+    table.insert(warned, text)
+  end
+  self.el:setAlarmState(7)
+  logger.warn = originalWarn
+  luaunit.assertEquals(self.el:getAlarmState(), veafCombatZone.DefaultAlarmState)
+  luaunit.assertEquals(#warned, 1)
+end
+
 function TestVeafCombatZoneElement:test_alarm_tag_pattern_reads_the_state()
   -- the parser lowercases the unit name before matching, so the tag is case-insensitive
   local cases = {

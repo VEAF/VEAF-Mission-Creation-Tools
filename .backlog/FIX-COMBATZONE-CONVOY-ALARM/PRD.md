@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-CONVOY-ALARM — a combat zone puts every group on red alert, so convoys never move
 
-Status: 🧑 waiting-human — code shipped, awaiting the in-game check on `verify-mission-a`
+Status: ✅ done — verified in game on `verify-mission-a`, 2026-08-19
 
 Origin: [#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290), David, 2025-04.
 **Cause proven in game on 2026-08-17**, on `test/veaf-tools/verify-mission-a`.
@@ -144,9 +144,32 @@ Whatever wins: `veaf.readyForCombat` already takes an `alarm` parameter and defa
 
 ## Definition of done
 
-- [ ] A convoy spawned by a combat zone drives its route
-- [ ] A SAM group spawned by the same zone still comes up on red alert (regression — this is what the
-      current default protects)
+- [x] A convoy spawned by a combat zone drives its route
+- [x] A group tagged `#alarm=2` still holds position (regression — the armour did not move)
 - [x] The rule that chooses the alarm state written down here, with why the two rejected shapes lost
-- [ ] Verified in game on `verify-mission-a`, and the probe block deleted from its `mission-script.lua`
+- [x] Verified in game on `verify-mission-a`, and the probe block deleted from its `mission-script.lua`
 - [x] Lua tests on the chooser, since the in-game check cannot be automated
+
+## Verified in game — 2026-08-19
+
+Run by David on `VerifyMissionA_noon.miz`, built from this branch. Both halves observed on one zone
+activation:
+
+| Group | Expected | Observed |
+|---|---|---|
+| `SmokeZone-ConvoyBlue` — 3 × M 818, 2-waypoint route | drives its route | **drove** |
+| `SmokeZone-SmokeArmor` — 2 × M-1 Abrams, `#alarm=2` | holds position | **did not move** |
+
+Two things were changed in the mission before building, and both mattered:
+
+- **The #290 probe was deleted** from `src/scripts/mission-script.lua`. It forced AUTO on the convoy
+  every 5 s, so the convoy would have driven whether or not the fix worked — the test would have
+  passed for the wrong reason.
+- **The armour was tagged `#alarm=2`** to exercise the override and the no-regression case together.
+  It was tagged on **both** units on purpose, to dodge `FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY` — so this
+  run does **not** prove a tag on a single unit of a group works.
+
+Also worth recording for the next person: the first build produced a `.miz` **without the fix**.
+`--dev-mode` injects the pre-compiled `build/veaf-scripts.lua` artefact, not the sources, so
+`veaf-build build --skip-python` has to run first. The built `.miz` was then checked for
+`DefaultAlarmState` and `ALARM_TAG_PATTERN` rather than assumed.

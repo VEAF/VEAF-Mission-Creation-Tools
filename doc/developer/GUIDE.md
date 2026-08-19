@@ -600,6 +600,12 @@ Ordre de résolution de `scripts_path` (emplacement du dépôt local) :
 
 Lorsqu'ils sont passés via la CLI, `dev_mode` et `scripts_path` sont persistés dans `mission.yaml`.
 
+La persistance réécrit **uniquement** la section `build:` : tout ce qui l'entoure — commentaires,
+autres sections, y compris celles placées **après** elle — est conservé, et les fins de ligne
+restent en LF. Jusqu'à la 6.15.2 ce n'était vrai qu'avant la section : le build tronquait le
+fichier à son marqueur, donc un bloc écrit après `build:` disparaissait au build suivant, sans
+un mot.
+
 ### Effet sur le build
 
 | Mode | Source des scripts |

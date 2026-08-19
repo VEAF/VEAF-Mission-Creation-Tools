@@ -1,6 +1,6 @@
 # FIX-BUILD-YAML-TRUNCATION — the build deletes whatever sits after the build marker
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19, both tickets
 
 Origin: found on 2026-08-17 while preparing the #290 verification mission. A `security:` block kept
 vanishing from `mission.yaml`; David flagged it three times before the cause turned out to be the
@@ -66,9 +66,31 @@ check that a writer preserves what it did not mean to change?** A round-trip ass
 without mutating, compare — would have caught the first and the third. Answer it here; if the answer is
 a shared test helper, that is worth more than this one fix.
 
+## The question, answered — 2026-08-19
+
+**Yes, and the check belongs to the writer rather than to the defect.** `assert_round_trip_identical`
+asks one question — *invoked with nothing to change, do you reproduce your input byte for byte?* — and
+`assert_preserved` covers the case where one section legitimately moves. Both live in
+`test/python/testlib/writer_preservation.py`, next to the other shared test machinery.
+
+It is not a theoretical win. **The identity check found a second defect in this very writer on its
+first two uses**, and it is of exactly the family this lot is about: `write_text` with no `newline`
+lets Python translate every `\n` to `os.linesep`, so on Windows a call meant to touch one section
+came back with **every line of the file changed**. Measured: an LF fixture of 11 lines returned as 11
+CRLF lines. `mission_yaml_editor.save_yaml` — which the MCP composites use — had the same
+construction and the same result. Both now write `newline="\n"`; every `mission.yaml` in this
+repository is LF.
+
+So of the three defects tabled above, the round-trip would have caught two, and it immediately caught
+a fourth nobody had reported. What it cannot catch is `coalition_placeholder`, which raises rather
+than destroys — the lucky version, and `FIX-GROUP-CONTAINER-SHAPE`'s to answer.
+
+**Deliberately not done here:** sweeping every writer in the repository with the identity check. That
+is a lot of its own; the helper existing is what makes it cheap rather than open-ended.
+
 ## Definition of done
 
-- [ ] A section after `build:` survives a build with `--dev-mode`
-- [ ] The docstring's promise becomes true, or it stops promising it
-- [ ] A test that writes a section after `build:` and asserts it survives
-- [ ] The round-trip question above answered in writing, whatever the answer
+- [x] A section after `build:` survives a build with `--dev-mode`
+- [x] The docstring's promise becomes true, or it stops promising it
+- [x] A test that writes a section after `build:` and asserts it survives
+- [x] The round-trip question above answered in writing, whatever the answer

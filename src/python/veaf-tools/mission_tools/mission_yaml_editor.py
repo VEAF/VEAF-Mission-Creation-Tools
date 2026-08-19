@@ -59,7 +59,10 @@ def save_yaml(path: Path, data: CommentedMap) -> Path:
         The path of the timestamped backup taken before the write.
     """
     backup_path = backup_before_write(path)
-    with path.open("w", encoding="utf-8") as handle:
+    # newline="\n" or Python rewrites every line ending as CRLF on Windows, so a call meant to
+    # touch one section changes the whole file (measured 2026-08-19: LF 11 -> CRLF 11). Every
+    # `mission.yaml` in this repository is LF.
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
         _yaml().dump(data, handle)
     return backup_path
 

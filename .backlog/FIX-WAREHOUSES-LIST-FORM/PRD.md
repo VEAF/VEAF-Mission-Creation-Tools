@@ -1,6 +1,6 @@
 # FIX-WAREHOUSES-LIST-FORM — every base neutral in a 6.14.2 build
 
-Status: 🔄 in-progress — fixed and tested; awaiting the 6.14.3 release and Tripack's rebuild.
+Status: 🧑 waiting-human — fixed and tested, and **shipped in 6.15.0** (PR #756, published 2026-08-18). The only thing left is Tripack rebuilding his mission on it and confirming the airfields come back.
 
 Reported by Tripack on 2026-08-17 with two builds of the same mission: `Snowfox_20260816.miz`
 (6.14.0, correct) and `Snowfox_20260817.miz` (6.14.2, every base neutral).

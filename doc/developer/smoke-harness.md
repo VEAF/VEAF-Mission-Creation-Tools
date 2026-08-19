@@ -226,7 +226,7 @@ travers le hook au lieu d'être analysé sur disque.
 
 ## Ce qui reste à faire
 
-Le lot [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) porte le détail. Le
+Le lot [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) porte le détail. Le
 cycle launch → load → assert → quit est désormais **écrit** (mode `--full` ci-dessus), sur les faits que
 la sonde a établis — `net.load_mission` présent et `isServer=true` en solo. L'orchestration est couverte
 par des tests avec des doublures ; le comportement réel des appels DCS eux-mêmes se valide par un run en

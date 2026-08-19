@@ -3,11 +3,13 @@
 Execution order for the open lots in [.backlog/README.md](.backlog/README.md). Source of truth for
 **sequencing**; `.backlog/` stays the source of truth for **scope and status**.
 
-> Refreshed 2026-08-13 after the documentation audit (§2), which added three lots.
-> Previously refreshed 2026-08-06 after the SECREV-2 security work. The original 2026-06-10 sequencing
-> (CI-NODE24 → SECREV → MODULES-UNIFY → conversion cluster → spawn axis → RELEASE) is
-> **fully delivered** and has been retired from this file; see `.backlog/archive/` for the
-> closed lots.
+> Refreshed 2026-08-19 after the GitHub issue triage and the three in-game verification sessions,
+> which between them replaced a twelve-lot open list with a thirty-lot one — almost all of it now
+> carrying a **measured cause** rather than a report.
+> Previously refreshed 2026-08-13 (documentation audit) and 2026-08-06 (SECREV-2). The original
+> 2026-06-10 sequencing (CI-NODE24 → SECREV → MODULES-UNIFY → conversion cluster → spawn axis →
+> RELEASE) is **fully delivered** and has been retired from this file; see `.backlog/archive/` for
+> the closed lots.
 
 ---
 
@@ -44,8 +46,21 @@ extending it:
   the framework mid-mission. None of them raised an error — `validate` was clean and the build was
   silent throughout, which is why a whole release shipped with CTLD switched off.
 
+- **The open issues were read against v6, then answered in game** (2026-08-17/18) — `CHORE-GITHUB-ISSUE-TRIAGE`
+  re-read the **63 open GitHub issues** and closed 17 of them, most as v5-era or already fixed;
+  `CHORE-ISSUE-VERIFY-SESSION` then took the twelve that needed the game and returned **twelve
+  verdicts** in three sessions. Nine were confirmed with the cause located, one was not reproduced
+  and closed, one turned up unplanned while testing another (#128), and one (#245) moved to the
+  smoke harness where it never needed a pilot. That is where most of the open list below comes from,
+  and why it is unusually well-instructed: a lot opened from a measurement is a lot that can be
+  written without re-investigating.
+- **A v5 mission converted to v6 no longer loses settings silently** (6.15.0) — Sharko's #722/#723/#725:
+  a multi-line `setBriefing` truncated the setter chain (302 briefings of 1864), six `combat_zones`
+  setters had no schema key at all, and 14 of 28 scalar keys vanished. `convert-v5` now carries them
+  and, where it cannot, **says so**.
+
 Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.14.2** (2026-08-16).
+release is **6.15.0** (2026-08-18).
 
 ---
 
@@ -54,31 +69,43 @@ release is **6.14.2** (2026-08-16).
 [.backlog/README.md](.backlog/README.md) is the full open list and the source of truth for scope
 and status. This section is the **order**, plus what stands in the way of everything not in it.
 
-### The 2026-08-11 order is delivered
+### The 2026-08-13 order is delivered
 
-The three lots David sequenced on 2026-08-11 — `CHORE-SMS-QUICK-WINS`,
-`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`, `FEAT-MCP-MUTATION-ACTIONS` — are **done down to what needs the
-game or a person**: 2 shipped in full, and the MCP lot closed every ticket an agent can finish
-alone (01-07 plus 08's tooling; 08's capture and 09 want a DCS session). What is left of them is in
-the table below.
+All four lots David sequenced on 2026-08-13 are **closed and archived**: `FIX-DOCAUDIT-CODE`,
+`DOC-AUDIT-FIXES`, `DOC-MODULE-PAGES` and `FIX-RADIO-SPECS-GENERATOR-LOCALE`. So is the 2026-08-11
+order before it. Nothing from either remains open — the whole of this section is new ground.
 
-### The order, decided 2026-08-13
+### Where the open list comes from
 
-Twelve lots are open, plus one opened by the work below. **Four are new**, all born from the
-five-pass documentation audit of 2026-08-13 (~150 defects found while `docs-check` stayed green
-throughout, because everything that rotted is what the gate cannot see: content). They carry most of
-the remaining agent-only work:
+**29 lots are open and ready**, plus 6 waiting on a person or another lot and 2 deliberately
+parked (and 7 more closed in the last three days, archived once past the 3-day rule). Roughly
+two thirds were opened in the last three days, by two chores rather than by a plan: the re-read of
+the 63 GitHub issues, and the three verification sessions that answered the twelve issues needing the
+game. Their PRDs therefore start from a **measurement**, not a report — the cause is located, the
+wrong tracks are recorded so nobody re-walks them, and several carry David's arbitration already.
+
+Two families run through them, and they decide the order:
+
+1. **The tooling destroys work it did not mean to touch.** Three defects of this exact shape surfaced
+   on 2026-08-17 alone — the warehouses table (shipped in 6.15.0), a group container, and the build
+   truncating `mission.yaml` at its own marker. All silent, all found by accident, two of the three
+   catchable by one read/write/compare round trip.
+2. **A runtime behaviour is right for one caller and wrong for another**, applied globally: one alarm
+   state for a SAM and a convoy, one `DynamicSpawn` boolean for every IADS network, one carrier menu
+   for both coalitions, one escort task that survives a teleport but not a respawn.
+
+### The order, decided 2026-08-19
+
+Validated by David the day it was proposed. **Nothing in orders 1 to 5 needs DCS started** — that is deliberate, since the game is not available on the workstation this order was decided on. Everything gated on a running DCS is in the table below and in [DCS-SESSION-TODO.md](DCS-SESSION-TODO.md).
 
 | Order | Lot | Weight | Why here |
 |-------|-----|--------|----------|
-| ✅ | [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) | 6 tickets | **Closed 2026-08-13.** The only lot where the audit proved the **code** wrong, twice on the security surface: the dispatchers refused the tier names David decided (`ADMIN` failed the registration assert) and `_transport` called its check without the marker id, so a listed `SENIOR_PILOT` typed the password anyway. Its ticket 04 hardened four `docs-check` blind spots, which is the *before* half of the sequencing `DOC-AUDIT-FIXES` 04 needs. |
-| **1** | [`DOC-AUDIT-FIXES`](.backlog/DOC-AUDIT-FIXES/PRD.md) 03-04 | 2 tickets | Closes the lot: the holes rather than the lies. The new security model has **no pilot-facing page**, and the CLI has no real reference — David wants full command documentation *in addition to* `--help`. Ticket 04 also carries a debt from the lot above: the hardened option rule is enabled for the updater only, because the mission-maker guide names 4 of the main CLI's 59 long options; the new reference page is what lets it cover the other 59, and enabling it is one tuple entry in `OPTION_RULES`. |
-| **2** | [`DOC-MODULE-PAGES`](.backlog/DOC-MODULE-PAGES/PRD.md) | 3 tickets | Five registered modules have no page and no README row, two of them with player-facing surfaces: `veafGroundAI` (whose `-ai_set` alias is already documented, pointing at nothing) and `veafCombatMission` (the F10 `MISSIONS` menu). David's arbitration d: a lot of its own. |
-| **3** | [`FIX-RADIO-SPECS-GENERATOR-LOCALE`](.backlog/FIX-RADIO-SPECS-GENERATOR-LOCALE/PRD.md) | 1 ticket | Opened by `FIX-DOCAUDIT-CODE` 06, which could not run the generator it was fixing: `update-dcs-data --radio` writes a whole English page over the **French** one and never touches the English page. Measured — 100 lines replaced by 84, `docs-check` green throughout. Small and bounded; last of the four because the manual workaround is documented and works. |
-
-[`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) is looked at once those are
-merged — one ticket, and it is a design decision where **a rejection is an acceptable outcome**. It
-adds nothing to the release by itself, which is why it is not in the ordered set.
+| **1** | [`FIX-MCP-AUTHORING-GAPS`](.backlog/FIX-MCP-AUTHORING-GAPS/PRD.md) | 1 lot | **It is what the next verification mission stands on.** Three holes made an agent hand-edit the mission file, and *every* serious defect of the `verify-mission-c` build came from those hand edits. Fixing it first makes each following lot cheaper to verify; leaving it means paying that tax on every one of them. |
+| **2** | [`FIX-BUILD-YAML-TRUNCATION`](.backlog/FIX-BUILD-YAML-TRUNCATION/PRD.md) + [`FIX-GROUP-CONTAINER-SHAPE`](.backlog/FIX-GROUP-CONTAINER-SHAPE/PRD.md) | 2 lots | Family 1, and they belong together: both PRDs independently ask for the **same** missing guard — a writer that checks it preserved what it did not mean to change. One shared test helper is worth more than either fix alone. The truncation fires on the documented `--dev-mode` workflow and ate a `security:` block three times before the cause was found. |
+| **3** | [`FIX-COMBATZONE-CONVOY-ALARM`](.backlog/FIX-COMBATZONE-CONVOY-ALARM/PRD.md) | 1 lot | #290, **open since April 2025**, cause proven in game 2026-08-17: the zone puts everything it spawns on red alert, and a ground group on red alert holds position. The oldest confirmed defect on the list and the most player-visible. Its open question — who chooses the alarm state, since a convoy and a SAM want opposite ones — is a design call, so it wants a decision before code. |
+| **4** | The verification harvest, in issue order | 6 lots | [`FIX-SKYNET-DYNAMICSPAWN-SCOPE`](.backlog/FIX-SKYNET-DYNAMICSPAWN-SCOPE/PRD.md) (#151+#261), [`FIX-COMBATZONE-DELAYED-COMMAND`](.backlog/FIX-COMBATZONE-DELAYED-COMMAND/PRD.md) (#66), [`FIX-CARRIER-MENU-COALITION`](.backlog/FIX-CARRIER-MENU-COALITION/PRD.md) (#87), [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) (#107 — and it **unblocks** `FEAT-AWACS-ESCORT-COMMANDS`), [`FIX-FARP-ESCORT-PLACEMENT`](.backlog/FIX-FARP-ESCORT-PLACEMENT/PRD.md) (#232), [`FIX-MOVE-ORBIT-SEARCH`](.backlog/FIX-MOVE-ORBIT-SEARCH/PRD.md) (#248). Each closes a GitHub issue whose cause is already located: writing work, not investigation. |
+| **5** | [`FEAT-ROLE-AWARE-RADIO-MENU`](.backlog/FEAT-ROLE-AWARE-RADIO-MENU/PRD.md) | 1 lot | #128, widened by David from "the menu is empty" to *a reasonable menu per role*. First of the features because a game master hits it immediately, and because it is two problems rather than one — making the command visible, and letting a handler answer with no caller unit. |
+| **6** | The rest of the ⬜ list | ~18 lots | No ordering constraint between them yet: the combat-zone options (`RENAME-OPTION`, `ZONE-TYPE-SILENT`), the spawn and radio features (`SMOKE-CSAR-WATER`, `SLOT-WELCOME-BRIEF`, `WAYPOINT-BULLSEYE`, `RADIO-BEACONS`, `BRIEFING-METAR`, `ARTILLERY-CONTROL`, `CONVOY-WAYPOINTS`, `AIRWAVES-QRA-MERGE`, `QRA-AIRBASE-LINK`, `CTLD-SLINGLOAD-TOGGLE`, `GROUP-COMBAT-INEFFECTIVE`, `INTERPRETER-PARITY`, `SPAWN-OPTION-VALIDATION`, `PLATOON-UNITS`) and [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md), still a design lot where **a rejection is an acceptable outcome**. |
 
 ### Blocked on a person, or on a DCS session
 
@@ -87,24 +114,26 @@ running order and with the commands to paste, in [DCS-SESSION-TODO.md](DCS-SESSI
 
 | Lot | Status | Gate |
 |-----|--------|------|
-| [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md) | 🔄 | Everything an agent can finish alone is merged. **Ticket 08's capture needs a DCS session** — `capture-map --parking` over the existing dcs-bridge, five minutes per theatre — and ticket 09 (`add_air_group` on a ramp) is blocked on that data. The editor round trips for the six unmeasured drawing shapes are the same session. |
+| [`FIX-WAREHOUSES-LIST-FORM`](.backlog/FIX-WAREHOUSES-LIST-FORM/PRD.md) | 🧑 | Fixed, tested and **shipped in 6.15.0**. Waiting on Tripack rebuilding his mission on it and confirming the airfields come back. |
+| [`FIX-WAREHOUSES-INCREMENTAL`](.backlog/FIX-WAREHOUSES-INCREMENTAL/PRD.md) | 🧑 | Implemented 2026-08-16; one in-game confirmation that a mission with a single assigned airfield still ships all the others. |
+| [`FIX-CONVERT-V5-SILENT-LOSSES`](.backlog/FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) | 🧑 | All five tickets shipped 2026-08-17 and released. Waiting on Sharko's two harnesses, which are the acceptance test we agreed to. |
+| [`FEAT-AWACS-ESCORT-COMMANDS`](.backlog/FEAT-AWACS-ESCORT-COMMANDS/PRD.md) | 🧑 | Blocked **on a lot rather than a person since 2026-08-18**: `FIX-ESCORT-RESPAWN-TASK` located the escort bug, so shipping `-escortme` on top of it would hand a pilot a decorative escort. Unblocks itself at order 4 above; the AWACS half never depended on it and can ship first. |
 | [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) | 🔄 | Ticket 02 is **delivered but unproven**: Gemini CLI is not installed here, so "tested rather than assumed" is unmet. One command validates it. |
-| [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) | ✅ | Delivered 2026-08-11 and verified against the real Foothold Caucasus 4.4.1 `.miz`. One in-game confirmation left, on David. |
+| [`FEAT-ASSIST-FOLLOWUP`](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11 and still wants one flight — no unit test can see DCS's resource cache. 02 needs a second pilot, 03 needs cockpit time, 04 deferred on purpose. |
 | [`ENRICH-DEFAULT-PRESETS`](.backlog/ENRICH-DEFAULT-PRESETS/PRD.md) | ⬜ | A 🧑 **collaboration session with Tripack** to broaden the default `presets.yaml`. |
-| [`FEAT-DCS-SMOKE-HARNESS`](.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) | 🔄 | Its remaining slice — locate, launch, load, quit. `net.load_mission` and `Sim.exitProcess` are **measured present** and `isServer()` is true in single-player, so nothing technical blocks it; **starting DCS is David's to do on his own session.** |
-| [`FEAT-ASSIST-FOLLOWUP`](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11. **Kept for after the release on David's call** — 02 needs a second pilot, 03 needs cockpit time, and 04 is deferred on purpose. Ticket 01 still wants one flight to confirm it, since no unit test can see DCS's resource cache. |
 | [`FEAT-ASSIST-AUTHORING`](.backlog/FEAT-ASSIST-AUTHORING/PRD.md) | ⏸ | Parked by David 2026-08-03 — checklists nobody reviews are not worth generating. Ticket 06 waits on a pilot's verdict on the F-14B(U) procedure. |
-| [`FIX-SECREV2-EXPIRED-DEFERRALS`](.backlog/FIX-SECREV2-EXPIRED-DEFERRALS/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11 (VMR-088, a unit's life read twice). Ticket 02 — the fiddle-server port — needs a DCS session. |
+| [`REFACTOR-SPAWN-AIR-TEMPLATES`](.backlog/REFACTOR-SPAWN-AIR-TEMPLATES/PRD.md) | ⏸ | Parked on purpose: no player-visible symptom. Do it when someone is already in that code. |
 
-**`FEAT-DCS-SMOKE-HARNESS` was the lever, and it paid.** Run on the DCS workstation on 2026-08-06, it
-answered two pending in-game questions by machine rather than by a person: it closed
-`FEAT-COMBATZONE-MENU-COALITION` (open since July) and turned `Disposition` from assumed into existing.
-It also cost three of its own defects to get there — all the same mistake, *"it came back" is not "it
-worked"* — every one invisible to `dcs_mocks.lua` by construction. Keep going there: the remaining
-checks are data entries now, not investigations.
+**`FEAT-DCS-SMOKE-HARNESS` closed 2026-08-15**, and it paid twice over. Run on the DCS workstation on
+2026-08-06 it answered two pending in-game questions by machine rather than by a person — closing
+`FEAT-COMBATZONE-MENU-COALITION` (open since July) and turning `Disposition` from assumed into
+existing. Its last slice, an unattended single-player load, was **dropped rather than built**: DCS
+does not document it. `FEAT-SMOKE-CSAR-WATER` is the first lot written *for* the harness instead of
+for a pilot — #245 asks whether CSAR spawns on water, which is a `land.getSurfaceType` call, not a
+flight.
 
-`RELEASE` stays as a recurring chore template, not a one-shot lot. It is starting to mature:
-**6.13.0 was published 2026-08-01 and `develop` is 95 patch versions ahead.**
+`RELEASE` stays as a recurring chore template, not a one-shot lot. **6.15.0 was published 2026-08-18**;
+the cadence off `develop` is now roughly weekly.
 
 ### Security work closed 2026-08-11
 
@@ -123,7 +152,7 @@ and the criticals were live on the VEAF servers.
 unlocks the mission for everybody.** A pilot listed in `veaf-pilots.txt` notices nothing; a pilot who is
 not listed must give the password on every command. See the top of the changelog.
 
-**Delivered since the last refresh:**
+**Delivered in the 2026-08-06 → 08-13 window** (what came after is in §1):
 
 - `FEAT-CTLD2-INTEGRATION` — the bundled CTLD becomes [VEAF/CTLD](https://github.com/VEAF/CTLD) 2 and
   moves its configuration to a `ctld-config.yaml` sidecar
@@ -180,7 +209,7 @@ v6), tagged `published-v6.10.0` (binaries + GitHub Release + `published-latest`)
 | Theme | Initiative | One-line intent | Notes / dependencies |
 |-------|------------|-----------------|----------------------|
 | **Missions** | **PORT-MISSIONS-V6** | Port all VEAF missions (the *open trainings*) to v6. | 🔄 **In progress on David's side** (manual port). Also a large-scale real-world validation of the v6 tooling. |
-| **dcs-sms** | **DCS-SMS-EXPLOIT** | Borrow ideas from [nielsvaes/dcs-sms](https://github.com/nielsvaes/dcs-sms) (DCS scripting framework + Mission Editor mod + host CLI). Four tiers: **(🟢 quick wins)** write the DCS coordinate convention down, ship the authoring skill to Gemini, add a `dev_condition`-style test hatch to assistance steps; **(🟡 MCP mutation wave)** their 126 `me <noun> <verb>` verbs read as a coverage grid — see NL-MISSION-GEN below; **(🟡 real-DCS smoke harness)** assert through the bridge inside a running DCS, plus their documented test-mission contract; **(🔵 later)** autogenerated reference with a CI freshness gate, and portable prefabs with a shared manifest-driven library. | 🔍 **Explored, and now scoped into real lots** (2026-08-05) — see [`docs/exploration/DCS-SMS-EXPLOIT.md`](docs/exploration/DCS-SMS-EXPLOIT.md). ⚠️ **`tools/` is GPL v3** (the CLI, the ME mod, the hook): read and rewrite, never copy. Two items were already closed — the live-ME bridge is **rejected** ([ADR 0017](docs/adr/0017-no-live-mission-editor-bridge.md)) and their cockpit-highlight machinery **shipped** as `FEAT-ASSIST-CHECKLISTS`. The rest is now filed, in rough order of value: [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md) (§1 — the MCP edits nothing it did not create; triage by intent first, **not** a port of their 126 verbs), [`FEAT-DCS-SMOKE-HARNESS`](.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) (§2 — four in-game checks are currently queued behind a human; never a CI gate, since runners have no DCS), [`TOOLING-DOC-AUTOGEN`](.backlog/archive/TOOLING-DOC-AUTOGEN.md) (§3 — only `ALIASES` and the MCP catalogue are derivable; the 118 KB `LUA_API_REFERENCE` is prose and stays hand-written), [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) (§4 — a **design** lot: their implementation is GPL *and* editor-bound, so the selection front-end must be invented or the idea dropped) and [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) (§5 — all three still absent). |
+| **dcs-sms** | **DCS-SMS-EXPLOIT** | Borrow ideas from [nielsvaes/dcs-sms](https://github.com/nielsvaes/dcs-sms) (DCS scripting framework + Mission Editor mod + host CLI). Four tiers: **(🟢 quick wins)** write the DCS coordinate convention down, ship the authoring skill to Gemini, add a `dev_condition`-style test hatch to assistance steps; **(🟡 MCP mutation wave)** their 126 `me <noun> <verb>` verbs read as a coverage grid — see NL-MISSION-GEN below; **(🟡 real-DCS smoke harness)** assert through the bridge inside a running DCS, plus their documented test-mission contract; **(🔵 later)** autogenerated reference with a CI freshness gate, and portable prefabs with a shared manifest-driven library. | 🔍 **Explored, and now scoped into real lots** (2026-08-05) — see [`docs/exploration/DCS-SMS-EXPLOIT.md`](docs/exploration/DCS-SMS-EXPLOIT.md). ⚠️ **`tools/` is GPL v3** (the CLI, the ME mod, the hook): read and rewrite, never copy. Two items were already closed — the live-ME bridge is **rejected** ([ADR 0017](docs/adr/0017-no-live-mission-editor-bridge.md)) and their cockpit-highlight machinery **shipped** as `FEAT-ASSIST-CHECKLISTS`. The rest is now filed, in rough order of value: [`FEAT-MCP-MUTATION-ACTIONS`](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md) (§1 — the MCP edits nothing it did not create; triage by intent first, **not** a port of their 126 verbs), [`FEAT-DCS-SMOKE-HARNESS`](.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) (§2 — four in-game checks are currently queued behind a human; never a CI gate, since runners have no DCS), [`TOOLING-DOC-AUTOGEN`](.backlog/archive/TOOLING-DOC-AUTOGEN.md) (§3 — only `ALIASES` and the MCP catalogue are derivable; the 118 KB `LUA_API_REFERENCE` is prose and stays hand-written), [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md) (§4 — a **design** lot: their implementation is GPL *and* editor-bound, so the selection front-end must be invented or the idea dropped) and [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) (§5 — all three still absent). |
 | **TUM** | **TUM-EXPLOIT** | Borrow techniques from TUM's code. Two distinct axes: **(🟢 native)** the undocumented **`Disposition`** DCS singleton for scenery-aware ground spawning — directly usable, no prereq; **(🔴 server)** `net.dostring_in` + `a_*` internals (live HP/briefing, JSON persistence) — powerful but server-only. | 🔍 **Explored** — see [`docs/exploration/TUM-EXPLOIT.md`](docs/exploration/TUM-EXPLOIT.md). **🟢 tier SHIPPED** as [`FEAT-SCENERY-AWARE-SPAWN`](.backlog/archive/FEAT-SCENERY-AWARE-SPAWN.md) (2026-08-05, [ADR 0018](docs/adr/0018-undocumented-dcs-api-dependency.md)): `veaf.findSpawnPoint` searches in three bounded tiers — `Disposition` first, validated random draws second, explicit failure third — wired into the four dynamic ground spawners plus the generic `doSpawnGroup`, the convoy excluded since its departure point is its route origin; typed zone-property accessors came with it. The in-game probe was **deferred**, so the avoidance is asserted rather than measured. 🔴 tier feeds PERSISTENCE/DYNAMIC-CAMPAIGN and needs an `autoexec.cfg` unsanitize + SECREV fencing. |
 | **Runtime** | **SPAWN-FIRES** | Spawn fires, not just smoke. `veafSpawn.spawnSmoke` exists (`veafSpawnEffects.lua:282`); nothing spawns a fire — grepped, no `spawnFire`, no `effectPresets`, no `bigSmokeAndFire` anywhere in the runtime. | 🔍 **From closing [#67 sibling #39](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/39)** (2026-08-17), a 2021 exploration whose smoke half was answered and whose fire half was never attempted. **David's lead: reuse the explosions of `_bomb`** — `veafSpawn.spawnBomb` already schedules `trigger.action.explosion` (`veafSpawnEffects.lua:248-276`), so the plumbing for repeated timed effects at a marker exists. To instruct before building: whether DCS's own big-smoke presets already include fire (which would make this a parameter rather than a feature), and whether an explosion leaves anything persistent or only a flash — an explosion is an event, a fire is a state, and the issue asked for the second. |
 | **Multiplayer** | **MP-PVP-REWORK** | Make the scripts usable in an MP/PVP mission, as a basis for a wargame: a global setting to stop coalition inversion on spawn, per-coalition restrictions on what can be spawned (with warehousing in mind), and **infantry/MANPAD deployment** around vehicles that stop — the Low Level Hell behaviour, on `disperseOnAttack` or at a designated point. | 🔍 **From closing [#129](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/129) and [#132](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/132)** (RexAttaque, 2022) on 2026-08-17. Both carried `help wanted` for **four years** with no taker, including their author — not for lack of value, but because #129 is a design chantier rather than a ticket: it touches spawning, coalitions and warehousing at once. Kept here so the ideas survive the closure, since a four-year-old open issue is not closer to being done than a roadmap line. |

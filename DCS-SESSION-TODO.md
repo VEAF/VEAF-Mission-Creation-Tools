@@ -27,7 +27,7 @@ none of these fixes, so a mission built the ordinary way would show the old beha
 
 **Utiliser `TestMenuFR-fixed.miz`**, à côté, et non `TestMenuFR.miz` : la première corrige les trois
 défauts mesurés le 2026-08-15 sur la seconde — l'A-10 marqué `dynSpawnTemplate`, sa radio coupée, et un
-démarrage à 03:48 ([ticket 04](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/04-start-time.md)). Tout
+démarrage à 03:48 ([ticket 04](.backlog/archive/FIX-SCRATCH-MISSION-PLAYABLE.md)). Tout
 le reste est identique, octet pour octet.
 
 Rebuild it, if needed, with:
@@ -45,7 +45,7 @@ veaf-tools mission build TestMenuFR . --dev-mode --scripts-path D:/dev/_VEAF/VEA
 ## ✅ 0. The F10 menu reads French — verified in game 2026-08-14
 
 David, in front of the game: the labels are correct. The 90 localised labels of
-[`FIX-RADIO-MENU-I18N`](.backlog/FIX-RADIO-MENU-I18N/PRD.md) are confirmed, and the release is no
+[`FIX-RADIO-MENU-I18N`](.backlog/archive/FIX-RADIO-MENU-I18N.md) are confirmed, and the release is no
 longer gated on this. Kept as a line rather than deleted because it is the release's evidence.
 
 ## ✅ Le slot A-10 du 2026-08-14 : `dynSpawnTemplate`
@@ -69,7 +69,7 @@ des templates de groupe, et pas de base aérienne configurée pour les slots dyn
 **`skill` est innocenté** : David, 2026-08-15 — *"c'est pas le slot Client ; ça fonctionne dans une
 mission DCS"*. Les ids forcés aussi (l'éditeur écrit 900x lui-même), et la paire parking, complète des
 deux côtés. Consigné dans
-[`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/FIX-SCRATCH-MISSION-PLAYABLE/tickets/03-player-slot.md).
+[`FIX-SCRATCH-MISSION-PLAYABLE` 03](.backlog/archive/FIX-SCRATCH-MISSION-PLAYABLE.md).
 
 **`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi), et **le slot a été pris en
 jeu le 2026-08-15** — *"le A-10 fonctionne"*. Le correctif est donc mesuré, pas supposé, et cette
@@ -86,7 +86,7 @@ mission est celle à utiliser pour la suite de la session.
 
 ## ✅ 0b. Les deux correctifs de sécurité — vérifiés en jeu 2026-08-15
 
-Tous deux issus de [`FIX-DOCAUDIT-CODE`](.backlog/FIX-DOCAUDIT-CODE/PRD.md) (PR #730). Gardés comme
+Tous deux issus de [`FIX-DOCAUDIT-CODE`](.backlog/archive/FIX-DOCAUDIT-CODE.md) (PR #730). Gardés comme
 preuve de release plutôt que supprimés.
 
 - **Les noms de paliers passent.** `dcs.log` ne contient **aucun** avertissement de dépréciation — la
@@ -104,7 +104,7 @@ qu'une fois, reconstruire la mission d'abord.
 
 Caucasus, Syria et PersianGulf : **276 aérodromes, 6521 places**, dans
 `veaf_build/dcs_data/airbase_dumps/parking/`. Le ticket
-[08](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/08-capture-parking-data.md) est clos.
+[08](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md) est clos.
 
 Ce que la donnée a **révélé, et qui bloque le 09** : `Term_Index_0` vaut `-1` sur les 6521 places,
 donc `parking_id` **ne vient pas** de cette capture — voir l'item 9 ci-dessous. Au passage, `Term_Type`
@@ -114,7 +114,7 @@ aussi des missions pour GermanyCW, MarianaIslands, Normandy et SinaiMap.
 
 ## 🔎 9. D'où vient `parking_id` ? — débloque le ticket 09
 
-[`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/09-add-air-group.md)
+[`FEAT-MCP-MUTATION-ACTIONS` 09](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md)
 (*"un deux-ship de F-16 sur la ramp à Incirlik"*) a besoin de `parking` **et** `parking_id` pour un
 départ au parking. La capture donne `parking` (= `Term_Index`) et la **position exacte** du stand, mais
 **pas** `parking_id` (`Term_Index_0` = -1 partout, et les paires parking/parking_id des vraies missions
@@ -139,9 +139,9 @@ quand tu me diras que tu es en jeu.
 ## ✅ 2 et 2b — faits le 2026-08-15
 
 Les deux aller-retours dans l'éditeur ont eu lieu. Résultats consignés dans
-[`FIX-MCP-EDITOR-ROUNDTRIP`](.backlog/FIX-MCP-EDITOR-ROUNDTRIP/PRD.md) (4 tickets) et dans le
-[ticket 07](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/07-map-drawings.md), qui donne naissance au
-[ticket 10](.backlog/FEAT-MCP-MUTATION-ACTIONS/tickets/10-remaining-drawing-shapes.md).
+[`FIX-MCP-EDITOR-ROUNDTRIP`](.backlog/archive/FIX-MCP-EDITOR-ROUNDTRIP.md) (4 tickets) et dans le
+[ticket 07](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md), qui donne naissance au
+[ticket 10](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md).
 
 Ce que l'éditeur a **gardé** : le groupe déplacé de 6 km avec sa route, le renommage, l'emport, la
 ligne et l'étiquette sur la couche Blue, le waypoint retiré avec son reverrouillage d'heure — et la
@@ -165,7 +165,7 @@ reconstruction depuis le dossier.
 ## 2. Open a mutated mission in the Mission Editor
 
 The acceptance criterion of
-[`FEAT-MCP-MUTATION-ACTIONS` 02 and 03](.backlog/FEAT-MCP-MUTATION-ACTIONS/PRD.md), and the only half
+[`FEAT-MCP-MUTATION-ACTIONS` 02 and 03](.backlog/archive/FEAT-MCP-MUTATION-ACTIONS.md), and the only half
 no test can cover — `FIX-MAPRESOURCE-KEY` is what a plausible-looking write the editor rejects costs.
 
 Take any built `.miz`, then through the MCP (or a Python call):
@@ -219,7 +219,7 @@ Edit a checklist step's text, rebuild, and fly it **without restarting DCS**. Th
 
 ## 4. Confirm the staggered script loading
 
-[`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/FEAT-CUSTOM-SCRIPT-LOAD-DELAY/PRD.md) is ✅ and verified
+[`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/archive/FEAT-CUSTOM-SCRIPT-LOAD-DELAY.md) is ✅ and verified
 against the real Foothold Caucasus 4.4.1 `.miz`, but never watched in game.
 
 Build an adopted Foothold and check `dcs.log`: 6 scripts at start, 5 around +3 s, AIEN at +12 s. The
@@ -232,18 +232,18 @@ t+2 s onwards, and loading AIEN at t=0 shows it an empty one **with no log error
 resolved, and its four automatic steps already verified in game on 2026-08-03. All that is left is
 your verdict on whether the procedure matches what you actually do.
 
-## 6. The smoke harness's remaining slice
+## ✅ 6. The smoke harness's remaining slice — closed 2026-08-15
 
-[`FEAT-DCS-SMOKE-HARNESS`](.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) — locate, launch, load, quit.
-`net.load_mission` and `Sim.exitProcess` are **measured present** and `isServer()` is true in
-single-player, so nothing technical blocks it. Starting DCS is the part only you can do.
+[`FEAT-DCS-SMOKE-HARNESS`](.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) — locate, launch, load, quit.
+The runner shipped; the unattended single-player load was **dropped rather than built** — DCS does
+not document it, David's call. Nothing left here.
 
 This is the lever that pays: run once on 2026-08-06 it closed `FEAT-COMBATZONE-MENU-COALITION` (open
 since July) and turned `Disposition` from assumed into existing.
 
-## 7. Test a token on the fiddle-server port
+## ✅ 7. Test a token on the fiddle-server port — validated in game 2026-08-15
 
-[`FIX-SECREV2-EXPIRED-DEFERRALS` 02](.backlog/FIX-SECREV2-EXPIRED-DEFERRALS/PRD.md) — **VMR-013**, and
+[`FIX-SECREV2-EXPIRED-DEFERRALS` 02](.backlog/archive/FIX-SECREV2-EXPIRED-DEFERRALS.md) — **VMR-013**, and
 it is a live security hole rather than a nicety: the port executes arbitrary Lua from unauthenticated
 HTTP, and with `cors='*'` plus a GET channel, any web page visited while the hook is installed gets
 code execution.

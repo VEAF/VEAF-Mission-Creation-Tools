@@ -3,6 +3,7 @@ This module provides classes for reading and writing missions to and from .miz f
 """
 
 import contextlib
+import dataclasses
 import io
 import os
 import tempfile
@@ -15,6 +16,8 @@ from typing import IO, Any
 import luadata
 from veaf_libs.logger import logger
 from veaf_libs.safe_zip import safe_extract_all, safe_read_member
+
+from mission_tools.sequence_normalisation import HoleClosed, normalise_mission_sequences
 
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
@@ -77,6 +80,14 @@ class DcsMission:
     mission, and the cost of the assumption being wrong is not an exception but a silently emptied
     airfield table, which is the defect FIX-WAREHOUSES-LIST-FORM exists to prevent. The call is a
     no-op once the contract holds.
+
+    **Contract on `mission_content`**: every sequence table of the mission — group containers, units,
+    route points, trigger zones and the rest, enumerated in
+    :mod:`mission_tools.sequence_normalisation` — is a **list**, never the dict the Lua parser hands
+    back when the keys are not a contiguous ``1..N``. Eight readers assumed that and were silently
+    wrong on any mission a hand edit had holed. `sequence_holes` records what had to be closed to make
+    it true, so a caller can say **where** rather than let the build die at whichever subsystem read
+    the table first.
     """
 
     file_path: Path
@@ -86,6 +97,8 @@ class DcsMission:
     warehouses_content: dict | None = None
     dictionary_content: dict[str, str] | None = None
     map_resource_content: dict[str, str] | None = None
+    sequence_holes: list[HoleClosed] = dataclasses.field(default_factory=list)
+    """Sequence tables whose keys were not a contiguous ``1..N`` and had to be closed on load."""
     missing_components: list = field(default_factory=list)
 
     def iter_groups(self) -> Iterator[Group]:
@@ -198,6 +211,7 @@ def read_miz(miz_file_path: Path) -> DcsMission:
             miz, f"{DEFAULT_SCRIPTS_LOCATION}/mapResource", result.missing_components
         )
 
+    result.sequence_holes = normalise_mission_sequences(result.mission_content)
     return result
 
 
@@ -259,6 +273,7 @@ def read_mission_folder(folder_path: Path) -> DcsMission:
     result.dictionary_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/dictionary")
     result.map_resource_content = read_loose_file(f"{DEFAULT_SCRIPTS_LOCATION}/mapResource")
 
+    result.sequence_holes = normalise_mission_sequences(result.mission_content)
     return result
 
 

@@ -1,132 +1,125 @@
-# VEAF Mission Creation Tools — 6.15.0
+# VEAF Mission Creation Tools — 6.15.4
 
-**Ce que les outils perdaient en silence.**
+**Du code qui écrivait sans regarder ce qu'il effaçait.**
 
-Les trois chantiers de cette version racontent la même histoire : une mission qui a l'air correcte
-et qui ne l'est pas. Des bases devenues neutres à la construction, des briefings tronqués à la
-conversion, la moitié des réglages d'un `missionConfig.lua` évaporés sans un mot. Aucun message
-d'erreur, aucun avertissement — le fichier se construisait, la conversion se terminait, et le
-problème n'apparaissait qu'en vol.
+Cette version rassemble tout ce qui a été corrigé depuis la 6.15.0, et le fil est le même d'un bout
+à l'autre : un outil qui écrit quelque part sans vérifier ce qui s'y trouvait déjà. Un réglage effacé
+du `mission.yaml`, une mission dont la construction meurt sur une erreur qui ne désigne rien, un
+avion créé sans une goutte de carburant — et, le plus visible de tous, un `veaf-tools.exe` qui ne
+démarrait plus du tout.
 
-Le fil rouge n'est pas « on a ajouté des fonctionnalités ». C'est : **ce qui disparaissait est
-désormais soit porté, soit dit.**
-
----
-
-## ⚠️ À faire en premier si vous avez construit une mission avec la 6.14.2
-
-**Reconstruisez-la.** Toutes ses bases sont neutres — aucune n'appartient à une coalition, les
-stocks d'avions sont vides, les slots dynamiques désactivés.
-
-Votre **dossier de mission source est intact** : la construction ne le réécrit jamais. Une simple
-reconstruction avec cette version restaure tout.
+Aucune de ces pannes ne se voyait dans nos tests. La deuxième moitié de cette version consiste donc
+à installer les contrôles qui les rendent visibles la prochaine fois.
 
 ---
 
-## Les bases ne deviennent plus neutres
+## ⚠️ À faire en premier
 
-Signalé par **Tripack**, avec deux constructions de la même mission — une en 6.14.0 correcte, une en
-6.14.2 avec toutes les bases neutres. Ces deux fichiers ont donné la cause en une comparaison.
+**Si vous avez mis à jour en 6.15.0 : mettez à jour à nouveau.** Votre `veaf-tools.exe` ne démarre
+plus sur aucune commande. Il n'y a rien d'autre à faire — aucun fichier de votre côté n'a été abîmé.
 
-Ce qui se passait : DCS range les aérodromes dans une table indexée par leur numéro. Une mission qui
-déclare **tous** les aérodromes de sa carte a donc les numéros 1, 2, 3… à la suite — et sous cette
-forme précise, le lecteur de fichiers rendait une liste là où le code attendait un dictionnaire. Le
-garde-fou écrit pour se protéger d'une table absente attrapait en réalité **le cas normal** : il
-jetait les aérodromes de la mission et les remplaçait par des entrées neutres par défaut.
-
-Mesuré sur la mission de Tripack : 29 aérodromes portant 26 bases rouges, 1 bleue et trois stocks
-d'avions ressortaient en 30 entrées neutres sans rien. Après correction, ses 26 rouges, sa bleue et
-ses trois stocks sont intacts, et le seul aérodrome ajouté est celui que sa mission n'avait jamais
-déclaré.
-
-Deux autres commandes plantaient sur la même forme de fichier — l'attribution d'une base à une
-coalition et l'injecteur de stocks — et sont corrigées avec.
+**Si vous avez construit une mission en mode développeur (`--dev-mode`) entre le 17 et le 19 août :
+ouvrez votre `mission.yaml` et vérifiez ce qui suivait la section `build:`.** Cette partie du fichier
+pouvait être effacée à chaque construction, sans un message. Un bloc `security:` avec ses mots de
+passe est le cas typique — s'il a disparu, il faut le réécrire. Cela ne concerne que le mode
+développeur ; une construction normale n'a jamais touché à ce fichier.
 
 ---
 
-## Conversion v5 → v6 : trois pertes silencieuses
+## L'outil ne démarrait plus
 
-Trois rapports de **Sharko**, chacun accompagné d'un banc de mesure, de témoins de contrôle et
-d'une re-mesure contre la version courante. C'est cette qualité de rapport qui a permis de corriger
-sans deviner.
+Signalé par **Tripack**, copie d'écran à l'appui — et cette copie d'écran donnait la cause en une
+lecture. Lancer `veaf-tools.exe` affichait un message d'erreur et rien d'autre, quelle que soit la
+commande demandée, y compris `--help`.
 
-### Un briefing sur plusieurs lignes n'efface plus la suite
+Ce qui se passait : à l'intérieur de l'outil, un ensemble de composants s'est mis à se charger
+**seulement quand on en a besoin**, ce qui est une bonne chose en soi. Mais le programme qui fabrique
+l'exécutable devine ce qu'il doit embarquer en **lisant le code** — et du code qui ne charge rien à
+l'avance ne lui annonce rien à embarquer. Onze composants sont donc restés dehors, dont celui que
+l'outil réclame à la première seconde.
 
-Un briefing écrit en plusieurs morceaux coupait la lecture de la zone de combat — et **tous les
-réglages écrits après lui étaient perdus**. La perte dépendait de la position dans le fichier, pas
-du réglage : rien, dans le réglage manquant, ne pouvait mettre sur la piste.
+Toute la ligne 6.15 était concernée : ce n'est pas une commande qui échouait, c'est l'outil qui ne
+s'ouvrait pas. Corrigé, et vérifié sur un exécutable reconstruit — les 25 commandes s'affichent, et
+une génération de `mission.yaml` se déroule normalement.
 
-Sur le corpus de campagnes de Sharko : **302 briefings tronqués sur 1864 zones**, le pire passant de
-137 caractères à 6.
-
-### Six réglages de zone de combat existent enfin
-
-`completable`, `show_units_list`, `show_zone_position_info`, `smoke_and_flare`,
-`radio_menu_disabled`, et la désactivation de l'activation par les joueurs. Ces réglages servent
-tous à **désactiver** quelque chose, et la valeur par défaut est « activé » : les perdre ne
-remettait pas à neutre, cela **inversait** le comportement.
-
-Le plus lourd de conséquences est `completable`. Sans lui, une zone qui ne contient aucune unité
-rouge se déclare terminée toute seule environ une minute après son activation, annonce « tous les
-ennemis sont détruits » et enchaîne sur la zone suivante. Sur 82 zones de narration ou de soutien,
-c'est une campagne qui déraille.
-
-`radio_menu_disabled` vient juste après : 171 zones volontairement cachées réapparaissaient dans le
-menu F10, sous les noms provisoires que leurs auteurs leur avaient donnés justement parce que
-personne ne devait les voir.
-
-### Les réglages généraux sont portés, et ce qui ne l'est pas est écrit
-
-Sur 28 réglages scalaires mesurés, **14 n'arrivaient nulle part** — mots de passe de sécurité et
-réglages de défense antiaérienne compris.
-
-Deux réponses, ensemble :
-
-- **`module_settings:`**, une nouvelle section de `mission.yaml`, porte les réglages posés
-  directement sur une table VEAF (`veafSkynet.DelayForStartup`, `veafRadio.RadioMenuName`…). Elle
-  est **générique** : les quatorze réglages perdus ont été mesurés sur les campagnes d'un seul
-  mission maker, alors des clés nommées une par une auraient couvert celles-là et laissé les
-  quatorze suivantes à découvrir de la même façon.
-- **Ce que la conversion ne sait toujours pas porter** — une table, une fonction — est désormais
-  listé tel quel, en commentaire, dans le `mission-script.lua` généré sous « Settings NOT
-  migrated », et nommé dans le rapport de conversion. Vous pouvez décommenter ce dont vous avez
-  besoin.
-
-Les **mots de passe de mission** survivent aussi à la conversion, dans `security.password_hashes`.
-Avec une précaution : les deux empreintes que le framework embarque pour toutes les missions ne sont
-**jamais** recopiées — elles sont publiques, et les migrer aurait rouvert une faille fermée
-précédemment.
+**Ce qui change pour de bon :** avant chaque publication, la chaîne automatique **construit
+l'exécutable et le lance**. Jusqu'ici, tous nos contrôles s'exécutaient depuis le code source, où ce
+genre de défaut est parfaitement invisible — c'est pour cette raison qu'il est passé, ainsi que deux
+autres du même genre avant lui.
 
 ---
 
-## Changement de comportement à la conversion
+## Le `mission.yaml` n'est plus tronqué
 
-`convert-v5` porte maintenant dans `mission.yaml` des réglages qu'il laissait auparavant dans le
-Lua. Conséquence visible si vous comparez deux conversions : un bloc `if veafSpawn then … end` qui
-ne contenait qu'un réglage scalaire est désormais entièrement mis en commentaire, le réglage étant
-parti dans `module_settings:`. C'est voulu.
+Le mode développeur enregistre ses réglages dans la section `build:` de votre `mission.yaml`. Pour le
+faire, il coupait le fichier à cet endroit et le réécrivait — donc **tout ce que vous aviez écrit
+après cette section disparaissait**. Silencieusement, à chaque construction.
 
-Aucune rupture de schéma par ailleurs : toutes les nouvelles clés sont optionnelles et les valeurs
-par défaut sont inchangées.
+La première construction est inoffensive, puisque `build:` est ajouté à la fin. Les dégâts commencent
+au moment où l'on ajoute quelque chose après — ce qui est le geste naturel quand le fichier se termine
+là. Mesuré : un bloc `security:`, ses empreintes de mots de passe et le commentaire final du fichier,
+tous effacés en un appel.
+
+Un second défaut a été trouvé dans le même mouvement : sous Windows, ces mêmes écritures
+retournaient **toutes les lignes** du fichier au lieu de la seule section concernée, ce qui rendait
+illisible la moindre comparaison entre deux versions de votre mission.
+
+---
+
+## Une mission aux numéros à trous ne tue plus la construction
+
+Les fichiers de mission DCS rangent leurs éléments dans des tables numérotées. Retirez un groupe à la
+main, ou passez la mission dans un outil tiers, et la numérotation devient `1, 3, 4` au lieu de
+`1, 2, 3`. DCS s'en accommode ; nos outils, non : la construction mourait sur une erreur technique
+désignant un sous-système qui n'avait rien à voir avec le groupe supprimé.
+
+Les groupes, les unités, les points de route, les zones de déclenchement et leurs sommets, les
+dessins de carte et les tâches imbriquées sont désormais renumérotés **à la lecture**, une fois pour
+toutes. La commande `validate` vous **nomme** le trou refermé plutôt que de le réparer en silence.
+
+Vérifié sur toutes les missions du dépôt : la renumérotation ne change pas un octet. Les
+configurations d'armement sont volontairement laissées telles quelles — elles sont numérotées par
+point d'emport, et les renuméroter déplacerait chaque arme sous l'aile.
+
+---
+
+## Édition de mission assistée : quatre trous fermés
+
+Ces outils permettent à un assistant de modifier une mission pour vous. Quatre défauts les rendaient
+plus dangereux qu'utiles.
+
+- **Un avion créé n'avait pas de carburant.** Zéro, littéralement. Un vol créé en l'air tombait à
+  l'instant où il apparaissait ; un départ au parking masquait le problème, DCS ravitaillant un avion
+  garé sur les stocks du terrain. Le plein interne du type d'appareil est désormais la valeur par
+  défaut, et une quantité précise peut être demandée.
+- **Supprimer un groupe** est maintenant possible, et l'opération **renumérote** ce qu'elle laisse
+  derrière elle — c'est cette absence qui produisait les trous décrits plus haut. Elle nomme aussi ce
+  qui casserait autrement sans bruit : une zone de combat qui capture le groupe par son nom, une
+  tâche d'escorte qui le désigne par son numéro, une entrée dans votre `mission.yaml`.
+- **Les modifications s'appliquent à un dossier de mission**, et pas seulement à un `.miz`. C'est ce
+  qui les rend durables : elles survivent à la construction suivante.
+- **Une zone de combat créée est écrite au bon endroit** — dans la liste, et non sous les commentaires
+  qui la suivent, où elle semblait appartenir à une autre section.
 
 ---
 
 ## Ce qu'il faut en retenir
 
-Plusieurs de ces défauts vivaient depuis des mois sans que rien ne les voie. La raison est la même
-pour tous : **les tests partaient de missions construites de zéro**, jamais de vraies missions. Une
-mission vide n'a pas d'aérodromes, pas de briefing sur plusieurs lignes, pas de `missionConfig.lua`
-de campagne — exactement les trois formes qui cassaient.
+Trois de ces quatre défauts ont été trouvés le même jour, en préparant une mission de vérification
+pour un tout autre problème. Aucun n'a été trouvé par un test.
 
-Les tests ajoutés dans cette version construisent leurs cas d'essai par le vrai cycle de lecture et
-d'écriture des fichiers, et non plus à la main.
+Ils forment une famille : du code qui écrit sans regarder ce qu'il détruit. Deux contrôles nouveaux
+la surveillent désormais — l'un vérifie qu'un outil rendu à ses propres écritures reproduit son
+fichier **à l'octet près** lorsqu'il n'a rien à changer, l'autre construit l'exécutable et le lance.
+Le premier a trouvé un défaut supplémentaire dès ses deux premières utilisations.
 
 ---
 
 ## Remerciements
 
-- **Tripack**, pour le signalement des bases neutres et surtout pour les deux fichiers avant/après
-  qui ont transformé une enquête en une comparaison.
-- **Sharko**, pour trois rapports d'une précision rare — bancs de mesure, témoins de contrôle, et
-  une re-mesure contre la version courante pour ne pas laisser de chiffres périmés. Ses bancs
-  restent la mesure de référence pour vérifier que la conversion ne perd plus rien.
+- **Tripack**, pour le signalement de l'exécutable qui ne démarrait plus, avec la copie d'écran qui
+  contenait la réponse — et pour la constance avec laquelle il rapporte ce qu'il voit plutôt que ce
+  qu'il suppose.
+- **David**, pour trois défauts trouvés en préparant une mission de vérification, et pour avoir
+  signalé trois fois de suite un bloc `security:` disparu avant que la cause s'avère être la
+  construction, et non l'auteur de la mission.

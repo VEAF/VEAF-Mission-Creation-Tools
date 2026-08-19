@@ -7,6 +7,91 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.4] — 2026-08-19
+
+### Fixed
+
+- **`veaf-tools.exe` starts again.** Every 6.15.x executable died on any command — including
+  `--help` — with `ModuleNotFoundError: No module named 'mission_builder.mission_builder_README'`,
+  reported by Tripack. The `mission_builder` package started resolving its exports lazily in 6.15.0,
+  and PyInstaller decides what to bundle by reading `import` statements: with the submodules named
+  only in a table read at runtime, none of the eleven modules behind it shipped. The build now
+  collects the package wholesale, so an export added later needs no build change.
+- **A packaged-only failure can no longer ship unnoticed.** The CI builds the executable and runs it
+  on every Python change; until now every test ran from a checkout, where the missing imports resolve
+  perfectly — which is why this shipped, and the two bundled-data defects before it.
+
+## [6.15.3] — 2026-08-19
+
+### Fixed
+
+- **A mission whose tables are numbered `1,3,4` no longer kills the build with an unrelated
+  traceback.** A Lua table reaches Python as a list when its keys are contiguous and as a dict
+  otherwise, and eight readers assumed the list — so a hand edit, a third-party tool or a deletion
+  made the build die on `AttributeError: 'int' object has no attribute 'get'` at whichever subsystem
+  read the table first. Group containers, units, route points, trigger zones, zone vertices, map
+  drawings and nested tasks are now normalised **once, on the read path**. Measured: the
+  normalisation changes zero bytes on every mission in the repository, and `payload.pylons` is
+  deliberately left alone — it is keyed by station number, and renumbering it would move every weapon.
+- **A closed-up hole is named.** `validate` warns with the offending table's full path
+  (`coalition.blue.country[1].plane.group: keys 1, 3 -> 1..2`) and the build logs the same, instead of
+  repairing it in silence.
+- **`add_group` writes a patrol task DCS can see.** Its task table used the string key `"1"`, which
+  `luadata` renders as `["1"]` — a different Lua entry from `[1]`, leaving `#tasks` at zero, so the
+  loop never applied. Every real mission writes `[1]`.
+
+---
+
+## [6.15.2] — 2026-08-19
+
+### Fixed
+
+- **`build --dev-mode` no longer deletes whatever sits after the build marker in `mission.yaml`.** The
+  `build:` section was persisted by truncating the file at its marker and rewriting the tail, so
+  anything a mission maker wrote after it was eaten by the next build — silently. Measured: a
+  `security:` block with its password hashes and the file's trailing comment, all gone in one call.
+  The replacement is now bounded at the end of the `build:` block.
+- **`mission.yaml` keeps its LF line endings.** Both writers (`_update_build_config_in_yaml` and
+  `mission_yaml_editor.save_yaml`, the one the MCP composites use) let Python translate newlines, so on
+  Windows a call meant to touch one section rewrote **every line of the file**. Found by the new
+  round-trip test helper on its first use.
+
+---
+
+## [6.15.1] — 2026-08-19
+
+### Added
+
+- **MCP: `remove_group`** removes a group and **renumbers** the container it leaves behind, so a
+  removal can no longer leave the `1,3,4` hole that made three builds die on a traceback pointing
+  nowhere near the edit. It names the references that would otherwise break in silence: a combat zone
+  capturing the group by name prefix, an `Escort` task pointing at its group id, and a
+  `modules.ASSETS` entry in `mission.yaml`.
+- **MCP: the editing actions accept a mission folder**, not only a `.miz` — `edit_route`,
+  `set_group_properties`, `set_unit_properties`, `edit_zone`, `add_trigger_zone`, `add_map_drawing`
+  and `edit_map_drawing`. A folder edit is durable (it survives the next build) and each action now
+  reports `durable`. A directory that is not a mission folder is refused with a message saying so,
+  instead of an `[Errno 13] Permission denied`.
+- `dcsUnits.yaml` carries each air type's internal fuel capacity (`fuel_capacity`, from the
+  datamine's `M_fuel_max`). `dcsUnits.lua` is unchanged.
+
+### Fixed
+
+- **MCP: an aircraft created by `add_air_group` or `add_player_slot` has fuel.** Both wrote
+  `payload.fuel = 0` — no fuel at all — so a flight created in the air fell out of the sky the instant
+  it appeared; a parking start hid it, DCS fuelling a parked aircraft from the airfield's stock. The
+  default is now the type's full internal fuel, with optional `fuel` (kg) and `fuel_fraction`
+  parameters. An aircraft type the units database does not know is created without a fuel key and the
+  caller is warned.
+- **MCP: `create_combat_zone` writes its zone inside the list**, not below the commented-out block
+  trailing it — where it read as if it belonged to whatever section that comment introduces. The same
+  fix covers `create_qra` and `create_cap_mission`, which appended to `mission.yaml` lists the same
+  way.
+- The backlog index's status cells carry the icon alone again, so the consistency check reads them
+  instead of skipping the row.
+
+---
+
 ## [6.15.0] — 2026-08-17
 
 ### Fixed

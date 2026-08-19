@@ -219,7 +219,7 @@ disk.
 
 ## What is still missing
 
-The [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) lot carries the detail.
+The [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) lot carries the detail.
 The launch → load → assert → quit cycle is now **written** (the `--full` mode above), on the facts the
 probe established — `net.load_mission` present and `isServer=true` in single-player. The orchestration is
 covered by tests with fakes; the real behaviour of the DCS calls themselves is confirmed by an in-game

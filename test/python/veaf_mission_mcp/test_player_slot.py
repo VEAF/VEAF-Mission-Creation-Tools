@@ -137,3 +137,33 @@ class TestAircraftCategory:
         result = add_player_slot(sample_miz, **_common(name="Player Mod", unit_type="NoSuchModType"))
         assert result["category"] == "plane"
         assert any("NoSuchModType" in w for w in result["warnings"])
+
+
+class TestFuelLoad:
+    """`FIX-MCP-AUTHORING-GAPS` 04 — a slot was written with `payload.fuel = 0`, i.e. no fuel."""
+
+    def _payload(self, mission_content: dict, category: str, name: str) -> dict:
+        group = _group_in_category(mission_content, category, name)
+        assert group is not None, f"{name!r} not found under {category!r}"
+        units = group["units"]
+        return (list(units.values()) if isinstance(units, dict) else units)[0]["payload"]
+
+    def test_an_air_start_plane_is_fuelled(self, sample_miz: Path) -> None:
+        add_player_slot(sample_miz, **_common(start="air"))
+        payload = self._payload(read_miz(sample_miz).mission_content, "plane", "Player Viper")
+        assert payload["fuel"] == 3249  # the F-16C_50's own internal capacity
+
+    def test_an_air_start_helicopter_is_fuelled(self, sample_miz: Path) -> None:
+        add_player_slot(sample_miz, **_common(name="Player Huey", unit_type="UH-1H", start="air"))
+        payload = self._payload(read_miz(sample_miz).mission_content, "helicopter", "Player Huey")
+        assert payload["fuel"] == 631
+
+    def test_an_explicit_load_is_written(self, sample_miz: Path) -> None:
+        add_player_slot(sample_miz, **_common(fuel=900))
+        assert self._payload(read_miz(sample_miz).mission_content, "plane", "Player Viper")["fuel"] == 900
+
+    def test_a_mod_type_is_created_without_a_fuel_key_and_warns(self, sample_miz: Path) -> None:
+        result = add_player_slot(sample_miz, **_common(name="Player Mod", unit_type="NoSuchModType"))
+        payload = self._payload(read_miz(sample_miz).mission_content, "plane", "Player Mod")
+        assert "fuel" not in payload
+        assert any("fuel" in w for w in result["warnings"])

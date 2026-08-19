@@ -31,9 +31,7 @@ makes every reference ambiguous).
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_backup import backup_before_write
-from mission_tools.miz_tools import read_miz, write_miz
-
+from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import CATEGORIES, indexed, listed
 
 #: DCS zone types. The VEAF runtime handles exactly these two, and nothing else.
@@ -91,11 +89,9 @@ def edit_zone(
             "make_circular, link_unit, remove"
         )
 
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    zones = _zones_list(mission.mission_content)
+    zones = _zones_list(content)
     zone = _find_zone(zones, zone_name)
 
     changed: dict[str, Any] = {}
@@ -120,12 +116,11 @@ def edit_zone(
         if radius is not None:
             _apply_radius(zone, radius, changed)
         if link_unit is not None:
-            _apply_link(zone, mission.mission_content, link_unit, changed)
+            _apply_link(zone, content, link_unit, changed)
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
-    return {"zone": new_name or zone_name, "changed": changed, "warnings": warnings}
+    return {"zone": new_name or zone_name, "changed": changed, "warnings": warnings, "durable": durable}
 
 
 def _zones_list(mission_content: dict[str, Any]) -> list[dict[str, Any]]:

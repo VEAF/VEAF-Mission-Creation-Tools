@@ -394,20 +394,43 @@ Utiliser le prompt `.prompts/generate-release-notes.md` pour lancer la préparat
 4. Clôture administrative (version CHANGELOG, `pyproject.toml`, ROADMAP)
 5. Commandes git à copier-coller
 
-#### Flow de release (git flow)
+#### Flow de release (git flow) {#release-flow}
 
-L'assistant AI gère : créer `release/x.y.z` depuis `develop`, commiter tous les fichiers de release, et ouvrir la PR.
+L'assistant AI gère : créer `release/x.y.z` depuis `develop`, commiter tous les fichiers de release,
+et ouvrir la PR **vers `master`** — jamais vers `develop`.
+
+> **La PR de release se merge par un vrai commit de fusion, pas en `squash`.** Un `squash` réécrit
+> la release en un commit neuf : `master` et `develop` cessent de partager leur histoire, `develop`
+> apparaît définitivement « N commits en avance », le tag devient inatteignable depuis `master` et
+> les fusions suivantes lèvent des conflits artificiels. C'est arrivé sur la 6.11.0, réparé par une
+> fusion en retour.
 
 Après le merge de la PR, le développeur exécute :
 
 ```bash
+# 1. les DEUX tags, sur master
+git checkout master
+git pull origin master
+git tag published-vx.y.z          # → exécutables, published.zip, kit de capture
+git tag vx.y.z                    # → documentation versionnée + alias « latest »
+git push origin published-vx.y.z vx.y.z
+
+# 2. fusion en retour, pour que develop partage l'histoire de master
 git checkout develop
 git pull origin develop
-git tag published-vx.y.z
-git push origin published-vx.y.z
+git merge origin/master
+git push origin develop
 ```
 
 > **Attention :** pousser le tag est irréversible — uniquement après le merge de la PR.
+
+> **Les deux tags, ou la documentation reste sur la version précédente.** `published-v*` publie les
+> binaires ; `vx.y.z` déploie la documentation et déplace l'alias `latest`. Ne pousser que le premier
+> livre des binaires dont la documentation n'est pas publiée — c'est ce qui est arrivé à la 6.11.0,
+> dont le site est resté sur la 6.10.0 faute de tag `v6.11.0`.
+
+> **Ne pas sauter la fusion en retour :** sans elle `develop` et `master` divergent, et chaque
+> release suivante devient plus difficile à fusionner.
 
 Pousser le tag déclenche le workflow CI `release`, qui va :
 1. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
@@ -503,6 +526,7 @@ Luacheck est imposé par le job CI `Luacheck`.
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` et `test/lua/` |
 | `Lua Coverage` | Couverture ligne (luacov) au-dessus du plancher de cliquet (`--cov-fail-under`) — bloquant |
 | `python-quality` | ruff lint + format (`src/python/ test/python/ veaf_build/`), mypy (`src/python/veaf-tools`), pytest |
+| `exe-smoke` | L'exécutable empaqueté démarre (`--help`) et exécute une commande réelle — le seul job qui voit un défaut d'empaquetage, invisible depuis un checkout |
 | `Docs Check` | Liens et ancres de la documentation, versions FR/EN, pages absentes du menu |
 | `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 
@@ -562,12 +586,17 @@ simplement l'alias `dev`.
 
 ### Publier une nouvelle version
 
-Pousser un tag `published-v*` — le workflow CI `Release` fait tout automatiquement :
+Pousser les **deux** tags depuis `master`, une fois la PR de release fusionnée — le workflow CI
+`Release` fait le reste automatiquement :
 
 ```bash
-git tag published-v<version>
-git push origin published-v<version>
+git tag published-v<version>      # → exécutables, published.zip, kit de capture
+git tag v<version>                # → documentation versionnée + alias « latest »
+git push origin published-v<version> v<version>
 ```
+
+Le processus complet (branche de release, cible de la PR, méthode de fusion, fusion en retour) est
+décrit dans [Flow de release](#release-flow).
 
 ---
 
@@ -599,6 +628,12 @@ Ordre de résolution de `scripts_path` (emplacement du dépôt local) :
 | 3 | `~/veafmct.yaml scripts_path` |
 
 Lorsqu'ils sont passés via la CLI, `dev_mode` et `scripts_path` sont persistés dans `mission.yaml`.
+
+La persistance réécrit **uniquement** la section `build:` : tout ce qui l'entoure — commentaires,
+autres sections, y compris celles placées **après** elle — est conservé, et les fins de ligne
+restent en LF. Jusqu'à la 6.15.2 ce n'était vrai qu'avant la section : le build tronquait le
+fichier à son marqueur, donc un bloc écrit après `build:` disparaissait au build suivant, sans
+un mot.
 
 ### Effet sur le build
 

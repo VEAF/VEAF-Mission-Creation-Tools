@@ -34,6 +34,25 @@ PAUSE_MESSAGE: str = "Press Enter to exit..."
 #: Executables that live at the mission-folder root (the updater moves them out of published/).
 _ROOT_EXECUTABLES: tuple[str, ...] = ("veaf-tools.exe", "veaf-tools-updater.exe")
 
+#: Packages that resolve their exports **lazily** (PEP 562 ``__getattr__`` + ``import_module``)
+#: and must therefore be collected wholesale into the executable.
+#:
+#: PyInstaller finds modules by reading ``import`` statements. A lazy package has none: its
+#: ``__init__.py`` holds a name → submodule table and imports the submodule on first attribute
+#: access, at runtime. So ``from mission_builder import MissionBuilderREADME`` makes PyInstaller
+#: bundle the ``__init__.py`` and **not one** of the submodules it can hand out — the exe then
+#: dies on its first command with ``ModuleNotFoundError: No module named
+#: 'mission_builder.mission_builder_README'``, which is what 6.15.0 shipped (reported by Tripack).
+#: Collecting the package covers every submodule, including ones a future export adds, which is
+#: why this is a package list rather than a module list.
+#:
+#: Applied to ``veaf-tools`` only, and deliberately: the updater imports ``veaf_libs`` and
+#: ``veaf_tools.helpers`` and nothing else — no lazy package — so collecting these there would grow
+#: its binary for nothing. If that ever changes, the guard in ``test_build_standalone.py`` is what
+#: says so; this tuple stays the one place the answer lives, because the last time this repository
+#: kept a second copy of "what ships in the exe" (the ``.spec`` files) the two diverged in silence.
+_LAZY_PACKAGES: tuple[str, ...] = ("mission_builder",)
+
 
 def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
     """Deploy a built ``published.zip`` into a local mission folder, as the updater would.
@@ -546,6 +565,7 @@ class BuildAndReleaseWorker:
                 "veaf-tools",
                 self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
                 extra_data=self._veaf_tools_extra_data(modules_json_path, shortcuts_json_path),
+                collect_submodules=list(_LAZY_PACKAGES),
             )
 
     def _build_updater_exe(self) -> None:
@@ -594,8 +614,18 @@ class BuildAndReleaseWorker:
         entry_point: Path,
         extra_data: list[tuple[Path, str]] | None = None,
         hidden_imports: list[str] | None = None,
+        collect_submodules: list[str] | None = None,
     ) -> None:
-        """Build a single PyInstaller executable."""
+        """Build a single PyInstaller executable.
+
+        Args:
+            name: Executable name, also used for the generated version resource.
+            entry_point: Python script PyInstaller starts its analysis from.
+            extra_data: ``(source, destination)`` pairs bundled as ``--add-data``.
+            hidden_imports: Modules to bundle that no ``import`` statement names.
+            collect_submodules: Packages whose **whole** submodule tree is bundled — see
+                :data:`_LAZY_PACKAGES` for why a lazy package needs this.
+        """
         if not entry_point.exists():
             logger.error(f"Entry point not found: {entry_point}")
 
@@ -617,6 +647,8 @@ class BuildAndReleaseWorker:
                 cmd += ["--add-data", f"{src}{os.pathsep}{dest}"]
             for hi in hidden_imports or []:
                 cmd += ["--hidden-import", hi]
+            for package in collect_submodules or []:
+                cmd += ["--collect-submodules", package]
             if exe_version_file and exe_version_file.exists():
                 cmd += ["--version-file", str(exe_version_file)]
             cmd.append(str(entry_point))

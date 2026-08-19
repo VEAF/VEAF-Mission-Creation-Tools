@@ -42,6 +42,7 @@ from veaf_mission_mcp.oracle import (
     list_unit_types,
 )
 from veaf_mission_mcp.player_slot import add_player_slot
+from veaf_mission_mcp.remove_group import remove_group
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
@@ -141,7 +142,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "group_name": {
                         "type": "string",
                         "description": "The group's EXACT name (not a fragment) -- as describe_units reports it.",
@@ -207,7 +216,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "group_name": {"type": "string", "description": "The group's EXACT current name."},
                     "new_name": {
                         "type": "string",
@@ -271,7 +288,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "group_name": {"type": "string", "description": "The group's EXACT name."},
                     "operation": {
                         "type": "string",
@@ -351,7 +376,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "zone_name": {"type": "string", "description": "The zone's EXACT current name."},
                     "new_name": {"type": "string", "description": "New name. Refused on a collision."},
                     "position": {
@@ -407,7 +440,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "layer": {
                         "type": "string",
                         "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
@@ -464,7 +505,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "layer": {
                         "type": "string",
                         "enum": ["Red", "Blue", "Neutral", "Common", "Author"],
@@ -661,6 +710,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "Nothing",
                         "description": "Aircraft-group task (default 'Nothing').",
                     },
+                    "fuel": {
+                        "type": "number",
+                        "description": (
+                            "Fuel load in KILOGRAMS. Omit for full internal fuel, read from the units "
+                            "database -- an aircraft created with none falls out of the sky."
+                        ),
+                    },
+                    "fuel_fraction": {
+                        "type": "number",
+                        "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
+                    },
                 },
                 "required": [
                     "target",
@@ -739,11 +799,54 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "items": {"type": "string"},
                         "description": "Optional explicit stand numbers (one per aircraft), overriding auto-selection.",
                     },
+                    "fuel": {
+                        "type": "number",
+                        "description": (
+                            "Fuel load in KILOGRAMS. Omit for full internal fuel, read from the units "
+                            "database -- an aircraft created with none falls out of the sky."
+                        ),
+                    },
+                    "fuel_fraction": {
+                        "type": "number",
+                        "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
+                    },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
             },
         ),
         handler=_handle_add_air_group,
+    )
+    catalog.register(
+        ActionSpec(
+            name="remove_group",
+            description=(
+                "REMOVE a group from the mission -- the one group-level edit the catalogue was "
+                "missing, which is why removal used to be done by hand. Hand-deleting a Lua block "
+                "leaves the enclosing list numbered 1,3,4: Lua loads that fine and the BUILD dies "
+                "on a traceback pointing nowhere near the edit, so this action RENUMBERS the "
+                "survivors to 1..n and drops the 'group' key entirely when it takes the last one. "
+                "Addresses the group by EXACT name (a fragment is refused). It does not refuse on "
+                "account of references -- you may well mean it -- but it NAMES the ones that would "
+                "break in silence: a combat zone capturing the group by name prefix, an Escort task "
+                "pointing at its group id, and a mission.yaml modules.ASSETS entry naming it. "
+                "Target a FOLDER (durable) or .miz (transient); backed up first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "The mission FOLDER (durable, exploded src/mission/) or a .miz (transient).",
+                    },
+                    "group_name": {
+                        "type": "string",
+                        "description": "The group's EXACT name -- as describe_units reports it, not a fragment.",
+                    },
+                },
+                "required": ["target", "group_name"],
+            },
+        ),
+        handler=_handle_remove_group,
     )
     catalog.register(
         ActionSpec(
@@ -756,7 +859,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {
+                        "type": "string",
+                        "description": (
+                            "The mission's source .miz, OR the mission FOLDER -- same trade-off as "
+                            "add_group's target: a folder edit is DURABLE (it goes into src/mission/ and "
+                            "survives the next build), a .miz edit is transient (the next build overwrites "
+                            "it). Backed up first either way."
+                        ),
+                    },
                     "name": {"type": "string", "description": "The zone's name."},
                     "position": {
                         "type": "object",
@@ -936,7 +1047,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "name": {"type": "string", "description": "The proposed group name."},
                     "miz_path": {
                         "type": "string",
-                        "description": "Optional .miz to check the combat-zone capture trap against.",
+                        "description": (
+                            "Optional .miz OR mission folder to check the combat-zone capture trap against."
+                        ),
                     },
                     "expected_combat_zone": {
                         "type": "string",
@@ -1642,7 +1755,13 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
         frequency_mhz=params.get("frequency_mhz", 251.0),
         onboard_num=params.get("onboard_num", "010"),
         task=params.get("task", "Nothing"),
+        fuel=params.get("fuel"),
+        fuel_fraction=params.get("fuel_fraction"),
     )
+
+
+def _handle_remove_group(params: dict[str, Any]) -> dict[str, Any]:
+    return remove_group(Path(params["target"]), group_name=params["group_name"])
 
 
 def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
@@ -1664,6 +1783,8 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         frequency_mhz=params.get("frequency_mhz", 251.0),
         task=params.get("task", "CAS"),
         parking=params.get("parking"),
+        fuel=params.get("fuel"),
+        fuel_fraction=params.get("fuel_fraction"),
     )
 
 

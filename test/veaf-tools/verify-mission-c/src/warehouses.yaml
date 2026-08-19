@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# Dynamic-Slot warehouses (DYNSLOT-WAREHOUSE)
+# ---------------------------------------------------------------------------
+# Configures DCS Dynamic Slots per coalition. The build applies this to the
+# mission's `warehouses`: it enables `dynamicSpawn` on the selected airbases,
+# sets fuel / munitions / aircraft stock, and links each offered aircraft type
+# to its dynamic-spawn template group via `linkDynTempl`. Runs AFTER aircraft
+# injection so the template groups (and their ids) already exist.
+#
+# DEFAULT (below): every airbase assigned to a coalition (e.g. via the MCP
+# `set_airbase_coalition`, or set in the Mission Editor) gets Dynamic Slots
+# enabled, unlimited fuel/munitions, and its warehouse auto-filled with every
+# dynamic-spawn template of that coalition. With no assigned airbase, this
+# changes nothing.
+#
+# Customize:
+# - Add `aircrafts:` under a coalition's `defaults:` to offer a specific list
+#   instead of auto-filling. Each entry: `{ amount: unlimited | <n>, template?: "<name>" }`;
+#   omit `template` to auto-match a template group of the same aircraft type.
+# - Add an `airports:` map to target specific bases (by name on installed
+#   theatres, or by numeric id) instead of all airbases of the coalition:
+#     airports:
+#       Senaki-Kolkhi: {}
+#       24: { aircrafts: { Yak-52: { amount: 10 } } }
+# - Remove a coalition block to leave that side's warehouses untouched.
+# ---------------------------------------------------------------------------
+
+blue:
+  defaults:
+    fuel: unlimited
+    weapons: unlimited
+
+red:
+  defaults:
+    fuel: unlimited
+    weapons: unlimited

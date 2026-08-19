@@ -219,10 +219,22 @@ def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
 
 
 def _update_build_config_in_yaml(yaml_path: Path, dev_mode: bool, scripts_path: Path | None) -> None:
-    """Update (or append) the ``build:`` section in *mission.yaml*.
+    """Update (or append) the ``build:`` section in *mission.yaml*, touching nothing else.
 
-    Uses a text-based replacement so all other comments in the file are preserved.
-    The section is identified by the ``_BUILD_CONFIG_MARKER`` header line.
+    Uses a text-based replacement so every comment in the file is preserved — a load/mutate/dump
+    would lose all of them, and ``mission.yaml`` is a heavily commented file makers edit by hand.
+
+    The section is identified by the ``_BUILD_CONFIG_MARKER`` header line and **bounded** at its own
+    end. It used to be bounded at the end of the *file*: ``content = content[:idx]`` discarded
+    everything from the marker onward, so anything a maker wrote after ``build:`` was eaten by the
+    next ``build --dev-mode``. Measured 2026-08-19 on the shape that cost three evenings — a
+    ``security:`` block with its password hashes, and the maker's trailing comment, all gone in one
+    call.
+
+    Args:
+        yaml_path: The ``mission.yaml`` to update in place.
+        dev_mode: The persisted ``dev_mode`` flag.
+        scripts_path: The persisted scripts path, omitted from the section when ``None``.
     """
     lines: list[str] = [
         "",
@@ -238,9 +250,59 @@ def _update_build_config_in_yaml(yaml_path: Path, dev_mode: bool, scripts_path: 
     new_section = "\n".join(lines) + "\n"
 
     content = yaml_path.read_text(encoding="utf-8")
-    # Replace existing build: section if present (identified by the marker), or append
-    idx = content.find("\n" + _BUILD_CONFIG_MARKER)
-    if idx >= 0:
-        content = content[:idx]
-    content = content.rstrip("\n") + "\n" + new_section
-    yaml_path.write_text(content, encoding="utf-8")
+    span = _build_section_span(content)
+    if span is None:
+        yaml_path.write_text(content.rstrip("\n") + "\n" + new_section, encoding="utf-8", newline="\n")
+        return
+
+    start, end = span
+    head = content[:start].rstrip("\n")
+    tail = content[end:].lstrip("\n")
+    rebuilt = head + "\n" + new_section
+    if tail:
+        # The section carries its own leading blank line, so one separating blank is enough here too.
+        rebuilt += "\n" + tail
+    yaml_path.write_text(rebuilt, encoding="utf-8", newline="\n")
+
+
+def _build_section_span(content: str) -> tuple[int, int] | None:
+    """Locate the build section's own extent in *content*.
+
+    The span runs from the marker line to the end of the ``build:`` block — the first line after it
+    that is neither blank nor indented. That rule stops at a following section's comment header, which
+    sits at column 0 and is precisely what must be preserved.
+
+    Args:
+        content: The whole ``mission.yaml`` text.
+
+    Returns:
+        ``(start, end)`` character offsets, or ``None`` when the file carries no marker.
+    """
+    marker_at = content.find(_BUILD_CONFIG_MARKER)
+    if marker_at < 0:
+        return None
+
+    lines = content.splitlines(keepends=True)
+    offsets: list[int] = []
+    running = 0
+    for line in lines:
+        offsets.append(running)
+        running += len(line)
+
+    first = next(i for i, offset in enumerate(offsets) if offset + len(lines[i]) > marker_at)
+
+    # The header is a run of comment (and blank) lines; the key itself follows it.
+    index = first
+    while index < len(lines) and (not lines[index].strip() or lines[index].lstrip().startswith("#")):
+        index += 1
+
+    if index < len(lines) and lines[index].startswith("build:"):
+        index += 1
+        # The block's own body: indented entries, plus blank lines between them.
+        while index < len(lines) and (not lines[index].strip() or lines[index][:1].isspace()):
+            index += 1
+    # Otherwise the marker has no `build:` key under it — a maker deleted the key and kept the header.
+    # Only the header run is replaced; consuming "the indented block" would eat the next section.
+
+    end = offsets[index] if index < len(lines) else len(content)
+    return offsets[first], end

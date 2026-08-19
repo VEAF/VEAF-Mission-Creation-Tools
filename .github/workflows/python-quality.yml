@@ -64,3 +64,47 @@ jobs:
           name: coverage-report
           path: coverage.xml
           retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Does the packaged executable start?
+  #
+  # Nothing above can answer that: every test runs from the checkout, where an import
+  # PyInstaller cannot see resolves perfectly. Three defects shipped through that blind
+  # spot — the conversion profiles (`unknown conversion profile: foothold`),
+  # third_party_mods.json, and 6.15.0's lazy `mission_builder`, which made the exe die on
+  # its first command for every user of the 6.15 line. Each was found by a mission maker.
+  #
+  # The tooling is only distributed as this binary, so "it imports and runs one command"
+  # is the cheapest test worth having. It is a separate job because it needs the `build`
+  # dependency group (pyinstaller) the gate above deliberately excludes.
+  # ---------------------------------------------------------------------------
+  exe-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (including PyInstaller)
+        run: poetry install --with build --all-extras
+
+      - name: Build the standalone executable
+        run: poetry run veaf-build build-standalone --version 0.0.0
+
+      # `--help` walks the whole command tree, so it imports every command module — which is
+      # exactly what the 6.15.0 defect broke. `generate-config` then runs real code and
+      # writes a real file, covering more than the import graph.
+      - name: The executable starts
+        run: ./dist/veaf-tools --help
+
+      - name: The executable runs a command
+        run: |
+          mkdir -p smoke
+          cd smoke
+          ../dist/veaf-tools generate-config --output .
+          test -s mission.yaml

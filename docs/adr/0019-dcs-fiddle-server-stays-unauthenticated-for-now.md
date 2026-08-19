@@ -23,7 +23,7 @@ changes, that a developer copies by hand into `Saved Games/.../Scripts/Hooks/`. 
 Lua it finds in the request path, and runs it. There is no token, no origin check, and no
 authentication of any kind.
 
-[`FEAT-DCS-SMOKE-HARNESS`](../../.backlog/FEAT-DCS-SMOKE-HARNESS/PRD.md) was built on that hook the
+[`FEAT-DCS-SMOKE-HARNESS`](../../.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) was built on that hook the
 same week the security review naming it was filed. Hardening the transport and keeping the harness
 alive is therefore **one decision**, not two — which is the whole reason this ADR exists rather than
 a commit.

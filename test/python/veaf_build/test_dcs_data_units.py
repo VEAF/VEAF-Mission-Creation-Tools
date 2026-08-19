@@ -156,3 +156,61 @@ class TestRenderLua:
         n = L.generate(yaml_path=ypath, output=out, ref="x")
         assert n == 2
         assert out.read_text(encoding="utf-8").startswith("---")
+
+
+# The fuel-capacity field (FIX-MCP-AUTHORING-GAPS 04): the datamine carries `M_fuel_max` on every
+# air unit and on no other, which is exactly where a spawned aircraft needs one.
+_PLANE_WITH_FUEL = (
+    '\ttype = "F-15C",\n\tDisplayName = "F-15C",\n\tM_fuel_max = 6103,\n\tattribute = { "Air", "Planes" },\n'
+)
+_HELI_WITH_FRACTIONAL_FUEL = (
+    '\ttype = "CH-47Fbl1",\n\tDisplayName = "CH-47F"'
+    ',\n\tM_fuel_max = 3054.592,\n\tattribute = { "Air", "Helicopters" },\n'
+)
+_NESTED_FUEL_ONLY = (
+    '\ttype = "Fake",\n\tDisplayName = "Fake",\n\tsome_table = {\n\t\tM_fuel_max = 999,\n\t},'
+    '\n\tattribute = { "Vehicles" },\n'
+)
+
+
+class TestFuelCapacity:
+    def test_a_plane_carries_its_capacity(self) -> None:
+        e = U.parse_unit_file(_PLANE_WITH_FUEL, "Planes")
+        assert e is not None and e.fuel_capacity == 6103
+        assert isinstance(e.fuel_capacity, int)  # whole kilograms stay integral, as mission files write them
+
+    def test_a_helicopter_keeps_its_decimals(self) -> None:
+        e = U.parse_unit_file(_HELI_WITH_FRACTIONAL_FUEL, "Helicopters")
+        assert e is not None and e.fuel_capacity == 3054.592
+
+    def test_a_ground_unit_has_none(self) -> None:
+        e = U.parse_unit_file(_TANK, "Cars")
+        assert e is not None and e.fuel_capacity is None
+
+    def test_a_nested_value_is_not_mistaken_for_the_units_own(self) -> None:
+        # Only the top-level (single-tab) field is the unit's capacity, as for every other field here.
+        e = U.parse_unit_file(_NESTED_FUEL_ONLY, "Cars")
+        assert e is not None and e.fuel_capacity is None
+
+    def test_the_key_is_emitted_only_where_there_is_one(self, tmp_path: Path) -> None:
+        out = tmp_path / "u.yaml"
+        entries = [
+            U.UnitEntry("F-15C", "F-15C", "air", "Plane", "F-15C", ["Air"], 6103),
+            U.UnitEntry("M-1 Abrams", "M1A2", "vehicle", "Armor", "M1A2", ["Vehicles"]),
+        ]
+        U.write_units_yaml(entries, (), out, ref="abc123")
+        units = {u["type"]: u for u in yaml.safe_load(out.read_text(encoding="utf-8"))["units"]}
+        assert units["F-15C"]["fuel_capacity"] == 6103
+        assert "fuel_capacity" not in units["M-1 Abrams"]
+
+    def test_the_shipped_database_carries_the_values_the_templates_use(self) -> None:
+        # Guards the whole chain end to end: a regenerated database that lost the field would let
+        # every spawned aircraft go back to being created with no fuel.
+        from veaf_libs.dcs_units_data import get_unit_fuel_capacity
+
+        assert get_unit_fuel_capacity("F-15C") == 6103
+        assert get_unit_fuel_capacity("F-14B") == 7348
+        assert get_unit_fuel_capacity("UH-1H") == 631
+        assert get_unit_fuel_capacity("M-1 Abrams") is None  # a tank has no air-unit fuel load
+        assert get_unit_fuel_capacity("NoSuchModType") is None
+        assert get_unit_fuel_capacity("") is None

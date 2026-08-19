@@ -78,7 +78,7 @@ findings still have to be acted on. It moved here from the repository root on 20
 closing made the delete-or-archive question due.
 
 ⚠️ **Two of those conditions have since come due, and are now collected by**
-[`FIX-SECREV2-EXPIRED-DEFERRALS`](../FIX-SECREV2-EXPIRED-DEFERRALS/PRD.md)**:**
+[`FIX-SECREV2-EXPIRED-DEFERRALS`](FIX-SECREV2-EXPIRED-DEFERRALS.md)**:**
 
 - **VMR-088** was deferred *"to `REFACTOR-MARKER-PARSER`, on David's call, because it is one instance of
   a family"*. **That lot closed on 2026-08-11 without touching it** — `veafCombatMission.lua` is not one

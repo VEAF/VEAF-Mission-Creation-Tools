@@ -7,6 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.2] — 2026-08-19
+
+### Fixed
+
+- **`build --dev-mode` no longer deletes whatever sits after the build marker in `mission.yaml`.** The
+  `build:` section was persisted by truncating the file at its marker and rewriting the tail, so
+  anything a mission maker wrote after it was eaten by the next build — silently. Measured: a
+  `security:` block with its password hashes and the file's trailing comment, all gone in one call.
+  The replacement is now bounded at the end of the `build:` block.
+- **`mission.yaml` keeps its LF line endings.** Both writers (`_update_build_config_in_yaml` and
+  `mission_yaml_editor.save_yaml`, the one the MCP composites use) let Python translate newlines, so on
+  Windows a call meant to touch one section rewrote **every line of the file**. Found by the new
+  round-trip test helper on its first use.
+
+---
+
 ## [6.15.1] — 2026-08-19
 
 ### Added

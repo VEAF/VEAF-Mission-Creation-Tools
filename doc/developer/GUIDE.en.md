@@ -596,6 +596,11 @@ instead of the `published/` folder shipped with veaf-tools.
 
 When passed via CLI, both `dev_mode` and `scripts_path` are persisted in `mission.yaml`.
 
+Persisting rewrites the `build:` section **only**: everything around it — comments, other
+sections, including any placed **after** it — is preserved, and line endings stay LF. Until
+6.15.2 that held only for content *before* the section: the build truncated the file at its
+marker, so a block written after `build:` vanished on the next build, silently.
+
 ### Effect on the build
 
 | Mode | Scripts source |

@@ -8,10 +8,12 @@ they assert orchestration only, never invoking PyInstaller.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
 
+from veaf_build import worker as worker_module
 from veaf_build.worker import BuildAndReleaseWorker
 
 # Arbitrary version: these tests assert build orchestration, not the version string,
@@ -19,39 +21,50 @@ from veaf_build.worker import BuildAndReleaseWorker
 _TEST_VERSION = "0.0.0"
 
 
-def _isolated_worker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[BuildAndReleaseWorker, list[str]]:
-    """Return a worker whose side-effecting steps are stubbed and the PyInstaller
-    call recorded by executable name."""
+def _recording_worker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[BuildAndReleaseWorker, list[dict[str, object]]]:
+    """Return a worker whose side-effecting steps are stubbed, and the live list of
+    PyInstaller calls it records — every argument, not just the executable name."""
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     monkeypatch.setattr(worker, "_prepare_dist", lambda: None)
     monkeypatch.setattr(worker, "_scan_lua_modules", lambda: None)
     monkeypatch.setattr(worker, "_write_version_py", lambda path: None)
     monkeypatch.setattr(worker, "_restore_version_py", lambda path: None)
 
-    built: list[str] = []
+    calls: list[dict[str, object]] = []
 
     def _record(
         name: str,
         entry_point: Path,
         extra_data: list[tuple[Path, str]] | None = None,
         hidden_imports: list[str] | None = None,
+        collect_submodules: list[str] | None = None,
     ) -> None:
-        built.append(name)
+        calls.append(
+            {
+                "name": name,
+                "entry_point": entry_point,
+                "extra_data": extra_data,
+                "hidden_imports": hidden_imports or [],
+                "collect_submodules": collect_submodules or [],
+            }
+        )
 
     monkeypatch.setattr(worker, "_build_pyinstaller_executable", _record)
-    return worker, built
+    return worker, calls
 
 
 def test_standalone_builds_only_veaf_tools(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    worker, built = _isolated_worker(tmp_path, monkeypatch)
+    worker, calls = _recording_worker(tmp_path, monkeypatch)
     worker.build_veaf_tools_standalone()
-    assert built == ["veaf-tools"]
+    assert [call["name"] for call in calls] == ["veaf-tools"]
 
 
 def test_full_build_builds_both_executables(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    worker, built = _isolated_worker(tmp_path, monkeypatch)
+    worker, calls = _recording_worker(tmp_path, monkeypatch)
     worker.build_python_executables()
-    assert built == ["veaf-tools", "veaf-tools-updater"]
+    assert [call["name"] for call in calls] == ["veaf-tools", "veaf-tools-updater"]
 
 
 def test_veaf_tools_extra_data_bundles_locales(tmp_path: Path) -> None:
@@ -122,3 +135,83 @@ def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     bundled = [(src.name, dest) for src, dest in worker._veaf_tools_extra_data(None)]
     assert ("third_party_mods.json", "mission_builder/data") in bundled
+
+
+def _lazy_packages_on_disk(worker: BuildAndReleaseWorker) -> set[str]:
+    """Return the shipped packages whose `__init__.py` resolves its exports lazily.
+
+    A lazy package is recognised the way PyInstaller's blind spot is created: a PEP 562
+    `__getattr__` handing out submodules through `import_module`. Scanning for the pattern
+    rather than reading a list is the point — it fires on the *next* package made lazy.
+    """
+    veaf_tools_dir = worker.src_dir / "python" / "veaf-tools"
+    lazy = set()
+    for init in veaf_tools_dir.glob("*/__init__.py"):
+        source = init.read_text(encoding="utf-8")
+        if "def __getattr__" in source and "import_module" in source:
+            lazy.add(init.parent.name)
+    return lazy
+
+
+def test_veaf_tools_build_collects_every_lazy_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every lazily-resolved package must be collected wholesale into the executable.
+
+    This is the test 6.15.0 shipped without. `mission_builder` became lazy (PEP 562) in
+    #757, PyInstaller stopped seeing any of its submodules — no `import` statement names
+    them any more — and the executable died on its **first command**, before doing any
+    work: `ModuleNotFoundError: No module named 'mission_builder.mission_builder_README'`,
+    reported by Tripack after updating to 6.15. Nothing in the suite noticed, because
+    every test runs from the checkout where the lazy import resolves fine.
+    """
+    worker, calls = _recording_worker(tmp_path, monkeypatch)
+    lazy = _lazy_packages_on_disk(worker)
+    assert lazy, "the pattern scan found no lazy package — check it still matches the code it guards"
+
+    worker.build_veaf_tools_standalone()
+    veaf_tools_call = next(call for call in calls if call["name"] == "veaf-tools")
+    collected = set(veaf_tools_call["collect_submodules"])  # type: ignore[call-overload]
+    assert lazy <= collected, f"lazy packages missing from the exe: {sorted(lazy - collected)}"
+
+
+def test_every_lazy_export_target_ships(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each submodule `mission_builder` can hand out must be reachable in the executable.
+
+    Reads the package's own export table, so adding an export that the build does not
+    cover fails here rather than in a mission maker's terminal.
+    """
+    from mission_builder import _EXPORTS
+
+    worker, calls = _recording_worker(tmp_path, monkeypatch)
+    worker.build_veaf_tools_standalone()
+    veaf_tools_call = next(call for call in calls if call["name"] == "veaf-tools")
+    collected = set(veaf_tools_call["collect_submodules"])  # type: ignore[call-overload]
+    hidden = set(veaf_tools_call["hidden_imports"])  # type: ignore[call-overload]
+
+    for symbol, relative_module in _EXPORTS.items():
+        module = f"mission_builder{relative_module}"
+        covered = "mission_builder" in collected or module in hidden
+        assert covered, f"{symbol} resolves to {module}, which the executable would not contain"
+
+
+def test_pyinstaller_command_passes_collect_submodules(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The declared packages must reach PyInstaller as `--collect-submodules` arguments.
+
+    Guards the wiring, not the list: passing the packages and forgetting to translate them
+    into arguments would leave the executable just as broken.
+    """
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    monkeypatch.setattr(worker, "_write_exe_version_file", lambda name: None)
+    recorded: list[list[str]] = []
+
+    def _fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(worker_module.subprocess, "run", _fake_run)
+    entry_point = tmp_path / "entry.py"
+    entry_point.write_text("", encoding="utf-8")
+    worker._build_pyinstaller_executable("veaf-tools", entry_point, collect_submodules=["mission_builder"])
+
+    cmd = recorded[0]
+    assert "--collect-submodules" in cmd
+    assert cmd[cmd.index("--collect-submodules") + 1] == "mission_builder"

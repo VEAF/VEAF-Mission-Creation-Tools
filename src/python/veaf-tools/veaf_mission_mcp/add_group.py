@@ -259,8 +259,11 @@ def _patrol_task(*, first_waypoint_index: int, last_waypoint_index: int) -> dict
     return {
         "id": "ComboTask",
         "params": {
+            # The key is the integer 1, not the string "1": `luadata` renders a string key as
+            # ["1"], which is a different Lua entry from [1] and leaves `#tasks` at zero, so DCS
+            # never iterates the task. Every real mission in test/veaf-tools writes [1].
             "tasks": {
-                "1": {
+                1: {
                     "enabled": True,
                     "auto": False,
                     "id": "GoToWaypoint",

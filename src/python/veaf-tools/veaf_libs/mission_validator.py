@@ -102,6 +102,7 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
             issues.append(ValidationIssue(WARNING, t("validate.no_source_mission")))
         return issues
 
+    issues += _check_sequence_holes(mission)
     issues += validate_mission_content(yaml_data, mission)
     issues += _check_has_player_slot(mission)
     issues += _check_presets_waypoints(folder, yaml_data, mission)
@@ -468,3 +469,35 @@ def _check_tum_zones(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
     if missing:
         return [ValidationIssue(WARNING, t("validate.tum_zones_missing", sides=", ".join(missing)))]
     return []
+
+
+def _check_sequence_holes(mission: dict) -> list[ValidationIssue]:
+    """Name every sequence table whose keys are not a contiguous ``1..N``.
+
+    The build closes these holes on load, and it is right to — a holed container is what a hand edit
+    or a third-party tool leaves behind, and eight readers used to die on it. But closing one *changes
+    the file*, and on 2026-08-18 three holes surfaced at three unrelated subsystems with a message
+    (``AttributeError: 'int' object has no attribute 'get'``) that named none of them. So they are
+    reported here, by path, rather than repaired in silence.
+
+    Args:
+        mission: The parsed source mission table. Normalised in place — this is the validator's own
+            copy, which it never writes back.
+
+    Returns:
+        One warning per holed table, empty for a well-formed mission.
+    """
+    from mission_tools.sequence_normalisation import normalise_mission_sequences
+
+    return [
+        ValidationIssue(
+            WARNING,
+            t(
+                "validate.holed_sequence",
+                path=hole.path,
+                keys=", ".join(str(k) for k in hole.keys),
+                count=len(hole.keys),
+            ),
+        )
+        for hole in normalise_mission_sequences(mission)
+    ]

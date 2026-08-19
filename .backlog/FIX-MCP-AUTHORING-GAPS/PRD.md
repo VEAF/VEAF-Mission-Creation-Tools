@@ -57,6 +57,11 @@ session and was twice attributed to whatever the check under test happened to be
       comments sit
 - [x] A group can be removed through an action, and removal renumbers what it leaves behind
 - [x] `validate_mission` reports a holed numeric table by **path**, so the build never has to
+      — **delivered by `FIX-GROUP-CONTAINER-SHAPE` on 2026-08-19, not by this lot.** It was
+      ticked here in error when the lot closed: the boxes were flipped in one pass instead of
+      one at a time. The reporting belongs where the holes are detected, which is the
+      normaliser — a check living in `validate_mission` alone would say nothing to a mission
+      maker who never runs the MCP, and would duplicate the traversal.
 - [x] The editing actions accept a mission folder wherever `add_group` already does
 - [x] Each of the three is covered by a test built from the shape that broke here, not from a
       synthetic one

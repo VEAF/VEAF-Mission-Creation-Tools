@@ -7,6 +7,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.1] — 2026-08-19
+
+### Added
+
+- **MCP: `remove_group`** removes a group and **renumbers** the container it leaves behind, so a
+  removal can no longer leave the `1,3,4` hole that made three builds die on a traceback pointing
+  nowhere near the edit. It names the references that would otherwise break in silence: a combat zone
+  capturing the group by name prefix, an `Escort` task pointing at its group id, and a
+  `modules.ASSETS` entry in `mission.yaml`.
+- **MCP: the editing actions accept a mission folder**, not only a `.miz` — `edit_route`,
+  `set_group_properties`, `set_unit_properties`, `edit_zone`, `add_trigger_zone`, `add_map_drawing`
+  and `edit_map_drawing`. A folder edit is durable (it survives the next build) and each action now
+  reports `durable`. A directory that is not a mission folder is refused with a message saying so,
+  instead of an `[Errno 13] Permission denied`.
+- `dcsUnits.yaml` carries each air type's internal fuel capacity (`fuel_capacity`, from the
+  datamine's `M_fuel_max`). `dcsUnits.lua` is unchanged.
+
+### Fixed
+
+- **MCP: an aircraft created by `add_air_group` or `add_player_slot` has fuel.** Both wrote
+  `payload.fuel = 0` — no fuel at all — so a flight created in the air fell out of the sky the instant
+  it appeared; a parking start hid it, DCS fuelling a parked aircraft from the airfield's stock. The
+  default is now the type's full internal fuel, with optional `fuel` (kg) and `fuel_fraction`
+  parameters. An aircraft type the units database does not know is created without a fuel key and the
+  caller is warned.
+- **MCP: `create_combat_zone` writes its zone inside the list**, not below the commented-out block
+  trailing it — where it read as if it belonged to whatever section that comment introduces. The same
+  fix covers `create_qra` and `create_cap_mission`, which appended to `mission.yaml` lists the same
+  way.
+- The backlog index's status cells carry the icon alone again, so the consistency check reads them
+  instead of skipping the row.
+
+---
+
 ## [6.15.0] — 2026-08-17
 
 ### Fixed

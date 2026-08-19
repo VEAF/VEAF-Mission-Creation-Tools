@@ -1,6 +1,11 @@
 # 02 — No action removes a group, so removal is done by hand
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19. `remove_group` ships in `veaf_mission_mcp/remove_group.py`: exact name
+only, survivors re-keyed `1..n`, and the `group` key dropped rather than left empty. The three
+reference checks all landed, and the `Escort` one had to walk **into** a `ComboTask` — that is how DCS
+actually nests the task, so a flat read would have found nothing and reported no reference at all. The
+`ASSETS` check needs `mission.yaml`, so it only runs on a folder target; a `.miz` gets the two
+mission-table checks and no false reassurance about the third.
 Type: feat
 Files: a new action under `src/python/veaf-tools/veaf_mission_mcp/`, the mission-maker action
 catalogue (both languages), tests

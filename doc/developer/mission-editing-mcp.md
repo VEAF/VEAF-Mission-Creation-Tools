@@ -41,6 +41,21 @@ elle que le plugin Claude déclare dans son `.mcp.json`.
 
 ## Catalogue d'actions (v1)
 
+!!! note "`miz_path` accepte aussi un **dossier** de mission (lot FIX-MCP-AUTHORING-GAPS, ticket 03)"
+
+    Toutes les actions d'édition — `edit_route`, `set_group_properties`, `set_unit_properties`,
+    `edit_zone`, `add_trigger_zone`, `add_map_drawing`, `edit_map_drawing` — prennent soit un `.miz`,
+    soit un **dossier de mission**, exactement comme le `target` de `add_group`. Le compromis est le
+    même : une édition dans un dossier est **durable** (elle va dans `src/mission/`, donc elle survit
+    au `veaf-tools build` suivant), une édition dans un `.miz` est transitoire (le build suivant
+    l'écrase). Chaque action renvoie désormais `durable` pour le dire. Sauvegarde horodatée dans les
+    deux cas.
+
+    Avant, elles n'acceptaient qu'un `.miz` : un groupe pouvait être **créé** durablement mais pas
+    **modifié** durablement, et pointer `edit_route` sur le dossier échouait sur un
+    `[Errno 13] Permission denied` (lire un répertoire comme une archive zip). Un dossier qui n'est pas
+    un dossier de mission est maintenant refusé avec un message qui le dit.
+
 Le serveur n'expose **pas** un outil MCP par action métier. Il expose une surface de découverte
 fixe, à l'image du serveur MCP `dcs-bridge` (pont vers une mission qui tourne) :
 
@@ -438,6 +453,15 @@ pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sau
   `FEAT-MCP-MUTATION-ACTIONS` ticket 09), jamais deviné. La paire `type`/`action` du premier waypoint
   est écrite selon le mode.
 - **`frequency_mhz`** est écrite (radio de groupe active) plutôt qu'héritée d'un `communication: false`.
+- **Le plein interne par défaut.** `fuel` (kg) et `fuel_fraction` (]0, 1]) laissent choisir la
+  charge ; sans eux, l'appareil reçoit la capacité interne de son type, lue dans la base d'unités
+  livrée (`dcsUnits.yaml`, champ `fuel_capacity` issu du `M_fuel_max` du datamine). Ces deux actions
+  écrivaient `fuel = 0` jusqu'à la 6.15.1, ce qui veut dire **aucun carburant** : mesuré en jeu le
+  2026-08-18, un KC-135 et ses deux F-15C d'escorte créés à 20 000 ft piquaient au sol dès leur
+  apparition, réacteurs éteints. Un départ au parking masquait le défaut, DCS remplissant les
+  réservoirs d'un appareil garé depuis le stock de la base. Un type inconnu de la base — un mod tiers
+  — est créé **sans clé `fuel`** (DCS applique alors son propre défaut) et l'appelant est **averti**,
+  plutôt que de se voir inventer un chiffre.
 - Assigne le pays à son camp dans `coalitions` (voir `add_group`), donc la mission reste chargeable.
 
 ### `add_air_group` (lot FEAT-MCP-MUTATION-ACTIONS, ticket 09)
@@ -474,8 +498,45 @@ ou un `.miz` (transitoire).
   verrou `ETA_locked` du premier waypoint sont écrits pour l'appelant.
 - **`skill`** vaut un niveau d'IA par défaut (`High`) — un vol au parking est IA sauf demande de
   `Client`/`Player`. `parking` accepte une liste explicite de places qui court-circuite la sélection.
+- **Le plein interne par défaut.** `fuel` (kg) et `fuel_fraction` (]0, 1]) laissent choisir la
+  charge ; sans eux, l'appareil reçoit la capacité interne de son type, lue dans la base d'unités
+  livrée (`dcsUnits.yaml`, champ `fuel_capacity` issu du `M_fuel_max` du datamine). Ces deux actions
+  écrivaient `fuel = 0` jusqu'à la 6.15.1, ce qui veut dire **aucun carburant** : mesuré en jeu le
+  2026-08-18, un KC-135 et ses deux F-15C d'escorte créés à 20 000 ft piquaient au sol dès leur
+  apparition, réacteurs éteints. Un départ au parking masquait le défaut, DCS remplissant les
+  réservoirs d'un appareil garé depuis le stock de la base. Un type inconnu de la base — un mod tiers
+  — est créé **sans clé `fuel`** (DCS applique alors son propre défaut) et l'appelant est **averti**,
+  plutôt que de se voir inventer un chiffre.
 - Un théâtre sans capture, un aérodrome inconnu, ou trop peu de places libres sont refusés en nommant
   la cause. Assigne le pays à son camp dans `coalitions`.
+
+### `remove_group` (lot FIX-MCP-AUTHORING-GAPS, ticket 02)
+
+Écriture. **Retire un groupe** de la mission — la seule édition au niveau groupe qui manquait au
+catalogue, alors qu'`edit_zone` et `edit_map_drawing` ont tous deux un `remove: true`. Cible un
+dossier (durable) ou un `.miz` (transitoire), sauvegarde horodatée avant écriture.
+
+```json
+{"target": "chemin/vers/dossier-mission", "group_name": "Texaco"}
+```
+
+- **Renumérote ce qu'il laisse derrière.** C'est la raison d'être de l'action : supprimer un bloc Lua
+  à la main laisse la liste englobante numérotée `1,3,4`, ce que Lua charge sans broncher et sur quoi
+  le **build** meurt (`AttributeError: 'int' object has no attribute 'get'`), à une ligne qui ne
+  désigne pas l'édition. Trois builds corrompus le 2026-08-18 venaient de là — et la rustine de
+  l'époque, une regex de renumérotation calée sur la seule indentation, a aussi renuméroté `units` et
+  `route.points`. Les survivants gardent leur ordre et sont ré-indexés à partir de 1.
+- **Le dernier groupe d'une catégorie fait disparaître la clé `group`**, au lieu de laisser un
+  conteneur vide — la forme exacte qu'un lecteur en aval prend pour une liste
+  (`FIX-GROUP-CONTAINER-SHAPE`).
+- **Nom exact exigé.** Un fragment est refusé, comme pour `set_group_properties` : une suppression
+  qui atterrit sur le premier groupe correspondant n'est pas rattrapable. Un nom introuvable liste ce
+  qui existe, et **rien n'est écrit**.
+- **Nomme ce qu'il casse, sans refuser** — le créateur de mission veut peut-être précisément ça :
+  une combat zone qui capture le groupe par préfixe de nom, une tâche `Escort` qui pointe son
+  `groupId` (y compris imbriquée dans un `ComboTask`, la forme réelle de DCS), et une entrée
+  `modules.ASSETS.assets` de `mission.yaml` qui le nomme. Cette dernière n'est vérifiable que sur une
+  cible **dossier** : un `.miz` ne porte pas de `mission.yaml`.
 
 ### `validate_group_name` (vague 6)
 

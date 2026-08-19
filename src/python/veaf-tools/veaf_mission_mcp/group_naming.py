@@ -12,7 +12,7 @@ Two concerns, one cohesive module (wave 6):
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_tools import read_miz
+from veaf_mission_mcp.mission_folder import open_mission
 
 _SPAWN_TEMPLATE_PREFIX = "veafSpawn-"
 _CAP_PREFIX = "OnDemand-"
@@ -120,9 +120,14 @@ def validate_group_name(
 
 
 def _trigger_zone_names(miz_path: Path) -> list[str]:
-    """Return the names of the mission's trigger zones (empty if unreadable)."""
+    """Return the names of the mission's trigger zones (empty if unreadable).
+
+    Accepts a mission folder as well as a `.miz`, since `set_group_properties` hands its own target
+    straight through and that target may now be either. A folder read as a zip would silently return
+    no zones, i.e. lose the capture check rather than fail it.
+    """
     try:
-        content = read_miz(miz_path).mission_content
+        _, content = open_mission(miz_path)
     except (OSError, ValueError):
         return []
     if not isinstance(content, dict):

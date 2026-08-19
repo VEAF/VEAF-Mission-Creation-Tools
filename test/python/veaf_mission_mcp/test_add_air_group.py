@@ -363,3 +363,89 @@ class TestAircraftCategory:
         )
         assert result["category"] == "plane"
         assert any("NoSuchModType" in w for w in result["warnings"])
+
+
+class TestFuelLoad:
+    """`FIX-MCP-AUTHORING-GAPS` 04 — the flight was written with `payload.fuel = 0`, i.e. no fuel.
+
+    Measured in game on 2026-08-18: a KC-135 and its two F-15C escorts created at 20 000 ft pitched
+    straight into the ground on appearing. An air start is this action's most exposed path, and the
+    parking starts hid the defect because DCS fuels a parked aircraft from the airfield's stock.
+    """
+
+    def _payloads(self, miz: Path, name: str, category: str = "plane") -> list[dict]:
+        content = read_miz(miz).mission_content
+        for coalition in content["coalition"].values():
+            countries = coalition.get("country")
+            for country in countries.values() if isinstance(countries, dict) else (countries or []):
+                groups = (country.get(category) or {}).get("group")
+                for group in groups.values() if isinstance(groups, dict) else (groups or []):
+                    if group.get("name") == name:
+                        return [u["payload"] for u in _units(group)]
+        raise AssertionError(f"group {name!r} not found under {category!r}")
+
+    def _air_start(self, miz: Path, **over: object) -> dict:
+        params: dict = {
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "name": "Texaco",
+            "unit_type": "KC-135",
+            "start": "air",
+            "position": {"x": 1000.0, "y": 2000.0},
+        }
+        params.update(over)
+        return add_air_group(miz, **params)
+
+    def test_the_tanker_that_fell_out_of_the_sky_is_fuelled(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        self._air_start(miz)
+        assert self._payloads(miz, "Texaco")[0]["fuel"] == 90700
+
+    def test_every_aircraft_of_the_flight_is_fuelled(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        self._air_start(miz, name="Escort", unit_type="F-15C", count=2)
+        assert [p["fuel"] for p in self._payloads(miz, "Escort")] == [6103, 6103]
+
+    def test_a_helicopter_is_fuelled_too(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        self._air_start(miz, name="Hip", unit_type="Mi-8MT")
+        assert self._payloads(miz, "Hip", "helicopter")[0]["fuel"] == 1929
+
+    def test_a_parking_start_is_fuelled_as_well(self, tmp_path: Path) -> None:
+        # It never showed the bug, the airfield filling the tanks; it is still written honestly.
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Viper",
+            unit_type="F-16C_50",
+            start="parking-cold",
+            airfield="Kobuleti",
+        )
+        assert self._payloads(miz, "Viper")[0]["fuel"] == 3249
+
+    def test_an_explicit_load_is_written(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        self._air_start(miz, fuel=12000)
+        assert self._payloads(miz, "Texaco")[0]["fuel"] == 12000
+
+    def test_a_fraction_of_capacity_is_written(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        self._air_start(miz, name="Escort", unit_type="F-15C", fuel_fraction=0.5)
+        assert self._payloads(miz, "Escort")[0]["fuel"] == pytest.approx(3051.5)
+
+    def test_a_mod_type_is_created_without_a_fuel_key_and_warns(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = self._air_start(miz, name="Modded", unit_type="NoSuchModType")
+        assert "fuel" not in self._payloads(miz, "Modded")[0]
+        assert any("fuel" in w for w in result["warnings"])
+
+    def test_a_bad_explicit_load_fails_before_the_mission_is_touched(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        before = miz.read_bytes()
+        with pytest.raises(ValueError, match="not both"):
+            self._air_start(miz, fuel=1000, fuel_fraction=0.5)
+        assert miz.read_bytes() == before

@@ -1,4 +1,4 @@
-"""Look up a DCS unit type's category at design time.
+"""Look up a DCS unit type's category and fuel capacity at design time.
 
 A mission table files aircraft under **two different keys** — ``plane`` and ``helicopter`` — and
 they are not interchangeable: a helicopter written under ``plane`` opens in the Mission Editor as an
@@ -51,3 +51,38 @@ def get_unit_category(unit_type: str) -> str | None:
     if not unit_type:
         return None
     return _categories().get(unit_type.strip().lower())
+
+
+@functools.lru_cache(maxsize=1)
+def _fuel_capacities() -> dict[str, float]:
+    """Load (and cache) the ``{type_lower: fuel_capacity}`` table from ``dcsUnits.yaml``."""
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml"))
+    units = raw.get("units") if isinstance(raw, dict) else None
+    table: dict[str, float] = {}
+    for entry in units or []:
+        if not isinstance(entry, dict):
+            continue
+        unit_type = str(entry.get("type") or "").strip()
+        capacity = entry.get("fuel_capacity")
+        if unit_type and isinstance(capacity, (int, float)) and not isinstance(capacity, bool):
+            table[unit_type.lower()] = float(capacity)
+    return table
+
+
+def get_unit_fuel_capacity(unit_type: str) -> float | None:
+    """Return a unit type's maximum internal fuel in kg, or ``None`` when unknown.
+
+    Only air units carry one — the database holds a capacity for every stock plane and helicopter
+    and for nothing else, so ``None`` means either a ground unit or a type the database does not
+    know at all (a third-party mod). Both are normal outcomes rather than errors; it is the caller
+    who decides whether it can proceed without the value.
+
+    Args:
+        unit_type: The DCS type name (e.g. ``"F-15C"``), case-insensitive.
+
+    Returns:
+        The capacity in kg, or ``None``.
+    """
+    if not unit_type:
+        return None
+    return _fuel_capacities().get(unit_type.strip().lower())

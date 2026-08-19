@@ -9,7 +9,7 @@ is triggered here. See ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 8).
 from pathlib import Path
 from typing import Any
 
-from mission_tools.mission_yaml_editor import load_yaml, save_yaml
+from mission_tools.mission_yaml_editor import append_to_sequence, load_yaml, save_yaml
 
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
@@ -106,7 +106,7 @@ def _append_combat_zone(yaml_path: Path, zone_name: str, combat_zone: dict[str, 
     entry: dict[str, Any] = {"type": "zone", "zone_name": zone_name}
     if combat_zone:
         entry.update(combat_zone)
-    zones.append(entry)
+    append_to_sequence(zones, entry)
     save_yaml(yaml_path, data)
 
 
@@ -219,7 +219,7 @@ def _append_qra_definition(yaml_path: Path, definition: dict[str, Any]) -> None:
     if not isinstance(definitions, list):
         definitions = []
         qra["definitions"] = definitions
-    definitions.append(definition)
+    append_to_sequence(definitions, definition)
     save_yaml(yaml_path, data)
 
 
@@ -296,5 +296,5 @@ def _append_cap_mission(yaml_path: Path, entry: dict[str, Any]) -> None:
     if not isinstance(caps, list):
         caps = []
         data["cap_missions"] = caps
-    caps.append(entry)
+    append_to_sequence(caps, entry)
     save_yaml(yaml_path, data)

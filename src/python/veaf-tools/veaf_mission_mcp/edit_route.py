@@ -36,9 +36,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_backup import backup_before_write
-from mission_tools.miz_tools import read_miz, write_miz
-
+from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import find_group, indexed
 
 #: Metres per foot, and metres per second per knot.
@@ -123,11 +121,9 @@ def edit_route(
     if operation not in _OPERATIONS:
         raise ValueError(f"unknown operation {operation!r}; expected one of {', '.join(_OPERATIONS)}")
 
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    group = find_group(mission.mission_content, group_name)
+    group = find_group(content, group_name)
     points = _points_list(group, group_name)
 
     changed: dict[str, Any] = {}
@@ -166,8 +162,7 @@ def edit_route(
 
     _restore_eta_lock(points, warnings)
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
     return {
         "group": group_name,
@@ -175,6 +170,7 @@ def edit_route(
         "changed": changed,
         "route": [_described(point, position_index) for position_index, point in enumerate(points, start=1)],
         "warnings": warnings,
+        "durable": durable,
     }
 
 

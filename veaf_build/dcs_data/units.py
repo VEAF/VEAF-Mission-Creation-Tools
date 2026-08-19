@@ -52,6 +52,10 @@ _DISPLAY_NAME_RE = re.compile(r'^\tDisplayName\s*=\s*"([^"]*)"', re.MULTILINE)
 _NAME_RE = re.compile(r'^\tName\s*=\s*"([^"]*)"', re.MULTILINE)
 _CATEGORY_RE = re.compile(r'^\tcategory\s*=\s*"([^"]*)"', re.MULTILINE)
 _ATTRIBUTE_BLOCK_RE = re.compile(r"^\tattribute\s*=\s*\{(.*?)\}", re.MULTILINE | re.DOTALL)
+# Maximum internal fuel in kg. Present on every air unit (144 planes + 26 helicopters at the
+# pinned ref) and on no ground, naval or static one, so its absence is the honest signal that
+# a type carries no fuel load of its own.
+_FUEL_MAX_RE = re.compile(r"^\tM_fuel_max\s*=\s*([0-9.]+)", re.MULTILINE)
 _QUOTED_RE = re.compile(r'"([^"]+)"')
 
 # Attribute flags that map a unit to its VEAF "kind", in priority order.
@@ -85,6 +89,8 @@ class UnitEntry:
     """Human description (mirrors the display name when DCS has no separate one)."""
     attributes: list[str] = field(default_factory=list)
     """DCS attribute flags (Skynet keys on ``SAM SR`` / ``EWR``)."""
+    fuel_capacity: float | int | None = None
+    """Maximum internal fuel in kg (air units only); ``None`` when the type carries no fuel."""
 
 
 # Units present in the old in-DCS export but absent from the datamine (map
@@ -120,6 +126,23 @@ def _derive_kind(attributes: list[str]) -> str:
     return "static"
 
 
+def _parse_fuel_capacity(text: str) -> float | int | None:
+    """Read a unit's maximum internal fuel from its datamine file.
+
+    Args:
+        text: Raw contents of a ``_G/db/Units/.../<unit>.lua`` file.
+
+    Returns:
+        The capacity in kg, as an ``int`` when the value is whole and a ``float`` otherwise — the
+        form a mission file uses (``6103``, ``3054.592``) — or ``None`` for a unit carrying no fuel.
+    """
+    match = _FUEL_MAX_RE.search(text)
+    if not match:
+        return None
+    value = float(match.group(1))
+    return int(value) if value.is_integer() else value
+
+
 def parse_unit_file(text: str, folder: str) -> UnitEntry | None:
     """Parse one datamine unit file into a :class:`UnitEntry`.
 
@@ -153,6 +176,7 @@ def parse_unit_file(text: str, folder: str) -> UnitEntry | None:
         category=category,
         description=name,
         attributes=attributes,
+        fuel_capacity=_parse_fuel_capacity(text),
     )
 
 
@@ -207,13 +231,15 @@ def write_units_yaml(
                 "category": e.category,
                 "description": e.description,
                 "attributes": e.attributes,
+                # Emitted only where DCS has one, so the artifact does not carry a thousand nulls.
+                **({"fuel_capacity": e.fuel_capacity} if e.fuel_capacity is not None else {}),
             }
             for e in entries
         ],
         "naval_statics": sorted(naval_statics),
     }
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS units database (type, kind, category, attributes).\n")
+        f.write("# DCS units database (type, kind, category, attributes, fuel capacity).\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
         f.write(f"# Source ref: {ref}\n")
         f.write("# Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).\n")

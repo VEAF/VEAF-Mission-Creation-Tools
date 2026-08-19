@@ -1,4 +1,4 @@
-# DCS units database (type, kind, category, attributes).
+# DCS units database (type, kind, category, attributes, fuel capacity).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
 # Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
@@ -136,6 +136,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 5029
 - type: A-10C
   name: A-10C
   kind: air
@@ -152,6 +153,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 5029
 - type: A-10C_2
   name: A-10C II
   kind: air
@@ -168,6 +170,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 5029
 - type: A-20G
   name: A-20G
   kind: air
@@ -182,6 +185,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1500
 - type: A-50
   name: A-50
   kind: air
@@ -195,6 +199,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 70000
 - type: A6E
   name: A-6E
   kind: air
@@ -210,6 +215,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7229.8
 - type: AA8
   name: Firefighter Vehicle AA-7.2/60
   kind: vehicle
@@ -262,6 +268,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1250
 - type: AH-64A
   name: AH-64A
   kind: air
@@ -274,6 +281,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1157
 - type: AH-64D
   name: AH-64D
   kind: air
@@ -286,6 +294,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1157
 - type: AH-64D_BLK_II
   name: AH-64D BLK.II
   kind: air
@@ -301,6 +310,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1140
 - type: Airshow_Cone
   name: Airshow cone
   kind: static
@@ -326,6 +336,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4476
 - type: ALBATROS
   name: Corvette 1124M Grisha [CH]
   kind: naval
@@ -391,6 +402,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 5500
 - type: An-30M
   name: An-30M
   kind: air
@@ -403,6 +415,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 5500
 - type: APFC fuel
   name: M92 APFC fuel
   kind: static
@@ -550,6 +563,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3519.423
 - type: B-17G
   name: B-17G
   kind: air
@@ -564,6 +578,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7600
 - type: B-1B
   name: B-1B
   kind: air
@@ -581,6 +596,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 88450
 - type: B-52H
   name: B-52H
   kind: air
@@ -598,6 +614,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 141135
 - type: B600
   name: M92 B600
   kind: static
@@ -713,6 +730,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 296
 - type: big_smoke
   name: Big smoke
   kind: static
@@ -1108,6 +1126,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1796
 - type: C-101EB
   name: C-101EB
   kind: air
@@ -1121,6 +1140,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1796
 - type: C-130
   name: C-130
   kind: air
@@ -1133,6 +1153,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 20830
 - type: C-130J-30
   name: C-130J-30
   kind: air
@@ -1148,6 +1169,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 19692
 - type: C-17A
   name: C-17A
   kind: air
@@ -1161,6 +1183,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 132405
 - type: C-47
   name: C-47
   kind: air
@@ -1173,6 +1196,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 1470
 - type: Cafe
   name: Cafe
   kind: static
@@ -1381,6 +1405,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 3600
 - type: CH-47Fbl1
   name: CH-47F
   kind: air
@@ -1393,6 +1418,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 3054.592
 - type: CH-53E
   name: CH-53E
   kind: air
@@ -1405,6 +1431,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 2880
 - type: Challenger2
   name: MBT Challenger II
   kind: vehicle
@@ -1844,6 +1871,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1420
 - type: CHAP_TorM2
   name: CHAP_TorM2
   kind: vehicle
@@ -1921,6 +1949,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 71
 - type: Churchill_VII
   name: Tk Churchill VII
   kind: vehicle
@@ -2493,6 +2522,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 5624
 - type: E-3A
   name: E-3A
   kind: air
@@ -2508,6 +2538,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 65000
 - type: Electric locomotive
   name: Rwy. Loco VL80 Electric
   kind: vehicle
@@ -2616,6 +2647,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3505.4
 - type: F-117A
   name: F-117A
   kind: air
@@ -2630,6 +2662,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 8255
 - type: F-14A
   name: F-14A
   kind: air
@@ -2644,6 +2677,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-14A-135-GR
   name: F-14A Late
   kind: air
@@ -2659,6 +2693,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-14A-135-GR-Early
   name: F-14A
   kind: air
@@ -2674,6 +2709,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-14A-95-GR
   name: F-14A Export
   kind: air
@@ -2689,6 +2725,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-14B
   name: F-14B
   kind: air
@@ -2704,6 +2741,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-14BU
   name: F-14B(U)
   kind: air
@@ -2719,6 +2757,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 7348
 - type: F-15C
   name: F-15C
   kind: air
@@ -2735,6 +2774,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 6103
 - type: F-15E
   name: F-15E
   kind: air
@@ -2751,6 +2791,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 10246
 - type: F-15ESE
   name: F-15E S4+
   kind: air
@@ -2767,6 +2808,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 10245.529841878
 - type: F-16A
   name: F-16A
   kind: air
@@ -2781,6 +2823,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3104
 - type: F-16A MLU
   name: F-16A MLU
   kind: air
@@ -2795,6 +2838,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3104
 - type: F-16C bl.50
   name: F-16C bl.50
   kind: air
@@ -2811,6 +2855,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3104
 - type: F-16C bl.52d
   name: F-16C bl.52d
   kind: air
@@ -2827,6 +2872,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3104
 - type: F-16C_50
   name: F-16CM bl.50
   kind: air
@@ -2843,6 +2889,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3249
 - type: F-4E
   name: F-4E
   kind: air
@@ -2856,6 +2903,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4864
 - type: F-4E-45MC
   name: F-4E-45MC
   kind: air
@@ -2870,6 +2918,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 5510.5
 - type: F-5E
   name: F-5E
   kind: air
@@ -2883,6 +2932,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1996
 - type: F-5E-3
   name: F-5E-3
   kind: air
@@ -2896,6 +2946,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2046
 - type: F-5E-3_FC
   name: F-5E FC
   kind: air
@@ -2909,6 +2960,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2046
 - type: F-86F Sabre
   name: F-86F
   kind: air
@@ -2922,6 +2974,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1282
 - type: F-86F_FC
   name: F-86F FC
   kind: air
@@ -2935,6 +2988,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1282
 - type: F/A-18A
   name: F/A-18A
   kind: air
@@ -2949,6 +3003,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4930
 - type: F/A-18C
   name: F/A-18C
   kind: air
@@ -2965,6 +3020,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4900
 - type: F4U-1D
   name: F4U-1D
   kind: air
@@ -2978,6 +3034,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 662
 - type: F4U-1D_CW
   name: F4U-1D Mk.IV
   kind: air
@@ -2991,6 +3048,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 662
 - type: f_bar_cargo
   name: F-shape barrier
   kind: static
@@ -3016,6 +3074,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4900
 - type: Falcon_Gyrocopter
   name: Falcon Assault Gyrocopter
   kind: air
@@ -3030,6 +3089,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 54
 - type: Farm A
   name: Farm A
   kind: static
@@ -3409,6 +3469,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 409
 - type: FW-190D9
   name: Fw 190 D-9
   kind: air
@@ -3422,6 +3483,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 388
 - type: Garage A
   name: Garage A
   kind: static
@@ -3712,6 +3774,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 25000
 - type: HandyWind
   name: Bulker Handy Wind
   kind: naval
@@ -3761,6 +3824,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1272
 - type: Hawk cwar
   name: SAM Hawk CWAR AN/MPQ-55
   kind: vehicle
@@ -4266,6 +4330,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 191
 - type: Igla manpad INS
   name: Igla manpad INS
   kind: infantry
@@ -4316,6 +4381,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 87584
 - type: IL-78M
   name: IL-78M
   kind: air
@@ -4328,6 +4394,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 112000
 - type: IMPROVED_KILO
   name: SSK 636 Improved Kilo
   kind: naval
@@ -4442,6 +4509,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 9400
 - type: Jagdpanther_G1
   name: SPG Jagdpanther TD
   kind: vehicle
@@ -4500,6 +4568,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2325
 - type: JTAC
   name: JTAC
   kind: infantry
@@ -4527,6 +4596,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2120
 - type: Ka-27
   name: Ka-27
   kind: air
@@ -4539,6 +4609,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 2616
 - type: Ka-50
   name: Ka-50
   kind: air
@@ -4551,6 +4622,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1450
 - type: Ka-50_3
   name: Ka-50 III
   kind: air
@@ -4563,6 +4635,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1450
 - type: KAMAZ Truck
   name: Truck KAMAZ 43101
   kind: vehicle
@@ -4608,6 +4681,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 90700
 - type: KC130
   name: KC-130
   kind: air
@@ -4621,6 +4695,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 30000
 - type: KC135MPRS
   name: KC-135MPRS
   kind: air
@@ -4636,6 +4711,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 90700
 - type: KDO_Mod40
   name: AAA Kdo.G.40
   kind: vehicle
@@ -4683,6 +4759,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 70000
 - type: KrAZ6322
   name: Truck KrAZ-6322 6x6
   kind: vehicle
@@ -4806,6 +4883,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 980
 - type: L-39ZA
   name: L-39ZA
   kind: air
@@ -4819,6 +4897,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 980
 - type: l118
   name: L118 Light Artillery
   kind: static
@@ -4856,6 +4935,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 333
 - type: La_Combattante_II
   name: FAC La Combattante IIa
   kind: naval
@@ -5398,6 +5478,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3165
 - type: M-60
   name: MBT M60A3 Patton
   kind: vehicle
@@ -5966,6 +6047,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 626
 - type: MB-339APAN
   name: MB-339A/PAN
   kind: air
@@ -5979,6 +6061,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 626
 - type: MCV-80
   name: 'IFV Warrior '
   kind: vehicle
@@ -6030,6 +6113,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1701
 - type: Mi-24V
   name: Mi-24V
   kind: air
@@ -6042,6 +6126,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1704
 - type: Mi-26
   name: Mi-26
   kind: air
@@ -6054,6 +6139,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 9600
 - type: Mi-28N
   name: Mi-28N [CH]
   kind: air
@@ -6066,6 +6152,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1500
 - type: Mi-8MT
   name: Mi-8MTV2
   kind: air
@@ -6079,6 +6166,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1929
 - type: MiG-15bis
   name: MiG-15bis
   kind: air
@@ -6092,6 +6180,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1172
 - type: MiG-15bis_FC
   name: MiG-15bis FC
   kind: air
@@ -6105,6 +6194,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1172
 - type: MiG-19P
   name: MiG-19P
   kind: air
@@ -6118,6 +6208,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1800
 - type: MiG-21Bis
   name: MiG-21Bis
   kind: air
@@ -6131,6 +6222,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2280
 - type: MiG-23MLD
   name: MiG-23MLD
   kind: air
@@ -6144,6 +6236,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3800
 - type: MiG-25PD
   name: MiG-25PD
   kind: air
@@ -6157,6 +6250,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 15245
 - type: MiG-25RBT
   name: MiG-25RBT
   kind: air
@@ -6169,6 +6263,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 15245
 - type: MiG-27K
   name: MiG-27K
   kind: air
@@ -6182,6 +6277,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4500
 - type: MiG-29 Fulcrum
   name: MiG-29A  Fulcrum
   kind: air
@@ -6195,6 +6291,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3376
 - type: MiG-29A
   name: MiG-29A
   kind: air
@@ -6208,6 +6305,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3376
 - type: MiG-29G
   name: MiG-29G
   kind: air
@@ -6221,6 +6319,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3376
 - type: MiG-29S
   name: MiG-29S
   kind: air
@@ -6234,6 +6333,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3493
 - type: MiG-31
   name: MiG-31
   kind: air
@@ -6248,6 +6348,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 15500
 - type: Military staff
   name: Military staff
   kind: static
@@ -6270,6 +6371,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3160
 - type: Mirage-F1AD
   name: Mirage F1AD
   kind: air
@@ -6284,6 +6386,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1AZ
   name: Mirage F1AZ
   kind: air
@@ -6298,6 +6401,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1B
   name: Mirage F1B
   kind: air
@@ -6311,6 +6415,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3045
 - type: Mirage-F1BD
   name: Mirage F1BD
   kind: air
@@ -6324,6 +6429,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3045
 - type: Mirage-F1BE
   name: Mirage F1BE
   kind: air
@@ -6337,6 +6443,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3045
 - type: Mirage-F1BQ
   name: Mirage F1BQ
   kind: air
@@ -6350,6 +6457,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3045
 - type: Mirage-F1C
   name: Mirage F1C
   kind: air
@@ -6363,6 +6471,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1C-200
   name: Mirage F1C-200
   kind: air
@@ -6377,6 +6486,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CE
   name: Mirage F1CE
   kind: air
@@ -6390,6 +6500,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CG
   name: Mirage F1CG
   kind: air
@@ -6403,6 +6514,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CH
   name: Mirage F1CH
   kind: air
@@ -6416,6 +6528,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CJ
   name: Mirage F1CJ
   kind: air
@@ -6429,6 +6542,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CK
   name: Mirage F1CK
   kind: air
@@ -6442,6 +6556,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CR
   name: Mirage F1CR
   kind: air
@@ -6456,6 +6571,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CT
   name: Mirage F1CT
   kind: air
@@ -6470,6 +6586,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1CZ
   name: Mirage F1CZ
   kind: air
@@ -6483,6 +6600,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1DDA
   name: Mirage F1DDA
   kind: air
@@ -6496,6 +6614,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3045
 - type: Mirage-F1ED
   name: Mirage F1ED
   kind: air
@@ -6509,6 +6628,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1EDA
   name: Mirage F1EDA
   kind: air
@@ -6522,6 +6642,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1EE
   name: Mirage F1EE
   kind: air
@@ -6536,6 +6657,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3246
 - type: Mirage-F1EH
   name: Mirage F1EH
   kind: air
@@ -6550,6 +6672,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1EQ
   name: Mirage F1EQ
   kind: air
@@ -6564,6 +6687,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1JA
   name: Mirage F1JA
   kind: air
@@ -6577,6 +6701,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1M-CE
   name: Mirage F1M (C.14 1-25/32-51)
   kind: air
@@ -6590,6 +6715,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3356
 - type: Mirage-F1M-EE
   name: Mirage F1M (C.14 52-73)
   kind: air
@@ -6604,6 +6730,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3246
 - type: MJ-1_01
   name: M92 MJ-1 01
   kind: static
@@ -6719,6 +6846,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1483.1
 - type: MQ-9 Reaper
   name: MQ-9 Reaper
   kind: air
@@ -6733,6 +6861,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1300
 - type: MTLB
   name: APC MTLB
   kind: vehicle
@@ -6894,6 +7023,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 454
 - type: OH58D
   name: OH-58D(R)
   kind: air
@@ -6906,6 +7036,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 333.69
 - type: Oil Barrel
   name: M92 Oil barrel
   kind: static
@@ -7047,6 +7178,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1007
 - type: P-47D-30bl1
   name: P-47D-30 (Early)
   kind: air
@@ -7060,6 +7192,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1007
 - type: P-47D-40
   name: P-47D-40
   kind: air
@@ -7073,6 +7206,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 1007
 - type: P-51D
   name: P-51D-25-NA
   kind: air
@@ -7086,6 +7220,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 732
 - type: P-51D-30-NA
   name: P-51D-30-NA
   kind: air
@@ -7099,6 +7234,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 732
 - type: P14_SR
   name: SAM SA-5 S-200 P-14 'Tall king' SR
   kind: vehicle
@@ -7506,6 +7642,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 5510.5
 - type: QF_37_AA
   name: QF_37_AA
   kind: vehicle
@@ -7778,6 +7915,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 490
 - type: rsbn_beacon
   name: RSBN car
   kind: static
@@ -7961,6 +8099,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 5962
 - type: S-3B Tanker
   name: S-3B Tanker
   kind: air
@@ -7977,6 +8116,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 6887
 - type: S-60_Type59_Artillery
   name: AAA S-60 57mm
   kind: vehicle
@@ -8191,6 +8331,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 416.33
 - type: SA342M
   name: SA342M
   kind: air
@@ -8203,6 +8344,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 416.33
 - type: SA342Minigun
   name: SA342Minigun
   kind: air
@@ -8215,6 +8357,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 416.33
 - type: SA342Mistral
   name: SA342Mistral
   kind: air
@@ -8227,6 +8370,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 416.33
 - type: Sandbag_01
   name: M92 Sandbag 01
   kind: static
@@ -8564,6 +8708,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 2132
 - type: SH-60B
   name: SH-60B
   kind: air
@@ -8576,6 +8721,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1100
 - type: Shelter
   name: Shelter
   kind: static
@@ -9048,6 +9194,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 277.59853044
 - type: SpitfireLFMkIXCW
   name: Spitfire LF Mk. IX CW
   kind: air
@@ -9061,6 +9208,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 277.59853044
 - type: Stanley_LightHouse
   name: Stanley LightHouse
   kind: static
@@ -9240,6 +9388,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3770
 - type: Su-24M
   name: Su-24M
   kind: air
@@ -9254,6 +9403,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 11700
 - type: Su-24MR
   name: Su-24MR
   kind: air
@@ -9267,6 +9417,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 11700
 - type: Su-25
   name: Su-25
   kind: air
@@ -9280,6 +9431,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 2835
 - type: Su-25T
   name: Su-25T
   kind: air
@@ -9293,6 +9445,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3790
 - type: Su-25TM
   name: Su-25TM
   kind: air
@@ -9306,6 +9459,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 3790
 - type: Su-27
   name: Su-27
   kind: air
@@ -9319,6 +9473,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 9400
 - type: Su-30
   name: Su-30
   kind: air
@@ -9332,6 +9487,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 9400
 - type: Su-33
   name: Su-33
   kind: air
@@ -9346,6 +9502,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 9500
 - type: Su-34
   name: Su-34
   kind: air
@@ -9360,6 +9517,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 9800
 - type: Subsidiary structure 1
   name: Subsidiary structure 1
   kind: static
@@ -9754,6 +9912,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 501
 - type: TICONDEROG
   name: CG Ticonderoga
   kind: naval
@@ -9876,6 +10035,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4663
 - type: Tornado IDS
   name: Tornado IDS
   kind: air
@@ -9892,6 +10052,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 4663
 - type: Tower Crane
   name: TowerCrane
   kind: static
@@ -10048,6 +10209,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 87000
 - type: Tu-160
   name: Tu-160
   kind: air
@@ -10063,6 +10225,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 171000
 - type: Tu-22M3
   name: Tu-22M3
   kind: air
@@ -10076,6 +10239,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 50000
 - type: Tu-95MS
   name: Tu-95MS [CH]
   kind: air
@@ -10092,6 +10256,7 @@ units:
   - Planes
   - Battle airplanes
   - Bombers
+  fuel_capacity: 87000
 - type: TugHarlan
   name: M92 Tug Harlan
   kind: static
@@ -10480,6 +10645,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 631
 - type: UH-60A
   name: UH-60A
   kind: air
@@ -10492,6 +10658,7 @@ units:
   - NonArmoredUnits
   - Air
   - Helicopters
+  fuel_capacity: 1100
 - type: uh1h_cargo
   name: UH-1H cargo
   kind: static
@@ -10951,6 +11118,7 @@ units:
   - Air
   - Planes
   - Battle airplanes
+  fuel_capacity: 400
 - type: Workshop A
   name: Workshop A
   kind: static
@@ -10975,6 +11143,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 3080
 - type: Yak-52
   name: Yak-52
   kind: air
@@ -10987,6 +11156,7 @@ units:
   - NonArmoredUnits
   - Air
   - Planes
+  fuel_capacity: 87.84
 - type: ZBD04A
   name: ZBD-04A
   kind: vehicle

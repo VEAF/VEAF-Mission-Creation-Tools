@@ -30,12 +30,11 @@ runtime. A move therefore warns that it could not look, rather than validating a
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_backup import backup_before_write
-from mission_tools.miz_tools import read_miz, write_miz
 from presets_injector.radio_frequency_validator import get_human_radio
 from veaf_libs import coordinates
 
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import find_group, group_names, indexed
 
 #: DCS stores a group's modulation as an integer; a mission maker says AM or FM.
@@ -108,12 +107,10 @@ def set_group_properties(
     if (move_bearing is None) != (move_distance_m is None):
         raise ValueError("move_bearing and move_distance_m must be given together (or neither)")
 
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    group = find_group(mission.mission_content, group_name)
-    existing_names = group_names(mission.mission_content)
+    group = find_group(content, group_name)
+    existing_names = group_names(content)
 
     changed: dict[str, Any] = {}
     warnings: list[str] = []
@@ -139,10 +136,9 @@ def set_group_properties(
             changed[field] = {"from": bool(group.get(key)), "to": value}
             group[key] = value
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
-    return {"group": new_name or group_name, "changed": changed, "warnings": warnings}
+    return {"group": new_name or group_name, "changed": changed, "warnings": warnings, "durable": durable}
 
 
 def _apply_rename(

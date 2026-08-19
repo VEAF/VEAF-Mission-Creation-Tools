@@ -1,6 +1,11 @@
 # 04 — `add_air_group` creates aircraft with an empty fuel tank
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19. The capacity is sourced, not invented: the datamine carries
+`M_fuel_max` on **all 170 air units and on no other**, so `dcsUnits.yaml` gained a `fuel_capacity`
+field and `dcsUnits.lua` is byte-identical (the Lua renderer names its fields). A type the database
+does not know gets **no `fuel` key and a warning** rather than a refusal — the contract
+`FIX-MCP-AIRCRAFT-CATEGORY` already set for a mod type in these same two actions, and which a first
+attempt at refusing broke in two existing tests.
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_air_group.py` (and `player_slot.py`, same payload
 builder), tests

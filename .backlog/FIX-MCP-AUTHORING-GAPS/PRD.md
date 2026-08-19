@@ -1,6 +1,25 @@
 # FIX-MCP-AUTHORING-GAPS — four defects an agent met authoring one real mission
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19, all four tickets.
+
+Three things the lot found that its tickets had not predicted, each of the same shape — the defect was
+one call away from where it was reported:
+
+- **Ticket 01's insertion bug existed three times.** `_append_qra_definition` and `_append_cap_mission`
+  append to `mission.yaml` lists exactly as `create_combat_zone` did, so all three now go through one
+  comment-aware helper. Fixing only the reported one would have left two known-identical defects in the
+  same file.
+- **Ticket 03 reached `validate_group_name`**, which reads the mission through
+  `set_group_properties`'s own target. A folder read as a zip returns *no zones*, so the combat-zone
+  capture check would have been **lost rather than failed** — the exact failure mode this lot is about.
+- **Ticket 04's first attempt was wrong on the repo's own terms.** Refusing an unknown aircraft type
+  broke two existing tests asserting that a third-party mod is *warned about, not refused*
+  (`FIX-MCP-AIRCRAFT-CATEGORY` set that contract in these same two actions). The shipped behaviour
+  warns and writes no `fuel` key, so DCS applies its own default instead of an explicit "carry none".
+
+And one thing measured rather than assumed, as ticket 04 asked: the datamine carries `M_fuel_max` on
+**all 170 air units and on no other unit**, so the capacity is sourced. `dcsUnits.lua` came out
+byte-identical, its renderer naming the fields it emits.
 
 Origin: building `test/veaf-tools/verify-mission-c` on 2026-08-18 (`CHORE-ISSUE-VERIFY-SESSION`). The
 mission was authored almost entirely through the MCP actions, which is the point of them. Three times
@@ -34,10 +53,10 @@ session and was twice attributed to whatever the check under test happened to be
 
 ## Definition of done
 
-- [ ] A combat zone created into an existing `combat_zones:` list lands **inside** it, wherever the
+- [x] A combat zone created into an existing `combat_zones:` list lands **inside** it, wherever the
       comments sit
-- [ ] A group can be removed through an action, and removal renumbers what it leaves behind
-- [ ] `validate_mission` reports a holed numeric table by **path**, so the build never has to
-- [ ] The editing actions accept a mission folder wherever `add_group` already does
-- [ ] Each of the three is covered by a test built from the shape that broke here, not from a
+- [x] A group can be removed through an action, and removal renumbers what it leaves behind
+- [x] `validate_mission` reports a holed numeric table by **path**, so the build never has to
+- [x] The editing actions accept a mission folder wherever `add_group` already does
+- [x] Each of the three is covered by a test built from the shape that broke here, not from a
       synthetic one

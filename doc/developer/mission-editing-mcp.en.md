@@ -40,6 +40,20 @@ Claude plugin declares in its `.mcp.json`.
 
 ## Action catalog (v1)
 
+!!! note "`miz_path` also takes a mission **folder** (FIX-MCP-AUTHORING-GAPS lot, ticket 03)"
+
+    Every editing action — `edit_route`, `set_group_properties`, `set_unit_properties`, `edit_zone`,
+    `add_trigger_zone`, `add_map_drawing`, `edit_map_drawing` — takes either a `.miz` or a **mission
+    folder**, exactly like `add_group`'s `target`. The trade-off is the same: a folder edit is
+    **durable** (it goes into `src/mission/`, so it survives the next `veaf-tools build`), a `.miz`
+    edit is transient (the next build overwrites it). Each action now returns `durable` to say which.
+    Timestamped backup either way.
+
+    They used to take only a `.miz`, so a group could be **created** durably but not **edited**
+    durably, and pointing `edit_route` at the folder failed with `[Errno 13] Permission denied` —
+    reading a directory as a zip archive. A directory that is not a mission folder is now refused with
+    a message that says so.
+
 The server does **not** expose one MCP tool per business action. It exposes a fixed discovery
 surface, mirroring the `dcs-bridge` MCP tool (a bridge to a running mission):
 
@@ -423,6 +437,15 @@ a **folder** (durable) or a `.miz` (transient).
   `FEAT-MCP-MUTATION-ACTIONS` ticket 09), never guessed. The first waypoint's `type`/`action` pair is
   written per mode.
 - **`frequency_mhz`** is written (group radio on) rather than inherited from a `communication: false`.
+- **Full internal fuel by default.** `fuel` (kg) and `fuel_fraction` (]0, 1]) let you choose the
+  load; without them the aircraft gets its type's internal capacity, read from the shipped units
+  database (`dcsUnits.yaml`, the `fuel_capacity` field sourced from the datamine's `M_fuel_max`).
+  Both actions wrote `fuel = 0` until 6.15.1, which means **no fuel at all**: measured in game on
+  2026-08-18, a KC-135 and its two F-15C escorts created at 20 000 ft pitched straight into the
+  ground on appearing, engines out. A parking start hid the defect, DCS fuelling a parked aircraft
+  from the airfield's stock. A type the database does not know — a third-party mod — is created with
+  **no `fuel` key** (leaving DCS its own default) and the caller is **warned**, rather than handed an
+  invented number.
 - Assigns the country to its side in `coalitions` (see `add_group`), so the mission stays loadable.
 
 ### `add_air_group` (FEAT-MCP-MUTATION-ACTIONS lot, ticket 09)
@@ -459,8 +482,44 @@ or a `.miz` (transient).
   and its `ETA_locked` are written for you.
 - **`skill`** defaults to an AI level (`High`) — a ramp flight is AI unless you ask for
   `Client`/`Player`. `parking` accepts an explicit stand list that overrides selection.
+- **Full internal fuel by default.** `fuel` (kg) and `fuel_fraction` (]0, 1]) let you choose the
+  load; without them the aircraft gets its type's internal capacity, read from the shipped units
+  database (`dcsUnits.yaml`, the `fuel_capacity` field sourced from the datamine's `M_fuel_max`).
+  Both actions wrote `fuel = 0` until 6.15.1, which means **no fuel at all**: measured in game on
+  2026-08-18, a KC-135 and its two F-15C escorts created at 20 000 ft pitched straight into the
+  ground on appearing, engines out. A parking start hid the defect, DCS fuelling a parked aircraft
+  from the airfield's stock. A type the database does not know — a third-party mod — is created with
+  **no `fuel` key** (leaving DCS its own default) and the caller is **warned**, rather than handed an
+  invented number.
 - An uncaptured theatre, an unknown airfield, or too few free stands are refused naming the cause.
   Assigns the country to its side in `coalitions`.
+
+### `remove_group` (FIX-MCP-AUTHORING-GAPS lot, ticket 02)
+
+Write. **Removes a group** from the mission — the one group-level edit the catalogue was missing,
+while `edit_zone` and `edit_map_drawing` both have a `remove: true`. Targets a folder (durable) or a
+`.miz` (transient), timestamped backup before writing.
+
+```json
+{"target": "path/to/mission-folder", "group_name": "Texaco"}
+```
+
+- **Renumbers what it leaves behind.** That is the whole point: hand-deleting a Lua block leaves the
+  enclosing list numbered `1,3,4`, which Lua loads without complaint and the **build** dies on
+  (`AttributeError: 'int' object has no attribute 'get'`) at a line that does not point at the edit.
+  Three corrupted builds on 2026-08-18 came from exactly that — and the stopgap of the day, a
+  renumbering regex keyed on indentation alone, also renumbered `units` and `route.points`. The
+  survivors keep their order and are re-keyed from 1.
+- **The last group of a category takes the `group` key with it**, rather than leaving an empty
+  container — the shape a downstream reader mistakes for a list (`FIX-GROUP-CONTAINER-SHAPE`).
+- **Exact name required.** A fragment is refused, as `set_group_properties` refuses one: a removal
+  landing on whichever group matched first is not recoverable. An unknown name lists what exists, and
+  **nothing is written**.
+- **Names what it breaks without refusing** — the mission maker may well mean it: a combat zone
+  capturing the group by name prefix, an `Escort` task pointing at its `groupId` (nested inside a
+  `ComboTask`, which is how DCS actually writes it), and a `mission.yaml`
+  `modules.ASSETS.assets` entry naming it. That last one is only checkable on a **folder** target: a
+  `.miz` carries no `mission.yaml`.
 
 ### `validate_group_name` (wave 6)
 

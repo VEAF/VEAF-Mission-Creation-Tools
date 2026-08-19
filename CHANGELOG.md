@@ -7,6 +7,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.4] — 2026-08-19
+
+### Fixed
+
+- **`veaf-tools.exe` starts again.** Every 6.15.x executable died on any command — including
+  `--help` — with `ModuleNotFoundError: No module named 'mission_builder.mission_builder_README'`,
+  reported by Tripack. The `mission_builder` package started resolving its exports lazily in 6.15.0,
+  and PyInstaller decides what to bundle by reading `import` statements: with the submodules named
+  only in a table read at runtime, none of the eleven modules behind it shipped. The build now
+  collects the package wholesale, so an export added later needs no build change.
+- **A packaged-only failure can no longer ship unnoticed.** The CI builds the executable and runs it
+  on every Python change; until now every test ran from a checkout, where the missing imports resolve
+  perfectly — which is why this shipped, and the two bundled-data defects before it.
+
 ## [6.15.3] — 2026-08-19
 
 ### Fixed

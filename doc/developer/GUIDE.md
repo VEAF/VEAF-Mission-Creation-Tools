@@ -503,6 +503,7 @@ Luacheck est imposé par le job CI `Luacheck`.
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` et `test/lua/` |
 | `Lua Coverage` | Couverture ligne (luacov) au-dessus du plancher de cliquet (`--cov-fail-under`) — bloquant |
 | `python-quality` | ruff lint + format (`src/python/ test/python/ veaf_build/`), mypy (`src/python/veaf-tools`), pytest |
+| `exe-smoke` | L'exécutable empaqueté démarre (`--help`) et exécute une commande réelle — le seul job qui voit un défaut d'empaquetage, invisible depuis un checkout |
 | `Docs Check` | Liens et ancres de la documentation, versions FR/EN, pages absentes du menu |
 | `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 

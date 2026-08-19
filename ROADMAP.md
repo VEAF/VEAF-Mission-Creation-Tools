@@ -59,8 +59,11 @@ extending it:
   setters had no schema key at all, and 14 of 28 scalar keys vanished. `convert-v5` now carries them
   and, where it cannot, **says so**.
 
-Continuous dev releases are published from `develop` (`published-vx.y.z`). The last published
-release is **6.15.0** (2026-08-18).
+A release is cut on a `release/x.y.z` branch off `develop`, merged into `master` with a **merge
+commit**, and tagged twice from there — `published-vx.y.z` for the binaries, `vx.y.z` for the
+versioned documentation. The last published release is **6.15.4** (2026-08-19), which carries four
+patches: 6.15.1 to 6.15.4 were closed in the changelog but never published, so 6.15.0 stood as the
+shipped version while its executable could not start.
 
 ---
 
@@ -132,8 +135,10 @@ does not document it. `FEAT-SMOKE-CSAR-WATER` is the first lot written *for* the
 for a pilot — #245 asks whether CSAR spawns on water, which is a `land.getSurfaceType` call, not a
 flight.
 
-`RELEASE` stays as a recurring chore template, not a one-shot lot. **6.15.0 was published 2026-08-18**;
-the cadence off `develop` is now roughly weekly.
+`RELEASE` stays as a recurring chore template, not a one-shot lot. **6.15.4 was published
+2026-08-19**, carrying 6.15.1 to 6.15.4 — the four patches had been closed in the changelog without
+ever being tagged, which is how a broken executable stayed the shipped version for two days.
+Publishing every closed patch is now part of the template, not a judgement call.
 
 ### Security work closed 2026-08-11
 

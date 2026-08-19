@@ -394,20 +394,42 @@ Use the release assistant prompt at `.prompts/generate-release-notes.md` to run 
 4. Administrative closure (CHANGELOG version bump, `pyproject.toml`, ROADMAP)
 5. Git commands to copy-paste
 
-#### Release flow (git flow)
+#### Release flow (git flow) {#release-flow}
 
-The AI assistant handles: creating `release/x.y.z` from `develop`, committing all release files, and opening the PR.
+The AI assistant handles: creating `release/x.y.z` from `develop`, committing all release files, and
+opening the PR **against `master`** — never against `develop`.
+
+> **A release PR merges with a real merge commit, NOT a squash.** Squashing rewrites the release into
+> a single new commit, so `master` and `develop` stop sharing history: `develop` then shows as
+> permanently "N commits ahead", the tag becomes unreachable from `master`, and later merges raise
+> artificial conflicts. This happened on 6.11.0 — repaired by a back-merge.
 
 After the PR is merged, the developer runs:
 
 ```bash
+# 1. BOTH tags, on master
+git checkout master
+git pull origin master
+git tag published-vx.y.z          # → executables, published.zip, the capture kit
+git tag vx.y.z                    # → versioned docs + the "latest" alias
+git push origin published-vx.y.z vx.y.z
+
+# 2. back-merge, so develop shares master's history again
 git checkout develop
 git pull origin develop
-git tag published-vx.y.z
-git push origin published-vx.y.z
+git merge origin/master
+git push origin develop
 ```
 
 > **Warning:** pushing the tag is irreversible — only run after the PR is merged.
+
+> **Both tags, or the documentation stays on the previous version.** `published-v*` publishes the
+> binaries; `vx.y.z` deploys the versioned documentation and moves the `latest` alias. Pushing only
+> the first ships binaries whose documentation is not published — which is what happened to 6.11.0,
+> whose site stayed on 6.10.0 for want of a `v6.11.0` tag.
+
+> **Do not skip the back-merge:** without it `develop` and `master` drift apart, and every later
+> release merge gets harder.
 
 Pushing the tag triggers the `release` CI workflow, which will:
 1. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`

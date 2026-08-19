@@ -394,20 +394,43 @@ Utiliser le prompt `.prompts/generate-release-notes.md` pour lancer la préparat
 4. Clôture administrative (version CHANGELOG, `pyproject.toml`, ROADMAP)
 5. Commandes git à copier-coller
 
-#### Flow de release (git flow)
+#### Flow de release (git flow) {#release-flow}
 
-L'assistant AI gère : créer `release/x.y.z` depuis `develop`, commiter tous les fichiers de release, et ouvrir la PR.
+L'assistant AI gère : créer `release/x.y.z` depuis `develop`, commiter tous les fichiers de release,
+et ouvrir la PR **vers `master`** — jamais vers `develop`.
+
+> **La PR de release se merge par un vrai commit de fusion, pas en `squash`.** Un `squash` réécrit
+> la release en un commit neuf : `master` et `develop` cessent de partager leur histoire, `develop`
+> apparaît définitivement « N commits en avance », le tag devient inatteignable depuis `master` et
+> les fusions suivantes lèvent des conflits artificiels. C'est arrivé sur la 6.11.0, réparé par une
+> fusion en retour.
 
 Après le merge de la PR, le développeur exécute :
 
 ```bash
+# 1. les DEUX tags, sur master
+git checkout master
+git pull origin master
+git tag published-vx.y.z          # → exécutables, published.zip, kit de capture
+git tag vx.y.z                    # → documentation versionnée + alias « latest »
+git push origin published-vx.y.z vx.y.z
+
+# 2. fusion en retour, pour que develop partage l'histoire de master
 git checkout develop
 git pull origin develop
-git tag published-vx.y.z
-git push origin published-vx.y.z
+git merge origin/master
+git push origin develop
 ```
 
 > **Attention :** pousser le tag est irréversible — uniquement après le merge de la PR.
+
+> **Les deux tags, ou la documentation reste sur la version précédente.** `published-v*` publie les
+> binaires ; `vx.y.z` déploie la documentation et déplace l'alias `latest`. Ne pousser que le premier
+> livre des binaires dont la documentation n'est pas publiée — c'est ce qui est arrivé à la 6.11.0,
+> dont le site est resté sur la 6.10.0 faute de tag `v6.11.0`.
+
+> **Ne pas sauter la fusion en retour :** sans elle `develop` et `master` divergent, et chaque
+> release suivante devient plus difficile à fusionner.
 
 Pousser le tag déclenche le workflow CI `release`, qui va :
 1. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
@@ -563,12 +586,17 @@ simplement l'alias `dev`.
 
 ### Publier une nouvelle version
 
-Pousser un tag `published-v*` — le workflow CI `Release` fait tout automatiquement :
+Pousser les **deux** tags depuis `master`, une fois la PR de release fusionnée — le workflow CI
+`Release` fait le reste automatiquement :
 
 ```bash
-git tag published-v<version>
-git push origin published-v<version>
+git tag published-v<version>      # → exécutables, published.zip, kit de capture
+git tag v<version>                # → documentation versionnée + alias « latest »
+git push origin published-v<version> v<version>
 ```
+
+Le processus complet (branche de release, cible de la PR, méthode de fusion, fusion en retour) est
+décrit dans [Flow de release](#release-flow).
 
 ---
 

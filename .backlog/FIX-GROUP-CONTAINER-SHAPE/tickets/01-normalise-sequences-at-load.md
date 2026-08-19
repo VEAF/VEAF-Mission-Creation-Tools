@@ -45,6 +45,12 @@ readers that already treat them as sequences rather than guessed:
 `…points.task.params.tasks` (nested, a `ComboTask` holds tasks) · `triggers.zones` ·
 `…zones.verticies` · `drawings.layers` · `…layers.objects`
 
+`verticies` is not a typo here: it is **DCS's own misspelling**, and the key a mission file really
+carries — every mission under `test/veaf-tools` writes `verticies`, none writes `vertices`. The
+correctly spelled key is accepted beside it in case DCS ever repairs its own. (The VEAF MCP's
+`vertices` parameter is spelled properly, because that one is our naming rather than the file
+format's — which is what makes the pair look like an inconsistency.)
+
 Anything not on that list — `payload.pylons` first among them — is left exactly as it is.
 
 ## Done when

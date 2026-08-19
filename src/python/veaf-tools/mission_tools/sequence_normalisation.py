@@ -89,6 +89,10 @@ _COUNTRY: _Spec = _node(**{category: _node(group=_seq(**{_ANY: _GROUP})) for cat
 _MISSION_SPEC: _Spec = _node(
     coalition=_node(**{_ANY: _node(country=_seq(**{_ANY: _COUNTRY}))}),
     coalitions=_node(**{_ANY: _seq()}),
+    # `verticies` is DCS's own misspelling and the key a real mission actually carries — measured:
+    # every mission under test/veaf-tools writes `verticies`, none writes `vertices`. The correct
+    # spelling is kept beside it in case DCS ever repairs its own, and because the VEAF MCP
+    # parameter is spelled properly (that one is our naming, not the file format's).
     triggers=_node(zones=_seq(**{_ANY: _node(verticies=_seq(), vertices=_seq())})),
     drawings=_node(layers=_seq(**{_ANY: _node(objects=_seq())})),
 )

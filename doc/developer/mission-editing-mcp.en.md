@@ -381,7 +381,7 @@ silently overwritten.
   `BTR-80`...) are the calling LLM's decision, not this action's. Each unit may carry an explicit
   `name` (else auto-named). That is **where** a combat-zone marker goes (the runtime reads them off
   the **unit name**): `#command`, `#spawngroup`, `#spawnradius`, `#spawncount`, `#spawnchance`,
-  `#spawndelay`. The classic idiom is a "fake-unit" group whose name is `#command="-armor ..."` (a
+  `#spawndelay`, `#alarm`. The classic idiom is a "fake-unit" group whose name is `#command="-armor ..."` (a
   `list_shortcuts` alias): on zone activation it spawns the described group. E.g. `units:
   [{"type": "Soldier M4", "name": "#command=\"-armor, spawnRadius 300\""}]`.
 - `route` — optional; defaults to a single stationary point at `position`. With `patrol: true`

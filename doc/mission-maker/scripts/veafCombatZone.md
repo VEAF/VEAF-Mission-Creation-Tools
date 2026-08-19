@@ -219,6 +219,26 @@ Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter d
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
+| `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO (défaut), `1` VERT, `2` ROUGE |
+
+### `#alarm` — faire tenir sa position à un groupe {#alarm-state}
+
+Un groupe terrestre en alerte **ROUGE** s'arrête et se déploie : c'est juste pour une batterie SAM, faux pour un convoi, qui ne part alors jamais. Les zones font donc apparaître tous leurs groupes en **AUTO**, où DCS élève lui-même le niveau d'alerte du groupe quand il détecte quelque chose — un convoi roule sur sa route, et une défense tire quand même dès qu'elle voit une cible.
+
+Utilisez `#alarm=2` sur les groupes que vous voulez retranchés dès la première seconde, typiquement une défense anti-aérienne dont vous préférez que les radars soient allumés avant le premier passage :
+
+```
+ALPHA-SA6-BATTERY #alarm=2
+ALPHA-SUPPLY-CONVOY
+```
+
+Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur AUTO plutôt que de faire échouer la zone.
+
+!!! note "Uniquement pour les groupes de mission"
+    Le tag s'applique aux groupes que la zone fait apparaître elle-même. Sur une unité `#command=`, passez l'état d'alerte dans la commande (`-spawn ..., alarm 2`), l'apparition étant gérée par l'interpréteur de marqueurs VEAF.
+
+!!! warning "Changement de comportement"
+    Les zones faisaient apparaître **tous** les groupes en ROUGE, ce qui explique qu'un convoi placé dans une zone de combat ne bougeait jamais ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). Si une de vos zones comptait là-dessus — une défense anti-aérienne qui doit être active dès l'activation — ajoutez `#alarm=2` à ces groupes.
 
 ### Exemple pratique — embuscade MANPADS
 

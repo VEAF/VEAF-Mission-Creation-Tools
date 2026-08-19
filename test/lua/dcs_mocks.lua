@@ -194,6 +194,43 @@ world = {
 }
 
 -- ---------------------------------------------------------------------------
+-- AI.Option  (ids and values taken from veaf_libs/data/dcs-schema/dcs-world-api-schema.json)
+-- Only the enums the VEAF scripts actually read; add from the schema rather than from memory.
+-- ---------------------------------------------------------------------------
+AI = {
+  Option = {
+    Air = {
+      id = {
+        NO_OPTION = -1,
+        ROE = 0,
+        REACTION_ON_THREAT = 1,
+        RADAR_USING = 3,
+        FLARE_USING = 4,
+        SILENCE = 7,
+        ECM_USING = 13,
+        MISSILE_ATTACK = 18,
+      },
+      val = {
+        ROE = { WEAPON_FREE = 0, OPEN_FIRE_WEAPON_FREE = 1, OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 },
+        RADAR_USING = { NEVER = 0, FOR_ATTACK_ONLY = 1, FOR_SEARCH_IF_REQUIRED = 2, FOR_CONTINUOUS_SEARCH = 3 },
+        ECM_USING = { NEVER_USE = 0, USE_IF_ONLY_LOCK_BY_RADAR = 1, USE_IF_DETECTED_LOCK_BY_RADAR = 2, ALWAYS_USE = 3 },
+      },
+    },
+    Ground = {
+      id = { NO_OPTION = -1, ROE = 0, FORMATION = 5, DISPERSE_ON_ATTACK = 8, ALARM_STATE = 9, ENGAGE_AIR_WEAPONS = 20 },
+      val = {
+        ROE = { OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 },
+        ALARM_STATE = { AUTO = 0, GREEN = 1, RED = 2 },
+      },
+    },
+    Naval = {
+      id = { NO_OPTION = -1, ROE = 0 },
+      val = { ROE = { OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 } },
+    },
+  },
+}
+
+-- ---------------------------------------------------------------------------
 -- coalition
 -- ---------------------------------------------------------------------------
 coalition = {

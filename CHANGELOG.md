@@ -7,6 +7,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.3] — 2026-08-19
+
+### Fixed
+
+- **A mission whose tables are numbered `1,3,4` no longer kills the build with an unrelated
+  traceback.** A Lua table reaches Python as a list when its keys are contiguous and as a dict
+  otherwise, and eight readers assumed the list — so a hand edit, a third-party tool or a deletion
+  made the build die on `AttributeError: 'int' object has no attribute 'get'` at whichever subsystem
+  read the table first. Group containers, units, route points, trigger zones, zone vertices, map
+  drawings and nested tasks are now normalised **once, on the read path**. Measured: the
+  normalisation changes zero bytes on every mission in the repository, and `payload.pylons` is
+  deliberately left alone — it is keyed by station number, and renumbering it would move every weapon.
+- **A closed-up hole is named.** `validate` warns with the offending table's full path
+  (`coalition.blue.country[1].plane.group: keys 1, 3 -> 1..2`) and the build logs the same, instead of
+  repairing it in silence.
+- **`add_group` writes a patrol task DCS can see.** Its task table used the string key `"1"`, which
+  `luadata` renders as `["1"]` — a different Lua entry from `[1]`, leaving `#tasks` at zero, so the
+  loop never applied. Every real mission writes `[1]`.
+
+---
+
 ## [6.15.2] — 2026-08-19
 
 ### Fixed

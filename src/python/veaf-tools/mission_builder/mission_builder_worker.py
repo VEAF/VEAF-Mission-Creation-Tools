@@ -1307,6 +1307,10 @@ class MissionBuilderWorker(BaseWorker):
         logger.debug(f"Reading mission file {self.output_mission}")
         try:
             self.dcs_mission = read_miz(self.output_mission)
+            # A holed sequence table is closed on load; say which, since the same silence cost three
+            # debugging rounds on 2026-08-18 (FIX-GROUP-CONTAINER-SHAPE).
+            for hole in self.dcs_mission.sequence_holes:
+                logger.warning(t("builder.mission_table_renumbered", hole=str(hole)))
             if self.dcs_mission.missing_components and "options" in self.dcs_mission.missing_components:
                 logger.warning(t("builder.options_missing", path=self.mission_folder / "src"))
                 self.dcs_mission.missing_components.remove("options")  # we've handled that one

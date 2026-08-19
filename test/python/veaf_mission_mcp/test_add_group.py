@@ -94,7 +94,9 @@ class TestAddGroup:
         group = _find_group(read_miz(sample_miz).mission_content, "Patrol Group")
         points = group["route"]["points"]
         assert len(points) == 3
-        last_task = points[-1]["task"]["params"]["tasks"]["1"]
+        # The task list is a list: DCS keys it [1], and the loader iterates it numerically. It used
+        # to be written as {"1": ...}, i.e. ["1"] in Lua, which `#tasks` reads as empty.
+        last_task = points[-1]["task"]["params"]["tasks"][0]
         assert last_task["id"] == "GoToWaypoint"
         assert last_task["params"] == {"fromWaypoint": 3, "nWaypoint": 1}
 
@@ -112,7 +114,10 @@ class TestAddGroup:
         )
 
         group = _find_group(read_miz(sample_miz).mission_content, "One Way Group")
-        assert group["route"]["points"][-1]["task"]["params"]["tasks"] == {}
+        # An empty list, not an empty dict: the load-time sequence normalisation gives every task
+        # table one shape. Both serialise to the same `tasks = {},` (measured), so the mission
+        # file is unchanged either way.
+        assert group["route"]["points"][-1]["task"]["params"]["tasks"] == []
 
     def test_backs_up_before_every_write(self, sample_miz: Path) -> None:
         assert list(sample_miz.parent.glob("mission.*.miz")) == []

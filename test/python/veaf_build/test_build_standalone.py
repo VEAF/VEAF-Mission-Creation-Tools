@@ -8,6 +8,7 @@ they assert orchestration only, never invoking PyInstaller.
 
 from __future__ import annotations
 
+import ast
 import subprocess
 from pathlib import Path
 
@@ -140,15 +141,21 @@ def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
 def _lazy_packages_on_disk(worker: BuildAndReleaseWorker) -> set[str]:
     """Return the shipped packages whose `__init__.py` resolves its exports lazily.
 
-    A lazy package is recognised the way PyInstaller's blind spot is created: a PEP 562
-    `__getattr__` handing out submodules through `import_module`. Scanning for the pattern
-    rather than reading a list is the point — it fires on the *next* package made lazy.
+    Detection is by **AST**: a module-level `__getattr__` in an `__init__.py` is exactly the
+    PEP 562 hook Python calls for a name the package does not define, and it is the whole of
+    PyInstaller's blind spot — whatever the body then does to produce the module. Parsing
+    rather than grepping means a reformatted signature, a mention in a docstring or a switch
+    from `import_module` to another import mechanism cannot fool it.
+
+    Scanning for the pattern rather than reading a declared list is the point: what broke
+    6.15.0 was making a package lazy **without realising** the build had to follow, so a guard
+    the author must opt into would have missed it exactly as the build did.
     """
     veaf_tools_dir = worker.src_dir / "python" / "veaf-tools"
     lazy = set()
     for init in veaf_tools_dir.glob("*/__init__.py"):
-        source = init.read_text(encoding="utf-8")
-        if "def __getattr__" in source and "import_module" in source:
+        tree = ast.parse(init.read_text(encoding="utf-8"), filename=str(init))
+        if any(isinstance(node, ast.FunctionDef) and node.name == "__getattr__" for node in tree.body):
             lazy.add(init.parent.name)
     return lazy
 

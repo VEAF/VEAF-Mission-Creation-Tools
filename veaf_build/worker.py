@@ -45,6 +45,12 @@ _ROOT_EXECUTABLES: tuple[str, ...] = ("veaf-tools.exe", "veaf-tools-updater.exe"
 #: 'mission_builder.mission_builder_README'``, which is what 6.15.0 shipped (reported by Tripack).
 #: Collecting the package covers every submodule, including ones a future export adds, which is
 #: why this is a package list rather than a module list.
+#:
+#: Applied to ``veaf-tools`` only, and deliberately: the updater imports ``veaf_libs`` and
+#: ``veaf_tools.helpers`` and nothing else — no lazy package — so collecting these there would grow
+#: its binary for nothing. If that ever changes, the guard in ``test_build_standalone.py`` is what
+#: says so; this tuple stays the one place the answer lives, because the last time this repository
+#: kept a second copy of "what ships in the exe" (the ``.spec`` files) the two diverged in silence.
 _LAZY_PACKAGES: tuple[str, ...] = ("mission_builder",)
 
 
